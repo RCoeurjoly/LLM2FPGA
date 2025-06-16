@@ -1,0 +1,6 @@
+
+
+
+| Paper/Repo Name | Open Source Code | Open LLM? | Extra HW? | FPGA Used       | Open Toolchain? | Design Style | #Params | Tiny Model? | Reducible? | Proprietary Tools? | Notes        |
+|-----------------+------------------+-----------+-----------+-----------------+-----------------+--------------+---------+-------------+------------+--------------------+--------------|
+| [Name]          | Yes/No (+link)   | Yes/No    | Yes/No    | [e.g., XC7Z020] | Yes/No          | RTL/HLS/etc  | 8M      | Yes/No      | Yes/No     | Yes/No             | [Extra info] |
