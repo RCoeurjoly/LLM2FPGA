@@ -17,5 +17,15 @@ arXiv:2504.16266: TeLLMe: An Energy-Efficient Ternary LLM Accelerator for Prefil
  arXiv:2405.00738: HLSTransform: Energy-Efficient Llama 2 Inference on FPGAs Via High-Level Synthesis
  arXiv:2312.15159: Understanding the Potential of FPGA-Based Spatial Acceleration for LLM Inference
  arXiv:2505.03745: AccLLM: Accelerating Long-Context LLM Inference Via Algorithm-Hardware Co-Design
+** 1A: docs/survey.md
+This subtask is desk research. Survey table of 10+ FPGA-LLM papers/repos, answering the following questions:
+  - Is code (RTL or other) available open source? If not, detailed description of architecture? promise to open source it?
 
-
+    If it is not open sourced but the promised somewhere to do it, request code, but not wait for it.
+  - Did it use open source LLMs?
+  - Was additional hardware used? external memory, etc (in principle we should discard those projects)
+  - What FPGA was used? Is it (or an equivalently sized FPGA) available through open source tooling?
+  - What approach did they use? HLS (High Level Synthesis), RTL ...
+  - How many parameters has the LLM used? Is there a small, minimal version of the model available (e.g., under 10M parameters)?
+  - Can the architecture be reduced to a proof-of-concept unit (e.g., one transformer block or FFN)?
+  - Does the design require proprietary synthesis or simulation steps?
