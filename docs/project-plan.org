@@ -1,0 +1,29 @@
+* LLM2FPGA: Project Plan
+  LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
+** 1. Survey & candidate selection
+  State of the art review. Although some candidate projects have been identified, to have the big picture of what has been achieved so far, we need to understand 10 to 15 papers/projects, and what can be reused, even finding synergies between papers/projects.
+  We are lucky that the keywords LLM and FPGA usually give highly relevant results.
+  The first subtask is desk research. Survey table of 10+ FPGA-LLM papers/repos, answering the following questions:
+  Openness: Is the code or detailed design public or promised? Open to open-source FPGA tools? Uses open LLMs?
+  Hardware: Avoid if it needs extra hardware. Check FPGA and open toolchain support.
+  Design: Note method (RTL/HLS), model size (<10M preferred), proof-of-concept potential, and proprietary tool dependencies.
+  Second subtask:
+  The purpose is to identify issues or blockages, not to get each project completely reproduced.
+      • Can the HDL (SystemVerilog, Verilog) be parsed by Yosys or yosys-slang?
+      • If HLS is used, can the original C/C++ code be compiled with Vericert or another FOSS HLS tool?
+  Issues or blockages such as:
+      • Uses features of HDL (SystemVerilog, VHDL) that are not supported in yosys.
+  In yosys, Verilog support is more mature than SystemVerilog (with yosys-slang) or VHDL (with ghdl-yosys-plugin)
+      • Same for HLS
+  The third subtask:
+      • Chosen kernel + why
+      • Any major blockers found in other candidates
+      • Fallback plan in case current kernel becomes unviable
+  From now on, we call the chosen kernel the selected route.
+*** Milestone(s)
+    a. Publish survey results based on desk research.
+    b. Research compatibility of potential projects with open source tooling: create a script that clones each repo and runs elaboration with Yosys; logs archived (green, blockages etc)
+    c. Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
+*** subtask 1.a
+**** TODO_NEXT Create links to all papers analyzed
+- State "TODO_NEXT"  from              [2025-06-30 Mon 21:13]
