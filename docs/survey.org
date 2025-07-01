@@ -3,7 +3,7 @@
 
 | Paper/Repo Name                                    | Open Source Code | Open LLM? | Extra HW? | FPGA Used       | Open Toolchain? | Design Style | #Params | Tiny Model? | Reducible? | Proprietary Tools? | Notes        |
 |----------------------------------------------------+------------------+-----------+-----------+-----------------+-----------------+--------------+---------+-------------+------------+--------------------+--------------|
-|                                                    | Yes/No (+link)   | Yes/No    | Yes/No    | [e.g., XC7Z020] | Yes/No          | RTL/HLS/etc  | 8M      | Yes/No      | Yes/No     | Yes/No             | [Extra info] |
+| Example project                                    | Yes/No (+link)   | Yes/No    | Yes/No    | [e.g., XC7Z020] | Yes/No          | RTL/HLS/etc  | 8M      | Yes/No      | Yes/No     | Yes/No             | [Extra info] |
 | TeLLMe (https://arxiv.org/abs/2504.16266)          |                  |           |           |                 |                 |              |         |             |            |                    |              |
 | https://arxiv.org/abs/2503.16731                   |                  |           |           |                 |                 |              |         |             |            |                    |              |
 | TerEffic https://arxiv.org/abs/2502.16473          |                  |           |           |                 |                 |              |         |             |            |                    |              |
@@ -16,3 +16,4 @@
 | HLSTransform https://arxiv.org/abs/2405.00738      |                  |           |           |                 |                 |              |         |             |            |                    |              |
 | https://arxiv.org/abs/2312.15159                   |                  |           |           |                 |                 |              |         |             |            |                    |              |
 | AccLLM https://arxiv.org/abs/2505.03745            |                  |           |           |                 |                 |              |         |             |            |                    |              |
+| MASE https://arxiv.org/abs/2307.15517v2            |                  |           |           |                 |                 |              |         |             |            |                    |              |
