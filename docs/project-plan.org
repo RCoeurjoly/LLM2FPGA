@@ -25,5 +25,35 @@
     b. Research compatibility of potential projects with open source tooling: create a script that clones each repo and runs elaboration with Yosys; logs archived (green, blockages etc)
     c. Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 *** subtask 1.a
-**** TODO_NEXT Create links to all papers analyzed
+**** TODO_NEXT Analyze all papers [0/13]
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:22]
+***** TODO_NEXT TeLLMe (https://arxiv.org/abs/2504.16266)          
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT https://arxiv.org/abs/2503.16731                   
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT TerEffic https://arxiv.org/abs/2502.16473          
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT MEADOW https://arxiv.org/abs/2503.11663            
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT FlightLLM https://arxiv.org/abs/2401.03868         
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT SECDA-LLM https://arxiv.org/abs/2408.00462         
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT MatMul-Free LM https://arxiv.org/abs/2406.02528    
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT LoopLynx https://arxiv.org/abs/2504.09561          
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT On-Device Qwen2.5 https://arxiv.org/abs/2504.17376 
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT HLSTransform https://arxiv.org/abs/2405.00738      
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT https://arxiv.org/abs/2312.15159                   
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT AccLLM https://arxiv.org/abs/2505.03745            
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+***** TODO_NEXT MASE https://arxiv.org/abs/2307.15517v2            
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+**** DONE Create links to all papers analyzed
+CLOSED: [2025-07-02 Wed 12:21]
+- State "DONE"       from "TODO_NEXT"  [2025-07-02 Wed 12:21]
 - State "TODO_NEXT"  from              [2025-06-30 Mon 21:13]
