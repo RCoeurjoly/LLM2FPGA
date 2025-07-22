@@ -29,3 +29,9 @@ This subtask is desk research. Survey table of 10+ FPGA-LLM papers/repos, answer
   - How many parameters has the LLM used? Is there a small, minimal version of the model available (e.g., under 10M parameters)?
   - Can the architecture be reduced to a proof-of-concept unit (e.g., one transformer block or FFN)?
   - Does the design require proprietary synthesis or simulation steps?
+* Funding
+
+This project is funded through [[https://nlnet.nl/commonsfund][NGI0 Commons Fund]], a fund established by [[https://nlnet.nl][NLnet]] with financial support from the European Commission's [[https://ngi.eu][Next Generation Internet]] program. Learn more at the [[https://nlnet.nl/project/LLM2FPGA][NLnet project page]].
+
+[[https://nlnet.nl][https://nlnet.nl/logo/banner.png]]
+[[https://nlnet.nl/commonsfund][https://nlnet.nl/image/logos/NGI0_tag.svg]]
