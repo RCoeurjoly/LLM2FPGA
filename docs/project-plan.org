@@ -60,6 +60,9 @@ CLOSED: [2025-07-02 Wed 12:21]
 - State "DONE"       from "TODO_NEXT"  [2025-07-02 Wed 12:21]
 - State "TODO_NEXT"  from              [2025-06-30 Mon 21:13]
 *** subtask 1.b
+**** Notes
+The most useful tutorial for LLM2FPGA is not written
+https://deepwok.github.io/mase/modules/documentation/tutorials/tutorial_8_emit_verilog.html
 **** TODO_NEXT Mase: call emit_verilog function
 - State "TODO_NEXT"  from              [2025-08-10 Sun 14:18]
 ***** TODO_NEXT Setup flake.nix
