@@ -25,7 +25,9 @@ LLM2FPGA aims to enable local inference of open-source Large Language Models (LL
     b. Research compatibility of potential projects with open source tooling: create a script that clones each repo and runs elaboration with Yosys; logs archived (green, blockages etc)
     c. Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 *** subtask 1.a
-**** TODO_NEXT Quick AI analysis of all papers to find snags [0/13]
+**** DONE Quick AI analysis of all papers to find snags [0/13]
+CLOSED: [2025-08-10 Sun 14:17]
+- State "DONE"       from "TODO_NEXT"  [2025-08-10 Sun 14:17]
 - State "TODO_NEXT"  from              [2025-07-02 Wed 12:22]
 ***** TODO_NEXT TeLLMe (https://arxiv.org/abs/2504.16266)          
 - State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
@@ -57,3 +59,4 @@ LLM2FPGA aims to enable local inference of open-source Large Language Models (LL
 CLOSED: [2025-07-02 Wed 12:21]
 - State "DONE"       from "TODO_NEXT"  [2025-07-02 Wed 12:21]
 - State "TODO_NEXT"  from              [2025-06-30 Mon 21:13]
+*** subtask 1.b
