@@ -65,6 +65,10 @@ The most useful tutorial for LLM2FPGA is not written
 https://deepwok.github.io/mase/modules/documentation/tutorials/tutorial_8_emit_verilog.html
 **** TODO_NEXT Mase: call emit_verilog function
 - State "TODO_NEXT"  from              [2025-08-10 Sun 14:18]
+  Steps:
+  nix develop
+  source .venv/bin/activate
+  
 ***** CANCELED Setup flake.nix
 CLOSED: [2025-08-13 Wed 13:08]
 - State "CANCELED"   from "TODO_NEXT"  [2025-08-13 Wed 13:08]
