@@ -63,18 +63,50 @@ CLOSED: [2025-07-02 Wed 12:21]
 **** Notes
 The most useful tutorial for LLM2FPGA is not written
 https://deepwok.github.io/mase/modules/documentation/tutorials/tutorial_8_emit_verilog.html
-**** TODO_NEXT Mase: call emit_verilog function
+**** Mase
+***** TODO_NEXT Elaborate SystemVerilog with yosys-slang
+- State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
+****** TODO_NEXT Create yosys script
+- State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
+Emitted SystemVerilog files:
+   /home/roland/.mase/top/hardware/rtl/fixed_accumulator.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_adder_tree.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_adder_tree_layer.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_cast.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_dot_product.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_linear.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_mult.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_relu.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_vector_mult.sv
+   /home/roland/.mase/top/hardware/rtl/join2.sv
+   /home/roland/.mase/top/hardware/rtl/matmul.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_accumulator.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_fifo.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_flatten.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_stream_transpose.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_unflatten.sv
+   /home/roland/.mase/top/hardware/rtl/register_slice.sv
+   /home/roland/.mase/top/hardware/rtl/simple_matmul.sv
+   /home/roland/.mase/top/hardware/rtl/skid_buffer.sv
+   /home/roland/.mase/top/hardware/rtl/top.sv
+   /home/roland/.mase/top/hardware/rtl/transpose.sv
+   /home/roland/.mase/top/hardware/rtl/unpacked_repeat_circular_buffer.sv
+***** DONE Mase: call emit_verilog function
+CLOSED: [2025-08-19 Tue 13:39]
+- State "DONE"       from "TODO_NEXT"  [2025-08-19 Tue 13:39]
 - State "TODO_NEXT"  from              [2025-08-10 Sun 14:18]
   Steps:
   nix develop
   source .venv/bin/activate
   
-***** CANCELED Setup flake.nix
+****** notes
+even though the function is called emit_verilog_top_transform_pass, it emits SystemVerilog, not Verilog
+****** CANCELED Setup flake.nix
 CLOSED: [2025-08-13 Wed 13:08]
 - State "CANCELED"   from "TODO_NEXT"  [2025-08-13 Wed 13:08]
 - State "TODO_NEXT"  from              [2025-08-10 Sun 14:28]
   Let's do it later, just emit_verilog
-****** CANCELED nix: /nix/store/whypqfa83z4bsn43n4byvmw80n4mg3r8-glibc-2.37-45/lib/libc.so.6: version `GLIBC_2.38' not found (required by /nix/store/90yn7340r8yab8kxpb0p7y0c9j3snjam-gcc-13.2.0-lib/lib/libstdc++.so.6)
+******* CANCELED nix: /nix/store/whypqfa83z4bsn43n4byvmw80n4mg3r8-glibc-2.37-45/lib/libc.so.6: version `GLIBC_2.38' not found (required by /nix/store/90yn7340r8yab8kxpb0p7y0c9j3snjam-gcc-13.2.0-lib/lib/libstdc++.so.6)
 CLOSED: [2025-08-13 Wed 13:08]
 - State "CANCELED"   from "TODO_NEXT"  [2025-08-13 Wed 13:08]
 - State "TODO_NEXT"  from              [2025-08-10 Sun 14:28]
