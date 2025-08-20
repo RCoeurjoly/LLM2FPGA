@@ -63,7 +63,8 @@ CLOSED: [2025-07-02 Wed 12:21]
 **** Notes
 The most useful tutorial for LLM2FPGA is not written
 https://deepwok.github.io/mase/modules/documentation/tutorials/tutorial_8_emit_verilog.html
-**** Mase
+**** TODO_NEXT Mase
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:39]
 ***** TODO_NEXT Elaborate SystemVerilog with yosys-slang
 - State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
 ****** TODO_NEXT Create yosys script
@@ -205,7 +206,7 @@ net_2_bias_source #(
 Build failed: 19 errors, 10 warnings
 ERROR: Compilation failed
 ******** Notes
-
+sv files are also located in /home/roland/mase/src/mase_components/
 ****** DONE Build yosys-slang
 CLOSED: [2025-08-20 Wed 13:10]
 - State "DONE"       from              [2025-08-20 Wed 13:10]
