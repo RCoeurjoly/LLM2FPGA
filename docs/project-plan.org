@@ -91,6 +91,10 @@ Emitted SystemVerilog files:
    /home/roland/.mase/top/hardware/rtl/top.sv
    /home/roland/.mase/top/hardware/rtl/transpose.sv
    /home/roland/.mase/top/hardware/rtl/unpacked_repeat_circular_buffer.sv
+****** DONE Build yosys-slang
+CLOSED: [2025-08-20 Wed 13:10]
+- State "DONE"       from              [2025-08-20 Wed 13:10]
+  from yosys-slang dir, available with yosys -m build/slang.so
 ***** DONE Mase: call emit_verilog function
 CLOSED: [2025-08-19 Tue 13:39]
 - State "DONE"       from "TODO_NEXT"  [2025-08-19 Tue 13:39]
