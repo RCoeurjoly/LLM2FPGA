@@ -92,7 +92,7 @@ Emitted SystemVerilog files:
    /home/roland/.mase/top/hardware/rtl/top.sv
    /home/roland/.mase/top/hardware/rtl/transpose.sv
    /home/roland/.mase/top/hardware/rtl/unpacked_repeat_circular_buffer.sv
-******* TODO_NEXT Fix unknown module errors [0/26]
+******* TODO_NEXT Fix unknown module errors [12/16]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 13:58]
 ******** logs
 yosys -m build/slang.so llm2fpga.ys
@@ -223,30 +223,79 @@ net_2_weight_source #(
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
 net_2_bias_source #(
 ^~~~~~~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:43:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
-    else $fatal("DIM0 compute is not divisible!");
-                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:45:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
-    else $fatal("DIM1 compute is not divisible!");
-                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:115:5: error: unknown module 'fifo'
+******** DONE ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:115:5: error: unknown module 'fifo'
+CLOSED: [2025-08-20 Wed 18:58]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:58]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
     fifo #(
     ^~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:142:7: error: unknown module 'mux'
+******** DONE ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:142:7: error: unknown module 'mux'
+CLOSED: [2025-08-20 Wed 18:50]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:50]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
       mux #(
       ^~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:166:7: error: unknown module 'mux'
+******** DONE ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:166:7: error: unknown module 'mux'
+CLOSED: [2025-08-20 Wed 18:50]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:50]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
       mux #(
       ^~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:174:7: error: unknown module 'mux'
+******** DONE ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:174:7: error: unknown module 'mux'
+CLOSED: [2025-08-20 Wed 18:51]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:51]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
       mux #(
       ^~~
+******** DONE ../.mase/top/hardware/rtl/matmul.sv:181:7: error: unknown module 'single_element_repeat'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+      single_element_repeat #(
+      ^~~~~~~~~~~~~~~~~~~~~
+  in instance: top.net_2_inst.matmul_i
+******** DONE ../.mase/top/hardware/rtl/matmul.sv:208:7: error: unknown module 'unpacked_skid_buffer'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+      unpacked_skid_buffer #(
+      ^~~~~~~~~~~~~~~~~~~~
+******** DONE ../.mase/top/hardware/rtl/matmul.sv:314:5: error: unknown module 'fixed_signed_cast'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    fixed_signed_cast #(
+    ^~~~~~~~~~~~~~~~~
+******** DONE ../.mase/top/hardware/rtl/fixed_linear.sv:186:5: error: unknown module 'input_buffer'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    input_buffer #(
+    ^~~~~~~~~~~~
+******** DONE ../.mase/top/hardware/rtl/fixed_linear.sv:205:5: error: unknown module 'fixed_rounding'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    fixed_rounding #(
+    ^~~~~~~~~~~~~~
+******** DONE ../.mase/top/hardware/rtl/fixed_linear.sv:215:5: error: unknown module 'unpacked_register_slice'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    unpacked_register_slice #(
+    ^~~~~~~~~~~~~~~~~~~~~~~
+******** DONE ../.mase/top/hardware/rtl/fixed_linear.sv:248:5: error: unknown module 'fixed_cast'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    fixed_cast #(
+    ^~~~~~~~~~
+******** DONE ../.mase/top/hardware/rtl/simple_matmul.sv:136:9: error: unknown module 'fixed_round'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+******* TODO_NEXT Fix warnings? [0/10]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:59]
 ******** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:84:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
     else $fatal("A_TOTAL_DIM0 must equal B_TOTAL_DIM1!");
@@ -272,35 +321,16 @@ net_2_bias_source #(
     else $fatal("B_DIM1 compute is not divisible!");
                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   in instance: top.net_0_inst.matmul_i
-******** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:181:7: error: unknown module 'single_element_repeat'
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
-      single_element_repeat #(
-      ^~~~~~~~~~~~~~~~~~~~~
-  in instance: top.net_2_inst.matmul_i
-******** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:208:7: error: unknown module 'unpacked_skid_buffer'
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
-      unpacked_skid_buffer #(
-      ^~~~~~~~~~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:314:5: error: unknown module 'fixed_signed_cast'
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
-    fixed_signed_cast #(
-    ^~~~~~~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/fixed_linear.sv:186:5: error: unknown module 'input_buffer'
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
-    input_buffer #(
-    ^~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/fixed_linear.sv:205:5: error: unknown module 'fixed_rounding'
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
-    fixed_rounding #(
-    ^~~~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/fixed_linear.sv:215:5: error: unknown module 'unpacked_register_slice'
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
-    unpacked_register_slice #(
-    ^~~~~~~~~~~~~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/fixed_linear.sv:248:5: error: unknown module 'fixed_cast'
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
-    fixed_cast #(
-    ^~~~~~~~~~
+
+******** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:43:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+******** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:45:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 ******** TODO_NEXT ../.mase/top/hardware/rtl/simple_matmul.sv:64:19: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
       else $fatal("OUT_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_WIDTH);
@@ -309,8 +339,7 @@ net_2_bias_source #(
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
       else $fatal("OUT_FRAC_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_FRAC_WIDTH);
                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-******** TODO_NEXT ../.mase/top/hardware/rtl/simple_matmul.sv:136:9: error: unknown module 'fixed_round'
-- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+
 ****** DONE Build yosys-slang
 - State "DONE"       from              [2025-08-20 Wed 13:10]
   from yosys-slang dir, available with yosys -m build/slang.so
