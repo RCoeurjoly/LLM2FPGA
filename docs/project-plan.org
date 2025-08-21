@@ -67,7 +67,12 @@ https://deepwok.github.io/mase/modules/documentation/tutorials/tutorial_8_emit_v
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:39]
 ***** TODO_NEXT Elaborate SystemVerilog with yosys-slang
 - State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
-****** TODO_NEXT Create yosys script
+****** TODO_NEXT Process BERT
+- State "TODO_NEXT"  from              [2025-08-21 Thu 12:58]
+  docs/tutorials/emit_verilog_bert.ipynb
+****** DONE Create yosys script
+CLOSED: [2025-08-21 Thu 12:58]
+- State "DONE"       from "TODO_NEXT"  [2025-08-21 Thu 12:58]
 - State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
 Emitted SystemVerilog files:
    /home/roland/.mase/top/hardware/rtl/fixed_accumulator.sv
@@ -92,8 +97,11 @@ Emitted SystemVerilog files:
    /home/roland/.mase/top/hardware/rtl/top.sv
    /home/roland/.mase/top/hardware/rtl/transpose.sv
    /home/roland/.mase/top/hardware/rtl/unpacked_repeat_circular_buffer.sv
-******* TODO_NEXT Fix unknown module errors [12/16]
+******* CANCELED Fix unknown module errors [12/16]
+CLOSED: [2025-08-21 Thu 12:57]
+- State "CANCELED"   from "TODO_NEXT"  [2025-08-21 Thu 12:57]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 13:58]
+  Better to use existing workflow from mase.
 ******** logs
 yosys -m build/slang.so llm2fpga.ys
 
@@ -294,7 +302,9 @@ CLOSED: [2025-08-20 Wed 18:59]
 CLOSED: [2025-08-20 Wed 18:59]
 - State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
-******* TODO_NEXT Fix warnings? [0/10]
+******* CANCELED Fix warnings? [0/10]
+CLOSED: [2025-08-21 Thu 12:56]
+- State "CANCELED"   from "TODO_NEXT"  [2025-08-21 Thu 12:56]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:59]
 ******** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:84:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
@@ -339,7 +349,6 @@ CLOSED: [2025-08-20 Wed 18:59]
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
       else $fatal("OUT_FRAC_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_FRAC_WIDTH);
                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 ****** DONE Build yosys-slang
 - State "DONE"       from              [2025-08-20 Wed 13:10]
   from yosys-slang dir, available with yosys -m build/slang.so
