@@ -70,6 +70,14 @@ https://deepwok.github.io/mase/modules/documentation/tutorials/tutorial_8_emit_v
 ****** TODO_NEXT Process BERT
 - State "TODO_NEXT"  from              [2025-08-21 Thu 12:58]
   docs/tutorials/emit_verilog_bert.ipynb
+
+  after jupyter nbconvert --to script docs/tutorials/emit_verilog_bert.ipynb, we can execute the python script:
+
+  python docs/tutorials/emit_verilog_bert.py
+******* TODO_NEXT Fix all errors
+- State "TODO_NEXT"  from              [2025-08-21 Thu 13:22]
+******** TODO_NEXT ModuleNotFoundError: No module named 'chop.models.patched'
+- State "TODO_NEXT"  from              [2025-08-21 Thu 13:22]
 ****** DONE Create yosys script
 CLOSED: [2025-08-21 Thu 12:58]
 - State "DONE"       from "TODO_NEXT"  [2025-08-21 Thu 12:58]
