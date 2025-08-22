@@ -15,7 +15,7 @@ LLM2FPGA aims to enable local inference of open-source Large Language Models (LL
       • Uses features of HDL (SystemVerilog, VHDL) that are not supported in yosys.
   In yosys, Verilog support is more mature than SystemVerilog (with yosys-slang) or VHDL (with ghdl-yosys-plugin)
       • Same for HLS
-  The third subtask:
+      The third subtask:
       • Chosen kernel + why
       • Any major blockers found in other candidates
       • Fallback plan in case current kernel becomes unviable
