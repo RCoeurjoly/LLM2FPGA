@@ -7,7 +7,7 @@ git checkout RCoeurjoly/flake
 cd ~/yosys-slang
 # Note that mase stores results in ~/.mase
 # yosys has to be in PATH,
-yosys -m build/slang.so -p "read_slang /home/roland/mase/src/mase_components/memory/rtl/fifo.sv /home/roland/mase/src/mase_components/common/rtl/mux.sv /home/roland/.mase/top/hardware/rtl/*.sv --top top"
+yosys -m build/slang.so -p "read_slang /home/roland/mase/src/mase_components/memory/rtl/fifo.sv /home/roland/mase/src/mase_components/common/rtl/mux.sv /home/roland/.mase/top/hardware/rtl/*.sv /home/roland/mase/src/mase_components/common/rtl/single_element_repeat.sv /home/roland/mase/src/mase_components/common/rtl/unpacked_register_slice.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_rounding.sv /home/roland/mase/src/mase_components/memory/rtl/input_buffer.sv /home/roland/mase/src/mase_components/memory/rtl/unpacked_skid_buffer.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_round.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_signed_cast.sv --top top"
 
 yosys -m build/slang.so -p "read_slang ~/.mase/top/hardware/rtl/*.sv --top top"
 
