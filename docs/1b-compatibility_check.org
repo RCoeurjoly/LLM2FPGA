@@ -1,0 +1,332 @@
+* TODO_NEXT Write the steps for deepwok mase
+- State "TODO_NEXT"  from              [2025-10-08 Wed 16:14]
+git clone git@github.com:RCoeurjoly/mase.git
+cd mase
+git checkout RCoeurjoly/flake
+
+cd ~/yosys-slang
+# Note that mase stores results in ~/.mase
+# yosys has to be in PATH,
+yosys -m build/slang.so -p "read_slang ~/.mase/top/hardware/rtl/*.sv --top top"
+
+* TODO_NEXT Mase
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:39]
+** TODO_NEXT Elaborate SystemVerilog with yosys-slang
+- State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
+*** TODO_NEXT Process BERT
+- State "TODO_NEXT"  from              [2025-08-21 Thu 12:58]
+  docs/tutorials/emit_verilog_bert.ipynb
+
+  after jupyter nbconvert --to script docs/tutorials/emit_verilog_bert.ipynb, we can execute the python script:
+
+  python docs/tutorials/emit_verilog_bert.py
+**** TODO_NEXT Fix all errors
+- State "TODO_NEXT"  from              [2025-08-21 Thu 13:22]
+***** TODO_NEXT ModuleNotFoundError: No module named 'chop.models.patched'
+- State "TODO_NEXT"  from              [2025-08-21 Thu 13:22]
+*** DONE Create yosys script
+CLOSED: [2025-08-21 Thu 12:58]
+- State "DONE"       from "TODO_NEXT"  [2025-08-21 Thu 12:58]
+- State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
+Emitted SystemVerilog files:
+   /home/roland/.mase/top/hardware/rtl/fixed_accumulator.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_adder_tree.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_adder_tree_layer.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_cast.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_dot_product.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_linear.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_mult.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_relu.sv
+   /home/roland/.mase/top/hardware/rtl/fixed_vector_mult.sv
+   /home/roland/.mase/top/hardware/rtl/join2.sv
+   /home/roland/.mase/top/hardware/rtl/matmul.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_accumulator.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_fifo.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_flatten.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_stream_transpose.sv
+   /home/roland/.mase/top/hardware/rtl/matrix_unflatten.sv
+   /home/roland/.mase/top/hardware/rtl/register_slice.sv
+   /home/roland/.mase/top/hardware/rtl/simple_matmul.sv
+   /home/roland/.mase/top/hardware/rtl/skid_buffer.sv
+   /home/roland/.mase/top/hardware/rtl/top.sv
+   /home/roland/.mase/top/hardware/rtl/transpose.sv
+   /home/roland/.mase/top/hardware/rtl/unpacked_repeat_circular_buffer.sv
+**** CANCELED Fix unknown module errors [12/16]
+CLOSED: [2025-08-21 Thu 12:57]
+- State "CANCELED"   from "TODO_NEXT"  [2025-08-21 Thu 12:57]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 13:58]
+  Better to use existing workflow from mase.
+***** logs
+yosys -m build/slang.so llm2fpga.ys
+
+ /----------------------------------------------------------------------------\
+ | yosys -- Yosys Open SYnthesis Suite                                |
+ | Copyright (C) 2012 - 2024  Claire Xenia Wolf <claire@yosyshq.com>  |
+ | Distributed under an ISC-like license, type "license" to see terms |
+ \----------------------------------------------------------------------------/
+ Yosys 0.45+126 (git sha1 80119386c, g++ 11.4.0-1ubuntu1~22.04 -Og -fPIC)
+
+-- Executing script file `llm2fpga.ys' --
+
+1. Executing VERIFIC (loading SystemVerilog and VHDL designs using Verific).
+Built with Verific Aug24_SW_Release, released at Thu Aug 29 19:14:57 2024.
+
+2. Executing SLANG frontend.
+Top level design units:
+    top
+
+../.mase/top/hardware/rtl/top.sv:168:1: error: unknown module 'net_0_weight_source'
+net_0_weight_source #(
+^~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/top.sv:182:1: error: unknown module 'net_0_bias_source'
+net_0_bias_source #(
+^~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/top.sv:264:1: error: unknown module 'net_2_weight_source'
+net_2_weight_source #(
+^~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/top.sv:278:1: error: unknown module 'net_2_bias_source'
+net_2_bias_source #(
+^~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/fixed_vector_mult.sv:56:3: error: unknown module 'join2'
+  join2 #() join_inst (
+  ^~~~~
+../.mase/top/hardware/rtl/matrix_stream_transpose.sv:43:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matrix_stream_transpose.sv:45:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matrix_stream_transpose.sv:115:5: error: unknown module 'fifo'
+    fifo #(
+    ^~~~
+../.mase/top/hardware/rtl/matrix_stream_transpose.sv:142:7: error: unknown module 'mux'
+      mux #(
+      ^~~
+../.mase/top/hardware/rtl/matrix_stream_transpose.sv:166:7: error: unknown module 'mux'
+      mux #(
+      ^~~
+../.mase/top/hardware/rtl/matrix_stream_transpose.sv:174:7: error: unknown module 'mux'
+      mux #(
+      ^~~
+../.mase/top/hardware/rtl/matmul.sv:84:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("A_TOTAL_DIM0 must equal B_TOTAL_DIM1!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:86:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("A_COMPUTE_DIM0 must equal B_COMPUTE_DIM1!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:90:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("A_DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:92:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("A_DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:94:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("B_DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:96:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("B_DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  in instance: top.net_0_inst.matmul_i
+../.mase/top/hardware/rtl/matmul.sv:181:7: error: unknown module 'single_element_repeat'
+      single_element_repeat #(
+      ^~~~~~~~~~~~~~~~~~~~~
+  in instance: top.net_2_inst.matmul_i
+../.mase/top/hardware/rtl/matmul.sv:208:7: error: unknown module 'unpacked_skid_buffer'
+      unpacked_skid_buffer #(
+      ^~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:314:5: error: unknown module 'fixed_signed_cast'
+    fixed_signed_cast #(
+    ^~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/fixed_linear.sv:179:5: error: unknown module 'join2'
+    join2 join2_matmul_bias_i (
+    ^~~~~
+../.mase/top/hardware/rtl/fixed_linear.sv:186:5: error: unknown module 'input_buffer'
+    input_buffer #(
+    ^~~~~~~~~~~~
+../.mase/top/hardware/rtl/fixed_linear.sv:205:5: error: unknown module 'fixed_rounding'
+    fixed_rounding #(
+    ^~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/fixed_linear.sv:215:5: error: unknown module 'unpacked_register_slice'
+    unpacked_register_slice #(
+    ^~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/fixed_linear.sv:248:5: error: unknown module 'fixed_cast'
+    fixed_cast #(
+    ^~~~~~~~~~
+../.mase/top/hardware/rtl/simple_matmul.sv:64:19: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+      else $fatal("OUT_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_WIDTH);
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/simple_matmul.sv:66:19: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+      else $fatal("OUT_FRAC_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_FRAC_WIDTH);
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/simple_matmul.sv:91:3: error: unknown module 'join2'
+  join2 sync_handshake (
+  ^~~~~
+../.mase/top/hardware/rtl/simple_matmul.sv:136:9: error: unknown module 'fixed_round'
+        fixed_round #(
+        ^~~~~~~~~~~
+
+Build failed: 19 errors, 10 warnings
+ERROR: Compilation failed
+***** Notes
+sv files are also located in /home/roland/mase/src/mase_components/
+***** TODO_NEXT ../.mase/top/hardware/rtl/top.sv:168:1: error: unknown module 'net_0_weight_source'
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+net_0_weight_source #(
+^~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/top.sv:182:1: error: unknown module 'net_0_bias_source'
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+net_0_bias_source #(
+^~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/top.sv:264:1: error: unknown module 'net_2_weight_source'
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+net_2_weight_source #(
+^~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/top.sv:278:1: error: unknown module 'net_2_bias_source'
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+net_2_bias_source #(
+^~~~~~~~~~~~~~~~~
+***** DONE ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:115:5: error: unknown module 'fifo'
+CLOSED: [2025-08-20 Wed 18:58]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:58]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    fifo #(
+    ^~~~
+***** DONE ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:142:7: error: unknown module 'mux'
+CLOSED: [2025-08-20 Wed 18:50]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:50]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+      mux #(
+      ^~~
+***** DONE ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:166:7: error: unknown module 'mux'
+CLOSED: [2025-08-20 Wed 18:50]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:50]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+      mux #(
+      ^~~
+***** DONE ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:174:7: error: unknown module 'mux'
+CLOSED: [2025-08-20 Wed 18:51]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:51]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+      mux #(
+      ^~~
+***** DONE ../.mase/top/hardware/rtl/matmul.sv:181:7: error: unknown module 'single_element_repeat'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+      single_element_repeat #(
+      ^~~~~~~~~~~~~~~~~~~~~
+  in instance: top.net_2_inst.matmul_i
+***** DONE ../.mase/top/hardware/rtl/matmul.sv:208:7: error: unknown module 'unpacked_skid_buffer'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+      unpacked_skid_buffer #(
+      ^~~~~~~~~~~~~~~~~~~~
+***** DONE ../.mase/top/hardware/rtl/matmul.sv:314:5: error: unknown module 'fixed_signed_cast'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    fixed_signed_cast #(
+    ^~~~~~~~~~~~~~~~~
+***** DONE ../.mase/top/hardware/rtl/fixed_linear.sv:186:5: error: unknown module 'input_buffer'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    input_buffer #(
+    ^~~~~~~~~~~~
+***** DONE ../.mase/top/hardware/rtl/fixed_linear.sv:205:5: error: unknown module 'fixed_rounding'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    fixed_rounding #(
+    ^~~~~~~~~~~~~~
+***** DONE ../.mase/top/hardware/rtl/fixed_linear.sv:215:5: error: unknown module 'unpacked_register_slice'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    unpacked_register_slice #(
+    ^~~~~~~~~~~~~~~~~~~~~~~
+***** DONE ../.mase/top/hardware/rtl/fixed_linear.sv:248:5: error: unknown module 'fixed_cast'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+    fixed_cast #(
+    ^~~~~~~~~~
+***** DONE ../.mase/top/hardware/rtl/simple_matmul.sv:136:9: error: unknown module 'fixed_round'
+CLOSED: [2025-08-20 Wed 18:59]
+- State "DONE"       from "TODO_NEXT"  [2025-08-20 Wed 18:59]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+**** CANCELED Fix warnings? [0/10]
+CLOSED: [2025-08-21 Thu 12:56]
+- State "CANCELED"   from "TODO_NEXT"  [2025-08-21 Thu 12:56]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:59]
+***** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:84:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("A_TOTAL_DIM0 must equal B_TOTAL_DIM1!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:86:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("A_COMPUTE_DIM0 must equal B_COMPUTE_DIM1!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:90:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("A_DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:92:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("A_DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:94:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("B_DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/matmul.sv:96:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("B_DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  in instance: top.net_0_inst.matmul_i
+
+***** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:43:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/matrix_stream_transpose.sv:45:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:45]
+    else $fatal("DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+***** TODO_NEXT ../.mase/top/hardware/rtl/simple_matmul.sv:64:19: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+      else $fatal("OUT_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_WIDTH);
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***** TODO_NEXT ../.mase/top/hardware/rtl/simple_matmul.sv:66:19: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+- State "TODO_NEXT"  from              [2025-08-20 Wed 18:46]
+      else $fatal("OUT_FRAC_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_FRAC_WIDTH);
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*** DONE Build yosys-slang
+- State "DONE"       from              [2025-08-20 Wed 13:10]
+  from yosys-slang dir, available with yosys -m build/slang.so
+** DONE Mase: call emit_verilog function
+CLOSED: [2025-08-19 Tue 13:39]
+- State "DONE"       from "TODO_NEXT"  [2025-08-19 Tue 13:39]
+- State "TODO_NEXT"  from              [2025-08-10 Sun 14:18]
+  Steps:
+  nix develop
+  source .venv/bin/activate
+  
+*** notes
+even though the function is called emit_verilog_top_transform_pass, it emits SystemVerilog, not Verilog
+*** CANCELED Setup flake.nix
+CLOSED: [2025-08-13 Wed 13:08]
+- State "CANCELED"   from "TODO_NEXT"  [2025-08-13 Wed 13:08]
+- State "TODO_NEXT"  from              [2025-08-10 Sun 14:28]
+  Let's do it later, just emit_verilog
+**** CANCELED nix: /nix/store/whypqfa83z4bsn43n4byvmw80n4mg3r8-glibc-2.37-45/lib/libc.so.6: version `GLIBC_2.38' not found (required by /nix/store/90yn7340r8yab8kxpb0p7y0c9j3snjam-gcc-13.2.0-lib/lib/libstdc++.so.6)
+CLOSED: [2025-08-13 Wed 13:08]
+- State "CANCELED"   from "TODO_NEXT"  [2025-08-13 Wed 13:08]
+- State "TODO_NEXT"  from              [2025-08-10 Sun 14:28]
+nix develop
+
+*** Notes
+The most useful tutorial for LLM2FPGA is not written
+https://deepwok.github.io/mase/modules/documentation/tutorials/tutorial_8_emit_verilog.html
