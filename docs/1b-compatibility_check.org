@@ -11,9 +11,15 @@ yosys -m build/slang.so -p "read_slang ~/.mase/top/hardware/rtl/*.sv --top top"
 
 * TODO_NEXT Mase
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:39]
-** TODO_NEXT Elaborate SystemVerilog with yosys-slang
+** TODO_NEXT Figure out how the ~/.mase/top/hardware/rtl/*.sv files were created
+- State "TODO_NEXT"  from              [2025-10-20 Mon 21:50]
+** CANCELED Elaborate SystemVerilog with yosys-slang
+CLOSED: [2025-10-20 Mon 21:50]
+- State "CANCELED"   from "TODO_NEXT"  [2025-10-20 Mon 21:50]
 - State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
-*** TODO_NEXT Process BERT
+*** CANCELED Process BERT
+CLOSED: [2025-10-20 Mon 21:50]
+- State "CANCELED"   from "TODO_NEXT"  [2025-10-20 Mon 21:50]
 - State "TODO_NEXT"  from              [2025-08-21 Thu 12:58]
   docs/tutorials/emit_verilog_bert.ipynb
 
