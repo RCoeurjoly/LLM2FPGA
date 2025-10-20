@@ -7,12 +7,13 @@ git checkout RCoeurjoly/flake
 cd ~/yosys-slang
 # Note that mase stores results in ~/.mase
 # yosys has to be in PATH,
-yosys -m build/slang.so -p "read_slang ~/.mase/top/hardware/rtl/*.sv --top top"
+yosys -m build/slang.so -p "read_slang /home/roland/mase/src/mase_components/memory/rtl/fifo.sv ~/.mase/top/hardware/rtl/*.sv --top top"
 
 * TODO_NEXT Mase
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:39]
 ** TODO_NEXT Figure out how the ~/.mase/top/hardware/rtl/*.sv files were created
 - State "TODO_NEXT"  from              [2025-10-20 Mon 21:50]
+  
 ** CANCELED Elaborate SystemVerilog with yosys-slang
 CLOSED: [2025-10-20 Mon 21:50]
 - State "CANCELED"   from "TODO_NEXT"  [2025-10-20 Mon 21:50]
