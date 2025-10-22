@@ -7,13 +7,22 @@ git checkout RCoeurjoly/flake
 cd ~/yosys-slang
 # Note that mase stores results in ~/.mase
 # yosys has to be in PATH,
+yosys -m build/slang.so -p "read_slang /home/roland/mase/src/mase_components/memory/rtl/fifo.sv /home/roland/mase/src/mase_components/common/rtl/mux.sv /home/roland/.mase/top/hardware/rtl/*.sv /home/roland/mase/src/mase_components/common/rtl/single_element_repeat.sv /home/roland/mase/src/mase_components/common/rtl/unpacked_register_slice.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_rounding.sv /home/roland/mase/src/mase_components/memory/rtl/input_buffer.sv /home/roland/mase/src/mase_components/memory/rtl/unpacked_skid_buffer.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_round.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_signed_cast.sv /home/roland/mase/src/mase_components/cast/rtl/signed_clamp.sv /home/roland/mase/src/mase_components/cast/rtl/floor_round.sv /home/roland/mase/src/mase_components/memory/rtl/blk_mem_gen_0.sv /home/roland/mase/src/mase_components/memory/rtl/simple_dual_port_ram.sv --top top"
+
 yosys -m build/slang.so -p "read_slang ~/.mase/top/hardware/rtl/*.sv --top top"
 
 * TODO_NEXT Mase
 - State "TODO_NEXT"  from              [2025-08-20 Wed 18:39]
-** TODO_NEXT Elaborate SystemVerilog with yosys-slang
+** TODO_NEXT Figure out how the ~/.mase/top/hardware/rtl/*.sv files were created
+- State "TODO_NEXT"  from              [2025-10-20 Mon 21:50]
+  
+** CANCELED Elaborate SystemVerilog with yosys-slang
+CLOSED: [2025-10-20 Mon 21:50]
+- State "CANCELED"   from "TODO_NEXT"  [2025-10-20 Mon 21:50]
 - State "TODO_NEXT"  from              [2025-08-19 Tue 13:39]
-*** TODO_NEXT Process BERT
+*** CANCELED Process BERT
+CLOSED: [2025-10-20 Mon 21:50]
+- State "CANCELED"   from "TODO_NEXT"  [2025-10-20 Mon 21:50]
 - State "TODO_NEXT"  from              [2025-08-21 Thu 12:58]
   docs/tutorials/emit_verilog_bert.ipynb
 
