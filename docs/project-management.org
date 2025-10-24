@@ -1,9 +1,16 @@
 * TODO_NEXT Write the steps for deepwok mase
 - State "TODO_NEXT"  from              [2025-10-08 Wed 16:14]
+We have created a fork of mase, with a branch called RCoeurjoly/flake.
+
 git clone git@github.com:RCoeurjoly/mase.git
 cd mase
 git checkout RCoeurjoly/flake
 
+# Enter the environment, not completely pulished but it works
+nix develop
+source .venv/bin/activate
+
+# Build yosys-slang following its README instructions: https://github.com/povik/yosys-slang?tab=readme-ov-file#building
 cd ~/yosys-slang
 # Note that mase stores results in ~/.mase
 # yosys has to be in PATH,
