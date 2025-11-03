@@ -122,3 +122,9 @@ Vitis HSL is freeware, not open source
 https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools.html
 
 https://adaptivesupport.amd.com/s/article/Xilinx-Licensing-Solution-Center?language=en_US
+
+There are open source HLS tools:
+https://github.com/ymherklotz/vericert
+, but the headers in MatMul_SA are vitis specific
+
+https://github.com/Richielee630/MatMul_SA/blob/main/mmult_accel.cpp#L1
