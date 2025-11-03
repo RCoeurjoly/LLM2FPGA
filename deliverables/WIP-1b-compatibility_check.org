@@ -113,3 +113,12 @@ ERROR: Compilation failed
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
 
 The accelerator resides in the git submodule https://github.com/Richielee630/MatMul_SA
+
+It requires Vitis HSL to compile:
+
+https://github.com/Richielee630/MatMul_SA?tab=readme-ov-file#example
+
+Vitis HSL is freeware, not open source
+https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools.html
+
+https://adaptivesupport.amd.com/s/article/Xilinx-Licensing-Solution-Center?language=en_US
