@@ -42,6 +42,10 @@ CLOSED: [2025-07-02 Wed 12:21]
 - State "TODO_NEXT"  from              [2025-11-03 Mon 16:50]
 *** TODO_NEXT LoopLynx
 - State "TODO_NEXT"  from              [2025-11-03 Mon 12:06]
+  They point to https://github.com/zjnyly/TeraFly?tab=readme-ov-file
+
+  Which in turn point to llama fpga
+  https://github.com/adamgallas/llama-fpga
 *** TODO_NEXT HLSTransform
 - State "TODO_NEXT"  from              [2025-11-03 Mon 12:06]
 *** TODO_NEXT cornell-zhang/allo
@@ -587,3 +591,12 @@ nix develop
 ****** Notes
 The most useful tutorial for LLM2FPGA is not written
 https://deepwok.github.io/mase/modules/documentation/tutorials/tutorial_8_emit_verilog.html
+** HLS notes
+
+Look for alternatives to Vitis HLS, open source, able to process Vitis HLS headers like #include <ap_int.h> #include <hls_stream.h>
+
+
+https://chatgpt.com/share/6908e06c-1b24-8008-b02c-3313dc555d0b
+
+Very promissing:
+https://github.com/ferrandi/PandA-bambu
