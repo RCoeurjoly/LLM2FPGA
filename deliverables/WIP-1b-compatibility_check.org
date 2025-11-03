@@ -109,3 +109,7 @@ ERROR: Compilation failed
 - Only 'net_0_weight_source.sv' is present under `~/.mase`:
   - Evidence: '~/.mase/top/hardware/rtl/net_0_weight_source.sv'
 - The corresponding bias/weight source modules were *not generated* by LLM2FPGA.py in this run, so elaboration halts at hierarchy resolution.
+* TMMA
+https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
+
+The accelerator resides in the git submodule https://github.com/Richielee630/MatMul_SA
