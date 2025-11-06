@@ -46,6 +46,11 @@ CLOSED: [2025-07-02 Wed 12:21]
 
   Which in turn point to llama fpga
   https://github.com/adamgallas/llama-fpga
+**** llama fpga
+my board: Kintex7 480T
+Placa de desarrollo FPGA XC7K480T K7-480 Kintex7 PCIE X8 4G YZCA-00338 #T5-
+
+https://www.ebay.es/itm/376208176272?chn=ps&norover=1&mkevt=1&mkrid=1185-171098-620544-2&mkcid=2&mkscid=101&itemid=376208176272&targetid=4587643557342507&device=c&mktype=&googleloc=164580&poi=&campaignid=604142975&mkgroupid=1344705146320125&rlsatarget=pla-4587643557342507&abcId=9410770&merchantid=137185&msclkid=02f7bf9a60b216d587b9d7c5748b647d
 *** TODO_NEXT HLSTransform
 - State "TODO_NEXT"  from              [2025-11-03 Mon 12:06]
 *** TODO_NEXT cornell-zhang/allo
