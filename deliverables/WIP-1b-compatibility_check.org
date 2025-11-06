@@ -128,3 +128,5 @@ https://github.com/ymherklotz/vericert
 , but the headers in MatMul_SA are vitis specific
 
 https://github.com/Richielee630/MatMul_SA/blob/main/mmult_accel.cpp#L1
+** panda bambu
+../PandA-bambu/bambu.AppImage --generate-interface=INFER mmult_accel.cpp --top-fname=mmult_accel
