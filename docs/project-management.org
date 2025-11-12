@@ -38,6 +38,8 @@ CLOSED: [2025-07-02 Wed 12:21]
 
 * TODO_NEXT 1b-compatibility_check
 - State "TODO_NEXT"  from              [2025-11-03 Mon 12:02]
+** TODO_NEXT Table with github metrics for each project
+- State "TODO_NEXT"  from              [2025-11-12 Wed 12:59]
 ** TODO_NEXT First draft
 - State "TODO_NEXT"  from              [2025-11-03 Mon 16:50]
 *** TODO_NEXT LoopLynx: https://github.com/zjnyly/LoopLynx?tab=readme-ov-file

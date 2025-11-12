@@ -1,3 +1,8 @@
+* Table
+| Project | link | stars | commits | last updated |
+|---------+------+-------+---------+--------------|
+|         |      |       |         |              |
+
 * Deepwok / MASE — elaboration attempt + blockage
 ** Steps run
 #+begin_src bash
