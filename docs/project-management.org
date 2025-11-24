@@ -42,6 +42,10 @@ CLOSED: [2025-07-02 Wed 12:21]
 - State "TODO_NEXT"  from              [2025-11-03 Mon 16:50]
 *** TODO_NEXT Torch-MLIR + CIRCT
 - State "TODO_NEXT"  from              [2025-11-23 Sun 15:07]
+**** TODO_NEXT my-dot-cf.mlir:2:19: error: memref's must be both statically sized and unidimensional.
+- State "TODO_NEXT"  from              [2025-11-24 Mon 16:14]
+  func.func @main(%arg0: memref<4x4xi32, strided<[?, ?], offset: ?>>, %arg1: memref<4x4xi32, strided<[?, ?], offset: ?>>, %arg2: memref<4x4xi32>) {
+                  ^
 *** TODO_NEXT LoopLynx: https://github.com/zjnyly/LoopLynx?tab=readme-ov-file
 - State "TODO_NEXT"  from              [2025-11-03 Mon 12:06]
   They point to https://github.com/zjnyly/TeraFly?tab=readme-ov-file
