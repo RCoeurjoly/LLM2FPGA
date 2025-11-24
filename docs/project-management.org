@@ -8,6 +8,10 @@
   nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c ./demo2.sh
 
   
+**** Fix CIRCT
+build failed
+nix log /nix/store/vkv5q65dmpf7n4xza3kinzgbpalzglwf-circt-1.137.0g20251124_2eb32a1.drv
+
 **** Prompt
 My goal is to get Verilog or SystemVerilog out of PyTorch + Torch-MLIR + MLIR + CIRCT
 
@@ -16,6 +20,7 @@ Attached relevant files.
 This is the error I am currently getting:
 
 How to fix?
+
 **** DONE my-dot-handshake.mlir:2:3: error: 'handshake.func' op expected that block argument #2 is used by an 'extmemory' operation
 CLOSED: [2025-11-24 Mon 18:34]
 - State "DONE"       from "TODO_NEXT"  [2025-11-24 Mon 18:34]
