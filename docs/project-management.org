@@ -1,48 +1,29 @@
-* DONE subtask 1.a
-CLOSED: [2025-11-03 Mon 12:08]
-- State "DONE"       from              [2025-11-03 Mon 12:08]
-** DONE Quick AI analysis of all papers to find snags [0/13]
-CLOSED: [2025-08-10 Sun 14:17]
-- State "DONE"       from "TODO_NEXT"  [2025-08-10 Sun 14:17]
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:22]
-*** TODO_NEXT TeLLMe (https://arxiv.org/abs/2504.16266)          
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT https://arxiv.org/abs/2503.16731                   
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT TerEffic https://arxiv.org/abs/2502.16473          
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT MEADOW https://arxiv.org/abs/2503.11663            
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT FlightLLM https://arxiv.org/abs/2401.03868         
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT SECDA-LLM https://arxiv.org/abs/2408.00462         
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT MatMul-Free LM https://arxiv.org/abs/2406.02528    
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT LoopLynx https://arxiv.org/abs/2504.09561          
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT On-Device Qwen2.5 https://arxiv.org/abs/2504.17376 
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT HLSTransform https://arxiv.org/abs/2405.00738      
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT https://arxiv.org/abs/2312.15159                   
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT AccLLM https://arxiv.org/abs/2505.03745            
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-*** TODO_NEXT MASE https://arxiv.org/abs/2307.15517v2            
-- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
-** DONE Create links to all papers analyzed
-CLOSED: [2025-07-02 Wed 12:21]
-- State "DONE"       from "TODO_NEXT"  [2025-07-02 Wed 12:21]
-- State "TODO_NEXT"  from              [2025-06-30 Mon 21:13]
-
 * TODO_NEXT 1b-compatibility_check
 - State "TODO_NEXT"  from              [2025-11-03 Mon 12:02]
 ** TODO_NEXT First draft
 - State "TODO_NEXT"  from              [2025-11-03 Mon 16:50]
 *** TODO_NEXT Torch-MLIR + CIRCT
 - State "TODO_NEXT"  from              [2025-11-23 Sun 15:07]
-**** TODO_NEXT my-dot-cf.mlir:2:19: error: memref's must be both statically sized and unidimensional.
+**** TODO_NEXT my-dot-handshake.mlir:2:3: error: 'handshake.func' op expected that block argument #2 is used by an 'extmemory' operation
+- State "TODO_NEXT"  from              [2025-11-24 Mon 18:18]
+  handshake.func @main(%arg0: memref<16xi32>, %arg1: memref<16xi32>, %arg2: memref<16xi32>, %arg3: none, ...) -> none attributes {argNames = ["in0", "in1", "in2", "in3"], resNames = ["out0"]} {
+  ^
+***** Things tried
+Added --memref-expand to
+echo "### 3) Linalg → CF (CIRCT-compatible bufferization)"
+$MLIR_OPT my-dot-linalg.mlir \
+  --empty-tensor-to-alloc-tensor \
+  --one-shot-bufferize="bufferize-function-boundaries" \
+  --buffer-results-to-out-params \
+  --memref-expand \
+  --convert-linalg-to-affine-loops \
+  --lower-affine \
+  --convert-scf-to-cf \
+
+  Same error
+**** CANCELED my-dot-cf.mlir:2:19: error: memref's must be both statically sized and unidimensional.
+CLOSED: [2025-11-24 Mon 18:18]
+- State "CANCELED"   from "TODO_NEXT"  [2025-11-24 Mon 18:18]
 - State "TODO_NEXT"  from              [2025-11-24 Mon 16:14]
   func.func @main(%arg0: memref<4x4xi32, strided<[?, ?], offset: ?>>, %arg1: memref<4x4xi32, strided<[?, ?], offset: ?>>, %arg2: memref<4x4xi32>) {
                   ^
@@ -618,3 +599,41 @@ https://chatgpt.com/share/6908e06c-1b24-8008-b02c-3313dc555d0b
 
 Very promissing:
 https://github.com/ferrandi/PandA-bambu
+* DONE subtask 1.a
+CLOSED: [2025-11-03 Mon 12:08]
+- State "DONE"       from              [2025-11-03 Mon 12:08]
+** DONE Quick AI analysis of all papers to find snags [0/13]
+CLOSED: [2025-08-10 Sun 14:17]
+- State "DONE"       from "TODO_NEXT"  [2025-08-10 Sun 14:17]
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:22]
+*** TODO_NEXT TeLLMe (https://arxiv.org/abs/2504.16266)          
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT https://arxiv.org/abs/2503.16731                   
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT TerEffic https://arxiv.org/abs/2502.16473          
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT MEADOW https://arxiv.org/abs/2503.11663            
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT FlightLLM https://arxiv.org/abs/2401.03868         
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT SECDA-LLM https://arxiv.org/abs/2408.00462         
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT MatMul-Free LM https://arxiv.org/abs/2406.02528    
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT LoopLynx https://arxiv.org/abs/2504.09561          
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT On-Device Qwen2.5 https://arxiv.org/abs/2504.17376 
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT HLSTransform https://arxiv.org/abs/2405.00738      
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT https://arxiv.org/abs/2312.15159                   
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT AccLLM https://arxiv.org/abs/2505.03745            
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+*** TODO_NEXT MASE https://arxiv.org/abs/2307.15517v2            
+- State "TODO_NEXT"  from              [2025-07-02 Wed 12:25]
+** DONE Create links to all papers analyzed
+CLOSED: [2025-07-02 Wed 12:21]
+- State "DONE"       from "TODO_NEXT"  [2025-07-02 Wed 12:21]
+- State "TODO_NEXT"  from              [2025-06-30 Mon 21:13]
+
