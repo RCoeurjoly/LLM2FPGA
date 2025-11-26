@@ -133,8 +133,9 @@ The pipeline had to be updated with respect to upstream (https://github.com/mike
 
 The pipeline (https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo/blob/main/my-demo.sh) consists of successive lowering from PyTorch to SystemVerilog.
 
+I have also attempted to lower GPT2, a 120M (124439808) parameter model.
 
-+ Torch-MLIR + MLIR + CIRCT + 
+Torch-MLIR successfully lowers GPT2 to MLIR, but more work is needed for lowering to SystemVerilog, mainly choosing the right transforms/passes.
 
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
