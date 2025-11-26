@@ -1,13 +1,14 @@
 * Table
 Updated on <2025-11-12 Wed>
 
-| Project      | link                                       | stars | commits | last updated |
-|--------------+--------------------------------------------+-------+---------+--------------|
-| deepwok/mase | https://github.com/deepwok/mase            |   183 |     541 | 7 months ago |
-| TMMA         | https://github.com/Richielee630/TMMA       |    23 |      34 | 8 months ago |
-| LoopLynx     | https://github.com/zjnyly/LoopLynx         |     1 |       8 | 3 weeks ago  |
-| HLSTransform | https://github.com/HLSTransform/submission |   111 |       4 | last year    |
-| allo         | https://github.com/cornell-zhang/allo      |   296 |     369 | 2 days ago   |
+| Project      | link                                       | stars | commits | last updated | Updated          |
+|--------------+--------------------------------------------+-------+---------+--------------+------------------|
+| deepwok/mase | https://github.com/deepwok/mase            |   183 |     541 | 7 months ago | <2025-11-12 Wed> |
+| TMMA         | https://github.com/Richielee630/TMMA       |    23 |      34 | 8 months ago | <2025-11-12 Wed> |
+| LoopLynx     | https://github.com/zjnyly/LoopLynx         |     1 |       8 | 3 weeks ago  | <2025-11-12 Wed> |
+| HLSTransform | https://github.com/HLSTransform/submission |   111 |       4 | last year    | <2025-11-12 Wed> |
+| allo         | https://github.com/cornell-zhang/allo      |   296 |     369 | 2 days ago   | <2025-11-12 Wed> |
+| Torch-MLIR   | https://github.com/llvm/torch-mlir         |  1700 |         |              |                  |
 
 * Deepwok/MASE: elaboration attempt + blockage
 ** Steps run
