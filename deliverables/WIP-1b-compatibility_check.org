@@ -138,6 +138,10 @@ I have also attempted to lower GPT2, a 120M (124439808) parameter model.
 Torch-MLIR successfully lowers GPT2 to MLIR, but more work is needed for lowering to SystemVerilog, mainly choosing the right transforms/passes.
 * LoopLynx
 Vitis
+They point to https://github.com/zjnyly/TeraFly, with requires the following proprietary tools:
+XRT	2023.2
+Vitis HLS & Vivado	2023.2
+
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
 
