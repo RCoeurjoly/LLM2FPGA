@@ -124,7 +124,9 @@ ERROR: Compilation failed
 * Torch-MLIR + CIRCT
 The compatibility check lives here: https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo
 
-I achieved a PyTorch to SystemVerilog
+I achieved a PyTorch to SystemVerilog pipeline, and the SystemVerilog was processed successfully with yosys-slang.
+
+The pipeline had to be updated with respect to upstream (https://github.com/mikeurbach/hot-chips-2022-pytorch-circt-hls-demo)
 
 + Torch-MLIR + MLIR + CIRCT + 
 
