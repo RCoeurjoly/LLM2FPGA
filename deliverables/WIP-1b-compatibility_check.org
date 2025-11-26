@@ -131,7 +131,7 @@ The pipeline had to be updated with respect to upstream (https://github.com/mike
 - CIRCT-HLS (https://github.com/circt-hls/circt-hls) is no longer maintained and the developers recomend using CIRCT directly.
 - Polygeist (https://github.com/llvm/Polygeist) has not been maintained for a year.
 
-The pipeline (https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo/blob/main/my-demo.sh) consists of 
+The pipeline (https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo/blob/main/my-demo.sh) consists of successive lowering from PyTorch to SystemVerilog.
 
 
 + Torch-MLIR + MLIR + CIRCT + 
