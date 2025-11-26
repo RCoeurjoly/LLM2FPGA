@@ -122,6 +122,10 @@ ERROR: Compilation failed
   - Evidence: '~/.mase/top/hardware/rtl/net_0_weight_source.sv'
 - The corresponding bias/weight source modules were *not generated* by LLM2FPGA.py in this run, so elaboration halts at hierarchy resolution.
 * Torch-MLIR + CIRCT
+The compatibility check lives here: https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo
+
+I achieved a PyTorch + Torch-MLIR + MLIR + CIRCT 
+
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
 
