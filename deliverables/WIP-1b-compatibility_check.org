@@ -126,7 +126,10 @@ The compatibility check lives here: https://github.com/RCoeurjoly/hot-chips-2022
 
 I achieved a PyTorch to SystemVerilog pipeline, and the SystemVerilog was processed successfully with yosys-slang.
 
-The pipeline had to be updated with respect to upstream (https://github.com/mikeurbach/hot-chips-2022-pytorch-circt-hls-demo)
+The pipeline had to be updated with respect to upstream (https://github.com/mikeurbach/hot-chips-2022-pytorch-circt-hls-demo) because the tools it used were outdated: 
+
+CIRCT-HLS (https://github.com/circt-hls/circt-hls) is no longer maintained and the developers recomend using CIRCT directly.
+
 
 + Torch-MLIR + MLIR + CIRCT + 
 
