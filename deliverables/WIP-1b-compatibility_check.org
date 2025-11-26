@@ -124,7 +124,9 @@ ERROR: Compilation failed
 * Torch-MLIR + CIRCT
 The compatibility check lives here: https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo
 
-I achieved a PyTorch + Torch-MLIR + MLIR + CIRCT 
+I achieved a PyTorch to SystemVerilog
+
++ Torch-MLIR + MLIR + CIRCT + 
 
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
