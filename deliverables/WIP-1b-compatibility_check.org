@@ -1,4 +1,4 @@
-* Table
+* Table comparison
 
 | Project      | link                                       | stars | commits | last updated | Snapshot date    |
 |--------------+--------------------------------------------+-------+---------+--------------+------------------|
