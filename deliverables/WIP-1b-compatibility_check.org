@@ -137,6 +137,7 @@ Of the four prerequisites (https://github.com/HLSTransform/submission?tab=readme
 - Status: incompatible with the LLM2FPGA constraints.
 - The reference flow requires AWS EC2, the AWS FPGA Developer AMI and S3, which contradicts the project goal of local, open-source inference without cloud lock-in.
 - No attempt was made to reproduce their cloud-based flow; instead, the incompatibility is at the environment/tooling level.
+* allo
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
 
@@ -152,12 +153,13 @@ https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav
 https://adaptivesupport.amd.com/s/article/Xilinx-Licensing-Solution-Center?language=en_US
 
 There are open source HLS tools:
-https://github.com/ymherklotz/vericert
-, but the headers in MatMul_SA are vitis specific
+https://github.com/ymherklotz/vericert, but the headers in MatMul_SA are vitis specific
 
 https://github.com/Richielee630/MatMul_SA/blob/main/mmult_accel.cpp#L1
 
 We try elaboration with panda bambu.
+
+My work resides on the fork: https://github.com/RCoeurjoly/MatMul_SA
 
 ** panda bambu
 
@@ -411,7 +413,7 @@ Time spent: 26% 7x opt_muxtree (419 sec), 26% 7x opt_dff (419 sec), 20% 9x opt_c
   - ~2.7M cells (≈1.16M $mux, ≈1.0M $and, ≈249k $dffe, etc.).
   - No $mem cells (Bambu emitted only flop-based logic, no inferred RAMs).
 
-- This demonstrates that an open-source HLS path (PandA-bambu → Verilog → Yosys) exists for TMMA’s core accelerator, without relying on Vitis HLS.
+- This demonstrates that an open-source HLS path (PandA-bambu -> Verilog -> Yosys) exists for TMMA’s core accelerator, without relying on Vitis HLS.
 
 * Torch-MLIR + CIRCT
 The compatibility check lives here: https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo
