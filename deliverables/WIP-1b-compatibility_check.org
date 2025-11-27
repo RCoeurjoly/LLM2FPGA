@@ -9,6 +9,7 @@
 | allo         | https://github.com/cornell-zhang/allo      |   296 |     369 | 2 days ago   | <2025-11-12 Wed> |
 | Torch-MLIR   | https://github.com/llvm/torch-mlir         |  1700 |    3531 | 20 hours ago | <2025-11-26 Wed> |
 | CIRCT        | https://github.com/llvm/circt              |  2000 |   10580 | 12 hours ago | <2025-11-26 Wed> |
+| PandA-bambu  | https://github.com/ferrandi/PandA-bambu    |   296 |    6300 | 6 months ago | <2025-11-27 Thu> |
 
 * Deepwok/MASE: elaboration attempt + blockage
 ** Steps run
@@ -164,8 +165,10 @@ https://github.com/ymherklotz/vericert
 , but the headers in MatMul_SA are vitis specific
 
 https://github.com/Richielee630/MatMul_SA/blob/main/mmult_accel.cpp#L1
+
+We try elaboration with panda bambu.
+
 ** panda bambu
-../PandA-bambu/bambu.AppImage --generate-interface=INFER mmult_accel.cpp --top-fname=mmult_accel
 
 ../PandA-bambu/bambu.AppImage --generate-interface=INFER mmult_accel.cpp --top-fname=mmult_accel
  ==  Bambu executed with: /tmp/.mount_bambu.hm7Z7N/usr/bin/bambu --generate-interface=INFER --top-fname=mmult_accel mmult_accel.cpp
@@ -352,3 +355,54 @@ This results in the following files being created:
         array_ref_430034.mem
         mmult_accel.v
         synthesize_Synthesis_mmult_accel.sh
+
+We have to copy some memories that were not created by bambu:
+cp array_ref_428617.mem array.mem
+cp array_ref_428617.mem array_a.mem
+	
+We elaborate with yosys, which succedds:
+
+yosys -s mmult_accel.ys | tee yosys_mmult_accel.log
+	
+   Number of wires:             2828241
+   Number of wire bits:         14045295
+   Number of public wires:      256645
+   Number of public wire bits:  2102595
+   Number of ports:               5644
+   Number of port bits:          57744
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:             2657876
+     $add                          132
+     $adff                           1
+     $and                       999063
+     $dff                           27
+     $dffe                      249035
+     $eq                           113
+     $gt                             1
+     $le                            21
+     $logic_and                     48
+     $logic_not                      3
+     $logic_or                      16
+     $lt                            16
+     $mul                            5
+     $mux                       1160007
+     $ne                             1
+     $neg                            1
+     $not                          131
+     $or                            19
+     $pmux                          27
+     $reduce_bool               248841
+     $reduce_or                     48
+     $sdff                          25
+     $sdffe                          9
+     $shl                           58
+     $shr                          221
+     $sshr                           2
+     $sub                            5
+
+Warnings: 8 unique messages, 9 total
+End of script. Logfile hash: ab55b8b8cc, CPU: user 1593.26s system 41.77s, MEM: 13967.27 MB peak
+Yosys 0.45+126 (git sha1 80119386c, g++ 11.4.0-1ubuntu1~22.04 -Og -fPIC)
+Time spent: 26% 7x opt_muxtree (419 sec), 26% 7x opt_dff (419 sec), 20% 9x opt_clean (316 sec), ...
