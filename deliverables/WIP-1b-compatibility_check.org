@@ -141,6 +141,7 @@ Vitis
 They point to https://github.com/zjnyly/TeraFly, with requires the following proprietary tools:
 XRT	2023.2
 Vitis HLS & Vivado	2023.2
+* HLSTransform
 
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
