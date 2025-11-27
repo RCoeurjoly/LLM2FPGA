@@ -142,7 +142,9 @@ They point to https://github.com/zjnyly/TeraFly, with requires the following pro
 XRT	2023.2
 Vitis HLS & Vivado	2023.2
 * HLSTransform
+Of the four prerequisites (https://github.com/HLSTransform/submission?tab=readme-ov-file#prerequisites), three are contrary to the goals of LLM2FPGA.
 
+1. EC2 instance (z1d.2xlarge recommended), 2. AWS FPGA Developer AMI (install) and 3. S3 Bucket would lock us in a cloud environment, contrary to our purpose of local inference.
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
 
