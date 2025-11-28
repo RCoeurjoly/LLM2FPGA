@@ -138,6 +138,14 @@ Of the four prerequisites (https://github.com/HLSTransform/submission?tab=readme
 - The reference flow requires AWS EC2, the AWS FPGA Developer AMI and S3, which contradicts the project goal of local, open-source inference without cloud lock-in.
 - No attempt was made to reproduce their cloud-based flow; instead, the incompatibility is at the environment/tooling level.
 * allo
+Allo has 4 backends:
+- LLVM (CPU)
+- AMD Vitis HLS (FPGA)
+- RapidStream TAPA (FPGA)
+  - Requires Vitis HLS (https://github.com/rapidstream-org/rapidstream-tapa?tab=readme-ov-file#prerequisites)
+- Multi-Threaded Simulator (CPU)
+- AMD MLIR-AIE (AI Engine)
+  - Targets AMD AI Engine-enabled devices, not FPGAs (https://github.com/Xilinx/mlir-aie/tree/main?tab=readme-ov-file)
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
 
