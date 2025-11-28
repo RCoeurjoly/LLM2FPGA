@@ -146,6 +146,46 @@ Allo has 4 backends:
 - Multi-Threaded Simulator (CPU)
 - AMD MLIR-AIE (AI Engine)
   - Targets AMD AI Engine-enabled devices, not FPGAs (https://github.com/Xilinx/mlir-aie/tree/main?tab=readme-ov-file)
+
+The only one that we can consider for our purposes is LLVM.
+
+We install allo with docker (https://cornell-zhang.github.io/allo/setup/index.html#install-from-docker)
+
+inside docker, we first tutorial:
+python tutorials/tutorial_01_get_started.py
+
+We copy that resulting IR to tut.ir:
+module {
+  func.func @gemm(%arg0: memref<32x32xi32>, %arg1: memref<32x32xi32>) -> memref<32x32xi32> attributes {itypes = "ss", otypes = "s"} {
+    %c0_i32 = arith.constant 0 : i32
+    %c0_i32_0 = arith.constant 0 : i32
+    %alloc = memref.alloc() {name = "C"} : memref<32x32xi32>
+    linalg.fill ins(%c0_i32_0 : i32) outs(%alloc : memref<32x32xi32>)
+    affine.for %arg2 = 0 to 32 {
+      affine.for %arg3 = 0 to 32 {
+        affine.for %arg4 = 0 to 32 {
+          %0 = affine.load %arg0[%arg2, %arg4] {from = "A"} : memref<32x32xi32>
+          %1 = affine.load %arg1[%arg4, %arg3] {from = "B"} : memref<32x32xi32>
+          %2 = arith.extsi %0 : i32 to i64
+          %3 = arith.extsi %1 : i32 to i64
+          %4 = arith.muli %2, %3 : i64
+          %5 = affine.load %alloc[%arg2, %arg3] {from = "C"} : memref<32x32xi32>
+          %6 = arith.extsi %5 : i32 to i65
+          %7 = arith.extsi %4 : i64 to i65
+          %8 = arith.addi %6, %7 : i65
+          %9 = arith.trunci %8 : i65 to i32
+          affine.store %9, %alloc[%arg2, %arg3] {to = "C"} : memref<32x32xi32>
+        } {loop_name = "k"}
+      } {loop_name = "j"}
+    } {loop_name = "i", op_name = "S_i_j_k_0"}
+    return %alloc : memref<32x32xi32>
+  }
+}
+
+We try to canonicalize, to see if the MLIR + CIRCT can apply to allo:
+nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c mlir-opt tut.ir   -canonicalize   -cse   -o allo_canonical.mlir
+
+Success!!
 * TMMA
 https://github.com/Richielee630/TMMA/tree/main?tab=readme-ov-file#-ongoing-research--work-in-progress
 
