@@ -1,4 +1,16 @@
-* Popularity/maintenance table
+* Tables
+** Results summary
+
+| Status   | Project            | Repo URL                                                            | Commit                                   | Flow / Tooling                   | Main blockage / note                                |
+|----------+--------------------+---------------------------------------------------------------------+------------------------------------------+----------------------------------+-----------------------------------------------------|
+| partial  | deepwok/MASE       | https://github.com/RCoeurjoly/mase/tree/RCoeurjoly/flake            | bd0364fc2e6e789511d25482dcd2daa6e5605043 | Yosys + slang (SV)               | Missing net_*_source modules in generated top.sv    |
+| ok (HLS) | TMMA               | https://github.com/RCoeurjoly/MatMul_SA                             | 5db3d530d6e7362192de218a2d60d5786a0a01c1 | PandA-bambu to Verilog           | Vitis headers ok via bambu; large netlist in Yosys  |
+| rejected | LoopLynx           | https://github.com/zjnyly/LoopLynx                                  | e74592af31d015369dd176077252914c0ed267fe | Vendor (XRT/Vitis/Vivado)        | Requires XRT/Vitis/Vivado; no practical open flow   |
+| rejected | HLSTransform       | https://github.com/HLSTransform/submission                          | 5c7b068a1d6c6709163e2cec28cedea3ed2d7ca9 | AWS EC2/FPGA AMI/S3              | Cloud-only reference flow, contradicts local goal   |
+| ok (IR)  | allo               | https://github.com/cornell-zhang/allo                               | 89d1ae33ced34df5d66be3ef2f47acee6742162a | MLIR IR + mlir-opt               | MLIR IR canonicalizes; FPGA backend needs Vitis HLS |
+| ok (RTL) | Torch-MLIR + CIRCT | https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo | 364ac72935304464a49cb936ae5fd012347ec7ce | Torch-MLIR + CIRCT + yosys-slang |                                                     |
+
+** Popularity/maintenance table
 
 | Project      | link                                       | stars | commits | last updated | Snapshot date    |
 |--------------+--------------------------------------------+-------+---------+--------------+------------------|
@@ -10,18 +22,7 @@
 | Torch-MLIR   | https://github.com/llvm/torch-mlir         |  1700 |    3531 | 20 hours ago | <2025-11-26 Wed> |
 | CIRCT        | https://github.com/llvm/circt              |  2000 |   10580 | 12 hours ago | <2025-11-26 Wed> |
 | PandA-bambu  | https://github.com/ferrandi/PandA-bambu    |   296 |    6300 | 6 months ago | <2025-11-27 Thu> |
-
-
-| Project      | Repo URL                                                 | Commit                                   | Flow / Tooling            | Status   | Main blockage / note                                | Log file                             |
-|--------------+----------------------------------------------------------+------------------------------------------+---------------------------+----------+-----------------------------------------------------+--------------------------------------|
-| deepwok/MASE | https://github.com/RCoeurjoly/mase/tree/RCoeurjoly/flake | bd0364fc2e6e789511d25482dcd2daa6e5605043 | Yosys + slang (SV)        | partial  | Missing net_*_source modules in generated top.sv    | deliverables/1b/mase_yosys.log       |
-| TMMA         | https://github.com/RCoeurjoly/MatMul_SA                  | 5db3d530d6e7362192de218a2d60d5786a0a01c1 | PandA-bambu to Verilog    | ok (HLS) | Vitis headers ok via bambu; large netlist in Yosys  | deliverables/1b/tmma_bambu_yosys.log |
-| LoopLynx     | https://github.com/zjnyly/LoopLynx                       | e74592af31d015369dd176077252914c0ed267fe | Vendor (XRT/Vitis/Vivado) | rejected | Requires XRT/Vitis/Vivado; no practical open flow   | N/A                                  |
-| HLSTransform | https://github.com/HLSTransform/submission               | 5c7b068a1d6c6709163e2cec28cedea3ed2d7ca9 | AWS EC2/FPGA AMI/S3       | rejected | Cloud-only reference flow, contradicts local goal   | N/A                                  |
-| allo         | https://github.com/cornell-zhang/allo                    | 89d1ae33ced34df5d66be3ef2f47acee6742162a | MLIR IR + mlir-opt        | ok (IR)  | MLIR IR canonicalizes; FPGA backend needs Vitis HLS | deliverables/1b/allo_mlir.log        |
-
-
-* Deepwok/MASE: elaboration attempt + blockage
+* Deepwok/MASE
 ** Steps run
 #+begin_src bash
 git clone git@github.com:RCoeurjoly/mase.git
