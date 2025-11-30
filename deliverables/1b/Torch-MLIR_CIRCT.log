@@ -1,0 +1,663 @@
+### 1) PyTorch → Torch-MLIR (torch dialect)
+/usr/lib/python3.10/copyreg.py:101: FutureWarning: `isinstance(treespec, LeafSpec)` is deprecated, use `isinstance(treespec, TreeSpec) and treespec.is_leaf()` instead.
+  return cls.__new__(cls, *args)
+
+### 2) Torch → Linalg-on-Tensors
+### 3) Linalg → CF (CIRCT-compatible bufferization)
+Operations encountered:
+-----------------------
+    arith.addi     , 3
+    arith.cmpi     , 2
+    arith.constant , 4
+    arith.extsi    , 1
+    arith.muli     , 1
+  builtin.module   , 1
+       cf.br       , 4
+       cf.cond_br  , 2
+     func.func     , 1
+     func.return   , 1
+   memref.alloc    , 2
+   memref.copy     , 1
+   memref.load     , 4
+   memref.store    , 3
+
+### 4) CF → Handshake (with 1D memrefs)
+
+### 5a) handshake-lower-extmem-to-hw + materialize forks/sinks
+
+### 5b) lower-handshake-to-hw only
+
+### 5c) ESI lowering on HW
+
+### 5.5) Cleanup inner symbols
+
+### 6) HW+Seq → SV
+
+Generated:
+-rw-r--r-- 1 roland roland 200K Nov 30 21:09 my-dot.sv
+
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2024  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.45+126 (git sha1 80119386c, g++ 11.4.0-1ubuntu1~22.04 -Og -fPIC)
+
+-- Running command `read_slang /home/roland/hot-chips-2022-pytorch-circt-hls-demo/my-dot.sv' --
+
+1. Executing SLANG frontend.
+Top level design units:
+    main
+
+Build succeeded: 0 errors, 0 warnings
+
+1.1. Executing UNDRIVEN pass. (resolve undriven signals)
+
+1.2. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\main.$999'.
+Found and cleaned up 1 empty switch in `\main.$991'.
+Found and cleaned up 1 empty switch in `\main.$956'.
+Found and cleaned up 1 empty switch in `\main.$948'.
+Found and cleaned up 1 empty switch in `\main.$940'.
+Found and cleaned up 1 empty switch in `\main.$932'.
+Found and cleaned up 1 empty switch in `\main.$921'.
+Found and cleaned up 1 empty switch in `\main.$913'.
+Found and cleaned up 1 empty switch in `\main.$905'.
+Found and cleaned up 1 empty switch in `\main.$897'.
+Found and cleaned up 1 empty switch in `\main.$881'.
+Found and cleaned up 1 empty switch in `\main.$873'.
+Found and cleaned up 1 empty switch in `\main.$865'.
+Found and cleaned up 1 empty switch in `\main.$844'.
+Found and cleaned up 1 empty switch in `\main.$836'.
+Found and cleaned up 1 empty switch in `\main.$821'.
+Found and cleaned up 1 empty switch in `\main.$813'.
+Found and cleaned up 1 empty switch in `\main.$794'.
+Found and cleaned up 1 empty switch in `\main.$786'.
+Found and cleaned up 1 empty switch in `\main.$778'.
+Found and cleaned up 1 empty switch in `\main.$770'.
+Found and cleaned up 1 empty switch in `\main.$762'.
+Found and cleaned up 1 empty switch in `\main.$754'.
+Found and cleaned up 1 empty switch in `\main.$735'.
+Found and cleaned up 1 empty switch in `\main.$727'.
+Found and cleaned up 1 empty switch in `\main.$704'.
+Found and cleaned up 1 empty switch in `\main.$696'.
+Found and cleaned up 1 empty switch in `\main.$671'.
+Found and cleaned up 1 empty switch in `\main.$663'.
+Found and cleaned up 1 empty switch in `\main.$655'.
+Found and cleaned up 1 empty switch in `\main.$647'.
+Found and cleaned up 1 empty switch in `\main.$639'.
+Found and cleaned up 1 empty switch in `\main.$632'.
+Found and cleaned up 1 empty switch in `\main.$623'.
+Found and cleaned up 1 empty switch in `\main.$620'.
+Found and cleaned up 1 empty switch in `\main.$615'.
+Found and cleaned up 1 empty switch in `\main.$580'.
+Found and cleaned up 1 empty switch in `\main.$572'.
+Found and cleaned up 1 empty switch in `\main.$564'.
+Found and cleaned up 1 empty switch in `\main.$556'.
+Found and cleaned up 1 empty switch in `\main.$547'.
+Found and cleaned up 1 empty switch in `\main.$539'.
+Found and cleaned up 1 empty switch in `\main.$517'.
+Found and cleaned up 1 empty switch in `\main.$509'.
+Found and cleaned up 1 empty switch in `\main.$501'.
+Found and cleaned up 1 empty switch in `\main.$480'.
+Found and cleaned up 1 empty switch in `\main.$472'.
+Found and cleaned up 1 empty switch in `\main.$455'.
+Found and cleaned up 1 empty switch in `\main.$447'.
+Found and cleaned up 1 empty switch in `\main.$439'.
+Found and cleaned up 1 empty switch in `\main.$431'.
+Found and cleaned up 1 empty switch in `\main.$411'.
+Found and cleaned up 1 empty switch in `\main.$403'.
+Found and cleaned up 1 empty switch in `\main.$395'.
+Found and cleaned up 1 empty switch in `\main.$387'.
+Found and cleaned up 1 empty switch in `\main.$379'.
+Found and cleaned up 1 empty switch in `\main.$371'.
+Found and cleaned up 1 empty switch in `\main.$363'.
+Found and cleaned up 1 empty switch in `\main.$337'.
+Found and cleaned up 1 empty switch in `\main.$329'.
+Found and cleaned up 1 empty switch in `\main.$306'.
+Found and cleaned up 1 empty switch in `\main.$298'.
+Found and cleaned up 1 empty switch in `\main.$272'.
+Found and cleaned up 1 empty switch in `\main.$264'.
+Found and cleaned up 1 empty switch in `\main.$256'.
+Found and cleaned up 1 empty switch in `\main.$248'.
+Found and cleaned up 1 empty switch in `\main.$240'.
+Found and cleaned up 1 empty switch in `\main.$232'.
+Found and cleaned up 1 empty switch in `\main.$225'.
+Found and cleaned up 1 empty switch in `\main.$216'.
+Found and cleaned up 1 empty switch in `\main.$213'.
+Found and cleaned up 1 empty switch in `\main.$208'.
+Found and cleaned up 1 empty switch in `\main.$199'.
+Found and cleaned up 1 empty switch in `\main.$191'.
+Found and cleaned up 1 empty switch in `\main.$180'.
+Found and cleaned up 1 empty switch in `\main.$172'.
+Found and cleaned up 1 empty switch in `\main.$161'.
+Found and cleaned up 1 empty switch in `\main.$153'.
+Found and cleaned up 1 empty switch in `\main.$141'.
+Found and cleaned up 1 empty switch in `\main.$132'.
+Found and cleaned up 1 empty switch in `\main.$124'.
+Found and cleaned up 1 empty switch in `\main.$111'.
+Found and cleaned up 1 empty switch in `\main.$103'.
+Found and cleaned up 1 empty switch in `\main.$92'.
+Found and cleaned up 1 empty switch in `\main.$85'.
+Found and cleaned up 1 empty switch in `\main.$76'.
+Found and cleaned up 1 empty switch in `\main.$68'.
+Found and cleaned up 1 empty switch in `\main.$59'.
+Found and cleaned up 1 empty switch in `\main.$51'.
+Found and cleaned up 1 empty switch in `\main.$32'.
+Found and cleaned up 1 empty switch in `\main.$24'.
+Found and cleaned up 1 empty switch in `\main.$16'.
+Found and cleaned up 1 empty switch in `\main.$8'.
+Found and cleaned up 1 empty switch in `\main.$0'.
+Cleaned up 94 empty switches.
+
+1.3. Executing TRIBUF pass.
+
+1.4. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 1 switch rules as full_case in process $999 in module main.
+Marked 1 switch rules as full_case in process $991 in module main.
+Marked 1 switch rules as full_case in process $956 in module main.
+Marked 1 switch rules as full_case in process $948 in module main.
+Marked 1 switch rules as full_case in process $940 in module main.
+Marked 1 switch rules as full_case in process $932 in module main.
+Marked 1 switch rules as full_case in process $921 in module main.
+Marked 1 switch rules as full_case in process $913 in module main.
+Marked 1 switch rules as full_case in process $905 in module main.
+Marked 1 switch rules as full_case in process $897 in module main.
+Marked 1 switch rules as full_case in process $881 in module main.
+Marked 1 switch rules as full_case in process $873 in module main.
+Marked 1 switch rules as full_case in process $865 in module main.
+Marked 1 switch rules as full_case in process $844 in module main.
+Marked 1 switch rules as full_case in process $836 in module main.
+Marked 1 switch rules as full_case in process $821 in module main.
+Marked 1 switch rules as full_case in process $813 in module main.
+Marked 1 switch rules as full_case in process $794 in module main.
+Marked 1 switch rules as full_case in process $786 in module main.
+Marked 1 switch rules as full_case in process $778 in module main.
+Marked 1 switch rules as full_case in process $770 in module main.
+Marked 1 switch rules as full_case in process $762 in module main.
+Marked 1 switch rules as full_case in process $754 in module main.
+Marked 1 switch rules as full_case in process $735 in module main.
+Marked 1 switch rules as full_case in process $727 in module main.
+Marked 1 switch rules as full_case in process $704 in module main.
+Marked 1 switch rules as full_case in process $696 in module main.
+Marked 1 switch rules as full_case in process $671 in module main.
+Marked 1 switch rules as full_case in process $663 in module main.
+Marked 1 switch rules as full_case in process $655 in module main.
+Marked 1 switch rules as full_case in process $647 in module main.
+Marked 1 switch rules as full_case in process $639 in module main.
+Marked 1 switch rules as full_case in process $632 in module main.
+Marked 1 switch rules as full_case in process $623 in module main.
+Marked 1 switch rules as full_case in process $620 in module main.
+Marked 1 switch rules as full_case in process $615 in module main.
+Marked 1 switch rules as full_case in process $580 in module main.
+Marked 1 switch rules as full_case in process $572 in module main.
+Marked 1 switch rules as full_case in process $564 in module main.
+Marked 1 switch rules as full_case in process $556 in module main.
+Marked 1 switch rules as full_case in process $547 in module main.
+Marked 1 switch rules as full_case in process $539 in module main.
+Marked 1 switch rules as full_case in process $517 in module main.
+Marked 1 switch rules as full_case in process $509 in module main.
+Marked 1 switch rules as full_case in process $501 in module main.
+Marked 1 switch rules as full_case in process $480 in module main.
+Marked 1 switch rules as full_case in process $472 in module main.
+Marked 1 switch rules as full_case in process $455 in module main.
+Marked 1 switch rules as full_case in process $447 in module main.
+Marked 1 switch rules as full_case in process $439 in module main.
+Marked 1 switch rules as full_case in process $431 in module main.
+Marked 1 switch rules as full_case in process $411 in module main.
+Marked 1 switch rules as full_case in process $403 in module main.
+Marked 1 switch rules as full_case in process $395 in module main.
+Marked 1 switch rules as full_case in process $387 in module main.
+Marked 1 switch rules as full_case in process $379 in module main.
+Marked 1 switch rules as full_case in process $371 in module main.
+Marked 1 switch rules as full_case in process $363 in module main.
+Marked 1 switch rules as full_case in process $337 in module main.
+Marked 1 switch rules as full_case in process $329 in module main.
+Marked 1 switch rules as full_case in process $306 in module main.
+Marked 1 switch rules as full_case in process $298 in module main.
+Marked 1 switch rules as full_case in process $272 in module main.
+Marked 1 switch rules as full_case in process $264 in module main.
+Marked 1 switch rules as full_case in process $256 in module main.
+Marked 1 switch rules as full_case in process $248 in module main.
+Marked 1 switch rules as full_case in process $240 in module main.
+Marked 1 switch rules as full_case in process $232 in module main.
+Marked 1 switch rules as full_case in process $225 in module main.
+Marked 1 switch rules as full_case in process $216 in module main.
+Marked 1 switch rules as full_case in process $213 in module main.
+Marked 1 switch rules as full_case in process $208 in module main.
+Marked 1 switch rules as full_case in process $199 in module main.
+Marked 1 switch rules as full_case in process $191 in module main.
+Marked 1 switch rules as full_case in process $180 in module main.
+Marked 1 switch rules as full_case in process $172 in module main.
+Marked 1 switch rules as full_case in process $161 in module main.
+Marked 1 switch rules as full_case in process $153 in module main.
+Marked 1 switch rules as full_case in process $141 in module main.
+Marked 1 switch rules as full_case in process $132 in module main.
+Marked 1 switch rules as full_case in process $124 in module main.
+Marked 1 switch rules as full_case in process $120 in module main.
+Marked 1 switch rules as full_case in process $111 in module main.
+Marked 1 switch rules as full_case in process $103 in module main.
+Marked 1 switch rules as full_case in process $92 in module main.
+Marked 1 switch rules as full_case in process $85 in module main.
+Marked 1 switch rules as full_case in process $76 in module main.
+Marked 1 switch rules as full_case in process $68 in module main.
+Marked 1 switch rules as full_case in process $59 in module main.
+Marked 1 switch rules as full_case in process $51 in module main.
+Marked 1 switch rules as full_case in process $44 in module main.
+Marked 1 switch rules as full_case in process $32 in module main.
+Marked 1 switch rules as full_case in process $24 in module main.
+Marked 1 switch rules as full_case in process $16 in module main.
+Marked 1 switch rules as full_case in process $8 in module main.
+Marked 1 switch rules as full_case in process $0 in module main.
+Removed a total of 0 dead cases.
+
+1.5. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 94 redundant assignments.
+Promoted 0 assignments to connections.
+
+1.6. Executing PROC_INIT pass (extract init attributes).
+
+1.7. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~99 debug messages>
+
+1.8. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\main.$999'.
+     1/1: $handshake_fork23._GEN_1$1002
+Creating decoders for process `\main.$991'.
+     1/1: $handshake_fork23._GEN$994
+Creating decoders for process `\main.$956'.
+     1/1: $handshake_fork22._GEN_5$959
+Creating decoders for process `\main.$948'.
+     1/1: $handshake_fork22._GEN_3$951
+Creating decoders for process `\main.$940'.
+     1/1: $handshake_fork22._GEN_1$943
+Creating decoders for process `\main.$932'.
+     1/1: $handshake_fork22._GEN$935
+Creating decoders for process `\main.$921'.
+     1/1: $handshake_fork21._GEN_5$924
+Creating decoders for process `\main.$913'.
+     1/1: $handshake_fork21._GEN_3$916
+Creating decoders for process `\main.$905'.
+     1/1: $handshake_fork21._GEN_1$908
+Creating decoders for process `\main.$897'.
+     1/1: $handshake_fork21._GEN$900
+Creating decoders for process `\main.$881'.
+     1/1: $handshake_fork20._GEN_3$884
+Creating decoders for process `\main.$873'.
+     1/1: $handshake_fork20._GEN_1$876
+Creating decoders for process `\main.$865'.
+     1/1: $handshake_fork20._GEN$868
+Creating decoders for process `\main.$844'.
+     1/1: $handshake_fork19._GEN_1$847
+Creating decoders for process `\main.$836'.
+     1/1: $handshake_fork19._GEN$839
+Creating decoders for process `\main.$821'.
+     1/1: $handshake_fork18._GEN_1$824
+Creating decoders for process `\main.$813'.
+     1/1: $handshake_fork18._GEN$816
+Creating decoders for process `\main.$794'.
+     1/1: $handshake_fork17._GEN_9$797
+Creating decoders for process `\main.$786'.
+     1/1: $handshake_fork17._GEN_7$789
+Creating decoders for process `\main.$778'.
+     1/1: $handshake_fork17._GEN_5$781
+Creating decoders for process `\main.$770'.
+     1/1: $handshake_fork17._GEN_3$773
+Creating decoders for process `\main.$762'.
+     1/1: $handshake_fork17._GEN_1$765
+Creating decoders for process `\main.$754'.
+     1/1: $handshake_fork17._GEN$757
+Creating decoders for process `\main.$735'.
+     1/1: $handshake_fork16._GEN_1$738
+Creating decoders for process `\main.$727'.
+     1/1: $handshake_fork16._GEN$730
+Creating decoders for process `\main.$704'.
+     1/1: $handshake_fork15._GEN_1$707
+Creating decoders for process `\main.$696'.
+     1/1: $handshake_fork15._GEN$699
+Creating decoders for process `\main.$671'.
+     1/1: $handshake_fork14._GEN_7$674
+Creating decoders for process `\main.$663'.
+     1/1: $handshake_fork14._GEN_5$666
+Creating decoders for process `\main.$655'.
+     1/1: $handshake_fork14._GEN_3$658
+Creating decoders for process `\main.$647'.
+     1/1: $handshake_fork14._GEN_1$650
+Creating decoders for process `\main.$639'.
+     1/1: $handshake_fork14._GEN$642
+Creating decoders for process `\main.$632'.
+     1/1: $handshake_buffer1._GEN_8$633
+Creating decoders for process `\main.$623'.
+     1/1: $handshake_buffer1._GEN_5$624
+Creating decoders for process `\main.$620'.
+     1/1: $handshake_buffer1._GEN_1$622
+Creating decoders for process `\main.$615'.
+     1/1: $handshake_buffer1._GEN_3$616
+Creating decoders for process `\main.$580'.
+     1/1: $handshake_fork13._GEN_5$583
+Creating decoders for process `\main.$572'.
+     1/1: $handshake_fork13._GEN_3$575
+Creating decoders for process `\main.$564'.
+     1/1: $handshake_fork13._GEN_1$567
+Creating decoders for process `\main.$556'.
+     1/1: $handshake_fork13._GEN$559
+Creating decoders for process `\main.$547'.
+     1/1: $handshake_fork12._GEN_1$550
+Creating decoders for process `\main.$539'.
+     1/1: $handshake_fork12._GEN$542
+Creating decoders for process `\main.$517'.
+     1/1: $handshake_fork11._GEN_3$520
+Creating decoders for process `\main.$509'.
+     1/1: $handshake_fork11._GEN_1$512
+Creating decoders for process `\main.$501'.
+     1/1: $handshake_fork11._GEN$504
+Creating decoders for process `\main.$480'.
+     1/1: $handshake_fork10._GEN_1$483
+Creating decoders for process `\main.$472'.
+     1/1: $handshake_fork10._GEN$475
+Creating decoders for process `\main.$455'.
+     1/1: $handshake_fork9._GEN_5$458
+Creating decoders for process `\main.$447'.
+     1/1: $handshake_fork9._GEN_3$450
+Creating decoders for process `\main.$439'.
+     1/1: $handshake_fork9._GEN_1$442
+Creating decoders for process `\main.$431'.
+     1/1: $handshake_fork9._GEN$434
+Creating decoders for process `\main.$411'.
+     1/1: $handshake_fork8._GEN_11$414
+Creating decoders for process `\main.$403'.
+     1/1: $handshake_fork8._GEN_9$406
+Creating decoders for process `\main.$395'.
+     1/1: $handshake_fork8._GEN_7$398
+Creating decoders for process `\main.$387'.
+     1/1: $handshake_fork8._GEN_5$390
+Creating decoders for process `\main.$379'.
+     1/1: $handshake_fork8._GEN_3$382
+Creating decoders for process `\main.$371'.
+     1/1: $handshake_fork8._GEN_1$374
+Creating decoders for process `\main.$363'.
+     1/1: $handshake_fork8._GEN$366
+Creating decoders for process `\main.$337'.
+     1/1: $handshake_fork7._GEN_1$340
+Creating decoders for process `\main.$329'.
+     1/1: $handshake_fork7._GEN$332
+Creating decoders for process `\main.$306'.
+     1/1: $handshake_fork6._GEN_1$309
+Creating decoders for process `\main.$298'.
+     1/1: $handshake_fork6._GEN$301
+Creating decoders for process `\main.$272'.
+     1/1: $handshake_fork5._GEN_9$275
+Creating decoders for process `\main.$264'.
+     1/1: $handshake_fork5._GEN_7$267
+Creating decoders for process `\main.$256'.
+     1/1: $handshake_fork5._GEN_5$259
+Creating decoders for process `\main.$248'.
+     1/1: $handshake_fork5._GEN_3$251
+Creating decoders for process `\main.$240'.
+     1/1: $handshake_fork5._GEN_1$243
+Creating decoders for process `\main.$232'.
+     1/1: $handshake_fork5._GEN$235
+Creating decoders for process `\main.$225'.
+     1/1: $handshake_buffer0._GEN_8$226
+Creating decoders for process `\main.$216'.
+     1/1: $handshake_buffer0._GEN_5$217
+Creating decoders for process `\main.$213'.
+     1/1: $handshake_buffer0._GEN_1$215
+Creating decoders for process `\main.$208'.
+     1/1: $handshake_buffer0._GEN_3$209
+Creating decoders for process `\main.$199'.
+     1/1: $handshake_fork4._GEN_1$202
+Creating decoders for process `\main.$191'.
+     1/1: $handshake_fork4._GEN$194
+Creating decoders for process `\main.$180'.
+     1/1: $handshake_fork3._GEN_1$183
+Creating decoders for process `\main.$172'.
+     1/1: $handshake_fork3._GEN$175
+Creating decoders for process `\main.$161'.
+     1/1: $handshake_fork2._GEN_1$164
+Creating decoders for process `\main.$153'.
+     1/1: $handshake_fork2._GEN$156
+Creating decoders for process `\main.$141'.
+     1/1: $handshake_memory1._GEN_4$142
+Creating decoders for process `\main.$132'.
+     1/1: $handshake_memory1._GEN_2$135
+Creating decoders for process `\main.$124'.
+     1/1: $handshake_memory1._GEN_0$127
+Creating decoders for process `\main.$120'.
+     1/1: $122
+Creating decoders for process `\main.$111'.
+     1/1: $handshake_fork1._GEN_1$114
+Creating decoders for process `\main.$103'.
+     1/1: $handshake_fork1._GEN$106
+Creating decoders for process `\main.$92'.
+     1/1: $handshake_memory0._GEN_10$93
+Creating decoders for process `\main.$85'.
+     1/1: $handshake_memory0._GEN_9$86
+Creating decoders for process `\main.$76'.
+     1/1: $handshake_memory0._GEN_7$79
+Creating decoders for process `\main.$68'.
+     1/1: $handshake_memory0._GEN_5$71
+Creating decoders for process `\main.$59'.
+     1/1: $handshake_memory0._GEN_3$62
+Creating decoders for process `\main.$51'.
+     1/1: $handshake_memory0._GEN_1$54
+Creating decoders for process `\main.$44'.
+     1/2: $49
+     2/2: $46
+Creating decoders for process `\main.$32'.
+     1/1: $handshake_fork0._GEN_7$35
+Creating decoders for process `\main.$24'.
+     1/1: $handshake_fork0._GEN_5$27
+Creating decoders for process `\main.$16'.
+     1/1: $handshake_fork0._GEN_3$19
+Creating decoders for process `\main.$8'.
+     1/1: $handshake_fork0._GEN_1$11
+Creating decoders for process `\main.$0'.
+     1/1: $handshake_fork0._GEN$3
+
+1.9. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\main.$999'.
+Removing empty process `main.$999'.
+Found and cleaned up 1 empty switch in `\main.$991'.
+Removing empty process `main.$991'.
+Found and cleaned up 1 empty switch in `\main.$956'.
+Removing empty process `main.$956'.
+Found and cleaned up 1 empty switch in `\main.$948'.
+Removing empty process `main.$948'.
+Found and cleaned up 1 empty switch in `\main.$940'.
+Removing empty process `main.$940'.
+Found and cleaned up 1 empty switch in `\main.$932'.
+Removing empty process `main.$932'.
+Found and cleaned up 1 empty switch in `\main.$921'.
+Removing empty process `main.$921'.
+Found and cleaned up 1 empty switch in `\main.$913'.
+Removing empty process `main.$913'.
+Found and cleaned up 1 empty switch in `\main.$905'.
+Removing empty process `main.$905'.
+Found and cleaned up 1 empty switch in `\main.$897'.
+Removing empty process `main.$897'.
+Found and cleaned up 1 empty switch in `\main.$881'.
+Removing empty process `main.$881'.
+Found and cleaned up 1 empty switch in `\main.$873'.
+Removing empty process `main.$873'.
+Found and cleaned up 1 empty switch in `\main.$865'.
+Removing empty process `main.$865'.
+Found and cleaned up 1 empty switch in `\main.$844'.
+Removing empty process `main.$844'.
+Found and cleaned up 1 empty switch in `\main.$836'.
+Removing empty process `main.$836'.
+Found and cleaned up 1 empty switch in `\main.$821'.
+Removing empty process `main.$821'.
+Found and cleaned up 1 empty switch in `\main.$813'.
+Removing empty process `main.$813'.
+Found and cleaned up 1 empty switch in `\main.$794'.
+Removing empty process `main.$794'.
+Found and cleaned up 1 empty switch in `\main.$786'.
+Removing empty process `main.$786'.
+Found and cleaned up 1 empty switch in `\main.$778'.
+Removing empty process `main.$778'.
+Found and cleaned up 1 empty switch in `\main.$770'.
+Removing empty process `main.$770'.
+Found and cleaned up 1 empty switch in `\main.$762'.
+Removing empty process `main.$762'.
+Found and cleaned up 1 empty switch in `\main.$754'.
+Removing empty process `main.$754'.
+Found and cleaned up 1 empty switch in `\main.$735'.
+Removing empty process `main.$735'.
+Found and cleaned up 1 empty switch in `\main.$727'.
+Removing empty process `main.$727'.
+Found and cleaned up 1 empty switch in `\main.$704'.
+Removing empty process `main.$704'.
+Found and cleaned up 1 empty switch in `\main.$696'.
+Removing empty process `main.$696'.
+Found and cleaned up 1 empty switch in `\main.$671'.
+Removing empty process `main.$671'.
+Found and cleaned up 1 empty switch in `\main.$663'.
+Removing empty process `main.$663'.
+Found and cleaned up 1 empty switch in `\main.$655'.
+Removing empty process `main.$655'.
+Found and cleaned up 1 empty switch in `\main.$647'.
+Removing empty process `main.$647'.
+Found and cleaned up 1 empty switch in `\main.$639'.
+Removing empty process `main.$639'.
+Found and cleaned up 1 empty switch in `\main.$632'.
+Removing empty process `main.$632'.
+Found and cleaned up 1 empty switch in `\main.$623'.
+Removing empty process `main.$623'.
+Found and cleaned up 1 empty switch in `\main.$620'.
+Removing empty process `main.$620'.
+Found and cleaned up 1 empty switch in `\main.$615'.
+Removing empty process `main.$615'.
+Found and cleaned up 1 empty switch in `\main.$580'.
+Removing empty process `main.$580'.
+Found and cleaned up 1 empty switch in `\main.$572'.
+Removing empty process `main.$572'.
+Found and cleaned up 1 empty switch in `\main.$564'.
+Removing empty process `main.$564'.
+Found and cleaned up 1 empty switch in `\main.$556'.
+Removing empty process `main.$556'.
+Found and cleaned up 1 empty switch in `\main.$547'.
+Removing empty process `main.$547'.
+Found and cleaned up 1 empty switch in `\main.$539'.
+Removing empty process `main.$539'.
+Found and cleaned up 1 empty switch in `\main.$517'.
+Removing empty process `main.$517'.
+Found and cleaned up 1 empty switch in `\main.$509'.
+Removing empty process `main.$509'.
+Found and cleaned up 1 empty switch in `\main.$501'.
+Removing empty process `main.$501'.
+Found and cleaned up 1 empty switch in `\main.$480'.
+Removing empty process `main.$480'.
+Found and cleaned up 1 empty switch in `\main.$472'.
+Removing empty process `main.$472'.
+Found and cleaned up 1 empty switch in `\main.$455'.
+Removing empty process `main.$455'.
+Found and cleaned up 1 empty switch in `\main.$447'.
+Removing empty process `main.$447'.
+Found and cleaned up 1 empty switch in `\main.$439'.
+Removing empty process `main.$439'.
+Found and cleaned up 1 empty switch in `\main.$431'.
+Removing empty process `main.$431'.
+Found and cleaned up 1 empty switch in `\main.$411'.
+Removing empty process `main.$411'.
+Found and cleaned up 1 empty switch in `\main.$403'.
+Removing empty process `main.$403'.
+Found and cleaned up 1 empty switch in `\main.$395'.
+Removing empty process `main.$395'.
+Found and cleaned up 1 empty switch in `\main.$387'.
+Removing empty process `main.$387'.
+Found and cleaned up 1 empty switch in `\main.$379'.
+Removing empty process `main.$379'.
+Found and cleaned up 1 empty switch in `\main.$371'.
+Removing empty process `main.$371'.
+Found and cleaned up 1 empty switch in `\main.$363'.
+Removing empty process `main.$363'.
+Found and cleaned up 1 empty switch in `\main.$337'.
+Removing empty process `main.$337'.
+Found and cleaned up 1 empty switch in `\main.$329'.
+Removing empty process `main.$329'.
+Found and cleaned up 1 empty switch in `\main.$306'.
+Removing empty process `main.$306'.
+Found and cleaned up 1 empty switch in `\main.$298'.
+Removing empty process `main.$298'.
+Found and cleaned up 1 empty switch in `\main.$272'.
+Removing empty process `main.$272'.
+Found and cleaned up 1 empty switch in `\main.$264'.
+Removing empty process `main.$264'.
+Found and cleaned up 1 empty switch in `\main.$256'.
+Removing empty process `main.$256'.
+Found and cleaned up 1 empty switch in `\main.$248'.
+Removing empty process `main.$248'.
+Found and cleaned up 1 empty switch in `\main.$240'.
+Removing empty process `main.$240'.
+Found and cleaned up 1 empty switch in `\main.$232'.
+Removing empty process `main.$232'.
+Found and cleaned up 1 empty switch in `\main.$225'.
+Removing empty process `main.$225'.
+Found and cleaned up 1 empty switch in `\main.$216'.
+Removing empty process `main.$216'.
+Found and cleaned up 1 empty switch in `\main.$213'.
+Removing empty process `main.$213'.
+Found and cleaned up 1 empty switch in `\main.$208'.
+Removing empty process `main.$208'.
+Found and cleaned up 1 empty switch in `\main.$199'.
+Removing empty process `main.$199'.
+Found and cleaned up 1 empty switch in `\main.$191'.
+Removing empty process `main.$191'.
+Found and cleaned up 1 empty switch in `\main.$180'.
+Removing empty process `main.$180'.
+Found and cleaned up 1 empty switch in `\main.$172'.
+Removing empty process `main.$172'.
+Found and cleaned up 1 empty switch in `\main.$161'.
+Removing empty process `main.$161'.
+Found and cleaned up 1 empty switch in `\main.$153'.
+Removing empty process `main.$153'.
+Found and cleaned up 1 empty switch in `\main.$141'.
+Removing empty process `main.$141'.
+Found and cleaned up 1 empty switch in `\main.$132'.
+Removing empty process `main.$132'.
+Found and cleaned up 1 empty switch in `\main.$124'.
+Removing empty process `main.$124'.
+Found and cleaned up 2 empty switches in `\main.$120'.
+Removing empty process `main.$120'.
+Found and cleaned up 1 empty switch in `\main.$111'.
+Removing empty process `main.$111'.
+Found and cleaned up 1 empty switch in `\main.$103'.
+Removing empty process `main.$103'.
+Found and cleaned up 1 empty switch in `\main.$92'.
+Removing empty process `main.$92'.
+Found and cleaned up 1 empty switch in `\main.$85'.
+Removing empty process `main.$85'.
+Found and cleaned up 1 empty switch in `\main.$76'.
+Removing empty process `main.$76'.
+Found and cleaned up 1 empty switch in `\main.$68'.
+Removing empty process `main.$68'.
+Found and cleaned up 1 empty switch in `\main.$59'.
+Removing empty process `main.$59'.
+Found and cleaned up 1 empty switch in `\main.$51'.
+Removing empty process `main.$51'.
+Found and cleaned up 3 empty switches in `\main.$44'.
+Removing empty process `main.$44'.
+Found and cleaned up 1 empty switch in `\main.$32'.
+Removing empty process `main.$32'.
+Found and cleaned up 1 empty switch in `\main.$24'.
+Removing empty process `main.$24'.
+Found and cleaned up 1 empty switch in `\main.$16'.
+Removing empty process `main.$16'.
+Found and cleaned up 1 empty switch in `\main.$8'.
+Removing empty process `main.$8'.
+Found and cleaned up 1 empty switch in `\main.$0'.
+Removing empty process `main.$0'.
+Cleaned up 99 empty switches.
+
+1.10. Executing OPT_EXPR pass (perform const folding).
+Optimizing module main.
+Couldn't topologically sort cells, optimizing module main may take a longer time.
+Couldn't topologically sort cells, optimizing module main may take a longer time.
+<suppressed ~7 debug messages>
+
+End of script. Logfile hash: fd0f7b7d24, CPU: user 0.13s system 0.06s, MEM: 36.96 MB peak
+Yosys 0.45+126 (git sha1 80119386c, g++ 11.4.0-1ubuntu1~22.04 -Og -fPIC)
+Time spent: 54% 2x read_slang (0 sec), 17% 1x opt_expr (0 sec), ...
