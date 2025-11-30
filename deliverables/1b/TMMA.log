@@ -1,4 +1,3 @@
-../PandA-bambu/bambu.AppImage --generate-interface=INFER mmult_accel.cpp --top-fname=mmult_accel
  ==  Bambu executed with: /tmp/.mount_bambu.hm7Z7N/usr/bin/bambu --generate-interface=INFER --top-fname=mmult_accel mmult_accel.cpp
 
 
@@ -168,29 +167,8 @@ Required never inline for function mmult_accel
   Time to perform interconnection binding: 0.02 seconds
 
   Total number of flip-flops in function mmult_accel: 4116
-
-# We check the return code
-  echo $?
 0
 
-This results in the following files being created:
-
-        HLS_output/
-        array_ref_428617.mem
-        array_ref_429690.mem
-        array_ref_429915.mem
-        array_ref_430001.mem
-        array_ref_430034.mem
-        mmult_accel.v
-        synthesize_Synthesis_mmult_accel.sh
-
-We have to copy some memories that were not created by bambu:
-cp array_ref_428617.mem array.mem
-cp array_ref_428617.mem array_a.mem
-	
-We elaborate with yosys, which succedds:
-
-yosys -s mmult_accel.ys | tee yosys_mmult_accel.log
 	
    Number of wires:             2828241
    Number of wire bits:         14045295

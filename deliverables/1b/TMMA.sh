@@ -1,5 +1,4 @@
 ../PandA-bambu/bambu.AppImage --generate-interface=INFER mmult_accel.cpp --top-fname=mmult_accel
- ==  Bambu executed with: /tmp/.mount_bambu.hm7Z7N/usr/bin/bambu --generate-interface=INFER --top-fname=mmult_accel mmult_accel.cpp
 
 # We check the return code
   echo $?
