@@ -11,16 +11,16 @@
 | CIRCT        | https://github.com/llvm/circt              |  2000 |   10580 | 12 hours ago | <2025-11-26 Wed> |
 | PandA-bambu  | https://github.com/ferrandi/PandA-bambu    |   296 |    6300 | 6 months ago | <2025-11-27 Thu> |
 
-| Project      | link                                       | stars | commits | last updated | Snapshot date    |
-|--------------+--------------------------------------------+-------+---------+--------------+------------------|
-| deepwok/mase | https://github.com/deepwok/mase            |   183 |     541 | 7 months ago | <2025-11-12 Wed> |
-| TMMA         | https://github.com/Richielee630/TMMA       |    23 |      34 | 8 months ago | <2025-11-12 Wed> |
-| LoopLynx     | https://github.com/zjnyly/LoopLynx         |     1 |       8 | 3 weeks ago  | <2025-11-12 Wed> |
-| HLSTransform | https://github.com/HLSTransform/submission |   111 |       4 | last year    | <2025-11-12 Wed> |
-| allo         | https://github.com/cornell-zhang/allo      |   296 |     369 | 2 days ago   | <2025-11-12 Wed> |
-| Torch-MLIR   | https://github.com/llvm/torch-mlir         |  1700 |    3531 | 20 hours ago | <2025-11-26 Wed> |
-| CIRCT        | https://github.com/llvm/circt              |  2000 |   10580 | 12 hours ago | <2025-11-26 Wed> |
-| PandA-bambu  | https://github.com/ferrandi/PandA-bambu    |   296 |    6300 | 6 months ago | <2025-11-27 Thu> |
+| Project      | link                                       |
+|--------------+--------------------------------------------|
+| deepwok/mase | https://github.com/deepwok/mase            |
+| TMMA         | https://github.com/Richielee630/TMMA       |
+| LoopLynx     | https://github.com/zjnyly/LoopLynx         |
+| HLSTransform | https://github.com/HLSTransform/submission |
+| allo         | https://github.com/cornell-zhang/allo      |
+| Torch-MLIR   | https://github.com/llvm/torch-mlir         |
+| CIRCT        | https://github.com/llvm/circt              |
+| PandA-bambu  | https://github.com/ferrandi/PandA-bambu    |
 
 
 * Deepwok/MASE: elaboration attempt + blockage
