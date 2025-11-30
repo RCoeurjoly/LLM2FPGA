@@ -1,4 +1,4 @@
-* Table comparison
+* Popularity/maintenance table
 
 | Project      | link                                       | stars | commits | last updated | Snapshot date    |
 |--------------+--------------------------------------------+-------+---------+--------------+------------------|
