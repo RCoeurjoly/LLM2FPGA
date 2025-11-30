@@ -1,0 +1,56 @@
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2024  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.45+126 (git sha1 80119386c, g++ 11.4.0-1ubuntu1~22.04 -Og -fPIC)
+
+-- Running command `read_slang /home/roland/mase/src/mase_components/memory/rtl/fifo.sv /home/roland/mase/src/mase_components/common/rtl/mux.sv /home/roland/.mase/top/hardware/rtl/*.sv /home/roland/mase/src/mase_components/common/rtl/single_element_repeat.sv /home/roland/mase/src/mase_components/common/rtl/unpacked_register_slice.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_rounding.sv /home/roland/mase/src/mase_components/memory/rtl/input_buffer.sv /home/roland/mase/src/mase_components/memory/rtl/unpacked_skid_buffer.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_round.sv /home/roland/mase/src/mase_components/cast/rtl/fixed_signed_cast.sv /home/roland/mase/src/mase_components/cast/rtl/signed_clamp.sv /home/roland/mase/src/mase_components/cast/rtl/floor_round.sv /home/roland/mase/src/mase_components/memory/rtl/blk_mem_gen_0.sv /home/roland/mase/src/mase_components/memory/rtl/simple_dual_port_ram.sv --top top' --
+
+1. Executing SLANG frontend.
+Top level design units:
+    top
+
+../.mase/top/hardware/rtl/top.sv:182:1: error: unknown module 'net_0_bias_source'
+net_0_bias_source #(
+^~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/top.sv:264:1: error: unknown module 'net_2_weight_source'
+net_2_weight_source #(
+^~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/top.sv:278:1: error: unknown module 'net_2_bias_source'
+net_2_bias_source #(
+^~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matrix_stream_transpose.sv:43:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matrix_stream_transpose.sv:45:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:84:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("A_TOTAL_DIM0 must equal B_TOTAL_DIM1!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:86:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("A_COMPUTE_DIM0 must equal B_COMPUTE_DIM1!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:90:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("A_DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:92:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("A_DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:94:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("B_DIM0 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/matmul.sv:96:17: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+    else $fatal("B_DIM1 compute is not divisible!");
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/simple_matmul.sv:64:19: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+      else $fatal("OUT_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_WIDTH);
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../.mase/top/hardware/rtl/simple_matmul.sv:66:19: warning: finish argument must have value of 0, 1, or 2 [-Wfinish-num]
+      else $fatal("OUT_FRAC_WIDTH must be %d if OUTPUT_ROUNDING == 0", ACC_FRAC_WIDTH);
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Build failed: 3 errors, 10 warnings
+ERROR: Compilation failed
+

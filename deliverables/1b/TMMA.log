@@ -1,0 +1,236 @@
+../PandA-bambu/bambu.AppImage --generate-interface=INFER mmult_accel.cpp --top-fname=mmult_accel
+ ==  Bambu executed with: /tmp/.mount_bambu.hm7Z7N/usr/bin/bambu --generate-interface=INFER --top-fname=mmult_accel mmult_accel.cpp
+
+
+********************************************************************************
+                    ____                  _
+                   | __ )  __ _ _ __ ___ | |_   _   _
+                   |  _ \ / _` | '_ ` _ \| '_ \| | | |
+                   | |_) | (_| | | | | | | |_) | |_| |
+                   |____/ \__,_|_| |_| |_|_.__/ \__,_|
+
+********************************************************************************
+                         High-Level Synthesis Tool
+
+                         Politecnico di Milano - DEIB
+                          System Architectures Group
+********************************************************************************
+                Copyright (C) 2004-2024 Politecnico di Milano
+ Version: PandA 2024.10 - Revision c2ba6936ca2ed63137095fea0b630a1c66e20e63-main
+
+  Analyzing function mmult_accel
+    Parameter @428529 A
+    Interface specification:
+      Parameter : A
+      Protocol  : m_axi
+      Direction : IN
+      Bundle    : gmemA
+      Bitwidth  : 8
+      Alignment : 1
+    Parameter @428530 B
+    Interface specification:
+      Parameter : B
+      Protocol  : m_axi
+      Direction : IN
+      Bundle    : gmemB
+      Bitwidth  : 8
+      Alignment : 1
+    Parameter @428531 C
+    Interface specification:
+      Parameter : C
+      Protocol  : m_axi
+      Direction : OUT
+      Bundle    : gmemC
+      Bitwidth  : 32
+      Alignment : 4
+    Parameter @428532 N
+    Interface specification:
+      Parameter : N
+      Protocol  : default
+      Direction : IN
+      Bundle    : N
+      Bitwidth  : 32
+      Alignment : 4
+    Parameter @428533 K
+    Interface specification:
+      Parameter : K
+      Protocol  : default
+      Direction : IN
+      Bundle    : K
+      Bitwidth  : 32
+      Alignment : 4
+    Parameter @428534 M
+    Interface specification:
+      Parameter : M
+      Protocol  : default
+      Direction : IN
+      Bundle    : M
+      Bitwidth  : 32
+      Alignment : 4
+    Parameter @428535 update_A
+    Interface specification:
+      Parameter : update_A
+      Protocol  : default
+      Direction : IN
+      Bundle    : update_A
+      Bitwidth  : 32
+      Alignment : 4
+  Analyzed function mmult_accel
+Required never inline for function mmult_accel
+
+  Functions to be synthesized:
+    mmult_accel
+
+
+  Memory allocation information:
+    BRAM bitsize: 32
+    Spec may not exploit DATA bus width
+    All the data have a known address
+    Internal data is not externally accessible
+    DATA bus bitsize: 32
+    ADDRESS bus bitsize: 19
+    SIZE bus bitsize: 6
+    Code has LOADs or STOREs with unaligned accesses
+    Internally allocated memory (no private memories): 0
+    Internally allocated memory: 251904
+  Time to perform memory allocation: 0.00 seconds
+
+
+  Memory allocation information:
+    BRAM bitsize: 32
+    Spec may not exploit DATA bus width
+    All the data have a known address
+    Internal data is not externally accessible
+    DATA bus bitsize: 32
+    ADDRESS bus bitsize: 19
+    SIZE bus bitsize: 6
+    Code has LOADs or STOREs with unaligned accesses
+    Internally allocated memory (no private memories): 0
+    Internally allocated memory: 251904
+  Time to perform memory allocation: 0.00 seconds
+
+
+  Module allocation information for function mmult_accel:
+    Number of complex operations: 74
+    Number of complex operations: 74
+  Time to perform module allocation: 0.12 seconds
+
+
+  Scheduling Information of function mmult_accel:
+    Number of control steps: 82
+    Minimum slack: 0.80968266266663957
+    Estimated max frequency (MHz): 108.81017088906721
+  Time to perform scheduling: 0.11 seconds
+
+
+  State Transition Graph Information of function mmult_accel:
+    Number of states: 96
+    Done port is registered
+  Time to perform creation of STG: 0.01 seconds
+
+
+  Easy binding information for function mmult_accel:
+    Bound operations:832/1191
+  Time to perform easy binding: 0.00 seconds
+
+
+  Storage Value Information of function mmult_accel:
+    Number of storage values inserted: 247
+  Time to compute storage value information: 0.00 seconds
+
+  Slack computed in 0.02 seconds
+  Weight computation completed in 0.02 seconds
+  False-loop computation completed in 0.00 seconds
+
+  Register binding information for function mmult_accel:
+    Register allocation algorithm obtains a sub-optimal result: 220 registers(LB:66)
+  Time to perform register binding: 0.02 seconds
+
+  Clique covering computation completed in 0.04 seconds
+
+  Module binding information for function mmult_accel:
+    Number of modules instantiated: 1130
+    Number of performance conflicts: 104
+    Estimated resources area (no Muxes and address logic): 7479
+    Estimated area of MUX21: 974
+    Total estimated area: 8453
+    Estimated number of DSPs: 9
+  Time to perform module binding: 0.09 seconds
+
+
+  Register binding information for function mmult_accel:
+    Register allocation algorithm obtains a sub-optimal result: 220 registers(LB:66)
+  Time to perform register binding: 0.02 seconds
+
+
+  Connection Binding Information for function mmult_accel:
+    Number of allocated multiplexers (2-to-1 equivalent): 100
+  Time to perform interconnection binding: 0.02 seconds
+
+  Total number of flip-flops in function mmult_accel: 4116
+
+# We check the return code
+  echo $?
+0
+
+This results in the following files being created:
+
+        HLS_output/
+        array_ref_428617.mem
+        array_ref_429690.mem
+        array_ref_429915.mem
+        array_ref_430001.mem
+        array_ref_430034.mem
+        mmult_accel.v
+        synthesize_Synthesis_mmult_accel.sh
+
+We have to copy some memories that were not created by bambu:
+cp array_ref_428617.mem array.mem
+cp array_ref_428617.mem array_a.mem
+	
+We elaborate with yosys, which succedds:
+
+yosys -s mmult_accel.ys | tee yosys_mmult_accel.log
+	
+   Number of wires:             2828241
+   Number of wire bits:         14045295
+   Number of public wires:      256645
+   Number of public wire bits:  2102595
+   Number of ports:               5644
+   Number of port bits:          57744
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:             2657876
+     $add                          132
+     $adff                           1
+     $and                       999063
+     $dff                           27
+     $dffe                      249035
+     $eq                           113
+     $gt                             1
+     $le                            21
+     $logic_and                     48
+     $logic_not                      3
+     $logic_or                      16
+     $lt                            16
+     $mul                            5
+     $mux                       1160007
+     $ne                             1
+     $neg                            1
+     $not                          131
+     $or                            19
+     $pmux                          27
+     $reduce_bool               248841
+     $reduce_or                     48
+     $sdff                          25
+     $sdffe                          9
+     $shl                           58
+     $shr                          221
+     $sshr                           2
+     $sub                            5
+
+Warnings: 8 unique messages, 9 total
+End of script. Logfile hash: ab55b8b8cc, CPU: user 1593.26s system 41.77s, MEM: 13967.27 MB peak
+Yosys 0.45+126 (git sha1 80119386c, g++ 11.4.0-1ubuntu1~22.04 -Og -fPIC)
+Time spent: 26% 7x opt_muxtree (419 sec), 26% 7x opt_dff (419 sec), 20% 9x opt_clean (316 sec), ...
