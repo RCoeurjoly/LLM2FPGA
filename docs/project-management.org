@@ -1,6 +1,24 @@
-* TODO_NEXT 1b-compatibility_check
+* 1c-selected_route
+* What is the monkey in this project?
+As in monkey reciting Shakespeare on top of a pedestal.
+
+1: Can we translate/lower an LLM to something that can target an FPGA?
+There seems to be a path with Torch-MLIR + CIRCT
+
+2: Can the smallest LLM fit into the biggest open source FPGA?
+
+The biggest open source FPGA has been identified: XC7K480T K7-480 Kintex7
+The smallest LLM also: tiny stories
+
+The test would be to do 1 first with tiny stories, then use open source tooling (nextpnr xilinx) to see if it fits.
+
+* DONE 1b-compatibility_check
+CLOSED: [2025-12-03 Wed 21:05]
+- State "DONE"       from "TODO_NEXT"  [2025-12-03 Wed 21:05]
 - State "TODO_NEXT"  from              [2025-11-03 Mon 12:02]
-** TODO_NEXT Table comparison of results
+** DONE Table comparison of results
+CLOSED: [2025-12-03 Wed 21:05]
+- State "DONE"       from "TODO_NEXT"  [2025-12-03 Wed 21:05]
 - State "TODO_NEXT"  from              [2025-11-30 Sun 17:32]
 ** DONE Add MLIR + CIRCT to survey table
 CLOSED: [2025-11-30 Sun 17:40]
