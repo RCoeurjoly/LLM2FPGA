@@ -11,7 +11,9 @@ The biggest open source FPGA has been identified: XC7K480T K7-480 Kintex7
 The smallest LLM also: tiny stories
 
 The test would be to do 1 first with tiny stories, then use open source tooling (nextpnr xilinx) to see if it fits.
+** https://hanchenye.com/streamtensor/
 
+https://hanchenye.com/streamtensor/
 * DONE 1b-compatibility_check
 CLOSED: [2025-12-03 Wed 21:05]
 - State "DONE"       from "TODO_NEXT"  [2025-12-03 Wed 21:05]
