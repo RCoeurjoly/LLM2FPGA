@@ -4,6 +4,8 @@ It has appeared in two papers: HLSfromPyTorch to System Verilog with MLIR and CI
 
 In StreamTensor the whole pipeline from LLM in pytorch to FPGA is demostrated. Unfortunately the git reepo was made private recently, so no access to the source code.
 
-Torch-MLIR and CIRCT are
+Although Torch-MLIR and CIRCT are not part of the official LLVM release, they have a lot of commits and maintainers and a vibrant community. This gives me confidence that we can rely on them long term.
 
 Torch-MLIR: This project is participating in the LLVM Incubator process: as such, it is not part of any official LLVM release
+
+CIRCT: The CIRCT project is an (experimental!) effort looking to apply MLIR and the LLVM development methodology to the domain of hardware design tools
