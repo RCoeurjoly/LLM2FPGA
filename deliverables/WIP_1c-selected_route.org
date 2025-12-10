@@ -1,3 +1,128 @@
+** 1c. Results, Selected Route, and Next Steps
+
+This section summarizes the conclusions from the survey (1a) and the compatibility
+analysis (1b), and presents the selected path, the rationale behind its choice, and
+the fallback plan.
+
+*** Summary of Findings from 1a and 1b
+
+The survey conducted in 1a identified more than ten relevant papers and public
+repositories related to LLM inference on FPGAs. The key observations were:
+
+- Many HLS-based candidates require proprietary tools such as Vivado HLS (Vitis HLS), making them unsuitable for an end-to-end open-source flow.
+- The only complete PyTorch→FPGA pipeline found in the literature is in the
+  *StreamTensor* paper, which demonstrates the feasibility of a full lowering
+  stack from PyTorch to FPGA using MLIR and CIRCT. However, the corresponding
+  repository has been made private, preventing reproducibility.
+- Several candidates exhibited incompatibility during the Yosys
+  elaboration checks performed in 1b.
+
+These results strongly suggest that open-source viability requires a toolchain that
+natively supports both machine-learning IR and hardware IR, without dependence on
+vendor tools.
+
+*** Selection Criteria
+
+The following criteria were used to select the kernel (pipeline) for LLM2FPGA:
+
+1. Must support a full end-to-end path: PyTorch → IR → hardware.
+2. Must be fully open-source, with no proprietary toolchain dependencies.
+3. Must produce Verilog accepted by Yosys for open-source synthesis.
+4. Must have active upstream development and long-term maintainability.
+5. Should be validated in published literature, even if not fully open-source.
+6. Should allow incremental extension (adding missing operators, rewriting models).
+7. Should be compatible with quantization and weight-format transformations.
+
+Only one candidate satisfies all these criteria.
+
+*** Selected Route: PyTorch → Torch-MLIR → CIRCT → Verilog → Yosys
+
+After evaluating all surveyed candidates, the selected route is:
+
+#+begin_example
+PyTorch → Torch-MLIR → CIRCT → ExportVerilog → Yosys
+#+end_example
+
+This route is chosen for the following reasons:
+
+- Torch-MLIR provides the most robust open-source mechanism for exporting PyTorch
+  models to MLIR. It is actively maintained and used in multiple research projects.
+- CIRCT provides hardware-oriented MLIR dialects (HW, Handshake) and an
+  ExportVerilog backend, making it uniquely suited for lowering models into RTL.
+- Both projects have active communities with frequent commits and ongoing
+  development, increasing confidence in long-term viability.
+- The approach has appeared in two separate peer-reviewed papers
+  (*HLSfromPyTorch* and *StreamTensor*), demonstrating that the MLIR→hardware
+  path is feasible in practice.
+- Torch-MLIR and CIRCT allow the introduction of custom passes, operator
+  rewrites, tiling, and quantization, all of which are essential for scaling from
+  a ~3M-parameter model to a 7B-parameter target in later phases.
+- This pipeline is the only one that allows a fully reproducible, open-source
+  approach that does not depend on proprietary HLS or vendor-specific HDL
+  features.
+
+Therefore, the selected kernel for LLM2FPGA is:
+
+#+begin_example
+PyTorch → Torch-MLIR → CIRCT → Verilog
+#+end_example
+
+followed by open-source synthesis and resource estimation via Yosys.
+
+*** Relation to Published Work
+
+Two papers directly support the feasibility of this route:
+
+- *HLSfromPyTorch to SystemVerilog with MLIR and CIRCT*  
+  Demonstrates lowering from PyTorch to synthesizable hardware using MLIR.
+- *StreamTensor*  
+  Demonstrates an end-to-end LLM pipeline from PyTorch to FPGA using MLIR
+  and CIRCT. Although the source repository was recently made private, the
+  methodology is public and aligns with the proposed pipeline.
+
+The existence of these two independent demonstrations provides strong evidence
+that the selected approach is viable, reproducible, and extensible.
+
+*** Risks and Expected Challenges
+
+- Torch-MLIR operator coverage for some LLM layers may be incomplete.
+- CIRCT may lack direct lowering paths for certain composite operations.
+- Performance and resource constraints may require aggressive quantization,
+  pruning, or operator rewriting.
+- Additional preprocessing may be necessary to convert attention blocks into
+  MLIR patterns that CIRCT can lower to hardware.
+
+These risks are mitigated by defining clear fallback strategies.
+
+*** Fallback Plan
+
+1. **Fallback A: Smaller model + operator rewriting**  
+   If the chosen model cannot be lowered due to unsupported operators, the
+   architecture can be simplified, or unsupported ops can be decomposed into
+   primitive MLIR operations.
+
+2. **Fallback B: ONNX route**  
+   If Torch-MLIR fails for structural reasons:  
+   PyTorch → ONNX → ONNX-MLIR → CIRCT → Verilog.
+
+3. **Fallback C: Manual minimal transformer kernel**  
+   If MLIR lowering encounters a fundamental blocker, a minimal transformer
+   block will be written in Verilog as a reference HDL kernel, ensuring that the
+   project still produces an open-source hardware baseline.
+
+These fallbacks ensure that the project delivers meaningful outputs even in the
+presence of toolchain or operator-coverage limitations.
+
+*** Next Steps
+
+- Begin the PyTorch → Torch-MLIR lowering of the smallest LLM candidate
+  (TinyStories-2.8M).
+- Identify unsupported operators and implement rewrites as necessary.
+- Lower the transformed model through CIRCT to Verilog.
+- Perform Yosys synthesis to estimate feasibility on target FPGA devices.
+- Document the full pipeline or, if blocked, the exact failure mode and
+  underlying technical reasons.
+* Draft1
 PyTorch + Torch-MLIR + CIRCT route is the most promising.
 
 It has appeared in two papers: HLSfromPyTorch to System Verilog with MLIR and CIRCT and StreamTensor.
