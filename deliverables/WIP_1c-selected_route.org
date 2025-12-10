@@ -1,0 +1,9 @@
+PyTorch + Torch-MLIR + CIRCT route is the most promising.
+
+It has appeared in two papers: HLSfromPyTorch to System Verilog with MLIR and CIRCT and StreamTensor.
+
+In StreamTensor the whole pipeline from LLM in pytorch to FPGA is demostrated. Unfortunately the git reepo was made private recently, so no access to the source code.
+
+Torch-MLIR and CIRCT are
+
+Torch-MLIR: This project is participating in the LLVM Incubator process: as such, it is not part of any official LLVM release
