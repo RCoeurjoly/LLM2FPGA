@@ -1,23 +1,17 @@
 * Draft 2
-
 ** 1c. Results, Selected Route, and Next Steps
 
-This section summarizes the conclusions from the survey (1a) and the compatibility
-analysis (1b), and presents the selected path, the rationale behind its choice, and
-the fallback plan.
+This section summarizes the conclusions from the survey (1a) and the compatibility analysis (1b), and presents the selected path, the rationale behind its choice, and the fallback plan.
 
 *** Summary of Findings from 1a and 1b
 
-The survey conducted in 1a identified more than ten relevant papers and public
-repositories related to LLM inference on FPGAs. The key observations were:
+The survey conducted in 1a identified more than ten relevant papers and public repositories related to LLM inference on FPGAs. The key observations were:
 
 - Many HLS-based candidates require proprietary tools such as Vivado HLS (Vitis HLS), making them unsuitable for an end-to-end open-source flow.
 - The only complete PyTorch→FPGA pipeline found in the literature is in the
   *StreamTensor* paper, which demonstrates the feasibility of a full lowering
   stack from PyTorch to FPGA using MLIR and CIRCT. However, the corresponding
   repository has been made private, preventing reproducibility.
-- Several candidates exhibited incompatibility during the Yosys
-  elaboration checks performed in 1b.
 
 These results strongly suggest that open-source viability requires a toolchain that
 natively supports both machine-learning IR and hardware IR, without dependence on
@@ -106,6 +100,8 @@ These risks are mitigated by defining clear fallback strategies.
 2. **Fallback B: ONNX route**  
    If Torch-MLIR fails for structural reasons:  
    PyTorch → ONNX → ONNX-MLIR → CIRCT → Verilog.
+
+https://github.com/onnx/onnx-mlir
 
 3. **Fallback C: Manual minimal transformer kernel**  
    If MLIR lowering encounters a fundamental blocker, a minimal transformer
