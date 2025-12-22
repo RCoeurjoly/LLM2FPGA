@@ -1,3 +1,6 @@
+* Draft 3
+** 1c. Selected route and next steps
+This deliverable summarizes the conclusions from the survey (1a) and the compatibility analysis (1b), and presents the selected route, why it is chosen, and the fallback plan.
 * Draft 2
 ** 1c. Results, Selected Route, and Next Steps
 
@@ -120,7 +123,6 @@ presence of toolchain or operator-coverage limitations.
 - Perform Yosys synthesis to estimate feasibility on target FPGA devices.
 - Document the full pipeline or, if blocked, the exact failure mode and
   underlying technical reasons.
-
 * Draft 1
 PyTorch + Torch-MLIR + CIRCT route is the most promising.
 
