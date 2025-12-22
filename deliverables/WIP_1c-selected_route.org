@@ -30,21 +30,7 @@ This route is chosen because:
 - The toolchain allows incremental development: unsupported operators can be rewritten, simplified, or decomposed as needed.
 - Torch-MLIR and CIRCT are activelly developed (as of December 2025).
 
-*** Fallback plan
-
-If the selected route becomes partially or fully unviable, the following fallbacks will be used:
-
-1. *Operator decomposition / model simplification*  
-   Unsupported operators will be rewritten into simpler MLIR primitives, or the model will be reduced in scope.
-
-2. *ONNX-based lowering*  
-   If Torch-MLIR proves unsuitable for structural reasons:  
-   #+begin_example
-   PyTorch → ONNX → ONNX-MLIR → CIRCT → Verilog
-   #+end_example
-
-3. *Minimal handwritten HDL kernel*  
-   As a last resort, a minimal transformer-style kernel will be implemented directly in Verilog to ensure the project still delivers an open-source FPGA baseline.
+*** Risks
 
 *** Next steps
 
