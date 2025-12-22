@@ -31,7 +31,9 @@ This route is chosen because:
 - Torch-MLIR and CIRCT are activelly developed (as of December 2025).
 
 *** Risks
-
+- Some PyTorch operators are not supported by Torch-MLIR.
+- Lowering an LLM crashes Torch-MLIR or CIRCT.
+   
 *** Next steps
 
 - Lower a small open-source LLM (TinyStories-2.8M) from PyTorch to Torch-MLIR.
