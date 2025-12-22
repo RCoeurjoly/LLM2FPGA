@@ -3,7 +3,9 @@
 This deliverable summarizes the conclusions from the survey (1a) and the compatibility analysis (1b), and presents the selected route, why it is chosen, and the fallback plan.
 *** Summary of findings from 1a and 1b
 The survey (1a) identified 14 relevant papers and public repositories related to LLM inference on FPGAs. The key observations are:
-- All HLS-based candidates use proprietary tools such as Vivado HLS (Vitis HLS), making them unsuitable for an end-to-end open-source flow.
+- All HLS-based candidates use proprietary tools such as Vivado HLS (Vitis HLS). Panda Bambu seems to be the most promissing open source alternative, but compatibility with Vitis HLS code, specially its headers and pragmas is limited, so manual rework is needed.
+
+  
 * Draft 2
 ** 1c. Results, Selected Route, and Next Steps
 
