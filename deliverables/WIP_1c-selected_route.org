@@ -9,7 +9,7 @@ The survey (1a) identified 14 relevant papers and public repositories related to
 
 - All HLS-based candidates (1, 2, 6, 8, 10, 11 and 12) rely on the proprietary toolchain Vitis HLS.
 - An open-source alternative for HLS (Panda Bambu)  exists, but compatibility with existing Vitis HLS code (especially pragmas and headers) is limited and would require substantial manual rework. See Panda bambu section in TMMA analysis in 1b deliverable.
-- Only one work (*StreamTensor*) demonstrates a full PyTorch-to-FPGA pipeline for an LLM using MLIR-based tooling. However, its reference implementation is no longer publicly available, preventing direct reuse or reproduction.
+- Only one work (15) demonstrates a full PyTorch-to-FPGA pipeline for an LLM using MLIR-based tooling. Route 14 demostrated the same approach, but with smaller PyTorch input. However, its reference implementation is no longer publicly available, preventing reuse.
 
 These results indicate that most existing approaches are either proprietary, partially closed, or incompatible with a fully open-source FPGA flow.
 
