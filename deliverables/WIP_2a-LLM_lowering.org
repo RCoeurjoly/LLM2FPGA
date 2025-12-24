@@ -1,0 +1,1 @@
+* Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
