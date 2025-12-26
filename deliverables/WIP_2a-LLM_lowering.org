@@ -36,3 +36,12 @@ Stack dump:
 #27 0x00007f210ff5159b __libc_start_main@GLIBC_2.2.5 (/nix/store/daamdpmaz2vjvna55ccrc30qw3qb8h6d-glibc-2.40-66/lib/libc.so.6+0x2a59b)
 #28 0x00005560f1901a85 _start (/home/roland/circt-nix/result/bin/circt-opt+0x114aa85)
 ./demo.sh: line 52: 264846 Segmentation fault      (core dumped) $CIRCT_OPT dot-cf.mlir -flatten-memref -flatten-memref-calls -canonicalize -handshake-legalize-memrefs --lower-cf-to-handshake -canonicalize > dot-handshake.mlir
+*** TODO_NEXT Reduce the failing file
+- State "TODO_NEXT"  from              [2025-12-26 Fri 19:26]
+nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c mlir-reduce dot-cf.mlir \
+  --test=' /home/roland/circt-nix/result/bin/circt-opt -flatten-memref -o /dev/null ' \
+  -o reduced.mlir
+**** Error
+nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c mlir-reduce --help
+OVERVIEW: MLIR test case reduction tool.
+
