@@ -4,7 +4,7 @@ source mlir_venv/bin/activate
 cd hot-chips-2022-pytorch-circt-hls-demo/TinyStories/
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c ./demo.sh
 ** PLEASE submit a bug report to https://github.com/llvm/circt and include the crash backtrace.
-Stack dump:
+*** Stack dump:
 0.      Program arguments: /home/roland/circt-nix/result/bin/circt-opt dot-cf.mlir -flatten-memref -flatten-memref-calls -canonicalize -handshake-legalize-memrefs --lower-cf-to-handshake -canonicalize
  #0 0x00005560f19aa08b llvm::sys::PrintStackTrace(llvm::raw_ostream&, int) (/home/roland/circt-nix/result/bin/circt-opt+0x11f308b)
  #1 0x00005560f19a6cba SignalHandler(int, siginfo_t*, void*) (/home/roland/circt-nix/result/bin/circt-opt+0x11efcba)
@@ -39,9 +39,10 @@ Stack dump:
 *** TODO_NEXT Reduce the failing file
 - State "TODO_NEXT"  from              [2025-12-26 Fri 19:26]
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c mlir-reduce dot-cf.mlir \
-  --test=' /home/roland/circt-nix/result/bin/circt-opt -flatten-memref -o /dev/null ' \
+  --test=' /home/roland/circt-nix/result/bin/circt-opt -flatten-memref' \
   -o reduced.mlir
 **** Error
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c mlir-reduce --help
 OVERVIEW: MLIR test case reduction tool.
-
+**** Prompt
+Im debugging a mlir pass. The file is very big though, 30MB, so I want to reduce it.
