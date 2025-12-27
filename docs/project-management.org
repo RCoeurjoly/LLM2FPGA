@@ -1,4 +1,7 @@
-* 1c-selected_route
+* 2a LLM lowering: tiny stories 1M
+* DONE 1c-selected_route
+CLOSED: [2025-12-27 Sat 21:39]
+- State "DONE"       from              [2025-12-27 Sat 21:39]
 * What is the monkey in this project?
 As in monkey reciting Shakespeare on top of a pedestal.
 
