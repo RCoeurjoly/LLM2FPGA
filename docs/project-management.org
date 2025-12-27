@@ -6,7 +6,7 @@ cd hot-chips-2022-pytorch-circt-hls-demo/TinyStories/
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c ./demo.sh
 *** TODO_NEXT Debug flatten-memref crash
 - State "TODO_NEXT"  from              [2025-12-27 Sat 21:46]
-**** Crash logs
+**** Crash logs with demo.sh
 PLEASE submit a bug report to https://github.com/llvm/circt and include the crash backtrace.
 
 Stack dump:
@@ -41,6 +41,7 @@ Stack dump:
 #27 0x00007f210ff5159b __libc_start_main@GLIBC_2.2.5 (/nix/store/daamdpmaz2vjvna55ccrc30qw3qb8h6d-glibc-2.40-66/lib/libc.so.6+0x2a59b)
 #28 0x00005560f1901a85 _start (/home/roland/circt-nix/result/bin/circt-opt+0x114aa85)
 ./demo.sh: line 52: 264846 Segmentation fault      (core dumped) $CIRCT_OPT dot-cf.mlir -flatten-memref -flatten-memref-calls -canonicalize -handshake-legalize-memrefs --lower-cf-to-handshake -canonicalize > dot-handshake.mlir
+**** Crash logs with reduced.mlir
 **** DONE Reduce the failing file
 CLOSED: [2025-12-26 Fri 20:48]
 - State "DONE"       from "TODO_NEXT"  [2025-12-26 Fri 20:48]
@@ -50,7 +51,7 @@ nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPac
   -o reduced.mlir
 ***** result
 nix shell nixpkgs#llvmPackages.mlir -c  mlir-reduce dot-cf.mlir -reduction-tree='traversal-mode=0 test=interesting.sh' -o reduced.mlir
-reduced.mlir
+reduced.mlir, which is 25x times smaller than original (129k vs 30M)
 ***** Error
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c mlir-reduce --help
 OVERVIEW: MLIR test case reduction tool.
