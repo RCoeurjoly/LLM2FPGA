@@ -1,4 +1,69 @@
 * 2a LLM lowering: tiny stories 1M
+** Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
+cd
+source mlir_venv/bin/activate
+cd hot-chips-2022-pytorch-circt-hls-demo/TinyStories/
+nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c ./demo.sh
+*** TODO_NEXT Debug flatten-memref crash
+- State "TODO_NEXT"  from              [2025-12-27 Sat 21:46]
+**** Crash logs
+PLEASE submit a bug report to https://github.com/llvm/circt and include the crash backtrace.
+
+Stack dump:
+0.      Program arguments: /home/roland/circt-nix/result/bin/circt-opt dot-cf.mlir -flatten-memref -flatten-memref-calls -canonicalize -handshake-legalize-memrefs --lower-cf-to-handshake -canonicalize
+ #0 0x00005560f19aa08b llvm::sys::PrintStackTrace(llvm::raw_ostream&, int) (/home/roland/circt-nix/result/bin/circt-opt+0x11f308b)
+ #1 0x00005560f19a6cba SignalHandler(int, siginfo_t*, void*) (/home/roland/circt-nix/result/bin/circt-opt+0x11efcba)
+ #2 0x00007f210ff689c0 __restore_rt (/nix/store/daamdpmaz2vjvna55ccrc30qw3qb8h6d-glibc-2.40-66/lib/libc.so.6+0x419c0)
+ #3 0x00005560f36cc24c mlir::DenseElementsAttr::getNumElements() const (/home/roland/circt-nix/result/bin/circt-opt+0x2f1524c)
+ #4 0x00005560f362d119 (anonymous namespace)::GlobalOpConversion::matchAndRewrite(mlir::memref::GlobalOp, mlir::memref::GlobalOpAdaptor, mlir::ConversionPatternRewriter&) const (/home/roland/circt-nix/result/bin/circt-opt+0x2e76119)
+ #5 0x00005560f3626c34 mlir::OpConversionPattern<mlir::memref::GlobalOp>::matchAndRewrite(mlir::Operation*, llvm::ArrayRef<mlir::ValueRange>, mlir::ConversionPatternRewriter&) const (/home/roland/circt-nix/result/bin/circt-opt+0x2e6fc34)
+ #6 0x00005560f44ce3fe mlir::ConversionPattern::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&) const (/home/roland/circt-nix/result/bin/circt-opt+0x3d173fe)
+ #7 0x00005560f4524d0c mlir::PatternApplicator::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&, llvm::function_ref<bool (mlir::Pattern const&)>, llvm::function_ref<void (mlir::Pattern const&)>, llvm::function_ref<llvm::LogicalResult (mlir::Pattern const&)>)::'lambda'()::operator()() const (/home/roland/circt-nix/result/bin/circt-opt+0x3d6dd0c)
+ #8 0x00005560f45262f1 mlir::PatternApplicator::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&, llvm::function_ref<bool (mlir::Pattern const&)>, llvm::function_ref<void (mlir::Pattern const&)>, llvm::function_ref<llvm::LogicalResult (mlir::Pattern const&)>) (/home/roland/circt-nix/result/bin/circt-opt+0x3d6f2f1)
+ #9 0x00005560f44d435e (anonymous namespace)::OperationLegalizer::legalize(mlir::Operation*) (/home/roland/circt-nix/result/bin/circt-opt+0x3d1d35e)
+#10 0x00005560f44d5c13 mlir::OperationConverter::convert(mlir::Operation*, bool) (/home/roland/circt-nix/result/bin/circt-opt+0x3d1ec13)
+#11 0x00005560f44d60aa mlir::OperationConverter::convertOperations(llvm::ArrayRef<mlir::Operation*>) (/home/roland/circt-nix/result/bin/circt-opt+0x3d1f0aa)
+#12 0x00005560f44df054 applyConversion(llvm::ArrayRef<mlir::Operation*>, mlir::ConversionTarget const&, mlir::FrozenRewritePatternSet const&, mlir::ConversionConfig, (anonymous namespace)::OpConversionMode) (/home/roland/circt-nix/result/bin/circt-opt+0x3d28054)
+#13 0x00005560f44df1ff mlir::applyPartialConversion(mlir::Operation*, mlir::ConversionTarget const&, mlir::FrozenRewritePatternSet const&, mlir::ConversionConfig) (/home/roland/circt-nix/result/bin/circt-opt+0x3d281ff)
+#14 0x00005560f362bf11 (anonymous namespace)::FlattenMemRefPass::runOnOperation() (/home/roland/circt-nix/result/bin/circt-opt+0x2e74f11)
+#15 0x00005560f466b148 mlir::detail::OpToOpPassAdaptor::run(mlir::Pass*, mlir::Operation*, mlir::AnalysisManager, bool, unsigned int) (/home/roland/circt-nix/result/bin/circt-opt+0x3eb4148)
+#16 0x00005560f466b6fb mlir::detail::OpToOpPassAdaptor::runPipeline(mlir::OpPassManager&, mlir::Operation*, mlir::AnalysisManager, bool, unsigned int, mlir::PassInstrumentor*, mlir::PassInstrumentation::PipelineParentInfo const*) (/home/roland/circt-nix/result/bin/circt-opt+0x3eb46fb)
+#17 0x00005560f466bebd mlir::PassManager::runPasses(mlir::Operation*, mlir::AnalysisManager) (/home/roland/circt-nix/result/bin/circt-opt+0x3eb4ebd)
+#18 0x00005560f466d2b5 mlir::PassManager::run(mlir::Operation*) (/home/roland/circt-nix/result/bin/circt-opt+0x3eb62b5)
+#19 0x00005560f3d31bcd performActions(llvm::raw_ostream&, std::shared_ptr<llvm::SourceMgr> const&, mlir::MLIRContext*, mlir::MlirOptMainConfig const&) (/home/roland/circt-nix/result/bin/circt-opt+0x357abcd)
+#20 0x00005560f3d32c2c llvm::LogicalResult llvm::function_ref<llvm::LogicalResult (std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef const&, llvm::raw_ostream&)>::callback_fn<mlir::MlirOptMain(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, mlir::DialectRegistry&, mlir::MlirOptMainConfig const&)::'lambda'(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef, llvm::raw_ostream&)>(long, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef const&, llvm::raw_ostream&) (/home/roland/circt-nix/result/bin/circt-opt+0x357bc2c)
+#21 0x00005560f3d6bd85 mlir::splitAndProcessBuffer(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::function_ref<llvm::LogicalResult (std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef const&, llvm::raw_ostream&)>, llvm::raw_ostream&, llvm::StringRef, llvm::StringRef) (/home/roland/circt-nix/result/bin/circt-opt+0x35b4d85)
+#22 0x00005560f3d2a091 mlir::MlirOptMain(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, mlir::DialectRegistry&, mlir::MlirOptMainConfig const&) (.part.0) (/home/roland/circt-nix/result/bin/circt-opt+0x3573091)
+#23 0x00005560f3d33304 mlir::MlirOptMain(int, char**, llvm::StringRef, llvm::StringRef, mlir::DialectRegistry&) (/home/roland/circt-nix/result/bin/circt-opt+0x357c304)
+#24 0x00005560f3d33555 mlir::MlirOptMain(int, char**, llvm::StringRef, mlir::DialectRegistry&) (/home/roland/circt-nix/result/bin/circt-opt+0x357c555)
+#25 0x00005560f18fcbfc main (/home/roland/circt-nix/result/bin/circt-opt+0x1145bfc)
+#26 0x00007f210ff514d8 __libc_start_call_main (/nix/store/daamdpmaz2vjvna55ccrc30qw3qb8h6d-glibc-2.40-66/lib/libc.so.6+0x2a4d8)
+#27 0x00007f210ff5159b __libc_start_main@GLIBC_2.2.5 (/nix/store/daamdpmaz2vjvna55ccrc30qw3qb8h6d-glibc-2.40-66/lib/libc.so.6+0x2a59b)
+#28 0x00005560f1901a85 _start (/home/roland/circt-nix/result/bin/circt-opt+0x114aa85)
+./demo.sh: line 52: 264846 Segmentation fault      (core dumped) $CIRCT_OPT dot-cf.mlir -flatten-memref -flatten-memref-calls -canonicalize -handshake-legalize-memrefs --lower-cf-to-handshake -canonicalize > dot-handshake.mlir
+**** DONE Reduce the failing file
+CLOSED: [2025-12-26 Fri 20:48]
+- State "DONE"       from "TODO_NEXT"  [2025-12-26 Fri 20:48]
+- State "TODO_NEXT"  from              [2025-12-26 Fri 19:26]
+nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c mlir-reduce dot-cf.mlir \
+  --test=' /home/roland/circt-nix/result/bin/circt-opt -flatten-memref' \
+  -o reduced.mlir
+***** result
+nix shell nixpkgs#llvmPackages.mlir -c  mlir-reduce dot-cf.mlir -reduction-tree='traversal-mode=0 test=interesting.sh' -o reduced.mlir
+reduced.mlir
+***** Error
+nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c mlir-reduce --help
+OVERVIEW: MLIR test case reduction tool.
+***** Prompt
+Im debugging a mlir pass. The file is very big though, 30MB, so I want to reduce it.
+**** DONE Reproduce with latest circt
+CLOSED: [2025-12-27 Sat 21:40]
+- State "DONE"       from "TODO_NEXT"  [2025-12-27 Sat 21:40]
+- State "TODO_NEXT"  from              [2025-12-26 Fri 20:48]
+***** DONE Build latest circt: 1.138.0
+CLOSED: [2025-12-27 Sat 21:40]
+- State "DONE"       from "TODO_NEXT"  [2025-12-27 Sat 21:40]
+- State "TODO_NEXT"  from              [2025-12-26 Fri 20:48]
 * DONE 1c-selected_route
 CLOSED: [2025-12-27 Sat 21:39]
 - State "DONE"       from              [2025-12-27 Sat 21:39]
