@@ -6,6 +6,65 @@ cd hot-chips-2022-pytorch-circt-hls-demo/TinyStories/
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c ./demo.sh
 *** TODO_NEXT Debug flatten-memref crash
 - State "TODO_NEXT"  from              [2025-12-27 Sat 21:46]
+**** Crash logs with reduced.mlir, with debug symbols
+/home/roland/circt/build/bin/circt-opt -verify-each -flatten-memref reduced.mlir
+PLEASE submit a bug report to https://github.com/llvm/circt and include the crash backtrace.
+Stack dump:
+0.      Program arguments: /home/roland/circt/build/bin/circt-opt -verify-each -flatten-memref reduced.mlir
+ #0 0x000055b2fba56a38 llvm::sys::PrintStackTrace(llvm::raw_ostream&, int) /home/roland/circt/llvm/llvm/lib/Support/Unix/Signals.inc:834:22
+ #1 0x000055b2fba56eb5 PrintStackTraceSignalHandler(void*) /home/roland/circt/llvm/llvm/lib/Support/Unix/Signals.inc:916:1
+ #2 0x000055b2fba540a9 llvm::sys::RunSignalHandlers() /home/roland/circt/llvm/llvm/lib/Support/Signals.cpp:104:20
+ #3 0x000055b2fba56260 SignalHandler(int, siginfo_t*, void*) /home/roland/circt/llvm/llvm/lib/Support/Unix/Signals.inc:426:14
+ #4 0x00007fca08684520 (/lib/x86_64-linux-gnu/libc.so.6+0x42520)
+ #5 0x000055b2feb293e5 mlir::DenseElementsAttr::getType() const /home/roland/circt/llvm/mlir/lib/IR/BuiltinAttributes.cpp:1294:68
+ #6 0x000055b2feb29471 mlir::DenseElementsAttr::getNumElements() const /home/roland/circt/llvm/mlir/lib/IR/BuiltinAttributes.cpp:1302:17
+ #7 0x000055b2fbbabaeb llvm::FailureOr<mlir::detail::ElementsAttrRange<mlir::DenseElementsAttr::AttributeElementIterator> > mlir::DenseElementsAttr::tryGetValues<mlir::Attribute, void>() const /home/roland/circt/llvm/mlir/include/mlir/IR/BuiltinAttributes.h:499:12
+ #8 0x000055b2fbba8b5f auto mlir::DenseElementsAttr::getValues<mlir::Attribute>() const /home/roland/circt/llvm/mlir/include/mlir/IR/BuiltinAttributes.h:423:5
+ #9 0x000055b2fea1bb02 (anonymous namespace)::GlobalOpConversion::matchAndRewrite(mlir::memref::GlobalOp, mlir::memref::GlobalOpAdaptor, mlir::ConversionPatternRewriter&) const /home/roland/circt/lib/Transforms/FlattenMemRefs.cpp:211:51
+#10 0x000055b2fea356d5 llvm::LogicalResult mlir::ConversionPattern::dispatchTo1To1<mlir::OpConversionPattern<mlir::memref::GlobalOp>, mlir::memref::GlobalOp>(mlir::OpConversionPattern<mlir::memref::GlobalOp> const&, mlir::memref::GlobalOp, mlir::memref::GlobalOp::GenericAdaptor<llvm::ArrayRef<mlir::ValueRange> >, mlir::ConversionPatternRewriter&) /home/roland/circt/llvm/mlir/include/mlir/Transforms/DialectConversion.h:1069:30
+#11 0x000055b2fea33aac mlir::OpConversionPattern<mlir::memref::GlobalOp>::matchAndRewrite(mlir::memref::GlobalOp, mlir::memref::GlobalOpGenericAdaptor<llvm::ArrayRef<mlir::ValueRange> >, mlir::ConversionPatternRewriter&) const /home/roland/circt/llvm/mlir/include/mlir/Transforms/DialectConversion.h:727:26
+#12 0x000055b2fea33a34 mlir::OpConversionPattern<mlir::memref::GlobalOp>::matchAndRewrite(mlir::Operation*, llvm::ArrayRef<mlir::ValueRange>, mlir::ConversionPatternRewriter&) const /home/roland/circt/llvm/mlir/include/mlir/Transforms/DialectConversion.h:713:27
+#13 0x000055b300332e5e mlir::ConversionPattern::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&) const /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:2434:25
+#14 0x000055b3003d21ef mlir::PatternApplicator::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&, llvm::function_ref<bool (mlir::Pattern const&)>, llvm::function_ref<void (mlir::Pattern const&)>, llvm::function_ref<llvm::LogicalResult (mlir::Pattern const&)>)::'lambda'()::operator()() const /home/roland/circt/llvm/mlir/lib/Rewrite/PatternApplicator.cpp:223:46
+#15 0x000055b3003d2c4d void llvm::function_ref<void ()>::callback_fn<mlir::PatternApplicator::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&, llvm::function_ref<bool (mlir::Pattern const&)>, llvm::function_ref<void (mlir::Pattern const&)>, llvm::function_ref<llvm::LogicalResult (mlir::Pattern const&)>)::'lambda'()>(long) /home/roland/circt/llvm/llvm/include/llvm/ADT/STLFunctionalExtras.h:47:40
+#16 0x000055b2fb93f1d6 llvm::function_ref<void ()>::operator()() const /home/roland/circt/llvm/llvm/include/llvm/ADT/STLFunctionalExtras.h:69:62
+#17 0x000055b3003d6391 void mlir::MLIRContext::executeAction<mlir::ApplyPatternAction, mlir::Pattern const&>(llvm::function_ref<void ()>, llvm::ArrayRef<mlir::IRUnit>, mlir::Pattern const&) /home/roland/circt/llvm/mlir/include/mlir/IR/MLIRContext.h:291:3
+#18 0x000055b3003d2a4a mlir::PatternApplicator::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&, llvm::function_ref<bool (mlir::Pattern const&)>, llvm::function_ref<void (mlir::Pattern const&)>, llvm::function_ref<llvm::LogicalResult (mlir::Pattern const&)>) /home/roland/circt/llvm/mlir/lib/Rewrite/PatternApplicator.cpp:242:5
+#19 0x000055b300334d99 (anonymous namespace)::OperationLegalizer::legalizeWithPattern(mlir::Operation*) /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:2854:36
+#20 0x000055b300333658 (anonymous namespace)::OperationLegalizer::legalize(mlir::Operation*) /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:2633:16
+#21 0x000055b300336896 mlir::OperationConverter::convert(mlir::Operation*, bool) /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:3321:13
+#22 0x000055b300337403 mlir::OperationConverter::convertOperations(llvm::ArrayRef<mlir::Operation*>) /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:3423:15
+#23 0x000055b30033b352 applyConversion(llvm::ArrayRef<mlir::Operation*>, mlir::ConversionTarget const&, mlir::FrozenRewritePatternSet const&, mlir::ConversionConfig, (anonymous namespace)::OpConversionMode)::'lambda'()::operator()() const /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:4146:47
+#24 0x000055b300344bb4 void llvm::function_ref<void ()>::callback_fn<applyConversion(llvm::ArrayRef<mlir::Operation*>, mlir::ConversionTarget const&, mlir::FrozenRewritePatternSet const&, mlir::ConversionConfig, (anonymous namespace)::OpConversionMode)::'lambda'()>(long) /home/roland/circt/llvm/llvm/include/llvm/ADT/STLFunctionalExtras.h:47:40
+#25 0x000055b2fb93f1d6 llvm::function_ref<void ()>::operator()() const /home/roland/circt/llvm/llvm/include/llvm/ADT/STLFunctionalExtras.h:69:62
+#26 0x000055b30035d20c void mlir::MLIRContext::executeAction<ApplyConversionAction>(llvm::function_ref<void ()>, llvm::ArrayRef<mlir::IRUnit>) /home/roland/circt/llvm/mlir/include/mlir/IR/MLIRContext.h:291:3
+#27 0x000055b30033b513 applyConversion(llvm::ArrayRef<mlir::Operation*>, mlir::ConversionTarget const&, mlir::FrozenRewritePatternSet const&, mlir::ConversionConfig, (anonymous namespace)::OpConversionMode) /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:4149:10
+#28 0x000055b30033b5a7 mlir::applyPartialConversion(llvm::ArrayRef<mlir::Operation*>, mlir::ConversionTarget const&, mlir::FrozenRewritePatternSet const&, mlir::ConversionConfig) /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:4159:25
+#29 0x000055b30033b61b mlir::applyPartialConversion(mlir::Operation*, mlir::ConversionTarget const&, mlir::FrozenRewritePatternSet const&, mlir::ConversionConfig) /home/roland/circt/llvm/mlir/lib/Transforms/Utils/DialectConversion.cpp:4166:32
+#30 0x000055b2fea1d033 (anonymous namespace)::FlattenMemRefPass::runOnOperation() /home/roland/circt/lib/Transforms/FlattenMemRefs.cpp:446:31
+#31 0x000055b3005d5805 mlir::detail::OpToOpPassAdaptor::run(mlir::Pass*, mlir::Operation*, mlir::AnalysisManager, bool, unsigned int)::'lambda2'()::operator()() const /home/roland/circt/llvm/mlir/lib/Pass/Pass.cpp:606:57
+#32 0x000055b3005ddd52 void llvm::function_ref<void ()>::callback_fn<mlir::detail::OpToOpPassAdaptor::run(mlir::Pass*, mlir::Operation*, mlir::AnalysisManager, bool, unsigned int)::'lambda2'()>(long) /home/roland/circt/llvm/llvm/include/llvm/ADT/STLFunctionalExtras.h:47:40
+#33 0x000055b2fb93f1d6 llvm::function_ref<void ()>::operator()() const /home/roland/circt/llvm/llvm/include/llvm/ADT/STLFunctionalExtras.h:69:62
+#34 0x000055b3005e4b0d void mlir::MLIRContext::executeAction<mlir::PassExecutionAction, mlir::Pass&>(llvm::function_ref<void ()>, llvm::ArrayRef<mlir::IRUnit>, mlir::Pass&) /home/roland/circt/llvm/mlir/include/mlir/IR/MLIRContext.h:291:3
+#35 0x000055b3005d5e85 mlir::detail::OpToOpPassAdaptor::run(mlir::Pass*, mlir::Operation*, mlir::AnalysisManager, bool, unsigned int) /home/roland/circt/llvm/mlir/lib/Pass/Pass.cpp:615:23
+#36 0x000055b3005d64f8 mlir::detail::OpToOpPassAdaptor::runPipeline(mlir::OpPassManager&, mlir::Operation*, mlir::AnalysisManager, bool, unsigned int, mlir::PassInstrumentor*, mlir::PassInstrumentation::PipelineParentInfo const*) /home/roland/circt/llvm/mlir/lib/Pass/Pass.cpp:682:15
+#37 0x000055b3005dc5c9 mlir::PassManager::runPasses(mlir::Operation*, mlir::AnalysisManager) /home/roland/circt/llvm/mlir/lib/Pass/Pass.cpp:1117:40
+#38 0x000055b3005dbffb mlir::PassManager::run(mlir::Operation*) /home/roland/circt/llvm/mlir/lib/Pass/Pass.cpp:1091:69
+#39 0x000055b2ff795bb3 performActions(llvm::raw_ostream&, std::shared_ptr<llvm::SourceMgr> const&, mlir::MLIRContext*, mlir::MlirOptMainConfig const&) /home/roland/circt/llvm/mlir/lib/Tools/mlir-opt/MlirOptMain.cpp:591:13
+#40 0x000055b2ff7963f0 processBuffer(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef, mlir::MlirOptMainConfig const&, mlir::DialectRegistry&, mlir::SourceMgrDiagnosticVerifierHandler*, llvm::ThreadPoolInterface*) /home/roland/circt/llvm/mlir/lib/Tools/mlir-opt/MlirOptMain.cpp:673:26
+#41 0x000055b2ff796a4f mlir::MlirOptMain(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, mlir::DialectRegistry&, mlir::MlirOptMainConfig const&)::'lambda'(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef, llvm::raw_ostream&)::operator()(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef, llvm::raw_ostream&) const /home/roland/circt/llvm/mlir/lib/Tools/mlir-opt/MlirOptMain.cpp:771:25
+#42 0x000055b2ff797ebd llvm::LogicalResult llvm::function_ref<llvm::LogicalResult (std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef const&, llvm::raw_ostream&)>::callback_fn<mlir::MlirOptMain(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, mlir::DialectRegistry&, mlir::MlirOptMainConfig const&)::'lambda'(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef, llvm::raw_ostream&)>(long, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef const&, llvm::raw_ostream&) /home/roland/circt/llvm/llvm/include/llvm/ADT/STLFunctionalExtras.h:46:52
+#43 0x000055b2ff803ef4 llvm::function_ref<llvm::LogicalResult (std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef const&, llvm::raw_ostream&)>::operator()(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef const&, llvm::raw_ostream&) const /home/roland/circt/llvm/llvm/include/llvm/ADT/STLFunctionalExtras.h:69:12
+#44 0x000055b2ff803533 mlir::splitAndProcessBuffer(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::function_ref<llvm::LogicalResult (std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, llvm::MemoryBufferRef const&, llvm::raw_ostream&)>, llvm::raw_ostream&, llvm::StringRef, llvm::StringRef) /home/roland/circt/llvm/mlir/lib/Support/ToolUtilities.cpp:30:30
+#45 0x000055b2ff796d36 mlir::MlirOptMain(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer> >, mlir::DialectRegistry&, mlir::MlirOptMainConfig const&) /home/roland/circt/llvm/mlir/lib/Tools/mlir-opt/MlirOptMain.cpp:776:47
+#46 0x000055b2ff7970aa mlir::MlirOptMain(int, char**, llvm::StringRef, llvm::StringRef, mlir::DialectRegistry&) /home/roland/circt/llvm/mlir/lib/Tools/mlir-opt/MlirOptMain.cpp:822:13
+#47 0x000055b2ff7972a1 mlir::MlirOptMain(int, char**, llvm::StringRef, mlir::DialectRegistry&) /home/roland/circt/llvm/mlir/lib/Tools/mlir-opt/MlirOptMain.cpp:838:21
+#48 0x000055b2fb898ef8 main /home/roland/circt/tools/circt-opt/circt-opt.cpp:86:0
+#49 0x00007fca0866bd90 __libc_start_call_main ./csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+#50 0x00007fca0866be40 call_init ./csu/../csu/libc-start.c:128:20
+#51 0x00007fca0866be40 __libc_start_main ./csu/../csu/libc-start.c:379:5
+#52 0x000055b2fb898a95 _start (/home/roland/circt/build/bin/circt-opt+0x56a7a95)
+Segmentation fault (core dumped)
 **** Crash logs with demo.sh
 PLEASE submit a bug report to https://github.com/llvm/circt and include the crash backtrace.
 
