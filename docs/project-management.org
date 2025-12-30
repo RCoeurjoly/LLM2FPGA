@@ -3,9 +3,14 @@
 cd
 source mlir_venv/bin/activate
 cd hot-chips-2022-pytorch-circt-hls-demo/TinyStories/
+nix shell "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d#llvmPackages_21.mlir" -c ./demo.sh
+
+
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c ./demo.sh
 *** TODO_NEXT Debug flatten-memref crash
 - State "TODO_NEXT"  from              [2025-12-27 Sat 21:46]
+****
+nix shell "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d#llvmPackages_21.mlir" -c ./demo.sh
 **** Crash logs with reduced.mlir, with debug symbols
 /home/roland/circt/build/bin/circt-opt -verify-each -flatten-memref reduced.mlir
 PLEASE submit a bug report to https://github.com/llvm/circt and include the crash backtrace.
