@@ -9,8 +9,17 @@ nix shell "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d#llvmPac
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c ./demo.sh
 *** TODO_NEXT Debug flatten-memref crash
 - State "TODO_NEXT"  from              [2025-12-27 Sat 21:46]
-****
-nix shell "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d#llvmPackages_21.mlir" -c ./demo.sh
+**** TODO_NEXT keep flatten-memref, fix the memref.global + dense_resource gap
+- State "TODO_NEXT"  from              [2025-12-30 Tue 14:32]
+**** DONE Try without flatten memref
+CLOSED: [2025-12-30 Tue 14:32]
+- State "DONE"       from              [2025-12-30 Tue 14:32]
+without  -flatten-memref \
+  -flatten-memref-calls \
+
+  we get Cannot legalize multi-dimensional memref operation memref.copy %alloc_18, %alloc_19 : memref<1x6x1xf32> to memref<1x6x1xf32>. Please run the memref flattening pass before this pass.
+
+  best to keep flatten-memref, fix the memref.global + dense_resource gap
 **** Crash logs with reduced.mlir, with debug symbols
 /home/roland/circt/build/bin/circt-opt -verify-each -flatten-memref reduced.mlir
 PLEASE submit a bug report to https://github.com/llvm/circt and include the crash backtrace.
