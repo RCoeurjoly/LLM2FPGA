@@ -1,5 +1,6 @@
 * 2a LLM lowering: tiny stories 1M
-** Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
+** TODO_NEXT Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
+- State "TODO_NEXT"  from              [2025-12-31 Wed 17:08]
 cd
 source mlir_venv/bin/activate
 cd hot-chips-2022-pytorch-circt-hls-demo/TinyStories/
@@ -11,6 +12,20 @@ nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPac
 - State "TODO_NEXT"  from              [2025-12-27 Sat 21:46]
 **** TODO_NEXT keep flatten-memref, fix the memref.global + dense_resource gap
 - State "TODO_NEXT"  from              [2025-12-30 Tue 14:32]
+***** TODO_NEXT Figure out which pass is failing, work with tiny.mlir
+- State "TODO_NEXT"  from              [2025-12-31 Wed 17:10]
+home/roland/circt/build/bin/circt-opt -verify-each -flatten-memref tiny.mlir
+module {
+  memref.global constant @constant_2xf32_0 : memref<2xf32> = dense_resource<r>
+}
+
+{-#
+  dialect_resources: {
+    builtin: {
+      r: "0x400000003F80000040000000"
+    }
+  }
+#-}
 **** DONE Try without flatten memref
 CLOSED: [2025-12-30 Tue 14:32]
 - State "DONE"       from              [2025-12-30 Tue 14:32]
