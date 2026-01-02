@@ -10,9 +10,21 @@ nix shell "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d#llvmPac
 nix shell "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261#llvmPackages_21.mlir" -c ./demo.sh
 *** TODO_NEXT Debug flatten-memref crash
 - State "TODO_NEXT"  from              [2025-12-27 Sat 21:46]
-**** TODO_NEXT keep flatten-memref, fix the memref.global + dense_resource gap
+**** TODO_NEXT dot-cf.mlir:112:3: error: failed to legalize operation 'func.func' that was explicitly marked illegal
+- State "TODO_NEXT"  from              [2026-01-02 Fri 20:19]
+2: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg3: memref<f32, strided<[], offset: ?>>, %arg4: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg5: memref<f32, strided<[], offset: ?>>, %arg6: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg7: memref<f32, strided<[], offset: ?>>, %arg8: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg9: memref<f32, strided<[], offset: ?>>, %arg10: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg11: memref<f32, strided<[], offset: ?>>, %arg12: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg13: memref<f32, strided<[], offset: ?>>, %arg14: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg15: memref<f32, strided<[], offset: ?>>, %arg16: memref<1x6xi64, strided<[?, ?], offset: ?>>, %arg17: memref<1x6x50257xf32>) {
+  ^
+dot-cf.mlir:112:3: note: see current operation:
+"func.func"() <{function_type = (memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, memref<f32, strided<[], offset: ?>>, memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, memref<f32, strided<[], offset: ?>>, memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, memref<f32, strided<[], offset: ?>>, memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, memref<f32, strided<[], offset: ?>>, memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, memref<f32, strided<[], offset: ?>>, memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, memref<f32, strided<[], offset: ?>>, memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, memref<f32, strided<[], offset: ?>>, memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, memref<f32, strided<[], offset: ?>>, memref<1x6xi64, strided<[?, ?], offset: ?>>, memref<1x6x50257xf32>) -> (), sym_name = "main"}> ({
+^bb0(%arg0: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg1: memref<f32, strided<[], offset: ?>>, %arg2: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg3: memref<f32, strided<[], offset: ?>>, %arg4: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg5: memref<f32, strided<[], offset: ?>>, %arg6: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg7: memref<f32, strided<[], offset: ?>>, %arg8: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg9: memref<f32, strided<[], offset: ?>>, %arg10: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg11: memref<f32, strided<[], offset: ?>>, %arg12: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg13: memref<f32, strided<[], offset: ?>>, %arg14: memref<1x1x2048x2048xi1, strided<[?, ?, ?, ?], offset: ?>>, %arg15: memref<f32, strided<[], offset: ?>>, %arg16: memref<1x6xi64, strided<[?, ?], offset: ?>>, %arg17: memref<1x6x50257xf32>):
+
+**** DONE keep flatten-memref, fix the memref.global + dense_resource gap
+CLOSED: [2026-01-02 Fri 20:18]
+- State "DONE"       from "TODO_NEXT"  [2026-01-02 Fri 20:18]
 - State "TODO_NEXT"  from              [2025-12-30 Tue 14:32]
-***** TODO_NEXT Figure out which pass is failing, work with tiny.mlir
+***** DONE Figure out which pass is failing, work with tiny.mlir
+CLOSED: [2026-01-02 Fri 20:18]
+- State "DONE"       from "TODO_NEXT"  [2026-01-02 Fri 20:18]
 - State "TODO_NEXT"  from              [2025-12-31 Wed 17:10]
 home/roland/circt/build/bin/circt-opt -verify-each -flatten-memref tiny.mlir
 module {
@@ -26,6 +38,8 @@ module {
     }
   }
 #-}
+****** result
+flatten is failing
 **** DONE Try without flatten memref
 CLOSED: [2025-12-30 Tue 14:32]
 - State "DONE"       from              [2025-12-30 Tue 14:32]
