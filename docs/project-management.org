@@ -1,3 +1,13 @@
+* Notes
+https://github.com/hm-aemy/chosys may be helpful
+
+## Current Status and Roadmap
+
+In a first step, support for a limited number of `seq` and `comb` operations for
+RTLIL is implemented to demonstrate the working principal. Support for more
+operations will be added over time.
+
+https://github.com/hm-aemy/circt/pull/5/changes
 * 2a LLM lowering: tiny stories 1M
 ** TODO_NEXT Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
 - State "TODO_NEXT"  from              [2025-12-31 Wed 17:08]
