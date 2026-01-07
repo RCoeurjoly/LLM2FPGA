@@ -1,34 +1,7 @@
 LLM2FPGA is in work in progress.
-* Task 1: Survey & candidate selection
-State of the art review. Although some candidate projects have been identified, to have the big picture of what has been achieved so far, we need to understand 10 to 15 papers/projects, and what can be reused, even finding synergies between papers/projects.
 
-We are lucky that the keywords LLM and FPGA usually give highly relevant results.
-** List of candidate projects identified so far:
-arXiv:2307.15517: Fast Prototyping Next-Generation Accelerators for New ML Models using MASE: ML Accelerator System Exploration
-arXiv:2504.16266: TeLLMe: An Energy-Efficient Ternary LLM Accelerator for Prefilling and Decoding on Edge FPGAs
- arXiv:2503.16731: FPGA-Based Tiled Matrix Multiplication Accelerator for Transformer Self-Attention
- arXiv:2502.16473: TerEffic: Highly Efficient Ternary LLM Inference on FPGA
- arXiv:2503.11663: MEADOW: Memory-efficient Dataflow and Data Packing for Low Power Edge LLMs
- arXiv:2401.03868: FlightLLM: Complete Mapping Flow on FPGAs
- arXiv:2408.00462: Designing Efficient LLM Accelerators for Edge Devices
- arXiv:2406.02528: Scalable MatMul-free Language Modeling 
- arXiv:2504.09561: LoopLynx: A Scalable Dataflow Architecture for Efficient LLM Inference
- arXiv:2504.17376: On-Device Qwen2.5: Efficient LLM Inference with Model Compression and Hardware Acceleration
- arXiv:2405.00738: HLSTransform: Energy-Efficient Llama 2 Inference on FPGAs Via High-Level Synthesis
- arXiv:2312.15159: Understanding the Potential of FPGA-Based Spatial Acceleration for LLM Inference
- arXiv:2505.03745: AccLLM: Accelerating Long-Context LLM Inference Via Algorithm-Hardware Co-Design
-** 1A: docs/survey.md
-This subtask is desk research. Survey table of 10+ FPGA-LLM papers/repos, answering the following questions:
-  - Is code (RTL or other) available open source? If not, detailed description of architecture? promise to open source it?
+LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
 
-    If it is not open sourced but the promised somewhere to do it, request code, but not wait for it.
-  - Did it use open source LLMs?
-  - Was additional hardware used? external memory, etc (in principle we should discard those projects)
-  - What FPGA was used? Is it (or an equivalently sized FPGA) available through open source tooling?
-  - What approach did they use? HLS (High Level Synthesis), RTL ...
-  - How many parameters has the LLM used? Is there a small, minimal version of the model available (e.g., under 10M parameters)?
-  - Can the architecture be reduced to a proof-of-concept unit (e.g., one transformer block or FFN)?
-  - Does the design require proprietary synthesis or simulation steps?
 * Funding
 
 This project is funded through [[https://nlnet.nl/commonsfund][NGI0 Commons Fund]], a fund established by [[https://nlnet.nl][NLnet]] with financial support from the European Commission's [[https://ngi.eu][Next Generation Internet]] program. Learn more at the [[https://nlnet.nl/project/LLM2FPGA][NLnet project page]].
