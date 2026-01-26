@@ -103,31 +103,18 @@ From now on, we call the chosen kernel the *selected route*.
 Goal: Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
 
 
-Risks & Mitigations
-
-Risks: – Proprietary IP (e.g. encrypted modules) – Unsupported language features – Excessive resource demands (timeouts, long simulations) – No minimal kernel available
-
-Mitigations: – Patch Yosys, slang, or GHDL for missing features – Stub modules with $anyseq – Scale down to one block (e.g. transformer or FFN) – Switch to fallback project from Task 1
-
 Subtask 1 consists of:
+flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
 
-Import chosen kernel (RTL/HLS); Yosys 'read_*' passes, netlist dumped
+Nix devshell provides all tools used by the pipeline.
 
-Some patching may be needed to the RTL
+Cached derivations for each pipeline stage, so reruns do not recompute earlier stages.
 
-Small fixes to upstream (yosys, yosys-slang, or ghdl-plugin) can be tackled
+Devshell supports local debug builds for torch-mlir / LLVM / CIRCT / Yosys when Nix debug-symbol packaging is insufficient; instructions included.
 
 Subtask 2 consists of:
-
-Writing formal properties that should prove that:
-
-When valid input arrives and the kernel is ready:
-
-The kernel eventually produces output (liveness).
-
-The output is correct (golden-model equivalence, if known).
-
-It doesn't drop or reorder tokens (correct pipeline behavior).
+With the same PyTorch module
+PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
 
 Subtask 3 consists of:
 
@@ -139,13 +126,15 @@ Ensuring that parsing, formal proof, and simulation can all run via nix develop 
 
 Set up a CI pipeline to run nix develop --command make quick (parse, simulate, prove), upload artifacts, and add a status badge to the README. Exit: fresh clone passes automatically.
 
+- nix flake
+
 - Yosys script, Netlist artifact (.il) and logs
 
 - sby script Interface formal harness (ready/valid assertions) passes in sby
 
 - 1-token golden-vector testbench runs in < 5 min with Verilator
 
-- nix flake
+
 
 - CI smoke test & badge
 
