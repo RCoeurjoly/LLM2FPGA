@@ -151,7 +151,7 @@ Set up a CI pipeline to run nix develop --command make quick (parse, simulate, p
 
 - Write up of motivation for formal, testbench and how to use kernel
 
-## Parameterizable, clean kernel release
+## Lowering of small LLM to RTL
 
 Turn the minimal kernel from Task 2 into a small, reusable IP block whose size/precision can be dialed up or down.  All subtasks must keep the *ready/valid* proof and 1-token sim green.
 
