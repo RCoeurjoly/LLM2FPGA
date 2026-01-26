@@ -100,7 +100,8 @@ From now on, we call the chosen kernel the *selected route*.
 
 ## Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel)
 
-Goal:Build a minimal kernel from the most promising candidate in Task 1 that:(a) parses in Yosys,(b) passes formal ready/valid proofs,(c) outputs correct result for one input token in Verilator.If blockers arise (IP, unsupported features), fallback to another candidate.
+Goal: Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
+
 
 Risks & Mitigations
 
