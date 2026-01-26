@@ -153,7 +153,7 @@ Set up a CI pipeline to run nix develop --command make quick (parse, simulate, p
 
 ## Lowering of small LLM to RTL
 
-Turn the minimal kernel from Task 2 into a small, reusable IP block whose size/precision can be dialed up or down.  All subtasks must keep the *ready/valid* proof and 1-token sim green.
+Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
 *** Risks and mitigation
 
