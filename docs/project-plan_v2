@@ -362,3 +362,7 @@ This tasks is started only if resource utilization is 200%. Bigger than that and
 - ECP5-85 K nextpnr place-and-route; utilisation & timing report
 
 - Optimization of RTL to fit ECP5
+
+## Resource usage reduction strategies
+
+Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
