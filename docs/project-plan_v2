@@ -179,11 +179,10 @@ Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png)
 
 
 
-## Tiny-model preparation & top-level netlist
+## System integration and hardware demonstration
 
+Demonstrate that generated RTL can be integrated into a complete FPGA design, synthesized and placed-and-routed, and (if it fits on the target FPGA) executed on real hardware for a fixed input.
 
-
-Follow the *same* weight-processing technique used by the selected route, prove it works on the miniature TinyStories-2.8 M model (or smaller model if found), and generate a full-design synthesis report.
 
 *** Risks and mitigation
 
