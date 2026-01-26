@@ -113,8 +113,7 @@ Cached derivations for each pipeline stage, so reruns do not recompute earlier s
 Devshell supports local debug builds for torch-mlir / LLVM / CIRCT / Yosys when Nix debug-symbol packaging is insufficient; instructions included.
 
 Subtask 2 consists of:
-With the same PyTorch module
-PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
+With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
 
 Subtask 3 consists of:
 
