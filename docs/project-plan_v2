@@ -324,12 +324,11 @@ Subtask 4f:
 
 
 
-## Functional proof-of-concept
+## Scaling and resource usage analysis
 
+Measure how FPGA resource usage scales with model depth and width by mechanically scaling the validated TinyStories-1M architecture.
 
-
-The deliverable is a working miniature LLM running entirely through FOSS EDA, with release packaging and public report.
-
+No new model architectures are introduced.
 
 
 Subtask 5e:
