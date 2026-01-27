@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [36%]
+* TODO_NEXT LLM2FPGA [42%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -95,9 +95,11 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT PyTorch and RTL Equivalence (Matmul Kernel) [3/9]
+** TODO_NEXT End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [4/9]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** TODO_NEXT Title
+*** DONE Title
+CLOSED: [2026-01-27 Tue 14:01]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 14:01]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
 *** DONE Goal:
 CLOSED: [2026-01-27 Tue 12:52]
@@ -148,42 +150,25 @@ Set up a CI pipeline to run nix develop --command make quick (parse, simulate, p
 
 - Write up of motivation for formal, testbench and how to use kernel
 
-** TODO_NEXT Lowering of small LLM to RTL [1/5]
+** TODO_NEXT Lowering of small LLM to RTL [2/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 12:54]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
 
-*** TODO_NEXT Goal:
+*** DONE Goal:
+CLOSED: [2026-01-27 Tue 14:04]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 14:04]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
 *** TODO_NEXT Risks and mitigation
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
-— *yosys/SV bugs*: pin to known good version; upstream minimal patches if trivial.
-
-— *Parameter explosion*: limit sweep to <8 combos; widen later if time allows.
-
-— *CI timeouts*: cache intermediate RTL; move heavy sweep to nightly schedule.
-
 *** TODO_NEXT Subtasks
-
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-Subtask 1: refactor kernel to use parameters (e.g. bit-width), keeping default config from Task 2. Add a second “wide” config to test flexibility. Both must pass formal and simulation tests. If too complex, use two fixed variants instead.
-
-Subtask 2: Automate a sweep over kernel parameters (e.g. bit-width, depth), collect Yosys resource usage (LUTs, FFs, BRAM), and plot results. Output: util.csv, util.png, and a CI badge. Blacklist failing configs if needed.
-
-Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png), a quick start guide, changelog, and signed tag. Add CI badges. Exit: fresh clone builds and runs with one command.
-
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-- Refactor into parameterised module; regression tests green
-
-- Resource-sweep harness (LUT vs width)
-
-- v0.5-kernel release tag + minimal user guide
-
 ** TODO_NEXT System integration and hardware demonstration [1/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** TODO_NEXT Title
@@ -195,140 +180,8 @@ CLOSED: [2026-01-27 Tue 12:59]
 Demonstrate that generated RTL can be integrated into a complete FPGA design, synthesized and placed-and-routed, and (if it fits on the target FPGA) executed on real hardware for a fixed input.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
-— *Route pipeline unclear*: 4A forces us to document it before touching TinyStories.
-
-
-
-— *Quant accuracy*: int8 fallback kept in 4C; CI check in 4D.
-
-
-
-— *Large resource use*: reduce vector length or layer count in 4F and rerun.
-
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
-Subtask 4a:
-
-
-
-— Read docs / scripts of the selected route.
-
-
-
-— Capture the commands and file formats in docs/route_weight_flow.md.
-
-
-
-— *Exit*: doc committed
-
-
-
-Subtask 4b:
-
-
-
-— Download from HuggingFace, pin commit hash.
-
-
-
-— Save fp32 checkpoint to artifacts/, record SHA256 in docs/model_src.txt.
-
-
-
-— *Exit*: file + hash committed.
-
-
-
-Subtask 4c:
-
-
-
-— Apply the *same* quant/packing method discovered in 4A (likely INT4 with per-channel scales).
-
-
-
-— Output weights_int4. + meta (layer order, scale, zero-point) in the route’s native format.
-
-
-
-— Keep fallback weights_int8..
-
-
-
-— *Exit*: artifacts/weights_int4.* committed.
-
-
-
-Subtask 4d:
-
-
-
-— Tiny Python driver loads fp32, int4, int8 checkpoints and runs 100-sentence perplexity.
-
-
-
-— docs/quant_report.md shows < 10 % drop for int4; CI job enforces this.
-
-
-
-— *Exit*: report committed; CI green.
-
-
-
-Subtask 4e:
-
-
-
-— Python/Jinja uses the *route-style weight blob* + mem_layout.json to emit layer1.v + ROM inits.
-
-
-
-— Smoke test (tb_layer1.cpp) feeds 1 token, checks first-layer logits.
-
-
-
-— Verilator & Yosys elaboration must succeed in < 10 min.
-
-
-
-— *Exit*: `make layer1_smoke` green in CI.
-
-
-
-Subtask 4f:
-
-
-
-— Extend generator to loop N = 6; add minimal ready/valid FSM.
-
-
-
-— Run `yosys -p "synth -flatten; stat -json util.json"`; parse to util.csv.
-
-
-
-— Plot util_bar.png and link from README.
-
-
-
-— *Exit*: util.csv committed; < 100 k LUT & < 200 BRAM (or justified in README).
-
-
-
-- Inspect selected-route weight pipeline
-
-- Fetch & freeze TinyStories-2.8 M
-
-- Convert TinyStories weights using route’s flow
-
-- Accuracy sanity check
-
-- Generate RTL for one transformer block
-
-- Assemble & synthesize full 6-layer top
-
-- Write up of task: how to of every step
-
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 ** TODO_NEXT Scaling and resource usage analysis [2/5]
@@ -350,38 +203,8 @@ No new model architectures are introduced.
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-Subtask 5e:
-
-
-
-Try to synthesize the 'v1.0-poc' release into ECP5 (which is the board I have available)
-
-
-
-My intuition is that it is under resourced by 2 orders of magnitude, that is, we would need an FPGA 100 times bigger
-
-
-
-Subtask 5f:
-
-
-
-This tasks is started only if resource utilization is 200%. Bigger than that and I would not be confident that we could optimize our way into place and route.
-
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-- CXXRTL / Verilator run on canned prompt (< 24 h wall-time); token trace archived
-
-- Bounded-depth formal equivalence: kernel vs high-level Python for one step
-
-- 'v1.0-poc' release + blog post; all CI green, docs complete
-
-- Process feedback from e.g. security audit and accessibility scan
-
-- ECP5-85 K nextpnr place-and-route; utilisation & timing report
-
-- Optimization of RTL to fit ECP5
-
 ** TODO_NEXT Resource usage reduction strategies [6/8]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
 *** DONE Title
