@@ -98,7 +98,6 @@ From now on, we call the chosen kernel the *selected route*.
 ** TODO_NEXT Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel) [0/7]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** TODO_NEXT Goal:
-
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
 Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
 
@@ -150,7 +149,6 @@ Set up a CI pipeline to run nix develop --command make quick (parse, simulate, p
 Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
 *** TODO_NEXT Risks and mitigation
-
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 — *yosys/SV bugs*: pin to known good version; upstream minimal patches if trivial.
 
@@ -158,12 +156,15 @@ Test if a small open-source language model (TinyStories-1M) can be lowered from 
 
 — *CI timeouts*: cache intermediate RTL; move heavy sweep to nightly schedule.
 
+*** Subtasks
+
 Subtask 1: refactor kernel to use parameters (e.g. bit-width), keeping default config from Task 2. Add a second “wide” config to test flexibility. Both must pass formal and simulation tests. If too complex, use two fixed variants instead.
 
 Subtask 2: Automate a sweep over kernel parameters (e.g. bit-width, depth), collect Yosys resource usage (LUTs, FFs, BRAM), and plot results. Output: util.csv, util.png, and a CI badge. Blacklist failing configs if needed.
 
 Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png), a quick start guide, changelog, and signed tag. Add CI badges. Exit: fresh clone builds and runs with one command.
 
+*** Deliverables
 - Refactor into parameterised module; regression tests green
 
 - Resource-sweep harness (LUT vs width)
