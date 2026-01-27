@@ -128,8 +128,6 @@ With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed in
 
 **** TODO_NEXT Subtask 3 consists of:
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
-Writing a minimal Verilator testbench that runs in <5 min and checks the RTL kernel produces the correct output for one known input token.
-
 **** TODO_NEXT Subtask 4 consists of:
 
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
