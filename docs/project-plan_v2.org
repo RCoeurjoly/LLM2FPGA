@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [42%]
+* TODO_NEXT LLM2FPGA [44%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -105,7 +105,7 @@ CLOSED: [2026-01-27 Tue 14:01]
 CLOSED: [2026-01-27 Tue 12:52]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:52]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
-Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
+Establish that the pipeline selected in Task 1 lowers a minimal PyTorch model (matrix multiplication kernel) to synthesizable RTL that is functionally equivalent to the input PyTorch.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
   PyTorch hard to simulate: it seems well documented https://docs.pytorch.org/executorch/stable/getting-started.html
@@ -165,21 +165,28 @@ CLOSED: [2026-01-27 Tue 14:04]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
+In this task we move from small matmul module to smallest available LLM.
+This task establishes existence of a valid lowering path only; scalability and hardware execution are out of scope, for later tasks.
 *** TODO_NEXT Risks and mitigation
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-** TODO_NEXT System integration and hardware demonstration [1/5]
+** TODO_NEXT System integration and hardware demonstration [2/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** TODO_NEXT Title
+*** DONE Title
+CLOSED: [2026-01-27 Tue 16:07]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:07]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
 *** DONE Goal:
-CLOSED: [2026-01-27 Tue 12:59]
+CLOSED: [2026-01-27 Tue 16:07]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:07]
+- State "TODO_NEXT"  from "DONE"       [2026-01-27 Tue 16:02]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:59]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
-Demonstrate that generated RTL can be integrated into a complete FPGA design, synthesized and placed-and-routed, and (if it fits on the target FPGA) executed on real hardware for a fixed input.
+Demonstrate that the generated model RTL can coexist with minimal glue logic and be processed through a full FPGA synthesis and place-and-route flow.
+Demonstrate execution of the synthesized design on FPGA hardware.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
 *** TODO_NEXT Subtasks
