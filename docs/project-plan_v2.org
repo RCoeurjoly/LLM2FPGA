@@ -95,11 +95,13 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel)
+** TODO_NEXT Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel) [0/0]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-Goal: Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
+*** Goal:
 
+Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
 
+*** Subtasks
 Subtask 1 consists of:
 flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
 
@@ -136,9 +138,10 @@ Set up a CI pipeline to run nix develop --command make quick (parse, simulate, p
 
 - Write up of motivation for formal, testbench and how to use kernel
 
-** TODO_NEXT Lowering of small LLM to RTL
+** TODO_NEXT Lowering of small LLM to RTL [0/0]
 
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+*** Goal:
 Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
 *** Risks and mitigation
@@ -162,10 +165,9 @@ Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png)
 - v0.5-kernel release tag + minimal user guide
 
 
-
-** TODO_NEXT System integration and hardware demonstration
-
+** TODO_NEXT System integration and hardware demonstration [0/0]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+*** Goal:
 Demonstrate that generated RTL can be integrated into a complete FPGA design, synthesized and placed-and-routed, and (if it fits on the target FPGA) executed on real hardware for a fixed input.
 
 
@@ -307,9 +309,10 @@ Subtask 4f:
 
 - Write up of task: how to of every step
 
-** TODO_NEXT Scaling and resource usage analysis
+** TODO_NEXT Scaling and resource usage analysis [/]
 
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+*** Goal:
 Measure how FPGA resource usage scales with model depth and width by mechanically scaling the validated TinyStories-1M architecture.
 
 No new model architectures are introduced.
@@ -347,7 +350,8 @@ This tasks is started only if resource utilization is 200%. Bigger than that and
 
 - Optimization of RTL to fit ECP5
 
-** TODO_NEXT Resource usage reduction strategies
-
+** TODO_NEXT Resource usage reduction strategies [0/1]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
+*** TODO_NEXT Goal:
+- State "TODO_NEXT"  from              [2026-01-27 Tue 11:49]
 Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
