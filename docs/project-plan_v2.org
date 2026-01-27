@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [14%]
+* TODO_NEXT LLM2FPGA [28%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -95,7 +95,7 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT PyTorch and RTL Equivalence (Matmul Kernel) [1/9]
+** TODO_NEXT PyTorch and RTL Equivalence (Matmul Kernel) [3/9]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** TODO_NEXT Title
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
@@ -106,9 +106,11 @@ CLOSED: [2026-01-27 Tue 12:52]
 Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-*** TODO_NEXT Subtasks [0/4]
+*** TODO_NEXT Subtasks [2/4]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
-**** TODO_NEXT Subtask 1 consists of:
+**** DONE Subtask 1 consists of:
+CLOSED: [2026-01-27 Tue 13:07]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:07]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
 
@@ -118,12 +120,13 @@ Cached derivations for each pipeline stage, so reruns do not recompute earlier s
 
 Devshell supports local debug builds for torch-mlir / LLVM / CIRCT / Yosys when Nix debug-symbol packaging is insufficient; instructions included.
 
-**** TODO_NEXT Subtask 2 consists of:
+**** DONE Subtask 2 consists of:
+CLOSED: [2026-01-27 Tue 13:07]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:07]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
 
 **** TODO_NEXT Subtask 3 consists of:
-
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 Writing a minimal Verilator testbench that runs in <5 min and checks the RTL kernel produces the correct output for one known input token.
 
@@ -183,11 +186,13 @@ Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png)
 
 - v0.5-kernel release tag + minimal user guide
 
-** TODO_NEXT System integration and hardware demonstration [0/5]
+** TODO_NEXT System integration and hardware demonstration [1/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** TODO_NEXT Title
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
-*** TODO_NEXT Goal:
+*** DONE Goal:
+CLOSED: [2026-01-27 Tue 12:59]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:59]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 Demonstrate that generated RTL can be integrated into a complete FPGA design, synthesized and placed-and-routed, and (if it fits on the target FPGA) executed on real hardware for a fixed input.
 *** TODO_NEXT Risks and mitigations
@@ -328,14 +333,16 @@ Subtask 4f:
 
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-** TODO_NEXT Scaling and resource usage analysis [1/5]
+** TODO_NEXT Scaling and resource usage analysis [2/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 12:54]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
 
-*** TODO_NEXT Goal:
+*** DONE Goal:
+CLOSED: [2026-01-27 Tue 13:00]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 Measure how FPGA resource usage scales with model depth and width by mechanically scaling the validated TinyStories-1M architecture.
 
@@ -377,14 +384,16 @@ This tasks is started only if resource utilization is 200%. Bigger than that and
 
 - Optimization of RTL to fit ECP5
 
-** TODO_NEXT Resource usage reduction strategies [1/5]
+** TODO_NEXT Resource usage reduction strategies [2/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 12:54]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
 
-*** TODO_NEXT Goal:
+*** DONE Goal:
+CLOSED: [2026-01-27 Tue 13:00]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 11:49]
 Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
 *** TODO_NEXT Risks and mitigations
