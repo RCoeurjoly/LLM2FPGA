@@ -1,0 +1,349 @@
+takentaal-amendment v1.0
+
+* TODO_NEXT LLM2FPGA
+- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
+** TODO_NEXT Survey & candidate selection
+
+
+
+- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+State of the art review. Although some candidate projects have been identified, to have the big picture of what has been achieved so far, we need to understand 10 to 15 papers/projects, and what can be reused, even finding synergies between papers/projects.
+
+
+
+We are lucky that the keywords LLM and FPGA usually give highly relevant results.
+
+
+
+The first subtask is desk research. Survey table of 10+ FPGA-LLM papers/repos, answering the following questions:
+
+
+
+Openness: Is the code or detailed design public or promised? Open to open-source FPGA tools? Uses open LLMs?
+
+
+
+Hardware: Avoid if it needs extra hardware. Check FPGA and open toolchain support.
+
+
+
+Design: Note method (RTL/HLS), model size (<10M preferred), proof-of-concept potential, and proprietary tool dependencies.
+
+
+
+Second subtask:
+
+
+
+The purpose is to identify issues or blockages, not to get each project completely reproduced.
+
+
+
+— Can the HDL (SystemVerilog, Verilog) be parsed by Yosys or yosys-slang?
+
+
+
+— If HLS is used, can the original C/C++ code be compiled with Vericert or another FOSS HLS tool?
+
+
+
+Issues or blockages such as:
+
+
+
+— Uses features of HDL (SystemVerilog, VHDL) that are not supported in yosys.
+
+
+
+In yosys, Verilog support is more mature than SystemVerilog (with yosys-slang) or VHDL (with ghdl-yosys-plugin)
+
+
+
+— Same for HLS
+
+
+
+The third subtask:
+
+
+
+— Chosen kernel + why
+
+
+
+— Any major blockers found in other candidates
+
+
+
+— Fallback plan in case current kernel becomes unviable
+
+
+
+From now on, we call the chosen kernel the *selected route*.
+
+
+
+- Publish survey results based on desk research.
+
+- Research compatibility of potential projects with open source tooling: create a script that clones each repo and runs elaboration with Yosys; logs archived (green, blockages etc)
+
+- Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
+
+** TODO_NEXT Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel)
+
+- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+Goal: Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
+
+
+Subtask 1 consists of:
+flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
+
+Nix devshell provides all tools used by the pipeline.
+
+Cached derivations for each pipeline stage, so reruns do not recompute earlier stages.
+
+Devshell supports local debug builds for torch-mlir / LLVM / CIRCT / Yosys when Nix debug-symbol packaging is insufficient; instructions included.
+
+Subtask 2 consists of:
+With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
+
+Subtask 3 consists of:
+
+Writing a minimal Verilator testbench that runs in <5 min and checks the RTL kernel produces the correct output for one known input token.
+
+Subtask 4 consists of:
+
+Ensuring that parsing, formal proof, and simulation can all run via nix develop + make.
+
+Set up a CI pipeline to run nix develop --command make quick (parse, simulate, prove), upload artifacts, and add a status badge to the README. Exit: fresh clone passes automatically.
+
+- nix flake
+
+- Yosys script, Netlist artifact (.il) and logs
+
+- sby script Interface formal harness (ready/valid assertions) passes in sby
+
+- 1-token golden-vector testbench runs in < 5 min with Verilator
+
+
+
+- CI smoke test & badge
+
+- Write up of motivation for formal, testbench and how to use kernel
+
+** TODO_NEXT Lowering of small LLM to RTL
+
+- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
+
+*** Risks and mitigation
+
+— *yosys/SV bugs*: pin to known good version; upstream minimal patches if trivial.
+
+— *Parameter explosion*: limit sweep to <8 combos; widen later if time allows.
+
+— *CI timeouts*: cache intermediate RTL; move heavy sweep to nightly schedule.
+
+Subtask 1: refactor kernel to use parameters (e.g. bit-width), keeping default config from Task 2. Add a second “wide” config to test flexibility. Both must pass formal and simulation tests. If too complex, use two fixed variants instead.
+
+Subtask 2: Automate a sweep over kernel parameters (e.g. bit-width, depth), collect Yosys resource usage (LUTs, FFs, BRAM), and plot results. Output: util.csv, util.png, and a CI badge. Blacklist failing configs if needed.
+
+Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png), a quick start guide, changelog, and signed tag. Add CI badges. Exit: fresh clone builds and runs with one command.
+
+- Refactor into parameterised module; regression tests green
+
+- Resource-sweep harness (LUT vs width)
+
+- v0.5-kernel release tag + minimal user guide
+
+
+
+** TODO_NEXT System integration and hardware demonstration
+
+- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+Demonstrate that generated RTL can be integrated into a complete FPGA design, synthesized and placed-and-routed, and (if it fits on the target FPGA) executed on real hardware for a fixed input.
+
+
+*** Risks and mitigation
+
+
+
+— *Route pipeline unclear*: 4A forces us to document it before touching TinyStories.
+
+
+
+— *Quant accuracy*: int8 fallback kept in 4C; CI check in 4D.
+
+
+
+— *Large resource use*: reduce vector length or layer count in 4F and rerun.
+
+
+
+Subtask 4a:
+
+
+
+— Read docs / scripts of the selected route.
+
+
+
+— Capture the commands and file formats in docs/route_weight_flow.md.
+
+
+
+— *Exit*: doc committed
+
+
+
+Subtask 4b:
+
+
+
+— Download from HuggingFace, pin commit hash.
+
+
+
+— Save fp32 checkpoint to artifacts/, record SHA256 in docs/model_src.txt.
+
+
+
+— *Exit*: file + hash committed.
+
+
+
+Subtask 4c:
+
+
+
+— Apply the *same* quant/packing method discovered in 4A (likely INT4 with per-channel scales).
+
+
+
+— Output weights_int4. + meta (layer order, scale, zero-point) in the route’s native format.
+
+
+
+— Keep fallback weights_int8..
+
+
+
+— *Exit*: artifacts/weights_int4.* committed.
+
+
+
+Subtask 4d:
+
+
+
+— Tiny Python driver loads fp32, int4, int8 checkpoints and runs 100-sentence perplexity.
+
+
+
+— docs/quant_report.md shows < 10 % drop for int4; CI job enforces this.
+
+
+
+— *Exit*: report committed; CI green.
+
+
+
+Subtask 4e:
+
+
+
+— Python/Jinja uses the *route-style weight blob* + mem_layout.json to emit layer1.v + ROM inits.
+
+
+
+— Smoke test (tb_layer1.cpp) feeds 1 token, checks first-layer logits.
+
+
+
+— Verilator & Yosys elaboration must succeed in < 10 min.
+
+
+
+— *Exit*: `make layer1_smoke` green in CI.
+
+
+
+Subtask 4f:
+
+
+
+— Extend generator to loop N = 6; add minimal ready/valid FSM.
+
+
+
+— Run `yosys -p "synth -flatten; stat -json util.json"`; parse to util.csv.
+
+
+
+— Plot util_bar.png and link from README.
+
+
+
+— *Exit*: util.csv committed; < 100 k LUT & < 200 BRAM (or justified in README).
+
+
+
+- Inspect selected-route weight pipeline
+
+- Fetch & freeze TinyStories-2.8 M
+
+- Convert TinyStories weights using route’s flow
+
+- Accuracy sanity check
+
+- Generate RTL for one transformer block
+
+- Assemble & synthesize full 6-layer top
+
+- Write up of task: how to of every step
+
+** TODO_NEXT Scaling and resource usage analysis
+
+- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+Measure how FPGA resource usage scales with model depth and width by mechanically scaling the validated TinyStories-1M architecture.
+
+No new model architectures are introduced.
+
+
+Subtask 5e:
+
+
+
+Try to synthesize the 'v1.0-poc' release into ECP5 (which is the board I have available)
+
+
+
+My intuition is that it is under resourced by 2 orders of magnitude, that is, we would need an FPGA 100 times bigger
+
+
+
+Subtask 5f:
+
+
+
+This tasks is started only if resource utilization is 200%. Bigger than that and I would not be confident that we could optimize our way into place and route.
+
+
+
+- CXXRTL / Verilator run on canned prompt (< 24 h wall-time); token trace archived
+
+- Bounded-depth formal equivalence: kernel vs high-level Python for one step
+
+- 'v1.0-poc' release + blog post; all CI green, docs complete
+
+- Process feedback from e.g. security audit and accessibility scan
+
+- ECP5-85 K nextpnr place-and-route; utilisation & timing report
+
+- Optimization of RTL to fit ECP5
+
+** TODO_NEXT Resource usage reduction strategies
+
+- State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
+Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
