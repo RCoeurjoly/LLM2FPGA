@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [28%]
+* TODO_NEXT LLM2FPGA [36%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -384,7 +384,7 @@ This tasks is started only if resource utilization is 200%. Bigger than that and
 
 - Optimization of RTL to fit ECP5
 
-** TODO_NEXT Resource usage reduction strategies [2/5]
+** TODO_NEXT Resource usage reduction strategies [6/8]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 12:54]
@@ -398,8 +398,22 @@ CLOSED: [2026-01-27 Tue 13:00]
 Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
-*** TODO_NEXT Subtasks
+*** DONE Subtasks
+CLOSED: [2026-01-27 Tue 13:42]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
-**** Subtask 1
+**** DONE Subtask 1
+CLOSED: [2026-01-27 Tue 13:42]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
+- State "TODO_NEXT"  from              [2026-01-27 Tue 13:35]
+Survey 5 to 10 mitigation strategies, at all levels of the pipeline: quantization at PyTorch level, eqmap at verilog level, mlir optimizations etc
+**** DONE Subtask 2
+CLOSED: [2026-01-27 Tue 13:42]
+- State "DONE"       from              [2026-01-27 Tue 13:42]
+Evaluate all strategies, with comparison with baseline.
+**** DONE Subtask 3
+CLOSED: [2026-01-27 Tue 13:42]
+- State "DONE"       from              [2026-01-27 Tue 13:42]
+Conclusion of strategies: which are more effective, and which are easy to apply.
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
