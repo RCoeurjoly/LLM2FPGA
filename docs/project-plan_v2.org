@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [6%]
+* TODO_NEXT LLM2FPGA [5%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -170,16 +170,14 @@ Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png)
 
 - v0.5-kernel release tag + minimal user guide
 
-** TODO_NEXT System integration and hardware demonstration [0/0]
+** TODO_NEXT System integration and hardware demonstration [0/3]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** Goal:
+*** TODO_NEXT Goal:
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 Demonstrate that generated RTL can be integrated into a complete FPGA design, synthesized and placed-and-routed, and (if it fits on the target FPGA) executed on real hardware for a fixed input.
 
-
-*** Risks and mitigation
-
-
-
+*** TODO_NEXT Risks and mitigations
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
 — *Route pipeline unclear*: 4A forces us to document it before touching TinyStories.
 
 
@@ -190,8 +188,8 @@ Demonstrate that generated RTL can be integrated into a complete FPGA design, sy
 
 — *Large resource use*: reduce vector length or layer count in 4F and rerun.
 
-
-
+*** TODO_NEXT Subtasks
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
 Subtask 4a:
 
 
