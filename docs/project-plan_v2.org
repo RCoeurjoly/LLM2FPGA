@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [44%]
+* TODO_NEXT LLM2FPGA [52%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -95,7 +95,7 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [4/9]
+** TODO_NEXT End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [6/9]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 14:01]
@@ -110,7 +110,7 @@ Establish that the pipeline selected in Task 1 lowers a minimal PyTorch model (m
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
   PyTorch hard to simulate: it seems well documented https://docs.pytorch.org/executorch/stable/getting-started.html
   Discrepancy between PyTorch and RTL simulation: 
-*** TODO_NEXT Subtasks [2/4]
+*** TODO_NEXT Subtasks [4/4]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
 **** DONE Subtask 1 consists of:
 CLOSED: [2026-01-27 Tue 13:07]
@@ -129,15 +129,22 @@ CLOSED: [2026-01-27 Tue 13:07]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:07]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
-
-**** TODO_NEXT Subtask 3 consists of:
+**** DONE Subtask 3 consists of:
+CLOSED: [2026-01-27 Tue 16:31]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:31]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
-**** TODO_NEXT Subtask 4 consists of:
+  Yosys ingestion + RTLIL netlist gate (Task 2 kill criterion)
 
+Artifact: matmul.il produced by Yosys from matmul.sv.
+
+Yosys completes elaboration/flattening and emits RTLIL without fatal errors.
+
+**** DONE Subtask 4 consists of:
+CLOSED: [2026-01-27 Tue 16:32]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:32]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
-Ensuring that parsing, formal proof, and simulation can all run via nix develop + make.
-
-Set up a CI pipeline to run nix develop --command make quick (parse, simulate, prove), upload artifacts, and add a status badge to the README. Exit: fresh clone passes automatically.
+Glue RTL for interface, Bitstream generation and testing
+Think of the simplest way to interface with the world, generate bitstream of glue RTL + model RTL, test results are equivalent to golden reference
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 - nix flake
@@ -152,7 +159,7 @@ Set up a CI pipeline to run nix develop --command make quick (parse, simulate, p
 
 - Write up of motivation for formal, testbench and how to use kernel
 
-** TODO_NEXT Lowering of small LLM to RTL [2/5]
+** TODO_NEXT Lowering of small LLM to RTL [3/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 12:54]
@@ -167,8 +174,20 @@ Test if a small open-source language model (TinyStories-1M) can be lowered from 
 
 In this task we move from small matmul module to smallest available LLM.
 This task establishes existence of a valid lowering path only; scalability and hardware execution are out of scope, for later tasks.
-*** TODO_NEXT Risks and mitigation
+*** DONE Risks and mitigation
+CLOSED: [2026-01-27 Tue 16:33]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:33]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
+  Unsupported MLIR operators
+
+Invalid or non-synthesizable RTL emitted
+
+Excessive compile times due to pass ordering or repeated transformations
+
+Mitigation includes reduction of failing MLIR programs using mlir-reduce, local pass reordering or stubbing, and isolating minimal reproducing cases. Upstream contributions may be prepared but are not required for task completion.
+
+Debugging MLIR: https://mlir.llvm.org/getting_started/Debugging/
+
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 *** TODO_NEXT Deliverables
@@ -189,6 +208,14 @@ Demonstrate that the generated model RTL can coexist with minimal glue logic and
 Demonstrate execution of the synthesized design on FPGA hardware.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
+Non-idiomatic or impractical auto-generated interfaces
+
+
+Incorrect results due to transformation errors in the compilation pipeline
+
+Difficulty isolating faults across passes.
+
+Mitigation consists of treating the PyTorch model as the single source of truth and introducing reference checks at every stage of the pipeline. For each MLIR, and RTL simulation.
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
 *** TODO_NEXT Deliverables
@@ -228,6 +255,9 @@ CLOSED: [2026-01-27 Tue 13:00]
 Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
+No resource reduction.
+
+Mitigation: testing and comparing several strategies, and documenting even the negative results.
 *** DONE Subtasks
 CLOSED: [2026-01-27 Tue 13:42]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
