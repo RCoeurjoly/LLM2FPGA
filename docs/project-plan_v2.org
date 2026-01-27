@@ -1,12 +1,17 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA
+* TODO_NEXT LLM2FPGA [1/6]
+:PROPERTIES:
+::COOKIE_DATA: todo recursive
+:END:
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
-** TODO_NEXT Survey & candidate selection
+** DONE Survey & candidate selection
+CLOSED: [2026-01-27 Tue 10:55]
 
 
 
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 10:55]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 State of the art review. Although some candidate projects have been identified, to have the big picture of what has been achieved so far, we need to understand 10 to 15 papers/projects, and what can be reused, even finding synergies between papers/projects.
 
@@ -91,7 +96,6 @@ From now on, we call the chosen kernel the *selected route*.
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
 ** TODO_NEXT Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel)
-
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 Goal: Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
 
