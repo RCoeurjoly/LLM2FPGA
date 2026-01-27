@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [3%]
+* TODO_NEXT LLM2FPGA [14%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -95,9 +95,13 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel) [0/8]
+** TODO_NEXT PyTorch and RTL Equivalence (Matmul Kernel) [1/9]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** TODO_NEXT Goal:
+*** TODO_NEXT Title
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
+*** DONE Goal:
+CLOSED: [2026-01-27 Tue 12:52]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:52]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
 Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
 *** TODO_NEXT Risks and mitigations
@@ -143,8 +147,13 @@ Set up a CI pipeline to run nix develop --command make quick (parse, simulate, p
 
 - Write up of motivation for formal, testbench and how to use kernel
 
-** TODO_NEXT Lowering of small LLM to RTL [0/4]
+** TODO_NEXT Lowering of small LLM to RTL [1/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+*** DONE Title
+CLOSED: [2026-01-27 Tue 12:54]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
+
 *** TODO_NEXT Goal:
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
@@ -174,12 +183,13 @@ Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png)
 
 - v0.5-kernel release tag + minimal user guide
 
-** TODO_NEXT System integration and hardware demonstration [0/4]
+** TODO_NEXT System integration and hardware demonstration [0/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+*** TODO_NEXT Title
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
 *** TODO_NEXT Goal:
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 Demonstrate that generated RTL can be integrated into a complete FPGA design, synthesized and placed-and-routed, and (if it fits on the target FPGA) executed on real hardware for a fixed input.
-
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
 — *Route pipeline unclear*: 4A forces us to document it before touching TinyStories.
@@ -318,8 +328,13 @@ Subtask 4f:
 
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-** TODO_NEXT Scaling and resource usage analysis [0/4]
+** TODO_NEXT Scaling and resource usage analysis [1/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+*** DONE Title
+CLOSED: [2026-01-27 Tue 12:54]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
+
 *** TODO_NEXT Goal:
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 Measure how FPGA resource usage scales with model depth and width by mechanically scaling the validated TinyStories-1M architecture.
@@ -362,8 +377,13 @@ This tasks is started only if resource utilization is 200%. Bigger than that and
 
 - Optimization of RTL to fit ECP5
 
-** TODO_NEXT Resource usage reduction strategies [0/4]
+** TODO_NEXT Resource usage reduction strategies [1/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
+*** DONE Title
+CLOSED: [2026-01-27 Tue 12:54]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
+
 *** TODO_NEXT Goal:
 - State "TODO_NEXT"  from              [2026-01-27 Tue 11:49]
 Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
