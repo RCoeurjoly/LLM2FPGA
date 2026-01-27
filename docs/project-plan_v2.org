@@ -400,5 +400,6 @@ Evaluate whether mitigation techniques can reduce resource usage if scaling resu
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
+**** Subtask 1
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
