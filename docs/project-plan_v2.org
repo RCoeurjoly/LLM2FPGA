@@ -1,8 +1,8 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [1/6]
+* TODO_NEXT LLM2FPGA [6%]
 :PROPERTIES:
-::COOKIE_DATA: todo recursive
+:COOKIE_DATA: todo recursive
 :END:
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
@@ -95,14 +95,17 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel) [0/0]
+** TODO_NEXT Tracer-Bullet PyTorch and RTL Equivalence (Matmul Kernel) [0/7]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** Goal:
+*** TODO_NEXT Goal:
 
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
 Demonstrate an end-to-end semantic equivalence path by lowering a minimal PyTorch matrix-multiplication kernel through the selected pipeline into synthesizable RTL, verifying that the generated SystemVerilog is accepted by Yosys, produces correct outputs under RTL simulation for fixed inputs, can be integrated with minimal glue logic and programmed into FPGA with correct results.
 
-*** Subtasks
-Subtask 1 consists of:
+*** TODO_NEXT Subtasks [0/4]
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
+**** TODO_NEXT Subtask 1 consists of:
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
 
 Nix devshell provides all tools used by the pipeline.
@@ -111,19 +114,23 @@ Cached derivations for each pipeline stage, so reruns do not recompute earlier s
 
 Devshell supports local debug builds for torch-mlir / LLVM / CIRCT / Yosys when Nix debug-symbol packaging is insufficient; instructions included.
 
-Subtask 2 consists of:
+**** TODO_NEXT Subtask 2 consists of:
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
 
-Subtask 3 consists of:
+**** TODO_NEXT Subtask 3 consists of:
 
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 Writing a minimal Verilator testbench that runs in <5 min and checks the RTL kernel produces the correct output for one known input token.
 
-Subtask 4 consists of:
+**** TODO_NEXT Subtask 4 consists of:
 
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 Ensuring that parsing, formal proof, and simulation can all run via nix develop + make.
 
 Set up a CI pipeline to run nix develop --command make quick (parse, simulate, prove), upload artifacts, and add a status badge to the README. Exit: fresh clone passes automatically.
-
+*** TODO_NEXT Deliverables
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 - nix flake
 
 - Yosys script, Netlist artifact (.il) and logs
@@ -132,20 +139,19 @@ Set up a CI pipeline to run nix develop --command make quick (parse, simulate, p
 
 - 1-token golden-vector testbench runs in < 5 min with Verilator
 
-
-
 - CI smoke test & badge
 
 - Write up of motivation for formal, testbench and how to use kernel
 
-** TODO_NEXT Lowering of small LLM to RTL [0/0]
-
+** TODO_NEXT Lowering of small LLM to RTL [0/2]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** Goal:
+*** TODO_NEXT Goal:
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
-*** Risks and mitigation
+*** TODO_NEXT Risks and mitigation
 
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 — *yosys/SV bugs*: pin to known good version; upstream minimal patches if trivial.
 
 — *Parameter explosion*: limit sweep to <8 combos; widen later if time allows.
@@ -163,7 +169,6 @@ Subtask 3: Publish v0.5-kernel release with source, resource data (util.csv/png)
 - Resource-sweep harness (LUT vs width)
 
 - v0.5-kernel release tag + minimal user guide
-
 
 ** TODO_NEXT System integration and hardware demonstration [0/0]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
