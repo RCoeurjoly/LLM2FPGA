@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [52%]
+* TODO_NEXT LLM2FPGA [53%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -95,7 +95,7 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [6/9]
+** TODO_NEXT End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [7/10]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 14:01]
@@ -109,8 +109,8 @@ Establish that the pipeline selected in Task 1 lowers a minimal PyTorch model (m
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
   PyTorch hard to simulate: it seems well documented https://docs.pytorch.org/executorch/stable/getting-started.html
-  Discrepancy between PyTorch and RTL simulation: 
-*** TODO_NEXT Subtasks [4/4]
+  Discrepancy between PyTorch and RTL simulation: simulate each MLIR stage with original PyTorch, to isolate the pass that creates discrepancy
+*** TODO_NEXT Subtasks [5/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
 **** DONE Subtask 1 consists of:
 CLOSED: [2026-01-27 Tue 13:07]
@@ -145,6 +145,13 @@ CLOSED: [2026-01-27 Tue 16:32]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 Glue RTL for interface, Bitstream generation and testing
 Think of the simplest way to interface with the world, generate bitstream of glue RTL + model RTL, test results are equivalent to golden reference
+**** DONE Subtask 5 consists of:
+CLOSED: [2026-01-28 Wed 11:17]
+- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:17]
+- State "TODO_NEXT"  from "DONE"       [2026-01-28 Wed 11:17]
+- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:32]
+- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
+Report and demo of results
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 - nix flake
@@ -157,7 +164,7 @@ Think of the simplest way to interface with the world, generate bitstream of glu
 
 - CI smoke test & badge
 
-- Write up of motivation for formal, testbench and how to use kernel
+- Write up of results, and video demo if succesful
 
 ** TODO_NEXT Lowering of small LLM to RTL [3/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
