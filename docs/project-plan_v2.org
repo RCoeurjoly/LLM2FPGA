@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [53%]
+* TODO_NEXT LLM2FPGA [64%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -95,7 +95,9 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [7/10]
+** DONE End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [10/10]
+CLOSED: [2026-01-28 Wed 11:37]
+- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 14:01]
@@ -106,11 +108,15 @@ CLOSED: [2026-01-27 Tue 12:52]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:52]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
 Establish that the pipeline selected in Task 1 lowers a minimal PyTorch model (matrix multiplication kernel) to synthesizable RTL that is functionally equivalent to the input PyTorch.
-*** TODO_NEXT Risks and mitigations
+*** DONE Risks and mitigations
+CLOSED: [2026-01-28 Wed 11:37]
+- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
   PyTorch hard to simulate: it seems well documented https://docs.pytorch.org/executorch/stable/getting-started.html
   Discrepancy between PyTorch and RTL simulation: simulate each MLIR stage with original PyTorch, to isolate the pass that creates discrepancy
-*** TODO_NEXT Subtasks [5/5]
+*** DONE Subtasks [5/5]
+CLOSED: [2026-01-28 Wed 11:37]
+- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
 **** DONE Subtask 1 consists of:
 CLOSED: [2026-01-27 Tue 13:07]
@@ -152,14 +158,18 @@ CLOSED: [2026-01-28 Wed 11:17]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:32]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 Report and demo of results
-*** TODO_NEXT Deliverables
+*** DONE Deliverables
+CLOSED: [2026-01-28 Wed 11:37]
+- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 - nix flake and matmul.sv from executing it
 
 - PyTorch simulation trace, systemverilog testbench and their comparison
 
-- matmul.il and resource usage report
+- matmul.il and resource usage report with "yosys stat"
 
+- bitstream
+  
 - Write up of results, and video demo if succesful
 
 ** TODO_NEXT Lowering of small LLM to RTL [3/5]
