@@ -207,7 +207,7 @@ Debugging MLIR: https://mlir.llvm.org/getting_started/Debugging/
 CLOSED: [2026-01-28 Wed 11:51]
 - State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:51]
 - State "TODO_NEXT"  from              [2026-01-28 Wed 11:49]
-Frozen TinyStories-1M source reference (model identifier + pinned revision) and a fixed export input (prompt/input_ids), both recorded in-repo.
+Frozen TinyStories-1M artifact
 **** Subtask 2
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
