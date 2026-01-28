@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [64%]
+* TODO_NEXT LLM2FPGA [65%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -172,7 +172,7 @@ CLOSED: [2026-01-28 Wed 11:37]
   
 - Write up of results, and video demo if succesful
 
-** TODO_NEXT Lowering of small LLM to RTL [3/5]
+** TODO_NEXT Lowering of small LLM to RTL [4/6]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 12:54]
@@ -203,6 +203,12 @@ Debugging MLIR: https://mlir.llvm.org/getting_started/Debugging/
 
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
+**** DONE Subtask 1
+CLOSED: [2026-01-28 Wed 11:51]
+- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:51]
+- State "TODO_NEXT"  from              [2026-01-28 Wed 11:49]
+Frozen TinyStories-1M source reference (model identifier + pinned revision) and a fixed export input (prompt/input_ids), both recorded in-repo.
+**** Subtask 2
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 ** TODO_NEXT System integration and hardware demonstration [2/5]
