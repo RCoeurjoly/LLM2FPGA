@@ -133,11 +133,11 @@ With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed in
 CLOSED: [2026-01-27 Tue 16:31]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:31]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
-  Yosys ingestion + RTLIL netlist gate (Task 2 kill criterion)
+  Yosys ingestion + RTLIL netlist gate
 
 Artifact: matmul.il produced by Yosys from matmul.sv.
 
-Yosys completes elaboration/flattening and emits RTLIL without fatal errors.
+Yosys completes elaboration and emits RTLIL without fatal errors.
 
 **** DONE Subtask 4 consists of:
 CLOSED: [2026-01-27 Tue 16:32]
@@ -154,15 +154,11 @@ CLOSED: [2026-01-28 Wed 11:17]
 Report and demo of results
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
-- nix flake
+- nix flake and matmul.sv from executing it
 
-- Yosys script, Netlist artifact (.il) and logs
+- PyTorch simulation trace, systemverilog testbench and their comparison
 
-- sby script Interface formal harness (ready/valid assertions) passes in sby
-
-- 1-token golden-vector testbench runs in < 5 min with Verilator
-
-- CI smoke test & badge
+- matmul.il and resource usage report
 
 - Write up of results, and video demo if succesful
 
