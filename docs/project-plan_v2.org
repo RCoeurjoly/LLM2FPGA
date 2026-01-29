@@ -281,6 +281,8 @@ CLOSED: [2026-01-27 Tue 16:07]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
 Demonstrate that the generated model RTL can coexist with minimal glue logic and be processed through a full FPGA synthesis and place-and-route flow.
 Demonstrate execution of the synthesized design on FPGA hardware.
+
+The target board is YPCB-00338-1P1.
 *** DONE Risks and mitigations
 CLOSED: [2026-01-29 Thu 22:13]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:13]
