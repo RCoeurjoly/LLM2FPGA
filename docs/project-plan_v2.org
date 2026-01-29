@@ -312,6 +312,7 @@ No new model architectures are introduced.
 
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
+  Extrapolated resource usage indicates that a large model is within or near (≤ 2×) the capacity of the target FPGA class
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 *** TODO_NEXT Deliverables
@@ -334,11 +335,15 @@ No resource reduction.
 
 Mitigation: testing and comparing several strategies, and documenting even the negative results.
 *** DONE Subtasks
-CLOSED: [2026-01-27 Tue 13:42]
+CLOSED: [2026-01-29 Thu 21:56]
+- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 21:56]
+- State "TODO_NEXT"  from "DONE"       [2026-01-29 Thu 21:56]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
 **** DONE Subtask 1
-CLOSED: [2026-01-27 Tue 13:42]
+CLOSED: [2026-01-29 Thu 21:56]
+- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 21:56]
+- State "TODO_NEXT"  from "DONE"       [2026-01-29 Thu 21:56]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 13:35]
 Survey 5 to 10 mitigation strategies, at all levels of the pipeline: quantization at PyTorch level, eqmap at verilog level, mlir optimizations etc
@@ -352,3 +357,4 @@ CLOSED: [2026-01-27 Tue 13:42]
 Conclusion of strategies: which are more effective, and which are easy to apply.
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
+- resource_usage_reduction_strategies.org
