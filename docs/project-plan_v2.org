@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [75%]
+* TODO_NEXT LLM2FPGA [84%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -285,9 +285,6 @@ Demonstrate execution of the synthesized design on FPGA hardware.
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
 Non-idiomatic or impractical auto-generated interfaces
 
-
-Incorrect results due to transformation errors in the compilation pipeline
-
 Difficulty isolating faults across passes.
 
 Mitigation consists of treating the PyTorch model as the single source of truth and introducing reference checks at every stage of the pipeline. For each MLIR, and RTL simulation.
@@ -295,7 +292,7 @@ Mitigation consists of treating the PyTorch model as the single source of truth 
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-** TODO_NEXT Scaling and resource usage analysis [2/5]
+** TODO_NEXT Scaling and resource usage analysis [3/5]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 12:54]
@@ -310,14 +307,21 @@ Measure how FPGA resource usage scales with model depth and width by mechanicall
 
 No new model architectures are introduced.
 
-*** TODO_NEXT Risks and mitigations
+Success would be: extrapolated resource usage shows that a large model is within or near (<= 2x) the capacity of the target FPGA.
+
+*** DONE Risks and mitigations
+CLOSED: [2026-01-29 Thu 22:09]
+- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:09]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
-  Extrapolated resource usage indicates that a large model is within or near (≤ 2×) the capacity of the target FPGA class
+Pipeline does not work for larger models.
+Mitigation: reduce those cases with mlir-reduce
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 *** TODO_NEXT Deliverables
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-** TODO_NEXT Resource usage reduction strategies [6/8]
+** DONE Resource usage reduction strategies [8/8]
+CLOSED: [2026-01-29 Thu 22:01]
+- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
 *** DONE Title
 CLOSED: [2026-01-27 Tue 12:54]
@@ -329,7 +333,9 @@ CLOSED: [2026-01-27 Tue 13:00]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 11:49]
 Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
-*** TODO_NEXT Risks and mitigations
+*** DONE Risks and mitigations
+CLOSED: [2026-01-29 Thu 22:01]
+- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
 No resource reduction.
 
@@ -355,6 +361,10 @@ Evaluate all strategies, with comparison with baseline.
 CLOSED: [2026-01-27 Tue 13:42]
 - State "DONE"       from              [2026-01-27 Tue 13:42]
 Conclusion of strategies: which are more effective, and which are easy to apply.
-*** TODO_NEXT Deliverables
+*** DONE Deliverables
+CLOSED: [2026-01-29 Thu 22:01]
+- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
 - resource_usage_reduction_strategies.org
+- For each strategy, scripts for usage, and before and after resource utilization
+- strategies_conclusion.org, and flake.nix updated to use those that work
