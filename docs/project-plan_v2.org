@@ -527,6 +527,7 @@ Evaluate whether mitigation techniques can reduce resource usage if scaling resu
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
+Some strategy breaks the pipeline.
 No resource reduction.
 
 Mitigation: testing and comparing several strategies, and documenting even the negative results.
@@ -547,6 +548,14 @@ Survey 5 to 10 mitigation strategies, at all levels of the pipeline: quantizatio
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
 - State "DONE"       from              [2026-01-27 Tue 13:42]
 Evaluate all strategies, with comparison with baseline.
+
+For each strategy, record:
+
+Delta LUT/FF/BRAM/DSP
+
+Delta max clock frequency
+
+Delta toolchain runtime + peak memory
 **** TODO_NEXT Subtask 3
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
 - State "DONE"       from              [2026-01-27 Tue 13:42]
