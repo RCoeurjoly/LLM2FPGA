@@ -522,7 +522,8 @@ CLOSED: [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 11:49]
-Evaluate whether mitigation techniques can reduce resource usage if scaling results are negative.
+Evaluate whether mitigation techniques can reduce resource usage if the scaling task shows that larger models do not fit the target device.
+Baseline is the largest successfully lowered model from the scaling task.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
@@ -530,7 +531,7 @@ Evaluate whether mitigation techniques can reduce resource usage if scaling resu
 Some strategy breaks the pipeline.
 No resource reduction.
 
-Mitigation: testing and comparing several strategies, and documenting even the negative results.
+Mitigation: testing and comparing several strategies, and documenting even negative or neutral results.
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 21:56]
@@ -543,7 +544,7 @@ Mitigation: testing and comparing several strategies, and documenting even the n
 - State "TODO_NEXT"  from "DONE"       [2026-01-29 Thu 21:56]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 13:35]
-Survey 5 to 10 mitigation strategies, at all levels of the pipeline: quantization at PyTorch level, eqmap at verilog level, mlir optimizations etc
+Survey 5 to 10 mitigation strategies, at model-level, MLIR, and RTL: quantization at PyTorch level, eqmap at verilog level, mlir optimizations etc
 **** TODO_NEXT Subtask 2
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
 - State "DONE"       from              [2026-01-27 Tue 13:42]
@@ -556,6 +557,8 @@ Delta LUT/FF/BRAM/DSP
 Delta max clock frequency
 
 Delta toolchain runtime + peak memory
+
+Each strategy must work without blackboxes or stubs.
 **** TODO_NEXT Subtask 3
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
 - State "DONE"       from              [2026-01-27 Tue 13:42]
@@ -566,5 +569,5 @@ Conclusion of strategies: which are more effective, and which are easy to apply.
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
 - resource_usage_reduction_strategies.org
 - For each strategy, scripts for usage, and before and after resource utilization
-- strategies_conclusion.org, and flake.nix updated to use those that work
+- Strategy comparison table with all deltas and viability status.
   
