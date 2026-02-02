@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [44%]
+* TODO_NEXT LLM2FPGA [48%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -180,16 +180,19 @@ CLOSED: [2026-01-28 Wed 11:37]
   
 - Write up of results, and video demo if succesful
 
-** TODO_NEXT Lowering of small LLM to RTL [5/10]
+** TODO_NEXT Lowering of small LLM to RTL [7/10]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 20:28]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** TODO_NEXT Title
+*** DONE Title
+CLOSED: [2026-02-02 Mon 18:21]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:21]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
-
-*** TODO_NEXT Goal:
+*** DONE Goal:
+CLOSED: [2026-02-02 Mon 18:21]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:21]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 14:04]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
@@ -200,7 +203,7 @@ This task establishes existence of a valid lowering path only; scalability and h
 
 The succesful result is an unintegrated RTL netlist of the model (RTLIL or Verilog/SystemVerilog) and synthesis resource estimates.
 
-Otherwise, bottleneck report identifying unsupported operators, failing passes, or performance pathologies in the toolchain
+Otherwise, bottleneck report identifying unsupported operators, failing passes, or any other error in the toolchain.
 *** TODO_NEXT Risks and mitigation
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 13:07]
