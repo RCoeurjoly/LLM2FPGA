@@ -127,7 +127,7 @@ Nix devshell provides all tools used by the pipeline.
 
 Cached derivations for each pipeline stage, so reruns do not recompute earlier stages.
 
-Devshell supports local debug builds for torch-mlir / LLVM / CIRCT / Yosys when Nix debug-symbol packaging is insufficient; instructions included.
+Also, for each upstream tool, support a build with debug symbols. Needed for debugging issues with tooling.
 
 **** DONE Subtask 2 consists of:
 CLOSED: [2026-01-27 Tue 13:07]
@@ -149,7 +149,7 @@ CLOSED: [2026-01-27 Tue 16:32]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:32]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 Glue RTL for interface, Bitstream generation and testing
-Think of the simplest way to interface with the world, generate bitstream of glue RTL + model RTL, test results are equivalent to golden reference
+Think of the simplest way to interface with the host computer, generate bitstream of glue RTL + model RTL, test results are equivalent to golden reference
 **** DONE Subtask 5 consists of:
 CLOSED: [2026-01-28 Wed 11:17]
 - State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:17]
