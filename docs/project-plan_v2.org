@@ -290,10 +290,14 @@ CLOSED: [2026-02-02 Mon 18:52]
 - State "TODO_NEXT"  from "DONE"       [2026-01-27 Tue 16:02]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:59]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
-Demonstrate that the generated model RTL can coexist with minimal glue logic and be processed through a full FPGA synthesis and place-and-route flow.
-Demonstrate execution of the synthesized design on FPGA hardware.
 
-The target board is YPCB-00338-1P1.
+Demonstrate FPGA integration of the lowered TinyStories-1M model RTL on the YPCB-00338-1P1 board.
+
+This includes:
+- Integrating the generated RTL with minimal glue logic under a defined host-facing interface,
+- Completing full FPGA synthesis and place-and-route,
+- Executing the design on hardware for a fixed input,
+- Verifying hardware outputs against the PyTorch reference.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:13]
