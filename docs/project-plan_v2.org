@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [32%]
+* TODO_NEXT LLM2FPGA [44%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -440,32 +440,45 @@ FPGA output matches PyTorch reference for the fixed input.
 - Bitstream or PnR report.
 - Programming logs.
 - Reference output, Comparison report, Short demonstration write-up.
-** TODO_NEXT Scaling and resource usage analysis [0/8]
+** DONE Scaling and resource usage analysis [5/8]
+CLOSED: [2026-02-02 Mon 18:19]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
 - State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:24]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** TODO_NEXT Title
+*** DONE Title
+CLOSED: [2026-02-02 Mon 18:19]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
 
-*** TODO_NEXT Goal:
+*** DONE Goal:
+CLOSED: [2026-02-02 Mon 18:19]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-evaluate how resource usage and pipeline robustness change across the published TinyStories model family (1M/3M/8M/28M/33M/1Layer-21M). https://huggingface.co/datasets/roneneldan/TinyStories
+evaluate how resource usage and pipeline robustness change across the published TinyStories model family (1M/3M/8M/28M/33M, excluding 1Layer-21M). https://huggingface.co/datasets/roneneldan/TinyStories
 
 No new model architectures are introduced.
 
-Success would be: extrapolated resource usage shows that a large model is within or near (<= 2x) the capacity of the target FPGA.
+Success would be: a reproducible per-model pipeline results matrix (stage pass/fail, compile time, resource/timing where available) plus a scaling report for the TinyStories family.
 
-*** TODO_NEXT Risks and mitigations
+*** DONE Risks and mitigations
+CLOSED: [2026-02-02 Mon 18:19]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:09]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
 Pipeline does not work for larger models.
 Mitigation: reduce those cases with mlir-reduce
-*** TODO_NEXT Subtasks
+
+Compile time or memory usage of the toolchain becomes prohibitive.
+Mitigation: record wall-clock time and peak memory usage for each pipeline stage. If a stage fails due to resource exhaustion, get the smallest failing reproducer.
+*** DONE Subtasks
+CLOSED: [2026-02-02 Mon 18:19]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:24]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
@@ -478,14 +491,19 @@ For each model: parameter count, layers, heads, embedding, vocab, etc.
 Create nix derivations for each model.
 **** TODO_NEXT Subtask 3 consists of
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
-Graph scaling pattern, figuring out it its linear, geometrical, exponential etc.
-*** TODO_NEXT Deliverables
+Generate scaling plots of resource usage (LUT/FF/BRAM/DSP), compile time, and (if available) Fmax vs parameter count and selected hyperparameters. Fit simple models (e.g. linear or polynomial in parameter count) and report observed trends.
+
+Note: these trends would apply only to TinyStories, not to other model families.
+*** DONE Deliverables
+CLOSED: [2026-02-02 Mon 18:19]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:23]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-- Research in which directions can tiny stories be scaled
+- Model inventory table (hyperparams + param count).
 - Create nix derivations at different scaling points.
-- Graph scaling pattern, figuring out it its linear, geometrical, exponential etc.
+- Per-model pipeline results matrix (stage pass/fail, compile time, peak memory, resource usage, Fmax if available). Scaling plots (resource usage, compile time, Fmax vs parameter count). Bottleneck summary identifying the first failing stage per model and root cause.
+
 ** TODO_NEXT Resource usage reduction strategies [0/8]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
