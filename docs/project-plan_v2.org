@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [96%]
+* TODO_NEXT LLM2FPGA [98%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -394,7 +394,9 @@ CLOSED: [2026-02-02 Mon 21:37]
 - Bitstream or PnR report.
 - Programming logs.
 - Reference output, Comparison report, Short demonstration write-up.
-** TODO_NEXT Scaling and resource usage analysis [8/8]
+** DONE Scaling and resource usage analysis [8/8]
+CLOSED: [2026-02-02 Mon 22:01]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 22:01]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 21:45]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
@@ -436,18 +438,18 @@ CLOSED: [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:24]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-**** DONE Subtask 1 consists of
+**** DONE Subtask 1 consists of:
 CLOSED: [2026-02-02 Mon 20:06]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
   Model inventory and metadata extraction
 For each model: parameter count, layers, heads, embedding, vocab, etc.
-**** DONE Subtask 2 consists of
+**** DONE Subtask 2 consists of:
 CLOSED: [2026-02-02 Mon 20:06]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
 Create nix derivations for each model.
-**** DONE Subtask 3 consists of
+**** DONE Subtask 3 consists of:
 CLOSED: [2026-02-02 Mon 20:06]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
@@ -503,7 +505,7 @@ CLOSED: [2026-02-02 Mon 20:08]
 - State "TODO_NEXT"  from "DONE"       [2026-01-29 Thu 21:56]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
-**** DONE Subtask 1
+**** DONE Subtask 1 consists of:
 CLOSED: [2026-02-02 Mon 20:07]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
@@ -512,7 +514,7 @@ CLOSED: [2026-02-02 Mon 20:07]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 13:35]
 Survey 5 to 10 mitigation strategies, at model-level, MLIR, and RTL: quantization at PyTorch level, eqmap at verilog level, mlir optimizations etc
-**** DONE Subtask 2
+**** DONE Subtask 2 consists of:
 CLOSED: [2026-02-02 Mon 20:07]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
@@ -528,7 +530,7 @@ Delta max clock frequency
 Delta toolchain runtime + peak memory
 
 Each strategy must work without blackboxes or stubs.
-**** DONE Subtask 3
+**** DONE Subtask 3 consists of:
 CLOSED: [2026-02-02 Mon 20:07]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]

@@ -272,3 +272,63 @@ Compare FPGA output to reference (exact or tolerance-based).
 - Bitstream or PnR report.
 - Programming logs.
 - Reference output, Comparison report, Short demonstration write-up.
+
+## Scaling and resource usage analysis
+Goal: evaluate how resource usage and pipeline robustness change across the published TinyStories model family (1M/3M/8M/28M/33M, excluding 1Layer-21M). https://huggingface.co/datasets/roneneldan/TinyStories
+
+No new model architectures are introduced.
+
+Success would be: a reproducible per-model pipeline results matrix (stage pass/fail, compile time, resource/timing where available) plus a scaling report for the TinyStories family.
+
+Risks and mitigations
+
+Pipeline does not work for larger models.
+Mitigation: reduce those cases with mlir-reduce
+
+Compile time or memory usage of the toolchain becomes prohibitive.
+Mitigation: record wall-clock time and peak memory usage for each pipeline stage. If a stage fails due to resource exhaustion, get the smallest failing reproducer.
+
+Subtask 1 consists of:
+  Model inventory and metadata extraction
+For each model: parameter count, layers, heads, embedding, vocab, etc.
+Subtask 2 consists of:
+Create nix derivations for each model.
+Subtask 3 consists of:
+Generate scaling plots of resource usage (LUT/FF/BRAM/DSP), compile time, and (if available) Fmax vs parameter count and selected hyperparameters. Fit simple models (e.g. linear or polynomial in parameter count) and report observed trends.
+
+Note: these trends would apply only to TinyStories, not to other model families.
+
+- Model inventory table (hyperparams + param count).
+- Create nix derivations at different scaling points.
+- Per-model pipeline results matrix (stage pass/fail, compile time, peak memory, resource usage, Fmax if available). Scaling plots (resource usage, compile time, Fmax vs parameter count). Bottleneck summary identifying the first failing stage per model and root cause.
+
+## Resource usage reduction strategies
+Goal:
+Evaluate if mitigation techniques can reduce resource usage if the scaling task shows that larger models do not fit the target device.
+Baseline is the largest successfully lowered model from the scaling task.
+Risks and mitigations:
+Some strategy breaks the pipeline.
+No resource reduction.
+
+Mitigation: testing and comparing several strategies, and documenting even negative or neutral results.
+Subtask 1 consists of:
+Survey 5 to 10 mitigation strategies, at model-level, MLIR, and RTL: quantization at PyTorch level, eqmap at verilog level, mlir optimizations etc
+Subtask 2 consists of:
+Evaluate all strategies, with comparison with baseline.
+
+For each strategy, record:
+
+Delta LUT/FF/BRAM/DSP
+
+Delta max clock frequency
+
+Delta toolchain runtime + peak memory
+
+Each strategy must work without blackboxes or stubs.
+Subtask 3 consists of:
+Conclusion of strategies: which are more effective, and which are easy to apply.
+
+- resource_usage_reduction_strategies.org
+- For each strategy, scripts for usage, and before and after resource utilization
+- Strategy comparison table with all deltas and viability status.
+  
