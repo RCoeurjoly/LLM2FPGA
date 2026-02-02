@@ -296,17 +296,31 @@ Demonstrate FPGA integration of the lowered TinyStories-1M model RTL on the YPCB
 This includes:
 - Integrating the generated RTL with minimal glue logic to interface with host computer,
 - Completing full FPGA synthesis and place-and-route,
-- Loading the design on hardware and executing fixed input,
+- Loading the design on hardware and executing a fixed input,
 - Verifying hardware outputs against the PyTorch reference.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:13]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
-Non-idiomatic or impractical auto-generated interfaces
 
-Hard to find where errors come from between different steps/passes.
+Risks:
 
-Mitigation consists of treating the PyTorch model as the single source of truth and introducing reference checks at every stage of the pipeline. For each MLIR, and RTL simulation.
+- Auto-generated interfaces may be impractical for real hardware integration.
+- Errors are difficult to localize across lowering, synthesis, and hardware stages.
+
+Mitigations:
+
+- Base the host-facing interface and integration approach on existing, documented FPGA designs for the same board.
+
+  Some references:
+  https://www.cnblogs.com/ruidongwu/p/18564807
+
+https://x.com/enjoy_digital/status/1924910401176719375
+
+https://www.controlpaths.com/2025/05/18/kintex7-accelerator/
+
+https://github.com/litex-hub/litex-boards/commit/6d58ae6b31d80b255de12c2d3f5bfefda4c38b90
+- Treat the PyTorch model as the single source of truth and validate each stage against it.
 *** TODO_NEXT Subtasks
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:21]
