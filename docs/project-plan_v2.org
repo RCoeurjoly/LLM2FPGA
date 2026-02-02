@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [98%]
+* TODO_NEXT LLM2FPGA [100%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -466,7 +466,9 @@ CLOSED: [2026-02-02 Mon 18:19]
 - Create nix derivations at different scaling points.
 - Per-model pipeline results matrix (stage pass/fail, compile time, peak memory, resource usage, Fmax if available). Scaling plots (resource usage, compile time, Fmax vs parameter count). Bottleneck summary identifying the first failing stage per model and root cause.
 
-** TODO_NEXT Resource usage reduction strategies [8/8]
+** DONE Resource usage reduction strategies [8/8]
+CLOSED: [2026-02-02 Mon 22:12]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 22:12]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 21:45]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:08]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
