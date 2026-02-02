@@ -149,7 +149,14 @@ CLOSED: [2026-01-27 Tue 16:32]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:32]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
 Glue RTL for interface, Bitstream generation and testing
-Think of the simplest way to interface with the host computer, generate bitstream of glue RTL + model RTL, test results are equivalent to golden reference
+Think of the simplest way to interface with the host computer, generate bitstream of glue RTL + model RTL, test results are equivalent to golden reference.
+
+Read and reuse previous work with this board:
+https://www.cnblogs.com/ruidongwu/p/18564807
+
+https://x.com/enjoy_digital/status/1924910401176719375
+
+https://www.controlpaths.com/2025/05/18/kintex7-accelerator/
 **** DONE Subtask 5 consists of:
 CLOSED: [2026-01-28 Wed 11:17]
 - State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:17]
