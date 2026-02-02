@@ -196,22 +196,17 @@ Test if a small open-source language model (TinyStories-1M) can be lowered from 
 In this task we move from small matmul module to smallest available LLM.
 This task establishes existence of a valid lowering path only; scalability and hardware execution are out of scope, for later tasks.
 
-Unintegrated RTL netlist of the model (RTLIL or Verilog/SystemVerilog)
+The succesful result is an unintegrated RTL netlist of the model (RTLIL or Verilog/SystemVerilog) and synthesis resource estimates.
 
-Synthesis resource estimates produced by open-source tools
-
-Bottleneck report identifying unsupported operators, failing passes, or performance pathologies in the toolchain
+Otherwise, bottleneck report identifying unsupported operators, failing passes, or performance pathologies in the toolchain
 *** DONE Risks and mitigation
 CLOSED: [2026-01-28 Wed 13:07]
 - State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 13:07]
 - State "TODO_NEXT"  from "DONE"       [2026-01-28 Wed 13:01]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:33]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
-Unsupported MLIR operators
-
-Invalid or non-synthesizable RTL emitted
-
-Excessive compile times due to pass ordering or repeated transformations
+Unsupported MLIR operators.
+Invalid or non-synthesizable RTL emitted.
 
 Mitigation includes reduction of failing MLIR programs using mlir-reduce, local pass reordering or stubbing, and isolating minimal reproducing cases. Upstream contributions may be prepared but are not required for task completion.
 
