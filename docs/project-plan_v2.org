@@ -453,7 +453,7 @@ FPGA output matches PyTorch reference for the fixed input.
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-Measure how FPGA resource usage scales with model depth and width by mechanically scaling the validated TinyStories-1M architecture.
+evaluate how resource usage and pipeline robustness change across the published TinyStories model family (1M/3M/8M/28M/33M/1Layer-21M). https://huggingface.co/datasets/roneneldan/TinyStories
 
 No new model architectures are introduced.
 
@@ -471,10 +471,11 @@ Mitigation: reduce those cases with mlir-reduce
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
 **** TODO_NEXT Subtask 1 consists of
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
-Research in which directions can tiny stories be scaled
+  Model inventory and metadata extraction
+For each model: parameter count, layers, heads, embedding, vocab, etc.
 **** TODO_NEXT Subtask 2 consists of
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
-Create nix derivations at different scaling points.
+Create nix derivations for each model.
 **** TODO_NEXT Subtask 3 consists of
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
 Graph scaling pattern, figuring out it its linear, geometrical, exponential etc.
