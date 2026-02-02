@@ -1,6 +1,6 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [55%]
+* TODO_NEXT LLM2FPGA [78%]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
@@ -445,7 +445,7 @@ FPGA output matches PyTorch reference for the fixed input.
 - Bitstream or PnR report.
 - Programming logs.
 - Reference output, Comparison report, Short demonstration write-up.
-** DONE Scaling and resource usage analysis [5/8]
+** DONE Scaling and resource usage analysis [8/8]
 CLOSED: [2026-02-02 Mon 18:19]
 - State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
@@ -487,14 +487,20 @@ CLOSED: [2026-02-02 Mon 18:19]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:24]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-**** TODO_NEXT Subtask 1 consists of
+**** DONE Subtask 1 consists of
+CLOSED: [2026-02-02 Mon 20:06]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
   Model inventory and metadata extraction
 For each model: parameter count, layers, heads, embedding, vocab, etc.
-**** TODO_NEXT Subtask 2 consists of
+**** DONE Subtask 2 consists of
+CLOSED: [2026-02-02 Mon 20:06]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
 Create nix derivations for each model.
-**** TODO_NEXT Subtask 3 consists of
+**** DONE Subtask 3 consists of
+CLOSED: [2026-02-02 Mon 20:06]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
 - State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
 Generate scaling plots of resource usage (LUT/FF/BRAM/DSP), compile time, and (if available) Fmax vs parameter count and selected hyperparameters. Fit simple models (e.g. linear or polynomial in parameter count) and report observed trends.
 
@@ -509,22 +515,30 @@ CLOSED: [2026-02-02 Mon 18:19]
 - Create nix derivations at different scaling points.
 - Per-model pipeline results matrix (stage pass/fail, compile time, peak memory, resource usage, Fmax if available). Scaling plots (resource usage, compile time, Fmax vs parameter count). Bottleneck summary identifying the first failing stage per model and root cause.
 
-** TODO_NEXT Resource usage reduction strategies [0/8]
+** DONE Resource usage reduction strategies [8/8]
+CLOSED: [2026-02-02 Mon 20:08]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:08]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
-*** TODO_NEXT Title
+*** DONE Title
+CLOSED: [2026-02-02 Mon 20:07]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
 
-*** TODO_NEXT Goal:
+*** DONE Goal:
+CLOSED: [2026-02-02 Mon 20:07]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 11:49]
-Evaluate whether mitigation techniques can reduce resource usage if the scaling task shows that larger models do not fit the target device.
+Evaluate if mitigation techniques can reduce resource usage if the scaling task shows that larger models do not fit the target device.
 Baseline is the largest successfully lowered model from the scaling task.
-*** TODO_NEXT Risks and mitigations
+*** DONE Risks and mitigations
+CLOSED: [2026-02-02 Mon 20:07]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
@@ -532,20 +546,26 @@ Some strategy breaks the pipeline.
 No resource reduction.
 
 Mitigation: testing and comparing several strategies, and documenting even negative or neutral results.
-*** TODO_NEXT Subtasks
+*** DONE Subtasks
+CLOSED: [2026-02-02 Mon 20:08]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:08]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 21:56]
 - State "TODO_NEXT"  from "DONE"       [2026-01-29 Thu 21:56]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
-**** TODO_NEXT Subtask 1
+**** DONE Subtask 1
+CLOSED: [2026-02-02 Mon 20:07]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 21:56]
 - State "TODO_NEXT"  from "DONE"       [2026-01-29 Thu 21:56]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 13:35]
 Survey 5 to 10 mitigation strategies, at model-level, MLIR, and RTL: quantization at PyTorch level, eqmap at verilog level, mlir optimizations etc
-**** TODO_NEXT Subtask 2
+**** DONE Subtask 2
+CLOSED: [2026-02-02 Mon 20:07]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
 - State "DONE"       from              [2026-01-27 Tue 13:42]
 Evaluate all strategies, with comparison with baseline.
@@ -559,11 +579,15 @@ Delta max clock frequency
 Delta toolchain runtime + peak memory
 
 Each strategy must work without blackboxes or stubs.
-**** TODO_NEXT Subtask 3
+**** DONE Subtask 3
+CLOSED: [2026-02-02 Mon 20:07]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
 - State "DONE"       from              [2026-01-27 Tue 13:42]
 Conclusion of strategies: which are more effective, and which are easy to apply.
-*** TODO_NEXT Deliverables
+*** DONE Deliverables
+CLOSED: [2026-02-02 Mon 20:08]
+- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:08]
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
 - State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
