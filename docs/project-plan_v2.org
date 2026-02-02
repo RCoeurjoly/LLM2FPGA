@@ -294,9 +294,9 @@ CLOSED: [2026-02-02 Mon 18:52]
 Demonstrate FPGA integration of the lowered TinyStories-1M model RTL on the YPCB-00338-1P1 board.
 
 This includes:
-- Integrating the generated RTL with minimal glue logic under a defined host-facing interface,
+- Integrating the generated RTL with minimal glue logic to interface with host computer,
 - Completing full FPGA synthesis and place-and-route,
-- Executing the design on hardware for a fixed input,
+- Loading the design on hardware and executing fixed input,
 - Verifying hardware outputs against the PyTorch reference.
 *** TODO_NEXT Risks and mitigations
 - State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
