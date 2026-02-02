@@ -106,7 +106,7 @@ CLOSED: [2026-01-27 Tue 14:01]
 CLOSED: [2026-01-27 Tue 12:52]
 - State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:52]
 - State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
-Demonstrate that the selected pipeline can lower a minimal PyTorch kernel to synthesizable RTL, integrate it into a complete FPGA top-level, generate a bitstream, and run a fixed test vector on real hardware with outputs matching the PyTorch reference (exact or tolerance-defined).
+Demonstrate that the selected pipeline can lower a minimal PyTorch kernel to synthesizable RTL, integrate it into a complete FPGA top-level, generate a bitstream, and run a fixed test vector on real hardware with outputs matching the PyTorch reference.
 *** DONE Risks and mitigations
 CLOSED: [2026-01-28 Wed 11:37]
 - State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
