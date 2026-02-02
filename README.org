@@ -1,4 +1,4 @@
-LLM2FPGA is in work in progress.
+LLM2FPGA is a work in progress.
 
 LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
 

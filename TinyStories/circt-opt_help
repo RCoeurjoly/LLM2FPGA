@@ -1,0 +1,645 @@
+OVERVIEW: CIRCT modular optimizer driver
+Available Dialects: affine, arc, arith, builtin, calyx, cf, chirrtl, comb, datapath, dbg, dc, emit, emitc, esi, firrtl, fsm, func, handshake, hw, hwarith, index, interop, kanagawa, llhd, llvm, loopschedule, ltl, math, memref, moore, msft, om, pipeline, rtg, rtgtest, scf, seq, sim, smt, ssp, sv, synth, systemc, vector, verif
+USAGE: circt-opt [options] <input file>
+
+OPTIONS:
+
+Color Options:
+
+  --color                                                          - Use colors in output (default=autodetect)
+
+General options:
+
+  --allow-unregistered-dialect                                     - Allow operation with no registered dialects
+  --disable-i2p-p2i-opt                                            - Disables inttoptr/ptrtoint roundtrip optimization
+  --dump-pass-pipeline                                             - Print the pipeline that will be run
+  --elide-all-zero-branch-weights                                  - 
+  --elide-resource-data-from-bytecode                              - Elide resources when generating bytecode
+  --emit-bytecode                                                  - Emit bytecode when generating output
+  --emit-bytecode-version=<value>                                  - Use specified bytecode when generating output
+  --emit-text-format                                               - Export AIGER in text format
+  --exclude-symbol-table                                           - Exclude symbol table from the output
+  Compiler passes to run
+    Passes:
+      --affine-parallel-unroll                                     -   Unrolls affine.parallel operations in a way suitable for Calyx.
+      --affine-ploop-unparallelize                                 -   Unparallelize `affine.parallel` op to `affine.for`
+      --arc-add-taps                                               -   Add taps to ports and wires such that they remain observable
+        --named-values                                             - Make values with `sv.namehint` observable
+        --ports                                                    - Make module ports observable
+        --wires                                                    - Make wires observable
+      --arc-allocate-state                                         -   Allocate and layout the global simulation state
+      --arc-canonicalizer                                          -   Simulation centric canonicalizations
+      --arc-dedup                                                  -   Deduplicate identical arc definitions
+      --arc-find-initial-vectors                                   -   Find initial groups of vectorizable ops
+      --arc-infer-memories                                         -   Convert `FIRRTL_Memory` instances to dedicated memory ops
+        --tap-memories                                             - Make memory contents observable
+        --tap-ports                                                - Make memory ports observable
+      --arc-infer-state-properties                                 -   Add resets and enables explicitly to the state operations
+        --enables                                                  - Infer enable signals
+        --resets                                                   - Infer reset signals
+      --arc-inline                                                 -   Inline very small arcs
+        --into-arcs-only                                           - Call operations to inline
+        --max-body-ops=<uint>                                      - Max number of non-trivial ops in the region to be inlined
+      --arc-isolate-clocks                                         -   Group clocked operations into clock domains
+      --arc-latency-retiming                                       -   Push latencies through the design
+      --arc-lower-arcs-to-funcs                                    -   Lower arc definitions into functions
+      --arc-lower-clocks-to-funcs                                  -   Lower clock trees into functions
+      --arc-lower-lut                                              -   Lowers arc.lut into a comb and hw only representation.
+      --arc-lower-state                                            -   Split state into read and write ops grouped by clock tree
+      --arc-lower-vectorizations                                   -   lower `arc.vectorize` operations
+        --mode=<value>                                             - Select what should be lowered.
+    =boundary                                                -   Lower boundary only.
+    =body                                                    -   Lower body only.
+    =inline-body                                             -   Inline already vectorized ops only.
+    =full                                                    -   Perform the complete lowering.
+      --arc-lower-verif-simulations                                -   Lower verif.simulation ops to main functions
+      --arc-make-tables                                            -   Transform appropriate arc logic into lookup tables
+      --arc-merge-ifs                                              -   Merge control flow structures
+      --arc-merge-taps                                             -   Merge TapOps observing the same value in the same Block.
+      --arc-mux-to-control-flow                                    -   Convert muxes with large independent fan-ins to if-statements
+      --arc-print-cost-model                                       -   A dummy pass to test analysis passes
+      --arc-simplify-variadic-ops                                  -   Convert variadic ops into distributed binary ops
+      --arc-split-funcs                                            -   Split large funcs into multiple smaller funcs
+        --split-bound=<uint>                                       - Size threshold (in ops) above which to split funcs
+      --arc-split-loops                                            -   Split arcs to break zero latency loops
+      --arc-strip-sv                                               -   Remove SV wire, reg, and assigns
+        --async-resets-as-sync                                     - Treat asynchronous resets as synchronous.
+      --calyx-affine-to-scf                                        -   Lowers the Affine dialect to the SCF dialect while attaching relevant information used for the SCFToCalyx or the LoopScheduleToCalyx pass.
+      --calyx-clk-insertion                                        -   Inserts assignments from component clock to sub-component clock.
+      --calyx-compile-control                                      -   Generates latency-insensitive finite state machines to realize control.
+      --calyx-gicm                                                 -   Lift group-invariant operations to wire-scope.
+      --calyx-go-insertion                                         -   Insert go signals into the guards of a group's non-hole assignments
+      --calyx-native                                               -   Callout to the Calyx native compiler and run a pass pipeline
+        --pass-pipeline=<string>                                   - Passes to run with the native compiler
+      --calyx-remove-comb-groups                                   -   Removes combinational groups from a Calyx component.
+      --calyx-remove-groups                                        -   Inlines the groups in a Calyx component.
+      --calyx-remove-groups-fsm                                    -   Perform FSM outlining and group removal
+      --calyx-reset-insertion                                      -   Connect component reset to sub-component reset for applicable components.
+      --canonicalize                                               -   Canonicalize operations
+        --disable-patterns=<string>                                - Labels of patterns that should be filtered out during application
+        --enable-patterns=<string>                                 - Labels of patterns that should be used during application, all other patterns are filtered out
+        --max-iterations=<long>                                    - Max. iterations between applying patterns / simplifying regions
+        --max-num-rewrites=<long>                                  - Max. number of pattern rewrites within an iteration
+        --region-simplify=<value>                                  - Perform control flow optimizations to the region tree
+    =disabled                                                -   Don't run any control-flow simplification.
+    =normal                                                  -   Perform simple control-flow simplifications (e.g. dead args elimination).
+    =aggressive                                              -   Perform aggressive control-flow simplification (e.g. block merging).
+        --test-convergence                                         - Test only: Fail pass on non-convergence to detect cyclic pattern
+        --top-down                                                 - Seed the worklist in general top-down order
+      --comb-assume-two-valued                                     -   Simplify under assumption of two-valued logic
+      --comb-balance-mux                                           -   Balance and optimize mux chains
+        --mux-chain-threshold=<uint>                               - Minimum number of linear mux chains to trigger rebalancing
+      --comb-int-range-narrowing                                   -   Reduce comb op bitwidth based on integer range analysis.
+      --comb-overflow-annotating                                   -   Annotate comb ops with no overflow signal (nuw).
+      --comb-simplify-tt                                           -   Simplify truth tables that depend on 1 or less inputs
+      --construct-lec                                              -   Lower CIRCTs core dialects to a LEC problem statement
+        --first-module=<string>                                    - Name of the first of the two modules to compare.
+        --insert-mode=<value>                                      - Select what additional code to add.
+    =none                                                    -   Do not insert any additional code.
+    =reporting                                               -   Insert LLVM code to report LEC result.
+    =main                                                    -   Insert main function for AOT compilation and reporting.
+        --second-module=<string>                                   - Name of the second of the two modules to compare.
+      --convert-affine-to-loopschedule                             -   Convert Affine dialect to LoopSchedule scheduled loops
+      --convert-comb-to-arith                                      -   Convert combinational ops and constants into arith ops
+      --convert-comb-to-datapath                                   -   Lower Comb ops to Datapath ops
+      --convert-comb-to-smt                                        -   Convert combinational ops and constants to SMT ops
+      --convert-comb-to-synth                                      -   Lower Comb ops to Synth ops.
+        --additional-legal-ops=<string>                            - Specify additional legal ops to partially legalize Comb
+        --max-emulation-unknown-bits=<uint>                        - Maximum number of unknown bits to emulate in a table lookup
+        --target-ir=<value>                                        - Target IR kind
+    =aig                                                     -   Lower to AIG
+    =mig                                                     -   Lower to MIG
+      --convert-datapath-to-comb                                   -   Convert Datapath ops to Comb ops
+        --lower-compress-to-add                                    - Lower compress operators to variadic add.
+        --lower-partial-product-to-booth                           - Force all partial products to be lowered to Booth arrays.
+        --timing-aware                                             - Use timing-aware compressor synthesis algorithm.
+      --convert-datapath-to-smt                                    -   Convert datapath ops to SMT ops
+      --convert-fsm-to-sv                                          -   Convert FSM to SV and HW
+      --convert-hw-to-btor2                                        -   Convert HW to BTOR2
+      --convert-hw-to-llvm                                         -   Convert HW to LLVM
+        --spill-arrays-early                                       - If true, array values will be materialized on the stack at thepoint of definition. This can reduce redundant stack allocations.
+      --convert-hw-to-smt                                          -   Convert HW ops and constants to SMT ops
+        --for-smtlib-export                                        - Produce output for SMTLIB export - this will replace hw.moduleoperations with smt.solver operations and assert the equivalenceof each module output with a symbolic constant.
+      --convert-hw-to-systemc                                      -   Convert HW to SystemC
+      --convert-index-to-uint                                      -   Rewrite index-based switch comparisons into unsigned integer ops.
+      --convert-moore-to-core                                      -   Convert Moore to Core
+      --convert-synth-to-comb                                      -   Lower Synth ops to Comb ops
+      --convert-to-arcs                                            -   Outline logic between registers into state transfer arcs
+        --tap-registers                                            - Make registers observable
+      --convert-to-llvm                                            -   Convert Comb and HW to LLVM
+      --convert-verif-to-smt                                       -   Convert Verif ops to SMT ops
+        --rising-clocks-only                                       - When lowering verif.bmc ops, only consider the circuit and propertyon rising clock edges.
+      --cse                                                        -   Eliminate common sub-expressions
+      --datapath-reduce-delay                                      -   Reduce datapath delay at a cost of potentially greater area.
+      --dc-dematerialize-forks-sinks                               -   Dematerialize fork and sink operations.
+      --dc-materialize-forks-sinks                                 -   Materialize fork and sink operations.
+      --dc-print-dot                                               -   Print .dot graph of a DC function.
+      --esi-appid-hier                                             -   Build an AppID based hierarchy rooted at top module 'top'
+        --top=<string>                                             - Root module of the instance hierarchy
+      --esi-build-manifest                                         -   Build a manifest of an ESI system
+        --top=<string>                                             - Root module of the instance hierarchy
+      --esi-clean-metadata                                         -   Clean up ESI service metadata
+      --esi-connect-services                                       -   Connect up ESI service requests to service providers
+      --exclude-exec-region-canonicalize                           -   Canonicalize all legal operations except `scf.execute_region`
+      --export-split-verilog                                       -   Emit the IR to a (System)Verilog directory of files
+        --dir-name=<string>                                        - Directory to emit into
+      --export-verilog                                             -   Emit the IR to a (System)Verilog file
+      --externalize-clock-gate                                     -   Convert seq.clock_gate ops into hw.module.extern instances
+        --enable=<string>                                          - Name of the enable input
+        --input=<string>                                           - Name of the clock input
+        --instance-name=<string>                                   - Name of the generated instances
+        --name=<string>                                            - Name of the external clock gate module
+        --output=<string>                                          - Name of the gated clock output
+        --test-enable=<string>                                     - Name of the optional test enable input
+      --externalize-registers                                      -   Removes registers and adds corresponding input and output ports
+      --firrtl-add-seqmem-ports                                    -   Add extra ports to memory modules
+      --firrtl-annotate-input-only-modules                         -   Annotate input-only modules with InlineAnnotation
+      --firrtl-assign-output-dirs                                  -   Assign output directories to modules.
+        --output-dir=<string>                                      - The default output directory.
+      --firrtl-blackbox-reader                                     -   Load source files for black boxes into the IR
+        --input-prefix=<string>                                    - Prefix for input paths in black box annotations. This should be the directory where the input file was located, to allow for annotations relative to the input file.
+      --firrtl-check-comb-loops                                    -   Check combinational cycles and emit errors
+      --firrtl-check-layers                                        -   Check for illegal layers instantiated under layers
+      --firrtl-check-recursive-instantiation                       -   Check for illegal recursive instantiation
+      --firrtl-dedup                                               -   Deduplicate modules which are structurally equivalent
+        --dedup-classes                                            - Deduplicate classes, violating their nominal typing.
+      --firrtl-drop-const                                          -   Drop 'const' modifier from types
+      --firrtl-drop-names                                          -   Drop interesting names
+        --preserve-values=<value>                                  - specify the values which can be optimized away
+    =strip                                                   -   Strip all names. No name is preserved
+    =none                                                    -   Preserve no named values. Names could be preserved by best-effort unlike `strip`
+    =named                                                   -   Preserve values with meaningful names
+    =all                                                     -   Preserve all values
+      --firrtl-eliminate-wires                                     -   Eliminate Unneeded Wires
+      --firrtl-emit-metadata                                       -   Emit metadata of the FIRRTL modules
+        --repl-seq-mem                                             - Lower the seq mem for macro replacement and emit relevant metadata
+        --repl-seq-mem-file=<string>                               - File to which emit seq meme metadata
+      --firrtl-expand-whens                                        -   Remove all when conditional blocks.
+      --firrtl-extract-instances                                   -   Move annotated instances upwards in the module hierarchy
+      --firrtl-finalize-ir                                         -   Perform final IR mutations after ExportVerilog
+      --firrtl-flatten-memory                                      -   Flatten aggregate memory data to a UInt
+      --firrtl-grand-central                                       -   Remove Grand Central Annotations
+        --companion-mode=<value>                                   - specify the handling of companion modules
+    =bind                                                    -   Lower companion instances to SystemVerilog binds
+    =instantiate                                             -   Instantiate companions in the design
+    =drop                                                    -   Remove companions from the design
+        --no-views                                                 - Delete FIRRTL view intrinsics
+      --firrtl-imconstprop                                         -   Intermodule constant propagation and dead code elimination
+      --firrtl-imdeadcodeelim                                      -   Intermodule dead code elimination
+      --firrtl-infer-resets                                        -   Infer reset synchronicity and add implicit resets
+      --firrtl-infer-rw                                            -   Infer the read-write memory port
+      --firrtl-infer-widths                                        -   Infer the width of types
+      --firrtl-inject-dut-hier                                     -   Add a level of hierarchy outside the DUT
+      --firrtl-inliner                                             -   Performs inlining, flattening, and dead module elimination
+      --firrtl-inner-symbol-dce                                    -   Eliminate dead inner symbols
+      --firrtl-layer-merge                                         -   Merge layer blocks
+      --firrtl-layer-sink                                          -   Sink operations into layer blocks
+      --firrtl-link-circuits                                       -   Links multiple circuits into a single one
+        --base-circuit=<string>                                    - The base circuit name.
+        --no-mangle                                                - Do not perform private symbol mangling.
+      --firrtl-lint                                                -   An analysis pass to detect static simulation failures.
+        --lint-static-asserts                                      - enable linting of static assertions
+        --lint-xmrs-in-design                                      - enable linting of XMRs that exist in the design
+      --firrtl-lower-annotations                                   -   Lower FIRRTL annotations to usable entities
+        --disable-annotation-classless                             - Ignore classless annotations.
+        --disable-annotation-unknown                               - Ignore unknown annotations.
+        --no-ref-type-ports                                        - Create normal ports, not ref type ports.
+      --firrtl-lower-chirrtl                                       -   Infer the memory ports of SeqMem and CombMem
+      --firrtl-lower-classes                                       -   Lower FIRRTL classes and objects to OM classes and objects
+      --firrtl-lower-domains                                       -   lower domain information to properties
+      --firrtl-lower-dpi                                           -   Lower DPI intrinsic into Sim DPI operations
+      --firrtl-lower-intmodules                                    -   Lower instances instances of intrinsic modules to ops.
+        --fixup-eicg-wrapper                                       - Lower `EICG_wrapper` modules into clock gate intrinsics
+      --firrtl-lower-intrinsics                                    -   Lower intrinsics
+      --firrtl-lower-layers                                        -   Lower layers and layer blocks to instances
+        --emit-all-bind-files                                      - Emit bind files for private modules.
+      --firrtl-lower-matches                                       -   Remove all matchs conditional blocks
+      --firrtl-lower-memory                                        -   Lower memories to generated modules
+      --firrtl-lower-open-aggs                                     -   Lower 'Open' aggregates by splitting out non-hardware elements
+      --firrtl-lower-signatures                                    -   Lower FIRRTL module signatures
+      --firrtl-lower-types                                         -   Lower FIRRTL types to ground types
+        --preserve-aggregate=<value>                               - Specify aggregate preservation mode
+    =none                                                    -   Preserve no aggregate
+    =1d-vec                                                  -   Preserve 1d vectors
+    =vec                                                     -   Preserve vectors
+    =all                                                     -   Preserve vectors and bundles
+        --preserve-memories=<value>                                - Specify memory preservation mode
+    =none                                                    -   Preserve no aggregate
+    =1d-vec                                                  -   Preserve 1d vectors
+    =vec                                                     -   Preserve vectors
+    =all                                                     -   Preserve vectors and bundles
+      --firrtl-lower-xmr                                           -   Lower ref ports to XMR
+      --firrtl-materialize-debug-info                              -   Generate debug ops to track FIRRTL values
+      --firrtl-mem-to-reg-of-vec                                   -   Convert combinational memories to a vector of registers
+        --ignore-read-enable-mem                                   - ignore the read enable signal, instead of assigning X on read disable
+        --repl-seq-mem                                             - Prepare seq mems for macro replacement
+      --firrtl-merge-connections                                   -   Merge field-level connections into full bundle connections
+        --aggressive-merging                                       - Merge connections even when source values won't be simplified.
+      --firrtl-module-summary                                      -   Print a summary of modules.
+      --firrtl-passive-wires                                       -   Make FIRRTL wires have passive type
+      --firrtl-print-field-source                                  -   Print field source information.
+      --firrtl-print-instance-graph                                -   Print a DOT graph of the module hierarchy.
+      --firrtl-print-nla-table                                     -   Print the NLA Table.
+      --firrtl-probes-to-signals                                   -   Convert probes to signals.
+      --firrtl-randomize-register-init                             -   Randomize register initialization.
+      --firrtl-register-optimizer                                  -   Optimizer Registers
+      --firrtl-remove-unused-ports                                 -   Remove unused ports
+        --ignore-dont-touch                                        - remove unused ports even if they have a symbol or annotation
+      --firrtl-resolve-paths                                       -   Lowers UnresolvedPathOps to PathOps
+      --firrtl-resolve-traces                                      -   Write out TraceAnnotations to an output annotation file
+        --file=<string>                                            - Output file for the JSON-serialized Trace Annotations
+      --firrtl-sfc-compat                                          -   Perform SFC Compatibility fixes
+      --firrtl-specialize-layers                                   -   Specialize a configurable design for a given layer
+      --firrtl-specialize-option                                   -   Specialize a configurable design for a given option.
+        --select-default-for-unspecified-instance-choice           - Specialize instance choice to default, if no option selected.
+      --firrtl-vb-to-bv                                            -   Transform vector-of-bundles to bundle-of-vectors
+      --firrtl-vectorization                                       -   Transform firrtl primitive operations into vector operations
+      --flatten-memref                                             -   Flatten memrefs
+      --flatten-memref-calls                                       -   Flatten memref calls
+      --fsm-print-graph                                            -   Print a DOT graph of an FSM's structure.
+      --handshake-add-ids                                          -   Add an ID to each operation in a handshake function.
+      --handshake-dematerialize-forks-sinks                        -   Dematerialize fork and sink operations.
+      --handshake-insert-buffers                                   -   Insert buffers to break graph cycles
+        --buffer-size=<uint>                                       - Number of slots in each buffer
+        --strategy=<string>                                        - Strategy to apply. Possible values are: cycles, allFIFO, all (default)
+      --handshake-legalize-memrefs                                 -   Memref legalization and lowering pass.
+      --handshake-lock-functions                                   -   Lock each function to only allow single invocations.
+      --handshake-lower-extmem-to-hw                               -   Lowers handshake.extmem and memref inputs to ports.
+        --wrap-esi                                                 - Create an ESI wrapper for the module. Any extmem will be served by an esi.mem.ram service
+      --handshake-materialize-forks-sinks                          -   Materialize fork and sink operations.
+      --handshake-op-count                                         -   Count the number of operations (resources) in a handshake function.
+      --handshake-print-dot                                        -   Print .dot graph of a handshake function.
+      --handshake-remove-block-structure                           -   Remove block structure in Handshake IR
+      --handshake-remove-buffers                                   -   Remove buffers from handshake functions.
+      --handshake-split-merges                                     -   Deconstruct >2 input merge operations into 2-input merges
+      --hierarchical-runner                                        -   Run passes under hierarchy
+        --include-bound-instances                                  - Whether to include bound instances in the hierarchy
+        --pipeline=<string>                                        - The pipeline to run under hierarchy
+        --top-name=<string>                                        - The name of the top-level module to run the pass on
+      --hw-aggregate-to-comb                                       -   Lower aggregate operations to comb operations
+      --hw-bypass-inner-symbols                                    -   Pass through values through inner symbols
+      --hw-cleanup                                                 -   Cleanup transformations for operations in hw.module bodies
+        --merge-always-blocks                                      - Allow always and always_ff blocks to be merged
+      --hw-eliminate-inout-ports                                   -   Raises usages of inout ports into explicit input and output ports
+        --read-suffix=<string>                                     - Suffix to be used for the port when the inout port has readers
+        --write-suffix=<string>                                    - Suffix to be used for the port when the inout port has writers
+      --hw-export-module-hierarchy                                 -   Export module and instance hierarchy information
+      --hw-flatten-io                                              -   Flattens hw::Structure typed in- and output ports.
+        --flatten-extern                                           - Flatten the extern modules also.
+        --join-char=<char>                                         - Use a custom character to construct the flattened names.
+        --recursive                                                - Recursively flatten nested structs.
+      --hw-flatten-modules                                         -   Eagerly inline private modules
+        --hw-inline-all                                            - Inline all private modules regardless of heuristics (default behavior)
+        --hw-inline-empty                                          - Inline modules that are empty (only contain hw.output)
+        --hw-inline-no-outputs                                     - Inline modules that have no output ports
+        --hw-inline-single-use                                     - Inline modules that have only one use
+        --hw-inline-small                                          - Inline modules that are small (fewer than smallThreshold operations)
+        --hw-inline-with-state                                     - Allow inlining of modules that contain state (seq.firreg operations)
+        --hw-small-threshold=<uint>                                - Maximum number of operations for a module to be considered small
+      --hw-foo-wires                                               -   Change all wires' name to foo_<n>.
+      --hw-generator-callout                                       -   Lower Generator Schema to external module
+        --generator-executable=<string>                            - Generator program executable with optional full path
+        --generator-executable-arguments=<string>                  - Generator program arguments separated by ;
+        --schema-name=<string>                                     - Name of the schema to process
+      --hw-legalize-modules                                        -   Eliminate features marked unsupported in LoweringOptions
+      --hw-lower-instance-choices                                  -   Prepare the collateral for instance choice emission
+      --hw-memory-sim                                              -   Implement FIRRTMMem memories nodes with simulation model
+        --add-mux-pragmas                                          - Add mux pragmas to memory reads
+        --add-vivado-ram-address-conflict-synthesis-bug-workaround - Add a vivado attribute to specify a ram style of an array register
+        --disable-mem-randomization                                - Disable emission of memory randomization code
+        --disable-reg-randomization                                - Disable emission of register randomization code
+        --read-enable-mode=<value>                                 - specify the behaviour of the read enable signal
+    =ignore                                                  -   Ignore the read enable signal
+    =zero                                                    -   Output zeros when reads are disabled
+    =undefined                                               -   Output X when reads are disbled
+        --repl-seq-mem                                             - Prepare seq mems for macro replacement
+      --hw-parameterize-constant-ports                             -   Parametize constant ports on private modules
+      --hw-print-instance-graph                                    -   Print a DOT graph of the module hierarchy.
+      --hw-print-module-graph                                      -   Print a DOT graph of the HWModule's within a top-level module.
+        --verbose-edges                                            - Print information on SSA edges (types, operand #, ...)
+      --hw-specialize                                              -   Specializes instances of parametric hw.modules
+      --hw-stub-external-modules                                   -   transform external hw modules to empty hw modules
+      --hw-verify-irn                                              -   Verify InnerRefNamespaceLike operations, if not self-verifying.
+      --inline                                                     -   Inline function calls
+        --default-pipeline=<string>                                - The optimizer pipeline used for callables that do not have a dedicated optimizer pipeline in opPipelineList
+        --inlining-threshold=<uint>                                - If the ratio between the number of the operations in the callee and the number of the operations in the caller exceeds this value (in percentage), then the callee is not inlined even if it is legal to inline it
+        --max-iterations=<uint>                                    - Maximum number of iterations when inlining within an SCC
+        --op-pipelines=<pass-manager>                              - Callable operation specific optimizer pipelines (in the form of `dialect.op(pipeline)`)
+      --insert-merge-blocks                                        -   Insert explicit merge blocks
+      --kanagawa-add-operator-library                              -   Injects the Kanagawa operator library into the IR
+      --kanagawa-argify-blocks                                     -   Add arguments to kanagawa blocks
+      --kanagawa-call-prep                                         -   Convert kanagawa method calls to use `dc.value`
+      --kanagawa-clean-selfdrivers                                 -   Kanagawa clean selfdrivers pass
+      --kanagawa-containerize                                      -   Kanagawa containerization pass
+      --kanagawa-convert-cf-to-handshake                           -   Converts an `kanagawa.method` to `kanagawa.method.df`
+      --kanagawa-convert-containers-to-hw                          -   Kanagawa containers to hw conversion pass
+      --kanagawa-convert-handshake-to-dc                           -   Converts an `kanagawa.method.df` to use DC
+      --kanagawa-convert-methods-to-containers                     -   Converts `kanagawa.method.df` to `kanagawa.container`s
+      --kanagawa-eliminate-redundant-ops                           -   Kanagawa eliminate redundant operations pass
+      --kanagawa-inline-sblocks                                    -   Inlines `kanagawa.sblock` operations as MLIR blocks
+      --kanagawa-lower-portrefs                                    -   Kanagawa portref lowering pass
+      --kanagawa-prepare-scheduling                                -   Prepare `kanagawa.sblock` operations for scheduling
+      --kanagawa-reblock                                           -   Recreates `kanagawa.sblock` operations from a CFG
+      --kanagawa-tunneling                                         -   Kanagawa tunneling pass
+        --read-suffix=<string>                                     - Suffix to be used for the port when a port is tunneled for read access
+        --write-suffix=<string>                                    - Suffix to be used for the port when a port is tunneled for write access
+      --legalize-anon-enums                                        -   Prepare anonymous enumeration types for ExportVerilog
+      --llhd-combine-drives                                        -   Combine scalar drives into aggregate drives
+      --llhd-deseq                                                 -   Convert sequential processes to registers
+      --llhd-hoist-signals                                         -   Hoist probes and promote drives to process results
+      --llhd-inline-calls                                          -   Inline all function calls in HW modules
+      --llhd-lower-processes                                       -   Convert process ops to combinational ops where possible
+      --llhd-mem2reg                                               -   Promotes memory and signal slots into values.
+      --llhd-remove-control-flow                                   -   Remove acyclic control flow and replace block args with muxes
+      --llhd-sig2reg                                               -   promote LLHD signals to SSA values
+      --llhd-unroll-loops                                          -   Unroll control flow loops with static bounds
+      --llhd-wrap-procedural-ops                                   -   Wrap procedural ops in modules to make them inlinable
+      --lower-arc-to-llvm                                          -   Lower state transfer arc representation to LLVM
+      --lower-calyx-to-fsm                                         -   Lower Calyx to FSM
+      --lower-calyx-to-hw                                          -   Lower Calyx to HW
+      --lower-cf-to-handshake                                      -   Lower func and CF into Handshake IR
+        --disable-task-pipelining                                  - If true, will disable support for task pipelining. This relaxes the restrictions put on the structure of the input CDFG. Disabling task pipelining may severely reduce kernel II.
+        --source-constants                                         - If true, will connect constants to source operations instead of to the control network. May reduce the size of the final circuit.
+      --lower-comb                                                 -   Lowers the some of the comb ops
+      --lower-contracts                                            -   Lower contracts into formal tests
+      --lower-dc-to-hw                                             -   Lower DC to HW
+      --lower-esi-bundles                                          -   Lower ESI bundles to channels.
+      --lower-esi-ports                                            -   Lower ESI input and/or output ports.
+      --lower-esi-to-hw                                            -   Lower ESI to HW where possible and SV elsewhere.
+        --platform=<string>                                        - Target this platform
+      --lower-esi-to-physical                                      -   Lower ESI abstract Ops to ESI physical ops.
+      --lower-esi-types                                            -   Lower ESI high level types.
+      --lower-firrtl-to-hw                                         -   Lower FIRRTL to HW
+        --verification-flavor=<value>                              - Specify a verification flavor used in the lowering
+    =none                                                    -   Use the flavor specified by the op
+    =if-else-fatal                                           -   Use Use `if(cond) else $fatal(..)` format
+    =immediate                                               -   Use immediate verif statements
+    =sva                                                     -   Use SVA
+        --warn-on-unprocessed-annotations                          - Emit warnings on unprocessed annotations during lower-to-hw pass
+      --lower-handshake-to-dc                                      -   Lower Handshake to DC
+        --clk-name=<string>                                        - Name of the clock signal to use in the generated DC module
+        --rst-name=<string>                                        - Name of the reset signal to use in the generated DC module
+      --lower-handshake-to-hw                                      -   Lower Handshake to ESI/HW/Comb/Seq
+      --lower-hw-to-sv                                             -   Convert HW to SV
+      --lower-hwarith-to-hw                                        -   Lower HWArith to HW/Comb
+      --lower-loopschedule-to-calyx                                -   Lower LoopSchedule to Calyx
+        --cider-source-location-metadata                           - Whether to track source location for the Cider debugger.
+        --top-level-function=<string>                              - Identifier of top-level function to be the entry-point component of the Calyx program.
+      --lower-ltl-to-core                                          -   Convert LTL and Verif to Core
+      --lower-pipeline-to-hw                                       -   Lower Pipeline to HW
+        --clock-gate-regs                                          - Clock gate each register instead of (default) input muxing  (ASIC optimization).
+        --enable-poweron-values                                    - Add power-on values to the pipeline control registers
+      --lower-scf-to-calyx                                         -   Lower SCF/Standard to Calyx
+        --cider-source-location-metadata                           - Whether to track source location for the Cider debugger.
+        --top-level-function=<string>                              - Identifier of top-level function to be the entry-point component of the Calyx program.
+        --write-json=<string>                                      - Whether to write memory contents to the json file.
+      --lower-seq-fifo                                             -   Lower seq.fifo ops
+      --lower-seq-firmem                                           -   Lower seq.firmem ops to instances of hw.module.generated ops
+      --lower-seq-hlmem                                            -   Lowers seq.hlmem operations.
+      --lower-seq-shiftreg                                         -   Lower seq.shiftreg ops
+      --lower-seq-to-sv                                            -   Lower sequential firrtl ops to SV.
+        --disable-mem-randomization                                - Disable emission of memory randomization code
+        --disable-reg-randomization                                - Disable emission of register randomization code
+        --emit-separate-always-blocks                              - Emit assigments to registers in separate always blocks
+        --lower-to-always-ff                                       - Place assignments to registers into `always_ff` blocks if possible
+      --lower-sim-to-sv                                            -   Lower simulator-specific `sim` ops to SV.
+      --lower-smt-to-z3-llvm                                       -   Lower the SMT dialect to LLVM IR calling the Z3 API
+        --debug                                                    - Insert additional printf calls printing the solver's state to stdout (e.g. at check-sat operations) for debugging purposes
+      --lower-to-bmc                                               -   Lower CIRCTs core dialects to a BMC problem statement
+        --bound=<uint>                                             - Cycle bound.
+        --ignore-asserts-until=<uint>                              - Specifies an initial window of cycles where assertions should be ignored (starting from 0).
+        --insert-main                                              - Whether a main function should be inserted for AOT compilation.
+        --rising-clocks-only                                       - Only consider the circuit and property on rising clock edges.
+        --top-module=<string>                                      - Name of the top module to verify.
+      --lower-verif-to-sv                                          -   Convert Verif to SV
+      --map-arith-to-comb                                          -   Map arith ops to combinational logic
+      --materialize-calyx-to-fsm                                   -   Materializes an FSM embedded inside the control of this Calyx component.
+      --maximize-ssa                                               -   Convert every function in the module into maximal SSA form
+      --mem2reg                                                    -   Promotes memory slots into values.
+        --region-simplify                                          - Perform control flow optimizations to the region tree
+      --memory-banking                                             -   Partition the memories used in affine parallel loops into banks
+        --dimensions=<uint>                                        - The dimensions along which to bank the memory. If unspecified andthere is only one factor, the innermost dimension with size > 1 is used.
+        --factors=<uint>                                           - Use banking factors to partition all memories that don't have banking attributes.The elements specified in banking factors should be greater than 1;The elements specified in banking factors will be paired with the ones specified in banking dimensions.In principle, the number of elements in banking factors should be equal to banking dimensions',with a single exception case: there is one banking factor with zero banking dimensions.
+      --moore-create-vtables                                       -   Lower moore.vtable ops
+      --moore-lower-concatref                                      -   Lower moore.concat_ref ops
+      --moore-simplify-procedures                                  -   Simplify procedures
+      --msft-export-tcl                                            -   Create tcl ops
+        --tcl-file=<string>                                        - File to output Tcl into
+        --tops=<string>                                            - List of top modules to export Tcl for
+      --msft-lower-constructs                                      -   Lower high-level constructs
+      --msft-lower-instances                                       -   Lower dynamic instances
+      --om-freeze-paths                                            -   Hard code all path information
+      --om-link-modules                                            -   Link separated OM modules into a single module
+      --om-verify-object-fields                                    -   Verify fields of ObjectOp are valid
+      --pipeline-explicit-regs                                     -   Makes stage registers explicit.
+      --pipeline-schedule-linear                                   -   Schedules `pipeline.unscheduled` operations.
+      --prepare-for-emission                                       -   Prepare IR for ExportVerilog
+      --prepare-for-formal                                         -   Prepares a given top-level circuit for formal verification
+      --prettify-verilog                                           -   Transformations to improve quality of ExportVerilog output
+      --print-op-count                                             -   Print operation count analysis results
+        --emission-format=<value>                                  - Specify the format to emit op count info in
+    =readable                                                -   Emit the data in human-readable form
+    =readable-sorted                                         -   Emit the data in human-readable form, sorted for output determinism
+    =json                                                    -   Emit the data in JSON form
+      --reconcile-unrealized-casts                                 -   Simplify and eliminate unrealized conversion casts
+      --rtg-elaborate                                              -   elaborate the randomization parts
+        --delete-unmatched-tests                                   - Delete tests that could not be matched with a target.
+        --seed=<uint>                                              - The seed for any RNG constructs used in the pass.
+      --rtg-embed-validation-values                                -   lower validate operations to the externally provided values
+        --filename=<string>                                        - The file with the validation values.
+      --rtg-emit-isa-assembly                                      -   emits the instructions in a format understood by assemblers
+        --unsupported-instructions=<string>                        - A list of ISA instruction names not supported by the assembler.
+        --unsupported-instructions-file=<string>                   - An absolute path to a file with a list of instruction names not supported by the assembler.
+      --rtg-inline-sequences                                       -   inline and interleave sequences
+      --rtg-insert-test-to-file-mapping                            -   insert Emit dialect ops to prepare for emission
+        --path=<string>                                            - The directory or file path in which the output files should be created. If empty is is emitted to stderr (not allowed if 'split-output' is set to 'true')
+        --split-output                                             - If 'true' emits one file per 'rtg.test' in the IR. The name of the file matches the test name and is placed in 'path'. Otherwise, path is interpreted as the full file path including filename.
+      --rtg-linear-scan-register-allocation                        -   simple linear scan register allocation for RTG
+      --rtg-lower-unique-labels                                    -   lower label_unique_decl to label_decl operations
+      --rtg-lower-validate-to-labels                               -   lower validation operations to intrinsic labels
+      --rtg-materialize-constraints                                -   materialize implicit constraints
+      --rtg-memory-allocation                                      -   lower memories to immediates or labels
+        --use-immediates                                           - Whether the pass should lower memories to immediates instead of labels.
+      --rtg-print-test-names                                       -   print the names of all tests to the given file
+        --filename=<string>                                        - The file to print the test names to.
+      --rtg-simple-test-inliner                                    -   inline test contents
+      --rtg-unique-validate                                        -   compute unique IDs for validate operations
+      --sccp                                                       -   Sparse Conditional Constant Propagation
+      --seq-reg-of-vec-to-mem                                      -   Convert register arrays to FIRRTL memories
+      --sim-lower-dpi-func                                         -   Lower sim.dpi.func into func.func for the simulation flow
+      --sim-proceduralize                                          -   Transform non-procedural to procedural operations.
+      --simplify-assume-eq                                         -   Use assume equal statements to simplify symbolic values
+      --sroa                                                       -   Scalar Replacement of Aggregates
+      --ssp-print                                                  -   Prints all SSP instances as DOT graphs.
+      --ssp-roundtrip                                              -   Roundtrips all SSP instances via the scheduling infrastructure
+        --check                                                    - Check the problem's input constraints.
+        --verify                                                   - Verify the problem's solution constraints.
+      --ssp-schedule                                               -   Schedules all SSP instances.
+        --options=<string>                                         - Scheduler-specific options.
+        --scheduler=<string>                                       - Scheduling algorithm to use.
+      --strip-contracts                                            -   Remove contracts from the IR
+      --strip-debuginfo-with-pred                                  -   Selectively strip debug info from all operations
+        --drop-suffix=<string>                                     - Drop file location info with the specified suffix. This option isintended to be used for testing.
+      --strip-emit                                                 -   Remove Emit dialect ops
+      --strip-om                                                   -   Remove OM information
+      --sv-extract-test-code                                       -   Extract simulation only constructs to modules and bind
+        --disable-instance-extraction                              - Disable extracting instances only that feed test code
+        --disable-module-inlining                                  - Disable inlining modules that only feed test code
+        --disable-register-extraction                              - Disable extracting registers only that feed test code
+      --sv-trace-iverilog                                          -   Add tracing to an iverilog simulated module
+        --dir-name=<string>                                        - Directory to emit into
+        --module=<string>                                          - Module to trace. If not provided, will trace all modules
+        --top-only                                                 - If true, will only add tracing to the top-level module.
+      --switch-to-if                                               -   Index switch to if
+      --symbol-dce                                                 -   Eliminate dead symbols
+      --synth-abc-runner                                           -   Run ABC on AIGER files
+        --abc-commands=<string>                                    - 
+        --abc-path=<string>                                        - Path to the ABC executable
+        --continue-on-failure                                      - Don't fail even if the AIGER exporter, external solver, or AIGER importer fail
+      --synth-aiger-runner                                         -   Run external solver on AIGER files
+        --aiger-path=<string>                                      - Path to the AIGER file
+        --continue-on-failure                                      - Don't fail even if the AIGER exporter, external solver, or AIGER importer fail
+        --solver-args=<string>                                     - 
+        --solver-path=<string>                                     - Path to the external solver
+      --synth-generic-lut-mapper                                   -   LUT mapping using generic K-input LUTs
+        --max-cuts-per-root=<int>                                  - Maximum number of cuts to maintain per node
+        --max-lut-size=<uint>                                      - Maximum number of inputs per LUT
+        --strategy=<value>                                         - Optimization strategy (area vs. timing)
+    =area                                                    -   Optimize for area
+    =timing                                                  -   Optimize for timing
+        --test                                                     - Attach timing to IR for testing
+      --synth-lower-variadic                                       -   Lower variadic operations to binary operations
+        --op-names=<string>                                        - Specify operation names to lower (empty means all)
+        --timing-aware                                             - Lower operators with timing information
+      --synth-lower-word-to-bits                                   -   Lower multi-bit AndInverter to single-bit ones
+      --synth-maximum-and-cover                                    -   Maximum And Cover for And-Inverter
+      --synth-print-longest-path-analysis                          -   Print longest path analysis results with detailed timing statistics
+        --emit-json                                                - Output analysis results in JSON format
+        --output-file=<string>                                     - Output file for analysis results (use '-' for stdout)
+        --show-top-k-percent=<int>                                 - The size of the longest paths to show.
+        --test                                                     - Emit longest paths as diagnostic remarks for testing
+        --top-module-name=<string>                                 - Name of the top module to analyze (empty for automatic inference from instance graph)
+      --synth-structural-hash                                      -   Structural hashing (CSE) for Synth operations
+      --synth-tech-mapper                                          -   Technology mapping using cut rewriting
+        --max-cuts-per-root=<int>                                  - Maximum number of cuts to maintain per node
+        --strategy=<value>                                         - Optimization strategy (area vs. timing)
+    =area                                                    -   Optimize for area
+    =timing                                                  -   Optimize for timing
+        --test                                                     - Attach timing to IR for testing
+      --synth-test-priority-cuts                                   -   Test priority cuts for synthesis
+        --max-cut-input-size=<int>                                 - Maximum number of cut inputs to consider
+        --max-cuts-per-root=<int>                                  - Maximum number of cuts to maintain per node
+      --systemc-lower-instance-interop                             -   Lower all SystemC instance interop operations.
+      --test-apply-lowering-options                                -   Apply lowering options
+        --options=<string>                                         - Lowering Options
+      --test-comb-int-range-analysis                               -   Perform integer range analysis on comb dialect and set results as attributes.
+      --test-debug-analysis                                        -   Perform debug analysis and emit results as attributes
+      --test-dependence-analysis                                   -   Perform dependence analysis and emit results as attributes
+      --test-firrtl-instance-info                                  -   Run firrtl::InstanceInfo analysis and show the results.  This pass is intended to be used for testing purposes only.
+      --test-infer-top-level                                       -   Perform top level module inference and emit results as attributes on the enclosing module.
+      --test-scheduling-analysis                                   -   Perform scheduling analysis and emit results as attributes
+      --verif-lower-symbolic-values                                -   Lower symbolic values to blackbox instances or wires
+        --mode=<value>                                             - Control how symbolic values are lowered
+    =extmodule                                               -   Lower to instances of an external module
+    =yosys                                                   -   Lower to `(* anyseq *)` wire declarations
+      --verif-lower-tests                                          -   Convert Verif tests into HW modules
+      --verify-clocked-assert-like                                 -   Check that clocked-assert-like are valid
+      --verify-esi-connections                                     -   Verify that channels and bundles are only used once
+      --view-op-graph                                              -   Print Graphviz visualization of an operation
+        --max-label-len=<uint>                                     - Limit attribute/type length to number of chars
+        --print-attrs                                              - Print attributes of operations
+        --print-control-flow-edges                                 - Print control flow edges
+        --print-data-flow-edges                                    - Print data flow edges
+        --print-result-types                                       - Print result types of operations
+    Pass Pipelines:
+      --rtg-randomization-pipeline                                 -   The default pipeline for randomizing RTG tests.
+        --memories-as-immediates                                   - Lower memories to immediates instead of labels.
+        --seed=<uint>                                              - Seed for the RNG.
+  --irdl-file=<filename>                                           - IRDL file to register before processing the input
+  --list-passes                                                    - Print the list of registered passes and exit
+  --load-dialect-plugin=<string>                                   - Load dialects from plugin library
+  --load-pass-plugin=<string>                                      - Load passes from plugin library
+  --log-actions-to=<string>                                        - Log action execution to a file, or stderr if  '-' is passed
+  --log-mlir-actions-filter=<string>                               - Comma separated list of locations to filter actions from logging
+  --mlir-debug-counter=<string>                                    - Comma separated list of debug counter skip and count arguments
+  --mlir-diagnostic-verbosity-level=<value>                        - Choose level of diagnostic information
+    =errors                                                        -   Errors only
+    =warnings                                                      -   Errors and warnings
+    =remarks                                                       -   Errors, warnings and remarks
+  --mlir-disable-diagnostic-notes                                  - Disable diagnostic notes.
+  --mlir-disable-threading                                         - Disable multi-threading within MLIR, overrides any further call to MLIRContext::enableMultiThreading()
+  --mlir-elide-elementsattrs-if-larger=<uint>                      - Elide ElementsAttrs with "..." that have more elements than the given upper limit
+  --mlir-elide-resource-strings-if-larger=<uint>                   - Elide printing value of resources if string is too long in chars.
+  --mlir-enable-debugger-hook                                      - Enable Debugger hook for debugging MLIR Actions
+  --mlir-generate-reproducer=<filename>                            - Generate an mlir reproducer at the provided filename (no crash required)
+  --mlir-output-format=<value>                                     - Output format for timing data
+    =text                                                          -   display the results in text format
+    =json                                                          -   display the results in JSON format
+  --mlir-pass-pipeline-crash-reproducer=<string>                   - Generate a .mlir reproducer file at the given output path if the pass manager crashes or fails
+  --mlir-pass-pipeline-local-reproducer                            - When generating a crash reproducer, attempt to generated a reproducer with the smallest pipeline.
+  --mlir-pass-statistics                                           - Display the statistics of each pass
+  --mlir-pass-statistics-display=<value>                           - Display method for pass statistics
+    =list                                                          -   display the results in a merged list sorted by pass name
+    =pipeline                                                      -   display the results with a nested pipeline view
+  --mlir-pretty-debuginfo                                          - Print pretty debug info in MLIR output
+  --mlir-print-debug-counter                                       - Print out debug counter information after all counters have been accumulated
+  --mlir-print-debuginfo                                           - Print debug info in MLIR output
+  --mlir-print-elementsattrs-with-hex-if-larger=<long>             - Print DenseElementsAttrs with a hex string that have more elements than the given upper limit (use -1 to disable)
+  --mlir-print-ir-after=<pass-arg>                                 - Print IR after specified passes
+  --mlir-print-ir-after-all                                        - Print IR after each pass
+  --mlir-print-ir-after-change                                     - When printing the IR after a pass, only print if the IR changed
+  --mlir-print-ir-after-failure                                    - When printing the IR after a pass, only print if the pass failed
+  --mlir-print-ir-before=<pass-arg>                                - Print IR before specified passes
+  --mlir-print-ir-before-all                                       - Print IR before each pass
+  --mlir-print-ir-module-scope                                     - When printing IR for print-ir-[before|after]{-all} always print the top-level operation
+  --mlir-print-ir-tree-dir=<string>                                - When printing the IR before/after a pass, print file tree rooted at this directory. Use in conjunction with mlir-print-ir-* flags
+  --mlir-print-local-scope                                         - Print with local scope and inline information (eliding aliases for attributes, types, and locations)
+  --mlir-print-op-on-diagnostic                                    - When a diagnostic is emitted on an operation, also print the operation as an attached note
+  --mlir-print-skip-regions                                        - Skip regions when printing ops.
+  --mlir-print-stacktrace-on-diagnostic                            - When a diagnostic is emitted, also print the stack trace as an attached note
+  --mlir-print-unique-ssa-ids                                      - Print unique SSA ID numbers for values, block arguments and naming conflicts across all regions
+  --mlir-print-value-users                                         - Print users of operation results and block arguments as a comment
+  --mlir-timing                                                    - Display execution times
+  --mlir-timing-display=<value>                                    - Display method for timing data
+    =list                                                          -   display the results in a list sorted by total time
+    =tree                                                          -   display the results ina with a nested tree view
+  --mlir-use-nameloc-as-prefix                                     - Print SSA IDs using NameLocs as prefixes
+  --mlir-very-unsafe-disable-verifier-on-parsing                   - Disable the verifier on parsing (very unsafe)
+  --no-implicit-module                                             - Disable implicit addition of a top-level module op during parsing
+  -o <filename>                                                    - Output filename
+  --output-split-marker=<string>                                   - Split marker to use for merging the ouput
+  --pass-pipeline=<string>                                         - Textual description of the pass pipeline to run
+  --profile-actions-to=<string>                                    - Profile action execution to a file, or stderr if  '-' is passed
+  --run-reproducer                                                 - Run the pipeline stored in the reproducer
+  --show-dialects                                                  - Print the list of registered dialects and exit
+  --split-input-file[=<string>]                                      - Split the input file into chunks using the given or default marker and process each chunk independently
+  --verify-diagnostics                                             - Check that emitted diagnostics match expected-* lines on the corresponding line
+  --verify-diagnostics=<value>                                     - Check that emitted diagnostics match expected-* lines on the corresponding line
+    =all                                                           -   Check all diagnostics (expected, unexpected, near-misses)
+    =<empty>                                                       -   Check all diagnostics (expected, unexpected, near-misses)
+    =only-expected                                                 -   Check only expected diagnostics
+  --verify-each                                                    - Run the verifier after each transformation pass
+  --verify-roundtrip                                               - Round-trip the IR after parsing and ensure it succeeds
+
+Generic Options:
+
+  --help                                                           - Display available options (--help-hidden for more)
+  --help-list                                                      - Display list of available options (--help-list-hidden for more)
+  --version                                                        - Display the version of this program
+
+Remark Options:
+Filter remarks by regular expression (llvm::Regex syntax).
+
+  --remark-format=<value>                                          - Specify the format for remark output.
+    =emitRemark                                                    -   Print as emitRemark to command-line
+    =yaml                                                          -   Print yaml file
+    =bitstream                                                     -   Print bitstream file
+  --remark-policy=<value>                                          - Specify the policy for remark output.
+    =all                                                           -   Print all remarks
+    =final                                                         -   Print final remarks
+  --remarks-filter=<string>                                        - Show all remarks: passed, missed, failed, analysis
+  --remarks-filter-analyse=<string>                                - Show analysis remarks
+  --remarks-filter-failed=<string>                                 - Show failed remarks
+  --remarks-filter-missed=<string>                                 - Show missed remarks
+  --remarks-filter-passed=<string>                                 - Show passed remarks
+  --remarks-output-file=<string>                                   - Output file for yaml and bitstream remark formats. Default is mlir-remarks.yaml or mlir-remarks.bitstream
