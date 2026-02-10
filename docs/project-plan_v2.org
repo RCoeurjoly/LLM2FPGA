@@ -1,17 +1,11 @@
 takentaal-amendment v1.0
 
-* TODO_NEXT LLM2FPGA [100%]
+* LLM2FPGA
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
-- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
 LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
-** DONE Survey & candidate selection
-CLOSED: [2026-02-02 Mon 12:10]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 12:10]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:24]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 10:55]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
+** Survey & candidate selection
 State of the art review. Although some candidate projects have been identified, to have the big picture of what has been achieved so far, we need to understand 10 to 15 papers/projects, and what can be reused, even finding synergies between papers/projects.
 
 
@@ -94,35 +88,14 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** DONE End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [10/10]
-CLOSED: [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 14:35]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
-- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** DONE Title
-CLOSED: [2026-01-27 Tue 14:01]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 14:01]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
-*** DONE Goal:
-CLOSED: [2026-01-27 Tue 12:52]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:52]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
+** End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL
+*** Goal:
 Demonstrate that the selected pipeline can lower a minimal PyTorch kernel to synthesizable RTL, integrate it into a complete FPGA top-level, generate a bitstream, and run a fixed test vector on real hardware with outputs matching the PyTorch reference.
-*** DONE Risks and mitigations
-CLOSED: [2026-01-28 Wed 11:37]
-- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
+*** Risks and mitigations
   PyTorch hard to simulate: it seems well documented https://docs.pytorch.org/executorch/stable/getting-started.html
   Discrepancy between PyTorch and RTL simulation: simulate each MLIR stage with original PyTorch, to isolate the pass that creates discrepancy
-*** DONE Subtasks [5/5]
-CLOSED: [2026-01-28 Wed 11:37]
-- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:06]
-**** DONE Subtask 1 consists of:
-CLOSED: [2026-01-27 Tue 13:07]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:07]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
+*** Subtasks
+**** Subtask 1 consists of:
 flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
 
 Nix devshell provides all tools used by the pipeline.
@@ -131,25 +104,16 @@ Cached derivations for each pipeline stage, so reruns do not recompute earlier s
 
 Also, for each upstream tool, support a build with debug symbols. Needed for debugging issues with tooling.
 
-**** DONE Subtask 2 consists of:
-CLOSED: [2026-01-27 Tue 13:07]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:07]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
+**** Subtask 2 consists of:
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
-**** DONE Subtask 3 consists of:
-CLOSED: [2026-01-27 Tue 16:31]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:31]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
+**** Subtask 3 consists of:
   Yosys ingestion + RTLIL netlist gate
 
 Artifact: matmul.il produced by Yosys from matmul.sv.
 
 Yosys completes elaboration and emits RTLIL without fatal errors.
 
-**** DONE Subtask 4 consists of:
-CLOSED: [2026-01-27 Tue 16:32]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:32]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
+**** Subtask 4 consists of:
 Glue RTL for interface, Bitstream generation and testing
 Think of the simplest way to interface with the host computer, generate bitstream of glue RTL + model RTL, test results are equivalent to golden reference.
 
@@ -159,17 +123,9 @@ https://www.cnblogs.com/ruidongwu/p/18564807
 https://x.com/enjoy_digital/status/1924910401176719375
 
 https://www.controlpaths.com/2025/05/18/kintex7-accelerator/
-**** DONE Subtask 5 consists of:
-CLOSED: [2026-01-28 Wed 11:17]
-- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:17]
-- State "TODO_NEXT"  from "DONE"       [2026-01-28 Wed 11:17]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:32]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
+**** Subtask 5 consists of:
 Report and demo of results
-*** DONE Deliverables
-CLOSED: [2026-01-28 Wed 11:37]
-- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:37]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:07]
+*** Deliverables
 - nix flake and matmul.sv from executing it
 
 - PyTorch simulation trace, systemverilog testbench and their comparison
@@ -180,26 +136,8 @@ CLOSED: [2026-01-28 Wed 11:37]
   
 - Write up of results, and video demo if succesful
 
-** DONE Lowering of small LLM to RTL [10/10]
-CLOSED: [2026-02-02 Mon 21:54]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:54]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 21:44]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:52]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 20:28]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** DONE Title
-CLOSED: [2026-02-02 Mon 18:21]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:21]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
-*** DONE Goal:
-CLOSED: [2026-02-02 Mon 18:21]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:21]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 14:04]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
+** Lowering of small LLM to RTL
+*** Goal:
 Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
 In this task we move from small matmul module to smallest available LLM.
@@ -210,9 +148,7 @@ The succesful result is an unintegrated RTL netlist of the model (RTLIL or Veril
 Otherwise, bottleneck report identifying unsupported operators, failing passes, or any other error in the toolchain.
 
 Functional equivalence to PyTorch is not evaluated in this task; only structural synthesizability is established. Semantic validation is addressed in the subsequent hardware validation task.
-*** DONE Risks and mitigations
-CLOSED: [2026-02-02 Mon 18:46]
-- State "DONE"       from              [2026-02-02 Mon 18:46]
+*** Risks and mitigations
 Risks:
 
 Unsupported MLIR operations found during lowering.
@@ -230,77 +166,33 @@ If necessary, adjust pass ordering. Final success must not rely on operator stub
 
 MLIR debugging docs:
 https://mlir.llvm.org/getting_started/Debugging/
-*** DONE Subtasks
-CLOSED: [2026-02-02 Mon 18:52]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:52]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 20:24]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-**** DONE Subtask 1 consists of:
-CLOSED: [2026-01-28 Wed 11:51]
-- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 11:51]
-- State "TODO_NEXT"  from              [2026-01-28 Wed 11:49]
+*** Subtasks
+**** Subtask 1 consists of:
 Frozen TinyStories-1M artifact
-**** DONE Subtask 2 consists of:
-CLOSED: [2026-01-28 Wed 12:58]
-- State "DONE"       from              [2026-01-28 Wed 12:58]
+**** Subtask 2 consists of:
 tiny_stories_1m.mlir, just before consumption by CIRCT
 If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input) is committed or archived.
 The MLIR verifier passes at this boundary (-verify-each clean at this stage).
-**** DONE Subtask 3 consists of:
-CLOSED: [2026-01-28 Wed 13:07]
-- State "DONE"       from              [2026-01-28 Wed 13:07]
+**** Subtask 3 consists of:
 tiny_stories_1m.sv, generated by CIRCT
 Generated RTL is structurally sanity-checked (at minimum: parsable by Yosys front-end in the pinned environment).
 If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input) is committed or archived.
-**** DONE Subtask 4 consists of:
-CLOSED: [2026-01-28 Wed 15:38]
-- State "DONE"       from "TODO_NEXT"  [2026-01-28 Wed 15:38]
-- State "TODO_NEXT"  from              [2026-01-28 Wed 13:07]
+**** Subtask 4 consists of:
   Artifact: tinystories_1m.il produced by Yosys from tinystories_1m.sv.
   Yosys completes elaboration and emits RTLIL without fatal errors.
-**** DONE Subtask 5 consists of:
-CLOSED: [2026-01-29 Thu 20:23]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 20:23]
-- State "TODO_NEXT"  from              [2026-01-28 Wed 15:38]
+**** Subtask 5 consists of:
   Artifact: resource utilization report (Yosys stat) generated from the .il/design.
 
 Bottleneck report: unsupported operators encountered, failing passes, required stubs/workarounds, and/or any other error. Includes minimized reproducers.
 
-*** DONE Deliverables
-CLOSED: [2026-02-02 Mon 18:52]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:52]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 20:23]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
+*** Deliverables
   - TinyStories-1M PyTorch model
   - tiny_stories_1m.mlir, just before consumption by CIRCT
   - tiny_stories_1m.sv, generated by CIRCT
   - tiny_stories_1m.il, generated by yosys
   - synthesis resource report + bottleneck report
-** DONE FPGA integration and hardware validation [10/10]
-CLOSED: [2026-02-02 Mon 21:59]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:59]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 21:44]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:37]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
-- State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:22]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** DONE Title
-CLOSED: [2026-02-02 Mon 21:37]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:37]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:07]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
-*** DONE Goal:
-CLOSED: [2026-02-02 Mon 21:37]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:37]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 16:07]
-- State "TODO_NEXT"  from "DONE"       [2026-01-27 Tue 16:02]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:59]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:09]
-
+** FPGA integration and hardware validation
+*** Goal:
 Demonstrate FPGA integration of the lowered TinyStories-1M model RTL on the YPCB-00338-1P1 board.
 
 This includes:
@@ -308,12 +200,7 @@ This includes:
 - Completing full FPGA synthesis and place-and-route,
 - Loading the design on hardware and executing a fixed input,
 - Verifying hardware outputs against the PyTorch reference.
-*** DONE Risks and mitigations
-CLOSED: [2026-02-02 Mon 21:37]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:37]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:13]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
+*** Risks and mitigations
 
 Risks:
 
@@ -333,16 +220,8 @@ https://www.controlpaths.com/2025/05/18/kintex7-accelerator/
 
 https://github.com/litex-hub/litex-boards/commit/6d58ae6b31d80b255de12c2d3f5bfefda4c38b90
 - Treat the PyTorch model as the single source of truth and validate each stage against it.
-*** DONE Subtasks
-CLOSED: [2026-02-02 Mon 21:37]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:37]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:21]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:10]
-**** DONE Subtask 1 consists of:
-CLOSED: [2026-02-02 Mon 21:35]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:35]
-- State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
+*** Subtasks
+**** Subtask 1 consists of:
 Define and freeze the host-facing interface.
 
 Use previous work extensively:
@@ -354,28 +233,16 @@ https://www.controlpaths.com/2025/05/18/kintex7-accelerator/
 
 https://github.com/litex-hub/litex-boards/commit/6d58ae6b31d80b255de12c2d3f5bfefda4c38b90
 
-**** DONE Subtask 2 consists of:
-CLOSED: [2026-02-02 Mon 21:35]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:35]
-- State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
+**** Subtask 2 consists of:
 Top-level RTL integration (model + glue)
 Produce a single synthesizable top-level design.
-**** DONE Subtask 3 consists of:
-CLOSED: [2026-02-02 Mon 21:36]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:36]
-- State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
+**** Subtask 3 consists of:
 FPGA synthesis and place-and-route, and usage report.
-**** DONE Subtask 4 consists of:
-CLOSED: [2026-02-02 Mon 21:36]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:36]
-- State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
+**** Subtask 4 consists of:
 Board bring-up and execution
 
 Demonstrate that the design runs on real hardware.
-**** DONE Subtask 5 consists of:
-CLOSED: [2026-02-02 Mon 21:37]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:37]
-- State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
+**** Subtask 5 consists of:
 Hardware vs PyTorch equivalence check
 
 Define fixed TinyStories-1M input.
@@ -383,144 +250,54 @@ Define fixed TinyStories-1M input.
 Generate PyTorch reference output.
 
 Compare FPGA output to reference (exact or tolerance-based).
-*** DONE Deliverables
-CLOSED: [2026-02-02 Mon 21:37]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 21:37]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:22]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
+*** Deliverables
 - Interface specification document.
 - Top-level SystemVerilog.
 - Bitstream or PnR report.
 - Programming logs.
 - Reference output, Comparison report, Short demonstration write-up.
-** DONE Scaling and resource usage analysis [8/8]
-CLOSED: [2026-02-02 Mon 22:01]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 22:01]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 21:45]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
-- State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:24]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 10:54]
-*** DONE Title
-CLOSED: [2026-02-02 Mon 18:19]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
-
-*** DONE Goal:
-CLOSED: [2026-02-02 Mon 18:19]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:35]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
+** Scaling and resource usage analysis
+*** Goal:
 evaluate how resource usage and pipeline robustness change across the published TinyStories model family (1M/3M/8M/28M/33M, excluding 1Layer-21M). https://huggingface.co/datasets/roneneldan/TinyStories
 
 No new model architectures are introduced.
 
 Success would be: a reproducible per-model pipeline results matrix (stage pass/fail, compile time, resource/timing where available) plus a scaling report for the TinyStories family.
 
-*** DONE Risks and mitigations
-CLOSED: [2026-02-02 Mon 18:19]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:09]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
+*** Risks and mitigations
 Pipeline does not work for larger models.
 Mitigation: reduce those cases with mlir-reduce
 
 Compile time or memory usage of the toolchain becomes prohibitive.
 Mitigation: record wall-clock time and peak memory usage for each pipeline stage. If a stage fails due to resource exhaustion, get the smallest failing reproducer.
-*** DONE Subtasks
-CLOSED: [2026-02-02 Mon 18:19]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
-- State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:24]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
-**** DONE Subtask 1 consists of:
-CLOSED: [2026-02-02 Mon 20:06]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
-- State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
+*** Subtasks
+**** Subtask 1 consists of:
   Model inventory and metadata extraction
 For each model: parameter count, layers, heads, embedding, vocab, etc.
-**** DONE Subtask 2 consists of:
-CLOSED: [2026-02-02 Mon 20:06]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
-- State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
+**** Subtask 2 consists of:
 Create nix derivations for each model.
-**** DONE Subtask 3 consists of:
-CLOSED: [2026-02-02 Mon 20:06]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:06]
-- State "TODO_NEXT"  from              [2026-02-02 Mon 14:37]
+**** Subtask 3 consists of:
 Generate scaling plots of resource usage (LUT/FF/BRAM/DSP), compile time, and (if available) Fmax vs parameter count and selected hyperparameters. Fit simple models (e.g. linear or polynomial in parameter count) and report observed trends.
 
 Note: these trends would apply only to TinyStories, not to other model families.
-*** DONE Deliverables
-CLOSED: [2026-02-02 Mon 18:19]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 18:19]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
-- State "DONE"       from "TODO_NEXT"  [2026-01-30 Fri 00:23]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:43]
+*** Deliverables
 - Model inventory table (hyperparams + param count).
 - Create nix derivations at different scaling points.
 - Per-model pipeline results matrix (stage pass/fail, compile time, peak memory, resource usage, Fmax if available). Scaling plots (resource usage, compile time, Fmax vs parameter count). Bottleneck summary identifying the first failing stage per model and root cause.
 
-** DONE Resource usage reduction strategies [8/8]
-CLOSED: [2026-02-02 Mon 22:12]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 22:12]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 21:45]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:08]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 11:25]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 10:55]
-*** DONE Title
-CLOSED: [2026-02-02 Mon 20:07]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 12:54]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:53]
-
-*** DONE Goal:
-CLOSED: [2026-02-02 Mon 20:07]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:00]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 11:49]
+** Resource usage reduction strategies
+*** Goal:
 Evaluate if mitigation techniques can reduce resource usage if the scaling task shows that larger models do not fit the target device.
 Baseline is the largest successfully lowered model from the scaling task.
-*** DONE Risks and mitigations
-CLOSED: [2026-02-02 Mon 20:07]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
+*** Risks and mitigations
 Some strategy breaks the pipeline.
 No resource reduction.
 
 Mitigation: testing and comparing several strategies, and documenting even negative or neutral results.
-*** DONE Subtasks
-CLOSED: [2026-02-02 Mon 20:08]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:08]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 21:56]
-- State "TODO_NEXT"  from "DONE"       [2026-01-29 Thu 21:56]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
-**** DONE Subtask 1 consists of:
-CLOSED: [2026-02-02 Mon 20:07]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 21:56]
-- State "TODO_NEXT"  from "DONE"       [2026-01-29 Thu 21:56]
-- State "DONE"       from "TODO_NEXT"  [2026-01-27 Tue 13:42]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 13:35]
+*** Subtasks
+**** Subtask 1 consists of:
 Survey 5 to 10 mitigation strategies, at model-level, MLIR, and RTL: quantization at PyTorch level, eqmap at verilog level, mlir optimizations etc
-**** DONE Subtask 2 consists of:
-CLOSED: [2026-02-02 Mon 20:07]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
-- State "DONE"       from              [2026-01-27 Tue 13:42]
+**** Subtask 2 consists of:
 Evaluate all strategies, with comparison with baseline.
 
 For each strategy, record:
@@ -532,18 +309,9 @@ Delta max clock frequency
 Delta toolchain runtime + peak memory
 
 Each strategy must work without blackboxes or stubs.
-**** DONE Subtask 3 consists of:
-CLOSED: [2026-02-02 Mon 20:07]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:07]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:38]
-- State "DONE"       from              [2026-01-27 Tue 13:42]
+**** Subtask 3 consists of:
 Conclusion of strategies: which are more effective, and which are easy to apply.
-*** DONE Deliverables
-CLOSED: [2026-02-02 Mon 20:08]
-- State "DONE"       from "TODO_NEXT"  [2026-02-02 Mon 20:08]
-- State "TODO_NEXT"  from "DONE"       [2026-02-02 Mon 14:36]
-- State "DONE"       from "TODO_NEXT"  [2026-01-29 Thu 22:01]
-- State "TODO_NEXT"  from              [2026-01-27 Tue 12:44]
+*** Deliverables
 - resource_usage_reduction_strategies.org
 - For each strategy, scripts for usage, and before and after resource utilization
 - Strategy comparison table with all deltas and viability status.
