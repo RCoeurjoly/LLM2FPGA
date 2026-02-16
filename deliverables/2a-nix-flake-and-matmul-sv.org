@@ -1,0 +1,14 @@
+* Deliverable 2a: nix flake and matmul.sv from executing it
+
+Reference (project plan v2):
+- docs/project-plan_v2.org:137
+
+Definition:
+- 2a) nix flake and matmul.sv from executing it
+
+** Artifacts
+- flake.nix
+- result -> /nix/store/v0n2jbs79g95h6wqwiz630mza0x6zf23-matmul.sv
+** Notes
+- The generated SystemVerilog header indicates CIRCT/firtool generation.
+- `result` is the built `matmul.sv` artifact in the Nix store.
