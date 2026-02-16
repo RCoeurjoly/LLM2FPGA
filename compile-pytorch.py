@@ -1,12 +1,15 @@
 import torch
-import torch_mlir
+from torch_mlir.fx import export_and_import
 
-from dot import DotModule
+class MatmulModule(torch.nn.Module):
+    def forward(self, a, b):
+        return torch.matmul(a, b)
 
-shape = torch_mlir.TensorPlaceholder([5], torch.int32)
+m = MatmulModule().eval()
+a = torch.randint(0, 10, (16,), dtype=torch.int32)
+b = torch.randint(0, 10, (16,), dtype=torch.int32)
 
-module = torch_mlir.compile(
-    DotModule(), [shape, shape], output_type="linalg-on-tensors"
-)
+exported = torch.export.export(m, (a, b))
+module = export_and_import(exported)
 
 print(module)

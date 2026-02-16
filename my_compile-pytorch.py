@@ -2,7 +2,7 @@ import torch
 from torch import fx
 from torch_mlir.fx import export_and_import
 
-from my_dot import DotModule
+from matmul import DotModule
 
 m = DotModule().eval()
 
