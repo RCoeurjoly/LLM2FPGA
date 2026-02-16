@@ -8,18 +8,9 @@
     # Clone with submodules
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
     circt-nix.url = "github:dtzSiFive/circt-nix";
-    llvm-project-src = {
-      url = "github:llvm/llvm-project/b32e067e97003db47aed52edc9ef8c3c30899b91";
-      flake = false;
-    };
-    circt-src = {
-      url = "github:llvm/circt/24ad90a7550031f941ed6905e28d59ef37916583";
-      flake = false;
-    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
-    , llvm-project-src, circt-src }:
+  outputs = { self, nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };

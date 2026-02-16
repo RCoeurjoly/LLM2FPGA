@@ -39,23 +39,6 @@
         "type": "github"
       }
     },
-    "circt-src_2": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1765230268,
-        "narHash": "sha256-yaXTvOOzGUrc2pLhmVmEjR0uNHrmx8IgnnsQAWWCKP0=",
-        "owner": "llvm",
-        "repo": "circt",
-        "rev": "24ad90a7550031f941ed6905e28d59ef37916583",
-        "type": "github"
-      },
-      "original": {
-        "owner": "llvm",
-        "repo": "circt",
-        "rev": "24ad90a7550031f941ed6905e28d59ef37916583",
-        "type": "github"
-      }
-    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -123,23 +106,6 @@
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "llvm-project-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1764901536,
-        "narHash": "sha256-fmEG+5QVXWj7I9lWKOTXI+0qsvkPi1oI2jeyYjgAUg0=",
-        "owner": "llvm",
-        "repo": "llvm-project",
-        "rev": "b32e067e97003db47aed52edc9ef8c3c30899b91",
-        "type": "github"
-      },
-      "original": {
-        "owner": "llvm",
-        "repo": "llvm-project",
-        "rev": "b32e067e97003db47aed52edc9ef8c3c30899b91",
         "type": "github"
       }
     },
@@ -227,9 +193,7 @@
     "root": {
       "inputs": {
         "circt-nix": "circt-nix",
-        "circt-src": "circt-src_2",
         "flake-utils": "flake-utils_2",
-        "llvm-project-src": "llvm-project-src",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "yosys": "yosys"
