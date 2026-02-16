@@ -10,5 +10,15 @@ Definition:
 - flake.nix
 - result -> /nix/store/v0n2jbs79g95h6wqwiz630mza0x6zf23-matmul.sv
 ** Notes
+The flake.nix has one derivation for each stage. The content of each stage comes from work done in subtask 1c, which was done here: https://github.com/RCoeurjoly/hot-chips-2022-pytorch-circt-hls-demo
+
+Debug builds for each tool are achieved by creating a nix devShell for each tool.
+
+yosys has a flake, so just navigate to a clone of it and do nix develop.
+
+For circt, we use circt-nix, which provides a devShell. See https://github.com/dtzSiFive/circt-nix?tab=readme-ov-file#development-shell-for-working-on-circt.
+
+For torch-MLIR, I opened a PR on nixpkgs (https://github.com/NixOS/nixpkgs/pull/490242). For the moment we build torch-MLIR from its python wheel, which is not very friendly for creating a devShell. For the moment we haven't hit any issues with this tool, so it is sufficient. 
+
 - The generated SystemVerilog header indicates CIRCT/firtool generation.
 - `result` is the built `matmul.sv` artifact in the Nix store.
