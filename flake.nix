@@ -34,7 +34,9 @@
         } ''
           export TORCH_MLIR_OPT=${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt
           export PYTHONPATH=${torchMlir}/${python.sitePackages}:$PYTHONPATH
-          python ${./compile-pytorch.py} > $out
+          cp ${./matmul.py} ./matmul.py
+          cp ${./compile-pytorch.py} ./compile-pytorch.py
+          python ./compile-pytorch.py > $out
         '';
 
         matmulLinalg = pkgs.runCommand "matmul-linalg.mlir" {
