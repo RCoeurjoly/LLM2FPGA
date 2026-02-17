@@ -98,7 +98,8 @@ Demonstrate that the selected pipeline can lower a minimal PyTorch kernel to syn
   PyTorch hard to simulate: it seems well documented https://docs.pytorch.org/executorch/stable/getting-started.html
   Discrepancy between PyTorch and RTL simulation: simulate each MLIR stage with original PyTorch, to isolate the pass that creates discrepancy
 *** Subtasks
-**** TODO_NEXT Subtask a consists of:
+**** WAIT Subtask a consists of:
+- State "WAIT"       from "TODO_NEXT"  [2026-02-17 Tue 16:16]
 - State "TODO_NEXT"  from              [2026-02-16 Mon 22:17]
 flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
 
@@ -108,7 +109,8 @@ Cached derivations for each pipeline stage, so reruns do not recompute earlier s
 
 Also, for each upstream tool, support a build with debug symbols. Needed for debugging issues with tooling.
 
-**** TODO Subtask b consists of:
+**** TODO_NEXT Subtask b consists of:
+- State "TODO_NEXT"  from "TODO"       [2026-02-17 Tue 16:16]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
 **** TODO Subtask c consists of:
