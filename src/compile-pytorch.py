@@ -1,10 +1,14 @@
 import torch
 from torch_mlir.fx import export_and_import
-from matmul import MatmulModule
+
+from sim_utils import load_matmul_module
+
+
+MatmulModule = load_matmul_module()
 
 m = MatmulModule().eval()
-a = torch.randint(0, 10, (16,), dtype=torch.int32)
-b = torch.randint(0, 10, (16,), dtype=torch.int32)
+a = torch.zeros((16,), dtype=torch.int32)
+b = torch.zeros((16,), dtype=torch.int32)
 
 exported = torch.export.export(m, (a, b))
 module = export_and_import(exported)
