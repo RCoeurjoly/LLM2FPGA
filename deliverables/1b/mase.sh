@@ -1,10 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 git clone git@github.com:RCoeurjoly/mase.git
-cd mase
+cd mase || exit
 git checkout RCoeurjoly/flake
 
 # Dev env (works, not fully polished)
 nix develop
-source .venv/bin/activate
+if [ -f .venv/bin/activate ]; then
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+else
+  echo "Missing .venv/bin/activate" >&2
+  echo "Create it by running 'nix develop' as documented above." >&2
+  exit 1
+fi
 
 # Generate RTL via MASE helper
 python LLM2FPGA.py
@@ -13,7 +23,7 @@ python LLM2FPGA.py
 ls ~/.mase
 
 # Build yosys-slang (per its README), ensure yosys in PATH
-cd ~/yosys-slang
+cd ~/yosys-slang || exit
 
 # Elaborate with slang (SystemVerilog)
 yosys -m build/slang.so -p \

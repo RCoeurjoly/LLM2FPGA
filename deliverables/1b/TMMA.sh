@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 ../PandA-bambu/bambu.AppImage --generate-interface=INFER mmult_accel.cpp --top-fname=mmult_accel
 
 # We check the return code
