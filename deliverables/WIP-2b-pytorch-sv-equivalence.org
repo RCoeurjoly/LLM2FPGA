@@ -1,4 +1,17 @@
 * Deliverable 2b: PyTorch simulation trace, SystemVerilog testbench, and comparison
 
-In Deliverable 2a, we successfully generated matmul.sv from the model pipeline.
-In 2b, we validate functional equivalence against the PyTorch reference on the same test vectors.
+In 2a, we generated 'matmul.sv'.  
+2b validates functional equivalence against PyTorch by embedding the PyTorch-computed reference into the testbench data.
+
+** Explanation
+Inputs: 'sim/test_vectors.json'
+- 'gen_tb_data.py' reads input vectors from 'sim/test_vectors.json', executes the PyTorch module 'src/matmul.py' to compute the golden outputs from the fixed inputs, and emits 'sim/tb_data.sv' with those expected values embedded.
+- 'sim-main' builds the Verilator testbench binary from 'matmul.sv' and 'sim/tb_main.sv'.
+- 'matmul-sv-sim' executes that binary and writes 'matmul-sv-sim.json' ('expected', 'got').
+
+'sim/tb_main.sv' compares RTL 'got' against 'expected' and fails if different, then 'matmul-sv-sim' looks for the PASS line.
+
+We also have a dedicated derivation for a VCD file.
+** Commands
+- 'nix build .#packages.x86_64-linux.matmul-sv-sim'
+- 'nix flake check'
