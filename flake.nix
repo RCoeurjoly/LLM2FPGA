@@ -3,54 +3,51 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
-    nixpkgs-llvm21.url = "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d";
+    nixpkgs-llvm21.url =
+      "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d";
     flake-utils.url = "github:numtide/flake-utils";
     # Clone with submodules
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
     circt-nix.url = "github:dtzSiFive/circt-nix";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix }:
+  outputs = { nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        circt = circtPkgs.circt;
+        inherit (circtPkgs) circt;
         yosysPkg = yosys.packages.${system}.default;
         llvmPackages = pkgsLlvm21.llvmPackages_21;
-        mlir = llvmPackages.mlir;
+        inherit (llvmPackages) mlir;
         python = pkgs.python311;
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
         # Torch-MLIR is not available in nixpkgs, pending this PR: https://github.com/NixOS/nixpkgs/pull/490242
         # For the moment, we consume the wheel
         torchMlir = pkgs.callPackage ./torch-mlir.nix {
           inherit pkgs;
-          python = python;
+          inherit python;
         };
 
         matmulTorch = pkgs.runCommand "matmul-torch.mlir" {
-          buildInputs = [ pythonWithTorch torchMlir ];
+          buildInputs = [ pythonWithTorch ];
         } ''
-          export TORCH_MLIR_OPT=${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt
-          export PYTHONPATH=${torchMlir}/${python.sitePackages}:$PYTHONPATH
-          cp ${./matmul.py} ./matmul.py
-          cp ${./compile-pytorch.py} ./compile-pytorch.py
-          python ./compile-pytorch.py > $out
+          export MATMUL_PY=${./src/matmul.py}
+          export PYTHONPATH="${./.}:${
+            ./sim
+          }:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
+          python ${./src/compile-pytorch.py} > "$out"
         '';
 
-        matmulLinalg = pkgs.runCommand "matmul-linalg.mlir" {
-          buildInputs = [ torchMlir ];
-        } ''
+        matmulLinalg = pkgs.runCommand "matmul-linalg.mlir" { } ''
           ${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt ${matmulTorch} \
             --torch-function-to-torch-backend-pipeline \
             --torch-backend-to-linalg-on-tensors-backend-pipeline \
             -canonicalize > $out
         '';
 
-        matmulCf = pkgs.runCommand "matmul-cf.mlir" {
-          buildInputs = [ mlir ];
-        } ''
+        matmulCf = pkgs.runCommand "matmul-cf.mlir" { } ''
           ${mlir}/bin/mlir-opt ${matmulLinalg} \
             --empty-tensor-to-alloc-tensor \
             --one-shot-bufferize="bufferize-function-boundaries" \
@@ -64,15 +61,11 @@
             -canonicalize > $out
         '';
 
-        matmulCfStats = pkgs.runCommand "matmul-cf.stats" {
-          buildInputs = [ mlir ];
-        } ''
+        matmulCfStats = pkgs.runCommand "matmul-cf.stats" { } ''
           ${mlir}/bin/mlir-opt ${matmulCf} --print-op-stats -o /dev/null > $out || true
         '';
 
-        matmulHandshake = pkgs.runCommand "matmul-handshake.mlir" {
-          buildInputs = [ circt ];
-        } ''
+        matmulHandshake = pkgs.runCommand "matmul-handshake.mlir" { } ''
           ${circt}/bin/circt-opt ${matmulCf} \
             -flatten-memref \
             -flatten-memref-calls \
@@ -83,26 +76,20 @@
             -canonicalize > $out
         '';
 
-        matmulHsExt = pkgs.runCommand "matmul-hs-ext.mlir" {
-          buildInputs = [ circt ];
-        } ''
+        matmulHsExt = pkgs.runCommand "matmul-hs-ext.mlir" { } ''
           ${circt}/bin/circt-opt ${matmulHandshake} \
             -handshake-lower-extmem-to-hw \
             -handshake-materialize-forks-sinks \
             -canonicalize > $out
         '';
 
-        matmulHw0 = pkgs.runCommand "matmul-hw0.mlir" {
-          buildInputs = [ circt ];
-        } ''
+        matmulHw0 = pkgs.runCommand "matmul-hw0.mlir" { } ''
           ${circt}/bin/circt-opt ${matmulHsExt} \
             -lower-handshake-to-hw \
             -canonicalize > $out
         '';
 
-        matmulHw = pkgs.runCommand "matmul-hw.mlir" {
-          buildInputs = [ circt ];
-        } ''
+        matmulHw = pkgs.runCommand "matmul-hw.mlir" { } ''
           ${circt}/bin/circt-opt ${matmulHw0} \
             -lower-esi-types \
             -lower-esi-ports \
@@ -110,18 +97,14 @@
             -canonicalize > $out
         '';
 
-        matmulHwClean = pkgs.runCommand "matmul-hw-clean.mlir" {
-          buildInputs = [ circt ];
-        } ''
+        matmulHwClean = pkgs.runCommand "matmul-hw-clean.mlir" { } ''
           ${circt}/bin/circt-opt ${matmulHw} \
             -firrtl-inner-symbol-dce \
             -symbol-dce \
             -canonicalize > $out
         '';
 
-        matmulSv = pkgs.runCommand "matmul.sv" {
-          buildInputs = [ circt ];
-        } ''
+        matmulSv = pkgs.runCommand "matmul.sv" { } ''
           ${circt}/bin/circt-opt ${matmulHwClean} \
             -lower-seq-hlmem \
             -lower-seq-fifo \
@@ -133,8 +116,90 @@
             -o /dev/null > $out
         '';
 
-      in
-      {
+        tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
+          mkdir -p "$out"
+          MATMUL_PY=${./src/matmul.py} \
+          TEST_VECTORS_PATH=${./sim/test_vectors.json} \
+          ${pythonWithTorch}/bin/python ${
+            ./sim
+          }/gen_tb_data.py > "$out/tb_data.sv"
+        '';
+
+        simMain = pkgs.runCommand "sim-main" {
+          buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+        } ''
+          set -euo pipefail
+          mkdir -p "$out/obj_dir"
+          verilator --binary --timing --language 1800-2017 -Wno-fatal \
+            -I${tbDataSv} \
+            -top tb -Mdir "$out/obj_dir" -o sim_main \
+            ${matmulSv} ${./sim/tb_main.sv}
+        '';
+
+        matmulSvSim = pkgs.runCommand "matmul-sv-sim.json" {
+          buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+        } ''
+                    set -euo pipefail
+                    ${simMain}/obj_dir/sim_main 2>&1 | tee sim.log
+                    pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: expected [0-9]+ got [0-9]+' sim.log | tail -n1 || true)"
+                    if [ -z "$pass_line" ]; then
+                      echo "SV simulation did not produce a PASS line" >&2
+                      exit 1
+                    fi
+                    expected="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+                    got="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+                    cat > "$out" <<EOF
+          {
+            "status": "PASS",
+            "expected": $expected,
+            "got": $got
+          }
+          EOF
+        '';
+
+        matmulSvWave = pkgs.runCommand "matmul-wave.vcd" {
+          buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+        } ''
+          set -euo pipefail
+          mkdir -p obj_dir
+          verilator --binary --trace -DENABLE_WAVES -DENABLE_WAVES_VCD --timing --language 1800-2017 -Wno-fatal \
+            -I${tbDataSv} \
+            -top tb -Mdir obj_dir -o sim_main \
+            ${matmulSv} ${./sim/tb_main.sv}
+          ./obj_dir/sim_main
+          if [ ! -f wave.vcd ]; then
+            echo "wave.vcd was not produced by simulation" >&2
+            exit 1
+          fi
+          cp wave.vcd "$out"
+        '';
+
+        matmulPytorchSim = pkgs.runCommand "matmul-pytorch-sim.json" { } ''
+          MATMUL_PY=${./src/matmul.py} \
+          TEST_VECTORS_PATH=${./sim/test_vectors.json} \
+          ${pythonWithTorch}/bin/python ${./sim}/pytorch_sim.py > $out
+        '';
+
+        simCompare = pkgs.runCommand "matmul-sim-compare.json" { } ''
+                    set -euo pipefail
+                    pytorch_expected="$(${pkgs.jq}/bin/jq -r '.expected' ${matmulPytorchSim})"
+                    systemverilog_expected="$(${pkgs.jq}/bin/jq -r '.expected' ${matmulSvSim})"
+                    systemverilog_got="$(${pkgs.jq}/bin/jq -r '.got' ${matmulSvSim})"
+                    if [ "$pytorch_expected" != "$systemverilog_expected" ] || [ "$pytorch_expected" != "$systemverilog_got" ]; then
+                      echo "Mismatch: pytorch=$pytorch_expected systemverilog_expected=$systemverilog_expected systemverilog_got=$systemverilog_got" >&2
+                      exit 1
+                    fi
+                    cat > "$out" <<EOF
+          {
+            "status": "PASS",
+            "pytorch_expected": $pytorch_expected,
+            "systemverilog_expected": $systemverilog_expected,
+            "systemverilog_got": $systemverilog_got
+          }
+          EOF
+        '';
+
+      in {
         devShells.default = pkgs.mkShell {
           packages = [
             mlir
@@ -146,13 +211,20 @@
             pythonWithTorch
             pkgs.cmake
             pkgs.ninja
-            pkgs.git
+            pkgs.gtkwave
+            pkgs.nixfmt-classic
           ];
         };
 
         packages = {
           default = matmulSv;
           torch-mlir = torchMlir;
+          tb-data-sv = tbDataSv;
+          sim-main = simMain;
+          sim-compare = simCompare;
+          matmul-sv-sim = matmulSvSim;
+          matmul-sv-wave = matmulSvWave;
+          matmul-pytorch-sim = matmulPytorchSim;
           matmul-torch = matmulTorch;
           matmul-linalg = matmulLinalg;
           matmul-cf = matmulCf;
@@ -163,6 +235,46 @@
           matmul-hw = matmulHw;
           matmul-hw-clean = matmulHwClean;
           matmul-sv = matmulSv;
+        };
+
+        checks = {
+          nix = pkgs.runCommand "llm2fpga-nix" {
+            nativeBuildInputs =
+              [ pkgs.statix pkgs.deadnix pkgs.nixfmt-classic ];
+          } ''
+            cd ${./.}
+            deadnix --fail .
+            statix check .
+            nixfmt --check .
+            mkdir -p "$out"
+          '';
+
+          python = pkgs.runCommand "llm2fpga-python" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
+            cd ${./.}
+            python - <<'PY'
+            import pathlib
+
+            for path in pathlib.Path(".").rglob("*.py"):
+              if path.is_file():
+                source = path.read_text(encoding="utf-8")
+                compile(source, str(path), "exec")
+            PY
+            mkdir -p "$out"
+          '';
+
+          shell = pkgs.runCommand "llm2fpga-shell" {
+            nativeBuildInputs = [ pkgs.shellcheck pkgs.findutils ];
+          } ''
+            cd ${./.}
+            if ! find . -name '*.sh' -type f | grep -q .; then
+              mkdir -p "$out"
+              exit 0
+            fi
+            find . -name '*.sh' -type f -print0 | xargs -0 shellcheck -s bash -x
+            mkdir -p "$out"
+          '';
         };
       });
 }
