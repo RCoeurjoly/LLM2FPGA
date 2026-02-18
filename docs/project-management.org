@@ -1,4 +1,6 @@
 * Notes
+*** Promissing projects
+**** chosys
 https://github.com/hm-aemy/chosys may be helpful
 
 ## Current Status and Roadmap
@@ -8,6 +10,14 @@ RTLIL is implemented to demonstrate the working principal. Support for more
 operations will be added over time.
 
 https://github.com/hm-aemy/circt/pull/5/changes
+**** openhls
+https://github.com/makslevental/openhls
+
+specially flopoco/ - functionality related to converting between FloPoCo's nonstandard floating point representation and IEEE754 (for purposes of RTL generation and simulation)
+
+** Build all derivations
+system=$(nix eval --impure --raw --expr builtins.currentSystem) nix eval --json ".#packages.${system}" | jq -r 'keys[] | select(. != "all") | ".#" + .' | xargs -r nix build
+    
 * 2a LLM lowering: tiny stories 1M
 ** TODO_NEXT Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
 - State "TODO_NEXT"  from              [2025-12-31 Wed 17:08]
