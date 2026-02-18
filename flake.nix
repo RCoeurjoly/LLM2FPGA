@@ -264,6 +264,20 @@
             mkdir -p "$out"
           '';
 
+          systemverilog = pkgs.runCommand "llm2fpga-systemverilog" {
+            nativeBuildInputs = [ pkgs.verilator ];
+          } ''
+            verilator \
+              --lint-only \
+              --timing \
+              --Wall \
+              --Wno-fatal \
+              -I${tbDataSv} \
+              ${matmulSv} \
+              ${./sim}/tb_main.sv
+            mkdir -p "$out"
+          '';
+
           shell = pkgs.runCommand "llm2fpga-shell" {
             nativeBuildInputs = [ pkgs.shellcheck pkgs.findutils ];
           } ''
