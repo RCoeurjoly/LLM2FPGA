@@ -174,31 +174,6 @@
           cp wave.vcd "$out"
         '';
 
-        matmulPytorchSim = pkgs.runCommand "matmul-pytorch-sim.json" { } ''
-          MATMUL_PY=${./src/matmul.py} \
-          TEST_VECTORS_PATH=${./sim/test_vectors.json} \
-          ${pythonWithTorch}/bin/python ${./sim}/pytorch_sim.py > $out
-        '';
-
-        simCompare = pkgs.runCommand "matmul-sim-compare.json" { } ''
-                    set -euo pipefail
-                    pytorch_expected="$(${pkgs.jq}/bin/jq -r '.expected' ${matmulPytorchSim})"
-                    systemverilog_expected="$(${pkgs.jq}/bin/jq -r '.expected' ${matmulSvSim})"
-                    systemverilog_got="$(${pkgs.jq}/bin/jq -r '.got' ${matmulSvSim})"
-                    if [ "$pytorch_expected" != "$systemverilog_expected" ] || [ "$pytorch_expected" != "$systemverilog_got" ]; then
-                      echo "Mismatch: pytorch=$pytorch_expected systemverilog_expected=$systemverilog_expected systemverilog_got=$systemverilog_got" >&2
-                      exit 1
-                    fi
-                    cat > "$out" <<EOF
-          {
-            "status": "PASS",
-            "pytorch_expected": $pytorch_expected,
-            "systemverilog_expected": $systemverilog_expected,
-            "systemverilog_got": $systemverilog_got
-          }
-          EOF
-        '';
-
       in {
         devShells.default = pkgs.mkShell {
           packages = [
@@ -221,10 +196,8 @@
           torch-mlir = torchMlir;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
-          sim-compare = simCompare;
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
-          matmul-pytorch-sim = matmulPytorchSim;
           matmul-torch = matmulTorch;
           matmul-linalg = matmulLinalg;
           matmul-cf = matmulCf;

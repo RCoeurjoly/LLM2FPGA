@@ -1,0 +1,4 @@
+* Deliverable 2b: PyTorch simulation trace, SystemVerilog testbench, and comparison
+
+In Deliverable 2a, we successfully generated matmul.sv from the model pipeline.
+In 2b, we validate functional equivalence against the PyTorch reference on the same test vectors.
