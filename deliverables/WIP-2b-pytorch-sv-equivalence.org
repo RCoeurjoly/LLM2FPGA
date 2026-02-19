@@ -12,6 +12,12 @@ Inputs: 'sim/test_vectors.json'
 'sim/tb_main.sv' compares RTL 'got' against 'expected' and fails if different, then 'matmul-sv-sim' looks for the PASS line.
 
 We also have a dedicated derivation for a VCD file.
+
+** GTKWave capture
+
+Waveform snapshot:
+[[./2b/gtkwave capture 2b.png]]
+
 ** Commands
 - 'nix build .#packages.x86_64-linux.matmul-sv-sim'
 - 'nix flake check'
