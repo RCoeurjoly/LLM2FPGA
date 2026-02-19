@@ -119,7 +119,6 @@
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
           MATMUL_PY=${./src/matmul.py} \
-          TEST_VECTORS_PATH=${./sim/test_vectors.json} \
           ${pythonWithTorch}/bin/python ${
             ./sim
           }/gen_tb_data.py > "$out/tb_data.sv"
