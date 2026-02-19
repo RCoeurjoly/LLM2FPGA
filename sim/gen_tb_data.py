@@ -6,7 +6,6 @@ import torch
 from sim_utils import load_matmul_module
 
 def load_vectors(path: Path) -> tuple[torch.Tensor, torch.Tensor]:
-
     with path.open("r", encoding="utf-8") as f:
         payload = json.load(f)
     if payload.get("dtype") != "int32":
