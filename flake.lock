@@ -301,11 +301,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1770101992,
-        "narHash": "sha256-/KfOU9QAfnXJfctnKMOOemns+zyi3vE3zF5JSf0ZjXA=",
+        "lastModified": 1771591271,
+        "narHash": "sha256-ahok/BZckUTzzizw6nzbZ+pdyHFBalS+R4UCkMOx6HM=",
         "ref": "refs/heads/main",
-        "rev": "6dbe03f0f5571a7ac948b5ce51b3b870a6199300",
-        "revCount": 16586,
+        "rev": "0ed7c5ad53b0866a5f44a49d8d5b34f9111a4413",
+        "revCount": 16677,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
