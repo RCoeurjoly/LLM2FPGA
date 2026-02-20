@@ -11,7 +11,7 @@
     circt-nix.url = "github:dtzSiFive/circt-nix";
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "path:/home/roland/toolchain-nix";
-    openXC7.inputs.nixpkgs.follows = "nixpkgs";
+    # openXC7.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
