@@ -154,28 +154,29 @@
 
         matmulBitstreamTop = pkgs.runCommand "matmul-bitstream-top.sv" { } ''
           cat > "$out" <<'EOF'
-          module matmul_bitstream_top;
-            logic clock;
-            logic reset;
-            logic in3_valid;
-            logic out0_ready;
-            logic in0_ld0_addr_ready;
-            logic in1_ld0_addr_ready;
-            logic in2_st0_done_ready;
-            logic in2_st0_ready;
-            logic [31:0] in0_ld0_data;
-            logic in0_ld0_data_valid;
-            logic [31:0] in1_ld0_data;
-            logic in1_ld0_data_valid;
-            logic [31:0] in2_st0;
-            logic in2_st0_valid;
-            logic [3:0] in0_ld0_addr;
-            logic in0_ld0_addr_valid;
-            logic [3:0] in1_ld0_addr;
-            logic in1_ld0_addr_valid;
-            logic in0_ld0_data_ready;
-            logic in1_ld0_data_ready;
-            logic in3_ready;
+          module matmul_bitstream_top(
+            logic clock,
+            logic reset,
+            logic in3_valid,
+            logic out0_ready,
+            logic in0_ld0_addr_ready,
+            logic in1_ld0_addr_ready,
+            logic in2_st0_done_ready,
+            logic in2_st0_ready,
+            logic [31:0] in0_ld0_data,
+            logic in0_ld0_data_valid,
+            logic [31:0] in1_ld0_data,
+            logic in1_ld0_data_valid,
+            logic [31:0] in2_st0,
+            logic in2_st0_valid,
+            logic [3:0] in0_ld0_addr,
+            logic in0_ld0_addr_valid,
+            logic [3:0] in1_ld0_addr,
+            logic in1_ld0_addr_valid,
+            logic in0_ld0_data_ready,
+            logic in1_ld0_data_ready,
+            logic in3_ready
+          );
 
             assign clock = 1'b0;
             assign reset = 1'b0;
@@ -217,9 +218,9 @@
         '';
 
         matmulBitstreamJson = pkgs.runCommand "matmul-bitstream.json" { } ''
-          ${yosysPkg}/bin/yosys -q -p "
+        ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
             read_rtlil ${matmulIl}
-            read_verilog ${matmulBitstreamTop}
+            read_slang ${matmulBitstreamTop}
             hierarchy -top matmul_bitstream_top -check
             proc
             opt
