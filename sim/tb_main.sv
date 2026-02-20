@@ -3,6 +3,9 @@
 module tb;
   `include "tb_data.sv"
 
+  // Minimal smoke test
+  // It checks a single DUT result against the generated expected value.
+
 // tb_data.sv (which is built with nix build .#tb-data-sv) provides 3 signals: a_mem, b_mem and expected.
 // a_mem is the input a
 // b_mem is the input b
@@ -27,11 +30,13 @@ module tb;
 
   logic [3:0] in0_ld0_addr;
   logic       in0_ld0_addr_valid;
+  // When DUT requests this read port, return the matching a entry.
   wire [31:0] in0_ld0_data = in0_ld0_addr_valid ? a_mem[in0_ld0_addr] : 32'd0;
   wire        in0_ld0_data_valid = in0_ld0_addr_valid;
 
   logic [3:0] in1_ld0_addr;
   logic       in1_ld0_addr_valid;
+  // When DUT requests this read port, return the matching b entry.
   wire [31:0] in1_ld0_data = in1_ld0_addr_valid ? b_mem[in1_ld0_addr] : 32'd0;
   wire        in1_ld0_data_valid = in1_ld0_addr_valid;
 
