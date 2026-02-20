@@ -234,6 +234,32 @@
           "
         '';
 
+        matmulBitstreamXdc = pkgs.runCommand "matmul-bitstream.xdc" { } ''
+          cat > "$out" <<'EOF'
+          set_property IOSTANDARD LVCMOS33 [get_ports {clock}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {reset}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in3_valid}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {out0_ready}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_ready}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_ready}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_done_ready}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_ready}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_valid}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_valid}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_valid}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_valid}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_valid}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_ready}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_ready}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in3_ready}]
+          EOF
+        '';
+
         matmulFasm = pkgs.runCommand "matmul-bitstream.fasm" { } ''
           chipdb=${openXC7Chipdb}/xc7k480tffg1156.bin
           if [ ! -f "$chipdb" ]; then
@@ -243,6 +269,7 @@
 
           ${openXC7Nextpnr}/bin/nextpnr-xilinx \
             --chipdb "$chipdb" \
+            --xdc ${matmulBitstreamXdc} \
             --json ${matmulBitstreamJson} \
             --fasm $out
         '';
