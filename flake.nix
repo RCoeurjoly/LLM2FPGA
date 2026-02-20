@@ -141,8 +141,8 @@
 
         matmulYosysStat = pkgs.runCommand "matmul-yosys.stat" { } ''
           set -euo pipefail
-          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -p \
-              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; stat" > "$out"
+          ${yosysPkg}/bin/yosys -p \
+              "read_rtlil ${matmulIl}; tee -o $out stat -json"
         '';
 
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
