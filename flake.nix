@@ -132,19 +132,6 @@
             -o /dev/null > $out
         '';
 
-        matmulIl = pkgs.runCommand "matmul.il" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -qp \
-              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; write_rtlil $out" \
-              > /dev/null
-        '';
-
-        matmulYosysStat = pkgs.runCommand "matmul-yosys.stat" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -p \
-              "read_rtlil ${matmulIl}; tee -o $out stat -json"
-        '';
-
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
           MATMUL_PY=${./src/matmul.py} \
@@ -201,7 +188,20 @@
           fi
           cp wave.vcd "$out"
         '';
+        
+        matmulIl = pkgs.runCommand "matmul.il" { } ''
+          set -euo pipefail
+          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -qp \
+              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; write_rtlil $out" \
+              > /dev/null
+        '';
 
+        matmulYosysStat = pkgs.runCommand "matmul-yosys.stat" { } ''
+          set -euo pipefail
+          ${yosysPkg}/bin/yosys -p \
+              "read_rtlil ${matmulIl}; tee -o $out stat -json"
+        '';
+        
       in {
         devShells.default = pkgs.mkShell {
           packages = [
