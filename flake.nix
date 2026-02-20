@@ -9,16 +9,32 @@
     # Clone with submodules
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
     circt-nix.url = "github:dtzSiFive/circt-nix";
+    nix-eda.url = "github:fossi-foundation/nix-eda";
   };
 
-  outputs = { nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix, ... }:
+  outputs =
+    { nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix, nix-eda, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
         inherit (circtPkgs) circt;
-        yosysPkg = yosys.packages.${system}.default;
+        yosysPkg = nix-eda.packages.${system}.yosysFull;
+        yosysPkgWithPythonEnv = if yosysPkg ? python3-env then
+          yosysPkg
+        else
+          (yosysPkg // { python3-env = pkgs.python311; });
+        nixEdaSource = nix-eda.outPath;
+        yosysSlang = import "${nixEdaSource}/nix/yosys-slang.nix" {
+          inherit (pkgs) cmake fmt jq lib;
+          yosys = yosysPkgWithPythonEnv;
+          clang18Stdenv = pkgs.clangStdenv;
+          hash = "sha256-bZEQwDjGZyekhn0J3LJUzRVqh1rMtnjfjOo1vgS5CFE=";
+          fetchGitHubSnapshot =
+            pkgs.callPackage "${nixEdaSource}/nix/fetch_github_snapshot.nix"
+            { };
+        };
         llvmPackages = pkgsLlvm21.llvmPackages_21;
         inherit (llvmPackages) mlir;
         python = pkgs.python311;
@@ -116,6 +132,19 @@
             -o /dev/null > $out
         '';
 
+        matmulIl = pkgs.runCommand "matmul.il" { } ''
+          set -euo pipefail
+          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -qp \
+              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; write_rtlil $out" \
+              > /dev/null
+        '';
+
+        matmulYosysStat = pkgs.runCommand "matmul-yosys.stat" { } ''
+          set -euo pipefail
+          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -p \
+              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; stat" > "$out"
+        '';
+
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
           MATMUL_PY=${./src/matmul.py} \
@@ -183,6 +212,7 @@
             llvmPackages.clang
             llvmPackages.llvm
             pythonWithTorch
+            yosysSlang
             pkgs.cmake
             pkgs.ninja
             pkgs.gtkwave
@@ -207,6 +237,8 @@
           matmul-hw = matmulHw;
           matmul-hw-clean = matmulHwClean;
           matmul-sv = matmulSv;
+          matmul-il = matmulIl;
+          matmul-yosys-stat = matmulYosysStat;
         };
 
         checks = {
