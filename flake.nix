@@ -53,7 +53,9 @@
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
         openXC7Nextpnr = openXC7Packages.nextpnr-xilinx;
-        openXC7Chipdb = openXC7Packages.nextpnr-xilinx-chipdb.kintex7;
+        openXC7Chipdb = openXC7Packages.nextpnr-xilinx-chipdb.kintex7.override {
+          chipdbFootprints = [ "xc7k480tffg1156" ];
+        };
         openXC7Prjxray = openXC7Packages.prjxray;
         fpgaPartFamily = "kintex7";
         fpgaPartName = "xc7k480tffg901-1";
