@@ -3,6 +3,12 @@
 module tb;
   `include "tb_data.sv"
 
+// tb_data.sv (which is built with nix build .#tb-data-sv) provides 3 signals: a_mem, b_mem and expected.
+// a_mem is the input a
+// b_mem is the input b
+// expected is the value calculated by simulating the PyTorch module, therefor being our gold reference.
+
+   
 `ifdef ENABLE_WAVES
   initial begin
 `ifdef ENABLE_WAVES_VCD
@@ -21,20 +27,20 @@ module tb;
 
   logic [3:0] in0_ld0_addr;
   logic       in0_ld0_addr_valid;
-  wire        in0_ld0_addr_ready = 1'b1;
   wire [31:0] in0_ld0_data = in0_ld0_addr_valid ? a_mem[in0_ld0_addr] : 32'd0;
   wire        in0_ld0_data_valid = in0_ld0_addr_valid;
 
   logic [3:0] in1_ld0_addr;
   logic       in1_ld0_addr_valid;
-  wire        in1_ld0_addr_ready = 1'b1;
   wire [31:0] in1_ld0_data = in1_ld0_addr_valid ? b_mem[in1_ld0_addr] : 32'd0;
   wire        in1_ld0_data_valid = in1_ld0_addr_valid;
 
   wire [31:0] in2_st0_data;
   wire        in2_st0_valid;
   wire        in2_st0_done_ready;
-
+  wire	      in0_ld0_data_ready;
+  wire	      in1_ld0_data_ready;
+   
   main dut(
     .in0_ld0_data(in0_ld0_data),
     .in0_ld0_data_valid(in0_ld0_data_valid),
@@ -45,11 +51,11 @@ module tb;
     .clock(clock),
     .reset(reset),
     .out0_ready(1'b1),
-    .in0_ld0_addr_ready(in0_ld0_addr_ready),
-    .in1_ld0_addr_ready(in1_ld0_addr_ready),
+    .in0_ld0_addr_ready(1'b1),
+    .in1_ld0_addr_ready(1'b1),
     .in2_st0_ready(1'b1),
-    .in0_ld0_data_ready(),
-    .in1_ld0_data_ready(),
+    .in0_ld0_data_ready(in0_ld0_data_ready),
+    .in1_ld0_data_ready(in1_ld0_data_ready),
     .in2_st0_done_ready(in2_st0_done_ready),
     .in3_ready(in3_ready),
     .in0_ld0_addr(in0_ld0_addr),
