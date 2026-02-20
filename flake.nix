@@ -188,7 +188,7 @@
           fi
           cp wave.vcd "$out"
         '';
-        
+
         matmulIl = pkgs.runCommand "matmul.il" { } ''
           set -euo pipefail
           ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -qp \
@@ -201,7 +201,7 @@
           ${yosysPkg}/bin/yosys -p \
               "read_rtlil ${matmulIl}; tee -o $out stat -json"
         '';
-        
+
       in {
         devShells.default = pkgs.mkShell {
           packages = [
