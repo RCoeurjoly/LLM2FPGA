@@ -1,8 +1,8 @@
 {
   description = "LLM2FPGA";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    inputs = {
+      nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     nixpkgs-llvm21.url =
       "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d";
     flake-utils.url = "github:numtide/flake-utils";
@@ -10,7 +10,8 @@
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
     circt-nix.url = "github:dtzSiFive/circt-nix";
     nix-eda.url = "github:fossi-foundation/nix-eda";
-    openXC7.url = "github:openXC7/toolchain-nix";
+    openXC7.url = "path:/home/roland/toolchain-nix";
+    openXC7.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
