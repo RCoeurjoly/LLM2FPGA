@@ -1,0 +1,3 @@
+[submodule "LLM2FPGA-genAI-logs"]
+	path = LLM2FPGA-genAI-logs
+	url = git@github.com:RCoeurjoly/LLM2FPGA-genAI-logs.git
