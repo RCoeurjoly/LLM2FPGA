@@ -183,11 +183,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1771325511,
-        "narHash": "sha256-3rhAjY3M4pTfqqIXB2gUwWtvpvKr7IVB204tB1gsnoo=",
+        "lastModified": 1771601862,
+        "narHash": "sha256-J+4ma+wIlrrGTwTKxbhfAq5fDqeWayroLaEyblqQMrc=",
         "owner": "fossi-foundation",
         "repo": "nix-eda",
-        "rev": "cb987dbd74f5e69ec7832d0f4105b79d17e0db57",
+        "rev": "893b5d27378bbe3b25bfd6a1922406514d6c5914",
         "type": "github"
       },
       "original": {
@@ -277,11 +277,11 @@
     },
     "nixpkgs_5": {
       "locked": {
-        "lastModified": 1771369470,
-        "narHash": "sha256-0NBlEBKkN3lufyvFegY4TYv5mCNHbi5OmBDrzihbBMQ=",
+        "lastModified": 1725634671,
+        "narHash": "sha256-v3rIhsJBOMLR8e/RNWxr828tB+WywYIoajrZKFM+0Gg=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "0182a361324364ae3f436a63005877674cf45efb",
+        "rev": "574d1eac1c200690e27b8eb4e24887f8df7ac27c",
         "type": "github"
       },
       "original": {
@@ -313,8 +313,8 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1771610878,
-        "narHash": "sha256-Oo/Nq3TWdLhIa70kM7tVKi28k6TV2K/Q7orCLQ5X9+M=",
+        "lastModified": 1771611264,
+        "narHash": "sha256-HZCcaAvaL9WrAUjdQoHPr1L8Gm2fvQlxh2pZLIIMua0=",
         "path": "/home/roland/toolchain-nix",
         "type": "path"
       },
@@ -431,11 +431,11 @@
         "nixpkgs": "nixpkgs_6"
       },
       "locked": {
-        "lastModified": 1771591271,
-        "narHash": "sha256-ahok/BZckUTzzizw6nzbZ+pdyHFBalS+R4UCkMOx6HM=",
+        "lastModified": 1771606824,
+        "narHash": "sha256-TwaKkfxj/xApEFFAbBxv+SUmdqUpUv5EeRk3MdOTL3U=",
         "ref": "refs/heads/main",
-        "rev": "0ed7c5ad53b0866a5f44a49d8d5b34f9111a4413",
-        "revCount": 16677,
+        "rev": "fb653c4181fc7af91c1ad6d241e6755fb3f9bc1c",
+        "revCount": 16679,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
