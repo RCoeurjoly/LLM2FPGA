@@ -33,6 +33,7 @@ module tb;
 
   wire [31:0] in2_st0_data;
   wire        in2_st0_valid;
+  wire        in2_st0_done_ready;
 
   main dut(
     .in0_ld0_data(in0_ld0_data),
@@ -49,7 +50,7 @@ module tb;
     .in2_st0_ready(1'b1),
     .in0_ld0_data_ready(),
     .in1_ld0_data_ready(),
-    .in2_st0_done_ready(1'b1),
+    .in2_st0_done_ready(in2_st0_done_ready),
     .in3_ready(in3_ready),
     .in0_ld0_addr(in0_ld0_addr),
     .in0_ld0_addr_valid(in0_ld0_addr_valid),
