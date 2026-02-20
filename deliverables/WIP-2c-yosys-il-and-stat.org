@@ -1,1 +1,31 @@
 * Deliverable 2c: matmul.il and Yosys resource report
+
+Reference (project plan v2):
+- docs/project-plan_v2.org:145
+
+Definition:
+- 2c) matmul.il and resource usage report with "yosys stat"
+
+** Scope
+- This deliverable validates the Yosys parsing and elaboration of 'matmul.sv' from deliverable 2a.
+- It produces RTLIL ('matmul.il') and a Yosys resource report ('matmul-yosys.stat').
+- Functional equivalence is out of scope for this subtask; that is covered by 2b.
+
+** Procedure
+- 'nix build .#matmul-il'
+- 'nix build .#matmul-yosys-stat'
+- inspect outputs in './result' after each build
+
+** Artifacts
+- 'matmul.il' ('./result' from '.#matmul-il')
+- 'matmul-yosys.stat' ('./result' from '.#matmul-yosys-stat', JSON format)
+
+** Notes
+- The Yosys RTLIL pass chain is:
+  - 'read_slang', 'proc', 'opt', 'memory', 'flatten', 'opt', 'write_rtlil'
+- The resource report is produced with 'stat -json' on the generated RTLIL.
+
+** Success criteria
+- 'matmul-il' derivation builds successfully.
+- 'matmul-yosys-stat' derivation builds successfully.
+- 'matmul-yosys.stat' is generated and can be parsed as JSON (resource report available).

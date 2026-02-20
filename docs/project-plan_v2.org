@@ -109,11 +109,13 @@ Cached derivations for each pipeline stage, so reruns do not recompute earlier s
 
 Also, for each upstream tool, support a build with debug symbols. Needed for debugging issues with tooling.
 
-**** TODO_NEXT Subtask b consists of:
+**** WAIT Subtask b consists of:
+- State "WAIT"       from "TODO_NEXT"  [2026-02-20 Fri 15:50]
 - State "TODO_NEXT"  from "TODO"       [2026-02-17 Tue 16:16]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
-**** TODO Subtask c consists of:
+**** TODO_NEXT Subtask c consists of:
+- State "TODO_NEXT"  from "TODO"       [2026-02-20 Fri 15:50]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
   Yosys ingestion + RTLIL netlist gate
 
