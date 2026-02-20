@@ -11,6 +11,10 @@
     circt-nix.url = "github:dtzSiFive/circt-nix";
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "path:/home/roland/toolchain-nix";
+    ypcbHack = {
+      url = "path:/home/roland/ypcb_00338_1p1_hack";
+      flake = false;
+    };
     # openXC7.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -23,6 +27,7 @@
       circt-nix,
       nix-eda,
       openXC7,
+      ypcbHack,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -158,40 +163,30 @@
         matmulBitstreamTop = pkgs.runCommand "matmul-bitstream-top.sv" { } ''
           cat > "$out" <<'EOF'
           module matmul_bitstream_top(
-            logic clock,
-            logic reset,
-            logic in3_valid,
-            logic out0_ready,
-            logic in0_ld0_addr_ready,
-            logic in1_ld0_addr_ready,
-            logic in2_st0_done_ready,
-            logic in2_st0_ready,
-            logic [31:0] in0_ld0_data,
-            logic in0_ld0_data_valid,
-            logic [31:0] in1_ld0_data,
-            logic in1_ld0_data_valid,
-            logic [31:0] in2_st0,
-            logic in2_st0_valid,
-            logic [3:0] in0_ld0_addr,
-            logic in0_ld0_addr_valid,
-            logic [3:0] in1_ld0_addr,
-            logic in1_ld0_addr_valid,
-            logic in0_ld0_data_ready,
-            logic in1_ld0_data_ready,
-            logic in3_ready
+            input logic clock,
+            input logic reset,
+            input logic in3_valid,
+            input logic out0_ready,
+            input logic in0_ld0_addr_ready,
+            input logic in1_ld0_addr_ready,
+            output logic in2_st0_done_ready,
+            input logic in2_st0_ready,
+            input logic [31:0] in0_ld0_data,
+            input logic in0_ld0_data_valid,
+            input logic [31:0] in1_ld0_data,
+            input logic in1_ld0_data_valid,
+            output logic [31:0] in2_st0,
+            output logic in2_st0_valid,
+            output logic in2_st0_done_valid,
+            output logic out0_valid,
+            output logic [3:0] in0_ld0_addr,
+            output logic in0_ld0_addr_valid,
+            output logic [3:0] in1_ld0_addr,
+            output logic in1_ld0_addr_valid,
+            output logic in0_ld0_data_ready,
+            output logic in1_ld0_data_ready,
+            output logic in3_ready
           );
-
-            assign clock = 1'b0;
-            assign reset = 1'b0;
-            assign in3_valid = 1'b0;
-            assign out0_ready = 1'b1;
-            assign in0_ld0_addr_ready = 1'b1;
-            assign in1_ld0_addr_ready = 1'b1;
-            assign in2_st0_ready = 1'b1;
-            assign in0_ld0_data = 32'b0;
-            assign in0_ld0_data_valid = 1'b0;
-            assign in1_ld0_data = 32'b0;
-            assign in1_ld0_data_valid = 1'b0;
 
             main u_dut(
               .clock(clock),
@@ -200,10 +195,12 @@
               .out0_ready(out0_ready),
               .in0_ld0_addr_ready(in0_ld0_addr_ready),
               .in1_ld0_addr_ready(in1_ld0_addr_ready),
-              .in2_st0_done_ready(in2_st0_done_ready),
               .in2_st0_ready(in2_st0_ready),
+              .in2_st0_done_ready(in2_st0_done_ready),
+              .in2_st0_done_valid(in2_st0_done_valid),
               .in2_st0(in2_st0),
               .in2_st0_valid(in2_st0_valid),
+              .out0_valid(out0_valid),
               .in0_ld0_addr(in0_ld0_addr),
               .in0_ld0_addr_valid(in0_ld0_addr_valid),
               .in1_ld0_addr(in1_ld0_addr),
@@ -234,8 +231,13 @@
           "
         '';
 
-        matmulBitstreamXdc = pkgs.runCommand "matmul-bitstream.xdc" { } ''
-          cat > "$out" <<'EOF'
+        boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
+
+        matmulBitstreamXdc = pkgs.runCommand "matmul-bitstream.xdc" { inherit boardXdc; } ''
+          cat "$boardXdc" > "$out"
+
+          cat >> "$out" <<'EOF'
+          # Matmul accelerator interface constraints
           set_property IOSTANDARD LVCMOS33 [get_ports {clock}]
           set_property IOSTANDARD LVCMOS33 [get_ports {reset}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in3_valid}]
@@ -243,21 +245,32 @@
           set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_ready}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_ready}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_done_ready}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_done_valid}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr[*]}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {out0_valid}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_valid}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_ready}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_ready}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in3_ready}]
           EOF
+          for i in $(seq 0 3); do
+            {
+              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr[$i]}]"
+              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr[$i]}]"
+            } >> "$out"
+          done
+
+          for i in $(seq 0 31); do
+            {
+              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data[$i]}]"
+              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data[$i]}]"
+              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0[$i]}]"
+            } >> "$out"
+          done
         '';
 
         matmulFasm = pkgs.runCommand "matmul-bitstream.fasm" { } ''

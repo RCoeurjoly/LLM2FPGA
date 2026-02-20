@@ -281,7 +281,8 @@
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "openXC7": "openXC7",
-        "yosys": "yosys"
+        "yosys": "yosys",
+        "ypcbHack": "ypcbHack"
       }
     },
     "slang-src": {
@@ -379,6 +380,19 @@
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
+      }
+    },
+    "ypcbHack": {
+      "flake": false,
+      "locked": {
+        "lastModified": 0,
+        "narHash": "sha256-vS8BAu6yYppN6VtAZ/YdG5inyDIlBLlk/hNSn9OfkSg=",
+        "path": "/home/roland/ypcb_00338_1p1_hack",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/roland/ypcb_00338_1p1_hack",
+        "type": "path"
       }
     }
   },
