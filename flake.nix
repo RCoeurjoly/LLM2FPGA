@@ -73,7 +73,7 @@
           buildInputs = [ pythonWithTorch ];
         } ''
           export MATMUL_PY=${./src/matmul.py}
-          export PYTHONPATH="${./.}:${
+          export PYTHONPATH="${./src}:${
             ./sim
           }:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
           python ${./src/compile-pytorch.py} > "$out"
@@ -244,15 +244,15 @@
           set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_ready}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_done_ready}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr}]
+          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr[*]}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_valid}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_ready}]
           set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_ready}]
