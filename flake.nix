@@ -235,8 +235,14 @@
         '';
 
         matmulFasm = pkgs.runCommand "matmul-bitstream.fasm" { } ''
+          chipdb=${openXC7Chipdb}/xc7k480tffg1156.bin
+          if [ ! -f "$chipdb" ]; then
+            echo "chipdb file missing: $chipdb" >&2
+            exit 1
+          fi
+
           ${openXC7Nextpnr}/bin/nextpnr-xilinx \
-            --chipdb ${openXC7Chipdb} \
+            --chipdb "$chipdb" \
             --json ${matmulBitstreamJson} \
             --fasm $out
         '';
