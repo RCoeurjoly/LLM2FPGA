@@ -114,7 +114,8 @@ Also, for each upstream tool, support a build with debug symbols. Needed for deb
 - State "TODO_NEXT"  from "TODO"       [2026-02-17 Tue 16:16]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
-**** TODO_NEXT Subtask c consists of:
+**** WAIT Subtask c consists of:
+- State "WAIT"       from "TODO_NEXT"  [2026-02-20 Fri 15:57]
 - State "TODO_NEXT"  from "TODO"       [2026-02-20 Fri 15:50]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
   Yosys ingestion + RTLIL netlist gate
@@ -123,7 +124,8 @@ Artifact: matmul.il produced by Yosys from matmul.sv.
 
 Yosys completes elaboration and emits RTLIL without fatal errors.
 
-**** TODO Subtask d consists of:
+**** TODO_NEXT Subtask d consists of:
+- State "TODO_NEXT"  from "TODO"       [2026-02-20 Fri 15:57]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 Glue RTL for interface, Bitstream generation and testing
 Think of the simplest way to interface with the host computer, generate bitstream of glue RTL + model RTL, test results are equivalent to golden reference.
