@@ -10,10 +10,20 @@
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
     circt-nix.url = "github:dtzSiFive/circt-nix";
     nix-eda.url = "github:fossi-foundation/nix-eda";
+    openXC7.url = "github:openXC7/toolchain-nix";
   };
 
   outputs =
-    { nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix, nix-eda, ... }:
+    {
+      nixpkgs,
+      nixpkgs-llvm21,
+      flake-utils,
+      yosys,
+      circt-nix,
+      nix-eda,
+      openXC7,
+      ...
+    }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -39,6 +49,16 @@
         inherit (llvmPackages) mlir;
         python = pkgs.python311;
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
+        openXC7Packages = openXC7.packages.${system};
+        openXC7Fasm = openXC7Packages.fasm;
+        openXC7Nextpnr = openXC7Packages.nextpnr-xilinx;
+        openXC7Chipdb = openXC7Packages.nextpnr-xilinx-chipdb.kintex7;
+        openXC7Prjxray = openXC7Packages.prjxray;
+        fpgaPartFamily = "kintex7";
+        fpgaPartName = "xc7k480tffg901-1";
+        fpgaPrjxrayDb = "${openXC7Nextpnr}/share/nextpnr/external/prjxray-db";
+        fpgaPartFile =
+          "${fpgaPrjxrayDb}/${fpgaPartFamily}/${fpgaPartName}/part.yaml";
         # Torch-MLIR is not available in nixpkgs, pending this PR: https://github.com/NixOS/nixpkgs/pull/490242
         # For the moment, we consume the wheel
         torchMlir = pkgs.callPackage ./torch-mlir.nix {
@@ -132,6 +152,110 @@
             -o /dev/null > $out
         '';
 
+        matmulBitstreamTop = pkgs.runCommand "matmul-bitstream-top.sv" { } ''
+          cat > "$out" <<'EOF'
+          module matmul_bitstream_top;
+            logic clock;
+            logic reset;
+            logic in3_valid;
+            logic out0_ready;
+            logic in0_ld0_addr_ready;
+            logic in1_ld0_addr_ready;
+            logic in2_st0_done_ready;
+            logic in2_st0_ready;
+            logic [31:0] in0_ld0_data;
+            logic in0_ld0_data_valid;
+            logic [31:0] in1_ld0_data;
+            logic in1_ld0_data_valid;
+            logic [31:0] in2_st0;
+            logic in2_st0_valid;
+            logic [3:0] in0_ld0_addr;
+            logic in0_ld0_addr_valid;
+            logic [3:0] in1_ld0_addr;
+            logic in1_ld0_addr_valid;
+            logic in0_ld0_data_ready;
+            logic in1_ld0_data_ready;
+            logic in3_ready;
+
+            assign clock = 1'b0;
+            assign reset = 1'b0;
+            assign in3_valid = 1'b0;
+            assign out0_ready = 1'b1;
+            assign in0_ld0_addr_ready = 1'b1;
+            assign in1_ld0_addr_ready = 1'b1;
+            assign in2_st0_ready = 1'b1;
+            assign in0_ld0_data = 32'b0;
+            assign in0_ld0_data_valid = 1'b0;
+            assign in1_ld0_data = 32'b0;
+            assign in1_ld0_data_valid = 1'b0;
+
+            main u_dut(
+              .clock(clock),
+              .reset(reset),
+              .in3_valid(in3_valid),
+              .out0_ready(out0_ready),
+              .in0_ld0_addr_ready(in0_ld0_addr_ready),
+              .in1_ld0_addr_ready(in1_ld0_addr_ready),
+              .in2_st0_done_ready(in2_st0_done_ready),
+              .in2_st0_ready(in2_st0_ready),
+              .in2_st0(in2_st0),
+              .in2_st0_valid(in2_st0_valid),
+              .in0_ld0_addr(in0_ld0_addr),
+              .in0_ld0_addr_valid(in0_ld0_addr_valid),
+              .in1_ld0_addr(in1_ld0_addr),
+              .in1_ld0_addr_valid(in1_ld0_addr_valid),
+              .in0_ld0_data(in0_ld0_data),
+              .in0_ld0_data_valid(in0_ld0_data_valid),
+              .in1_ld0_data(in1_ld0_data),
+              .in1_ld0_data_valid(in1_ld0_data_valid),
+              .in0_ld0_data_ready(in0_ld0_data_ready),
+              .in1_ld0_data_ready(in1_ld0_data_ready),
+              .in3_ready(in3_ready)
+            );
+          endmodule
+          EOF
+        '';
+
+        matmulBitstreamJson = pkgs.runCommand "matmul-bitstream.json" { } ''
+          ${yosysPkg}/bin/yosys -q -p "
+            read_rtlil ${matmulIl}
+            read_verilog ${matmulBitstreamTop}
+            hierarchy -top matmul_bitstream_top -check
+            proc
+            opt
+            memory
+            flatten
+            synth -top matmul_bitstream_top
+            write_json $out
+          "
+        '';
+
+        matmulFasm = pkgs.runCommand "matmul-bitstream.fasm" { } ''
+          ${openXC7Nextpnr}/bin/nextpnr-xilinx \
+            --chipdb ${openXC7Chipdb} \
+            --json ${matmulBitstreamJson} \
+            --fasm $out
+        '';
+
+        matmulBitstream = pkgs.runCommand "matmul.bit" {
+          nativeBuildInputs = [ openXC7Fasm openXC7Prjxray ];
+        } ''
+          set -euo pipefail
+          export PYTHONPATH="${openXC7Fasm}/lib/python3.12/site-packages:${openXC7Prjxray}/usr/share/python3''${PYTHONPATH:+:$PYTHONPATH}"
+          export PRJXRAY_PYTHON_DIR="${openXC7Prjxray}/usr/share/python3"
+          export PRJXRAY_DB_DIR="${fpgaPrjxrayDb}"
+          tmpdir="$(mktemp -d)"
+          frames="$tmpdir/matmul.frm"
+          fasm2frames \
+            --db-root "${fpgaPrjxrayDb}" \
+            --part ${fpgaPartName} \
+            ${matmulFasm} "$frames"
+          xc7frames2bit \
+            --part_file "${fpgaPartFile}" \
+            --frm_file "$frames" \
+            --output_file "$out"
+        '';
+
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
           MATMUL_PY=${./src/matmul.py} \
@@ -213,6 +337,9 @@
             llvmPackages.llvm
             pythonWithTorch
             yosysSlang
+            openXC7Nextpnr
+            openXC7Prjxray
+            openXC7Fasm
             pkgs.cmake
             pkgs.ninja
             pkgs.gtkwave
@@ -239,6 +366,10 @@
           matmul-sv = matmulSv;
           matmul-il = matmulIl;
           matmul-yosys-stat = matmulYosysStat;
+          matmul-bitstream = matmulBitstream;
+          matmul-fasm = matmulFasm;
+          matmul-bitstream-top = matmulBitstreamTop;
+          matmul-bitstream-json = matmulBitstreamJson;
         };
 
         checks = {

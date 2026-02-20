@@ -1,0 +1,27 @@
+* Deliverable 2d: FPGA integration + bitstream generation
+
+Definition:
+- 2d) FPGA integration + bring-up
+
+Scope:
+- This step adds the Nix target to generate a place-and-route artifact for the
+  Kintex-7 480T flow via openXC7.
+- It does not yet provide a finished production-ready board pinout for YPCB-00338;
+  instead it uses a deterministic internal wrapper and targets a valid 7-series
+  part for early bitstream output generation.
+
+Procedure:
+- Ensure the flake input includes `openXC7`.
+- The new derivation is built with `nix build .#matmul-bitstream`.
+- The flow creates:
+  - a minimal wrapper top (`matmul-bitstream-top.sv`)
+  - a synth JSON for nextpnr (`matmul-bitstream.json`)
+  - FASM (`matmul-fasm`)
+  - bitstream (`matmul-bitstream`) output
+
+Notes:
+- Target family configured in `flake.nix` is `kintex7` and default part
+  `xc7k480tffg901-1`.
+- This is intended as the deliverable 2d bootstrap for PnR/bitstream artifacts.
+  The full board-level integration and bring-up steps (constraints, clocks,
+  I/O protocol validation, etc.) remain a follow-up before board loading.
