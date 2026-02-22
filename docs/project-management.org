@@ -23,14 +23,6 @@ We are hitting a segfault in nextpnr-xilinx
 
 /nix/store/h5d4lgg5a7xj21r9v3974ykz7x9agwil-nextpnr-xilinx-0.8.2/bin/nextpnr-xilinx --chipdb "/nix/store/15xvwiiy57fnzay4cnzv502p4p98yjhd-nextpnr-xilinx-chipdb-0.8.2/xc7k480tffg1156.bin" --xdc /nix/store/13qq2n72ygqdn9ksjx3mxmr3a4jg9jg7-matmul-bitstream.xdc --json /nix/store/vf62h4dq94s4bs4gcyfrkvrm6s4a3xfv-matmul-bitstream.json --fasm $out
 
-home/roland/nextpnr-xilinx/nextpnr-xilinx     --chipdb /nix/store/lf95lxzx5nh2x1cnhsw1w2fgyjps8wd3-nextpnr-xilinx-chipdb-0.
-.2/xc7k480tffg1156.bin     --xdc /tmp/matmul-bitstream.xdc     --json /tmp/matmul-bitstream.json     --fasm /tmp/matmul-bitstream.fas
-m
-
-/nix/store/h5d4lgg5a7xj21r9v3974ykz7x9agwil-nextpnr-xilinx-0.8.2/bin/nextpnr-xilinx --chipdb "$chipdb" --xdc /nix/store/13qq2n72ygqdn9ksjx3mxmr3a4jg9jg7-matmul-bitstream.xdc --json /nix/store/vf62h4dq94s4bs4gcyfrkvrm6s4a3xfv-matmul-bitstream.json --fasm $out
-
-
-
 * 2a LLM lowering: tiny stories 1M
 ** TODO_NEXT Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
 - State "TODO_NEXT"  from              [2025-12-31 Wed 17:08]
