@@ -15,10 +15,6 @@
       url = "path:/home/roland/ypcb_00338_1p1_hack";
       flake = false;
     };
-    nextpnrPatched = {
-      url = "path:/home/roland/nextpnr-xilinx";
-      flake = false;
-    };
     # openXC7.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -31,7 +27,6 @@
       circt-nix,
       nix-eda,
       openXC7,
-      nextpnrPatched,
       ypcbHack,
       ...
     }:
@@ -67,37 +62,6 @@
           chipdbFootprints = [ "xc7k480tffg1156" ];
         };
         openXC7Prjxray = openXC7Packages.prjxray;
-        nextpnrXilinxSrc = nextpnrPatched;
-        nextpnrXilinx = pkgs.stdenv.mkDerivation rec {
-          pname = "nextpnr-xilinx";
-          version = "0.8.2-patched";
-          src = nextpnrXilinxSrc;
-          nativeBuildInputs = [ pkgs.cmake pkgs.git ];
-          buildInputs = [ pkgs.python312Packages.boost pkgs.python312 pkgs.eigen ]
-            ++ (pkgs.lib.optionals pkgs.stdenv.cc.isClang [ llvmPackages.openmp ]);
-          preConfigure = ''
-            rm -f CMakeCache.txt
-            rm -rf CMakeFiles
-          '';
-          patches = [ ];
-          cmakeFlags = [
-            "-DCURRENT_GIT_VERSION=bd56820"
-            "-DARCH=xilinx"
-            "-DBUILD_GUI=OFF"
-            "-DBUILD_TESTS=OFF"
-            "-DUSE_OPENMP=ON"
-            "-Wno-deprecated"
-          ];
-          installPhase = ''
-            mkdir -p $out/bin
-            cp nextpnr-xilinx bbasm $out/bin/
-            mkdir -p $out/share/nextpnr/external
-            cp -rv ../xilinx/external/prjxray-db $out/share/nextpnr/external/
-            cp -rv ../xilinx/external/nextpnr-xilinx-meta $out/share/nextpnr/external/
-            cp -rv ../xilinx/python/ $out/share/nextpnr/python/
-            cp ../xilinx/constids.inc $out/share/nextpnr
-          '';
-        };
         fpgaPartFamily = "kintex7";
         fpgaPartName = "xc7k480tffg1156-1";
         fpgaPrjxrayDb = "${openXC7Nextpnr}/share/nextpnr/external/prjxray-db";
