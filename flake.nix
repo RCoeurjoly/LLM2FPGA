@@ -99,7 +99,7 @@
           '';
         };
         fpgaPartFamily = "kintex7";
-        fpgaPartName = "xc7k480tffg901-1";
+        fpgaPartName = "xc7k480tffg1156-1";
         fpgaPrjxrayDb = "${openXC7Nextpnr}/share/nextpnr/external/prjxray-db";
         fpgaPartFile =
           "${fpgaPrjxrayDb}/${fpgaPartFamily}/${fpgaPartName}/part.yaml";
@@ -320,7 +320,8 @@
             exit 1
           fi
 
-          ${nextpnrXilinx}/bin/nextpnr-xilinx \
+          export OMP_NUM_THREADS=1
+          ${openXC7Nextpnr}/bin/nextpnr-xilinx \
             --chipdb "$chipdb" \
             --xdc ${matmulBitstreamXdc} \
             --json ${matmulBitstreamJson} \
