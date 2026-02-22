@@ -276,8 +276,8 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1771613908,
-        "narHash": "sha256-7m5tz1rckT4odQBiHYHctnLCr7ffpNe2NmRJ9v7+iPE=",
+        "lastModified": 1771765295,
+        "narHash": "sha256-385kjFkWcjwP1x/60Jf0vXU6FdJwO1C0ctSSwPgTLyE=",
         "path": "/home/roland/toolchain-nix",
         "type": "path"
       },
