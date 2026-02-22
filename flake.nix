@@ -286,7 +286,7 @@
 
           export OMP_NUM_THREADS=1
           ${openXC7Nextpnr}/bin/nextpnr-xilinx \
-            --chipdb "$chipdb" \
+            --chipdb "${openXC7Chipdb}/xc7k480tffg1156.bin" \
             --xdc ${matmulBitstreamXdc} \
             --json ${matmulBitstreamJson} \
             --fasm $out
