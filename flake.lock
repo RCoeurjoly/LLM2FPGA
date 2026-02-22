@@ -144,19 +144,6 @@
         "type": "github"
       }
     },
-    "nextpnrPatched": {
-      "flake": false,
-      "locked": {
-        "lastModified": 0,
-        "narHash": "sha256-XEaIpiUohwWqlhLkZ38So3Mirf2XiCe5tSey/L8tkio=",
-        "path": "/home/roland/nextpnr-xilinx",
-        "type": "path"
-      },
-      "original": {
-        "path": "/home/roland/nextpnr-xilinx",
-        "type": "path"
-      }
-    },
     "nix-eda": {
       "inputs": {
         "nixpkgs": "nixpkgs_2"
@@ -290,7 +277,6 @@
       "inputs": {
         "circt-nix": "circt-nix",
         "flake-utils": "flake-utils_2",
-        "nextpnrPatched": "nextpnrPatched",
         "nix-eda": "nix-eda",
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
