@@ -367,11 +367,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1771606824,
-        "narHash": "sha256-TwaKkfxj/xApEFFAbBxv+SUmdqUpUv5EeRk3MdOTL3U=",
+        "lastModified": 1771836119,
+        "narHash": "sha256-Qn1ucwwzc31w6N509yj5+jKmbmPZ2OHpQe6CzDOYCh8=",
         "ref": "refs/heads/main",
-        "rev": "fb653c4181fc7af91c1ad6d241e6755fb3f9bc1c",
-        "revCount": 16679,
+        "rev": "53d8eb43ff6b8b98b86617c258772a1981e05943",
+        "revCount": 16683,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
