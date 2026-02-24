@@ -263,8 +263,8 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1771929004,
-        "narHash": "sha256-7ZA73UUUdDe4qOo5M2ztfb1m56wLimfJBcebQe4PJ44=",
+        "lastModified": 1771960073,
+        "narHash": "sha256-AlN+vZjAy+9h8WXjO5xrpEArdKef41/RhX2zE+2EaPg=",
         "path": "/home/roland/toolchain-nix",
         "type": "path"
       },
@@ -385,8 +385,8 @@
     "ypcbHack": {
       "flake": false,
       "locked": {
-        "lastModified": 0,
-        "narHash": "sha256-vS8BAu6yYppN6VtAZ/YdG5inyDIlBLlk/hNSn9OfkSg=",
+        "lastModified": 1771960221,
+        "narHash": "sha256-k4vDIrzodt5WkSXsrrThUahH/jaNUjk8m2bswrn/Xxk=",
         "path": "/home/roland/ypcb_00338_1p1_hack",
         "type": "path"
       },

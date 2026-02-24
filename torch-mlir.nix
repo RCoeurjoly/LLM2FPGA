@@ -6,13 +6,13 @@ let
   pythonPackages = python.pkgs;
   wheel = pkgs.fetchurl {
     url =
-      "https://github.com/llvm/torch-mlir-release/releases/download/dev-wheels/torch_mlir-20251205.652-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-    sha256 = "6de1cd3bf08e3e109b74f545156baedbd217c95f0f0a7e8ea3484897a7d404be";
+      "https://github.com/llvm/torch-mlir-release/releases/download/dev-wheels/torch_mlir-20251226.673-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+    sha256 = "75ec9b97b53f8608a3f9a277a179b5c7061cb88ca1c4d422a9e93c97a4bd92c2";
   };
 
 in pythonPackages.buildPythonPackage {
   pname = "torch-mlir";
-  version = "20251205.652";
+  version = "20251226.673";
   format = "wheel";
   src = wheel;
   nativeBuildInputs = [ pkgs.autoPatchelfHook ];
