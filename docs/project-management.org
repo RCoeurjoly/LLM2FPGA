@@ -23,6 +23,39 @@ We are hitting a segfault in nextpnr-xilinx
 
 /nix/store/h5d4lgg5a7xj21r9v3974ykz7x9agwil-nextpnr-xilinx-0.8.2/bin/nextpnr-xilinx --chipdb "/nix/store/15xvwiiy57fnzay4cnzv502p4p98yjhd-nextpnr-xilinx-chipdb-0.8.2/xc7k480tffg1156.bin" --xdc /nix/store/13qq2n72ygqdn9ksjx3mxmr3a4jg9jg7-matmul-bitstream.xdc --json /nix/store/vf62h4dq94s4bs4gcyfrkvrm6s4a3xfv-matmul-bitstream.json --fasm $out
 
+** nextpnr-xilinx segfault
+*** command
+*** backtrace
+Program received signal SIGSEGV, Segmentation fault.
+nextpnr_xilinx::XilinxPacker::pack_constants (this=0x7fffffffc770) at /home/roland/nextpnr-xilinx/xilinx/pack.cc:503
+503             if (ni->driver.cell != nullptr && ni->driver.cell->type == ctx->id("GND")) {
+(gdb) bt
+#0  nextpnr_xilinx::XilinxPacker::pack_constants (this=0x7fffffffc770) at /home/roland/nextpnr-xilinx/xilinx/pack.cc:503
+#1  0x00000000005d1247 in nextpnr_xilinx::Arch::pack (this=0x6e3340) at /home/roland/nextpnr-xilinx/xilinx/pack.cc:934
+#2  0x000000000043863d in nextpnr_xilinx::CommandHandler::executeMain (this=0x7fffffffcdf0,
+    ctx=std::unique_ptr<nextpnr_xilinx::Context> = {...})
+    at /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/unique_ptr.h:199
+#3  0x000000000043a7f0 in nextpnr_xilinx::CommandHandler::exec (this=this@entry=0x7fffffffcdf0)
+    at /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/unique_ptr.h:197
+#4  0x00000000004310e4 in main (argc=<optimized out>, argv=<optimized out>) at /home/roland/nextpnr-xilinx/xilinx/main.cc:91
+
+** debugging
+(gdb) p net
+$22 = {
+  first = {
+    index = 115644
+  },
+  second = 0x0
+}
+
+Is the index always the same? yes
+
+
+b nextpnr_xilinx::BaseCtx::createNet if name.index == 115644
+b common/design_utils.cc:164 if (net && (net->name.index == 115644 || new_name.index == 115644))
+b xilinx/pack.cc:556 if (old.index == 115644 || newname.index == 115644)
+b xilinx/pack.cc:559 if (newname.index == 115644)
+
 * 2a LLM lowering: tiny stories 1M
 ** TODO_NEXT Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
 - State "TODO_NEXT"  from              [2025-12-31 Wed 17:08]
