@@ -80,11 +80,19 @@
           "nextpnr-xilinx" = openXC7Nextpnr;
         };
         openXC7Prjxray = openXC7Packages.prjxray;
+        prjxrayPythonDeps = pkgs.python312.withPackages (ps: [
+          ps.pyyaml
+          ps.simplejson
+          ps.intervaltree
+          ps.pyjson5
+          ps.progressbar2
+        ]);
         fpgaPartFamily = "kintex7";
         fpgaPartName = "xc7k480tffg1156-1";
         fpgaPrjxrayDb = "${openXC7Nextpnr}/share/nextpnr/external/prjxray-db";
+        fpgaPrjxrayFamilyDb = "${fpgaPrjxrayDb}/${fpgaPartFamily}";
         fpgaPartFile =
-          "${fpgaPrjxrayDb}/${fpgaPartFamily}/${fpgaPartName}/part.yaml";
+          "${fpgaPrjxrayFamilyDb}/${fpgaPartName}/part.yaml";
         # Torch-MLIR is not available in nixpkgs, pending this PR: https://github.com/NixOS/nixpkgs/pull/490242
         # For the moment, we consume the wheel
         torchMlir = pkgs.callPackage ./torch-mlir.nix {
@@ -311,16 +319,16 @@
         '';
 
         matmulBitstream = pkgs.runCommand "matmul.bit" {
-          nativeBuildInputs = [ openXC7Fasm openXC7Prjxray ];
+          nativeBuildInputs = [ openXC7Fasm openXC7Prjxray prjxrayPythonDeps ];
         } ''
           set -euo pipefail
-          export PYTHONPATH="${openXC7Fasm}/lib/python3.12/site-packages:${openXC7Prjxray}/usr/share/python3''${PYTHONPATH:+:$PYTHONPATH}"
+          export PYTHONPATH="${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3''${PYTHONPATH:+:$PYTHONPATH}"
           export PRJXRAY_PYTHON_DIR="${openXC7Prjxray}/usr/share/python3"
-          export PRJXRAY_DB_DIR="${fpgaPrjxrayDb}"
+          export PRJXRAY_DB_DIR="${fpgaPrjxrayFamilyDb}"
           tmpdir="$(mktemp -d)"
           frames="$tmpdir/matmul.frm"
           fasm2frames \
-            --db-root "${fpgaPrjxrayDb}" \
+            --db-root "${fpgaPrjxrayFamilyDb}" \
             --part ${fpgaPartName} \
             ${matmulFasm} "$frames"
           xc7frames2bit \
