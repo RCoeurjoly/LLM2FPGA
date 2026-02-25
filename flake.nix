@@ -10,9 +10,13 @@
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
     circt-nix.url = "github:dtzSiFive/circt-nix";
     nix-eda.url = "github:fossi-foundation/nix-eda";
-    openXC7.url = "path:/home/roland/toolchain-nix";
+    openXC7.url = "github:RCoeurjoly/toolchain-nix";
+    nextpnrXilinxFork = {
+      url = "github:RCoeurjoly/nextpnr-xilinx";
+      flake = false;
+    };
     ypcbHack = {
-      url = "path:/home/roland/ypcb_00338_1p1_hack";
+      url = "github:RCoeurjoly/ypcb_00338_1p1_hack";
       flake = false;
     };
     # openXC7.inputs.nixpkgs.follows = "nixpkgs";
@@ -27,6 +31,7 @@
       circt-nix,
       nix-eda,
       openXC7,
+      nextpnrXilinxFork,
       ypcbHack,
       ...
     }:
@@ -57,7 +62,9 @@
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
-        openXC7Nextpnr = openXC7Packages.nextpnr-xilinx;
+        openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs (_: {
+          src = nextpnrXilinxFork;
+        });
         openXC7Chipdb = openXC7Packages.nextpnr-xilinx-chipdb.kintex7.override {
           chipdbFootprints = [ "xc7k480tffg1156" ];
         };
@@ -226,7 +233,7 @@
             opt
             memory
             flatten
-            synth -top matmul_bitstream_top
+            synth_xilinx -family xc7 -top matmul_bitstream_top -flatten -noiopad
             write_json $out
           "
         '';
@@ -399,6 +406,7 @@
             pkgs.ninja
             pkgs.gtkwave
             pkgs.nixfmt-classic
+            pkgs.rr
           ];
         };
 

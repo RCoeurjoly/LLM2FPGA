@@ -56,6 +56,9 @@ b common/design_utils.cc:164 if (net && (net->name.index == 115644 || new_name.i
 b xilinx/pack.cc:556 if (old.index == 115644 || newname.index == 115644)
 b xilinx/pack.cc:559 if (newname.index == 115644)
 
+** building nextpnr-xilinx with debug symbols
+in toolchain-nix, do nix develop .#nextpnr-xilinx
+
 * 2a LLM lowering: tiny stories 1M
 ** TODO_NEXT Goal: lowering the smallest LLM to RTL using the selected route (Torch-MLIR + CIRCT)
 - State "TODO_NEXT"  from              [2025-12-31 Wed 17:08]

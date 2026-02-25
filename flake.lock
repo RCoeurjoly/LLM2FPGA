@@ -144,6 +144,22 @@
         "type": "github"
       }
     },
+    "nextpnrXilinxFork": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1704785767,
+        "narHash": "sha256-hyPxkgtnWX3J6xNeGmX7iKMxyK7h9yM1ahu0tSV3vVE=",
+        "owner": "RCoeurjoly",
+        "repo": "nextpnr-xilinx",
+        "rev": "c21e22d53efd8ca821040035df9028d99d6e3707",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RCoeurjoly",
+        "repo": "nextpnr-xilinx",
+        "type": "github"
+      }
+    },
     "nix-eda": {
       "inputs": {
         "nixpkgs": "nixpkgs_2"
@@ -263,20 +279,24 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1771960073,
-        "narHash": "sha256-AlN+vZjAy+9h8WXjO5xrpEArdKef41/RhX2zE+2EaPg=",
-        "path": "/home/roland/toolchain-nix",
-        "type": "path"
+        "lastModified": 1771777525,
+        "narHash": "sha256-A5VdJt2rN5NuewZ7UO742wuUqM9Rwxk832K11PqCsnE=",
+        "owner": "RCoeurjoly",
+        "repo": "toolchain-nix",
+        "rev": "5dd1562227178b220dbf13d8bef4d4fc19f24eee",
+        "type": "github"
       },
       "original": {
-        "path": "/home/roland/toolchain-nix",
-        "type": "path"
+        "owner": "RCoeurjoly",
+        "repo": "toolchain-nix",
+        "type": "github"
       }
     },
     "root": {
       "inputs": {
         "circt-nix": "circt-nix",
         "flake-utils": "flake-utils_2",
+        "nextpnrXilinxFork": "nextpnrXilinxFork",
         "nix-eda": "nix-eda",
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
@@ -385,14 +405,17 @@
     "ypcbHack": {
       "flake": false,
       "locked": {
-        "lastModified": 1771960221,
-        "narHash": "sha256-k4vDIrzodt5WkSXsrrThUahH/jaNUjk8m2bswrn/Xxk=",
-        "path": "/home/roland/ypcb_00338_1p1_hack",
-        "type": "path"
+        "lastModified": 1735741377,
+        "narHash": "sha256-CFbjeG0CC432qnRl8PA6KEa1hkDW2puMlCqNLpf1TMk=",
+        "owner": "RCoeurjoly",
+        "repo": "ypcb_00338_1p1_hack",
+        "rev": "8b13ecf71b7061dd43a2b1580f0caa469f64303f",
+        "type": "github"
       },
       "original": {
-        "path": "/home/roland/ypcb_00338_1p1_hack",
-        "type": "path"
+        "owner": "RCoeurjoly",
+        "repo": "ypcb_00338_1p1_hack",
+        "type": "github"
       }
     }
   },
