@@ -16,12 +16,12 @@ Procedure:
 - The flow creates:
   - a minimal wrapper top (`matmul-bitstream-top.sv`)
   - a synth JSON for nextpnr (`matmul-bitstream.json`)
-  - FASM (`matmul-fasm`)
+  - FASM (`matmul-bitstream-fasm`)
   - bitstream (`matmul-bitstream`) output
 
 Notes:
 - Target family configured in `flake.nix` is `kintex7` and default part
-  `xc7k480tffg901-1`.
+  `xc7k480tffg1156-1`.
 - This is intended as the deliverable 2d bootstrap for PnR/bitstream artifacts.
   The full board-level integration and bring-up steps (constraints, clocks,
   I/O protocol validation, etc.) remain a follow-up before board loading.

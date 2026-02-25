@@ -1,0 +1,86 @@
+* Task 2d bring-up checklist (pre-hardware + day-1 hardware)
+
+This checklist is for Task 2d ("Glue RTL for interface, Bitstream generation and testing")
+from `docs/project-plan_v2.org`.
+
+** 1) Pre-hardware checks (do now)
+
+Run from repo root:
+
+#+begin_src bash
+nix build .#matmul-bitstream -L
+nix build .#matmul-bitstream-fasm -L
+nix build .#matmul-sv-sim -L
+nix build .#matmul-yosys-stat -L
+#+end_src
+
+Capture artifact paths:
+
+#+begin_src bash
+readlink -f result
+#+end_src
+
+Generate fixed golden reference for the Task-2 vector:
+
+#+begin_src bash
+python3 sim/check_hw_result.py --print-expected
+#+end_src
+
+Expected value for current fixed vector is `816`.
+
+** 2) Day-1 hardware bring-up sequence
+
+Programming preparation:
+
+#+begin_src bash
+nix build .#matmul-bitstream -L
+BIT="$(readlink -f result)"
+echo "$BIT"
+#+end_src
+
+Check JTAG visibility and cable enumeration (tool-specific):
+
+#+begin_src bash
+openFPGALoader --scan-jtag
+#+end_src
+
+Program FPGA bitstream (adjust board/cable options to your setup):
+
+#+begin_src bash
+openFPGALoader "$BIT"
+#+end_src
+
+Single-command wrapper for day-1:
+
+#+begin_src bash
+scripts/task2d_day1.sh --got <observed_output>
+#+end_src
+
+Record the observed hardware output for the fixed input vector, then compare:
+
+#+begin_src bash
+python3 sim/check_hw_result.py --got <observed_output>
+#+end_src
+
+Or if output is stored in JSON:
+
+#+begin_src bash
+python3 sim/check_hw_result.py --got-json hw_result.json --got-key got
+#+end_src
+
+Template:
+
+#+begin_src bash
+cp sim/hw_result.template.json sim/hw_result.json
+$EDITOR sim/hw_result.json
+python3 sim/check_hw_result.py --got-json sim/hw_result.json
+#+end_src
+
+Return code is `0` for PASS and non-zero for FAIL.
+
+** 3) Evidence to keep for Task 2e write-up
+
+- build logs for `.#matmul-bitstream`
+- programming log (JTAG tool output)
+- observed hardware output value
+- checker output JSON (PASS/FAIL, expected/got)
