@@ -12,7 +12,7 @@
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "github:RCoeurjoly/toolchain-nix";
     nextpnrXilinxFork = {
-      url = "git+https://github.com/RCoeurjoly/nextpnr-xilinx?submodules=1";
+      url = "git+https://github.com/RCoeurjoly/nextpnr-xilinx?ref=stable-backports&submodules=1";
       flake = false;
     };
     ypcbHack = {

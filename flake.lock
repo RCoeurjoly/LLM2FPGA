@@ -147,16 +147,17 @@
     "nextpnrXilinxFork": {
       "flake": false,
       "locked": {
-        "lastModified": 1704785767,
-        "narHash": "sha256-esDNPa9+FM9zfOZmQyCQgr9+r1zRLXs1aWq25Fhk3g0=",
-        "ref": "refs/heads/xilinx-upstream",
-        "rev": "c21e22d53efd8ca821040035df9028d99d6e3707",
-        "revCount": 2995,
+        "lastModified": 1772047723,
+        "narHash": "sha256-/9PY2NFl2mn7ZH41aOHRHSHAnYAif3eV+Ea53geU5S8=",
+        "ref": "stable-backports",
+        "rev": "4ef2518428b33f160ff93d38c781f08cc3a41566",
+        "revCount": 3126,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/RCoeurjoly/nextpnr-xilinx"
       },
       "original": {
+        "ref": "stable-backports",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/RCoeurjoly/nextpnr-xilinx"
