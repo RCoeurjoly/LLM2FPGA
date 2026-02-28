@@ -19,10 +19,27 @@ specially flopoco/ - functionality related to converting between FloPoCo's nonst
 system=$(nix eval --impure --raw --expr builtins.currentSystem) nix eval --json ".#packages.${system}" | jq -r 'keys[] | select(. != "all") | ".#" + .' | xargs -r nix build
     
 * 2d: bitstream generation and programming
+** nix effort
+*** WAIT nextpnr-xilinx
+- State "WAIT"       from "TODO_NEXT"  [2026-02-25 Wed 23:36]
+- State "TODO_NEXT"  from              [2026-02-25 Wed 22:38]
+*** WAIT torch-MLIR
+- State "WAIT"       from              [2026-02-25 Wed 22:38]
+**** WAIT build locally
+- State "WAIT"       from "TODO_NEXT"  [2026-02-25 Wed 22:35]
+- State "TODO_NEXT"  from              [2026-02-25 Wed 22:35]
+** Toolchain status update [2026-02-25 Wed]
+We currently have changes in both upstream components:
+- `toolchain-nix` (openXC7 integration path used by this project)
+- `nextpnr-xilinx` (customized fork/branch used for current bitstream flow)
+
+These should be treated as active dependencies of the current 2d flow and kept in sync with this repo configuration.
+
 We are hitting a segfault in nextpnr-xilinx
 
 /nix/store/h5d4lgg5a7xj21r9v3974ykz7x9agwil-nextpnr-xilinx-0.8.2/bin/nextpnr-xilinx --chipdb "/nix/store/15xvwiiy57fnzay4cnzv502p4p98yjhd-nextpnr-xilinx-chipdb-0.8.2/xc7k480tffg1156.bin" --xdc /nix/store/13qq2n72ygqdn9ksjx3mxmr3a4jg9jg7-matmul-bitstream.xdc --json /nix/store/vf62h4dq94s4bs4gcyfrkvrm6s4a3xfv-matmul-bitstream.json --fasm $out
-
+*** Upstreaming effort
+https://github.com/openXC7/toolchain-nix/issues/7
 ** nextpnr-xilinx segfault
 *** command
 *** backtrace
@@ -963,4 +980,3 @@ CLOSED: [2025-08-10 Sun 14:17]
 CLOSED: [2025-07-02 Wed 12:21]
 - State "DONE"       from "TODO_NEXT"  [2025-07-02 Wed 12:21]
 - State "TODO_NEXT"  from              [2025-06-30 Mon 21:13]
-

@@ -78,9 +78,36 @@ python3 sim/check_hw_result.py --got-json sim/hw_result.json
 
 Return code is `0` for PASS and non-zero for FAIL.
 
+** 2b) LED-only self-test (no PCIe/host path yet)
+
+This variant drives the fixed Task-2 vectors internally and latches PASS/FAIL on
+the board LEDs.
+
+Build and program:
+
+#+begin_src bash
+scripts/task2d_led_selftest.sh
+#+end_src
+
+Or run steps manually:
+
+#+begin_src bash
+nix build .#matmul-selftest-bitstream -L
+BIT="$(readlink -f result)"
+openFPGALoader --scan-jtag
+openFPGALoader "$BIT"
+#+end_src
+
+LED meaning:
+- `led_3bits_tri_o[0]`: heartbeat blink (design running)
+- `led_3bits_tri_o[1]`: PASS latched (`in2_st0 == 816`)
+- `led_3bits_tri_o[2]`: FAIL latched (mismatch or timeout)
+
+Reset `SYS_RSTN` (or reprogram) to re-run the one-shot test.
+
 ** 3) Evidence to keep for Task 2e write-up
 
-- build logs for `.#matmul-bitstream`
+- build logs for `.#matmul-bitstream` or `.#matmul-selftest-bitstream`
 - programming log (JTAG tool output)
 - observed hardware output value
 - checker output JSON (PASS/FAIL, expected/got)
