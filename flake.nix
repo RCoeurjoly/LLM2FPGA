@@ -1,8 +1,8 @@
 {
   description = "LLM2FPGA";
 
-    inputs = {
-      nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     nixpkgs-llvm21.url =
       "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d";
     flake-utils.url = "github:numtide/flake-utils";
@@ -12,7 +12,8 @@
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "github:RCoeurjoly/toolchain-nix";
     nextpnrXilinxFork = {
-      url = "git+https://github.com/RCoeurjoly/nextpnr-xilinx?ref=stable-backports&submodules=1";
+      url =
+        "git+https://github.com/RCoeurjoly/nextpnr-xilinx?ref=stable-backports&submodules=1";
       flake = false;
     };
     ypcbHack = {
@@ -22,19 +23,8 @@
     # openXC7.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs =
-    {
-      nixpkgs,
-      nixpkgs-llvm21,
-      flake-utils,
-      yosys,
-      circt-nix,
-      nix-eda,
-      openXC7,
-      nextpnrXilinxFork,
-      ypcbHack,
-      ...
-    }:
+  outputs = { nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix, nix-eda
+    , openXC7, nextpnrXilinxFork, ypcbHack, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -62,7 +52,7 @@
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
-        openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs (old: {
+        openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs (_: {
           src = nextpnrXilinxFork;
           # installPhase = ''
           #   mkdir -p $out/bin
@@ -91,8 +81,7 @@
         fpgaPartName = "xc7k480tffg1156-1";
         fpgaPrjxrayDb = "${openXC7Nextpnr}/share/nextpnr/external/prjxray-db";
         fpgaPrjxrayFamilyDb = "${fpgaPrjxrayDb}/${fpgaPartFamily}";
-        fpgaPartFile =
-          "${fpgaPrjxrayFamilyDb}/${fpgaPartName}/part.yaml";
+        fpgaPartFile = "${fpgaPrjxrayFamilyDb}/${fpgaPartName}/part.yaml";
         # Torch-MLIR is not available in nixpkgs, pending this PR: https://github.com/NixOS/nixpkgs/pull/490242
         # For the moment, we consume the wheel
         torchMlir = pkgs.callPackage ./torch-mlir.nix {
@@ -244,64 +233,65 @@
         '';
 
         matmulBitstreamJson = pkgs.runCommand "matmul-bitstream.json" { } ''
-        ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
-            read_rtlil ${matmulIl}
-            read_slang ${matmulBitstreamTop}
-            hierarchy -top matmul_bitstream_top -check
-            proc
-            opt
-            memory
-            flatten
-            synth_xilinx -family xc7 -top matmul_bitstream_top -flatten -noiopad
-            write_json $out
-          "
+          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
+              read_rtlil ${matmulIl}
+              read_slang ${matmulBitstreamTop}
+              hierarchy -top matmul_bitstream_top -check
+              proc
+              opt
+              memory
+              flatten
+              synth_xilinx -family xc7 -top matmul_bitstream_top -flatten -noiopad
+              write_json $out
+            "
         '';
 
         boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
 
-        matmulBitstreamXdc = pkgs.runCommand "matmul-bitstream.xdc" { inherit boardXdc; } ''
-          cat "$boardXdc" > "$out"
+        matmulBitstreamXdc =
+          pkgs.runCommand "matmul-bitstream.xdc" { inherit boardXdc; } ''
+            cat "$boardXdc" > "$out"
 
-          cat >> "$out" <<'EOF'
-          # Map accelerator top-level ports to known board pins
-          set_property PACKAGE_PIN AA28 [get_ports {clock}]
-          set_property IOSTANDARD LVCMOS18 [get_ports {clock}]
-          set_property PACKAGE_PIN R28 [get_ports {reset}]
-          set_property IOSTANDARD LVCMOS18 [get_ports {reset}]
+            cat >> "$out" <<'EOF'
+            # Map accelerator top-level ports to known board pins
+            set_property PACKAGE_PIN AA28 [get_ports {clock}]
+            set_property IOSTANDARD LVCMOS18 [get_ports {clock}]
+            set_property PACKAGE_PIN R28 [get_ports {reset}]
+            set_property IOSTANDARD LVCMOS18 [get_ports {reset}]
 
-          # Matmul accelerator interface constraints
-          set_property IOSTANDARD LVCMOS33 [get_ports {in3_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {out0_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_done_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_done_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {out0_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_valid}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_ready}]
-          set_property IOSTANDARD LVCMOS33 [get_ports {in3_ready}]
-          EOF
-          for i in $(seq 0 3); do
-            {
-              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr[$i]}]"
-              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr[$i]}]"
-            } >> "$out"
-          done
+            # Matmul accelerator interface constraints
+            set_property IOSTANDARD LVCMOS33 [get_ports {in3_valid}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {out0_ready}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_ready}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_ready}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_done_ready}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_done_valid}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_ready}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_valid}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_valid}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0_valid}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {out0_valid}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr_valid}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr_valid}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data_ready}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data_ready}]
+            set_property IOSTANDARD LVCMOS33 [get_ports {in3_ready}]
+            EOF
+            for i in $(seq 0 3); do
+              {
+                echo "set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_addr[$i]}]"
+                echo "set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_addr[$i]}]"
+              } >> "$out"
+            done
 
-          for i in $(seq 0 31); do
-            {
-              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data[$i]}]"
-              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data[$i]}]"
-              echo "set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0[$i]}]"
-            } >> "$out"
-          done
-        '';
+            for i in $(seq 0 31); do
+              {
+                echo "set_property IOSTANDARD LVCMOS33 [get_ports {in0_ld0_data[$i]}]"
+                echo "set_property IOSTANDARD LVCMOS33 [get_ports {in1_ld0_data[$i]}]"
+                echo "set_property IOSTANDARD LVCMOS33 [get_ports {in2_st0[$i]}]"
+              } >> "$out"
+            done
+          '';
 
         matmulFasm = pkgs.runCommand "matmul-bitstream.fasm" { } ''
           chipdb=${openXC7Chipdb}/xc7k480tffg1156.bin
@@ -518,22 +508,23 @@
         '';
 
         matmulSelftestJson = pkgs.runCommand "matmul-selftest.json" { } ''
-        ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
-            read_rtlil ${matmulIl}
-            read_slang ${matmulSelftestTop}
-            hierarchy -top matmul_selftest_top -check
-            proc
-            opt
-            memory
-            flatten
-            synth_xilinx -family xc7 -top matmul_selftest_top -flatten -noiopad
-            write_json $out
-          "
+          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
+              read_rtlil ${matmulIl}
+              read_slang ${matmulSelftestTop}
+              hierarchy -top matmul_selftest_top -check
+              proc
+              opt
+              memory
+              flatten
+              synth_xilinx -family xc7 -top matmul_selftest_top -flatten -noiopad
+              write_json $out
+            "
         '';
 
-        matmulSelftestXdc = pkgs.runCommand "matmul-selftest.xdc" { inherit boardXdc; } ''
-          cat "$boardXdc" > "$out"
-        '';
+        matmulSelftestXdc =
+          pkgs.runCommand "matmul-selftest.xdc" { inherit boardXdc; } ''
+            cat "$boardXdc" > "$out"
+          '';
 
         matmulSelftestFasm = pkgs.runCommand "matmul-selftest.fasm" { } ''
           chipdb=${openXC7Chipdb}/xc7k480tffg1156.bin
