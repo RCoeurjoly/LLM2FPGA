@@ -1,5 +1,7 @@
 * Deliverable 2d: FPGA integration + bitstream generation
 
+sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m /nix/store/k19j7givxbq1d0ahpd28w9xcnf89vpv6-matmul-selftest.bit
+
 Definition:
 - 2d) FPGA integration + bring-up
 
