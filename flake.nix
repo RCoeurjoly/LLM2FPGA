@@ -52,9 +52,8 @@
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
-        openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs (_: {
-          src = nextpnrXilinxFork;
-        });
+        openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs
+          (_: { src = nextpnrXilinxFork; });
         openXC7Chipdb = openXC7Packages.nextpnr-xilinx-chipdb.kintex7.override {
           chipdbFootprints = [ "xc7k480tffg1156" ];
           "nextpnr-xilinx" = openXC7Nextpnr;
@@ -191,9 +190,10 @@
 
         mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
           let
-            constraintFiles =
-              (if includeBoardXdc then [ boardXdc ] else [ ]) ++ extraConstraints;
-            catArgs = builtins.concatStringsSep " " (map toString constraintFiles);
+            constraintFiles = (if includeBoardXdc then [ boardXdc ] else [ ])
+              ++ extraConstraints;
+            catArgs =
+              builtins.concatStringsSep " " (map toString constraintFiles);
           in pkgs.runCommand "${name}.xdc" { } ''
             cat ${catArgs} > "$out"
           '';
@@ -215,7 +215,8 @@
 
         mkBitstream = { name, fasm, framesBase }:
           pkgs.runCommand "${name}.bit" {
-            nativeBuildInputs = [ openXC7Fasm openXC7Prjxray prjxrayPythonDeps ];
+            nativeBuildInputs =
+              [ openXC7Fasm openXC7Prjxray prjxrayPythonDeps ];
           } ''
             set -euo pipefail
             export PYTHONPATH="${prjxrayPythonPath}''${PYTHONPATH:+:$PYTHONPATH}"
