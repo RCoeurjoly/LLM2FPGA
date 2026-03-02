@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
+import os
 import torch
 from pathlib import Path
 from torch_mlir.fx import export_and_import
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM
 
 # 1) Load TinyStories-1M
 MODEL_ID = "roneneldan/TinyStories-1M"
-TOKENIZER_ID = "EleutherAI/gpt-neo-125M"
-
-tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_ID)
+MODEL_PATH = os.environ.get("TINYSTORIES_MODEL_PATH", MODEL_ID)
+LOCAL_ONLY = os.environ.get("TINYSTORIES_LOCAL_ONLY", "0") == "1"
 
 model = AutoModelForCausalLM.from_pretrained(
-    MODEL_ID,
+    MODEL_PATH,
     use_cache=False,              # required for clean export
     attn_implementation="eager",  # avoid flash / fused attention
+    local_files_only=LOCAL_ONLY,
 ).eval()
 
 # Optional sanity check
@@ -33,14 +34,8 @@ class CausalLMWrapper(torch.nn.Module):
 wrapped = CausalLMWrapper(model).eval()
 
 # 3) Static dummy input
-prompt = "Once upon a time there was"
-encoded = tokenizer(prompt, return_tensors="pt")
-input_ids = encoded["input_ids"]  # [1, seq_len], torch.long
-
-
-# Fixed-shape dummy input: batch=1, seq_len=1 (or 4/8)
-# B, S = 1, 1
-# input_ids = torch.zeros((B, S), dtype=torch.long)  # token id 0 is valid
+B, S = 1, 1
+input_ids = torch.zeros((B, S), dtype=torch.long)
 
 # 4) torch.export
 exported = torch.export.export(
@@ -52,8 +47,14 @@ exported = torch.export.export(
 # 5) Torch-MLIR lowering
 mlir_module = export_and_import(exported)
 
-print(mlir_module)
+mlir_text = str(mlir_module)
+print(mlir_text)
 
-out_file = Path(__file__).with_name("tinystories_1m_torch.mlir")
-with out_file.open("w") as f:
-    f.write(str(mlir_module))
+out_file = Path(
+    os.environ.get(
+        "TINYSTORIES_TORCH_MLIR_OUT",
+        str(Path(__file__).with_name("tinystories_1m_torch.mlir")),
+    )
+)
+with out_file.open("w", encoding="utf-8") as f:
+    f.write(mlir_text)

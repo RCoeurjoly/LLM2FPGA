@@ -1,5 +1,5 @@
-{ registerModel, pythonWithTorch, torchMlir, python, tinyStories1mTorchInput
-, repoRoot }: {
+{ registerModel, pythonWithTorch, pythonWithTinyStories, torchMlir, python
+, tinyStories1mSnapshot, tinyStories1mRevision, repoRoot }: {
   matmul = registerModel {
     key = "matmul";
     name = "matmul";
@@ -21,13 +21,25 @@
   "tiny-stories-1m" = registerModel {
     key = "tiny-stories-1m";
     name = "tiny-stories-1m";
-    description =
-      "Frozen TinyStories-1M torch-MLIR artifact (local, not committed).";
+    description = "TinyStories-1M torch-MLIR exported in a Nix derivation.";
     source = {
-      type = "local-frozen-mlir";
-      upstream = "roneneldan/TinyStories-1M";
-      artifact = "${repoRoot}/TinyStories/tinystories_1m_torch.mlir";
+      type = "huggingface-export";
+      model_id = "roneneldan/TinyStories-1M";
+      model_revision = tinyStories1mRevision;
+      export_script = "${repoRoot}/TinyStories/compile-pytorch.py";
     };
-    torchMlirInput = tinyStories1mTorchInput;
+    linalgLowering = "loops";
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      export HOME="$TMPDIR"
+      export HF_HOME="$TMPDIR/huggingface"
+      export HF_HUB_DISABLE_TELEMETRY=1
+      export TOKENIZERS_PARALLELISM=false
+      export PYTHONPATH="${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
+      export TINYSTORIES_MODEL_PATH=${tinyStories1mSnapshot}
+      export TINYSTORIES_LOCAL_ONLY=1
+      export TINYSTORIES_TORCH_MLIR_OUT="$out"
+      python ${repoRoot}/TinyStories/compile-pytorch.py >/dev/null
+    '';
   };
 }

@@ -50,6 +50,8 @@
         inherit (llvmPackages) mlir;
         python = pkgs.python311;
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
+        pythonWithTinyStories =
+          python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
         openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs
@@ -82,24 +84,24 @@
         };
 
         pipelineScripts = ./scripts/pipeline;
-
-        # TinyStories-1M torch-MLIR boundary artifact (Task 3a/3b input).
-        # Kept local and out of git due file size; see TinyStories/README.md.
-        tinyStories1mTorchInput =
-          pkgs.runCommand "tiny-stories-1m-torch-input.mlir" { } ''
-                        set -euo pipefail
-                        src="${./TinyStories}/tinystories_1m_torch.mlir"
-                        if [ ! -f "$src" ]; then
-                          cat >&2 <<'EOF'
-            Missing TinyStories/tinystories_1m_torch.mlir
-
-            This file is intentionally not committed (size). Provide it locally via one of:
-            1) cp /home/roland/private_LLM2FPGA/TinyStories/tinystories_1m_torch.mlir TinyStories/
-            2) regenerate it with TinyStories/compile-pytorch.py inside the dev shell
-            EOF
-                          exit 1
-                        fi
-                        cp "$src" "$out"
+        tinyStories1mRevision = "77f1b168e219585646439073245fe87e56b3023e";
+        tinyStories1mFetch = file: hash:
+          pkgs.fetchurl {
+            url =
+              "https://huggingface.co/roneneldan/TinyStories-1M/resolve/${tinyStories1mRevision}/${file}";
+            inherit hash;
+          };
+        tinyStories1mSnapshot =
+          pkgs.runCommand "tinystories-1m-hf-snapshot" { } ''
+            mkdir -p "$out"
+            cp ${
+              tinyStories1mFetch "config.json"
+              "sha256-/3TDDV67WrHaDy6kea33GXxQS0K1UiqFjDNKuR7UlYw="
+            } "$out/config.json"
+            cp ${
+              tinyStories1mFetch "pytorch_model.bin"
+              "sha256-B/lgnqiCuBY/87I9QOK4LLcV1AljG+sVyEsWTzh32uc="
+            } "$out/pytorch_model.bin"
           '';
 
         pipelineLib = import ./nix/pipeline.nix {
@@ -109,7 +111,8 @@
 
         modelRegistry = import ./nix/models.nix {
           inherit (pipelineLib) registerModel;
-          inherit pythonWithTorch torchMlir python tinyStories1mTorchInput;
+          inherit pythonWithTorch pythonWithTinyStories torchMlir python;
+          inherit tinyStories1mSnapshot tinyStories1mRevision;
           repoRoot = ./.;
         };
 
