@@ -20,9 +20,14 @@ openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m result # maybe exec
 
 ** Evidence
 - Demo video: https://youtu.be/NURqxN0HnFM
-
 ** Possible future work
+*** Create PRs for upstream projects, where I use my forks
+    openXC7.url = "github:RCoeurjoly/toolchain-nix";
+    nextpnrXilinxFork
+    ypcbHack
 *** fasm with antlr
+fasm without antlr works, but it's much slower. Support for antlr4 should be easy.
+
 matmul-selftest.bit> /nix/store/al638jv5h6959a96hk0r67p869m0p0as-python3.12-fasm/lib/python3.12/site-packages/fasm/parser/__init__.py:30: RuntimeWarning: Unable to import fast Antlr4 parser implementation.
 matmul-selftest.bit>   ImportError: cannot import name 'antlr_to_tuple' from partially initialized module 'fasm.parser' (most likely due to a circular import) (/nix/store/al638jv5h6959a96hk0r67p869m0p0as-python3.12-fasm/lib/python3.12/site-packages/fasm/parser/__init__.py)
 matmul-selftest.bit> 
