@@ -378,6 +378,8 @@
           '';
         };
 
+        formatter = pkgs.nixfmt-classic;
+
         packages = {
           default = matmulSv;
           torch-mlir = torchMlir;
