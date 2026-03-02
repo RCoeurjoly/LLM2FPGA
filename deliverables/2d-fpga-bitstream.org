@@ -1,0 +1,70 @@
+* Deliverable 2d: FPGA integration + bring-up
+
+Reference (project plan v2):
+- docs/project-plan_v2.org:149
+
+Definition:
+- 2d) FPGA integration + bring-up
+
+** Summary
+- The matmul RTL is integrated into FPGA top-level wrappers for:
+  - host-driven bitstream testing (`matmul_bitstream_top.sv`)
+  - LED self-test bring-up (`matmul_selftest_top.sv`)
+- The Nix flow produces synth JSON, FASM, and `.bit` artifacts through openXC7.
+- Bitstreams are loaded manually on hardware using `openFPGALoader`.
+- Self-test was executed on board and reported working (PASS observed by user).
+
+** Artifacts
+- `flake.nix`:
+  - `.#matmul-bitstream`
+  - `.#matmul-bitstream-fasm`
+  - `.#matmul-selftest-bitstream`
+- `fpga/rtl/matmul_bitstream_top.sv`
+- `fpga/rtl/matmul_selftest_top.sv`
+- `fpga/constraints/matmul_bitstream_ports.xdc`
+- `fpga/constraints/matmul_selftest.xdc`
+- `docs/task2d-bringup-checklist.org`
+
+** Reproducible build procedure
+From repo root:
+
+#+begin_src bash
+nix build .#matmul-bitstream -L
+BIT_MAIN="$(readlink -f result)"
+echo "$BIT_MAIN"
+
+nix build .#matmul-selftest-bitstream -L
+BIT_SELFTEST="$(readlink -f result)"
+echo "$BIT_SELFTEST"
+#+end_src
+
+** Manual board programming procedure
+Use your setup-specific `openFPGALoader` options (cable type, serial, flash/SRAM mode):
+
+#+begin_src bash
+openFPGALoader --scan-jtag
+openFPGALoader "$BIT_SELFTEST"
+#+end_src
+
+Example used during bring-up:
+
+#+begin_src bash
+sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m "$BIT_SELFTEST"
+#+end_src
+
+** Bring-up acceptance criteria
+- `.#matmul-bitstream` and/or `.#matmul-selftest-bitstream` builds successfully.
+- Board is detected by JTAG scan.
+- Bitstream is accepted by programmer tool without fatal errors.
+- For self-test design:
+  - `led_3bits_tri_o[0]` blinks (heartbeat).
+  - `led_3bits_tri_o[1]` latches high on PASS.
+  - `led_3bits_tri_o[2]` remains low on PASS run.
+
+** Completion status
+- [X] FPGA top-level wrappers added.
+- [X] openXC7-based bitstream derivations added to flake.
+- [X] Manual programming flow validated on target board.
+- [X] Self-test reported working on hardware.
+
+Detailed logs and evidence are packaged in deliverable 2e.

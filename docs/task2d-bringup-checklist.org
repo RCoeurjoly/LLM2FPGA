@@ -1,0 +1,103 @@
+* Task 2d bring-up checklist (pre-hardware + day-1 hardware)
+
+This checklist is for Task 2d ("Glue RTL for interface, Bitstream generation and testing")
+from `docs/project-plan_v2.org`.
+
+** 1) Pre-hardware checks (do now)
+
+Run from repo root:
+
+#+begin_src bash
+nix build .#matmul-bitstream -L
+nix build .#matmul-bitstream-fasm -L
+nix build .#matmul-sv-sim -L
+nix build .#matmul-yosys-stat -L
+#+end_src
+
+Capture artifact paths:
+
+#+begin_src bash
+readlink -f result
+#+end_src
+
+Generate fixed golden reference for the Task-2 vector:
+
+#+begin_src bash
+python3 sim/check_hw_result.py --print-expected
+#+end_src
+
+Use the `expected` value printed by the checker output for comparisons.
+
+** 2) Day-1 hardware bring-up sequence
+
+Programming preparation:
+
+#+begin_src bash
+nix build .#matmul-bitstream -L
+BIT="$(readlink -f result)"
+echo "$BIT"
+#+end_src
+
+Check JTAG visibility and cable enumeration (tool-specific):
+
+#+begin_src bash
+openFPGALoader --scan-jtag
+#+end_src
+
+Program FPGA bitstream (adjust board/cable options to your setup):
+
+#+begin_src bash
+openFPGALoader "$BIT"
+#+end_src
+
+Record the observed hardware output for the fixed input vector, then compare:
+
+#+begin_src bash
+python3 sim/check_hw_result.py --got <observed_output>
+#+end_src
+
+Or if output is stored in JSON:
+
+#+begin_src bash
+python3 sim/check_hw_result.py --got-json hw_result.json --got-key got
+#+end_src
+
+Template:
+
+#+begin_src bash
+cp sim/hw_result.template.json sim/hw_result.json
+$EDITOR sim/hw_result.json
+python3 sim/check_hw_result.py --got-json sim/hw_result.json
+#+end_src
+
+Return code is `0` for PASS and non-zero for FAIL.
+
+** 2b) LED-only self-test (no PCIe/host path yet)
+
+This variant drives the fixed Task-2 vectors internally and latches PASS/FAIL on
+the board LEDs.
+
+Build and program:
+
+#+begin_src bash
+nix build .#matmul-selftest-bitstream -L
+BIT="$(readlink -f result)"
+openFPGALoader --scan-jtag
+openFPGALoader "$BIT"
+#+end_src
+
+LED meaning:
+- `led_3bits_tri_o[0]`: heartbeat blink (design running)
+- `led_3bits_tri_o[1]`: PASS latched (`in2_st0 == expected` from checker)
+- `led_3bits_tri_o[2]`: FAIL latched (mismatch or timeout)
+
+Reset `SYS_RSTN` (or reprogram) to re-run the one-shot test.
+
+** 3) Evidence to keep for Task 2e write-up
+
+- build logs for `.#matmul-bitstream` or `.#matmul-selftest-bitstream`
+- programming log (JTAG tool output)
+- observed hardware output value
+- checker output JSON (PASS/FAIL, expected/got)
+- final report: `deliverables/2e-report.org`
+- evidence folder: `deliverables/2e/`
