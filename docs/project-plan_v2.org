@@ -90,7 +90,8 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** TODO_NEXT 2) End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [0/5]
+** WAIT 2) End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [0/5]
+- State "WAIT"       from "TODO_NEXT"  [2026-03-02 Mon 18:33]
 - State "TODO_NEXT"  from              [2026-02-16 Mon 22:17]
 *** Goal:
 Demonstrate that the selected pipeline can lower a minimal PyTorch kernel to synthesizable RTL, integrate it into a complete FPGA top-level, generate a bitstream, and run a fixed test vector on real hardware with outputs matching the PyTorch reference.
@@ -124,7 +125,8 @@ Artifact: matmul.il produced by Yosys from matmul.sv.
 
 Yosys completes elaboration and emits RTLIL without fatal errors.
 
-**** TODO_NEXT Subtask d consists of:
+**** WAIT Subtask d consists of:
+- State "WAIT"       from "TODO_NEXT"  [2026-03-02 Mon 18:33]
 - State "TODO_NEXT"  from "TODO"       [2026-02-20 Fri 15:57]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 Glue RTL for interface, Bitstream generation and testing
@@ -136,7 +138,8 @@ https://www.cnblogs.com/ruidongwu/p/18564807
 https://x.com/enjoy_digital/status/1924910401176719375
 
 https://www.controlpaths.com/2025/05/18/kintex7-accelerator/
-**** TODO Subtask e consists of:
+**** WAIT Subtask e consists of:
+- State "WAIT"       from "TODO"       [2026-03-02 Mon 18:33]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 Report and demo of results
 *** Deliverables
@@ -150,7 +153,8 @@ Report and demo of results
   
 - 2e) Write up of results, and video demo if succesful
 
-** TODO 3) Lowering of small LLM to RTL [0/5]
+** TODO_NEXT 3) Lowering of small LLM to RTL [0/5]
+- State "TODO_NEXT"  from "TODO"       [2026-03-02 Mon 18:33]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 *** Goal:
 Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
@@ -182,7 +186,8 @@ If necessary, adjust pass ordering. Final success must not rely on operator stub
 MLIR debugging docs:
 https://mlir.llvm.org/getting_started/Debugging/
 *** Subtasks
-**** TODO Subtask a consists of:
+**** TODO_NEXT Subtask a consists of:
+- State "TODO_NEXT"  from "TODO"       [2026-03-02 Mon 18:33]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 Frozen TinyStories-1M artifact
 **** TODO Subtask b consists of:
