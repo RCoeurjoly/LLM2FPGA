@@ -72,6 +72,9 @@
         fpgaPrjxrayDb = "${openXC7Nextpnr}/share/nextpnr/external/prjxray-db";
         fpgaPrjxrayFamilyDb = "${fpgaPrjxrayDb}/${fpgaPartFamily}";
         fpgaPartFile = "${fpgaPrjxrayFamilyDb}/${fpgaPartName}/part.yaml";
+        fpgaChipdb = "${openXC7Chipdb}/xc7k480tffg1156.bin";
+        prjxrayPythonPath =
+          "${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3";
         # Torch-MLIR is not available in nixpkgs, pending this PR: https://github.com/NixOS/nixpkgs/pull/490242
         # For the moment, we consume the wheel
         torchMlir = pkgs.callPackage ./torch-mlir.nix {
@@ -165,121 +168,115 @@
             -o /dev/null > $out
         '';
 
-        matmulBitstreamTop = pkgs.runCommand "matmul-bitstream-top.sv" { } ''
-          cp ${./fpga/rtl/matmul_bitstream_top.sv} "$out"
-        '';
-
-        matmulBitstreamJson = pkgs.runCommand "matmul-bitstream.json" { } ''
-          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
-              read_rtlil ${matmulIl}
-              read_slang ${matmulBitstreamTop}
-              hierarchy -top matmul_bitstream_top -check
-              proc
-              opt
-              memory
-              flatten
-              synth_xilinx -family xc7 -top matmul_bitstream_top -flatten -noiopad
-              write_json $out
-            "
-        '';
-
         boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
-
-        matmulBitstreamXdc =
-          pkgs.runCommand "matmul-bitstream.xdc" { inherit boardXdc; } ''
-            cat "$boardXdc" ${./fpga/constraints/matmul_bitstream_ports.xdc} > "$out"
+        mkTopSv = name: src:
+          pkgs.runCommand "${name}.sv" { } ''
+            cp ${src} "$out"
           '';
 
-        matmulFasm = pkgs.runCommand "matmul-bitstream.fasm" { } ''
-          chipdb=${openXC7Chipdb}/xc7k480tffg1156.bin
-          if [ ! -f "$chipdb" ]; then
-            echo "chipdb file missing: $chipdb" >&2
-            exit 1
-          fi
-
-          export OMP_NUM_THREADS=1
-          ${openXC7Nextpnr}/bin/nextpnr-xilinx \
-            --chipdb "${openXC7Chipdb}/xc7k480tffg1156.bin" \
-            --xdc ${matmulBitstreamXdc} \
-            --json ${matmulBitstreamJson} \
-            --fasm $out
-        '';
-
-        matmulBitstream = pkgs.runCommand "matmul.bit" {
-          nativeBuildInputs = [ openXC7Fasm openXC7Prjxray prjxrayPythonDeps ];
-        } ''
-          set -euo pipefail
-          export PYTHONPATH="${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3''${PYTHONPATH:+:$PYTHONPATH}"
-          export PRJXRAY_PYTHON_DIR="${openXC7Prjxray}/usr/share/python3"
-          export PRJXRAY_DB_DIR="${fpgaPrjxrayFamilyDb}"
-          tmpdir="$(mktemp -d)"
-          frames="$tmpdir/matmul.frm"
-          fasm2frames \
-            --db-root "${fpgaPrjxrayFamilyDb}" \
-            --part ${fpgaPartName} \
-            ${matmulFasm} "$frames"
-          xc7frames2bit \
-            --part_file "${fpgaPartFile}" \
-            --frm_file "$frames" \
-            --output_file "$out"
-        '';
-
-        matmulSelftestTop = pkgs.runCommand "matmul-selftest-top.sv" { } ''
-          cp ${./fpga/rtl/matmul_selftest_top.sv} "$out"
-        '';
-
-        matmulSelftestJson = pkgs.runCommand "matmul-selftest.json" { } ''
-          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
-              read_rtlil ${matmulIl}
-              read_slang ${matmulSelftestTop}
-              hierarchy -top matmul_selftest_top -check
-              proc
-              opt
-              memory
-              flatten
-              synth_xilinx -family xc7 -top matmul_selftest_top -flatten -noiopad
-              write_json $out
-            "
-        '';
-
-        matmulSelftestXdc =
-          pkgs.runCommand "matmul-selftest.xdc" { inherit boardXdc; } ''
-            cat "$boardXdc" > "$out"
+        mkMatmulJson = { name, topName, topSv }:
+          pkgs.runCommand "${name}.json" { } ''
+            ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
+                read_rtlil ${matmulIl}
+                read_slang ${topSv}
+                hierarchy -top ${topName} -check
+                proc
+                opt
+                memory
+                flatten
+                synth_xilinx -family xc7 -top ${topName} -flatten -noiopad
+                write_json $out
+              "
           '';
 
-        matmulSelftestFasm = pkgs.runCommand "matmul-selftest.fasm" { } ''
-          chipdb=${openXC7Chipdb}/xc7k480tffg1156.bin
-          if [ ! -f "$chipdb" ]; then
-            echo "chipdb file missing: $chipdb" >&2
-            exit 1
-          fi
+        mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
+          let
+            constraintFiles =
+              (if includeBoardXdc then [ boardXdc ] else [ ]) ++ extraConstraints;
+            catArgs = builtins.concatStringsSep " " (map toString constraintFiles);
+          in pkgs.runCommand "${name}.xdc" { } ''
+            cat ${catArgs} > "$out"
+          '';
 
-          export OMP_NUM_THREADS=1
-          ${openXC7Nextpnr}/bin/nextpnr-xilinx \
-            --chipdb "${openXC7Chipdb}/xc7k480tffg1156.bin" \
-            --xdc ${matmulSelftestXdc} \
-            --json ${matmulSelftestJson} \
-            --fasm $out
-        '';
+        mkFasm = { name, xdc, json }:
+          pkgs.runCommand "${name}.fasm" { } ''
+            if [ ! -f "${fpgaChipdb}" ]; then
+              echo "chipdb file missing: ${fpgaChipdb}" >&2
+              exit 1
+            fi
 
-        matmulSelftestBitstream = pkgs.runCommand "matmul-selftest.bit" {
-          nativeBuildInputs = [ openXC7Fasm openXC7Prjxray prjxrayPythonDeps ];
-        } ''
-          set -euo pipefail
-          export PYTHONPATH="${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3''${PYTHONPATH:+:$PYTHONPATH}"
-          export PRJXRAY_PYTHON_DIR="${openXC7Prjxray}/usr/share/python3"
-          export PRJXRAY_DB_DIR="${fpgaPrjxrayFamilyDb}"
-          tmpdir="$(mktemp -d)"
-          frames="$tmpdir/matmul-selftest.frm"
-          fasm2frames \
-            --db-root "${fpgaPrjxrayFamilyDb}" \
-            --part ${fpgaPartName} \
-            ${matmulSelftestFasm} "$frames"
-          xc7frames2bit \
-            --part_file "${fpgaPartFile}" \
-            --frm_file "$frames" \
-            --output_file "$out"
-        '';
+            export OMP_NUM_THREADS=1
+            ${openXC7Nextpnr}/bin/nextpnr-xilinx \
+              --chipdb "${fpgaChipdb}" \
+              --xdc ${xdc} \
+              --json ${json} \
+              --fasm "$out"
+          '';
+
+        mkBitstream = { name, fasm, framesBase }:
+          pkgs.runCommand "${name}.bit" {
+            nativeBuildInputs = [ openXC7Fasm openXC7Prjxray prjxrayPythonDeps ];
+          } ''
+            set -euo pipefail
+            export PYTHONPATH="${prjxrayPythonPath}''${PYTHONPATH:+:$PYTHONPATH}"
+            export PRJXRAY_PYTHON_DIR="${openXC7Prjxray}/usr/share/python3"
+            export PRJXRAY_DB_DIR="${fpgaPrjxrayFamilyDb}"
+            tmpdir="$(mktemp -d)"
+            frames="$tmpdir/${framesBase}.frm"
+            fasm2frames \
+              --db-root "${fpgaPrjxrayFamilyDb}" \
+              --part ${fpgaPartName} \
+              ${fasm} "$frames"
+            xc7frames2bit \
+              --part_file "${fpgaPartFile}" \
+              --frm_file "$frames" \
+              --output_file "$out"
+          '';
+
+        matmulBitstreamTop =
+          mkTopSv "matmul-bitstream-top" ./fpga/rtl/matmul_bitstream_top.sv;
+        matmulBitstreamJson = mkMatmulJson {
+          name = "matmul-bitstream";
+          topName = "matmul_bitstream_top";
+          topSv = matmulBitstreamTop;
+        };
+        matmulBitstreamXdc = mkXdc {
+          name = "matmul-bitstream";
+          extraConstraints = [ ./fpga/constraints/matmul_bitstream_ports.xdc ];
+        };
+        matmulFasm = mkFasm {
+          name = "matmul-bitstream";
+          xdc = matmulBitstreamXdc;
+          json = matmulBitstreamJson;
+        };
+        matmulBitstream = mkBitstream {
+          name = "matmul";
+          fasm = matmulFasm;
+          framesBase = "matmul";
+        };
+
+        matmulSelftestTop =
+          mkTopSv "matmul-selftest-top" ./fpga/rtl/matmul_selftest_top.sv;
+        matmulSelftestJson = mkMatmulJson {
+          name = "matmul-selftest";
+          topName = "matmul_selftest_top";
+          topSv = matmulSelftestTop;
+        };
+        matmulSelftestXdc = mkXdc {
+          name = "matmul-selftest";
+          includeBoardXdc = false;
+          extraConstraints = [ ./fpga/constraints/matmul_selftest.xdc ];
+        };
+        matmulSelftestFasm = mkFasm {
+          name = "matmul-selftest";
+          xdc = matmulSelftestXdc;
+          json = matmulSelftestJson;
+        };
+        matmulSelftestBitstream = mkBitstream {
+          name = "matmul-selftest";
+          fasm = matmulSelftestFasm;
+          framesBase = "matmul-selftest";
+        };
 
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
@@ -377,7 +374,7 @@
             export NEXTPNR_XILINX_PYTHON_DIR="${openXC7Nextpnr}/share/nextpnr/python"
             export PRJXRAY_DB_DIR="${fpgaPrjxrayDb}"
             export PRJXRAY_PYTHON_DIR="${openXC7Prjxray}/usr/share/python3"
-            export PYTHONPATH="${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3''${PYTHONPATH:+:$PYTHONPATH}"
+            export PYTHONPATH="${prjxrayPythonPath}''${PYTHONPATH:+:$PYTHONPATH}"
           '';
         };
 

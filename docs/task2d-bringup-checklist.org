@@ -26,7 +26,7 @@ Generate fixed golden reference for the Task-2 vector:
 python3 sim/check_hw_result.py --print-expected
 #+end_src
 
-Expected value for current fixed vector is `816`.
+Use the `expected` value printed by the checker output for comparisons.
 
 ** 2) Day-1 hardware bring-up sequence
 
@@ -48,12 +48,6 @@ Program FPGA bitstream (adjust board/cable options to your setup):
 
 #+begin_src bash
 openFPGALoader "$BIT"
-#+end_src
-
-Single-command wrapper for day-1:
-
-#+begin_src bash
-scripts/task2d_day1.sh --got <observed_output>
 #+end_src
 
 Record the observed hardware output for the fixed input vector, then compare:
@@ -86,12 +80,6 @@ the board LEDs.
 Build and program:
 
 #+begin_src bash
-scripts/task2d_led_selftest.sh
-#+end_src
-
-Or run steps manually:
-
-#+begin_src bash
 nix build .#matmul-selftest-bitstream -L
 BIT="$(readlink -f result)"
 openFPGALoader --scan-jtag
@@ -100,7 +88,7 @@ openFPGALoader "$BIT"
 
 LED meaning:
 - `led_3bits_tri_o[0]`: heartbeat blink (design running)
-- `led_3bits_tri_o[1]`: PASS latched (`in2_st0 == 816`)
+- `led_3bits_tri_o[1]`: PASS latched (`in2_st0 == expected` from checker)
 - `led_3bits_tri_o[2]`: FAIL latched (mismatch or timeout)
 
 Reset `SYS_RSTN` (or reprogram) to re-run the one-shot test.

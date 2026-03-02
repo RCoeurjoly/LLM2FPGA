@@ -3,7 +3,6 @@ module matmul_selftest_top(
   input logic SYS_RSTN,
   output logic [2:0] led_3bits_tri_o
 );
-  localparam logic [31:0] EXPECTED = 32'd816;
   localparam logic [31:0] TIMEOUT_CYCLES = 32'd50000000;
   localparam logic [7:0] BOOT_RESET_CYCLES = 8'd16;
 
@@ -81,6 +80,26 @@ module matmul_selftest_top(
       default: vec_b = 32'd0;
     endcase
   endfunction
+
+  function automatic logic [31:0] to_i32(input logic signed [63:0] value);
+    to_i32 = value[31:0];
+  endfunction
+
+  function automatic logic [31:0] expected_result();
+    logic [31:0] acc;
+    logic [31:0] prod;
+    int idx;
+    begin
+      acc = 32'd0;
+      for (idx = 0; idx < 16; idx = idx + 1) begin
+        prod = to_i32($signed(vec_a(idx[3:0])) * $signed(vec_b(idx[3:0])));
+        acc = to_i32($signed(acc) + $signed(prod));
+      end
+      expected_result = acc;
+    end
+  endfunction
+
+  localparam logic [31:0] EXPECTED = expected_result();
 
   assign in0_ld0_data = in0_ld0_addr_valid ? vec_a(in0_ld0_addr) : 32'd0;
   assign in0_ld0_data_valid = in0_ld0_addr_valid;
