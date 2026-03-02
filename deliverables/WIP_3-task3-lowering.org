@@ -1,0 +1,30 @@
+* Subtask 3 (t3): TinyStories-1M Lowering Status
+
+This note captures the current reproducible status of Task 3
+("Lowering of small LLM to RTL") in this repository.
+
+** Repro commands
+
+#+begin_example
+nix build .#tiny-stories-1m-torch -o result-task3-torch
+nix build .#tiny-stories-1m-cf -o result-task3-cf
+nix build .#tiny-stories-1m-handshake -L
+#+end_example
+
+** Artifacts
+
+- =TinyStories/tinystories_1m_torch.mlir=: frozen Task 3 boundary artifact (local, not committed due size).
+- =.#tiny-stories-1m-torch=: Nix-packaged copy of frozen torch artifact.
+- =.#tiny-stories-1m-cf=: CIRCT input boundary ("just before CIRCT consumption").
+- =.#tiny-stories-1m-handshake=: first CIRCT lowering stage after CF.
+
+** Current status
+
+- 3a frozen model artifact: local artifact workflow documented in =TinyStories/README.md=
+- 3b Torch -> Linalg: pipeline package added
+- 3b Linalg -> CF: pipeline package added
+- 3c CF -> Handshake: package added (runtime status to be validated)
+
+Next steps:
+- run full Task 3 package builds and collect pass/fail logs
+- if 3c fails, capture minimized reproducer and blocker notes

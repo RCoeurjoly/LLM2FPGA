@@ -81,91 +81,206 @@
           inherit python;
         };
 
-        matmulTorch = pkgs.runCommand "matmul-torch.mlir" {
-          buildInputs = [ pythonWithTorch ];
-        } ''
-          export MATMUL_PY=${./src/matmul.py}
-          export PYTHONPATH="${./src}:${
-            ./sim
-          }:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
-          python ${./src/compile-pytorch.py} > "$out"
-        '';
+        pipelineScripts = ./scripts/pipeline;
 
-        matmulLinalg = pkgs.runCommand "matmul-linalg.mlir" { } ''
-          ${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt ${matmulTorch} \
-            --torch-function-to-torch-backend-pipeline \
-            --torch-backend-to-linalg-on-tensors-backend-pipeline \
-            -canonicalize > $out
-        '';
+        # TinyStories-1M torch-MLIR boundary artifact (Task 3a/3b input).
+        # Kept local and out of git due file size; see TinyStories/README.md.
+        tinyStories1mTorchInput =
+          pkgs.runCommand "tiny-stories-1m-torch-input.mlir" { } ''
+                        set -euo pipefail
+                        src="${./TinyStories}/tinystories_1m_torch.mlir"
+                        if [ ! -f "$src" ]; then
+                          cat >&2 <<'EOF'
+            Missing TinyStories/tinystories_1m_torch.mlir
 
-        matmulCf = pkgs.runCommand "matmul-cf.mlir" { } ''
-          ${mlir}/bin/mlir-opt ${matmulLinalg} \
-            --empty-tensor-to-alloc-tensor \
-            --one-shot-bufferize="bufferize-function-boundaries" \
-            --buffer-results-to-out-params \
-            --bufferization-lower-deallocations \
-            --convert-bufferization-to-memref \
-            --memref-expand \
-            --convert-linalg-to-affine-loops \
-            --lower-affine \
-            --convert-scf-to-cf \
-            -canonicalize > $out
-        '';
+            This file is intentionally not committed (size). Provide it locally via one of:
+            1) cp /home/roland/private_LLM2FPGA/TinyStories/tinystories_1m_torch.mlir TinyStories/
+            2) regenerate it with TinyStories/compile-pytorch.py inside the dev shell
+            EOF
+                          exit 1
+                        fi
+                        cp "$src" "$out"
+          '';
 
-        matmulCfStats = pkgs.runCommand "matmul-cf.stats" { } ''
-          ${mlir}/bin/mlir-opt ${matmulCf} --print-op-stats -o /dev/null > $out || true
-        '';
+        mkTorchDerivation = { name, torchMlirInput }:
+          pkgs.runCommand "${name}-torch.mlir" { } ''
+            cp ${torchMlirInput} "$out"
+          '';
 
-        matmulHandshake = pkgs.runCommand "matmul-handshake.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulCf} \
-            -flatten-memref \
-            -flatten-memref-calls \
-            -canonicalize \
-            -handshake-legalize-memrefs \
-            --lower-cf-to-handshake \
-            -handshake-insert-buffers \
-            -canonicalize > $out
-        '';
+        mkLinalgDerivation = { name, torch }:
+          pkgs.runCommand "${name}-linalg.mlir" {
+            buildInputs = [ torchMlir ];
+          } ''
+            export TORCH_MLIR_OPT=${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/torch_to_linalg.sh ${torch} "$out"
+          '';
 
-        matmulHsExt = pkgs.runCommand "matmul-hs-ext.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHandshake} \
-            -handshake-lower-extmem-to-hw \
-            -handshake-materialize-forks-sinks \
-            -canonicalize > $out
-        '';
+        mkCfDerivation = { name, linalg, linalgLowering ? "affine" }:
+          pkgs.runCommand "${name}-cf.mlir" { buildInputs = [ mlir ]; } ''
+            export MLIR_OPT=${mlir}/bin/mlir-opt
+            export LINALG_LOWERING=${linalgLowering}
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/linalg_to_cf.sh ${linalg} "$out"
+          '';
 
-        matmulHw0 = pkgs.runCommand "matmul-hw0.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHsExt} \
-            -lower-handshake-to-hw \
-            -canonicalize > $out
-        '';
+        mkCfStatsDerivation = { name, cf }:
+          pkgs.runCommand "${name}-cf.stats" { buildInputs = [ mlir ]; } ''
+            export MLIR_OPT=${mlir}/bin/mlir-opt
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/cf_stats.sh ${cf} "$out"
+          '';
 
-        matmulHw = pkgs.runCommand "matmul-hw.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHw0} \
-            -lower-esi-types \
-            -lower-esi-ports \
-            -lower-esi-to-hw \
-            -canonicalize > $out
-        '';
+        mkHandshakeDerivation =
+          { name, cf, handshakeInsertBuffers ? true, circtPkg ? circt }:
+          pkgs.runCommand "${name}-handshake.mlir" {
+            buildInputs = [ mlir circtPkg ];
+          } ''
+            export MLIR_OPT=${mlir}/bin/mlir-opt
+            export CIRCT_OPT=${circtPkg}/bin/circt-opt
+            if [ "${if handshakeInsertBuffers then "1" else "0"}" = "1" ]; then
+              export HANDSHAKE_INSERT_BUFFERS=1
+            else
+              export HANDSHAKE_INSERT_BUFFERS=0
+            fi
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/cf_to_handshake.sh ${cf} "$out"
+          '';
 
-        matmulHwClean = pkgs.runCommand "matmul-hw-clean.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHw} \
-            -firrtl-inner-symbol-dce \
-            -symbol-dce \
-            -canonicalize > $out
-        '';
+        mkHsExtDerivation = { name, handshake, circtPkg ? circt }:
+          pkgs.runCommand "${name}-hs-ext.mlir" {
+            buildInputs = [ circtPkg ];
+          } ''
+            export CIRCT_OPT=${circtPkg}/bin/circt-opt
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/handshake_to_hs_ext.sh ${handshake} "$out"
+          '';
 
-        matmulSv = pkgs.runCommand "matmul.sv" { } ''
-          ${circt}/bin/circt-opt ${matmulHwClean} \
-            -lower-seq-hlmem \
-            -lower-seq-fifo \
-            -lower-seq-shiftreg \
-            -lower-seq-to-sv \
-            -lower-hw-to-sv \
-            -canonicalize \
-            -export-verilog \
-            -o /dev/null > $out
-        '';
+        mkHw0Derivation = { name, hsExt, circtPkg ? circt }:
+          pkgs.runCommand "${name}-hw0.mlir" { buildInputs = [ circtPkg ]; } ''
+            export CIRCT_OPT=${circtPkg}/bin/circt-opt
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/hs_ext_to_hw0.sh ${hsExt} "$out"
+          '';
+
+        mkHwDerivation = { name, hw0, circtPkg ? circt }:
+          pkgs.runCommand "${name}-hw.mlir" { buildInputs = [ circtPkg ]; } ''
+            export CIRCT_OPT=${circtPkg}/bin/circt-opt
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/hw0_to_hw.sh ${hw0} "$out"
+          '';
+
+        mkHwCleanDerivation = { name, hw, circtPkg ? circt }:
+          pkgs.runCommand "${name}-hw-clean.mlir" {
+            buildInputs = [ circtPkg ];
+          } ''
+            export CIRCT_OPT=${circtPkg}/bin/circt-opt
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_to_hw_clean.sh ${hw} "$out"
+          '';
+
+        mkSvDerivation = { name, hwClean, circtPkg ? circt }:
+          pkgs.runCommand "${name}.sv" { buildInputs = [ circtPkg ]; } ''
+            export CIRCT_OPT=${circtPkg}/bin/circt-opt
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_clean_to_sv.sh ${hwClean} "$out"
+          '';
+
+        mkIlDerivation = { name, sv }:
+          pkgs.runCommand "${name}.il" { buildInputs = [ yosysPkg ]; } ''
+            export YOSYS=${yosysPkg}/bin/yosys
+            export YOSYS_SLANG_SO=${yosysSlang}/share/yosys/plugins/slang.so
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_il.sh ${sv} "$out"
+          '';
+
+        mkYosysStatDerivation = { name, sv }:
+          pkgs.runCommand "${name}-yosys.stat" {
+            buildInputs = [ yosysPkg ];
+          } ''
+            export YOSYS=${yosysPkg}/bin/yosys
+            export YOSYS_SLANG_SO=${yosysSlang}/share/yosys/plugins/slang.so
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_yosys_stat.sh ${sv} "$out"
+          '';
+
+        mkPipeline = { name, torchMlirInput, linalgLowering ? "affine"
+          , handshakeInsertBuffers ? true, circtPkg ? circt }: rec {
+            torch = mkTorchDerivation { inherit name torchMlirInput; };
+            linalg = mkLinalgDerivation { inherit name torch; };
+            cf = mkCfDerivation { inherit name linalg linalgLowering; };
+            cfStats = mkCfStatsDerivation { inherit name cf; };
+            handshake = mkHandshakeDerivation {
+              inherit name cf handshakeInsertBuffers circtPkg;
+            };
+            hsExt = mkHsExtDerivation { inherit name handshake circtPkg; };
+            hw0 = mkHw0Derivation { inherit name hsExt circtPkg; };
+            hw = mkHwDerivation { inherit name hw0 circtPkg; };
+            hwClean = mkHwCleanDerivation { inherit name hw circtPkg; };
+            sv = mkSvDerivation { inherit name hwClean circtPkg; };
+            il = mkIlDerivation { inherit name sv; };
+            yosysStat = mkYosysStatDerivation { inherit name sv; };
+          };
+
+        registerModel = { name, torchMlirInput ? null, torchInputCommand ? null
+          , torchInputBuildInputs ? [ ], linalgLowering ? "affine"
+          , handshakeInsertBuffers ? true, circtPkg ? circt }:
+          let
+            resolvedTorchInput = if torchMlirInput != null then
+              torchMlirInput
+            else if torchInputCommand != null then
+              pkgs.runCommand "${name}-torch-input.mlir" {
+                buildInputs = torchInputBuildInputs;
+              } ''
+                set -euo pipefail
+                ${torchInputCommand}
+              ''
+            else
+              throw
+              "registerModel(${name}): provide torchMlirInput or torchInputCommand";
+            pipeline = mkPipeline {
+              inherit name linalgLowering handshakeInsertBuffers circtPkg;
+              torchMlirInput = resolvedTorchInput;
+            };
+          in {
+            inherit name linalgLowering handshakeInsertBuffers circtPkg;
+            torchInput = resolvedTorchInput;
+            inherit pipeline;
+          };
+
+        # One-block model registration. Add entries here to get the full
+        # torch->...->yosys-stat package ladder exposed automatically.
+        modelRegistry = {
+          matmul = registerModel {
+            name = "matmul";
+            torchInputBuildInputs = [ pythonWithTorch ];
+            torchInputCommand = ''
+              export MATMUL_PY=${./src/matmul.py}
+              export PYTHONPATH="${./src}:${
+                ./sim
+              }:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
+              python ${./src/compile-pytorch.py} > "$out"
+            '';
+          };
+          "tiny-stories-1m" = registerModel {
+            name = "tiny-stories-1m";
+            torchMlirInput = tinyStories1mTorchInput;
+          };
+        };
+
+        modelPipelines =
+          pkgs.lib.mapAttrs (_: model: model.pipeline) modelRegistry;
+
+        mkPipelineStagePackages = name: pipeline: {
+          "${name}-torch" = pipeline.torch;
+          "${name}-linalg" = pipeline.linalg;
+          "${name}-cf" = pipeline.cf;
+          "${name}-cf-stats" = pipeline.cfStats;
+          "${name}-handshake" = pipeline.handshake;
+          "${name}-hs-ext" = pipeline.hsExt;
+          "${name}-hw0" = pipeline.hw0;
+          "${name}-hw" = pipeline.hw;
+          "${name}-hw-clean" = pipeline.hwClean;
+          "${name}-sv" = pipeline.sv;
+          "${name}-il" = pipeline.il;
+          "${name}-yosys-stat" = pipeline.yosysStat;
+        };
+
+        pipelineStagePackages =
+          pkgs.lib.concatMapAttrs mkPipelineStagePackages modelPipelines;
+
+        matmulPipeline = modelPipelines.matmul;
+        matmulSv = matmulPipeline.sv;
+        matmulIl = matmulPipeline.il;
 
         boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
         mkTopSv = name: src:
@@ -334,19 +449,6 @@
           cp wave.vcd "$out"
         '';
 
-        matmulIl = pkgs.runCommand "matmul.il" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -qp \
-              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; write_rtlil $out" \
-              > /dev/null
-        '';
-
-        matmulYosysStat = pkgs.runCommand "matmul-yosys.stat" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -p \
-              "read_rtlil ${matmulIl}; tee -o $out stat -json"
-        '';
-
       in {
         devShells.default = pkgs.mkShell {
           packages = [
@@ -386,18 +488,6 @@
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
-          matmul-torch = matmulTorch;
-          matmul-linalg = matmulLinalg;
-          matmul-cf = matmulCf;
-          matmul-cf-stats = matmulCfStats;
-          matmul-handshake = matmulHandshake;
-          matmul-hs-ext = matmulHsExt;
-          matmul-hw0 = matmulHw0;
-          matmul-hw = matmulHw;
-          matmul-hw-clean = matmulHwClean;
-          matmul-sv = matmulSv;
-          matmul-il = matmulIl;
-          matmul-yosys-stat = matmulYosysStat;
           matmul-bitstream = matmulBitstream;
           matmul-fasm = matmulFasm;
           matmul-bitstream-fasm = matmulFasm;
@@ -409,7 +499,7 @@
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
-        };
+        } // pipelineStagePackages;
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {
