@@ -54,16 +54,6 @@
         openXC7Fasm = openXC7Packages.fasm;
         openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs (_: {
           src = nextpnrXilinxFork;
-          # installPhase = ''
-          #   mkdir -p $out/bin
-          #   cp nextpnr-xilinx $out/bin/
-          #   cp bba/bbasm $out/bin/bbasm
-          #   mkdir -p $out/share/nextpnr/external
-          #   cp -rv ../xilinx/external/prjxray-db $out/share/nextpnr/external/
-          #   cp -rv ../xilinx/external/nextpnr-xilinx-meta $out/share/nextpnr/external/
-          #   cp -rv ../xilinx/python/ $out/share/nextpnr/python/
-          #   cp ../xilinx/constids.inc $out/share/nextpnr
-          # '';
         });
         openXC7Chipdb = openXC7Packages.nextpnr-xilinx-chipdb.kintex7.override {
           chipdbFootprints = [ "xc7k480tffg1156" ];
