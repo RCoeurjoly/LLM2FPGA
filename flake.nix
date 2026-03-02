@@ -87,196 +87,38 @@
         # Kept local and out of git due file size; see TinyStories/README.md.
         tinyStories1mTorchInput =
           pkgs.runCommand "tiny-stories-1m-torch-input.mlir" { } ''
-                        set -euo pipefail
-                        src="${./TinyStories}/tinystories_1m_torch.mlir"
-                        if [ ! -f "$src" ]; then
-                          cat >&2 <<'EOF'
-            Missing TinyStories/tinystories_1m_torch.mlir
+            set -euo pipefail
+            src="${./TinyStories}/tinystories_1m_torch.mlir"
+            if [ ! -f "$src" ]; then
+              cat >&2 <<'EOF'
+Missing TinyStories/tinystories_1m_torch.mlir
 
-            This file is intentionally not committed (size). Provide it locally via one of:
-            1) cp /home/roland/private_LLM2FPGA/TinyStories/tinystories_1m_torch.mlir TinyStories/
-            2) regenerate it with TinyStories/compile-pytorch.py inside the dev shell
-            EOF
-                          exit 1
-                        fi
-                        cp "$src" "$out"
-          '';
-
-        mkTorchDerivation = { name, torchMlirInput }:
-          pkgs.runCommand "${name}-torch.mlir" { } ''
-            cp ${torchMlirInput} "$out"
-          '';
-
-        mkLinalgDerivation = { name, torch }:
-          pkgs.runCommand "${name}-linalg.mlir" {
-            buildInputs = [ torchMlir ];
-          } ''
-            export TORCH_MLIR_OPT=${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/torch_to_linalg.sh ${torch} "$out"
-          '';
-
-        mkCfDerivation = { name, linalg, linalgLowering ? "affine" }:
-          pkgs.runCommand "${name}-cf.mlir" { buildInputs = [ mlir ]; } ''
-            export MLIR_OPT=${mlir}/bin/mlir-opt
-            export LINALG_LOWERING=${linalgLowering}
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/linalg_to_cf.sh ${linalg} "$out"
-          '';
-
-        mkCfStatsDerivation = { name, cf }:
-          pkgs.runCommand "${name}-cf.stats" { buildInputs = [ mlir ]; } ''
-            export MLIR_OPT=${mlir}/bin/mlir-opt
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/cf_stats.sh ${cf} "$out"
-          '';
-
-        mkHandshakeDerivation =
-          { name, cf, handshakeInsertBuffers ? true, circtPkg ? circt }:
-          pkgs.runCommand "${name}-handshake.mlir" {
-            buildInputs = [ mlir circtPkg ];
-          } ''
-            export MLIR_OPT=${mlir}/bin/mlir-opt
-            export CIRCT_OPT=${circtPkg}/bin/circt-opt
-            if [ "${if handshakeInsertBuffers then "1" else "0"}" = "1" ]; then
-              export HANDSHAKE_INSERT_BUFFERS=1
-            else
-              export HANDSHAKE_INSERT_BUFFERS=0
+This file is intentionally not committed (size). Provide it locally via one of:
+1) cp /home/roland/private_LLM2FPGA/TinyStories/tinystories_1m_torch.mlir TinyStories/
+2) regenerate it with TinyStories/compile-pytorch.py inside the dev shell
+EOF
+              exit 1
             fi
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/cf_to_handshake.sh ${cf} "$out"
+            cp "$src" "$out"
           '';
 
-        mkHsExtDerivation = { name, handshake, circtPkg ? circt }:
-          pkgs.runCommand "${name}-hs-ext.mlir" {
-            buildInputs = [ circtPkg ];
-          } ''
-            export CIRCT_OPT=${circtPkg}/bin/circt-opt
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/handshake_to_hs_ext.sh ${handshake} "$out"
-          '';
-
-        mkHw0Derivation = { name, hsExt, circtPkg ? circt }:
-          pkgs.runCommand "${name}-hw0.mlir" { buildInputs = [ circtPkg ]; } ''
-            export CIRCT_OPT=${circtPkg}/bin/circt-opt
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/hs_ext_to_hw0.sh ${hsExt} "$out"
-          '';
-
-        mkHwDerivation = { name, hw0, circtPkg ? circt }:
-          pkgs.runCommand "${name}-hw.mlir" { buildInputs = [ circtPkg ]; } ''
-            export CIRCT_OPT=${circtPkg}/bin/circt-opt
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/hw0_to_hw.sh ${hw0} "$out"
-          '';
-
-        mkHwCleanDerivation = { name, hw, circtPkg ? circt }:
-          pkgs.runCommand "${name}-hw-clean.mlir" {
-            buildInputs = [ circtPkg ];
-          } ''
-            export CIRCT_OPT=${circtPkg}/bin/circt-opt
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_to_hw_clean.sh ${hw} "$out"
-          '';
-
-        mkSvDerivation = { name, hwClean, circtPkg ? circt }:
-          pkgs.runCommand "${name}.sv" { buildInputs = [ circtPkg ]; } ''
-            export CIRCT_OPT=${circtPkg}/bin/circt-opt
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_clean_to_sv.sh ${hwClean} "$out"
-          '';
-
-        mkIlDerivation = { name, sv }:
-          pkgs.runCommand "${name}.il" { buildInputs = [ yosysPkg ]; } ''
-            export YOSYS=${yosysPkg}/bin/yosys
-            export YOSYS_SLANG_SO=${yosysSlang}/share/yosys/plugins/slang.so
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_il.sh ${sv} "$out"
-          '';
-
-        mkYosysStatDerivation = { name, sv }:
-          pkgs.runCommand "${name}-yosys.stat" {
-            buildInputs = [ yosysPkg ];
-          } ''
-            export YOSYS=${yosysPkg}/bin/yosys
-            export YOSYS_SLANG_SO=${yosysSlang}/share/yosys/plugins/slang.so
-            ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_yosys_stat.sh ${sv} "$out"
-          '';
-
-        mkPipeline = { name, torchMlirInput, linalgLowering ? "affine"
-          , handshakeInsertBuffers ? true, circtPkg ? circt }: rec {
-            torch = mkTorchDerivation { inherit name torchMlirInput; };
-            linalg = mkLinalgDerivation { inherit name torch; };
-            cf = mkCfDerivation { inherit name linalg linalgLowering; };
-            cfStats = mkCfStatsDerivation { inherit name cf; };
-            handshake = mkHandshakeDerivation {
-              inherit name cf handshakeInsertBuffers circtPkg;
-            };
-            hsExt = mkHsExtDerivation { inherit name handshake circtPkg; };
-            hw0 = mkHw0Derivation { inherit name hsExt circtPkg; };
-            hw = mkHwDerivation { inherit name hw0 circtPkg; };
-            hwClean = mkHwCleanDerivation { inherit name hw circtPkg; };
-            sv = mkSvDerivation { inherit name hwClean circtPkg; };
-            il = mkIlDerivation { inherit name sv; };
-            yosysStat = mkYosysStatDerivation { inherit name sv; };
-          };
-
-        registerModel = { name, torchMlirInput ? null, torchInputCommand ? null
-          , torchInputBuildInputs ? [ ], linalgLowering ? "affine"
-          , handshakeInsertBuffers ? true, circtPkg ? circt }:
-          let
-            resolvedTorchInput = if torchMlirInput != null then
-              torchMlirInput
-            else if torchInputCommand != null then
-              pkgs.runCommand "${name}-torch-input.mlir" {
-                buildInputs = torchInputBuildInputs;
-              } ''
-                set -euo pipefail
-                ${torchInputCommand}
-              ''
-            else
-              throw
-              "registerModel(${name}): provide torchMlirInput or torchInputCommand";
-            pipeline = mkPipeline {
-              inherit name linalgLowering handshakeInsertBuffers circtPkg;
-              torchMlirInput = resolvedTorchInput;
-            };
-          in {
-            inherit name linalgLowering handshakeInsertBuffers circtPkg;
-            torchInput = resolvedTorchInput;
-            inherit pipeline;
-          };
-
-        # One-block model registration. Add entries here to get the full
-        # torch->...->yosys-stat package ladder exposed automatically.
-        modelRegistry = {
-          matmul = registerModel {
-            name = "matmul";
-            torchInputBuildInputs = [ pythonWithTorch ];
-            torchInputCommand = ''
-              export MATMUL_PY=${./src/matmul.py}
-              export PYTHONPATH="${./src}:${
-                ./sim
-              }:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
-              python ${./src/compile-pytorch.py} > "$out"
-            '';
-          };
-          "tiny-stories-1m" = registerModel {
-            name = "tiny-stories-1m";
-            torchMlirInput = tinyStories1mTorchInput;
-          };
+        pipelineLib = import ./nix/pipeline.nix {
+          inherit pkgs mlir circt yosysPkg yosysSlang torchMlir python;
+          inherit pipelineScripts;
         };
 
-        modelPipelines =
-          pkgs.lib.mapAttrs (_: model: model.pipeline) modelRegistry;
-
-        mkPipelineStagePackages = name: pipeline: {
-          "${name}-torch" = pipeline.torch;
-          "${name}-linalg" = pipeline.linalg;
-          "${name}-cf" = pipeline.cf;
-          "${name}-cf-stats" = pipeline.cfStats;
-          "${name}-handshake" = pipeline.handshake;
-          "${name}-hs-ext" = pipeline.hsExt;
-          "${name}-hw0" = pipeline.hw0;
-          "${name}-hw" = pipeline.hw;
-          "${name}-hw-clean" = pipeline.hwClean;
-          "${name}-sv" = pipeline.sv;
-          "${name}-il" = pipeline.il;
-          "${name}-yosys-stat" = pipeline.yosysStat;
+        modelRegistry = import ./nix/models.nix {
+          registerModel = pipelineLib.registerModel;
+          inherit pythonWithTorch torchMlir python tinyStories1mTorchInput;
+          repoRoot = ./.;
         };
 
+        modelPipelines = pipelineLib.modelPipelinesFromRegistry modelRegistry;
         pipelineStagePackages =
-          pkgs.lib.concatMapAttrs mkPipelineStagePackages modelPipelines;
+          pipelineLib.pipelineStagePackagesFromRegistry modelRegistry;
+        pipelineMetadataPackages =
+          pipelineLib.metadataPackagesFromRegistry modelRegistry;
+        modelRegistryJson = pipelineLib.registryIndexPackage modelRegistry;
 
         matmulPipeline = modelPipelines.matmul;
         matmulSv = matmulPipeline.sv;
@@ -484,6 +326,7 @@
         packages = {
           default = matmulSv;
           torch-mlir = torchMlir;
+          model-registry = modelRegistryJson;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
@@ -499,7 +342,7 @@
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
-        } // pipelineStagePackages;
+        } // pipelineStagePackages // pipelineMetadataPackages;
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {
