@@ -1,12 +1,4 @@
-{ pkgs
-, mlir
-, circt
-, yosysPkg
-, yosysSlang
-, torchMlir
-, python
-, pipelineScripts
-}:
+{ pkgs, mlir, circt, yosysPkg, yosysSlang, torchMlir, python, pipelineScripts }:
 let
   stageMap = [
     {
@@ -65,9 +57,7 @@ let
     '';
 
   mkLinalgDerivation = { name, torch }:
-    pkgs.runCommand "${name}-linalg.mlir" {
-      buildInputs = [ torchMlir ];
-    } ''
+    pkgs.runCommand "${name}-linalg.mlir" { buildInputs = [ torchMlir ]; } ''
       export TORCH_MLIR_OPT=${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt
       ${pkgs.bash}/bin/bash ${pipelineScripts}/torch_to_linalg.sh ${torch} "$out"
     '';
@@ -119,9 +109,7 @@ let
     '';
 
   mkHwCleanDerivation = { name, hw, circtPkg ? circt }:
-    pkgs.runCommand "${name}-hw-clean.mlir" {
-      buildInputs = [ circtPkg ];
-    } ''
+    pkgs.runCommand "${name}-hw-clean.mlir" { buildInputs = [ circtPkg ]; } ''
       export CIRCT_OPT=${circtPkg}/bin/circt-opt
       ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_to_hw_clean.sh ${hw} "$out"
     '';
@@ -147,8 +135,7 @@ let
     '';
 
   mkPipeline = { name, torchMlirInput, linalgLowering ? "affine"
-    , handshakeInsertBuffers ? true, circtPkg ? circt }:
-    rec {
+    , handshakeInsertBuffers ? true, circtPkg ? circt }: rec {
       torch = mkTorchDerivation { inherit name torchMlirInput; };
       linalg = mkLinalgDerivation { inherit name torch; };
       cf = mkCfDerivation { inherit name linalg linalgLowering; };
@@ -181,11 +168,8 @@ let
     pkgs.writeText "${modelKey}-pipeline-metadata.json" (builtins.toJSON {
       model = {
         key = modelKey;
-        name = model.name;
-        description = model.description;
-        source = model.source;
-        linalgLowering = model.linalgLowering;
-        handshakeInsertBuffers = model.handshakeInsertBuffers;
+        inherit (model)
+          name description source linalgLowering handshakeInsertBuffers;
       };
       artifacts = stagePathsForPipeline model.pipeline;
     });
@@ -193,15 +177,15 @@ let
   registerModel = { name, key ? name, description ? ""
     , source ? { type = "local"; }, torchMlirInput ? null
     , torchInputCommand ? null, torchInputBuildInputs ? [ ]
-    , linalgLowering ? "affine", handshakeInsertBuffers ? true
-    , circtPkg ? circt }:
+    , linalgLowering ? "affine", handshakeInsertBuffers ? true, circtPkg ? circt
+    }:
     let
       validatedSource = if (source.type or "") == "huggingface"
-        && (!(source ? model_id) || !(source ? revision)) then
-          throw
-          "registerModel(${name}): HuggingFace sources must pin source.model_id and source.revision"
-        else
-          source;
+      && (!(source ? model_id) || !(source ? revision)) then
+        throw
+        "registerModel(${name}): HuggingFace sources must pin source.model_id and source.revision"
+      else
+        source;
       resolvedTorchInput = if torchMlirInput != null then
         torchMlirInput
       else if torchInputCommand != null then
@@ -231,21 +215,19 @@ let
     pkgs.lib.mapAttrs (_: model: model.pipeline) registry;
 
   pipelineStagePackagesFromRegistry = registry:
-    pkgs.lib.concatMapAttrs (name: model:
-      mkPipelineStagePackages name model.pipeline) registry;
+    pkgs.lib.concatMapAttrs
+    (name: model: mkPipelineStagePackages name model.pipeline) registry;
 
   metadataPackagesFromRegistry = registry:
     pkgs.lib.mapAttrs' (name: model:
-      pkgs.lib.nameValuePair "${name}-pipeline-metadata" model.metadata) registry;
+      pkgs.lib.nameValuePair "${name}-pipeline-metadata" model.metadata)
+    registry;
 
   registryIndexPackage = registry:
     pkgs.writeText "model-registry.json" (builtins.toJSON (pkgs.lib.mapAttrs
       (name: model: {
-        name = model.name;
-        description = model.description;
-        source = model.source;
-        linalgLowering = model.linalgLowering;
-        handshakeInsertBuffers = model.handshakeInsertBuffers;
+        inherit (model)
+          name description source linalgLowering handshakeInsertBuffers;
         packages = builtins.listToAttrs (map (stage: {
           name = stage.pkg;
           value = "${name}-${stage.pkg}";

@@ -87,19 +87,19 @@
         # Kept local and out of git due file size; see TinyStories/README.md.
         tinyStories1mTorchInput =
           pkgs.runCommand "tiny-stories-1m-torch-input.mlir" { } ''
-            set -euo pipefail
-            src="${./TinyStories}/tinystories_1m_torch.mlir"
-            if [ ! -f "$src" ]; then
-              cat >&2 <<'EOF'
-Missing TinyStories/tinystories_1m_torch.mlir
+                        set -euo pipefail
+                        src="${./TinyStories}/tinystories_1m_torch.mlir"
+                        if [ ! -f "$src" ]; then
+                          cat >&2 <<'EOF'
+            Missing TinyStories/tinystories_1m_torch.mlir
 
-This file is intentionally not committed (size). Provide it locally via one of:
-1) cp /home/roland/private_LLM2FPGA/TinyStories/tinystories_1m_torch.mlir TinyStories/
-2) regenerate it with TinyStories/compile-pytorch.py inside the dev shell
-EOF
-              exit 1
-            fi
-            cp "$src" "$out"
+            This file is intentionally not committed (size). Provide it locally via one of:
+            1) cp /home/roland/private_LLM2FPGA/TinyStories/tinystories_1m_torch.mlir TinyStories/
+            2) regenerate it with TinyStories/compile-pytorch.py inside the dev shell
+            EOF
+                          exit 1
+                        fi
+                        cp "$src" "$out"
           '';
 
         pipelineLib = import ./nix/pipeline.nix {
@@ -108,7 +108,7 @@ EOF
         };
 
         modelRegistry = import ./nix/models.nix {
-          registerModel = pipelineLib.registerModel;
+          inherit (pipelineLib) registerModel;
           inherit pythonWithTorch torchMlir python tinyStories1mTorchInput;
           repoRoot = ./.;
         };

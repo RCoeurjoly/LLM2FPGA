@@ -1,15 +1,10 @@
-{ registerModel
-, pythonWithTorch
-, torchMlir
-, python
-, tinyStories1mTorchInput
-, repoRoot
-}:
-{
+{ registerModel, pythonWithTorch, torchMlir, python, tinyStories1mTorchInput
+, repoRoot }: {
   matmul = registerModel {
     key = "matmul";
     name = "matmul";
-    description = "Minimal local matmul PyTorch module used as smoke pipeline input.";
+    description =
+      "Minimal local matmul PyTorch module used as smoke pipeline input.";
     source = {
       type = "local-python";
       entry = "${repoRoot}/src/matmul.py";
@@ -26,7 +21,8 @@
   "tiny-stories-1m" = registerModel {
     key = "tiny-stories-1m";
     name = "tiny-stories-1m";
-    description = "Frozen TinyStories-1M torch-MLIR artifact (local, not committed).";
+    description =
+      "Frozen TinyStories-1M torch-MLIR artifact (local, not committed).";
     source = {
       type = "local-frozen-mlir";
       upstream = "roneneldan/TinyStories-1M";
