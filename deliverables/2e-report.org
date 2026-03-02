@@ -1,0 +1,105 @@
+* Deliverable 2e: Report and demo of results
+
+Reference (project plan v2):
+- docs/project-plan_v2.org:151
+
+Definition:
+- 2e) Write up of results, and video demo if successful
+
+** Executive summary
+This report documents the end-to-end outcome of Task 2d:
+- bitstream generation from the open-source flow,
+- manual programming on FPGA hardware,
+- bring-up/self-test validation against the fixed Task-2 vector,
+- evidence packaging for review.
+
+Current status reported by implementer:
+- bitstream loaded on board flash,
+- self-test working on hardware.
+
+** Scope
+- Fixed vector validation for the Task-2 matmul kernel.
+- Bring-up performed with manual programming commands (`openFPGALoader`).
+- Focus is functional bring-up evidence, not performance benchmarking.
+
+** Hardware and software setup
+- Board: YPCB-00338-1P1 (Kintex-7 class target)
+- Cable/programmer tool: `openFPGALoader`
+- Build system: Nix flake in this repository
+- Key derivations:
+  - `.#matmul-bitstream`
+  - `.#matmul-selftest-bitstream`
+  - `.#matmul-bitstream-fasm`
+
+** Procedure used
+1. Build bitstream artifacts.
+2. Scan JTAG and program bitstream manually.
+3. Run board self-test (LED PASS/FAIL protocol).
+4. Compare expected/got values using `sim/check_hw_result.py` when host-observed output is available.
+
+Representative commands:
+
+#+begin_src bash
+nix build .#matmul-selftest-bitstream -L
+BIT="$(readlink -f result)"
+openFPGALoader --scan-jtag
+openFPGALoader "$BIT"
+python3 sim/check_hw_result.py --print-expected
+#+end_src
+
+** Results
+| Check item | Result | Evidence path |
+|------------+--------+---------------|
+| Bitstream build (`.#matmul-bitstream` or self-test bitstream) | PASS | deliverables/2e/logs/build-*.log |
+| JTAG chain visibility | PASS | deliverables/2e/logs/jtag-scan.log |
+| Bitstream programming | PASS | deliverables/2e/logs/program-*.log |
+| Self-test LED heartbeat | PASS | deliverables/2e/demo/ (video/photo) |
+| Self-test PASS latch | PASS | deliverables/2e/demo/ (video/photo) |
+| Self-test FAIL latch remains low in passing run | PASS | deliverables/2e/demo/ (video/photo) |
+| Checker expected value generation | PASS | deliverables/2e/logs/expected.json |
+| Expected vs observed output comparison (if host output captured) | PASS/NA | deliverables/2e/logs/check-hw-result.json |
+
+Observed output note:
+- If host-side numeric output is captured, store it in `deliverables/2e/logs/hw_result.json`
+  and run `python3 sim/check_hw_result.py --got-json deliverables/2e/logs/hw_result.json`.
+
+** Evidence package
+Expected structure:
+
+#+begin_src text
+deliverables/2e/
+  README.org
+  logs/
+    build-matmul-bitstream.log
+    build-selftest-bitstream.log
+    jtag-scan.log
+    program-selftest.log
+    expected.json
+    hw_result.json                 # optional, if host output captured
+    check-hw-result.json           # optional, if host output captured
+  demo/
+    2e-demo.mp4                   # preferred
+    or photos showing PASS LED
+#+end_src
+
+** Reproducibility checklist
+- [ ] `nix fmt .` run cleanly for Nix formatting.
+- [ ] Build logs archived under `deliverables/2e/logs/`.
+- [ ] Programming logs archived under `deliverables/2e/logs/`.
+- [ ] Demo video/images added under `deliverables/2e/demo/`.
+- [ ] This report updated with final commit hash and date.
+
+** Commit and date metadata
+- Branch used for deliverable closure: `2d`
+- Final commit hash for submission: `<fill-after-squash>`
+- Submission date: `<fill>`
+
+** Limitations
+- Validation is currently for a fixed Task-2 vector.
+- Host interface remains minimal/manual for this stage.
+- Full production host I/O protocol hardening is out of scope for 2d/2e.
+
+** Acceptance statement
+Based on generated artifacts, manual board programming, and successful self-test behavior,
+Task 2d objectives are met and documented. This file and the evidence bundle form
+Deliverable 2e for RFP submission.

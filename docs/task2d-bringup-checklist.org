@@ -99,3 +99,5 @@ Reset `SYS_RSTN` (or reprogram) to re-run the one-shot test.
 - programming log (JTAG tool output)
 - observed hardware output value
 - checker output JSON (PASS/FAIL, expected/got)
+- final report: `deliverables/2e-report.org`
+- evidence folder: `deliverables/2e/`

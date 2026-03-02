@@ -1,0 +1,37 @@
+* Deliverable 2e evidence folder
+
+This directory stores raw evidence referenced by `deliverables/2e-report.org`.
+
+** Expected contents
+- `logs/`
+  - build logs, programming logs, checker outputs
+- `demo/`
+  - demo video and/or photos showing hardware behavior
+
+** Suggested capture commands
+#+begin_src bash
+mkdir -p deliverables/2e/logs deliverables/2e/demo
+
+nix build .#matmul-bitstream -L \
+  2>&1 | tee deliverables/2e/logs/build-matmul-bitstream.log
+
+nix build .#matmul-selftest-bitstream -L \
+  2>&1 | tee deliverables/2e/logs/build-selftest-bitstream.log
+
+openFPGALoader --scan-jtag \
+  2>&1 | tee deliverables/2e/logs/jtag-scan.log
+
+BIT="$(readlink -f result)"
+openFPGALoader "$BIT" \
+  2>&1 | tee deliverables/2e/logs/program-selftest.log
+
+python3 sim/check_hw_result.py --print-expected \
+  | tee deliverables/2e/logs/expected.json
+#+end_src
+
+If host-observed output is available:
+
+#+begin_src bash
+python3 sim/check_hw_result.py --got <observed_output> \
+  | tee deliverables/2e/logs/check-hw-result.json
+#+end_src
