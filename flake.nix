@@ -192,10 +192,8 @@
           let
             constraintFiles = (if includeBoardXdc then [ boardXdc ] else [ ])
               ++ extraConstraints;
-            catArgs =
-              builtins.concatStringsSep " " (map toString constraintFiles);
-          in pkgs.runCommand "${name}.xdc" { } ''
-            cat ${catArgs} > "$out"
+          in pkgs.runCommand "${name}.xdc" { inherit constraintFiles; } ''
+            cat $constraintFiles > "$out"
           '';
 
         mkFasm = { name, xdc, json }:
