@@ -124,18 +124,14 @@
     "llvm-submodule-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1770325089,
-        "narHash": "sha256-ynifeUooKPFnHY0dgPP9kJvQQXvf+DzKgR3CxL3wbKM=",
-        "owner": "llvm",
-        "repo": "llvm-project",
-        "rev": "972cd847efb20661ea7ee8982dd19730aa040c75",
-        "type": "github"
+        "lastModified": 1772488906,
+        "narHash": "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=",
+        "path": "/home/roland/circt/llvm",
+        "type": "path"
       },
       "original": {
-        "owner": "llvm",
-        "repo": "llvm-project",
-        "rev": "972cd847efb20661ea7ee8982dd19730aa040c75",
-        "type": "github"
+        "path": "/home/roland/circt/llvm",
+        "type": "path"
       }
     },
     "nextpnrXilinxFork": {

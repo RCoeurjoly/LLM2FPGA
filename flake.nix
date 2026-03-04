@@ -16,6 +16,10 @@
         url = "path:/home/roland/circt";
         flake = false;
       };
+      inputs."llvm-submodule-src" = {
+        url = "path:/home/roland/circt/llvm";
+        flake = false;
+      };
     };
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "github:RCoeurjoly/toolchain-nix";
