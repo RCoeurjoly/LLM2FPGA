@@ -8,7 +8,15 @@
     flake-utils.url = "github:numtide/flake-utils";
     # Clone with submodules
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
-    circt-nix.url = "github:dtzSiFive/circt-nix";
+    circt-nix = {
+      url = "path:/home/roland/circt-nix";
+      # Develop CIRCT from local checkout while keeping LLVM as a separate
+      # pinned input inside circt-nix.
+      inputs."circt-src" = {
+        url = "path:/home/roland/circt";
+        flake = false;
+      };
+    };
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "github:RCoeurjoly/toolchain-nix";
     nextpnrXilinxFork = {
