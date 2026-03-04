@@ -42,7 +42,9 @@
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        inherit (circtPkgs) circt;
+        # Local circt-nix still wires slang 9.x, while current CIRCT requests 10.x.
+        # We do not use the Verilog import frontend in this lowering pipeline.
+        circt = circtPkgs.circt.override { enableSlang = false; };
         yosysPkg = nix-eda.packages.${system}.yosysFull;
         yosysPkgWithPythonEnv = if yosysPkg ? python3-env then
           yosysPkg
