@@ -23,8 +23,8 @@
     "circt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1772647106,
-        "narHash": "sha256-gIAmehOklZpWO7UiK0+KI1fKcpHnBe1BGn5mWT06VKs=",
+        "lastModified": 1772647543,
+        "narHash": "sha256-snoQN6VRDCBlN6zzLrjlp8IVvxPl01U4/t5ZvpuN2TQ=",
         "path": "/home/roland/circt",
         "type": "path"
       },
@@ -124,8 +124,8 @@
     "llvm-submodule-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1772488906,
-        "narHash": "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=",
+        "lastModified": 1772647543,
+        "narHash": "sha256-bbueTKU0GpeLamAreKq+vh2DBuT08oqVA01W/vtGzCg=",
         "path": "/home/roland/circt/llvm",
         "type": "path"
       },
