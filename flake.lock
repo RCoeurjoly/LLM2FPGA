@@ -23,8 +23,8 @@
     "circt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1772659888,
-        "narHash": "sha256-09GPOudgf26vtXDTK3QDm5Frr7+Jvf97AspJlOaSvmo=",
+        "lastModified": 1772707939,
+        "narHash": "sha256-WbWcezskWHBwRZZXMWVdRmhmbiBJ5z7JWvY6eeN8VFo=",
         "path": "/home/roland/circt",
         "type": "path"
       },

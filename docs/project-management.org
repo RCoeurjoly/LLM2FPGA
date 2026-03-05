@@ -18,6 +18,9 @@ specially flopoco/ - functionality related to converting between FloPoCo's nonst
 ** Build all derivations
 system=$(nix eval --impure --raw --expr builtins.currentSystem) nix eval --json ".#packages.${system}" | jq -r 'keys[] | select(. != "all") | ".#" + .' | xargs -r nix build
     
+** update circt-src
+nix flake update circt-nix/circt-src
+
 * 2d: bitstream generation and programming
 ** nix effort
 *** WAIT nextpnr-xilinx
