@@ -10,7 +10,7 @@
         "slang-src": "slang-src"
       },
       "locked": {
-        "lastModified": 1772646966,
+        "lastModified": 1772653429,
         "narHash": "sha256-eL6Ou2yvmx+1CohMvY5dqCBUGP2fr3pcwBMaA7iT5Rw=",
         "path": "/home/roland/circt-nix",
         "type": "path"
@@ -23,8 +23,8 @@
     "circt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1772647543,
-        "narHash": "sha256-snoQN6VRDCBlN6zzLrjlp8IVvxPl01U4/t5ZvpuN2TQ=",
+        "lastModified": 1772659888,
+        "narHash": "sha256-09GPOudgf26vtXDTK3QDm5Frr7+Jvf97AspJlOaSvmo=",
         "path": "/home/roland/circt",
         "type": "path"
       },
