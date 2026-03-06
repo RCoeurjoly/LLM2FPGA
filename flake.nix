@@ -204,6 +204,9 @@
         matmulPipeline = modelPipelines.matmul;
         matmulSv = matmulPipeline.sv;
         matmulIl = matmulPipeline.il;
+        tinyStoriesQuantInt8Pipeline =
+          modelPipelines."tiny-stories-1m-quant-int8";
+        tinyStoriesQuantInt8Il = tinyStoriesQuantInt8Pipeline.il;
 
         boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
         mkTopSv = name: src:
@@ -211,10 +214,10 @@
             cp ${src} "$out"
           '';
 
-        mkMatmulJson = { name, topName, topSv }:
+        mkModelJson = { name, modelIl, topName, topSv }:
           pkgs.runCommand "${name}.json" { } ''
             ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
-                read_rtlil ${matmulIl}
+                read_rtlil ${modelIl}
                 read_slang ${topSv}
                 hierarchy -top ${topName} -check
                 proc
@@ -272,8 +275,9 @@
 
         matmulBitstreamTop =
           mkTopSv "matmul-bitstream-top" ./fpga/rtl/matmul_bitstream_top.sv;
-        matmulBitstreamJson = mkMatmulJson {
+        matmulBitstreamJson = mkModelJson {
           name = "matmul-bitstream";
+          modelIl = matmulIl;
           topName = "matmul_bitstream_top";
           topSv = matmulBitstreamTop;
         };
@@ -294,8 +298,9 @@
 
         matmulSelftestTop =
           mkTopSv "matmul-selftest-top" ./fpga/rtl/matmul_selftest_top.sv;
-        matmulSelftestJson = mkMatmulJson {
+        matmulSelftestJson = mkModelJson {
           name = "matmul-selftest";
+          modelIl = matmulIl;
           topName = "matmul_selftest_top";
           topSv = matmulSelftestTop;
         };
@@ -313,6 +318,30 @@
           name = "matmul-selftest";
           fasm = matmulSelftestFasm;
           framesBase = "matmul-selftest";
+        };
+
+        tinyStoriesSelftestTop = mkTopSv "tiny-stories-selftest-top"
+          ./fpga/rtl/tiny_stories_selftest_top.sv;
+        tinyStoriesSelftestJson = mkModelJson {
+          name = "tiny-stories-quant-int8-selftest";
+          modelIl = tinyStoriesQuantInt8Il;
+          topName = "tiny_stories_selftest_top";
+          topSv = tinyStoriesSelftestTop;
+        };
+        tinyStoriesSelftestXdc = mkXdc {
+          name = "tiny-stories-quant-int8-selftest";
+          includeBoardXdc = false;
+          extraConstraints = [ ./fpga/constraints/tiny_stories_selftest.xdc ];
+        };
+        tinyStoriesSelftestFasm = mkFasm {
+          name = "tiny-stories-quant-int8-selftest";
+          xdc = tinyStoriesSelftestXdc;
+          json = tinyStoriesSelftestJson;
+        };
+        tinyStoriesSelftestBitstream = mkBitstream {
+          name = "tiny-stories-quant-int8-selftest";
+          fasm = tinyStoriesSelftestFasm;
+          framesBase = "tiny-stories-quant-int8-selftest";
         };
 
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
@@ -425,6 +454,12 @@
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
+          tiny-stories-quant-int8-selftest-bitstream =
+            tinyStoriesSelftestBitstream;
+          tiny-stories-quant-int8-selftest-fasm = tinyStoriesSelftestFasm;
+          tiny-stories-quant-int8-selftest-top = tinyStoriesSelftestTop;
+          tiny-stories-quant-int8-selftest-xdc = tinyStoriesSelftestXdc;
+          tiny-stories-quant-int8-selftest-json = tinyStoriesSelftestJson;
         } // pipelineStagePackages // pipelineMetadataPackages;
 
         checks = {

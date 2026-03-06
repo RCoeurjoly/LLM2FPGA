@@ -1,0 +1,11 @@
+set_property PACKAGE_PIN AA28 [get_ports SYS_CLK]
+set_property IOSTANDARD LVCMOS18 [get_ports SYS_CLK]
+set_property PACKAGE_PIN R28 [get_ports SYS_RSTN]
+set_property IOSTANDARD LVCMOS18 [get_ports SYS_RSTN]
+
+set_property PACKAGE_PIN P30 [get_ports {led_3bits_tri_o[0]}]
+set_property PACKAGE_PIN M30 [get_ports {led_3bits_tri_o[1]}]
+set_property PACKAGE_PIN N30 [get_ports {led_3bits_tri_o[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {led_3bits_tri_o[0]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {led_3bits_tri_o[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {led_3bits_tri_o[2]}]
