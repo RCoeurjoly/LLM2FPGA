@@ -29,6 +29,8 @@ LLM2FPGA exists to lower an LLM end-to-end, starting with small models (for exam
 ## TinyStories Quantization Policy (Hard Constraint)
 - TinyStories must use a full quantization path only.
 - Dequantization-based modes are forbidden (including Q/DQ fallback patterns that restore float compute).
+- Surrogate models/wrappers that bypass transformer blocks or major TinyStories functionality are forbidden.
+- Use the real TinyStories model path; quantize/approximate ops in-place rather than deleting or skipping them.
 - Do not keep multiple TinyStories variants where some allow float/dequant behavior.
 - Do not attempt TinyStories lowering to Handshake/HW/SV/RTLIL until quantized CF is verified float-free.
 - If quantized CF contains any float/math ops, fail the build and continue quantization work; do not bypass with extern or blackbox strategies.

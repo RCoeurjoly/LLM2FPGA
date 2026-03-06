@@ -32,6 +32,7 @@
     };
     linalgLowering = "loops";
     cfRequireNoFloat = true;
+    useSplitSvForIl = true;
     torchInputBuildInputs = [ pythonWithTinyStories ];
     torchInputCommand = ''
       export HOME="$TMPDIR"

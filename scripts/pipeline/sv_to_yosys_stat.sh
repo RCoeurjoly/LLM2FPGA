@@ -27,11 +27,12 @@ if [[ -z "$light_mode" ]]; then
   fi
 fi
 
-# Large generated SV can still OOM inside read_slang; use safer defaults unless
-# explicitly overridden via YOSYS_SLANG_ARGS.
+# Large generated SV can still OOM inside read_slang; use conservative defaults
+# unless explicitly overridden via YOSYS_SLANG_ARGS. Keep instance caching
+# enabled for repeated transformer blocks to avoid hierarchy blow-up.
 slang_args="${YOSYS_SLANG_ARGS:-}"
 if [[ -z "$slang_args" ]] && [[ -n "$input_bytes" ]] && [[ "$input_bytes" -gt 50000000 ]]; then
-  slang_args="--threads 1 --no-proc --disable-instance-caching"
+  slang_args="--threads 1 --no-proc"
 fi
 
 fp_prims=""
