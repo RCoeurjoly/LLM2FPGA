@@ -11,146 +11,38 @@ input="${1:?usage: sv_to_il.sh <input-sv-or-filelist> <output-il>}"
 output="${2:?usage: sv_to_il.sh <input-sv-or-filelist> <output-il>}"
 require_file "$input"
 
-fp_prims_default="$(cd "$SCRIPT_DIR/../.." && pwd)/rtl/fp/circt_fp_primitives.sv"
 light_mode="${YOSYS_LIGHT_MODE:-}"
-fp_auto_tmp=""
+input_bytes=""
+
+if [[ "$input" == *.sv ]] && [[ -f "$input" ]]; then
+  input_bytes="$(wc -c <"$input")"
+fi
 
 if [[ -z "$light_mode" ]]; then
   light_mode=0
   # Very large monolithic SV files can OOM in full proc/techmap flow.
-  if [[ "$input" == *.sv ]] && [[ -f "$input" ]]; then
-    if [[ "$(wc -c <"$input")" -gt 50000000 ]]; then
+  if [[ -n "$input_bytes" ]]; then
+    if [[ "$input_bytes" -gt 50000000 ]]; then
       light_mode=1
     fi
   fi
 fi
 
-emit_builtin_fp_prims() {
-  cat <<'EOS'
-(* blackbox *)
-module arith_addf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic [31:0] in1, input logic in1_valid,
-  input  logic out0_ready,
-  output logic in0_ready, output logic in1_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
+# Large generated SV can still OOM inside read_slang; use safer defaults unless
+# explicitly overridden via YOSYS_SLANG_ARGS.
+slang_args="${YOSYS_SLANG_ARGS:-}"
+if [[ -z "$slang_args" ]] && [[ -n "$input_bytes" ]] && [[ "$input_bytes" -gt 50000000 ]]; then
+  slang_args="--threads 1 --no-proc --disable-instance-caching"
+fi
 
-(* blackbox *)
-module arith_divf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic [31:0] in1, input logic in1_valid,
-  input  logic out0_ready,
-  output logic in0_ready, output logic in1_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module arith_maximumf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic [31:0] in1, input logic in1_valid,
-  input  logic out0_ready,
-  output logic in0_ready, output logic in1_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module arith_mulf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic [31:0] in1, input logic in1_valid,
-  input  logic out0_ready,
-  output logic in0_ready, output logic in1_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module arith_subf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic [31:0] in1, input logic in1_valid,
-  input  logic out0_ready,
-  output logic in0_ready, output logic in1_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module arith_cmpf_in_f32_f32_out_ui1_ogt (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic [31:0] in1, input logic in1_valid,
-  input  logic out0_ready,
-  output logic in0_ready, output logic in1_ready,
-  output logic out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module arith_truncf_in_f64_out_f32 (
-  input  logic [63:0] in0, input logic in0_valid,
-  input  logic out0_ready,
-  output logic in0_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module math_exp_in_f32_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic out0_ready,
-  output logic in0_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module math_rsqrt_in_f32_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic out0_ready,
-  output logic in0_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module math_tanh_in_f32_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic out0_ready,
-  output logic in0_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-
-(* blackbox *)
-module math_fpowi_in_f32_ui64_out_f32 (
-  input  logic [31:0] in0, input logic in0_valid,
-  input  logic [63:0] in1, input logic in1_valid,
-  input  logic out0_ready,
-  output logic in0_ready, output logic in1_ready,
-  output logic [31:0] out0, output logic out0_valid
-); endmodule
-EOS
-}
-
-resolve_fp_prims() {
-  local in="$1"
-  local candidate=""
-  if [[ -n "${FP_PRIMS_SV:-}" ]]; then
-    echo "$FP_PRIMS_SV"
-    return
+fp_prims=""
+if [[ -n "${FP_PRIMS_SV:-}" ]]; then
+  if [[ ! -f "${FP_PRIMS_SV}" ]]; then
+    echo "FP_PRIMS_SV points to missing file: ${FP_PRIMS_SV}" >&2
+    exit 2
   fi
-  # Prefer an auto-generated per-run stub file colocated with pipeline output.
-  if [[ "$in" == *.f || "$in" == *.svf || "$in" == *.lst ]]; then
-    candidate="$(dirname "$in")/09-fp-prims-auto.sv"
-  else
-    candidate="$(dirname "$in")/09-fp-prims-auto.sv"
-  fi
-  if [[ -f "$candidate" ]]; then
-    echo "$candidate"
-    return
-  fi
-  if [[ -f "$fp_prims_default" ]]; then
-    echo "$fp_prims_default"
-    return
-  fi
-  fp_auto_tmp="$(mktemp /tmp/circt_fp_prims_auto_XXXXXX.sv)"
-  emit_builtin_fp_prims >"$fp_auto_tmp"
-  echo "$fp_auto_tmp"
-}
-
-fp_prims="$(resolve_fp_prims "$input")"
+  fp_prims="${FP_PRIMS_SV}"
+fi
 
 is_filelist=0
 case "$input" in
@@ -160,9 +52,6 @@ esac
 tmp_ys="$(mktemp /tmp/ts_yosys_il_XXXXXX.ys)"
 cleanup() {
   rm -f "$tmp_ys"
-  if [[ -n "$fp_auto_tmp" ]]; then
-    rm -f "$fp_auto_tmp"
-  fi
 }
 trap cleanup EXIT
 
@@ -173,10 +62,14 @@ if [[ -n "${YOSYS_SLANG_SO:-}" ]]; then
     exit 2
   fi
   echo "plugin -i ${YOSYS_SLANG_SO}" >>"$tmp_ys"
-  reader_cmd="read_slang"
+  reader_cmd="read_slang${slang_args:+ ${slang_args}}"
 fi
 
-if [[ -f "$fp_prims" ]]; then
+if [[ "$reader_cmd" == read_slang* ]] && [[ -n "$slang_args" ]]; then
+  echo "[sv_to_il] Using read_slang args: $slang_args" >&2
+fi
+
+if [[ -n "$fp_prims" ]]; then
   echo "$reader_cmd $fp_prims" >>"$tmp_ys"
 fi
 
@@ -199,6 +92,7 @@ write_rtlil $output
 EOS
 else
   cat >>"$tmp_ys" <<EOS
+hierarchy -check -top main
 proc
 opt
 techmap
@@ -208,4 +102,20 @@ write_rtlil $output
 EOS
 fi
 
+set +e
 "$YOSYS" -s "$tmp_ys"
+rc=$?
+set -e
+
+if [[ "$rc" -eq 137 || "$rc" -eq 9 ]]; then
+  size_note="unknown"
+  if [[ -n "$input_bytes" ]]; then
+    size_note="$input_bytes bytes"
+  fi
+  echo "[sv_to_il] ERROR: Yosys was killed while processing '$input' (exit code $rc)." >&2
+  echo "[sv_to_il] This is usually an out-of-memory condition. Input size: $size_note." >&2
+  echo "[sv_to_il] Try a host with more RAM, or reduce model complexity before SV->IL." >&2
+  echo "[sv_to_il] Note: weight-int8-dequant does not remove float compute, so SV may remain very large." >&2
+fi
+
+exit "$rc"
