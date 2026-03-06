@@ -25,3 +25,10 @@ LLM2FPGA exists to lower an LLM end-to-end, starting with small models (for exam
 - Quantization is the path to remove floating-point compute by converting it to integer/fixed-point compute.
 - If a "quantized" MLIR still contains floating-point logic, that quantization is insufficient for Task 3.
 - In that case, continue improving/replacing quantization until the relevant lowered IR no longer depends on floating-point operations.
+
+## TinyStories Quantization Policy (Hard Constraint)
+- TinyStories must use a full quantization path only.
+- Dequantization-based modes are forbidden (including Q/DQ fallback patterns that restore float compute).
+- Do not keep multiple TinyStories variants where some allow float/dequant behavior.
+- Do not attempt TinyStories lowering to Handshake/HW/SV/RTLIL until quantized CF is verified float-free.
+- If quantized CF contains any float/math ops, fail the build and continue quantization work; do not bypass with extern or blackbox strategies.

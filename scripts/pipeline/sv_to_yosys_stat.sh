@@ -109,7 +109,6 @@ if [[ "$rc" -eq 137 || "$rc" -eq 9 ]]; then
   echo "[sv_to_yosys_stat] ERROR: Yosys was killed while processing '$input' (exit code $rc)." >&2
   echo "[sv_to_yosys_stat] This is usually an out-of-memory condition. Input size: $size_note." >&2
   echo "[sv_to_yosys_stat] Try a host with more RAM, or reduce model complexity before Yosys stat." >&2
-  echo "[sv_to_yosys_stat] Note: weight-int8-dequant does not remove float compute, so SV may remain very large." >&2
 fi
 
 exit "$rc"

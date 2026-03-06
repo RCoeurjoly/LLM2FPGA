@@ -2,20 +2,16 @@
 
 This folder contains Task 3 scripts for TinyStories-1M lowering.
 
-The flake package `.#tiny-stories-1m-torch` now generates the torch-MLIR
-boundary artifact via a Nix derivation.
-
-An additional quantized export path is available via
-`.#tiny-stories-1m-quant-int8-torch`, which uses an integer-only TinyStories
-surrogate (int8 token/position embeddings plus int8 LM-head projection with
-int32 accumulation) to keep the exported graph free of runtime float ops.
-Model/tokenizer inputs are pinned to a fixed Hugging Face revision in
-`flake.nix`:
+The only supported TinyStories export path is fully quantized integer-only:
 
 ```bash
-nix build .#tiny-stories-1m-torch -L
 nix build .#tiny-stories-1m-quant-int8-torch -L
 ```
+
+Policy constraints:
+- No dequantization fallback modes are supported.
+- No floating-point compute fallback modes are supported.
+- Downstream lowering must not proceed unless quantized CF is float-free.
 
 To materialize a local copy in this directory:
 
