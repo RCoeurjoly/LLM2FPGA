@@ -108,10 +108,7 @@ let
 
   mkHw0Derivation = { name, hsExt, circtPkg ? circt }:
     pkgs.runCommand "${name}-hw0.mlir" {
-      buildInputs = [
-        circtPkg
-        pkgs.perl
-      ];
+      buildInputs = [ circtPkg pkgs.perl ];
     } ''
       export CIRCT_OPT=${circtPkg}/bin/circt-opt
       ${pkgs.bash}/bin/bash ${pipelineScripts}/hs_ext_to_hw0.sh ${hsExt} "$out"

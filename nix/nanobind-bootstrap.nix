@@ -1,11 +1,6 @@
-{
-  stdenv,
-  fetchFromGitHub,
-  python,
-}:
+{ stdenv, fetchFromGitHub, python, }:
 
-let
-  version = "2.10.2";
+let version = "2.10.2";
 in stdenv.mkDerivation {
   pname = "nanobind-bootstrap";
   inherit version;

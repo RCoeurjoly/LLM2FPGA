@@ -99,13 +99,13 @@
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
         pythonWithTinyStories =
           python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
-        nanobindBootstrap = pkgsLlvm21.callPackage ./nix/nanobind-bootstrap.nix {
-          inherit python;
-        };
+        nanobindBootstrap =
+          pkgsLlvm21.callPackage ./nix/nanobind-bootstrap.nix {
+            inherit python;
+          };
         mlirForTorchMlir = (torchMlirLlvmPackages.mlir.override {
-          devExtraCmakeFlags = [
-            (pkgsLlvm21.lib.cmakeBool "MLIR_ENABLE_BINDINGS_PYTHON" true)
-          ];
+          devExtraCmakeFlags =
+            [ (pkgsLlvm21.lib.cmakeBool "MLIR_ENABLE_BINDINGS_PYTHON" true) ];
         }).overrideAttrs (old: {
           doCheck = false;
           nativeBuildInputs = old.nativeBuildInputs ++ [ python ];
@@ -114,10 +114,14 @@
           '';
           cmakeFlags = (old.cmakeFlags or [ ]) ++ [
             (pkgsLlvm21.lib.cmakeBool "LLVM_BUILD_TESTS" false)
-            (pkgsLlvm21.lib.cmakeFeature "Python3_EXECUTABLE" "${python}/bin/python3")
-            (pkgsLlvm21.lib.cmakeFeature "Python_EXECUTABLE" "${python}/bin/python3")
-            (pkgsLlvm21.lib.cmakeFeature "pybind11_DIR" "${python.pkgs.pybind11}/${python.sitePackages}/pybind11/share/cmake/pybind11")
-            (pkgsLlvm21.lib.cmakeFeature "nanobind_DIR" "${nanobindBootstrap}/${python.sitePackages}/nanobind/cmake")
+            (pkgsLlvm21.lib.cmakeFeature "Python3_EXECUTABLE"
+              "${python}/bin/python3")
+            (pkgsLlvm21.lib.cmakeFeature "Python_EXECUTABLE"
+              "${python}/bin/python3")
+            (pkgsLlvm21.lib.cmakeFeature "pybind11_DIR"
+              "${python.pkgs.pybind11}/${python.sitePackages}/pybind11/share/cmake/pybind11")
+            (pkgsLlvm21.lib.cmakeFeature "nanobind_DIR"
+              "${nanobindBootstrap}/${python.sitePackages}/nanobind/cmake")
           ];
         });
         openXC7Packages = openXC7.packages.${system};
@@ -152,9 +156,9 @@
           inherit python;
           src = torch-mlir-src;
           nanobind = nanobindBootstrap;
-          tblgen = torchMlirLlvmPackages.tblgen;
+          inherit (torchMlirLlvmPackages) tblgen;
           mlir = mlirForTorchMlir;
-          llvm = torchMlirLlvmPackages.llvm;
+          inherit (torchMlirLlvmPackages) llvm;
         };
 
         pipelineScripts = ./scripts/pipeline;

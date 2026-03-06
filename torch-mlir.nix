@@ -1,95 +1,64 @@
-{
-  lib,
-  stdenv,
-  fetchFromGitHub,
-  cmake,
-  ninja,
-  pkg-config,
-  gitMinimal,
-  nix-update-script,
-  src ? fetchFromGitHub {
-    owner = "llvm";
-    repo = "torch-mlir";
-    rev = "59c249e5cc2025acca81bdcf1596b8dd36a5c0f9";
-    fetchSubmodules = true;
-    hash = "sha256-o1HG5JuKRMEnl2PrEu5KQi4iqBe0Doh1SET2W/OjGoI=";
-  },
-  python,
-  pybind11 ? python.pkgs.pybind11,
-  nanobind,
-  tblgen,
-  mlir,
-  llvm,
-  zlib,
-  libxml2,
-  ncurses,
-}:
+{ lib, stdenv, fetchFromGitHub, cmake, ninja, pkg-config, gitMinimal
+, nix-update-script, src ? fetchFromGitHub {
+  owner = "llvm";
+  repo = "torch-mlir";
+  rev = "59c249e5cc2025acca81bdcf1596b8dd36a5c0f9";
+  fetchSubmodules = true;
+  hash = "sha256-o1HG5JuKRMEnl2PrEu5KQi4iqBe0Doh1SET2W/OjGoI=";
+}, python, pybind11 ? python.pkgs.pybind11, nanobind, tblgen, mlir, llvm, zlib
+, libxml2, ncurses, }:
 
 let
-  mlirDev = if mlir ? dev then mlir.dev else mlir;
-  llvmDev = if llvm ? dev then llvm.dev else llvm;
+  mlirDev = mlir.dev or mlir;
+  llvmDev = llvm.dev or llvm;
 in stdenv.mkDerivation {
   pname = "torch-mlir";
   version = "0-unstable-2026-02-12";
   inherit src;
 
-  nativeBuildInputs = [
-    cmake
-    ninja
-    pkg-config
-    gitMinimal
-    python
-    pybind11
-    nanobind
-    tblgen
-  ];
+  nativeBuildInputs =
+    [ cmake ninja pkg-config gitMinimal python pybind11 nanobind tblgen ];
 
-  buildInputs = [
-    zlib
-    libxml2
-    ncurses
-    mlir
-    llvm
-  ];
+  buildInputs = [ zlib libxml2 ncurses mlir llvm ];
 
   configurePhase = ''
-    runHook preConfigure
+      runHook preConfigure
 
-    export PYTHONPATH="${pybind11}/${python.sitePackages}:${nanobind}/${python.sitePackages}:''${PYTHONPATH:-}"
-    extraCmakeFlags=()
-    # Local forks are often checked out without submodules. Disable stablehlo
-    # in that case so we can still iterate on core torch-mlir code.
-    if [ ! -d externals/stablehlo/stablehlo ]; then
-      extraCmakeFlags+=(-DTORCH_MLIR_ENABLE_STABLEHLO=OFF)
-    fi
+      export PYTHONPATH="${pybind11}/${python.sitePackages}:${nanobind}/${python.sitePackages}:''${PYTHONPATH:-}"
+      extraCmakeFlags=()
+      # Local forks are often checked out without submodules. Disable stablehlo
+      # in that case so we can still iterate on core torch-mlir code.
+      if [ ! -d externals/stablehlo/stablehlo ]; then
+        extraCmakeFlags+=(-DTORCH_MLIR_ENABLE_STABLEHLO=OFF)
+      fi
 
-    # MLIR's exported config in our split Nix package sets MLIR_TABLEGEN_EXE
-    # to a relative `mlir-tblgen`. Re-point it after find_package(MLIR) so
-    # generated .inc rules depend on an absolute executable path.
-    substituteInPlace CMakeLists.txt \
-      --replace-fail "find_package(MLIR REQUIRED CONFIG)" \
-      "find_package(MLIR REQUIRED CONFIG)
-  set(MLIR_TABLEGEN_EXE ${tblgen}/bin/mlir-tblgen)
-  set(MLIR_TABLEGEN_TARGET ${tblgen}/bin/mlir-tblgen)"
+      # MLIR's exported config in our split Nix package sets MLIR_TABLEGEN_EXE
+      # to a relative `mlir-tblgen`. Re-point it after find_package(MLIR) so
+      # generated .inc rules depend on an absolute executable path.
+      substituteInPlace CMakeLists.txt \
+        --replace-fail "find_package(MLIR REQUIRED CONFIG)" \
+        "find_package(MLIR REQUIRED CONFIG)
+    set(MLIR_TABLEGEN_EXE ${tblgen}/bin/mlir-tblgen)
+    set(MLIR_TABLEGEN_TARGET ${tblgen}/bin/mlir-tblgen)"
 
-    cmake -G Ninja \
-      -S . \
-      -B build \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=$out \
-      -DLLVM_ENABLE_ASSERTIONS=ON \
-      -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
-      -DMLIR_TABLEGEN_EXE=${tblgen}/bin/mlir-tblgen \
-      -DLLVM_DIR=${llvmDev}/lib/cmake/llvm \
-      -DMLIR_DIR=${mlirDev}/lib/cmake/mlir \
-      -Dnanobind_DIR=${nanobind}/${python.sitePackages}/nanobind/cmake \
-      -DPython3_EXECUTABLE=${python}/bin/python3 \
-      -DPython_EXECUTABLE=${python}/bin/python3 \
-      -DPython3_FIND_VIRTUALENV=ONLY \
-      -DPython_FIND_VIRTUALENV=ONLY \
-      "''${extraCmakeFlags[@]}"
+      cmake -G Ninja \
+        -S . \
+        -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=$out \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
+        -DMLIR_TABLEGEN_EXE=${tblgen}/bin/mlir-tblgen \
+        -DLLVM_DIR=${llvmDev}/lib/cmake/llvm \
+        -DMLIR_DIR=${mlirDev}/lib/cmake/mlir \
+        -Dnanobind_DIR=${nanobind}/${python.sitePackages}/nanobind/cmake \
+        -DPython3_EXECUTABLE=${python}/bin/python3 \
+        -DPython_EXECUTABLE=${python}/bin/python3 \
+        -DPython3_FIND_VIRTUALENV=ONLY \
+        -DPython_FIND_VIRTUALENV=ONLY \
+        "''${extraCmakeFlags[@]}"
 
-    runHook postConfigure
+      runHook postConfigure
   '';
 
   buildPhase = ''
@@ -120,9 +89,8 @@ in stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  passthru.updateScript = nix-update-script {
-    extraArgs = [ "--version=branch" ];
-  };
+  passthru.updateScript =
+    nix-update-script { extraArgs = [ "--version=branch" ]; };
 
   meta = {
     description = "Torch-MLIR compiler infrastructure and Python bindings";
