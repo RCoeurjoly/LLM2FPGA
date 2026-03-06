@@ -11,6 +11,11 @@ input="${1:?usage: sv_to_il.sh <input-sv-or-filelist> <output-il>}"
 output="${2:?usage: sv_to_il.sh <input-sv-or-filelist> <output-il>}"
 require_file "$input"
 
+is_filelist=0
+case "$input" in
+  *.f|*.svf|*.lst) is_filelist=1 ;;
+esac
+
 light_mode="${YOSYS_LIGHT_MODE:-}"
 input_bytes=""
 
@@ -26,13 +31,23 @@ if [[ -z "$light_mode" ]]; then
       light_mode=1
     fi
   fi
+  # Filelist-driven flows are used for very large designs and should stay in
+  # lightweight mode by default.
+  if [[ "$is_filelist" == "1" ]]; then
+    light_mode=1
+  fi
 fi
 
 # Large generated SV can still OOM inside read_slang; use safer defaults unless
 # explicitly overridden via YOSYS_SLANG_ARGS.
 slang_args="${YOSYS_SLANG_ARGS:-}"
-if [[ -z "$slang_args" ]] && [[ -n "$input_bytes" ]] && [[ "$input_bytes" -gt 50000000 ]]; then
-  slang_args="--threads 1 --no-proc --disable-instance-caching"
+if [[ -z "$slang_args" ]]; then
+  if [[ -n "$input_bytes" ]] && [[ "$input_bytes" -gt 50000000 ]]; then
+    slang_args="--threads 1 --no-proc --disable-instance-caching"
+  fi
+  if [[ "$is_filelist" == "1" ]]; then
+    slang_args="--threads 1 --no-proc --disable-instance-caching"
+  fi
 fi
 
 fp_prims=""
@@ -43,11 +58,6 @@ if [[ -n "${FP_PRIMS_SV:-}" ]]; then
   fi
   fp_prims="${FP_PRIMS_SV}"
 fi
-
-is_filelist=0
-case "$input" in
-  *.f|*.svf|*.lst) is_filelist=1 ;;
-esac
 
 tmp_ys="$(mktemp /tmp/ts_yosys_il_XXXXXX.ys)"
 cleanup() {

@@ -22,6 +22,8 @@
     key = "tiny-stories-1m";
     name = "tiny-stories-1m";
     description = "TinyStories-1M torch-MLIR exported in a Nix derivation.";
+    allowHwExterns = true;
+    useSplitSvForIl = true;
     source = {
       type = "huggingface-export";
       model_id = "roneneldan/TinyStories-1M";

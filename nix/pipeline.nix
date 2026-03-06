@@ -128,10 +128,32 @@ let
       ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_to_hw_clean.sh ${hw} "$out"
     '';
 
-  mkSvDerivation = { name, hwClean, circtPkg ? circt }:
+  mkSvDerivation = { name, hwClean, allowHwExterns ? false, circtPkg ? circt }:
     pkgs.runCommand "${name}.sv" { buildInputs = [ circtPkg ]; } ''
       export CIRCT_OPT=${circtPkg}/bin/circt-opt
+      ${pkgs.lib.optionalString allowHwExterns ''
+        export ALLOW_HW_EXTERNS=1
+      ''}
+      ${pkgs.lib.optionalString (fpPrimsSv != null) ''
+        export FP_PRIMS_SV=${fpPrimsSv}
+      ''}
       ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_clean_to_sv.sh ${hwClean} "$out"
+    '';
+
+  mkSvSplitDerivation =
+    { name, hwClean, allowHwExterns ? false, circtPkg ? circt }:
+    pkgs.runCommand "${name}-sv-split" { buildInputs = [ circtPkg ]; } ''
+      mkdir -p "$out"
+      export CIRCT_OPT=${circtPkg}/bin/circt-opt
+      ${pkgs.lib.optionalString allowHwExterns ''
+        export ALLOW_HW_EXTERNS=1
+      ''}
+      ${pkgs.lib.optionalString (fpPrimsSv != null) ''
+        export FP_PRIMS_SV=${fpPrimsSv}
+      ''}
+      export SV_SPLIT_DIR="$out/sv"
+      export SV_SPLIT_FILELIST="$out/sources.f"
+      ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_clean_to_sv.sh ${hwClean} "$out/all.sv"
     '';
 
   mkIlDerivation = { name, sv }:
@@ -156,6 +178,7 @@ let
 
   mkPipeline = { name, torchMlirInput, linalgLowering ? "affine"
     , cfRequireNoFloat ? false, handshakeInsertBuffers ? true
+    , allowHwExterns ? false, useSplitSvForIl ? false
     , circtPkg ? circt }: rec {
       torch = mkTorchDerivation { inherit name torchMlirInput; };
       linalg = mkLinalgDerivation { inherit name torch; };
@@ -170,9 +193,19 @@ let
       hw0 = mkHw0Derivation { inherit name hsExt circtPkg; };
       hw = mkHwDerivation { inherit name hw0 circtPkg; };
       hwClean = mkHwCleanDerivation { inherit name hw circtPkg; };
-      sv = mkSvDerivation { inherit name hwClean circtPkg; };
-      il = mkIlDerivation { inherit name sv; };
-      yosysStat = mkYosysStatDerivation { inherit name sv; };
+      sv = mkSvDerivation { inherit name hwClean allowHwExterns circtPkg; };
+      svSplit = if useSplitSvForIl then
+        mkSvSplitDerivation { inherit name hwClean allowHwExterns circtPkg; }
+      else
+        null;
+      il = mkIlDerivation {
+        inherit name;
+        sv = if useSplitSvForIl then "${svSplit}/sources.f" else sv;
+      };
+      yosysStat = mkYosysStatDerivation {
+        inherit name;
+        sv = if useSplitSvForIl then "${svSplit}/sources.f" else sv;
+      };
     };
 
   stagePathsForPipeline = pipeline:
@@ -193,7 +226,7 @@ let
         key = modelKey;
         inherit (model)
           name description source linalgLowering cfRequireNoFloat
-          handshakeInsertBuffers;
+          handshakeInsertBuffers allowHwExterns useSplitSvForIl;
       };
       artifacts = stagePathsForPipeline model.pipeline;
     });
@@ -202,7 +235,9 @@ let
     , source ? { type = "local"; }, torchMlirInput ? null
     , torchInputCommand ? null, torchInputBuildInputs ? [ ]
     , linalgLowering ? "affine", cfRequireNoFloat ? false
-    , handshakeInsertBuffers ? true, circtPkg ? circt
+    , handshakeInsertBuffers ? true, allowHwExterns ? false
+    , useSplitSvForIl ? false
+    , circtPkg ? circt
     }:
     let
       validatedSource = if (source.type or "") == "huggingface"
@@ -225,12 +260,13 @@ let
         "registerModel(${name}): provide torchMlirInput or torchInputCommand";
       pipeline = mkPipeline {
         inherit name linalgLowering cfRequireNoFloat handshakeInsertBuffers
+          allowHwExterns useSplitSvForIl
           circtPkg;
         torchMlirInput = resolvedTorchInput;
       };
       model = {
         inherit key name description linalgLowering cfRequireNoFloat
-          handshakeInsertBuffers;
+          handshakeInsertBuffers allowHwExterns useSplitSvForIl;
         source = validatedSource;
         torchInput = resolvedTorchInput;
         inherit pipeline;
@@ -255,7 +291,7 @@ let
       (name: model: {
         inherit (model)
           name description source linalgLowering cfRequireNoFloat
-          handshakeInsertBuffers;
+          handshakeInsertBuffers allowHwExterns useSplitSvForIl;
         packages = builtins.listToAttrs (map (stage: {
           name = stage.pkg;
           value = "${name}-${stage.pkg}";

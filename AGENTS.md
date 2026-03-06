@@ -15,3 +15,13 @@ LLM2FPGA exists to lower an LLM end-to-end, starting with small models (for exam
 - When reporting progress, distinguish clearly between:
   - "SV emitted" and
   - "SV complete for synthesis without external blackboxes" (required).
+
+## Task 3 Functional Requirement (TinyStories)
+- Task 3 is to lower TinyStories to RTLIL (for Yosys) while preserving whole-model functionality.
+- The produced design must be functionally meaningful for TinyStories inference (or at minimum preserve a real path to full functionality), even if full hardware validation is not yet run.
+- Surrogate models that skip major TinyStories functionality are not acceptable as Task 3 completion.
+
+## Quantization Expectation For Task 3
+- Quantization is the path to remove floating-point compute by converting it to integer/fixed-point compute.
+- If a "quantized" MLIR still contains floating-point logic, that quantization is insufficient for Task 3.
+- In that case, continue improving/replacing quantization until the relevant lowered IR no longer depends on floating-point operations.

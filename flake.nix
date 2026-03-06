@@ -185,6 +185,7 @@
         pipelineLib = import ./nix/pipeline.nix {
           inherit pkgs mlir circt yosysPkg yosysSlang torchMlir python;
           inherit pipelineScripts;
+          fpPrimsSv = ./rtl/fp/circt_fp_primitives.sv;
         };
 
         modelRegistry = import ./nix/models.nix {
