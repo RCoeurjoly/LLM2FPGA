@@ -294,6 +294,7 @@
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "openXC7": "openXC7",
+        "torch-mlir-src": "torch-mlir-src",
         "yosys": "yosys",
         "ypcbHack": "ypcbHack"
       }
@@ -372,6 +373,19 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
+      }
+    },
+    "torch-mlir-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772714874,
+        "narHash": "sha256-n1sx48smT2+MFjS2OHgXx0o3u1yS8TCLnSMySUIgszA=",
+        "path": "/home/roland/torch-mlir",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/roland/torch-mlir",
+        "type": "path"
       }
     },
     "yosys": {

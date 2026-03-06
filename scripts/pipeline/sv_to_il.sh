@@ -12,7 +12,117 @@ output="${2:?usage: sv_to_il.sh <input-sv-or-filelist> <output-il>}"
 require_file "$input"
 
 fp_prims_default="$(cd "$SCRIPT_DIR/../.." && pwd)/rtl/fp/circt_fp_primitives.sv"
-light_mode="${YOSYS_LIGHT_MODE:-0}"
+light_mode="${YOSYS_LIGHT_MODE:-}"
+fp_auto_tmp=""
+
+if [[ -z "$light_mode" ]]; then
+  light_mode=0
+  # Very large monolithic SV files can OOM in full proc/techmap flow.
+  if [[ "$input" == *.sv ]] && [[ -f "$input" ]]; then
+    if [[ "$(wc -c <"$input")" -gt 50000000 ]]; then
+      light_mode=1
+    fi
+  fi
+fi
+
+emit_builtin_fp_prims() {
+  cat <<'EOS'
+(* blackbox *)
+module arith_addf_in_f32_f32_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic [31:0] in1, input logic in1_valid,
+  input  logic out0_ready,
+  output logic in0_ready, output logic in1_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module arith_divf_in_f32_f32_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic [31:0] in1, input logic in1_valid,
+  input  logic out0_ready,
+  output logic in0_ready, output logic in1_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module arith_maximumf_in_f32_f32_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic [31:0] in1, input logic in1_valid,
+  input  logic out0_ready,
+  output logic in0_ready, output logic in1_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module arith_mulf_in_f32_f32_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic [31:0] in1, input logic in1_valid,
+  input  logic out0_ready,
+  output logic in0_ready, output logic in1_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module arith_subf_in_f32_f32_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic [31:0] in1, input logic in1_valid,
+  input  logic out0_ready,
+  output logic in0_ready, output logic in1_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module arith_cmpf_in_f32_f32_out_ui1_ogt (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic [31:0] in1, input logic in1_valid,
+  input  logic out0_ready,
+  output logic in0_ready, output logic in1_ready,
+  output logic out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module arith_truncf_in_f64_out_f32 (
+  input  logic [63:0] in0, input logic in0_valid,
+  input  logic out0_ready,
+  output logic in0_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module math_exp_in_f32_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic out0_ready,
+  output logic in0_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module math_rsqrt_in_f32_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic out0_ready,
+  output logic in0_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module math_tanh_in_f32_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic out0_ready,
+  output logic in0_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+
+(* blackbox *)
+module math_fpowi_in_f32_ui64_out_f32 (
+  input  logic [31:0] in0, input logic in0_valid,
+  input  logic [63:0] in1, input logic in1_valid,
+  input  logic out0_ready,
+  output logic in0_ready, output logic in1_ready,
+  output logic [31:0] out0, output logic out0_valid
+); endmodule
+EOS
+}
 
 resolve_fp_prims() {
   local in="$1"
@@ -31,7 +141,13 @@ resolve_fp_prims() {
     echo "$candidate"
     return
   fi
-  echo "$fp_prims_default"
+  if [[ -f "$fp_prims_default" ]]; then
+    echo "$fp_prims_default"
+    return
+  fi
+  fp_auto_tmp="$(mktemp /tmp/circt_fp_prims_auto_XXXXXX.sv)"
+  emit_builtin_fp_prims >"$fp_auto_tmp"
+  echo "$fp_auto_tmp"
 }
 
 fp_prims="$(resolve_fp_prims "$input")"
@@ -42,7 +158,12 @@ case "$input" in
 esac
 
 tmp_ys="$(mktemp /tmp/ts_yosys_il_XXXXXX.ys)"
-cleanup() { rm -f "$tmp_ys"; }
+cleanup() {
+  rm -f "$tmp_ys"
+  if [[ -n "$fp_auto_tmp" ]]; then
+    rm -f "$fp_auto_tmp"
+  fi
+}
 trap cleanup EXIT
 
 reader_cmd="read_verilog -sv"

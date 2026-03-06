@@ -13,7 +13,7 @@
     torchInputBuildInputs = [ pythonWithTorch ];
     torchInputCommand = ''
       export MATMUL_PY=${repoRoot}/src/matmul.py
-      export PYTHONPATH="${repoRoot}/src:${repoRoot}/sim:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
+      export PYTHONPATH="${repoRoot}/src:${repoRoot}/sim:${torchMlir}/${python.sitePackages}:${torchMlir}/${python.sitePackages}/torch_mlir:''${PYTHONPATH:-}"
       python ${repoRoot}/src/compile-pytorch.py > "$out"
     '';
   };
@@ -35,9 +35,37 @@
       export HF_HOME="$TMPDIR/huggingface"
       export HF_HUB_DISABLE_TELEMETRY=1
       export TOKENIZERS_PARALLELISM=false
-      export PYTHONPATH="${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
+      export PYTHONPATH="${torchMlir}/${python.sitePackages}:${torchMlir}/${python.sitePackages}/torch_mlir:''${PYTHONPATH:-}"
       export TINYSTORIES_MODEL_PATH=${tinyStories1mSnapshot}
       export TINYSTORIES_LOCAL_ONLY=1
+      export TINYSTORIES_TORCH_MLIR_OUT="$out"
+      python ${repoRoot}/TinyStories/compile-pytorch.py >/dev/null
+    '';
+  };
+
+  "tiny-stories-1m-quant-int8" = registerModel {
+    key = "tiny-stories-1m-quant-int8";
+    name = "tiny-stories-1m-quant-int8";
+    description =
+      "TinyStories-1M torch-MLIR export with weight int8 quantize-dequant preprocessing.";
+    source = {
+      type = "huggingface-export";
+      model_id = "roneneldan/TinyStories-1M";
+      model_revision = tinyStories1mRevision;
+      export_script = "${repoRoot}/TinyStories/compile-pytorch.py";
+      quantization = "weight-int8-dequant";
+    };
+    linalgLowering = "loops";
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      export HOME="$TMPDIR"
+      export HF_HOME="$TMPDIR/huggingface"
+      export HF_HUB_DISABLE_TELEMETRY=1
+      export TOKENIZERS_PARALLELISM=false
+      export PYTHONPATH="${torchMlir}/${python.sitePackages}:${torchMlir}/${python.sitePackages}/torch_mlir:''${PYTHONPATH:-}"
+      export TINYSTORIES_MODEL_PATH=${tinyStories1mSnapshot}
+      export TINYSTORIES_LOCAL_ONLY=1
+      export TINYSTORIES_QUANTIZATION=weight-int8-dequant
       export TINYSTORIES_TORCH_MLIR_OUT="$out"
       python ${repoRoot}/TinyStories/compile-pytorch.py >/dev/null
     '';

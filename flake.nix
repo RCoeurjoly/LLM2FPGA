@@ -32,11 +32,15 @@
       url = "github:RCoeurjoly/ypcb_00338_1p1_hack";
       flake = false;
     };
+    torch-mlir-src = {
+      url = "path:/home/roland/torch-mlir";
+      flake = false;
+    };
     # openXC7.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix, nix-eda
-    , openXC7, nextpnrXilinxFork, ypcbHack, ... }:
+    , openXC7, nextpnrXilinxFork, ypcbHack, torch-mlir-src, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -61,11 +65,61 @@
             { };
         };
         llvmPackages = pkgsLlvm21.llvmPackages_21;
+        # Keep LLVM for torch-mlir separate and pinned to torch-mlir's
+        # submodule revision so source edits in torch-mlir do not rebuild LLVM.
+        torchMlirLlvmPackages = (pkgsLlvm21.llvmPackages_git.override {
+          llvmVersions = {
+            "22.0.0-git" = {
+              gitRelease = {
+                rev = "3ca2a5fc0b84762f0e7d8a0e613fd69f7e344219";
+                rev-version = "23.0.0-unstable-2026-01-20";
+                sha256 = "sha256-jjdb2PtKnjYo9RIGJ82YtKmZinqEOlmm7R64SeJqTac=";
+              };
+            };
+          };
+        }).overrideScope (final: prev: {
+          # This commit reports LLVM 23 in source headers, while the package set
+          # key stays on llvmPackages_git. Skip nixpkgs' strict version triplet
+          # guard for this custom pin.
+          libllvm = (prev.libllvm.override {
+            # Ensure llvm builds against the matching tblgen from this pinned
+            # package set, not the default llvmPackages_git bootstrap set.
+            buildLlvmPackages = final;
+          }).overrideAttrs (old: {
+            postConfigure = "";
+            doCheck = false;
+            cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+              (pkgsLlvm21.lib.cmakeBool "LLVM_BUILD_TESTS" false)
+              (pkgsLlvm21.lib.cmakeBool "LLVM_INCLUDE_TESTS" false)
+            ];
+          });
+        });
         inherit (llvmPackages) mlir;
-        python = pkgs.python311;
+        python = pkgsLlvm21.python311;
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
         pythonWithTinyStories =
           python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
+        nanobindBootstrap = pkgsLlvm21.callPackage ./nix/nanobind-bootstrap.nix {
+          inherit python;
+        };
+        mlirForTorchMlir = (torchMlirLlvmPackages.mlir.override {
+          devExtraCmakeFlags = [
+            (pkgsLlvm21.lib.cmakeBool "MLIR_ENABLE_BINDINGS_PYTHON" true)
+          ];
+        }).overrideAttrs (old: {
+          doCheck = false;
+          nativeBuildInputs = old.nativeBuildInputs ++ [ python ];
+          preConfigure = (old.preConfigure or "") + ''
+            export PYTHONPATH="${python.pkgs.pybind11}/${python.sitePackages}:${nanobindBootstrap}/${python.sitePackages}:''${PYTHONPATH:-}"
+          '';
+          cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+            (pkgsLlvm21.lib.cmakeBool "LLVM_BUILD_TESTS" false)
+            (pkgsLlvm21.lib.cmakeFeature "Python3_EXECUTABLE" "${python}/bin/python3")
+            (pkgsLlvm21.lib.cmakeFeature "Python_EXECUTABLE" "${python}/bin/python3")
+            (pkgsLlvm21.lib.cmakeFeature "pybind11_DIR" "${python.pkgs.pybind11}/${python.sitePackages}/pybind11/share/cmake/pybind11")
+            (pkgsLlvm21.lib.cmakeFeature "nanobind_DIR" "${nanobindBootstrap}/${python.sitePackages}/nanobind/cmake")
+          ];
+        });
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
         openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs
@@ -90,11 +144,17 @@
         fpgaChipdb = "${openXC7Chipdb}/xc7k480tffg1156.bin";
         prjxrayPythonPath =
           "${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3";
-        # Torch-MLIR is not available in nixpkgs, pending this PR: https://github.com/NixOS/nixpkgs/pull/490242
-        # For the moment, we consume the wheel
-        torchMlir = pkgs.callPackage ./torch-mlir.nix {
-          inherit pkgs;
+        # Local copy of the source-based package proposed in:
+        # https://github.com/NixOS/nixpkgs/pull/490242
+        # Built out-of-tree against a separate LLVM/MLIR derivation so torch-mlir
+        # changes do not force rebuilding LLVM.
+        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix {
           inherit python;
+          src = torch-mlir-src;
+          nanobind = nanobindBootstrap;
+          tblgen = torchMlirLlvmPackages.tblgen;
+          mlir = mlirForTorchMlir;
+          llvm = torchMlirLlvmPackages.llvm;
         };
 
         pipelineScripts = ./scripts/pipeline;
@@ -343,6 +403,8 @@
         packages = {
           default = matmulSv;
           torch-mlir = torchMlir;
+          torch-mlir-llvm = torchMlirLlvmPackages.llvm;
+          torch-mlir-mlir = mlirForTorchMlir;
           model-registry = modelRegistryJson;
           tb-data-sv = tbDataSv;
           sim-main = simMain;

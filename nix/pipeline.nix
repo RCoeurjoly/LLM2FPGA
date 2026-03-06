@@ -1,4 +1,5 @@
-{ pkgs, mlir, circt, yosysPkg, yosysSlang, torchMlir, python, pipelineScripts }:
+{ pkgs, mlir, circt, yosysPkg, yosysSlang, torchMlir, python, pipelineScripts
+, fpPrimsSv ? null }:
 let
   stageMap = [
     {
@@ -58,7 +59,16 @@ let
 
   mkLinalgDerivation = { name, torch }:
     pkgs.runCommand "${name}-linalg.mlir" { buildInputs = [ torchMlir ]; } ''
-      export TORCH_MLIR_OPT=${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt
+      if [ -x "${torchMlir}/bin/torch-mlir-opt" ]; then
+        export TORCH_MLIR_OPT=${torchMlir}/bin/torch-mlir-opt
+      elif [ -x "${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt" ]; then
+        export TORCH_MLIR_OPT=${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt
+      elif [ -x "${torchMlir}/${python.sitePackages}/torch_mlir/torch_mlir/_mlir_libs/torch-mlir-opt" ]; then
+        export TORCH_MLIR_OPT=${torchMlir}/${python.sitePackages}/torch_mlir/torch_mlir/_mlir_libs/torch-mlir-opt
+      else
+        echo "Unable to locate torch-mlir-opt in ${torchMlir}" >&2
+        exit 1
+      fi
       ${pkgs.bash}/bin/bash ${pipelineScripts}/torch_to_linalg.sh ${torch} "$out"
     '';
 
@@ -97,7 +107,12 @@ let
     '';
 
   mkHw0Derivation = { name, hsExt, circtPkg ? circt }:
-    pkgs.runCommand "${name}-hw0.mlir" { buildInputs = [ circtPkg ]; } ''
+    pkgs.runCommand "${name}-hw0.mlir" {
+      buildInputs = [
+        circtPkg
+        pkgs.perl
+      ];
+    } ''
       export CIRCT_OPT=${circtPkg}/bin/circt-opt
       ${pkgs.bash}/bin/bash ${pipelineScripts}/hs_ext_to_hw0.sh ${hsExt} "$out"
     '';
@@ -124,6 +139,9 @@ let
     pkgs.runCommand "${name}.il" { buildInputs = [ yosysPkg ]; } ''
       export YOSYS=${yosysPkg}/bin/yosys
       export YOSYS_SLANG_SO=${yosysSlang}/share/yosys/plugins/slang.so
+      ${pkgs.lib.optionalString (fpPrimsSv != null) ''
+        export FP_PRIMS_SV=${fpPrimsSv}
+      ''}
       ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_il.sh ${sv} "$out"
     '';
 
@@ -131,6 +149,9 @@ let
     pkgs.runCommand "${name}-yosys.stat" { buildInputs = [ yosysPkg ]; } ''
       export YOSYS=${yosysPkg}/bin/yosys
       export YOSYS_SLANG_SO=${yosysSlang}/share/yosys/plugins/slang.so
+      ${pkgs.lib.optionalString (fpPrimsSv != null) ''
+        export FP_PRIMS_SV=${fpPrimsSv}
+      ''}
       ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_yosys_stat.sh ${sv} "$out"
     '';
 
