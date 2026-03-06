@@ -72,10 +72,12 @@ let
       ${pkgs.bash}/bin/bash ${pipelineScripts}/torch_to_linalg.sh ${torch} "$out"
     '';
 
-  mkCfDerivation = { name, linalg, linalgLowering ? "affine" }:
+  mkCfDerivation = { name, linalg, linalgLowering ? "affine"
+    , cfRequireNoFloat ? false }:
     pkgs.runCommand "${name}-cf.mlir" { buildInputs = [ mlir ]; } ''
       export MLIR_OPT=${mlir}/bin/mlir-opt
       export LINALG_LOWERING=${linalgLowering}
+      export CF_REQUIRE_NO_FLOAT=${if cfRequireNoFloat then "1" else "0"}
       ${pkgs.bash}/bin/bash ${pipelineScripts}/linalg_to_cf.sh ${linalg} "$out"
     '';
 
@@ -153,10 +155,13 @@ let
     '';
 
   mkPipeline = { name, torchMlirInput, linalgLowering ? "affine"
-    , handshakeInsertBuffers ? true, circtPkg ? circt }: rec {
+    , cfRequireNoFloat ? false, handshakeInsertBuffers ? true
+    , circtPkg ? circt }: rec {
       torch = mkTorchDerivation { inherit name torchMlirInput; };
       linalg = mkLinalgDerivation { inherit name torch; };
-      cf = mkCfDerivation { inherit name linalg linalgLowering; };
+      cf = mkCfDerivation {
+        inherit name linalg linalgLowering cfRequireNoFloat;
+      };
       cfStats = mkCfStatsDerivation { inherit name cf; };
       handshake = mkHandshakeDerivation {
         inherit name cf handshakeInsertBuffers circtPkg;
@@ -187,7 +192,8 @@ let
       model = {
         key = modelKey;
         inherit (model)
-          name description source linalgLowering handshakeInsertBuffers;
+          name description source linalgLowering cfRequireNoFloat
+          handshakeInsertBuffers;
       };
       artifacts = stagePathsForPipeline model.pipeline;
     });
@@ -195,7 +201,8 @@ let
   registerModel = { name, key ? name, description ? ""
     , source ? { type = "local"; }, torchMlirInput ? null
     , torchInputCommand ? null, torchInputBuildInputs ? [ ]
-    , linalgLowering ? "affine", handshakeInsertBuffers ? true, circtPkg ? circt
+    , linalgLowering ? "affine", cfRequireNoFloat ? false
+    , handshakeInsertBuffers ? true, circtPkg ? circt
     }:
     let
       validatedSource = if (source.type or "") == "huggingface"
@@ -217,11 +224,13 @@ let
         throw
         "registerModel(${name}): provide torchMlirInput or torchInputCommand";
       pipeline = mkPipeline {
-        inherit name linalgLowering handshakeInsertBuffers circtPkg;
+        inherit name linalgLowering cfRequireNoFloat handshakeInsertBuffers
+          circtPkg;
         torchMlirInput = resolvedTorchInput;
       };
       model = {
-        inherit key name description linalgLowering handshakeInsertBuffers;
+        inherit key name description linalgLowering cfRequireNoFloat
+          handshakeInsertBuffers;
         source = validatedSource;
         torchInput = resolvedTorchInput;
         inherit pipeline;
@@ -245,7 +254,8 @@ let
     pkgs.writeText "model-registry.json" (builtins.toJSON (pkgs.lib.mapAttrs
       (name: model: {
         inherit (model)
-          name description source linalgLowering handshakeInsertBuffers;
+          name description source linalgLowering cfRequireNoFloat
+          handshakeInsertBuffers;
         packages = builtins.listToAttrs (map (stage: {
           name = stage.pkg;
           value = "${name}-${stage.pkg}";
