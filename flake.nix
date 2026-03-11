@@ -48,7 +48,7 @@
         };
         llvmPackages = pkgsLlvm21.llvmPackages_21;
         inherit (llvmPackages) mlir;
-        python = pkgs.python311;
+        python = pkgsLlvm21.python311;
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
@@ -74,12 +74,7 @@
         fpgaChipdb = "${openXC7Chipdb}/xc7k480tffg1156.bin";
         prjxrayPythonPath =
           "${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3";
-        # Torch-MLIR is not available in nixpkgs, pending this PR: https://github.com/NixOS/nixpkgs/pull/490242
-        # For the moment, we consume the wheel
-        torchMlir = pkgs.callPackage ./torch-mlir.nix {
-          inherit pkgs;
-          inherit python;
-        };
+        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix { inherit python; };
 
         matmulTorch = pkgs.runCommand "matmul-torch.mlir" {
           buildInputs = [ pythonWithTorch ];
@@ -92,7 +87,7 @@
         '';
 
         matmulLinalg = pkgs.runCommand "matmul-linalg.mlir" { } ''
-          ${torchMlir}/${python.sitePackages}/torch_mlir/_mlir_libs/torch-mlir-opt ${matmulTorch} \
+          ${torchMlir}/bin/torch-mlir-opt ${matmulTorch} \
             --torch-function-to-torch-backend-pipeline \
             --torch-backend-to-linalg-on-tensors-backend-pipeline \
             -canonicalize > $out
