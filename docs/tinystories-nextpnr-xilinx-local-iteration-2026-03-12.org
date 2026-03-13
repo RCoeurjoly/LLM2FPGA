@@ -1,0 +1,279 @@
+* TinyStories nextpnr-xilinx Local Iteration
+#+DATE: 2026-03-12
+
+** Scope
+This note records a fast local iteration loop on ~nextpnr-xilinx~ outside the
+Nix derivation path, using the existing TinyStories selftest JSON/XDC/chipdb
+artifacts directly.
+
+The immediate goal was to:
+- reproduce the current failure quickly
+- iterate on importer-side fixes without rebuilding chipdb each time
+- capture measurements and one ~gdb~ stack sample for the current frontier
+
+** Local Setup
+- local source/build tree:
+  - ~/tmp/nextpnr-xilinx-bugfix~
+- existing importer-fix commit already present there:
+  - ~49b29b29 frontend: keep net merge history for imported nets~
+- rebuild command for local edits:
+  - ~nix develop /home/roland/toolchain-nix -c cmake --build /tmp/nextpnr-xilinx-bugfix/build --target nextpnr-xilinx -j8~
+- runtime command used for all timed measurements:
+  - ~/usr/bin/time -v /tmp/nextpnr-xilinx-bugfix/build/nextpnr-xilinx --chipdb /nix/store/i1bcbb683c4phv1rganmzszvp9ln8vy0-nextpnr-xilinx-chipdb-0.8.2/xc7k480tffg1156.bin --xdc /nix/store/anql1pxkjmqf16lk3ihgjyln41x9zx8k-tiny-stories-quant-int8-selftest.xdc --json /nix/store/pria3bkzzycki1qc1xzsdfs4rl8nm0ic-tiny-stories-quant-int8-selftest.json --write ...~
+
+** Baseline
+This baseline is the already-known importer bookkeeping fix only, with the
+instrumented local binary.
+
+Result:
+- ~Command terminated by signal 9~
+- max RSS: ~30,787,896 kB~ (~30.8 GB~)
+- wall time: ~4:54.25~
+
+Last importer telemetry before kill:
+- ~ctx_nets=11,264,919~
+- ~ctx_cells=9,750,476~
+- ~ctx_aliases=18,157,724~
+- ~flat_nets=9,800,065~
+- ~rss_kb=30,723,552~
+
+Interpretation:
+- the old ~std::out_of_range~ importer crash is fixed
+- the new blocker is still import-time memory growth
+- a large fraction of the remaining cost is still metadata/bookkeeping, not yet
+  pure pack/place/route work
+
+** Local Variants
+| Variant | Local change | Result | Notes |
+|-
+| Baseline | importer bookkeeping fix only | ~30.8 GB~, ~4:54~ | dies during import |
+| Variant 1 | keep netnames only for module port bits; skip non-port net attrs | ~31.1 GB~, ~2:12~ | reaches ~13.46M nets |
+| Variant 2 | Variant 1 + suppress all secondary net aliases | ~31.2 GB~, ~2:05~ | reaches ~13.80M nets |
+| Variant 3 | Variant 2 + use short synthetic names for non-top-level nets/cells/constants | ~31.3 GB~, ~59:09~ | reaches ~14.96M nets, then heavy thrash and kill |
+
+*** Variant 1: Port Netnames Only
+Local importer change:
+- collect the set of signal indices that appear in module ports
+- keep netnames only for those port bits
+- skip non-port net attrs alongside them
+
+Purpose:
+- emulate the best prior JSON pruning result inside the importer itself
+- eliminate the enormous ~main.netnames~ candidate-name table without rewriting
+  JSON on disk
+
+Measured result:
+- ~Command terminated by signal 9~
+- max RSS: ~31,053,968 kB~ (~31.1 GB~)
+- wall time: ~2:12.04~
+
+Last importer telemetry before kill:
+- ~ctx_nets=13,458,082~
+- ~ctx_cells=11,770,079~
+- ~ctx_aliases=18,035,701~
+- ~flat_nets=11,700,065~
+- ~rss_kb=30,827,684~
+
+What improved:
+- the huge top-level ~main~ candidate-name storage was eliminated
+- ~module_net_slots=0~ and ~module_candidate_slots=0~ for the sampled modules
+- the importer reached materially farther into the real graph before dying
+
+What did not improve enough:
+- ~ctx_aliases~ was still very large
+- max RSS still converged to the same ~31 GB~ ceiling
+
+*** Variant 2: Suppress Secondary Net Aliases
+Local importer change on top of Variant 1:
+- do not add secondary aliases into ~ctx->net_aliases~
+- do not append extra entries into ~net->aliases~
+- keep only the primary net name created by ~createNet(...)~
+
+Measured result:
+- ~Command terminated by signal 9~
+- max RSS: ~31,195,112 kB~ (~31.2 GB~)
+- wall time: ~2:05.50~
+
+Last importer telemetry before kill:
+- ~ctx_nets=13,804,411~
+- ~ctx_cells=12,089,062~
+- ~ctx_aliases=13,823,332~
+- ~flat_nets=12,000,065~
+- ~rss_kb=30,700,976~
+
+What improved:
+- alias growth was cut from "far above net count" to essentially
+  ~ctx_aliases ~= ctx_nets~
+- importer frontier moved farther again
+
+Interpretation:
+- alias storage is real overhead
+- but it is still not enough on its own to get below the machine's kill point
+
+*** Variant 3: Short Synthetic Internal Names
+Local importer change on top of Variant 2:
+- for non-top-level imported nets, cells, and constant helpers, stop using long
+  hierarchical names
+- instead synthesize short names like ~\$nNNN~ and ~\$cNNN~
+- top-level naming remains unchanged
+
+Purpose:
+- reduce ~ctx->id(...)~ pressure and stored string size after the metadata-heavy
+  parts had already been cut down
+
+Measured result:
+- ~Command terminated by signal 9~
+- max RSS: ~31,314,008 kB~ (~31.3 GB~)
+- wall time: ~59:08.94~
+
+Last importer telemetry captured before the final long stall:
+- ~ctx_nets=14,958,228~
+- ~ctx_cells=13,148,325~
+- ~ctx_aliases=14,977,149~
+- ~flat_nets=13,000,065~
+- ~rss_kb=31,121,696~
+
+Important behavior change:
+- this variant got significantly farther into the imported graph than the prior
+  variants
+- it also spent a very long time in a high-system-time / high-page-fault regime
+  before being killed
+
+~time -v~ summary for this run:
+- user time: ~72.46 s~
+- system time: ~2012.02 s~
+- wall time: ~59:08.94~
+- max RSS: ~31,314,008 kB~
+
+Interpretation:
+- reducing internal name size does help
+- but the run still converges to the same approximate memory ceiling
+- after the naming fixes, the remaining cost is much closer to the actual
+  imported flat graph than to metadata alone
+
+** gdb Sample
+Direct ~gdb~ attach to a live process was blocked by local ptrace policy:
+- ~ptrace_scope~ / Yama prevented ~gdb -p~
+
+So instead ~gdb~ was run with:
+- a breakpoint on ~report_import_progress(...)~
+- condition: ~this->stats.total_created_nets > 10000000~
+
+That produced a stack sample in the high-net-count phase.
+
+Backtrace:
+#+begin_example
+#0  report_import_progress(...)
+#1  create_or_get_net(...)
+#2  lambda in import_leaf_cell(...) port-connectivity walk
+#3  JsonFrontendImpl::foreach_port_conn(...)
+#4  import_leaf_cell(...)
+#5  lambda in import_module_cells(...)
+#6  JsonFrontendImpl::foreach_cell(...)
+#7  import_module_cells(...)
+#+end_example
+
+Interpretation:
+- at high import counts, the importer is still spending time in
+  ~create_or_get_net(...)~
+- specifically during leaf-cell port connectivity import
+- this is consistent with the current telemetry: after removing most candidate
+  and alias overhead, the remaining frontier is the actual flat net/cell graph
+  build
+
+** Current Interpretation
+The local iteration changed the picture in an important way.
+
+What is now clearly reduced:
+- top-level ~main.netnames~ candidate-name storage
+- secondary alias-map growth
+- long internal imported names
+
+What remains:
+- repeated ~create_or_get_net(...)~ work during leaf-cell import
+- growth of the real imported flat graph itself
+- eventual convergence to a machine kill around ~31 GB~ RSS
+
+So the current frontier is no longer "fix the first obvious importer bug" or
+"trim obvious naming metadata". Those helped, but they are not sufficient.
+
+The remaining problem now looks like:
+- high per-net / per-cell importer memory cost during real graph construction
+- not primarily candidate-name storage anymore
+
+** Practical Conclusion
+These local importer changes are real improvements:
+- baseline frontier: about ~11.3M~ imported nets before kill
+- best local frontier here: about ~15.0M~ imported nets before kill
+
+But they still do not complete the TinyStories import on this machine.
+
+So this is not yet a complete fix. It is a meaningful reduction of importer
+overhead and a clearer diagnosis of what remains.
+
+** Recommended Next Steps
+1. Keep Variant 1 and Variant 2 as plausible importer-side cleanup candidates:
+   - port-netnames-only
+   - no secondary aliases
+2. Treat Variant 3 as a useful experiment but not yet obviously production-ready:
+   - it improves frontier
+   - but it also leads to long high-system-time stalls
+3. Focus the next nextpnr-xilinx investigation on actual graph-build footprint:
+   - net object size
+   - cell object size
+   - per-port connectivity storage
+   - repeated hierarchy flattening cost
+4. If another iteration is needed, add counters for:
+   - total port objects created
+   - total driver/user links
+   - total constant-helper cells
+   - memory attributed to ~ctx->nets~, ~ctx->cells~, and port maps
+
+** Status Relative To Repo
+These were local edits in:
+- ~/tmp/nextpnr-xilinx-bugfix/frontend/frontend_base.h~
+
+They were not integrated into the LLM2FPGA flake in this pass.
+
+This note is intended to preserve the fast-loop findings before deciding which
+of these local changes, if any, should be cleaned up and carried into the
+packaged ~nextpnr-xilinx~ flow.
+
+** Packaged Nix Confirmation
+After the local fast-loop work, the two importer reductions that helped most in
+practice were integrated into the repo's packaged ~nextpnr-xilinx~ build:
+
+- ~nix/patches/nextpnr-xilinx-net-old-indices.patch~
+- ~nix/patches/nextpnr-xilinx-port-netnames-no-aliases.patch~
+
+The resulting Nix rebuild was run with:
+
+#+begin_example
+nix build .#tiny-stories-quant-int8-selftest-nextpnr-utilization -L
+#+end_example
+
+Observed result:
+- the packaged ~nextpnr-xilinx~ rebuild succeeded
+- the new patch applied cleanly in ~patchPhase~
+- ~nextpnr-xilinx-chipdb~ rebuilt successfully
+- the final TinyStories utilization derivation still failed with exit code
+  ~137~
+
+Failure line:
+
+#+begin_example
+Killed ... nextpnr-xilinx --chipdb ... --xdc ... --json ... --write routed.json
+#+end_example
+
+Interpretation:
+- the old importer ~std::out_of_range~ crash is fixed
+- the port-netnames-only and no-secondary-alias reductions are accepted by the
+  packaged build
+- the remaining blocker is still memory exhaustion during the TinyStories JSON
+  import path
+
+So the packaged Nix result matches the local outside-Nix conclusion:
+- importer correctness improved
+- importer metadata overhead dropped
+- TinyStories still does not complete on this machine because the flat graph
+  build eventually gets the process killed

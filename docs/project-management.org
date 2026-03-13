@@ -18,7 +18,33 @@ specially flopoco/ - functionality related to converting between FloPoCo's nonst
 ** Build all derivations
 system=$(nix eval --impure --raw --expr builtins.currentSystem) nix eval --json ".#packages.${system}" | jq -r 'keys[] | select(. != "all") | ".#" + .' | xargs -r nix build
     
-* 2d: bitstream generation and programming
+** update circt-src
+nix flake update circt-nix/circt-src
+
+* 3: lowering TinyStories
+** dealing with floats
+There seems to be two approaches to dealing with this:
+- quantization (Quantization is
+the process of mapping continuous or high-precision values (e.g., 32-bit floating-point) to a smaller set of discrete, lower-precision values (e.g., 8-bit integers))
+- black boxes that get implemented later.
+
+  Right now, with blackboxes, we get this from yosys:
+unknown module 'arith_addf_in_f32_f32_out_f32'
+unknown module 'arith_addf_in_f64_f64_out_f64'
+unknown module 'arith_divf_in_f32_f32_out_f32'
+unknown module 'arith_divf_in_f64_f64_out_f64'
+unknown module 'arith_extf_in_f32_out_f64'
+unknown module 'arith_mulf_in_f32_f32_out_f32'
+unknown module 'arith_mulf_in_f64_f64_out_f64'
+unknown module 'arith_subf_in_f32_f32_out_f32'
+unknown module 'arith_subf_in_f64_f64_out_f64'
+unknown module 'arith_truncf_in_f64_out_f32'
+unknown module 'math_rsqrt_in_f32_out_f32'
+
+
+* DONE 2d: bitstream generation and programming
+CLOSED: [2026-03-05 Thu 12:18]
+- State "DONE"       from              [2026-03-05 Thu 12:18]
 ** nix effort
 *** WAIT nextpnr-xilinx
 - State "WAIT"       from "TODO_NEXT"  [2026-02-25 Wed 23:36]

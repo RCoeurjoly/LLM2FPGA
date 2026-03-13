@@ -1,0 +1,370 @@
+* TinyStories Memory And LSQ Findings
+#+DATE: 2026-03-09
+
+** Scope
+This note documents the current TinyStories synthesis bottleneck around memory
+lowering, why Yosys fails late even though the root cause is earlier, and what
+the local CIRCT LSQ investigation has established so far.
+
+The goal is to keep the debugging history in the repository instead of only in
+terminal sessions.
+
+** Short Version
+The Yosys failure is *not* primarily a Yosys problem.
+
+The real blow-up chain is:
+1. TinyStories CF contains many accesses to the same flattened memrefs.
+2. CF-to-Handshake groups all accesses for one memref into one
+   ~handshake.memory~.
+3. That produces true high-port-count memories such as ~32R32W~ and ~8R8W~.
+4. Handshake-to-HW materializes those as multi-ported ~seq.hlmem~ modules with
+   zero-latency reads.
+5. Xilinx memory inference cannot map those to BRAM/LUTRAM.
+6. Yosys ~memory_map~ explodes them into FF/mux fabric.
+7. Later ~techmap~ then runs out of time or memory.
+
+So Yosys is mostly the last stage that becomes unable to tolerate the already
+expanded structure.
+
+** Where The Big Memories Come From
+*** Observed bad memories
+In the pre-~memory_map~ RTLIL, the worst memories were:
+- ~handshake_memory_out_ui32_id121~: ~WIDTH=32~, ~SIZE=4096~, ~RD_PORTS=32~,
+  ~WR_PORTS=32~
+- ~handshake_memory_out_ui32_id150~: ~WIDTH=32~, ~SIZE=16384~, ~RD_PORTS=8~,
+  ~WR_PORTS=8~
+- ~handshake_memory_out_ui64_id325~: ~WIDTH=64~, ~SIZE=50257~, ~RD_PORTS=2~,
+  ~WR_PORTS=2~
+
+These also behaved like asynchronous reads from Yosys' point of view, which
+further hurts BRAM mapping.
+
+*** Root cause before Handshake IR
+The important result is that these port counts already exist before Yosys and
+before HW lowering.
+
+The pipeline script
+~scripts/pipeline/cf_to_handshake.sh~ runs:
+- ~-flatten-memref~
+- ~-flatten-memref-calls~
+- ~-handshake-legalize-memrefs~
+- ~--lower-cf-to-handshake~
+
+After memref flattening, many originally structured buffers become 1D memrefs,
+for example:
+- ~64x64xi8 -> 4096xi8~
+- ~64x256xi8 -> 16384xi8~
+- ~64x50257xi8 -> 3216448xi8~
+
+In the legalized CF IR we observed internal allocas such as:
+- ~memref<4096xi32>~
+- ~memref<16384xi32>~
+- ~memref<50257xi64>~
+
+For the worst of these, the actual load/store operation counts matched the
+later Handshake memory port counts exactly:
+- one ~4096xi32~ buffer had ~32~ stores and ~32~ loads
+- two ~16384xi32~ buffers had ~8~ stores and ~8~ loads
+- one ~50257xi64~ buffer had ~2~ stores and ~2~ loads
+
+So the huge port counts are not invented by Yosys. They are already implicit in
+how the current lowering represents repeated accesses to the same flattened
+memref.
+
+*** Why CF-to-Handshake amplifies the problem
+The CIRCT ~CFToHandshake~ lowering collects all loads/stores touching the same
+memref value into one memory access list and then builds one
+~handshake.memory~ for that memref.
+
+That means the number of syntactic load/store operations becomes the
+~ldCount/stCount~ of the Handshake memory node.
+
+So a memref with:
+- ~32~ load ops
+- ~32~ store ops
+
+becomes:
+- ~memory[ld = 32, st = 32]~
+
+This is the central structural problem.
+
+** Why Yosys Fails Later
+*** What happens during synth
+The current xc7 flow can tolerate the design through several heavy stages, but
+the real destructive step is ~memory_map~.
+
+Observed trend:
+- before ~memory_map~, the design already had millions of cells but still
+  retained ~115 $mem_v2~ cells
+- after ~memory_map~, those memories were gone and replaced by a much larger
+  FF/mux/logic fabric
+
+The most important quantitative change was:
+- file size: roughly ~1.11 GB -> 2.13 GB~
+- ~$mem_v2: 115 -> 0~
+- large increases in ~$mux~, ~$and~, and ~$dff~
+
+After that, generic ~techmap~ alone was enough to hit memory pressure.
+
+*** Interpretation
+This means:
+- ~map_memory~ did not solve the hard memories
+- ~memory_map~ solved them by brute-force expansion
+- later Yosys passes are then operating on the wrong hardware shape
+
+So if the design is to reach bitstream generation sanely, the memory shape must
+be improved *before* the Yosys memory mapping cliff.
+
+** LSQ: What It Means Here
+~LSQ~ means ~Load-Store Queue~.
+
+In this context, the intended meaning is:
+- accesses to a memory are mediated through queued/arbitrated control
+- ordering/dependence is preserved without requiring a literal physical memory
+  port for every syntactic load/store site
+
+Conceptually, LSQ is the right direction because it tries to represent
+"many accesses over time" rather than "many simultaneous hardware ports".
+
+** Local CIRCT LSQ Investigation
+*** Why investigate LSQ
+There was already dormant LSQ plumbing in CIRCT:
+- ~CFToHandshake~ had an internal ~lsq~ boolean
+- ~MemoryOp~ already had an ~lsq~ attribute
+- load/store op comments refer to addresses/data going "to LSQ"
+
+However, the public ~lower-cf-to-handshake~ pass did not expose an LSQ option in
+the current tree, and the path was not obviously exercised by tests.
+
+*** What was patched locally
+A local CIRCT checkout under ~~/home/roland/circt~~ was patched to:
+- expose ~--lsq~ on ~-lower-cf-to-handshake~
+- propagate that option through the current ~CFToHandshake~ code path
+- fix several internal mismatches so TinyStories could actually lower with
+  ~lsq = true~
+
+This work was intentionally exploratory and local. It is not yet a polished
+upstream-quality change.
+
+*** What LSQ lowering achieved
+With the local patches, TinyStories now lowers to valid LSQ-flavored Handshake
+IR.
+
+Important result:
+- the bad memories still keep the same ~ld/st~ counts
+- they are now marked ~lsq = true~
+- they also carry extra leading control-only operands
+
+So LSQ, in the current CIRCT implementation, changes the interface structure,
+but does *not* automatically reduce ~32R32W~ into a small-port memory at the
+Handshake IR level.
+
+*** What now works
+The local CIRCT LSQ branch now gets significantly farther than before:
+
+1. TinyStories lowers to LSQ-flavored Handshake IR.
+2. LSQ-style ~extmemory~ lowers through ~handshake-lower-extmem-to-hw~.
+3. LSQ-style ~handshake.memory~ lowers through ~lower-handshake-to-hw~ in a
+   small reproducer.
+4. Full TinyStories LSQ Handshake IR now lowers through:
+   - ~-handshake-lower-extmem-to-hw~
+   - ~-handshake-materialize-forks-sinks~
+   - ~-lower-handshake-to-hw~
+   - ~-canonicalize~
+   - ~-cse~
+
+The fixes needed for that were:
+- account for LSQ control-prefix operands in Handshake memory/extmemory helpers
+- keep ~ldCount/stCount~ materialized on LSQ ~handshake.memory~
+- resolve LSQ control-only ready backedges in Handshake-to-HW
+- add a ~LazyForkOp~ lowering in Handshake-to-HW, because LSQ/control lowering
+  leaves many ~lazy_fork~ operations in TinyStories
+
+There is now also a local ~HandshakeToHW~ regression test for ~lazy_fork~ next
+to the existing fork conversion tests.
+
+*** What still does not solve the real problem
+Although the LSQ path now reaches HW, it still does *not* reduce the memory
+port counts that matter for synthesis.
+
+The same bad modules still appear in the generated HW:
+- ~handshake_memory_out_ui32_id121~ still contains ~32~ ~seq.read~ and ~32~
+  ~seq.write~ operations
+- ~handshake_memory_out_ui32_id150~ still contains ~8~ ~seq.read~ and ~8~
+  ~seq.write~
+- ~handshake_memory_out_ui64_id325~ still contains ~2~ ~seq.read~ and ~2~
+  ~seq.write~
+
+So the current LSQ plumbing is now *pipeline-enabling*, but not yet
+*architecture-fixing*.
+
+In other words:
+- the LSQ path is no longer blocked in CIRCT lowering
+- but it is still not serializing/arbitrating memory accesses into a small
+  physical port count
+- therefore the original Yosys memory-mapping cliff is expected to remain
+  unless LSQ gets a real arbitration/materialization step
+
+** Small Reproducers
+To stay tethered to reality, small local reproducers were used in ~/tmp~:
+
+- ~lsq-extmemory-min.mlir~
+  - minimal LSQ-style ~extmemory~ shape
+  - used to debug ~handshake-lower-extmem-to-hw~
+  - currently lowers successfully with the local CIRCT patches
+
+- ~lsq-memory-min.mlir~
+  - minimal LSQ-style ~handshake.memory~
+  - used to debug ~lower-handshake-to-hw~
+  - now lowers successfully with the local CIRCT patches
+
+This is important because it means the remaining LSQ work can still be debugged
+on a small target instead of only through the full TinyStories graph.
+
+** CIRCT History / Precedent
+The local git history shows LSQ-related work is not imaginary or newly invented.
+
+Relevant historical breadcrumbs:
+- commit ~08c7633eb~
+  - ~[StandardToHandshake] enable reuse of region lowering (#2986)~
+  - this is where the current reusable lowering structure comes from
+- commit ~bf9f2d540~
+  - ~[Handshake] Add missing `lsq` attribute to `MemoryOp`~
+
+This strongly suggests LSQ support was started in the old
+~StandardToHandshake~ era and then carried forward into ~CFToHandshake~, but
+was not completed or kept covered by end-to-end tests.
+
+Notably, the current CIRCT tree has verifier/tests for the existence of the
+~lsq~ attribute, but not obvious end-to-end tests for LSQ lowering through to
+HW.
+
+** Current Conclusion
+The current situation is:
+
+1. The real TinyStories memory blow-up is earlier than Yosys.
+2. The immediate structural issue is the conversion of many accesses on one
+   flattened memref into one huge Handshake memory node.
+3. LSQ is still the most promising conceptual fix inside CIRCT.
+4. But the LSQ path in CIRCT is still incomplete as a real synthesis fix:
+   - it needed local repairs just to emit valid TinyStories Handshake/HW IR
+   - there were no obvious end-to-end LSQ lowering tests covering this path
+   - even after the repairs, LSQ still does not reduce the actual memory port
+     counts in generated HW
+
+** Recommended Next Steps
+1. Keep the small ~lsq-memory-min.mlir~ and ~lazy_fork~ regression coverage in
+   the local CIRCT tree; they are now the guard rails for further work.
+2. Determine where LSQ is *supposed* to serialize/arbitrate accesses:
+   - either a missing transformation after ~CFToHandshake~
+   - or missing logic inside ~HandshakeToHW::MemoryConversionPattern~
+3. Implement a real LSQ memory lowering that reduces physical memory ports,
+   rather than merely adding control-prefix operands.
+4. Only return to Yosys optimization after the memory shape is materially
+   better in generated HW.
+
+** Non-Goal
+This note does *not* claim that LSQ already fixes TinyStories. It documents that
+LSQ is the most defensible direction currently visible, while also recording
+that the CIRCT implementation still requires substantial debugging.
+
+** Resume Point
+If work is resumed later, the current state to pick up from is:
+
+*** Local CIRCT checkout
+- source tree: ~~/home/roland/circt~~
+- build tree: ~~/home/roland/circt/build-local-23~~
+- binary: ~~/home/roland/circt/build-local-23/bin/circt-opt~~
+
+The local CIRCT tree currently contains uncommitted exploratory LSQ patches.
+
+*** Current blocker
+The smallest *structural* blocker is now:
+- LSQ TinyStories reaches HW successfully
+- but the generated HW still contains the same multi-ported memory modules
+- so the LSQ path is not yet performing the arbitration/serialization needed to
+  make the memory hardware FPGA-realizable
+
+So the next debugging target is no longer "make LSQ lower at all". It is:
+- find the intended LSQ port-collapsing stage, if one exists
+- otherwise implement it in the local CIRCT tree
+
+*** Current successful commands
+- ~circt-opt /tmp/lsq-memory-min.mlir -handshake-materialize-forks-sinks -lower-handshake-to-hw -canonicalize -cse~
+- ~circt-opt /tmp/tinystories-handshake-lsq.mlir -handshake-lower-extmem-to-hw -handshake-materialize-forks-sinks -lower-handshake-to-hw -canonicalize -cse > /tmp/tinystories-hw0-lsq.mlir~
+
+*** Current reality check
+The important sanity check after the latest fixes is:
+- the path now works through Handshake-to-HW
+- but ~handshake_memory_out_ui32_id121~ in ~tinystories-hw0-lsq.mlir~ still has
+  ~32~ reads and ~32~ writes
+- therefore the original synthesis problem is not solved yet
+
+*** Useful local repro files
+- ~~/tmp/lsq-extmemory-min.mlir~~
+  - small LSQ-style ~extmemory~ test
+  - currently lowers successfully through:
+    ~-handshake-lower-extmem-to-hw -handshake-materialize-forks-sinks -lower-handshake-to-hw~
+
+- ~~/tmp/lsq-memory-min.mlir~~
+  - small LSQ-style ~handshake.memory~ test
+  - currently fails in:
+    ~-handshake-materialize-forks-sinks -lower-handshake-to-hw~
+
+- ~~/tmp/tinystories-handshake-lsq.mlir~~
+  - TinyStories Handshake IR produced by local LSQ-enabled ~CFToHandshake~
+
+*** Useful commands
+Rebuild local ~circt-opt~ after local CIRCT edits:
+
+#+begin_src bash
+cmake --build /home/roland/circt/build-local-23 --target circt-opt -j$(nproc)
+#+end_src
+
+Run the small LSQ ~handshake.memory~ reproducer:
+
+#+begin_src bash
+/home/roland/circt/build-local-23/bin/circt-opt \
+  /tmp/lsq-memory-min.mlir \
+  -handshake-materialize-forks-sinks \
+  -lower-handshake-to-hw \
+  -canonicalize -cse
+#+end_src
+
+Regenerate TinyStories LSQ Handshake IR from cached CF:
+
+#+begin_src bash
+CIRCT=/home/roland/circt/build-local-23/bin/circt-opt
+MLIR=/nix/store/kzsmdvqsd6y5qd6wsaxdys526s2j9f1m-mlir-23.0.0-unstable-2026-01-20/bin/mlir-opt
+IN=/nix/store/brc95afncnra7wpsgzr1lm1z2kg58ncz-tiny-stories-1m-quant-int8-cf.mlir
+
+$CIRCT "$IN" \
+  -flatten-memref \
+  -flatten-memref-calls \
+  -canonicalize -cse \
+  -handshake-legalize-memrefs \
+  -canonicalize -cse \
+  >/tmp/tinystories-cf-legal-lsq.mlir
+
+$MLIR /tmp/tinystories-cf-legal-lsq.mlir \
+  -convert-scf-to-cf \
+  -canonicalize -cse \
+  >/tmp/tinystories-cf-norm-lsq.mlir
+
+$CIRCT /tmp/tinystories-cf-norm-lsq.mlir \
+  -lower-cf-to-handshake="lsq" \
+  -canonicalize -cse \
+  >/tmp/tinystories-handshake-lsq.mlir
+#+end_src
+
+Probe the next TinyStories blocker:
+
+#+begin_src bash
+/home/roland/circt/build-local-23/bin/circt-opt \
+  /tmp/tinystories-handshake-lsq.mlir \
+  -handshake-lower-extmem-to-hw \
+  -handshake-materialize-forks-sinks \
+  -lower-handshake-to-hw \
+  -canonicalize -cse \
+  >/tmp/tinystories-hw0-lsq.mlir
+#+end_src

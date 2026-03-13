@@ -1,0 +1,733 @@
+* TinyStories nextpnr-xilinx Findings
+#+DATE: 2026-03-10
+
+** Scope
+This note captures the current state of TinyStories after the LSQ plumbing fix
+made the design reach final JSON generation successfully, and documents the
+remaining blocker in ~nextpnr-xilinx~.
+
+The goal is to keep the debugging record in the repository instead of only in
+terminal history.
+
+** Current Status
+The TinyStories selftest flow now reaches a clean final JSON:
+- ~nix build .#tiny-stories-quant-int8-selftest-json -L~ succeeds
+- Yosys ~check~ reports ~0 problems~
+
+The remaining blocker is FPGA import/place-and-route:
+- ~tiny-stories-quant-int8-selftest.fasm~ fails in ~nextpnr-xilinx~
+- the failure is no longer in CIRCT or Yosys
+
+** What Was Fixed Before Reaching nextpnr
+*** LSQ was not actually enabled
+The original TinyStories pipeline bug was that LSQ was not being enabled in
+CF-to-Handshake, so problematic memories still reached Yosys in the bad shape.
+
+Repository changes that fixed that:
+- ~scripts/pipeline/cf_to_handshake.sh~
+- ~nix/pipeline.nix~
+- ~nix/models.nix~
+
+After wiring ~handshakeUseLsq = true~ through the pipeline:
+- problematic memories switched to ~lsq = true~ in Handshake IR
+- the corresponding HW memory wrappers collapsed to ~1 seq.read~ and
+  ~1 seq.write~ for the key cases that had previously caused the Yosys
+  ~memory_map~ and ~techmap~ blow-up
+
+*** TinyStories now reaches final JSON cleanly
+After the LSQ wiring fix and local CIRCT fixes:
+- the staged TinyStories xc7 selftest flow completes through:
+  - ~model-opt~
+  - ~prepare-*~
+  - ~map-dsp~
+  - ~coarse-*~
+  - ~map-*~
+  - ~fine~
+  - ~map-cells~
+  - ~map-ffs~
+  - ~json~
+- final JSON path:
+  ~ /nix/store/kjk34rbpw07sk0h0kdcgv3wjzxxyndiz-tiny-stories-quant-int8-selftest.json~
+
+This means the current design is now "synthesized to JSON" in a meaningful
+sense, and the frontier moved downstream.
+
+** Confirmed nextpnr-xilinx Bug
+The first ~nextpnr-xilinx~ failure was an immediate uncaught exception:
+- ~std::out_of_range~
+- ~vector::_M_range_check: __n (which is 2817) >= this->size() (which is 0)~
+
+This occurred during JSON import, before pack/place/route.
+
+*** Local root cause
+In local ~nextpnr-xilinx~ source:
+- file: ~frontend/frontend_base.h~
+
+two parallel vectors were meant to stay in lockstep:
+- ~net_flatindex~
+- ~net_old_indices~
+
+But new flat-indexed nets were appended to ~net_flatindex~ without appending a
+corresponding entry to ~net_old_indices~. Later, ~merge_nets()~ indexed
+~net_old_indices.at(mergee->udata)~, which crashed when the vector was still
+empty.
+
+*** Local patch
+The local fix was to append an empty merge-history entry whenever a new
+flat-indexed net is created:
+
+- after ~net_flatindex.push_back(net);~
+- after ~net_flatindex.push_back(cnet);~
+
+by adding:
+
+#+begin_src c++
+net_old_indices.emplace_back();
+#+end_src
+
+This was patched in a local copy under:
+- ~/tmp/nextpnr-xilinx-bugfix/frontend/frontend_base.h~
+
+*** Result
+That importer crash is real and locally fixed:
+- before patch: immediate abort in JSON import
+- after patch: importer gets past the old crash point and continues running
+
+So there is at least one confirmed ~nextpnr-xilinx~ importer bug against this
+TinyStories JSON.
+
+** What Still Fails After The Importer Fix
+After the importer bookkeeping fix, ~nextpnr-xilinx~ no longer aborts
+immediately. Instead it grows memory aggressively and is eventually killed by
+the OS.
+
+Measured run on the original final JSON:
+- command:
+  ~ /tmp/nextpnr-xilinx-bugfix/build/nextpnr-xilinx --chipdb /nix/store/6la31fg71mbjaw6wpwj2pddwbs93y2j7-nextpnr-xilinx-chipdb-0.8.2/xc7k480tffg1156.bin --xdc /nix/store/anql1pxkjmqf16lk3ihgjyln41x9zx8k-tiny-stories-quant-int8-selftest.xdc --json /nix/store/kjk34rbpw07sk0h0kdcgv3wjzxxyndiz-tiny-stories-quant-int8-selftest.json --fasm /tmp/tiny-stories-quant-int8-selftest-patched.fasm~
+- result:
+  - ~EXIT=137~
+  - ~Command terminated by signal 9~
+  - max RSS: ~28,346,352 kB~ (~28.3 GB~)
+  - wall time: ~9:56.36~
+
+So the old failure moved from "instant importer bug" to "later memory death".
+
+** gdb Findings
+The patched binary was sampled under ~gdb~ during the memory-growth phase.
+
+Important result:
+- the process was still in JSON import, not pack/place/route
+
+Representative hot path:
+- ~parse_json~
+- ~import_module~
+- ~import_module_cells~
+- ~import_submodule_cell~
+- ~import_leaf_cell~
+- ~foreach_attr~
+- ~parse_property~
+- ~Property::from_string~
+- ~std::string~ allocation
+
+The sampled hot attribute was:
+- ~src~
+
+So a large part of the importer memory blow-up is caused by duplicating Yosys
+provenance strings during recursive hierarchical import.
+
+*** Later gdb result after stripping importer bookkeeping
+After local debug variants removed most imported attrs, most net aliases, and
+most hierarchy bookkeeping, ~gdb~ was run again on the importer.
+
+This later sample changed the picture substantially:
+- the hotspot was no longer ~Property::from_string~
+- the process was now spending time in:
+  - ~IdString::set~
+  - ~ctx->id(...)~
+  - ~unique_name(...)~
+  - ~create_or_get_net(...)~
+
+So the remaining importer blow-up is strongly tied to interning generated net
+names while recursively importing hierarchy.
+
+Representative sampled names:
+- base: ~u_dut.arith_addi294.~
+- suffix:
+  ~\$abc$398089$auto$blifparse.cc:557:parse_blif$398195.genblk1....f0~
+
+Interpretation:
+- after the obvious metadata paths are trimmed, the next bottleneck is the
+  creation and interning of very long generated names for imported nets
+- this points to net-name generation as a major remaining cost center in the
+  importer
+
+*** gdb result on the trimmed 1.1G JSON
+After the strongest off-Nix JSON cleanup tested so far
+(~nosrc + shortnames + hdlname/force_downto removal~), ~gdb~ was run again on
+the minimal patched importer.
+
+This sample moved the hotspot again:
+- not ~Property::from_string~
+- not ~ctx->id(...)~ from ~unique_name(...)~
+- now in:
+  - ~import_module_netnames~
+  - ~get_bit_name~
+  - repeated ~std::string~ construction while materializing per-bit net names
+
+Representative sampled basename:
+- ~_handshake_mux19516_out0_valid~
+
+Representative hierarchy context:
+- module prefix ~u_dut.~
+
+So after trimming the obvious JSON metadata, the importer is now spending a lot
+of time and memory constructing/storing netname-derived strings for
+~import_module_netnames~, especially as bit-level names are created and added
+to the candidate-name structures.
+
+Interpretation:
+- the nextpnr importer is still paying heavily for Yosys JSON netname handling
+- the remaining choke is now very close to:
+  - ~m.net_names~
+  - bit-name expansion in ~get_bit_name~
+  - alias/candidate-name preparation in ~import_module_netnames~
+- this points to netname import itself as a major remaining cost center
+
+** src-Stripping Experiments
+*** Whole-flow Nix experiment
+The selftest JSON stage was briefly modified to strip ~src~ before
+~write_json~, but that required another full staged TinyStories rebuild, so the
+experiment was reverted in ~flake.nix~ and moved off-Nix.
+
+Current repository state:
+- no persistent ~src~-stripping change is left in ~flake.nix~
+
+*** Off-Nix Yosys rewrite
+The existing store JSON was rewritten off-Nix with Yosys using:
+- ~read_json~
+- ~setattr -unset src */*~
+- ~setattr -mod -unset src *~
+- ~write_json~
+
+Output:
+- ~/tmp/tiny-stories-quant-int8-selftest-nosrc.json~
+
+Measured Yosys rewrite:
+- ~EXIT=0~
+- max RSS: ~18,483,636 kB~ (~18.5 GB~)
+- wall time: ~6:28.59~
+
+This reduced the JSON size from:
+- ~1.4G~ to ~1.2G~
+
+It also reduced ~"src"~ occurrences dramatically:
+- original JSON: about ~1,816,657~
+- rewritten JSON: about ~19,271~
+
+So most design-level ~src~ provenance was removed, but not all of it.
+
+*** Result in patched nextpnr-xilinx
+Running the locally patched ~nextpnr-xilinx~ on the reduced-~src~ JSON still
+failed:
+- ~EXIT=137~
+- ~Command terminated by signal 9~
+- max RSS: ~27,633,128 kB~ (~27.6 GB~)
+- wall time: ~38:57.79~
+
+Interpretation:
+- stripping most ~src~ helps
+- but it does not eliminate the fundamental importer memory blow-up
+- the remaining issue is not only ~src~
+
+** Differential Importer Experiments
+Several local ~nextpnr-xilinx~ debug variants were tested directly against the
+same frozen final TinyStories JSON/XDC reproducer.
+
+The purpose was to separate "metadata/bookkeeping blow-up" from "core imported
+graph blow-up".
+
+*** 1) Drop imported attrs, keep params
+Local importer changes:
+- ignore module-level imported attrs
+- ignore per-net attrs
+- ignore cell attrs
+- keep cell params and module settings
+
+Result:
+- ~EXIT=137~
+- max RSS: ~26,939,820 kB~ (~26.9 GB~)
+- wall time: ~2:11.24~
+
+Interpretation:
+- this is still essentially the same failure mode
+- removing imported attrs does *not* materially fix the importer growth
+
+*** 2) Suppress most net aliases
+On top of the attr-dropping debug variant, net alias bookkeeping was reduced to
+just the primary net name:
+- skip adding most entries to ~ctx->net_aliases~
+- skip storing most secondary names in ~net->aliases~
+
+Result:
+- ~EXIT=137~
+- max RSS: ~27,720,240 kB~ (~27.7 GB~)
+- wall time: ~1:50.99~
+
+Interpretation:
+- this improved the early RSS curve somewhat
+- but the run still converged to the same OOM-style death
+- alias storage is not the dominant remaining problem
+
+*** 3) Suppress most hierarchy bookkeeping
+On top of the previous debug changes, detailed hierarchy recording was removed:
+- skip most ~ctx->hierarchy[...]~ population
+- skip per-cell ~hierpath~
+
+Result:
+- ~EXIT=137~
+- max RSS: ~28,176,404 kB~ (~28.2 GB~)
+- wall time: ~1:20.08~
+
+Interpretation:
+- hierarchy bookkeeping is not the primary root cause
+- removing it does not produce a viable import
+
+*** Differential conclusion
+The remaining importer blow-up is *not* explained mainly by:
+- imported attrs
+- secondary net aliases
+- hierarchy bookkeeping
+
+Those all contribute some overhead, but the dominant memory growth still appears
+to come from the actual imported hierarchical graph and its net/cell expansion.
+
+** Short-Name Yosys Experiment
+Because ~gdb~ showed a later hotspot in ~ctx->id(...)~ while interning long
+generated net names, a direct off-Nix Yosys naming experiment was run on the
+final JSON.
+
+Yosys commands:
+- ~read_json~
+- ~rename -enumerate -pattern n% */w:$*~
+- ~rename -enumerate -pattern c% */c:$*~
+- ~write_json~
+
+Output:
+- ~/tmp/tiny-stories-quant-int8-selftest-shortnames.json~
+
+Important naming result:
+- ~\$abc$~ occurrences dropped from about ~136,068~ to ~0~
+
+So the long private ~\$abc$...~ names were successfully eliminated from the
+JSON.
+
+*** Result in patched nextpnr-xilinx
+Running the minimal patched importer on the short-name JSON still failed:
+- ~EXIT=137~
+- ~Command terminated by signal 9~
+- max RSS: ~26,120,624 kB~ (~26.1 GB~)
+- wall time: ~8:50.80~
+
+Interpretation:
+- shortening private Yosys-generated names *does* help somewhat
+- but it still does not make the importer viable
+- therefore long ~\$abc$...~ names are a contributing factor, not the whole
+  root cause
+
+** Combined Off-Nix JSON Rewrite
+The two partial mitigations were then combined in a single off-Nix Yosys
+rewrite:
+- reduce most ~src~
+- shorten private names with ~rename -enumerate~
+
+Yosys commands:
+- ~read_json~
+- ~setattr -unset src */*~
+- ~setattr -mod -unset src *~
+- ~rename -enumerate -pattern n% */w:$*~
+- ~rename -enumerate -pattern c% */c:$*~
+- ~write_json~
+
+Output:
+- ~/tmp/tiny-stories-quant-int8-selftest-nosrc-shortnames.json~
+
+Resulting JSON properties:
+- size: ~1.2G~
+- ~"src"~ count: about ~19,271~
+- ~\$abc$~ count: ~0~
+
+*** Result in patched nextpnr-xilinx
+Running the minimal patched importer on that combined JSON still failed:
+- ~EXIT=137~
+- ~Command terminated by signal 9~
+- max RSS: ~27,509,660 kB~ (~27.5 GB~)
+- wall time: ~5:13.39~
+
+Interpretation:
+- combining the two mitigations improves early growth and overall runtime
+- but it still does not avoid the final OOM-style importer death
+- therefore the dominant remaining problem is deeper than these two metadata
+  sources alone
+
+** Additional Metadata Trimming
+The next off-Nix rewrite removed more obvious remaining metadata from the
+combined JSON:
+- ~hdlname~
+- ~force_downto~
+- remaining object/module ~src~
+
+Starting point:
+- ~/tmp/tiny-stories-quant-int8-selftest-nosrc-shortnames.json~
+
+Yosys commands:
+- ~read_json~
+- ~setattr -unset hdlname */*~
+- ~setattr -unset force_downto */*~
+- ~setattr -unset src */*~
+- ~setattr -mod -unset src *~
+- ~rename -enumerate -pattern n% */w:$*~
+- ~rename -enumerate -pattern c% */c:$*~
+- ~write_json~
+
+Output:
+- ~/tmp/tiny-stories-quant-int8-selftest-trimmed.json~
+
+Resulting JSON properties:
+- size: ~1.1G~
+- ~hdlname~ count: ~0~
+- ~force_downto~ count: ~0~
+- remaining module attrs still include mostly ~blackbox~, ~cells_not_processed~,
+  and a small amount of ~src~
+- remaining cell attrs are mostly ~module_not_derived~ plus a small amount of
+  ~src~
+- remaining net attrs are mostly ~src~, ~unused_bits~, and a few small control
+  attributes
+
+*** Result in patched nextpnr-xilinx
+Running the minimal patched importer on the trimmed JSON still failed:
+- ~EXIT=137~
+- ~Command terminated by signal 9~
+- max RSS: ~27,280,556 kB~ (~27.3 GB~)
+- wall time: ~1:52.00~
+
+Interpretation:
+- this is the cleanest importer input tested so far
+- it materially improves the mid-run RSS curve
+- but it still does not avoid the final OOM-style death
+- metadata reduction alone is still insufficient
+
+** Aggressive Hide+Enumerate Naming Experiment
+Because ~gdb~ showed a hotspot in ~import_module_netnames~ / ~get_bit_name~,
+an additional off-Nix Yosys experiment tried hiding public internal names and
+re-enumerating them to short synthetic names:
+- ~rename -hide */w:*~
+- ~rename -enumerate -pattern n% */w:$*~
+- ~rename -hide */c:*~
+- ~rename -enumerate -pattern c% */c:$*~
+
+Starting point:
+- ~/tmp/tiny-stories-quant-int8-selftest-trimmed.json~
+
+Output:
+- ~/tmp/tiny-stories-quant-int8-selftest-hidden-short.json~
+
+Observed effect:
+- internal ~_handshake_mux...~ style names disappeared from the JSON
+- remaining long names were mostly in Xilinx library modules
+
+*** Result in patched nextpnr-xilinx
+Running the minimal patched importer on this aggressively renamed JSON still
+failed:
+- ~EXIT=137~
+- ~Command terminated by signal 9~
+- max RSS: ~26,924,380 kB~ (~26.9 GB~)
+- wall time: ~4:26.73~
+
+Interpretation:
+- this was worse than the prior ~trimmed.json~ run
+- hiding and re-enumerating all public internal names is *not* a good next
+  direction for this flow
+- the importer does not benefit enough from that rewrite to justify it
+
+** Importer Patch: Skip Non-Top-Level Netnames
+Because ~gdb~ on the trimmed JSON showed a hotspot in
+~import_module_netnames~ / ~get_bit_name~, a local importer variant was tested
+that skipped:
+- ~import_module_netnames(...)~
+- ~import_net_attrs(...)~
+
+for non-top-level modules only.
+
+The intention was to force cheap synthetic names for submodule internals while
+preserving top-level naming.
+
+*** Result
+Running that importer variant on:
+- ~/tmp/tiny-stories-quant-int8-selftest-trimmed.json~
+
+still failed:
+- ~EXIT=137~
+- ~Command terminated by signal 9~
+- max RSS: ~27,232,236 kB~ (~27.2 GB~)
+- wall time: ~1:26.96~
+
+Interpretation:
+- despite the ~gdb~ hotspot, simply skipping non-top-level netname import is
+  not a win
+- this patch performed slightly worse than the plain trimmed-JSON importer run
+- the remaining importer blow-up is therefore not solved by this coarse
+  netname-import bypass
+
+** What Was Ruled Out
+*** Not a CIRCT blocker anymore
+The flow now reaches final JSON successfully. This is downstream of the CIRCT
+issues that previously blocked progress.
+
+*** Not a Yosys correctness failure anymore
+Yosys completes the selftest JSON generation and ~check~ reports ~0 problems~.
+
+*** Not fixed by deleting hierarchy definitions
+Blindly deleting ~handshake_memory_out_*~ module definitions was judged unsafe
+unless the design was known to be fully flattened and unreferenced.
+
+*** Full top-level flatten is not viable
+An attempted Yosys ~flatten; clean; write_json~ workaround was killed during
+JSON generation with exit ~137~, so whole-design flattening is too expensive in
+this form.
+
+** Best Current Interpretation
+The current frontier is:
+1. one real ~nextpnr-xilinx~ importer bug was fixed locally
+2. TinyStories still causes importer-state growth large enough to reach
+   ~27-28 GB~ RSS
+3. most of that growth still happens before actual place-and-route
+
+So the remaining problem is best treated as a ~nextpnr-xilinx~ scalability or
+import-structure problem, not as a CIRCT or Yosys synthesis failure.
+
+** Recommended Next Steps
+1. Continue instrumenting ~nextpnr-xilinx~ importer state rather than changing
+   CIRCT/Yosys again.
+2. Focus on hierarchical import growth:
+   - number of imported modules
+   - number of duplicated cell attributes/params
+   - per-module net/cell expansion
+3. Test shorter Yosys-generated names before JSON export, because long
+   auto-generated net names are now a confirmed importer hotspot.
+4. Reduce remaining JSON metadata if possible, but do not expect that alone to
+   solve the failure.
+5. Investigate whether flattening only targeted sub-hierarchies near the top is
+   enough to avoid pathological importer recursion without the cost of whole-top
+   flattening.
+6. If a second concrete ~nextpnr-xilinx~ bug is found, patch it locally first
+   against the frozen TinyStories JSON/XDC reproducer before moving back into
+   Nix builds.
+
+** Reproducer Artifacts
+- final selftest JSON:
+  ~ /nix/store/kjk34rbpw07sk0h0kdcgv3wjzxxyndiz-tiny-stories-quant-int8-selftest.json~
+- selftest XDC:
+  ~ /nix/store/anql1pxkjmqf16lk3ihgjyln41x9zx8k-tiny-stories-quant-int8-selftest.xdc~
+- locally patched nextpnr:
+  ~ /tmp/nextpnr-xilinx-bugfix/build/nextpnr-xilinx~
+- reduced-src JSON:
+  ~ /tmp/tiny-stories-quant-int8-selftest-nosrc.json~
+- timing logs:
+  - ~/tmp/nextpnr-timed.stderr~
+  - ~/tmp/nextpnr-nosrc.stderr~
+  - ~/tmp/yosys-nosrc.time~
+
+** Importer Instrumentation: Quantitative Breakdown
+To move beyond single-stack ~gdb~ snapshots, local importer telemetry was added
+to ~frontend_base.h~ around:
+- ~import_module~
+- ~import_module_netnames~
+- ~create_or_get_net~
+
+The instrumented binary was then run on:
+- ~/tmp/tiny-stories-quant-int8-selftest-trimmed.json~
+
+with stderr captured in:
+- ~/tmp/nextpnr-instrumented.stderr~
+
+*** Result
+The run still died with:
+- ~Command terminated by signal 9~
+- max RSS: ~27,681,172 kB~ (~27.7 GB~)
+- wall time: ~6:00.57~
+
+*** Key Finding
+The first-order blow-up happens in the top-level imported ~main~ instance
+itself, before deep recursive hierarchy import dominates.
+
+Early in the run, while still at:
+- depth ~1~
+- path ~tiny_stories_selftest_top/u_dut~
+- type ~main~
+
+the importer had already accumulated:
+- ~local_bits=19,040,540~
+- ~local_candidates=19,039,133~
+- ~module_net_slots=19,040,542~
+- ~local_aliases=1,407~
+
+with RSS already around ~8.7 GB~, while actual created nets/cells were still
+tiny by comparison:
+- ~ctx_nets=3,184~
+- ~ctx_cells=2,357~
+
+Interpretation:
+- the top-level ~main.netnames~ section is itself enormous
+- the dominant early cost is storing per-bit candidate names in
+  ~m.net_names~
+- this is not initially a deep repeated-submodule problem
+
+*** What Happens Next
+After that initial ~main~ netname blow-up, recursive import of many
+~handshake_buffer_*~ instances continues to push memory upward via alias/net
+growth. Just before the kill, the instrumentation showed approximately:
+- ~ctx_nets=11,495,767~
+- ~ctx_cells=9,963,052~
+- ~ctx_aliases=18,498,179~
+- ~flat_nets=10,000,065~
+- RSS ~27.5 GB~
+
+So the import failure appears to have two stages:
+1. huge top-level ~netnames~ candidate-name storage in ~main~
+2. continued alias/net expansion during recursive import of many small modules
+
+*** Consequence For Next Steps
+The next highest-signal experiment is no longer "generic importer tuning". It
+is to attack top-level ~main~ netname storage directly, for example by:
+- not materializing all internal ~main~ netnames up front
+- keeping top-level port names but synthesizing internal names lazily
+- or rewriting the JSON so ~main.netnames~ is drastically reduced while
+  preserving port/constraint visibility
+
+** Yosys Rewrite Attempt: Delete ~main~ Internal Wires
+An off-Nix Yosys rewrite was attempted on:
+- ~/tmp/tiny-stories-quant-int8-selftest-trimmed.json~
+
+using:
+- ~delete main/w:* main/x:* %d~
+
+to remove only non-port wires from ~main~, followed by ~write_json~.
+
+The output file was:
+- ~/tmp/tiny-stories-quant-int8-selftest-main-ports-only.json~
+
+*** What Happened
+This did not actually shrink the design in the way needed.
+
+Re-importing the new JSON into Yosys showed:
+- original trimmed JSON:
+  - ~main/w:* = 1,292,494~
+  - ~main/x:* = 322~
+  - non-port wires = ~1,292,172~
+- rewritten JSON:
+  - ~main/w:* = 2,584,666~
+  - ~main/x:* = 322~
+  - non-port wires = ~2,584,344~
+
+So Yosys recreated hidden internal wires on export, and the rewrite doubled the
+number of non-port wire objects in ~main~.
+
+*** nextpnr Import Check
+The rewritten JSON was briefly tested with the instrumented local
+~nextpnr-xilinx~ importer. It was already worse very early in import:
+- at ~9.0M~ imported ~main~ bits
+- RSS was already ~10.2 GB~
+
+where the plain trimmed JSON had been materially lower at the same point.
+
+Conclusion:
+- deleting ~main~ internal wires in Yosys is not a viable way to reduce
+  importer pressure
+- it creates more hidden wire baggage and should not be pursued further
+
+** Direct JSON Pruning: ~main.netnames~ Only
+A purpose-built streaming script was added:
+- ~/home/roland/LLM2FPGA/scripts/pipeline/prune_yosys_json_netnames.py~
+
+It can rewrite large Yosys JSON files without loading them fully into memory.
+
+The first real experiment pruned only:
+- ~modules.main.netnames~
+
+keeping just ~main~ port netnames and dropping the rest.
+
+Input:
+- ~/tmp/tiny-stories-quant-int8-selftest-trimmed.json~
+
+Output:
+- ~/tmp/tiny-stories-quant-int8-selftest-pruned-main-netnames.json~
+
+Prune stats:
+- ~ports=322~
+- ~netnames_seen=1292494~
+- ~kept=322~
+- ~dropped=1292172~
+
+Size:
+- original trimmed JSON: ~1.1G~
+- pruned-main JSON: ~508M~
+
+*** nextpnr Result
+Running the instrumented local ~nextpnr-xilinx~ on the pruned-main JSON:
+- no longer showed the huge ~main~ candidate-name blow-up
+- ~main~ now had:
+  - ~local_entries=322~
+  - ~local_bits=1407~
+  - ~local_candidates=0~
+
+This shifted the importer cost to the actual imported graph and later alias
+growth.
+
+However the run still died with:
+- ~Command terminated by signal 9~
+- max RSS: ~25,893,208 kB~ (~25.9 GB~)
+
+This is a real improvement over the earlier trimmed-JSON importer run
+(~27.7 GB~), and it reached a later import frontier before being killed.
+
+** Direct JSON Pruning: All Modules
+The script was then generalized to prune netnames for all modules, keeping only
+port netnames in each module.
+
+Input:
+- ~/tmp/tiny-stories-quant-int8-selftest-trimmed.json~
+
+Output:
+- ~/tmp/tiny-stories-quant-int8-selftest-pruned-all-netnames.json~
+
+Prune stats:
+- ~scope=all-modules~
+- ~modules_pruned=793~
+- ~ports=37117~
+- ~netnames_seen=1394650~
+- ~kept=37117~
+- ~dropped=1357533~
+
+Size:
+- pruned-all JSON: ~504M~
+
+*** nextpnr Result
+The importer telemetry confirmed that repeated submodules no longer accumulated
+candidate-name state:
+- typical small modules now had:
+  - ~local_candidates=0~
+  - ~module_net_slots=0~
+
+So the JSON pruning did eliminate the remaining per-module candidate-name
+storage.
+
+But the run still died with:
+- ~Command terminated by signal 9~
+- max RSS: ~26,874,724 kB~ (~26.9 GB~)
+
+Interpretation:
+- candidate-name storage is no longer the blocker
+- the remaining frontier is alias/net bookkeeping during the actual recursive
+  graph import
+- the next likely target is alias creation and ~ctx->net_aliases~ growth, not
+  netname parsing itself

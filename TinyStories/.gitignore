@@ -1,0 +1,4 @@
+.tmp-*.mlir
+.gen-*.mlir
+tinystories_nix_*.mlir
+tinystories_1m_torch.mlir

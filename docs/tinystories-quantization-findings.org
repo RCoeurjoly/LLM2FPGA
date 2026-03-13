@@ -1,0 +1,116 @@
+* TinyStories Quantization Findings
+#+DATE: 2026-03-05
+
+** Scope
+This note summarizes what was tested for TinyStories quantization in the current
+Torch-MLIR + CIRCT pipeline, what worked, what did not, and how to proceed.
+
+** Repository Changes Implemented
+*** Quantized model variant
+A new model derivation variant was added:
+- ~tiny-stories-1m-quant-int8~
+
+This is a *parallel model derivation* (same downstream pipeline stages), not a
+new global pipeline stage.
+
+*** Export script quantization modes
+~TinyStories/compile-pytorch.py~ now supports:
+- ~TINYSTORIES_QUANTIZATION=none~ (default)
+- ~TINYSTORIES_QUANTIZATION=dynamic-int8~ (experimental; currently blocked)
+- ~TINYSTORIES_QUANTIZATION=weight-int8-dequant~ (currently used in derivation)
+
+** Build Results
+*** 1) Quantized torch artifact
+~nix build .#tiny-stories-1m-quant-int8-torch -L~ succeeds.
+
+*** 2) Full pipeline to IL
+~nix build .#tiny-stories-1m-quant-int8-il -L~ fails in Yosys with unknown
+extern modules:
+- ~arith_addf_in_f32_f32_out_f32~
+- ~arith_addf_in_f64_f64_out_f64~
+- ~arith_divf_in_f32_f32_out_f32~
+- ~arith_divf_in_f64_f64_out_f64~
+- ~arith_extf_in_f32_out_f64~
+- ~arith_maximumf_in_f32_f32_out_f32~
+- ~arith_mulf_in_f32_f32_out_f32~
+- ~arith_mulf_in_f64_f64_out_f64~
+- ~arith_subf_in_f32_f32_out_f32~
+- ~arith_subf_in_f64_f64_out_f64~
+- ~arith_truncf_in_f64_out_f32~
+- ~arith_cmpf_in_f32_f32_out_ui1_ogt~
+- ~math_exp_in_f32_out_f32~
+- ~math_fpowi_in_f32_ui64_out_f32~
+- ~math_rsqrt_in_f32_out_f32~
+- ~math_tanh_in_f32_out_f32~
+
+*** 3) Artifact comparison
+Quantized and non-quantized ~hw-clean~ artifacts are byte-identical
+(same SHA-256), meaning the current quantized path does not change lowered HW.
+
+** Why This Happened
+The currently working quantization mode (~weight-int8-dequant~) quantizes
+weights and then dequantizes them back to float before compute.
+
+Therefore compute remains floating-point, and CF still contains float/math ops
+such as:
+- ~arith.addf/subf/mulf/divf/extf/truncf/maximumf/cmpf~
+- ~math.exp/tanh/rsqrt/fpowi~
+
+Those ops are then turned into extern modules by CIRCT.
+
+** CIRCT Behavior Confirmed
+In local CIRCT commit:
+- ~27fdda153~ (2026-03-05, message: "SV tinkering")
+
+~lib/Conversion/HandshakeToHW/HandshakeToHW.cpp~ explicitly lowers float+math
+ops as extern modules via ~ExtModuleConversionPattern~ for:
+- arith float ops (~AddFOp, SubFOp, MulFOp, DivFOp, MaximumFOp, CmpFOp, ExtFOp, TruncFOp~)
+- math ops (~ExpOp, FPowIOp, RsqrtOp, TanhOp~)
+
+So if float ops survive to Handshake/HW lowering, extern modules are expected.
+
+** True Int Quantization Attempt Status
+*** Dynamic int8 path
+Testing ~dynamic-int8~ currently fails in torch-mlir import/decomposition path.
+
+Observed failure modes:
+- ~AssertionError~ in PyTorch AOT decomposition path during ~export_and_import~
+- Torch-MLIR import path also shows quantization support gaps:
+  - ~Quantized tensor meta data is not supported.~ in
+    ~torch_mlir/extras/fx_importer.py~
+  - A separate importer bug triggered in local test:
+    ~NameError: name 'sparsity' is not defined~
+
+** Related Upstream Issues
+As of 2026-03-05, relevant torch-mlir issues include:
+
+1. https://github.com/llvm/torch-mlir/issues/3220
+   - Title: ~Compilation of Quantized Model Failed~
+   - Status: Open
+   - Reported error includes:
+     ~unsupported by backend contract: module initializers~
+
+2. https://github.com/llvm/torch-mlir/issues/4286
+   - Title: ~Unable to compile PyTorch quantized models with torch-mlir due to CustomClass~
+   - Status: Open
+   - Reported error includes:
+     ~unable to import Torch CustomClass type ...~
+
+** Conclusion
+Current "quantized" derivation (weight quantize-dequant) is not sufficient to
+remove float extern modules. It improves parameter representation only, not
+compute dtype in the lowered graph.
+
+To eliminate ~arith_*~ / ~math_*~ float externs, we need true integer/fixed
+compute in IR before CF/Handshake lowering.
+
+** Recommended Next Steps
+1. Make "true quantization" explicit in requirements: no ~arith.*f~ or ~math.*~
+   ops allowed in quantized CF output.
+2. Add an automated CF gate for quantized models:
+   fail build if float ops remain.
+3. Prioritize enabling a working torch-mlir quantized import/export path
+   (or alternate export route) before spending effort on more dequant-based
+   variants.
+4. Keep FP extern implementation as fallback path if quantized import cannot be
+   unlocked quickly.

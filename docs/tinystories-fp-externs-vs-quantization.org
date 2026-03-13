@@ -1,0 +1,88 @@
+* TinyStories: FP Extern Implementation vs Quantization
+#+DATE: 2026-03-05
+
+** Context
+Task 3 currently reaches SystemVerilog generation for TinyStories-1M, but fails in
+Yosys/RTLIL due to missing floating-point extern modules.
+
+Observed unresolved module families include:
+- ~arith_*~ (add/sub/mul/div/ext/trunc/cmp/max)
+- ~math_*~ (rsqrt/exp/tanh/fpowi)
+
+In the current repository state, this appears after successful ~handshake~,
+~hs-ext~, ~hw0~, ~hw~, ~hw-clean~, and ~sv~ stages.
+
+** Option A: Implement ~arith_*~ and ~math_*~ FP externs
+*** What this means
+Build synthesizable RTL implementations for the CIRCT-emitted externs using the
+ready/valid interfaces generated in ~hw-clean~ MLIR/SV.
+
+*** Pros
+- Preserves floating-point model behavior more closely than quantization.
+- Keeps the existing model export path mostly unchanged.
+- Can become reusable infrastructure for other FP-heavy models.
+
+*** Cons
+- Large implementation scope, especially ~math_exp~, ~math_tanh~, ~math_rsqrt~,
+  and ~math_fpowi~.
+- High verification burden (correctness, corner cases, latency/handshake behavior).
+- Higher area/power risk on FPGA versus fixed-point.
+- Slower path to a Task 3 "end-to-end no-stubs" result.
+
+*** Risk level
+High schedule and technical risk for current milestone.
+
+** Option B: Quantization-first
+*** What this means
+Move TinyStories to lower precision/fixed-point so the lowering flow avoids (or
+greatly reduces) unsupported floating-point externs.
+
+*** Pros
+- Directly targets the current blocker and FPGA resource pressure at once.
+- Better chance of reaching synthesizable ~.il~ and ~yosys stat~ quickly.
+- More aligned with likely downstream FPGA integration constraints.
+- Smaller required primitive library if any residual externs remain.
+
+*** Cons
+- Accuracy/perplexity regression must be measured and accepted.
+- Requires a quantization flow and validation loop in PyTorch/export.
+- May still leave a reduced set of extern/operator gaps.
+
+*** Risk level
+Moderate technical risk, lower schedule risk than full FP extern implementation.
+
+** Comparison Summary
+| Dimension | FP extern implementation | Quantization-first |
+|-----------+--------------------------+--------------------|
+| Time to unblock pipeline | Slow | Faster |
+| Engineering scope | Very large | Medium |
+| Numerical fidelity | Higher | Lower (must validate) |
+| FPGA fit likelihood | Worse | Better |
+| Long-term generality | Higher for FP models | Higher for deployment practicality |
+
+** Recommendation
+Use a *quantization-first* strategy for Task 3.
+
+Rationale:
+- The present failure is a missing primitive implementation gap, not an upstream
+  export/lowering crash.
+- Implementing the full ~arith_*~ + ~math_*~ FP set is likely too large for the
+  current milestone.
+- Quantization gives the shortest path to "no stubs/blackboxes" synthesis
+  artifacts while also improving chance of fitting on FPGA.
+
+** Practical Forward Plan
+1. Run a short quantization spike on TinyStories-1M (target int8/low-precision
+   path compatible with current export).
+2. Re-run stage-by-stage pipeline to ~il~ and ~yosys-stat~.
+3. Extract residual unresolved externs (if any) and implement only that reduced
+   set.
+4. Record quality/resource tradeoff as part of Task 3 bottleneck report.
+
+** Decision Rule
+If quantization still leaves many unsupported ~math_*~ externs, then prioritize:
+1) lowering transforms that eliminate those ops before HW emission, then
+2) minimal targeted primitive implementations.
+
+Only choose full FP extern implementation now if preserving near-FP numerical
+behavior is an explicit hard requirement for Task 3.

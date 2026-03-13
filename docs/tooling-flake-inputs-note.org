@@ -1,0 +1,72 @@
+* Tooling Flake Inputs Note
+#+DATE: 2026-03-13
+
+** Goal
+Make the major LLM2FPGA tool sources individually updateable with:
+
+- ~nix flake update <input>~
+
+This should apply to tools that move on their own upstream and materially affect
+pipeline behavior, compatibility, or generated hardware.
+
+** Recommended First-Class Inputs
+These are the repos that are worth exposing directly as flake inputs:
+
+- ~yosys~
+- ~yosys-slang~
+- ~torch-mlir-src~
+- ~circt-src~
+- ~llvm-project-src~
+- ~nextpnr-xilinx-src~
+- ~fasm-src~
+- ~prjxray-src~
+
+Optional:
+- a dedicated PyTorch package source if PyTorch needs to move independently from
+  the main ~nixpkgs~ pin
+
+** Grouping Rules
+Not every logical tool should become its own independent revision knob.
+
+- LLVM and MLIR should normally move together from one ~llvm-project~ revision
+- Yosys and ~yosys-slang~ should be separate inputs, but treated as a
+  compatibility pair
+- ~nextpnr-xilinx~, ~fasm~, and ~prjxray~ are separate repos and can be updated
+  independently
+- PyTorch is only independently updateable if it stops coming from the shared
+  ~nixpkgs~ package set
+
+** Current State In This Repo
+Already first-class inputs:
+- ~yosys~
+- ~yosys-slang~
+- ~torch-mlir-src~
+- ~nextpnrXilinxFork~
+
+Not yet first-class inputs:
+- ~fasm~ and ~prjxray~, which currently come from ~openXC7.packages~
+- CIRCT/LLVM as independently updateable remote inputs, since current wiring is
+  still based on local path inputs through ~circt-nix~
+- PyTorch as an individually updateable source, since it currently comes from
+  ~nixpkgs-llvm21~
+
+** Refactor Direction
+The follow-up refactor should:
+
+1. keep independently moving upstream repos as top-level flake inputs
+2. avoid splitting tightly coupled repos into separate unrelated pins
+3. preserve compatibility pairs explicitly in packaging logic
+4. make tool updates visible in ~flake.lock~ and easy to bisect
+
+** Practical Target
+After the refactor, the intended workflow should look like:
+
+#+begin_src sh
+nix flake update yosys yosys-slang
+nix flake update torch-mlir-src
+nix flake update circt-src llvm-project-src
+nix flake update nextpnr-xilinx-src fasm-src prjxray-src
+#+end_src
+
+This keeps the update surface aligned with the real upstream repos that matter
+to the end-to-end lowering and FPGA flow.

@@ -10,33 +10,27 @@
         "slang-src": "slang-src"
       },
       "locked": {
-        "lastModified": 1768316241,
-        "narHash": "sha256-ZSWxUm51P8eYmkUp5Tv9lZA/GVuACYaGntwMmoEqbF0=",
-        "owner": "dtzSiFive",
-        "repo": "circt-nix",
-        "rev": "cf4cd8197d9f2d5e5ca8ce6a7c27d5014d904279",
-        "type": "github"
+        "lastModified": 1773057217,
+        "narHash": "sha256-VWvlwUmTJ8uMynznirTLyv5P7zs3/lBbCXICKktXsDY=",
+        "path": "/home/roland/circt-nix",
+        "type": "path"
       },
       "original": {
-        "owner": "dtzSiFive",
-        "repo": "circt-nix",
-        "type": "github"
+        "path": "/home/roland/circt-nix",
+        "type": "path"
       }
     },
     "circt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1768283381,
-        "narHash": "sha256-MGSiw3CqBHDpfEkB5XY/S4NIBzA1SeihuP4ZoqW47B8=",
-        "owner": "llvm",
-        "repo": "circt",
-        "rev": "8a7a7e4d517a7ffecc999795d291a4767b94c7c9",
-        "type": "github"
+        "lastModified": 1773093093,
+        "narHash": "sha256-dMWc/T1LP7w2JiYiKgJvTw0TGSMKC2LXIJHZoQ+qn3A=",
+        "path": "/home/roland/circt",
+        "type": "path"
       },
       "original": {
-        "owner": "llvm",
-        "repo": "circt",
-        "type": "github"
+        "path": "/home/roland/circt",
+        "type": "path"
       }
     },
     "flake-compat": {
@@ -130,34 +124,30 @@
     "llvm-submodule-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1764901536,
-        "narHash": "sha256-fmEG+5QVXWj7I9lWKOTXI+0qsvkPi1oI2jeyYjgAUg0=",
-        "owner": "llvm",
-        "repo": "llvm-project",
-        "rev": "b32e067e97003db47aed52edc9ef8c3c30899b91",
-        "type": "github"
+        "lastModified": 1772647543,
+        "narHash": "sha256-bbueTKU0GpeLamAreKq+vh2DBuT08oqVA01W/vtGzCg=",
+        "path": "/home/roland/circt/llvm",
+        "type": "path"
       },
       "original": {
-        "owner": "llvm",
-        "repo": "llvm-project",
-        "rev": "b32e067e97003db47aed52edc9ef8c3c30899b91",
-        "type": "github"
+        "path": "/home/roland/circt/llvm",
+        "type": "path"
       }
     },
     "nextpnrXilinxFork": {
       "flake": false,
       "locked": {
-        "lastModified": 1772047723,
-        "narHash": "sha256-/9PY2NFl2mn7ZH41aOHRHSHAnYAif3eV+Ea53geU5S8=",
-        "ref": "stable-backports",
-        "rev": "4ef2518428b33f160ff93d38c781f08cc3a41566",
+        "lastModified": 1773393940,
+        "narHash": "sha256-RJpokGv5bur/0jw0yd86+ojDG40HD5osaWU4kqeELgQ=",
+        "ref": "fix-net-old-indices-upstream-pr",
+        "rev": "c7c655d5efd0ed584b4094c8e0fbfbfaef59942b",
         "revCount": 3126,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/RCoeurjoly/nextpnr-xilinx"
       },
       "original": {
-        "ref": "stable-backports",
+        "ref": "fix-net-old-indices-upstream-pr",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/RCoeurjoly/nextpnr-xilinx"
@@ -168,11 +158,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1771601862,
-        "narHash": "sha256-J+4ma+wIlrrGTwTKxbhfAq5fDqeWayroLaEyblqQMrc=",
+        "lastModified": 1773303822,
+        "narHash": "sha256-Aey3PT/xisIHj8y696NiS65xzNxpW5rDzm2iK9X2DSw=",
         "owner": "fossi-foundation",
         "repo": "nix-eda",
-        "rev": "893b5d27378bbe3b25bfd6a1922406514d6c5914",
+        "rev": "691472a25cf4d6c1a6e9975b9149f32deba6e0c7",
         "type": "github"
       },
       "original": {
@@ -282,11 +272,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1771777525,
-        "narHash": "sha256-A5VdJt2rN5NuewZ7UO742wuUqM9Rwxk832K11PqCsnE=",
+        "lastModified": 1773160997,
+        "narHash": "sha256-TkqLbtg/KU3Jn9ptgvxUiW9brya7Hf+qo3vX2OgM1AI=",
         "owner": "RCoeurjoly",
         "repo": "toolchain-nix",
-        "rev": "5dd1562227178b220dbf13d8bef4d4fc19f24eee",
+        "rev": "aebe5a3cf24ddd84818fb9a96daa96b8b76c796b",
         "type": "github"
       },
       "original": {
@@ -304,18 +294,20 @@
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "openXC7": "openXC7",
+        "torch-mlir-src": "torch-mlir-src",
         "yosys": "yosys",
+        "yosys-slang": "yosys-slang",
         "ypcbHack": "ypcbHack"
       }
     },
     "slang-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1768074645,
-        "narHash": "sha256-vOsDkif2I0plJbByBGamP6P/Hn1CWsBPe0AM0Uhnuts=",
+        "lastModified": 1772497738,
+        "narHash": "sha256-H+kQfwgVuTMSwQXGkYrs55F1prfOQckMCXEILhDXM+4=",
         "owner": "MikePopoloski",
         "repo": "slang",
-        "rev": "56d0b585de8a73da3df57290a9dd5020aa1c6892",
+        "rev": "c8162767dbdc32c14a6e2a6e07f27a3561ad2cf8",
         "type": "github"
       },
       "original": {
@@ -384,17 +376,33 @@
         "type": "github"
       }
     },
+    "torch-mlir-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773304265,
+        "narHash": "sha256-jK2GXg3paiEjSee7dmyavsovU/HoXyQqEnm0j5pjU0s=",
+        "owner": "llvm",
+        "repo": "torch-mlir",
+        "rev": "d51862ed35a8826a3444d38942b6d2084cf865ee",
+        "type": "github"
+      },
+      "original": {
+        "owner": "llvm",
+        "repo": "torch-mlir",
+        "type": "github"
+      }
+    },
     "yosys": {
       "inputs": {
         "flake-utils": "flake-utils_4",
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1771836119,
-        "narHash": "sha256-Qn1ucwwzc31w6N509yj5+jKmbmPZ2OHpQe6CzDOYCh8=",
+        "lastModified": 1773229666,
+        "narHash": "sha256-xr3tx5Vd3bWwHt/wikCBxNEINUGGKyPOzpQnnIKUt5M=",
         "ref": "refs/heads/main",
-        "rev": "53d8eb43ff6b8b98b86617c258772a1981e05943",
-        "revCount": 16683,
+        "rev": "4716f4410f1508cad384d2f8542ada9f61bb7339",
+        "revCount": 16802,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
@@ -403,6 +411,24 @@
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
+      }
+    },
+    "yosys-slang": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1771668508,
+        "narHash": "sha256-z+eEhTb9UZJ/L4X0GLwJMcjPcaPbnGFXJe09eLXGBB4=",
+        "ref": "refs/heads/master",
+        "rev": "d82b0b163a725fc1a401fbb6b465cd862517ec1f",
+        "revCount": 572,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/povik/yosys-slang"
+      },
+      "original": {
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/povik/yosys-slang"
       }
     },
     "ypcbHack": {
