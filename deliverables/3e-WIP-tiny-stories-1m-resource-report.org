@@ -1,0 +1,26 @@
+* WIP Deliverable 3e: synthesis resource report and bottleneck report
+
+Reference:
+- docs/project-plan_v2.org:218
+
+Definition:
+- 3e) synthesis resource report + bottleneck report
+
+Gate:
+#+begin_src bash
+nix build .#tiny-stories-quant-int8-selftest-utilization -L
+#+end_src
+
+Artifact:
+- =result/summary.txt=
+- =result/summary.json=
+
+Note:
+- Lowering completes, and the utilization report is generated for the synthesized self-test top.
+- Measured utilization on the current Task 3 flow:
+  - LUTs: =23671056 / 298600= (=7927.35%%=)
+  - FFs: =38738076 / 597200= (=6486.62%%=)
+  - DSPs: =751 / 1920= (=39.11%%=)
+  - BRAM36-equivalent: =0 / 955= (=0%%=)
+- The generated self-test top does not fit the target FPGA.
+- The dominant bottleneck is LUT/FF explosion in the lowered design, not DSP or BRAM pressure.
