@@ -1,0 +1,46 @@
+* Task 3 diff review notes (2026-03-25)
+
+** Highest approval risk
+- =flake.lock= churn is broad relative to the TinyStories logic diff.
+  Even if reviewers do not line-review lockfile entries, the branch still
+  changes CIRCT, LLVM, nextpnr-xilinx, nix-eda, Yosys, yosys-slang,
+  torch-mlir, and =nixpkgs= together.
+- =patches/circt-task3-rfp/0004-local-lsq-sv-debug.patch= is the hardest patch
+  to approve as-is because it mixes LSQ behavior, lazy fork lowering, memory
+  operand shape changes, and extra extern lowering.
+- =scripts/pipeline/hs_ext_to_hw0.sh= contains a Perl regex rewrite over MLIR.
+  That is brittle and difficult to review because the invariant is encoded in a
+  text substitution rather than in CIRCT proper.
+
+** Hardest to understand
+- =patches/circt-task3-rfp/0004-local-lsq-sv-debug.patch=
+- =scripts/pipeline/gen_tiny_stories_selftest_top.py=
+- =flake.nix=
+- =TinyStories/quantized_tinystories.py=
+
+** Simplification candidates
+- Separate toolchain pinning / lockfile churn from TinyStories pipeline logic.
+- Shrink =flake.nix= by moving more helper builders into dedicated Nix modules.
+- Reduce duplication between plain and quantized pipeline registration in
+  =nix/pipeline.nix=.
+- Replace handshake-port heuristics in
+  =scripts/pipeline/gen_tiny_stories_selftest_top.py= with either a checked-in
+  generated wrapper or an explicit machine-readable interface description.
+- Keep deliverable docs declarative and artifact-oriented instead of embedding
+  measured numbers by hand.
+
+** Concrete concerns
+- =flake.nix= declares =nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"=, but
+  =flake.lock= records the resolved =nixpkgs.original.ref= as =master=. That is
+  a source/lock mismatch and should be intentional if kept.
+- The self-test wrapper picks start, done, and store channels by name and index
+  heuristics. That can silently break if CIRCT changes interface naming.
+- The SystemVerilog lint check is commented out in =flake.nix= even though the
+  branch substantially increases the SV generation surface.
+
+** Quantized TinyStories note
+- =TinyStories/quantized_tinystories.py= is not "just a quantization function
+  call". It manually re-expresses attention, MLP, layer norm, and output
+  projection in integer arithmetic so the exported graph stays integer-only.
+  The complexity comes from avoiding float/dequant fallbacks in the exported
+  model, not from ordinary post-training quantization alone.
