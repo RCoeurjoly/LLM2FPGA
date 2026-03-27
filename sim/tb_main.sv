@@ -27,47 +27,23 @@ module tb;
   logic reset;
   logic in3_valid;
   logic in3_ready;
-
-  logic [3:0] in0_ld0_addr;
-  logic       in0_ld0_addr_valid;
-  // When DUT requests this read port, return the matching a entry.
-  wire [31:0] in0_ld0_data = in0_ld0_addr_valid ? a_mem[in0_ld0_addr] : 32'd0;
-  wire        in0_ld0_data_valid = in0_ld0_addr_valid;
-
-  logic [3:0] in1_ld0_addr;
-  logic       in1_ld0_addr_valid;
-  // When DUT requests this read port, return the matching b entry.
-  wire [31:0] in1_ld0_data = in1_ld0_addr_valid ? b_mem[in1_ld0_addr] : 32'd0;
-  wire        in1_ld0_data_valid = in1_ld0_addr_valid;
-
-  wire [31:0] in2_st0_data;
+  logic       out0_valid;
+  logic       in2_st0_done_ready;
+  struct packed { logic [31:0] data; } in2_st0;
   wire        in2_st0_valid;
-  wire        in2_st0_done_ready;
-  wire	      in0_ld0_data_ready;
-  wire	      in1_ld0_data_ready;
+  wire [31:0] in2_st0_data = in2_st0.data;
    
   main dut(
-    .in0_ld0_data(in0_ld0_data),
-    .in0_ld0_data_valid(in0_ld0_data_valid),
-    .in1_ld0_data(in1_ld0_data),
-    .in1_ld0_data_valid(in1_ld0_data_valid),
     .in2_st0_done_valid(1'b0),
     .in3_valid(in3_valid),
     .clock(clock),
     .reset(reset),
     .out0_ready(1'b1),
-    .in0_ld0_addr_ready(1'b1),
-    .in1_ld0_addr_ready(1'b1),
     .in2_st0_ready(1'b1),
-    .in0_ld0_data_ready(in0_ld0_data_ready),
-    .in1_ld0_data_ready(in1_ld0_data_ready),
+    .out0_valid(out0_valid),
     .in2_st0_done_ready(in2_st0_done_ready),
     .in3_ready(in3_ready),
-    .in0_ld0_addr(in0_ld0_addr),
-    .in0_ld0_addr_valid(in0_ld0_addr_valid),
-    .in1_ld0_addr(in1_ld0_addr),
-    .in1_ld0_addr_valid(in1_ld0_addr_valid),
-    .in2_st0(in2_st0_data),
+    .in2_st0(in2_st0),
     .in2_st0_valid(in2_st0_valid)
   );
 
@@ -82,6 +58,10 @@ module tb;
   end
 
   initial begin
+    for (int i = 0; i < 16; i++) begin
+      dut.handshake_memory1._handshake_memory_5[i] = a_mem[i];
+      dut.handshake_memory2._handshake_memory_4[i] = b_mem[i];
+    end
     clock = 1'b0;
     reset = 1'b1;
     #40;

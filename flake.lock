@@ -2,7 +2,9 @@
   "nodes": {
     "circt-nix": {
       "inputs": {
-        "circt-src": "circt-src",
+        "circt-src": [
+          "circt-src-local"
+        ],
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "llvm-submodule-src": "llvm-submodule-src",
@@ -10,11 +12,11 @@
         "slang-src": "slang-src"
       },
       "locked": {
-        "lastModified": 1773755620,
-        "narHash": "sha256-dOJ2OtFQpgba8WDwgA+/SIoOBXTeeeBf3mpBKsh+iDY=",
+        "lastModified": 1774303045,
+        "narHash": "sha256-C4Z57ZEJi9J2vQmxVrBmMxtcg/NJN6P3fUM5nMDcgOc=",
         "ref": "main",
-        "rev": "4a2ee53bd44310b407519442bf9e6fcf79fcc256",
-        "revCount": 1723,
+        "rev": "43170bca0a5b32a87aa6ad300a50f79667cd08e3",
+        "revCount": 1728,
         "type": "git",
         "url": "https://github.com/dtzSiFive/circt-nix"
       },
@@ -24,21 +26,17 @@
         "url": "https://github.com/dtzSiFive/circt-nix"
       }
     },
-    "circt-src": {
+    "circt-src-local": {
       "flake": false,
       "locked": {
-        "lastModified": 1772656852,
-        "narHash": "sha256-uqI1YUJsgKrY+MSKZIXqvHuNWyKHUW4+6b0Au/kUCWk=",
-        "ref": "refs/heads/main",
-        "rev": "b480d90e5dc9545945528b031ae7037f4470193b",
-        "revCount": 11090,
-        "type": "git",
-        "url": "https://github.com/RCoeurjoly/circt"
+        "lastModified": 1774612129,
+        "narHash": "sha256-5ueYrdZgCmjnc7SUIy7kCqt/7ZxMaB919+nqlNtO+9Q=",
+        "path": "/home/roland/circt",
+        "type": "path"
       },
       "original": {
-        "rev": "b480d90e5dc9545945528b031ae7037f4470193b",
-        "type": "git",
-        "url": "https://github.com/RCoeurjoly/circt"
+        "path": "/home/roland/circt",
+        "type": "path"
       }
     },
     "flake-compat": {
@@ -185,11 +183,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1770084216,
-        "narHash": "sha256-Ij9J/9VuSAvdTqzbNLKtwYzAqt8J0nnqnht4mzCyN1M=",
+        "lastModified": 1773755184,
+        "narHash": "sha256-4yQ8tz7MA9uDcZCJr59dexXyTz4NpQGnmSs4gyeALO8=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "dfcc8a7bfb5b581331aeb110204076188636c7a2",
+        "rev": "6fd329b2adfecb86ae49c1cba89689bd0f229e04",
         "type": "github"
       },
       "original": {
@@ -300,6 +298,7 @@
     "root": {
       "inputs": {
         "circt-nix": "circt-nix",
+        "circt-src-local": "circt-src-local",
         "flake-utils": "flake-utils_2",
         "nextpnrXilinxFork": "nextpnrXilinxFork",
         "nix-eda": "nix-eda",

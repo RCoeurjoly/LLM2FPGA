@@ -12,16 +12,15 @@
       url = "git+https://github.com/povik/yosys-slang?submodules=1";
       flake = false;
     };
+    circt-src-local = {
+      url = "path:/home/roland/circt";
+      flake = false;
+    };
     circt-nix = {
       url = "git+https://github.com/dtzSiFive/circt-nix?ref=main";
-      # Keep the CIRCT base on a public pushed fork revision while the
-      # prerequisite flatten-memref work is still upstreaming, and apply only
-      # the remaining local Task 3 delta as in-repo patches below.
-      inputs."circt-src" = {
-        url =
-          "git+https://github.com/RCoeurjoly/circt?rev=b480d90e5dc9545945528b031ae7037f4470193b";
-        flake = false;
-      };
+      # Temporary local development source while we recover the working CIRCT
+      # delta from /home/roland/circt.
+      inputs."circt-src".follows = "circt-src-local";
       inputs."llvm-submodule-src" = {
         type = "github";
         owner = "llvm";
@@ -48,24 +47,43 @@
   };
 
   outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
-    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, torch-mlir-src, ... }:
+    , circt-src-local, nix-eda, openXC7, nextpnrXilinxFork, ypcbHack
+    , torch-mlir-src, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        circtBase = circtPkgs.circt.override { enableSlang = false; };
-        # Keep the local Task 3 CIRCT delta explicit and reviewable as a small
-        # in-repo patch stack instead of opaque working tree state.
-        circt = circtBase.overrideAttrs (old: {
-          patches = (old.patches or [ ]) ++ [
-            ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
-            ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
-            ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
-            ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
-            ./patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch
-          ];
-        });
+        circtLocalSrc = builtins.path {
+          path = circt-src-local;
+          name = "circt-src-local";
+          filter = path: type:
+            let
+              root = toString circt-src-local;
+              pathStr = toString path;
+              rel =
+                if pathStr == root then
+                  ""
+                else
+                  builtins.substring ((builtins.stringLength root) + 1)
+                  ((builtins.stringLength pathStr) - (builtins.stringLength root)
+                    - 1) pathStr;
+              components = pkgs.lib.splitString "/" rel;
+              head = if rel == "" then "" else builtins.head components;
+            in
+            if rel == "" then
+              true
+            else if head == ".git" then
+              false
+            else if head == "llvm" then
+              builtins.length components == 1
+            else
+              true;
+        };
+        circtBase = (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
+          (_: { src = circtLocalSrc; });
+        # Consume the local CIRCT checkout directly for now.
+        circt = circtBase;
         yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {
           src = yosys.outPath;
           version = "unstable-${builtins.substring 0 8 yosys.sourceInfo.rev}";

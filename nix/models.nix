@@ -16,6 +16,7 @@ in {
     };
     torchInputBuildInputs = [ pythonWithTorch ];
     torchInputCommand = ''
+      export MATMUL_PY="${matmulPy}"
       export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
       python ${compilePyTorch} \
         --adapter ${matmulAdapterPy} \
