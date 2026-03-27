@@ -1,0 +1,571 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Thu, 5 Mar 2026 14:24:00 +0100
+Subject: [PATCH 4/4] Add LSQ handshake lowering controls and regressions
+
+---
+diff --git a/include/circt/Conversion/CFToHandshake.h b/include/circt/Conversion/CFToHandshake.h
+index c0f504e9c215f0ec76e1e941eb157d900030c213..1ce592837aff82a79d1ef3ce52ea3cc8d24a8d68 100644
+--- a/include/circt/Conversion/CFToHandshake.h
++++ b/include/circt/Conversion/CFToHandshake.h
+@@ -191,7 +191,8 @@ void removeBasicBlocks(Region &r);
+ // the different lowering steps.
+ template <typename TSrcTerm, typename TDstTerm>
+ LogicalResult lowerRegion(HandshakeLowering &hl, bool sourceConstants,
+-                          bool disableTaskPipelining, Value entryCtrl) {
++                          bool disableTaskPipelining, bool lsq,
++                          Value entryCtrl) {
+   //  Perform initial dataflow conversion. This process allows for the use of
+   //  non-deterministic merge-like operations.
+   HandshakeLowering::MemRefToMemoryAccessOp memOps;
+@@ -226,7 +227,6 @@ LogicalResult lowerRegion(HandshakeLowering &hl, bool sourceConstants,
+           hl, &HandshakeLowering::connectConstantsToControl, sourceConstants)))
+     return failure();
+ 
+-  bool lsq = false;
+   if (failed(runPartialLowering(hl, &HandshakeLowering::connectToMemory, memOps,
+                                 lsq)))
+     return failure();
+@@ -249,7 +249,8 @@ createHandshakeAnalysisPass();
+ 
+ std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+ createCFToHandshakePass(bool sourceConstants = false,
+-                        bool disableTaskPipelining = false);
++                        bool disableTaskPipelining = false,
++                        bool lsq = false);
+ 
+ std::unique_ptr<mlir::OperationPass<handshake::FuncOp>>
+ createHandshakeCanonicalizePass();
+diff --git a/include/circt/Conversion/Passes.td b/include/circt/Conversion/Passes.td
+index 3379a2fca7b6f9e7d3679607e1bd12d9e3102ede..290ff16dccdd081c853e23ff8e82b55abf1b58ec 100644
+--- a/include/circt/Conversion/Passes.td
++++ b/include/circt/Conversion/Passes.td
+@@ -686,7 +686,10 @@ def CFToHandshake : Pass<"lower-cf-to-handshake", "mlir::ModuleOp"> {
+      Option<"disableTaskPipelining", "disable-task-pipelining", "bool", "false",
+             "If true, will disable support for task pipelining. This relaxes the "
+             "restrictions put on the structure of the input CDFG. Disabling "
+-            "task pipelining may severely reduce kernel II.">];
++            "task pipelining may severely reduce kernel II.">,
++     Option<"lsq", "lsq", "bool", "false",
++            "If true, lower memref accesses through LSQ-style handshake memory "
++            "interfaces instead of direct multi-ported memories.">];
+ }
+ 
+ def HandshakeRemoveBlock : Pass<"handshake-remove-block-structure", "handshake::FuncOp"> {
+diff --git a/lib/Conversion/CFToHandshake/CFToHandshake.cpp b/lib/Conversion/CFToHandshake/CFToHandshake.cpp
+index 86d38910a9105f23a771a8255f5ae76e73fdebce..1ce57ccf8c27cc99c426a56472ca9160a3d3f202 100644
+--- a/lib/Conversion/CFToHandshake/CFToHandshake.cpp
++++ b/lib/Conversion/CFToHandshake/CFToHandshake.cpp
+@@ -1592,7 +1592,7 @@ HandshakeLowering::connectToMemory(ConversionPatternRewriter &rewriter,
+     }
+ 
+     // control-only outputs for each access (indicate access completion)
+-    int cntrl_count = lsq ? 0 : memory.second.size();
++    int cntrl_count = memory.second.size();
+ 
+     Block *entryBlock = &r.front();
+     rewriter.setInsertionPointToStart(entryBlock);
+@@ -1625,13 +1625,12 @@ HandshakeLowering::connectToMemory(ConversionPatternRewriter &rewriter,
+       if (control &&
+           setJoinControlInputs(memory.second, newOp, ld_count, newInd).failed())
+         return failure();
+-
+-      // Set control-only inputs to each memory op
+-      // Ensure that op starts only after prior blocks have completed
+-      // Ensure that op starts only after predecessor ops (with RAW, WAR, or
+-      // WAW) have completed
+-      setMemOpControlInputs(rewriter, memory.second, newOp, ld_count, newInd);
+     }
++
++    // Load/store ops still require control inputs even when LSQ is enabled.
++    // In LSQ mode the extra control terms are also forwarded to the memory op
++    // itself, but the per-access control/dependency chain remains necessary.
++    setMemOpControlInputs(rewriter, memory.second, newOp, ld_count, newInd);
+   }
+ 
+   if (lsq)
+@@ -1692,7 +1691,7 @@ static LogicalResult maximizeSSANoMem(Region &r,
+ 
+ static LogicalResult lowerFuncOp(func::FuncOp funcOp, MLIRContext *ctx,
+                                  bool sourceConstants,
+-                                 bool disableTaskPipelining) {
++                                 bool disableTaskPipelining, bool lsq) {
+   // Only retain those attributes that are not constructed by build.
+   SmallVector<NamedAttribute, 4> attributes;
+   for (const auto &attr : funcOp->getAttrs()) {
+@@ -1748,7 +1747,7 @@ static LogicalResult lowerFuncOp(func::FuncOp funcOp, MLIRContext *ctx,
+     Value entryCtrl = bodyBlock->getArguments().back();
+     HandshakeLowering fol(newFuncOp.getBody());
+     if (failed(lowerRegion<func::ReturnOp, handshake::ReturnOp>(
+-            fol, sourceConstants, disableTaskPipelining, entryCtrl)))
++            fol, sourceConstants, disableTaskPipelining, lsq, entryCtrl)))
+       return failure();
+   }
+ 
+@@ -1764,16 +1763,18 @@ struct HandshakeRemoveBlockPass
+ 
+ struct CFToHandshakePass
+     : public circt::impl::CFToHandshakeBase<CFToHandshakePass> {
+-  CFToHandshakePass(bool sourceConstants, bool disableTaskPipelining) {
++  CFToHandshakePass(bool sourceConstants, bool disableTaskPipelining,
++                    bool lsq) {
+     this->sourceConstants = sourceConstants;
+     this->disableTaskPipelining = disableTaskPipelining;
++    this->lsq = lsq;
+   }
+   void runOnOperation() override {
+     ModuleOp m = getOperation();
+ 
+     for (auto funcOp : llvm::make_early_inc_range(m.getOps<func::FuncOp>())) {
+       if (failed(lowerFuncOp(funcOp, &getContext(), sourceConstants,
+-                             disableTaskPipelining))) {
++                             disableTaskPipelining, lsq))) {
+         signalPassFailure();
+         return;
+       }
+@@ -1785,9 +1786,9 @@ struct CFToHandshakePass
+ 
+ std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+ circt::createCFToHandshakePass(bool sourceConstants,
+-                               bool disableTaskPipelining) {
++                               bool disableTaskPipelining, bool lsq) {
+   return std::make_unique<CFToHandshakePass>(sourceConstants,
+-                                             disableTaskPipelining);
++                                             disableTaskPipelining, lsq);
+ }
+ 
+ std::unique_ptr<mlir::OperationPass<handshake::FuncOp>>
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index 670a14106e0f2e07dc73d0316c1e73ef4c2df7cc..e728892ba8a4fdc58c1b5f3526c0234bcbee448c 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -915,6 +915,19 @@ public:
+     input.ready->setValue(s.bAnd(doneWires, "allDone"));
+   }
+ 
++  void buildLazyForkLogic(RTLBuilder &s, InputHandshake &input,
++                          ArrayRef<OutputHandshake> outputs) const {
++    llvm::SmallVector<Value> readyWires;
++    readyWires.reserve(outputs.size());
++    for (auto output : outputs)
++      readyWires.push_back(output.ready);
++    auto allReady = s.bAnd(readyWires, "allReady");
++    input.ready->setValue(allReady);
++    auto outValid = s.bAnd({input.valid, allReady});
++    for (auto output : outputs)
++      output.valid->setValue(outValid);
++  }
++
+   // Builds a unit-rate actor around an inner operation. 'unitBuilder' is a
+   // function which takes the set of unwrapped data inputs, and returns a
+   // value which should be assigned to the output data value.
+@@ -947,6 +960,20 @@ public:
+       outport.data->setValue(res);
+   }
+ 
++  void buildUnitRateLazyForkLogic(
++      RTLBuilder &s, UnwrappedIO &unwrappedIO,
++      llvm::function_ref<llvm::SmallVector<Value>(Value)> unitBuilder) const {
++    assert(unwrappedIO.inputs.size() == 1 &&
++           "Expected exactly one input for unit-rate lazy fork actor");
++    this->buildLazyForkLogic(s, unwrappedIO.inputs[0], unwrappedIO.outputs);
++
++    auto unitResults = unitBuilder(unwrappedIO.inputs[0].data);
++    assert(unitResults.size() == unwrappedIO.outputs.size() &&
++           "Expected unit builder to return one result per output");
++    for (auto [res, outport] : llvm::zip(unitResults, unwrappedIO.outputs))
++      outport.data->setValue(res);
++  }
++
+   void buildExtendLogic(RTLBuilder &s, UnwrappedIO &unwrappedIO,
+                         bool signExtend) const {
+     size_t outWidth =
+@@ -1007,6 +1034,18 @@ public:
+   }
+ };
+ 
++class LazyForkConversionPattern : public HandshakeConversionPattern<LazyForkOp> {
++public:
++  using HandshakeConversionPattern<LazyForkOp>::HandshakeConversionPattern;
++  void buildModule(LazyForkOp op, BackedgeBuilder &bb, RTLBuilder &s,
++                   hw::HWModulePortAccessor &ports) const override {
++    auto unwrapped = unwrapIO(s, bb, ports);
++    buildUnitRateLazyForkLogic(s, unwrapped, [&](Value input) {
++      return llvm::SmallVector<Value>(unwrapped.outputs.size(), input);
++    });
++  }
++};
++
+ class JoinConversionPattern : public HandshakeConversionPattern<JoinOp> {
+ public:
+   using HandshakeConversionPattern<JoinOp>::HandshakeConversionPattern;
+@@ -1280,6 +1319,22 @@ public:
+   };
+ };
+ 
++template <typename TOp, comb::ICmpPredicate predicate>
++class MinMaxConversionPattern : public HandshakeConversionPattern<TOp> {
++public:
++  using HandshakeConversionPattern<TOp>::HandshakeConversionPattern;
++  void buildModule(TOp op, BackedgeBuilder &bb, RTLBuilder &s,
++                   hw::HWModulePortAccessor &ports) const override {
++    auto unwrappedIO = this->unwrapIO(s, bb, ports);
++    this->buildUnitRateJoinLogic(s, unwrappedIO, [&](ValueRange inputs) {
++      auto cmp = comb::ICmpOp::create(s.b, op.getLoc(), predicate, inputs[0],
++                                      inputs[1]);
++      // For min/max, equal-valued inputs are interchangeable.
++      return s.mux(cmp, {inputs[1], inputs[0]});
++    });
++  };
++};
++
+ class TruncateConversionPattern
+     : public HandshakeConversionPattern<arith::TruncIOp> {
+ public:
+@@ -1551,16 +1606,26 @@ public:
+ 
+     unsigned stCount = op.getStCount();
+     unsigned ldCount = op.getLdCount();
++    unsigned directInputs = 2 * stCount + ldCount;
++    unsigned inputBase = 0;
++    if (op.getLsq() && unwrappedIO.inputs.size() > directInputs)
++      inputBase = unwrappedIO.inputs.size() - directInputs;
++
++    // LSQ-mode handshake.memory carries leading control-only inputs that are
++    // not part of the direct store/load payload. For now, accept those tokens
++    // unconditionally so their ready backedges are resolved.
++    for (unsigned i = 0; i < inputBase; ++i)
++      unwrappedIO.inputs[i].ready->setValue(s.constant(1, 0));
+     for (unsigned i = 0, e = ldCount; i != e; ++i) {
+-      LoadPort port = {unwrappedIO.inputs[stCount * 2 + i],
++      LoadPort port = {unwrappedIO.inputs[inputBase + stCount * 2 + i],
+                        unwrappedIO.outputs[i],
+                        unwrappedIO.outputs[ldCount + stCount + i]};
+       loadPorts.push_back(port);
+     }
+ 
+     for (unsigned i = 0, e = stCount; i != e; ++i) {
+-      StorePort port = {unwrappedIO.inputs[i * 2 + 1],
+-                        unwrappedIO.inputs[i * 2],
++      StorePort port = {unwrappedIO.inputs[inputBase + i * 2 + 1],
++                        unwrappedIO.inputs[inputBase + i * 2],
+                         unwrappedIO.outputs[ldCount + i]};
+       storePorts.push_back(port);
+     }
+@@ -1575,6 +1640,115 @@ public:
+         "_handshake_memory_" + std::to_string(op.getId()),
+         op.getMemRefType().getShape(), elemType);
+ 
++    if (op.getLsq()) {
++      if (!loadPorts.empty()) {
++        SmallVector<Value> loadValids, loadReadies, loadAddresses;
++        loadValids.reserve(loadPorts.size());
++        loadReadies.reserve(loadPorts.size());
++        loadAddresses.reserve(loadPorts.size());
++        for (auto &ld : loadPorts) {
++          loadValids.push_back(ld.addr.valid);
++          loadReadies.push_back(s.bAnd({ld.data.ready, ld.done.ready}));
++          loadAddresses.push_back(s.truncate(ld.addr.data, cl2dim));
++          ld.done.data->setValue(c0I0);
++        }
++
++        DenseMap<size_t, Value> loadIndexValues;
++        auto noLoad = s.constant(loadPorts.size(), 0);
++        auto loadWin = buildPriorityArbiter(s, loadValids, noLoad, loadIndexValues);
++        auto hasLoadWinner = s.rOr({loadWin});
++        auto loadReady = s.ohMux(loadWin, loadReadies);
++        auto fireLoad = s.bAnd({hasLoadWinner, loadReady}, "lsqLoadFire");
++        llvm::SmallVector<Value> addresses = {s.ohMux(loadWin, loadAddresses)};
++        auto readData = seq::ReadPortOp::create(s.b, loc, hlmem.getHandle(),
++                                                addresses, fireLoad,
++                                                /*latency=*/0);
++
++        for (auto [i, ld] : llvm::enumerate(loadPorts)) {
++          auto &indexValue = loadIndexValues[i];
++          auto isWinner = s.cmp(loadWin, indexValue, comb::ICmpPredicate::eq);
++          auto portFire = s.bAnd({isWinner, fireLoad});
++          ld.addr.ready->setValue(portFire);
++          ld.data.valid->setValue(portFire);
++          ld.data.data->setValue(readData);
++          ld.done.valid->setValue(portFire);
++        }
++      }
++
++      if (!storePorts.empty()) {
++        SmallVector<Value> storeValids, storeAddresses, storeDatas;
++        storeValids.reserve(storePorts.size());
++        storeAddresses.reserve(storePorts.size());
++        storeDatas.reserve(storePorts.size());
++        for (auto &st : storePorts) {
++          storeValids.push_back(s.bAnd({st.addr.valid, st.data.valid}));
++          storeAddresses.push_back(s.truncate(st.addr.data, cl2dim));
++          storeDatas.push_back(st.data.data);
++          st.done.data->setValue(c0I0);
++        }
++
++        DenseMap<size_t, Value> storeIndexValues;
++        auto noStore = s.constant(storePorts.size(), 0);
++        auto storeWin =
++            buildPriorityArbiter(s, storeValids, noStore, storeIndexValues);
++        auto hasStoreWinner = s.rOr({storeWin});
++
++        auto c0I1 = s.constant(1, 0);
++        auto c1I1 = s.constant(1, 1);
++        auto pendingValidNext = bb.get(s.b.getI1Type());
++        auto pendingValid =
++            s.reg("lsq_write_pending", pendingValidNext, c0I1);
++        auto pendingWinnerNext = bb.get(noStore.getType());
++        auto pendingWinner =
++            s.reg("lsq_write_sel", pendingWinnerNext, noStore);
++
++        SmallVector<Value> pendingDoneReadies;
++        pendingDoneReadies.reserve(storePorts.size());
++        for (auto [i, st] : llvm::enumerate(storePorts)) {
++          auto &indexValue = storeIndexValues[i];
++          auto isPendingWinner =
++              s.cmp(pendingWinner, indexValue, comb::ICmpPredicate::eq);
++          auto doneValid = s.bAnd({pendingValid, isPendingWinner});
++          st.done.valid->setValue(doneValid);
++          pendingDoneReadies.push_back(s.bAnd({doneValid, st.done.ready}));
++        }
++
++        auto anyPendingDoneReady = s.bOr(pendingDoneReadies, "lsqAnyStoreDoneReady");
++        auto storeDoneFire =
++            s.bAnd({pendingValid, anyPendingDoneReady}, "lsqStoreDoneFire");
++        auto canIssueStore = s.bNot(pendingValid);
++        auto issueStore =
++            s.bAnd({hasStoreWinner, canIssueStore}, "lsqStoreIssue");
++
++        llvm::SmallVector<Value> writeAddresses = {s.ohMux(storeWin, storeAddresses)};
++        auto writeData = s.ohMux(storeWin, storeDatas);
++        seq::WritePortOp::create(s.b, loc, hlmem.getHandle(), writeAddresses,
++                                 writeData, issueStore,
++                                 /*latency=*/1);
++
++        for (auto [i, st] : llvm::enumerate(storePorts)) {
++          auto &indexValue = storeIndexValues[i];
++          auto isIssueWinner =
++              s.cmp(storeWin, indexValue, comb::ICmpPredicate::eq);
++          auto issueForPort = s.bAnd({issueStore, isIssueWinner});
++          st.addr.ready->setValue(issueForPort);
++          st.data.ready->setValue(issueForPort);
++        }
++
++        auto nextPendingValid = s.mux(
++            issueStore,
++            SmallVector<Value>{s.mux(storeDoneFire, SmallVector<Value>{pendingValid, c0I1}),
++                               c1I1});
++        auto nextPendingWinner = s.mux(
++            issueStore,
++            SmallVector<Value>{s.mux(storeDoneFire, SmallVector<Value>{pendingWinner, noStore}),
++                               storeWin});
++        pendingValidNext.setValue(nextPendingValid);
++        pendingWinnerNext.setValue(nextPendingWinner);
++      }
++      return;
++    }
++
+     // Create load ports...
+     for (auto &ld : loadPorts) {
+       llvm::SmallVector<Value> addresses = {s.truncate(ld.addr.data, cl2dim)};
+@@ -1964,8 +2138,8 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+   patterns.insert<FuncOpConversionPattern, ReturnConversionPattern,
+                   AssertConversionPattern>(op.getContext());
+   patterns.insert<JoinConversionPattern, ForkConversionPattern,
+-                  SyncConversionPattern>(typeConverter, op.getContext(),
+-                                         moduleBuilder, ls);
++                  LazyForkConversionPattern, SyncConversionPattern>(
++      typeConverter, op.getContext(), moduleBuilder, ls);
+ 
+   patterns.insert<
+       // Comb operations.
+@@ -1983,6 +2157,10 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+       UnitRateConversionPattern<arith::ShRUIOp, comb::ShrUOp>,
+       UnitRateConversionPattern<arith::ShRSIOp, comb::ShrSOp>,
+       UnitRateConversionPattern<arith::SelectOp, comb::MuxOp>,
++      MinMaxConversionPattern<arith::MaxSIOp, comb::ICmpPredicate::sgt>,
++      MinMaxConversionPattern<arith::MinSIOp, comb::ICmpPredicate::slt>,
++      MinMaxConversionPattern<arith::MaxUIOp, comb::ICmpPredicate::ugt>,
++      MinMaxConversionPattern<arith::MinUIOp, comb::ICmpPredicate::ult>,
+       // HW operations.
+       StructCreateConversionPattern,
+       // Handshake operations.
+@@ -2000,12 +2178,18 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+       ExtModuleConversionPattern<arith::DivFOp>,
+       ExtModuleConversionPattern<arith::MaximumFOp>,
+       ExtModuleConversionPattern<arith::CmpFOp>,
++      ExtModuleConversionPattern<arith::SIToFPOp>,
++      ExtModuleConversionPattern<arith::UIToFPOp>,
++      ExtModuleConversionPattern<arith::FPToSIOp>,
++      ExtModuleConversionPattern<arith::FPToUIOp>,
+       ExtModuleConversionPattern<arith::ExtFOp>,
+       ExtModuleConversionPattern<arith::TruncFOp>,
+       ExtModuleConversionPattern<math::ExpOp>,
+       ExtModuleConversionPattern<math::FPowIOp>,
+       ExtModuleConversionPattern<math::RsqrtOp>,
+       ExtModuleConversionPattern<math::TanhOp>,
++      ExtModuleConversionPattern<math::AbsFOp>,
++      ExtModuleConversionPattern<math::RoundEvenOp>,
+       // Arith operations.
+       ExtendConversionPattern<arith::ExtUIOp, /*signExtend=*/false>,
+       ExtendConversionPattern<arith::ExtSIOp, /*signExtend=*/true>,
+diff --git a/lib/Dialect/Handshake/HandshakeOps.cpp b/lib/Dialect/Handshake/HandshakeOps.cpp
+index 04b0daf33858c40494a111d510b22934c7be3402..d13e9d5027075db60b3bcbe782ba07770f7a8945 100644
+--- a/lib/Dialect/Handshake/HandshakeOps.cpp
++++ b/lib/Dialect/Handshake/HandshakeOps.cpp
+@@ -129,10 +129,14 @@ llvm::SmallVector<handshake::MemLoadInterface> getLoadPorts(TMemOp op) {
+   // outputs, ordered as operands(stnone1, stnone2, ... ldnone1, ldnone2, ...)
+   unsigned stCount = op.getStCount();
+   unsigned ldCount = op.getLdCount();
++  unsigned directInputs = 2 * stCount + ldCount;
++  unsigned base = 0;
++  if (op.getInputs().size() > directInputs)
++    base = op.getInputs().size() - directInputs;
+   for (unsigned i = 0, e = ldCount; i != e; ++i) {
+     MemLoadInterface ldif;
+     ldif.index = i;
+-    ldif.addressIn = op.getInputs()[stCount * 2 + i];
++    ldif.addressIn = op.getInputs()[base + stCount * 2 + i];
+     ldif.dataOut = op.getResult(i);
+     ldif.doneOut = op.getResult(ldCount + stCount + i);
+     ports.push_back(ldif);
+@@ -150,11 +154,15 @@ llvm::SmallVector<handshake::MemStoreInterface> getStorePorts(TMemOp op) {
+   // Outputs: load data (lddata1, lddata2, ...), followed by all none
+   // outputs, ordered as operands(stnone1, stnone2, ... ldnone1, ldnone2, ...)
+   unsigned ldCount = op.getLdCount();
++  unsigned directInputs = 2 * op.getStCount() + ldCount;
++  unsigned base = 0;
++  if (op.getInputs().size() > directInputs)
++    base = op.getInputs().size() - directInputs;
+   for (unsigned i = 0, e = op.getStCount(); i != e; ++i) {
+     MemStoreInterface stif;
+     stif.index = i;
+-    stif.dataIn = op.getInputs()[i * 2];
+-    stif.addressIn = op.getInputs()[i * 2 + 1];
++    stif.dataIn = op.getInputs()[base + i * 2];
++    stif.addressIn = op.getInputs()[base + i * 2 + 1];
+     stif.doneOut = op.getResult(ldCount + i);
+     ports.push_back(stif);
+   }
+@@ -1003,7 +1011,15 @@ LogicalResult MemoryOp::verify() {
+ 
+   unsigned numOperands = static_cast<int>(getInputs().size());
+   unsigned numResults = static_cast<int>(getOutputs().size());
+-  if (numOperands != (1 + addressCount) * opStCount + addressCount * opLdCount)
++  unsigned directOperands = (1 + addressCount) * opStCount + addressCount * opLdCount;
++  unsigned operandBase = 0;
++  if (getLsq()) {
++    if (numOperands < directOperands)
++      return emitOpError("number of operands ")
++             << numOperands << " is smaller than the direct-memory payload "
++             << directOperands;
++    operandBase = numOperands - directOperands;
++  } else if (numOperands != directOperands)
+     return emitOpError("number of operands ")
+            << numOperands << " does not match number expected of "
+            << 2 * opStCount + opLdCount << " with " << addressCount
+@@ -1015,20 +1031,20 @@ LogicalResult MemoryOp::verify() {
+            << opStCount + 2 * opLdCount << " with " << addressCount
+            << " address inputs per port";
+ 
+-  Type addressType = opStCount > 0 ? inputType[1] : inputType[0];
++  Type addressType = opStCount > 0 ? inputType[operandBase + 1] : inputType[operandBase + 0];
+ 
+   for (unsigned i = 0; i < opStCount; i++) {
+-    if (inputType[2 * i] != dataType)
++    if (inputType[operandBase + 2 * i] != dataType)
+       return emitOpError("data type for store port ")
+-             << i << ":" << inputType[2 * i] << " doesn't match memory type "
++             << i << ":" << inputType[operandBase + 2 * i] << " doesn't match memory type "
+              << dataType;
+-    if (inputType[2 * i + 1] != addressType)
++    if (inputType[operandBase + 2 * i + 1] != addressType)
+       return emitOpError("address type for store port ")
+-             << i << ":" << inputType[2 * i + 1]
++             << i << ":" << inputType[operandBase + 2 * i + 1]
+              << " doesn't match address type " << addressType;
+   }
+   for (unsigned i = 0; i < opLdCount; i++) {
+-    Type ldAddressType = inputType[2 * opStCount + i];
++    Type ldAddressType = inputType[operandBase + 2 * opStCount + i];
+     if (ldAddressType != addressType)
+       return emitOpError("address type for load port ")
+              << i << ":" << ldAddressType << " doesn't match address type "
+@@ -1119,11 +1135,9 @@ void MemoryOp::build(OpBuilder &builder, OperationState &result,
+   Type i32Type = builder.getIntegerType(32);
+   result.addAttribute("id", builder.getIntegerAttr(i32Type, id));
+ 
+-  if (!lsq) {
+-    result.addAttribute("ldCount", builder.getIntegerAttr(i32Type, outputs));
+-    result.addAttribute(
+-        "stCount", builder.getIntegerAttr(i32Type, controlOutputs - outputs));
+-  }
++  result.addAttribute("ldCount", builder.getIntegerAttr(i32Type, outputs));
++  result.addAttribute(
++      "stCount", builder.getIntegerAttr(i32Type, controlOutputs - outputs));
+ }
+ 
+ llvm::SmallVector<handshake::MemLoadInterface> MemoryOp::getLoadPorts() {
+diff --git a/lib/Dialect/Kanagawa/Transforms/KanagawaConvertCFToHandshake.cpp b/lib/Dialect/Kanagawa/Transforms/KanagawaConvertCFToHandshake.cpp
+index bd659a4377b1d0001e6c1127e5c8ee02bb45fa44..7c20640b4bf25f953ad4070dfd726eb5ec2c059b 100644
+--- a/lib/Dialect/Kanagawa/Transforms/KanagawaConvertCFToHandshake.cpp
++++ b/lib/Dialect/Kanagawa/Transforms/KanagawaConvertCFToHandshake.cpp
+@@ -66,7 +66,7 @@ LogicalResult ConvertCFToHandshakePass::convertMethod(MethodOp method) {
+   if (failed(handshake::lowerRegion<kanagawa::ReturnOp, kanagawa::ReturnOp>(
+           fol,
+           /*sourceConstants*/ false, /*disableTaskPipelining*/ false,
+-          entryCtrl)))
++          /*lsq*/ false, entryCtrl)))
+     return failure();
+ 
+   return success();
+diff --git a/test/Conversion/HandshakeToHW/test_fork.mlir b/test/Conversion/HandshakeToHW/test_fork.mlir
+index 265d48037f5b4bbffdfd08e2f0450340ed37180c..94d24d6dc2509b5faadb08416459bb8dd05d71dc 100644
+--- a/test/Conversion/HandshakeToHW/test_fork.mlir
++++ b/test/Conversion/HandshakeToHW/test_fork.mlir
+@@ -59,3 +59,19 @@ handshake.func @test_fork_data(%arg0: index, %arg1: none, ...) -> (index, index,
+   %0:2 = fork [2] %arg0 : index
+   return %0#0, %0#1, %arg1 : index, index, none
+ }
++
++
++// -----
++
++// CHECK-LABEL: hw.module @handshake_lazy_fork_in_none_out_none_none_1ins_2outs_ctrl(
++// CHECK:         %[[IN_DATA:.*]], %[[IN_VALID:.*]] = esi.unwrap.vr %{{.*}}, %[[IN_READY:.*]] : i0
++// CHECK:         %[[OUT0:.*]], %[[OUT0_READY:.*]] = esi.wrap.vr %[[IN_DATA]], %[[OUT_VALID:.*]] : i0
++// CHECK:         %[[OUT1:.*]], %[[OUT1_READY:.*]] = esi.wrap.vr %[[IN_DATA]], %[[OUT_VALID]] : i0
++// CHECK:         %[[ALL_READY:.*]] = comb.and %[[OUT0_READY]], %[[OUT1_READY]] {sv.namehint = "allReady"} : i1
++// CHECK:         %[[OUT_VALID]] = comb.and %[[IN_VALID]], %[[ALL_READY]] : i1
++// CHECK:         hw.output %[[OUT0]], %[[OUT1]] : !esi.channel<i0>, !esi.channel<i0>
++
++handshake.func @test_lazy_fork(%arg0: none, %arg1: none, ...) -> (none, none, none) {
++  %0:2 = lazy_fork [2] %arg0 : none
++  return %0#0, %0#1, %arg1 : none, none, none
++}
+diff --git a/test/Conversion/HandshakeToHW/test_lsq_memory.mlir b/test/Conversion/HandshakeToHW/test_lsq_memory.mlir
+new file mode 100644
+index 0000000000000000000000000000000000000000..545a373ecb76f3f12a0e77e3674ff09f38a02745
+--- /dev/null
++++ b/test/Conversion/HandshakeToHW/test_lsq_memory.mlir
+@@ -0,0 +1,20 @@
++// RUN: circt-opt -handshake-materialize-forks-sinks -lower-handshake-to-hw -split-input-file %s | FileCheck %s
++
++// TinyStories-relevant LSQ memory shape: multiple logical accesses to one
++// memory should collapse to a single physical read and write port in HW.
++// CHECK-LABEL: hw.module @handshake_memory_out_ui64_id0(
++// CHECK: %[[MEM:.*]] = seq.hlmem @_handshake_memory_0 %clock, %reset : <50257xi64>
++// CHECK: seq.read %[[MEM]]
++// CHECK-NOT: seq.read %[[MEM]]
++// CHECK: seq.write %[[MEM]]
++// CHECK-NOT: seq.write %[[MEM]]
++// CHECK: hw.output
++handshake.func @main(%ctrl0 : none, %ctrl1 : none, %addr0 : index, %addr1 : index, %data0 : i64, %data1 : i64) -> none {
++  %m:6 = memory[ld = 2, st = 2](%ctrl0, %ctrl1, %data0, %addr0, %data1, %addr1, %addr0, %addr1) {id = 0 : i32, lsq = true} : memref<50257xi64>, (none, none, i64, index, i64, index, index, index) -> (i64, i64, none, none, none, none)
++  sink %m#0 : i64
++  sink %m#1 : i64
++  %done0 = join %m#2, %m#3 : none, none
++  %done1 = join %m#4, %m#5 : none, none
++  %done = join %done0, %done1 : none, none
++  return %done : none
++}

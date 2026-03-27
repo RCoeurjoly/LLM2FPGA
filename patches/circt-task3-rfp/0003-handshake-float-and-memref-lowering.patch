@@ -1,0 +1,455 @@
+From 27fdda1530466390cf3c099c5a420caec23366b9 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Thu, 5 Mar 2026 11:52:19 +0100
+Subject: [PATCH 3/4] Support memref CFG threading and float handshake HW data
+
+---
+ .../CFToHandshake/CFToHandshake.cpp           |  39 +++++--
+ .../HandshakeToHW/HandshakeToHW.cpp           |  86 +++++++++++++--
+ lib/Dialect/Handshake/HandshakeUtils.cpp      |   3 +
+ .../Handshake/Transforms/LowerExtmemToHW.cpp  |   8 +-
+ lib/Transforms/FlattenMemRefs.cpp             | 104 +++++++++++++++++-
+ 5 files changed, 211 insertions(+), 29 deletions(-)
+
+diff --git a/lib/Conversion/CFToHandshake/CFToHandshake.cpp b/lib/Conversion/CFToHandshake/CFToHandshake.cpp
+index 7d34424f5..86d38910a 100644
+--- a/lib/Conversion/CFToHandshake/CFToHandshake.cpp
++++ b/lib/Conversion/CFToHandshake/CFToHandshake.cpp
+@@ -367,10 +367,6 @@ HandshakeLowering::insertMergeOps(HandshakeLowering::ValueMap &mergePairs,
+     // All of the block's live-ins are passed explictly through block arguments
+     // thanks to prior SSA maximization
+     for (auto &arg : block.getArguments()) {
+-      // No merges on memref block arguments; these are handled separately
+-      if (isa<mlir::MemRefType>(arg.getType()))
+-        continue;
+-
+       auto mergeInfo = insertMerge(&block, arg, edgeBuilder, rewriter);
+       blockMerges[&block].push_back(mergeInfo);
+       mergePairs[arg] = mergeInfo.op->getResult(0);
+@@ -405,13 +401,19 @@ static Value getMergeOperand(HandshakeLowering::MergeOpInfo mergeInfo,
+ }
+ 
+ static void removeBlockOperands(Region &f) {
+-  // Remove all block arguments, they are no longer used
+-  // eraseArguments also removes corresponding branch operands
++  // Remove all block arguments that were fully rewritten through merges.
++  // Keep memref block arguments alive until memory network construction.
++  // eraseArgument also removes corresponding branch operands.
+   for (Block &block : f) {
+     if (!block.isEntryBlock()) {
+       int x = block.getNumArguments() - 1;
+-      for (int i = x; i >= 0; --i)
++      for (int i = x; i >= 0; --i) {
++        if (isa<MemRefType>(block.getArgument(i).getType()))
++          continue;
++        if (!block.getArgument(i).use_empty())
++          continue;
+         block.eraseArgument(i);
++      }
+     }
+   }
+ }
+@@ -1517,16 +1519,29 @@ HandshakeLowering::connectToMemory(ConversionPatternRewriter &rewriter,
+   // Add MemoryOps which represent the memory interface
+   // Connect memory operations and control appropriately
+   int mem_count = 0;
++  SmallVector<Value> entryBlockArgs;
++  for (auto arg : r.getArguments())
++    entryBlockArgs.push_back(arg);
++
+   for (auto memory : memRefOps) {
+     // First operand corresponds to memref (alloca or function argument)
+     Value memrefOperand = memory.first;
+ 
+-    // A memory is external if the memref that defines it is provided as a
+-    // function (block) argument.
+-    bool isExternalMemory = isa<BlockArgument>(memrefOperand);
++    // A memory is external only if the memref comes from function entry block
++    // arguments. Non-entry block arguments are CFG threading artifacts.
++    bool isExternalMemory = llvm::is_contained(entryBlockArgs, memrefOperand);
++
++    if (!memrefOperand)
++      return emitError(r.getLoc(),
++                       "encountered null memref value while building "
++                       "handshake memory interface");
++
++    auto memrefType = dyn_cast<mlir::MemRefType>(memrefOperand.getType());
++    if (!memrefType)
++      return emitError(memrefOperand.getLoc(),
++                       "expected memref key in memory op map, got ")
++             << memrefOperand.getType();
+ 
+-    mlir::MemRefType memrefType =
+-        cast<mlir::MemRefType>(memrefOperand.getType());
+     if (failed(isValidMemrefType(memrefOperand.getLoc(), memrefType)))
+       return failure();
+ 
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index 1cf0419dd..670a14106 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -24,7 +24,9 @@
+ #include "circt/Support/BackedgeBuilder.h"
+ #include "circt/Support/ValueMapper.h"
+ #include "mlir/Dialect/Arith/IR/Arith.h"
++#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+ #include "mlir/Dialect/MemRef/IR/MemRef.h"
++#include "mlir/Dialect/Math/IR/Math.h"
+ #include "mlir/IR/ImplicitLocOpBuilder.h"
+ #include "mlir/Pass/Pass.h"
+ #include "mlir/Pass/PassManager.h"
+@@ -151,6 +153,8 @@ static std::string getTypeName(Location loc, Type type) {
+       typeName += "_si" + std::to_string(type.getIntOrFloatBitWidth());
+     else
+       typeName += "_ui" + std::to_string(type.getIntOrFloatBitWidth());
++  } else if (auto floatType = dyn_cast<FloatType>(type)) {
++    typeName += "_f" + std::to_string(floatType.getWidth());
+   } else if (auto tupleType = dyn_cast<TupleType>(type)) {
+     typeName += "_tuple";
+     for (auto elementType : tupleType.getTypes())
+@@ -185,6 +189,11 @@ static std::string getSubModuleName(Operation *oldOp) {
+         subModuleName += "_c" + std::to_string(intAttr.getUInt());
+       else
+         subModuleName += "_c" + std::to_string((uint64_t)intAttr.getInt());
++    } else if (auto floatAttr = dyn_cast<FloatAttr>(constOp.getValue())) {
++      auto bits = floatAttr.getValue().bitcastToAPInt();
++      llvm::SmallString<32> bitsStr;
++      bits.toString(bitsStr, /*Radix=*/16, /*Signed=*/false);
++      subModuleName += "_c0x" + bitsStr.str().str();
+     } else
+       oldOp->emitError("unsupported constant type");
+   }
+@@ -208,6 +217,8 @@ static std::string getSubModuleName(Operation *oldOp) {
+   // Add compare kind.
+   if (auto comOp = dyn_cast<mlir::arith::CmpIOp>(oldOp))
+     subModuleName += "_" + stringifyEnum(comOp.getPredicate()).str();
++  if (auto comOp = dyn_cast<mlir::arith::CmpFOp>(oldOp))
++    subModuleName += "_" + stringifyEnum(comOp.getPredicate()).str();
+ 
+   // Add buffer information.
+   if (auto bufferOp = dyn_cast<handshake::BufferOp>(oldOp)) {
+@@ -220,9 +231,18 @@ static std::string getSubModuleName(Operation *oldOp) {
+     if (auto initValues = bufferOp.getInitValues()) {
+       subModuleName += "_init";
+       for (const Attribute e : *initValues) {
+-        assert(isa<IntegerAttr>(e));
+-        subModuleName +=
+-            "_" + std::to_string(dyn_cast<IntegerAttr>(e).getInt());
++        if (auto intAttr = dyn_cast<IntegerAttr>(e)) {
++          subModuleName += "_" + std::to_string(intAttr.getInt());
++          continue;
++        }
++        if (auto floatAttr = dyn_cast<FloatAttr>(e)) {
++          auto bits = floatAttr.getValue().bitcastToAPInt();
++          llvm::SmallString<32> bitsStr;
++          bits.toString(bitsStr, /*Radix=*/16, /*Signed=*/false);
++          subModuleName += "_f0x" + bitsStr.str().str();
++          continue;
++        }
++        subModuleName += "_unk";
+       }
+     }
+   }
+@@ -693,6 +713,10 @@ static Value createZeroDataConst(RTLBuilder &s, Location loc, Type type) {
+       .Case<IntType, IntegerType>([&](auto type) {
+         return s.constant(type.getIntOrFloatBitWidth(), 0);
+       })
++      .Case<FloatType>([&](auto type) {
++        Value zeroInt = s.constant(type.getWidth(), 0);
++        return hw::BitcastOp::create(s.b, loc, type, zeroInt);
++      })
+       .Case<hw::StructType>([&](auto structType) {
+         SmallVector<Value> zeroValues;
+         for (auto field : structType.getElements())
+@@ -1104,6 +1128,18 @@ public:
+   }
+ };
+ 
++class AssertConversionPattern : public OpConversionPattern<cf::AssertOp> {
++public:
++  using OpConversionPattern::OpConversionPattern;
++  LogicalResult
++  matchAndRewrite(cf::AssertOp op, OpAdaptor adaptor,
++                  ConversionPatternRewriter &rewriter) const override {
++    // The structural HW lowering path does not preserve software-style asserts.
++    rewriter.eraseOp(op);
++    return success();
++  }
++};
++
+ // Converts an arbitrary operation into a unit rate actor. A unit rate actor
+ // will transact once all inputs are valid and its output is ready.
+ template <typename TIn, typename TOut = TIn>
+@@ -1143,7 +1179,7 @@ public:
+   void buildModule(hw::StructCreateOp op, BackedgeBuilder &bb, RTLBuilder &s,
+                    hw::HWModulePortAccessor &ports) const override {
+     auto unwrappedIO = unwrapIO(s, bb, ports);
+-    auto structType = op.getResult().getType();
++    auto structType = toValidType(op.getResult().getType());
+     buildUnitRateJoinLogic(s, unwrappedIO, [&](ValueRange inputs) {
+       return s.pack(inputs, structType);
+     });
+@@ -1533,10 +1569,11 @@ public:
+     auto c0I0 = s.constant(0, 0);
+ 
+     auto cl2dim = llvm::Log2_64_Ceil(op.getMemRefType().getShape()[0]);
++    auto elemType = toValidType(op.getMemRefType().getElementType());
+     auto hlmem = seq::HLMemOp::create(
+         s.b, loc, s.clk, s.rst,
+         "_handshake_memory_" + std::to_string(op.getId()),
+-        op.getMemRefType().getShape(), op.getMemRefType().getElementType());
++        op.getMemRefType().getShape(), elemType);
+ 
+     // Create load ports...
+     for (auto &ld : loadPorts) {
+@@ -1628,8 +1665,24 @@ public:
+     auto unwrappedIO = this->unwrapIO(s, bb, ports);
+     unwrappedIO.outputs[0].valid->setValue(unwrappedIO.inputs[0].valid);
+     unwrappedIO.inputs[0].ready->setValue(unwrappedIO.outputs[0].ready);
+-    auto constantValue = op->getAttrOfType<IntegerAttr>("value").getValue();
+-    unwrappedIO.outputs[0].data->setValue(s.constant(constantValue));
++    auto valueAttr = op->getAttr("value");
++    if (auto intAttr = dyn_cast<IntegerAttr>(valueAttr)) {
++      unwrappedIO.outputs[0].data->setValue(s.constant(intAttr.getValue()));
++      return;
++    }
++    if (auto floatAttr = dyn_cast<FloatAttr>(valueAttr)) {
++      auto bits = floatAttr.getValue().bitcastToAPInt();
++      Value bitPattern = s.constant(bits);
++      auto outType = static_cast<Value>(*unwrappedIO.outputs[0].data).getType();
++      if (bitPattern.getType() == outType) {
++        unwrappedIO.outputs[0].data->setValue(bitPattern);
++      } else {
++        unwrappedIO.outputs[0].data->setValue(
++            hw::BitcastOp::create(s.b, op.getLoc(), outType, bitPattern));
++      }
++      return;
++    }
++    op->emitError("unsupported constant type");
+   };
+ };
+ 
+@@ -1908,8 +1961,8 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+   auto ls = HandshakeLoweringState{op->getParentOfType<mlir::ModuleOp>(),
+                                    instanceUniquer};
+   RewritePatternSet patterns(op.getContext());
+-  patterns.insert<FuncOpConversionPattern, ReturnConversionPattern>(
+-      op.getContext());
++  patterns.insert<FuncOpConversionPattern, ReturnConversionPattern,
++                  AssertConversionPattern>(op.getContext());
+   patterns.insert<JoinConversionPattern, ForkConversionPattern,
+                   SyncConversionPattern>(typeConverter, op.getContext(),
+                                          moduleBuilder, ls);
+@@ -1940,6 +1993,19 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+       MergeConversionPattern, ControlMergeConversionPattern,
+       LoadConversionPattern, StoreConversionPattern, MemoryConversionPattern,
+       InstanceConversionPattern,
++      // Floating-point arith operations are lowered as extern modules.
++      ExtModuleConversionPattern<arith::AddFOp>,
++      ExtModuleConversionPattern<arith::SubFOp>,
++      ExtModuleConversionPattern<arith::MulFOp>,
++      ExtModuleConversionPattern<arith::DivFOp>,
++      ExtModuleConversionPattern<arith::MaximumFOp>,
++      ExtModuleConversionPattern<arith::CmpFOp>,
++      ExtModuleConversionPattern<arith::ExtFOp>,
++      ExtModuleConversionPattern<arith::TruncFOp>,
++      ExtModuleConversionPattern<math::ExpOp>,
++      ExtModuleConversionPattern<math::FPowIOp>,
++      ExtModuleConversionPattern<math::RsqrtOp>,
++      ExtModuleConversionPattern<math::TanhOp>,
+       // Arith operations.
+       ExtendConversionPattern<arith::ExtUIOp, /*signExtend=*/false>,
+       ExtendConversionPattern<arith::ExtSIOp, /*signExtend=*/true>,
+@@ -1987,6 +2053,8 @@ public:
+                       hw::InstanceOp>();
+     target
+         .addIllegalDialect<handshake::HandshakeDialect, arith::ArithDialect>();
++    target.addIllegalOp<cf::AssertOp>();
++    target.addIllegalDialect<math::MathDialect>();
+ 
+     // Convert the handshake.func operations in post-order wrt. the instance
+     // graph. This ensures that any referenced submodules (through
+diff --git a/lib/Dialect/Handshake/HandshakeUtils.cpp b/lib/Dialect/Handshake/HandshakeUtils.cpp
+index 856c3bee5..ca326f454 100644
+--- a/lib/Dialect/Handshake/HandshakeUtils.cpp
++++ b/lib/Dialect/Handshake/HandshakeUtils.cpp
+@@ -154,6 +154,9 @@ Type circt::handshake::toValidType(Type t) {
+   return TypeSwitch<Type, Type>(t)
+       .Case<IndexType>(
+           [&](IndexType it) { return IntegerType::get(it.getContext(), 64); })
++      .Case<FloatType>([&](FloatType ft) {
++        return IntegerType::get(ft.getContext(), ft.getWidth());
++      })
+       .Case<TupleType>([&](TupleType tt) {
+         llvm::SmallVector<Type> types;
+         for (auto innerType : tt)
+diff --git a/lib/Dialect/Handshake/Transforms/LowerExtmemToHW.cpp b/lib/Dialect/Handshake/Transforms/LowerExtmemToHW.cpp
+index 3a3e52049..613908bde 100644
+--- a/lib/Dialect/Handshake/Transforms/LowerExtmemToHW.cpp
++++ b/lib/Dialect/Handshake/Transforms/LowerExtmemToHW.cpp
+@@ -401,10 +401,12 @@ HandshakeLowerExtmemToHWPass::lowerExtmemToHW(handshake::FuncOp func) {
+       func, func.getArgumentTypes(), func.getResultTypes());
+ 
+   OpBuilder b(func);
+-  for (auto it : memrefArgs) {
++  // Process from highest to lowest argument index so that argument erasures and
++  // insertions do not invalidate indices we still need to handle.
++  for (auto it = memrefArgs.rbegin(), e = memrefArgs.rend(); it != e; ++it) {
+     // Do not use structured bindings for 'it' - cannot reference inside lambda.
+-    unsigned i = it.first;
+-    auto arg = it.second;
++    unsigned i = it->first;
++    auto arg = it->second;
+     auto loc = arg.getLoc();
+     // Get the attached extmemory external module.
+     auto extmemOp = cast<handshake::ExternalMemoryOp>(*arg.getUsers().begin());
+diff --git a/lib/Transforms/FlattenMemRefs.cpp b/lib/Transforms/FlattenMemRefs.cpp
+index c5e4f2e91..16b719f40 100644
+--- a/lib/Transforms/FlattenMemRefs.cpp
++++ b/lib/Transforms/FlattenMemRefs.cpp
+@@ -289,6 +289,49 @@ struct ReshapeOpConversion : public OpConversionPattern<memref::ReshapeOp> {
+   }
+ };
+ 
++static Value materializeCollapseShapeFlattening(OpBuilder &builder,
++                                                MemRefType type,
++                                                ValueRange inputs,
++                                                Location loc);
++
++struct ExpandShapeOpConversion
++    : public OpConversionPattern<memref::ExpandShapeOp> {
++  using OpConversionPattern::OpConversionPattern;
++
++  LogicalResult
++  matchAndRewrite(memref::ExpandShapeOp op, OpAdaptor adaptor,
++                  ConversionPatternRewriter &rewriter) const override {
++    auto srcType = dyn_cast<MemRefType>(adaptor.getSrc().getType());
++    auto convertedResultType =
++        dyn_cast_or_null<MemRefType>(getTypeConverter()->convertType(op.getType()));
++    if (!srcType || !convertedResultType || srcType != convertedResultType)
++      return failure();
++
++    // Once memrefs are flattened, expand_shape carries no extra information.
++    rewriter.replaceOp(op, adaptor.getSrc());
++    return success();
++  }
++};
++
++struct CollapseShapeOpConversion
++    : public OpConversionPattern<memref::CollapseShapeOp> {
++  using OpConversionPattern::OpConversionPattern;
++
++  LogicalResult
++  matchAndRewrite(memref::CollapseShapeOp op, OpAdaptor adaptor,
++                  ConversionPatternRewriter &rewriter) const override {
++    auto srcType = dyn_cast<MemRefType>(adaptor.getSrc().getType());
++    auto convertedResultType =
++        dyn_cast_or_null<MemRefType>(getTypeConverter()->convertType(op.getType()));
++    if (!srcType || !convertedResultType || srcType != convertedResultType)
++      return failure();
++
++    // Once memrefs are flattened, collapse_shape carries no extra information.
++    rewriter.replaceOp(op, adaptor.getSrc());
++    return success();
++  }
++};
++
+ // A generic pattern which will replace an op with a new op of the same type
+ // but using the adaptor (type converted) operands.
+ template <typename TOp>
+@@ -375,6 +418,19 @@ static void populateFlattenMemRefsLegality(ConversionTarget &target) {
+       [](memref::GlobalOp op) { return isUniDimensional(op.getType()); });
+   target.addDynamicallyLegalOp<memref::GetGlobalOp>(
+       [](memref::GetGlobalOp op) { return isUniDimensional(op.getType()); });
++  target.addDynamicallyLegalOp<memref::ExpandShapeOp>([](memref::ExpandShapeOp op) {
++    auto srcType = dyn_cast<MemRefType>(op.getSrcType());
++    auto dstType = dyn_cast<MemRefType>(op.getResult().getType());
++    return srcType && dstType && isUniDimensional(srcType) &&
++           isUniDimensional(dstType);
++  });
++  target.addDynamicallyLegalOp<memref::CollapseShapeOp>(
++      [](memref::CollapseShapeOp op) {
++        auto srcType = dyn_cast<MemRefType>(op.getSrcType());
++        auto dstType = dyn_cast<MemRefType>(op.getResult().getType());
++        return srcType && dstType && isUniDimensional(srcType) &&
++               isUniDimensional(dstType);
++      });
+   addGenericLegalityConstraint<func::CallOp, func::ReturnOp, memref::DeallocOp,
+                                memref::CopyOp>(target);
+ 
+@@ -413,9 +469,43 @@ static Value materializeCollapseShapeFlattening(OpBuilder &builder,
+   auto indices = getReassociationIndicesForCollapse(sourceShape, targetShape);
+   assert(indices.has_value() && "expected a valid collapse");
+ 
+-  // Generate the appropriate return type:
+-  return memref::CollapseShapeOp::create(builder, loc, inputs[0],
+-                                         indices.value());
++  Value collapsed = memref::CollapseShapeOp::create(builder, loc, inputs[0],
++                                                    indices.value());
++  if (collapsed.getType() == type)
++    return collapsed;
++  return memref::CastOp::create(builder, loc, type, collapsed);
++}
++
++// Materializes a unidimensional memory back to a multidimensional memory by
++// using a memref.reinterpret_cast operation.
++static Value materializeExpandShapeFromFlattened(OpBuilder &builder,
++                                                 MemRefType type,
++                                                 ValueRange inputs,
++                                                 Location loc) {
++  assert(type.hasStaticShape() &&
++         "Can only re-expand memref's with static shape (for now...).");
++  if (inputs.size() != 1)
++    return {};
++
++  MemRefType sourceType = dyn_cast<MemRefType>(inputs[0].getType());
++  if (!sourceType || !sourceType.hasStaticShape() || !isUniDimensional(sourceType))
++    return {};
++  if (sourceType.getNumElements() != type.getNumElements())
++    return {};
++
++  SmallVector<OpFoldResult> sizes;
++  SmallVector<OpFoldResult> strides(type.getRank());
++  auto shape = type.getShape();
++  int64_t stride = 1;
++  for (int64_t i = type.getRank() - 1; i >= 0; --i) {
++    sizes.push_back(builder.getIndexAttr(shape[i]));
++    strides[i] = builder.getIndexAttr(stride);
++    stride *= shape[i];
++  }
++  std::reverse(sizes.begin(), sizes.end());
++
++  return memref::ReinterpretCastOp::create(
++      builder, loc, type, inputs[0], builder.getIndexAttr(0), sizes, strides);
+ }
+ 
+ static void populateTypeConversionPatterns(TypeConverter &typeConverter) {
+@@ -424,7 +514,7 @@ static void populateTypeConversionPatterns(TypeConverter &typeConverter) {
+   // Add specific conversion for memref types.
+   typeConverter.addConversion([](MemRefType memref) {
+     if (isUniDimensional(memref))
+-      return memref;
++      return MemRefType::get(memref.getShape(), memref.getElementType());
+     return MemRefType::get(llvm::SmallVector<int64_t>{memref.getNumElements()},
+                            memref.getElementType());
+   });
+@@ -438,12 +528,16 @@ public:
+     auto *ctx = &getContext();
+     TypeConverter typeConverter;
+     populateTypeConversionPatterns(typeConverter);
++    typeConverter.addSourceMaterialization(materializeExpandShapeFromFlattened);
++    typeConverter.addTargetMaterialization(materializeCollapseShapeFlattening);
+ 
+     RewritePatternSet patterns(ctx);
+     SetVector<StringRef> rewrittenCallees;
+     patterns.add<LoadOpConversion, StoreOpConversion, AllocOpConversion,
+                  AllocaOpConversion, GlobalOpConversion, GetGlobalOpConversion,
+-                 ReshapeOpConversion, OperandConversionPattern<func::ReturnOp>,
++                 ReshapeOpConversion, ExpandShapeOpConversion,
++                 CollapseShapeOpConversion,
++                 OperandConversionPattern<func::ReturnOp>,
+                  OperandConversionPattern<memref::DeallocOp>,
+                  OperandConversionPattern<memref::DeallocOp>,
+                  OperandConversionPattern<memref::CopyOp>, CallOpConversion>(
+-- 
+2.53.0

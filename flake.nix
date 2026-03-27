@@ -8,48 +8,167 @@
     flake-utils.url = "github:numtide/flake-utils";
     # Clone with submodules
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
-    circt-nix.url = "github:dtzSiFive/circt-nix";
+    yosys-slang = {
+      url = "git+https://github.com/povik/yosys-slang?submodules=1";
+      flake = false;
+    };
+    circt-nix = {
+      url = "git+https://github.com/dtzSiFive/circt-nix?ref=main";
+      # Keep the CIRCT base on a public pushed fork revision while the
+      # prerequisite flatten-memref work is still upstreaming, and apply only
+      # the remaining local Task 3 delta as in-repo patches below.
+      inputs."circt-src" = {
+        url =
+          "git+https://github.com/RCoeurjoly/circt?rev=b480d90e5dc9545945528b031ae7037f4470193b";
+        flake = false;
+      };
+      inputs."llvm-submodule-src" = {
+        type = "github";
+        owner = "llvm";
+        repo = "llvm-project";
+        rev = "972cd847efb20661ea7ee8982dd19730aa040c75";
+        flake = false;
+      };
+    };
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "github:RCoeurjoly/toolchain-nix";
     nextpnrXilinxFork = {
       url =
-        "git+https://github.com/RCoeurjoly/nextpnr-xilinx?ref=stable-backports&submodules=1";
+        "git+https://github.com/RCoeurjoly/nextpnr-xilinx?ref=fix-net-old-indices-upstream-pr&submodules=1";
       flake = false;
     };
     ypcbHack = {
       url = "github:RCoeurjoly/ypcb_00338_1p1_hack";
       flake = false;
     };
-    # openXC7.inputs.nixpkgs.follows = "nixpkgs";
+    torch-mlir-src = {
+      url = "github:llvm/torch-mlir";
+      flake = false;
+    };
   };
 
-  outputs = { nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix, nix-eda
-    , openXC7, nextpnrXilinxFork, ypcbHack, ... }:
+  outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
+    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, torch-mlir-src, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        inherit (circtPkgs) circt;
-        yosysPkg = nix-eda.packages.${system}.yosysFull;
+        circtBase = circtPkgs.circt.override { enableSlang = false; };
+        # Keep the local Task 3 CIRCT delta explicit and reviewable as a small
+        # in-repo patch stack instead of opaque working tree state.
+        circt = circtBase.overrideAttrs (old: {
+          patches = (old.patches or [ ]) ++ [
+            ./patches/circt-task3-rfp/0003-handshake-float-and-memref-lowering.patch
+            ./patches/circt-task3-rfp/0004-handshake-lsq-lowering-and-tests.patch
+          ];
+        });
+        yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {
+          src = yosys.outPath;
+          version = "unstable-${builtins.substring 0 8 yosys.sourceInfo.rev}";
+        });
         yosysPkgWithPythonEnv = if yosysPkg ? python3-env then
           yosysPkg
         else
           (yosysPkg // { python3-env = pkgs.python311; });
-        nixEdaSource = nix-eda.outPath;
-        yosysSlang = import "${nixEdaSource}/nix/yosys-slang.nix" {
-          inherit (pkgs) cmake fmt jq lib;
-          yosys = yosysPkgWithPythonEnv;
-          clang18Stdenv = pkgs.clangStdenv;
-          hash = "sha256-bZEQwDjGZyekhn0J3LJUzRVqh1rMtnjfjOo1vgS5CFE=";
-          fetchGitHubSnapshot =
-            pkgs.callPackage "${nixEdaSource}/nix/fetch_github_snapshot.nix"
-            { };
+        yosysSlang = pkgs.clangStdenv.mkDerivation {
+          pname = "yosys-slang";
+          version = "flake-input";
+          src = inputs."yosys-slang";
+          dylibs = [ "slang" ];
+          cmakeFlags = [
+            "-DYOSYS_CONFIG=${yosysPkgWithPythonEnv}/bin/yosys-config"
+            "-DFMT_INSTALL:BOOL=OFF"
+          ];
+          nativeBuildInputs = [ pkgs.cmake pkgs.jq ];
+          buildInputs = [
+            yosysPkgWithPythonEnv
+            yosysPkgWithPythonEnv.python3-env
+            pkgs.fmt
+          ];
+          patchPhase = ''
+            runHook prePatch
+            sed -i \
+              -e '/git_rev_parse(YOSYS_SLANG_REVISION/c\set(YOSYS_SLANG_REVISION flake-input)' \
+              -e '/git_rev_parse(SLANG_REVISION/c\set(SLANG_REVISION flake-input-submodule)' \
+              src/CMakeLists.txt
+            runHook postPatch
+          '';
+          doCheck = true;
+          cmakeBuildType = "Debug";
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/share/yosys/plugins
+            cp ../build/slang.so $out/share/yosys/plugins/
+            runHook postInstall
+          '';
+          meta = {
+            description = "SystemVerilog frontend for Yosys";
+            license = [ pkgs.lib.licenses.mit ];
+            homepage = "https://github.com/povik/yosys-slang";
+            platforms = pkgs.lib.platforms.all;
+          };
         };
         llvmPackages = pkgsLlvm21.llvmPackages_21;
+        # Keep LLVM for torch-mlir separate and pinned to torch-mlir's
+        # submodule revision so source edits in torch-mlir do not rebuild LLVM.
+        torchMlirLlvmPackages = (pkgsLlvm21.llvmPackages_git.override {
+          llvmVersions = {
+            "22.0.0-git" = {
+              gitRelease = {
+                rev = "3ca2a5fc0b84762f0e7d8a0e613fd69f7e344219";
+                rev-version = "23.0.0-unstable-2026-01-20";
+                sha256 = "sha256-jjdb2PtKnjYo9RIGJ82YtKmZinqEOlmm7R64SeJqTac=";
+              };
+            };
+          };
+        }).overrideScope (final: prev: {
+          # This commit reports LLVM 23 in source headers, while the package set
+          # key stays on llvmPackages_git. Skip nixpkgs' strict version triplet
+          # guard for this custom pin.
+          libllvm = (prev.libllvm.override {
+            # Ensure llvm builds against the matching tblgen from this pinned
+            # package set, not the default llvmPackages_git bootstrap set.
+            buildLlvmPackages = final;
+          }).overrideAttrs (old: {
+            postConfigure = "";
+            doCheck = false;
+            cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+              (pkgsLlvm21.lib.cmakeBool "LLVM_BUILD_TESTS" false)
+              (pkgsLlvm21.lib.cmakeBool "LLVM_INCLUDE_TESTS" false)
+            ];
+          });
+        });
         inherit (llvmPackages) mlir;
         python = pkgsLlvm21.python311;
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
+        pythonWithTinyStories =
+          python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
+        nanobindBootstrap =
+          pkgsLlvm21.callPackage ./nix/nanobind-bootstrap.nix {
+            inherit python;
+          };
+        mlirForTorchMlir = (torchMlirLlvmPackages.mlir.override {
+          devExtraCmakeFlags =
+            [ (pkgsLlvm21.lib.cmakeBool "MLIR_ENABLE_BINDINGS_PYTHON" true) ];
+        }).overrideAttrs (old: {
+          doCheck = false;
+          nativeBuildInputs = old.nativeBuildInputs ++ [ python ];
+          preConfigure = (old.preConfigure or "") + ''
+            export PYTHONPATH="${python.pkgs.pybind11}/${python.sitePackages}:${nanobindBootstrap}/${python.sitePackages}:''${PYTHONPATH:-}"
+          '';
+          cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+            (pkgsLlvm21.lib.cmakeBool "LLVM_BUILD_TESTS" false)
+            (pkgsLlvm21.lib.cmakeFeature "Python3_EXECUTABLE"
+              "${python}/bin/python3")
+            (pkgsLlvm21.lib.cmakeFeature "Python_EXECUTABLE"
+              "${python}/bin/python3")
+            (pkgsLlvm21.lib.cmakeFeature "pybind11_DIR"
+              "${python.pkgs.pybind11}/${python.sitePackages}/pybind11/share/cmake/pybind11")
+            (pkgsLlvm21.lib.cmakeFeature "nanobind_DIR"
+              "${nanobindBootstrap}/${python.sitePackages}/nanobind/cmake")
+          ];
+        });
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
         openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs
@@ -74,93 +193,87 @@
         fpgaChipdb = "${openXC7Chipdb}/xc7k480tffg1156.bin";
         prjxrayPythonPath =
           "${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3";
-        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix { inherit python; };
+        # Local copy of the source-based package proposed in:
+        # https://github.com/NixOS/nixpkgs/pull/490242
+        # Built out-of-tree against a separate LLVM/MLIR derivation so torch-mlir
+        # changes do not force rebuilding LLVM.
+        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix {
+          inherit python;
+          src = torch-mlir-src;
+          nanobind = nanobindBootstrap;
+          inherit (torchMlirLlvmPackages) tblgen;
+          mlir = mlirForTorchMlir;
+          inherit (torchMlirLlvmPackages) llvm;
+        };
 
-        matmulTorch = pkgs.runCommand "matmul-torch.mlir" {
-          buildInputs = [ pythonWithTorch ];
-        } ''
-          export MATMUL_PY=${./src/matmul.py}
-          export PYTHONPATH="${./src}:${
-            ./sim
-          }:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
-          python ${./src/compile-pytorch.py} > "$out"
-        '';
+        pipelineScripts = ./scripts/pipeline;
+        tinyStories1m = let
+          modelId = "roneneldan/TinyStories-1M";
+          revision = "77f1b168e219585646439073245fe87e56b3023e";
+          fetch = file: hash:
+            pkgs.fetchurl {
+              url =
+                "https://huggingface.co/${modelId}/resolve/${revision}/${file}";
+              inherit hash;
+            };
+          snapshot = pkgs.linkFarm "tinystories-1m-hf-snapshot" [
+            {
+              name = "config.json";
+              path = fetch "config.json"
+                "sha256-/3TDDV67WrHaDy6kea33GXxQS0K1UiqFjDNKuR7UlYw=";
+            }
+            {
+              name = "pytorch_model.bin";
+              path = fetch "pytorch_model.bin"
+                "sha256-B/lgnqiCuBY/87I9QOK4LLcV1AljG+sVyEsWTzh32uc=";
+            }
+          ];
+        in {
+          inherit modelId revision snapshot;
+          sourceDir = ./TinyStories;
+          adapterPy = ./TinyStories/model_adapter.py;
+          selftestName = "tiny-stories-quant-int8-selftest";
+          selftestTopName = "tiny_stories_selftest_top";
+          selftestCapacities = {
+            slices = 74650;
+            clb_luts = 298600;
+            clb_ffs = 597200;
+            dsp = 1920;
+            bram36 = 955;
+            bram_kb = 34380;
+          };
+        };
 
-        matmulLinalg = pkgs.runCommand "matmul-linalg.mlir" { } ''
-          ${torchMlir}/bin/torch-mlir-opt ${matmulTorch} \
-            --torch-function-to-torch-backend-pipeline \
-            --torch-backend-to-linalg-on-tensors-backend-pipeline \
-            -canonicalize > $out
-        '';
+        pipelineLib = import ./nix/pipeline.nix {
+          inherit pkgs mlir circt yosysPkg yosysSlang torchMlir python;
+          inherit pipelineScripts;
+        };
 
-        matmulCf = pkgs.runCommand "matmul-cf.mlir" { } ''
-          ${mlir}/bin/mlir-opt ${matmulLinalg} \
-            --empty-tensor-to-alloc-tensor \
-            --one-shot-bufferize="bufferize-function-boundaries" \
-            --buffer-results-to-out-params \
-            --bufferization-lower-deallocations \
-            --convert-bufferization-to-memref \
-            --memref-expand \
-            --convert-linalg-to-affine-loops \
-            --lower-affine \
-            --convert-scf-to-cf \
-            -canonicalize > $out
-        '';
+        modelRegistry = import ./nix/models.nix {
+          inherit (pipelineLib) registerModel registerQuantizedModel;
+          inherit pythonWithTorch pythonWithTinyStories torchMlir python;
+          inherit tinyStories1m;
+          compilePyTorch = ./scripts/compile-pytorch.py;
+          matmulPy = ./src/matmul.py;
+          matmulAdapterPy = ./src/matmul_adapter.py;
+          matmulSrcDir = ./src;
+          simDir = ./sim;
+        };
 
-        matmulCfStats = pkgs.runCommand "matmul-cf.stats" { } ''
-          ${mlir}/bin/mlir-opt ${matmulCf} --print-op-stats -o /dev/null > $out || true
-        '';
+        modelPipelines = pipelineLib.modelPipelinesFromRegistry modelRegistry;
+        pipelineStagePackages =
+          pipelineLib.pipelineStagePackagesFromRegistry modelRegistry;
+        pipelineMetadataPackages =
+          pipelineLib.metadataPackagesFromRegistry modelRegistry;
+        modelRegistryJson = pipelineLib.registryIndexPackage modelRegistry;
 
-        matmulHandshake = pkgs.runCommand "matmul-handshake.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulCf} \
-            -flatten-memref \
-            -flatten-memref-calls \
-            -canonicalize \
-            -handshake-legalize-memrefs \
-            --lower-cf-to-handshake \
-            -handshake-insert-buffers \
-            -canonicalize > $out
-        '';
-
-        matmulHsExt = pkgs.runCommand "matmul-hs-ext.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHandshake} \
-            -handshake-lower-extmem-to-hw \
-            -handshake-materialize-forks-sinks \
-            -canonicalize > $out
-        '';
-
-        matmulHw0 = pkgs.runCommand "matmul-hw0.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHsExt} \
-            -lower-handshake-to-hw \
-            -canonicalize > $out
-        '';
-
-        matmulHw = pkgs.runCommand "matmul-hw.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHw0} \
-            -lower-esi-types \
-            -lower-esi-ports \
-            -lower-esi-to-hw \
-            -canonicalize > $out
-        '';
-
-        matmulHwClean = pkgs.runCommand "matmul-hw-clean.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHw} \
-            -firrtl-inner-symbol-dce \
-            -symbol-dce \
-            -canonicalize > $out
-        '';
-
-        matmulSv = pkgs.runCommand "matmul.sv" { } ''
-          ${circt}/bin/circt-opt ${matmulHwClean} \
-            -lower-seq-hlmem \
-            -lower-seq-fifo \
-            -lower-seq-shiftreg \
-            -lower-seq-to-sv \
-            -lower-hw-to-sv \
-            -canonicalize \
-            -export-verilog \
-            -o /dev/null > $out
-        '';
+        matmulPipeline = modelPipelines.matmul;
+        matmulSv = matmulPipeline.sv;
+        matmulIl = matmulPipeline.il;
+        tinyStoriesQuantInt8Pipeline =
+          modelPipelines."tiny-stories-1m-quant-int8";
+        tinyStoriesQuantInt8Sv = tinyStoriesQuantInt8Pipeline.sv;
+        tinyStoriesQuantInt8Il = tinyStoriesQuantInt8Pipeline.il;
 
         boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
         mkTopSv = name: src:
@@ -168,19 +281,29 @@
             cp ${src} "$out"
           '';
 
-        mkMatmulJson = { name, topName, topSv }:
+        mkYosysRtlil = { name, quiet ? false, memoryLimitKb ? null, script }:
+          pkgs.runCommand "${name}.il" { } ''
+            cat > run.ys <<'EOF'
+            ${script}
+            EOF
+            export outPath="$out"
+            ${pkgs.perl}/bin/perl -0pi -e 's/\$out/$ENV{outPath}/g' run.ys
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } -m ${yosysSlang}/share/yosys/plugins/slang.so -s run.ys
+          '';
+
+        mkSynthJson = { name, modelIl, topName, topSv }:
           pkgs.runCommand "${name}.json" { } ''
-            ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
-                read_rtlil ${matmulIl}
-                read_slang ${topSv}
-                hierarchy -top ${topName} -check
-                proc
-                opt
-                memory
-                flatten
-                synth_xilinx -family xc7 -top ${topName} -flatten -noiopad
-                write_json $out
-              "
+            ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -p "
+              read_rtlil ${modelIl}
+              read_slang ${topSv}
+              hierarchy -top ${topName} -check
+              synth_xilinx -family xc7 -top ${topName} -noiopad -json $out
+            "
           '';
 
         mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
@@ -191,6 +314,204 @@
             cat $constraintFiles > "$out"
           '';
 
+        mkMappedJsonUtilizationReport =
+          { name, designJson, topName, capacities }:
+          pkgs.runCommand "${name}-utilization" {
+            buildInputs = [ yosysPkg pkgs.jq ];
+          } ''
+            cat > run.ys <<'EOF'
+            read_json ${designJson}
+            tee -o stat.json stat -top ${topName} -hierarchy -json
+            EOF
+
+            ${yosysPkg}/bin/yosys -q -s run.ys
+
+            top_key="\\${topName}"
+            jq \
+              --arg top_key "$top_key" \
+              --argjson slices ${toString capacities.slices} \
+              --argjson clb_luts ${toString capacities.clb_luts} \
+              --argjson clb_ffs ${toString capacities.clb_ffs} \
+              --argjson dsp ${toString capacities.dsp} \
+              --argjson bram36 ${toString capacities.bram36} \
+              --argjson bram_kb ${toString capacities.bram_kb} \
+              '
+                def count($obj; $key):
+                  (($obj.num_cells_by_type[$key].count // "0") | tonumber);
+                def pct($used; $cap):
+                  if $cap == 0 then null else ($used * 100.0 / $cap) end;
+
+                (.modules[$top_key] // .design) as $top
+                | ($top.num_cells_by_type // {}) as $cells
+                | {
+                    top_module: ($top_key | ltrimstr("\\")),
+                    capacities: {
+                      slices: $slices,
+                      clb_luts: $clb_luts,
+                      clb_ffs: $clb_ffs,
+                      dsp: $dsp,
+                      bram36: $bram36,
+                      bram_kb: $bram_kb
+                    },
+                    usage: {
+                      lut_total:
+                        (count($top; "LUT1") + count($top; "LUT2") +
+                         count($top; "LUT3") + count($top; "LUT4") +
+                         count($top; "LUT5") + count($top; "LUT6")),
+                      muxf7: count($top; "MUXF7"),
+                      muxf8: count($top; "MUXF8"),
+                      ff_total:
+                        (count($top; "FDRE") + count($top; "FDSE") +
+                         count($top; "FDCE") + count($top; "FDPE")),
+                      dsp_total:
+                        (count($top; "DSP48E1") + count($top; "DSP48E2") +
+                         count($top; "DSP48A") + count($top; "DSP48A1") +
+                         count($top; "DSP48")),
+                      bram36_total:
+                        (count($top; "RAMB36E1") + count($top; "RAMB36E2") +
+                         count($top; "FIFO36E1") + count($top; "FIFO36E2")),
+                      bram18_total:
+                        (count($top; "RAMB18E1") + count($top; "RAMB18E2") +
+                         count($top; "FIFO18E1") + count($top; "FIFO18E2")),
+                      lutram_ram32m: count($top; "RAM32M"),
+                      lutram_ram64m: count($top; "RAM64M")
+                    }
+                  }
+                | .usage.bram36_equivalent =
+                    (.usage.bram36_total + (.usage.bram18_total / 2.0))
+                | .utilization = {
+                    lut_pct: pct(.usage.lut_total; .capacities.clb_luts),
+                    ff_pct: pct(.usage.ff_total; .capacities.clb_ffs),
+                    dsp_pct: pct(.usage.dsp_total; .capacities.dsp),
+                    bram36_equivalent_pct:
+                      pct(.usage.bram36_equivalent; .capacities.bram36)
+                  }
+                | .fits = {
+                    lut: (.usage.lut_total <= .capacities.clb_luts),
+                    ff: (.usage.ff_total <= .capacities.clb_ffs),
+                    dsp: (.usage.dsp_total <= .capacities.dsp),
+                    bram36_equivalent:
+                      (.usage.bram36_equivalent <= .capacities.bram36),
+                    overall:
+                      ((.usage.lut_total <= .capacities.clb_luts) and
+                       (.usage.ff_total <= .capacities.clb_ffs) and
+                       (.usage.dsp_total <= .capacities.dsp) and
+                       (.usage.bram36_equivalent <= .capacities.bram36))
+                  }
+              ' stat.json > summary.json
+
+            jq -r '
+              [
+                "top_module: " + .top_module,
+                "lut_total: " + (.usage.lut_total | tostring) + " / " + (.capacities.clb_luts | tostring) + " (" + (.utilization.lut_pct | tostring) + "%)",
+                "ff_total: " + (.usage.ff_total | tostring) + " / " + (.capacities.clb_ffs | tostring) + " (" + (.utilization.ff_pct | tostring) + "%)",
+                "dsp_total: " + (.usage.dsp_total | tostring) + " / " + (.capacities.dsp | tostring) + " (" + (.utilization.dsp_pct | tostring) + "%)",
+                "bram36_equivalent: " + (.usage.bram36_equivalent | tostring) + " / " + (.capacities.bram36 | tostring) + " (" + (.utilization.bram36_equivalent_pct | tostring) + "%)",
+                "muxf7: " + (.usage.muxf7 | tostring),
+                "muxf8: " + (.usage.muxf8 | tostring),
+                "lutram_ram32m: " + (.usage.lutram_ram32m | tostring),
+                "lutram_ram64m: " + (.usage.lutram_ram64m | tostring),
+                "fits_overall: " + (.fits.overall | tostring)
+              ] | .[]
+            ' summary.json > summary.txt
+
+            mkdir -p "$out"
+            cp stat.json "$out/stat.json"
+            cp summary.json "$out/summary.json"
+            cp summary.txt "$out/summary.txt"
+          '';
+
+        mkNextpnrUtilizationReport = { name, xdc, json }:
+          pkgs.runCommand "${name}-nextpnr-utilization" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
+            set -euo pipefail
+            if [ ! -f "${fpgaChipdb}" ]; then
+              echo "chipdb file missing: ${fpgaChipdb}" >&2
+              exit 1
+            fi
+
+            ${openXC7Nextpnr}/bin/nextpnr-xilinx \
+              --chipdb "${fpgaChipdb}" \
+              --xdc ${xdc} \
+              --json ${json} \
+              --write routed.json \
+              > nextpnr.log 2>&1
+
+            ${pkgs.python311}/bin/python3 - <<'PY'
+            import json
+            import pathlib
+            import re
+
+            log_path = pathlib.Path("nextpnr.log")
+            lines = log_path.read_text(encoding="utf-8").splitlines()
+            start = None
+            for idx, line in enumerate(lines):
+              if line.strip() == "Info: Device utilisation:":
+                start = idx + 1
+                break
+            if start is None:
+              raise SystemExit("nextpnr log did not contain a device utilisation section")
+
+            resources = {}
+            summary_lines = []
+            pattern = re.compile(
+              r"^Info:\s+(?P<name>.+?):\s+(?P<used>\d+)/\s*(?P<available>\d+)\s+(?P<pct>\d+)%$"
+            )
+            for line in lines[start:]:
+              if not line.strip():
+                break
+              match = pattern.match(line)
+              if match is None:
+                continue
+              name = match.group("name").strip()
+              entry = {
+                "used": int(match.group("used")),
+                "available": int(match.group("available")),
+                "percent": int(match.group("pct")),
+              }
+              resources[name] = entry
+              summary_lines.append(
+                f"{name}: {entry['used']} / {entry['available']} ({entry['percent']}%)"
+              )
+
+            if not resources:
+              raise SystemExit("nextpnr device utilisation section was present but no resources were parsed")
+
+            primary_names = [
+              "SLICE_LUTX",
+              "SLICE_FFX",
+              "CARRY4",
+              "RAMB18E1",
+              "RAMB36E1",
+              "DSP48E1",
+              "PAD",
+            ]
+            summary = {
+              "resources": resources,
+              "primary": {
+                name: resources[name]
+                for name in primary_names
+                if name in resources
+              },
+            }
+            pathlib.Path("summary.json").write_text(
+              json.dumps(summary, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+            )
+            pathlib.Path("summary.txt").write_text(
+              "\n".join(summary_lines) + "\n",
+              encoding="utf-8",
+            )
+            PY
+
+            mkdir -p "$out"
+            cp nextpnr.log "$out/nextpnr.log"
+            cp routed.json "$out/routed.json"
+            cp summary.json "$out/summary.json"
+            cp summary.txt "$out/summary.txt"
+          '';
+
         mkFasm = { name, xdc, json }:
           pkgs.runCommand "${name}.fasm" { } ''
             if [ ! -f "${fpgaChipdb}" ]; then
@@ -198,7 +519,6 @@
               exit 1
             fi
 
-            export OMP_NUM_THREADS=1
             ${openXC7Nextpnr}/bin/nextpnr-xilinx \
               --chipdb "${fpgaChipdb}" \
               --xdc ${xdc} \
@@ -229,8 +549,9 @@
 
         matmulBitstreamTop =
           mkTopSv "matmul-bitstream-top" ./fpga/rtl/matmul_bitstream_top.sv;
-        matmulBitstreamJson = mkMatmulJson {
+        matmulBitstreamJson = mkSynthJson {
           name = "matmul-bitstream";
+          modelIl = matmulIl;
           topName = "matmul_bitstream_top";
           topSv = matmulBitstreamTop;
         };
@@ -251,8 +572,9 @@
 
         matmulSelftestTop =
           mkTopSv "matmul-selftest-top" ./fpga/rtl/matmul_selftest_top.sv;
-        matmulSelftestJson = mkMatmulJson {
+        matmulSelftestJson = mkSynthJson {
           name = "matmul-selftest";
+          modelIl = matmulIl;
           topName = "matmul_selftest_top";
           topSv = matmulSelftestTop;
         };
@@ -272,6 +594,61 @@
           framesBase = "matmul-selftest";
         };
 
+        mkTinyStoriesSelftestBundle =
+          { name, topName, mainSv, modelIl, extraConstraints, capacities }:
+          let
+            top = pkgs.runCommand "tiny-stories-selftest-top.sv" { } ''
+              ${python}/bin/python \
+                ${./scripts/pipeline/gen_tiny_stories_selftest_top.py} \
+                --main-sv ${mainSv} \
+                --out "$out"
+            '';
+            modelOptIl = mkYosysRtlil {
+              name = "${name}-model-opt";
+              script = ''
+                read_rtlil ${modelIl}
+                hierarchy -top main -check
+                proc
+                opt_expr
+                opt_clean
+                clean
+                write_rtlil $out
+              '';
+            };
+            xdc = mkXdc {
+              inherit name extraConstraints;
+              includeBoardXdc = false;
+            };
+            json = mkSynthJson {
+              inherit name topName;
+              modelIl = modelOptIl;
+              topSv = top;
+            };
+            fasm = mkFasm { inherit name xdc json; };
+            bitstream = mkBitstream {
+              inherit name fasm;
+              framesBase = name;
+            };
+            utilizationReport = mkMappedJsonUtilizationReport {
+              inherit name capacities topName;
+              designJson = json;
+            };
+            nextpnrUtilizationReport =
+              mkNextpnrUtilizationReport { inherit name xdc json; };
+          in {
+            inherit top modelOptIl xdc json fasm bitstream utilizationReport
+              nextpnrUtilizationReport;
+          };
+
+        tinyStoriesSelftest = mkTinyStoriesSelftestBundle {
+          name = tinyStories1m.selftestName;
+          topName = tinyStories1m.selftestTopName;
+          mainSv = "${tinyStoriesQuantInt8Sv}/sv/main.sv";
+          modelIl = tinyStoriesQuantInt8Il;
+          extraConstraints = [ ./fpga/constraints/tiny_stories_selftest.xdc ];
+          capacities = tinyStories1m.selftestCapacities;
+        };
+
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
           MATMUL_PY=${./src/matmul.py} \
@@ -288,7 +665,7 @@
           verilator --binary --timing --language 1800-2017 -Wno-fatal \
             -I${tbDataSv} \
             -top tb -Mdir "$out/obj_dir" -o sim_main \
-            ${matmulSv} ${./sim/tb_main.sv}
+            -f ${matmulSv}/sources.f ${./sim/tb_main.sv}
         '';
 
         matmulSvSim = pkgs.runCommand "matmul-sv-sim.json" {
@@ -320,26 +697,13 @@
           verilator --binary --trace -DENABLE_WAVES -DENABLE_WAVES_VCD --timing --language 1800-2017 -Wno-fatal \
             -I${tbDataSv} \
             -top tb -Mdir obj_dir -o sim_main \
-            ${matmulSv} ${./sim/tb_main.sv}
+            -f ${matmulSv}/sources.f ${./sim/tb_main.sv}
           ./obj_dir/sim_main
           if [ ! -f wave.vcd ]; then
             echo "wave.vcd was not produced by simulation" >&2
             exit 1
           fi
           cp wave.vcd "$out"
-        '';
-
-        matmulIl = pkgs.runCommand "matmul.il" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -qp \
-              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; write_rtlil $out" \
-              > /dev/null
-        '';
-
-        matmulYosysStat = pkgs.runCommand "matmul-yosys.stat" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -p \
-              "read_rtlil ${matmulIl}; tee -o $out stat -json"
         '';
 
       in {
@@ -376,23 +740,16 @@
 
         packages = {
           default = matmulSv;
+          yosys = yosysPkg;
+          yosys-slang = yosysSlang;
           torch-mlir = torchMlir;
+          torch-mlir-llvm = torchMlirLlvmPackages.llvm;
+          torch-mlir-mlir = mlirForTorchMlir;
+          model-registry = modelRegistryJson;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
-          matmul-torch = matmulTorch;
-          matmul-linalg = matmulLinalg;
-          matmul-cf = matmulCf;
-          matmul-cf-stats = matmulCfStats;
-          matmul-handshake = matmulHandshake;
-          matmul-hs-ext = matmulHsExt;
-          matmul-hw0 = matmulHw0;
-          matmul-hw = matmulHw;
-          matmul-hw-clean = matmulHwClean;
-          matmul-sv = matmulSv;
-          matmul-il = matmulIl;
-          matmul-yosys-stat = matmulYosysStat;
           matmul-bitstream = matmulBitstream;
           matmul-fasm = matmulFasm;
           matmul-bitstream-fasm = matmulFasm;
@@ -404,7 +761,20 @@
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
-        };
+          tiny-stories-quant-int8-selftest-bitstream =
+            tinyStoriesSelftest.bitstream;
+          tiny-stories-quant-int8-selftest-fasm = tinyStoriesSelftest.fasm;
+          tiny-stories-quant-int8-selftest-model-opt-il =
+            tinyStoriesSelftest.modelOptIl;
+          tiny-stories-quant-int8-selftest-top = tinyStoriesSelftest.top;
+          tiny-stories-quant-int8-selftest-xdc = tinyStoriesSelftest.xdc;
+          tiny-stories-quant-int8-selftest-json = tinyStoriesSelftest.json;
+          tiny-stories-quant-int8-selftest-utilization =
+            tinyStoriesSelftest.utilizationReport;
+          tiny-stories-quant-int8-selftest-nextpnr-utilization =
+            tinyStoriesSelftest.nextpnrUtilizationReport;
+          tiny-stories-1m-snapshot = tinyStories1m.snapshot;
+        } // pipelineStagePackages // pipelineMetadataPackages;
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {
@@ -430,20 +800,6 @@
                 source = path.read_text(encoding="utf-8")
                 compile(source, str(path), "exec")
             PY
-            mkdir -p "$out"
-          '';
-
-          systemverilog = pkgs.runCommand "llm2fpga-systemverilog" {
-            nativeBuildInputs = [ pkgs.verilator ];
-          } ''
-            verilator \
-              --lint-only \
-              --timing \
-              --Wall \
-              --Wno-fatal \
-              -I${tbDataSv} \
-              ${matmulSv} \
-              ${./sim}/tb_main.sv
             mkdir -p "$out"
           '';
 
