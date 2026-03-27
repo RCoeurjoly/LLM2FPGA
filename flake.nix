@@ -59,8 +59,11 @@
         # in-repo patch stack instead of opaque working tree state.
         circt = circtBase.overrideAttrs (old: {
           patches = (old.patches or [ ]) ++ [
-            ./patches/circt-task3-rfp/0003-handshake-float-and-memref-lowering.patch
-            ./patches/circt-task3-rfp/0004-handshake-lsq-lowering-and-tests.patch
+            ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
+            ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
+            ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
+            ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
+            ./patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch
           ];
         });
         yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {

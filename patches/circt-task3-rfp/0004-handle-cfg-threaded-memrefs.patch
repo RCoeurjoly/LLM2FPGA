@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Thu, 5 Mar 2026 11:52:20 +0100
+Subject: [PATCH 4/7] Handle CFG-threaded memrefs in handshake lowering
+
+---
+diff --git a/lib/Conversion/CFToHandshake/CFToHandshake.cpp b/lib/Conversion/CFToHandshake/CFToHandshake.cpp
+index 7d34424f5..86d38910a 100644
+--- a/lib/Conversion/CFToHandshake/CFToHandshake.cpp
++++ b/lib/Conversion/CFToHandshake/CFToHandshake.cpp
+@@ -367,10 +367,6 @@ HandshakeLowering::insertMergeOps(HandshakeLowering::ValueMap &mergePairs,
+     // All of the block's live-ins are passed explictly through block arguments
+     // thanks to prior SSA maximization
+     for (auto &arg : block.getArguments()) {
+-      // No merges on memref block arguments; these are handled separately
+-      if (isa<mlir::MemRefType>(arg.getType()))
+-        continue;
+-
+       auto mergeInfo = insertMerge(&block, arg, edgeBuilder, rewriter);
+       blockMerges[&block].push_back(mergeInfo);
+       mergePairs[arg] = mergeInfo.op->getResult(0);
+@@ -405,13 +401,19 @@ static Value getMergeOperand(HandshakeLowering::MergeOpInfo mergeInfo,
+ }
+ 
+ static void removeBlockOperands(Region &f) {
+-  // Remove all block arguments, they are no longer used
+-  // eraseArguments also removes corresponding branch operands
++  // Remove all block arguments that were fully rewritten through merges.
++  // Keep memref block arguments alive until memory network construction.
++  // eraseArgument also removes corresponding branch operands.
+   for (Block &block : f) {
+     if (!block.isEntryBlock()) {
+       int x = block.getNumArguments() - 1;
+-      for (int i = x; i >= 0; --i)
++      for (int i = x; i >= 0; --i) {
++        if (isa<MemRefType>(block.getArgument(i).getType()))
++          continue;
++        if (!block.getArgument(i).use_empty())
++          continue;
+         block.eraseArgument(i);
++      }
+     }
+   }
+ }
+@@ -1517,16 +1519,29 @@ HandshakeLowering::connectToMemory(ConversionPatternRewriter &rewriter,
+   // Add MemoryOps which represent the memory interface
+   // Connect memory operations and control appropriately
+   int mem_count = 0;
++  SmallVector<Value> entryBlockArgs;
++  for (auto arg : r.getArguments())
++    entryBlockArgs.push_back(arg);
++
+   for (auto memory : memRefOps) {
+     // First operand corresponds to memref (alloca or function argument)
+     Value memrefOperand = memory.first;
+ 
+-    // A memory is external if the memref that defines it is provided as a
+-    // function (block) argument.
+-    bool isExternalMemory = isa<BlockArgument>(memrefOperand);
++    // A memory is external only if the memref comes from function entry block
++    // arguments. Non-entry block arguments are CFG threading artifacts.
++    bool isExternalMemory = llvm::is_contained(entryBlockArgs, memrefOperand);
++
++    if (!memrefOperand)
++      return emitError(r.getLoc(),
++                       "encountered null memref value while building "
++                       "handshake memory interface");
++
++    auto memrefType = dyn_cast<mlir::MemRefType>(memrefOperand.getType());
++    if (!memrefType)
++      return emitError(memrefOperand.getLoc(),
++                       "expected memref key in memory op map, got ")
++             << memrefOperand.getType();
+ 
+-    mlir::MemRefType memrefType =
+-        cast<mlir::MemRefType>(memrefOperand.getType());
+     if (failed(isValidMemrefType(memrefOperand.getLoc(), memrefType)))
+       return failure();
+ 
+diff --git a/lib/Dialect/Handshake/Transforms/LowerExtmemToHW.cpp b/lib/Dialect/Handshake/Transforms/LowerExtmemToHW.cpp
+index 3a3e52049..613908bde 100644
+--- a/lib/Dialect/Handshake/Transforms/LowerExtmemToHW.cpp
++++ b/lib/Dialect/Handshake/Transforms/LowerExtmemToHW.cpp
+@@ -401,10 +401,12 @@ HandshakeLowerExtmemToHWPass::lowerExtmemToHW(handshake::FuncOp func) {
+       func, func.getArgumentTypes(), func.getResultTypes());
+ 
+   OpBuilder b(func);
+-  for (auto it : memrefArgs) {
++  // Process from highest to lowest argument index so that argument erasures and
++  // insertions do not invalidate indices we still need to handle.
++  for (auto it = memrefArgs.rbegin(), e = memrefArgs.rend(); it != e; ++it) {
+     // Do not use structured bindings for 'it' - cannot reference inside lambda.
+-    unsigned i = it.first;
+-    auto arg = it.second;
++    unsigned i = it->first;
++    auto arg = it->second;
+     auto loc = arg.getLoc();
+     // Get the attached extmemory external module.
+     auto extmemOp = cast<handshake::ExternalMemoryOp>(*arg.getUsers().begin());
+-- 
+2.53.0
