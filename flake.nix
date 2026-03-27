@@ -743,6 +743,7 @@
 
         packages = {
           default = matmulSv;
+          inherit circt;
           yosys = yosysPkg;
           yosys-slang = yosysSlang;
           torch-mlir = torchMlir;
