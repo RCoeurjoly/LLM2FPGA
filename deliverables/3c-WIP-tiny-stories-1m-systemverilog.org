@@ -8,7 +8,7 @@ Definition:
 
 Gate:
 #+begin_src bash
-nix build .#tiny-stories-1m-quant-int8-sv -L
+nix build .#tiny-stories-1m-sv -L
 #+end_src
 
 Artifact:

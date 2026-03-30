@@ -183,27 +183,8 @@ index 1cf0419dd..e728892ba8a4fdc58c1b5f3526c0234bcbee448c 100644
    patterns.insert<JoinConversionPattern, ForkConversionPattern,
                    SyncConversionPattern>(typeConverter, op.getContext(),
                                           moduleBuilder, ls);
-@@ -1940,6 +2012,19 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
-       MergeConversionPattern, ControlMergeConversionPattern,
-       LoadConversionPattern, StoreConversionPattern, MemoryConversionPattern,
-       InstanceConversionPattern,
-+      // Floating-point arith operations are lowered as extern modules.
-+      ExtModuleConversionPattern<arith::AddFOp>,
-+      ExtModuleConversionPattern<arith::SubFOp>,
-+      ExtModuleConversionPattern<arith::MulFOp>,
-+      ExtModuleConversionPattern<arith::DivFOp>,
-+      ExtModuleConversionPattern<arith::MaximumFOp>,
-+      ExtModuleConversionPattern<arith::CmpFOp>,
-+      ExtModuleConversionPattern<arith::ExtFOp>,
-+      ExtModuleConversionPattern<arith::TruncFOp>,
-+      ExtModuleConversionPattern<math::ExpOp>,
-+      ExtModuleConversionPattern<math::FPowIOp>,
-+      ExtModuleConversionPattern<math::RsqrtOp>,
-+      ExtModuleConversionPattern<math::TanhOp>,
-       // Arith operations.
-       ExtendConversionPattern<arith::ExtUIOp, /*signExtend=*/false>,
-       ExtendConversionPattern<arith::ExtSIOp, /*signExtend=*/true>,
-@@ -1964,6 +2049,10 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+@@ -1929,7 +2001,11 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+       UnitRateConversionPattern<arith::ShLIOp, comb::ShlOp>,
        UnitRateConversionPattern<arith::ShRUIOp, comb::ShrUOp>,
        UnitRateConversionPattern<arith::ShRSIOp, comb::ShrSOp>,
        UnitRateConversionPattern<arith::SelectOp, comb::MuxOp>,
@@ -214,34 +195,42 @@ index 1cf0419dd..e728892ba8a4fdc58c1b5f3526c0234bcbee448c 100644
        // HW operations.
        StructCreateConversionPattern,
        // Handshake operations.
-@@ -1981,12 +2070,18 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
-       ExtModuleConversionPattern<arith::DivFOp>,
-       ExtModuleConversionPattern<arith::MaximumFOp>,
-       ExtModuleConversionPattern<arith::CmpFOp>,
+@@ -1939,9 +2015,28 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+       SourceConversionPattern, SinkConversionPattern, ConstantConversionPattern,
+       MergeConversionPattern, ControlMergeConversionPattern,
+       LoadConversionPattern, StoreConversionPattern, MemoryConversionPattern,
+       InstanceConversionPattern,
++      // Floating-point arith operations are lowered as extern modules.
++      ExtModuleConversionPattern<arith::AddFOp>,
++      ExtModuleConversionPattern<arith::SubFOp>,
++      ExtModuleConversionPattern<arith::MulFOp>,
++      ExtModuleConversionPattern<arith::DivFOp>,
++      ExtModuleConversionPattern<arith::MaximumFOp>,
++      ExtModuleConversionPattern<arith::CmpFOp>,
 +      ExtModuleConversionPattern<arith::SIToFPOp>,
 +      ExtModuleConversionPattern<arith::UIToFPOp>,
 +      ExtModuleConversionPattern<arith::FPToSIOp>,
 +      ExtModuleConversionPattern<arith::FPToUIOp>,
-       ExtModuleConversionPattern<arith::ExtFOp>,
-       ExtModuleConversionPattern<arith::TruncFOp>,
-       ExtModuleConversionPattern<math::ExpOp>,
-       ExtModuleConversionPattern<math::FPowIOp>,
-       ExtModuleConversionPattern<math::RsqrtOp>,
-       ExtModuleConversionPattern<math::TanhOp>,
++      ExtModuleConversionPattern<arith::ExtFOp>,
++      ExtModuleConversionPattern<arith::TruncFOp>,
++      ExtModuleConversionPattern<math::ExpOp>,
++      ExtModuleConversionPattern<math::FPowIOp>,
++      ExtModuleConversionPattern<math::RsqrtOp>,
++      ExtModuleConversionPattern<math::TanhOp>,
 +      ExtModuleConversionPattern<math::AbsFOp>,
 +      ExtModuleConversionPattern<math::RoundEvenOp>,
        // Arith operations.
        ExtendConversionPattern<arith::ExtUIOp, /*signExtend=*/false>,
        ExtendConversionPattern<arith::ExtSIOp, /*signExtend=*/true>,
-@@ -1987,6 +2082,8 @@ public:
+       TruncateConversionPattern, IndexCastConversionPattern>(
+       typeConverter, op.getContext(), moduleBuilder, ls);
+@@ -1986,4 +2082,6 @@ public:
+     target.addLegalOp<hw::HWModuleOp, hw::HWModuleExternOp, hw::OutputOp,
                        hw::InstanceOp>();
      target
          .addIllegalDialect<handshake::HandshakeDialect, arith::ArithDialect>();
 +    target.addIllegalOp<cf::AssertOp>();
 +    target.addIllegalDialect<math::MathDialect>();
- 
-     // Convert the handshake.func operations in post-order wrt. the instance
-     // graph. This ensures that any referenced submodules (through
 diff --git a/lib/Dialect/Handshake/HandshakeUtils.cpp b/lib/Dialect/Handshake/HandshakeUtils.cpp
 index 856c3bee5..ca326f454 100644
 --- a/lib/Dialect/Handshake/HandshakeUtils.cpp

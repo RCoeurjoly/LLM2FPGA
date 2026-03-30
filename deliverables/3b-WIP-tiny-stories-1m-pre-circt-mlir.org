@@ -8,11 +8,11 @@ Definition:
 
 Gate:
 #+begin_src bash
-nix build .#tiny-stories-1m-quant-int8-cf -L
+nix build .#tiny-stories-1m-cf -L
 #+end_src
 
 Artifact:
 - =result=
 
 Note:
-- Pre-CIRCT MLIR boundary for the pinned TinyStories Task 3 flow.
+- Pre-CIRCT MLIR boundary for the current standard TinyStories Task 3 flow.

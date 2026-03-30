@@ -305,7 +305,7 @@
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "openXC7": "openXC7",
-        "torch-mlir-src": "torch-mlir-src",
+        "torch-mlir-src-local": "torch-mlir-src-local",
         "yosys": "yosys",
         "yosys-slang": "yosys-slang",
         "ypcbHack": "ypcbHack"
@@ -388,20 +388,17 @@
         "type": "github"
       }
     },
-    "torch-mlir-src": {
+    "torch-mlir-src-local": {
       "flake": false,
       "locked": {
-        "lastModified": 1773304265,
-        "narHash": "sha256-jK2GXg3paiEjSee7dmyavsovU/HoXyQqEnm0j5pjU0s=",
-        "owner": "llvm",
-        "repo": "torch-mlir",
-        "rev": "d51862ed35a8826a3444d38942b6d2084cf865ee",
-        "type": "github"
+        "lastModified": 1774686912,
+        "narHash": "sha256-p6EfT7XM8VxqkODb6JhZ7tXNZ7fRDLV4w7KDGQnSZro=",
+        "path": "/home/roland/torch-mlir",
+        "type": "path"
       },
       "original": {
-        "owner": "llvm",
-        "repo": "torch-mlir",
-        "type": "github"
+        "path": "/home/roland/torch-mlir",
+        "type": "path"
       }
     },
     "yosys": {

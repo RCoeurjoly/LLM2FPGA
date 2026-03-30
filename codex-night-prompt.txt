@@ -1,0 +1,10 @@
+Continue on the planned roadmap for Task 3 / RfP in LLM2FPGA.
+
+Work autonomously for up to 8 hours. Do not ask me questions. Make the most sensible decision and continue.
+Prefer local fast iteration over Nix rebuilds when possible.
+Keep updating docs/task3-rfp-contract-2026-03-27.org when a real milestone is reached.
+When one path is blocked, reduce to a smaller reproducer, fix it, validate it, and continue.
+Prioritize the clean quantization path and standard frontend story. Avoid ad hoc hacks unless they are narrowly justified and documented.
+If you reach a real blocker, leave the repo in a useful state with code, tests, artifacts, and a clear final note in /tmp/codex-night-last.txt.
+
+Work until the tiny-stories-1m-*-json derivation is succesful.

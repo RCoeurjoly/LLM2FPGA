@@ -40,15 +40,15 @@
       url = "github:RCoeurjoly/ypcb_00338_1p1_hack";
       flake = false;
     };
-    torch-mlir-src = {
-      url = "github:llvm/torch-mlir";
+    torch-mlir-src-local = {
+      url = "path:/home/roland/torch-mlir";
       flake = false;
     };
   };
 
   outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
     , circt-src-local, nix-eda, openXC7, nextpnrXilinxFork, ypcbHack
-    , torch-mlir-src, ... }:
+    , torch-mlir-src-local, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -77,6 +77,30 @@
               false
             else if head == "llvm" then
               builtins.length components == 1
+            else
+              true;
+        };
+        torchMlirLocalSrc = builtins.path {
+          path = torch-mlir-src-local;
+          name = "torch-mlir-src-local";
+          filter = path: type:
+            let
+              root = toString torch-mlir-src-local;
+              pathStr = toString path;
+              rel =
+                if pathStr == root then
+                  ""
+                else
+                  builtins.substring ((builtins.stringLength root) + 1)
+                  ((builtins.stringLength pathStr) - (builtins.stringLength root)
+                    - 1) pathStr;
+              components = pkgs.lib.splitString "/" rel;
+              head = if rel == "" then "" else builtins.head components;
+            in
+            if rel == "" then
+              true
+            else if head == ".git" then
+              false
             else
               true;
         };
@@ -162,9 +186,27 @@
         });
         inherit (llvmPackages) mlir;
         python = pkgsLlvm21.python311;
+        torchao = python.pkgs.buildPythonPackage rec {
+          pname = "torchao";
+          version = "0.15.0";
+          format = "wheel";
+          src = pkgs.fetchurl {
+            url =
+              "https://files.pythonhosted.org/packages/f6/3b/6b9d5618720f63dbc2e2509cd6b57aae9c0d61b738d1d2172f4d5d9efaab/torchao-0.15.0-py3-none-any.whl";
+            hash = "sha256-PzgSZ2BI74oqDp1JLRLYlxunp+uxb1SqVvaQQU4TDSw=";
+          };
+          propagatedBuildInputs = [ python.pkgs.torch python.pkgs.packaging ];
+          dontBuild = true;
+          doCheck = false;
+          pythonImportsCheck = [ "torchao" ];
+        };
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
+        pythonWithTorchAO =
+          python.withPackages (ps: [ ps.torch ps.packaging torchao ]);
         pythonWithTinyStories =
           python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
+        pythonWithTinyStoriesTorchAO = python.withPackages
+          (ps: [ ps.torch ps.packaging ps.transformers torchao ]);
         nanobindBootstrap =
           pkgsLlvm21.callPackage ./nix/nanobind-bootstrap.nix {
             inherit python;
@@ -220,7 +262,7 @@
         # changes do not force rebuilding LLVM.
         torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix {
           inherit python;
-          src = torch-mlir-src;
+          src = torchMlirLocalSrc;
           nanobind = nanobindBootstrap;
           inherit (torchMlirLlvmPackages) tblgen;
           mlir = mlirForTorchMlir;
@@ -253,16 +295,6 @@
           inherit modelId revision snapshot;
           sourceDir = ./TinyStories;
           adapterPy = ./TinyStories/model_adapter.py;
-          selftestName = "tiny-stories-quant-int8-selftest";
-          selftestTopName = "tiny_stories_selftest_top";
-          selftestCapacities = {
-            slices = 74650;
-            clb_luts = 298600;
-            clb_ffs = 597200;
-            dsp = 1920;
-            bram36 = 955;
-            bram_kb = 34380;
-          };
         };
 
         pipelineLib = import ./nix/pipeline.nix {
@@ -271,13 +303,29 @@
         };
 
         modelRegistry = import ./nix/models.nix {
-          inherit (pipelineLib) registerModel registerQuantizedModel;
-          inherit pythonWithTorch pythonWithTinyStories torchMlir python;
+          inherit (pipelineLib) registerModel;
+          inherit pythonWithTorch pythonWithTorchAO pythonWithTinyStories
+            pythonWithTinyStoriesTorchAO torchMlir python;
           inherit tinyStories1m;
           compilePyTorch = ./scripts/compile-pytorch.py;
           matmulPy = ./src/matmul.py;
           matmulAdapterPy = ./src/matmul_adapter.py;
           matmulSrcDir = ./src;
+          torchaoInt8DynamicLinearAdapterPy =
+            ./src/torchao_int8_dynamic_linear_adapter.py;
+          torchaoInt8WeightOnlyLinearAdapterPy =
+            ./src/torchao_int8_weight_only_linear_adapter.py;
+          torchaoAttentionBlockAdapterPy =
+            ./src/torchao_attention_block_adapter.py;
+          pt2eQuantLinearAdapterPy = ./src/pt2e_quant_linear_adapter.py;
+          pt2eStaticQuantLinearAdapterPy = ./src/pt2e_static_quant_linear_adapter.py;
+          pt2eStaticQuantEmbeddingAdapterPy = ./src/pt2e_static_quant_embedding_adapter.py;
+          pt2eStaticQuantEmbeddingComposableAdapterPy = ./src/pt2e_static_quant_embedding_composable_adapter.py;
+          pt2eStaticQuantLayerNormAdapterPy = ./src/pt2e_static_quant_layer_norm_adapter.py;
+          pt2eStaticQuantSoftmaxAdapterPy = ./src/pt2e_static_quant_softmax_adapter.py;
+          pt2eStaticQuantMatmulX86AdapterPy = ./src/pt2e_static_quant_matmul_x86_adapter.py;
+          tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;
+          tinyStoriesPt2eStaticQuantAdapterPy = ./TinyStories/model_adapter_pt2e_static_quant.py;
           simDir = ./sim;
         };
 
@@ -291,10 +339,17 @@
         matmulPipeline = modelPipelines.matmul;
         matmulSv = matmulPipeline.sv;
         matmulIl = matmulPipeline.il;
-        tinyStoriesQuantInt8Pipeline =
-          modelPipelines."tiny-stories-1m-quant-int8";
-        tinyStoriesQuantInt8Sv = tinyStoriesQuantInt8Pipeline.sv;
-        tinyStoriesQuantInt8Il = tinyStoriesQuantInt8Pipeline.il;
+        tinyStories1mPipeline = modelPipelines."tiny-stories-1m";
+        tinyStories1mSv = tinyStories1mPipeline.sv;
+        tinyStories1mIl = tinyStories1mPipeline.il;
+        tinyStoriesCapacities = {
+          slices = 74650;
+          clb_luts = 298600;
+          clb_ffs = 597200;
+          dsp = 1920;
+          bram36 = 955;
+          bram_kb = 34380;
+        };
 
         boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
         mkTopSv = name: src:
@@ -315,6 +370,16 @@
             ${yosysPkg}/bin/yosys ${
               pkgs.lib.optionalString quiet "-q"
             } -m ${yosysSlang}/share/yosys/plugins/slang.so -s run.ys
+          '';
+
+        mkYosysJson = { name, modelIl, topName, topSv }:
+          pkgs.runCommand "${name}.json" { } ''
+            ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -p "
+              read_rtlil ${modelIl}
+              read_slang ${topSv}
+              hierarchy -top ${topName} -check
+              write_json $out
+            "
           '';
 
         mkSynthJson = { name, modelIl, topName, topSv }:
@@ -614,6 +679,14 @@
           fasm = matmulSelftestFasm;
           framesBase = "matmul-selftest";
         };
+        tinyStories1mSelftest = mkTinyStoriesSelftestBundle {
+          name = "tiny-stories-1m-selftest";
+          topName = "tiny_stories_selftest_top";
+          mainSv = "${tinyStories1mSv}/sv/main.sv";
+          modelIl = tinyStories1mIl;
+          extraConstraints = [ ./fpga/constraints/tiny_stories_selftest.xdc ];
+          capacities = tinyStoriesCapacities;
+        };
 
         mkTinyStoriesSelftestBundle =
           { name, topName, mainSv, modelIl, extraConstraints, capacities }:
@@ -645,6 +718,12 @@
               modelIl = modelOptIl;
               topSv = top;
             };
+            yosysJson = mkYosysJson {
+              name = "${name}-yosys";
+              inherit topName;
+              modelIl = modelOptIl;
+              topSv = top;
+            };
             fasm = mkFasm { inherit name xdc json; };
             bitstream = mkBitstream {
               inherit name fasm;
@@ -657,18 +736,9 @@
             nextpnrUtilizationReport =
               mkNextpnrUtilizationReport { inherit name xdc json; };
           in {
-            inherit top modelOptIl xdc json fasm bitstream utilizationReport
+            inherit top modelOptIl xdc json yosysJson fasm bitstream utilizationReport
               nextpnrUtilizationReport;
           };
-
-        tinyStoriesSelftest = mkTinyStoriesSelftestBundle {
-          name = tinyStories1m.selftestName;
-          topName = tinyStories1m.selftestTopName;
-          mainSv = "${tinyStoriesQuantInt8Sv}/sv/main.sv";
-          modelIl = tinyStoriesQuantInt8Il;
-          extraConstraints = [ ./fpga/constraints/tiny_stories_selftest.xdc ];
-          capacities = tinyStories1m.selftestCapacities;
-        };
 
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
@@ -737,6 +807,7 @@
             llvmPackages.clang
             llvmPackages.llvm
             pythonWithTorch
+            pythonWithTorchAO
             yosysSlang
             openXC7Nextpnr
             openXC7Prjxray
@@ -761,7 +832,7 @@
 
         packages = {
           default = matmulSv;
-          inherit circt;
+          inherit circt torchao;
           yosys = yosysPkg;
           yosys-slang = yosysSlang;
           torch-mlir = torchMlir;
@@ -783,18 +854,16 @@
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
-          tiny-stories-quant-int8-selftest-bitstream =
-            tinyStoriesSelftest.bitstream;
-          tiny-stories-quant-int8-selftest-fasm = tinyStoriesSelftest.fasm;
-          tiny-stories-quant-int8-selftest-model-opt-il =
-            tinyStoriesSelftest.modelOptIl;
-          tiny-stories-quant-int8-selftest-top = tinyStoriesSelftest.top;
-          tiny-stories-quant-int8-selftest-xdc = tinyStoriesSelftest.xdc;
-          tiny-stories-quant-int8-selftest-json = tinyStoriesSelftest.json;
-          tiny-stories-quant-int8-selftest-utilization =
-            tinyStoriesSelftest.utilizationReport;
-          tiny-stories-quant-int8-selftest-nextpnr-utilization =
-            tinyStoriesSelftest.nextpnrUtilizationReport;
+          tiny-stories-1m-selftest-top = tinyStories1mSelftest.top;
+          tiny-stories-1m-selftest-xdc = tinyStories1mSelftest.xdc;
+          tiny-stories-1m-selftest-json = tinyStories1mSelftest.json;
+          tiny-stories-1m-selftest-yosys-json = tinyStories1mSelftest.yosysJson;
+          tiny-stories-1m-selftest-fasm = tinyStories1mSelftest.fasm;
+          tiny-stories-1m-selftest-bitstream = tinyStories1mSelftest.bitstream;
+          tiny-stories-1m-selftest-utilization =
+            tinyStories1mSelftest.utilizationReport;
+          tiny-stories-1m-selftest-nextpnr-utilization =
+            tinyStories1mSelftest.nextpnrUtilizationReport;
           tiny-stories-1m-snapshot = tinyStories1m.snapshot;
         } // pipelineStagePackages // pipelineMetadataPackages;
 

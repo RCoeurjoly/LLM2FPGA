@@ -41,6 +41,18 @@ in stdenv.mkDerivation {
     set(MLIR_TABLEGEN_EXE ${tblgen}/bin/mlir-tblgen)
     set(MLIR_TABLEGEN_TARGET ${tblgen}/bin/mlir-tblgen)"
 
+      # The embedded StableHLO Python bindings pull in nanobind targets with
+      # Clang-specific warning flags that break our GCC-based Nix build. They
+      # are not needed for this pipeline; only torch-mlir's own Python package
+      # and `torch-mlir-opt` are used.
+      substituteInPlace CMakeLists.txt \
+        --replace-fail "set(STABLEHLO_ENABLE_BINDINGS_PYTHON ON)" \
+                       "set(STABLEHLO_ENABLE_BINDINGS_PYTHON OFF)"
+
+      substituteInPlace python/CMakeLists.txt \
+        --replace-fail "if(TORCH_MLIR_ENABLE_STABLEHLO)" \
+                       "if(TORCH_MLIR_ENABLE_STABLEHLO AND STABLEHLO_ENABLE_BINDINGS_PYTHON)"
+
       cmake -G Ninja \
         -S . \
         -B build \

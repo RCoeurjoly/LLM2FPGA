@@ -106,7 +106,7 @@ let
     '';
 
   mkSvDerivation = { name, hwClean }:
-    pkgs.runCommand "${name}-sv" { buildInputs = [ circt ]; } ''
+    pkgs.runCommand "${name}-sv" { buildInputs = [ circt python ]; } ''
       ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_clean_to_sv.sh \
         ${circt}/bin/circt-opt ${hwClean} "$out"
     '';
