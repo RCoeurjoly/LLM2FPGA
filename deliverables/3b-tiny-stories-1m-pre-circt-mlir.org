@@ -1,4 +1,4 @@
-* WIP Deliverable 3b: tiny_stories_1m.mlir before CIRCT
+* Deliverable 3b: tiny_stories_1m.mlir before CIRCT
 
 Reference:
 - docs/project-plan_v2.org:215

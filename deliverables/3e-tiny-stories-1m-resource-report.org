@@ -1,0 +1,35 @@
+* Deliverable 3e: synthesis resource report and bottleneck report
+
+Reference:
+- docs/project-plan_v2.org:218
+
+Definition:
+- 3e) synthesis resource report + bottleneck report
+
+Gate:
+#+begin_src bash
+nix build .#tiny-stories-1m-selftest-all-memory-utilization -L
+#+end_src
+
+Artifact:
+- =/nix/store/xcmhdxql040g0g06s9zcxk1h8x33cnjs-tiny-stories-1m-selftest-all-memory-utilization/summary.txt=
+- =/nix/store/xcmhdxql040g0g06s9zcxk1h8x33cnjs-tiny-stories-1m-selftest-all-memory-utilization/summary.json=
+- =/nix/store/51a7xalw32ca2g99cb1zl4yzp8z6d9d8-tiny-stories-1m-selftest-all-memory.json=
+- =/nix/store/3byl90mwnbvawkcjlfc71r7im4cs89zd-tiny-stories-1m-selftest-all-memory-external-memory-plan/report.json=
+
+Note:
+- This is the current standard-flow shell synthesis artifact for Task 3.
+- The shell mode externalizes all =326= oversized =handshake_memory_*= modules
+  (=433040010= bits total) before the staged =synth_xilinx= run.
+- Measured shell utilization on the mapped JSON:
+  - LUTs: =34950553 / 298600= (=11704.81%%=)
+  - FFs: =58072527 / 597200= (=9724.13%%=)
+  - DSPs: =0 / 1920= (=0%%=)
+  - BRAM36-equivalent: =0 / 955= (=0%%=)
+  - MUXF7: =134923=
+  - MUXF8: =12014=
+- The generated self-test top still does not fit the target FPGA.
+- Under this shell-mode measurement, the dominant bottleneck is LUT/FF
+  explosion in the lowered shell/controller logic, not DSP or BRAM pressure.
+- This 3e artifact is intentionally qualified as an external-memory shell
+  report, not as a claim that the full model fits on-chip.

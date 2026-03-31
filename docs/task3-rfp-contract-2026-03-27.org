@@ -1250,6 +1250,161 @@
           remains the standard quantized frontend path, and the full
           Xilinx-mapped TinyStories selftest JSON is the next downstream
           scaling target once memory pressure is reduced further
+  35. cleaner native-FX attention ablations are now in the repo fast loop:
+      - new shared/native-FX reproducers:
+        - =src/native_fx_quant_attention_models.py=
+        - =src/native_fx_quant_attention_block_no_layer_norm_adapter.py=
+        - =src/native_fx_quant_attention_block_no_softmax_adapter.py=
+        - =src/native_fx_quant_projection_adapter.py=
+      - validated local commands:
+        - =scripts/dev/build-linalg-local-from-adapter.sh src/native_fx_quant_attention_block_no_layer_norm_adapter.py /tmp/native-fx-quant-attention-block-no-layer-norm-local-linalg.mlir=
+        - =scripts/dev/build-linalg-local-from-adapter.sh src/native_fx_quant_attention_block_no_softmax_adapter.py /tmp/native-fx-quant-attention-block-no-softmax-local-linalg.mlir=
+        - =scripts/dev/build-linalg-local-from-adapter.sh src/native_fx_quant_projection_adapter.py /tmp/native-fx-quant-projection-local-linalg.mlir=
+      - measured local =linalg= profiles on the cleaner standard branch:
+        - full native-FX attention block:
+          =6 quantized_batch_matmul, 0 batch_matmul, divf 7, maximumf 4,
+          minimumf 3, exp 1, rsqrt 1=
+        - without =layer_norm=:
+          =6 quantized_batch_matmul, 0 batch_matmul, divf 4, maximumf 3,
+          minimumf 2, exp 1, rsqrt 0=
+        - without softmax:
+          =6 quantized_batch_matmul, 0 batch_matmul, divf 6, maximumf 3,
+          minimumf 3, exp 0, rsqrt 1=
+        - projection only:
+          =1 quantized_batch_matmul, 0 batch_matmul, divf 1, maximumf 1,
+          minimumf 1, exp 0, rsqrt 0=
+      - direct attribution from those ablations:
+        - =layer_norm= is the only source of =rsqrt= on this path
+        - softmax is the only source of =exp= on this path
+        - removing =layer_norm= drops more float residue than removing softmax:
+          =divf -3, maximumf -1, minimumf -1, rsqrt -1=
+        - projection-only still carries
+          =divf/maximumf/minimumf = 1/1/1=, so some residue is structural
+          quantization plumbing rather than attention semantics
+      - roadmap consequence:
+        - on the cleaner repo-side standard branch, the next simpler semantic
+          target is still =layer_norm=
+        - softmax remains isolated and should stay the follow-on semantic target
+        - the projection-only baseline is now small enough to use as the fast
+          loop for quantization-plumbing cleanup
+  36. selftest synthesis now has an explicit external-memory shell path:
+      - new repo helper:
+        =scripts/pipeline/externalize_large_memories.py=
+      - new local fast-loop script:
+        =scripts/dev/build-tiny-stories-selftest-shell-local.sh=
+      - current measured baseline memory shape from =tiny-stories-1m.il=:
+        - =326= memories
+        - =433040010= total memory bits
+      - the first Task 6 conclusion from that analysis is now explicit:
+        several =handshake_memory_out_f32_*=
+        modules are too large to be sensible fabric candidates on their own
+      - threshold experiments on the current RTLIL:
+        1. =35205120= bits (= full board BRAM capacity) selected only the four
+           =3216448 x 32= modules:
+           =id18=, =id340=, =id341=, =id342=
+        2. =1048576= bits selected those four plus:
+           =id24= (=131072 x 32=) and =id343= (=50257 x 32=)
+        3. the current selftest-shell default is now =131072= bits, which
+           selects =60= modules totaling =432450080= bits
+      - interpretation:
+        the current selftest synthesis/utilization target is now intentionally
+        treated as a shell build:
+        large handshake-memory modules are external-memory candidates first,
+        while smaller scratch/control memories stay on-chip
+      - current Task 6 direction:
+        use this shell path as the practical bridge toward the board's
+        external memory instead of forcing all large model/state memories into
+        FPGA LUT/FF/BRAM resources during early synthesis iteration
+  37. exact all-memory JSON export blocker is now reduced to the final
+      library-module strip:
+      - kept failing Nix build directory:
+        =/nix/var/nix/builds/nix-634456-3071171744/build=
+      - exact failure point from that kept build:
+        =stage8.il -> stage9 write_json=
+        still reported
+        =ERROR: Module FDCE contains processes, which are not supported by JSON backend=
+      - measured cause from the kept Nix artifact:
+        - =stage8.il= size:
+          =637762491= bytes
+        - the generated =stage8-stripped.il= in that failing build had the
+          same size and still contained =module \FDCE= and =module \LUT6_2=
+        - so the staged flow had already validated =synth_xilinx= through the
+          mapped RTLIL boundary, and the remaining bug was that the final
+          strip step matched nothing
+      - repo-side fix now landed:
+        - =scripts/pipeline/filter_rtlil_modules.py=
+          now supports an explicit
+          =--drop-escaped-uppercase-modules= mode
+        - both the Nix staged JSON path and the local shell fast loop now use
+          that explicit mode instead of a regex string that was too brittle
+          across quoting layers
+      - exact local validation on the kept Nix =stage8.il=:
+        - filtered output:
+          =/tmp/stage8-flag-stripped.il=
+          size =632416704= bytes
+        - JSON export:
+          =/tmp/tiny-stories-all-memory-stage8-flag-fixed.json=
+          size =1738508328= bytes
+        - command exited successfully on the exact failing Nix mapped artifact
+      - interpretation:
+        the all-memory shell path is now locally validated all the way through
+        the final JSON export on the exact Nix-produced mapped RTLIL;
+        the remaining work is replaying that corrected strip step through Nix
+        and then deciding whether the utilization report should keep reading
+        the giant JSON or consume a factored mapped-RTLIL/stat artifact instead
+  38. current Task 6 memory-budget picture is now sharper:
+      - total measured memory bits in =tiny-stories-1m.il=:
+        =433040010=
+      - if only the four =3216448 x 32= memories are treated as external:
+        - externalized bits:
+          =411705344=
+        - remaining bits:
+          =21334666=
+      - comparison point:
+        current board BRAM capacity model in the repo is
+        =955 * 36 * 1024 = 35205120= bits
+      - interpretation:
+        the first serious external-memory cut is likely just those four giant
+        modules, not the whole model
+        - that does not prove the remaining design fits once shell/control and
+          mapping overhead are counted
+        - but it does mean the present resource story is dominated much more by
+          a few extremely large memories than by the long tail of smaller ones
+  39. all-memory shell JSON and utilization now succeed in Nix:
+      - validated commands:
+        - =nix build .#tiny-stories-1m-selftest-all-memory-json -L --keep-failed=
+        - =nix build .#tiny-stories-1m-selftest-all-memory-utilization -L --keep-failed=
+      - exact successful JSON artifact:
+        =/nix/store/51a7xalw32ca2g99cb1zl4yzp8z6d9d8-tiny-stories-1m-selftest-all-memory.json=
+        size =1738508328= bytes
+      - exact successful utilization artifact:
+        =/nix/store/xcmhdxql040g0g06s9zcxk1h8x33cnjs-tiny-stories-1m-selftest-all-memory-utilization=
+      - exact external-memory candidate report used for that build:
+        =/nix/store/3byl90mwnbvawkcjlfc71r7im4cs89zd-tiny-stories-1m-selftest-all-memory-external-memory-plan/report.json=
+      - measured shell utilization summary:
+        - LUTs:
+          =34950553 / 298600= (=11704.81%%=)
+        - FFs:
+          =58072527 / 597200= (=9724.13%%=)
+        - DSPs:
+          =0 / 1920= (=0%%=)
+        - BRAM36-equivalent:
+          =0 / 955= (=0%%=)
+        - MUXF7:
+          =134923=
+        - MUXF8:
+          =12014=
+      - interpretation:
+        - the staged =synth_xilinx -> stripped RTLIL -> write_json= path is now
+          reproducible in Nix for the all-memory shell build
+        - the resulting 3e artifact is still an external-memory shell report:
+          it proves the standard frontend can reach a mapped JSON/resource
+          report, but it also confirms that the remaining blocker is extreme
+          LUT/FF pressure in the lowered shell/controller logic rather than DSP
+          or BRAM usage
+        - this closes the immediate downstream Task 3 synthesis gate while
+          keeping Task 6 minimization and the clean quantization path as the
+          next active workstreams
 
 ** Explicit non-goal for now
 - Do not add a generic SV floating-point operation library as the primary Task 3

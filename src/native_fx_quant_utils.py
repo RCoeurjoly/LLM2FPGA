@@ -11,11 +11,6 @@ from torch.ao.quantization.observer import MinMaxObserver
 from torch.ao.quantization.quantize_fx import convert_fx, prepare_fx
 from torch.fx.graph_module import GraphModule
 from torch.fx.passes.shape_prop import _extract_tensor_metadata
-from torch_mlir._mlir_libs._torchMlir import register_dialect
-from torch_mlir.extras.fx_importer import FxImporter
-from torch_mlir.ir import Context
-
-
 _RAW_ONLY_ERROR = (
     "native-FX reproducers currently support only --output-type raw; "
     "use scripts/dev/build-linalg-local-from-adapter.sh for the local "
@@ -96,6 +91,10 @@ def annotate_graph_module_io(
 
 
 def import_graph_module_to_raw_mlir(graph_module: GraphModule) -> str:
+    from torch_mlir._mlir_libs._torchMlir import register_dialect
+    from torch_mlir.extras.fx_importer import FxImporter
+    from torch_mlir.ir import Context
+
     with Context() as context:
         register_dialect(context)
         fx_importer = FxImporter(context=context)

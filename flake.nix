@@ -372,6 +372,21 @@
             } -m ${yosysSlang}/share/yosys/plugins/slang.so -s run.ys
           '';
 
+        mkExternalizedMemoryPlan =
+          { name, modelIl, minModuleBits ? (128 * 1024) }:
+          pkgs.runCommand "${name}-external-memory-plan" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
+            ${pkgs.python311}/bin/python3 ${./scripts/pipeline/externalize_large_memories.py} \
+              --input ${modelIl} \
+              --output-script externalize.ys \
+              --output-report report.json \
+              --min-module-bits ${toString minModuleBits}
+            mkdir -p "$out"
+            cp externalize.ys "$out/externalize.ys"
+            cp report.json "$out/report.json"
+          '';
+
         mkYosysJson = { name, modelIl, topName, topSv }:
           pkgs.runCommand "${name}.json" { } ''
             ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -p "
@@ -382,14 +397,176 @@
             "
           '';
 
-        mkSynthJson = { name, modelIl, topName, topSv }:
+        mkSynthJson =
+          {
+            name,
+            modelIl,
+            topName,
+            topSv,
+            quiet ? false,
+            memoryLimitKb ? null,
+            staged ? false,
+          }:
           pkgs.runCommand "${name}.json" { } ''
-            ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -p "
-              read_rtlil ${modelIl}
-              read_slang ${topSv}
-              hierarchy -top ${topName} -check
-              synth_xilinx -family xc7 -top ${topName} -noiopad -json $out
-            "
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            if ${if staged then "true" else "false"}; then
+              printf '%s\n' \
+                'read_rtlil ${modelIl}' \
+                'read_slang ${topSv}' \
+                'hierarchy -top ${topName} -check' \
+                'synth_xilinx -family xc7 -top ${topName} -noiopad -run begin:prepare' \
+                'write_rtlil stage1.il' \
+                > stage1.ys
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -m ${yosysSlang}/share/yosys/plugins/slang.so -s stage1.ys
+
+              printf '%s\n' \
+                'read_rtlil stage1.il' \
+                'hierarchy -top ${topName} -check' \
+                'synth_xilinx -family xc7 -top ${topName} -noiopad -run coarse:map_memory' \
+                'write_rtlil stage2.il' \
+                > stage2.ys
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s stage2.ys
+
+              printf '%s\n' \
+                'read_rtlil stage2.il' \
+                'hierarchy -top ${topName} -check' \
+                'opt -fast -full' \
+                'write_rtlil stage3.il' \
+                > stage3.ys
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s stage3.ys
+
+              awk '
+                /^module / { mod = $2 }
+                /^[[:space:]]*cell \$mem/ { mods[mod] = 1 }
+                END {
+                  for (mod in mods)
+                    print mod
+                }
+              ' stage3.il | sort > stage4-modules.txt
+
+              printf '%s\n' \
+                'read_rtlil stage3.il' \
+                'hierarchy -top ${topName} -check' \
+                > stage4.ys
+
+              while IFS= read -r moduleName; do
+                printf '%s\n' \
+                  "cd $moduleName" \
+                  'memory_map' \
+                  'cd ..' \
+                  >> stage4.ys
+              done < stage4-modules.txt
+
+              printf '%s\n' \
+                'write_rtlil stage4.il' \
+                >> stage4.ys
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s stage4.ys
+
+              printf '%s\n' \
+                'read_rtlil stage4.il' \
+                'hierarchy -top ${topName} -check' \
+                'synth_xilinx -family xc7 -top ${topName} -noiopad -run fine:fine' \
+                'write_rtlil stage5.il' \
+                > stage5.ys
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s stage5.ys
+
+              printf '%s\n' \
+                'read_rtlil stage5.il' \
+                'hierarchy -top ${topName} -check' \
+                'synth_xilinx -family xc7 -top ${topName} -noiopad -run map_cells:map_cells' \
+                'write_rtlil stage6.il' \
+                > stage6.ys
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s stage6.ys
+
+              printf '%s\n' \
+                'read_rtlil stage6.il' \
+                'hierarchy -top ${topName} -check' \
+                'synth_xilinx -family xc7 -top ${topName} -noiopad -run map_ffs:map_ffs' \
+                'write_rtlil stage7.il' \
+                > stage7.ys
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s stage7.ys
+
+              printf '%s\n' \
+                'read_rtlil stage7.il' \
+                'hierarchy -top ${topName} -check' \
+                'synth_xilinx -family xc7 -top ${topName} -noiopad -run map_luts:check' \
+                'write_rtlil stage8.il' \
+                > stage8.ys
+            else
+              printf '%s\n' \
+                'read_rtlil ${modelIl}' \
+                'read_slang ${topSv}' \
+                'hierarchy -top ${topName} -check' \
+                'synth_xilinx -family xc7 -top ${topName} -noiopad -json $out' \
+                > stage8.ys
+            fi
+
+            export outPath="$out"
+            ${pkgs.perl}/bin/perl -0pi -e 's/\$out/$ENV{outPath}/g' stage8.ys
+
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } ${
+              pkgs.lib.optionalString (!staged) "-m ${yosysSlang}/share/yosys/plugins/slang.so"
+            } -s stage8.ys
+
+            ${pkgs.lib.optionalString staged ''
+              ${pkgs.python311}/bin/python3 ${./scripts/pipeline/filter_rtlil_modules.py} \
+                --input stage8.il \
+                --output stage8-stripped.il \
+                --drop-escaped-uppercase-modules
+
+              printf '%s\n' \
+                'read_rtlil stage8-stripped.il' \
+                'write_json $out' \
+                > stage9.ys
+
+              export outPath="$out"
+              ${pkgs.perl}/bin/perl -0pi -e 's/\$out/$ENV{outPath}/g' stage9.ys
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s stage9.ys
+            ''}
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson expected output path was not created: $out" >&2
+              echo "--- stage8.ys ---" >&2
+              cat stage8.ys >&2
+              if [ -f stage9.ys ]; then
+                echo "--- stage9.ys ---" >&2
+                cat stage9.ys >&2
+              fi
+              echo "--- workspace ---" >&2
+              ls -lah >&2
+              echo "--- json files ---" >&2
+              find . -maxdepth 2 -name '*.json' -print >&2 || true
+              exit 1
+            fi
           '';
 
         mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
@@ -686,10 +863,28 @@
           modelIl = tinyStories1mIl;
           extraConstraints = [ ./fpga/constraints/tiny_stories_selftest.xdc ];
           capacities = tinyStoriesCapacities;
+          externalMemoryMinModuleBits = 128 * 1024;
+        };
+        tinyStories1mSelftestAllMemory = mkTinyStoriesSelftestBundle {
+          name = "tiny-stories-1m-selftest-all-memory";
+          topName = "tiny_stories_selftest_top";
+          mainSv = "${tinyStories1mSv}/sv/main.sv";
+          modelIl = tinyStories1mIl;
+          extraConstraints = [ ./fpga/constraints/tiny_stories_selftest.xdc ];
+          capacities = tinyStoriesCapacities;
+          externalMemoryMinModuleBits = 1;
         };
 
         mkTinyStoriesSelftestBundle =
-          { name, topName, mainSv, modelIl, extraConstraints, capacities }:
+          {
+            name,
+            topName,
+            mainSv,
+            modelIl,
+            extraConstraints,
+            capacities,
+            externalMemoryMinModuleBits ? (128 * 1024),
+          }:
           let
             top = pkgs.runCommand "tiny-stories-selftest-top.sv" { } ''
               ${python}/bin/python \
@@ -709,19 +904,35 @@
                 write_rtlil $out
               '';
             };
+            externalMemoryPlan = mkExternalizedMemoryPlan {
+              inherit name;
+              modelIl = modelOptIl;
+              minModuleBits = externalMemoryMinModuleBits;
+            };
+            modelShellIl = mkYosysRtlil {
+              name = "${name}-model-shell";
+              script = ''
+                read_rtlil ${modelOptIl}
+                script ${externalMemoryPlan}/externalize.ys
+                hierarchy -top main -check
+                write_rtlil $out
+              '';
+            };
             xdc = mkXdc {
               inherit name extraConstraints;
               includeBoardXdc = false;
             };
             json = mkSynthJson {
               inherit name topName;
-              modelIl = modelOptIl;
+              modelIl = modelShellIl;
               topSv = top;
+              staged = true;
+              quiet = true;
             };
             yosysJson = mkYosysJson {
               name = "${name}-yosys";
               inherit topName;
-              modelIl = modelOptIl;
+              modelIl = modelShellIl;
               topSv = top;
             };
             fasm = mkFasm { inherit name xdc json; };
@@ -736,7 +947,7 @@
             nextpnrUtilizationReport =
               mkNextpnrUtilizationReport { inherit name xdc json; };
           in {
-            inherit top modelOptIl xdc json yosysJson fasm bitstream utilizationReport
+            inherit top modelOptIl modelShellIl externalMemoryPlan xdc json yosysJson fasm bitstream utilizationReport
               nextpnrUtilizationReport;
           };
 
@@ -855,6 +1066,9 @@
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
           tiny-stories-1m-selftest-top = tinyStories1mSelftest.top;
+          tiny-stories-1m-selftest-model-shell-il = tinyStories1mSelftest.modelShellIl;
+          tiny-stories-1m-selftest-external-memory-plan =
+            tinyStories1mSelftest.externalMemoryPlan;
           tiny-stories-1m-selftest-xdc = tinyStories1mSelftest.xdc;
           tiny-stories-1m-selftest-json = tinyStories1mSelftest.json;
           tiny-stories-1m-selftest-yosys-json = tinyStories1mSelftest.yosysJson;
@@ -864,6 +1078,16 @@
             tinyStories1mSelftest.utilizationReport;
           tiny-stories-1m-selftest-nextpnr-utilization =
             tinyStories1mSelftest.nextpnrUtilizationReport;
+          tiny-stories-1m-selftest-all-memory-model-shell-il =
+            tinyStories1mSelftestAllMemory.modelShellIl;
+          tiny-stories-1m-selftest-all-memory-external-memory-plan =
+            tinyStories1mSelftestAllMemory.externalMemoryPlan;
+          tiny-stories-1m-selftest-all-memory-json =
+            tinyStories1mSelftestAllMemory.json;
+          tiny-stories-1m-selftest-all-memory-yosys-json =
+            tinyStories1mSelftestAllMemory.yosysJson;
+          tiny-stories-1m-selftest-all-memory-utilization =
+            tinyStories1mSelftestAllMemory.utilizationReport;
           tiny-stories-1m-snapshot = tinyStories1m.snapshot;
         } // pipelineStagePackages // pipelineMetadataPackages;
 
