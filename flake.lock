@@ -2,9 +2,7 @@
   "nodes": {
     "circt-nix": {
       "inputs": {
-        "circt-src": [
-          "circt-src-local"
-        ],
+        "circt-src": "circt-src",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "llvm-submodule-src": "llvm-submodule-src",
@@ -26,17 +24,21 @@
         "url": "https://github.com/dtzSiFive/circt-nix"
       }
     },
-    "circt-src-local": {
+    "circt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1774612129,
-        "narHash": "sha256-5ueYrdZgCmjnc7SUIy7kCqt/7ZxMaB919+nqlNtO+9Q=",
-        "path": "/home/roland/circt",
-        "type": "path"
+        "lastModified": 1774046910,
+        "narHash": "sha256-WfeWi+9hndpOQESoiRKeU+KkJZlH98FCSbfU8zfjdhg=",
+        "owner": "llvm",
+        "repo": "circt",
+        "rev": "34e55337aaa26fa20d25c1311f6f1df0caee4735",
+        "type": "github"
       },
       "original": {
-        "path": "/home/roland/circt",
-        "type": "path"
+        "owner": "llvm",
+        "ref": "firtool-1.143.0",
+        "repo": "circt",
+        "type": "github"
       }
     },
     "flake-compat": {
@@ -298,14 +300,12 @@
     "root": {
       "inputs": {
         "circt-nix": "circt-nix",
-        "circt-src-local": "circt-src-local",
         "flake-utils": "flake-utils_2",
         "nextpnrXilinxFork": "nextpnrXilinxFork",
         "nix-eda": "nix-eda",
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "openXC7": "openXC7",
-        "torch-mlir-src-local": "torch-mlir-src-local",
         "yosys": "yosys",
         "yosys-slang": "yosys-slang",
         "ypcbHack": "ypcbHack"
@@ -386,19 +386,6 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
-      }
-    },
-    "torch-mlir-src-local": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1774686912,
-        "narHash": "sha256-p6EfT7XM8VxqkODb6JhZ7tXNZ7fRDLV4w7KDGQnSZro=",
-        "path": "/home/roland/torch-mlir",
-        "type": "path"
-      },
-      "original": {
-        "path": "/home/roland/torch-mlir",
-        "type": "path"
       }
     },
     "yosys": {

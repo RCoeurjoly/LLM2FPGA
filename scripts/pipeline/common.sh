@@ -42,7 +42,7 @@ write_yosys_slang_script() {
   while IFS= read -r line; do
     [[ -z "${line//[[:space:]]/}" ]] && continue
     [[ "${line#\#}" != "$line" ]] && continue
-    echo "read_slang --threads 1 --no-proc --extern-modules $line" >>"$script"
+    echo "read_slang --threads 1 --no-proc $line" >>"$script"
   done <"$input"
 }
 

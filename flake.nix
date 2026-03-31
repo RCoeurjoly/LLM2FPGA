@@ -12,15 +12,8 @@
       url = "git+https://github.com/povik/yosys-slang?submodules=1";
       flake = false;
     };
-    circt-src-local = {
-      url = "path:/home/roland/circt";
-      flake = false;
-    };
     circt-nix = {
       url = "git+https://github.com/dtzSiFive/circt-nix?ref=main";
-      # Temporary local development source while we recover the working CIRCT
-      # delta from /home/roland/circt.
-      inputs."circt-src".follows = "circt-src-local";
       inputs."llvm-submodule-src" = {
         type = "github";
         owner = "llvm";
@@ -40,70 +33,31 @@
       url = "github:RCoeurjoly/ypcb_00338_1p1_hack";
       flake = false;
     };
-    torch-mlir-src-local = {
-      url = "path:/home/roland/torch-mlir";
-      flake = false;
-    };
   };
 
   outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
-    , circt-src-local, nix-eda, openXC7, nextpnrXilinxFork, ypcbHack
-    , torch-mlir-src-local, ... }:
+    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        circtLocalSrc = builtins.path {
-          path = circt-src-local;
-          name = "circt-src-local";
-          filter = path: _type:
-            let
-              root = toString circt-src-local;
-              pathStr = toString path;
-              rel = if pathStr == root then
-                ""
-              else
-                builtins.substring ((builtins.stringLength root) + 1)
-                ((builtins.stringLength pathStr) - (builtins.stringLength root)
-                  - 1) pathStr;
-              components = pkgs.lib.splitString "/" rel;
-              head = if rel == "" then "" else builtins.head components;
-            in if rel == "" then
-              true
-            else if head == ".git" then
-              false
-            else if head == "llvm" then
-              builtins.length components == 1
-            else
-              true;
-        };
-        torchMlirLocalSrc = builtins.path {
-          path = torch-mlir-src-local;
-          name = "torch-mlir-src-local";
-          filter = path: _type:
-            let
-              root = toString torch-mlir-src-local;
-              pathStr = toString path;
-              rel = if pathStr == root then
-                ""
-              else
-                builtins.substring ((builtins.stringLength root) + 1)
-                ((builtins.stringLength pathStr) - (builtins.stringLength root)
-                  - 1) pathStr;
-              components = pkgs.lib.splitString "/" rel;
-              head = if rel == "" then "" else builtins.head components;
-            in if rel == "" then
-              true
-            else if head == ".git" then
-              false
-            else
-              true;
-        };
         circtBase =
           (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
-          (_: { src = circtLocalSrc; });
-        # Consume the local CIRCT checkout directly for now.
+          (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
+              ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
+              ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
+              ./patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch
+              ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
+            ];
+          });
+        # Keep reviewer builds on a pinned upstream CIRCT plus the checked-in
+        # Task 3 patch stack. Local fast iteration should use local binaries via
+        # scripts/dev rather than a flake input override.
         circt = circtBase;
         yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {
           src = yosys.outPath;
@@ -256,10 +210,11 @@
         # Local copy of the source-based package proposed in:
         # https://github.com/NixOS/nixpkgs/pull/490242
         # Built out-of-tree against a separate LLVM/MLIR derivation so torch-mlir
-        # changes do not force rebuilding LLVM.
+        # changes do not force rebuilding LLVM. Reviewer builds use the pinned
+        # upstream torch-mlir source from torch-mlir.nix; local compiler
+        # iteration should continue through scripts/dev and a local binary.
         torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix {
           inherit python;
-          src = torchMlirLocalSrc;
           nanobind = nanobindBootstrap;
           inherit (torchMlirLlvmPackages) tblgen;
           mlir = mlirForTorchMlir;
@@ -366,31 +321,12 @@
             cat > run.ys <<'EOF'
             ${script}
             EOF
-            export outPath="$out"
-            ${pkgs.perl}/bin/perl -0pi -e 's/\$out/$ENV{outPath}/g' run.ys
             ${pkgs.lib.optionalString (memoryLimitKb != null) ''
               ulimit -v ${toString memoryLimitKb}
             ''}
             ${yosysPkg}/bin/yosys ${
               pkgs.lib.optionalString quiet "-q"
             } -m ${yosysSlang}/share/yosys/plugins/slang.so -s run.ys
-          '';
-
-        mkExternalizedMemoryPlan =
-          { name, modelIl, minModuleBits ? (128 * 1024) }:
-          pkgs.runCommand "${name}-external-memory-plan" {
-            nativeBuildInputs = [ pkgs.python311 ];
-          } ''
-            ${pkgs.python311}/bin/python3 ${
-              ./scripts/pipeline/externalize_large_memories.py
-            } \
-              --input ${modelIl} \
-              --output-script externalize.ys \
-              --output-report report.json \
-              --min-module-bits ${toString minModuleBits}
-            mkdir -p "$out"
-            cp externalize.ys "$out/externalize.ys"
-            cp report.json "$out/report.json"
           '';
 
         mkYosysJson = { name, modelIl, topName, topSv }:
@@ -403,7 +339,7 @@
             "
           '';
 
-        mkSynthJson = { name, modelIl, topName, topSv, quiet ? false
+        mkSynthJson = { name, modelIl, topName, topSv ? null, quiet ? false
           , memoryLimitKb ? null, staged ? false, }:
           pkgs.runCommand "${name}.json" { } ''
             ${pkgs.lib.optionalString (memoryLimitKb != null) ''
@@ -413,7 +349,8 @@
             if ${if staged then "true" else "false"}; then
               printf '%s\n' \
                 'read_rtlil ${modelIl}' \
-                'read_slang ${topSv}' \
+                ${pkgs.lib.optionalString (topSv != null)
+                "'read_slang ${topSv}' \\"}
                 'hierarchy -top ${topName} -check' \
                 'synth_xilinx -family xc7 -top ${topName} -noiopad -run begin:prepare' \
                 'write_rtlil stage1.il' \
@@ -517,14 +454,12 @@
             else
               printf '%s\n' \
                 'read_rtlil ${modelIl}' \
-                'read_slang ${topSv}' \
+                ${pkgs.lib.optionalString (topSv != null)
+                "'read_slang ${topSv}' \\"}
                 'hierarchy -top ${topName} -check' \
-                'synth_xilinx -family xc7 -top ${topName} -noiopad -json $out' \
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -json $out" \
                 > stage8.ys
             fi
-
-            export outPath="$out"
-            ${pkgs.perl}/bin/perl -0pi -e 's/\$out/$ENV{outPath}/g' stage8.ys
 
             ${yosysPkg}/bin/yosys ${pkgs.lib.optionalString quiet "-q"} ${
               pkgs.lib.optionalString (!staged)
@@ -541,11 +476,8 @@
 
               printf '%s\n' \
                 'read_rtlil stage8-stripped.il' \
-                'write_json $out' \
+                "write_json $out" \
                 > stage9.ys
-
-              export outPath="$out"
-              ${pkgs.perl}/bin/perl -0pi -e 's/\$out/$ENV{outPath}/g' stage9.ys
 
               ${yosysPkg}/bin/yosys ${
                 pkgs.lib.optionalString quiet "-q"
@@ -683,97 +615,6 @@
             cp summary.txt "$out/summary.txt"
           '';
 
-        mkNextpnrUtilizationReport = { name, xdc, json }:
-          pkgs.runCommand "${name}-nextpnr-utilization" {
-            nativeBuildInputs = [ pkgs.python311 ];
-          } ''
-            set -euo pipefail
-            if [ ! -f "${fpgaChipdb}" ]; then
-              echo "chipdb file missing: ${fpgaChipdb}" >&2
-              exit 1
-            fi
-
-            ${openXC7Nextpnr}/bin/nextpnr-xilinx \
-              --chipdb "${fpgaChipdb}" \
-              --xdc ${xdc} \
-              --json ${json} \
-              --write routed.json \
-              > nextpnr.log 2>&1
-
-            ${pkgs.python311}/bin/python3 - <<'PY'
-            import json
-            import pathlib
-            import re
-
-            log_path = pathlib.Path("nextpnr.log")
-            lines = log_path.read_text(encoding="utf-8").splitlines()
-            start = None
-            for idx, line in enumerate(lines):
-              if line.strip() == "Info: Device utilisation:":
-                start = idx + 1
-                break
-            if start is None:
-              raise SystemExit("nextpnr log did not contain a device utilisation section")
-
-            resources = {}
-            summary_lines = []
-            pattern = re.compile(
-              r"^Info:\s+(?P<name>.+?):\s+(?P<used>\d+)/\s*(?P<available>\d+)\s+(?P<pct>\d+)%$"
-            )
-            for line in lines[start:]:
-              if not line.strip():
-                break
-              match = pattern.match(line)
-              if match is None:
-                continue
-              name = match.group("name").strip()
-              entry = {
-                "used": int(match.group("used")),
-                "available": int(match.group("available")),
-                "percent": int(match.group("pct")),
-              }
-              resources[name] = entry
-              summary_lines.append(
-                f"{name}: {entry['used']} / {entry['available']} ({entry['percent']}%)"
-              )
-
-            if not resources:
-              raise SystemExit("nextpnr device utilisation section was present but no resources were parsed")
-
-            primary_names = [
-              "SLICE_LUTX",
-              "SLICE_FFX",
-              "CARRY4",
-              "RAMB18E1",
-              "RAMB36E1",
-              "DSP48E1",
-              "PAD",
-            ]
-            summary = {
-              "resources": resources,
-              "primary": {
-                name: resources[name]
-                for name in primary_names
-                if name in resources
-              },
-            }
-            pathlib.Path("summary.json").write_text(
-              json.dumps(summary, indent=2, sort_keys=True) + "\n",
-              encoding="utf-8",
-            )
-            pathlib.Path("summary.txt").write_text(
-              "\n".join(summary_lines) + "\n",
-              encoding="utf-8",
-            )
-            PY
-
-            mkdir -p "$out"
-            cp nextpnr.log "$out/nextpnr.log"
-            cp routed.json "$out/routed.json"
-            cp summary.json "$out/summary.json"
-            cp summary.txt "$out/summary.txt"
-          '';
-
         mkFasm = { name, xdc, json }:
           pkgs.runCommand "${name}.fasm" { } ''
             if [ ! -f "${fpgaChipdb}" ]; then
@@ -855,94 +696,19 @@
           fasm = matmulSelftestFasm;
           framesBase = "matmul-selftest";
         };
-        tinyStories1mSelftest = mkTinyStoriesSelftestBundle {
-          name = "tiny-stories-1m-selftest";
-          topName = "tiny_stories_selftest_top";
-          mainSv = "${tinyStories1mSv}/sv/main.sv";
+        tinyStories1mUtilizationJson = mkSynthJson {
+          name = "tiny-stories-1m-utilization";
+          topName = "main";
           modelIl = tinyStories1mIl;
-          extraConstraints = [ ./fpga/constraints/tiny_stories_selftest.xdc ];
-          capacities = tinyStoriesCapacities;
-          externalMemoryMinModuleBits = 128 * 1024;
+          staged = true;
+          quiet = true;
         };
-        tinyStories1mSelftestAllMemory = mkTinyStoriesSelftestBundle {
-          name = "tiny-stories-1m-selftest-all-memory";
-          topName = "tiny_stories_selftest_top";
-          mainSv = "${tinyStories1mSv}/sv/main.sv";
-          modelIl = tinyStories1mIl;
-          extraConstraints = [ ./fpga/constraints/tiny_stories_selftest.xdc ];
+        tinyStories1mUtilizationReport = mkMappedJsonUtilizationReport {
+          name = "tiny-stories-1m";
           capacities = tinyStoriesCapacities;
-          externalMemoryMinModuleBits = 1;
+          topName = "main";
+          designJson = tinyStories1mUtilizationJson;
         };
-
-        mkTinyStoriesSelftestBundle = { name, topName, mainSv, modelIl
-          , extraConstraints, capacities
-          , externalMemoryMinModuleBits ? (128 * 1024), }:
-          let
-            top = pkgs.runCommand "tiny-stories-selftest-top.sv" { } ''
-              ${python}/bin/python \
-                ${./scripts/pipeline/gen_tiny_stories_selftest_top.py} \
-                --main-sv ${mainSv} \
-                --out "$out"
-            '';
-            modelOptIl = mkYosysRtlil {
-              name = "${name}-model-opt";
-              script = ''
-                read_rtlil ${modelIl}
-                hierarchy -top main -check
-                proc
-                opt_expr
-                opt_clean
-                clean
-                write_rtlil $out
-              '';
-            };
-            externalMemoryPlan = mkExternalizedMemoryPlan {
-              inherit name;
-              modelIl = modelOptIl;
-              minModuleBits = externalMemoryMinModuleBits;
-            };
-            modelShellIl = mkYosysRtlil {
-              name = "${name}-model-shell";
-              script = ''
-                read_rtlil ${modelOptIl}
-                script ${externalMemoryPlan}/externalize.ys
-                hierarchy -top main -check
-                write_rtlil $out
-              '';
-            };
-            xdc = mkXdc {
-              inherit name extraConstraints;
-              includeBoardXdc = false;
-            };
-            json = mkSynthJson {
-              inherit name topName;
-              modelIl = modelShellIl;
-              topSv = top;
-              staged = true;
-              quiet = true;
-            };
-            yosysJson = mkYosysJson {
-              name = "${name}-yosys";
-              inherit topName;
-              modelIl = modelShellIl;
-              topSv = top;
-            };
-            fasm = mkFasm { inherit name xdc json; };
-            bitstream = mkBitstream {
-              inherit name fasm;
-              framesBase = name;
-            };
-            utilizationReport = mkMappedJsonUtilizationReport {
-              inherit name capacities topName;
-              designJson = json;
-            };
-            nextpnrUtilizationReport =
-              mkNextpnrUtilizationReport { inherit name xdc json; };
-          in {
-            inherit top modelOptIl modelShellIl externalMemoryPlan xdc json
-              yosysJson fasm bitstream utilizationReport
-              nextpnrUtilizationReport;
-          };
 
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
@@ -1037,6 +803,10 @@
         packages = {
           default = matmulSv;
           inherit circt torchao;
+          python-with-torch = pythonWithTorch;
+          python-with-torchao = pythonWithTorchAO;
+          python-with-tiny-stories = pythonWithTinyStories;
+          python-with-tiny-stories-torchao = pythonWithTinyStoriesTorchAO;
           yosys = yosysPkg;
           yosys-slang = yosysSlang;
           torch-mlir = torchMlir;
@@ -1058,30 +828,8 @@
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
-          tiny-stories-1m-selftest-top = tinyStories1mSelftest.top;
-          tiny-stories-1m-selftest-model-shell-il =
-            tinyStories1mSelftest.modelShellIl;
-          tiny-stories-1m-selftest-external-memory-plan =
-            tinyStories1mSelftest.externalMemoryPlan;
-          tiny-stories-1m-selftest-xdc = tinyStories1mSelftest.xdc;
-          tiny-stories-1m-selftest-json = tinyStories1mSelftest.json;
-          tiny-stories-1m-selftest-yosys-json = tinyStories1mSelftest.yosysJson;
-          tiny-stories-1m-selftest-fasm = tinyStories1mSelftest.fasm;
-          tiny-stories-1m-selftest-bitstream = tinyStories1mSelftest.bitstream;
-          tiny-stories-1m-selftest-utilization =
-            tinyStories1mSelftest.utilizationReport;
-          tiny-stories-1m-selftest-nextpnr-utilization =
-            tinyStories1mSelftest.nextpnrUtilizationReport;
-          tiny-stories-1m-selftest-all-memory-model-shell-il =
-            tinyStories1mSelftestAllMemory.modelShellIl;
-          tiny-stories-1m-selftest-all-memory-external-memory-plan =
-            tinyStories1mSelftestAllMemory.externalMemoryPlan;
-          tiny-stories-1m-selftest-all-memory-json =
-            tinyStories1mSelftestAllMemory.json;
-          tiny-stories-1m-selftest-all-memory-yosys-json =
-            tinyStories1mSelftestAllMemory.yosysJson;
-          tiny-stories-1m-selftest-all-memory-utilization =
-            tinyStories1mSelftestAllMemory.utilizationReport;
+          tiny-stories-1m-utilization-json = tinyStories1mUtilizationJson;
+          tiny-stories-1m-utilization = tinyStories1mUtilizationReport;
           tiny-stories-1m-snapshot = tinyStories1m.snapshot;
         } // pipelineStagePackages // pipelineMetadataPackages;
 

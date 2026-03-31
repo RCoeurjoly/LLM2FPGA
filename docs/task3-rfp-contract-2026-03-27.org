@@ -1,13 +1,96 @@
 * Task 3 RfP contract (2026-03-27)
 
+** Task 3 engineering intent
+- Task 3 must produce a fully transparent hardware flow with no black boxes at
+  any stage of lowering, code generation, or integration.
+- Every operation that reaches the FPGA flow must have an explicit
+  implementation. Unsupported operations must be lowered, decomposed,
+  rewritten, or rejected with a precise error. They must not be wrapped in
+  opaque placeholders.
+- Task 3 must not assume the full neural network fits on the FPGA at once.
+  Model size may exceed FPGA capacity by a large factor, including 100x or
+  more.
+- When the model is larger than available fabric, Task 3 must still generate a
+  valid execution strategy by partitioning the computation into smaller pieces
+  that reuse the same FPGA resources over time.
+- This partitioning must be explicit in the generated design and flow. The
+  system must define how layers, subgraphs, weights, and intermediate tensors
+  are scheduled, transferred, and executed rather than relying on an implicit
+  whole-model-on-chip assumption.
+- FPGA utilization should be driven toward effective use of available
+  resources. "Model too large" is not an acceptable terminal state by itself;
+  the flow must continue by spatial and/or temporal decomposition.
+- Floating-point support must be fixed. Floating-point operations must either
+  lower to a fully explicit floating-point implementation or lower to a fully
+  explicit alternative numeric form with defined semantics. In both cases there
+  must be no opaque fallback.
+- Numeric transformations, including float-to-fixed or any other numeric
+  conversion, must be deliberate, visible, and semantically documented. They
+  cannot be hidden inside black-box components.
+- Task 3 is successful only if the toolchain carries the model through to a
+  realizable implementation flow without unresolved black boxes, while
+  preserving a clear execution model for oversized networks.
+- Failures must be structural and explicit, for example "op X has no legal
+  lowering" or "memory schedule for tensor Y is not implemented". Failures must
+  never appear as hidden black boxes or vague backend breakage.
+
+** Deliverable priority and implementation constraints
+- The most important Task 3 deliverable is the utilization report.
+- The project does not depend on =nextpnr-xilinx= being able to ingest the full
+  generated design. If the emitted design is too large for =nextpnr-xilinx=,
+  the flow may compute its own utilization report from synthesizable emitted
+  hardware artifacts instead of relying on downstream place-and-route.
+- This is a first-pass demonstration that there is a credible path for lowering
+  LLMs to RTL through a standard open-source compiler stack.
+- The allowed core toolchain is: =torch-mlir=, =mlir=, =circt=, and
+  =yosys=/=yosys-slang=.
+- The flow must not use =perl=, =sed=, or any other ad hoc text-rewrite tool to
+  patch MLIR, SV, or other compiler IR artifacts inside the core path.
+- The flow must not rely on non-standard, ad hoc preprocessing of PyTorch
+  models. Frontend preparation must stay within standard, explainable PyTorch
+  and torch-mlir-compatible mechanisms.
+- The resulting SystemVerilog must be synthesizable. It may be too large to fit
+  a specific FPGA, but it must not depend on black boxes, stubs, or unsupported
+  floating-point operations.
+- The flake must expose exactly one canonical path to reach utilization for
+  Task 3. Parallel or competing Task 3 utilization flows should be removed or
+  clearly demoted so there is only one authoritative route.
+
 ** Scope boundary
-- The Task 3 lowering claim ends at generated SystemVerilog.
+- The Task 3 claim does not end at generated SystemVerilog. Task 3 must reach a
+  utilization report through one canonical flake-backed flow built on
+  synthesizable emitted SystemVerilog.
 - The core lowering pipeline for the RfP must use only =torch-mlir=, =mlir=,
-  and =circt=.
-- Yosys, nextpnr, fasm, bitstream generation, and FPGA self-test wrappers are
-  downstream validation steps, not part of the core Task 3 claim.
-- No sed/perl/text-rewrite surgery over model IR is allowed inside the core
-  lowering path.
+  and =circt= to reach SystemVerilog, followed by =yosys=/=yosys-slang= for the
+  canonical synthesis/utilization path.
+- =nextpnr-xilinx=, fasm, bitstream generation, and FPGA self-test wrappers are
+  optional downstream validation steps. They are not required for Task 3
+  success when the design is too large for downstream FPGA implementation tools
+  to ingest.
+- No sed/perl/text-rewrite surgery over model IR or emitted hardware is allowed
+  inside the canonical Task 3 path.
+
+** Status update on 2026-03-31
+- The canonical 3e gate is now:
+  =nix build .#tiny-stories-1m-utilization -L=
+- This path is defined as:
+  =tiny-stories-1m-sv -> tiny-stories-1m-il -> tiny-stories-1m-utilization-json -> tiny-stories-1m-utilization=
+- The previous selftest/external-memory shell utilization path is no longer the
+  Task 3 claim and has been removed from the flake package surface.
+- The canonical SV emission path no longer generates stub modules, and the
+  canonical Yosys helper scripts no longer rely on =perl= output-path
+  substitution or =read_slang --extern-modules=.
+- The alternate =tiny-stories-1m-yosys-stat= package has been removed from the
+  public Task 3 package surface so =tiny-stories-1m-utilization= is the only
+  flake-exposed utilization route for Task 3.
+- The current blocking issue for a fresh canonical 3e build is earlier in the
+  stack: =tiny-stories-1m-hw0= now fails in =lower-handshake-to-hw= because
+  float ops are rejected instead of being lowered as extern modules.
+- The current first failing op is
+  =/nix/store/...-tiny-stories-1m-hs-ext.mlir:5845:13: error: failed to legalize operation 'arith.uitofp' that was explicitly marked illegal=.
+- This is the intended reduced blocker state for the canonical path: the flow
+  now fails explicitly on unsupported floating-point legalization instead of
+  reaching unsynthesizable SystemVerilog with unresolved float black boxes.
 
 ** Preprocessing requirements
 - Preprocessing must be simple, justified, and functionality-preserving.
@@ -1214,7 +1297,8 @@
           repo adapter -> local FX importer overlay -> local =torch-mlir-opt=
         - wiring the same branch into the Nix-built =torch= stage is deferred
           until the next intentional =torch-mlir= rebuild
-  34. baseline TinyStories downstream now reaches a real Nix JSON artifact:
+  34. historical note, superseded on 2026-03-31: baseline TinyStories
+      downstream reached a Nix JSON artifact via generated stubs:
       - the baseline =tiny-stories-1m= path now builds through =sv= and =il=
         in Nix after making the downstream float residue explicit instead of
         leaving it as missing SystemVerilog modules
@@ -1287,7 +1371,8 @@
         - softmax remains isolated and should stay the follow-on semantic target
         - the projection-only baseline is now small enough to use as the fast
           loop for quantization-plumbing cleanup
-  36. selftest synthesis now has an explicit external-memory shell path:
+  36. historical note, superseded on 2026-03-31: selftest synthesis had an
+      explicit external-memory shell path:
       - new repo helper:
         =scripts/pipeline/externalize_large_memories.py=
       - new local fast-loop script:
@@ -1370,7 +1455,8 @@
           mapping overhead are counted
         - but it does mean the present resource story is dominated much more by
           a few extremely large memories than by the long tail of smaller ones
-  39. all-memory shell JSON and utilization now succeed in Nix:
+  39. historical note, superseded on 2026-03-31: all-memory shell JSON and
+      utilization succeeded in Nix:
       - validated commands:
         - =nix build .#tiny-stories-1m-selftest-all-memory-json -L --keep-failed=
         - =nix build .#tiny-stories-1m-selftest-all-memory-utilization -L --keep-failed=

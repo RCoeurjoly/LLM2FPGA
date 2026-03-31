@@ -1,5 +1,5 @@
 { lib, stdenv, fetchFromGitHub, cmake, ninja, pkg-config, gitMinimal
-, nix-update-script, src ? fetchFromGitHub {
+, nix-update-script, torchMlirSrc ? fetchFromGitHub {
   owner = "llvm";
   repo = "torch-mlir";
   rev = "59c249e5cc2025acca81bdcf1596b8dd36a5c0f9";
@@ -14,7 +14,7 @@ let
 in stdenv.mkDerivation {
   pname = "torch-mlir";
   version = "0-unstable-2026-02-12";
-  inherit src;
+  src = torchMlirSrc;
 
   nativeBuildInputs =
     [ cmake ninja pkg-config gitMinimal python pybind11 nanobind tblgen ];

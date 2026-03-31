@@ -214,35 +214,40 @@ If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input
   Artifact: resource utilization report (Yosys stat) generated from the .il/design.
 
   Current downstream synthesis direction:
-  the selftest JSON/utilization path now has an explicit shell mode that
-  externalizes large =handshake_memory_out_f32_*= modules before the staged
-  =synth_xilinx= run. This keeps the synthesis target focused on the shell and
-  controller fabric while treating the very large model/state memories as
-  external-memory candidates.
+  the canonical Task 3 path is now the direct =tiny-stories-1m= mapped
+  utilization flow:
+  =tiny-stories-1m-sv -> tiny-stories-1m-il -> tiny-stories-1m-utilization-json -> tiny-stories-1m-utilization=
+  This keeps the 3e claim on the emitted design itself and avoids selftest
+  wrappers, external-memory blackboxing, and alternate utilization routes.
 
   Current implementation status:
-  - =scripts/pipeline/externalize_large_memories.py= selects oversized memory
-    modules from the RTLIL
-  - =mkTinyStoriesSelftestBundle= now synthesizes a =modelShellIl= produced by
-    blackboxing those modules
-  - =scripts/dev/build-tiny-stories-selftest-shell-local.sh= mirrors the same
-    staged flow for fast local iteration
+  - =scripts/pipeline/hw_clean_to_sv.sh= now emits only CIRCT-generated SV
+    files into =sources.f= and no longer generates stub modules
+  - =scripts/pipeline/common.sh= now imports those files through
+    =read_slang= without =--extern-modules=, so the canonical
+    =tiny-stories-1m-sv -> tiny-stories-1m-il= path no longer silently
+    blackboxes unresolved SV modules
+  - the staged Yosys mapper in =flake.nix= now consumes the canonical =main=
+    IL directly and no longer rewrites helper scripts with =perl=
+  - the former selftest/external-memory shell path has been removed from the
+    public Task 3 package surface
+  - the alternate =tiny-stories-1m-yosys-stat= package has been demoted from
+    the public Task 3 package surface so the only exposed utilization route is
+    =tiny-stories-1m-utilization=
 
   Current validated artifact:
-  =nix build .#tiny-stories-1m-selftest-all-memory-utilization -L=
-  now succeeds and records the shell-mode resource report together with the
-  external-memory candidate set.
-
-  Recorded shell utilization:
-  - LUTs: =34950553 / 298600= (=11704.81%%=)
-  - FFs: =58072527 / 597200= (=9724.13%%=)
-  - DSPs: =0 / 1920= (=0%%=)
-  - BRAM36-equivalent: =0 / 955= (=0%%=)
+  =nix build .#tiny-stories-1m-utilization -L=
+  is the only canonical 3e gate. At the moment it is blocked earlier in the
+  mapped path at =tiny-stories-1m-hw0=: =lower-handshake-to-hw= rejects
+  unsupported float legalization, first at
+  =arith.uitofp= in =tiny-stories-1m-hs-ext.mlir=, so the direct mapped report
+  still needs a fresh successful build before updated utilization numbers can
+  be recorded here.
 
   Follow-on direction:
-  keep the clean quantization path and Task 6 resource minimization work open;
-  the current successful 3e artifact is an external-memory shell report rather
-  than a claim that the full model fits on-chip.
+  keep the clean quantization path and Task 6 resource minimization work open,
+  but do it against the direct canonical mapped path rather than a shell-only
+  surrogate.
 
 Bottleneck report: unsupported operators encountered, failing passes, required stubs/workarounds, and/or any other error. Includes minimized reproducers.
 

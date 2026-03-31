@@ -8,28 +8,24 @@ Definition:
 
 Gate:
 #+begin_src bash
-nix build .#tiny-stories-1m-selftest-all-memory-utilization -L
+nix build .#tiny-stories-1m-utilization -L
 #+end_src
 
 Artifact:
-- =/nix/store/xcmhdxql040g0g06s9zcxk1h8x33cnjs-tiny-stories-1m-selftest-all-memory-utilization/summary.txt=
-- =/nix/store/xcmhdxql040g0g06s9zcxk1h8x33cnjs-tiny-stories-1m-selftest-all-memory-utilization/summary.json=
-- =/nix/store/51a7xalw32ca2g99cb1zl4yzp8z6d9d8-tiny-stories-1m-selftest-all-memory.json=
-- =/nix/store/3byl90mwnbvawkcjlfc71r7im4cs89zd-tiny-stories-1m-selftest-all-memory-external-memory-plan/report.json=
+- =/nix/store/...-tiny-stories-1m-utilization/summary.txt=
+- =/nix/store/...-tiny-stories-1m-utilization/summary.json=
+- =/nix/store/...-tiny-stories-1m-utilization/stat.json=
+- =/nix/store/...-tiny-stories-1m-utilization.json=
 
 Note:
-- This is the current standard-flow shell synthesis artifact for Task 3.
-- The shell mode externalizes all =326= oversized =handshake_memory_*= modules
-  (=433040010= bits total) before the staged =synth_xilinx= run.
-- Measured shell utilization on the mapped JSON:
-  - LUTs: =34950553 / 298600= (=11704.81%%=)
-  - FFs: =58072527 / 597200= (=9724.13%%=)
-  - DSPs: =0 / 1920= (=0%%=)
-  - BRAM36-equivalent: =0 / 955= (=0%%=)
-  - MUXF7: =134923=
-  - MUXF8: =12014=
-- The generated self-test top still does not fit the target FPGA.
-- Under this shell-mode measurement, the dominant bottleneck is LUT/FF
-  explosion in the lowered shell/controller logic, not DSP or BRAM pressure.
-- This 3e artifact is intentionally qualified as an external-memory shell
-  report, not as a claim that the full model fits on-chip.
+- This is the canonical flake-backed Task 3 utilization artifact.
+- The report is computed from the emitted =tiny-stories-1m= design through a
+  staged Yosys =synth_xilinx= run, with no self-test shell wrapper, no
+  external-memory blackboxing, and no generated SV stubs in the canonical path.
+- The canonical =sv -> il= import is strict =read_slang= elaboration, not
+  =read_slang --extern-modules=.
+- The resulting mapped design is allowed to exceed the target FPGA capacity;
+  Task 3 only requires a reproducible utilization report from synthesizable
+  emitted hardware.
+- The exact numbers need to be refreshed from the current pinned build once the
+  remaining CIRCT patch-stack build failure is resolved.

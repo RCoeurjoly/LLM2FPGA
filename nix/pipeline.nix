@@ -190,25 +190,33 @@ let
       handshakeFromCf = mkHandshakeLsqDerivation;
     };
 
-  stagePathsForPipeline = pipeline:
+  publicStageNamesForModel = modelKey:
+    if modelKey == "tiny-stories-1m" then
+      builtins.filter (stage: stage != "yosys-stat") stageNames
+    else
+      stageNames;
+
+  stagePathsForPipeline = publicStageNames: pipeline:
     builtins.listToAttrs (map (stage: {
       name = stage;
       value = "${builtins.getAttr stage pipeline}";
-    }) stageNames);
+    }) publicStageNames);
 
-  mkPipelineStagePackages = name: pipeline:
+  mkPipelineStagePackages = publicStageNames: name: pipeline:
     builtins.listToAttrs (map (stage: {
       name = "${name}-${stage}";
       value = builtins.getAttr stage pipeline;
-    }) stageNames);
+    }) publicStageNames);
 
   mkModelMetadata = modelKey: model:
+    let publicStageNames = publicStageNamesForModel modelKey;
+    in
     pkgs.writeText "${modelKey}-pipeline-metadata.json" (builtins.toJSON {
       model = {
         inherit modelKey;
         inherit (model) name description source;
       };
-      artifacts = stagePathsForPipeline model.pipeline;
+      artifacts = stagePathsForPipeline publicStageNames model.pipeline;
     });
 
   registerPipelineModel = { pipelineFactory, name, key ? name, description ? ""
@@ -244,7 +252,9 @@ let
 
   pipelineStagePackagesFromRegistry = registry:
     pkgs.lib.concatMapAttrs
-    (name: model: mkPipelineStagePackages name model.pipeline) registry;
+    (name: model:
+      mkPipelineStagePackages (publicStageNamesForModel name) name
+      model.pipeline) registry;
 
   metadataPackagesFromRegistry = registry:
     pkgs.lib.mapAttrs' (name: model:
@@ -253,13 +263,15 @@ let
 
   registryIndexPackage = registry:
     pkgs.writeText "model-registry.json" (builtins.toJSON (pkgs.lib.mapAttrs
-      (name: model: {
-        inherit (model) name description source;
-        packages = builtins.listToAttrs (map (stage: {
-          name = stage;
-          value = "${name}-${stage}";
-        }) stageNames);
-      }) registry));
+      (name: model:
+        let publicStageNames = publicStageNamesForModel name;
+        in {
+          inherit (model) name description source;
+          packages = builtins.listToAttrs (map (stage: {
+            name = stage;
+            value = "${name}-${stage}";
+          }) publicStageNames);
+        }) registry));
 in {
   inherit registerModel;
   inherit registerQuantizedModel;

@@ -29,15 +29,3 @@ mkdir -p "$output_dir/sv"
 require_file "$output_dir/sv/main.sv"
 
 find "$output_dir/sv" -type f -name '*.sv' | sort >"$output_dir/sources.f"
-
-blackboxes="$output_dir/sv/000_generated_blackboxes.sv"
-python3 "$SCRIPT_DIR/gen_sv_blackboxes.py" \
-  --sources-f "$output_dir/sources.f" \
-  --main-sv "$output_dir/sv/main.sv" \
-  --out "$blackboxes"
-
-if [[ -s "$blackboxes" ]]; then
-  find "$output_dir/sv" -type f -name '*.sv' | sort >"$output_dir/sources.f"
-else
-  rm -f "$blackboxes"
-fi
