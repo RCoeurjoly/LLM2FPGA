@@ -7,4 +7,6 @@ When one path is blocked, reduce to a smaller reproducer, fix it, validate it, a
 Prioritize the clean quantization path and standard frontend story. Avoid ad hoc hacks unless they are narrowly justified and documented.
 If you reach a real blocker, leave the repo in a useful state with code, tests, artifacts, and a clear final note in /tmp/codex-night-last.txt.
 
-Work until the tiny-stories-1m-*-json derivation is succesful.
+Work until the tiny-stories-1m-*-json-utilization derivation is succesful. The -json derivation must go through synth_xilinx. It is known to use many computer resources and get killed by the OS. Iterate and fix that until synth_xilinx is done. 
+
+Also, you should explore task 6, resource minimization, so that synth_xilinx works. Research methods of resource minimization, taking into account the shape of the .il we have. Maybe the first step would be to use the RAM we have on the board, instead of only using the FPGA resources.

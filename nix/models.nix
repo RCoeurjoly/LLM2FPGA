@@ -1,14 +1,12 @@
 { registerModel, pythonWithTorch, pythonWithTorchAO, pythonWithTinyStories
 , pythonWithTinyStoriesTorchAO, torchMlir, python, tinyStories1m, matmulPy
-, matmulAdapterPy, matmulSrcDir
-, torchaoInt8DynamicLinearAdapterPy, torchaoInt8WeightOnlyLinearAdapterPy
-, torchaoAttentionBlockAdapterPy
+, matmulAdapterPy, matmulSrcDir, torchaoInt8DynamicLinearAdapterPy
+, torchaoInt8WeightOnlyLinearAdapterPy, torchaoAttentionBlockAdapterPy
 , pt2eQuantLinearAdapterPy, pt2eStaticQuantLinearAdapterPy
 , pt2eStaticQuantEmbeddingAdapterPy, pt2eStaticQuantEmbeddingComposableAdapterPy
 , pt2eStaticQuantLayerNormAdapterPy, pt2eStaticQuantSoftmaxAdapterPy
 , pt2eStaticQuantMatmulX86AdapterPy, tinyStoriesTorchaoAdapterPy
-, tinyStoriesPt2eStaticQuantAdapterPy
-, simDir, compilePyTorch }:
+, tinyStoriesPt2eStaticQuantAdapterPy, simDir, compilePyTorch }:
 let
   torchMlirPythonPath =
     "${torchMlir}/${python.sitePackages}:${torchMlir}/${python.sitePackages}/torch_mlir";

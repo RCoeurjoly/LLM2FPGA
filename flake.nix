@@ -57,21 +57,19 @@
         circtLocalSrc = builtins.path {
           path = circt-src-local;
           name = "circt-src-local";
-          filter = path: type:
+          filter = path: _type:
             let
               root = toString circt-src-local;
               pathStr = toString path;
-              rel =
-                if pathStr == root then
-                  ""
-                else
-                  builtins.substring ((builtins.stringLength root) + 1)
-                  ((builtins.stringLength pathStr) - (builtins.stringLength root)
-                    - 1) pathStr;
+              rel = if pathStr == root then
+                ""
+              else
+                builtins.substring ((builtins.stringLength root) + 1)
+                ((builtins.stringLength pathStr) - (builtins.stringLength root)
+                  - 1) pathStr;
               components = pkgs.lib.splitString "/" rel;
               head = if rel == "" then "" else builtins.head components;
-            in
-            if rel == "" then
+            in if rel == "" then
               true
             else if head == ".git" then
               false
@@ -83,28 +81,27 @@
         torchMlirLocalSrc = builtins.path {
           path = torch-mlir-src-local;
           name = "torch-mlir-src-local";
-          filter = path: type:
+          filter = path: _type:
             let
               root = toString torch-mlir-src-local;
               pathStr = toString path;
-              rel =
-                if pathStr == root then
-                  ""
-                else
-                  builtins.substring ((builtins.stringLength root) + 1)
-                  ((builtins.stringLength pathStr) - (builtins.stringLength root)
-                    - 1) pathStr;
+              rel = if pathStr == root then
+                ""
+              else
+                builtins.substring ((builtins.stringLength root) + 1)
+                ((builtins.stringLength pathStr) - (builtins.stringLength root)
+                  - 1) pathStr;
               components = pkgs.lib.splitString "/" rel;
               head = if rel == "" then "" else builtins.head components;
-            in
-            if rel == "" then
+            in if rel == "" then
               true
             else if head == ".git" then
               false
             else
               true;
         };
-        circtBase = (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
+        circtBase =
+          (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
           (_: { src = circtLocalSrc; });
         # Consume the local CIRCT checkout directly for now.
         circt = circtBase;
@@ -318,14 +315,21 @@
           torchaoAttentionBlockAdapterPy =
             ./src/torchao_attention_block_adapter.py;
           pt2eQuantLinearAdapterPy = ./src/pt2e_quant_linear_adapter.py;
-          pt2eStaticQuantLinearAdapterPy = ./src/pt2e_static_quant_linear_adapter.py;
-          pt2eStaticQuantEmbeddingAdapterPy = ./src/pt2e_static_quant_embedding_adapter.py;
-          pt2eStaticQuantEmbeddingComposableAdapterPy = ./src/pt2e_static_quant_embedding_composable_adapter.py;
-          pt2eStaticQuantLayerNormAdapterPy = ./src/pt2e_static_quant_layer_norm_adapter.py;
-          pt2eStaticQuantSoftmaxAdapterPy = ./src/pt2e_static_quant_softmax_adapter.py;
-          pt2eStaticQuantMatmulX86AdapterPy = ./src/pt2e_static_quant_matmul_x86_adapter.py;
+          pt2eStaticQuantLinearAdapterPy =
+            ./src/pt2e_static_quant_linear_adapter.py;
+          pt2eStaticQuantEmbeddingAdapterPy =
+            ./src/pt2e_static_quant_embedding_adapter.py;
+          pt2eStaticQuantEmbeddingComposableAdapterPy =
+            ./src/pt2e_static_quant_embedding_composable_adapter.py;
+          pt2eStaticQuantLayerNormAdapterPy =
+            ./src/pt2e_static_quant_layer_norm_adapter.py;
+          pt2eStaticQuantSoftmaxAdapterPy =
+            ./src/pt2e_static_quant_softmax_adapter.py;
+          pt2eStaticQuantMatmulX86AdapterPy =
+            ./src/pt2e_static_quant_matmul_x86_adapter.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;
-          tinyStoriesPt2eStaticQuantAdapterPy = ./TinyStories/model_adapter_pt2e_static_quant.py;
+          tinyStoriesPt2eStaticQuantAdapterPy =
+            ./TinyStories/model_adapter_pt2e_static_quant.py;
           simDir = ./sim;
         };
 
@@ -377,7 +381,9 @@
           pkgs.runCommand "${name}-external-memory-plan" {
             nativeBuildInputs = [ pkgs.python311 ];
           } ''
-            ${pkgs.python311}/bin/python3 ${./scripts/pipeline/externalize_large_memories.py} \
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/externalize_large_memories.py
+            } \
               --input ${modelIl} \
               --output-script externalize.ys \
               --output-report report.json \
@@ -397,16 +403,8 @@
             "
           '';
 
-        mkSynthJson =
-          {
-            name,
-            modelIl,
-            topName,
-            topSv,
-            quiet ? false,
-            memoryLimitKb ? null,
-            staged ? false,
-          }:
+        mkSynthJson = { name, modelIl, topName, topSv, quiet ? false
+          , memoryLimitKb ? null, staged ? false, }:
           pkgs.runCommand "${name}.json" { } ''
             ${pkgs.lib.optionalString (memoryLimitKb != null) ''
               ulimit -v ${toString memoryLimitKb}
@@ -528,14 +526,15 @@
             export outPath="$out"
             ${pkgs.perl}/bin/perl -0pi -e 's/\$out/$ENV{outPath}/g' stage8.ys
 
-            ${yosysPkg}/bin/yosys ${
-              pkgs.lib.optionalString quiet "-q"
-            } ${
-              pkgs.lib.optionalString (!staged) "-m ${yosysSlang}/share/yosys/plugins/slang.so"
+            ${yosysPkg}/bin/yosys ${pkgs.lib.optionalString quiet "-q"} ${
+              pkgs.lib.optionalString (!staged)
+              "-m ${yosysSlang}/share/yosys/plugins/slang.so"
             } -s stage8.ys
 
             ${pkgs.lib.optionalString staged ''
-              ${pkgs.python311}/bin/python3 ${./scripts/pipeline/filter_rtlil_modules.py} \
+              ${pkgs.python311}/bin/python3 ${
+                ./scripts/pipeline/filter_rtlil_modules.py
+              } \
                 --input stage8.il \
                 --output stage8-stripped.il \
                 --drop-escaped-uppercase-modules
@@ -875,16 +874,9 @@
           externalMemoryMinModuleBits = 1;
         };
 
-        mkTinyStoriesSelftestBundle =
-          {
-            name,
-            topName,
-            mainSv,
-            modelIl,
-            extraConstraints,
-            capacities,
-            externalMemoryMinModuleBits ? (128 * 1024),
-          }:
+        mkTinyStoriesSelftestBundle = { name, topName, mainSv, modelIl
+          , extraConstraints, capacities
+          , externalMemoryMinModuleBits ? (128 * 1024), }:
           let
             top = pkgs.runCommand "tiny-stories-selftest-top.sv" { } ''
               ${python}/bin/python \
@@ -947,7 +939,8 @@
             nextpnrUtilizationReport =
               mkNextpnrUtilizationReport { inherit name xdc json; };
           in {
-            inherit top modelOptIl modelShellIl externalMemoryPlan xdc json yosysJson fasm bitstream utilizationReport
+            inherit top modelOptIl modelShellIl externalMemoryPlan xdc json
+              yosysJson fasm bitstream utilizationReport
               nextpnrUtilizationReport;
           };
 
@@ -1066,7 +1059,8 @@
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
           tiny-stories-1m-selftest-top = tinyStories1mSelftest.top;
-          tiny-stories-1m-selftest-model-shell-il = tinyStories1mSelftest.modelShellIl;
+          tiny-stories-1m-selftest-model-shell-il =
+            tinyStories1mSelftest.modelShellIl;
           tiny-stories-1m-selftest-external-memory-plan =
             tinyStories1mSelftest.externalMemoryPlan;
           tiny-stories-1m-selftest-xdc = tinyStories1mSelftest.xdc;

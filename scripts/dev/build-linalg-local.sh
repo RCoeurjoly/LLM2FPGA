@@ -14,7 +14,9 @@ usage() {
 default_torch_mlir_opt="/home/roland/torch-mlir/build-local-devshell-2/bin/torch-mlir-opt"
 torch_mlir_opt="${TORCH_MLIR_OPT:-$default_torch_mlir_opt}"
 
-[ "$#" -ge 1 ] && [ "$#" -le 2 ] || usage
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  usage
+fi
 
 model_name="$1"
 output="${2:-/tmp/${model_name}-local-linalg.mlir}"
