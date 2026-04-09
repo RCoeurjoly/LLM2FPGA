@@ -53,6 +53,12 @@
               ./patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch
               ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
               ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
+              ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0011-legalize-unrealized-conversion-casts-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0012-defer-func-lowering-until-body-is-legal.patch
+              ./patches/circt-task3-rfp/0013-handle-memref-model-io-and-cache-submodule-lookups.patch
+              ./patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch
+              ./patches/circt-task3-rfp/0015-lower-float-ops-as-externs-in-handshake-to-hw.patch
             ];
           });
         # Keep reviewer builds on a pinned upstream CIRCT plus the checked-in
@@ -255,7 +261,7 @@
         };
 
         modelRegistry = import ./nix/models.nix {
-          inherit (pipelineLib) registerModel;
+          inherit (pipelineLib) registerModel registerQuantizedModel;
           inherit pythonWithTorch pythonWithTorchAO pythonWithTinyStories
             pythonWithTinyStoriesTorchAO torchMlir python;
           inherit tinyStories1m;
@@ -280,6 +286,16 @@
             ./src/pt2e_static_quant_layer_norm_adapter.py;
           pt2eStaticQuantSoftmaxAdapterPy =
             ./src/pt2e_static_quant_softmax_adapter.py;
+          pt2eStaticQuantAttentionBlockAdapterPy =
+            ./src/pt2e_static_quant_attention_block_adapter.py;
+          pt2eStaticQuantAttentionBlockNoSoftmaxAdapterPy =
+            ./src/pt2e_static_quant_attention_block_no_softmax_adapter.py;
+          pt2eStaticQuantAttentionBlockNoLayerNormAdapterPy =
+            ./src/pt2e_static_quant_attention_block_no_layer_norm_adapter.py;
+          pt2eStaticQuantAttentionSoftmaxAdapterPy =
+            ./src/pt2e_static_quant_attention_softmax_adapter.py;
+          pt2eStaticQuantAttentionValueMatmulAdapterPy =
+            ./src/pt2e_static_quant_attention_value_matmul_adapter.py;
           pt2eStaticQuantMatmulX86AdapterPy =
             ./src/pt2e_static_quant_matmul_x86_adapter.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;

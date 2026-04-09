@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 1 Apr 2026 05:05:00 +0200
+Subject: [PATCH] Dispatch native-FX builtin quantize entrypoints
+
+The earlier native-FX importer patch already adds quantized dtype integer
+support and imports `OpOverloadPacket`, but the installed build still lacks the
+actual dispatch branches in `GraphNodeImporter.import_nodes`. Add those branches
+in a follow-on patch so the Nix derivation hash changes unambiguously and the
+real build can import builtin `torch.quantize_per_tensor` nodes.
+---
+ python/torch_mlir/extras/fx_importer.py | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/python/torch_mlir/extras/fx_importer.py b/python/torch_mlir/extras/fx_importer.py
+index d353096..25f2a3f 100644
+--- a/python/torch_mlir/extras/fx_importer.py
++++ b/python/torch_mlir/extras/fx_importer.py
+@@ -1592,8 +1592,18 @@ class GraphNodeImporter:
+                         and is_builtin_function_or_method(target)
+                     ):
+                         self._import_symbolic_torch_op(loc, node, target)
++                    elif is_builtin_function_or_method(target) and getattr(
++                        target, "__name__", None
++                    ) == "quantize_per_tensor":
++                        self._import_torch_op_overload(
++                            loc, node, torch.ops.aten.quantize_per_tensor.default
++                        )
+                     elif isinstance(target, TorchOpOverload):
+                         # Dispatch to an ATen op.
+                         self._import_torch_op_overload(loc, node)
++                    elif isinstance(target, TorchOpOverloadPacket) and hasattr(
++                        target, "default"
++                    ):
++                        self._import_torch_op_overload(loc, node, target.default)
+                     elif isinstance(target, HigherOrderOperator):
+                         self._import_hop(loc, node, target)
+                     else:
+-- 
+2.49.0

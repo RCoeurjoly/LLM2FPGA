@@ -10,7 +10,9 @@ duration="${CODEX_NIGHT_DURATION:-8h}"
 prompt_file="${CODEX_NIGHT_PROMPT_FILE:-${repo_root}/codex-night-prompt.txt}"
 log_file="${CODEX_NIGHT_LOG_FILE:-/tmp/codex-night.log}"
 last_file="${CODEX_NIGHT_LAST_FILE:-/tmp/codex-night-last.txt}"
+state_file="${CODEX_NIGHT_STATE_FILE:-/tmp/codex-night-state.txt}"
 model="${CODEX_NIGHT_MODEL:-gpt-5.4}"
+stale_passes="${CODEX_NIGHT_STALE_PASSES:-2}"
 mode="exec"
 attach=0
 kill_existing=0
@@ -32,6 +34,8 @@ Options:
   --prompt FILE     Prompt file (default: ${prompt_file})
   --log FILE        Log file (default: ${log_file})
   --last FILE       Last-message output file (default: ${last_file})
+  --state FILE      State file (default: ${state_file})
+  --stale N         Escalate after N unchanged passes (default: ${stale_passes})
   -h, --help        Show this help
 EOF
 }
@@ -82,6 +86,14 @@ while [[ $# -gt 0 ]]; do
       last_file="$2"
       shift 2
       ;;
+    --state)
+      state_file="$2"
+      shift 2
+      ;;
+    --stale)
+      stale_passes="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -127,6 +139,8 @@ CODEX_NIGHT_MODEL=$(q "${model}") \
 CODEX_NIGHT_PROMPT_FILE=$(q "${prompt_file}") \
 CODEX_NIGHT_LOG_FILE=$(q "${log_file}") \
 CODEX_NIGHT_LAST_FILE=$(q "${last_file}") \
+CODEX_NIGHT_STATE_FILE=$(q "${state_file}") \
+CODEX_NIGHT_STALE_PASSES=$(q "${stale_passes}") \
 CODEX_NIGHT_SEARCH=$(q "${use_search}") \
 $(q "${inner_script}")"
 
@@ -135,6 +149,7 @@ tmux new-session -d -s "${session_name}" "${tmux_cmd}"
 echo "started tmux session: ${session_name}"
 echo "log: ${log_file}"
 echo "last message: ${last_file}"
+echo "state: ${state_file}"
 echo "attach: tmux attach -t ${session_name}"
 echo "stop: tmux kill-session -t ${session_name}"
 

@@ -1,19 +1,27 @@
 * Task 3 reviewer milestones for the RfP
 
 This document defines a reviewer-facing reproduction path for the current Task 3
-state. It separates the *pinned baseline deliverables* from the *frontier local
-compiler smoke*, because those two checkpoints answer different questions.
+state. It separates the *pinned baseline deliverables and canonical 3e gate
+status* from the *pinned reduced blocker reproducers* that explain the current
+canonical failure, because those checkpoints answer different questions.
 
 ** Why this split exists
 
-- The pinned flake already reproduces the current baseline Task 3 deliverables
-  3a through 3e.
-- The current TorchAO/TinyStories frontier work depends on a local
-  =torch-mlir-opt= with post-pin fixes; that is not the same claim as the
-  pinned 3a through 3e deliverables.
+- The pinned flake reproduces the current baseline Task 3 deliverables 3a
+  through 3d and the exact current status of the canonical 3e gate.
+- The current most useful frontier checkpoints are no longer local TorchAO
+  smoke artifacts. They are the pinned PT2E-static reproducer builds that hit
+  the same remaining float/legalization blockers as the canonical TinyStories
+  path.
+- After the canonical TinyStories adapter was reduced to XNNPACK-only PT2E
+  static quantization, the old composable embedding reproducer stopped matching
+  the first live canonical failure. The most faithful generic reduced blocker
+  is now =pt2e-static-quant-linear=, which fails on the same float-based
+  quantization-boundary legalization pattern as the canonical
+  =tiny-stories-1m-hw0= build.
 - Reviewers therefore need one script that records both:
   - the stable flake-backed Task 3 artifacts
-  - the current local fast-loop/compiler checkpoint
+  - the current pinned reduced-blocker checkpoint
 
 ** One-command reviewer run
 
@@ -27,86 +35,90 @@ The script emits a self-contained output directory with:
 - =README.md=: milestone summary
 - =summary.env=: shell-safe resolved artifact paths, milestone status, and
   deliverable-to-artifact mapping
-- =torchao-attention-block-linalg.mlir=: local fast-loop frontier artifact
-- =torchao-attention-block-profile.txt=: op profile for that frontier artifact
-
-If a local patched =TORCH_MLIR_OPT= is available, the same run also emits the
-full TinyStories TorchAO downstream smoke artifacts through =hs-ext= plus the
-captured =hs-ext -> hw0= failure log.
+- =pt2e-static-quant-linear-cf-profile.txt=,
+  =pt2e-static-quant-layer-norm-cf-profile.txt=, and
+  =pt2e-static-quant-softmax-cf-profile.txt=: op profiles for the current
+  pinned reduced blockers
+- captured =hw0= failure logs for those same reduced blockers
 
 ** Milestone definitions
 
-*** Milestone A: local fast-loop frontier checkpoint
+*** Milestone A: pinned reduced-blocker checkpoint
 
 Definition:
-- The small TorchAO attention-block reproducer reaches local =linalg=.
-- The emitted artifact still contains the expected float-heavy families that
-  define the current remaining work: dynamic qparam computation, =LayerNorm=,
-  and softmax residue.
+- The three pinned standard-path reduced reproducers all reach =cf=:
+  - =pt2e-static-quant-linear=
+  - =pt2e-static-quant-layer-norm=
+  - =pt2e-static-quant-softmax=
+- Their corresponding =hw0= builds all fail explicitly on unsupported float
+  legalization in ways that explain the current canonical TinyStories failure:
+  - generic PT2E static quantization boundary: =arith.divf=
+  - layer norm: =arith.addf=
+  - softmax: =arith.maximumf=
 
-Default artifact:
-- =/tmp/task3-rfp-milestones/torchao-attention-block-linalg.mlir=
+Default artifacts:
+- =/tmp/task3-rfp-milestones/pt2e-static-quant-linear-cf-profile.txt=
+- =/tmp/task3-rfp-milestones/pt2e-static-quant-layer-norm-cf-profile.txt=
+- =/tmp/task3-rfp-milestones/pt2e-static-quant-softmax-cf-profile.txt=
 
 Acceptance signal:
-- The generated profile reports the expected mixed integer/float shape rather
-  than collapsing back to plain float.
+- =summary.env= records the resolved =cf= artifacts and their op profiles.
+- =summary.env= also records the exact first =hw0= legalization failure for
+  each reproducer.
 - =summary.env= records:
   - =milestone_a_status=pass=
-  - =milestone_a_acceptance=mixed-int-float-linalg-profile=
+  - =milestone_a_acceptance=pinned-standard-path-reproducers-resolve-to-cf-and-fail-at-hw0-on-float-ops=
+
+Optional follow-up split reproducers:
+- =pt2e-static-quant-attention-block-no-softmax= isolates the remaining
+  =layer_norm= contribution on the standard PT2E-static route.
+- =pt2e-static-quant-attention-block-no-layer-norm= isolates the remaining
+  attention-normalization contribution on the same route.
+- Current expected first =hw0= failures:
+  - no-softmax: =arith.addf=
+  - no-layer-norm: =arith.divf=
 
 *** Milestone B: pinned baseline Task 3 deliverables
 
 Definition:
-- The current flake reproduces the official Task 3 baseline artifacts:
+- The current flake reproduces the official Task 3 baseline artifacts through
+  3d:
   - 3a snapshot
   - 3b pre-CIRCT MLIR
   - 3c CIRCT-emitted SystemVerilog
   - 3d Yosys RTLIL
+- The same run records whether the canonical 3e gate currently succeeds or
+  remains blocked:
   - 3e canonical Yosys-mapped utilization report
 
 Acceptance signal:
 - =summary.env= records:
-  - =milestone_b_status=pass=
+  - =milestone_b_status=pass= when 3a through 3e all resolve
+  - =milestone_b_status=blocked-at-3e= when 3a through 3d resolve but the
+    canonical =tiny-stories-1m-utilization= gate still fails
   - =deliverable_3a_*= through =deliverable_3e_*= keys
   - the exact gate command for each deliverable
   - direct paths for reviewer-relevant files such as =config.json=,
-    =pytorch_model.bin=, =sv/main.sv=, =sources.f=, =summary.txt=,
-    =summary.json=, =stat.json=, and the mapped JSON emitted by
-    =.#tiny-stories-1m-utilization-json=
-
-*** Milestone C: local TinyStories TorchAO downstream smoke
-
-Definition:
-- With a local patched =torch-mlir-opt=, the TinyStories TorchAO path should
-  reach:
-  - =linalg=
-  - =cf=
-  - =handshake=
-  - =hs-ext=
-- The current expected result is that =hs-ext -> hw0= still fails because the
-  artifact still contains floating-point-heavy residue.
-
-Acceptance signal:
-- =summary.env= reports:
-  - =frontier_status=expected-hw0-failure=
-  - =milestone_c_status=pass=
-  - =tiny_stories_torchao_hs_ext_profile_text=
-  - =frontier_reason= quoting the first legalization failure
-- If the local compiler state has advanced, the same keys record that as an
-  unexpected improvement instead of silently changing behavior.
+    =pytorch_model.bin=, =sv/main.sv=, =sources.f=, and =design.il=
+  - if 3e is still blocked, captured logs for the canonical
+    =.#tiny-stories-1m-utilization= and =.#tiny-stories-1m-utilization-json=
+    gates instead of fake resolved output paths
 
 ** Reviewer notes
 
-- Milestone B is the reproducible baseline claim.
+- Milestone B is the reproducible baseline claim through 3d plus the honest
+  current status of the canonical 3e gate.
 - The canonical Task 3 utilization gate is:
 
 #+begin_src bash
 nix build .#tiny-stories-1m-utilization -L
 #+end_src
 
-- Milestones A and C are the reproducible compiler-roadmap checkpoints.
-- The script prefers local fast iteration where that is the point of the
-  milestone, and uses the pinned flake where the point is stable reproduction.
+- Milestone A is the reproducible compiler-roadmap checkpoint tied directly to
+  the current canonical blocker family.
+- The script uses the pinned flake both for the official deliverables and for
+  the reduced blockers so the reviewer path stays aligned with the canonical
+  Task 3 claim.
 - =summary.env= is intended to be shell-safe:
 
 #+begin_src bash

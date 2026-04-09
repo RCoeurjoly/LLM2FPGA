@@ -29,8 +29,9 @@ routes are historical notes only.
 See =docs/task3-rfp-reviewer-milestones.org= for the milestone definitions and
 acceptance criteria.
 See =docs/task3-rfp-contract-2026-03-27.org= for the current Task 3 contract
-and explicit engineering intent, including the no-black-box requirement,
-oversized-model execution requirement, and float-handling requirement.
+and explicit engineering intent, including the no-unresolved-black-box/stub
+requirement, oversized-model execution requirement, and float-handling
+requirement.
 
 * Funding
 

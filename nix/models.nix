@@ -1,10 +1,16 @@
-{ registerModel, pythonWithTorch, pythonWithTorchAO, pythonWithTinyStories
-, pythonWithTinyStoriesTorchAO, torchMlir, python, tinyStories1m, matmulPy
+{ registerModel, registerQuantizedModel, pythonWithTorch, pythonWithTorchAO
+, pythonWithTinyStories, pythonWithTinyStoriesTorchAO, torchMlir, python
+, tinyStories1m, matmulPy
 , matmulAdapterPy, matmulSrcDir, torchaoInt8DynamicLinearAdapterPy
 , torchaoInt8WeightOnlyLinearAdapterPy, torchaoAttentionBlockAdapterPy
 , pt2eQuantLinearAdapterPy, pt2eStaticQuantLinearAdapterPy
 , pt2eStaticQuantEmbeddingAdapterPy, pt2eStaticQuantEmbeddingComposableAdapterPy
 , pt2eStaticQuantLayerNormAdapterPy, pt2eStaticQuantSoftmaxAdapterPy
+, pt2eStaticQuantAttentionBlockAdapterPy
+, pt2eStaticQuantAttentionBlockNoSoftmaxAdapterPy
+, pt2eStaticQuantAttentionBlockNoLayerNormAdapterPy
+, pt2eStaticQuantAttentionSoftmaxAdapterPy
+, pt2eStaticQuantAttentionValueMatmulAdapterPy
 , pt2eStaticQuantMatmulX86AdapterPy, tinyStoriesTorchaoAdapterPy
 , tinyStoriesPt2eStaticQuantAdapterPy, simDir, compilePyTorch }:
 let
@@ -165,6 +171,81 @@ in {
     '';
   };
 
+  "pt2e-static-quant-attention-block" = registerModel {
+    key = "pt2e-static-quant-attention-block";
+    name = "pt2e-static-quant-attention-block";
+    description =
+      "PT2E static-quantized attention-block reproducer combining LayerNorm, attention softmax, and quantized Linear projections.";
+    source = { type = "local"; };
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${pt2eStaticQuantAttentionBlockAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "pt2e-static-quant-attention-block-no-softmax" = registerModel {
+    key = "pt2e-static-quant-attention-block-no-softmax";
+    name = "pt2e-static-quant-attention-block-no-softmax";
+    description =
+      "PT2E static-quantized attention-block reproducer with LayerNorm but without softmax.";
+    source = { type = "local"; };
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${pt2eStaticQuantAttentionBlockNoSoftmaxAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "pt2e-static-quant-attention-block-no-layer-norm" = registerModel {
+    key = "pt2e-static-quant-attention-block-no-layer-norm";
+    name = "pt2e-static-quant-attention-block-no-layer-norm";
+    description =
+      "PT2E static-quantized attention-block reproducer with softmax but without LayerNorm.";
+    source = { type = "local"; };
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${pt2eStaticQuantAttentionBlockNoLayerNormAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "pt2e-static-quant-attention-softmax" = registerModel {
+    key = "pt2e-static-quant-attention-softmax";
+    name = "pt2e-static-quant-attention-softmax";
+    description =
+      "PT2E static-quantized attention-score reproducer with qk score scaling and softmax, but without LayerNorm or value matmul.";
+    source = { type = "local"; };
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${pt2eStaticQuantAttentionSoftmaxAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "pt2e-static-quant-attention-value-matmul" = registerModel {
+    key = "pt2e-static-quant-attention-value-matmul";
+    name = "pt2e-static-quant-attention-value-matmul";
+    description =
+      "PT2E static-quantized attention-core reproducer with qk score scaling and value matmul, but without softmax or LayerNorm.";
+    source = { type = "local"; };
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${pt2eStaticQuantAttentionValueMatmulAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
   "pt2e-static-quant-matmul-x86" = registerModel {
     key = "pt2e-static-quant-matmul-x86";
     name = "pt2e-static-quant-matmul-x86";
@@ -180,11 +261,31 @@ in {
     '';
   };
 
-  "tiny-stories-1m" = registerModel {
+  "tiny-stories-1m" = registerQuantizedModel {
     key = "tiny-stories-1m";
     name = "tiny-stories-1m";
     description =
-      "Baseline TinyStories-1M export using the standard torch.export plus torch-mlir FX importer path.";
+      "Canonical TinyStories-1M Task 3 path using PT2E static quantization with XNNPACK static symmetric quantization.";
+    source = {
+      type = "huggingface";
+      model_id = tinyStories1m.modelId;
+      inherit (tinyStories1m) revision;
+    };
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${tinyStoriesPt2eStaticQuantAdapterPy} \
+        --model-path ${tinyStories1m.snapshot} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "tiny-stories-1m-baseline-float" = registerModel {
+    key = "tiny-stories-1m-baseline-float";
+    name = "tiny-stories-1m-baseline-float";
+    description =
+      "Historical non-canonical baseline TinyStories-1M export using the standard torch.export plus torch-mlir FX importer path.";
     source = {
       type = "huggingface";
       model_id = tinyStories1m.modelId;
@@ -240,11 +341,11 @@ in {
     '';
   };
 
-  "tiny-stories-1m-pt2e-static" = registerModel {
+  "tiny-stories-1m-pt2e-static" = registerQuantizedModel {
     key = "tiny-stories-1m-pt2e-static";
     name = "tiny-stories-1m-pt2e-static";
     description =
-      "TinyStories-1M experiment using PT2E static quantization with ComposableQuantizer: EmbeddingQuantizer plus XNNPACK static symmetric quantization.";
+      "Historical alias of the canonical PT2E-static TinyStories-1M XNNPACK-only quantized route.";
     source = {
       type = "huggingface";
       model_id = tinyStories1m.modelId;

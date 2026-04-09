@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 1 Apr 2026 06:40:00 +0200
+Subject: [PATCH] Convert rank-0 tensors to scalars and fallback to generic tensors
+
+Native-FX quantized graphs still feed rank-0 tensor get_attr values into
+schemas such as aten::quantize_per_tensor that require float/int scalars, and
+they frequently omit FX metadata for quantized Tensor-returning ops. Teach the
+importer to:
+- convert tensor operands to float/int via aten::Float.Tensor and
+  aten::Int.Tensor when a scalar schema argument is expected
+- fall back to a generic !torch.tensor result when a Tensor-returning op lacks
+  FX value metadata instead of emitting !torch.none
+
+This keeps the imported raw MLIR well-typed and lets the next lowering stage
+fail on the actual unsupported quantized op boundary instead of verifier noise.
+---
+ python/torch_mlir/extras/fx_importer.py | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/python/torch_mlir/extras/fx_importer.py b/python/torch_mlir/extras/fx_importer.py
+index 6ee8180..4b2fd19 100644
+--- a/python/torch_mlir/extras/fx_importer.py
++++ b/python/torch_mlir/extras/fx_importer.py
+@@ -2397,7 +2397,14 @@ class GraphNodeImporter:
+                 result_type = self._cc.torch_float_type
+             elif isinstance(expected_type, (torch.IntType, torch.NumberType)):
+                 op_name = "torch.aten.Int.bool"
+                 result_type = self._cc.torch_int_type
++        elif str(val.type).startswith(("!torch.vtensor<[", "!torch.tensor<[")):
++            if isinstance(expected_type, torch.FloatType):
++                op_name = "torch.aten.Float.Tensor"
++                result_type = self._cc.torch_float_type
++            elif isinstance(expected_type, (torch.IntType, torch.NumberType)):
++                op_name = "torch.aten.Int.Tensor"
++                result_type = self._cc.torch_int_type
+         elif expected_type is torch.Tensor:
+             op_name = "torch.prims.convert_element_type"
+             result_type = self._cc.create_vtensor_type(dtype, size)
+@@ -2643,7 +2649,14 @@ class GraphNodeImporter:
+         return_count = len(schema.returns)
+         if return_count == 1:
+             # Unary return directly maps a single meta["val"] and cannot be subscripted.
+             # if "tensor_meta" is None, this will throw unsupported placeholder node error
+-            result_types = [self._cc.node_val_to_type(node)]
++            if (
++                isinstance(schema.returns[0].type, torch.TensorType)
++                and node.meta.get("val") is None
++                and node.meta.get("tensor_meta") is None
++            ):
++                result_types = [IrType.parse("!torch.tensor", context=self._c)]
++            else:
++                result_types = [self._cc.node_val_to_type(node)]
+         elif return_count == 0:
+             # Some torch ops do have 0 returns, and these are supported with ZeroResults
+             # op trait. Python bindings for IR creation allow us to pass empty result_types
+-- 
+2.49.0

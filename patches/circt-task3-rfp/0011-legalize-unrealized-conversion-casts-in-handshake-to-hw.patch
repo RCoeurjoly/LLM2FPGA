@@ -1,0 +1,13 @@
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -2233,7 +2233,8 @@ public:
+     ConversionTarget target(getContext());
+     // All top-level logic of a handshake module will be the interconnectivity
+     // between instantiated modules.
+-    target.addLegalOp<hw::HWModuleOp, hw::HWModuleExternOp, hw::OutputOp,
++    target.addLegalOp<UnrealizedConversionCastOp, hw::HWModuleOp,
++                      hw::HWModuleExternOp, hw::OutputOp,
+                       hw::InstanceOp>();
+     target
+         .addIllegalDialect<handshake::HandshakeDialect, arith::ArithDialect>();

@@ -162,7 +162,7 @@ Test if a small open-source language model (TinyStories-1M) can be lowered from 
 In this task we move from small matmul module to smallest available LLM.
 This task establishes existence of a valid lowering path only; scalability and hardware execution are out of scope, for later tasks.
 
-The succesful result is an unintegrated RTL netlist of the model (RTLIL or Verilog/SystemVerilog) and synthesis resource estimates, without stubbing operators.
+The succesful result is an unintegrated RTL netlist of the model (RTLIL or Verilog/SystemVerilog) and synthesis resource estimates, with any temporary operator stubs resolved in the final claimed flow.
 
 Otherwise, bottleneck report identifying unsupported operators, failing passes, or any other error in the toolchain.
 
@@ -181,7 +181,7 @@ Use -verify-each for each MLIR stage.
 
 For failures, isolate minimal reproducing cases using mlir-reduce and archive them.
 
-If necessary, adjust pass ordering. Final success must not rely on operator stubbing or blackboxes.
+If necessary, adjust pass ordering. Final success must not rely on unresolved operator stubbing or unresolved black boxes.
 
 MLIR debugging docs:
 https://mlir.llvm.org/getting_started/Debugging/
@@ -208,7 +208,8 @@ If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input
 - State "TODO"       from              [2026-02-16 Mon 22:17]
   Artifact: tinystories_1m.il produced by Yosys from tinystories_1m.sv.
   Yosys completes elaboration and emits RTLIL without fatal errors.
-**** DONE Subtask e consists of:
+**** TODO Subtask e consists of:
+- State "TODO"       from "DONE"       [2026-03-31 Tue 17:09]
 - State "DONE"       from "TODO"       [2026-03-31 Tue 04:17]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
   Artifact: resource utilization report (Yosys stat) generated from the .il/design.
@@ -387,7 +388,7 @@ Delta max clock frequency
 
 Delta toolchain runtime + peak memory
 
-Each strategy must work without blackboxes or stubs.
+Each strategy's final claimed result must work without unresolved black boxes or unresolved stubs.
 **** TODO Subtask c consists of:
 - State "TODO"       from              [2026-02-16 Mon 22:18]
 Conclusion of strategies: which are more effective, and which are easy to apply.

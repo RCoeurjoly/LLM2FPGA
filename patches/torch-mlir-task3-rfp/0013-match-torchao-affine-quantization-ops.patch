@@ -1,0 +1,265 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 1 Apr 2026 06:10:00 +0200
+Subject: [PATCH] Match TorchAO affine quantization ops
+
+Native PT2E/TorchAO export emits three standard affine quantization custom ops:
+`torch.torchao.dequantize_affine`, `torch.torchao.choose_qparams_affine`, and
+`torch.torchao.quantize_affine`. Lower them into ordinary Torch dialect ops so
+the standard backend pipeline can continue without leaving illegal
+`torch.operator` nodes behind.
+---
+ lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp | 231 ++++++++++++++++++++
+ 1 file changed, 231 insertions(+)
+
+diff --git a/lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp b/lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp
+index 08aad85..3f5fd12 100644
+--- a/lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp
++++ b/lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp
+@@ -28,6 +28,98 @@ Type getQuantizedType(MLIRContext *context, Type t) {
+   return {};
+ }
+ 
++static std::optional<int64_t> getConstantIntValue(Value v) {
++  int64_t value;
++  if (!matchPattern(v, m_TorchConstantInt(&value)))
++    return std::nullopt;
++  return value;
++}
++
++static FailureOr<SmallVector<int64_t>> getConstantIntList(Value v) {
++  SmallVector<Value> elems;
++  if (!Torch::getListConstructElements(v, elems))
++    return failure();
++
++  SmallVector<int64_t> values;
++  values.reserve(elems.size());
++  for (Value elem : elems) {
++    auto value = getConstantIntValue(elem);
++    if (!value)
++      return failure();
++    values.push_back(*value);
++  }
++  return values;
++}
++
++static FailureOr<Value> getReductionDimsForBlockSize(PatternRewriter &rewriter,
++                                                     Location loc,
++                                                     Value blockSizeList) {
++  FailureOr<SmallVector<int64_t>> blockSizes = getConstantIntList(blockSizeList);
++  if (failed(blockSizes))
++    return failure();
++
++  SmallVector<int64_t> dims;
++  for (const auto &[dim, blockSize] : llvm::enumerate(*blockSizes)) {
++    if (blockSize > 1)
++      dims.push_back(dim);
++  }
++  return Torch::toIntListConstruct(rewriter, loc, dims);
++}
++
++static FailureOr<Value> createDtypeIntConstantForTensor(PatternRewriter &rewriter,
++                                                        Location loc,
++                                                        Type tensorType) {
++  auto tensorTy = dyn_cast<Torch::BaseTensorType>(tensorType);
++  if (!tensorTy || !tensorTy.hasDtype())
++    return failure();
++  auto scalarTy = Torch::getScalarTypeForType(tensorTy.getDtype());
++  Value dtype = Torch::ConstantIntOp::create(
++      rewriter, loc,
++      rewriter.getIntegerAttr(rewriter.getIntegerType(64),
++                              static_cast<int64_t>(scalarTy)));
++  return dtype;
++}
++
++static FailureOr<Value> expandQParamsForBlockSize(PatternRewriter &rewriter,
++                                                  Operation *op, Value qParam,
++                                                  Value blockSizeList) {
++  FailureOr<SmallVector<int64_t>> blockSizes = getConstantIntList(blockSizeList);
++  if (failed(blockSizes))
++    return failure();
++
++  auto qParamTy = dyn_cast<BaseTensorType>(qParam.getType());
++  if (!qParamTy || !qParamTy.hasSizes())
++    return rewriter.notifyMatchFailure(op, "qparam tensor must have static rank");
++
++  int64_t targetRank = blockSizes->size();
++  int64_t currentRank = qParamTy.getSizes().size();
++  if (currentRank == targetRank)
++    return qParam;
++
++  SmallVector<int64_t> reducedDims;
++  for (const auto &[dim, blockSize] : llvm::enumerate(*blockSizes)) {
++    if (blockSize > 1)
++      reducedDims.push_back(dim);
++  }
++
++  if (currentRank + static_cast<int64_t>(reducedDims.size()) != targetRank) {
++    return rewriter.notifyMatchFailure(
++        op, "qparam rank does not match block size reduction semantics");
++  }
++
++  for (int64_t dim : reducedDims) {
++    Value dimValue = ConstantIntOp::create(
++        rewriter, op->getLoc(), rewriter.getI64IntegerAttr(dim));
++    FailureOr<Value> unsqueezed =
++        Torch::unsqueezeTensor(rewriter, op, qParam, dimValue);
++    if (failed(unsqueezed))
++      return failure();
++    qParam = *unsqueezed;
++  }
++
++  return qParam;
++}
++
+ class MatchQuantizeOperator : public OpRewritePattern<OperatorOp> {
+ public:
+   using OpRewritePattern::OpRewritePattern;
+@@ -114,6 +206,145 @@ public:
+       return success();
+     }
+ 
++    if (op.getName() == "torch.torchao.dequantize_affine") {
++      auto outputTy = dyn_cast<ValueTensorType>(op.getType(0));
++      if (!outputTy || !outputTy.hasDtype())
++        return rewriter.notifyMatchFailure(op,
++                                           "torchao dequantize output has no dtype");
++
++      auto inputTy = dyn_cast<ValueTensorType>(op.getOperand(0).getType());
++      if (!inputTy || !inputTy.hasDtype())
++        return rewriter.notifyMatchFailure(op,
++                                           "torchao dequantize input has no dtype");
++
++      FailureOr<Value> expandedScale = expandQParamsForBlockSize(
++          rewriter, op, op.getOperand(2), op.getOperand(1));
++      if (failed(expandedScale))
++        return rewriter.notifyMatchFailure(
++            op, "unable to expand torchao dequantize scale");
++      FailureOr<Value> expandedZeroPoint = expandQParamsForBlockSize(
++          rewriter, op, op.getOperand(3), op.getOperand(1));
++      if (failed(expandedZeroPoint))
++        return rewriter.notifyMatchFailure(
++            op, "unable to expand torchao dequantize zero point");
++
++      FailureOr<Value> outputDtype =
++          createDtypeIntConstantForTensor(rewriter, op.getLoc(), outputTy);
++      if (failed(outputDtype))
++        return rewriter.notifyMatchFailure(op,
++                                           "unable to build output dtype constant");
++
++      Value inputAsFloat = PrimsConvertElementTypeOp::create(
++          rewriter, op.getLoc(), op.getType(0), op.getOperand(0), *outputDtype);
++      Value zeroPointAsFloat = PrimsConvertElementTypeOp::create(
++          rewriter, op.getLoc(), (*expandedZeroPoint).getType(),
++          *expandedZeroPoint,
++          *outputDtype);
++      Value one = ConstantIntOp::create(
++          rewriter, op.getLoc(), rewriter.getI64IntegerAttr(1));
++      Value centered = AtenSubTensorOp::create(
++          rewriter, op.getLoc(), op.getType(0), inputAsFloat, zeroPointAsFloat,
++          one);
++      rewriter.replaceOpWithNewOp<AtenMulTensorOp>(op, op.getType(0), centered,
++                                                   *expandedScale);
++      return success();
++    }
++
++    if (op.getName() == "torch.torchao.choose_qparams_affine") {
++      std::string mappingType;
++      if (!matchPattern(op.getOperand(1), m_TorchConstantStr(mappingType)) ||
++          mappingType != "SYMMETRIC") {
++        return rewriter.notifyMatchFailure(
++            op, "only SYMMETRIC torchao qparams are currently supported");
++      }
++
++      FailureOr<Value> reductionDims =
++          getReductionDimsForBlockSize(rewriter, op.getLoc(), op.getOperand(2));
++      if (failed(reductionDims))
++        return rewriter.notifyMatchFailure(
++            op, "block size must be a constant int list");
++
++      Value keepDim = ConstantBoolOp::create(rewriter, op.getLoc(), false);
++      Value amin = AtenAminOp::create(rewriter, op.getLoc(), op.getType(0),
++                                      op.getOperand(0), *reductionDims,
++                                      keepDim);
++      Value amax = AtenAmaxOp::create(rewriter, op.getLoc(), op.getType(0),
++                                      op.getOperand(0), *reductionDims,
++                                      keepDim);
++      Value absMin =
++          AtenAbsOp::create(rewriter, op.getLoc(), op.getType(0), amin);
++      Value absMax =
++          AtenAbsOp::create(rewriter, op.getLoc(), op.getType(0), amax);
++      Value absRange = AtenMaximumOp::create(rewriter, op.getLoc(), op.getType(0),
++                                             absMin, absMax);
++
++      int64_t quantMax;
++      if (!matchPattern(op.getOperand(5), m_TorchConstantInt(&quantMax)))
++        return rewriter.notifyMatchFailure(op, "quant max must be constant");
++      Value quantMaxFloat = ConstantFloatOp::create(
++          rewriter, op.getLoc(),
++          rewriter.getF64FloatAttr(static_cast<double>(std::abs(quantMax))));
++      Value scale = AtenDivScalarOp::create(rewriter, op.getLoc(), op.getType(0),
++                                            absRange, quantMaxFloat);
++      Value none = ConstantNoneOp::create(rewriter, op.getLoc());
++      Value scaleClamped = AtenClampOp::create(
++          rewriter, op.getLoc(), op.getType(0), scale, op.getOperand(6), none);
++
++      FailureOr<Value> outputDtype =
++          createDtypeIntConstantForTensor(rewriter, op.getLoc(), op.getType(1));
++      if (failed(outputDtype))
++        return rewriter.notifyMatchFailure(op,
++                                           "unable to build zero point dtype");
++      Value zeroPoint = AtenZerosLikeOp::create(
++          rewriter, op.getLoc(), op.getType(1), scaleClamped, *outputDtype,
++          none, none, none, none);
++      rewriter.replaceOp(op, {scaleClamped, zeroPoint});
++      return success();
++    }
++
++    if (op.getName() == "torch.torchao.quantize_affine") {
++      auto inputTy = dyn_cast<ValueTensorType>(op.getOperand(0).getType());
++      auto resultTy = dyn_cast<ValueTensorType>(op.getType(0));
++      if (!inputTy || !resultTy || !inputTy.hasDtype() || !resultTy.hasDtype())
++        return rewriter.notifyMatchFailure(op,
++                                           "torchao quantize needs known tensor dtypes");
++
++      FailureOr<Value> expandedScale = expandQParamsForBlockSize(
++          rewriter, op, op.getOperand(2), op.getOperand(1));
++      if (failed(expandedScale))
++        return rewriter.notifyMatchFailure(op,
++                                           "unable to expand torchao quantize scale");
++      FailureOr<Value> expandedZeroPoint = expandQParamsForBlockSize(
++          rewriter, op, op.getOperand(3), op.getOperand(1));
++      if (failed(expandedZeroPoint))
++        return rewriter.notifyMatchFailure(
++            op, "unable to expand torchao quantize zero point");
++
++      Value divScale = AtenDivTensorOp::create(rewriter, op.getLoc(),
++                                               op.getOperand(0).getType(),
++                                               op.getOperand(0), *expandedScale);
++      Value one = ConstantIntOp::create(
++          rewriter, op.getLoc(), rewriter.getI64IntegerAttr(1));
++      Value addZeroPoint = AtenAddTensorOp::create(
++          rewriter, op.getLoc(), op.getOperand(0).getType(), divScale,
++          *expandedZeroPoint, one);
++      Value rounded = AtenRoundOp::create(rewriter, op.getLoc(),
++                                          op.getOperand(0).getType(),
++                                          addZeroPoint);
++      Value clamped = AtenClampOp::create(rewriter, op.getLoc(),
++                                          op.getOperand(0).getType(), rounded,
++                                          op.getOperand(5), op.getOperand(6));
++
++      FailureOr<Value> resultDtype =
++          createDtypeIntConstantForTensor(rewriter, op.getLoc(), resultTy);
++      if (failed(resultDtype))
++        return rewriter.notifyMatchFailure(op,
++                                           "unable to build quantized dtype");
++      rewriter.replaceOpWithNewOp<PrimsConvertElementTypeOp>(
++          op, op.getType(0), clamped, *resultDtype);
++      return success();
++    }
++
+     if (op.getName() == "torch.quantized.layer_norm") {
+       auto inputTy = dyn_cast<ValueTensorType>(op.getOperand(0).getType());
+       auto resultTy = dyn_cast<ValueTensorType>(op.getType(0));
+-- 
+2.49.0

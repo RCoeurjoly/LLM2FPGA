@@ -1,0 +1,1086 @@
+diff --git a/lib/Conversion/TorchToLinalg/Linear.cpp b/lib/Conversion/TorchToLinalg/Linear.cpp
+index 9a2013fb..876507e7 100644
+--- a/lib/Conversion/TorchToLinalg/Linear.cpp
++++ b/lib/Conversion/TorchToLinalg/Linear.cpp
+@@ -70,17 +70,18 @@ static Value transposeValue(Location loc, Value value, ArrayRef<int64_t> perms,
+   return transpose;
+ }
+ 
+-class ConvertAtenMmOp : public OpConversionPattern<AtenMmOp> {
++template <typename AtenOp>
++class ConvertAtenMmLikeOp : public OpConversionPattern<AtenOp> {
+ public:
+-  using OpConversionPattern::OpConversionPattern;
++  using OpConversionPattern<AtenOp>::OpConversionPattern;
+   LogicalResult
+-  matchAndRewrite(AtenMmOp op, OpAdaptor adaptor,
++  matchAndRewrite(AtenOp op, typename AtenOp::Adaptor adaptor,
+                   ConversionPatternRewriter &rewriter) const override {
+     Location loc = op->getLoc();
+     Value lhs = adaptor.getSelf();
+     Value rhs = adaptor.getMat2();
+ 
+-    // A user can write an errorneous program where `aten.mm` is in fact called
++    // A user can write an errorneous program where this op is in fact called
+     // with operands of invalid rank or dtype. We cannot convert to linalg in
+     // this case or we will get a verifier error, which corresponds to breaking
+     // of *internal* compiler invariants, and for a user manifests as a compiler
+@@ -98,7 +99,7 @@ public:
+ 
+     if (lhsType.getRank() != 2 || rhsType.getRank() != 2) {
+       return rewriter.notifyMatchFailure(
+-          op, "expected both operands to aten.mm to be rank 2");
++          op, "expected both operands to be rank 2");
+     }
+ 
+     ValueTensorType lhsTorchType =
+@@ -137,12 +138,11 @@ public:
+           rewriter, loc, arith::CmpIPredicate::eq, lhsDim1, rhsDim0);
+       cf::AssertOp::create(
+           rewriter, loc, contractingDimEqual,
+-          rewriter.getStringAttr(
+-              "mismatching contracting dimension for torch.aten.mm"));
++          rewriter.getStringAttr("mismatching contracting dimension"));
+     }
+ 
+     TensorType resultType =
+-        cast<TensorType>(getTypeConverter()->convertType(op.getType()));
++        cast<TensorType>(this->getTypeConverter()->convertType(op.getType()));
+     Type elementType = resultType.getElementType();
+     auto accumulatorDType =
+         getDefaultAccType(rewriter, lhsType.getElementType());
+@@ -154,13 +154,13 @@ public:
+ 
+     Value matmul;
+     if (lhsZeroPoint) {
+-      lhsZeroPoint = typeConverter->materializeTargetConversion(
++      lhsZeroPoint = this->typeConverter->materializeTargetConversion(
+           rewriter, loc,
+-          getTypeConverter()->convertType(lhsZeroPoint.getType()),
++          this->getTypeConverter()->convertType(lhsZeroPoint.getType()),
+           lhsZeroPoint);
+-      rhsZeroPoint = typeConverter->materializeTargetConversion(
++      rhsZeroPoint = this->typeConverter->materializeTargetConversion(
+           rewriter, loc,
+-          getTypeConverter()->convertType(rhsZeroPoint.getType()),
++          this->getTypeConverter()->convertType(rhsZeroPoint.getType()),
+           rhsZeroPoint);
+       lhsZeroPoint = arith::TruncIOp::create(
+           rewriter, loc, rewriter.getI32Type(), lhsZeroPoint);
+@@ -2521,7 +2521,9 @@ void mlir::torch::torch_to_linalg::populateLinearPatternsAndLegality(
+     ConversionTarget &target) {
+   MLIRContext *context = patterns.getContext();
+   target.addIllegalOp<AtenMmOp>();
+-  patterns.add<ConvertAtenMmOp>(typeConverter, context);
++  patterns.add<ConvertAtenMmLikeOp<AtenMmOp>>(typeConverter, context);
++  target.addIllegalOp<Aten_IntMmOp>();
++  patterns.add<ConvertAtenMmLikeOp<Aten_IntMmOp>>(typeConverter, context);
+   target.addIllegalOp<AtenFlipOp>();
+   patterns.add<ConvertAtenFlipOp>(typeConverter, context);
+   target.addIllegalOp<AtenMatmulOp>();
+diff --git a/lib/Dialect/Torch/Transforms/FuseQuantizedOps.cpp b/lib/Dialect/Torch/Transforms/FuseQuantizedOps.cpp
+index 4b04151f..d8af9e0e 100644
+--- a/lib/Dialect/Torch/Transforms/FuseQuantizedOps.cpp
++++ b/lib/Dialect/Torch/Transforms/FuseQuantizedOps.cpp
+@@ -8,11 +8,16 @@
+ //===----------------------------------------------------------------------===//
+ 
+ #include "mlir/Dialect/Func/IR/FuncOps.h"
++#include "mlir/Dialect/Tosa/Utils/QuantUtils.h"
++#include "mlir/IR/DialectResourceBlobManager.h"
+ #include "mlir/Pass/Pass.h"
+ #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+ #include "torch-mlir/Dialect/Torch/IR/TorchOps.h"
+ #include "torch-mlir/Dialect/Torch/Transforms/Passes.h"
+ #include "torch-mlir/Dialect/Torch/Utils/Utils.h"
++#include "llvm/Support/raw_ostream.h"
++#include <algorithm>
++#include <cmath>
+ #include <stack>
+ 
+ using namespace mlir;
+@@ -33,6 +38,88 @@ template <> struct QuantInfo<AtenReluOp> {
+   static constexpr unsigned operandsToQuantize[1] = {0};
+ };
+ 
++static Type getStorageTypeForQuantizedDtype(MLIRContext *context, Type qdtype) {
++  if (isa<QInt8Type>(qdtype))
++    return IntegerType::get(context, 8, IntegerType::Signed);
++  if (isa<QUInt8Type>(qdtype))
++    return IntegerType::get(context, 8, IntegerType::Unsigned);
++  if (isa<QInt32Type>(qdtype))
++    return IntegerType::get(context, 32, IntegerType::Signed);
++  return {};
++}
++
++static FailureOr<std::pair<int64_t, int64_t>>
++getQuantizedBounds(Type qdtype) {
++  if (isa<QInt8Type>(qdtype))
++    return success(std::make_pair(int64_t{-128}, int64_t{127}));
++  if (isa<QUInt8Type>(qdtype))
++    return success(std::make_pair(int64_t{0}, int64_t{255}));
++  return failure();
++}
++
++static FailureOr<DenseElementsAttr> getDenseElementsAttr(Value value) {
++  auto literal = value.getDefiningOp<ValueTensorLiteralOp>();
++  if (!literal)
++    return failure();
++
++  auto valueAttr = literal.getValueAttr();
++  if (auto denseAttr = dyn_cast<DenseElementsAttr>(valueAttr))
++    return denseAttr;
++
++  auto resourceAttr = dyn_cast<DenseResourceElementsAttr>(valueAttr);
++  if (!resourceAttr)
++    return failure();
++
++  auto *blob = resourceAttr.getRawHandle().getBlob();
++  if (!blob)
++    return failure();
++
++  return DenseElementsAttr::getFromRawBuffer(
++      cast<ShapedType>(resourceAttr.getType()), blob->getData());
++}
++
++static FailureOr<DenseElementsAttr>
++quantizeFloatLiteralToInt(DenseElementsAttr denseAttr, ShapedType targetType,
++                          double scale, int64_t zeroPoint) {
++  auto sourceType = dyn_cast<ShapedType>(denseAttr.getType());
++  if (!sourceType || !isa<mlir::FloatType>(sourceType.getElementType()))
++    return failure();
++
++  auto targetElemType = dyn_cast<IntegerType>(targetType.getElementType());
++  if (!targetElemType)
++    return failure();
++
++  auto clampToTargetRange = [&](int64_t value) -> int64_t {
++    unsigned width = targetElemType.getWidth();
++    bool isUnsigned = targetElemType.isUnsignedInteger();
++    if (!isUnsigned) {
++      int64_t minValue = -(int64_t{1} << (width - 1));
++      int64_t maxValue = (int64_t{1} << (width - 1)) - 1;
++      return std::clamp(value, minValue, maxValue);
++    }
++    int64_t maxValue = (int64_t{1} << width) - 1;
++    return std::clamp<int64_t>(value, 0, maxValue);
++  };
++
++  auto quantizeFloat = [&](const APFloat &value) -> APInt {
++    int64_t quantized =
++        std::llround(value.convertToDouble() / scale) + zeroPoint;
++    quantized = clampToTargetRange(quantized);
++    return APInt(targetElemType.getWidth(), quantized,
++                 /*isSigned=*/!targetElemType.isUnsignedInteger());
++  };
++
++  if (denseAttr.isSplat())
++    return success(DenseElementsAttr::get(
++        targetType, quantizeFloat(denseAttr.getSplatValue<APFloat>())));
++
++  SmallVector<Attribute> values;
++  values.reserve(denseAttr.getNumElements());
++  for (APFloat value : denseAttr.getValues<APFloat>())
++    values.push_back(IntegerAttr::get(targetElemType, quantizeFloat(value)));
++  return success(DenseElementsAttr::get(targetType, values));
++}
++
+ // A QCommutingOp is an Op satisfying:
+ // 1. Has at most one tensor operand at index 0
+ // 2. Has a single output, which is a tensor
+@@ -49,7 +136,16 @@ bool isQCommutingOp(mlir::Operation *op) {
+ }
+ 
+ struct QuantizedChain {
++  enum class SourceKind { MakePerTensor, QuantizePerTensor };
++  enum class ScaleAdjustmentKind { Mul, Div };
++  struct ScaleAdjustment {
++    ScaleAdjustmentKind kind;
++    Value scalar;
++  };
++
++  SourceKind sourceKind;
+   std::stack<mlir::Operation *> commutingOpStack;
++  SmallVector<ScaleAdjustment> scaleAdjustments;
+   Value dequantOpd, MPTQTOpd, scale, zeroPoint;
+ };
+ 
+@@ -83,7 +179,8 @@ public:
+     for (unsigned i : QuantInfo<SrcOp>::operandsToQuantize) {
+       Value operand = operands[i];
+       QuantizedChain chain;
+-      for (unsigned k = 0; k < depth + 1; k++) {
++      bool sawDequant = false;
++      for (unsigned k = 0; k < depth + 2; k++) {
+         auto currOp = operand.getDefiningOp();
+         // Case 0 : currOp is a nullptr (e.g., operand is a block argument)
+         if (!currOp)
+@@ -95,21 +192,48 @@ public:
+           operand = currOp->getOperand(0);
+           continue;
+         }
+-        // Case 2 : currOp is a dequant op (end loop)
++        // Case 1b : scalar mul/div can commute by adjusting the quant scale
++        if (auto divScalar = dyn_cast<AtenDivScalarOp>(currOp)) {
++          chain.scaleAdjustments.push_back(
++              {QuantizedChain::ScaleAdjustmentKind::Div,
++               divScalar.getOther()});
++          operand = divScalar.getSelf();
++          continue;
++        }
++        if (auto mulScalar = dyn_cast<AtenMulScalarOp>(currOp)) {
++          chain.scaleAdjustments.push_back(
++              {QuantizedChain::ScaleAdjustmentKind::Mul,
++               mulScalar.getOther()});
++          operand = mulScalar.getSelf();
++          continue;
++        }
++        // Case 2 : currOp is a dequant op. Keep tracing backward through any
++        // quantized q-commuting ops to the source quantized tensor.
+         if (llvm::isa<AtenDequantizeSelfOp, AtenDequantizeTensorOp>(currOp)) {
++          sawDequant = true;
+           chain.dequantOpd = currOp->getOperand(0);
++          operand = chain.dequantOpd;
++          continue;
++        }
++        if (sawDequant) {
+           // Bail out if any operand is per-channel quantized, which would
+           // require more complex fusion logic.
+-          if (llvm::isa<Aten_MakePerChannelQuantizedTensorOp>(
+-                  chain.dequantOpd.getDefiningOp()))
++          if (llvm::isa<Aten_MakePerChannelQuantizedTensorOp>(currOp))
+             break;
+ 
+-          auto MPTQTOp =
+-              chain.dequantOpd
+-                  .getDefiningOp<Aten_MakePerTensorQuantizedTensorOp>();
+-          chain.MPTQTOpd = MPTQTOp.getOperand(0);
+-          chain.scale = MPTQTOp.getOperand(1);
+-          chain.zeroPoint = MPTQTOp.getOperand(2);
++          if (auto MPTQTOp = dyn_cast<Aten_MakePerTensorQuantizedTensorOp>(currOp)) {
++            chain.sourceKind = QuantizedChain::SourceKind::MakePerTensor;
++            chain.MPTQTOpd = MPTQTOp.getOperand(0);
++            chain.scale = MPTQTOp.getOperand(1);
++            chain.zeroPoint = MPTQTOp.getOperand(2);
++            break;
++          } else if (auto quantOp = dyn_cast<AtenQuantizePerTensorOp>(currOp)) {
++            chain.sourceKind = QuantizedChain::SourceKind::QuantizePerTensor;
++            chain.MPTQTOpd = quantOp.getResult();
++            chain.scale = quantOp.getScale();
++            chain.zeroPoint = quantOp.getZeroPoint();
++            break;
++          }
+         }
+         // either a dequant was found or chain broken, so break loop
+         break;
+@@ -123,21 +247,31 @@ public:
+     // Continuing the rewriting with only some of the operandsToQuantize traced
+     // successfully is possible but leads to "half-quantized" ops which are
+     // expected to cause problems in later lowering steps. We opt out of
+-    // treating these cases for now.
++    // treating these cases for now. Avoid emitting a warning here because
++    // greedy rewriting can revisit the op after other quantized rewrites make
++    // the chain complete, which would otherwise produce stale false positives.
+     if (operandChains.size() !=
+         std::size(QuantInfo<SrcOp>::operandsToQuantize)) {
+-      if (!operandChains.empty())
+-        op.emitWarning("Partially traced quantized operands. This op will "
+-                       "remain in QDQ form.");
+       return rewriter.notifyMatchFailure(
+           op, "did not find a complete quantized chain for all operands");
+     }
+ 
+     for (auto &&[i, chain] : llvm::enumerate(operandChains)) {
+       // rewrite stack
++      auto qTensorType = cast<ValueTensorType>(chain.dequantOpd.getType());
++      Type qDType = qTensorType.getOptionalDtype();
++      Type intDType = getStorageTypeForQuantizedDtype(op.getContext(), qDType);
++      if (!intDType)
++        return rewriter.notifyMatchFailure(op, "unsupported quantized storage type");
++
+       Value oldOpd = chain.MPTQTOpd;
+-      Type intDType =
+-          cast<ValueTensorType>(chain.MPTQTOpd.getType()).getOptionalDtype();
++      if (chain.sourceKind ==
++          QuantizedChain::SourceKind::QuantizePerTensor) {
++        auto sourceQType = cast<ValueTensorType>(chain.MPTQTOpd.getType());
++        auto intType = rewriter.getType<ValueTensorType>(
++            sourceQType.getSizes(), intDType);
++        oldOpd = AtenIntReprOp::create(rewriter, loc, intType, chain.MPTQTOpd);
++      }
+       while (!chain.commutingOpStack.empty()) {
+         // get front of the commuting op stack and replace its first operand
+         // with oldOpd
+@@ -203,14 +337,24 @@ public:
+       // stack is empty, so oldOpd is now the corrected verion of the
+       // SrcOp's original operand
+       // convert operand -> SrcOp to oldOpd -> newMPTQTOp -> SrcOp
+-      auto MPTQTOperands = chain.dequantOpd.getDefiningOp()->getOperands();
+-      auto qTorchType =
+-          cast<ValueTensorType>(chain.dequantOpd.getType()).getOptionalDtype();
+       auto newMPTQTType = rewriter.getType<ValueTensorType>(
+-          cast<ValueTensorType>(operands[i].getType()).getSizes(), qTorchType);
++          cast<ValueTensorType>(operands[i].getType()).getSizes(), qDType);
++      Value adjustedScale = chain.scale;
++      for (auto it = chain.scaleAdjustments.rbegin();
++           it != chain.scaleAdjustments.rend(); ++it) {
++        if (it->kind == QuantizedChain::ScaleAdjustmentKind::Div) {
++          adjustedScale = AtenDivFloatOp::create(
++              rewriter, loc, adjustedScale.getType(), adjustedScale,
++              it->scalar);
++        } else {
++          adjustedScale = AtenMulFloatOp::create(
++              rewriter, loc, adjustedScale.getType(), adjustedScale,
++              it->scalar);
++        }
++      }
+       operands[i] = Aten_MakePerTensorQuantizedTensorOp::create(
+-          rewriter, loc, newMPTQTType, oldOpd, MPTQTOperands[1],
+-          MPTQTOperands[2]);
++          rewriter, loc, newMPTQTType, oldOpd, adjustedScale,
++          chain.zeroPoint);
+     }
+ 
+     rewriter.replaceOpWithNewOp<SrcOp>(op, op.getType(), operands);
+@@ -301,6 +445,28 @@ public:
+ 
+   LogicalResult matchAndRewrite(SrcOp op,
+                                 PatternRewriter &rewriter) const override {
++    auto tracePerTensorQuantSource = [&](Value v, Value &scale) {
++      for (unsigned depth = 0; depth < 6; ++depth) {
++        auto *currOp = v.getDefiningOp();
++        if (!currOp)
++          return failure();
++        if (isQCommutingOp(currOp)) {
++          v = currOp->getOperand(0);
++          continue;
++        }
++        if (auto quant = dyn_cast<Aten_MakePerTensorQuantizedTensorOp>(currOp)) {
++          scale = quant.getScale();
++          return success();
++        }
++        if (auto quant = dyn_cast<AtenQuantizePerTensorOp>(currOp)) {
++          scale = quant.getScale();
++          return success();
++        }
++        return failure();
++      }
++      return failure();
++    };
++
+     auto lhs = op.getOperand(0);
+     auto rhs = op.getOperand(1);
+ 
+@@ -313,16 +479,10 @@ public:
+       return failure();
+ 
+     Value lhsScale;
+-    if (auto defining =
+-            lhs.template getDefiningOp<Aten_MakePerTensorQuantizedTensorOp>()) {
+-      lhsScale = defining.getScale();
+-    }
++    (void)tracePerTensorQuantSource(lhs, lhsScale);
+ 
+     Value rhsScale;
+-    if (auto defining =
+-            rhs.template getDefiningOp<Aten_MakePerTensorQuantizedTensorOp>()) {
+-      rhsScale = defining.getScale();
+-    }
++    (void)tracePerTensorQuantSource(rhs, rhsScale);
+ 
+     if (!lhsScale || !rhsScale)
+       return failure();
+@@ -442,32 +602,685 @@ public:
+   }
+ };
++
++class DecomposeLinearForQuantFusion : public OpRewritePattern<AtenLinearOp> {
++public:
++  using OpRewritePattern<AtenLinearOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenLinearOp op,
++                                PatternRewriter &rewriter) const override {
++    Location loc = op.getLoc();
++    Value input = op.getInput();
++    Value weight = op.getWeight();
++    Value bias = op.getBias();
++
++    auto inputType = dyn_cast<BaseTensorType>(input.getType());
++    auto weightType = dyn_cast<BaseTensorType>(weight.getType());
++    if (!inputType || !inputType.hasSizes() || !weightType ||
++        !weightType.hasSizes())
++      return failure();
++
++    auto transposeWeight = [&]() -> Value {
++      SmallVector<int64_t> transposeShape =
++          llvm::to_vector(llvm::reverse(weightType.getSizes()));
++      Type transposeType = weightType.getWithSizesAndDtype(
++          llvm::ArrayRef(transposeShape), weightType.getOptionalDtype());
++      Value dim0 =
++          ConstantIntOp::create(rewriter, loc, rewriter.getI64IntegerAttr(0));
++      Value dim1 =
++          ConstantIntOp::create(rewriter, loc, rewriter.getI64IntegerAttr(1));
++      return AtenTransposeIntOp::create(rewriter, loc, transposeType, weight,
++                                        dim0, dim1);
++    };
++
++    auto weightRank = weightType.getSizes().size();
++    if (isa<Torch::NoneType>(bias.getType())) {
++      if (weightRank == 1) {
++        rewriter.replaceOpWithNewOp<AtenMatmulOp>(op, op.getType(), input,
++                                                  weight);
++        return success();
++      }
++      if (weightRank == 2) {
++        rewriter.replaceOpWithNewOp<AtenMatmulOp>(op, op.getType(), input,
++                                                  transposeWeight());
++        return success();
++      }
++      return failure();
++    }
++
++    auto biasType = dyn_cast<BaseTensorType>(bias.getType());
++    if (!biasType || !biasType.hasSizes() || biasType.getSizes().size() != 1 ||
++        weightRank != 2)
++      return failure();
++
++    Value matmul = AtenMatmulOp::create(rewriter, loc, op.getType(), input,
++                                        transposeWeight());
++    Value alpha =
++        ConstantIntOp::create(rewriter, loc, rewriter.getI64IntegerAttr(1));
++    rewriter.replaceOpWithNewOp<AtenAddTensorOp>(op, op.getType(), matmul, bias,
++                                                 alpha);
++    return success();
++  }
++};
++
++class QuantizeBiasAddAfterQMatmul : public OpRewritePattern<AtenAddTensorOp> {
++public:
++  using OpRewritePattern<AtenAddTensorOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenAddTensorOp op,
++                                PatternRewriter &rewriter) const override {
++    auto resultTy = dyn_cast<BaseTensorType>(op.getType());
++    if (!resultTy || !resultTy.hasDtype() ||
++        !isa<mlir::FloatType>(resultTy.getDtype()))
++      return failure();
++
++    auto lhsDequant = op.getSelf().getDefiningOp<AtenDequantizeTensorOp>();
++    if (!lhsDequant)
++      return failure();
++
++    auto lhsQuant =
++        lhsDequant.getQtensor().getDefiningOp<Aten_MakePerTensorQuantizedTensorOp>();
++    if (!lhsQuant)
++      return failure();
++
++    auto lhsInt = lhsQuant.getSelf();
++    auto lhsIntTy = dyn_cast<BaseTensorType>(lhsInt.getType());
++    if (!lhsIntTy || !lhsIntTy.hasDtype() || !lhsIntTy.getDtype().isInteger(32))
++      return failure();
++
++    Value alpha = op.getAlpha();
++    int64_t alphaValue;
++    if (!matchPattern(alpha, m_TorchConstantInt(&alphaValue)) ||
++        alphaValue != 1) {
++      return rewriter.notifyMatchFailure(op, "only alpha=1 is supported");
++    }
++
++    int64_t zeroPoint;
++    if (!matchPattern(lhsQuant.getZeroPoint(), m_TorchConstantInt(&zeroPoint)) ||
++        zeroPoint != 0) {
++      return rewriter.notifyMatchFailure(
++          op, "only zero-point 0 quantized accumulators are supported");
++    }
++
++    auto biasTy = dyn_cast<BaseTensorType>(op.getOther().getType());
++    if (!biasTy || !biasTy.hasDtype() || !isa<mlir::FloatType>(biasTy.getDtype()))
++      return failure();
++
++    auto qi32Ty = rewriter.getType<QInt32Type>();
++    Value scale = lhsQuant.getScale();
++    Value zero = lhsQuant.getZeroPoint();
++
++    auto qBiasTy = cast<BaseTensorType>(
++        biasTy.getWithSizesAndDtype(biasTy.getOptionalSizes(), qi32Ty));
++    auto biasIntTy = cast<BaseTensorType>(biasTy.getWithSizesAndDtype(
++        biasTy.getOptionalSizes(),
++        rewriter.getIntegerType(32, IntegerType::Signed)));
++    Value biasInt;
++    Value qBias;
++    auto denseAttr = getDenseElementsAttr(op.getOther());
++    if (succeeded(denseAttr)) {
++      double scaleValue;
++      if (!matchPattern(scale, m_TorchConstantFloat(&scaleValue)) ||
++          scaleValue <= 0.0) {
++        return rewriter.notifyMatchFailure(
++            op, "literal bias requires a positive constant scale");
++      }
++
++      auto denseType = cast<ShapedType>(denseAttr->getType());
++      auto biasIntLiteralType =
++          RankedTensorType::get(denseType.getShape(), rewriter.getI32Type());
++      auto quantizedBiasAttr =
++          quantizeFloatLiteralToInt(*denseAttr, biasIntLiteralType, scaleValue,
++                                    zeroPoint);
++      if (failed(quantizedBiasAttr)) {
++        return rewriter.notifyMatchFailure(
++            op, "failed to quantize literal bias to int32");
++      }
++
++      biasInt = ValueTensorLiteralOp::create(rewriter, op.getLoc(),
++                                             *quantizedBiasAttr);
++      biasInt = adjustStaticInformation(rewriter, op.getLoc(), biasInt,
++                                        biasIntTy, /*userAllowsRefinement=*/false);
++      qBias = Aten_MakePerTensorQuantizedTensorOp::create(
++          rewriter, op.getLoc(), qBiasTy, biasInt, scale, zero);
++    } else {
++      qBias = AtenQuantizePerTensorOp::create(
++          rewriter, op.getLoc(), qBiasTy, op.getOther(), scale, zero,
++          getDtypeIntValueForType(rewriter, op.getLoc(), qi32Ty));
++      biasInt =
++          AtenIntReprOp::create(rewriter, op.getLoc(), biasIntTy, qBias);
++    }
++
++    auto addIntTy = cast<BaseTensorType>(resultTy.getWithSizesAndDtype(
++        resultTy.getOptionalSizes(), biasIntTy.getDtype()));
++    Value addInt = AtenAddTensorOp::create(rewriter, op.getLoc(), addIntTy,
++                                           lhsInt, biasInt, alpha);
++    auto qOutTy = cast<BaseTensorType>(
++        resultTy.getWithSizesAndDtype(resultTy.getOptionalSizes(), qi32Ty));
++    Value qOut = Aten_MakePerTensorQuantizedTensorOp::create(
++        rewriter, op.getLoc(), qOutTy, addInt, scale, zero);
++    rewriter.replaceOpWithNewOp<AtenDequantizeTensorOp>(op, resultTy, qOut);
++    return success();
++  }
++};
++
++class RequantizeQint32ToQint8 : public OpRewritePattern<AtenQuantizePerTensorOp> {
++public:
++  using OpRewritePattern<AtenQuantizePerTensorOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenQuantizePerTensorOp op,
++                                PatternRewriter &rewriter) const override {
++    auto resultTy = dyn_cast<BaseTensorType>(op.getType());
++    if (!resultTy || !resultTy.hasDtype())
++      return failure();
++
++    Type qdtype = resultTy.getDtype();
++    auto quantBounds = getQuantizedBounds(qdtype);
++    if (failed(quantBounds))
++      return failure();
++
++    Value operand = op.getSelf();
++    std::stack<Operation *> commutingOpStack;
++    for (unsigned depth = 0; depth < 5; ++depth) {
++      auto *currOp = operand.getDefiningOp();
++      if (!currOp)
++        break;
++      if (isQCommutingOp(currOp)) {
++        commutingOpStack.push(currOp);
++        operand = currOp->getOperand(0);
++        continue;
++      }
++      break;
++    }
++
++    auto inputDequant = operand.getDefiningOp<AtenDequantizeTensorOp>();
++    if (!inputDequant)
++      return failure();
++
++    auto inputQuant = inputDequant.getQtensor()
++                          .getDefiningOp<Aten_MakePerTensorQuantizedTensorOp>();
++    if (!inputQuant)
++      return failure();
++
++    auto inputQTy = dyn_cast<BaseTensorType>(inputDequant.getQtensor().getType());
++    if (!inputQTy || !inputQTy.hasDtype() || !isa<QInt32Type>(inputQTy.getDtype()))
++      return failure();
++
++    auto inputIntTy = dyn_cast<BaseTensorType>(inputQuant.getSelf().getType());
++    if (!inputIntTy || !inputIntTy.hasDtype() ||
++        !inputIntTy.getDtype().isInteger(32))
++      return failure();
++
++    double inputScale, outputScale;
++    int64_t inputZeroPoint, outputZeroPoint;
++    if (!matchPattern(inputQuant.getScale(), m_TorchConstantFloat(&inputScale)) ||
++        !matchPattern(op.getScale(), m_TorchConstantFloat(&outputScale)) ||
++        !matchPattern(inputQuant.getZeroPoint(),
++                      m_TorchConstantInt(&inputZeroPoint)) ||
++        !matchPattern(op.getZeroPoint(), m_TorchConstantInt(&outputZeroPoint)))
++      return failure();
++
++    if (inputScale <= 0.0 || outputScale <= 0.0)
++      return rewriter.notifyMatchFailure(op, "quantization scales must be > 0");
++
++    int32_t multiplier = 0;
++    int32_t shift = 0;
++    if (!tosa::computeMultiplierAndShift(inputScale / outputScale, multiplier,
++                                         shift, /*scaleWidth=*/32))
++      return rewriter.notifyMatchFailure(op, "failed to compute requant scale");
++
++    Location loc = op.getLoc();
++    Type i64Ty = rewriter.getIntegerType(64, IntegerType::Signed);
++    auto i64TensorTy = cast<BaseTensorType>(
++        inputIntTy.getWithSizesAndDtype(inputIntTy.getOptionalSizes(), i64Ty));
++    Value integerOperand = inputQuant.getSelf();
++    Type intDType =
++        cast<ValueTensorType>(inputQuant.getSelf().getType()).getOptionalDtype();
++    while (!commutingOpStack.empty()) {
++      auto *currOp = commutingOpStack.top();
++      commutingOpStack.pop();
++      SmallVector<Value> currOperands(currOp->getOperands());
++      currOperands[0] = integerOperand;
++      auto oldType = cast<ValueTensorType>(currOp->getResultTypes()[0]);
++      auto intType =
++          rewriter.getType<ValueTensorType>(oldType.getSizes(), intDType);
++      integerOperand =
++          rewriter
++              .create(loc, (currOp->getName()).getIdentifier(), currOperands,
++                      intType, currOp->getAttrs())
++              ->getResult(0);
++    }
++
++    auto integerOperandTy =
++        dyn_cast<BaseTensorType>(integerOperand.getType());
++    if (!integerOperandTy || !integerOperandTy.hasDtype() ||
++        !integerOperandTy.getDtype().isInteger(32))
++      return failure();
++    auto routedI64TensorTy = cast<BaseTensorType>(integerOperandTy.getWithSizesAndDtype(
++        integerOperandTy.getOptionalSizes(), i64Ty));
++    Value requant =
++        convertTensorToDtype(rewriter, loc, integerOperand, i64Ty);
++
++    Value one = ConstantIntOp::create(
++        rewriter, loc, rewriter.getType<Torch::IntType>(),
++        rewriter.getIntegerAttr(rewriter.getIntegerType(64), 1));
++    if (inputZeroPoint != 0) {
++      Value inputZp = ConstantIntOp::create(
++          rewriter, loc, rewriter.getType<Torch::IntType>(),
++          rewriter.getIntegerAttr(rewriter.getIntegerType(64), inputZeroPoint));
++      requant = AtenSubScalarOp::create(rewriter, loc, routedI64TensorTy, requant,
++                                        inputZp, one);
++    }
++
++    Value multiplierValue = ConstantIntOp::create(
++        rewriter, loc, rewriter.getType<Torch::IntType>(),
++        rewriter.getIntegerAttr(rewriter.getIntegerType(64), multiplier));
++    requant = AtenMulScalarOp::create(rewriter, loc, routedI64TensorTy, requant,
++                                      multiplierValue);
++
++    if (shift > 0) {
++      Value roundBias = ConstantIntOp::create(
++          rewriter, loc, rewriter.getType<Torch::IntType>(),
++          rewriter.getIntegerAttr(rewriter.getIntegerType(64),
++                                  int64_t{1} << (shift - 1)));
++      requant = AtenAddScalarOp::create(rewriter, loc, routedI64TensorTy, requant,
++                                        roundBias, one);
++      Value shiftValue = ConstantIntOp::create(
++          rewriter, loc, rewriter.getType<Torch::IntType>(),
++          rewriter.getIntegerAttr(rewriter.getIntegerType(64), shift));
++      requant = Aten__Rshift__ScalarOp::create(rewriter, loc, routedI64TensorTy,
++                                               requant, shiftValue);
++    }
++
++    if (outputZeroPoint != 0) {
++      Value outputZp = ConstantIntOp::create(
++          rewriter, loc, rewriter.getType<Torch::IntType>(),
++          rewriter.getIntegerAttr(rewriter.getIntegerType(64), outputZeroPoint));
++      requant = AtenAddScalarOp::create(rewriter, loc, routedI64TensorTy, requant,
++                                        outputZp, one);
++    }
++
++    auto [qmin, qmax] = *quantBounds;
++    Value qminValue = ConstantIntOp::create(
++        rewriter, loc, rewriter.getType<Torch::IntType>(),
++        rewriter.getIntegerAttr(rewriter.getIntegerType(64), qmin));
++    Value qmaxValue = ConstantIntOp::create(
++        rewriter, loc, rewriter.getType<Torch::IntType>(),
++        rewriter.getIntegerAttr(rewriter.getIntegerType(64), qmax));
++    requant = AtenClampOp::create(rewriter, loc, routedI64TensorTy, requant, qminValue,
++                                  qmaxValue);
++
++    Type storageTy = getStorageTypeForQuantizedDtype(rewriter.getContext(), qdtype);
++    if (!storageTy)
++      return failure();
++
++    Value storage = convertTensorToDtype(rewriter, loc, requant, storageTy);
++
++    rewriter.replaceOpWithNewOp<Aten_MakePerTensorQuantizedTensorOp>(
++        op, resultTy, storage, op.getScale(), op.getZeroPoint());
++    return success();
++  }
++};
++
++class RemoveRedundantClampAfterQuantize
++    : public OpRewritePattern<AtenClampOp> {
++public:
++  using OpRewritePattern<AtenClampOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenClampOp op,
++                                PatternRewriter &rewriter) const override {
++    auto resultTy = dyn_cast<BaseTensorType>(op.getType());
++    if (!resultTy || !resultTy.hasDtype())
++      return failure();
++
++    auto intRepr = op.getSelf().getDefiningOp<AtenIntReprOp>();
++    Value passthrough = op.getSelf();
++    if (!intRepr) {
++      auto innerClamp = op.getSelf().getDefiningOp<AtenClampOp>();
++      if (!innerClamp)
++        return failure();
++      intRepr = innerClamp.getSelf().getDefiningOp<AtenIntReprOp>();
++      if (!intRepr)
++        return failure();
++      passthrough = innerClamp.getResult();
++    }
++
++    auto quant = intRepr.getSelf().getDefiningOp<AtenQuantizePerTensorOp>();
++    if (!quant)
++      return failure();
++
++    auto qTy = dyn_cast<BaseTensorType>(quant.getType());
++    if (!qTy || !qTy.hasDtype())
++      return failure();
++
++    auto quantBounds = getQuantizedBounds(qTy.getDtype());
++    if (failed(quantBounds))
++      return failure();
++    auto [qmin, qmax] = *quantBounds;
++
++    int64_t minValue, maxValue;
++    if (!matchPattern(op.getMin(), m_TorchConstantInt(&minValue)) ||
++        !matchPattern(op.getMax(), m_TorchConstantInt(&maxValue)))
++      return failure();
++
++    if (minValue != qmin || maxValue != qmax)
++      return failure();
++
++    rewriter.replaceOp(op, passthrough);
++    return success();
++  }
++};
++
++class RemoveIdentityContiguous : public OpRewritePattern<AtenContiguousOp> {
++public:
++  using OpRewritePattern<AtenContiguousOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenContiguousOp op,
++                                PatternRewriter &rewriter) const override {
++    if (op.getSelf().getType() != op.getType())
++      return failure();
++    rewriter.replaceOp(op, op.getSelf());
++    return success();
++  }
++};
++
++class RemoveRequantizeAfterQCommutingOps
++    : public OpRewritePattern<AtenQuantizePerTensorOp> {
++public:
++  using OpRewritePattern<AtenQuantizePerTensorOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenQuantizePerTensorOp op,
++                                PatternRewriter &rewriter) const override {
++    auto resultTy = dyn_cast<BaseTensorType>(op.getType());
++    if (!resultTy || !resultTy.hasDtype())
++      return failure();
++
++    Value operand = op.getSelf();
++    std::stack<Operation *> commutingOpStack;
++    for (unsigned depth = 0; depth < 5; ++depth) {
++      auto *currOp = operand.getDefiningOp();
++      if (!currOp)
++        break;
++      if (isQCommutingOp(currOp)) {
++        commutingOpStack.push(currOp);
++        operand = currOp->getOperand(0);
++        continue;
++      }
++      break;
++    }
++
++    auto inputDequant = operand.getDefiningOp<AtenDequantizeTensorOp>();
++    if (!inputDequant)
++      return failure();
++
++    auto inputQuant = inputDequant.getQtensor()
++                          .getDefiningOp<Aten_MakePerTensorQuantizedTensorOp>();
++    if (!inputQuant)
++      return failure();
++
++    auto inputQTy =
++        dyn_cast<BaseTensorType>(inputDequant.getQtensor().getType());
++    if (!inputQTy || !inputQTy.hasDtype() ||
++        inputQTy.getDtype() != resultTy.getDtype())
++      return failure();
++
++    double inputScale, outputScale;
++    int64_t inputZeroPoint, outputZeroPoint;
++    if (!matchPattern(inputQuant.getScale(), m_TorchConstantFloat(&inputScale)) ||
++        !matchPattern(op.getScale(), m_TorchConstantFloat(&outputScale)) ||
++        !matchPattern(inputQuant.getZeroPoint(),
++                      m_TorchConstantInt(&inputZeroPoint)) ||
++        !matchPattern(op.getZeroPoint(), m_TorchConstantInt(&outputZeroPoint)))
++      return failure();
++    if (inputScale != outputScale || inputZeroPoint != outputZeroPoint)
++      return failure();
++
++    Location loc = op.getLoc();
++    Value oldOpd = inputQuant.getSelf();
++    Type intDType =
++        cast<ValueTensorType>(inputQuant.getSelf().getType()).getOptionalDtype();
++    while (!commutingOpStack.empty()) {
++      auto *currOp = commutingOpStack.top();
++      commutingOpStack.pop();
++      SmallVector<Value> currOperands(currOp->getOperands());
++      currOperands[0] = oldOpd;
++      auto oldType = cast<ValueTensorType>(currOp->getResultTypes()[0]);
++      auto intType =
++          rewriter.getType<ValueTensorType>(oldType.getSizes(), intDType);
++      oldOpd = rewriter
++                   .create(loc, (currOp->getName()).getIdentifier(), currOperands,
++                           intType, currOp->getAttrs())
++                   ->getResult(0);
++    }
++
++    rewriter.replaceOpWithNewOp<Aten_MakePerTensorQuantizedTensorOp>(
++        op, resultTy, oldOpd, inputQuant.getScale(), inputQuant.getZeroPoint());
++    return success();
++  }
++};
++
++class QuantizeAttentionSoftmaxOutput
++    : public OpRewritePattern<AtenSoftmaxIntOp> {
++public:
++  using OpRewritePattern<AtenSoftmaxIntOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenSoftmaxIntOp op,
++                                PatternRewriter &rewriter) const override {
++    auto resultTy = dyn_cast<BaseTensorType>(op.getType());
++    if (!resultTy || !resultTy.hasDtype() ||
++        !isa<mlir::FloatType>(resultTy.getDtype()))
++      return failure();
++
++    bool hasNonQuantizedUser = llvm::any_of(op.getResult().getUsers(), [](Operation *user) {
++      return !isa<AtenQuantizePerTensorOp, AtenIntReprOp,
++                  Aten_MakePerTensorQuantizedTensorOp,
++                  AtenDequantizeTensorOp>(user);
++    });
++    if (!hasNonQuantizedUser)
++      return rewriter.notifyMatchFailure(op, "softmax is already wrapped in quantize/dequantize");
++
++    bool hasAttentionMatmulUser =
++        llvm::any_of(op.getResult().getUsers(), [](Operation *user) {
++          return isa<AtenMatmulOp, AtenMmOp>(user);
++        });
++    if (!hasAttentionMatmulUser)
++      return rewriter.notifyMatchFailure(
++          op, "softmax does not feed a quantizable attention matmul");
++
++    auto getInputQTensor = [](Value value) -> Value {
++      Operation *definingOp = value.getDefiningOp();
++      if (!definingOp)
++        return {};
++      if (auto divScalar = dyn_cast<AtenDivScalarOp>(definingOp))
++        definingOp = divScalar.getSelf().getDefiningOp();
++      if (!definingOp ||
++          !isa<AtenDequantizeSelfOp, AtenDequantizeTensorOp>(definingOp))
++        return {};
++      return definingOp->getOperand(0);
++    };
++
++    Value inputQTensor = getInputQTensor(op.getSelf());
++    if (!inputQTensor)
++      return rewriter.notifyMatchFailure(
++          op, "softmax input is not a dequantized quantized tensor");
++
++    auto *inputQuantOp = inputQTensor.getDefiningOp();
++    if (!inputQuantOp ||
++        !isa<Aten_MakePerTensorQuantizedTensorOp, AtenQuantizePerTensorOp>(
++            inputQuantOp))
++      return rewriter.notifyMatchFailure(
++          op, "softmax input is not backed by a per-tensor quantized op");
++
++    auto inputQTy = dyn_cast<BaseTensorType>(inputQTensor.getType());
++    if (!inputQTy || !inputQTy.hasDtype() ||
++        !isa<QInt8Type, QUInt8Type, QInt32Type>(inputQTy.getDtype()))
++      return failure();
++
++    Location loc = op.getLoc();
++    auto qOutDtype = rewriter.getType<QUInt8Type>();
++    auto qOutTy = cast<BaseTensorType>(
++        resultTy.getWithSizesAndDtype(resultTy.getOptionalSizes(), qOutDtype));
++    auto storageTy = cast<BaseTensorType>(resultTy.getWithSizesAndDtype(
++        resultTy.getOptionalSizes(),
++        IntegerType::get(rewriter.getContext(), 8, IntegerType::Unsigned)));
++
++    Value softmax = AtenSoftmaxIntOp::create(rewriter, loc, resultTy,
++                                             op.getSelf(), op.getDim(),
++                                             op.getDtype());
++    Value scale = ConstantFloatOp::create(
++        rewriter, loc, rewriter.getF64FloatAttr(1.0 / 256.0));
++    Value zero = ConstantIntOp::create(
++        rewriter, loc, rewriter.getType<Torch::IntType>(),
++        rewriter.getIntegerAttr(rewriter.getIntegerType(64), 0));
++    Value dtype = getDtypeIntValueForType(rewriter, loc, qOutDtype);
++
++    Value quant = AtenQuantizePerTensorOp::create(rewriter, loc, qOutTy,
++                                                  softmax, scale, zero, dtype);
++    Value intRepr =
++        AtenIntReprOp::create(rewriter, loc, storageTy, quant);
++    Value qSoftmax = Aten_MakePerTensorQuantizedTensorOp::create(
++        rewriter, loc, qOutTy, intRepr, scale, zero);
++    rewriter.replaceOpWithNewOp<AtenDequantizeTensorOp>(op, resultTy, qSoftmax);
++    return success();
++  }
++};
++
++class QuantizeDecomposedAttentionSoftmaxOutput
++    : public OpRewritePattern<AtenDivTensorOp> {
++public:
++  using OpRewritePattern<AtenDivTensorOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenDivTensorOp op,
++                                PatternRewriter &rewriter) const override {
++    auto resultTy = dyn_cast<BaseTensorType>(op.getType());
++    if (!resultTy || !resultTy.hasDtype() ||
++        !isa<mlir::FloatType>(resultTy.getDtype()))
++      return failure();
++
++    bool hasNonQuantizedUser = llvm::any_of(op.getResult().getUsers(), [](Operation *user) {
++      return !isa<AtenQuantizePerTensorOp, AtenIntReprOp,
++                  Aten_MakePerTensorQuantizedTensorOp,
++                  AtenDequantizeTensorOp>(user);
++    });
++    if (!hasNonQuantizedUser)
++      return rewriter.notifyMatchFailure(
++          op, "decomposed softmax is already wrapped in quantize/dequantize");
++
++    auto exp = op.getSelf().getDefiningOp<AtenExpOp>();
++    if (!exp)
++      return failure();
++
++    auto sum = op.getOther().getDefiningOp<AtenSumDimIntListOp>();
++    if (!sum || sum.getSelf() != exp.getResult())
++      return failure();
++
++    auto sub = exp.getSelf().getDefiningOp<AtenSubTensorOp>();
++    if (!sub)
++      return failure();
++
++    auto max = sub.getOther().getDefiningOp<AtenMaxDimOp>();
++    if (!max || sub.getSelf() != max.getSelf() ||
++        sub.getOther() != max->getResult(0))
++      return failure();
++
++    Location loc = op.getLoc();
++    auto qOutDtype = rewriter.getType<QUInt8Type>();
++    auto qOutTy = cast<BaseTensorType>(
++        resultTy.getWithSizesAndDtype(resultTy.getOptionalSizes(), qOutDtype));
++    auto storageTy = cast<BaseTensorType>(resultTy.getWithSizesAndDtype(
++        resultTy.getOptionalSizes(),
++        IntegerType::get(rewriter.getContext(), 8, IntegerType::Unsigned)));
++
++    Value scale = ConstantFloatOp::create(
++        rewriter, loc, rewriter.getF64FloatAttr(1.0 / 256.0));
++    Value zero = ConstantIntOp::create(
++        rewriter, loc, rewriter.getType<Torch::IntType>(),
++        rewriter.getIntegerAttr(rewriter.getIntegerType(64), 0));
++    Value dtype = getDtypeIntValueForType(rewriter, loc, qOutDtype);
++
++    OpBuilder::InsertionGuard guard(rewriter);
++    rewriter.setInsertionPointAfter(op);
++    Value quant = AtenQuantizePerTensorOp::create(rewriter, loc, qOutTy,
++                                                  op.getResult(), scale, zero,
++                                                  dtype);
++    Value intRepr =
++        AtenIntReprOp::create(rewriter, loc, storageTy, quant);
++    Value qSoftmax = Aten_MakePerTensorQuantizedTensorOp::create(
++        rewriter, loc, qOutTy, intRepr, scale, zero);
++    Value dequant =
++        AtenDequantizeTensorOp::create(rewriter, loc, resultTy, qSoftmax);
++    rewriter.replaceAllUsesExcept(op.getResult(), dequant, quant.getDefiningOp());
++    return success();
++  }
++};
+ 
+ class FuseQuantizedOpsPass
+     : public impl::FuseQuantizedOpsBase<FuseQuantizedOpsPass> {
+ public:
+   void runOnOperation() override {
+     MLIRContext *context = &getContext();
+-    RewritePatternSet patterns(context);
+-    patterns.insert<
++    GreedyRewriteConfig config;
++    RewritePatternSet stage1(context);
++    stage1.insert<
++        DecomposeLinearForQuantFusion,
+         RemoveUnused<AtenDequantizeSelfOp>,
+         RemoveUnused<AtenDequantizeTensorOp>,
+         RemoveUnused<AtenQuantizePerTensorOp>,
+         RemoveUnused<Aten_MakePerTensorQuantizedTensorOp>,
++        RemoveRedundantClampAfterQuantize,
++        RemoveIdentityContiguous,
++        RemoveRequantizeAfterQCommutingOps,
+         RemoveUnused<AtenTransposeIntOp>, RemoveUnused<AtenSliceTensorOp>,
+         RemoveUnused<AtenReshapeOp>, RemoveUnused<PrimsCollapseOp>,
+         RemoveUnused<AtenViewOp>, RemoveUnused<AtenPadOp>,
+         RemoveUnused<AtenConstantPadNdOp>,
+         QuantizeOperandsPastCommutingOps<AtenConvolutionOp, 5>,
+         QuantizeOperandsPastCommutingOps<AtenReluOp, 0>,
+-        QuantizeOperandsPastCommutingOps<AtenMatmulOp, 2>,
++        QuantizeOperandsPastCommutingOps<AtenMatmulOp, 3>,
+         QuantizeOperandsPastCommutingOps<AtenMmOp, 4>,
+         QuantizeAccumulator<AtenMmOp>, QuantizeAccumulator<AtenMatmulOp>,
+         QuantizeResultLikeOperand<AtenReluOp>, QuantizeBias<AtenConvolutionOp>>(
+         context);
++    if (failed(
++            applyPatternsGreedily(getOperation(), std::move(stage1), config))) {
++      return signalPassFailure();
++    }
+ 
+-    GreedyRewriteConfig config;
+-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
+-                                     config))) {
++    RewritePatternSet stage2(context);
++    stage2.insert<QuantizeBiasAddAfterQMatmul>(context);
++    if (failed(
++            applyPatternsGreedily(getOperation(), std::move(stage2), config))) {
++      return signalPassFailure();
++    }
++
++    RewritePatternSet stage3(context);
++    stage3.insert<RequantizeQint32ToQint8>(context);
++    if (failed(
++            applyPatternsGreedily(getOperation(), std::move(stage3), config))) {
++      return signalPassFailure();
++    }
++
++    RewritePatternSet stage4(context);
++    stage4.insert<QuantizeAttentionSoftmaxOutput,
++                  QuantizeDecomposedAttentionSoftmaxOutput>(context);
++    if (failed(
++            applyPatternsGreedily(getOperation(), std::move(stage4), config))) {
++      return signalPassFailure();
++    }
++
++    RewritePatternSet stage5(context);
++    stage5.insert<RemoveUnused<AtenDequantizeSelfOp>,
++                  RemoveUnused<AtenDequantizeTensorOp>,
++                  RemoveUnused<AtenQuantizePerTensorOp>,
++                  RemoveUnused<Aten_MakePerTensorQuantizedTensorOp>,
++                  RemoveUnused<AtenTransposeIntOp>,
++                  RemoveUnused<AtenSliceTensorOp>,
++                  RemoveUnused<AtenReshapeOp>, RemoveUnused<PrimsCollapseOp>,
++                  RemoveUnused<AtenViewOp>, RemoveUnused<AtenPadOp>,
++                  RemoveUnused<AtenConstantPadNdOp>,
++                  QuantizeOperandsPastCommutingOps<AtenMatmulOp, 3>,
++                  QuantizeAccumulator<AtenMatmulOp>>(context);
++    if (failed(
++            applyPatternsGreedily(getOperation(), std::move(stage5), config))) {
+-      return signalPassFailure();
+-    }
++      return signalPassFailure();
++    }
+   }

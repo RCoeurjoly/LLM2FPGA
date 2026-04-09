@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 1 Apr 2026 03:10:00 +0200
+Subject: [PATCH] Support native-FX quantize entrypoints in FX importer
+
+Native-FX quantized graphs use plain Python `torch.quantize_per_tensor`
+call_function nodes and may also carry quantized dtypes through FX literal
+arguments. Normalize those cases onto the existing ATen overload importer so
+the importer can at least ingest standard quantized LayerNorm and quantized
+matmul reproducers.
+---
+ python/torch_mlir/extras/fx_importer.py | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/python/torch_mlir/extras/fx_importer.py b/python/torch_mlir/extras/fx_importer.py
+index 3703f95..25f2a3f 100644
+--- a/python/torch_mlir/extras/fx_importer.py
++++ b/python/torch_mlir/extras/fx_importer.py
+@@ -41,6 +41,7 @@ from torch import (
+ 
+ from torch._ops import (
+     OpOverload as TorchOpOverload,
++    OpOverloadPacket as TorchOpOverloadPacket,
+     HigherOrderOperator,
+ )
+ 
+@@ -239,9 +240,9 @@ TORCH_DTYPE_TO_INT = {
+     torch.float64: 7,
+     # torch.complex_half 8
+     torch.complex32: 9,
+-    torch.complex64: 10,
++    torch.complex64: 10,
+     torch.bool: 11,
+-    # torch.qint8: 12, # quantized dtypes are not supported in all backends, currently we do not support them
+-    # torch.quint8: 13,
+-    # torch.qint32 14
++    torch.qint8: 12,
++    torch.quint8: 13,
++    torch.qint32: 14,
+     torch.bfloat16: 15,
+ }
+@@ -1587,8 +1588,14 @@ class GraphNodeImporter:
+                         is_symbolic(node.meta.get("val"))
+                         and is_builtin_function_or_method(target)
+                     ):
+                         self._import_symbolic_torch_op(loc, node, target)
++                    elif is_builtin_function_or_method(target) and getattr(
++                        target, "__name__", None
++                    ) == "quantize_per_tensor":
++                        self._import_torch_op_overload(
++                            loc, node, torch.ops.aten.quantize_per_tensor.default
++                        )
+                     elif isinstance(target, TorchOpOverload):
+                         # Dispatch to an ATen op.
+                         self._import_torch_op_overload(loc, node)
++                    elif isinstance(target, TorchOpOverloadPacket) and hasattr(
++                        target, "default"
++                    ):
++                        self._import_torch_op_overload(loc, node, target.default)
+                     elif isinstance(target, HigherOrderOperator):
+                         self._import_hop(loc, node, target)
+                     else:
+-- 
+2.49.0

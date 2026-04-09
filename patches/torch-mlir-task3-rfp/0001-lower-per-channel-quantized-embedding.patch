@@ -1,0 +1,179 @@
+diff --git a/lib/Conversion/TorchToLinalg/IndirectDataMovement.cpp b/lib/Conversion/TorchToLinalg/IndirectDataMovement.cpp
+--- a/lib/Conversion/TorchToLinalg/IndirectDataMovement.cpp
++++ b/lib/Conversion/TorchToLinalg/IndirectDataMovement.cpp
+@@ -61,6 +61,153 @@ static void createLinalgPayloadCalculationForGatherOps(
+   linalg::YieldOp::create(b, loc, extract);
+ }
+ 
++static FailureOr<Value> lowerPerChannelQuantizedEmbedding(
++    AtenEmbeddingOp op, Value indices, RankedTensorType newResultType,
++    const TypeConverter *typeConverter,
++    ConversionPatternRewriter &rewriter) {
++  auto dequantize = op.getWeight().getDefiningOp<AtenDequantizeSelfOp>();
++  if (!dequantize)
++    return failure();
++
++  auto make =
++      dequantize.getOperand().getDefiningOp<Aten_MakePerChannelQuantizedTensorOp>();
++  if (!make)
++    return failure();
++
++  int64_t axis;
++  if (!matchPattern(make.getAxis(), m_TorchConstantInt(&axis)) || axis != 0)
++    return failure();
++
++  Value storage = rewriter.getRemappedValue(make.getOperand(0));
++  Value scale = rewriter.getRemappedValue(make.getScale());
++  Value zeropoint = rewriter.getRemappedValue(make.getZeroPoint());
++  if (!storage || !scale || !zeropoint)
++    return failure();
++
++  auto storageTy = dyn_cast<RankedTensorType>(storage.getType());
++  auto scaleTy = dyn_cast<RankedTensorType>(scale.getType());
++  auto zeropointTy = dyn_cast<RankedTensorType>(zeropoint.getType());
++  if (!storageTy || storageTy.getRank() != 2)
++    return failure();
++  if (!scaleTy || scaleTy.getRank() != 1)
++    return failure();
++  if (!zeropointTy || zeropointTy.getRank() != 1)
++    return failure();
++
++  auto storageTorchTy = cast<BaseTensorType>(make.getOperand(0).getType());
++  auto zeropointTorchTy = cast<BaseTensorType>(make.getZeroPoint().getType());
++  bool storageIsUnsigned =
++      torch_to_linalg::isUnsignedTorchType(storageTorchTy.getDtype());
++  bool zeropointIsFloat =
++      isa<mlir::FloatType>(zeropointTorchTy.getDtype());
++  bool zeropointIsUnsigned =
++      !zeropointIsFloat &&
++      torch_to_linalg::isUnsignedTorchType(zeropointTorchTy.getDtype());
++
++  Location loc = op.getLoc();
++  Type resultElemTy = newResultType.getElementType();
++  auto resultFloatTy = dyn_cast<mlir::FloatType>(resultElemTy);
++  if (!resultFloatTy)
++    return failure();
++
++  Value embeddingDim = getDimOp(rewriter, loc, storage, 1);
++  SmallVector<Value> sizes = getTensorSizes(rewriter, loc, indices);
++  sizes.push_back(embeddingDim);
++  int64_t resultRank = sizes.size();
++
++  auto indicesTy = cast<RankedTensorType>(indices.getType());
++  int64_t indicesRank = indicesTy.getRank();
++  SmallVector<AffineExpr> indicesExprs;
++  for (int i = 0; i < indicesRank; ++i)
++    indicesExprs.push_back(rewriter.getAffineDimExpr(i));
++  auto indicesAffineMap = AffineMap::get(
++      /*dimCount=*/resultRank,
++      /*symbolCount=*/0, indicesExprs, op->getContext());
++  SmallVector<AffineMap, 2> indexingMaps = {
++      indicesAffineMap,
++      rewriter.getMultiDimIdentityMap(resultRank),
++  };
++  SmallVector<utils::IteratorType> iteratorTypes(
++      resultRank, utils::IteratorType::parallel);
++  Value initTensor = tensor::EmptyOp::create(
++      rewriter, loc, getAsOpFoldResult(sizes), resultElemTy);
++  Value embeddingResult =
++      linalg::GenericOp::create(
++          rewriter, loc, initTensor.getType(), indices, initTensor,
++          /*indexingMaps=*/indexingMaps, /*iteratorTypes=*/iteratorTypes,
++          [&](OpBuilder &b, Location loc, ValueRange args) {
++            Value index = args[0];
++            Value rowIndex = castIntToIndex(b, loc, index);
++            Value columnIndex =
++                linalg::IndexOp::create(b, loc, resultRank - 1);
++
++            Value indexLTInputDim = arith::CmpIOp::create(
++                b, loc, arith::CmpIPredicate::slt, rowIndex,
++                getDimOp(b, loc, storage, 0));
++            cf::AssertOp::create(
++                b, loc, indexLTInputDim,
++                b.getStringAttr("index must be smaller than dim size"));
++
++            Value cst0 =
++                arith::ConstantOp::create(b, loc, b.getZeroAttr(index.getType()));
++            Value indexGEThanZero = arith::CmpIOp::create(
++                b, loc, arith::CmpIPredicate::sge, index, cst0);
++            cf::AssertOp::create(
++                b, loc, indexGEThanZero,
++                b.getStringAttr("index must be larger or equal to 0"));
++
++            Value storageElem = tensor::ExtractOp::create(
++                b, loc, storage, ValueRange{rowIndex, columnIndex});
++            Value scaleElem =
++                tensor::ExtractOp::create(b, loc, scale, ValueRange{rowIndex});
++            Value zeropointElem = tensor::ExtractOp::create(
++                b, loc, zeropoint, ValueRange{rowIndex});
++
++            Type i32Ty = b.getI32Type();
++            Value storageInt = storageIsUnsigned
++                                   ? Value(arith::ExtUIOp::create(
++                                         b, loc, i32Ty, storageElem))
++                                   : Value(arith::ExtSIOp::create(
++                                         b, loc, i32Ty, storageElem));
++
++            Value dequantizedElem;
++            if (zeropointIsFloat) {
++              Value storageFp = storageIsUnsigned
++                                    ? Value(arith::UIToFPOp::create(
++                                          b, loc, resultFloatTy, storageInt))
++                                    : Value(arith::SIToFPOp::create(
++                                          b, loc, resultFloatTy, storageInt));
++              Value sub = arith::SubFOp::create(
++                  b, loc, storageFp, zeropointElem);
++              dequantizedElem =
++                  arith::MulFOp::create(b, loc, sub, scaleElem);
++            } else {
++              auto zeropointElemTy =
++                  cast<IntegerType>(zeropointElem.getType());
++              Value zeropointInt = zeropointElem;
++              if (zeropointElemTy.getWidth() < 32) {
++                zeropointInt = zeropointIsUnsigned
++                                   ? Value(arith::ExtUIOp::create(
++                                         b, loc, i32Ty, zeropointElem))
++                                   : Value(arith::ExtSIOp::create(
++                                         b, loc, i32Ty, zeropointElem));
++              } else if (zeropointElemTy.getWidth() > 32) {
++                zeropointInt =
++                    arith::TruncIOp::create(b, loc, i32Ty, zeropointElem);
++              }
++              Value sub = arith::SubIOp::create(b, loc, storageInt,
++                                                zeropointInt);
++              Value subFp =
++                  arith::SIToFPOp::create(b, loc, resultFloatTy, sub);
++              dequantizedElem =
++                  arith::MulFOp::create(b, loc, subFp, scaleElem);
++            }
++            linalg::YieldOp::create(b, loc, dequantizedElem);
++          })
++          .getResult(0);
++  return embeddingResult;
++}
++
+ namespace {
+ class ConvertAtenGatherOp : public OpConversionPattern<AtenGatherOp> {
+ public:
+@@ -121,11 +268,20 @@ public:
+     if (failed(verifyLinalgCompatibleTypes(op, rewriter)))
+       return failure();
+     Location loc = op->getLoc();
+-    Value weight = adaptor.getWeight();
+     Value indices = adaptor.getIndices();
+     RankedTensorType newResultType =
+         cast<RankedTensorType>(typeConverter->convertType(op.getType()));
+ 
++    auto quantizedEmbedding = lowerPerChannelQuantizedEmbedding(
++        op, indices, newResultType, typeConverter, rewriter);
++    if (succeeded(quantizedEmbedding)) {
++      rewriter.replaceOpWithNewOp<tensor::CastOp>(op, newResultType,
++                                                  *quantizedEmbedding);
++      return success();
++    }
++
++    Value weight = adaptor.getWeight();
++
+     auto weightTy = cast<RankedTensorType>(weight.getType());
+     if (weightTy.getRank() != 2)
+       return rewriter.notifyMatchFailure(op, "weight must be rank 2");

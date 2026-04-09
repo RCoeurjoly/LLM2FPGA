@@ -1,12 +1,14 @@
 * Task 3 RfP contract (2026-03-27)
 
 ** Task 3 engineering intent
-- Task 3 must produce a fully transparent hardware flow with no black boxes at
-  any stage of lowering, code generation, or integration.
+- Task 3 must produce a fully transparent hardware flow. Temporary stubs or
+  placeholder modules are acceptable only as explicit intermediate scaffolding
+  with documented scope and a defined path to removal.
 - Every operation that reaches the FPGA flow must have an explicit
-  implementation. Unsupported operations must be lowered, decomposed,
-  rewritten, or rejected with a precise error. They must not be wrapped in
-  opaque placeholders.
+  implementation by the time of the final Task 3 claim. Unsupported
+  operations must be lowered, decomposed, rewritten, carried by an explicitly
+  documented temporary stub, or rejected with a precise error. They must not
+  be hidden behind opaque placeholders.
 - Task 3 must not assume the full neural network fits on the FPGA at once.
   Model size may exceed FPGA capacity by a large factor, including 100x or
   more.
@@ -28,11 +30,11 @@
   conversion, must be deliberate, visible, and semantically documented. They
   cannot be hidden inside black-box components.
 - Task 3 is successful only if the toolchain carries the model through to a
-  realizable implementation flow without unresolved black boxes, while
-  preserving a clear execution model for oversized networks.
+  realizable implementation flow without unresolved black boxes or unresolved
+  stubs, while preserving a clear execution model for oversized networks.
 - Failures must be structural and explicit, for example "op X has no legal
   lowering" or "memory schedule for tensor Y is not implemented". Failures must
-  never appear as hidden black boxes or vague backend breakage.
+  never appear as hidden placeholders or vague backend breakage.
 
 ** Deliverable priority and implementation constraints
 - The most important Task 3 deliverable is the utilization report.
@@ -50,8 +52,8 @@
   models. Frontend preparation must stay within standard, explainable PyTorch
   and torch-mlir-compatible mechanisms.
 - The resulting SystemVerilog must be synthesizable. It may be too large to fit
-  a specific FPGA, but it must not depend on black boxes, stubs, or unsupported
-  floating-point operations.
+  a specific FPGA, but final success must not depend on unresolved black boxes,
+  unresolved stubs, or unsupported floating-point operations.
 - The flake must expose exactly one canonical path to reach utilization for
   Task 3. Parallel or competing Task 3 utilization flows should be removed or
   clearly demoted so there is only one authoritative route.
@@ -67,6 +69,9 @@
   optional downstream validation steps. They are not required for Task 3
   success when the design is too large for downstream FPGA implementation tools
   to ingest.
+- Temporary stubs may be used during debugging only if they are explicit and
+  tracked. Reviewer-facing claims and final Task 3 success must identify them
+  and must not count them as completed implementation.
 - No sed/perl/text-rewrite surgery over model IR or emitted hardware is allowed
   inside the canonical Task 3 path.
 
@@ -135,6 +140,11 @@
   1. Baseline export keeps float math.
   2. PT2E dynamic quantization introduces quantized-decomposed operators that
      current torch-mlir does not lower here.
+  3. GPTNeo does not currently support
+     =attn_implementation="sdpa"= in Transformers, so the TinyStories baseline
+     cannot use that standard attention backend as a workaround for the
+     exported =softmax.int= path and must stay on
+     =attn_implementation="eager"=.
 - The current core lowering scripts under =scripts/pipeline/= do not use
   sed/perl text rewriting. The remaining perl usage in =flake.nix= is outside
   the Task 3 core path and is only used to substitute the output path in a
@@ -148,6 +158,23 @@
   harder =tensor= variants plus =choose_qparams.tensor=.
 
 ** Immediate next step
+- As of 2026-03-31, the immediate canonical Task 3 blocker is no longer the
+  small linear import bridge. The next standard-path work should focus on the
+  remaining normalization and attention-softmax float islands before retrying
+  the full TinyStories path:
+  1. =nix build .#pt2e-static-quant-layer-norm-cf -L=
+  2. =nix build .#pt2e-static-quant-softmax-cf -L=
+  3. retry =tiny-stories-1m-pt2e-static= only after those reproducers have a
+     defensible non-float story
+- New split attention-block reproducers are now flake-exposed to separate the
+  two remaining standard-path islands without ad hoc local commands:
+  1. =pt2e-static-quant-attention-block-no-softmax=
+  2. =pt2e-static-quant-attention-block-no-layer-norm=
+- Current split-reproducer result:
+  1. removing =softmax= still leaves =layer_norm= blocked first at
+     =arith.addf=
+  2. removing =layer_norm= still leaves the attention-normalization path
+     blocked first at =arith.divf=
 - Use =pt2e-quant-linear= as the primary reproducer:
   1. =nix build .#pt2e-quant-linear-torch -L=
   2. =nix build .#pt2e-quant-linear-linalg -L=
@@ -157,13 +184,17 @@
   2. =nix build .#pt2e-static-quant-linear-linalg -L=
 - Current status of =pt2e-static-quant-linear=:
   1. step 1 succeeds
-  2. step 2 now succeeds with an integer core:
+  2. step 2 now succeeds with an integer core in both the local compiler loop
+     and the current Nix-packaged =torch-mlir= path:
      - =linalg.quantized_matmul=
      - integer bias add with a pre-quantized =tensor<10xi32>= literal
      - integer requantization
   3. the remaining float in the reproducer is only at the boundary:
      - input quantization from =f32= activations
      - final dequantization back to =f32= output
+  4. step 4 still fails at =hw0= because the boundary float remains explicit:
+     - exact first failure:
+       =failed to legalize operation 'arith.divf' that was explicitly marked illegal=
 - =pt2e-static-quant-embedding= is a new companion reproducer for the next
   roadmap item. Its torch-stage output currently stays fully float:
   1. =nix build .#pt2e-static-quant-embedding-torch -L=
@@ -184,11 +215,27 @@
   2. result: the exported torch IR stays fully float
   3. the local =linalg= lowering also stays fully float, including the
      reduction, variance, =rsqrt=, and affine scale/bias path
+  4. the pinned =cf= artifact still contains float legalization blockers:
+     - =arith.divf= (2x)
+     - =arith.truncf= (1x)
+     - =math.rsqrt= (1x)
 - =pt2e-static-quant-softmax= is the first attention-normalization reproducer:
   1. =nix build .#pt2e-static-quant-softmax-torch -L=
   2. result: the exported torch IR stays fully float
   3. the local =linalg= lowering also stays fully float, including
      =exp=, reduction, and final divide
+  4. the pinned =cf= artifact still contains float legalization blockers:
+     - =arith.maximumf= (1x)
+     - =math.exp= (1x)
+     - =arith.divf= (1x)
+- The older eager quantized module fallback is also blocked in the current
+  pinned environment:
+  1. =torch.ao.nn.quantized.LayerNorm= fails =torch.export.export(...)= with
+     =RuntimeError: quantized::layer_norm() Expected a value of type 'float'
+     for argument 'output_scale' but instead found type 'FakeTensor'=
+  2. =torch.ao.nn.quantized.Softmax= fails even before export with
+     =NotImplementedError: could not find kernel for
+     quantized.softmax.default at dispatch key DispatchKey.CPU=
 - The installed PT2E =XNNPACKQuantizer= source only advertises a narrow static
   quantization surface:
   1. =linear=
@@ -314,13 +361,14 @@
   2. =embedding=
   3. normalization-related operations
 - Current roadmap checkpoint:
-  1. =linear=: integer core achieved, only float I/O boundary remains
+  1. =linear=: integer core achieved on the packaged path too; only the
+     remaining float boundary prevents =hw0=
   2. =embedding=: quantized storage lookup now works locally, but output still
      dequantizes to float
-  3. =layer_norm=: standard PT2E static quantization does not quantize it in
-     this minimal reproducer
-  4. =softmax=: standard PT2E static quantization does not quantize it in this
-     minimal reproducer
+  3. =layer_norm=: current exact =hw0= blocker is still float normalization
+     arithmetic, starting with =arith.addf=
+  4. =softmax=: current exact =hw0= blocker is still float softmax arithmetic,
+     starting with =arith.maximumf=
   5. =matmul via X86InductorQuantizer=: alternative standard PT2E quantizer
      does not help the exported =torch-mlir= path here; it still re-exports as
      float
