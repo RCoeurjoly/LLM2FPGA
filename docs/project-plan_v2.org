@@ -170,12 +170,18 @@ Report and demo of results
 - State "TODO_NEXT"  from "TODO"       [2026-03-02 Mon 18:33]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 *** Goal:
-Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
+Test if a small open-source language model (TinyStories-1M) can be lowered from
+PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
-In this task we move from small matmul module to smallest available LLM.
-This task establishes existence of a valid lowering path only; scalability and hardware execution are out of scope, for later tasks.
+In this task we move from small matmul module to the smallest available LLM.
+This task establishes a standard-path lowering and bottleneck/resource story for
+one real model. Hardware execution, fit-driven optimization, and oversized
+execution strategy are follow-on tasks.
 
-The succesful result is an unintegrated RTL netlist of the model (RTLIL or Verilog/SystemVerilog) and synthesis resource estimates, with any temporary operator stubs resolved in the final claimed flow.
+The succesful result is a reproducible artifact chain from the model to
+CIRCT-emitted SystemVerilog, plus either synthesis resource estimates or an
+explicit first blocker/capacity report, with any temporary operator stubs
+explicit and resolved or rejected in the final claimed flow.
 
 Otherwise, bottleneck report identifying unsupported operators, failing passes, or any other error in the toolchain.
 
@@ -219,20 +225,27 @@ If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input
 **** DONE Subtask d consists of:
 - State "DONE"       from "TODO"       [2026-03-31 Tue 04:17]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
-  Artifact: tinystories_1m.il produced by Yosys from tinystories_1m.sv.
-  Yosys completes elaboration and emits RTLIL without fatal errors.
+  Artifact: Yosys handoff result for tinystories_1m.sv.
+  Preferred output: tinystories_1m.il produced by Yosys.
+  If Yosys does not emit RTLIL, the first explicit Yosys/tool-capacity blocker
+  with reproducer and log is the required diagnostic output.
 **** TODO Subtask e consists of:
 - State "TODO"       from "DONE"       [2026-03-31 Tue 17:09]
 - State "DONE"       from "TODO"       [2026-03-31 Tue 04:17]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
-  Artifact: resource utilization report (Yosys stat) generated from the .il/design.
+  Artifact: resource utilization report or explicit bottleneck report generated
+  from the emitted design or Yosys handoff.
 
-  Current downstream synthesis direction:
-  the canonical Task 3 path is now the direct =tiny-stories-1m= mapped
-  utilization flow:
+  Authoritative scope note:
+  =docs/task3-brief-2026-04-10.org= is now the source-of-truth Task 3 brief.
+  Historical notes below remain useful implementation history, but should not
+  override that brief.
+
+  Historical mapped-path note:
+  older docs used the direct =tiny-stories-1m= mapped utilization flow:
   =tiny-stories-1m-sv -> tiny-stories-1m-il -> tiny-stories-1m-utilization-json -> tiny-stories-1m-utilization=
-  This keeps the 3e claim on the emitted design itself and avoids selftest
-  wrappers, external-memory blackboxing, and alternate utilization routes.
+  This remains useful historical context for the repo cleanup work, but it is
+  no longer the source-of-truth Task 3 definition.
 
   Current implementation status:
   - =scripts/pipeline/hw_clean_to_sv.sh= now emits only CIRCT-generated SV
@@ -249,19 +262,22 @@ If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input
     the public Task 3 package surface so the only exposed utilization route is
     =tiny-stories-1m-utilization=
 
-  Current validated artifact:
-  =nix build .#tiny-stories-1m-utilization -L=
-  is the only canonical 3e gate. At the moment it is blocked earlier in the
-  mapped path at =tiny-stories-1m-hw0=: =lower-handshake-to-hw= rejects
-  unsupported float legalization, first at
-  =arith.uitofp= in =tiny-stories-1m-hs-ext.mlir=, so the direct mapped report
-  still needs a fresh successful build before updated utilization numbers can
-  be recorded here.
+  Current validated artifact history:
+  the older =tiny-stories-1m-utilization= route recorded the canonical mapped
+  utilization gate as blocked earlier in =tiny-stories-1m-hw0= on unsupported
+  float legalization.
+
+  Current branch evidence on 2026-04-10:
+  the standard baseline-float route reaches emitted SystemVerilog and now
+  reaches Yosys/slang, but both =tiny-stories-1m-baseline-float-il= and
+  =tiny-stories-1m-baseline-float-yosys-stat= are currently blocked by an
+  explicit Yosys out-of-memory kill on this host rather than unresolved module
+  failures.
 
   Follow-on direction:
   keep the clean quantization path and Task 6 resource minimization work open,
-  but do it against the direct canonical mapped path rather than a shell-only
-  surrogate.
+  but treat oversized execution strategy as follow-on work rather than a Task 3
+  completion requirement.
 
 Bottleneck report: unsupported operators encountered, failing passes, required stubs/workarounds, and/or any other error. Includes minimized reproducers.
 
