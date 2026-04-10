@@ -105,8 +105,14 @@ let
         ${circt}/bin/circt-opt ${hw} "$out"
     '';
 
-  mkSvDerivation = { name, hwClean }:
+  mkSvDerivation = { name, hwClean, allowHwExterns ? false, fpPrimsSv ? null }:
     pkgs.runCommand "${name}-sv" { buildInputs = [ circt python ]; } ''
+      ${pkgs.lib.optionalString allowHwExterns ''
+        export ALLOW_HW_EXTERNS=1
+      ''}
+      ${pkgs.lib.optionalString (fpPrimsSv != null) ''
+        export FP_PRIMS_SV=${fpPrimsSv}
+      ''}
       ${pkgs.bash}/bin/bash ${pipelineScripts}/hw_clean_to_sv.sh \
         ${circt}/bin/circt-opt ${hwClean} "$out"
     '';
@@ -127,7 +133,8 @@ let
         ${sv}/sources.f "$out"
     '';
 
-  mkBasePipeline = { name, torchMlirInput, handshakeFromCf }:
+  mkBasePipeline = { name, torchMlirInput, handshakeFromCf
+    , allowHwExterns ? false, fpPrimsSv ? null }:
     let
       self = {
         torch = mkTorchDerivation { inherit name torchMlirInput; };
@@ -166,6 +173,7 @@ let
         sv = mkSvDerivation {
           inherit name;
           hwClean = self."hw-clean";
+          inherit allowHwExterns fpPrimsSv;
         };
         il = mkIlDerivation {
           inherit name;
@@ -178,15 +186,17 @@ let
       };
     in self;
 
-  mkPipeline = { name, torchMlirInput }:
+  mkPipeline = { name, torchMlirInput, allowHwExterns ? false
+    , fpPrimsSv ? null }:
     mkBasePipeline {
-      inherit name torchMlirInput;
+      inherit name torchMlirInput allowHwExterns fpPrimsSv;
       handshakeFromCf = mkHandshakeDerivation;
     };
 
-  mkQuantizedPipeline = { name, torchMlirInput }:
+  mkQuantizedPipeline = { name, torchMlirInput, allowHwExterns ? false
+    , fpPrimsSv ? null }:
     mkBasePipeline {
-      inherit name torchMlirInput;
+      inherit name torchMlirInput allowHwExterns fpPrimsSv;
       handshakeFromCf = mkHandshakeLsqDerivation;
     };
 
@@ -221,7 +231,8 @@ let
 
   registerPipelineModel = { pipelineFactory, name, key ? name, description ? ""
     , source ? { type = "local"; }, torchMlirInput ? null
-    , torchInputCommand ? null, torchInputBuildInputs ? [ ] }:
+    , torchInputCommand ? null, torchInputBuildInputs ? [ ]
+    , allowHwExterns ? false, fpPrimsSv ? null }:
     let
       resolvedTorchInput = mkTorchInput {
         inherit name torchMlirInput torchInputCommand torchInputBuildInputs;
@@ -231,6 +242,7 @@ let
       pipeline = pipelineFactory {
         inherit name;
         torchMlirInput = resolvedTorchInput;
+        inherit allowHwExterns fpPrimsSv;
       };
       model = {
         inherit key name description;

@@ -228,6 +228,7 @@
         };
 
         pipelineScripts = ./scripts/pipeline;
+        fpPrimsSv = ./rtl/fp/circt_fp_primitives.sv;
         tinyStories1m = let
           modelId = "roneneldan/TinyStories-1M";
           revision = "77f1b168e219585646439073245fe87e56b3023e";
@@ -265,6 +266,7 @@
           inherit pythonWithTorch pythonWithTorchAO pythonWithTinyStories
             pythonWithTinyStoriesTorchAO torchMlir python;
           inherit tinyStories1m;
+          inherit fpPrimsSv;
           compilePyTorch = ./scripts/compile-pytorch.py;
           matmulPy = ./src/matmul.py;
           matmulAdapterPy = ./src/matmul_adapter.py;

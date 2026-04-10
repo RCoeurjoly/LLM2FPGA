@@ -12,7 +12,7 @@
 , pt2eStaticQuantAttentionSoftmaxAdapterPy
 , pt2eStaticQuantAttentionValueMatmulAdapterPy
 , pt2eStaticQuantMatmulX86AdapterPy, tinyStoriesTorchaoAdapterPy
-, tinyStoriesPt2eStaticQuantAdapterPy, simDir, compilePyTorch }:
+, tinyStoriesPt2eStaticQuantAdapterPy, fpPrimsSv, simDir, compilePyTorch }:
 let
   torchMlirPythonPath =
     "${torchMlir}/${python.sitePackages}:${torchMlir}/${python.sitePackages}/torch_mlir";
@@ -291,6 +291,8 @@ in {
       model_id = tinyStories1m.modelId;
       inherit (tinyStories1m) revision;
     };
+    allowHwExterns = true;
+    inherit fpPrimsSv;
     torchInputBuildInputs = [ pythonWithTinyStories ];
     torchInputCommand = ''
       export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
