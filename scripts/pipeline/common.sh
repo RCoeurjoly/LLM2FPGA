@@ -35,6 +35,7 @@ write_yosys_slang_script() {
   local script="$1"
   local yosys_slang_so="$2"
   local input="$3"
+  local -a slang_files=()
 
   : >"$script"
   echo "plugin -i ${yosys_slang_so}" >>"$script"
@@ -42,8 +43,17 @@ write_yosys_slang_script() {
   while IFS= read -r line; do
     [[ -z "${line//[[:space:]]/}" ]] && continue
     [[ "${line#\#}" != "$line" ]] && continue
-    echo "read_slang --threads 1 --no-proc $line" >>"$script"
+    slang_files+=("$line")
   done <"$input"
+
+  if [[ "${#slang_files[@]}" -eq 0 ]]; then
+    echo "empty or comment-only file list: $input" >&2
+    exit 2
+  fi
+
+  printf 'read_slang --threads 1 --no-proc' >>"$script"
+  printf ' %q' "${slang_files[@]}" >>"$script"
+  printf '\n' >>"$script"
 }
 
 run_yosys_script() {
