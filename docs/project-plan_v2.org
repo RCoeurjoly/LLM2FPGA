@@ -1,9 +1,10 @@
 takentaal-amendment v1.0
 
-* LLM2FPGA [1/27]
+* LLM2FPGA [11/27]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
+** Description
 LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
 ** DONE 1) Survey & candidate selection
 CLOSED: [2026-02-16 Mon 22:17]
@@ -90,7 +91,9 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** WAIT 2) End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [0/5]
+** DONE 2) End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [5/5]
+CLOSED: [2026-04-10 Fri 11:20]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:20]
 - State "WAIT"       from "TODO_NEXT"  [2026-03-02 Mon 18:33]
 - State "TODO_NEXT"  from              [2026-02-16 Mon 22:17]
 *** Goal:
@@ -99,7 +102,9 @@ Demonstrate that the selected pipeline can lower a minimal PyTorch kernel to syn
   PyTorch hard to simulate: it seems well documented https://docs.pytorch.org/executorch/stable/getting-started.html
   Discrepancy between PyTorch and RTL simulation: simulate each MLIR stage with original PyTorch, to isolate the pass that creates discrepancy
 *** Subtasks
-**** WAIT Subtask a consists of:
+**** DONE Subtask a consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO_NEXT"  [2026-02-17 Tue 16:16]
 - State "TODO_NEXT"  from              [2026-02-16 Mon 22:17]
 flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
@@ -110,12 +115,16 @@ Cached derivations for each pipeline stage, so reruns do not recompute earlier s
 
 Also, for each upstream tool, support a build with debug symbols. Needed for debugging issues with tooling.
 
-**** WAIT Subtask b consists of:
+**** DONE Subtask b consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO_NEXT"  [2026-02-20 Fri 15:50]
 - State "TODO_NEXT"  from "TODO"       [2026-02-17 Tue 16:16]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
-**** WAIT Subtask c consists of:
+**** DONE Subtask c consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO_NEXT"  [2026-02-20 Fri 15:57]
 - State "TODO_NEXT"  from "TODO"       [2026-02-20 Fri 15:50]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
@@ -125,7 +134,9 @@ Artifact: matmul.il produced by Yosys from matmul.sv.
 
 Yosys completes elaboration and emits RTLIL without fatal errors.
 
-**** WAIT Subtask d consists of:
+**** DONE Subtask d consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO_NEXT"  [2026-03-02 Mon 18:33]
 - State "TODO_NEXT"  from "TODO"       [2026-02-20 Fri 15:57]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
@@ -138,7 +149,9 @@ https://www.cnblogs.com/ruidongwu/p/18564807
 https://x.com/enjoy_digital/status/1924910401176719375
 
 https://www.controlpaths.com/2025/05/18/kintex7-accelerator/
-**** WAIT Subtask e consists of:
+**** DONE Subtask e consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO"       [2026-03-02 Mon 18:33]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 Report and demo of results

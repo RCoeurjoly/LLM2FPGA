@@ -1,0 +1,234 @@
+* Task 3 Hybrid Branch Plan (2026-04-10)
+
+** Recommendation
+
+Create a new branch.
+
+Recommended name:
+- =task3-hybrid-standard-externs=
+
+Recommended base:
+- =main=
+
+Do not continue primary Task 3 work on =task3-rfp-sandbox=.
+Do not switch back to =task3= as the main implementation line.
+Use both existing branches as donor/reference branches only.
+
+Rationale:
+- =task3-rfp-sandbox= currently carries a very large review surface:
+  - substantial doc churn
+  - a large CIRCT patch stack
+  - a large =torch-mlir= patch stack
+  - temporary local scratch artifacts that should not shape the new Task 3
+    story
+- =task3= has useful downstream ideas, but its TinyStories frontend is the
+  wrong long-term shape for the RfP:
+  - handwritten integer surrogate model
+  - custom quantization logic embedded directly in the model wrapper
+  - ad hoc MLIR text rewriting in =hs_ext_to_hw0.sh=
+- A clean hybrid should start from the repo baseline and port only the minimum
+  defensible pieces:
+  - standard export frontend from =task3-rfp-sandbox=
+  - explicit float-extern SV plumbing from =task3=
+  - Yosys-based utilization/reporting path
+
+If faster local iteration becomes more important than review cleanliness, an
+acceptable fallback is a new branch off =task3-rfp-sandbox= that aggressively
+removes the current patch stack and temporary files. That is *not* the primary
+recommendation.
+
+** Target Task 3 Claim
+
+Task 3 should claim the following:
+
+- A real LLM is carried through the standard open-source lowering pipeline as
+  far as possible.
+- The flow identifies concrete blockages, fixes easy ones, and leaves the
+  remaining ones explicit.
+- The flow reaches emitted SystemVerilog and RTLIL through standard compiler
+  tools.
+- The flow produces a Yosys-based resource/bottleneck report, even if the
+  design is far too large for the target FPGA.
+
+Task 3 should *not* claim the following:
+
+- that the model fits the target FPGA
+- that =nextpnr-xilinx= must succeed
+- that quantization is solved end-to-end
+- that floating-point semantics are fully eliminated
+
+** Scope And Constraints
+
+Accepted outcomes:
+- Final RTLIL may exceed the target FPGA capacity by a large factor.
+- =nextpnr-xilinx= may fail or be unusable on the full design.
+- Yosys JSON/stat-based resource estimation is acceptable for Task 3.
+- A limited number of floating-point extern modules is acceptable if they are:
+  - explicit
+  - documented
+  - backed by concrete SV implementations or clearly separated accounting
+
+Not acceptable in the canonical path:
+- ad hoc text rewriting of MLIR or SV via =perl=/=sed= unless there is a very
+  narrow, temporary, and fully justified exception
+- handwritten whole-model integer surrogate frontends as the main Task 3 claim
+- hidden blackboxes
+- unresolved stubs counted as completion
+
+Compiler freedom that is acceptable:
+- reordering passes
+- using different standard passes from =torch-mlir=, =mlir=, and =circt=
+- adding a small number of focused upstream-style patches when they are easier
+  to defend than local hacks
+
+Frontend policy:
+- the main driver should remain generic and reusable across future LLMs
+- prefer =torch.export.export(...)= plus =torch_mlir.fx.export_and_import(...)=
+- PT2E and TorchAO are acceptable as standard preprocessors
+- model-specific adapters are acceptable only when they remain thin wrappers
+  over standard APIs
+
+** Branch Strategy
+
+Create:
+
+#+begin_src bash
+git switch main
+git switch -c task3-hybrid-standard-externs
+#+end_src
+
+Reference branches:
+- =task3-rfp-sandbox=: donor for standard frontend and current Task 3/RfP docs
+- =task3=: donor for explicit float-extern plumbing and Yosys utilization flow
+
+Port by manual reimplementation where practical.
+Prefer not to bulk cherry-pick large branch slices.
+
+** Implementation Plan
+
+*** Phase 1: Freeze The New Task 3 Policy
+
+Goal:
+- rewrite the Task 3 statement so it matches the actual intended claim
+
+Required outcomes:
+- Task 3 is defined as:
+  - standard frontend to SV/RTLIL
+  - explicit blockers documented
+  - Yosys-based resource report
+- The docs explicitly allow:
+  - oversized designs
+  - Yosys-only resource estimation
+  - limited explicit float extern modules
+- The docs explicitly reject:
+  - ad hoc IR text surgery as the primary route
+  - custom surrogate whole-model frontends as the primary route
+
+Files likely to update:
+- =docs/project-plan_v2.org=
+- =README.org=
+- =deliverables/3e-tiny-stories-1m-resource-report.org=
+
+*** Phase 2: Keep The Standard Frontend
+
+Goal:
+- retain the generic export/import driver and standard adapter structure from
+  =task3-rfp-sandbox=
+
+Keep or port:
+- =scripts/compile-pytorch.py=
+- thin adapters that expose:
+  - =build_model(...)= and =example_inputs()=, or
+  - =export_program(...)=
+
+Rules:
+- no handwritten replacement TinyStories model
+- no embedded integer-only surrogate architecture
+- PT2E/TorchAO quantization is allowed only as a standard frontend option
+
+*** Phase 3: Reintroduce Explicit Float Extern Support
+
+Goal:
+- replace the current hard rejection of float ops at =hs-ext -> hw0= with an
+  explicit extern-based route that remains reviewable
+
+Port or reimplement from =task3=:
+- =ALLOW_HW_EXTERNS=
+- =FP_PRIMS_SV=
+- SV export checks that require explicit definitions for every extern
+- optional append of those implementations into the emitted SV artifact
+
+Important constraint:
+- do *not* revive the Perl rewrite in the original
+  =scripts/pipeline/hs_ext_to_hw0.sh=
+- if =HandshakeToHW= needs adjustment, prefer:
+  - a small CIRCT patch
+  - or an explicit failure that is documented
+
+Accepted Task 3 policy:
+- explicit float extern modules with concrete SV implementations are acceptable
+- hidden or unresolved blackboxes are not
+
+*** Phase 4: Keep The Yosys Resource Path Independent Of nextpnr
+
+Goal:
+- ensure Task 3 can always produce a Yosys-based utilization/bottleneck report
+  once SV/RTLIL is available
+
+Required outcomes:
+- Yosys JSON/stat report is a first-class artifact
+- =nextpnr-xilinx= is optional and non-blocking
+- if extern float modules are used, the report must either:
+  - include real implementations, or
+  - clearly state that those modules are excluded from resource accounting
+
+*** Phase 5: Minimize Patch Count
+
+Goal:
+- reduce the compiler patch burden to the smallest set that still unlocks the
+  chosen Task 3 claim
+
+Current branch problem:
+- =task3-rfp-sandbox= currently applies a large CIRCT patch stack and a large
+  =torch-mlir= patch stack
+
+Policy:
+- every retained patch must answer one question:
+  - does this enable the standard frontend?
+  - does this enable explicit float extern lowering?
+  - does this enable the Yosys resource path?
+- patches that only support the abandoned clean-integer end state for Task 3
+  should be removed or deferred
+
+*** Phase 6: Rebuild The Reviewer Story
+
+Goal:
+- make the repo tell one consistent story for payment review
+
+The Task 3 reviewer-facing conclusion should be:
+- the standard open pipeline was exercised on a real LLM
+- important downstream and compiler blockers were made explicit
+- quantization is important but not plug-and-play
+- floating-point handling remains a central issue
+- whole-model on-chip placement is not realistic at current scale
+- Yosys-based resource reporting shows the design is drastically oversized
+- this justifies the follow-on resource-minimization and execution-strategy work
+
+** Immediate Next Steps
+
+1. Create =task3-hybrid-standard-externs= from =main=.
+2. Port =scripts/compile-pytorch.py= and the minimal adapter structure from
+   =task3-rfp-sandbox=.
+3. Port the explicit float-extern SV plumbing from =task3=, but *not* the Perl
+   MLIR rewrite.
+4. Re-establish a canonical Yosys JSON/stat utilization path.
+5. Trim the compiler patch stacks to only the subset needed for this narrower
+   Task 3 claim.
+6. Rewrite the Task 3 docs and deliverables to match the new claim.
+
+** Decision
+
+Proceed on a new branch.
+
+Use =task3-rfp-sandbox= and =task3= as references.
+Do not continue the hybrid rewrite directly on the current branch.
