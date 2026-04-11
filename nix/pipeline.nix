@@ -117,16 +117,22 @@ let
         ${circt}/bin/circt-opt ${hwClean} "$out"
     '';
 
-  mkIlDerivation = { name, sv }:
+  mkIlDerivation = { name, sv, slangPerFileExternModules ? false }:
     pkgs.runCommand "${name}.il" { buildInputs = [ yosysPkg ]; } ''
+      ${pkgs.lib.optionalString slangPerFileExternModules ''
+        export YOSYS_SLANG_PER_FILE_EXTERNS=1
+      ''}
       ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_il.sh \
         ${yosysPkg}/bin/yosys \
         ${yosysSlang}/share/yosys/plugins/slang.so \
         ${sv}/sources.f "$out"
     '';
 
-  mkYosysStatDerivation = { name, sv }:
+  mkYosysStatDerivation = { name, sv, slangPerFileExternModules ? false }:
     pkgs.runCommand "${name}-yosys.stat" { buildInputs = [ yosysPkg python ]; } ''
+      ${pkgs.lib.optionalString slangPerFileExternModules ''
+        export YOSYS_SLANG_PER_FILE_EXTERNS=1
+      ''}
       ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_yosys_stat.sh \
         ${yosysPkg}/bin/yosys \
         ${yosysSlang}/share/yosys/plugins/slang.so \
@@ -134,7 +140,8 @@ let
     '';
 
   mkBasePipeline = { name, torchMlirInput, handshakeFromCf
-    , allowHwExterns ? false, fpPrimsSv ? null }:
+    , allowHwExterns ? false, fpPrimsSv ? null
+    , slangPerFileExternModules ? false }:
     let
       self = {
         torch = mkTorchDerivation { inherit name torchMlirInput; };
@@ -178,25 +185,31 @@ let
         il = mkIlDerivation {
           inherit name;
           inherit (self) sv;
+          inherit slangPerFileExternModules;
         };
         "yosys-stat" = mkYosysStatDerivation {
           inherit name;
           inherit (self) sv;
+          inherit slangPerFileExternModules;
         };
       };
     in self;
 
   mkPipeline = { name, torchMlirInput, allowHwExterns ? false
-    , fpPrimsSv ? null }:
+    , fpPrimsSv ? null
+    , slangPerFileExternModules ? false }:
     mkBasePipeline {
-      inherit name torchMlirInput allowHwExterns fpPrimsSv;
+      inherit name torchMlirInput allowHwExterns fpPrimsSv
+        slangPerFileExternModules;
       handshakeFromCf = mkHandshakeDerivation;
     };
 
   mkQuantizedPipeline = { name, torchMlirInput, allowHwExterns ? false
-    , fpPrimsSv ? null }:
+    , fpPrimsSv ? null
+    , slangPerFileExternModules ? false }:
     mkBasePipeline {
-      inherit name torchMlirInput allowHwExterns fpPrimsSv;
+      inherit name torchMlirInput allowHwExterns fpPrimsSv
+        slangPerFileExternModules;
       handshakeFromCf = mkHandshakeLsqDerivation;
     };
 
@@ -232,7 +245,8 @@ let
   registerPipelineModel = { pipelineFactory, name, key ? name, description ? ""
     , source ? { type = "local"; }, torchMlirInput ? null
     , torchInputCommand ? null, torchInputBuildInputs ? [ ]
-    , allowHwExterns ? false, fpPrimsSv ? null }:
+    , allowHwExterns ? false, fpPrimsSv ? null
+    , slangPerFileExternModules ? false }:
     let
       resolvedTorchInput = mkTorchInput {
         inherit name torchMlirInput torchInputCommand torchInputBuildInputs;
@@ -242,7 +256,7 @@ let
       pipeline = pipelineFactory {
         inherit name;
         torchMlirInput = resolvedTorchInput;
-        inherit allowHwExterns fpPrimsSv;
+        inherit allowHwExterns fpPrimsSv slangPerFileExternModules;
       };
       model = {
         inherit key name description;

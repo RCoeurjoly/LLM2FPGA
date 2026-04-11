@@ -36,6 +36,9 @@ write_yosys_slang_script() {
   local yosys_slang_so="$2"
   local input="$3"
   local -a slang_files=()
+  local -a early_files=()
+  local -a middle_files=()
+  local -a late_files=()
 
   : >"$script"
   echo "plugin -i ${yosys_slang_so}" >>"$script"
@@ -49,6 +52,28 @@ write_yosys_slang_script() {
   if [[ "${#slang_files[@]}" -eq 0 ]]; then
     echo "empty or comment-only file list: $input" >&2
     exit 2
+  fi
+
+  if [[ "${YOSYS_SLANG_PER_FILE_EXTERNS:-0}" == "1" ]]; then
+    local line
+    for line in "${slang_files[@]}"; do
+      case "$(basename "$line")" in
+        000_*.sv|*_generated_blackboxes.sv|*fp_primitives*.sv)
+          early_files+=("$line")
+          ;;
+        main.sv)
+          late_files+=("$line")
+          ;;
+        *)
+          middle_files+=("$line")
+          ;;
+      esac
+    done
+
+    for line in "${early_files[@]}" "${middle_files[@]}" "${late_files[@]}"; do
+      echo "read_slang --threads 1 --no-proc --extern-modules $(printf '%q' "$line")" >>"$script"
+    done
+    return
   fi
 
   printf 'read_slang --threads 1 --no-proc --top main' >>"$script"

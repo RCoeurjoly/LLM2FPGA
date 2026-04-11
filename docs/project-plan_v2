@@ -198,7 +198,7 @@ Subtask 4 consists of:
 Subtask 5 consists of:
   Artifact: resource utilization report or explicit bottleneck report generated from the emitted design or Yosys handoff.
   Source-of-truth scope note: docs/task3-brief-2026-04-10.org is the authoritative Task 3 brief.
-  Current branch evidence on 2026-04-10: tiny-stories-1m-baseline-float-yosys-stat now succeeds by emitting an explicit OOM bottleneck report with 467 SV files, 6971927 lines in main.sv, 433040128 total memory bits, and 411705344 bits in the four largest memories; tiny-stories-1m-baseline-float-il remains blocked by Yosys exit code 137 on this host.
+  Current branch evidence on 2026-04-11: tiny-stories-1m-baseline-float-il now succeeds and emits RTLIL; tiny-stories-1m-baseline-float-yosys-stat succeeds with 467 SV files, 6971927 lines in main.sv, 12738203 design cells, 327 design memories, 433040128 total memory bits, and 411705344 bits in the four largest memories.
 
 Bottleneck report: unsupported operators encountered, failing passes, required stubs/workarounds, and/or any other error. Includes minimized reproducers.
 

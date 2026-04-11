@@ -267,15 +267,15 @@ If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input
   utilization gate as blocked earlier in =tiny-stories-1m-hw0= on unsupported
   float legalization.
 
-  Current branch evidence on 2026-04-10:
-  the standard baseline-float route reaches emitted SystemVerilog and now
-  reaches Yosys/slang.
-  - =tiny-stories-1m-baseline-float-il= is still blocked by an explicit Yosys
-    out-of-memory kill on this host rather than unresolved module failures.
-  - =tiny-stories-1m-baseline-float-yosys-stat= now succeeds by emitting an
-    explicit OOM bottleneck report with measured SV bundle and memory metrics:
-    `467` files, `6,971,927` lines in =main.sv=, `433,040,128` total memory
-    bits, and `411,705,344` bits in the four largest memories.
+  Current branch evidence on 2026-04-11:
+  the standard baseline-float route reaches emitted SystemVerilog, reaches
+  Yosys, and emits RTLIL plus a Yosys stat report.
+  - =tiny-stories-1m-baseline-float-il= succeeds and emits RTLIL.
+  - =tiny-stories-1m-baseline-float-yosys-stat= succeeds with measured SV
+    bundle and design-memory metrics: `467` files, `6,971,927` lines in
+    =main.sv=, `12,738,203` design cells, `327` design memories,
+    `433,040,128` total memory bits, and `411,705,344` bits in the four
+    largest memories.
 
   Follow-on direction:
   keep the clean quantization path and Task 6 resource minimization work open,

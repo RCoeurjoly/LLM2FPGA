@@ -285,13 +285,14 @@ in {
     key = "tiny-stories-1m-baseline-float";
     name = "tiny-stories-1m-baseline-float";
     description =
-      "Historical non-canonical baseline TinyStories-1M export using the standard torch.export plus torch-mlir FX importer path.";
+      "Historical non-canonical baseline TinyStories-1M export using the standard torch.export plus torch-mlir FX importer path, with per-file slang extern import to keep Yosys from OOM-killing on the split SV bundle.";
     source = {
       type = "huggingface";
       model_id = tinyStories1m.modelId;
       inherit (tinyStories1m) revision;
     };
     allowHwExterns = true;
+    slangPerFileExternModules = true;
     inherit fpPrimsSv;
     torchInputBuildInputs = [ pythonWithTinyStories ];
     torchInputCommand = ''
