@@ -269,10 +269,13 @@ If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input
 
   Current branch evidence on 2026-04-10:
   the standard baseline-float route reaches emitted SystemVerilog and now
-  reaches Yosys/slang, but both =tiny-stories-1m-baseline-float-il= and
-  =tiny-stories-1m-baseline-float-yosys-stat= are currently blocked by an
-  explicit Yosys out-of-memory kill on this host rather than unresolved module
-  failures.
+  reaches Yosys/slang.
+  - =tiny-stories-1m-baseline-float-il= is still blocked by an explicit Yosys
+    out-of-memory kill on this host rather than unresolved module failures.
+  - =tiny-stories-1m-baseline-float-yosys-stat= now succeeds by emitting an
+    explicit OOM bottleneck report with measured SV bundle and memory metrics:
+    `467` files, `6,971,927` lines in =main.sv=, `433,040,128` total memory
+    bits, and `411,705,344` bits in the four largest memories.
 
   Follow-on direction:
   keep the clean quantization path and Task 6 resource minimization work open,

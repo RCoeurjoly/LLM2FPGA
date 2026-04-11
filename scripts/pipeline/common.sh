@@ -51,7 +51,7 @@ write_yosys_slang_script() {
     exit 2
   fi
 
-  printf 'read_slang --threads 1 --no-proc' >>"$script"
+  printf 'read_slang --threads 1 --no-proc --top main' >>"$script"
   printf ' %q' "${slang_files[@]}" >>"$script"
   printf '\n' >>"$script"
 }
@@ -61,12 +61,21 @@ run_yosys_script() {
   local yosys="$2"
   local input="$3"
   local stage_hint="$4"
+  local errexit_was_on=0
   shift 4
+
+  if [[ $- == *e* ]]; then
+    errexit_was_on=1
+  fi
 
   set +e
   "$yosys" "$@"
   local rc=$?
-  set -e
+  if [[ "$errexit_was_on" -eq 1 ]]; then
+    set -e
+  else
+    set +e
+  fi
 
   if [[ "$rc" -eq 137 || "$rc" -eq 9 ]]; then
     echo "[$label] ERROR: Yosys was killed while processing '$input' (exit code $rc)." >&2

@@ -126,7 +126,7 @@ let
     '';
 
   mkYosysStatDerivation = { name, sv }:
-    pkgs.runCommand "${name}-yosys.stat" { buildInputs = [ yosysPkg ]; } ''
+    pkgs.runCommand "${name}-yosys.stat" { buildInputs = [ yosysPkg python ]; } ''
       ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_yosys_stat.sh \
         ${yosysPkg}/bin/yosys \
         ${yosysSlang}/share/yosys/plugins/slang.so \
