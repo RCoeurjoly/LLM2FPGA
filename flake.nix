@@ -319,6 +319,9 @@
         tinyStories1mPipeline = modelPipelines."tiny-stories-1m";
         tinyStories1mSv = tinyStories1mPipeline.sv;
         tinyStories1mIl = tinyStories1mPipeline.il;
+        tinyStories1mBaselineFloatPipeline =
+          modelPipelines."tiny-stories-1m-baseline-float";
+        tinyStories1mBaselineFloatIl = tinyStories1mBaselineFloatPipeline.il;
         tinyStoriesCapacities = {
           slices = 74650;
           clb_luts = 298600;
@@ -336,7 +339,7 @@
 
         mkYosysRtlil = { name, quiet ? false, memoryLimitKb ? null, script }:
           pkgs.runCommand "${name}.il" { } ''
-            cat > run.ys <<'EOF'
+            cat > run.ys <<EOF
             ${script}
             EOF
             ${pkgs.lib.optionalString (memoryLimitKb != null) ''
@@ -345,6 +348,13 @@
             ${yosysPkg}/bin/yosys ${
               pkgs.lib.optionalString quiet "-q"
             } -m ${yosysSlang}/share/yosys/plugins/slang.so -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkYosysRtlil expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
           '';
 
         mkYosysJson = { name, modelIl, topName, topSv }:
@@ -357,166 +367,334 @@
             "
           '';
 
-        mkSynthJson = { name, modelIl, topName, topSv ? null, quiet ? false
-          , memoryLimitKb ? null, staged ? false, }:
-          pkgs.runCommand "${name}.json" { } ''
+        synthStageNames = [
+          "stage1"
+          "stage2"
+          "stage3"
+          "stage4"
+          "stage5"
+          "stage6"
+          "stage7"
+          "stage8"
+          "stage9"
+        ];
+
+        mkSynthStageIl = { name, stageId, stageLabel, inputIl, topName
+          , topSv ? null, quiet ? false, memoryLimitKb ? null
+          , preCommands ? [ ], commands }:
+          pkgs.runCommand "${name}-${stageId}.il" { } ''
+            cat > run.ys <<EOF
+            ${builtins.concatStringsSep "\n" (
+              [ "read_rtlil ${inputIl}" ]
+              ++ pkgs.lib.optional (topSv != null) "read_slang ${topSv}"
+              ++ [ "hierarchy -top ${topName} -check" ]
+              ++ preCommands
+              ++ commands
+              ++ [ "write_rtlil $out" ]
+            )}
+            EOF
+
             ${pkgs.lib.optionalString (memoryLimitKb != null) ''
               ulimit -v ${toString memoryLimitKb}
             ''}
 
-            if ${if staged then "true" else "false"}; then
-              printf '%s\n' \
-                'read_rtlil ${modelIl}' \
-                ${pkgs.lib.optionalString (topSv != null)
-                "'read_slang ${topSv}' \\"}
-                'hierarchy -top ${topName} -check' \
-                'synth_xilinx -family xc7 -top ${topName} -noiopad -run begin:prepare' \
-                'write_rtlil stage1.il' \
-                > stage1.ys
-
-              ${yosysPkg}/bin/yosys ${
-                pkgs.lib.optionalString quiet "-q"
-              } -m ${yosysSlang}/share/yosys/plugins/slang.so -s stage1.ys
-
-              printf '%s\n' \
-                'read_rtlil stage1.il' \
-                'hierarchy -top ${topName} -check' \
-                'synth_xilinx -family xc7 -top ${topName} -noiopad -run coarse:map_memory' \
-                'write_rtlil stage2.il' \
-                > stage2.ys
-
-              ${yosysPkg}/bin/yosys ${
-                pkgs.lib.optionalString quiet "-q"
-              } -s stage2.ys
-
-              printf '%s\n' \
-                'read_rtlil stage2.il' \
-                'hierarchy -top ${topName} -check' \
-                'opt -fast -full' \
-                'write_rtlil stage3.il' \
-                > stage3.ys
-
-              ${yosysPkg}/bin/yosys ${
-                pkgs.lib.optionalString quiet "-q"
-              } -s stage3.ys
-
-              awk '
-                /^module / { mod = $2 }
-                /^[[:space:]]*cell \$mem/ { mods[mod] = 1 }
-                END {
-                  for (mod in mods)
-                    print mod
-                }
-              ' stage3.il | sort > stage4-modules.txt
-
-              printf '%s\n' \
-                'read_rtlil stage3.il' \
-                'hierarchy -top ${topName} -check' \
-                > stage4.ys
-
-              while IFS= read -r moduleName; do
-                printf '%s\n' \
-                  "cd $moduleName" \
-                  'memory_map' \
-                  'cd ..' \
-                  >> stage4.ys
-              done < stage4-modules.txt
-
-              printf '%s\n' \
-                'write_rtlil stage4.il' \
-                >> stage4.ys
-
-              ${yosysPkg}/bin/yosys ${
-                pkgs.lib.optionalString quiet "-q"
-              } -s stage4.ys
-
-              printf '%s\n' \
-                'read_rtlil stage4.il' \
-                'hierarchy -top ${topName} -check' \
-                'synth_xilinx -family xc7 -top ${topName} -noiopad -run fine:fine' \
-                'write_rtlil stage5.il' \
-                > stage5.ys
-
-              ${yosysPkg}/bin/yosys ${
-                pkgs.lib.optionalString quiet "-q"
-              } -s stage5.ys
-
-              printf '%s\n' \
-                'read_rtlil stage5.il' \
-                'hierarchy -top ${topName} -check' \
-                'synth_xilinx -family xc7 -top ${topName} -noiopad -run map_cells:map_cells' \
-                'write_rtlil stage6.il' \
-                > stage6.ys
-
-              ${yosysPkg}/bin/yosys ${
-                pkgs.lib.optionalString quiet "-q"
-              } -s stage6.ys
-
-              printf '%s\n' \
-                'read_rtlil stage6.il' \
-                'hierarchy -top ${topName} -check' \
-                'synth_xilinx -family xc7 -top ${topName} -noiopad -run map_ffs:map_ffs' \
-                'write_rtlil stage7.il' \
-                > stage7.ys
-
-              ${yosysPkg}/bin/yosys ${
-                pkgs.lib.optionalString quiet "-q"
-              } -s stage7.ys
-
-              printf '%s\n' \
-                'read_rtlil stage7.il' \
-                'hierarchy -top ${topName} -check' \
-                'synth_xilinx -family xc7 -top ${topName} -noiopad -run map_luts:check' \
-                'write_rtlil stage8.il' \
-                > stage8.ys
-            else
-              printf '%s\n' \
-                'read_rtlil ${modelIl}' \
-                ${pkgs.lib.optionalString (topSv != null)
-                "'read_slang ${topSv}' \\"}
-                'hierarchy -top ${topName} -check' \
-                "synth_xilinx -family xc7 -top ${topName} -noiopad -json $out" \
-                > stage8.ys
-            fi
-
-            ${yosysPkg}/bin/yosys ${pkgs.lib.optionalString quiet "-q"} ${
-              pkgs.lib.optionalString (!staged)
+            echo "[mkSynthJson:${name}] ${stageLabel}" >&2
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } ${
+              pkgs.lib.optionalString (topSv != null)
               "-m ${yosysSlang}/share/yosys/plugins/slang.so"
-            } -s stage8.ys
-
-            ${pkgs.lib.optionalString staged ''
-              ${pkgs.python311}/bin/python3 ${
-                ./scripts/pipeline/filter_rtlil_modules.py
-              } \
-                --input stage8.il \
-                --output stage8-stripped.il \
-                --drop-escaped-uppercase-modules
-
-              printf '%s\n' \
-                'read_rtlil stage8-stripped.il' \
-                "write_json $out" \
-                > stage9.ys
-
-              ${yosysPkg}/bin/yosys ${
-                pkgs.lib.optionalString quiet "-q"
-              } -s stage9.ys
-            ''}
+            } -s run.ys
 
             if [ ! -e "$out" ]; then
-              echo "mkSynthJson expected output path was not created: $out" >&2
-              echo "--- stage8.ys ---" >&2
-              cat stage8.ys >&2
-              if [ -f stage9.ys ]; then
-                echo "--- stage9.ys ---" >&2
-                cat stage9.ys >&2
-              fi
-              echo "--- workspace ---" >&2
-              ls -lah >&2
-              echo "--- json files ---" >&2
-              find . -maxdepth 2 -name '*.json' -print >&2 || true
+              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
               exit 1
             fi
           '';
+
+        mkSynthStageMemoryMapIl = { name, stageId, stageLabel, inputIl, topName
+          , quiet ? false, memoryLimitKb ? null }:
+          pkgs.runCommand "${name}-${stageId}.il" { } ''
+            ${pkgs.gawk}/bin/awk '
+              /^module / { mod = $2 }
+              /^[[:space:]]*cell \$mem/ { mods[mod] = 1 }
+              END {
+                for (mod in mods)
+                  print mod
+              }
+            ' ${inputIl} | sort > stage-modules.txt
+
+            cat > run.ys <<EOF
+            read_rtlil ${inputIl}
+            hierarchy -top ${topName} -check
+            EOF
+
+            while IFS= read -r moduleName; do
+              printf '%s\n' \
+                "cd $moduleName" \
+                'memory_map' \
+                'cd ..' \
+                >> run.ys
+            done < stage-modules.txt
+
+            printf '%s\n' "write_rtlil $out" >> run.ys
+
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            echo "[mkSynthJson:${name}] ${stageLabel}" >&2
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
+          '';
+
+        mkSynthStageJson = { name, stageId, stageLabel, inputIl, quiet ? false
+          , memoryLimitKb ? null }:
+          pkgs.runCommand "${name}.json" { } ''
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/filter_rtlil_modules.py
+            } \
+              --input ${inputIl} \
+              --output stage8-stripped.il \
+              --drop-escaped-uppercase-modules
+
+            cat > run.ys <<EOF
+            read_rtlil stage8-stripped.il
+            proc
+            write_json $out
+            EOF
+
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            echo "[mkSynthJson:${name}] ${stageLabel}" >&2
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
+          '';
+
+        mkSynthJsonStages = { name, modelIl, topName, topSv ? null
+          , quiet ? false, memoryLimitKb ? null }:
+          rec {
+            stage1 = mkSynthStageIl {
+              inherit name topName topSv quiet memoryLimitKb;
+              stageId = "stage1";
+              stageLabel = "stage1 synth_xilinx begin:prepare";
+              inputIl = modelIl;
+              preCommands = [ "proc" ];
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run begin:prepare"
+              ];
+            };
+
+            stage2 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage2";
+              stageLabel = "stage2 synth_xilinx coarse:map_memory";
+              inputIl = stage1;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run coarse:map_memory"
+              ];
+            };
+
+            stage3 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage3";
+              stageLabel = "stage3 opt -fast -full";
+              inputIl = stage2;
+              commands = [ "opt -fast -full" ];
+            };
+
+            stage4 = mkSynthStageMemoryMapIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage4";
+              stageLabel = "stage4 targeted memory_map";
+              inputIl = stage3;
+            };
+
+            stage5 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage5";
+              stageLabel = "stage5 synth_xilinx fine:fine";
+              inputIl = stage4;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run fine:fine"
+              ];
+            };
+
+            stage6 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage6";
+              stageLabel = "stage6 synth_xilinx map_cells:map_cells";
+              inputIl = stage5;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_cells:map_cells"
+              ];
+            };
+
+            stage7 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage7";
+              stageLabel = "stage7 synth_xilinx map_ffs:map_ffs";
+              inputIl = stage6;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_ffs:map_ffs"
+              ];
+            };
+
+            stage8 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8";
+              stageLabel = "stage8 final synth/write";
+              inputIl = stage7;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_luts:check"
+              ];
+            };
+
+            stage9 = mkSynthStageJson {
+              inherit name quiet memoryLimitKb;
+              stageId = "stage9";
+              stageLabel = "stage9 write_json";
+              inputIl = stage8;
+            };
+
+            json = stage9;
+          };
+
+        mkSynthJson = { name, modelIl, topName, topSv ? null, quiet ? false
+          , memoryLimitKb ? null, staged ? false, }:
+          if staged then
+            (mkSynthJsonStages {
+              inherit name modelIl topName topSv quiet memoryLimitKb;
+            }).json
+          else
+            pkgs.runCommand "${name}.json" { } ''
+              cat > run.ys <<EOF
+              read_rtlil ${modelIl}
+              ${pkgs.lib.optionalString (topSv != null) "read_slang ${topSv}"}
+              hierarchy -top ${topName} -check
+              proc
+              synth_xilinx -family xc7 -top ${topName} -noiopad -json $out
+              EOF
+
+              ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+                ulimit -v ${toString memoryLimitKb}
+              ''}
+
+              echo "[mkSynthJson:${name}] stage8 final synth/write" >&2
+              ${yosysPkg}/bin/yosys ${pkgs.lib.optionalString quiet "-q"} ${
+                pkgs.lib.optionalString (topSv != null)
+                "-m ${yosysSlang}/share/yosys/plugins/slang.so"
+              } -s run.ys
+
+              if [ ! -e "$out" ]; then
+                echo "mkSynthJson expected output path was not created: $out" >&2
+                echo "--- run.ys ---" >&2
+                cat run.ys >&2
+                exit 1
+              fi
+            '';
+
+        mkSynthStagePackages = prefix: stages:
+          builtins.listToAttrs (map (stageName: {
+            name = "${prefix}-${stageName}";
+            value = builtins.getAttr stageName stages;
+          }) synthStageNames);
+
+        mkExternalizedMemoryPlan =
+          { name, modelIl, minModuleBits ? (128 * 1024) }:
+          pkgs.runCommand "${name}-external-memory-plan" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/externalize_large_memories.py
+            } \
+              --input ${modelIl} \
+              --output-script externalize.ys \
+              --output-report report.json \
+              --min-module-bits ${toString minModuleBits}
+            mkdir -p "$out"
+            cp externalize.ys "$out/externalize.ys"
+            cp report.json "$out/report.json"
+          '';
+
+        mkTinyStoriesSelftestBundle =
+          { name, topName, mainSv, modelIl, capacities
+          , externalMemoryMinModuleBits ? (128 * 1024) }:
+          let
+            top = pkgs.runCommand "${name}-top.sv" { } ''
+              ${python}/bin/python ${
+                ./scripts/pipeline/gen_tiny_stories_selftest_top.py
+              } \
+                --main-sv ${mainSv} \
+                --out "$out"
+            '';
+            modelOptIl = mkYosysRtlil {
+              name = "${name}-model-opt";
+              script = ''
+                read_rtlil ${modelIl}
+                hierarchy -top main -check
+                proc
+                opt_expr
+                opt_clean
+                clean
+                write_rtlil $out
+              '';
+            };
+            externalMemoryPlan = mkExternalizedMemoryPlan {
+              inherit name;
+              modelIl = modelOptIl;
+              minModuleBits = externalMemoryMinModuleBits;
+            };
+            modelShellIl = mkYosysRtlil {
+              name = "${name}-model-shell";
+              script = ''
+                read_rtlil ${modelOptIl}
+                script ${externalMemoryPlan}/externalize.ys
+                hierarchy -top main -check
+                write_rtlil $out
+              '';
+            };
+            stages = mkSynthJsonStages {
+              inherit name topName;
+              modelIl = modelShellIl;
+              topSv = top;
+              quiet = true;
+            };
+            json = stages.json;
+            yosysJson = mkYosysJson {
+              name = "${name}-yosys";
+              inherit topName;
+              modelIl = modelShellIl;
+              topSv = top;
+            };
+            utilizationReport = mkMappedJsonUtilizationReport {
+              inherit name capacities topName;
+              designJson = json;
+            };
+          in {
+            inherit top modelOptIl modelShellIl externalMemoryPlan stages json
+              yosysJson utilizationReport;
+          };
 
         mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
           let
@@ -529,103 +707,162 @@
         mkMappedJsonUtilizationReport =
           { name, designJson, topName, capacities }:
           pkgs.runCommand "${name}-utilization" {
-            buildInputs = [ yosysPkg pkgs.jq ];
+            buildInputs = [ pkgs.python311 ];
           } ''
-            cat > run.ys <<'EOF'
-            read_json ${designJson}
-            tee -o stat.json stat -top ${topName} -hierarchy -json
-            EOF
+            cat <<'PY' | sed 's/^            //' | ${pkgs.python311}/bin/python3
+            import json
+            import re
+            from collections import Counter
 
-            ${yosysPkg}/bin/yosys -q -s run.ys
+            design_json = "${designJson}"
+            top_name = "${topName}"
 
-            top_key="\\${topName}"
-            jq \
-              --arg top_key "$top_key" \
-              --argjson slices ${toString capacities.slices} \
-              --argjson clb_luts ${toString capacities.clb_luts} \
-              --argjson clb_ffs ${toString capacities.clb_ffs} \
-              --argjson dsp ${toString capacities.dsp} \
-              --argjson bram36 ${toString capacities.bram36} \
-              --argjson bram_kb ${toString capacities.bram_kb} \
-              '
-                def count($obj; $key):
-                  (($obj.num_cells_by_type[$key].count // "0") | tonumber);
-                def pct($used; $cap):
-                  if $cap == 0 then null else ($used * 100.0 / $cap) end;
+            modules_line_re = re.compile(r'^  "modules": \{$')
+            module_line_re = re.compile(r'^    "([^"]+)": \{$')
+            cells_line_re = re.compile(r'^\s*"cells": \{$')
+            type_line_re = re.compile(r'^\s*"type": "([^"]+)"')
+            end_cells_re = re.compile(r'^      }\s*,?\s*$')
+            end_module_re = re.compile(r'^    }\s*,?\s*$')
+            end_modules_re = re.compile(r'^  }\s*,?\s*$')
 
-                (.modules[$top_key] // .design) as $top
-                | ($top.num_cells_by_type // {}) as $cells
-                | {
-                    top_module: ($top_key | ltrimstr("\\")),
-                    capacities: {
-                      slices: $slices,
-                      clb_luts: $clb_luts,
-                      clb_ffs: $clb_ffs,
-                      dsp: $dsp,
-                      bram36: $bram36,
-                      bram_kb: $bram_kb
-                    },
-                    usage: {
-                      lut_total:
-                        (count($top; "LUT1") + count($top; "LUT2") +
-                         count($top; "LUT3") + count($top; "LUT4") +
-                         count($top; "LUT5") + count($top; "LUT6")),
-                      muxf7: count($top; "MUXF7"),
-                      muxf8: count($top; "MUXF8"),
-                      ff_total:
-                        (count($top; "FDRE") + count($top; "FDSE") +
-                         count($top; "FDCE") + count($top; "FDPE")),
-                      dsp_total:
-                        (count($top; "DSP48E1") + count($top; "DSP48E2") +
-                         count($top; "DSP48A") + count($top; "DSP48A1") +
-                         count($top; "DSP48")),
-                      bram36_total:
-                        (count($top; "RAMB36E1") + count($top; "RAMB36E2") +
-                         count($top; "FIFO36E1") + count($top; "FIFO36E2")),
-                      bram18_total:
-                        (count($top; "RAMB18E1") + count($top; "RAMB18E2") +
-                         count($top; "FIFO18E1") + count($top; "FIFO18E2")),
-                      lutram_ram32m: count($top; "RAM32M"),
-                      lutram_ram64m: count($top; "RAM64M")
-                    }
-                  }
-                | .usage.bram36_equivalent =
-                    (.usage.bram36_total + (.usage.bram18_total / 2.0))
-                | .utilization = {
-                    lut_pct: pct(.usage.lut_total; .capacities.clb_luts),
-                    ff_pct: pct(.usage.ff_total; .capacities.clb_ffs),
-                    dsp_pct: pct(.usage.dsp_total; .capacities.dsp),
-                    bram36_equivalent_pct:
-                      pct(.usage.bram36_equivalent; .capacities.bram36)
-                  }
-                | .fits = {
-                    lut: (.usage.lut_total <= .capacities.clb_luts),
-                    ff: (.usage.ff_total <= .capacities.clb_ffs),
-                    dsp: (.usage.dsp_total <= .capacities.dsp),
-                    bram36_equivalent:
-                      (.usage.bram36_equivalent <= .capacities.bram36),
-                    overall:
-                      ((.usage.lut_total <= .capacities.clb_luts) and
-                       (.usage.ff_total <= .capacities.clb_ffs) and
-                       (.usage.dsp_total <= .capacities.dsp) and
-                       (.usage.bram36_equivalent <= .capacities.bram36))
-                  }
-              ' stat.json > summary.json
+            in_modules = False
+            current_module = None
+            in_cells = False
+            module_counts = {}
 
-            jq -r '
-              [
-                "top_module: " + .top_module,
-                "lut_total: " + (.usage.lut_total | tostring) + " / " + (.capacities.clb_luts | tostring) + " (" + (.utilization.lut_pct | tostring) + "%)",
-                "ff_total: " + (.usage.ff_total | tostring) + " / " + (.capacities.clb_ffs | tostring) + " (" + (.utilization.ff_pct | tostring) + "%)",
-                "dsp_total: " + (.usage.dsp_total | tostring) + " / " + (.capacities.dsp | tostring) + " (" + (.utilization.dsp_pct | tostring) + "%)",
-                "bram36_equivalent: " + (.usage.bram36_equivalent | tostring) + " / " + (.capacities.bram36 | tostring) + " (" + (.utilization.bram36_equivalent_pct | tostring) + "%)",
-                "muxf7: " + (.usage.muxf7 | tostring),
-                "muxf8: " + (.usage.muxf8 | tostring),
-                "lutram_ram32m: " + (.usage.lutram_ram32m | tostring),
-                "lutram_ram64m: " + (.usage.lutram_ram64m | tostring),
-                "fits_overall: " + (.fits.overall | tostring)
-              ] | .[]
-            ' summary.json > summary.txt
+            with open(design_json, "r", encoding="utf-8") as f:
+              for line in f:
+                line = line.rstrip("\n")
+                if not in_modules:
+                  if modules_line_re.match(line):
+                    in_modules = True
+                  continue
+
+                if current_module is None:
+                  module_match = module_line_re.match(line)
+                  if module_match:
+                    current_module = module_match.group(1)
+                    module_counts[current_module] = Counter()
+                    continue
+                  if end_modules_re.match(line):
+                    break
+                  continue
+
+                if not in_cells:
+                  if cells_line_re.match(line):
+                    in_cells = True
+                    continue
+                  if end_module_re.match(line):
+                    current_module = None
+                  continue
+
+                type_match = type_line_re.match(line)
+                if type_match:
+                  module_counts[current_module][type_match.group(1)] += 1
+                  continue
+
+                if end_cells_re.match(line):
+                  in_cells = False
+
+            if top_name not in module_counts:
+              raise SystemExit(f"top module not found in mapped JSON: {top_name}")
+
+            memo = {}
+            visiting = set()
+
+            def hierarchical_counts(module_name: str) -> Counter:
+              if module_name in memo:
+                return memo[module_name]
+              if module_name in visiting:
+                raise SystemExit(f"cycle detected while expanding module hierarchy: {module_name}")
+              visiting.add(module_name)
+              total = Counter()
+              for cell_type, cell_count in module_counts.get(module_name, {}).items():
+                if cell_type in module_counts:
+                  child_counts = hierarchical_counts(cell_type)
+                  for child_type, child_count in child_counts.items():
+                    total[child_type] += child_count * cell_count
+                else:
+                  total[cell_type] += cell_count
+              visiting.remove(module_name)
+              memo[module_name] = total
+              return total
+
+            counts = hierarchical_counts(top_name)
+
+            def count(name: str) -> int:
+              return counts.get(name, 0)
+
+            def pct(used, cap):
+              return None if cap == 0 else (used * 100.0 / cap)
+
+            capacities = {
+              "slices": ${toString capacities.slices},
+              "clb_luts": ${toString capacities.clb_luts},
+              "clb_ffs": ${toString capacities.clb_ffs},
+              "dsp": ${toString capacities.dsp},
+              "bram36": ${toString capacities.bram36},
+              "bram_kb": ${toString capacities.bram_kb},
+            }
+
+            usage = {
+              "lut_total": sum(count(name) for name in ["LUT1", "LUT2", "LUT3", "LUT4", "LUT5", "LUT6"]),
+              "muxf7": count("MUXF7"),
+              "muxf8": count("MUXF8"),
+              "ff_total": sum(count(name) for name in ["FDRE", "FDSE", "FDCE", "FDPE"]),
+              "dsp_total": sum(count(name) for name in ["DSP48E1", "DSP48E2", "DSP48A", "DSP48A1", "DSP48"]),
+              "bram36_total": sum(count(name) for name in ["RAMB36E1", "RAMB36E2", "FIFO36E1", "FIFO36E2"]),
+              "bram18_total": sum(count(name) for name in ["RAMB18E1", "RAMB18E2", "FIFO18E1", "FIFO18E2"]),
+              "lutram_ram32m": count("RAM32M"),
+              "lutram_ram64m": count("RAM64M"),
+            }
+            usage["bram36_equivalent"] = usage["bram36_total"] + (usage["bram18_total"] / 2.0)
+
+            summary = {
+              "top_module": top_name,
+              "capacities": capacities,
+              "usage": usage,
+              "utilization": {
+                "lut_pct": pct(usage["lut_total"], capacities["clb_luts"]),
+                "ff_pct": pct(usage["ff_total"], capacities["clb_ffs"]),
+                "dsp_pct": pct(usage["dsp_total"], capacities["dsp"]),
+                "bram36_equivalent_pct": pct(usage["bram36_equivalent"], capacities["bram36"]),
+              },
+            }
+            summary["fits"] = {
+              "lut": usage["lut_total"] <= capacities["clb_luts"],
+              "ff": usage["ff_total"] <= capacities["clb_ffs"],
+              "dsp": usage["dsp_total"] <= capacities["dsp"],
+              "bram36_equivalent": usage["bram36_equivalent"] <= capacities["bram36"],
+            }
+            summary["fits"]["overall"] = all(summary["fits"].values())
+
+            stat = {
+              "top_module": top_name,
+              "hierarchical": True,
+              "num_cells_by_type": dict(sorted(counts.items())),
+            }
+
+            with open("stat.json", "w", encoding="utf-8") as f:
+              json.dump(stat, f, indent=2, sort_keys=True)
+              f.write("\n")
+
+            with open("summary.json", "w", encoding="utf-8") as f:
+              json.dump(summary, f, indent=2, sort_keys=True)
+              f.write("\n")
+
+            with open("summary.txt", "w", encoding="utf-8") as f:
+              f.write(f"top_module: {summary['top_module']}\n")
+              f.write(f"lut_total: {usage['lut_total']} / {capacities['clb_luts']} ({summary['utilization']['lut_pct']}%)\n")
+              f.write(f"ff_total: {usage['ff_total']} / {capacities['clb_ffs']} ({summary['utilization']['ff_pct']}%)\n")
+              f.write(f"dsp_total: {usage['dsp_total']} / {capacities['dsp']} ({summary['utilization']['dsp_pct']}%)\n")
+              f.write(f"bram36_equivalent: {usage['bram36_equivalent']} / {capacities['bram36']} ({summary['utilization']['bram36_equivalent_pct']}%)\n")
+              f.write(f"muxf7: {usage['muxf7']}\n")
+              f.write(f"muxf8: {usage['muxf8']}\n")
+              f.write(f"lutram_ram32m: {usage['lutram_ram32m']}\n")
+              f.write(f"lutram_ram64m: {usage['lutram_ram64m']}\n")
+              f.write(f"fits_overall: {summary['fits']['overall']}\n")
+            PY
 
             mkdir -p "$out"
             cp stat.json "$out/stat.json"
@@ -714,19 +951,61 @@
           fasm = matmulSelftestFasm;
           framesBase = "matmul-selftest";
         };
-        tinyStories1mUtilizationJson = mkSynthJson {
+        tinyStories1mUtilizationStages = mkSynthJsonStages {
           name = "tiny-stories-1m-utilization";
           topName = "main";
           modelIl = tinyStories1mIl;
-          staged = true;
           quiet = true;
         };
+        tinyStories1mUtilizationJson = tinyStories1mUtilizationStages.json;
         tinyStories1mUtilizationReport = mkMappedJsonUtilizationReport {
           name = "tiny-stories-1m";
           capacities = tinyStoriesCapacities;
           topName = "main";
           designJson = tinyStories1mUtilizationJson;
         };
+        tinyStories1mBaselineFloatUtilizationStages = mkSynthJsonStages {
+          name = "tiny-stories-1m-baseline-float-utilization";
+          topName = "main";
+          modelIl = tinyStories1mBaselineFloatIl;
+          quiet = true;
+        };
+        tinyStories1mBaselineFloatUtilizationJson =
+          tinyStories1mBaselineFloatUtilizationStages.json;
+        tinyStories1mBaselineFloatUtilizationReport =
+          mkMappedJsonUtilizationReport {
+            name = "tiny-stories-1m-baseline-float";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = tinyStories1mBaselineFloatUtilizationJson;
+          };
+        tinyStories1mSelftestAllMemory = mkTinyStoriesSelftestBundle {
+          name = "tiny-stories-1m-selftest-all-memory";
+          topName = "tiny_stories_selftest_top";
+          mainSv = "${tinyStories1mPipeline.sv}/sv/main.sv";
+          modelIl = tinyStories1mIl;
+          capacities = tinyStoriesCapacities;
+          externalMemoryMinModuleBits = 1;
+        };
+        tinyStories1mBaselineFloatSelftestAllMemory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-float-selftest-all-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineFloatPipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineFloatIl;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+          };
+        synthStagePackages =
+          mkSynthStagePackages "tiny-stories-1m-utilization"
+          tinyStories1mUtilizationStages
+          // mkSynthStagePackages "tiny-stories-1m-selftest-all-memory"
+          tinyStories1mSelftestAllMemory.stages
+          // mkSynthStagePackages "tiny-stories-1m-baseline-float-utilization"
+          tinyStories1mBaselineFloatUtilizationStages
+          // mkSynthStagePackages
+          "tiny-stories-1m-baseline-float-selftest-all-memory"
+          tinyStories1mBaselineFloatSelftestAllMemory.stages;
 
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
@@ -848,8 +1127,41 @@
           matmul-selftest-json = matmulSelftestJson;
           tiny-stories-1m-utilization-json = tinyStories1mUtilizationJson;
           tiny-stories-1m-utilization = tinyStories1mUtilizationReport;
+          tiny-stories-1m-selftest-all-memory-top =
+            tinyStories1mSelftestAllMemory.top;
+          tiny-stories-1m-selftest-all-memory-model-opt-il =
+            tinyStories1mSelftestAllMemory.modelOptIl;
+          tiny-stories-1m-selftest-all-memory-model-shell-il =
+            tinyStories1mSelftestAllMemory.modelShellIl;
+          tiny-stories-1m-selftest-all-memory-external-memory-plan =
+            tinyStories1mSelftestAllMemory.externalMemoryPlan;
+          tiny-stories-1m-selftest-all-memory-json =
+            tinyStories1mSelftestAllMemory.json;
+          tiny-stories-1m-selftest-all-memory-yosys-json =
+            tinyStories1mSelftestAllMemory.yosysJson;
+          tiny-stories-1m-selftest-all-memory-utilization =
+            tinyStories1mSelftestAllMemory.utilizationReport;
+          tiny-stories-1m-baseline-float-utilization-json =
+            tinyStories1mBaselineFloatUtilizationJson;
+          tiny-stories-1m-baseline-float-utilization =
+            tinyStories1mBaselineFloatUtilizationReport;
+          tiny-stories-1m-baseline-float-selftest-all-memory-top =
+            tinyStories1mBaselineFloatSelftestAllMemory.top;
+          tiny-stories-1m-baseline-float-selftest-all-memory-model-opt-il =
+            tinyStories1mBaselineFloatSelftestAllMemory.modelOptIl;
+          tiny-stories-1m-baseline-float-selftest-all-memory-model-shell-il =
+            tinyStories1mBaselineFloatSelftestAllMemory.modelShellIl;
+          tiny-stories-1m-baseline-float-selftest-all-memory-external-memory-plan =
+            tinyStories1mBaselineFloatSelftestAllMemory.externalMemoryPlan;
+          tiny-stories-1m-baseline-float-selftest-all-memory-json =
+            tinyStories1mBaselineFloatSelftestAllMemory.json;
+          tiny-stories-1m-baseline-float-selftest-all-memory-yosys-json =
+            tinyStories1mBaselineFloatSelftestAllMemory.yosysJson;
+          tiny-stories-1m-baseline-float-selftest-all-memory-utilization =
+            tinyStories1mBaselineFloatSelftestAllMemory.utilizationReport;
           tiny-stories-1m-snapshot = tinyStories1m.snapshot;
-        } // pipelineStagePackages // pipelineMetadataPackages;
+        } // pipelineStagePackages // pipelineMetadataPackages
+          // synthStagePackages;
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {
