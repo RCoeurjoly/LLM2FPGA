@@ -103,6 +103,60 @@ The helper writes all artifacts into one output directory and records the exact
 tool paths used in `toolchain.env`. That should make bisect failures easier to
 compare and easier to write up once a patch is proven necessary.
 
+## First local torch-mlir result
+
+Date: 2026-04-12
+
+Using a detached upstream `torch-mlir` worktree at the pinned Task 3 revision
+`59c249e5` with the repo patch stack removed:
+
+- worktree: `/home/roland/torch-mlir-bisect`
+- local binary:
+  `/home/roland/torch-mlir-bisect/build-no-patches/bin/torch-mlir-opt`
+- local python sources:
+  `/home/roland/torch-mlir-bisect/python`
+
+Local build notes:
+
+- the clean upstream tree needed a local build shim to compile outside Nix:
+  - `TORCH_MLIR_ENABLE_STABLEHLO=OFF`
+  - absolute `mlir-tblgen` from
+    `/nix/store/qlkklrgiqi1paa25gpmk02d2sf6hnjc9-llvm-tblgen-23.0.0-unstable-2026-01-20/bin/mlir-tblgen`
+  - compatibility symlinks for the generated `include/.../mlir-tblgen`
+    dependencies in the out-of-tree build directory
+- this shim is for the local bisect harness only, not a reviewer-facing claim
+
+Observed result against the baseline-float path, with the real downstream tool
+versions from the repo pipeline:
+
+- `torch-mlir-opt`: clean upstream local build from `59c249e5`
+- `mlir-opt`: `/nix/store/qfhb8ajk2kw32lrmk8xqaa1g6h7w95p8-mlir-21.1.2/bin/mlir-opt`
+- `circt-opt`:
+  `/nix/store/xczyaxcqdm86pqhng55fiv9wy7ir5f66-circt-1.143.0g20260320_34e5533/bin/circt-opt`
+- `yosys`:
+  `/nix/store/7hbi77b6hi6zncfd3jw5bgw6y8sa1591-yosys-with-plugins-0.62/bin/yosys`
+- `yosys-slang`:
+  `/nix/store/wga1hnian30asym9hma6829qzmbcf4af-yosys-slang-flake-input/share/yosys/plugins/slang.so`
+
+Results:
+
+- the clean no-patch `torch-mlir` path reaches `linalg`
+- the clean no-patch `torch-mlir` path reaches `sv`
+- the clean no-patch `torch-mlir` `sv` bundle passes direct `sv_to_il.sh`
+- direct IL output was written to:
+  `/tmp/ts-baseline-float-no-torch-mlir-patches-sv-mlir21/design.il`
+
+Interpretation:
+
+- for the current `tiny-stories-1m-baseline-float` reviewer path, the full
+  checked-in `torch-mlir` patch stack now looks likely unnecessary
+- this is not yet a Nix-packaged proof; it is a local bisect-harness result
+- the next confirming step should be to disable the `torch-mlir` patch list in
+  `torch-mlir.nix` and re-run:
+  - `tiny-stories-1m-baseline-float-sv`
+  - `tiny-stories-1m-baseline-float-il`
+  - `tiny-stories-1m-baseline-float-yosys-stat`
+
 ## Retained patch bar
 
 Any retained patch should have all of the following written down nearby in the
