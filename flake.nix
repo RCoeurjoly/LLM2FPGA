@@ -50,7 +50,6 @@
               ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
               ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
               ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
-              ./patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch
               ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
               ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
               ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
@@ -216,16 +215,20 @@
         # Local copy of the source-based package proposed in:
         # https://github.com/NixOS/nixpkgs/pull/490242
         # Built out-of-tree against a separate LLVM/MLIR derivation so torch-mlir
-        # changes do not force rebuilding LLVM. Reviewer builds use the pinned
-        # upstream torch-mlir source from torch-mlir.nix; local compiler
-        # iteration should continue through scripts/dev and a local binary.
-        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix {
-          inherit python;
+        # changes do not force rebuilding LLVM. The current baseline-float Task 3
+        # reviewer path is being validated against upstream-unpatched torch-mlir;
+        # keep the historical patch stack available for follow-up quantized
+        # experiments until that cleanup is fully settled.
+        mkTorchMlir = applyTask3RfpPatches: pkgsLlvm21.callPackage ./torch-mlir.nix {
+          inherit applyTask3RfpPatches python;
           nanobind = nanobindBootstrap;
           inherit (torchMlirLlvmPackages) tblgen;
           mlir = mlirForTorchMlir;
           inherit (torchMlirLlvmPackages) llvm;
         };
+        torchMlirPatched = mkTorchMlir true;
+        torchMlirUnpatched = mkTorchMlir false;
+        torchMlir = torchMlirUnpatched;
 
         pipelineScripts = ./scripts/pipeline;
         fpPrimsSv = ./rtl/fp/circt_fp_primitives.sv;
@@ -1107,6 +1110,8 @@
           yosys = yosysPkg;
           yosys-slang = yosysSlang;
           torch-mlir = torchMlir;
+          torch-mlir-patched = torchMlirPatched;
+          torch-mlir-unpatched = torchMlirUnpatched;
           torch-mlir-llvm = torchMlirLlvmPackages.llvm;
           torch-mlir-mlir = mlirForTorchMlir;
           model-registry = modelRegistryJson;

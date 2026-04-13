@@ -157,6 +157,149 @@ Interpretation:
   - `tiny-stories-1m-baseline-float-il`
   - `tiny-stories-1m-baseline-float-yosys-stat`
 
+## First Nix-backed torch-mlir result
+
+Date: 2026-04-12
+
+The branch now exposes both `torch-mlir-patched` and `torch-mlir-unpatched`,
+and the default Task 3 pipeline package was switched to the upstream-unpatched
+variant for verification.
+
+Observed result for the current baseline-float reviewer path:
+
+- `nix build .#tiny-stories-1m-baseline-float-sv -L --no-link`: success
+- `nix build .#tiny-stories-1m-baseline-float-il -L --no-link`: success
+- `nix build .#tiny-stories-1m-baseline-float-yosys-stat -L --no-link`: success
+
+Realized output paths:
+
+- `sv`:
+  `/nix/store/4g21jbn2h8zcmgr89pf1i02dvxwmcwc0-tiny-stories-1m-baseline-float-sv`
+- `il`:
+  `/nix/store/xvg1zq6lcbmrm4333sn83k5flr2f7d0m-tiny-stories-1m-baseline-float.il`
+- `yosys-stat`:
+  `/nix/store/hmbpnyfdj9m8d4pkv6y938bg5fmraldi-tiny-stories-1m-baseline-float-yosys.stat`
+
+Observed behavior:
+
+- unpatched upstream `torch-mlir` built successfully in Nix
+- the real Nix-backed baseline-float pipeline still reached SystemVerilog
+- the real Nix-backed baseline-float pipeline still reached RTLIL
+- the Yosys stat/report path still completed
+
+Interpretation:
+
+- for the current `tiny-stories-1m-baseline-float` reviewer path, the full
+  checked-in `torch-mlir` patch stack is not justified by the real Nix-backed
+  evidence we have now
+- this does not yet prove that the PT2E static-quant or TorchAO experimental
+  routes can also drop those patches
+- the next cleanup target should therefore be the CIRCT patch stack, while
+  treating quantized frontend experiments as a separate follow-up check
+
+## First CIRCT reduction result
+
+Date: 2026-04-13
+
+Experiment:
+
+- removed `patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch`
+- reran `nix build .#tiny-stories-1m-baseline-float-sv -L --no-link`
+
+Observed result:
+
+- CIRCT compiled successfully
+- the Task 3-relevant code in `FlattenMemRefs`, `CFToHandshake`, and
+  `HandshakeToHW` still compiled and linked successfully
+- the build failed in CIRCT `checkPhase`, not in the Task 3 pipeline itself
+
+Exact blocker:
+
+- failed test:
+  `CIRCT :: Conversion/HandshakeToHW/test_buffer.mlir`
+- failing command:
+  `/build/source/build/bin/circt-opt -lower-handshake-to-hw --split-input-file /build/source/test/Conversion/HandshakeToHW/test_buffer.mlir | FileCheck /build/source/test/Conversion/HandshakeToHW/test_buffer.mlir`
+- failure form:
+  `CHECK: expected string not found in input`
+- the mismatch is the order of emitted constants in the expected test output:
+  the test still expects `hw.constant false` before `hw.constant 0`
+
+Interpretation:
+
+- `0014` is not needed to compile CIRCT or to build the Task 3 runtime path
+- `0014` is needed to keep the pinned CIRCT package tests green under Nix
+- until the corresponding expected output is updated another way, `0014`
+  remains justified as a small test-only patch
+
+## Baseline-float CIRCT scout
+
+Date: 2026-04-13
+
+Before removing the next CIRCT runtime patch, the current baseline-float path
+was re-run locally to inspect the real intermediate IR with the pinned Nix
+toolchain:
+
+- command:
+  `CIRCT_OPT=$(nix build --print-out-paths --no-link .#circt)/bin/circt-opt MLIR_OPT=$(nix build --print-out-paths --no-link .#torch-mlir-mlir)/bin/mlir-opt ./scripts/dev/run-baseline-float-local-pipeline.sh --out-dir /tmp/ts-baseline-float-patch-scout --stop-after hw0`
+- generated artifacts:
+  `/tmp/ts-baseline-float-patch-scout/{cf.mlir,handshake.mlir,hs-ext.mlir,hw0.mlir}`
+
+Observed behavior:
+
+- `cf.mlir` still contains `cf.assert`
+- `handshake.mlir` still contains float and math operations such as
+  `arith.addf`, `arith.divf`, `arith.maximumf`, `arith.cmpf`, `math.exp`,
+  `math.fpowi`, `math.rsqrt`, and `math.tanh`
+- the initial `handshake.func @main` signature is memref-heavy
+- `hs-ext.mlir` still contains memref globals and memref-valued memory ops
+- `hw0.mlir` still contains float extern modules such as
+  `@arith_addf_in_f32_f32_out_f32` and `@math_exp_in_f32_out_f32`
+- `hw0.mlir` still contains a `builtin.unrealized_conversion_cast` from
+  `memref<50257xf32>` to `!esi.channel<memref<50257xf32>>`
+- no `lazy_fork` occurrences were found in `handshake.mlir`, `hs-ext.mlir`, or
+  `hw0.mlir`
+
+Interpretation:
+
+- patches related to float externs, math/assert legality, memref lowering, and
+  unrealized cast handling remain hot candidates for the current
+  `tiny-stories-1m-baseline-float` reviewer path
+- `0007-lower-lazy-fork-to-hw.patch` is the first runtime patch with concrete
+  evidence that it may be unnecessary for this path, so it is the next removal
+  candidate to test
+
+## CIRCT reduction result for 0007
+
+Date: 2026-04-13
+
+Experiment:
+
+- removed `patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch`
+- reran the real Nix-backed baseline-float reviewer path:
+  - `nix build .#tiny-stories-1m-baseline-float-sv -L --no-link`
+  - `nix build .#tiny-stories-1m-baseline-float-yosys-stat -L --no-link`
+
+Observed result:
+
+- CIRCT rebuilt successfully
+- CIRCT passed `checkPhase`
+- `tiny-stories-1m-baseline-float-sv` succeeded
+- `tiny-stories-1m-baseline-float-yosys-stat` also succeeded
+
+Realized output paths:
+
+- `sv`:
+  `/nix/store/f03znsa4wcilh34g1b3ps91l88gq7p2f-tiny-stories-1m-baseline-float-sv`
+- `yosys-stat`:
+  `/nix/store/r2bvkx5iw6h7r2akh4jsanqw1rvswa4l-tiny-stories-1m-baseline-float-yosys.stat`
+
+Interpretation:
+
+- for the current `tiny-stories-1m-baseline-float` reviewer path,
+  `0007-lower-lazy-fork-to-hw.patch` is not justified by the evidence we have
+- the branch can keep this patch removed unless a different Task 3 path later
+  proves it is still required
+
 ## Retained patch bar
 
 Any retained patch should have all of the following written down nearby in the

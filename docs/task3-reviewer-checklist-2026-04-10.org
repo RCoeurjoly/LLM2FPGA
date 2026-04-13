@@ -58,21 +58,22 @@ Acceptable result:
 
 ** Current known state on this branch
 
-As of 2026-04-11 on the working host used for development:
+As of 2026-04-13 on the working host used for development:
 - `tiny-stories-1m-baseline-float-sv` succeeds
 - `tiny-stories-1m-baseline-float-il` succeeds and emits RTLIL
 - `tiny-stories-1m-baseline-float-yosys-stat` succeeds and emits a Yosys stat
   report
 - that report records:
-  - `467` SV files
-  - `6,971,927` lines in `main.sv`
-  - `12,738,203` design cells
-  - `327` design memories
-  - `433,040,128` total memory bits
+  - `453` SV files
+  - `6,337,161` lines in `main.sv`
+  - `11,541,987` design cells
+  - `326` design memories
+  - `433,040,000` total memory bits
   - `411,705,344` bits from the four largest `3216448 x 32` memories alone
 
-This means the current reviewer-facing Task 3 path reaches emitted RTLIL and a
-real Yosys resource report without hidden blackboxes or text-rewrite shortcuts.
+This means the explicit `tiny-stories-1m-baseline-float` reviewer path reaches
+emitted RTLIL and a real Yosys resource report without hidden blackboxes or
+text-rewrite shortcuts.
 
 ** Reviewer questions
 

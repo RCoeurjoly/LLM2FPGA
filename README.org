@@ -17,6 +17,10 @@ nix build .#tiny-stories-1m-baseline-float-il -L --no-link
 nix build .#tiny-stories-1m-baseline-float-yosys-stat -L --no-link
 #+end_src
 
+This reviewer path is the explicit =tiny-stories-1m-baseline-float= route.
+The repo still contains separate PT2E and TorchAO experiments, but they are
+not the current Task 3 RfP reviewer claim.
+
 The Task 3 claim is:
 - standard-path lowering of TinyStories-1M as far as practical
 - explicit downstream resource or blocker evidence
