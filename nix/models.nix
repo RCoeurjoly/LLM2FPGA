@@ -265,7 +265,7 @@ in {
     key = "tiny-stories-1m";
     name = "tiny-stories-1m";
     description =
-      "Canonical TinyStories-1M Task 3 path using PT2E static quantization with XNNPACK static symmetric quantization.";
+      "Quantized TinyStories-1M PT2E-static experiment retained for follow-up quantization work; not the current reviewer-facing Task 3 claim.";
     source = {
       type = "huggingface";
       model_id = tinyStories1m.modelId;

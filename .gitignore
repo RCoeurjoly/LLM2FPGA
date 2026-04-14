@@ -6,3 +6,4 @@ cosim.cfg
 *.log
 *.err
 result*
+.codex-tmp/

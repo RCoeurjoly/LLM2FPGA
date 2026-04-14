@@ -76,9 +76,11 @@ write_yosys_slang_script() {
     return
   fi
 
-  printf 'read_slang --threads 1 --no-proc --top main' >>"$script"
-  printf ' %q' "${slang_files[@]}" >>"$script"
-  printf '\n' >>"$script"
+  {
+    printf 'read_slang --threads 1 --no-proc --top main'
+    printf ' %q' "${slang_files[@]}"
+    printf '\n'
+  } >>"$script"
 }
 
 run_yosys_script() {

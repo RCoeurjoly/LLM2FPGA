@@ -52,8 +52,8 @@ Resume mode rules:
   truth
 - do not repeat prompt text back to the user
 - continue directly from the saved next concrete step
-- if a canonical `nix build` is already running, let that one run to a real
-  result instead of spawning redundant `nix path-info` or duplicate build probes
+- if a canonical 'nix build' is already running, let that one run to a real
+  result instead of spawning redundant 'nix path-info' or duplicate build probes
 EOF
     )
   fi
@@ -85,7 +85,7 @@ At the start of each pass:
 - read the state file first if it exists
 - continue from the unfinished "next concrete step" instead of re-summarizing
 - keep notes short and implementation-focused
-- ignore any earlier `NOT DONE` or final-style summary in the log or last
+- ignore any earlier 'NOT DONE' or final-style summary in the log or last
   response unless the outer runner is actually ending
 
 During the pass:
@@ -101,7 +101,7 @@ At the end of the pass:
 - overwrite the state file with the latest status in plain text
 - do not spend time polishing docs unless the build has improved or the doc
   change is required for the build
-- only emit `NOT DONE` if the outer overnight run is actually ending or an
+- only emit 'NOT DONE' if the outer overnight run is actually ending or an
   external blocker prevents further progress
 EOF
 }

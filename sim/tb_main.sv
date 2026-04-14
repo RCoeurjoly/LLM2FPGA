@@ -58,9 +58,11 @@ module tb;
   end
 
   initial begin
+    // The emitted matmul design now internalizes the two input memories.
+    // Seed the generated memory instances directly before releasing reset.
     for (int i = 0; i < 16; i++) begin
-      dut.handshake_memory1._handshake_memory_5[i] = a_mem[i];
-      dut.handshake_memory2._handshake_memory_4[i] = b_mem[i];
+      dut.handshake_memory0._handshake_memory_5[i] = a_mem[i];
+      dut.handshake_memory1._handshake_memory_4[i] = b_mem[i];
     end
     clock = 1'b0;
     reset = 1'b1;
