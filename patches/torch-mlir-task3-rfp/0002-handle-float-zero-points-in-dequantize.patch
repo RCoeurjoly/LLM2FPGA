@@ -1,0 +1,107 @@
+diff --git a/lib/Conversion/TorchToLinalg/Uncategorized.cpp b/lib/Conversion/TorchToLinalg/Uncategorized.cpp
+--- a/lib/Conversion/TorchToLinalg/Uncategorized.cpp
++++ b/lib/Conversion/TorchToLinalg/Uncategorized.cpp
+@@ -1447,15 +1447,30 @@ static Value createLinalgPayloadCalculationForElementwiseOp(
+     auto qtensorTy = cast<ValueTensorType>(qtensor.getType()).getDtype();
+ 
+     Value zp, scale;
+-    if (auto makeQTensor =
+-            qtensor.getDefiningOp<Aten_MakePerTensorQuantizedTensorOp>()) {
+-      zp = makeQTensor.getZeroPoint();
+-      scale = makeQTensor.getScale();
+-    }
++    Value tracedQtensor = qtensor;
++    for (unsigned depth = 0; depth < 6; ++depth) {
++      if (auto makeQTensor =
++              tracedQtensor.getDefiningOp<Aten_MakePerTensorQuantizedTensorOp>()) {
++        zp = makeQTensor.getZeroPoint();
++        scale = makeQTensor.getScale();
++        break;
++      }
+ 
+-    if (auto quant = qtensor.getDefiningOp<AtenQuantizePerTensorOp>()) {
+-      zp = quant.getZeroPoint();
+-      scale = quant.getScale();
++      if (auto quant = tracedQtensor.getDefiningOp<AtenQuantizePerTensorOp>()) {
++        zp = quant.getZeroPoint();
++        scale = quant.getScale();
++        break;
++      }
++
++      auto *definingOp = tracedQtensor.getDefiningOp();
++      if (!definingOp)
++        break;
++      if (isa<AtenTransposeIntOp, AtenReshapeOp, AtenSliceTensorOp,
++              PrimsCollapseOp, AtenViewOp, AtenContiguousOp>(definingOp)) {
++        tracedQtensor = definingOp->getOperand(0);
++        continue;
++      }
++      break;
+     }
+ 
+     if (!zp || !scale) {
+@@ -1490,7 +1505,13 @@ static Value createLinalgPayloadCalculationForElementwiseOp(
+     scale = converter->materializeTargetConversion(
+         b, loc, converter->convertType(scale.getType()), scale);
+     if (scale.getType() != value.getType()) {
+-      scale = arith::TruncFOp::create(b, loc, value.getType(), scale);
++      auto scaleTy = cast<mlir::FloatType>(scale.getType());
++      auto valueFpTy = cast<mlir::FloatType>(value.getType());
++      if (scaleTy.getWidth() > valueFpTy.getWidth()) {
++        scale = arith::TruncFOp::create(b, loc, value.getType(), scale);
++      } else {
++        scale = arith::ExtFOp::create(b, loc, value.getType(), scale);
++      }
+     }
+     value = arith::MulFOp::create(b, loc, value, scale);
+     return value;
+@@ -2445,12 +2466,39 @@ public:
+           Value operand = args[0];
+           Value scale = args[1];
+           Value zeropoint = args[2];
++          Type resultElemType = args[3].getType();
++          auto castFloatToResultType = [&](Value value) -> Value {
++            auto valueType = dyn_cast<mlir::FloatType>(value.getType());
++            auto targetType = dyn_cast<mlir::FloatType>(resultElemType);
++            if (!valueType || !targetType || valueType == targetType)
++              return value;
++            if (valueType.getWidth() > targetType.getWidth())
++              return arith::TruncFOp::create(b, loc, targetType, value);
++            return arith::ExtFOp::create(b, loc, targetType, value);
++          };
+           if (operandDTy.isUnsignedInteger(8)) {
+             operand = arith::ExtUIOp::create(b, loc, b.getI32Type(), operand);
+           } else if (operandDTy.isSignedInteger(8)) {
+             operand = arith::ExtSIOp::create(b, loc, b.getI32Type(), operand);
+           }
+ 
++          if (isa<mlir::FloatType>(zeropointDTy)) {
++            scale = castFloatToResultType(scale);
++            zeropoint = castFloatToResultType(zeropoint);
++            Value fpOperand;
++            if (operandDTy.isUnsignedInteger(8)) {
++              fpOperand =
++                  arith::UIToFPOp::create(b, loc, resultElemType, operand);
++            } else {
++              fpOperand =
++                  arith::SIToFPOp::create(b, loc, resultElemType, operand);
++            }
++            Value sub = arith::SubFOp::create(b, loc, fpOperand, zeropoint);
++            Value mul = arith::MulFOp::create(rewriter, loc, sub, scale);
++            linalg::YieldOp::create(b, loc, mul);
++            return;
++          }
++
+           if (zeropointDTy.isUnsignedInteger(8)) {
+             zeropoint =
+                 arith::ExtUIOp::create(b, loc, b.getI32Type(), zeropoint);
+@@ -2465,7 +2513,8 @@ public:
+ 
+           Value sub = arith::SubIOp::create(rewriter, loc, operand, zeropoint);
+           Value fp =
+-              arith::SIToFPOp::create(rewriter, loc, args[3].getType(), sub);
++              arith::SIToFPOp::create(rewriter, loc, resultElemType, sub);
++          scale = castFloatToResultType(scale);
+           Value mul = arith::MulFOp::create(rewriter, loc, fp, scale);
+           linalg::YieldOp::create(rewriter, loc, mul);
+         });

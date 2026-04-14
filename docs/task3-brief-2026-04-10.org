@@ -1,0 +1,90 @@
+* Task 3 Brief (2026-04-10)
+
+This file is the single source of truth for the Task 3 scope, constraints, and
+completion criteria.
+
+** Goal
+
+Carry one real open-source LLM, TinyStories-1M, through the standard
+open-source lowering pipeline as far as possible, fix the easy blockers, and
+produce a reviewer-visible resource or bottleneck result.
+
+** Context
+
+- Task 3 is the first full-model pipeline exercise after smaller reproducer
+  work.
+- The purpose is not to prove final deployability on the target FPGA.
+- The purpose is to establish:
+  - that a real LLM can be exercised through the standard toolchain
+  - where the first hard blockages appear
+  - which easy integration bugs can be fixed
+  - what the downstream resource or tool-capacity picture looks like
+
+** Constraints
+
+- The core path must stay within standard, explainable PyTorch and compiler
+  mechanisms.
+- Preferred frontend shape:
+  `torch.export.export(...)` followed by
+  `torch_mlir.fx.export_and_import(...)`.
+- Core lowering/synthesis tools:
+  `torch-mlir`, `mlir`, `circt`, `yosys`, and `yosys-slang`.
+- No ad hoc `perl`, `sed`, or similar text rewriting of MLIR, SV, or other IR
+  inside the canonical Task 3 path.
+- Hidden blackboxes are not acceptable.
+- Temporary stubs or externs are acceptable only if they are explicit,
+  documented, and either implemented or clearly reported as unresolved.
+- Quantization experiments are acceptable, but Task 3 does not require
+  quantization to be solved end-to-end.
+- The generated design may exceed target FPGA capacity by a large factor.
+- `nextpnr-xilinx` success is not required for Task 3.
+
+** Done When
+
+Task 3 is complete when all of the following are true:
+
+1. A reproducible repo-backed flow exercises TinyStories-1M through the
+   standard open-source pipeline to CIRCT-emitted SystemVerilog.
+2. The Yosys handoff is exercised on that emitted SystemVerilog through a
+   documented reviewer path.
+3. The repo records either:
+   - a Yosys-based resource report, or
+   - the first explicit downstream blocker or tool-capacity failure, with the
+     command, stage, and artifact chain needed to reproduce it.
+4. Any temporary stubs or externs used in the path are explicit and
+   reviewer-visible.
+5. The final claim does not rely on hidden placeholders, hidden blackboxes, or
+   undocumented alternate routes.
+
+** Non-goals
+
+Task 3 does not require:
+
+- that the model fit on the target FPGA
+- that `nextpnr-xilinx` ingest the full design
+- that floating-point arithmetic be fully eliminated
+- that quantization be solved end-to-end
+- that a partitioned oversized-model execution strategy already be implemented
+- hardware validation on the board
+
+The partitioned execution strategy, resource minimization, and hardware
+execution work belong to follow-on tasks unless Task 3 is explicitly redefined.
+
+** Reviewer-facing claim
+
+The Task 3 claim should read as follows:
+
+- a real LLM was carried through the standard open-source pipeline as far as
+  practical
+- easy integration failures were fixed
+- remaining hard blockers were made explicit
+- the repo now contains a reproducible downstream resource or tool-capacity
+  result for the emitted design
+
+** Current reviewer path
+
+The current reviewer checklist lives in:
+- `docs/task3-reviewer-checklist-2026-04-10.org`
+
+README should point reviewers there instead of duplicating long-lived Task 3
+policy.

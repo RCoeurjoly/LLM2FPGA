@@ -1,0 +1,1589 @@
+* Task 3 RfP contract (2026-03-27)
+
+** Task 3 engineering intent
+- Task 3 must produce a fully transparent hardware flow. Temporary stubs or
+  placeholder modules are acceptable only as explicit intermediate scaffolding
+  with documented scope and a defined path to removal.
+- Every operation that reaches the FPGA flow must have an explicit
+  implementation by the time of the final Task 3 claim. Unsupported
+  operations must be lowered, decomposed, rewritten, carried by an explicitly
+  documented temporary stub, or rejected with a precise error. They must not
+  be hidden behind opaque placeholders.
+- Task 3 must not assume the full neural network fits on the FPGA at once.
+  Model size may exceed FPGA capacity by a large factor, including 100x or
+  more.
+- When the model is larger than available fabric or tool capacity, Task 3 must
+  still produce an explicit resource or bottleneck result rather than silently
+  failing.
+- For Task 3, an oversized-model/tool-capacity finding is acceptable if it is
+  reproducible and tied to a clear artifact chain and command path.
+- Partitioned execution strategy, temporal decomposition, and resource
+  minimization belong to follow-on work unless Task 3 is explicitly redefined.
+- Floating-point support must be fixed. Floating-point operations must either
+  lower to a fully explicit floating-point implementation or lower to a fully
+  explicit alternative numeric form with defined semantics. In both cases there
+  must be no opaque fallback.
+- Numeric transformations, including float-to-fixed or any other numeric
+  conversion, must be deliberate, visible, and semantically documented. They
+  cannot be hidden inside black-box components.
+- Task 3 is successful only if the toolchain carries the model through to a
+  reviewer-visible emitted-design result without unresolved black boxes or
+  unresolved stubs, while preserving a clear account of any oversized-design or
+  tool-capacity blocker.
+- Failures must be structural and explicit, for example "op X has no legal
+  lowering" or "memory schedule for tensor Y is not implemented". Failures must
+  never appear as hidden placeholders or vague backend breakage.
+
+** Deliverable priority and implementation constraints
+- The most important Task 3 deliverable is the Yosys-based resource or
+  bottleneck report.
+- The project does not depend on =nextpnr-xilinx= being able to ingest the full
+  generated design. If the emitted design is too large for =nextpnr-xilinx=,
+  the flow may compute its own utilization report from synthesizable emitted
+  hardware artifacts instead of relying on downstream place-and-route.
+- This is a first-pass demonstration that there is a credible path for lowering
+  LLMs to RTL through a standard open-source compiler stack.
+- The allowed core toolchain is: =torch-mlir=, =mlir=, =circt=, and
+  =yosys=/=yosys-slang=.
+- The flow must not use =perl=, =sed=, or any other ad hoc text-rewrite tool to
+  patch MLIR, SV, or other compiler IR artifacts inside the core path.
+- The flow must not rely on non-standard, ad hoc preprocessing of PyTorch
+  models. Frontend preparation must stay within standard, explainable PyTorch
+  and torch-mlir-compatible mechanisms.
+- The resulting SystemVerilog must be synthesizable. It may be too large to fit
+  a specific FPGA, but final success must not depend on unresolved black boxes,
+  unresolved stubs, or unsupported floating-point operations.
+- The flake and reviewer docs must expose exactly one canonical path to the
+  reviewer-visible Yosys result for Task 3. Parallel or competing Task 3 flows
+  should be removed or clearly demoted so there is only one authoritative
+  route.
+
+** Scope boundary
+- The Task 3 claim does not end at generated SystemVerilog. Task 3 must reach a
+  Yosys handoff result through one canonical reviewer-visible flow built on
+  synthesizable emitted SystemVerilog.
+- The core lowering pipeline for the RfP must use only =torch-mlir=, =mlir=,
+  and =circt= to reach SystemVerilog, followed by =yosys=/=yosys-slang= for the
+  canonical synthesis/utilization path.
+- =nextpnr-xilinx=, fasm, bitstream generation, and FPGA self-test wrappers are
+  optional downstream validation steps. They are not required for Task 3
+  success when the design is too large for downstream FPGA implementation tools
+  to ingest.
+- Temporary stubs may be used during debugging only if they are explicit and
+  tracked. Reviewer-facing claims and final Task 3 success must identify them
+  and must not count them as completed implementation.
+- No sed/perl/text-rewrite surgery over model IR or emitted hardware is allowed
+  inside the canonical Task 3 path.
+
+** Task 3 source of truth on 2026-04-10
+- =docs/task3-brief-2026-04-10.org= is the authoritative Task 3 scope and
+  "done when" document.
+- =docs/task3-reviewer-checklist-2026-04-10.org= is the reviewer-facing command
+  and acceptance checklist.
+- Historical notes in this file should not override that brief.
+
+** Status update on 2026-04-11
+- The standard baseline-float TinyStories route now reaches emitted
+  SystemVerilog through the generic frontend and explicit float-primitive SV
+  path.
+- The Yosys handoff for the large split SV bundle now uses per-file
+  =read_slang --extern-modules= loading, which avoids the earlier frontend
+  out-of-memory failure on this host.
+- The current downstream story on the working host is no longer unresolved
+  float modules or Yosys frontend OOM.
+- =tiny-stories-1m-baseline-float-il= now succeeds and emits RTLIL.
+- =tiny-stories-1m-baseline-float-yosys-stat= now succeeds and emits a real
+  Yosys stat report rather than an OOM fallback report.
+- That report records:
+  - `467` emitted SV files
+  - `6,971,927` lines in `main.sv`
+  - `12,738,203` design cells
+  - `327` design memories
+  - `433,040,128` total memory bits
+  - `411,705,344` bits in the four largest `3216448 x 32` memories
+
+** Status update on 2026-03-31
+- The canonical 3e gate is now:
+  =nix build .#tiny-stories-1m-utilization -L=
+- This path is defined as:
+  =tiny-stories-1m-sv -> tiny-stories-1m-il -> tiny-stories-1m-utilization-json -> tiny-stories-1m-utilization=
+- The previous selftest/external-memory shell utilization path is no longer the
+  Task 3 claim and has been removed from the flake package surface.
+- The canonical SV emission path no longer generates stub modules, and the
+  canonical Yosys helper scripts no longer rely on =perl= output-path
+  substitution or =read_slang --extern-modules=.
+- The alternate =tiny-stories-1m-yosys-stat= package has been removed from the
+  public Task 3 package surface so =tiny-stories-1m-utilization= is the only
+  flake-exposed utilization route for Task 3.
+- The current blocking issue for a fresh canonical 3e build is earlier in the
+  stack: =tiny-stories-1m-hw0= now fails in =lower-handshake-to-hw= because
+  float ops are rejected instead of being lowered as extern modules.
+- The current first failing op is
+  =/nix/store/...-tiny-stories-1m-hs-ext.mlir:5845:13: error: failed to legalize operation 'arith.uitofp' that was explicitly marked illegal=.
+- This is the intended reduced blocker state for the canonical path: the flow
+  now fails explicitly on unsupported floating-point legalization instead of
+  reaching unsynthesizable SystemVerilog with unresolved float black boxes.
+
+** Preprocessing requirements
+- Preprocessing must be simple, justified, and functionality-preserving.
+- Prefer standard, documented PyTorch flows over custom model rewrites.
+- The current shared frontend shape is acceptable:
+  =torch.export.export(...)= followed by =torch_mlir.fx.export_and_import(...)=.
+- If quantization is needed, prefer standard export-friendly PyTorch/PT2E
+  quantization APIs first.
+- Avoid handwritten integer surrogate models unless there is no standard route
+  left and the extra logic is explicitly justified.
+
+** Current repo implications
+- =scripts/compile-pytorch.py= already uses the standard =torch.export= plus
+  torch-mlir FX import path.
+- =scripts/compile-pytorch.py= now also accepts an adapter-defined
+  =export_program(model_path)= hook so standard PT2E/export quantization
+  experiments can stay inside the same frontend driver.
+- =TinyStories/model_adapter.py= should be the simple baseline adapter that
+  preserves original model behavior.
+- Standard quantization experiments should stay clearly marked as experiments
+  until they prove that they remove floating-point arithmetic instead of just
+  surrounding float compute with quantize/dequantize ops.
+- The first-principles iteration order is:
+  1. Build =torch=.
+  2. Build =linalg= and =cf=.
+  3. Build =handshake=, =hs-ext=, =hw0=, =hw=, =hw-clean=.
+  4. Build =sv=.
+  5. Only after that evaluate downstream Yosys/FPGA steps.
+
+** Status snapshot on 2026-03-27
+- The clean baseline =tiny-stories-1m= path builds through =sv= with the
+  standard frontend, but the generated IR/SV still contains floating-point
+  compute.
+- The export-friendly PT2E dynamic-quantization experiment
+  (=tiny-stories-1m-dynamic-int8=) reaches the =torch= stage, but fails at the
+  =linalg= stage because torch-mlir cannot legalize
+  =torch.quantized_decomposed.dequantize_per_tensor=.
+- The handwritten TinyStories integer rewrite has been removed from the repo;
+  it is no longer an available build path or deliverable target.
+- This means the current standard paths do not yet give a clean integer-only
+  lowering story:
+  1. Baseline export keeps float math.
+  2. PT2E dynamic quantization introduces quantized-decomposed operators that
+     current torch-mlir does not lower here.
+  3. GPTNeo does not currently support
+     =attn_implementation="sdpa"= in Transformers, so the TinyStories baseline
+     cannot use that standard attention backend as a workaround for the
+     exported =softmax.int= path and must stay on
+     =attn_implementation="eager"=.
+- The current core lowering scripts under =scripts/pipeline/= do not use
+  sed/perl text rewriting. The remaining perl usage in =flake.nix= is outside
+  the Task 3 core path and is only used to substitute the output path in a
+  Yosys helper script.
+- =pt2e-quant-linear= is a small local reproducer that should be used for fast
+  iteration on the quantized-decomposed import/lowering gap before retrying the
+  full TinyStories build.
+- =pt2e-static-quant-linear= is a companion reproducer for the static/PTQ path.
+  This matters because PT2E static quantization emits the simpler =default=
+  quantized_decomposed variants, whereas PT2E dynamic quantization emits the
+  harder =tensor= variants plus =choose_qparams.tensor=.
+
+** Immediate next step
+- As of 2026-03-31, the immediate canonical Task 3 blocker is no longer the
+  small linear import bridge. The next standard-path work should focus on the
+  remaining normalization and attention-softmax float islands before retrying
+  the full TinyStories path:
+  1. =nix build .#pt2e-static-quant-layer-norm-cf -L=
+  2. =nix build .#pt2e-static-quant-softmax-cf -L=
+  3. retry =tiny-stories-1m-pt2e-static= only after those reproducers have a
+     defensible non-float story
+- New split attention-block reproducers are now flake-exposed to separate the
+  two remaining standard-path islands without ad hoc local commands:
+  1. =pt2e-static-quant-attention-block-no-softmax=
+  2. =pt2e-static-quant-attention-block-no-layer-norm=
+- Current split-reproducer result:
+  1. removing =softmax= still leaves =layer_norm= blocked first at
+     =arith.addf=
+  2. removing =layer_norm= still leaves the attention-normalization path
+     blocked first at =arith.divf=
+- Use =pt2e-quant-linear= as the primary reproducer:
+  1. =nix build .#pt2e-quant-linear-torch -L=
+  2. =nix build .#pt2e-quant-linear-linalg -L=
+- Use =pt2e-static-quant-linear= to probe whether the static/PTQ route is a
+  simpler bridge into existing torch-mlir quantization support:
+  1. =nix build .#pt2e-static-quant-linear-torch -L=
+  2. =nix build .#pt2e-static-quant-linear-linalg -L=
+- Current status of =pt2e-static-quant-linear=:
+  1. step 1 succeeds
+  2. step 2 now succeeds with an integer core in both the local compiler loop
+     and the current Nix-packaged =torch-mlir= path:
+     - =linalg.quantized_matmul=
+     - integer bias add with a pre-quantized =tensor<10xi32>= literal
+     - integer requantization
+  3. the remaining float in the reproducer is only at the boundary:
+     - input quantization from =f32= activations
+     - final dequantization back to =f32= output
+  4. step 4 still fails at =hw0= because the boundary float remains explicit:
+     - exact first failure:
+       =failed to legalize operation 'arith.divf' that was explicitly marked illegal=
+- =pt2e-static-quant-embedding= is a new companion reproducer for the next
+  roadmap item. Its torch-stage output currently stays fully float:
+  1. =nix build .#pt2e-static-quant-embedding-torch -L=
+  2. result: =torch.aten.embedding= over =f32= weights, with no PTQ quantized
+     ops inserted
+- =pt2e-static-quant-embedding-composable= is the next standard check after
+  that:
+  1. it uses =ComposableQuantizer([EmbeddingQuantizer(), XNNPACKQuantizer])=
+  2. the torch-stage output now materializes quantized embedding weights
+  3. the current local =torch-mlir= lowering can legalize that path
+  4. a local =AtenEmbeddingOp= lowering patch now keeps the lookup on
+     quantized storage and applies per-row dequantization only after the
+     selected element is gathered
+  5. this is better than materializing a full float weight table, but the
+     embedding result still becomes =f32= at the boundary
+- =pt2e-static-quant-layer-norm= is the first normalization reproducer:
+  1. =nix build .#pt2e-static-quant-layer-norm-torch -L=
+  2. result: the exported torch IR stays fully float
+  3. the local =linalg= lowering also stays fully float, including the
+     reduction, variance, =rsqrt=, and affine scale/bias path
+  4. the pinned =cf= artifact still contains float legalization blockers:
+     - =arith.divf= (2x)
+     - =arith.truncf= (1x)
+     - =math.rsqrt= (1x)
+- =pt2e-static-quant-softmax= is the first attention-normalization reproducer:
+  1. =nix build .#pt2e-static-quant-softmax-torch -L=
+  2. result: the exported torch IR stays fully float
+  3. the local =linalg= lowering also stays fully float, including
+     =exp=, reduction, and final divide
+  4. the pinned =cf= artifact still contains float legalization blockers:
+     - =arith.maximumf= (1x)
+     - =math.exp= (1x)
+     - =arith.divf= (1x)
+- The older eager quantized module fallback is also blocked in the current
+  pinned environment:
+  1. =torch.ao.nn.quantized.LayerNorm= fails =torch.export.export(...)= with
+     =RuntimeError: quantized::layer_norm() Expected a value of type 'float'
+     for argument 'output_scale' but instead found type 'FakeTensor'=
+  2. =torch.ao.nn.quantized.Softmax= fails even before export with
+     =NotImplementedError: could not find kernel for
+     quantized.softmax.default at dispatch key DispatchKey.CPU=
+- The installed PT2E =XNNPACKQuantizer= source only advertises a narrow static
+  quantization surface:
+  1. =linear=
+  2. =conv=
+  3. =add/mul/cat=
+  4. =adaptive_avg_pool2d=
+  It does not list =layer_norm=, =softmax=, or =embedding=. Embedding only
+  enters the current experiments through an explicit
+  =ComposableQuantizer([EmbeddingQuantizer(), XNNPACKQuantizer])= setup.
+- =pt2e-static-quant-matmul-x86= is the first alternative-standard-quantizer
+  check:
+  1. it uses =X86InductorQuantizer= with
+     =get_default_x86_inductor_quantization_config()=
+  2. the exported torch IR still re-exports as plain float =aten.bmm=
+  3. the local =linalg= lowering is therefore still plain float
+     =linalg.batch_matmul=
+  4. this suggests the x86 inductor quantizer annotations are not a useful
+     exported quantized representation for the current =torch.export ->
+     torch-mlir FX import= pipeline
+- Official PyTorch direction has moved again since the older in-tree PT2E
+  experiments:
+  1. current PyTorch quantization docs tell users to migrate PT2E quantization
+     APIs to =torchao=
+  2. PyTorch dev discussion says new PT2E quantization development is expected
+     to happen in =torchao=
+  3. current ExecuTorch XNNPACK docs say the preferred LLM path is
+     =torchao quantize_=, not the older PT2E XNNPACKQuantizer flow
+  4. those same docs describe the LLM-oriented standard recipe as:
+     - embedding quantization via TorchAO weight-only configs
+     - linear quantization via TorchAO dynamic-activation/int-weight configs
+- Current environment limitation:
+  1. the pinned Python environment here has =torch 2.9.1=
+  2. the pinned nixpkgs revision used here does not expose =torchao= under
+     =python311Packages= or =python312Packages=
+  3. the repo now packages =torchao 0.15.0= directly because TorchAO's own
+     version gate marks that as the release built for =torch 2.9.1=
+- Repo-side TorchAO re-evaluation status:
+  1. =torchao-int8-dynamic-linear= now runs inside this flake with the matching
+     =torch 2.9.1 + torchao 0.15.0= pair
+  2. its imported Torch dialect IR is still plain float:
+     - transpose float weights
+     - =aten.mm=
+     - =aten.add.Tensor=
+  3. its local =linalg= lowering is correspondingly plain float:
+     - =linalg.matmul=
+     - float bias add
+  4. =torchao-int8-weight-only-linear= also runs inside this flake
+  5. its imported Torch dialect IR still becomes float around the core:
+     - int8 weight constant
+     - =aten.to.dtype(f32)=
+     - =aten.mm=
+     - =aten.mul.Tensor=
+     - =aten.add.Tensor=
+  6. its local =linalg= lowering also stays float:
+     - =i8 -> f32= conversion
+     - =linalg.matmul=
+     - float rescale and float bias add
+  7. =tiny-stories-1m-torchao= is the first full-model check using the current
+     official recipe shape:
+     - embedding modules quantized with =Int8WeightOnlyConfig=
+     - linear modules quantized with
+       =Int8DynamicActivationInt8WeightConfig=
+  8. the raw exported program contains unsupported TorchAO operator families:
+     - =torchao.choose_qparams_affine.default=
+     - =torchao.quantize_affine.default=
+     - =torchao.dequantize_affine.default=
+     - plus many =export.access_subclass_inner_tensor.default= accesses
+  9. the local =torch-mlir= fork now has targeted legalization for those
+     TorchAO custom ops in =MatchQuantizedOps.cpp=
+  10. the local =torch-mlir= fork also now lowers =torch.aten._int_mm= through
+      the existing Torch-to-Linalg =mm= path
+  11. with those two local compiler changes, the full TinyStories TorchAO route
+      now reaches =linalg= locally:
+      =raw -> torch-match-quantized-custom-ops -> torch-backend -> linalg=
+  12. the resulting =linalg= still contains the expected remaining float-heavy
+      regions:
+      - embedding outputs dequantize to =f32=
+      - =layer_norm= stays float
+      - attention softmax stays float
+      - the integer linear/matmul core now appears as =i8 x i8 -> i32=
+        =linalg.matmul=
+- The installed =torch-mlir= tree exposes older quantization-related pieces
+  such as =aten.quantize_per_tensor= and the =torch-unpack-quant-tensor= pass,
+  but not the PT2E =torch.quantized_decomposed.*= path used by current PyTorch
+  export quantization.
+- Upstream signal matches this local finding:
+  https://github.com/llvm/torch-mlir/issues/4356
+
+** Fast iteration workflow
+- Do not rebuild =torch-mlir= through Nix for inner-loop quantization work.
+- Build =torch-mlir-opt= locally from the cloned fork and call it directly.
+- The repo now supports that workflow in two ways:
+  1. =scripts/pipeline/torch_to_linalg.sh= accepts either:
+     - =torch_to_linalg.sh <torch-mlir-opt> <input> <output>=
+     - or =TORCH_MLIR_OPT=/path/to/torch-mlir-opt torch_to_linalg.sh <input> <output>=
+  2. =scripts/dev/build-linalg-local.sh <model-name> [output]= builds the
+     cheap =.#<model-name>-torch= artifact with Nix and then runs the =linalg=
+     lowering locally with the current =TORCH_MLIR_OPT=.
+- Default local binary path:
+  =/home/roland/torch-mlir/build-local-devshell-2/bin/torch-mlir-opt=
+- Example:
+  =scripts/dev/build-linalg-local.sh pt2e-static-quant-embedding-composable=
+- This should be the default loop while iterating on local =torch-mlir=
+  lowering changes. Only sync back to the Nix-packaged =torch-mlir= after the
+  local result is good enough to validate through the repo builds.
+
+** Recommended implementation path
+- Stay on the quantization route. Do not build a generic SystemVerilog
+  floating-point library for Task 3 unless the quantized lowering route fails.
+- Do not spend time adding standalone support for bare
+  =torch.quantized_decomposed.*= ops if that only recreates floating-point math
+  downstream.
+- Instead, treat PT2E quantization as a backend pattern-matching problem:
+  recognize the small quantized subgraphs that PyTorch emits and lower those
+  directly toward integer-friendly operations.
+- Start from the smallest useful pattern in =torch-mlir=:
+  1. =dequantize_per_tensor -> aten.linear -> quantize_per_tensor=
+  2. prove it end-to-end on =pt2e-quant-linear=
+  3. only then retry the full TinyStories path
+- After =linear= works, expand only to the patterns actually needed by
+  TinyStories, in likely order:
+  1. =matmul=
+  2. =embedding=
+  3. normalization-related operations
+- Current roadmap checkpoint:
+  1. =linear=: integer core achieved on the packaged path too; only the
+     remaining float boundary prevents =hw0=
+  2. =embedding=: quantized storage lookup now works locally, but output still
+     dequantizes to float
+  3. =layer_norm=: current exact =hw0= blocker is still float normalization
+     arithmetic, starting with =arith.addf=
+  4. =softmax=: current exact =hw0= blocker is still float softmax arithmetic,
+     starting with =arith.maximumf=
+  5. =matmul via X86InductorQuantizer=: alternative standard PT2E quantizer
+     does not help the exported =torch-mlir= path here; it still re-exports as
+     float
+  6. =torchao=: the remaining standard route is now partially probed
+     1. it is now packaged locally in the repo as =torchao 0.15.0= to match
+        =torch 2.9.1=
+     2. the small linear reproducers confirm the same shape seen in the
+        earlier throwaway probe:
+        - dynamic-int8 linear still imports as float =aten.mm + aten.add=
+        - weight-only linear still imports as
+          =to.dtype(f32) -> aten.mm -> mul -> add=
+     3. the full TinyStories TorchAO route no longer stops at import time in
+        the local compiler:
+        - TorchAO custom ops are legalized
+        - =aten._int_mm= is lowered to integer =linalg.matmul=
+        - the route reaches =linalg= locally
+     4. the remaining blocker is now clearer and later in the flow:
+        standard TorchAO still leaves embedding dequantization, layer norm, and
+        softmax in float
+- Immediate next step from this checkpoint:
+  1. push the current local TinyStories TorchAO =linalg= artifact downstream
+     once through =cf -> handshake -> hw -> sv=
+  2. the purpose of that one run is only to detect whether a separate
+     MLIR/CIRCT/backend blocker appears after the frontend/compiler work
+  3. if that downstream pass is clean enough to reach the later stages, stop
+     spending time there
+  4. after that single downstream check, return to the real remaining blockers:
+     - =layer_norm=
+     - softmax
+     - embedding boundary dequantization
+  5. rationale:
+     - we already have the important signal that TorchAO now reaches local
+       =linalg=
+     - deeper backend iteration is low value while those float-heavy regions
+       still exist
+     - but a single downstream pass is still worth doing to rule out a hidden
+       post-frontend blocker
+- Result of that downstream smoke:
+  1. the current local TinyStories TorchAO artifact reaches:
+     =linalg -> cf -> handshake -> hs-ext=
+  2. the first backend failure is at =hs-ext -> hw0= during
+     =-lower-handshake-to-hw=
+  3. the first explicit legalization error is:
+     =arith.minimumf= in =/tmp/tinystories-torchao-local-hs-ext.mlir=
+  4. the same =hs-ext= artifact still contains the expected float-heavy family:
+     - =arith.minimumf=
+     - =arith.maximumf=
+     - =arith.divf=
+     - =math.rsqrt=
+     - =math.exp=
+  5. this is the useful conclusion:
+     there is no earlier unrelated CIRCT blocker hiding behind the frontend
+     work; the downstream failure is still fundamentally caused by the
+     remaining floating-point regions
+  6. so after this one downstream pass, the roadmap returns to the higher-value
+     work:
+     - =layer_norm=
+     - softmax
+     - embedding boundary dequantization
+- The linear reproducer is now far enough along that the next high-value
+  technical question is not "can torch-mlir express the integer core?" but
+  "which TinyStories-relevant ops does standard PTQ fail to quantize at all?".
+  The embedding, layer-norm, softmax, and x86-matmul reproducers are the
+  current concrete checks in that direction, and =torchao= is the remaining
+  standard route not yet exercised locally.
+- This keeps the work aligned with the Task 3 contract:
+  simple preprocessing, standard PyTorch export, and no handwritten surrogate
+  model.
+- Fast local iteration path:
+  1. the repo now has =scripts/dev/build-linalg-local-from-adapter.sh=
+  2. this is the preferred inner loop for remaining frontend/compiler work
+  3. it exports raw Torch MLIR from an adapter with Python, then lowers with
+     the local =torch-mlir-opt= binary directly
+  4. this avoids depending on a Nix-built =torch-mlir= package in the inner
+     loop
+- New focused reproducer:
+  1. =src/torchao_attention_block_adapter.py= isolates the remaining
+     TinyStories-like float islands in one small model:
+     - =layer_norm=
+     - dynamically quantized linear projections
+     - attention matmul
+     - softmax
+     - output projection
+  2. the first attempt exposed a real local compiler bug:
+     TorchAO =quantize_affine= for rank-3 activations such as
+     =[1,4,64]= was being rewritten with ordinary broadcast semantics, which is
+     wrong for per-token qparams with block size =[1,1,64]=
+  3. the local =torch-mlir= matcher now expands qparams according to block-size
+     semantics before rewriting =torchao.quantize_affine= and
+     =torchao.dequantize_affine=
+  4. after that fix, the attention-block reproducer reaches local =linalg=
+  5. current op profile in =/tmp/torchao-attention-block-local-linalg.mlir=:
+     - =linalg.matmul=: 4
+     - =linalg.batch_matmul=: 2
+     - =arith.minimumf=: 2
+     - =arith.maximumf=: 3
+     - =arith.divf=: 8
+     - =math.rsqrt=: 1
+     - =math.exp=: 1
+  6. interpretation:
+     the remaining float-heavy regions are now tightly isolated and match the
+     roadmap assumptions:
+     - dynamic activation qparam computation
+     - =layer_norm=
+     - softmax
+  7. this is a better fast-loop target than full TinyStories for the next
+     compiler work
+- Static-vs-dynamic attention-block comparison:
+  1. =src/pt2e_static_quant_attention_block_adapter.py= now probes the same
+     attention block under PT2E static quantization
+  2. it does reach local =linalg=, but it reproduces the same negative pattern
+     seen in the larger PT2E-static experiments:
+     - attention matmul remains partially traced and stays in QDQ form
+     - the artifact contains more float/int boundary churn, including multiple
+       =arith.sitofp= and =arith.fptosi=
+  3. current profile in
+     =/tmp/pt2e-static-quant-attention-block-local-linalg.mlir=:
+     - =linalg.matmul=: 0
+     - =linalg.batch_matmul=: 1
+     - =linalg.quantized_batch_matmul=: 5
+     - =arith.minimumf=: 5
+     - =arith.maximumf=: 6
+     - =arith.divf=: 9
+     - =math.rsqrt=: 1
+     - =math.exp=: 1
+  4. conclusion:
+     the PT2E static route is not the better local target for this work;
+     the dynamic TorchAO route remains the better fast-loop reproducer
+- Dynamic attention-block ablations:
+  1. =src/torchao_attention_block_no_layer_norm_adapter.py= and
+     =src/torchao_attention_block_no_softmax_adapter.py= now isolate the two
+     main float-only subgraphs on the dynamic route
+  2. profiles:
+     - baseline dynamic attention block:
+       =matmul 4, batch_matmul 2, minimumf 2, maximumf 3, divf 8, rsqrt 1, exp 1=
+     - without layer norm:
+       =matmul 4, batch_matmul 2, minimumf 2, maximumf 3, divf 6, rsqrt 0, exp 1=
+     - without softmax:
+       =matmul 4, batch_matmul 2, minimumf 2, maximumf 2, divf 7, rsqrt 1, exp 0=
+  3. attribution from those ablations:
+     - =layer_norm= contributes:
+       =math.rsqrt 1 + arith.divf 2=
+     - softmax contributes:
+       =math.exp 1 + arith.maximumf 1 + arith.divf 1=
+     - the remaining dynamic-activation qparam machinery contributes the rest:
+       =arith.minimumf 2 + arith.maximumf 2 + arith.divf 5=
+  4. updated priority:
+     the largest remaining float family on the best current route is the
+     dynamic activation qparam computation, with =layer_norm= and softmax now
+     clearly isolated as separate follow-on targets
+- Rank-3 projection-only dynamic reproducer:
+  1. =src/torchao_projection_adapter.py= isolates a single dynamically
+     quantized rank-3 projection on input shape =[1,4,64]=
+  2. current profile in =/tmp/torchao-projection-local-linalg.mlir=:
+     - =linalg.matmul=: 1
+     - =arith.minimumf=: 1
+     - =arith.maximumf=: 1
+     - =arith.divf=: 2
+     - =arith.sitofp=: 1
+     - =arith.fptosi=: 1
+  3. conclusion:
+     the dynamic activation qparam family is real and reproducible in a single
+     projection, so it is structural to this route rather than an artifact of
+     the larger attention block
+- Static-route pivot:
+  1. the tiny dynamic linear reproducer is not useful as a blocker model,
+     because it still collapses to plain float linear under the current export
+     path
+  2. the better question is therefore not "can dynamic linears lower?" but
+     "what is the smallest static-quantized attention-core case that still
+     leaves a float batch matmul?"
+- Static no-softmax and attention-core blockers:
+  1. =src/pt2e_static_quant_attention_block_no_softmax_adapter.py= confirms
+     that removing softmax does not remove the main static-route blocker
+  2. it still emits the warning:
+     =Partially traced quantized operands. This op will remain in QDQ form=
+     on the value-attention =torch.aten.matmul=
+  3. profile in
+     =/tmp/pt2e-static-quant-attention-block-no-softmax-local-linalg.mlir=:
+     - =linalg.quantized_batch_matmul=: 5
+     - =linalg.batch_matmul=: 1
+     - =arith.minimumf=: 5
+     - =arith.maximumf=: 5
+     - =arith.divf=: 8
+     - =math.rsqrt=: 1
+     - =arith.sitofp=: 6
+     - =arith.fptosi=: 5
+  4. =src/pt2e_static_quant_attention_value_matmul_adapter.py= is now the
+     tighter reproducer for the real long-term static-route blocker:
+     quantized =q/k/v= projections plus the two attention matmuls, with no
+     layer norm, no softmax, and no output projection
+  5. profile in
+     =/tmp/pt2e-static-quant-attention-value-matmul-local-linalg.mlir=:
+     - =linalg.quantized_batch_matmul=: 4
+     - =linalg.batch_matmul=: 1
+     - =arith.minimumf=: 4
+     - =arith.maximumf=: 4
+     - =arith.divf=: 5
+     - =arith.sitofp=: 5
+     - =arith.fptosi=: 4
+  6. conclusion:
+     the dynamic route remains the best current fast loop for local compiler
+     iteration, but the static route now has a small dedicated reproducer for
+     the actual blocker: the value-attention matmul that still stays in float
+     QDQ form
+- Local static-route compiler progress:
+  1. the smaller static attention-core reproducer exposed the exact missed
+     pattern in =FuseQuantizedOps.cpp=:
+     the value-attention matmul takes a left operand of the form
+     =aten.div.Scalar(first_matmul_result, 4.0)=
+  2. the quantized-chain tracer used by =torch-fuse-quantized-ops= only traced
+     through pure q-commuting reshapes/transposes/views before this step
+  3. the local compiler now traces through =aten.div.Scalar= and
+     =aten.mul.Scalar= by adjusting the quantization scale instead of breaking
+     the chain
+  4. this materially improves the static attention-core lowering:
+     in
+     =/tmp/pt2e-static-quant-attention-value-matmul-local-linalg-after-scale-commute.mlir=
+     the previous lone float =linalg.batch_matmul= is gone
+  5. current profile after that local patch:
+     - =linalg.quantized_batch_matmul=: 5
+     - =linalg.batch_matmul=: 0
+     - =arith.minimumf=: 4
+     - =arith.maximumf=: 4
+     - =arith.divf=: 4
+     - =arith.sitofp=: 4
+     - =arith.fptosi=: 4
+  6. interpretation:
+     the static route is now significantly better on the attention-core case;
+     the remaining float work is now concentrated in projection-side
+     quantize/dequantize scaffolding rather than an unquantized value-attention
+     matmul
+  7. the stale "Partially traced quantized operands" warning is now gone for
+     this case; after rebuilding the local =torch-mlir-opt=, rerunning the
+     reduced reproducer only emits PyTorch's own
+     =export_for_training= deprecation warning and still produces:
+     - =linalg.quantized_batch_matmul=: 5
+     - =linalg.batch_matmul=: 0
+  8. this is now locked in with a dedicated local regression in
+     =test/Dialect/Torch/fuse-quantized-ops.mlir=
+     (=matmul_div_scalar_commuting=), validated against the local
+     =torch-mlir-opt= by checking that the transformed Torch IR contains:
+     - first =qint8 x qint8 -> qint32= matmul
+     - adjusted intermediate qint32 scale =6.25e-02= after scalar division
+     - second =qint32 x qint8 -> qint32= matmul
+     - final qint32 output scale =3.125e-02=
+
+- Dynamic projection qparam chain:
+  1. the old =torchao_int8_dynamic_linear_adapter.py= is no longer the right
+     local reproducer for this work; with the current compiler state it lowers
+     as plain float =linalg.matmul= and does not expose the dynamic qparam
+     family at all
+  2. the rank-3 projection reproducer in =src/torchao_projection_adapter.py=
+     remains the smallest useful dynamic-qparam case
+  3. its local =linalg= lowering in =/tmp/torchao-projection-local-linalg.mlir=
+     now makes the float scaffolding explicit:
+     - reduce over the activation tensor with =arith.minimumf= and
+       =arith.maximumf=
+     - take absolute values and select the larger magnitude
+     - divide by =127.0=
+     - clamp the scale with epsilon
+     - divide the activation tensor by that scale
+     - round, clamp to =[-127, 127]=, and =arith.fptosi= to =i8=
+  4. current profile in that artifact:
+     - =linalg.matmul=: 1
+     - =arith.minimumf=: 1
+     - =arith.maximumf=: 1
+     - =arith.divf=: 2
+     - =arith.fptosi=: 1
+     - =arith.sitofp=: 1
+
+- Static vs dynamic projection comparison:
+  1. added =src/pt2e_static_quant_projection_adapter.py= to compare the static
+     route against the same rank-3 projection shape as the dynamic reproducer
+  2. local lowering result in
+     =/tmp/pt2e-static-quant-projection-local-linalg.mlir=:
+     - =linalg.quantized_batch_matmul=: 1
+     - =arith.minimumf=: 1
+     - =arith.maximumf=: 1
+     - =arith.divf=: 1
+     - =arith.fptosi=: 1
+     - =arith.sitofp=: 1
+     - no float =linalg.matmul=
+  3. interpretation:
+     on the projection-only case, the static route is already cleaner than the
+     dynamic route; the dynamic route remains the best reproducer for the
+     current TorchAO attention-block path, but the projection-specific compiler
+     work should now bias toward the static route when possible
+
+- Static attention-block no-layer-norm check:
+  1. added =src/pt2e_static_quant_attention_block_no_layer_norm_adapter.py=
+     to isolate the =layer_norm= contribution on the static attention route
+  2. local lowering result in
+     =/tmp/pt2e-static-quant-attention-block-no-layer-norm-local-linalg.mlir=:
+     - =linalg.quantized_batch_matmul=: 5
+     - =linalg.batch_matmul=: 1
+     - =arith.minimumf=: 5
+     - =arith.maximumf=: 6
+     - =arith.divf=: 7
+     - =math.rsqrt=: 0
+     - =math.exp=: 1
+     - =arith.sitofp=: 6
+     - =arith.fptosi=: 5
+  3. compared to the full static attention block, removing =layer_norm= removes:
+     - =math.rsqrt=: 1
+     - =arith.divf=: 2
+  4. interpretation:
+     the static route shows the same essential =layer_norm= cost as the dynamic
+     route; it is a real remaining float island, but not the source of the
+     lone float batch matmul
+
+- Static softmax/value isolator:
+  1. added =src/pt2e_static_quant_attention_softmax_value_adapter.py= to keep
+     quantized =q/k/v= projections plus the softmax and value-attention matmul,
+     while dropping =layer_norm= and the output projection
+  2. local lowering result in
+     =/tmp/pt2e-static-quant-attention-softmax-value-local-linalg.mlir=:
+     - =linalg.quantized_batch_matmul=: 4
+     - =linalg.batch_matmul=: 1
+     - =arith.minimumf=: 4
+     - =arith.maximumf=: 5
+     - =arith.divf=: 6
+     - =math.rsqrt=: 0
+     - =math.exp=: 1
+     - =arith.sitofp=: 5
+     - =arith.fptosi=: 4
+  3. compared to the reduced static
+     =attention_value_matmul= case without softmax:
+     - one quantized batch matmul becomes one float =linalg.batch_matmul=
+     - =math.exp=: +1
+     - =arith.maximumf=: +1
+     - =arith.divf=: +2
+     - =arith.sitofp=: +1
+  4. inspection of
+     =/tmp/pt2e-static-quant-attention-softmax-value-local-linalg.mlir=
+     confirms the remaining float =linalg.batch_matmul= is exactly
+     =softmax(scores) @ v=
+  5. updated priority from this checkpoint:
+     on the static attention route, the next highest-value compiler work item
+     is now softmax, because it is the component that still forces the value
+     attention matmul back to float
+
+- Static attention-softmax-only isolator:
+  1. added =src/pt2e_static_quant_attention_softmax_adapter.py= to stop at
+     =softmax(scores)=, keeping quantized =q/k= projections but removing the
+     value matmul entirely
+  2. local lowering result in
+     =/tmp/pt2e-static-quant-attention-softmax-local-linalg.mlir=:
+     - =linalg.quantized_batch_matmul=: 3
+     - =linalg.batch_matmul=: 0
+     - =arith.minimumf=: 3
+     - =arith.maximumf=: 4
+     - =arith.divf=: 5
+     - =math.rsqrt=: 0
+     - =math.exp=: 1
+     - =arith.sitofp=: 3
+     - =arith.fptosi=: 3
+  3. compared to the softmax+value reproducer:
+     - softmax by itself does not introduce a float matmul
+     - adding the value matmul contributes:
+       - =linalg.quantized_batch_matmul=: +1
+       - =linalg.batch_matmul=: +1
+       - =arith.minimumf=: +1
+       - =arith.maximumf=: +1
+       - =arith.divf=: +1
+       - =arith.sitofp=: +2
+       - =arith.fptosi=: +1
+  4. interpretation:
+     the softmax island is still fully float, but the specific reason the
+     larger static attention graphs retain one float matmul is that
+     =softmax(scores)= produces float output, which then feeds the value
+     attention matmul
+  5. raw Torch IR inspection confirms this is already true before
+     =torch-mlir= lowering:
+     - in =/tmp/pt2e-static-quant-attention-softmax-local-linalg-raw.mlir=
+       the =q= and =k= projection outputs are quantized/dequantized around the
+       projections, but the score path is
+       =torch.aten.matmul(...f32, ...f32) -> f32= followed directly by
+       =torch.aten.softmax.int -> f32=
+     - in
+       =/tmp/pt2e-static-quant-attention-softmax-value-local-linalg-raw.mlir=
+       the next value-attention matmul is already
+       =torch.aten.matmul(softmax_f32, v_f32) -> f32=
+  6. consequence:
+     this particular blocker is not being introduced by the Torch-to-Linalg
+     lowering. The current PT2E static export already leaves attention softmax
+     in float, so the next substantive work item is earlier in the stack:
+     either a quantization/export-side solution for softmax, or a Torch-level
+     rewrite that introduces a quantized softmax/value-attention path before
+     lowering to =linalg=
+  7. immediate next step:
+     explicitly investigate the quantization/export side first, before adding
+     any new compiler rewrite:
+     - check whether PT2E, XNNPACKQuantizer, TorchAO, or other official PyTorch
+       quantization paths already expose a supported attention-softmax or
+       quantized attention export route
+     - only if that fails, come back and design a Torch-level rewrite on our
+       side
+  8. result of that check:
+     the official quantization/export surface examined so far does not expose
+     a ready-made attention-softmax quantization path
+     - =XNNPACKQuantizer= in
+       =torch/ao/quantization/quantizer/xnnpack_quantizer.py=
+       advertises only:
+       =conv2d=, =linear=, =add=, and =adaptive_avg_pool2d=
+     - embedding is handled separately by =EmbeddingQuantizer=
+     - native backend config mentions =layer_norm= and embedding support, but
+       not =softmax= or attention
+     - the PT2E quantizer base mentions decomposing scaled dot-product
+       attention into =bmm + softmax= only as a generic extension point, not
+       as an implemented official quantizer path
+     - =x86_inductor_quantizer= and =arm_inductor_quantizer= expose =matmul=
+       annotation, but no =softmax= support turned up in the inspected source
+  9. consequence:
+     the export-side investigation did not reveal a clean official softmax
+     quantization route for this flow, so the roadmap now falls through to the
+     next branch: define the smallest Torch-level rewrite target for
+     =softmax(scores)= and the subsequent value-attention matmul
+
+- Smallest Torch-level rewrite target for softmax:
+  1. current fused Torch IR in
+     =/tmp/pt2e-static-quant-attention-softmax-fused.mlir= has the exact
+     pattern:
+     - quantized =q/k= projections
+     - quantized score matmul:
+       =torch.aten.matmul(qint8, qint8) -> qint32=
+     - =torch.aten.int_repr -> _make_per_tensor_quantized_tensor(qint32)=
+     - =torch.aten.dequantize.tensor -> torch.aten.div.Scalar -> torch.aten.softmax.int=
+     - result remains =f32=
+  2. the softmax+value case in
+     =/tmp/pt2e-static-quant-attention-softmax-value-fused.mlir= then feeds
+     that float softmax result into:
+     =torch.aten.matmul(softmax_f32, v_f32) -> f32=
+  3. the first concrete rewrite target is therefore:
+     match
+     =qint32_scores -> dequantize -> div.Scalar -> softmax.int=
+     and replace it with a quantized softmax result tensor plus explicit
+     qparams, instead of returning float immediately
+  4. the most natural quantized output choice is unsigned activation
+     quantization (conceptually =quint8= / =ui8=), because softmax output is in
+     =[0, 1]=
+  5. this is feasible in the current lowering stack:
+     =Linear.cpp= already handles unsigned quantized inputs by shifting them
+     into signed form before quantized matmul, so a later
+     =matmul(softmax_quint8, value_qint8)= path is structurally compatible with
+     the existing conversion approach
+  6. focused local Torch tests now exist for this path:
+     - =/home/roland/torch-mlir/test/Dialect/Torch/fuse-quantized-ops.mlir=
+       contains =@attention_score_softmax_target=
+     - =/home/roland/torch-mlir/test/Conversion/TorchToLinalg/quantized-softmax-target.mlir=
+       proves that =torch.aten.matmul(!torch.quint8, !torch.qint8)= already
+       lowers to =linalg.quantized_batch_matmul=
+  7. proposed quantized softmax output representation:
+     - unsigned 8-bit activation-style tensor (=quint8= / =ui8=)
+     - zero point =0=
+     - candidate scale =1/256=
+     rationale:
+     - softmax output is in =[0, 1]=
+     - unsigned output matches that range naturally
+     - a power-of-two scale simplifies later fixed-point handling in hardware
+       and makes the follow-on value matmul easier to reason about
+  8. this design is now implemented locally in the first narrow form:
+     - =FuseQuantizedOps.cpp= now rewrites
+       =qint32 score -> dequantize -> div.Scalar -> softmax.int=
+       into:
+       =softmax(float) -> quantize_per_tensor(quint8, scale=1/256, zp=0) ->
+       int_repr -> _make_per_tensor_quantized_tensor -> dequantize=
+     - after that rewrite, the fuse pass reruns quantized matmul matching so
+       the subsequent =softmax @ value= matmul can see the quantized softmax
+       source
+  9. concrete result on the reduced static reproducer:
+     - starting input:
+       =/tmp/pt2e-static-quant-attention-softmax-value-local-linalg-raw.mlir=
+     - fused Torch result:
+       =/tmp/pt2e-static-quant-attention-softmax-value-fused-after-softmax-patch.mlir=
+     - the post-softmax value matmul is now quantized:
+       =torch.aten.matmul(!torch.quint8, !torch.qint8) -> !torch.qint32=
+     - this removes the last float matmul in that reduced static attention
+       path
+  10. corresponding local =linalg= result:
+      =/tmp/pt2e-static-quant-attention-softmax-value-local-linalg-after-softmax-patch.mlir=
+      now contains:
+      - =linalg.quantized_batch_matmul: 2=
+      - =linalg.batch_matmul: 0=
+      so the reduced static softmax+value case no longer falls back to float
+      matmul
+  11. updated next step:
+      the remaining work is no longer "can softmax feed a quantized value
+      matmul?". It is reducing the remaining float arithmetic still used to
+      compute the quantized softmax itself, and then carrying the same approach
+      back into the larger attention block.
+  12. larger static-attention check after the local softmax rewrite:
+      - =/tmp/pt2e-static-quant-attention-block-local-linalg-after-softmax-patch.mlir=
+        now has:
+        - =linalg.quantized_batch_matmul: 2=
+        - =linalg.batch_matmul: 0=
+      - =/tmp/pt2e-static-quant-attention-block-no-layer-norm-local-linalg-after-softmax-patch.mlir=
+        now also has:
+        - =linalg.quantized_batch_matmul: 2=
+        - =linalg.batch_matmul: 0=
+      - in other words, the local softmax rewrite scales past the reduced
+        reproducer: the larger static attention block no longer retains a float
+        batch matmul either
+  13. roadmap priority update:
+      the next dominant float family on the cleaner static route is now the
+      quantization plumbing itself:
+      - =arith.divf=
+      - =arith.maximumf=
+      - =arith.minimumf=
+      this matches the earlier projection-only reproducer, which was already
+      down to exactly that residue on the static path.
+  14. quantization-plumbing cleanup in the local fuse pass:
+      - redundant =int_repr -> clamp -> clamp= chains after
+        =quantize_per_tensor= are now removed locally
+      - focused regression:
+        =@remove_redundant_clamp_after_quantize= in
+        =/home/roland/torch-mlir/test/Dialect/Torch/fuse-quantized-ops.mlir=
+      - artifact impact:
+        - projection fused Torch artifact:
+          clamps drop from =5= to =1=
+        - full static attention fused Torch artifact:
+          clamps drop from =24= to =4=
+  15. important correction to the roadmap:
+      the larger static attention block still carried float =aten.linear=
+      projections in the fused Torch IR, even after the softmax rewrite. So
+      the next useful step was not just "quantization plumbing"; it was to
+      expose those projections to the existing quantized matmul matcher
+      without destroying =softmax.int=.
+  16. the failed branch:
+      running the global =torch-decompose-complex-ops= pass before quantized
+      fusion does remove =aten.linear=, but it also decomposes
+      =softmax.int= into =max/sub/exp/sum/div= too early, which prevents the
+      local softmax-quantization rewrite from firing.
+  17. current best local branch:
+      =FuseQuantizedOps.cpp= now performs a narrow decomposition of
+      =aten.linear= only, inside the quantized fuse pass, using
+      =aten.transpose.int= for rank-2 weights so the existing q-commuting
+      matcher can still see the quantized chain.
+      Focused regression:
+      =@decompose_linear_for_quant_fusion= in
+      =/home/roland/torch-mlir/test/Dialect/Torch/fuse-quantized-ops.mlir=
+  18. result on the full static attention block:
+      - fused Torch artifact:
+        =/tmp/pt2e-static-quant-attention-block-fused-linear-transposeint.mlir=
+      - lowered artifact:
+        =/tmp/pt2e-static-quant-attention-block-local-linalg-linear-transposeint-to-linalg.mlir=
+      - current op profile:
+        - =linalg.quantized_batch_matmul: 6=
+        - =linalg.batch_matmul: 0=
+        - =arith.divf: 7=
+        - =arith.maximumf: 6=
+        - =arith.minimumf: 6=
+        - =math.exp: 0=
+        - =math.rsqrt: 0=
+      This is the current best checkpoint on the clean static route.
+  19. updated next step:
+      with both projection linears and attention matmuls now quantized in the
+      local static path, the remaining blocker is concentrated in the
+      quantization/dequantization plumbing itself. The next work item should be
+      reducing the remaining =divf/maximumf/minimumf= family, not further
+      attention-specific rewrites.
+  20. commuting requantization cleanup:
+      a new local rewrite now removes
+      =dequantize(qtensor) -> q-commuting ops -> quantize_per_tensor=
+      when the quantization parameters are unchanged. This covers the
+      =view=-based repacking of already-quantized =q/k/v= outputs.
+      Focused regression:
+      =@remove_requantize_after_qcommuting_view= in
+      =/home/roland/torch-mlir/test/Dialect/Torch/fuse-quantized-ops.mlir=
+  21. effect on the best fused Torch artifact:
+      - previous:
+        =/tmp/pt2e-static-quant-attention-block-fused-linear-transposeint.mlir=
+        - =torch.aten.quantize_per_tensor: 6=
+        - =torch.aten.dequantize.tensor: 6=
+      - current:
+        =/tmp/pt2e-static-quant-attention-block-fused-after-requant-commute.mlir=
+        - =torch.aten.quantize_per_tensor: 3=
+        - =torch.aten.dequantize.tensor: 3=
+      The remaining three quantization sites are now the meaningful ones:
+      - layer-norm output activation quantization
+      - softmax output quantization
+      - final output activation quantization
+  22. best current diagnostic path:
+      for honest downstream accounting, the right local flow is now:
+      =torch-match-quantized-custom-ops -> torch-fuse-quantized-ops ->
+      torch-decompose-complex-ops -> convert-torch-to-linalg=
+      This keeps the quantized projection/matmul rewrites before decomposing
+      the remaining float semantics.
+  23. current best decomposed local =linalg= checkpoint:
+      =/tmp/pt2e-static-quant-attention-block-fuse-then-decompose-after-requant-commute.mlir=
+      - =linalg.quantized_batch_matmul: 6=
+      - =linalg.batch_matmul: 0=
+      - =math.exp: 1=
+      - =math.rsqrt: 1=
+      - =arith.divf: 7=
+      - =arith.maximumf: 4=
+      - =arith.minimumf: 3=
+  24. remaining-float attribution on that branch:
+      - full block:
+        =6 quantized_batch_matmul, 0 batch_matmul, exp 1, rsqrt 1, divf 7,
+        maximumf 4, minimumf 3=
+      - no layer norm:
+        =6 quantized_batch_matmul, 0 batch_matmul, exp 1, rsqrt 0, divf 5,
+        maximumf 4, minimumf 3=
+      - no softmax:
+        =6 quantized_batch_matmul, 0 batch_matmul, exp 0, rsqrt 1, divf 5,
+        maximumf 2, minimumf 2=
+      - projection only:
+        =1 quantized_batch_matmul, 0 batch_matmul, exp 0, rsqrt 0, divf 1,
+        maximumf 1, minimumf 1=
+      This means:
+      - =layer_norm= contributes:
+        - =math.rsqrt: 1=
+        - =arith.divf: 2=
+      - softmax contributes:
+        - =math.exp: 1=
+        - =arith.divf: 2=
+        - =arith.maximumf: 2=
+        - =arith.minimumf: 1=
+      - the remaining baseline =divf/maximumf/minimumf= residue belongs to
+        quantization plumbing and final output activation handling
+  25. roadmap priority update:
+      the next simpler semantic target is now =layer_norm=, not softmax:
+      - layer norm contributes a smaller float family
+      - softmax is still more complex and now already isolated cleanly
+      - the projection/attention integer core is no longer the blocker on the
+        current local static route
+  26. minimal =layer_norm= confirmation on the current best branch:
+      - raw PT2E static export for
+        =src/pt2e_static_quant_layer_norm_adapter.py= is still just
+        =torch.aten.layer_norm=
+      - lowering that raw artifact through
+        =torch-match-quantized-custom-ops -> torch-fuse-quantized-ops ->
+        torch-decompose-complex-ops -> convert-torch-to-linalg=
+        produces the same float skeleton as the attention attribution, with no
+        hidden quantization behavior:
+        - =math.rsqrt: 1=
+        - =arith.divf: 2=
+        - =arith.maximumf: 0=
+        - =arith.minimumf: 0=
+      - exact semantic shape:
+        - reduce-sum over hidden dimension
+        - divide by hidden size for mean
+        - subtract mean and square residuals
+        - second reduce-sum and divide for variance
+        - add epsilon
+        - =rsqrt=
+        - multiply normalized input by =rstd=
+        - affine scale and bias
+      - implementation consequence:
+        the next layer-norm step should target the decomposition boundary in
+        =torch-decompose-complex-ops=, not a later linalg cleanup
+  27. standard native-FX =LayerNorm= route is real, but blocked earlier:
+      - local PyTorch native backend config explicitly includes
+        =LayerNorm= / =F.layer_norm= with:
+        - input dtype =quint8=
+        - output dtype =quint8=
+        - weight dtype =float=
+        - bias dtype =float=
+      - a minimal FX-quantized =LayerNorm= model converts to:
+        - =torch.quantize_per_tensor(x, scale, zero_point, torch.quint8)=
+        - =QuantizedLayerNorm(...)=
+        - final =dequantize()=
+      - the quantized module implementation calls:
+        =torch.ops.quantized.layer_norm(
+          input, normalized_shape, weight, bias, eps, output_scale,
+          output_zero_point)=
+      - two concrete blockers in the current stack:
+        1. =torch.export.export(converted_quantized_model, ...)= fails with
+           =UnsupportedFakeTensorException: quantized nyi in meta tensors=
+        2. direct =FxImporter.import_graph_module(converted_graph_module)=
+           fails immediately because the importer does not handle builtin
+           =torch.quantize_per_tensor= call_function targets; the same FX graph
+           also contains =call_module[target=ln]= and
+           =call_method[target=dequantize]=, so this route needs broader FX
+           importer coverage than the current export-based path
+      - roadmap consequence:
+        the native-FX route is the first standard path in this environment that
+        actually quantizes =LayerNorm=, so it is worth keeping on the roadmap;
+        the next work item on that branch is importer support for the FX graph
+        shape around quantized =LayerNorm=, not a new quantization experiment
+  28. local importer progress on the native-FX =LayerNorm= branch:
+      - flattening the converted quantized module with a non-leaf FX tracer
+        produces the right minimal graph shape:
+        - builtin =torch.quantize_per_tensor=
+        - =torch.ops.quantized.layer_norm=
+        - method =dequantize()=
+      - local =torch-mlir= importer patches now handle enough FX plumbing to
+        import that graph in raw form:
+        - builtin =torch.quantize_per_tensor= is remapped to
+          =aten.quantize_per_tensor.default=
+        - =OpOverloadPacket= targets use their =.default= overload
+        - method =dequantize()= is remapped to =aten.dequantize.self=
+        - quantized dtype integer mappings are enabled for =qint8/quint8/qint32=
+        - tuple-valued schema =List[]= arguments are imported as lists
+        - dotted =get_attr= targets like =ln.weight= are resolved correctly
+      - current raw import result:
+        - import succeeds
+        - builtin quantize and dequantize become real Torch ops
+        - =quantized.layer_norm= currently imports as a generic
+          =torch.operator{name = "torch.quantized.layer_norm"}=
+      - current hard blocker after that:
+        - quantized tensors still lack usable FX importer type metadata, so the
+          imported quantized values are typed as =!torch.none=
+        - lowering to Torch backend fails immediately at
+          =torch.aten.quantize_per_tensor= because operand #0 is =!torch.none=
+        - direct backend import also reports the explicit importer limitation:
+          =Quantized tensor meta data is not supported.=
+      - attempted cheap fix:
+        running FX =ShapeProp= on the inlined quantized graph did not populate
+        =node.meta['val']= for the quantized nodes, so that is not an escape
+        hatch
+      - roadmap consequence:
+        the next concrete implementation target on the native-FX branch is
+        quantized tensor metadata/type support in the FX importer; only after
+        that does it make sense to decide whether =torch.quantized.layer_norm=
+        should stay as a generic operator or be rewritten/lowered further
+  29. native-FX =LayerNorm= branch now reaches local =linalg=:
+      - local importer updates now handle quantized tensor metadata well enough
+        to produce typed raw Torch IR:
+        - =aten.quantize_per_tensor= now carries
+          =!torch.vtensor<[...],!torch.quint8>=
+        - =aten.dequantize.self= returns ordinary =f32= vtensors
+      - the next local matcher step is implemented in
+        =MatchQuantizedOps.cpp=:
+        - =torch.operator "torch.quantized.layer_norm"= rewrites to
+          =aten.dequantize.self -> aten.layer_norm -> aten.quantize_per_tensor=
+      - focused regression added:
+        =test/Dialect/Torch/match-native-fx-quantized-layernorm.mlir=
+      - direct local pass results:
+        1. raw native-FX import succeeds with typed quantized tensors
+        2. =torch-match-quantized-custom-ops= rewrites
+           =torch.quantized.layer_norm= as intended
+        3. the direct local pipeline
+           =torch-match-quantized-custom-ops ->
+           torchdynamo-export-to-torch-backend-pipeline ->
+           torch-backend-to-linalg-on-tensors-backend-pipeline=
+           succeeds on the minimal native-FX =LayerNorm= graph
+      - resulting semantic shape in =linalg=:
+        - input quantize to =quint8=
+        - immediate dequantize back to =f32=
+        - ordinary float =layer_norm= skeleton
+          (=divf/divf/rsqrt= plus affine scale/bias)
+        - output re-quantize and final dequantize
+      - roadmap consequence:
+        the native-FX route is now no longer blocked on importer or generic-op
+        legality for =LayerNorm=; it rejoins the same float-normalization
+        problem we already identified, but now through a standard quantized
+        frontend path
+  30. native-FX quantized attention block now reaches Torch backend:
+      - the local FX importer was extended just enough to carry a flattened
+        native-FX quantized attention block:
+        - packed =quantized.linear= params are unpacked with PyTorch's own
+          =quantized.linear_unpack=
+        - unpacked quantized weights are rebuilt with
+          =aten._make_per_channel_quantized_tensor=
+        - flattened tensor plumbing is imported for
+          =shape/getattr=, =view=, =transpose=, =contiguous=, builtin
+          =truediv=, and builtin =torch.softmax=
+      - new focused local matchers/regressions:
+        - =test/Dialect/Torch/match-native-fx-quantized-linear-unpack.mlir=
+        - =test/Dialect/Torch/match-native-fx-quantized-matmul.mlir=
+        - =torch.quantized.linear_unpack= now rewrites to
+          =dequantize -> matmul/linear -> quantize_per_tensor=
+        - =torch.quantized.matmul= now rewrites to
+          =dequantize -> aten.matmul -> quantize_per_tensor=
+      - current checkpoint from the full native-FX attention block:
+        - raw import succeeds and writes
+          =/tmp/native_fx_quant_attention_block_raw.mlir=
+        - =torch-match-quantized-custom-ops ->
+          torchdynamo-export-to-torch-backend-pipeline=
+          succeeds and writes
+          =/tmp/native_fx_quant_attention_block_torch_backend.mlir=
+        - backend op profile at that point:
+          - =torch.aten.quantize_per_tensor=: 9
+          - =torch.aten.dequantize.self=: 15
+          - =torch.aten.matmul=: 6
+          - no remaining =torch.operator= custom ops
+      - new concrete blocker:
+        - the backend-to- =linalg= pipeline still fails, but it is now localized
+          to =FuseQuantizedOps= rather than importer legality
+        - MLIR reproducer:
+          =/tmp/native_fx_quant_attention_block_linalg_crash.mlir=
+        - the reproducer shows a fully legal Torch backend graph with:
+          - native-FX =LayerNorm= decomposed through quantize/dequantize
+          - per-channel quantized projection weights
+          - float =aten.matmul= islands surrounded by quantize/dequantize
+            patterns
+      - latest local checkpoint after =FuseQuantizedOps= work:
+        - the old crash in =QuantizeOperandsPastCommutingOps<AtenMatmulOp,...>=
+          is fixed
+        - the matcher now traces quantized =view/transpose= chains that occur
+          before =dequantize.self=, not just float-side commuting ops after it
+        - the full attention score and value paths now fuse to quantized
+          =torch.aten.matmul= with =!torch.qint32= accumulators in
+          =/tmp/native_fx_quant_attention_block_after_fuse3.mlir=
+        - the dedicated local regression for this case now lives in
+          =test/Dialect/Torch/fuse-quantized-ops.mlir= as
+          =@matmul_quantized_qcommuting_before_dequant=
+      - current remaining blocker after that fix:
+        - backend-to-=linalg= now gets past the attention score/value matmuls
+        - it still fails later on the final output projection path, at a
+          remaining =torch.aten.dequantize.self= feeding a per-channel-weight
+          projection linear
+        - concretely, the remaining float islands are now the native-FX
+          =torch.quantized.linear_unpack= projections with per-channel weights,
+          not the attention score/value matmuls anymore
+      - roadmap consequence:
+        the next highest-value work item on the native-FX branch is now the
+        per-channel projection-linear path, not more attention-softmax work or
+        more FX importer plumbing
+  31. per-channel dequant lowering bug is fixed; remaining blocker is projection fusion:
+      - a focused MLIR reproducer for the native-FX projection shape now works:
+        =/tmp/native_fx_per_channel_projection_repro.mlir= lowers through
+        =torch-backend-to-linalg-on-tensors-backend-pipeline=
+      - the concrete fix was in =ConvertAtenDequantizeSelfOp= for
+        =Aten_MakePerChannelQuantizedTensorOp=:
+        - broadcast per-channel =f64= scales are now cast/truncated to the
+          result element type before =arith.mulf=
+      - the new local conversion regression is
+        =test/Conversion/TorchToLinalg/per-channel-dequant-target.mlir=
+      - consequence for the full native-FX attention block:
+        - the backend-to-=linalg= failure is no longer caused by per-channel
+          dequantization itself
+        - the first remaining hard failure is still the final output projection
+          chain, where =FuseQuantizedOps= leaves a
+          =dequantize(self_quantized_output) -> dequantize(per_channel_weight)
+          -> matmul -> quantize= island unfused
+      - roadmap consequence:
+        the next highest-value work item remains the native-FX projection-linear
+        path, but now specifically at quantized/fused projection matching, not
+        at per-channel dequant lowering
+  32. cleaner native-FX per-tensor projection branch exists and should be
+      preferred over the old per-channel branch:
+      - PyTorch native FX with =default_qconfig= produces a real alternative
+        quantized attention block shape:
+        - =QuantizedLayerNorm=
+        - =QuantizedLinear(... qscheme=torch.per_tensor_affine)= for
+          =q_proj=, =k_proj=, =v_proj=, and =out_proj=
+        - the attention score/value path still uses quantized matmul
+      - this is materially cleaner than the earlier branch built around
+        per-channel quantized projection weights, because the projection
+        linears no longer need =aten._make_per_channel_quantized_tensor=
+        reconstruction
+      - local importer work now exists for this branch:
+        - =python/torch_mlir/extras/fx_importer.py= now handles
+          =call_module= for native quantized
+          =torch.ao.nn.quantized.modules.linear.Linear=
+        - =python/torch_mlir/extras/fx_importer.py= now handles
+          =call_module= for native quantized
+          =torch.ao.nn.quantized.modules.normalization.LayerNorm=
+        - builtin/native-FX plumbing was extended so these modules can be
+          re-expressed in Torch IR without stopping at importer legality
+      - current branch status:
+        - the next immediate task is to rerun the full attention block through
+          raw import, Torch backend, and =linalg= using this per-tensor branch
+        - then compare the backend/=linalg= op profile against the older
+          per-channel native-FX path
+      - latest checkpoint from that rerun:
+        - importer coverage improved for native quantized =call_module=
+          =Linear= and =LayerNorm=
+        - but the per-tensor branch is still blocked before backend lowering by
+          missing quantized result typing in the FX importer
+        - even the reduced native-FX quantized =LayerNorm= graph currently
+          imports as:
+          - =torch.aten.quantize_per_tensor ... -> !torch.none=
+          - =torch.quantized.layer_norm ... -> !torch.none=
+          - =torch.aten.dequantize.self ... -> !torch.none=
+        - consequence:
+          this branch still needs explicit quantized tensor metadata/type
+          reconstruction in the importer before the backend/=linalg=
+          comparison is meaningful
+      - newer checkpoint after local importer work:
+        - quantized metadata synthesis now works much further through the body:
+          - native quantized =Linear= outputs
+          - native quantized =LayerNorm= outputs
+          - =quantize_per_tensor=
+          - =dequantize=
+          - quantized =matmul=
+          - shape-plumbing through =shape/getitem/view/transpose/contiguous=
+        - with a manually annotated placeholder example type, raw import now
+          gets almost to the end of the function body
+        - the remaining failure moved to function signature construction:
+          =@main= is still declared with =!torch.none= results because
+          =_graph_to_function_meta= runs before this metadata synthesis
+        - consequence:
+          the next concrete importer step is to move this quantized metadata
+          propagation earlier, before function type derivation, instead of only
+          doing it during node import
+      - roadmap consequence:
+        before doing more per-channel projection-specific compiler work, first
+        check whether this cleaner standard branch already removes that entire
+        class of blockers
+      - latest checkpoint from the true per-tensor-weight rerun:
+        - the earlier "per-tensor" native-FX branch was misleading:
+          projection weights still used =torch.per_channel_affine=
+        - a stricter custom qconfig with per-tensor-symmetric weight observers
+          produces a true per-tensor projection branch
+        - that branch now reaches raw import, Torch backend, and =linalg=
+        - current =linalg= profile on the true per-tensor branch:
+          - =linalg.quantized_batch_matmul: 5=
+          - =linalg.batch_matmul: 1=
+          - =arith.divf: 8=
+          - =arith.maximumf: 5=
+          - =arith.minimumf: 4=
+          - =math.exp: 1=
+          - =math.rsqrt: 1=
+        - consequence:
+          the remaining float batch matmul is now isolated to the final output
+          projection path, so the next highest-value compiler target is the
+          quantized =transpose -> contiguous -> view -> dequantize= chain
+          before that last projection matmul
+      - latest checkpoint after local native-FX fusion fixes:
+        - the true per-tensor native-FX backend artifact now fuses all six
+          attention/projection matmuls through local =torch-fuse-quantized-ops=
+        - the two concrete fixes in =FuseQuantizedOps.cpp= were:
+          - remove identity =aten.contiguous= before quantized fusion
+          - for =quantize_per_tensor=-sourced chains, replay q-commuting ops
+            from the quantize result with its original pre-commute shape
+        - the fused true per-tensor branch now reaches local =linalg= with:
+          - =linalg.quantized_batch_matmul: 6=
+          - =linalg.batch_matmul: 0=
+          - =arith.divf: 7=
+          - =arith.maximumf: 4=
+          - =arith.minimumf: 3=
+          - =math.exp: 1=
+          - =math.rsqrt: 1=
+        - consequence:
+          the structural matmul blocker on the cleaner standard native-FX
+          branch is now gone; the next work is the remaining float quantization
+          plumbing, softmax normalization residue, and =layer_norm= residue
+  33. repo now carries the cleaner native-FX branch for the local fast loop:
+      - new repo-side reproducers:
+        - =src/native_fx_quant_layer_norm_adapter.py=
+        - =src/native_fx_quant_attention_block_adapter.py=
+        - shared helper =src/native_fx_quant_utils.py=
+      - =scripts/compile-pytorch.py= now accepts an adapter-defined
+        =build_mlir_module(model_path, output_type)= hook for cases that need
+        direct FX import instead of the standard =torch.export= path
+      - =scripts/dev/build-linalg-local-from-adapter.sh= now improves the
+        native-FX inner loop in the two ways actually needed here:
+        - it automatically overlays the local
+          =/home/roland/torch-mlir/python= source tree ahead of the pinned
+          Nix =torch_mlir= package when that local checkout exists
+        - it now includes =torch-fuse-quantized-ops= in the default local
+          =raw -> linalg= path
+      - validated local commands:
+        - =scripts/dev/build-linalg-local-from-adapter.sh src/native_fx_quant_layer_norm_adapter.py /tmp/native-fx-quant-layer-norm-local-linalg.mlir=
+        - =scripts/dev/build-linalg-local-from-adapter.sh src/native_fx_quant_attention_block_adapter.py /tmp/native-fx-quant-attention-block-local-linalg.mlir=
+      - current attention-block checkpoint from those repo-side reproducers:
+        - raw import artifact:
+          =/tmp/native-fx-quant-attention-block-local-linalg-raw.mlir=
+        - local =linalg= artifact:
+          =/tmp/native-fx-quant-attention-block-local-linalg.mlir=
+        - op profile:
+          - =linalg.quantized_batch_matmul=: 6
+          - =linalg.batch_matmul=: 0
+          - =arith.divf=: 7
+          - =arith.maximumf=: 4
+          - =arith.minimumf=: 3
+          - =math.exp=: 1
+          - =math.rsqrt=: 1
+      - interpretation:
+        the cleaner standard native-FX attention path is now reproducible from
+        this repo through the intended local fast loop, and it matches the
+        latest local compiler checkpoint:
+        all six attention/projection matmuls are now integer/quantized in
+        =linalg=, while the remaining float residue is concentrated in
+        =layer_norm=, softmax, and quantization plumbing
+      - current limitation:
+        these native-FX adapters intentionally emit only =raw= Torch MLIR
+        through the new repo hook for now
+        - this keeps the fast loop aligned with the actual validated path:
+          repo adapter -> local FX importer overlay -> local =torch-mlir-opt=
+        - wiring the same branch into the Nix-built =torch= stage is deferred
+          until the next intentional =torch-mlir= rebuild
+  34. historical note, superseded on 2026-03-31: baseline TinyStories
+      downstream reached a Nix JSON artifact via generated stubs:
+      - the baseline =tiny-stories-1m= path now builds through =sv= and =il=
+        in Nix after making the downstream float residue explicit instead of
+        leaving it as missing SystemVerilog modules
+      - concrete downstream fix:
+        - new helper =scripts/pipeline/gen_sv_blackboxes.py=
+        - =scripts/pipeline/hw_clean_to_sv.sh= now emits
+          =sv/000_generated_blackboxes.sv=
+        - =sources.f= now lists that generated stub file first
+        - Yosys SV import now uses =read_slang --extern-modules=
+      - validated baseline package:
+        - =nix build .#tiny-stories-1m-il -L=
+      - exact full Xilinx-mapped selftest JSON remains host-memory limited:
+        - =nix build .#tiny-stories-1m-selftest-json -L=
+        - current failure is exit =137= during late =synth_xilinx= cleanup
+          (around =OPT_DFF=), i.e. a downstream memory-pressure issue rather
+          than a missing-module or wrapper-correctness issue
+      - reduced downstream milestone to keep momentum:
+        - added =mkYosysJson= plus package
+          =tiny-stories-1m-selftest-yosys-json=
+        - this emits a generic Yosys JSON from
+          =tiny-stories-1m-selftest-model-opt.il= plus the generated
+          =tiny_stories_selftest_top= wrapper, without the Xilinx techmapping
+          stage that currently exhausts host memory
+      - validated reduced JSON package:
+        - =nix build .#tiny-stories-1m-selftest-yosys-json -L=
+        - output path:
+          =/nix/store/5yiwl5fdswpsv8pwi089vwxyz2wy5hby-tiny-stories-1m-selftest-yosys.json=
+          (~1.7 GiB)
+      - interpretation:
+        - the baseline standard frontend story now reaches a reproducible Nix
+          JSON artifact downstream of =torch -> ... -> sv -> il=
+        - this is a downstream milestone only; the clean-quantization priority
+          remains the standard quantized frontend path, and the full
+          Xilinx-mapped TinyStories selftest JSON is the next downstream
+          scaling target once memory pressure is reduced further
+  35. cleaner native-FX attention ablations are now in the repo fast loop:
+      - new shared/native-FX reproducers:
+        - =src/native_fx_quant_attention_models.py=
+        - =src/native_fx_quant_attention_block_no_layer_norm_adapter.py=
+        - =src/native_fx_quant_attention_block_no_softmax_adapter.py=
+        - =src/native_fx_quant_projection_adapter.py=
+      - validated local commands:
+        - =scripts/dev/build-linalg-local-from-adapter.sh src/native_fx_quant_attention_block_no_layer_norm_adapter.py /tmp/native-fx-quant-attention-block-no-layer-norm-local-linalg.mlir=
+        - =scripts/dev/build-linalg-local-from-adapter.sh src/native_fx_quant_attention_block_no_softmax_adapter.py /tmp/native-fx-quant-attention-block-no-softmax-local-linalg.mlir=
+        - =scripts/dev/build-linalg-local-from-adapter.sh src/native_fx_quant_projection_adapter.py /tmp/native-fx-quant-projection-local-linalg.mlir=
+      - measured local =linalg= profiles on the cleaner standard branch:
+        - full native-FX attention block:
+          =6 quantized_batch_matmul, 0 batch_matmul, divf 7, maximumf 4,
+          minimumf 3, exp 1, rsqrt 1=
+        - without =layer_norm=:
+          =6 quantized_batch_matmul, 0 batch_matmul, divf 4, maximumf 3,
+          minimumf 2, exp 1, rsqrt 0=
+        - without softmax:
+          =6 quantized_batch_matmul, 0 batch_matmul, divf 6, maximumf 3,
+          minimumf 3, exp 0, rsqrt 1=
+        - projection only:
+          =1 quantized_batch_matmul, 0 batch_matmul, divf 1, maximumf 1,
+          minimumf 1, exp 0, rsqrt 0=
+      - direct attribution from those ablations:
+        - =layer_norm= is the only source of =rsqrt= on this path
+        - softmax is the only source of =exp= on this path
+        - removing =layer_norm= drops more float residue than removing softmax:
+          =divf -3, maximumf -1, minimumf -1, rsqrt -1=
+        - projection-only still carries
+          =divf/maximumf/minimumf = 1/1/1=, so some residue is structural
+          quantization plumbing rather than attention semantics
+      - roadmap consequence:
+        - on the cleaner repo-side standard branch, the next simpler semantic
+          target is still =layer_norm=
+        - softmax remains isolated and should stay the follow-on semantic target
+        - the projection-only baseline is now small enough to use as the fast
+          loop for quantization-plumbing cleanup
+  36. historical note, superseded on 2026-03-31: selftest synthesis had an
+      explicit external-memory shell path:
+      - new repo helper:
+        =scripts/pipeline/externalize_large_memories.py=
+      - new local fast-loop script:
+        =scripts/dev/build-tiny-stories-selftest-shell-local.sh=
+      - current measured baseline memory shape from =tiny-stories-1m.il=:
+        - =326= memories
+        - =433040010= total memory bits
+      - the first Task 6 conclusion from that analysis is now explicit:
+        several =handshake_memory_out_f32_*=
+        modules are too large to be sensible fabric candidates on their own
+      - threshold experiments on the current RTLIL:
+        1. =35205120= bits (= full board BRAM capacity) selected only the four
+           =3216448 x 32= modules:
+           =id18=, =id340=, =id341=, =id342=
+        2. =1048576= bits selected those four plus:
+           =id24= (=131072 x 32=) and =id343= (=50257 x 32=)
+        3. the current selftest-shell default is now =131072= bits, which
+           selects =60= modules totaling =432450080= bits
+      - interpretation:
+        the current selftest synthesis/utilization target is now intentionally
+        treated as a shell build:
+        large handshake-memory modules are external-memory candidates first,
+        while smaller scratch/control memories stay on-chip
+      - current Task 6 direction:
+        use this shell path as the practical bridge toward the board's
+        external memory instead of forcing all large model/state memories into
+        FPGA LUT/FF/BRAM resources during early synthesis iteration
+  37. exact all-memory JSON export blocker is now reduced to the final
+      library-module strip:
+      - kept failing Nix build directory:
+        =/nix/var/nix/builds/nix-634456-3071171744/build=
+      - exact failure point from that kept build:
+        =stage8.il -> stage9 write_json=
+        still reported
+        =ERROR: Module FDCE contains processes, which are not supported by JSON backend=
+      - measured cause from the kept Nix artifact:
+        - =stage8.il= size:
+          =637762491= bytes
+        - the generated =stage8-stripped.il= in that failing build had the
+          same size and still contained =module \FDCE= and =module \LUT6_2=
+        - so the staged flow had already validated =synth_xilinx= through the
+          mapped RTLIL boundary, and the remaining bug was that the final
+          strip step matched nothing
+      - repo-side fix now landed:
+        - =scripts/pipeline/filter_rtlil_modules.py=
+          now supports an explicit
+          =--drop-escaped-uppercase-modules= mode
+        - both the Nix staged JSON path and the local shell fast loop now use
+          that explicit mode instead of a regex string that was too brittle
+          across quoting layers
+      - exact local validation on the kept Nix =stage8.il=:
+        - filtered output:
+          =/tmp/stage8-flag-stripped.il=
+          size =632416704= bytes
+        - JSON export:
+          =/tmp/tiny-stories-all-memory-stage8-flag-fixed.json=
+          size =1738508328= bytes
+        - command exited successfully on the exact failing Nix mapped artifact
+      - interpretation:
+        the all-memory shell path is now locally validated all the way through
+        the final JSON export on the exact Nix-produced mapped RTLIL;
+        the remaining work is replaying that corrected strip step through Nix
+        and then deciding whether the utilization report should keep reading
+        the giant JSON or consume a factored mapped-RTLIL/stat artifact instead
+  38. current Task 6 memory-budget picture is now sharper:
+      - total measured memory bits in =tiny-stories-1m.il=:
+        =433040010=
+      - if only the four =3216448 x 32= memories are treated as external:
+        - externalized bits:
+          =411705344=
+        - remaining bits:
+          =21334666=
+      - comparison point:
+        current board BRAM capacity model in the repo is
+        =955 * 36 * 1024 = 35205120= bits
+      - interpretation:
+        the first serious external-memory cut is likely just those four giant
+        modules, not the whole model
+        - that does not prove the remaining design fits once shell/control and
+          mapping overhead are counted
+        - but it does mean the present resource story is dominated much more by
+          a few extremely large memories than by the long tail of smaller ones
+  39. historical note, superseded on 2026-03-31: all-memory shell JSON and
+      utilization succeeded in Nix:
+      - validated commands:
+        - =nix build .#tiny-stories-1m-selftest-all-memory-json -L --keep-failed=
+        - =nix build .#tiny-stories-1m-selftest-all-memory-utilization -L --keep-failed=
+      - exact successful JSON artifact:
+        =/nix/store/51a7xalw32ca2g99cb1zl4yzp8z6d9d8-tiny-stories-1m-selftest-all-memory.json=
+        size =1738508328= bytes
+      - exact successful utilization artifact:
+        =/nix/store/xcmhdxql040g0g06s9zcxk1h8x33cnjs-tiny-stories-1m-selftest-all-memory-utilization=
+      - exact external-memory candidate report used for that build:
+        =/nix/store/3byl90mwnbvawkcjlfc71r7im4cs89zd-tiny-stories-1m-selftest-all-memory-external-memory-plan/report.json=
+      - measured shell utilization summary:
+        - LUTs:
+          =34950553 / 298600= (=11704.81%%=)
+        - FFs:
+          =58072527 / 597200= (=9724.13%%=)
+        - DSPs:
+          =0 / 1920= (=0%%=)
+        - BRAM36-equivalent:
+          =0 / 955= (=0%%=)
+        - MUXF7:
+          =134923=
+        - MUXF8:
+          =12014=
+      - interpretation:
+        - the staged =synth_xilinx -> stripped RTLIL -> write_json= path is now
+          reproducible in Nix for the all-memory shell build
+        - the resulting 3e artifact is still an external-memory shell report:
+          it proves the standard frontend can reach a mapped JSON/resource
+          report, but it also confirms that the remaining blocker is extreme
+          LUT/FF pressure in the lowered shell/controller logic rather than DSP
+          or BRAM usage
+        - this closes the immediate downstream Task 3 synthesis gate while
+          keeping Task 6 minimization and the clean quantization path as the
+          next active workstreams
+
+** Explicit non-goal for now
+- Do not add a generic SV floating-point operation library as the primary Task 3
+  path.
+- Rationale:
+  1. it weakens the RfP story by moving the hard part to handwritten backend
+     hardware
+  2. it is likely expensive in area and verification effort
+  3. it does not help establish a clean standard lowering path from PyTorch
+
+** External guidance
+- PyTorch PT2E/export quantization documentation:
+  https://docs.pytorch.org/executorch/stable/quantization-overview.html
+- Torch-MLIR project overview and FX importer entrypoint:
+  https://github.com/llvm/torch-mlir
+- Current PyTorch quantization docs now point users to =torchao= PT2E APIs:
+  https://docs.pytorch.org/docs/stable/quantization.html
+- PyTorch quantization migration plan discussion:
+  https://dev-discuss.pytorch.org/t/torch-ao-quantization-migration-plan/2810
+- ExecuTorch XNNPACK quantization guidance for LLM-style models:
+  https://docs.pytorch.org/executorch/1.0/backends/xnnpack/xnnpack-quantization.html

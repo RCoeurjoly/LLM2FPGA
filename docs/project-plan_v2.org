@@ -1,9 +1,10 @@
 takentaal-amendment v1.0
 
-* LLM2FPGA [1/27]
+* LLM2FPGA [11/27]
 :PROPERTIES:
 :COOKIE_DATA: todo recursive
 :END:
+** Description
 LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
 ** DONE 1) Survey & candidate selection
 CLOSED: [2026-02-16 Mon 22:17]
@@ -90,7 +91,9 @@ From now on, we call the chosen kernel the *selected route*.
 
 - Write up and publish results of the research and next steps. (chosen kernel and why + fallback)
 
-** WAIT 2) End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [0/5]
+** DONE 2) End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL [5/5]
+CLOSED: [2026-04-10 Fri 11:20]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:20]
 - State "WAIT"       from "TODO_NEXT"  [2026-03-02 Mon 18:33]
 - State "TODO_NEXT"  from              [2026-02-16 Mon 22:17]
 *** Goal:
@@ -99,7 +102,9 @@ Demonstrate that the selected pipeline can lower a minimal PyTorch kernel to syn
   PyTorch hard to simulate: it seems well documented https://docs.pytorch.org/executorch/stable/getting-started.html
   Discrepancy between PyTorch and RTL simulation: simulate each MLIR stage with original PyTorch, to isolate the pass that creates discrepancy
 *** Subtasks
-**** WAIT Subtask a consists of:
+**** DONE Subtask a consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO_NEXT"  [2026-02-17 Tue 16:16]
 - State "TODO_NEXT"  from              [2026-02-16 Mon 22:17]
 flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT, yosys.
@@ -110,12 +115,16 @@ Cached derivations for each pipeline stage, so reruns do not recompute earlier s
 
 Also, for each upstream tool, support a build with debug symbols. Needed for debugging issues with tooling.
 
-**** WAIT Subtask b consists of:
+**** DONE Subtask b consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO_NEXT"  [2026-02-20 Fri 15:50]
 - State "TODO_NEXT"  from "TODO"       [2026-02-17 Tue 16:16]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 With the same PyTorch module used in 1.c, run a PyTorch simulation with fixed inputs. Run pipeline with that model, simulate resulting SystemVerilog and compare with golden reference.
-**** WAIT Subtask c consists of:
+**** DONE Subtask c consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO_NEXT"  [2026-02-20 Fri 15:57]
 - State "TODO_NEXT"  from "TODO"       [2026-02-20 Fri 15:50]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
@@ -125,7 +134,9 @@ Artifact: matmul.il produced by Yosys from matmul.sv.
 
 Yosys completes elaboration and emits RTLIL without fatal errors.
 
-**** WAIT Subtask d consists of:
+**** DONE Subtask d consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO_NEXT"  [2026-03-02 Mon 18:33]
 - State "TODO_NEXT"  from "TODO"       [2026-02-20 Fri 15:57]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
@@ -138,7 +149,9 @@ https://www.cnblogs.com/ruidongwu/p/18564807
 https://x.com/enjoy_digital/status/1924910401176719375
 
 https://www.controlpaths.com/2025/05/18/kintex7-accelerator/
-**** WAIT Subtask e consists of:
+**** DONE Subtask e consists of:
+CLOSED: [2026-04-10 Fri 11:19]
+- State "DONE"       from "WAIT"       [2026-04-10 Fri 11:19]
 - State "WAIT"       from "TODO"       [2026-03-02 Mon 18:33]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 Report and demo of results
@@ -157,12 +170,18 @@ Report and demo of results
 - State "TODO_NEXT"  from "TODO"       [2026-03-02 Mon 18:33]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 *** Goal:
-Test if a small open-source language model (TinyStories-1M) can be lowered from PyTorch to synthesizable RTL using a fully open-source compilation flow.
+Test if a small open-source language model (TinyStories-1M) can be lowered from
+PyTorch to synthesizable RTL using a fully open-source compilation flow.
 
-In this task we move from small matmul module to smallest available LLM.
-This task establishes existence of a valid lowering path only; scalability and hardware execution are out of scope, for later tasks.
+In this task we move from small matmul module to the smallest available LLM.
+This task establishes a standard-path lowering and bottleneck/resource story for
+one real model. Hardware execution, fit-driven optimization, and oversized
+execution strategy are follow-on tasks.
 
-The succesful result is an unintegrated RTL netlist of the model (RTLIL or Verilog/SystemVerilog) and synthesis resource estimates, without stubbing operators.
+The succesful result is a reproducible artifact chain from the model to
+CIRCT-emitted SystemVerilog, plus either synthesis resource estimates or an
+explicit first blocker/capacity report, with any temporary operator stubs
+explicit and resolved or rejected in the final claimed flow.
 
 Otherwise, bottleneck report identifying unsupported operators, failing passes, or any other error in the toolchain.
 
@@ -181,32 +200,87 @@ Use -verify-each for each MLIR stage.
 
 For failures, isolate minimal reproducing cases using mlir-reduce and archive them.
 
-If necessary, adjust pass ordering. Final success must not rely on operator stubbing or blackboxes.
+If necessary, adjust pass ordering. Final success must not rely on unresolved operator stubbing or unresolved black boxes.
 
 MLIR debugging docs:
 https://mlir.llvm.org/getting_started/Debugging/
 *** Subtasks
-**** TODO_NEXT Subtask a consists of:
+**** DONE Subtask a consists of:
+- State "DONE"       from "TODO_NEXT"  [2026-03-31 Tue 04:17]
 - State "TODO_NEXT"  from "TODO"       [2026-03-02 Mon 18:33]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 Frozen TinyStories-1M artifact
-**** TODO Subtask b consists of:
+**** DONE Subtask b consists of:
+- State "DONE"       from "TODO"       [2026-03-31 Tue 04:17]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 tiny_stories_1m.mlir, just before consumption by CIRCT
 If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input) is committed or archived.
 The MLIR verifier passes at this boundary (-verify-each clean at this stage).
-**** TODO Subtask c consists of:
+**** DONE Subtask c consists of:
+- State "DONE"       from "TODO"       [2026-03-31 Tue 04:17]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
 tiny_stories_1m.sv, generated by CIRCT
 Generated RTL is structurally sanity-checked (at minimum: parsable by Yosys front-end in the pinned environment).
 If a blocker exists, a reduced reproducer (mlir-reduce or minimized export input) is committed or archived.
-**** TODO Subtask d consists of:
+**** DONE Subtask d consists of:
+- State "DONE"       from "TODO"       [2026-03-31 Tue 04:17]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
-  Artifact: tinystories_1m.il produced by Yosys from tinystories_1m.sv.
-  Yosys completes elaboration and emits RTLIL without fatal errors.
+  Artifact: Yosys handoff result for tinystories_1m.sv.
+  Preferred output: tinystories_1m.il produced by Yosys.
+  If Yosys does not emit RTLIL, the first explicit Yosys/tool-capacity blocker
+  with reproducer and log is the required diagnostic output.
 **** TODO Subtask e consists of:
+- State "TODO"       from "DONE"       [2026-03-31 Tue 17:09]
+- State "DONE"       from "TODO"       [2026-03-31 Tue 04:17]
 - State "TODO"       from              [2026-02-16 Mon 22:17]
-  Artifact: resource utilization report (Yosys stat) generated from the .il/design.
+  Artifact: resource utilization report or explicit bottleneck report generated
+  from the emitted design or Yosys handoff.
+
+  Authoritative scope note:
+  =docs/task3-brief-2026-04-10.org= is now the source-of-truth Task 3 brief.
+  Historical notes below remain useful implementation history, but should not
+  override that brief.
+
+  Historical mapped-path note:
+  older docs used the direct =tiny-stories-1m= mapped utilization flow:
+  =tiny-stories-1m-sv -> tiny-stories-1m-il -> tiny-stories-1m-utilization-json -> tiny-stories-1m-utilization=
+  This remains useful historical context for the repo cleanup work, but it is
+  no longer the source-of-truth Task 3 definition.
+
+  Current implementation status:
+  - =scripts/pipeline/hw_clean_to_sv.sh= now emits only CIRCT-generated SV
+    files into =sources.f= and no longer generates stub modules
+  - =scripts/pipeline/common.sh= now imports those files through
+    =read_slang= without =--extern-modules=, so the canonical
+    =tiny-stories-1m-sv -> tiny-stories-1m-il= path no longer silently
+    blackboxes unresolved SV modules
+  - the staged Yosys mapper in =flake.nix= now consumes the canonical =main=
+    IL directly and no longer rewrites helper scripts with =perl=
+  - the former selftest/external-memory shell path has been removed from the
+    public Task 3 package surface
+  - the alternate =tiny-stories-1m-yosys-stat= package has been demoted from
+    the public Task 3 package surface so the only exposed utilization route is
+    =tiny-stories-1m-utilization=
+
+  Current validated artifact history:
+  the older =tiny-stories-1m-utilization= route recorded the canonical mapped
+  utilization gate as blocked earlier in =tiny-stories-1m-hw0= on unsupported
+  float legalization.
+
+  Current branch evidence on 2026-04-11:
+  the standard baseline-float route reaches emitted SystemVerilog, reaches
+  Yosys, and emits RTLIL plus a Yosys stat report.
+  - =tiny-stories-1m-baseline-float-il= succeeds and emits RTLIL.
+  - =tiny-stories-1m-baseline-float-yosys-stat= succeeds with measured SV
+    bundle and design-memory metrics: `467` files, `6,971,927` lines in
+    =main.sv=, `12,738,203` design cells, `327` design memories,
+    `433,040,128` total memory bits, and `411,705,344` bits in the four
+    largest memories.
+
+  Follow-on direction:
+  keep the clean quantization path and Task 6 resource minimization work open,
+  but treat oversized execution strategy as follow-on work rather than a Task 3
+  completion requirement.
 
 Bottleneck report: unsupported operators encountered, failing passes, required stubs/workarounds, and/or any other error. Includes minimized reproducers.
 
@@ -346,7 +420,7 @@ Delta max clock frequency
 
 Delta toolchain runtime + peak memory
 
-Each strategy must work without blackboxes or stubs.
+Each strategy's final claimed result must work without unresolved black boxes or unresolved stubs.
 **** TODO Subtask c consists of:
 - State "TODO"       from              [2026-02-16 Mon 22:18]
 Conclusion of strategies: which are more effective, and which are easy to apply.

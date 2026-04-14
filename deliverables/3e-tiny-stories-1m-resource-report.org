@@ -1,0 +1,31 @@
+* Deliverable 3e: synthesis resource report and bottleneck report
+
+Reference:
+- docs/project-plan_v2.org:218
+
+Definition:
+- 3e) synthesis resource report + bottleneck report
+
+Gate:
+#+begin_src bash
+nix build .#tiny-stories-1m-utilization -L
+#+end_src
+
+Artifact:
+- =/nix/store/...-tiny-stories-1m-utilization/summary.txt=
+- =/nix/store/...-tiny-stories-1m-utilization/summary.json=
+- =/nix/store/...-tiny-stories-1m-utilization/stat.json=
+- =/nix/store/...-tiny-stories-1m-utilization.json=
+
+Note:
+- This is the canonical flake-backed Task 3 utilization artifact.
+- The report is computed from the emitted =tiny-stories-1m= design through a
+  staged Yosys =synth_xilinx= run, with no self-test shell wrapper, no
+  external-memory blackboxing, and no generated SV stubs in the canonical path.
+- The canonical =sv -> il= import is strict =read_slang= elaboration, not
+  =read_slang --extern-modules=.
+- The resulting mapped design is allowed to exceed the target FPGA capacity;
+  Task 3 only requires a reproducible utilization report from synthesizable
+  emitted hardware.
+- The exact numbers need to be refreshed from the current pinned build once the
+  remaining CIRCT patch-stack build failure is resolved.

@@ -2,6 +2,39 @@ LLM2FPGA is a work in progress.
 
 LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
 
+* Task 3 RfP reviewer scope
+
+The authoritative Task 3 scope and completion criteria are defined in:
+
+- =docs/task3-brief-2026-04-10.org=
+- =docs/task3-reviewer-checklist-2026-04-10.org=
+
+The current reviewer-facing command set is:
+
+#+begin_src bash
+nix build .#tiny-stories-1m-baseline-float-sv -L
+nix build .#tiny-stories-1m-baseline-float-il -L --no-link
+nix build .#tiny-stories-1m-baseline-float-yosys-stat -L --no-link
+#+end_src
+
+This reviewer path is the explicit =tiny-stories-1m-baseline-float= route.
+The repo still contains separate PT2E and TorchAO experiments, but they are
+not the current Task 3 RfP reviewer claim.
+
+The Task 3 claim is:
+- standard-path lowering of TinyStories-1M as far as practical
+- explicit downstream resource or blocker evidence
+- no hidden blackboxes or ad hoc text-rewrite shortcuts in the canonical path
+
+Task 3 does not claim:
+- target-FPGA fit
+- mandatory =nextpnr-xilinx= success
+- a completed oversized-model execution strategy
+
+Historical milestone and contract notes remain in:
+- =docs/task3-rfp-reviewer-milestones.org=
+- =docs/task3-rfp-contract-2026-03-27.org=
+
 * Funding
 
 This project is funded through [[https://nlnet.nl/commonsfund][NGI0 Commons Fund]], a fund established by [[https://nlnet.nl][NLnet]] with financial support from the European Commission's [[https://ngi.eu][Next Generation Internet]] program. Learn more at the [[https://nlnet.nl/project/LLM2FPGA][NLnet project page]].

@@ -1,0 +1,280 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 1 Apr 2026 06:15:00 +0200
+Subject: [PATCH] Import native-FX quantized Linear, shape, and builtin arith
+
+Native-FX quantized attention graphs still surface several standard FX forms
+that the importer did not handle robustly:
+- quantized Linear and LayerNorm modules as call_module targets
+- Tensor.shape captured through builtin getattr/getitem
+- Tensor methods view/transpose/contiguous
+- builtin arithmetic such as truediv after dequantize
+
+Bridge these onto standard Torch ops. Quantized module outputs now inherit
+quantized tensor metadata from their inputs, quantized Linear lowers through
+torch.quantized.linear_unpack, vararg view dimensions are materialized as
+torch.list<int>, quantized weights are rebuilt from int_repr via
+aten._make_per_tensor_quantized_tensor, and getitem learns how to unpack those
+shape lists even when FX metadata omits val entries for quantized nodes.
+---
+ python/torch_mlir/extras/fx_importer.py | 221 +++++++++++++++++++++++++++----
+ 1 file changed, 203 insertions(+), 18 deletions(-)
+
+diff --git a/python/torch_mlir/extras/fx_importer.py b/python/torch_mlir/extras/fx_importer.py
+index 346c95d..3b0744c 100644
+--- a/python/torch_mlir/extras/fx_importer.py
++++ b/python/torch_mlir/extras/fx_importer.py
+@@ -46,6 +46,9 @@ from torch.ao.nn.quantized.modules.normalization import (
+     LayerNorm as TorchQuantizedLayerNorm,
+ )
++from torch.ao.nn.quantized.modules.linear import (
++    Linear as TorchQuantizedLinear,
++)
+ 
+ from torch._ops import (
+     OpOverload as TorchOpOverload,
+     OpOverloadPacket as TorchOpOverloadPacket,
+@@ -1600,6 +1603,18 @@
+                         self._import_torch_op_overload(
+                             loc, node, torch.ops.aten.quantize_per_tensor.default
+                         )
++                    elif target == getattr:
++                        self._import_builtin_getattr(loc, node)
++                    elif (
++                        is_builtin_function_or_method(target)
++                        and target.__name__ in PY_BUILTIN_TO_TORCH_OP
++                        and hasattr(PY_BUILTIN_TO_TORCH_OP[target.__name__], "Tensor")
++                    ):
++                        self._import_torch_op_overload(
++                            loc,
++                            node,
++                            PY_BUILTIN_TO_TORCH_OP[target.__name__].Tensor,
++                        )
+                     elif isinstance(target, TorchOpOverload):
+                         # Dispatch to an ATen op.
+                         self._import_torch_op_overload(loc, node)
+@@ -1730,6 +1745,194 @@
+             )
+         handler(loc, node, hop)
+ 
++    def _set_quantized_tensor_meta_from_input(
++        self,
++        node: Node,
++        input_node: Node,
++        *,
++        dtype: torch.dtype,
++        qparams=None,
++        shape=None,
++    ):
++        input_tm = input_node.meta.get("tensor_meta")
++        if input_tm is None:
++            return
++        node.meta["tensor_meta"] = TensorMetadata(
++            shape=input_tm.shape if shape is None else torch.Size(shape),
++            dtype=dtype,
++            requires_grad=input_tm.requires_grad,
++            stride=input_tm.stride,
++            memory_format=input_tm.memory_format,
++            is_quantized=True,
++            qparams={} if qparams is None else qparams,
++        )
++
++    def _import_call_module(self, loc: Location, node: torch_fx.Node):
++        root_module = node.graph.owning_module
++        submodule = getattr(root_module, node.target, None)
++        if isinstance(submodule, TorchQuantizedLayerNorm):
++            if node.meta.get("tensor_meta") is None and isinstance(node.args[0], torch_fx.Node):
++                self._set_quantized_tensor_meta_from_input(
++                    node,
++                    node.args[0],
++                    dtype=torch.quint8,
++                    qparams={
++                        "scale": float(submodule.scale),
++                        "zero_point": int(submodule.zero_point),
++                    },
++                )
++            result_types = [self._cc.node_val_to_type(node)]
++            normalized_shape_operands = [
++                self._import_argument(loc, int(dim)) for dim in submodule.normalized_shape
++            ]
++            normalized_shape_arg = Operation.create(
++                "torch.prim.ListConstruct",
++                results=[IrType.parse("!torch.list<int>", context=self._c)],
++                operands=normalized_shape_operands,
++                loc=loc,
++            ).result
++            operation = _emit_operation(
++                "torch.quantized.layer_norm",
++                result_types=result_types,
++                operands=[
++                    self._import_argument(loc, node.args[0]),
++                    normalized_shape_arg,
++                    self._import_argument(loc, submodule.weight),
++                    self._import_argument(loc, submodule.bias),
++                    self._import_argument(loc, float(submodule.eps)),
++                    self._import_argument(loc, float(submodule.scale)),
++                    self._import_argument(loc, int(submodule.zero_point)),
++                ],
++                loc=loc,
++            )
++            self.bind_node_value(node, operation.result)
++            return
++        if isinstance(submodule, TorchQuantizedLinear):
++            if node.meta.get("tensor_meta") is None and isinstance(node.args[0], torch_fx.Node):
++                input_shape = self._infer_node_shape(node.args[0])
++                if input_shape:
++                    input_shape[-1] = int(submodule.out_features)
++                self._set_quantized_tensor_meta_from_input(
++                    node,
++                    node.args[0],
++                    dtype=torch.quint8,
++                    qparams={
++                        "scale": float(submodule.scale),
++                        "zero_point": int(submodule.zero_point),
++                    },
++                    shape=input_shape,
++                )
++            result_types = [self._cc.node_val_to_type(node)]
++            weight, bias = submodule._packed_params._weight_bias()
++            weight_value = self._import_quantized_tensor_literal(loc, weight)
++            operation = _emit_operation(
++                "torch.quantized.linear_unpack",
++                result_types=result_types,
++                operands=[
++                    self._import_argument(loc, node.args[0]),
++                    weight_value,
++                    self._import_argument(loc, bias),
++                    self._import_argument(loc, float(submodule.scale)),
++                    self._import_argument(loc, int(submodule.zero_point)),
++                ],
++                loc=loc,
++            )
++            self.bind_node_value(node, operation.result)
++            return
++        raise NotImplementedError(
++            f"FIX ME: Unimplemented call_module: target={node.target}, {node.meta}"
++        )
++
++    def _import_call_method(self, loc: Location, node: torch_fx.Node):
++        if node.target == "dequantize":
++            self._import_torch_op_overload(loc, node, torch.ops.aten.dequantize.self)
++            return
++        if node.target == "view":
++            if len(node.args) > 2:
++                shape_arg = Operation.create(
++                    "torch.prim.ListConstruct",
++                    results=[IrType.parse("!torch.list<int>", context=self._c)],
++                    operands=[
++                        self._import_argument(loc, arg) for arg in node.args[1:]
++                    ],
++                    loc=loc,
++                ).result
++                operation = _emit_operation(
++                    "torch.aten.view",
++                    result_types=[self._cc.node_val_to_type(node)],
++                    operands=[self._import_argument(loc, node.args[0]), shape_arg],
++                    loc=loc,
++                )
++                self.bind_node_value(node, operation.result)
++                return
++            self._import_torch_op_overload(loc, node, torch.ops.aten.view.default)
++            return
++        if node.target == "transpose":
++            self._import_torch_op_overload(loc, node, torch.ops.aten.transpose.int)
++            return
++        if node.target == "contiguous":
++            self._import_torch_op_overload(loc, node, torch.ops.aten.contiguous.default)
++            return
++        raise NotImplementedError(
++            f"FIX ME: Unimplemented call_method: target={node.target}, {node.meta}"
++        )
++
++    def _import_builtin_getattr(self, loc: Location, node: torch_fx.Node):
++        if len(node.args) == 2 and node.args[1] == "shape":
++            shape = self._infer_node_shape(node.args[0])
++            operands = [self._import_argument(loc, int(dim)) for dim in shape]
++            result = Operation.create(
++                "torch.prim.ListConstruct",
++                results=[IrType.parse("!torch.list<int>", context=self._c)],
++                operands=operands,
++                loc=loc,
++            ).result
++            self.bind_node_value(node, result)
++            return
++        raise NotImplementedError(
++            f"FIX ME: Unimplemented call_function: target={node.target}, {node.meta}"
++        )
++
++    def _infer_node_shape(self, node_or_value):
++        if not isinstance(node_or_value, torch_fx.Node):
++            return list(node_or_value.shape)
++        node_val = node_or_value.meta.get("val")
++        if node_val is not None:
++            return list(node_val.shape)
++        if (
++            node_or_value.op == "call_function"
++            and is_builtin_function_or_method(node_or_value.target)
++            and getattr(node_or_value.target, "__name__", None) == "quantize_per_tensor"
++        ):
++            return self._infer_node_shape(node_or_value.args[0])
++        if node_or_value.op == "call_module":
++            root_module = node_or_value.graph.owning_module
++            submodule = getattr(root_module, node_or_value.target, None)
++            if isinstance(submodule, TorchQuantizedLayerNorm):
++                return self._infer_node_shape(node_or_value.args[0])
++            if isinstance(submodule, TorchQuantizedLinear):
++                input_shape = self._infer_node_shape(node_or_value.args[0])
++                input_shape[-1] = int(submodule.out_features)
++                return input_shape
++        raise NotImplementedError(
++            f"FIX ME: Unable to infer shape for getattr target={node_or_value}"
++        )
++
++    def _import_quantized_tensor_literal(self, loc: Location, value: torch.Tensor) -> Value:
++        if not value.is_quantized:
++            return self._import_literal(value)
++        with loc:
++            int_repr = self._import_literal(torch.int_repr(value))
++        scale = self._import_argument(loc, float(value.q_scale()))
++        zero_point = self._import_argument(loc, int(value.q_zero_point()))
++        result_type = self._cc.get_vtensor_type(value.size(), value.dtype, val=value)
++        return _emit_operation(
++            "torch.aten._make_per_tensor_quantized_tensor",
++            result_types=[result_type],
++            operands=[int_repr, scale, zero_point],
++            loc=loc,
++        ).result
++
+     def _import_hop_while_loop(
+         self, loc: Location, node: torch_fx.Node, hop: HigherOrderOperator
+     ):
+@@ -2450,9 +2591,24 @@
+                 node_result = self.resolve_node_value(ref_node, 0)
+ 
+                 if str(node_result.type) in TORCH_LIST_TYPES:
+-                    result_types = [
+-                        self._cc.value_info_to_type(v) for v in ref_node.meta["val"]
+-                    ]
++                    if "val" in ref_node.meta:
++                        result_types = [
++                            self._cc.value_info_to_type(v) for v in ref_node.meta["val"]
++                        ]
++                    elif (
++                        ref_node.op == "call_function"
++                        and ref_node.target == getattr
++                        and len(ref_node.args) == 2
++                        and ref_node.args[1] == "shape"
++                    ):
++                        result_types = [
++                            self._cc.torch_int_type
++                            for _ in self._infer_node_shape(ref_node.args[0])
++                        ]
++                    else:
++                        raise RuntimeError(
++                            f"getitem failed to infer list element types for {ref_node}"
++                        )
+                     operation = Operation.create(
+                         "torch.prim.ListUnpack",
+                         results=result_types,
+-- 
+2.49.0

@@ -11,6 +11,6 @@ a = torch.zeros((16,), dtype=torch.int32)
 b = torch.zeros((16,), dtype=torch.int32)
 
 exported = torch.export.export(m, (a, b))
-module = export_and_import(exported)
+module = export_and_import(exported, output_type="torch")
 
 print(module)

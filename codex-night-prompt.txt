@@ -1,0 +1,124 @@
+Continue cleaning Task 3 / RfP in LLM2FPGA against the Task 3 contract in
+docs/task3-rfp-contract-2026-03-27.org.
+
+Primary objective:
+- make `nix build .#tiny-stories-1m-utilization -L` succeed on the current tree
+
+Primary gate:
+- Task 3 is not complete unless `nix build .#tiny-stories-1m-utilization -L`
+  succeeds on the current tree.
+- Treat any failure of that command as the main blocker.
+- Do not declare success based only on docs, scripts, or intermediate artifacts
+  such as `tiny-stories-1m-sv`, `tiny-stories-1m-il`, or
+  `tiny-stories-1m-utilization-json`.
+
+Canonical claimed path:
+- `tiny-stories-1m-sv -> tiny-stories-1m-il -> tiny-stories-1m-utilization-json -> tiny-stories-1m-utilization`
+- This is the only Task 3 utilization claim.
+- Remove, demote, or clearly mark any competing Task 3 utilization path as
+  non-canonical or historical only, but only after the main gate is fixed
+  unless such cleanup is required for the build to pass.
+
+Branch strategy:
+- continue from `task3-rfp-sandbox`; treat it as the main Task 3 / RfP branch
+- do not switch back to `task3` as the main implementation line
+- use `task3` only as a reference branch for ideas, small clean helpers, or
+  isolated infrastructure that can be defended on its own
+- if porting anything from `task3`, prefer manual minimal reimplementation over
+  bulk cherry-picks, and keep only pieces that are standard, reviewable, and
+  functionality-preserving
+
+Hard constraints:
+- no unresolved black boxes in the canonical claim
+- temporary explicit stubs are acceptable only as intermediate scaffolding and
+  must be removed or replaced before claiming success
+- no unsupported floating-point operations in the canonical claim
+- emitted SystemVerilog must be synthesizable
+- use only standard core tools: torch-mlir, mlir, CIRCT, yosys/yosys-slang
+- no perl/sed/ad hoc text rewriting in the canonical path
+- no non-standard ad hoc PyTorch preprocessing in the canonical path
+- do not revive hand-written semantic rewrites of the TinyStories model
+- do not revive ad hoc fp-to-int conversion hacks or floating-point stub
+  modules as the claimed end state
+
+Anti-churn rules:
+- Do not edit docs, status notes, or non-build-facing cleanup files while the
+  main gate is still failing, unless the change is strictly required for the
+  build or to create a new minimal reproducer.
+- Do not spend more than 3 consecutive top-level gate reruns on the same exact
+  failing derivation and log line without either:
+  1. a code change aimed at that blocker, or
+  2. a strictly smaller reproducer that removes unrelated noise.
+- Do not create a new reproducer unless it is expected to reduce the blocker
+  within about 20 minutes. If it does not narrow the failure quickly, abandon
+  it and return to the highest-value existing reproducer.
+- Do not repeat long written summaries of the same blocker. Keep notes short and
+  move on to implementation.
+- Prefer patching code over restating status.
+
+Required working loop:
+1. Read the runtime state file if present and continue from the last unfinished
+   next step instead of re-summarizing old work.
+2. Reproduce the current top-level gate failure once if needed.
+3. Identify the smallest failing derivation that still blocks the canonical
+   path.
+4. Work on that smallest blocker with fast local iteration.
+5. Only rerun the top-level gate after a meaningful fix or a materially better
+   reduction.
+6. Update the runtime state file with:
+   - current blocker
+   - exact failing command
+   - exact failing derivation or first log line
+   - files changed
+   - next concrete step
+7. Resume from that next concrete step on the next pass.
+
+Reproducer policy:
+- Prefer existing reproducers over inventing new ones.
+- A new reproducer is justified only if it makes the failing op or dialect
+  boundary substantially clearer than the current best reproducer.
+- If the blocker is already known precisely enough to patch, stop reducing and
+  patch it.
+
+Build policy:
+- prefer local fast iteration over Nix rebuilds when possible
+- after each meaningful fix, rerun the smallest affected derivation first
+- rerun `nix build .#tiny-stories-1m-utilization -L` only after the upstream
+  blocker has changed or cleared
+- when a canonical `nix build` is already rebuilding the current upstream
+  blocker, prefer waiting for that build to reach a real outcome over repeated
+  `nix path-info`, duplicate rebuilds, or status probes
+- after changing code for a blocker, drive exactly one canonical build to the
+  first new result before making another speculative edit
+- nextpnr-xilinx not handling oversized designs is acceptable; Yosys-based
+  utilization is sufficient for Task 3
+
+Priority order while the gate is failing:
+1. make `nix build .#tiny-stories-1m-utilization -L` pass
+2. fix the smallest upstream blocker on the canonical path
+3. reduce remaining float-related blockers only when needed to unlock a patch
+4. align flake, scripts, and docs only after the canonical path improves
+
+Stopping rule:
+- do not stop because of partial progress, a clean checkpoint, or elapsed time
+- continue until the primary objective succeeds or until you are forcibly
+  stopped
+- if blocked, keep working on the blocker rather than polishing status text
+- do not report success unless
+  `nix build .#tiny-stories-1m-utilization -L` exits successfully on the
+  current tree
+
+Reporting rule:
+- do not emit a final-style conclusion, `NOT DONE`, or end-of-session summary
+  during an intermediate pass that may be resumed
+- treat each pass as continuation-only unless you have either:
+  1. succeeded on `nix build .#tiny-stories-1m-utilization -L`, or
+  2. been forcibly stopped by the outer runner or a hard external blocker
+- if you are merely between ideas, done with one experiment, or waiting to pick
+  the next fix, update the state file and continue working instead of ending
+- if you must stop without success because the outer run is ending or an
+  external blocker prevents further work, report `NOT DONE`
+- then state:
+  1. the exact failing command
+  2. the exact failing derivation or log line
+  3. the next concrete fix you would attempt
