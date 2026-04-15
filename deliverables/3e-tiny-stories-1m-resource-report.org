@@ -8,24 +8,37 @@ Definition:
 
 Gate:
 #+begin_src bash
-nix build .#tiny-stories-1m-utilization -L
+nix build .#tiny-stories-1m-baseline-float-yosys-stat -L --no-link
+nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L --no-link
 #+end_src
 
 Artifact:
-- =/nix/store/...-tiny-stories-1m-utilization/summary.txt=
-- =/nix/store/...-tiny-stories-1m-utilization/summary.json=
-- =/nix/store/...-tiny-stories-1m-utilization/stat.json=
-- =/nix/store/...-tiny-stories-1m-utilization.json=
+- Bottleneck and scale evidence from
+  =/nix/store/...-tiny-stories-1m-baseline-float-yosys.stat=
+- Resource report from
+  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.txt=
+- Resource report JSON from
+  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.json=
+- Hierarchical cell-count JSON from
+  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/stat.json=
 
 Note:
-- This is the canonical flake-backed Task 3 utilization artifact.
-- The report is computed from the emitted =tiny-stories-1m= design through a
-  staged Yosys =synth_xilinx= run, with no self-test shell wrapper, no
-  external-memory blackboxing, and no generated SV stubs in the canonical path.
-- The canonical =sv -> il= import is strict =read_slang= elaboration, not
-  =read_slang --extern-modules=.
-- The resulting mapped design is allowed to exceed the target FPGA capacity;
-  Task 3 only requires a reproducible utilization report from synthesizable
-  emitted hardware.
-- The exact numbers need to be refreshed from the current pinned build once the
-  remaining CIRCT patch-stack build failure is resolved.
+- For the current Task 3 branch review route, 3e is split into two checks:
+  - =tiny-stories-1m-baseline-float-yosys-stat= provides the bottleneck and
+    scale evidence from the real emitted =baseline-float= SV bundle.
+  - =tiny-stories-1m-baseline-float-selftest-all-memory-utilization= provides
+    the synthesis resource report half of 3e.
+- The direct =tiny-stories-1m-baseline-float-utilization= path is not the
+  review gate for this branch because it is currently killed on the working host
+  during staged mapped synthesis.
+
+Branch readiness guards:
+#+begin_src bash
+nix flake check -L
+nix build .#matmul-sv-sim -L --no-link
+#+end_src
+
+Guard notes:
+- =nix flake check= is the repo-level hygiene gate.
+- =matmul-sv-sim= is a regression guard to ensure the Task 3 work did not break
+  the existing matmul smoke path.

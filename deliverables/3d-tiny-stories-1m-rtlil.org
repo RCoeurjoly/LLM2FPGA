@@ -8,11 +8,11 @@ Definition:
 
 Gate:
 #+begin_src bash
-nix build .#tiny-stories-1m-il -L
+nix build .#tiny-stories-1m-baseline-float-il -L --no-link
 #+end_src
 
 Artifact:
-- =result=
+- =/nix/store/...-tiny-stories-1m-baseline-float.il=
 
 Note:
-- RTLIL emitted by Yosys from the Task 3 SystemVerilog.
+- RTLIL emitted by Yosys from the =baseline-float= Task 3 SystemVerilog.

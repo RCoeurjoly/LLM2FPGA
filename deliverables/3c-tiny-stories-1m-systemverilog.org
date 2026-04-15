@@ -8,12 +8,13 @@ Definition:
 
 Gate:
 #+begin_src bash
-nix build .#tiny-stories-1m-sv -L
+nix build .#tiny-stories-1m-baseline-float-sv -L --no-link
 #+end_src
 
 Artifact:
-- =result/sv/main.sv=
-- =result/sources.f=
+- =/nix/store/...-tiny-stories-1m-baseline-float-sv/sv/main.sv=
+- =/nix/store/...-tiny-stories-1m-baseline-float-sv/sources.f=
 
 Note:
-- CIRCT output is emitted as split SystemVerilog; =sv/main.sv= is the main design file.
+- CIRCT output is emitted as split SystemVerilog for the =baseline-float= Task 3
+  route; =sv/main.sv= is the main design file.
