@@ -52,10 +52,22 @@
         circtPkgs = circt-nix.packages.${system};
         circtBase =
           (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
-          (old: { patches = old.patches or [ ]; });
-        # Keep reviewer builds on a pinned upstream CIRCT plus the checked-in
-        # Task 3 patch stack. Local fast iteration should use local binaries via
-        # scripts/dev rather than a flake input override.
+          (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
+              ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
+              ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
+              ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
+              ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0011-legalize-unrealized-conversion-casts-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0012-defer-func-lowering-until-body-is-legal.patch
+              ./patches/circt-task3-rfp/0013-handle-memref-model-io-and-cache-submodule-lookups.patch
+              ./patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch
+              ./patches/circt-task3-rfp/0015-lower-float-ops-as-externs-in-handshake-to-hw.patch
+            ];
+          });
         circt = circtBase;
         yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {
           src = yosys.outPath;
@@ -135,9 +147,27 @@
         });
         inherit (llvmPackages) mlir;
         python = pkgsLlvm21.python311;
+        torchao = python.pkgs.buildPythonPackage rec {
+          pname = "torchao";
+          version = "0.15.0";
+          format = "wheel";
+          src = pkgs.fetchurl {
+            url =
+              "https://files.pythonhosted.org/packages/f6/3b/6b9d5618720f63dbc2e2509cd6b57aae9c0d61b738d1d2172f4d5d9efaab/torchao-0.15.0-py3-none-any.whl";
+            hash = "sha256-PzgSZ2BI74oqDp1JLRLYlxunp+uxb1SqVvaQQU4TDSw=";
+          };
+          propagatedBuildInputs = [ python.pkgs.torch ];
+          dontBuild = true;
+          doCheck = false;
+          pythonImportsCheck = [ "torchao" ];
+        };
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
+        pythonWithTorchAO =
+          python.withPackages (ps: [ ps.torch ps.packaging torchao ]);
         pythonWithTinyStories =
           python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
+        pythonWithTinyStoriesTorchAO = python.withPackages
+          (ps: [ ps.torch ps.packaging ps.transformers torchao ]);
         nanobindBootstrap =
           pkgsLlvm21.callPackage ./nix/nanobind-bootstrap.nix {
             inherit python;
@@ -187,14 +217,23 @@
         fpgaChipdb = "${openXC7Chipdb}/xc7k480tffg1156.bin";
         prjxrayPythonPath =
           "${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3";
-        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix {
+        torchMlirPatched = pkgsLlvm21.callPackage ./torch-mlir.nix {
           inherit python;
           nanobind = nanobindBootstrap;
           inherit (torchMlirLlvmPackages) tblgen;
           mlir = mlirForTorchMlir;
           inherit (torchMlirLlvmPackages) llvm;
+          applyTask3RfpPatches = true;
         };
-
+        torchMlirUnpatched = pkgsLlvm21.callPackage ./torch-mlir.nix {
+          inherit python;
+          nanobind = nanobindBootstrap;
+          inherit (torchMlirLlvmPackages) tblgen;
+          mlir = mlirForTorchMlir;
+          inherit (torchMlirLlvmPackages) llvm;
+          applyTask3RfpPatches = false;
+        };
+        torchMlir = torchMlirUnpatched;
         pipelineScripts = ./scripts/pipeline;
         fpPrimsSv = ./rtl/fp/circt_fp_primitives.sv;
         tinyStories1m = let
@@ -219,29 +258,49 @@
             }
           ];
         in {
-          inherit snapshot;
+          inherit modelId revision snapshot;
           sourceDir = ./TinyStories;
           adapterPy = ./TinyStories/model_adapter.py;
         };
-
         pipelineLib = import ./nix/pipeline.nix {
           inherit pkgs mlir circt yosysPkg yosysSlang torchMlir python;
           inherit pipelineScripts;
         };
-
         modelRegistry = import ./nix/models.nix {
-          inherit (pipelineLib) registerModel;
-          inherit pythonWithTorch pythonWithTinyStories torchMlir python;
+          inherit (pipelineLib) registerModel registerQuantizedModel;
+          inherit pythonWithTorch pythonWithTinyStories
+            pythonWithTinyStoriesTorchAO torchMlir python;
           inherit tinyStories1m;
           inherit fpPrimsSv;
           compilePyTorch = ./scripts/compile-pytorch.py;
           matmulPy = ./src/matmul.py;
           matmulAdapterPy = ./src/matmul_adapter.py;
           matmulSrcDir = ./src;
+          tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;
+          tinyStoriesPt2eStaticQuantAdapterPy =
+            ./TinyStories/model_adapter_pt2e_static_quant.py;
           simDir = ./sim;
         };
+        modelPipelines = pipelineLib.modelPipelinesFromRegistry modelRegistry;
+        pipelineStagePackages =
+          pipelineLib.pipelineStagePackagesFromRegistry modelRegistry;
+        pipelineMetadataPackages =
+          pipelineLib.metadataPackagesFromRegistry modelRegistry;
+        modelRegistryJson = pipelineLib.registryIndexPackage modelRegistry;
 
-        matmulSv = modelRegistry.matmul.pipeline.sv;
+        matmulPipeline = modelPipelines.matmul;
+        matmulTorch = matmulPipeline.torch;
+        matmulLinalg = matmulPipeline.linalg;
+        matmulCf = matmulPipeline.cf;
+        matmulCfStats = matmulPipeline."cf-stats";
+        matmulHandshake = matmulPipeline.handshake;
+        matmulHsExt = matmulPipeline."hs-ext";
+        matmulHw0 = matmulPipeline.hw0;
+        matmulHw = matmulPipeline.hw;
+        matmulHwClean = matmulPipeline."hw-clean";
+        matmulSv = matmulPipeline.sv;
+        matmulIl = matmulPipeline.il;
+        matmulYosysStat = matmulPipeline."yosys-stat";
         tinyStories1mBaselineFloatIl =
           modelRegistry."tiny-stories-1m-baseline-float".pipeline.il;
         tinyStoriesSelftestTop = ./rtl/tiny_stories_selftest_top.sv;
@@ -742,9 +801,13 @@
             circt
             yosysPkg
             torchMlir
+            torchMlirPatched
             llvmPackages.clang
             llvmPackages.llvm
             pythonWithTorch
+            pythonWithTorchAO
+            pythonWithTinyStories
+            pythonWithTinyStoriesTorchAO
             yosysSlang
             openXC7Nextpnr
             openXC7Prjxray
@@ -768,12 +831,28 @@
         formatter = pkgs.nixfmt-classic;
 
         packages = {
+          default = matmulSv;
+          inherit torchao;
+          torch-mlir = torchMlir;
+          torch-mlir-patched = torchMlirPatched;
+          torch-mlir-unpatched = torchMlirUnpatched;
+          python-with-torchao = pythonWithTorchAO;
+          python-with-tiny-stories = pythonWithTinyStories;
+          python-with-tiny-stories-torchao = pythonWithTinyStoriesTorchAO;
+          model-registry = modelRegistryJson;
+          tiny-stories-1m-snapshot = tinyStories1m.snapshot;
+          tb-data-sv = tbDataSv;
+          sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
           matmul-selftest-bitstream = matmulSelftestBitstream;
           tiny-stories-1m-baseline-float-selftest-all-memory-utilization =
             tinyStories1mBaselineFloatSelftestAllMemory.utilizationReport;
-        };
+          matmul-selftest-fasm = matmulSelftestFasm;
+          matmul-selftest-top = matmulSelftestTop;
+          matmul-selftest-xdc = matmulSelftestXdc;
+          matmul-selftest-json = matmulSelftestJson;
+        } // pipelineStagePackages // pipelineMetadataPackages;
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {

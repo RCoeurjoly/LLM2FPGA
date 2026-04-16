@@ -34,24 +34,43 @@ def main() -> None:
     parser.add_argument("--adapter", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--model-path")
+    parser.add_argument(
+        "--output-type",
+        choices=("raw", "torch"),
+        default="torch",
+        help="torch-mlir import stage to emit",
+    )
     args = parser.parse_args()
 
     adapter = load_adapter(args.adapter)
 
-    build_model = getattr(adapter, "build_model", None)
-    example_inputs = getattr(adapter, "example_inputs", None)
-    if build_model is None or example_inputs is None:
-        raise SystemExit(
-            f"{args.adapter} must define build_model(model_path) and example_inputs()"
-        )
+    build_mlir_module = getattr(adapter, "build_mlir_module", None)
+    if build_mlir_module is not None:
+        module_or_text = build_mlir_module(args.model_path, args.output_type)
+        mlir_text = str(module_or_text)
+        args.out.write_text(mlir_text, encoding="utf-8")
+        print(mlir_text)
+        return
 
-    model = build_model(args.model_path).eval()
-    exported = torch.export.export(
-        model,
-        tuple(example_inputs()),
-        strict=getattr(adapter, "EXPORT_STRICT", True),
-    )
-    module = export_and_import(exported, output_type="torch")
+    export_program = getattr(adapter, "export_program", None)
+    if export_program is not None:
+        exported = export_program(args.model_path)
+    else:
+        build_model = getattr(adapter, "build_model", None)
+        example_inputs = getattr(adapter, "example_inputs", None)
+        if build_model is None or example_inputs is None:
+            raise SystemExit(
+                f"{args.adapter} must define export_program(model_path) or "
+                "build_model(model_path) plus example_inputs()"
+            )
+
+        model = build_model(args.model_path).eval()
+        exported = torch.export.export(
+            model,
+            tuple(example_inputs()),
+            strict=getattr(adapter, "EXPORT_STRICT", True),
+        )
+    module = export_and_import(exported, output_type=args.output_type)
     mlir_text = str(module)
     args.out.write_text(mlir_text, encoding="utf-8")
     print(mlir_text)

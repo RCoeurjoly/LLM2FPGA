@@ -1,0 +1,85 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 1 Apr 2026 05:38:00 +0200
+Subject: [PATCH] Import native-FX quantized LayerNorm modules and dequantize
+
+Native-FX quantized graphs produced by quantize_fx still contain quantized
+LayerNorm as a call_module target plus a trailing Tensor.dequantize()
+call_method. The importer already sees the owning GraphModule, so bridge that
+standard quantized module form onto quantized::layer_norm and lower
+call_method(dequantize) to aten::dequantize.self.
+---
+ python/torch_mlir/extras/fx_importer.py | 42 ++++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+
+diff --git a/python/torch_mlir/extras/fx_importer.py b/python/torch_mlir/extras/fx_importer.py
+index 25f2a3f..346c95d 100644
+--- a/python/torch_mlir/extras/fx_importer.py
++++ b/python/torch_mlir/extras/fx_importer.py
+@@ -44,6 +44,9 @@ from torch._ops import (
+     OpOverloadPacket as TorchOpOverloadPacket,
+     HigherOrderOperator,
+ )
++from torch.ao.nn.quantized.modules.normalization import (
++    LayerNorm as TorchQuantizedLayerNorm,
++)
+ 
+ from torch.export import ExportedProgram
+ from torch.export.graph_signature import (
+@@ -1604,6 +1607,10 @@ class GraphNodeImporter:
+                     else:
+                         raise NotImplementedError(
+                             f"FIX ME: Unimplemented call_function: target={node.target}, {node.meta}"
+                         )
++                elif op == "call_module":
++                    self._import_call_module(loc, node)
++                elif op == "call_method":
++                    self._import_call_method(loc, node)
+                 elif op == "output" and not skip_placeholders_outputs:
+                     # args[0] is a singleton tuple that we flatten into multiple
+                     # results.
+@@ -1720,6 +1727,41 @@ class GraphNodeImporter:
+             )
+         handler(loc, node, hop)
+ 
++    def _import_call_module(self, loc: Location, node: torch_fx.Node):
++        root_module = node.graph.owning_module
++        submodule = getattr(root_module, node.target, None)
++        if isinstance(submodule, TorchQuantizedLayerNorm):
++            original_args = node.args
++            original_kwargs = node.kwargs
++            try:
++                node.args = (
++                    node.args[0],
++                    list(submodule.normalized_shape),
++                    submodule.weight,
++                    submodule.bias,
++                    submodule.eps,
++                    float(submodule.scale),
++                    int(submodule.zero_point),
++                )
++                node.kwargs = {}
++                self._import_torch_op_overload(
++                    loc, node, torch.ops.quantized.layer_norm.default
++                )
++            finally:
++                node.args = original_args
++                node.kwargs = original_kwargs
++            return
++        raise NotImplementedError(
++            f"FIX ME: Unimplemented call_module: target={node.target}, {node.meta}"
++        )
++
++    def _import_call_method(self, loc: Location, node: torch_fx.Node):
++        if node.target == "dequantize":
++            self._import_torch_op_overload(loc, node, torch.ops.aten.dequantize.self)
++            return
++        raise NotImplementedError(
++            f"FIX ME: Unimplemented call_method: target={node.target}, {node.meta}"
++        )
++
+     def _import_hop_while_loop(
+         self, loc: Location, node: torch_fx.Node, hop: HigherOrderOperator
+     ):
+-- 
+2.49.0

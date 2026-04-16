@@ -1,5 +1,20 @@
 { pkgs, mlir, circt, yosysPkg, yosysSlang, torchMlir, python, pipelineScripts }:
 let
+  stageNames = [
+    "torch"
+    "linalg"
+    "cf"
+    "cf-stats"
+    "handshake"
+    "hs-ext"
+    "hw0"
+    "hw"
+    "hw-clean"
+    "sv"
+    "il"
+    "yosys-stat"
+  ];
+
   torchMlirOpt = let
     candidates = [
       "${torchMlir}/bin/torch-mlir-opt"
@@ -17,7 +32,7 @@ let
     if torchMlirInput != null then
       torchMlirInput
     else if torchInputCommand != null then
-      pkgs.runCommand "${name}-torch.mlir" {
+      pkgs.runCommand "${name}-torch-input.mlir" {
         buildInputs = torchInputBuildInputs;
       } ''
         set -euo pipefail
@@ -26,6 +41,11 @@ let
     else
       throw
       "registerModel(${name}): provide torchMlirInput or torchInputCommand";
+
+  mkTorchDerivation = { name, torchMlirInput }:
+    pkgs.runCommand "${name}-torch.mlir" { } ''
+      cp ${torchMlirInput} "$out"
+    '';
 
   mkLinalgDerivation = { name, torch }:
     pkgs.runCommand "${name}-linalg.mlir" { buildInputs = [ torchMlir ]; } ''
@@ -39,11 +59,25 @@ let
         ${mlir}/bin/mlir-opt ${linalg} "$out"
     '';
 
+  mkCfStatsDerivation = { name, cf }:
+    pkgs.runCommand "${name}-cf.stats" { buildInputs = [ mlir ]; } ''
+      ${pkgs.bash}/bin/bash ${pipelineScripts}/cf_stats.sh \
+        ${mlir}/bin/mlir-opt ${cf} "$out"
+    '';
+
   mkHandshakeDerivation = { name, cf }:
     pkgs.runCommand "${name}-handshake.mlir" {
       buildInputs = [ mlir circt ];
     } ''
       ${pkgs.bash}/bin/bash ${pipelineScripts}/cf_to_handshake.sh \
+        ${circt}/bin/circt-opt ${mlir}/bin/mlir-opt ${cf} "$out"
+    '';
+
+  mkHandshakeLsqDerivation = { name, cf }:
+    pkgs.runCommand "${name}-handshake.mlir" {
+      buildInputs = [ mlir circt ];
+    } ''
+      ${pkgs.bash}/bin/bash ${pipelineScripts}/cf_to_handshake_lsq.sh \
         ${circt}/bin/circt-opt ${mlir}/bin/mlir-opt ${cf} "$out"
     '';
 
@@ -94,11 +128,25 @@ let
         ${sv}/sources.f "$out"
     '';
 
-  mkPipeline = { name, torch, allowHwExterns ? false, fpPrimsSv ? null
+  mkYosysStatDerivation = { name, sv, slangPerFileExternModules ? false }:
+    pkgs.runCommand "${name}-yosys.stat" {
+      buildInputs = [ yosysPkg python ];
+    } ''
+      ${pkgs.lib.optionalString slangPerFileExternModules ''
+        export YOSYS_SLANG_PER_FILE_EXTERNS=1
+      ''}
+      ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_yosys_stat.sh \
+        ${yosysPkg}/bin/yosys \
+        ${yosysSlang}/share/yosys/plugins/slang.so \
+        ${sv}/sources.f "$out"
+    '';
+
+  mkBasePipeline = { name, torchMlirInput, handshakeFromCf
+    , allowHwExterns ? false, fpPrimsSv ? null
     , slangPerFileExternModules ? false }:
     let
       self = {
-        inherit torch;
+        torch = mkTorchDerivation { inherit name torchMlirInput; };
         linalg = mkLinalgDerivation {
           inherit name;
           inherit (self) torch;
@@ -107,7 +155,11 @@ let
           inherit name;
           inherit (self) linalg;
         };
-        handshake = mkHandshakeDerivation {
+        "cf-stats" = mkCfStatsDerivation {
+          inherit name;
+          inherit (self) cf;
+        };
+        handshake = handshakeFromCf {
           inherit name;
           inherit (self) cf;
         };
@@ -137,20 +189,118 @@ let
           inherit (self) sv;
           inherit slangPerFileExternModules;
         };
+        "yosys-stat" = mkYosysStatDerivation {
+          inherit name;
+          inherit (self) sv;
+          inherit slangPerFileExternModules;
+        };
       };
     in self;
 
-  registerModel = { name, torchMlirInput ? null, torchInputCommand ? null
-    , torchInputBuildInputs ? [ ], allowHwExterns ? false, fpPrimsSv ? null
+  mkPipeline = { name, torchMlirInput, allowHwExterns ? false, fpPrimsSv ? null
     , slangPerFileExternModules ? false }:
-    let
-      torch = mkTorchInput {
-        inherit name torchMlirInput torchInputCommand torchInputBuildInputs;
-      };
-    in {
-      pipeline = mkPipeline {
-        inherit name torch allowHwExterns fpPrimsSv slangPerFileExternModules;
-      };
+    mkBasePipeline {
+      inherit name torchMlirInput allowHwExterns fpPrimsSv
+        slangPerFileExternModules;
+      handshakeFromCf = mkHandshakeDerivation;
     };
 
-in { inherit registerModel; }
+  mkQuantizedPipeline = { name, torchMlirInput, allowHwExterns ? false
+    , fpPrimsSv ? null, slangPerFileExternModules ? false }:
+    mkBasePipeline {
+      inherit name torchMlirInput allowHwExterns fpPrimsSv
+        slangPerFileExternModules;
+      handshakeFromCf = mkHandshakeLsqDerivation;
+    };
+
+  publicStageNamesForModel = modelKey:
+    if modelKey == "tiny-stories-1m" then
+      builtins.filter (stage: stage != "yosys-stat") stageNames
+    else
+      stageNames;
+
+  stagePathsForPipeline = publicStageNames: pipeline:
+    builtins.listToAttrs (map (stage: {
+      name = stage;
+      value = "${builtins.getAttr stage pipeline}";
+    }) publicStageNames);
+
+  mkPipelineStagePackages = publicStageNames: name: pipeline:
+    builtins.listToAttrs (map (stage: {
+      name = "${name}-${stage}";
+      value = builtins.getAttr stage pipeline;
+    }) publicStageNames);
+
+  mkModelMetadata = modelKey: model:
+    let publicStageNames = publicStageNamesForModel modelKey;
+    in pkgs.writeText "${modelKey}-pipeline-metadata.json" (builtins.toJSON {
+      model = {
+        inherit modelKey;
+        inherit (model) name description source;
+      };
+      artifacts = stagePathsForPipeline publicStageNames model.pipeline;
+    });
+
+  registerPipelineModel = { pipelineFactory, name, key ? name, description ? ""
+    , source ? { type = "local"; }, torchMlirInput ? null
+    , torchInputCommand ? null, torchInputBuildInputs ? [ ]
+    , allowHwExterns ? false, fpPrimsSv ? null
+    , slangPerFileExternModules ? false }:
+    let
+      resolvedTorchInput = mkTorchInput {
+        inherit name torchMlirInput torchInputCommand torchInputBuildInputs;
+      };
+      normalizedSource =
+        if source ? type then source else source // { type = "local"; };
+      pipeline = pipelineFactory {
+        inherit name;
+        torchMlirInput = resolvedTorchInput;
+        inherit allowHwExterns fpPrimsSv slangPerFileExternModules;
+      };
+      model = {
+        inherit key name description;
+        source = normalizedSource;
+        torchInput = resolvedTorchInput;
+        inherit pipeline;
+      };
+      metadata = mkModelMetadata key model;
+    in model // { inherit metadata; };
+
+  registerModel = args:
+    registerPipelineModel (args // { pipelineFactory = mkPipeline; });
+
+  registerQuantizedModel = args:
+    registerPipelineModel (args // { pipelineFactory = mkQuantizedPipeline; });
+
+  modelPipelinesFromRegistry = registry:
+    pkgs.lib.mapAttrs (_: model: model.pipeline) registry;
+
+  pipelineStagePackagesFromRegistry = registry:
+    pkgs.lib.concatMapAttrs (name: model:
+      mkPipelineStagePackages (publicStageNamesForModel name) name
+      model.pipeline) registry;
+
+  metadataPackagesFromRegistry = registry:
+    pkgs.lib.mapAttrs' (name: model:
+      pkgs.lib.nameValuePair "${name}-pipeline-metadata" model.metadata)
+    registry;
+
+  registryIndexPackage = registry:
+    pkgs.writeText "model-registry.json" (builtins.toJSON (pkgs.lib.mapAttrs
+      (name: model:
+        let publicStageNames = publicStageNamesForModel name;
+        in {
+          inherit (model) name description source;
+          packages = builtins.listToAttrs (map (stage: {
+            name = stage;
+            value = "${name}-${stage}";
+          }) publicStageNames);
+        }) registry));
+in {
+  inherit registerModel;
+  inherit registerQuantizedModel;
+  inherit modelPipelinesFromRegistry;
+  inherit pipelineStagePackagesFromRegistry;
+  inherit metadataPackagesFromRegistry;
+  inherit registryIndexPackage;
+}

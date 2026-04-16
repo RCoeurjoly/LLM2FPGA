@@ -1,0 +1,36 @@
+{
+  "capacities": {
+    "bram36": 955,
+    "bram_kb": 34380,
+    "clb_ffs": 597200,
+    "clb_luts": 298600,
+    "dsp": 1920,
+    "slices": 74650
+  },
+  "fits": {
+    "bram36_equivalent": true,
+    "dsp": true,
+    "ff": false,
+    "lut": false,
+    "overall": false
+  },
+  "top_module": "tiny_stories_selftest_top",
+  "usage": {
+    "bram18_total": 0,
+    "bram36_equivalent": 0.0,
+    "bram36_total": 0,
+    "dsp_total": 0,
+    "ff_total": 58072527,
+    "lut_total": 40416086,
+    "lutram_ram32m": 0,
+    "lutram_ram64m": 0,
+    "muxf7": 936407,
+    "muxf8": 279774
+  },
+  "utilization": {
+    "bram36_equivalent_pct": 0.0,
+    "dsp_pct": 0.0,
+    "ff_pct": 9724.133791024782,
+    "lut_pct": 13535.192900200938
+  }
+}

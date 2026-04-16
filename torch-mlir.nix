@@ -5,16 +5,32 @@
   rev = "59c249e5cc2025acca81bdcf1596b8dd36a5c0f9";
   fetchSubmodules = true;
   hash = "sha256-o1HG5JuKRMEnl2PrEu5KQi4iqBe0Doh1SET2W/OjGoI=";
-}, python, pybind11 ? python.pkgs.pybind11, nanobind, tblgen, mlir, llvm, zlib
-, libxml2, ncurses, }:
+}, applyTask3RfpPatches ? false, python, pybind11 ? python.pkgs.pybind11
+, nanobind, tblgen, mlir, llvm, zlib, libxml2, ncurses, }:
 
 let
+  task3RfpPatches = [
+    ./patches/torch-mlir-task3-rfp/0001-lower-per-channel-quantized-embedding.patch
+    ./patches/torch-mlir-task3-rfp/0002-handle-float-zero-points-in-dequantize.patch
+    ./patches/torch-mlir-task3-rfp/0003-lower-quantize-clamp-with-cmp-select.patch
+    ./patches/torch-mlir-task3-rfp/0004-backport-quantized-subgraph-fusion.patch
+    ./patches/torch-mlir-task3-rfp/0005-fx-import-native-fx-quantize-entrypoints.patch
+    ./patches/torch-mlir-task3-rfp/0006-dispatch-native-fx-builtin-quantize-entrypoints.patch
+    ./patches/torch-mlir-task3-rfp/0007-import-native-fx-quantized-layernorm-and-dequantize.patch
+    ./patches/torch-mlir-task3-rfp/0008-import-native-fx-quantized-linear-shape-and-builtin-arith.patch
+    ./patches/torch-mlir-task3-rfp/0009-convert-rank-0-tensors-to-scalars-and-fallback-to-generic-tensors.patch
+    ./patches/torch-mlir-task3-rfp/0010-match-native-fx-quantized-custom-ops.patch
+    ./patches/torch-mlir-task3-rfp/0011-propagate-native-fx-quantized-metadata.patch
+    ./patches/torch-mlir-task3-rfp/0012-propagate-native-fx-quantize-matmul-shape-metadata.patch
+    ./patches/torch-mlir-task3-rfp/0013-match-torchao-affine-quantization-ops.patch
+  ];
   mlirDev = mlir.dev or mlir;
   llvmDev = llvm.dev or llvm;
 in stdenv.mkDerivation {
   pname = "torch-mlir";
   version = "0-unstable-2026-02-12";
   src = torchMlirSrc;
+  patches = lib.optionals applyTask3RfpPatches task3RfpPatches;
 
   nativeBuildInputs =
     [ cmake ninja pkg-config gitMinimal python pybind11 nanobind tblgen ];

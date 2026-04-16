@@ -1,0 +1,164 @@
+--- a/python/torch_mlir/extras/fx_importer.py
++++ b/python/torch_mlir/extras/fx_importer.py
+@@ -1584,15 +1584,53 @@
+                 elif op == "call_function":
+                     target = node.target
+                     if target == operator.getitem:
++                        if (
++                            node.meta.get("val") is None
++                            and len(node.args) == 2
++                            and isinstance(node.args[0], torch_fx.Node)
++                            and node.args[0].meta.get("val") is not None
++                            and isinstance(node.args[1], int)
++                        ):
++                            try:
++                                node.meta["val"] = node.args[0].meta["val"][node.args[1]]
++                            except (IndexError, KeyError, TypeError):
++                                pass
+                         self._import_getitem(loc, node)
+                     elif target in SYMBOLIC_TORCH_OPS or (
+                         is_symbolic(node.meta.get("val"))
+                         and is_builtin_function_or_method(target)
+                     ):
+                         self._import_symbolic_torch_op(loc, node, target)
++                    elif (
++                        is_builtin_function_or_method(target)
++                        and getattr(target, "__name__", None) == "truediv"
++                    ):
++                        if node.meta.get("tensor_meta") is None and isinstance(
++                            node.args[0], torch_fx.Node
++                        ):
++                            self._copy_tensor_meta_from_input(node, node.args[0])
++                        self._import_torch_op_overload(
++                            loc,
++                            node,
++                            PY_BUILTIN_TO_TORCH_OP[target.__name__].Tensor,
++                        )
+                     elif is_builtin_function_or_method(target) and getattr(
+                         target, "__name__", None
+                     ) == "quantize_per_tensor":
++                        if node.meta.get("tensor_meta") is None and isinstance(
++                            node.args[0], torch_fx.Node
++                        ):
++                            dtype = (
++                                node.args[3]
++                                if len(node.args) > 3
++                                and isinstance(node.args[3], torch.dtype)
++                                else torch.quint8
++                            )
++                            self._set_quantized_tensor_meta_from_input(
++                                node,
++                                node.args[0],
++                                dtype=dtype,
++                            )
+                         self._import_torch_op_overload(
+                             loc, node, torch.ops.aten.quantize_per_tensor.default
+                         )
+@@ -1608,6 +1646,21 @@
+                             node,
+                             PY_BUILTIN_TO_TORCH_OP[target.__name__].Tensor,
+                         )
++                    elif (
++                        isinstance(target, TorchOpOverload)
++                        and str(target) == "quantized.matmul"
++                    ):
++                        if node.meta.get("tensor_meta") is None:
++                            self._set_quantized_tensor_meta_from_matmul(node)
++                        self._import_torch_op_overload(loc, node)
++                    elif (
++                        isinstance(target, TorchOpOverloadPacket)
++                        and str(target) == "quantized.matmul"
++                        and hasattr(target, "default")
++                    ):
++                        if node.meta.get("tensor_meta") is None:
++                            self._set_quantized_tensor_meta_from_matmul(node)
++                        self._import_torch_op_overload(loc, node, target.default)
+                     elif isinstance(target, TorchOpOverload):
+                         # Dispatch to an ATen op.
+                         self._import_torch_op_overload(loc, node)
+@@ -1780,6 +1833,53 @@
+             qparams={},
+         )
+ 
++    def _copy_tensor_meta_from_input(self, node: Node, input_node: Node):
++        input_tm = input_node.meta.get("tensor_meta")
++        if input_tm is None:
++            return
++        node.meta["tensor_meta"] = TensorMetadata(
++            shape=input_tm.shape,
++            dtype=input_tm.dtype,
++            requires_grad=input_tm.requires_grad,
++            stride=input_tm.stride,
++            memory_format=input_tm.memory_format,
++            is_quantized=input_tm.is_quantized,
++            qparams=input_tm.qparams,
++        )
++
++    def _infer_matmul_shape(self, lhs_shape, rhs_shape):
++        lhs_shape = list(lhs_shape)
++        rhs_shape = list(rhs_shape)
++        if len(lhs_shape) == 1 and len(rhs_shape) == 1:
++            return []
++        if len(lhs_shape) == 1:
++            return rhs_shape[:-2] + [rhs_shape[-1]]
++        if len(rhs_shape) == 1:
++            return lhs_shape[:-1]
++        batch_shape = list(
++            torch.broadcast_shapes(
++                torch.Size(lhs_shape[:-2]), torch.Size(rhs_shape[:-2])
++            )
++        )
++        return batch_shape + [lhs_shape[-2], rhs_shape[-1]]
++
++    def _set_quantized_tensor_meta_from_matmul(self, node: Node):
++        if not isinstance(node.args[0], torch_fx.Node):
++            return
++        lhs_tm = node.args[0].meta.get("tensor_meta")
++        if lhs_tm is None:
++            return
++        shape = self._infer_matmul_shape(
++            self._infer_node_shape(node.args[0]),
++            self._infer_node_shape(node.args[1]),
++        )
++        self._set_quantized_tensor_meta_from_input(
++            node,
++            node.args[0],
++            dtype=lhs_tm.dtype,
++            shape=shape,
++        )
++
+     def _import_call_module(self, loc: Location, node: torch_fx.Node):
+         root_module = node.graph.owning_module
+         submodule = getattr(root_module, node.target, None)
+@@ -1947,6 +2047,7 @@
+     def _import_builtin_getattr(self, loc: Location, node: torch_fx.Node):
+         if len(node.args) == 2 and node.args[1] == "shape":
+             shape = self._infer_node_shape(node.args[0])
++            node.meta["val"] = tuple(shape)
+             operands = [self._import_argument(loc, int(dim)) for dim in shape]
+             result = Operation.create(
+                 "torch.prim.ListConstruct",
+@@ -1975,6 +2076,23 @@
+             and getattr(node_or_value.target, "__name__", None) == "quantize_per_tensor"
+         ):
+             return self._infer_node_shape(node_or_value.args[0])
++        if (
++            node_or_value.op == "call_function"
++            and is_builtin_function_or_method(node_or_value.target)
++            and getattr(node_or_value.target, "__name__", None) == "truediv"
++        ):
++            return self._infer_node_shape(node_or_value.args[0])
++        if (
++            node_or_value.op == "call_function"
++            and isinstance(
++                node_or_value.target, (TorchOpOverload, TorchOpOverloadPacket)
++            )
++            and str(node_or_value.target) == "quantized.matmul"
++        ):
++            return self._infer_matmul_shape(
++                self._infer_node_shape(node_or_value.args[0]),
++                self._infer_node_shape(node_or_value.args[1]),
++            )
+         if node_or_value.op == "call_module":
+             root_module = node_or_value.graph.owning_module
+             submodule = getattr(root_module, node_or_value.target, None)
