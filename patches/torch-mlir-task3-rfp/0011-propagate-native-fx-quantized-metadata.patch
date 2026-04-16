@@ -1,0 +1,143 @@
+--- a/python/torch_mlir/extras/fx_importer.py
++++ b/python/torch_mlir/extras/fx_importer.py
+@@ -1222,16 +1222,9 @@
+             ):
+                 return IrType.parse("!torch.list<vtensor>", context=self._c)
+             assert isinstance(tensor_meta, TensorMetadata)
+-            # Quantized tensor meta data is not preserved in our lowering,
+-            # so throw error instead of silently doing wrong thing.
+-            if tensor_meta.is_quantized:
+-                raise NotImplementedError(
+-                    f"Quantized tensor meta data is not supported."
+-                )
+-            else:
+-                return self.tensor_metadata_to_type(
+-                    tensor_meta, val=val, mutable=mutable
+-                )
++            return self.tensor_metadata_to_type(
++                tensor_meta, val=val, mutable=mutable
++            )
+         elif val is not None:
+             # some nodes with symbolic inputs pass a 'val' attribute rather than
+             # tensor_meta
+@@ -1767,6 +1760,26 @@
+             qparams={} if qparams is None else qparams,
+         )
+ 
++    def _set_dequantized_tensor_meta_from_input(
++        self,
++        node: Node,
++        input_node: Node,
++        *,
++        dtype: torch.dtype = torch.float32,
++    ):
++        input_tm = input_node.meta.get("tensor_meta")
++        if input_tm is None:
++            return
++        node.meta["tensor_meta"] = TensorMetadata(
++            shape=input_tm.shape,
++            dtype=dtype,
++            requires_grad=input_tm.requires_grad,
++            stride=input_tm.stride,
++            memory_format=input_tm.memory_format,
++            is_quantized=False,
++            qparams={},
++        )
++
+     def _import_call_module(self, loc: Location, node: torch_fx.Node):
+         root_module = node.graph.owning_module
+         submodule = getattr(root_module, node.target, None)
+@@ -1845,9 +1858,34 @@
+ 
+     def _import_call_method(self, loc: Location, node: torch_fx.Node):
+         if node.target == "dequantize":
++            if isinstance(node.args[0], torch_fx.Node):
++                self._set_dequantized_tensor_meta_from_input(node, node.args[0])
+             self._import_torch_op_overload(loc, node, torch.ops.aten.dequantize.self)
+             return
+         if node.target == "view":
++            if node.meta.get("tensor_meta") is None and isinstance(node.args[0], torch_fx.Node):
++                input_tm = node.args[0].meta.get("tensor_meta")
++                shape_arg = node.args[1] if len(node.args) == 2 else list(node.args[1:])
++                shape_vals = shape_arg if isinstance(shape_arg, (list, tuple)) else [shape_arg]
++                resolved_shape = []
++                for dim in shape_vals:
++                    if isinstance(dim, int):
++                        resolved_shape.append(dim)
++                    elif isinstance(dim, torch_fx.Node) and dim.meta.get("val") is not None:
++                        resolved_shape.append(int(dim.meta["val"]))
++                    else:
++                        resolved_shape = None
++                        break
++                if input_tm is not None and resolved_shape is not None:
++                    node.meta["tensor_meta"] = TensorMetadata(
++                        shape=torch.Size(resolved_shape),
++                        dtype=input_tm.dtype,
++                        requires_grad=input_tm.requires_grad,
++                        stride=input_tm.stride,
++                        memory_format=input_tm.memory_format,
++                        is_quantized=input_tm.is_quantized,
++                        qparams=input_tm.qparams,
++                    )
+             if len(node.args) > 2:
+                 shape_arg = Operation.create(
+                     "torch.prim.ListConstruct",
+@@ -1868,9 +1906,38 @@
+             self._import_torch_op_overload(loc, node, torch.ops.aten.view.default)
+             return
+         if node.target == "transpose":
++            if node.meta.get("tensor_meta") is None and isinstance(node.args[0], torch_fx.Node):
++                input_tm = node.args[0].meta.get("tensor_meta")
++                if (
++                    input_tm is not None
++                    and len(node.args) >= 3
++                    and isinstance(node.args[1], int)
++                    and isinstance(node.args[2], int)
++                ):
++                    dims = list(input_tm.shape)
++                    i = node.args[1]
++                    j = node.args[2]
++                    rank = len(dims)
++                    i = i if i >= 0 else rank + i
++                    j = j if j >= 0 else rank + j
++                    if 0 <= i < rank and 0 <= j < rank:
++                        dims[i], dims[j] = dims[j], dims[i]
++                        node.meta["tensor_meta"] = TensorMetadata(
++                            shape=torch.Size(dims),
++                            dtype=input_tm.dtype,
++                            requires_grad=input_tm.requires_grad,
++                            stride=input_tm.stride,
++                            memory_format=input_tm.memory_format,
++                            is_quantized=input_tm.is_quantized,
++                            qparams=input_tm.qparams,
++                        )
+             self._import_torch_op_overload(loc, node, torch.ops.aten.transpose.int)
+             return
+         if node.target == "contiguous":
++            if node.meta.get("tensor_meta") is None and isinstance(node.args[0], torch_fx.Node):
++                input_tm = node.args[0].meta.get("tensor_meta")
++                if input_tm is not None:
++                    node.meta["tensor_meta"] = input_tm
+             self._import_torch_op_overload(loc, node, torch.ops.aten.contiguous.default)
+             return
+         raise NotImplementedError(
+@@ -1896,6 +1963,9 @@
+     def _infer_node_shape(self, node_or_value):
+         if not isinstance(node_or_value, torch_fx.Node):
+             return list(node_or_value.shape)
++        tensor_meta = node_or_value.meta.get("tensor_meta")
++        if tensor_meta is not None and tensor_meta.shape is not None:
++            return list(tensor_meta.shape)
+         node_val = node_or_value.meta.get("val")
+         if node_val is not None:
+             return list(node_val.shape)
+@@ -1914,6 +1984,9 @@
+                 input_shape = self._infer_node_shape(node_or_value.args[0])
+                 input_shape[-1] = int(submodule.out_features)
+                 return input_shape
++        if node_or_value.op == "call_method":
++            if node_or_value.target in ("view", "transpose", "contiguous"):
++                return self._infer_node_shape(node_or_value.args[0])
+         raise NotImplementedError(
+             f"FIX ME: Unable to infer shape for getattr target={node_or_value}"
+         )

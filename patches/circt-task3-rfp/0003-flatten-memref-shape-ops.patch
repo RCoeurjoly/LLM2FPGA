@@ -1,0 +1,156 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Thu, 5 Mar 2026 11:52:19 +0100
+Subject: [PATCH 3/7] Flatten memref shape ops after memref flattening
+
+---
+diff --git a/lib/Transforms/FlattenMemRefs.cpp b/lib/Transforms/FlattenMemRefs.cpp
+index c5e4f2e91..16b719f40 100644
+--- a/lib/Transforms/FlattenMemRefs.cpp
++++ b/lib/Transforms/FlattenMemRefs.cpp
+@@ -289,6 +289,49 @@ struct ReshapeOpConversion : public OpConversionPattern<memref::ReshapeOp> {
+   }
+ };
+ 
++static Value materializeCollapseShapeFlattening(OpBuilder &builder,
++                                                MemRefType type,
++                                                ValueRange inputs,
++                                                Location loc);
++
++struct ExpandShapeOpConversion
++    : public OpConversionPattern<memref::ExpandShapeOp> {
++  using OpConversionPattern::OpConversionPattern;
++
++  LogicalResult
++  matchAndRewrite(memref::ExpandShapeOp op, OpAdaptor adaptor,
++                  ConversionPatternRewriter &rewriter) const override {
++    auto srcType = dyn_cast<MemRefType>(adaptor.getSrc().getType());
++    auto convertedResultType =
++        dyn_cast_or_null<MemRefType>(getTypeConverter()->convertType(op.getType()));
++    if (!srcType || !convertedResultType || srcType != convertedResultType)
++      return failure();
++
++    // Once memrefs are flattened, expand_shape carries no extra information.
++    rewriter.replaceOp(op, adaptor.getSrc());
++    return success();
++  }
++};
++
++struct CollapseShapeOpConversion
++    : public OpConversionPattern<memref::CollapseShapeOp> {
++  using OpConversionPattern::OpConversionPattern;
++
++  LogicalResult
++  matchAndRewrite(memref::CollapseShapeOp op, OpAdaptor adaptor,
++                  ConversionPatternRewriter &rewriter) const override {
++    auto srcType = dyn_cast<MemRefType>(adaptor.getSrc().getType());
++    auto convertedResultType =
++        dyn_cast_or_null<MemRefType>(getTypeConverter()->convertType(op.getType()));
++    if (!srcType || !convertedResultType || srcType != convertedResultType)
++      return failure();
++
++    // Once memrefs are flattened, collapse_shape carries no extra information.
++    rewriter.replaceOp(op, adaptor.getSrc());
++    return success();
++  }
++};
++
+ // A generic pattern which will replace an op with a new op of the same type
+ // but using the adaptor (type converted) operands.
+ template <typename TOp>
+@@ -375,6 +418,19 @@ static void populateFlattenMemRefsLegality(ConversionTarget &target) {
+       [](memref::GlobalOp op) { return isUniDimensional(op.getType()); });
+   target.addDynamicallyLegalOp<memref::GetGlobalOp>(
+       [](memref::GetGlobalOp op) { return isUniDimensional(op.getType()); });
++  target.addDynamicallyLegalOp<memref::ExpandShapeOp>([](memref::ExpandShapeOp op) {
++    auto srcType = dyn_cast<MemRefType>(op.getSrcType());
++    auto dstType = dyn_cast<MemRefType>(op.getResult().getType());
++    return srcType && dstType && isUniDimensional(srcType) &&
++           isUniDimensional(dstType);
++  });
++  target.addDynamicallyLegalOp<memref::CollapseShapeOp>(
++      [](memref::CollapseShapeOp op) {
++        auto srcType = dyn_cast<MemRefType>(op.getSrcType());
++        auto dstType = dyn_cast<MemRefType>(op.getResult().getType());
++        return srcType && dstType && isUniDimensional(srcType) &&
++               isUniDimensional(dstType);
++      });
+   addGenericLegalityConstraint<func::CallOp, func::ReturnOp, memref::DeallocOp,
+                                memref::CopyOp>(target);
+ 
+@@ -413,9 +469,43 @@ static Value materializeCollapseShapeFlattening(OpBuilder &builder,
+   auto indices = getReassociationIndicesForCollapse(sourceShape, targetShape);
+   assert(indices.has_value() && "expected a valid collapse");
+ 
+-  // Generate the appropriate return type:
+-  return memref::CollapseShapeOp::create(builder, loc, inputs[0],
+-                                         indices.value());
++  Value collapsed = memref::CollapseShapeOp::create(builder, loc, inputs[0],
++                                                    indices.value());
++  if (collapsed.getType() == type)
++    return collapsed;
++  return memref::CastOp::create(builder, loc, type, collapsed);
++}
++
++// Materializes a unidimensional memory back to a multidimensional memory by
++// using a memref.reinterpret_cast operation.
++static Value materializeExpandShapeFromFlattened(OpBuilder &builder,
++                                                 MemRefType type,
++                                                 ValueRange inputs,
++                                                 Location loc) {
++  assert(type.hasStaticShape() &&
++         "Can only re-expand memref's with static shape (for now...).");
++  if (inputs.size() != 1)
++    return {};
++
++  MemRefType sourceType = dyn_cast<MemRefType>(inputs[0].getType());
++  if (!sourceType || !sourceType.hasStaticShape() || !isUniDimensional(sourceType))
++    return {};
++  if (sourceType.getNumElements() != type.getNumElements())
++    return {};
++
++  SmallVector<OpFoldResult> sizes;
++  SmallVector<OpFoldResult> strides(type.getRank());
++  auto shape = type.getShape();
++  int64_t stride = 1;
++  for (int64_t i = type.getRank() - 1; i >= 0; --i) {
++    sizes.push_back(builder.getIndexAttr(shape[i]));
++    strides[i] = builder.getIndexAttr(stride);
++    stride *= shape[i];
++  }
++  std::reverse(sizes.begin(), sizes.end());
++
++  return memref::ReinterpretCastOp::create(
++      builder, loc, type, inputs[0], builder.getIndexAttr(0), sizes, strides);
+ }
+ 
+ static void populateTypeConversionPatterns(TypeConverter &typeConverter) {
+@@ -424,7 +514,7 @@ static void populateTypeConversionPatterns(TypeConverter &typeConverter) {
+   // Add specific conversion for memref types.
+   typeConverter.addConversion([](MemRefType memref) {
+     if (isUniDimensional(memref))
+-      return memref;
++      return MemRefType::get(memref.getShape(), memref.getElementType());
+     return MemRefType::get(llvm::SmallVector<int64_t>{memref.getNumElements()},
+                            memref.getElementType());
+   });
+@@ -438,12 +528,16 @@ public:
+     auto *ctx = &getContext();
+     TypeConverter typeConverter;
+     populateTypeConversionPatterns(typeConverter);
++    typeConverter.addSourceMaterialization(materializeExpandShapeFromFlattened);
++    typeConverter.addTargetMaterialization(materializeCollapseShapeFlattening);
+ 
+     RewritePatternSet patterns(ctx);
+     SetVector<StringRef> rewrittenCallees;
+     patterns.add<LoadOpConversion, StoreOpConversion, AllocOpConversion,
+                  AllocaOpConversion, GlobalOpConversion, GetGlobalOpConversion,
+-                 ReshapeOpConversion, OperandConversionPattern<func::ReturnOp>,
++                 ReshapeOpConversion, ExpandShapeOpConversion,
++                 CollapseShapeOpConversion,
++                 OperandConversionPattern<func::ReturnOp>,
+                  OperandConversionPattern<memref::DeallocOp>,
+                  OperandConversionPattern<memref::DeallocOp>,
+                  OperandConversionPattern<memref::CopyOp>, CallOpConversion>(
+-- 
+2.53.0

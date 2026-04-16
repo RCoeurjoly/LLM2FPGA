@@ -30,7 +30,25 @@
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        inherit (circtPkgs) circt;
+        circtBase =
+          (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
+          (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
+              ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
+              ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
+              ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
+              ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0011-legalize-unrealized-conversion-casts-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0012-defer-func-lowering-until-body-is-legal.patch
+              ./patches/circt-task3-rfp/0013-handle-memref-model-io-and-cache-submodule-lookups.patch
+              ./patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch
+              ./patches/circt-task3-rfp/0015-lower-float-ops-as-externs-in-handshake-to-hw.patch
+            ];
+          });
+        circt = circtBase;
         yosysPkg = nix-eda.packages.${system}.yosysFull;
         yosysPkgWithPythonEnv = if yosysPkg ? python3-env then
           yosysPkg
@@ -49,7 +67,27 @@
         llvmPackages = pkgsLlvm21.llvmPackages_21;
         inherit (llvmPackages) mlir;
         python = pkgsLlvm21.python311;
+        torchao = python.pkgs.buildPythonPackage rec {
+          pname = "torchao";
+          version = "0.15.0";
+          format = "wheel";
+          src = pkgs.fetchurl {
+            url =
+              "https://files.pythonhosted.org/packages/f6/3b/6b9d5618720f63dbc2e2509cd6b57aae9c0d61b738d1d2172f4d5d9efaab/torchao-0.15.0-py3-none-any.whl";
+            hash = "sha256-PzgSZ2BI74oqDp1JLRLYlxunp+uxb1SqVvaQQU4TDSw=";
+          };
+          propagatedBuildInputs = [ python.pkgs.torch ];
+          dontBuild = true;
+          doCheck = false;
+          pythonImportsCheck = [ "torchao" ];
+        };
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
+        pythonWithTorchAO =
+          python.withPackages (ps: [ ps.torch ps.packaging torchao ]);
+        pythonWithTinyStories =
+          python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
+        pythonWithTinyStoriesTorchAO = python.withPackages
+          (ps: [ ps.torch ps.packaging ps.transformers torchao ]);
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
         openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs
@@ -74,93 +112,82 @@
         fpgaChipdb = "${openXC7Chipdb}/xc7k480tffg1156.bin";
         prjxrayPythonPath =
           "${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3";
-        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix { inherit python; };
+        torchMlirPatched = pkgsLlvm21.callPackage ./torch-mlir.nix {
+          inherit python;
+          applyTask3RfpPatches = true;
+        };
+        torchMlirUnpatched = pkgsLlvm21.callPackage ./torch-mlir.nix {
+          inherit python;
+          applyTask3RfpPatches = false;
+        };
+        torchMlir = torchMlirUnpatched;
+        pipelineScripts = ./scripts/pipeline;
+        fpPrimsSv = ./rtl/fp/circt_fp_primitives.sv;
+        tinyStories1m = let
+          modelId = "roneneldan/TinyStories-1M";
+          revision = "77f1b168e219585646439073245fe87e56b3023e";
+          fetch = file: hash:
+            pkgs.fetchurl {
+              url =
+                "https://huggingface.co/${modelId}/resolve/${revision}/${file}";
+              inherit hash;
+            };
+          snapshot = pkgs.linkFarm "tinystories-1m-hf-snapshot" [
+            {
+              name = "config.json";
+              path = fetch "config.json"
+                "sha256-/3TDDV67WrHaDy6kea33GXxQS0K1UiqFjDNKuR7UlYw=";
+            }
+            {
+              name = "pytorch_model.bin";
+              path = fetch "pytorch_model.bin"
+                "sha256-B/lgnqiCuBY/87I9QOK4LLcV1AljG+sVyEsWTzh32uc=";
+            }
+          ];
+        in {
+          inherit modelId revision snapshot;
+          sourceDir = ./TinyStories;
+          adapterPy = ./TinyStories/model_adapter.py;
+        };
+        pipelineLib = import ./nix/pipeline.nix {
+          inherit pkgs mlir circt yosysPkg yosysSlang torchMlir python;
+          inherit pipelineScripts;
+        };
+        modelRegistry = import ./nix/models.nix {
+          inherit (pipelineLib) registerModel registerQuantizedModel;
+          inherit pythonWithTorch pythonWithTinyStories
+            pythonWithTinyStoriesTorchAO torchMlir python;
+          inherit tinyStories1m;
+          inherit fpPrimsSv;
+          compilePyTorch = ./scripts/compile-pytorch.py;
+          matmulPy = ./src/matmul.py;
+          matmulAdapterPy = ./src/matmul_adapter.py;
+          matmulSrcDir = ./src;
+          tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;
+          tinyStoriesPt2eStaticQuantAdapterPy =
+            ./TinyStories/model_adapter_pt2e_static_quant.py;
+          simDir = ./sim;
+        };
+        modelPipelines = pipelineLib.modelPipelinesFromRegistry modelRegistry;
+        pipelineStagePackages =
+          pipelineLib.pipelineStagePackagesFromRegistry modelRegistry;
+        pipelineMetadataPackages =
+          pipelineLib.metadataPackagesFromRegistry modelRegistry;
+        modelRegistryJson = pipelineLib.registryIndexPackage modelRegistry;
 
-        matmulTorch = pkgs.runCommand "matmul-torch.mlir" {
-          buildInputs = [ pythonWithTorch ];
-        } ''
-          export MATMUL_PY=${./src/matmul.py}
-          export PYTHONPATH="${./src}:${
-            ./sim
-          }:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
-          python ${./src/compile-pytorch.py} > "$out"
-        '';
-
-        matmulLinalg = pkgs.runCommand "matmul-linalg.mlir" { } ''
-          ${torchMlir}/bin/torch-mlir-opt ${matmulTorch} \
-            --torch-function-to-torch-backend-pipeline \
-            --torch-backend-to-linalg-on-tensors-backend-pipeline \
-            -canonicalize > $out
-        '';
-
-        matmulCf = pkgs.runCommand "matmul-cf.mlir" { } ''
-          ${mlir}/bin/mlir-opt ${matmulLinalg} \
-            --empty-tensor-to-alloc-tensor \
-            --one-shot-bufferize="bufferize-function-boundaries" \
-            --buffer-results-to-out-params \
-            --bufferization-lower-deallocations \
-            --convert-bufferization-to-memref \
-            --memref-expand \
-            --convert-linalg-to-affine-loops \
-            --lower-affine \
-            --convert-scf-to-cf \
-            -canonicalize > $out
-        '';
-
-        matmulCfStats = pkgs.runCommand "matmul-cf.stats" { } ''
-          ${mlir}/bin/mlir-opt ${matmulCf} --print-op-stats -o /dev/null > $out || true
-        '';
-
-        matmulHandshake = pkgs.runCommand "matmul-handshake.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulCf} \
-            -flatten-memref \
-            -flatten-memref-calls \
-            -canonicalize \
-            -handshake-legalize-memrefs \
-            --lower-cf-to-handshake \
-            -handshake-insert-buffers \
-            -canonicalize > $out
-        '';
-
-        matmulHsExt = pkgs.runCommand "matmul-hs-ext.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHandshake} \
-            -handshake-lower-extmem-to-hw \
-            -handshake-materialize-forks-sinks \
-            -canonicalize > $out
-        '';
-
-        matmulHw0 = pkgs.runCommand "matmul-hw0.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHsExt} \
-            -lower-handshake-to-hw \
-            -canonicalize > $out
-        '';
-
-        matmulHw = pkgs.runCommand "matmul-hw.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHw0} \
-            -lower-esi-types \
-            -lower-esi-ports \
-            -lower-esi-to-hw \
-            -canonicalize > $out
-        '';
-
-        matmulHwClean = pkgs.runCommand "matmul-hw-clean.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHw} \
-            -firrtl-inner-symbol-dce \
-            -symbol-dce \
-            -canonicalize > $out
-        '';
-
-        matmulSv = pkgs.runCommand "matmul.sv" { } ''
-          ${circt}/bin/circt-opt ${matmulHwClean} \
-            -lower-seq-hlmem \
-            -lower-seq-fifo \
-            -lower-seq-shiftreg \
-            -lower-seq-to-sv \
-            -lower-hw-to-sv \
-            -canonicalize \
-            -export-verilog \
-            -o /dev/null > $out
-        '';
+        matmulPipeline = modelPipelines.matmul;
+        matmulTorch = matmulPipeline.torch;
+        matmulLinalg = matmulPipeline.linalg;
+        matmulCf = matmulPipeline.cf;
+        matmulCfStats = matmulPipeline."cf-stats";
+        matmulHandshake = matmulPipeline.handshake;
+        matmulHsExt = matmulPipeline."hs-ext";
+        matmulHw0 = matmulPipeline.hw0;
+        matmulHw = matmulPipeline.hw;
+        matmulHwClean = matmulPipeline."hw-clean";
+        matmulSv = matmulPipeline.sv;
+        matmulIl = matmulPipeline.il;
+        matmulYosysStat = matmulPipeline."yosys-stat";
 
         boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
         mkTopSv = name: src:
@@ -288,7 +315,7 @@
           verilator --binary --timing --language 1800-2017 -Wno-fatal \
             -I${tbDataSv} \
             -top tb -Mdir "$out/obj_dir" -o sim_main \
-            ${matmulSv} ${./sim/tb_main.sv}
+            -f ${matmulSv}/sources.f ${./sim/tb_main.sv}
         '';
 
         matmulSvSim = pkgs.runCommand "matmul-sv-sim.json" {
@@ -320,26 +347,13 @@
           verilator --binary --trace -DENABLE_WAVES -DENABLE_WAVES_VCD --timing --language 1800-2017 -Wno-fatal \
             -I${tbDataSv} \
             -top tb -Mdir obj_dir -o sim_main \
-            ${matmulSv} ${./sim/tb_main.sv}
+            -f ${matmulSv}/sources.f ${./sim/tb_main.sv}
           ./obj_dir/sim_main
           if [ ! -f wave.vcd ]; then
             echo "wave.vcd was not produced by simulation" >&2
             exit 1
           fi
           cp wave.vcd "$out"
-        '';
-
-        matmulIl = pkgs.runCommand "matmul.il" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -qp \
-              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; write_rtlil $out" \
-              > /dev/null
-        '';
-
-        matmulYosysStat = pkgs.runCommand "matmul-yosys.stat" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -p \
-              "read_rtlil ${matmulIl}; tee -o $out stat -json"
         '';
 
       in {
@@ -349,9 +363,13 @@
             circt
             yosysPkg
             torchMlir
+            torchMlirPatched
             llvmPackages.clang
             llvmPackages.llvm
             pythonWithTorch
+            pythonWithTorchAO
+            pythonWithTinyStories
+            pythonWithTinyStoriesTorchAO
             yosysSlang
             openXC7Nextpnr
             openXC7Prjxray
@@ -376,7 +394,15 @@
 
         packages = {
           default = matmulSv;
+          inherit torchao;
           torch-mlir = torchMlir;
+          torch-mlir-patched = torchMlirPatched;
+          torch-mlir-unpatched = torchMlirUnpatched;
+          python-with-torchao = pythonWithTorchAO;
+          python-with-tiny-stories = pythonWithTinyStories;
+          python-with-tiny-stories-torchao = pythonWithTinyStoriesTorchAO;
+          model-registry = modelRegistryJson;
+          tiny-stories-1m-snapshot = tinyStories1m.snapshot;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
@@ -404,7 +430,7 @@
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
-        };
+        } // pipelineStagePackages // pipelineMetadataPackages;
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {
@@ -442,7 +468,7 @@
               --Wall \
               --Wno-fatal \
               -I${tbDataSv} \
-              ${matmulSv} \
+              -f ${matmulSv}/sources.f \
               ${./sim}/tb_main.sv
             mkdir -p "$out"
           '';

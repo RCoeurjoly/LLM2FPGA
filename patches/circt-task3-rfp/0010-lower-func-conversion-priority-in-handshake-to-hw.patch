@@ -1,0 +1,38 @@
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -2065,7 +2065,9 @@ private:
+ 
+ class FuncOpConversionPattern : public OpConversionPattern<handshake::FuncOp> {
+ public:
+-  using OpConversionPattern::OpConversionPattern;
++  FuncOpConversionPattern(TypeConverter &typeConverter, MLIRContext *context)
++      : OpConversionPattern(typeConverter, context,
++                            PatternBenefit(/*benefit=*/0)) {}
+ 
+   LogicalResult
+   matchAndRewrite(handshake::FuncOp op, OpAdaptor operands,
+@@ -2138,8 +2140,8 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+   auto ls = HandshakeLoweringState{op->getParentOfType<mlir::ModuleOp>(),
+                                    instanceUniquer};
+   RewritePatternSet patterns(op.getContext());
+-  patterns.insert<FuncOpConversionPattern, ReturnConversionPattern,
+-                  AssertConversionPattern>(op.getContext());
++  patterns.insert<FuncOpConversionPattern, ReturnConversionPattern,
++                  AssertConversionPattern>(typeConverter, op.getContext());
+   patterns.insert<JoinConversionPattern, ForkConversionPattern,
+                   LazyForkConversionPattern, SyncConversionPattern>(
+       typeConverter, op.getContext(), moduleBuilder, ls);
+@@ -2237,4 +2239,12 @@ public:
+     target
+         .addIllegalDialect<handshake::HandshakeDialect, arith::ArithDialect>();
++    target.addDynamicallyLegalOp<handshake::FuncOp>(
++        [&](handshake::FuncOp funcOp) {
++          return typeConverter.isSignatureLegal(funcOp.getFunctionType()) &&
++                 llvm::all_of(funcOp.getBody().getOps(),
++                              [&](Operation &nestedOp) {
++                                return target.isLegal(&nestedOp);
++                              });
++        });
+     target.addIllegalOp<cf::AssertOp>();
+     target.addIllegalDialect<math::MathDialect>();

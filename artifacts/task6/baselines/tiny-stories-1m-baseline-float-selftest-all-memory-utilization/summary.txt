@@ -1,0 +1,10 @@
+top_module: tiny_stories_selftest_top
+lut_total: 40416086 / 298600 (13535.192900200938%)
+ff_total: 58072527 / 597200 (9724.133791024782%)
+dsp_total: 0 / 1920 (0.0%)
+bram36_equivalent: 0.0 / 955 (0.0%)
+muxf7: 936407
+muxf8: 279774
+lutram_ram32m: 0
+lutram_ram64m: 0
+fits_overall: False

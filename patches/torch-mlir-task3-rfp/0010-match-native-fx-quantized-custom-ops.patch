@@ -1,0 +1,186 @@
+diff --git a/lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp b/lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp
+index d873892..08aad85 100644
+--- a/lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp
++++ b/lib/Dialect/Torch/Transforms/MatchQuantizedOps.cpp
+@@ -114,6 +114,109 @@ public:
+       return success();
+     }
+ 
++    if (op.getName() == "torch.quantized.layer_norm") {
++      auto inputTy = dyn_cast<ValueTensorType>(op.getOperand(0).getType());
++      auto resultTy = dyn_cast<ValueTensorType>(op.getType(0));
++      auto weightTy = dyn_cast<ValueTensorType>(op.getOperand(2).getType());
++      if (!inputTy || !resultTy || !weightTy || !inputTy.hasSizes() ||
++          !resultTy.hasDtype() || !weightTy.hasDtype())
++        return rewriter.notifyMatchFailure(
++            op, "quantized layer_norm needs static input sizes and known dtypes");
++
++      auto dequantTy = ValueTensorType::get(op.getContext(),
++                                            inputTy.getOptionalSizes(),
++                                            weightTy.getDtype());
++      Value dequant = AtenDequantizeSelfOp::create(rewriter, op.getLoc(),
++                                                   dequantTy, op.getOperand(0));
++      Value cudnnEnable = ConstantBoolOp::create(rewriter, op.getLoc(), true);
++      Value layerNorm = AtenLayerNormOp::create(
++          rewriter, op.getLoc(), dequantTy, dequant, op.getOperand(1),
++          op.getOperand(2), op.getOperand(3), op.getOperand(4), cudnnEnable);
++      Value resultDtype = ConstantIntOp::create(
++          rewriter, op.getLoc(),
++          rewriter.getI64IntegerAttr(static_cast<int64_t>(
++              Torch::getScalarTypeForType(resultTy.getDtype()))));
++      rewriter.replaceOpWithNewOp<AtenQuantizePerTensorOp>(
++          op, resultTy, layerNorm, op.getOperand(5), op.getOperand(6),
++          resultDtype);
++      return success();
++    }
++
++    if (op.getName() == "torch.quantized.linear_unpack") {
++      auto inputTy = dyn_cast<ValueTensorType>(op.getOperand(0).getType());
++      auto weightTy = dyn_cast<ValueTensorType>(op.getOperand(1).getType());
++      auto resultTy = dyn_cast<ValueTensorType>(op.getType(0));
++      if (!inputTy || !weightTy || !resultTy || !inputTy.hasSizes() ||
++          !weightTy.hasSizes() || !resultTy.hasSizes() ||
++          !resultTy.hasDtype()) {
++        return rewriter.notifyMatchFailure(
++            op, "quantized linear needs static sizes and known result dtype");
++      }
++
++      auto dequantInputTy = ValueTensorType::get(op.getContext(),
++                                                 inputTy.getOptionalSizes(),
++                                                 rewriter.getF32Type());
++      auto dequantWeightTy = ValueTensorType::get(op.getContext(),
++                                                  weightTy.getOptionalSizes(),
++                                                  rewriter.getF32Type());
++      auto linearResultTy = ValueTensorType::get(op.getContext(),
++                                                 resultTy.getOptionalSizes(),
++                                                 rewriter.getF32Type());
++
++      Value dequantInput = AtenDequantizeSelfOp::create(
++          rewriter, op.getLoc(), dequantInputTy, op.getOperand(0));
++      Value dequantWeight = AtenDequantizeSelfOp::create(
++          rewriter, op.getLoc(), dequantWeightTy, op.getOperand(1));
++      Value linear = AtenLinearOp::create(rewriter, op.getLoc(), linearResultTy,
++                                          dequantInput, dequantWeight,
++                                          op.getOperand(2));
++      Value resultDtype = ConstantIntOp::create(
++          rewriter, op.getLoc(),
++          rewriter.getI64IntegerAttr(static_cast<int64_t>(
++              Torch::getScalarTypeForType(resultTy.getDtype()))));
++      rewriter.replaceOpWithNewOp<AtenQuantizePerTensorOp>(
++          op, resultTy, linear, op.getOperand(3), op.getOperand(4),
++          resultDtype);
++      return success();
++    }
++
++    if (op.getName() == "torch.quantized.matmul") {
++      auto lhsTy = dyn_cast<ValueTensorType>(op.getOperand(0).getType());
++      auto rhsTy = dyn_cast<ValueTensorType>(op.getOperand(1).getType());
++      auto resultTy = dyn_cast<ValueTensorType>(op.getType(0));
++      if (!lhsTy || !rhsTy || !resultTy || !lhsTy.hasSizes() ||
++          !rhsTy.hasSizes() || !resultTy.hasSizes() ||
++          !resultTy.hasDtype()) {
++        return rewriter.notifyMatchFailure(
++            op, "quantized matmul needs static sizes and known result dtype");
++      }
++
++      auto dequantLhsTy = ValueTensorType::get(op.getContext(),
++                                               lhsTy.getOptionalSizes(),
++                                               rewriter.getF32Type());
++      auto dequantRhsTy = ValueTensorType::get(op.getContext(),
++                                               rhsTy.getOptionalSizes(),
++                                               rewriter.getF32Type());
++      auto matmulResultTy = ValueTensorType::get(op.getContext(),
++                                                 resultTy.getOptionalSizes(),
++                                                 rewriter.getF32Type());
++
++      Value dequantLhs = AtenDequantizeSelfOp::create(
++          rewriter, op.getLoc(), dequantLhsTy, op.getOperand(0));
++      Value dequantRhs = AtenDequantizeSelfOp::create(
++          rewriter, op.getLoc(), dequantRhsTy, op.getOperand(1));
++      Value matmul = AtenMatmulOp::create(rewriter, op.getLoc(), matmulResultTy,
++                                          dequantLhs, dequantRhs);
++      Value resultDtype = ConstantIntOp::create(
++          rewriter, op.getLoc(),
++          rewriter.getI64IntegerAttr(static_cast<int64_t>(
++              Torch::getScalarTypeForType(resultTy.getDtype()))));
++      rewriter.replaceOpWithNewOp<AtenQuantizePerTensorOp>(
++          op, resultTy, matmul, op.getOperand(2), op.getOperand(3),
++          resultDtype);
++      return success();
++    }
++
+     return failure();
+   }
+ };
+diff --git a/test/Dialect/Torch/match-native-fx-quantized-layernorm.mlir b/test/Dialect/Torch/match-native-fx-quantized-layernorm.mlir
+new file mode 100644
+index 0000000..944b88f
+--- /dev/null
++++ b/test/Dialect/Torch/match-native-fx-quantized-layernorm.mlir
+@@ -0,0 +1,19 @@
++// RUN: torch-mlir-opt --torch-match-quantized-custom-ops %s | FileCheck %s
++
++// CHECK-LABEL: func.func @quantized_layer_norm
++func.func @quantized_layer_norm(%arg0: !torch.vtensor<[2,4,8],!torch.quint8>) -> !torch.vtensor<[2,4,8],!torch.quint8> {
++  %int8 = torch.constant.int 8
++  %list = torch.prim.ListConstruct %int8 : (!torch.int) -> !torch.list<int>
++  %weight = torch.vtensor.literal(dense<1.0> : tensor<8xf32>) : !torch.vtensor<[8],f32>
++  %bias = torch.vtensor.literal(dense<0.0> : tensor<8xf32>) : !torch.vtensor<[8],f32>
++  %eps = torch.constant.float 1.000000e-05
++  %scale = torch.constant.float 3.125000e-02
++  %zero_point = torch.constant.int 64
++  // CHECK-DAG: %[[TRUE:.+]] = torch.constant.bool true
++  // CHECK-DAG: %[[DEQUANT:.+]] = torch.aten.dequantize.self %arg0 : !torch.vtensor<[2,4,8],!torch.quint8> -> !torch.vtensor<[2,4,8],f32>
++  // CHECK-DAG: %[[DTYPE:.+]] = torch.constant.int 13
++  // CHECK: %[[LN:.+]] = torch.aten.layer_norm %[[DEQUANT]], %{{.+}}, %{{.+}}, %{{.+}}, %{{.+}}, %[[TRUE]] : !torch.vtensor<[2,4,8],f32>, !torch.list<int>, !torch.vtensor<[8],f32>, !torch.vtensor<[8],f32>, !torch.float, !torch.bool -> !torch.vtensor<[2,4,8],f32>
++  // CHECK: %[[Q:.+]] = torch.aten.quantize_per_tensor %[[LN]], %{{.+}}, %{{.+}}, %[[DTYPE]] : !torch.vtensor<[2,4,8],f32>, !torch.float, !torch.int, !torch.int -> !torch.vtensor<[2,4,8],!torch.quint8>
++  %0 = torch.operator "torch.quantized.layer_norm"(%arg0, %list, %weight, %bias, %eps, %scale, %zero_point) : (!torch.vtensor<[2,4,8],!torch.quint8>, !torch.list<int>, !torch.vtensor<[8],f32>, !torch.vtensor<[8],f32>, !torch.float, !torch.float, !torch.int) -> !torch.vtensor<[2,4,8],!torch.quint8>
++  return %0 : !torch.vtensor<[2,4,8],!torch.quint8>
++}
+diff --git a/test/Dialect/Torch/match-native-fx-quantized-linear-unpack.mlir b/test/Dialect/Torch/match-native-fx-quantized-linear-unpack.mlir
+new file mode 100644
+index 0000000..acb7638
+--- /dev/null
++++ b/test/Dialect/Torch/match-native-fx-quantized-linear-unpack.mlir
+@@ -0,0 +1,18 @@
++// RUN: torch-mlir-opt --torch-match-quantized-custom-ops %s | FileCheck %s
++
++func.func @native_fx_quantized_linear_unpack(%arg0: !torch.vtensor<[2,8],!torch.quint8>,
++                                             %weight: !torch.vtensor<[8,8],!torch.qint8>,
++                                             %bias: !torch.none,
++                                             %scale: !torch.float,
++                                             %zero_point: !torch.int)
++    -> !torch.vtensor<[2,8],!torch.quint8> {
++  %0 = torch.operator "torch.quantized.linear_unpack"(%arg0, %weight, %bias, %scale, %zero_point) : (!torch.vtensor<[2,8],!torch.quint8>, !torch.vtensor<[8,8],!torch.qint8>, !torch.none, !torch.float, !torch.int) -> !torch.vtensor<[2,8],!torch.quint8>
++  return %0 : !torch.vtensor<[2,8],!torch.quint8>
++}
++
++// CHECK-LABEL: func.func @native_fx_quantized_linear_unpack
++// CHECK: %[[DQIN:.+]] = torch.aten.dequantize.self
++// CHECK: %[[DQW:.+]] = torch.aten.dequantize.self
++// CHECK: %[[LIN:.+]] = torch.aten.linear
++// CHECK: %[[Q:.+]] = torch.aten.quantize_per_tensor
++// CHECK: return %[[Q]]
+diff --git a/test/Dialect/Torch/match-native-fx-quantized-matmul.mlir b/test/Dialect/Torch/match-native-fx-quantized-matmul.mlir
+new file mode 100644
+index 0000000..52eca37
+--- /dev/null
++++ b/test/Dialect/Torch/match-native-fx-quantized-matmul.mlir
+@@ -0,0 +1,17 @@
++// RUN: torch-mlir-opt --torch-match-quantized-custom-ops %s | FileCheck %s
++
++func.func @native_fx_quantized_matmul(%lhs: !torch.vtensor<[1,4,4,16],!torch.quint8>,
++                                      %rhs: !torch.vtensor<[1,4,16,4],!torch.quint8>,
++                                      %scale: !torch.float,
++                                      %zero_point: !torch.int)
++    -> !torch.vtensor<[1,4,4,4],!torch.quint8> {
++  %0 = torch.operator "torch.quantized.matmul"(%lhs, %rhs, %scale, %zero_point) : (!torch.vtensor<[1,4,4,16],!torch.quint8>, !torch.vtensor<[1,4,16,4],!torch.quint8>, !torch.float, !torch.int) -> !torch.vtensor<[1,4,4,4],!torch.quint8>
++  return %0 : !torch.vtensor<[1,4,4,4],!torch.quint8>
++}
++
++// CHECK-LABEL: func.func @native_fx_quantized_matmul
++// CHECK: %[[DQL:.+]] = torch.aten.dequantize.self
++// CHECK: %[[DQR:.+]] = torch.aten.dequantize.self
++// CHECK: %[[MM:.+]] = torch.aten.matmul
++// CHECK: %[[Q:.+]] = torch.aten.quantize_per_tensor
++// CHECK: return %[[Q]]

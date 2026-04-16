@@ -1,0 +1,18 @@
+diff --git a/lib/Conversion/TorchToLinalg/Uncategorized.cpp b/lib/Conversion/TorchToLinalg/Uncategorized.cpp
+--- a/lib/Conversion/TorchToLinalg/Uncategorized.cpp
++++ b/lib/Conversion/TorchToLinalg/Uncategorized.cpp
+@@ -1529,8 +1529,12 @@
+         arith::ConstantOp::create(b, loc, b.getFloatAttr(valueTy, minI));
+     Value maxVal =
+         arith::ConstantOp::create(b, loc, b.getFloatAttr(valueTy, maxI));
+-    value = arith::MaximumFOp::create(b, loc, value, minVal);
+-    value = arith::MinimumFOp::create(b, loc, value, maxVal);
++    Value belowMin = arith::CmpFOp::create(b, loc, arith::CmpFPredicate::ULT,
++                                           value, minVal);
++    value = arith::SelectOp::create(b, loc, belowMin, minVal, value);
++    Value aboveMax = arith::CmpFOp::create(b, loc, arith::CmpFPredicate::UGT,
++                                           value, maxVal);
++    value = arith::SelectOp::create(b, loc, aboveMax, maxVal, value);
+ 
+     if (isUnsigned) {
+       value = arith::FPToUIOp::create(b, loc, destTy, value);

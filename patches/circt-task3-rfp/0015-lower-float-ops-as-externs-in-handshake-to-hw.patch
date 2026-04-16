@@ -1,0 +1,49 @@
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -2271,6 +2271,25 @@
+       MergeConversionPattern, ControlMergeConversionPattern,
+       LoadConversionPattern, StoreConversionPattern, MemoryConversionPattern,
+       InstanceConversionPattern,
++      // Floating-point arith operations are lowered as extern modules.
++      ExtModuleConversionPattern<arith::AddFOp>,
++      ExtModuleConversionPattern<arith::SubFOp>,
++      ExtModuleConversionPattern<arith::MulFOp>,
++      ExtModuleConversionPattern<arith::DivFOp>,
++      ExtModuleConversionPattern<arith::MaximumFOp>,
++      ExtModuleConversionPattern<arith::CmpFOp>,
++      ExtModuleConversionPattern<arith::SIToFPOp>,
++      ExtModuleConversionPattern<arith::UIToFPOp>,
++      ExtModuleConversionPattern<arith::FPToSIOp>,
++      ExtModuleConversionPattern<arith::FPToUIOp>,
++      ExtModuleConversionPattern<arith::ExtFOp>,
++      ExtModuleConversionPattern<arith::TruncFOp>,
++      ExtModuleConversionPattern<math::ExpOp>,
++      ExtModuleConversionPattern<math::FPowIOp>,
++      ExtModuleConversionPattern<math::RsqrtOp>,
++      ExtModuleConversionPattern<math::TanhOp>,
++      ExtModuleConversionPattern<math::AbsFOp>,
++      ExtModuleConversionPattern<math::RoundEvenOp>,
+       // Arith operations.
+       ExtendConversionPattern<arith::ExtUIOp, /*signExtend=*/false>,
+       ExtendConversionPattern<arith::ExtSIOp, /*signExtend=*/true>,
+@@ -2314,19 +2333,10 @@
+     ConversionTarget target(getContext());
+     // All top-level logic of a handshake module will be the interconnectivity
+     // between instantiated modules.
+-    target.addLegalOp<UnrealizedConversionCastOp, hw::HWModuleOp,
+-                      hw::HWModuleExternOp, hw::OutputOp,
++    target.addLegalOp<hw::HWModuleOp, hw::HWModuleExternOp, hw::OutputOp,
+                       hw::InstanceOp>();
+     target
+         .addIllegalDialect<handshake::HandshakeDialect, arith::ArithDialect>();
+-    target.addDynamicallyLegalOp<handshake::FuncOp>(
+-        [&](handshake::FuncOp funcOp) {
+-          return typeConverter.isSignatureLegal(funcOp.getFunctionType()) &&
+-                 llvm::all_of(funcOp.getBody().getOps(),
+-                              [&](Operation &nestedOp) {
+-                                return target.isLegal(&nestedOp);
+-                              });
+-        });
+     target.addIllegalOp<cf::AssertOp>();
+     target.addIllegalDialect<math::MathDialect>();
+ 

@@ -1,0 +1,21 @@
+{
+  "hierarchical": true,
+  "num_cells_by_type": {
+    "BUFG": 1,
+    "CARRY4": 345271,
+    "FDCE": 70,
+    "FDPE": 1,
+    "FDRE": 58071781,
+    "FDSE": 675,
+    "INV": 223802,
+    "LUT1": 197497,
+    "LUT2": 2486127,
+    "LUT3": 19984804,
+    "LUT4": 1264736,
+    "LUT5": 540940,
+    "LUT6": 15941982,
+    "MUXF7": 936407,
+    "MUXF8": 279774
+  },
+  "top_module": "tiny_stories_selftest_top"
+}
