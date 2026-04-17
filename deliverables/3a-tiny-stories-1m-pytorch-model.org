@@ -1,0 +1,19 @@
+* Deliverable 3a: TinyStories-1M PyTorch model
+
+Reference:
+- docs/project-plan_v2.org:214
+
+Definition:
+- 3a) TinyStories-1M PyTorch model
+
+Gate:
+#+begin_src bash
+nix build .#tiny-stories-1m-snapshot -L
+#+end_src
+
+Artifact:
+- =result/config.json=
+- =result/pytorch_model.bin=
+
+Note:
+- Pinned snapshot of =roneneldan/TinyStories-1M= used as the Task 3 input model.

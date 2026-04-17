@@ -1,0 +1,18 @@
+* Deliverable 3b: tiny_stories_1m.mlir before CIRCT
+
+Reference:
+- docs/project-plan_v2.org:215
+
+Definition:
+- 3b) tiny_stories_1m.mlir, just before consumption by CIRCT
+
+Gate:
+#+begin_src bash
+nix build .#tiny-stories-1m-baseline-float-hw-clean -L
+#+end_src
+
+Artifact:
+- =/nix/store/...-tiny-stories-1m-baseline-float-hw-clean.mlir=
+
+Note:
+- For the current Task 3 branch review route, 3b is taken to be the =baseline-float= MLIR artifact immediately before SystemVerilog emission.

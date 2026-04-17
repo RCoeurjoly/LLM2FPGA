@@ -1,0 +1,42 @@
+* Deliverable 3e: synthesis resource report and bottleneck report
+
+Reference:
+- docs/project-plan_v2.org:218
+
+Definition:
+- 3e) synthesis resource report + bottleneck report
+
+Gate:
+#+begin_src bash
+nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
+#+end_src
+
+Artifact:
+- Bottleneck and scale evidence from
+  =/nix/store/...-tiny-stories-1m-baseline-float-yosys.stat=
+- Resource report from
+  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.txt=
+- Resource report JSON from
+  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.json=
+- Hierarchical cell-count JSON from
+  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/stat.json=
+
+Note:
+- For the current Task 3 branch review route, 3e is split into two checks:
+  - =tiny-stories-1m-baseline-float-yosys-stat= provides the bottleneck and
+    scale evidence from the real emitted =baseline-float= SV bundle.
+  - =tiny-stories-1m-baseline-float-selftest-all-memory-utilization= provides
+    the synthesis resource report half of 3e.
+- The direct =tiny-stories-1m-baseline-float-utilization= path is not the
+  review gate for this branch because it is currently killed on the working host
+  during staged mapped synthesis.
+
+Checking we have not broken previous deliverables:
+#+begin_src bash
+nix flake check -L
+nix build .#matmul-sv-sim -L
+#+end_src
+
+Guard notes:
+- =nix flake check= is the repo-level hygiene gate.
+- =matmul-sv-sim= is a regression guard to ensure the Task 3 work did not break the existing matmul smoke path.
