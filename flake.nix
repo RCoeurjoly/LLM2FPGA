@@ -120,7 +120,9 @@
           inherit python;
           applyTask3RfpPatches = false;
         };
-        torchMlir = torchMlirUnpatched;
+        # Task 6 quant lane: use the patched importer path by default so
+        # follow-up runs test whether quantized routes can progress at all.
+        torchMlir = torchMlirPatched;
         pipelineScripts = ./scripts/pipeline;
         fpPrimsSv = ./rtl/fp/circt_fp_primitives.sv;
         tinyStories1m = let

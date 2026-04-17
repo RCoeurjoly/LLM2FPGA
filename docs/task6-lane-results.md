@@ -98,3 +98,16 @@ Overall call:
     operators before normal downstream classification can even start
   - historical work in `task3-experiments` suggests a patched path exists, but
     that is not the current default lane configuration
+
+## Immediate follow-up in this lane
+
+As of 2026-04-17, this branch now flips the lane-local default from
+`torch-mlir-unpatched` to `torch-mlir-patched`.
+
+Reason:
+
+- the overnight run already established that `dynamic-int8` and `torchao` are
+  blocked first by importer/legalization failures on the unpatched path
+- repeating that exact configuration is low value
+- the next useful quantization check is whether the patched path reclassifies
+  either route from "frontend reject" into a later-stage problem
