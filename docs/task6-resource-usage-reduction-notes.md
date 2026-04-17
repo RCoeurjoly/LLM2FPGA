@@ -345,6 +345,89 @@ Treat Task 6 as an execution task, not only as a survey.
   blackboxes, stop broad exploration and hand off to board execution /
   equivalence testing.
 
+## Overnight result snapshot (2026-04-17)
+
+Results now exist in the strategy lanes and should guide the next round of
+execution.
+
+Quantization lane:
+
+- `task6-quant` recorded results in `docs/task6-lane-results.md`.
+- `tiny-stories-1m` is currently the strongest quantization route and is
+  `conditional`.
+- `tiny-stories-1m-dynamic-int8` is `reject` on the current default unpatched
+  `torch-mlir` path.
+- `tiny-stories-1m-torchao` is `reject` on the current default unpatched
+  `torch-mlir` path.
+- The strongest next quantization follow-up is to push the surviving
+  `tiny-stories-1m` route farther downstream and classify whether it actually
+  changes the LUT/FF story or only changes representation.
+
+Board RAM lane:
+
+- `task6-board-ram` recorded results in `docs/task6-lane-results.md`.
+- The strongest DDR3 candidate is to move the four `3216448 x 32` vocab-sized
+  tables off-chip first.
+- Those four tables account for `411,705,344` bits (`49.08 MiB`), about `95.1%`
+  of the modeled memory bits from the prior all-memory inventory.
+- This is the narrowest credible DDR3 experiment and is currently
+  `recommended`.
+
+Paper-review lane:
+
+- `task6-paper-review` recorded findings in `docs/task6-literature-findings.md`.
+- `StreamTensor` is the strongest direct paper lead because it targets
+  intermediate-memory materialization and streaming/fusion, which matches the
+  local "all LUT/FF, zero BRAM/DSP" failure mode better than throughput-only
+  ideas.
+- `FlightLLM`, `AccLLM`, `TerEffic`, and `Hummingbird` are the best adaptable
+  follow-ons.
+- `LUT-LLM` is low priority for the current branch.
+
+MoE lane:
+
+- `task6-moe` recorded findings in `docs/task6-moe-feasibility.md`.
+- Adapting TinyStories 1M into MoE is not currently a meaningful Task 6 path.
+- MoE should remain only as a narrow side experiment with an existing small
+  PyTorch MoE model, and only if it can be paired quickly with expert
+  externalization or another clear off-chip resource-saving mechanism.
+
+## Practical priority order (2026-04-17)
+
+This priority order supersedes the earlier broad "explore everything equally"
+stance.
+
+1. Board RAM first: externalize the four giant vocab-sized tables to DDR3.
+   Reason: this is the narrowest change with the largest modeled memory impact,
+   and it does not require proving new quantized operators first.
+
+2. Quantization second: continue only with `tiny-stories-1m`.
+   Reason: it is the only quantized route that clearly gets past frontend
+   lowering today. Do not spend more time on `dynamic-int8` or `torchao`
+   unless the default compiler path changes or a narrow patched import becomes
+   the explicit next experiment.
+
+3. StreamTensor-style streaming/fusion third.
+   Reason: the paper review strongly suggests the local failure mode is
+   over-materialized intermediate storage in fabric. This is the strongest
+   paper-driven direct lead after the DDR3 cut and the surviving quantized
+   route are measured.
+
+4. DSP-first kernel shift fourth.
+   Reason: the board still has `1920` idle DSPs while the baseline uses
+   `0` DSP and explodes in LUT/FF, so a targeted arithmetic shift out of fabric
+   remains attractive after the simpler memory moves are classified.
+
+5. LSQ and handshake alternatives fifth.
+   Reason: LSQ is still worth keeping alive, but it should follow evidence that
+   handshake/control structure is a dominant residual cost after the higher
+   leverage memory steps above.
+
+6. MoE last.
+   Reason: it is promising in the abstract, but for this repo it is a model
+   selection / architecture feasibility track, not a direct reduction path for
+   the current TinyStories baseline.
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.
