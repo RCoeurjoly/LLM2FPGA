@@ -111,3 +111,13 @@ Reason:
 - repeating that exact configuration is low value
 - the next useful quantization check is whether the patched path reclassifies
   either route from "frontend reject" into a later-stage problem
+
+Patched follow-up result:
+
+- reran `tiny-stories-1m-dynamic-int8-torch` on 2026-04-17 with the lane-local
+  default switched to `torch-mlir-patched`
+- result: no reclassification
+- the route still fails at `torch` with the same illegal `torch.operator`
+  legalization failure in the GPT-Neo `torch.nn.Linear` path
+- practical implication: the current Task 3 patch stack is not sufficient, by
+  itself, to rescue the PT2E dynamic-int8 route in this branch
