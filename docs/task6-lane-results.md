@@ -126,3 +126,23 @@ Current lane verdict:
 - primary candidate: four vocab-sized tables
 - overall viability: `recommended`
 - rejected as first experiment: broad activation/cache offload
+
+## Implementation follow-up
+
+To keep this lane moving toward a shell-mode experiment without forcing a full
+LSQ or board-handoff rewrite, this branch now carries:
+
+- `scripts/pipeline/externalize_large_memories.py`
+
+Intended use:
+
+- scan emitted RTLIL for oversized `\handshake_memory_*` modules
+- auto-generate a Yosys script that blackboxes those modules
+- measure the shell/controller fabric after removing the chosen memory modules
+
+Practical next shell experiment:
+
+- start with the dominant threshold that isolates the four giant vocab-sized
+  tables first
+- compare the generated shell report against the copied baseline bundle before
+  broadening to smaller memories
