@@ -606,7 +606,6 @@
               exit 1
             fi
 
-            export OMP_NUM_THREADS=1
             ${openXC7Nextpnr}/bin/nextpnr-xilinx \
               --chipdb "${fpgaChipdb}" \
               --xdc ${xdc} \
