@@ -695,7 +695,7 @@
           verilator --binary --timing --language 1800-2017 -Wno-fatal \
             -I${tbDataSv} \
             -top tb -Mdir "$out/obj_dir" -o sim_main \
-            ${matmulSv} ${./sim/tb_main.sv}
+            -f ${matmulSv}/sources.f ${./sim/tb_main.sv}
         '';
 
         matmulSvSim = pkgs.runCommand "matmul-sv-sim.json" {
@@ -727,7 +727,7 @@
           verilator --binary --trace -DENABLE_WAVES -DENABLE_WAVES_VCD --timing --language 1800-2017 -Wno-fatal \
             -I${tbDataSv} \
             -top tb -Mdir obj_dir -o sim_main \
-            ${matmulSv} ${./sim/tb_main.sv}
+            -f ${matmulSv}/sources.f ${./sim/tb_main.sv}
           ./obj_dir/sim_main
           if [ ! -f wave.vcd ]; then
             echo "wave.vcd was not produced by simulation" >&2
@@ -849,7 +849,7 @@
               --Wall \
               --Wno-fatal \
               -I${tbDataSv} \
-              ${matmulSv} \
+              -f ${matmulSv}/sources.f \
               ${./sim}/tb_main.sv
             mkdir -p "$out"
           '';
