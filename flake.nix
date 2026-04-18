@@ -33,36 +33,142 @@
       url = "github:RCoeurjoly/ypcb_00338_1p1_hack";
       flake = false;
     };
-    # openXC7.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix, nix-eda
-    , openXC7, nextpnrXilinxFork, ypcbHack, ... }:
+  outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
+    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        inherit (circtPkgs) circt;
-        yosysPkg = nix-eda.packages.${system}.yosysFull;
+        circtBase =
+          (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
+          (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
+              ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
+              ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
+              ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0011-legalize-unrealized-conversion-casts-in-handshake-to-hw.patch
+              ./patches/circt-task3-rfp/0012-defer-func-lowering-until-body-is-legal.patch
+              ./patches/circt-task3-rfp/0013-handle-memref-model-io-and-cache-submodule-lookups.patch
+              ./patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch
+              ./patches/circt-task3-rfp/0015-lower-float-ops-as-externs-in-handshake-to-hw.patch
+            ];
+          });
+        # Keep reviewer builds on a pinned upstream CIRCT plus the checked-in
+        # Task 3 patch stack. Local fast iteration should use local binaries via
+        # scripts/dev rather than a flake input override.
+        circt = circtBase;
+        yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {
+          src = yosys.outPath;
+          version = "unstable-${builtins.substring 0 8 yosys.sourceInfo.rev}";
+        });
         yosysPkgWithPythonEnv = if yosysPkg ? python3-env then
           yosysPkg
         else
           (yosysPkg // { python3-env = pkgs.python311; });
-        nixEdaSource = nix-eda.outPath;
-        yosysSlang = import "${nixEdaSource}/nix/yosys-slang.nix" {
-          inherit (pkgs) cmake fmt jq lib;
-          yosys = yosysPkgWithPythonEnv;
-          clang18Stdenv = pkgs.clangStdenv;
-          hash = "sha256-bZEQwDjGZyekhn0J3LJUzRVqh1rMtnjfjOo1vgS5CFE=";
-          fetchGitHubSnapshot =
-            pkgs.callPackage "${nixEdaSource}/nix/fetch_github_snapshot.nix"
-            { };
+        yosysSlang = pkgs.clangStdenv.mkDerivation {
+          pname = "yosys-slang";
+          version = "flake-input";
+          src = inputs."yosys-slang";
+          dylibs = [ "slang" ];
+          cmakeFlags = [
+            "-DYOSYS_CONFIG=${yosysPkgWithPythonEnv}/bin/yosys-config"
+            "-DFMT_INSTALL:BOOL=OFF"
+          ];
+          nativeBuildInputs = [ pkgs.cmake pkgs.jq ];
+          buildInputs = [
+            yosysPkgWithPythonEnv
+            yosysPkgWithPythonEnv.python3-env
+            pkgs.fmt
+          ];
+          patchPhase = ''
+            runHook prePatch
+            sed -i \
+              -e '/git_rev_parse(YOSYS_SLANG_REVISION/c\set(YOSYS_SLANG_REVISION flake-input)' \
+              -e '/git_rev_parse(SLANG_REVISION/c\set(SLANG_REVISION flake-input-submodule)' \
+              src/CMakeLists.txt
+            runHook postPatch
+          '';
+          doCheck = true;
+          cmakeBuildType = "Debug";
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/share/yosys/plugins
+            cp ../build/slang.so $out/share/yosys/plugins/
+            runHook postInstall
+          '';
+          meta = {
+            description = "SystemVerilog frontend for Yosys";
+            license = [ pkgs.lib.licenses.mit ];
+            homepage = "https://github.com/povik/yosys-slang";
+            platforms = pkgs.lib.platforms.all;
+          };
         };
         llvmPackages = pkgsLlvm21.llvmPackages_21;
+        # Keep LLVM for torch-mlir separate and pinned to torch-mlir's
+        # submodule revision so source edits in torch-mlir do not rebuild LLVM.
+        torchMlirLlvmPackages = (pkgsLlvm21.llvmPackages_git.override {
+          llvmVersions = {
+            "22.0.0-git" = {
+              gitRelease = {
+                rev = "3ca2a5fc0b84762f0e7d8a0e613fd69f7e344219";
+                rev-version = "23.0.0-unstable-2026-01-20";
+                sha256 = "sha256-jjdb2PtKnjYo9RIGJ82YtKmZinqEOlmm7R64SeJqTac=";
+              };
+            };
+          };
+        }).overrideScope (final: prev: {
+          # This commit reports LLVM 23 in source headers, while the package set
+          # key stays on llvmPackages_git. Skip nixpkgs' strict version triplet
+          # guard for this custom pin.
+          libllvm = (prev.libllvm.override {
+            # Ensure llvm builds against the matching tblgen from this pinned
+            # package set, not the default llvmPackages_git bootstrap set.
+            buildLlvmPackages = final;
+          }).overrideAttrs (old: {
+            postConfigure = "";
+            doCheck = false;
+            cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+              (pkgsLlvm21.lib.cmakeBool "LLVM_BUILD_TESTS" false)
+              (pkgsLlvm21.lib.cmakeBool "LLVM_INCLUDE_TESTS" false)
+            ];
+          });
+        });
         inherit (llvmPackages) mlir;
         python = pkgsLlvm21.python311;
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
+        pythonWithTinyStories =
+          python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
+        nanobindBootstrap =
+          pkgsLlvm21.callPackage ./nix/nanobind-bootstrap.nix {
+            inherit python;
+          };
+        mlirForTorchMlir = (torchMlirLlvmPackages.mlir.override {
+          devExtraCmakeFlags =
+            [ (pkgsLlvm21.lib.cmakeBool "MLIR_ENABLE_BINDINGS_PYTHON" true) ];
+        }).overrideAttrs (old: {
+          doCheck = false;
+          nativeBuildInputs = old.nativeBuildInputs ++ [ python ];
+          preConfigure = (old.preConfigure or "") + ''
+            export PYTHONPATH="${python.pkgs.pybind11}/${python.sitePackages}:${nanobindBootstrap}/${python.sitePackages}:''${PYTHONPATH:-}"
+          '';
+          cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+            (pkgsLlvm21.lib.cmakeBool "LLVM_BUILD_TESTS" false)
+            (pkgsLlvm21.lib.cmakeFeature "Python3_EXECUTABLE"
+              "${python}/bin/python3")
+            (pkgsLlvm21.lib.cmakeFeature "Python_EXECUTABLE"
+              "${python}/bin/python3")
+            (pkgsLlvm21.lib.cmakeFeature "pybind11_DIR"
+              "${python.pkgs.pybind11}/${python.sitePackages}/pybind11/share/cmake/pybind11")
+            (pkgsLlvm21.lib.cmakeFeature "nanobind_DIR"
+              "${nanobindBootstrap}/${python.sitePackages}/nanobind/cmake")
+          ];
+        });
         openXC7Packages = openXC7.packages.${system};
         openXC7Fasm = openXC7Packages.fasm;
         openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs
@@ -87,114 +193,403 @@
         fpgaChipdb = "${openXC7Chipdb}/xc7k480tffg1156.bin";
         prjxrayPythonPath =
           "${openXC7Fasm}/lib/python3.12/site-packages:${prjxrayPythonDeps}/${pkgs.python312.sitePackages}:${openXC7Prjxray}/usr/share/python3";
-        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix { inherit python; };
+        torchMlir = pkgsLlvm21.callPackage ./torch-mlir.nix {
+          inherit python;
+          nanobind = nanobindBootstrap;
+          inherit (torchMlirLlvmPackages) tblgen;
+          mlir = mlirForTorchMlir;
+          inherit (torchMlirLlvmPackages) llvm;
+        };
 
-        matmulTorch = pkgs.runCommand "matmul-torch.mlir" {
-          buildInputs = [ pythonWithTorch ];
-        } ''
-          export MATMUL_PY=${./src/matmul.py}
-          export PYTHONPATH="${./src}:${
-            ./sim
-          }:${torchMlir}/${python.sitePackages}:''${PYTHONPATH:-}"
-          python ${./src/compile-pytorch.py} > "$out"
-        '';
+        pipelineScripts = ./scripts/pipeline;
+        fpPrimsSv = ./rtl/fp/circt_fp_primitives.sv;
+        tinyStories1m = let
+          modelId = "roneneldan/TinyStories-1M";
+          revision = "77f1b168e219585646439073245fe87e56b3023e";
+          fetch = file: hash:
+            pkgs.fetchurl {
+              url =
+                "https://huggingface.co/${modelId}/resolve/${revision}/${file}";
+              inherit hash;
+            };
+          snapshot = pkgs.linkFarm "tinystories-1m-hf-snapshot" [
+            {
+              name = "config.json";
+              path = fetch "config.json"
+                "sha256-/3TDDV67WrHaDy6kea33GXxQS0K1UiqFjDNKuR7UlYw=";
+            }
+            {
+              name = "pytorch_model.bin";
+              path = fetch "pytorch_model.bin"
+                "sha256-B/lgnqiCuBY/87I9QOK4LLcV1AljG+sVyEsWTzh32uc=";
+            }
+          ];
+        in {
+          inherit modelId revision snapshot;
+          sourceDir = ./TinyStories;
+          adapterPy = ./TinyStories/model_adapter.py;
+        };
 
-        matmulLinalg = pkgs.runCommand "matmul-linalg.mlir" { } ''
-          ${torchMlir}/bin/torch-mlir-opt ${matmulTorch} \
-            --torch-function-to-torch-backend-pipeline \
-            --torch-backend-to-linalg-on-tensors-backend-pipeline \
-            -canonicalize > $out
-        '';
+        pipelineLib = import ./nix/pipeline.nix {
+          inherit pkgs mlir circt yosysPkg yosysSlang torchMlir python;
+          inherit pipelineScripts;
+        };
 
-        matmulCf = pkgs.runCommand "matmul-cf.mlir" { } ''
-          ${mlir}/bin/mlir-opt ${matmulLinalg} \
-            --empty-tensor-to-alloc-tensor \
-            --one-shot-bufferize="bufferize-function-boundaries" \
-            --buffer-results-to-out-params \
-            --bufferization-lower-deallocations \
-            --convert-bufferization-to-memref \
-            --memref-expand \
-            --convert-linalg-to-affine-loops \
-            --lower-affine \
-            --convert-scf-to-cf \
-            -canonicalize > $out
-        '';
+        modelRegistry = import ./nix/models.nix {
+          inherit (pipelineLib) registerModel;
+          inherit pythonWithTorch pythonWithTinyStories torchMlir python;
+          inherit tinyStories1m;
+          inherit fpPrimsSv;
+          compilePyTorch = ./scripts/compile-pytorch.py;
+          matmulPy = ./src/matmul.py;
+          matmulAdapterPy = ./src/matmul_adapter.py;
+          matmulSrcDir = ./src;
+          simDir = ./sim;
+        };
 
-        matmulCfStats = pkgs.runCommand "matmul-cf.stats" { } ''
-          ${mlir}/bin/mlir-opt ${matmulCf} --print-op-stats -o /dev/null > $out || true
-        '';
+        pipelineStagePackages =
+          pipelineLib.pipelineStagePackagesFromRegistry modelRegistry;
 
-        matmulHandshake = pkgs.runCommand "matmul-handshake.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulCf} \
-            -flatten-memref \
-            -flatten-memref-calls \
-            -canonicalize \
-            -handshake-legalize-memrefs \
-            --lower-cf-to-handshake \
-            -handshake-insert-buffers \
-            -canonicalize > $out
-        '';
-
-        matmulHsExt = pkgs.runCommand "matmul-hs-ext.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHandshake} \
-            -handshake-lower-extmem-to-hw \
-            -handshake-materialize-forks-sinks \
-            -canonicalize > $out
-        '';
-
-        matmulHw0 = pkgs.runCommand "matmul-hw0.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHsExt} \
-            -lower-handshake-to-hw \
-            -canonicalize > $out
-        '';
-
-        matmulHw = pkgs.runCommand "matmul-hw.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHw0} \
-            -lower-esi-types \
-            -lower-esi-ports \
-            -lower-esi-to-hw \
-            -canonicalize > $out
-        '';
-
-        matmulHwClean = pkgs.runCommand "matmul-hw-clean.mlir" { } ''
-          ${circt}/bin/circt-opt ${matmulHw} \
-            -firrtl-inner-symbol-dce \
-            -symbol-dce \
-            -canonicalize > $out
-        '';
-
-        matmulSv = pkgs.runCommand "matmul.sv" { } ''
-          ${circt}/bin/circt-opt ${matmulHwClean} \
-            -lower-seq-hlmem \
-            -lower-seq-fifo \
-            -lower-seq-shiftreg \
-            -lower-seq-to-sv \
-            -lower-hw-to-sv \
-            -canonicalize \
-            -export-verilog \
-            -o /dev/null > $out
-        '';
+        matmulSv = modelRegistry.matmul.pipeline.sv;
+        matmulIl = modelRegistry.matmul.pipeline.il;
+        tinyStories1mBaselineFloatSv =
+          modelRegistry."tiny-stories-1m-baseline-float".pipeline.sv;
+        tinyStories1mBaselineFloatIl =
+          modelRegistry."tiny-stories-1m-baseline-float".pipeline.il;
+        fpgaCapacities = {
+          slices = 74650;
+          clb_luts = 298600;
+          clb_ffs = 597200;
+          dsp = 1920;
+          bram36 = 955;
+          bram_kb = 34380;
+        };
 
         boardXdc = "${ypcbHack}/constraints/ypcb003381p1.xdc";
-        mkTopSv = name: src:
-          pkgs.runCommand "${name}.sv" { } ''
-            cp ${src} "$out"
+
+        mkYosysRtlil = { name, quiet ? false, memoryLimitKb ? null, script }:
+          pkgs.runCommand "${name}.il" { } ''
+            cat > run.ys <<EOF
+            ${script}
+            EOF
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } -m ${yosysSlang}/share/yosys/plugins/slang.so -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkYosysRtlil expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
           '';
 
-        mkMatmulJson = { name, topName, topSv }:
-          pkgs.runCommand "${name}.json" { } ''
-            ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -q -p "
-                read_rtlil ${matmulIl}
-                read_slang ${topSv}
-                hierarchy -top ${topName} -check
-                proc
-                opt
-                memory
-                flatten
-                synth_xilinx -family xc7 -top ${topName} -flatten -noiopad
-                write_json $out
-              "
+        synthStageNames = [
+          "stage1"
+          "stage2"
+          "stage3"
+          "stage4"
+          "stage5"
+          "stage6"
+          "stage7"
+          "stage8"
+          "stage9"
+        ];
+
+        mkSynthStageIl = { name, stageId, stageLabel, inputIl, topName
+          , topSv ? null, quiet ? false, memoryLimitKb ? null, preCommands ? [ ]
+          , commands }:
+          pkgs.runCommand "${name}-${stageId}.il" { } ''
+            cat > run.ys <<EOF
+            ${builtins.concatStringsSep "\n" ([ "read_rtlil ${inputIl}" ]
+              ++ pkgs.lib.optional (topSv != null) "read_slang ${topSv}"
+              ++ [ "hierarchy -top ${topName} -check" ] ++ preCommands
+              ++ commands ++ [ "write_rtlil $out" ])}
+            EOF
+
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            echo "[mkSynthJson:${name}] ${stageLabel}" >&2
+            ${yosysPkg}/bin/yosys ${pkgs.lib.optionalString quiet "-q"} ${
+              pkgs.lib.optionalString (topSv != null)
+              "-m ${yosysSlang}/share/yosys/plugins/slang.so"
+            } -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
           '';
+
+        mkSynthStageMemoryMapIl = { name, stageId, stageLabel, inputIl, topName
+          , quiet ? false, memoryLimitKb ? null }:
+          pkgs.runCommand "${name}-${stageId}.il" { } ''
+            ${pkgs.gawk}/bin/awk '
+              /^module / { mod = $2 }
+              /^[[:space:]]*cell \$mem/ { mods[mod] = 1 }
+              END {
+                for (mod in mods)
+                  print mod
+              }
+            ' ${inputIl} | sort > stage-modules.txt
+
+            cat > run.ys <<EOF
+            read_rtlil ${inputIl}
+            hierarchy -top ${topName} -check
+            EOF
+
+            while IFS= read -r moduleName; do
+              printf '%s\n' \
+                "cd $moduleName" \
+                'memory_map' \
+                'cd ..' \
+                >> run.ys
+            done < stage-modules.txt
+
+            printf '%s\n' "write_rtlil $out" >> run.ys
+
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            echo "[mkSynthJson:${name}] ${stageLabel}" >&2
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
+          '';
+
+        mkSynthStageJson = { name, stageId, stageLabel, inputIl, quiet ? false
+          , memoryLimitKb ? null }:
+          pkgs.runCommand "${name}.json" { } ''
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/filter_rtlil_modules.py
+            } \
+              --input ${inputIl} \
+              --output stage8-stripped.il \
+              --drop-escaped-uppercase-modules
+
+            cat > run.ys <<EOF
+            read_rtlil stage8-stripped.il
+            proc
+            write_json $out
+            EOF
+
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            echo "[mkSynthJson:${name}] ${stageLabel}" >&2
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
+          '';
+
+        mkSynthJsonStages = { name, modelIl, topName, topSv ? null
+          , quiet ? false, memoryLimitKb ? null }: rec {
+            stage1 = mkSynthStageIl {
+              inherit name topName topSv quiet memoryLimitKb;
+              stageId = "stage1";
+              stageLabel = "stage1 synth_xilinx begin:prepare";
+              inputIl = modelIl;
+              preCommands = [ "proc" ];
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run begin:prepare"
+              ];
+            };
+
+            stage2 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage2";
+              stageLabel = "stage2 synth_xilinx coarse:map_memory";
+              inputIl = stage1;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run coarse:map_memory"
+              ];
+            };
+
+            stage3 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage3";
+              stageLabel = "stage3 opt -fast -full";
+              inputIl = stage2;
+              commands = [ "opt -fast -full" ];
+            };
+
+            stage4 = mkSynthStageMemoryMapIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage4";
+              stageLabel = "stage4 targeted memory_map";
+              inputIl = stage3;
+            };
+
+            stage5 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage5";
+              stageLabel = "stage5 synth_xilinx fine:fine";
+              inputIl = stage4;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run fine:fine"
+              ];
+            };
+
+            stage6 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage6";
+              stageLabel = "stage6 synth_xilinx map_cells:map_cells";
+              inputIl = stage5;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_cells:map_cells"
+              ];
+            };
+
+            stage7 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage7";
+              stageLabel = "stage7 synth_xilinx map_ffs:map_ffs";
+              inputIl = stage6;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_ffs:map_ffs"
+              ];
+            };
+
+            stage8 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8";
+              stageLabel = "stage8 final synth/write";
+              inputIl = stage7;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_luts:check"
+              ];
+            };
+
+            stage9 = mkSynthStageJson {
+              inherit name quiet memoryLimitKb;
+              stageId = "stage9";
+              stageLabel = "stage9 write_json";
+              inputIl = stage8;
+            };
+
+            json = stage9;
+          };
+
+        mkSynthJson = { name, modelIl, topName, topSv ? null, quiet ? false
+          , memoryLimitKb ? null }:
+          pkgs.runCommand "${name}.json" { } ''
+            cat > run.ys <<EOF
+            read_rtlil ${modelIl}
+            ${pkgs.lib.optionalString (topSv != null) "read_slang ${topSv}"}
+            hierarchy -top ${topName} -check
+            proc
+            synth_xilinx -family xc7 -top ${topName} -noiopad -json $out
+            EOF
+
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            echo "[mkSynthJson:${name}] stage8 final synth/write" >&2
+            ${yosysPkg}/bin/yosys ${pkgs.lib.optionalString quiet "-q"} ${
+              pkgs.lib.optionalString (topSv != null)
+              "-m ${yosysSlang}/share/yosys/plugins/slang.so"
+            } -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
+          '';
+
+        mkSynthStagePackages = prefix: stages:
+          builtins.listToAttrs (map (stageName: {
+            name = "${prefix}-${stageName}";
+            value = builtins.getAttr stageName stages;
+          }) synthStageNames);
+
+        mkExternalizedMemoryPlan =
+          { name, modelIl, minModuleBits ? (128 * 1024) }:
+          pkgs.runCommand "${name}-external-memory-plan" { } ''
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/externalize_large_memories.py
+            } \
+              --input ${modelIl} \
+              --output-script externalize.ys \
+              --output-report report.json \
+              --min-module-bits ${toString minModuleBits}
+            mkdir -p "$out"
+            cp externalize.ys "$out/externalize.ys"
+            cp report.json "$out/report.json"
+          '';
+
+        mkTinyStoriesSelftestBundle = { name, topName, mainSv, modelIl
+          , capacities, externalMemoryMinModuleBits ? (128 * 1024) }:
+          let
+            top = pkgs.runCommand "${name}-top.sv" { } ''
+              ${python}/bin/python ${
+                ./scripts/pipeline/gen_tiny_stories_selftest_top.py
+              } \
+                --main-sv ${mainSv} \
+                --out "$out"
+            '';
+            modelOptIl = mkYosysRtlil {
+              name = "${name}-model-opt";
+              script = ''
+                read_rtlil ${modelIl}
+                hierarchy -top main -check
+                proc
+                opt_expr
+                opt_clean
+                clean
+                write_rtlil $out
+              '';
+            };
+            externalMemoryPlan = mkExternalizedMemoryPlan {
+              inherit name;
+              modelIl = modelOptIl;
+              minModuleBits = externalMemoryMinModuleBits;
+            };
+            modelShellIl = mkYosysRtlil {
+              name = "${name}-model-shell";
+              script = ''
+                read_rtlil ${modelOptIl}
+                script ${externalMemoryPlan}/externalize.ys
+                hierarchy -top main -check
+                write_rtlil $out
+              '';
+            };
+            stages = mkSynthJsonStages {
+              inherit name topName;
+              modelIl = modelShellIl;
+              topSv = top;
+              quiet = true;
+            };
+            utilizationReport = mkMappedJsonUtilizationReport {
+              inherit name capacities topName;
+              designJson = stages.json;
+            };
+          in { inherit stages utilizationReport; };
 
         mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
           let
