@@ -256,6 +256,8 @@
           modelRegistry."tiny-stories-1m-baseline-float".pipeline.sv;
         tinyStories1mBaselineFloatIl =
           modelRegistry."tiny-stories-1m-baseline-float".pipeline.il;
+        tinyStories1mBaselineFloatMainSv =
+          "${tinyStories1mBaselineFloatSv}/sv/main.sv";
         fpgaCapacities = {
           slices = 74650;
           clb_luts = 298600;
@@ -522,6 +524,26 @@
             fi
           '';
 
+        mkMappedJsonUtilizationReport =
+          { name, capacities, topName, designJson }:
+          pkgs.runCommand "${name}-utilization" { } ''
+            mkdir -p "$out"
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/write_utilization_report.py
+            } \
+              --design-json ${designJson} \
+              --top ${topName} \
+              --summary-json "$out/summary.json" \
+              --summary-txt "$out/summary.txt" \
+              --stat-json "$out/stat.json" \
+              --capacity-slices ${toString capacities.slices} \
+              --capacity-clb-luts ${toString capacities.clb_luts} \
+              --capacity-clb-ffs ${toString capacities.clb_ffs} \
+              --capacity-dsp ${toString capacities.dsp} \
+              --capacity-bram36 ${toString capacities.bram36} \
+              --capacity-bram-kb ${toString capacities.bram_kb}
+          '';
+
         mkSynthStagePackages = prefix: stages:
           builtins.listToAttrs (map (stageName: {
             name = "${prefix}-${stageName}";
@@ -634,10 +656,37 @@
               --output_file "$out"
           '';
 
-        matmulBitstreamTop =
-          mkTopSv "matmul-bitstream-top" ./fpga/rtl/matmul_bitstream_top.sv;
-        matmulBitstreamJson = mkMatmulJson {
+        tinyStories1mBaselineFloatSynthStages = mkSynthJsonStages {
+          name = "tiny-stories-1m-baseline-float";
+          modelIl = tinyStories1mBaselineFloatIl;
+          topName = "main";
+          quiet = true;
+        };
+        tinyStories1mBaselineFloatUtilizationReport =
+          mkMappedJsonUtilizationReport {
+            name = "tiny-stories-1m-baseline-float";
+            capacities = fpgaCapacities;
+            topName = "main";
+            designJson = tinyStories1mBaselineFloatSynthStages.json;
+          };
+        tinyStories1mBaselineFloatSelftestAllMemory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-float-selftest-all-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = tinyStories1mBaselineFloatMainSv;
+            modelIl = tinyStories1mBaselineFloatIl;
+            capacities = fpgaCapacities;
+          };
+        synthStagePackages =
+          mkSynthStagePackages "tiny-stories-1m-baseline-float"
+          tinyStories1mBaselineFloatSynthStages // mkSynthStagePackages
+          "tiny-stories-1m-baseline-float-selftest-all-memory"
+          tinyStories1mBaselineFloatSelftestAllMemory.stages;
+
+        matmulBitstreamTop = ./fpga/rtl/matmul_bitstream_top.sv;
+        matmulBitstreamJson = mkSynthJson {
           name = "matmul-bitstream";
+          modelIl = matmulIl;
           topName = "matmul_bitstream_top";
           topSv = matmulBitstreamTop;
         };
@@ -656,10 +705,10 @@
           framesBase = "matmul";
         };
 
-        matmulSelftestTop =
-          mkTopSv "matmul-selftest-top" ./fpga/rtl/matmul_selftest_top.sv;
-        matmulSelftestJson = mkMatmulJson {
+        matmulSelftestTop = ./fpga/rtl/matmul_selftest_top.sv;
+        matmulSelftestJson = mkSynthJson {
           name = "matmul-selftest";
+          modelIl = matmulIl;
           topName = "matmul_selftest_top";
           topSv = matmulSelftestTop;
         };
@@ -736,19 +785,6 @@
           cp wave.vcd "$out"
         '';
 
-        matmulIl = pkgs.runCommand "matmul.il" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -qp \
-              "read_slang ${matmulSv}; proc; opt; memory; flatten; opt; write_rtlil $out" \
-              > /dev/null
-        '';
-
-        matmulYosysStat = pkgs.runCommand "matmul-yosys.stat" { } ''
-          set -euo pipefail
-          ${yosysPkg}/bin/yosys -p \
-              "read_rtlil ${matmulIl}; tee -o $out stat -json"
-        '';
-
       in {
         devShells.default = pkgs.mkShell {
           packages = [
@@ -783,35 +819,30 @@
 
         packages = {
           default = matmulSv;
+          inherit circt;
+          python-with-torch = pythonWithTorch;
+          yosys = yosysPkg;
+          yosys-slang = yosysSlang;
           torch-mlir = torchMlir;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
-          matmul-torch = matmulTorch;
-          matmul-linalg = matmulLinalg;
-          matmul-cf = matmulCf;
-          matmul-cf-stats = matmulCfStats;
-          matmul-handshake = matmulHandshake;
-          matmul-hs-ext = matmulHsExt;
-          matmul-hw0 = matmulHw0;
-          matmul-hw = matmulHw;
-          matmul-hw-clean = matmulHwClean;
-          matmul-sv = matmulSv;
-          matmul-il = matmulIl;
-          matmul-yosys-stat = matmulYosysStat;
           matmul-bitstream = matmulBitstream;
           matmul-fasm = matmulFasm;
           matmul-bitstream-fasm = matmulFasm;
-          matmul-bitstream-top = matmulBitstreamTop;
           matmul-bitstream-xdc = matmulBitstreamXdc;
           matmul-bitstream-json = matmulBitstreamJson;
           matmul-selftest-bitstream = matmulSelftestBitstream;
           matmul-selftest-fasm = matmulSelftestFasm;
-          matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
-        };
+          tiny-stories-1m-baseline-float-utilization =
+            tinyStories1mBaselineFloatUtilizationReport;
+          tiny-stories-1m-baseline-float-selftest-all-memory-utilization =
+            tinyStories1mBaselineFloatSelftestAllMemory.utilizationReport;
+          tiny-stories-1m-snapshot = tinyStories1m.snapshot;
+        } // pipelineStagePackages // synthStagePackages;
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {
@@ -846,8 +877,11 @@
             verilator \
               --lint-only \
               --timing \
+              --language 1800-2017 \
+              --top-module tb \
               --Wall \
               --Wno-fatal \
+              --Wno-TIMESCALEMOD \
               -I${tbDataSv} \
               -f ${matmulSv}/sources.f \
               ${./sim}/tb_main.sv
