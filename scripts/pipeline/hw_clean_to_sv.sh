@@ -19,15 +19,9 @@ cleanup_tmp() {
 }
 trap cleanup_tmp EXIT
 
-if command -v rg >/dev/null 2>&1; then
-  rg -No 'hw\.module\.extern\s+@([A-Za-z_][A-Za-z0-9_]*)' "$input" \
-    | sed -E 's/.*@([A-Za-z_][A-Za-z0-9_]*).*/\1/' \
-    | sort -u >"$tmp_externs" || true
-else
-  grep -oE 'hw\.module\.extern[[:space:]]+@([A-Za-z_][A-Za-z0-9_]*)' "$input" \
-    | sed -E 's/.*@([A-Za-z_][A-Za-z0-9_]*).*/\1/' \
-    | sort -u >"$tmp_externs" || true
-fi
+grep -oE 'hw\.module\.extern[[:space:]]+@([A-Za-z_][A-Za-z0-9_]*)' "$input" \
+  | sed -E 's/.*@([A-Za-z_][A-Za-z0-9_]*).*/\1/' \
+  | sort -u >"$tmp_externs" || true
 
 if [[ -s "$tmp_externs" ]]; then
   if [[ "${ALLOW_HW_EXTERNS:-0}" != "1" ]]; then
@@ -47,11 +41,7 @@ if [[ -s "$tmp_externs" ]]; then
 
   : >"$tmp_missing"
   while IFS= read -r mod; do
-    if command -v rg >/dev/null 2>&1; then
-      has_impl_cmd=(rg -n "^module[[:space:]]+${mod}\\b" "$FP_PRIMS_SV")
-    else
-      has_impl_cmd=(grep -nE "^module[[:space:]]+${mod}\\b" "$FP_PRIMS_SV")
-    fi
+    has_impl_cmd=(grep -nE "^module[[:space:]]+${mod}\\b" "$FP_PRIMS_SV")
     if ! "${has_impl_cmd[@]}" >/dev/null 2>&1; then
       echo "$mod" >>"$tmp_missing"
     fi
