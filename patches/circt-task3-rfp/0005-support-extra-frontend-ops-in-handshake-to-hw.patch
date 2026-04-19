@@ -1,0 +1,213 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Thu, 5 Mar 2026 11:52:21 +0100
+Subject: [PATCH 5/7] Support extra frontend ops in HandshakeToHW
+
+---
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index 1cf0419dd..e728892ba8a4fdc58c1b5f3526c0234bcbee448c 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -24,7 +24,9 @@
+ #include "circt/Support/BackedgeBuilder.h"
+ #include "circt/Support/ValueMapper.h"
+ #include "mlir/Dialect/Arith/IR/Arith.h"
++#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+ #include "mlir/Dialect/MemRef/IR/MemRef.h"
++#include "mlir/Dialect/Math/IR/Math.h"
+ #include "mlir/IR/ImplicitLocOpBuilder.h"
+ #include "mlir/Pass/Pass.h"
+ #include "mlir/Pass/PassManager.h"
+@@ -151,6 +153,8 @@ static std::string getTypeName(Location loc, Type type) {
+       typeName += "_si" + std::to_string(type.getIntOrFloatBitWidth());
+     else
+       typeName += "_ui" + std::to_string(type.getIntOrFloatBitWidth());
++  } else if (auto floatType = dyn_cast<FloatType>(type)) {
++    typeName += "_f" + std::to_string(floatType.getWidth());
+   } else if (auto tupleType = dyn_cast<TupleType>(type)) {
+     typeName += "_tuple";
+     for (auto elementType : tupleType.getTypes())
+@@ -185,6 +189,11 @@ static std::string getSubModuleName(Operation *oldOp) {
+         subModuleName += "_c" + std::to_string(intAttr.getUInt());
+       else
+         subModuleName += "_c" + std::to_string((uint64_t)intAttr.getInt());
++    } else if (auto floatAttr = dyn_cast<FloatAttr>(constOp.getValue())) {
++      auto bits = floatAttr.getValue().bitcastToAPInt();
++      llvm::SmallString<32> bitsStr;
++      bits.toString(bitsStr, /*Radix=*/16, /*Signed=*/false);
++      subModuleName += "_c0x" + bitsStr.str().str();
+     } else
+       oldOp->emitError("unsupported constant type");
+   }
+@@ -208,6 +217,8 @@ static std::string getSubModuleName(Operation *oldOp) {
+   // Add compare kind.
+   if (auto comOp = dyn_cast<mlir::arith::CmpIOp>(oldOp))
+     subModuleName += "_" + stringifyEnum(comOp.getPredicate()).str();
++  if (auto comOp = dyn_cast<mlir::arith::CmpFOp>(oldOp))
++    subModuleName += "_" + stringifyEnum(comOp.getPredicate()).str();
+ 
+   // Add buffer information.
+   if (auto bufferOp = dyn_cast<handshake::BufferOp>(oldOp)) {
+@@ -220,9 +231,18 @@ static std::string getSubModuleName(Operation *oldOp) {
+     if (auto initValues = bufferOp.getInitValues()) {
+       subModuleName += "_init";
+       for (const Attribute e : *initValues) {
+-        assert(isa<IntegerAttr>(e));
+-        subModuleName +=
+-            "_" + std::to_string(dyn_cast<IntegerAttr>(e).getInt());
++        if (auto intAttr = dyn_cast<IntegerAttr>(e)) {
++          subModuleName += "_" + std::to_string(intAttr.getInt());
++          continue;
++        }
++        if (auto floatAttr = dyn_cast<FloatAttr>(e)) {
++          auto bits = floatAttr.getValue().bitcastToAPInt();
++          llvm::SmallString<32> bitsStr;
++          bits.toString(bitsStr, /*Radix=*/16, /*Signed=*/false);
++          subModuleName += "_f0x" + bitsStr.str().str();
++          continue;
++        }
++        subModuleName += "_unk";
+       }
+     }
+   }
+@@ -693,6 +713,10 @@ static Value createZeroDataConst(RTLBuilder &s, Location loc, Type type) {
+       .Case<IntType, IntegerType>([&](auto type) {
+         return s.constant(type.getIntOrFloatBitWidth(), 0);
+       })
++      .Case<FloatType>([&](auto type) {
++        Value zeroInt = s.constant(type.getWidth(), 0);
++        return hw::BitcastOp::create(s.b, loc, type, zeroInt);
++      })
+       .Case<hw::StructType>([&](auto structType) {
+         SmallVector<Value> zeroValues;
+         for (auto field : structType.getElements())
+@@ -1104,6 +1128,18 @@ public:
+   }
+ };
+ 
++class AssertConversionPattern : public OpConversionPattern<cf::AssertOp> {
++public:
++  using OpConversionPattern::OpConversionPattern;
++  LogicalResult
++  matchAndRewrite(cf::AssertOp op, OpAdaptor adaptor,
++                  ConversionPatternRewriter &rewriter) const override {
++    // The structural HW lowering path does not preserve software-style asserts.
++    rewriter.eraseOp(op);
++    return success();
++  }
++};
++
+ // Converts an arbitrary operation into a unit rate actor. A unit rate actor
+ // will transact once all inputs are valid and its output is ready.
+ template <typename TIn, typename TOut = TIn>
+@@ -1143,7 +1179,7 @@ public:
+   void buildModule(hw::StructCreateOp op, BackedgeBuilder &bb, RTLBuilder &s,
+                    hw::HWModulePortAccessor &ports) const override {
+     auto unwrappedIO = unwrapIO(s, bb, ports);
+-    auto structType = op.getResult().getType();
++    auto structType = toValidType(op.getResult().getType());
+     buildUnitRateJoinLogic(s, unwrappedIO, [&](ValueRange inputs) {
+       return s.pack(inputs, structType);
+     });
+@@ -1280,6 +1319,22 @@ public:
+   };
+ };
+ 
++template <typename TOp, comb::ICmpPredicate predicate>
++class MinMaxConversionPattern : public HandshakeConversionPattern<TOp> {
++public:
++  using HandshakeConversionPattern<TOp>::HandshakeConversionPattern;
++  void buildModule(TOp op, BackedgeBuilder &bb, RTLBuilder &s,
++                   hw::HWModulePortAccessor &ports) const override {
++    auto unwrappedIO = this->unwrapIO(s, bb, ports);
++    this->buildUnitRateJoinLogic(s, unwrappedIO, [&](ValueRange inputs) {
++      auto cmp = comb::ICmpOp::create(s.b, op.getLoc(), predicate, inputs[0],
++                                      inputs[1]);
++      // For min/max, equal-valued inputs are interchangeable.
++      return s.mux(cmp, {inputs[1], inputs[0]});
++    });
++  };
++};
++
+ class TruncateConversionPattern
+     : public HandshakeConversionPattern<arith::TruncIOp> {
+ public:
+@@ -1533,10 +1588,11 @@ public:
+     auto c0I0 = s.constant(0, 0);
+ 
+     auto cl2dim = llvm::Log2_64_Ceil(op.getMemRefType().getShape()[0]);
++    auto elemType = toValidType(op.getMemRefType().getElementType());
+     auto hlmem = seq::HLMemOp::create(
+         s.b, loc, s.clk, s.rst,
+         "_handshake_memory_" + std::to_string(op.getId()),
+-        op.getMemRefType().getShape(), op.getMemRefType().getElementType());
++        op.getMemRefType().getShape(), elemType);
+ 
+     // Create load ports...
+     for (auto &ld : loadPorts) {
+@@ -1628,8 +1684,24 @@ public:
+     auto unwrappedIO = this->unwrapIO(s, bb, ports);
+     unwrappedIO.outputs[0].valid->setValue(unwrappedIO.inputs[0].valid);
+     unwrappedIO.inputs[0].ready->setValue(unwrappedIO.outputs[0].ready);
+-    auto constantValue = op->getAttrOfType<IntegerAttr>("value").getValue();
+-    unwrappedIO.outputs[0].data->setValue(s.constant(constantValue));
++    auto valueAttr = op->getAttr("value");
++    if (auto intAttr = dyn_cast<IntegerAttr>(valueAttr)) {
++      unwrappedIO.outputs[0].data->setValue(s.constant(intAttr.getValue()));
++      return;
++    }
++    if (auto floatAttr = dyn_cast<FloatAttr>(valueAttr)) {
++      auto bits = floatAttr.getValue().bitcastToAPInt();
++      Value bitPattern = s.constant(bits);
++      auto outType = static_cast<Value>(*unwrappedIO.outputs[0].data).getType();
++      if (bitPattern.getType() == outType) {
++        unwrappedIO.outputs[0].data->setValue(bitPattern);
++      } else {
++        unwrappedIO.outputs[0].data->setValue(
++            hw::BitcastOp::create(s.b, op.getLoc(), outType, bitPattern));
++      }
++      return;
++    }
++    op->emitError("unsupported constant type");
+   };
+ };
+ 
+@@ -1908,8 +1980,8 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+   auto ls = HandshakeLoweringState{op->getParentOfType<mlir::ModuleOp>(),
+                                    instanceUniquer};
+   RewritePatternSet patterns(op.getContext());
+-  patterns.insert<FuncOpConversionPattern, ReturnConversionPattern>(
+-      op.getContext());
++  patterns.insert<FuncOpConversionPattern, ReturnConversionPattern,
++                  AssertConversionPattern>(op.getContext());
+   patterns.insert<JoinConversionPattern, ForkConversionPattern,
+                   SyncConversionPattern>(typeConverter, op.getContext(),
+                                          moduleBuilder, ls);
+@@ -1929,7 +2001,11 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+       UnitRateConversionPattern<arith::ShLIOp, comb::ShlOp>,
+       UnitRateConversionPattern<arith::ShRUIOp, comb::ShrUOp>,
+       UnitRateConversionPattern<arith::ShRSIOp, comb::ShrSOp>,
+       UnitRateConversionPattern<arith::SelectOp, comb::MuxOp>,
++      MinMaxConversionPattern<arith::MaxSIOp, comb::ICmpPredicate::sgt>,
++      MinMaxConversionPattern<arith::MinSIOp, comb::ICmpPredicate::slt>,
++      MinMaxConversionPattern<arith::MaxUIOp, comb::ICmpPredicate::ugt>,
++      MinMaxConversionPattern<arith::MinUIOp, comb::ICmpPredicate::ult>,
+       // HW operations.
+       StructCreateConversionPattern,
+       // Handshake operations.
+diff --git a/lib/Dialect/Handshake/HandshakeUtils.cpp b/lib/Dialect/Handshake/HandshakeUtils.cpp
+index 856c3bee5..ca326f454 100644
+--- a/lib/Dialect/Handshake/HandshakeUtils.cpp
++++ b/lib/Dialect/Handshake/HandshakeUtils.cpp
+@@ -154,6 +154,9 @@ Type circt::handshake::toValidType(Type t) {
+   return TypeSwitch<Type, Type>(t)
+       .Case<IndexType>(
+           [&](IndexType it) { return IntegerType::get(it.getContext(), 64); })
++      .Case<FloatType>([&](FloatType ft) {
++        return IntegerType::get(ft.getContext(), ft.getWidth());
++      })
+       .Case<TupleType>([&](TupleType tt) {
+         llvm::SmallVector<Type> types;
+         for (auto innerType : tt)
+-- 
+2.53.0
