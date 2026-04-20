@@ -280,15 +280,6 @@ package circt_fp_fixed_pkg;
   endfunction
 
   function automatic logic signed [31:0]
-      q_from_u32(input logic [31:0] x);
-    logic signed [63:0] wide;
-    begin
-      wide = $signed({32'b0, x});
-      q_from_u32 = sat32(wide <<< 16);
-    end
-  endfunction
-
-  function automatic logic signed [31:0]
       q_roundeven(input logic signed [31:0] x);
     logic sign;
     logic signed [31:0] mag;
@@ -443,25 +434,7 @@ endmodule
   ((iv <= 0) ? 8'h00 : (iv >= 32'sd255) ? 8'hff : iv[7:0]))
 
 `FP_TO_F32_MODULE(arith_sitofp_in_ui32_out_f32, [31:0], q_from_s32(in0))
-
-module arith_uitofp_in_ui1_out_f32 (
-  input  logic        in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] qv;
-  always_comb begin
-    qv = in0 ? (32'sd1 <<< 16) : 32'sd0;
-  end
-  assign out0 = q16_16_to_f32(qv);
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
-
+`FP_TO_F32_MODULE(arith_uitofp_in_ui1_out_f32, , (in0 ? (32'sd1 <<< 16) : 32'sd0))
 `FP_TO_F32_MODULE(arith_truncf_in_f64_out_f32, [63:0], f64_to_q16_16(in0))
 
 `FP_UNARY_F2F_MODULE(math_roundeven_in_f32_out_f32, q_roundeven(x_q))
