@@ -486,12 +486,46 @@
             json = stage9;
           };
 
-        mkSynthJson = { name, modelIl, topName, topSv ? null, quiet ? false
-          , memoryLimitKb ? null }:
+        mkSynthJson = { name, modelIl ? null, svFilelist ? null, topName
+          , topSv ? null, quiet ? false, memoryLimitKb ? null }:
+          let
+            useModelIl = modelIl != null;
+            useSvFilelist = svFilelist != null;
+            useSlang = topSv != null || useSvFilelist;
+          in assert pkgs.lib.assertMsg (useModelIl != useSvFilelist)
+            "mkSynthJson requires exactly one of `modelIl` or `svFilelist`";
           pkgs.runCommand "${name}.json" { } ''
             cat > run.ys <<EOF
-            read_rtlil ${modelIl}
-            ${pkgs.lib.optionalString (topSv != null) "read_slang ${topSv}"}
+            ${pkgs.lib.optionalString useModelIl "read_rtlil ${modelIl}"}
+            EOF
+
+            ${pkgs.lib.optionalString useSvFilelist ''
+              {
+                printf 'read_slang --threads 1 --no-proc'
+                while IFS= read -r line; do
+                  if [ -z "''${line//[[:space:]]/}" ]; then
+                    continue
+                  fi
+                  if [ "''${line#\#}" != "$line" ]; then
+                    continue
+                  fi
+                  printf ' %q' "$line"
+                done < ${svFilelist}
+                ${
+                  pkgs.lib.optionalString (topSv != null)
+                  "printf ' %q' ${topSv}"
+                }
+                printf '\n'
+              } >> run.ys
+            ''}
+
+            ${pkgs.lib.optionalString (!useSvFilelist && topSv != null) ''
+              {
+                printf 'read_slang %q\n' ${topSv}
+              } >> run.ys
+            ''}
+
+            cat >> run.ys <<EOF
             hierarchy -top ${topName} -check
             proc
             synth_xilinx -family xc7 -top ${topName} -noiopad -json $out
@@ -503,7 +537,7 @@
 
             echo "[mkSynthJson:${name}] stage8 final synth/write" >&2
             ${yosysPkg}/bin/yosys ${pkgs.lib.optionalString quiet "-q"} ${
-              pkgs.lib.optionalString (topSv != null)
+              pkgs.lib.optionalString useSlang
               "-m ${yosysSlang}/share/yosys/plugins/slang.so"
             } -s run.ys
 
@@ -692,7 +726,7 @@
         matmulSelftestTop = ./fpga/rtl/matmul_selftest_top.sv;
         matmulSelftestJson = mkSynthJson {
           name = "matmul-selftest";
-          modelIl = matmulIl;
+          svFilelist = "${matmulSv}/sources.f";
           topName = "matmul_selftest_top";
           topSv = matmulSelftestTop;
         };
