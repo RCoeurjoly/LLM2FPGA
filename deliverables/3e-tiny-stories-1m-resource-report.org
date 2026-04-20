@@ -14,16 +14,28 @@ nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
 Result:
 
 #+begin_export ascii
-top_module: tiny_stories_selftest_top
-lut_total: 43326844 / 298600 (14509.994641661086%)
-ff_total: 62486517 / 597200 (10463.247990622907%)
-dsp_total: 0 / 1920 (0.0%)
-bram36_equivalent: 0.0 / 955 (0.0%)
-muxf7: 1024555
-muxf8: 310358
-lutram_ram32m: 0
-lutram_ram64m: 0
-fits_overall: False
+top: tiny_stories_selftest_top
+estimated mapped resource usage:
+- slices_lower_bound: 7312083 / 74650 (9795.15%)
+- clb_luts: 42123250 / 298600 (14106.92%)
+- clb_ffs: 58496658 / 597200 (9795.15%)
+- dsp: 0 / 1920 (0.00%)
+- bram36: 0 / 955 (0.00%)
+- bram36_equiv: 0 / 955 (0.00%)
+- bram_kb: 0 / 34380 (0.00%)
+largest leaf cell types:
+- FDRE: 58495912
+- LUT3: 20249302
+- LUT6: 16692052
+- LUT2: 2655313
+- LUT4: 1469411
+- MUXF7: 1279439
+- LUT5: 662724
+- LUT1: 394448
+- MUXF8: 381564
+- CARRY4: 344999
+- INV: 223849
+- FDSE: 675
 #+end_export
 
 The conclusion from task 3 is that we have to work on resource minimization next.
