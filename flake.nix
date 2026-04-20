@@ -245,7 +245,6 @@
           pipelineLib.pipelineStagePackagesFromRegistry modelRegistry;
 
         matmulSv = modelRegistry.matmul.pipeline.sv;
-        matmulIl = modelRegistry.matmul.pipeline.il;
         tinyStories1mBaselineFloatIl =
           modelRegistry."tiny-stories-1m-baseline-float".pipeline.il;
         tinyStoriesSelftestTop = ./rtl/tiny_stories_selftest_top.sv;
@@ -492,7 +491,7 @@
           EOF
         '';
 
-        appendReadSlangFromFilelist = { svFilelist, extraSources ? [ ] }: ''
+        appendReadSlangFromFilelist = { svFilelist, topSv }: ''
           {
             printf 'read_slang --threads 1 --no-proc'
             while IFS= read -r line; do
@@ -504,32 +503,24 @@
               fi
               printf ' %q' "$line"
             done < ${svFilelist}
-            ${
-              pkgs.lib.concatMapStringsSep "\n"
-              (source: "printf ' %q' ${source}") extraSources
-            }
+            printf ' %q' ${topSv}
             printf '\n'
           } >> run.ys
         '';
 
-        mkSynthJson = { name, modelIl ? null, svFilelist ? null, topName
-          , topSv ? null, quiet ? false, memoryLimitKb ? null }:
+        mkSynthJson =
+          { name, modelIl ? null, svFilelist ? null, topName, topSv }:
           let
             useModelIl = modelIl != null;
             useSvFilelist = svFilelist != null;
-            useSlang = topSv != null || useSvFilelist;
             inputScript = if useModelIl then
-              appendYosysCommands ([ "read_rtlil ${modelIl}" ]
-                ++ pkgs.lib.optionals (topSv != null) [ "read_slang ${topSv}" ])
+              appendYosysCommands
+              ([ "read_rtlil ${modelIl}" ] ++ [ "read_slang ${topSv}" ])
             else
               appendReadSlangFromFilelist {
                 inherit svFilelist;
-                extraSources = pkgs.lib.optionals (topSv != null) [ topSv ];
+                inherit topSv;
               };
-            yosysArgs = pkgs.lib.concatStringsSep " "
-              ((pkgs.lib.optional quiet "-q") ++ (pkgs.lib.optional useSlang
-                "-m ${yosysSlang}/share/yosys/plugins/slang.so")
-                ++ [ "-s run.ys" ]);
           in assert pkgs.lib.assertMsg (useModelIl != useSvFilelist)
             "mkSynthJson requires exactly one of `modelIl` or `svFilelist`";
           pkgs.runCommand "${name}.json" { } ''
@@ -540,12 +531,8 @@
               "synth_xilinx -family xc7 -top ${topName} -noiopad -json $out"
             ]}
 
-            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
-              ulimit -v ${toString memoryLimitKb}
-            ''}
-
             echo "[mkSynthJson:${name}] stage8 final synth/write" >&2
-            ${yosysPkg}/bin/yosys ${yosysArgs}
+            ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -s run.ys
 
             if [ ! -e "$out" ]; then
               echo "mkSynthJson expected output path was not created: $out" >&2
@@ -707,28 +694,6 @@
           "tiny-stories-1m-baseline-float-selftest-all-memory"
           tinyStories1mBaselineFloatSelftestAllMemory.stages;
 
-        matmulBitstreamTop = ./fpga/rtl/matmul_bitstream_top.sv;
-        matmulBitstreamJson = mkSynthJson {
-          name = "matmul-bitstream";
-          modelIl = matmulIl;
-          topName = "matmul_bitstream_top";
-          topSv = matmulBitstreamTop;
-        };
-        matmulBitstreamXdc = mkXdc {
-          name = "matmul-bitstream";
-          extraConstraints = [ ./fpga/constraints/matmul_bitstream_ports.xdc ];
-        };
-        matmulFasm = mkFasm {
-          name = "matmul-bitstream";
-          xdc = matmulBitstreamXdc;
-          json = matmulBitstreamJson;
-        };
-        matmulBitstream = mkBitstream {
-          name = "matmul";
-          fasm = matmulFasm;
-          framesBase = "matmul";
-        };
-
         matmulSelftestTop = ./fpga/rtl/matmul_selftest_top.sv;
         matmulSelftestJson = mkSynthJson {
           name = "matmul-selftest";
@@ -852,11 +817,6 @@
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
-          matmul-bitstream = matmulBitstream;
-          matmul-fasm = matmulFasm;
-          matmul-bitstream-fasm = matmulFasm;
-          matmul-bitstream-xdc = matmulBitstreamXdc;
-          matmul-bitstream-json = matmulBitstreamJson;
           matmul-selftest-bitstream = matmulSelftestBitstream;
           matmul-selftest-fasm = matmulSelftestFasm;
           matmul-selftest-xdc = matmulSelftestXdc;

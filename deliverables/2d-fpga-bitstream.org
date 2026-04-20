@@ -12,12 +12,9 @@ Hardware:
 - Enclosure: OWC Mercury Helios 3S
 
 Main files:
-- 'fpga/rtl/matmul_bitstream_top.sv'
 - 'fpga/rtl/matmul_selftest_top.sv'
-- 'fpga/constraints/matmul_bitstream_ports.xdc'
 - 'fpga/constraints/matmul_selftest.xdc'
 - 'flake.nix' packages:
-  - '.#matmul-bitstream'
   - '.#matmul-selftest-bitstream'
 
 Commands:
