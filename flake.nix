@@ -486,60 +486,66 @@
             json = stage9;
           };
 
+        appendYosysCommands = commands: ''
+          cat >> run.ys <<EOF
+          ${pkgs.lib.concatStringsSep "\n" commands}
+          EOF
+        '';
+
+        appendReadSlangFromFilelist = { svFilelist, extraSources ? [ ] }: ''
+          {
+            printf 'read_slang --threads 1 --no-proc'
+            while IFS= read -r line; do
+              if [ -z "''${line//[[:space:]]/}" ]; then
+                continue
+              fi
+              if [ "''${line#\#}" != "$line" ]; then
+                continue
+              fi
+              printf ' %q' "$line"
+            done < ${svFilelist}
+            ${
+              pkgs.lib.concatMapStringsSep "\n"
+              (source: "printf ' %q' ${source}") extraSources
+            }
+            printf '\n'
+          } >> run.ys
+        '';
+
         mkSynthJson = { name, modelIl ? null, svFilelist ? null, topName
           , topSv ? null, quiet ? false, memoryLimitKb ? null }:
           let
             useModelIl = modelIl != null;
             useSvFilelist = svFilelist != null;
             useSlang = topSv != null || useSvFilelist;
+            inputScript = if useModelIl then
+              appendYosysCommands ([ "read_rtlil ${modelIl}" ]
+                ++ pkgs.lib.optionals (topSv != null) [ "read_slang ${topSv}" ])
+            else
+              appendReadSlangFromFilelist {
+                inherit svFilelist;
+                extraSources = pkgs.lib.optionals (topSv != null) [ topSv ];
+              };
+            yosysArgs = pkgs.lib.concatStringsSep " "
+              ((pkgs.lib.optional quiet "-q") ++ (pkgs.lib.optional useSlang
+                "-m ${yosysSlang}/share/yosys/plugins/slang.so")
+                ++ [ "-s run.ys" ]);
           in assert pkgs.lib.assertMsg (useModelIl != useSvFilelist)
             "mkSynthJson requires exactly one of `modelIl` or `svFilelist`";
           pkgs.runCommand "${name}.json" { } ''
-            cat > run.ys <<EOF
-            ${pkgs.lib.optionalString useModelIl "read_rtlil ${modelIl}"}
-            EOF
-
-            ${pkgs.lib.optionalString useSvFilelist ''
-              {
-                printf 'read_slang --threads 1 --no-proc'
-                while IFS= read -r line; do
-                  if [ -z "''${line//[[:space:]]/}" ]; then
-                    continue
-                  fi
-                  if [ "''${line#\#}" != "$line" ]; then
-                    continue
-                  fi
-                  printf ' %q' "$line"
-                done < ${svFilelist}
-                ${
-                  pkgs.lib.optionalString (topSv != null)
-                  "printf ' %q' ${topSv}"
-                }
-                printf '\n'
-              } >> run.ys
-            ''}
-
-            ${pkgs.lib.optionalString (!useSvFilelist && topSv != null) ''
-              {
-                printf 'read_slang %q\n' ${topSv}
-              } >> run.ys
-            ''}
-
-            cat >> run.ys <<EOF
-            hierarchy -top ${topName} -check
-            proc
-            synth_xilinx -family xc7 -top ${topName} -noiopad -json $out
-            EOF
+            ${inputScript}
+            ${appendYosysCommands [
+              "hierarchy -top ${topName} -check"
+              "proc"
+              "synth_xilinx -family xc7 -top ${topName} -noiopad -json $out"
+            ]}
 
             ${pkgs.lib.optionalString (memoryLimitKb != null) ''
               ulimit -v ${toString memoryLimitKb}
             ''}
 
             echo "[mkSynthJson:${name}] stage8 final synth/write" >&2
-            ${yosysPkg}/bin/yosys ${pkgs.lib.optionalString quiet "-q"} ${
-              pkgs.lib.optionalString useSlang
-              "-m ${yosysSlang}/share/yosys/plugins/slang.so"
-            } -s run.ys
+            ${yosysPkg}/bin/yosys ${yosysArgs}
 
             if [ ! -e "$out" ]; then
               echo "mkSynthJson expected output path was not created: $out" >&2
