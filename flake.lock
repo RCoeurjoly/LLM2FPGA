@@ -2,7 +2,9 @@
   "nodes": {
     "circt-nix": {
       "inputs": {
-        "circt-src": "circt-src",
+        "circt-src": [
+          "circt-src"
+        ],
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "llvm-submodule-src": "llvm-submodule-src",
@@ -27,16 +29,16 @@
     "circt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1774046910,
-        "narHash": "sha256-WfeWi+9hndpOQESoiRKeU+KkJZlH98FCSbfU8zfjdhg=",
-        "owner": "llvm",
+        "lastModified": 1776679965,
+        "narHash": "sha256-jjkb17tbamoDpA+j7ZoZeNynTrZJgkUnbJsSdmj8IZ0=",
+        "owner": "RCoeurjoly",
         "repo": "circt",
-        "rev": "34e55337aaa26fa20d25c1311f6f1df0caee4735",
+        "rev": "ef651cd82539964928c9de44a93a9f1871a89fde",
         "type": "github"
       },
       "original": {
-        "owner": "llvm",
-        "ref": "firtool-1.143.0",
+        "owner": "RCoeurjoly",
+        "ref": "task3",
         "repo": "circt",
         "type": "github"
       }
@@ -300,6 +302,7 @@
     "root": {
       "inputs": {
         "circt-nix": "circt-nix",
+        "circt-src": "circt-src",
         "flake-utils": "flake-utils_2",
         "nextpnrXilinxFork": "nextpnrXilinxFork",
         "nix-eda": "nix-eda",

@@ -12,8 +12,16 @@
       url = "git+https://github.com/povik/yosys-slang?submodules=1";
       flake = false;
     };
+    circt-src = {
+      type = "github";
+      owner = "RCoeurjoly";
+      repo = "circt";
+      ref = "task3";
+      flake = false;
+    };
     circt-nix = {
       url = "git+https://github.com/dtzSiFive/circt-nix?ref=main";
+      inputs."circt-src".follows = "circt-src";
       inputs."llvm-submodule-src" = {
         type = "github";
         owner = "llvm";
@@ -46,17 +54,17 @@
           (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
           (old: {
             patches = (old.patches or [ ]) ++ [
-              ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
-              ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
-              ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
-              ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
-              ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
-              ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
-              ./patches/circt-task3-rfp/0011-legalize-unrealized-conversion-casts-in-handshake-to-hw.patch
-              ./patches/circt-task3-rfp/0012-defer-func-lowering-until-body-is-legal.patch
-              ./patches/circt-task3-rfp/0013-handle-memref-model-io-and-cache-submodule-lookups.patch
-              ./patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch
-              ./patches/circt-task3-rfp/0015-lower-float-ops-as-externs-in-handshake-to-hw.patch
+              # ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
+              # ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
+              # ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
+              # ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
+              # ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
+              # ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
+              # ./patches/circt-task3-rfp/0011-legalize-unrealized-conversion-casts-in-handshake-to-hw.patch
+              # ./patches/circt-task3-rfp/0012-defer-func-lowering-until-body-is-legal.patch
+              # ./patches/circt-task3-rfp/0013-handle-memref-model-io-and-cache-submodule-lookups.patch
+              # ./patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch
+              # ./patches/circt-task3-rfp/0015-lower-float-ops-as-externs-in-handshake-to-hw.patch
             ];
           });
         # Keep reviewer builds on a pinned upstream CIRCT plus the checked-in
