@@ -264,8 +264,7 @@
           modelRegistry."tiny-stories-1m-baseline-float".pipeline.sv;
         tinyStories1mBaselineFloatIl =
           modelRegistry."tiny-stories-1m-baseline-float".pipeline.il;
-        tinyStories1mBaselineFloatMainSv =
-          "${tinyStories1mBaselineFloatSv}/sv/main.sv";
+        tinyStoriesSelftestTop = ./rtl/tiny_stories_selftest_top.sv;
         fpgaCapacities = {
           slices = 74650;
           clb_luts = 298600;
@@ -573,16 +572,10 @@
             cp report.json "$out/report.json"
           '';
 
-        mkTinyStoriesSelftestBundle = { name, topName, mainSv, modelIl
+        mkTinyStoriesSelftestBundle = { name, topName, modelIl
           , capacities, externalMemoryMinModuleBits ? (128 * 1024) }:
           let
-            top = pkgs.runCommand "${name}-top.sv" { } ''
-              ${python}/bin/python ${
-                ./scripts/pipeline/gen_tiny_stories_selftest_top.py
-              } \
-                --main-sv ${mainSv} \
-                --out "$out"
-            '';
+            top = tinyStoriesSelftestTop;
             modelOptIl = mkYosysRtlil {
               name = "${name}-model-opt";
               script = ''
@@ -681,7 +674,6 @@
           mkTinyStoriesSelftestBundle {
             name = "tiny-stories-1m-baseline-float-selftest-all-memory";
             topName = "tiny_stories_selftest_top";
-            mainSv = tinyStories1mBaselineFloatMainSv;
             modelIl = tinyStories1mBaselineFloatIl;
             capacities = fpgaCapacities;
           };
