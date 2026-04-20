@@ -1,18 +1,5 @@
 { pkgs, mlir, circt, yosysPkg, yosysSlang, torchMlir, python, pipelineScripts }:
 let
-  stageNames = [
-    "torch"
-    "linalg"
-    "cf"
-    "handshake"
-    "hs-ext"
-    "hw0"
-    "hw"
-    "hw-clean"
-    "sv"
-    "il"
-  ];
-
   torchMlirOpt = let
     candidates = [
       "${torchMlir}/bin/torch-mlir-opt"
@@ -153,12 +140,6 @@ let
       };
     in self;
 
-  mkPipelineStagePackages = name: pipeline:
-    builtins.listToAttrs (map (stage: {
-      name = "${name}-${stage}";
-      value = builtins.getAttr stage pipeline;
-    }) stageNames);
-
   registerModel = { name, torchMlirInput ? null, torchInputCommand ? null
     , torchInputBuildInputs ? [ ], allowHwExterns ? false, fpPrimsSv ? null
     , slangPerFileExternModules ? false }:
@@ -172,10 +153,4 @@ let
       };
     };
 
-  pipelineStagePackagesFromRegistry = registry:
-    pkgs.lib.concatMapAttrs
-    (name: model: mkPipelineStagePackages name model.pipeline) registry;
-in {
-  inherit registerModel;
-  inherit pipelineStagePackagesFromRegistry;
-}
+in { inherit registerModel; }

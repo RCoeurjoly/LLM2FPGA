@@ -219,7 +219,7 @@
             }
           ];
         in {
-          inherit modelId revision snapshot;
+          inherit snapshot;
           sourceDir = ./TinyStories;
           adapterPy = ./TinyStories/model_adapter.py;
         };
@@ -240,9 +240,6 @@
           matmulSrcDir = ./src;
           simDir = ./sim;
         };
-
-        pipelineStagePackages =
-          pipelineLib.pipelineStagePackagesFromRegistry modelRegistry;
 
         matmulSv = modelRegistry.matmul.pipeline.sv;
         tinyStories1mBaselineFloatIl =
@@ -278,18 +275,6 @@
               exit 1
             fi
           '';
-
-        synthStageNames = [
-          "stage1"
-          "stage2"
-          "stage3"
-          "stage4"
-          "stage5"
-          "stage6"
-          "stage7"
-          "stage8"
-          "stage9"
-        ];
 
         mkSynthStageIl = { name, stageId, stageLabel, inputIl, topName
           , topSv ? null, quiet ? false, memoryLimitKb ? null, preCommands ? [ ]
@@ -562,12 +547,6 @@
               --capacity-bram-kb ${toString capacities.bram_kb}
           '';
 
-        mkSynthStagePackages = prefix: stages:
-          builtins.listToAttrs (map (stageName: {
-            name = "${prefix}-${stageName}";
-            value = builtins.getAttr stageName stages;
-          }) synthStageNames);
-
         mkExternalizedMemoryPlan =
           { name, modelIl, minModuleBits ? (128 * 1024) }:
           pkgs.runCommand "${name}-external-memory-plan" { } ''
@@ -668,19 +647,6 @@
               --output_file "$out"
           '';
 
-        tinyStories1mBaselineFloatSynthStages = mkSynthJsonStages {
-          name = "tiny-stories-1m-baseline-float";
-          modelIl = tinyStories1mBaselineFloatIl;
-          topName = "main";
-          quiet = true;
-        };
-        tinyStories1mBaselineFloatUtilizationReport =
-          mkMappedJsonUtilizationReport {
-            name = "tiny-stories-1m-baseline-float";
-            capacities = fpgaCapacities;
-            topName = "main";
-            designJson = tinyStories1mBaselineFloatSynthStages.json;
-          };
         tinyStories1mBaselineFloatSelftestAllMemory =
           mkTinyStoriesSelftestBundle {
             name = "tiny-stories-1m-baseline-float-selftest-all-memory";
@@ -688,11 +654,6 @@
             modelIl = tinyStories1mBaselineFloatIl;
             capacities = fpgaCapacities;
           };
-        synthStagePackages =
-          mkSynthStagePackages "tiny-stories-1m-baseline-float"
-          tinyStories1mBaselineFloatSynthStages // mkSynthStagePackages
-          "tiny-stories-1m-baseline-float-selftest-all-memory"
-          tinyStories1mBaselineFloatSelftestAllMemory.stages;
 
         matmulSelftestTop = ./fpga/rtl/matmul_selftest_top.sv;
         matmulSelftestJson = mkSynthJson {
@@ -807,26 +768,12 @@
         formatter = pkgs.nixfmt-classic;
 
         packages = {
-          default = matmulSv;
-          inherit circt;
-          python-with-torch = pythonWithTorch;
-          yosys = yosysPkg;
-          yosys-slang = yosysSlang;
-          torch-mlir = torchMlir;
-          tb-data-sv = tbDataSv;
-          sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
           matmul-selftest-bitstream = matmulSelftestBitstream;
-          matmul-selftest-fasm = matmulSelftestFasm;
-          matmul-selftest-xdc = matmulSelftestXdc;
-          matmul-selftest-json = matmulSelftestJson;
-          tiny-stories-1m-baseline-float-utilization =
-            tinyStories1mBaselineFloatUtilizationReport;
           tiny-stories-1m-baseline-float-selftest-all-memory-utilization =
             tinyStories1mBaselineFloatSelftestAllMemory.utilizationReport;
-          tiny-stories-1m-snapshot = tinyStories1m.snapshot;
-        } // pipelineStagePackages // synthStagePackages;
+        };
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {
