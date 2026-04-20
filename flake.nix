@@ -52,21 +52,7 @@
         circtPkgs = circt-nix.packages.${system};
         circtBase =
           (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
-          (old: {
-            patches = (old.patches or [ ]) ++ [
-              # ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
-              # ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
-              # ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
-              # ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
-              # ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
-              # ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
-              # ./patches/circt-task3-rfp/0011-legalize-unrealized-conversion-casts-in-handshake-to-hw.patch
-              # ./patches/circt-task3-rfp/0012-defer-func-lowering-until-body-is-legal.patch
-              # ./patches/circt-task3-rfp/0013-handle-memref-model-io-and-cache-submodule-lookups.patch
-              # ./patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch
-              # ./patches/circt-task3-rfp/0015-lower-float-ops-as-externs-in-handshake-to-hw.patch
-            ];
-          });
+          (old: { patches = old.patches or [ ]; });
         # Keep reviewer builds on a pinned upstream CIRCT plus the checked-in
         # Task 3 patch stack. Local fast iteration should use local binaries via
         # scripts/dev rather than a flake input override.
@@ -260,8 +246,6 @@
 
         matmulSv = modelRegistry.matmul.pipeline.sv;
         matmulIl = modelRegistry.matmul.pipeline.il;
-        tinyStories1mBaselineFloatSv =
-          modelRegistry."tiny-stories-1m-baseline-float".pipeline.sv;
         tinyStories1mBaselineFloatIl =
           modelRegistry."tiny-stories-1m-baseline-float".pipeline.il;
         tinyStoriesSelftestTop = ./rtl/tiny_stories_selftest_top.sv;
@@ -572,8 +556,8 @@
             cp report.json "$out/report.json"
           '';
 
-        mkTinyStoriesSelftestBundle = { name, topName, modelIl
-          , capacities, externalMemoryMinModuleBits ? (128 * 1024) }:
+        mkTinyStoriesSelftestBundle = { name, topName, modelIl, capacities
+          , externalMemoryMinModuleBits ? (128 * 1024) }:
           let
             top = tinyStoriesSelftestTop;
             modelOptIl = mkYosysRtlil {
