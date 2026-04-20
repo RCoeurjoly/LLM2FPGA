@@ -11,7 +11,6 @@ let
     "hw-clean"
     "sv"
     "il"
-    "yosys-stat"
   ];
 
   torchMlirOpt = let
@@ -108,19 +107,6 @@ let
         ${sv}/sources.f "$out"
     '';
 
-  mkYosysStatDerivation = { name, sv, slangPerFileExternModules ? false }:
-    pkgs.runCommand "${name}-yosys.stat" {
-      buildInputs = [ yosysPkg python ];
-    } ''
-      ${pkgs.lib.optionalString slangPerFileExternModules ''
-        export YOSYS_SLANG_PER_FILE_EXTERNS=1
-      ''}
-      ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_yosys_stat.sh \
-        ${yosysPkg}/bin/yosys \
-        ${yosysSlang}/share/yosys/plugins/slang.so \
-        ${sv}/sources.f "$out"
-    '';
-
   mkPipeline = { name, torch, allowHwExterns ? false, fpPrimsSv ? null
     , slangPerFileExternModules ? false }:
     let
@@ -160,11 +146,6 @@ let
           inherit allowHwExterns fpPrimsSv;
         };
         il = mkIlDerivation {
-          inherit name;
-          inherit (self) sv;
-          inherit slangPerFileExternModules;
-        };
-        "yosys-stat" = mkYosysStatDerivation {
           inherit name;
           inherit (self) sv;
           inherit slangPerFileExternModules;
