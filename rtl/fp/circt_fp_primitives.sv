@@ -311,269 +311,138 @@ package circt_fp_fixed_pkg;
   endfunction
 endpackage
 
-module arith_addf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic [31:0] in1,
-  input  logic        in1_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic        in1_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] a_q;
-  logic signed [31:0] b_q;
-  logic signed [31:0] r_q;
-  always_comb begin
-    a_q = f32_to_q16_16(in0);
-    b_q = f32_to_q16_16(in1);
-    r_q = sat32($signed(a_q) + $signed(b_q));
-  end
-  assign out0 = q16_16_to_f32(r_q);
-  assign out0_valid = in0_valid & in1_valid;
-  assign in0_ready = out0_ready & in1_valid;
-  assign in1_ready = out0_ready & in0_valid;
+// Keep the generated extern module bodies short: only the Q16.16 expression
+// should differ between most wrappers.
+`define FP_BINARY_F2F_MODULE(NAME, EXPR) \
+module NAME ( \
+  input logic [31:0] in0, \
+  input logic in0_valid, \
+  input logic [31:0] in1, \
+  input logic in1_valid, \
+  input logic out0_ready, \
+  output logic in0_ready, \
+  output logic in1_ready, \
+  output logic [31:0] out0, \
+  output logic out0_valid \
+); \
+  import circt_fp_fixed_pkg::*; \
+  logic signed [31:0] a_q, b_q, r_q; \
+  always_comb begin \
+    a_q = f32_to_q16_16(in0); \
+    b_q = f32_to_q16_16(in1); \
+    r_q = EXPR; \
+  end \
+  assign out0 = q16_16_to_f32(r_q); \
+  assign out0_valid = in0_valid & in1_valid; \
+  assign in0_ready = out0_ready & in1_valid; \
+  assign in1_ready = out0_ready & in0_valid; \
 endmodule
 
-module arith_subf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic [31:0] in1,
-  input  logic        in1_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic        in1_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] a_q;
-  logic signed [31:0] b_q;
-  logic signed [31:0] r_q;
-  always_comb begin
-    a_q = f32_to_q16_16(in0);
-    b_q = f32_to_q16_16(in1);
-    r_q = sat32($signed(a_q) - $signed(b_q));
-  end
-  assign out0 = q16_16_to_f32(r_q);
-  assign out0_valid = in0_valid & in1_valid;
-  assign in0_ready = out0_ready & in1_valid;
-  assign in1_ready = out0_ready & in0_valid;
+`define FP_COMPARE_MODULE(NAME, EXPR) \
+module NAME ( \
+  input logic [31:0] in0, \
+  input logic in0_valid, \
+  input logic [31:0] in1, \
+  input logic in1_valid, \
+  input logic out0_ready, \
+  output logic in0_ready, \
+  output logic in1_ready, \
+  output logic out0, \
+  output logic out0_valid \
+); \
+  import circt_fp_fixed_pkg::*; \
+  logic signed [31:0] a_q, b_q; \
+  always_comb begin \
+    a_q = f32_to_q16_16(in0); \
+    b_q = f32_to_q16_16(in1); \
+  end \
+  assign out0 = EXPR; \
+  assign out0_valid = in0_valid & in1_valid; \
+  assign in0_ready = out0_ready & in1_valid; \
+  assign in1_ready = out0_ready & in0_valid; \
 endmodule
 
-module arith_mulf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic [31:0] in1,
-  input  logic        in1_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic        in1_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] a_q;
-  logic signed [31:0] b_q;
-  logic signed [31:0] r_q;
-  always_comb begin
-    a_q = f32_to_q16_16(in0);
-    b_q = f32_to_q16_16(in1);
-    r_q = q_mul(a_q, b_q);
-  end
-  assign out0 = q16_16_to_f32(r_q);
-  assign out0_valid = in0_valid & in1_valid;
-  assign in0_ready = out0_ready & in1_valid;
-  assign in1_ready = out0_ready & in0_valid;
+`define FP_F32_TO_U8_MODULE(NAME, EXPR) \
+module NAME ( \
+  input logic [31:0] in0, \
+  input logic in0_valid, \
+  input logic out0_ready, \
+  output logic in0_ready, \
+  output logic [7:0] out0, \
+  output logic out0_valid \
+); \
+  import circt_fp_fixed_pkg::*; \
+  logic signed [31:0] qv, iv; \
+  always_comb begin \
+    qv = f32_to_q16_16(in0); \
+    iv = qv >>> 16; \
+  end \
+  assign out0 = EXPR; \
+  assign out0_valid = in0_valid; \
+  assign in0_ready = out0_ready; \
 endmodule
 
-module arith_divf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic [31:0] in1,
-  input  logic        in1_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic        in1_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] a_q;
-  logic signed [31:0] b_q;
-  logic signed [31:0] r_q;
-  always_comb begin
-    a_q = f32_to_q16_16(in0);
-    b_q = f32_to_q16_16(in1);
-    r_q = q_div(a_q, b_q);
-  end
-  assign out0 = q16_16_to_f32(r_q);
-  assign out0_valid = in0_valid & in1_valid;
-  assign in0_ready = out0_ready & in1_valid;
-  assign in1_ready = out0_ready & in0_valid;
+`define FP_TO_F32_MODULE(NAME, IN0_DECL, Q_EXPR) \
+module NAME ( \
+  input logic IN0_DECL in0, \
+  input logic in0_valid, \
+  input logic out0_ready, \
+  output logic in0_ready, \
+  output logic [31:0] out0, \
+  output logic out0_valid \
+); \
+  import circt_fp_fixed_pkg::*; \
+  logic signed [31:0] qv; \
+  always_comb begin \
+    qv = Q_EXPR; \
+  end \
+  assign out0 = q16_16_to_f32(qv); \
+  assign out0_valid = in0_valid; \
+  assign in0_ready = out0_ready; \
 endmodule
 
-module arith_maximumf_in_f32_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic [31:0] in1,
-  input  logic        in1_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic        in1_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] a_q;
-  logic signed [31:0] b_q;
-  logic signed [31:0] r_q;
-  always_comb begin
-    a_q = f32_to_q16_16(in0);
-    b_q = f32_to_q16_16(in1);
-    r_q = ($signed(a_q) > $signed(b_q)) ? a_q : b_q;
-  end
-  assign out0 = q16_16_to_f32(r_q);
-  assign out0_valid = in0_valid & in1_valid;
-  assign in0_ready = out0_ready & in1_valid;
-  assign in1_ready = out0_ready & in0_valid;
+`define FP_UNARY_F2F_MODULE(NAME, EXPR) \
+module NAME ( \
+  input logic [31:0] in0, \
+  input logic in0_valid, \
+  input logic out0_ready, \
+  output logic in0_ready, \
+  output logic [31:0] out0, \
+  output logic out0_valid \
+); \
+  import circt_fp_fixed_pkg::*; \
+  logic signed [31:0] x_q, y_q; \
+  always_comb begin \
+    x_q = f32_to_q16_16(in0); \
+    y_q = EXPR; \
+  end \
+  assign out0 = q16_16_to_f32(y_q); \
+  assign out0_valid = in0_valid; \
+  assign in0_ready = out0_ready; \
 endmodule
 
-module arith_cmpf_in_f32_f32_out_ui1_ogt (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic [31:0] in1,
-  input  logic        in1_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic        in1_ready,
-  output logic        out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] a_q;
-  logic signed [31:0] b_q;
-  always_comb begin
-    a_q = f32_to_q16_16(in0);
-    b_q = f32_to_q16_16(in1);
-  end
-  assign out0 = ($signed(a_q) > $signed(b_q));
-  assign out0_valid = in0_valid & in1_valid;
-  assign in0_ready = out0_ready & in1_valid;
-  assign in1_ready = out0_ready & in0_valid;
-endmodule
+`FP_BINARY_F2F_MODULE(arith_addf_in_f32_f32_out_f32,
+  sat32($signed(a_q) + $signed(b_q)))
+`FP_BINARY_F2F_MODULE(arith_subf_in_f32_f32_out_f32,
+  sat32($signed(a_q) - $signed(b_q)))
+`FP_BINARY_F2F_MODULE(arith_mulf_in_f32_f32_out_f32, q_mul(a_q, b_q))
+`FP_BINARY_F2F_MODULE(arith_divf_in_f32_f32_out_f32, q_div(a_q, b_q))
+`FP_BINARY_F2F_MODULE(arith_maximumf_in_f32_f32_out_f32,
+  (($signed(a_q) > $signed(b_q)) ? a_q : b_q))
 
-module arith_cmpf_in_f32_f32_out_ui1_ugt (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic [31:0] in1,
-  input  logic        in1_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic        in1_ready,
-  output logic        out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] a_q;
-  logic signed [31:0] b_q;
-  always_comb begin
-    a_q = f32_to_q16_16(in0);
-    b_q = f32_to_q16_16(in1);
-  end
-  assign out0 = ($signed(a_q) > $signed(b_q));
-  assign out0_valid = in0_valid & in1_valid;
-  assign in0_ready = out0_ready & in1_valid;
-  assign in1_ready = out0_ready & in0_valid;
-endmodule
+`FP_COMPARE_MODULE(arith_cmpf_in_f32_f32_out_ui1_ogt,
+  ($signed(a_q) > $signed(b_q)))
+`FP_COMPARE_MODULE(arith_cmpf_in_f32_f32_out_ui1_ugt,
+  ($signed(a_q) > $signed(b_q)))
+`FP_COMPARE_MODULE(arith_cmpf_in_f32_f32_out_ui1_ult,
+  ($signed(a_q) < $signed(b_q)))
 
-module arith_cmpf_in_f32_f32_out_ui1_ult (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic [31:0] in1,
-  input  logic        in1_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic        in1_ready,
-  output logic        out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] a_q;
-  logic signed [31:0] b_q;
-  always_comb begin
-    a_q = f32_to_q16_16(in0);
-    b_q = f32_to_q16_16(in1);
-  end
-  assign out0 = ($signed(a_q) < $signed(b_q));
-  assign out0_valid = in0_valid & in1_valid;
-  assign in0_ready = out0_ready & in1_valid;
-  assign in1_ready = out0_ready & in0_valid;
-endmodule
+`FP_F32_TO_U8_MODULE(arith_fptosi_in_f32_out_ui8,
+  ((iv > 32'sd127) ? 8'sh7f : (iv < -32'sd128) ? 8'sh80 : iv[7:0]))
+`FP_F32_TO_U8_MODULE(arith_fptoui_in_f32_out_ui8,
+  ((iv <= 0) ? 8'h00 : (iv >= 32'sd255) ? 8'hff : iv[7:0]))
 
-module arith_fptosi_in_f32_out_ui8 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [7:0]  out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] qv;
-  logic signed [31:0] iv;
-  always_comb begin
-    qv = f32_to_q16_16(in0);
-    iv = qv >>> 16;
-  end
-  assign out0 = (iv > 32'sd127) ? 8'sh7f :
-                (iv < -32'sd128) ? 8'sh80 :
-                iv[7:0];
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
-
-module arith_fptoui_in_f32_out_ui8 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [7:0]  out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] qv;
-  logic signed [31:0] iv;
-  always_comb begin
-    qv = f32_to_q16_16(in0);
-    iv = qv >>> 16;
-  end
-  assign out0 = (iv <= 0) ? 8'h00 :
-                (iv >= 32'sd255) ? 8'hff :
-                iv[7:0];
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
-
-module arith_sitofp_in_ui32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] qv;
-  always_comb begin
-    qv = q_from_s32(in0);
-  end
-  assign out0 = q16_16_to_f32(qv);
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
+`FP_TO_F32_MODULE(arith_sitofp_in_ui32_out_f32, [31:0], q_from_s32(in0))
 
 module arith_uitofp_in_ui1_out_f32 (
   input  logic        in0,
@@ -593,103 +462,12 @@ module arith_uitofp_in_ui1_out_f32 (
   assign in0_ready = out0_ready;
 endmodule
 
-module arith_truncf_in_f64_out_f32 (
-  input  logic [63:0] in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] qv;
-  always_comb begin
-    qv = f64_to_q16_16(in0);
-  end
-  assign out0 = q16_16_to_f32(qv);
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
+`FP_TO_F32_MODULE(arith_truncf_in_f64_out_f32, [63:0], f64_to_q16_16(in0))
 
-module math_roundeven_in_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] x_q;
-  logic signed [31:0] y_q;
-  always_comb begin
-    x_q = f32_to_q16_16(in0);
-    y_q = q_roundeven(x_q);
-  end
-  assign out0 = q16_16_to_f32(y_q);
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
-
-module math_exp_in_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] x_q;
-  logic signed [31:0] y_q;
-  always_comb begin
-    x_q = f32_to_q16_16(in0);
-    y_q = q_exp_approx(x_q);
-  end
-  assign out0 = q16_16_to_f32(y_q);
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
-
-module math_rsqrt_in_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] x_q;
-  logic signed [31:0] y_q;
-  always_comb begin
-    x_q = f32_to_q16_16(in0);
-    y_q = q_rsqrt_approx(x_q);
-  end
-  assign out0 = q16_16_to_f32(y_q);
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
-
-module math_tanh_in_f32_out_f32 (
-  input  logic [31:0] in0,
-  input  logic        in0_valid,
-  input  logic        out0_ready,
-  output logic        in0_ready,
-  output logic [31:0] out0,
-  output logic        out0_valid
-);
-  import circt_fp_fixed_pkg::*;
-  logic signed [31:0] x_q;
-  logic signed [31:0] y_q;
-  always_comb begin
-    x_q = f32_to_q16_16(in0);
-    y_q = q_tanh_approx(x_q);
-  end
-  assign out0 = q16_16_to_f32(y_q);
-  assign out0_valid = in0_valid;
-  assign in0_ready = out0_ready;
-endmodule
+`FP_UNARY_F2F_MODULE(math_roundeven_in_f32_out_f32, q_roundeven(x_q))
+`FP_UNARY_F2F_MODULE(math_exp_in_f32_out_f32, q_exp_approx(x_q))
+`FP_UNARY_F2F_MODULE(math_rsqrt_in_f32_out_f32, q_rsqrt_approx(x_q))
+`FP_UNARY_F2F_MODULE(math_tanh_in_f32_out_f32, q_tanh_approx(x_q))
 
 module math_fpowi_in_f32_ui64_out_f32 (
   input  logic [31:0] in0,
@@ -703,8 +481,7 @@ module math_fpowi_in_f32_ui64_out_f32 (
   output logic        out0_valid
 );
   import circt_fp_fixed_pkg::*;
-  logic signed [31:0] x_q;
-  logic signed [31:0] y_q;
+  logic signed [31:0] x_q, y_q;
   always_comb begin
     x_q = f32_to_q16_16(in0);
     y_q = q_powi_approx(x_q, in1);
@@ -714,3 +491,9 @@ module math_fpowi_in_f32_ui64_out_f32 (
   assign in0_ready = out0_ready & in1_valid;
   assign in1_ready = out0_ready & in0_valid;
 endmodule
+
+`undef FP_BINARY_F2F_MODULE
+`undef FP_COMPARE_MODULE
+`undef FP_F32_TO_U8_MODULE
+`undef FP_TO_F32_MODULE
+`undef FP_UNARY_F2F_MODULE

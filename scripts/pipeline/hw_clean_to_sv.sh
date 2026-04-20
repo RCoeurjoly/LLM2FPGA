@@ -41,7 +41,11 @@ if [[ -s "$tmp_externs" ]]; then
 
   : >"$tmp_missing"
   while IFS= read -r mod; do
-    has_impl_cmd=(grep -nE "^module[[:space:]]+${mod}\\b" "$FP_PRIMS_SV")
+    has_impl_cmd=(
+      grep -nE
+      '(^module[[:space:]]+'"${mod}"'\b|^`[A-Za-z_][A-Za-z0-9_]*[[:space:]]*\([[:space:]]*'"${mod}"'\b)'
+      "$FP_PRIMS_SV"
+    )
     if ! "${has_impl_cmd[@]}" >/dev/null 2>&1; then
       echo "$mod" >>"$tmp_missing"
     fi
