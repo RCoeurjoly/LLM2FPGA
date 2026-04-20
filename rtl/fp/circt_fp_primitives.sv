@@ -317,13 +317,10 @@ module NAME ( \
   output logic out0_valid \
 ); \
   import circt_fp_fixed_pkg::*; \
-  logic signed [31:0] a_q, b_q, r_q; \
-  always_comb begin \
-    a_q = f32_to_q16_16(in0); \
-    b_q = f32_to_q16_16(in1); \
-    r_q = EXPR; \
-  end \
-  assign out0 = q16_16_to_f32(r_q); \
+  logic signed [31:0] a_q, b_q; \
+  assign a_q = f32_to_q16_16(in0); \
+  assign b_q = f32_to_q16_16(in1); \
+  assign out0 = q16_16_to_f32(EXPR); \
   assign out0_valid = in0_valid & in1_valid; \
   assign in0_ready = out0_ready & in1_valid; \
   assign in1_ready = out0_ready & in0_valid; \
@@ -343,10 +340,8 @@ module NAME ( \
 ); \
   import circt_fp_fixed_pkg::*; \
   logic signed [31:0] a_q, b_q; \
-  always_comb begin \
-    a_q = f32_to_q16_16(in0); \
-    b_q = f32_to_q16_16(in1); \
-  end \
+  assign a_q = f32_to_q16_16(in0); \
+  assign b_q = f32_to_q16_16(in1); \
   assign out0 = EXPR; \
   assign out0_valid = in0_valid & in1_valid; \
   assign in0_ready = out0_ready & in1_valid; \
@@ -364,10 +359,8 @@ module NAME ( \
 ); \
   import circt_fp_fixed_pkg::*; \
   logic signed [31:0] qv, iv; \
-  always_comb begin \
-    qv = f32_to_q16_16(in0); \
-    iv = qv >>> 16; \
-  end \
+  assign qv = f32_to_q16_16(in0); \
+  assign iv = qv >>> 16; \
   assign out0 = EXPR; \
   assign out0_valid = in0_valid; \
   assign in0_ready = out0_ready; \
@@ -383,11 +376,7 @@ module NAME ( \
   output logic out0_valid \
 ); \
   import circt_fp_fixed_pkg::*; \
-  logic signed [31:0] qv; \
-  always_comb begin \
-    qv = Q_EXPR; \
-  end \
-  assign out0 = q16_16_to_f32(qv); \
+  assign out0 = q16_16_to_f32(Q_EXPR); \
   assign out0_valid = in0_valid; \
   assign in0_ready = out0_ready; \
 endmodule
@@ -402,12 +391,9 @@ module NAME ( \
   output logic out0_valid \
 ); \
   import circt_fp_fixed_pkg::*; \
-  logic signed [31:0] x_q, y_q; \
-  always_comb begin \
-    x_q = f32_to_q16_16(in0); \
-    y_q = EXPR; \
-  end \
-  assign out0 = q16_16_to_f32(y_q); \
+  logic signed [31:0] x_q; \
+  assign x_q = f32_to_q16_16(in0); \
+  assign out0 = q16_16_to_f32(EXPR); \
   assign out0_valid = in0_valid; \
   assign in0_ready = out0_ready; \
 endmodule
@@ -454,12 +440,9 @@ module math_fpowi_in_f32_ui64_out_f32 (
   output logic        out0_valid
 );
   import circt_fp_fixed_pkg::*;
-  logic signed [31:0] x_q, y_q;
-  always_comb begin
-    x_q = f32_to_q16_16(in0);
-    y_q = q_powi_approx(x_q, in1);
-  end
-  assign out0 = q16_16_to_f32(y_q);
+  logic signed [31:0] x_q;
+  assign x_q = f32_to_q16_16(in0);
+  assign out0 = q16_16_to_f32(q_powi_approx(x_q, in1));
   assign out0_valid = in0_valid & in1_valid;
   assign in0_ready = out0_ready & in1_valid;
   assign in1_ready = out0_ready & in0_valid;
