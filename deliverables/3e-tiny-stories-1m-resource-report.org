@@ -11,32 +11,36 @@ Gate:
 nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
 #+end_src
 
-Artifact:
-- Bottleneck and scale evidence from
-  =/nix/store/...-tiny-stories-1m-baseline-float-yosys.stat=
-- Resource report from
-  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.txt=
-- Resource report JSON from
-  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.json=
-- Hierarchical cell-count JSON from
-  =/nix/store/...-tiny-stories-1m-baseline-float-selftest-all-memory-utilization/stat.json=
+Result:
 
-Note:
-- For the current Task 3 branch review route, 3e is split into two checks:
-  - =tiny-stories-1m-baseline-float-yosys-stat= provides the bottleneck and
-    scale evidence from the real emitted =baseline-float= SV bundle.
-  - =tiny-stories-1m-baseline-float-selftest-all-memory-utilization= provides
-    the synthesis resource report half of 3e.
-- The direct =tiny-stories-1m-baseline-float-utilization= path is not the
-  review gate for this branch because it is currently killed on the working host
-  during staged mapped synthesis.
+#+begin_export ascii
+top_module: tiny_stories_selftest_top
+lut_total: 43326844 / 298600 (14509.994641661086%)
+ff_total: 62486517 / 597200 (10463.247990622907%)
+dsp_total: 0 / 1920 (0.0%)
+bram36_equivalent: 0.0 / 955 (0.0%)
+muxf7: 1024555
+muxf8: 310358
+lutram_ram32m: 0
+lutram_ram64m: 0
+fits_overall: False
+#+end_export
 
-Checking we have not broken previous deliverables:
-#+begin_src bash
-nix flake check -L
-nix build .#matmul-sv-sim -L
-#+end_src
+The conclusion from task 3 is that we have to work on resource minimization next.
 
-Guard notes:
-- =nix flake check= is the repo-level hygiene gate.
-- =matmul-sv-sim= is a regression guard to ensure the Task 3 work did not break the existing matmul smoke path.
+With the current pipeline, even after externalizing oversized handshake memory modules as external storage candidates, the shell design for tiny stories 1M does not fit in the target FPGA.
+
+The resource utilization report is an estimate from mapped Yosys JSON for this shell design, because nextpnr-xilinx cannot process it. See Note about resource utilization report in this file.
+
+Since the design is about 145 times bigger (in terms of LUTs) than the target FPGA, the next task should be task 6 and not task 4.
+
+Task 6 (see project plan) is about resource minimization.
+Some paths that could be taken, learned from executing task 3 are:
+
+- Use board memory more directly. This gate already externalizes oversized handshake memory modules as external storage candidates.
+- Use a MLIR dialect other than handshake. The handshake dialect (https://circt.llvm.org/docs/Dialects/Handshake/) uses a lot of resources in this pipeline.
+  
+* Note about resource utilization report
+At first, I tried to do place and route with nextpnr-xilinx on this shell design, but it exited with out of memory errors.
+
+I created some patches to try to fix that, but I discarded them after finding out that the shell design was about 145 times bigger than the target FPGA, which is already the largest supported FPGA, so it seems unreasonable to me to expect nextpnr-xilinx to support that design.
