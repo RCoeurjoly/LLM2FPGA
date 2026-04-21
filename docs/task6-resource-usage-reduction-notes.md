@@ -428,6 +428,95 @@ stance.
    selection / architecture feasibility track, not a direct reduction path for
    the current TinyStories baseline.
 
+## Board-RAM packaging update (2026-04-19)
+
+Verification completed today:
+
+- `tiny-stories-1m-baseline-float-selftest-all-memory-utilization` rebuilds in
+  this branch and its generated `summary.json` / `stat.json` match the copied
+  baseline bundle at
+  `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`
+  byte-for-byte.
+- The all-memory externalization plan still confirms the same dominant target:
+  `326` eligible handshake-memory modules totaling `433,040,010` bits, with
+  the top four modules accounting for `411,705,344` bits (`49.08 MiB`), about
+  `95.1%` of the eligible memory bits.
+
+New package family added for the narrower DDR3-first experiment:
+
+- `tiny-stories-1m-baseline-float-selftest-top4-memory-top`
+- `tiny-stories-1m-baseline-float-selftest-top4-memory-model-opt-il`
+- `tiny-stories-1m-baseline-float-selftest-top4-memory-model-shell-il`
+- `tiny-stories-1m-baseline-float-selftest-top4-memory-external-memory-plan`
+- `tiny-stories-1m-baseline-float-selftest-top4-memory-json`
+- `tiny-stories-1m-baseline-float-selftest-top4-memory-yosys-json`
+- `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization`
+
+Current semantics:
+
+- these outputs externalize only the largest four handshake memory modules from
+  the baseline-float selftest shell
+- the current selected modules are `\handshake_memory_out_f32_id342`,
+  `\handshake_memory_out_f32_id341`, `\handshake_memory_out_f32_id340`, and
+  `\handshake_memory_out_f32_id18`
+- each of those modules is `3216448 x 32` bits (`102,926,336` bits each)
+- the residual eligible memory tail after removing those four modules is
+  `21,334,666` bits (`2.54 MiB`)
+- the largest remaining tail candidates are:
+  - one `131072 x 32` table: `4,194,304` bits
+  - one `50257 x 32` table: `1,608,224` bits
+  - twenty `16384 x 32` tables: `524,288` bits each
+
+Status:
+
+- the selector/reporting part of this lane is verified, including the new
+  reproducible `*-external-memory-plan` and `*-model-shell-il` outputs
+- the heavier narrowed-shell utilization build is the next measurement to
+  record once the new derivation completes
+- the narrowed external-memory bundles now use a split fine-stage flow so the
+  bottleneck can be isolated without changing the stock all-memory baseline
+  path
+- current observed bottleneck: the narrowed-shell mapped-utilization build
+  reaches `stage4`, emits a `2.4G` RTLIL artifact, clears `stage5a` through
+  `stage5d`, and currently spends a long time in the targeted `stage6a`
+  `cells_map` techmap pass
+
+Follow-up update (2026-04-20):
+
+- the earlier monolithic `stage6` (`synth_xilinx -run map_cells:map_cells`)
+  path drove memory close to host exhaustion and was killed by the daemon
+- the current narrowed-path `stage6a` replaces that with a targeted
+  `techmap -map +/techmap.v -map +/xilinx/cells_map.v` over only modules that
+  still contain internal `$...` cells
+- the live `stage6a` run is holding around `9.48 GiB` RSS instead of the
+  earlier near-OOM behavior, so the split is materially reducing peak memory
+  pressure even though the derivation has not finished yet
+- the next flake snapshot also splits the later `map_luts:check` block into
+  persisted `stage8a`..`stage8h` sub-stages (`opt_expr`, `abc`, `clean`,
+  targeted `ff_map`, `xilinx_srl`, targeted `lut_map`, `xilinx_dffopt`,
+  `opt_lut_ins`) for narrowed external-memory bundles only
+- baseline-safe behavior is preserved: the stock all-memory bundle still uses
+  the original monolithic `synth_xilinx` late stages, and the copied baseline
+  bundle remains the comparison reference
+
+Implementation follow-up later on 2026-04-20:
+
+- `mkSynthStageTargetedTechmapIl` originally emitted one `techmap` invocation
+  per selected module using a `cd <module>; techmap ...; cd ..` loop.
+- Inspection of the cached narrowed-shell `stage5d` input shows that the later
+  `stage6a` selector still touches `472` modules, so the per-module loop was
+  multiplying `techmap` overhead even after narrowing the memory set.
+- The helper now builds one explicit module selection (`select -none` plus
+  repeated `select -add <module>`) and runs a single `techmap ...` pass over
+  that selection before restoring full-design selection for `write_rtlil`.
+- The helper now also logs the selected-module count per stage so future runs
+  show how wide each targeted pass really is.
+- A fresh narrowed rebuild has already validated the new helper through
+  `stage5c`, which reports `17` selected modules for the `arith_map` pass.
+- The full narrowed utilization rebuild is still running past `stage5d`, so the
+  next measurement to capture is whether the rewritten single-pass `stage6a`
+  materially reduces wall-clock time in addition to the earlier RSS reduction.
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.

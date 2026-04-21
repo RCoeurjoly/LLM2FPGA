@@ -1,0 +1,107 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Thu, 5 Mar 2026 14:24:01 +0100
+Subject: [PATCH 7/7] Lower lazy_fork to HW and add a regression
+
+---
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index 670a14106e0f2e07dc73d0316c1e73ef4c2df7cc..e728892ba8a4fdc58c1b5f3526c0234bcbee448c 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -915,6 +915,19 @@ public:
+     input.ready->setValue(s.bAnd(doneWires, "allDone"));
+   }
+ 
++  void buildLazyForkLogic(RTLBuilder &s, InputHandshake &input,
++                          ArrayRef<OutputHandshake> outputs) const {
++    llvm::SmallVector<Value> readyWires;
++    readyWires.reserve(outputs.size());
++    for (auto output : outputs)
++      readyWires.push_back(output.ready);
++    auto allReady = s.bAnd(readyWires, "allReady");
++    input.ready->setValue(allReady);
++    auto outValid = s.bAnd({input.valid, allReady});
++    for (auto output : outputs)
++      output.valid->setValue(outValid);
++  }
++
+   // Builds a unit-rate actor around an inner operation. 'unitBuilder' is a
+   // function which takes the set of unwrapped data inputs, and returns a
+   // value which should be assigned to the output data value.
+@@ -947,6 +960,20 @@ public:
+       outport.data->setValue(res);
+   }
+ 
++  void buildUnitRateLazyForkLogic(
++      RTLBuilder &s, UnwrappedIO &unwrappedIO,
++      llvm::function_ref<llvm::SmallVector<Value>(Value)> unitBuilder) const {
++    assert(unwrappedIO.inputs.size() == 1 &&
++           "Expected exactly one input for unit-rate lazy fork actor");
++    this->buildLazyForkLogic(s, unwrappedIO.inputs[0], unwrappedIO.outputs);
++
++    auto unitResults = unitBuilder(unwrappedIO.inputs[0].data);
++    assert(unitResults.size() == unwrappedIO.outputs.size() &&
++           "Expected unit builder to return one result per output");
++    for (auto [res, outport] : llvm::zip(unitResults, unwrappedIO.outputs))
++      outport.data->setValue(res);
++  }
++
+   void buildExtendLogic(RTLBuilder &s, UnwrappedIO &unwrappedIO,
+                         bool signExtend) const {
+     size_t outWidth =
+@@ -1007,6 +1034,18 @@ public:
+   }
+ };
+ 
++class LazyForkConversionPattern : public HandshakeConversionPattern<LazyForkOp> {
++public:
++  using HandshakeConversionPattern<LazyForkOp>::HandshakeConversionPattern;
++  void buildModule(LazyForkOp op, BackedgeBuilder &bb, RTLBuilder &s,
++                   hw::HWModulePortAccessor &ports) const override {
++    auto unwrapped = unwrapIO(s, bb, ports);
++    buildUnitRateLazyForkLogic(s, unwrapped, [&](Value input) {
++      return llvm::SmallVector<Value>(unwrapped.outputs.size(), input);
++    });
++  }
++};
++
+ class JoinConversionPattern : public HandshakeConversionPattern<JoinOp> {
+ public:
+   using HandshakeConversionPattern<JoinOp>::HandshakeConversionPattern;
+@@ -1964,8 +2003,8 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+   patterns.insert<FuncOpConversionPattern, ReturnConversionPattern,
+                   AssertConversionPattern>(op.getContext());
+   patterns.insert<JoinConversionPattern, ForkConversionPattern,
+-                  SyncConversionPattern>(typeConverter, op.getContext(),
+-                                         moduleBuilder, ls);
++                  LazyForkConversionPattern, SyncConversionPattern>(
++      typeConverter, op.getContext(), moduleBuilder, ls);
+ 
+   patterns.insert<
+       // Comb operations.
+diff --git a/test/Conversion/HandshakeToHW/test_fork.mlir b/test/Conversion/HandshakeToHW/test_fork.mlir
+index 265d48037f5b4bbffdfd08e2f0450340ed37180c..94d24d6dc2509b5faadb08416459bb8dd05d71dc 100644
+--- a/test/Conversion/HandshakeToHW/test_fork.mlir
++++ b/test/Conversion/HandshakeToHW/test_fork.mlir
+@@ -59,3 +59,19 @@ handshake.func @test_fork_data(%arg0: index, %arg1: none, ...) -> (index, index,
+   %0:2 = fork [2] %arg0 : index
+   return %0#0, %0#1, %arg1 : index, index, none
+ }
++
++
++// -----
++
++// CHECK-LABEL: hw.module @handshake_lazy_fork_in_none_out_none_none_1ins_2outs_ctrl(
++// CHECK:         %[[IN_DATA:.*]], %[[IN_VALID:.*]] = esi.unwrap.vr %{{.*}}, %[[IN_READY:.*]] : i0
++// CHECK:         %[[OUT0:.*]], %[[OUT0_READY:.*]] = esi.wrap.vr %[[IN_DATA]], %[[OUT_VALID:.*]] : i0
++// CHECK:         %[[OUT1:.*]], %[[OUT1_READY:.*]] = esi.wrap.vr %[[IN_DATA]], %[[OUT_VALID]] : i0
++// CHECK:         %[[ALL_READY:.*]] = comb.and %[[OUT0_READY]], %[[OUT1_READY]] {sv.namehint = "allReady"} : i1
++// CHECK:         %[[OUT_VALID]] = comb.and %[[IN_VALID]], %[[ALL_READY]] : i1
++// CHECK:         hw.output %[[OUT0]], %[[OUT1]] : !esi.channel<i0>, !esi.channel<i0>
++
++handshake.func @test_lazy_fork(%arg0: none, %arg1: none, ...) -> (none, none, none) {
++  %0:2 = lazy_fork [2] %arg0 : none
++  return %0#0, %0#1, %arg1 : none, none, none
++}
+-- 
+2.53.0

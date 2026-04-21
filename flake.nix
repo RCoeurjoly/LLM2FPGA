@@ -58,6 +58,7 @@
               ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
               ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
               ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
+              ./patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch
               ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
               ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
               ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
@@ -301,10 +302,12 @@
         matmulSv = matmulPipeline.sv;
         matmulIl = matmulPipeline.il;
         matmulYosysStat = matmulPipeline."yosys-stat";
-        tinyStories1mBaselineFloatIl =
-          modelRegistry."tiny-stories-1m-baseline-float".pipeline.il;
-        tinyStoriesSelftestTop = ./rtl/tiny_stories_selftest_top.sv;
-        fpgaCapacities = {
+        tinyStories1mPipeline = modelPipelines."tiny-stories-1m";
+        tinyStories1mIl = tinyStories1mPipeline.il;
+        tinyStories1mBaselineFloatPipeline =
+          modelPipelines."tiny-stories-1m-baseline-float";
+        tinyStories1mBaselineFloatIl = tinyStories1mBaselineFloatPipeline.il;
+        tinyStoriesCapacities = {
           slices = 74650;
           clb_luts = 298600;
           clb_ffs = 597200;
@@ -408,6 +411,59 @@
             fi
           '';
 
+        mkSynthStageTargetedTechmapIl = { name, stageId, stageLabel, inputIl
+          , topName, quiet ? false, memoryLimitKb ? null, cellRegex, techmapArgs
+          }:
+          pkgs.runCommand "${name}-${stageId}.il" { } ''
+            awk '
+              /^module / { mod = $2 }
+              /^[[:space:]]*cell / {
+                cell_name = $2
+                if (cell_name ~ ${builtins.toJSON cellRegex})
+                  mods[mod] = 1
+              }
+              END {
+                for (mod in mods)
+                  print mod
+              }
+            ' ${inputIl} | sort > stage-modules.txt
+
+            cat > run.ys <<EOF
+            read_rtlil ${inputIl}
+            hierarchy -top ${topName} -check
+            select -none
+            EOF
+
+            while IFS= read -r moduleName; do
+              printf '%s\n' \
+                "select -add $moduleName" \
+                >> run.ys
+            done < stage-modules.txt
+
+            moduleCount=$(wc -l < stage-modules.txt)
+
+            cat >> run.ys <<EOF
+            techmap ${techmapArgs}
+            select -clear
+            write_rtlil $out
+            EOF
+
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            echo "[mkSynthJson:${name}] ${stageLabel} (selected modules: $moduleCount)" >&2
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
+          '';
         mkSynthStageJson = { name, stageId, stageLabel, inputIl, quiet ? false
           , memoryLimitKb ? null }:
           pkgs.runCommand "${name}.json" { } ''
@@ -441,8 +497,62 @@
             fi
           '';
 
+        mkSynthStageTargetedTechmapIl = { name, stageId, stageLabel, inputIl
+          , topName, quiet ? false, memoryLimitKb ? null, cellRegex, techmapArgs
+          }:
+          pkgs.runCommand "${name}-${stageId}.il" { } ''
+            awk '
+              /^module / { mod = $2 }
+              /^[[:space:]]*cell / {
+                cell_name = $2
+                if (cell_name ~ ${builtins.toJSON cellRegex})
+                  mods[mod] = 1
+              }
+              END {
+                for (mod in mods)
+                  print mod
+              }
+            ' ${inputIl} | sort > stage-modules.txt
+
+            cat > run.ys <<EOF
+            read_rtlil ${inputIl}
+            hierarchy -top ${topName} -check
+            select -none
+            EOF
+
+            while IFS= read -r moduleName; do
+              printf '%s\n' \
+                "select -add $moduleName" \
+                >> run.ys
+            done < stage-modules.txt
+
+            moduleCount=$(wc -l < stage-modules.txt)
+
+            cat >> run.ys <<EOF
+            techmap ${techmapArgs}
+            select -clear
+            write_rtlil $out
+            EOF
+
+            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
+              ulimit -v ${toString memoryLimitKb}
+            ''}
+
+            echo "[mkSynthJson:${name}] ${stageLabel} (selected modules: $moduleCount)" >&2
+            ${yosysPkg}/bin/yosys ${
+              pkgs.lib.optionalString quiet "-q"
+            } -s run.ys
+
+            if [ ! -e "$out" ]; then
+              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
+              echo "--- run.ys ---" >&2
+              cat run.ys >&2
+              exit 1
+            fi
+          '';
+
         mkSynthJsonStages = { name, modelIl, topName, topSv ? null
-          , quiet ? false, memoryLimitKb ? null }: rec {
+          , quiet ? false, memoryLimitKb ? null, splitFineStage ? false }: rec {
             stage1 = mkSynthStageIl {
               inherit name topName topSv quiet memoryLimitKb;
               stageId = "stage1";
@@ -479,7 +589,41 @@
               inputIl = stage3;
             };
 
-            stage5 = mkSynthStageIl {
+            stage5a = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage5a";
+              stageLabel = "stage5a fine opt -full";
+              inputIl = stage4;
+              commands = [ "opt -full" ];
+            };
+
+            stage5b = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage5b";
+              stageLabel = "stage5b xilinx_srl -variable -minlen 3";
+              inputIl = stage5a;
+              commands = [ "xilinx_srl -variable -minlen 3" ];
+            };
+
+            stage5c = mkSynthStageTargetedTechmapIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage5c";
+              stageLabel = "stage5c targeted techmap arith_map";
+              inputIl = stage5b;
+              cellRegex = "^\\$(alu|lcu)$";
+              techmapArgs =
+                "-map +/techmap.v -D LUT_SIZE=6 -map +/xilinx/arith_map.v";
+            };
+
+            stage5d = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage5d";
+              stageLabel = "stage5d opt -fast";
+              inputIl = stage5c;
+              commands = [ "opt -fast" ];
+            };
+
+            stage5Monolithic = mkSynthStageIl {
               inherit name topName quiet memoryLimitKb;
               stageId = "stage5";
               stageLabel = "stage5 synth_xilinx fine:fine";
@@ -489,11 +633,28 @@
               ];
             };
 
-            stage6 = mkSynthStageIl {
+            stage6a = mkSynthStageTargetedTechmapIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage6a";
+              stageLabel = "stage6a targeted techmap cells_map";
+              inputIl = if splitFineStage then stage5d else stage5Monolithic;
+              cellRegex = "^\\$";
+              techmapArgs = "-map +/techmap.v -map +/xilinx/cells_map.v";
+            };
+
+            stage6b = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage6b";
+              stageLabel = "stage6b clean";
+              inputIl = stage6a;
+              commands = [ "clean" ];
+            };
+
+            stage6Monolithic = mkSynthStageIl {
               inherit name topName quiet memoryLimitKb;
               stageId = "stage6";
               stageLabel = "stage6 synth_xilinx map_cells:map_cells";
-              inputIl = stage5;
+              inputIl = if splitFineStage then stage5d else stage5Monolithic;
               commands = [
                 "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_cells:map_cells"
               ];
@@ -503,13 +664,80 @@
               inherit name topName quiet memoryLimitKb;
               stageId = "stage7";
               stageLabel = "stage7 synth_xilinx map_ffs:map_ffs";
-              inputIl = stage6;
+              inputIl = if splitFineStage then stage6b else stage6Monolithic;
               commands = [
                 "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_ffs:map_ffs"
               ];
             };
 
-            stage8 = mkSynthStageIl {
+            stage8a = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8a";
+              stageLabel = "stage8a opt_expr -mux_undef -noclkinv";
+              inputIl = stage7;
+              commands = [ "opt_expr -mux_undef -noclkinv" ];
+            };
+
+            stage8b = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8b";
+              stageLabel = "stage8b abc -luts 2:2,3,6:5,10,20";
+              inputIl = stage8a;
+              commands = [ "abc -luts 2:2,3,6:5,10,20" ];
+            };
+
+            stage8c = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8c";
+              stageLabel = "stage8c clean";
+              inputIl = stage8b;
+              commands = [ "clean" ];
+            };
+
+            stage8d = mkSynthStageTargetedTechmapIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8d";
+              stageLabel = "stage8d targeted techmap ff_map";
+              inputIl = stage8c;
+              cellRegex = "^\\$_(DFF|DFFE|DFFSRE|SDFF|SDFFE|DLATCH)_";
+              techmapArgs = "-map +/xilinx/ff_map.v";
+            };
+
+            stage8e = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8e";
+              stageLabel = "stage8e xilinx_srl -fixed -minlen 3";
+              inputIl = stage8d;
+              commands = [ "xilinx_srl -fixed -minlen 3" ];
+            };
+
+            stage8f = mkSynthStageTargetedTechmapIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8f";
+              stageLabel = "stage8f targeted techmap lut_map";
+              inputIl = stage8e;
+              cellRegex = "^\\$(lut|__XILINX_SHIFTX)$";
+              techmapArgs =
+                "-map +/xilinx/lut_map.v -map +/xilinx/cells_map.v -D LUT_WIDTH=6";
+            };
+
+            stage8g = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8g";
+              stageLabel = "stage8g xilinx_dffopt";
+              inputIl = stage8f;
+              commands = [ "xilinx_dffopt" ];
+            };
+
+            stage8h = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8h";
+              stageLabel = "stage8h opt_lut_ins -tech xilinx";
+              inputIl = stage8g;
+              commands = [ "opt_lut_ins -tech xilinx" ];
+            };
+
+            stage8Monolithic = mkSynthStageIl {
               inherit name topName quiet memoryLimitKb;
               stageId = "stage8";
               stageLabel = "stage8 final synth/write";
@@ -519,6 +747,7 @@
               ];
             };
 
+            stage8 = if splitFineStage then stage8h else stage8Monolithic;
             stage9 = mkSynthStageJson {
               inherit name quiet memoryLimitKb;
               stageId = "stage9";
@@ -607,24 +836,36 @@
           '';
 
         mkExternalizedMemoryPlan =
-          { name, modelIl, minModuleBits ? (128 * 1024) }:
-          pkgs.runCommand "${name}-external-memory-plan" { } ''
+          { name, modelIl, minModuleBits ? (128 * 1024), maxModules ? null }:
+          pkgs.runCommand "${name}-external-memory-plan" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
             ${pkgs.python311}/bin/python3 ${
               ./scripts/pipeline/externalize_large_memories.py
             } \
               --input ${modelIl} \
               --output-script externalize.ys \
               --output-report report.json \
-              --min-module-bits ${toString minModuleBits}
+              --min-module-bits ${toString minModuleBits} ${
+                pkgs.lib.optionalString (maxModules != null)
+                "--max-modules ${toString maxModules}"
+              }
             mkdir -p "$out"
             cp externalize.ys "$out/externalize.ys"
             cp report.json "$out/report.json"
           '';
 
-        mkTinyStoriesSelftestBundle = { name, topName, modelIl, capacities
-          , externalMemoryMinModuleBits ? (128 * 1024) }:
+        mkTinyStoriesSelftestBundle = { name, topName, mainSv, modelIl
+          , capacities, externalMemoryMinModuleBits ? (128 * 1024)
+          , externalMemoryMaxModules ? null }:
           let
-            top = tinyStoriesSelftestTop;
+            top = pkgs.runCommand "${name}-top.sv" { } ''
+              ${python}/bin/python ${
+                ./scripts/pipeline/gen_tiny_stories_selftest_top.py
+              } \
+                --main-sv ${mainSv} \
+                --out "$out"
+            '';
             modelOptIl = mkYosysRtlil {
               name = "${name}-model-opt";
               script = ''
@@ -641,6 +882,7 @@
               inherit name;
               modelIl = modelOptIl;
               minModuleBits = externalMemoryMinModuleBits;
+              maxModules = externalMemoryMaxModules;
             };
             modelShellIl = mkYosysRtlil {
               name = "${name}-model-shell";
@@ -656,12 +898,23 @@
               modelIl = modelShellIl;
               topSv = top;
               quiet = true;
+              splitFineStage = externalMemoryMaxModules != null;
+            };
+            inherit (stages) json;
+            yosysJson = mkYosysJson {
+              name = "${name}-yosys";
+              inherit topName;
+              modelIl = modelShellIl;
+              topSv = top;
             };
             utilizationReport = mkMappedJsonUtilizationReport {
               inherit name capacities topName;
-              designJson = stages.json;
+              designJson = json;
             };
-          in { inherit stages utilizationReport; };
+          in {
+            inherit top modelOptIl modelShellIl externalMemoryPlan stages json
+              yosysJson utilizationReport;
+          };
 
         mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
           let
@@ -706,14 +959,6 @@
               --output_file "$out"
           '';
 
-        tinyStories1mBaselineFloatSelftestAllMemory =
-          mkTinyStoriesSelftestBundle {
-            name = "tiny-stories-1m-baseline-float-selftest-all-memory";
-            topName = "tiny_stories_selftest_top";
-            modelIl = tinyStories1mBaselineFloatIl;
-            capacities = fpgaCapacities;
-          };
-
         matmulSelftestTop = ./fpga/rtl/matmul_selftest_top.sv;
         matmulSelftestJson = mkSynthJson {
           name = "matmul-selftest";
@@ -736,6 +981,34 @@
           fasm = matmulSelftestFasm;
           framesBase = "matmul-selftest";
         };
+
+        tinyStories1mSelftestAllMemory = mkTinyStoriesSelftestBundle {
+          name = "tiny-stories-1m-selftest-all-memory";
+          topName = "tiny_stories_selftest_top";
+          mainSv = "${tinyStories1mPipeline.sv}/sv/main.sv";
+          modelIl = tinyStories1mIl;
+          capacities = tinyStoriesCapacities;
+          externalMemoryMinModuleBits = 1;
+        };
+        tinyStories1mBaselineFloatSelftestAllMemory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-float-selftest-all-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineFloatPipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineFloatIl;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+          };
+        tinyStories1mBaselineFloatSelftestTop4Memory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-float-selftest-top4-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineFloatPipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineFloatIl;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+            externalMemoryMaxModules = 4;
+          };
 
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
           mkdir -p "$out"
@@ -852,6 +1125,48 @@
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
           matmul-selftest-json = matmulSelftestJson;
+          tiny-stories-1m-selftest-all-memory-top =
+            tinyStories1mSelftestAllMemory.top;
+          tiny-stories-1m-selftest-all-memory-model-opt-il =
+            tinyStories1mSelftestAllMemory.modelOptIl;
+          tiny-stories-1m-selftest-all-memory-model-shell-il =
+            tinyStories1mSelftestAllMemory.modelShellIl;
+          tiny-stories-1m-selftest-all-memory-external-memory-plan =
+            tinyStories1mSelftestAllMemory.externalMemoryPlan;
+          tiny-stories-1m-selftest-all-memory-json =
+            tinyStories1mSelftestAllMemory.json;
+          tiny-stories-1m-selftest-all-memory-yosys-json =
+            tinyStories1mSelftestAllMemory.yosysJson;
+          tiny-stories-1m-selftest-all-memory-utilization =
+            tinyStories1mSelftestAllMemory.utilizationReport;
+          tiny-stories-1m-baseline-float-selftest-all-memory-top =
+            tinyStories1mBaselineFloatSelftestAllMemory.top;
+          tiny-stories-1m-baseline-float-selftest-all-memory-model-opt-il =
+            tinyStories1mBaselineFloatSelftestAllMemory.modelOptIl;
+          tiny-stories-1m-baseline-float-selftest-all-memory-model-shell-il =
+            tinyStories1mBaselineFloatSelftestAllMemory.modelShellIl;
+          tiny-stories-1m-baseline-float-selftest-all-memory-external-memory-plan =
+            tinyStories1mBaselineFloatSelftestAllMemory.externalMemoryPlan;
+          tiny-stories-1m-baseline-float-selftest-all-memory-json =
+            tinyStories1mBaselineFloatSelftestAllMemory.json;
+          tiny-stories-1m-baseline-float-selftest-all-memory-yosys-json =
+            tinyStories1mBaselineFloatSelftestAllMemory.yosysJson;
+          tiny-stories-1m-baseline-float-selftest-all-memory-utilization =
+            tinyStories1mBaselineFloatSelftestAllMemory.utilizationReport;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-top =
+            tinyStories1mBaselineFloatSelftestTop4Memory.top;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-model-opt-il =
+            tinyStories1mBaselineFloatSelftestTop4Memory.modelOptIl;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-model-shell-il =
+            tinyStories1mBaselineFloatSelftestTop4Memory.modelShellIl;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-external-memory-plan =
+            tinyStories1mBaselineFloatSelftestTop4Memory.externalMemoryPlan;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-json =
+            tinyStories1mBaselineFloatSelftestTop4Memory.json;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-yosys-json =
+            tinyStories1mBaselineFloatSelftestTop4Memory.yosysJson;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-utilization =
+            tinyStories1mBaselineFloatSelftestTop4Memory.utilizationReport;
         } // pipelineStagePackages // pipelineMetadataPackages;
 
         checks = {
