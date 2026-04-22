@@ -65,4 +65,26 @@
     hiddenSize = 64;
     numHeads = 8;
   }
+  {
+    key = "tiny-stories-v1k-h64-l1";
+    profile = "streamtensor-lite-v1k-h64-l1";
+    label = "v1024-l1-h64-p128-w64";
+    vocabSize = 1024;
+    numLayers = 1;
+    maxPositionEmbeddings = 128;
+    windowSize = 64;
+    hiddenSize = 64;
+    numHeads = 16;
+  }
+  {
+    key = "tiny-stories-v4k-h64-l1";
+    profile = "streamtensor-lite-v4k-h64-l1";
+    label = "v4096-l1-h64-p128-w64";
+    vocabSize = 4096;
+    numLayers = 1;
+    maxPositionEmbeddings = 128;
+    windowSize = 64;
+    hiddenSize = 64;
+    numHeads = 16;
+  }
 ]

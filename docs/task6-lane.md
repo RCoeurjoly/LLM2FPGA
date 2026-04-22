@@ -126,8 +126,8 @@ this lane to drive day-to-day Task 6 decisions.
 | Rung | Artifact class | Model target | Status | Promotion rule |
 | --- | --- | --- | --- | --- |
 | `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | use only for kernel plumbing and DSP validation |
-| `L1` | TinyStories single linear op | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | ready | promote only if the kernel boundary is visible at Linalg level |
-| `L2` | reduced-vocab replay | planned `tiny-stories-v1k-h64-l1` | planned | first reduced-vocab micro-fit rung after `L1` |
+| `L1` | TinyStories single linear op | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | ready | boundary, pack, contract, and pack-backed replay all pass |
+| `L2` | reduced-vocab replay | `tiny-stories-v1k-h64-l1` | running | first reduced-vocab micro-fit rung after `L1`; keep going only while the same `c_fc` boundary survives cleanly |
 | `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promote only if `L2` clears the first-proof scorecard |
 | `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after `L3` shows a structural win |
 
@@ -190,8 +190,11 @@ Artifact rule:
 2. First-class weight-packer path
    - add:
      - `scripts/task6/export_weights_pack.py`
+     - `scripts/task6/export_l1_contract.py`
+     - `scripts/task6/verify_l1_contract.py`
      - `scripts/task6/build_task_graph.py`
      - `artifacts/task6/weights_pack/<model-rung>/`
+     - `artifacts/task6/streamtensor-lite/l1/<contract-dir>/`
    - the first proof must consume packed weights or a mocked ROM-style
      interface, not embedded constants
 
@@ -258,6 +261,9 @@ Required first output:
      harness for plumbing and kernel smoke validation
    - use `tiny-stories-1m-representative-core-v64-h4` for the first
      TinyStories-shaped boundary check
+   - capture one deterministic `L1` sample contract at the selected
+     `transformer.h.0.mlp.c_fc` site and replay it directly from the packed
+     weight/bias tensors before widening into any heavier simulation path
    - do not promote if the scorecard or time budgets fail
 
 5. Promote to the micro-fit ladder or reject.

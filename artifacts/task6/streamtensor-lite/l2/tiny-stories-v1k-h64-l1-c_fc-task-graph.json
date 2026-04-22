@@ -3,25 +3,25 @@
   "graph_kind": "streamtensor-lite-minimal-proof",
   "representation_level": "linalg",
   "source_artifacts": {
-    "candidate_json": "artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_fc-candidate.json",
-    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_fc/manifest.json",
-    "linalg_artifact": "/nix/store/2xz1757a13j8x630jhjy3ranvfc0lfsj-tiny-stories-1m-representative-core-v64-h4-linalg.mlir",
-    "contract_manifest": "artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_fc-contract/manifest.json"
+    "candidate_json": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-candidate.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "linalg_artifact": "/nix/store/x8lnd266sjig478x9b34bmlv8p0x4m61-tiny-stories-v1k-h64-l1-linalg.mlir",
+    "contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json"
   },
   "selected_site": {
     "module_name": "transformer.h.0.mlp.c_fc",
-    "line_number": 363,
-    "result_value": "%75",
-    "lhs_value": "%69",
-    "rhs_value": "%72",
-    "out_value": "%74"
+    "line_number": 357,
+    "result_value": "%81",
+    "lhs_value": "%75",
+    "rhs_value": "%78",
+    "out_value": "%80"
   },
   "interfaces": {
     "inputs": [
       {
         "name": "activation_in",
         "dtype": "float32",
-        "shape": "tensor<1x1x4xf32>",
+        "shape": "tensor<1x1x64xf32>",
         "role": "single-token activation vector"
       }
     ],
@@ -29,7 +29,7 @@
       {
         "name": "activation_out",
         "dtype": "float32",
-        "shape": "tensor<1x1x16xf32>",
+        "shape": "tensor<1x1x256xf32>",
         "role": "post-bias GEMV output"
       }
     ]
@@ -43,11 +43,11 @@
         "filename": "weight.bin",
         "dtype": "float32",
         "shape": [
-          16,
-          4
+          256,
+          64
         ],
-        "numel": 64,
-        "byte_length": 256
+        "numel": 16384,
+        "byte_length": 65536
       }
     },
     {
@@ -58,10 +58,10 @@
         "filename": "bias.bin",
         "dtype": "float32",
         "shape": [
-          16
+          256
         ],
-        "numel": 16,
-        "byte_length": 64
+        "numel": 256,
+        "byte_length": 1024
       }
     }
   ],
@@ -80,7 +80,7 @@
       "outputs": [
         "fc_weight"
       ],
-      "shape": "tensor<1x4x16xf32>"
+      "shape": "tensor<1x64x256xf32>"
     },
     {
       "name": "bias_fetch",
@@ -89,7 +89,7 @@
       "outputs": [
         "fc_bias"
       ],
-      "shape": "tensor<16xf32>"
+      "shape": "tensor<256xf32>"
     },
     {
       "name": "c_fc_gemv",
@@ -101,9 +101,9 @@
       "outputs": [
         "gemv_out"
       ],
-      "lhs_shape": "tensor<1x1x4xf32>",
-      "rhs_shape": "tensor<1x4x16xf32>",
-      "out_shape": "tensor<1x1x16xf32>"
+      "lhs_shape": "tensor<1x1x64xf32>",
+      "rhs_shape": "tensor<1x64x256xf32>",
+      "out_shape": "tensor<1x1x256xf32>"
     },
     {
       "name": "c_fc_bias_add",
@@ -115,7 +115,7 @@
       "outputs": [
         "activation_out"
       ],
-      "shape": "tensor<1x1x16xf32>"
+      "shape": "tensor<1x1x256xf32>"
     }
   ],
   "edges": [
@@ -148,10 +148,10 @@
       "shape": [
         1,
         1,
-        4
+        64
       ],
-      "numel": 4,
-      "byte_length": 16
+      "numel": 64,
+      "byte_length": 256
     },
     "output_tensor": {
       "name": "activation_out",
@@ -160,10 +160,10 @@
       "shape": [
         1,
         1,
-        16
+        256
       ],
-      "numel": 16,
-      "byte_length": 64
+      "numel": 256,
+      "byte_length": 1024
     },
     "sample_input_ids": [
       [

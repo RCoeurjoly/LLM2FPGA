@@ -1,41 +1,58 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-"""Locate the first representative-core L1 GEMV candidate in Linalg MLIR."""
+"""Locate the first TinyStories GEMV candidate in Linalg MLIR."""
 
 import argparse
 import json
-import re
 from pathlib import Path
-
-
-TARGET_RE = re.compile(
-    r"(?P<result>%[A-Za-z0-9_]+) = linalg\.batch_matmul "
-    r"ins\((?P<lhs>%[A-Za-z0-9_]+), (?P<rhs>%[A-Za-z0-9_]+) : "
-    r"tensor<1x1x4xf32>, tensor<1x4x16xf32>\) "
-    r"outs\((?P<out>%[A-Za-z0-9_]+) : tensor<1x1x16xf32>\) "
-    r"-> tensor<1x1x16xf32>"
-)
+import re
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--lhs-shape", default="tensor<1x1x4xf32>")
+    parser.add_argument("--rhs-shape", default="tensor<1x4x16xf32>")
+    parser.add_argument("--out-shape", default="tensor<1x1x16xf32>")
+    parser.add_argument("--context-radius", type=int, default=6)
+    parser.add_argument(
+        "--site-label",
+        default="L1",
+        help="Label used in the no-candidate error message",
+    )
     return parser.parse_args()
+
+
+def compile_target_re(lhs_shape: str, rhs_shape: str, out_shape: str) -> re.Pattern[str]:
+    return re.compile(
+        r"(?P<result>%[A-Za-z0-9_]+) = linalg\.batch_matmul "
+        r"ins\((?P<lhs>%[A-Za-z0-9_]+), (?P<rhs>%[A-Za-z0-9_]+) : "
+        + re.escape(lhs_shape)
+        + r", "
+        + re.escape(rhs_shape)
+        + r"\) "
+        r"outs\((?P<out>%[A-Za-z0-9_]+) : "
+        + re.escape(out_shape)
+        + r"\) "
+        r"-> "
+        + re.escape(out_shape)
+    )
 
 
 def main() -> None:
     args = parse_args()
     lines = args.input.read_text(encoding="utf-8").splitlines()
     candidates: list[dict[str, object]] = []
+    target_re = compile_target_re(args.lhs_shape, args.rhs_shape, args.out_shape)
 
     for idx, line in enumerate(lines, start=1):
-        match = TARGET_RE.search(line)
+        match = target_re.search(line)
         if match is None:
             continue
-        context_start = max(1, idx - 6)
-        context_end = min(len(lines), idx + 6)
+        context_start = max(1, idx - args.context_radius)
+        context_end = min(len(lines), idx + args.context_radius)
         candidates.append(
             {
                 "candidate_index": len(candidates),
@@ -46,9 +63,9 @@ def main() -> None:
                 "out_value": match.group("out"),
                 "representation_level": "linalg",
                 "shape_contract": {
-                    "lhs": "tensor<1x1x4xf32>",
-                    "rhs": "tensor<1x4x16xf32>",
-                    "out": "tensor<1x1x16xf32>",
+                    "lhs": args.lhs_shape,
+                    "rhs": args.rhs_shape,
+                    "out": args.out_shape,
                 },
                 "context": [
                     {
@@ -61,7 +78,9 @@ def main() -> None:
         )
 
     if not candidates:
-        raise SystemExit("no L1 candidate with tensor<1x1x4xf32> x tensor<1x4x16xf32> found")
+        raise SystemExit(
+            f"no {args.site_label} candidate with {args.lhs_shape} x {args.rhs_shape} found"
+        )
 
     payload = {
         "artifact": str(args.input),

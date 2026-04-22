@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 
@@ -13,12 +14,20 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--candidate-json", required=True, type=Path)
     parser.add_argument("--weight-pack-manifest", required=True, type=Path)
+    parser.add_argument("--contract-manifest", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args()
 
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def parse_tensor_shape(shape: str) -> list[int]:
+    match = re.fullmatch(r"tensor<([0-9x]+)xf32>", shape)
+    if match is None:
+        raise SystemExit(f"unsupported tensor shape format: {shape}")
+    return [int(dim) for dim in match.group(1).split("x")]
 
 
 def main() -> None:
@@ -30,13 +39,15 @@ def main() -> None:
     lhs_shape = selected["shape_contract"]["lhs"]
     rhs_shape = selected["shape_contract"]["rhs"]
     out_shape = selected["shape_contract"]["out"]
+    rhs_dims = parse_tensor_shape(rhs_shape)
+    out_dims = parse_tensor_shape(out_shape)
 
     tensors = {tensor["name"]: tensor for tensor in weight_pack["tensors"]}
     weight_shape = tensors["weight"]["shape"]
     bias_shape = tensors["bias"]["shape"]
 
-    expected_weight_shape = [16, 4]
-    expected_bias_shape = [16]
+    expected_weight_shape = [rhs_dims[2], rhs_dims[1]]
+    expected_bias_shape = [out_dims[2]]
     if weight_shape != expected_weight_shape:
         raise SystemExit(
             f"weight pack shape mismatch: expected {expected_weight_shape}, got {weight_shape}"
@@ -47,7 +58,7 @@ def main() -> None:
         )
 
     graph = {
-        "graph_name": "task6-l1-c-fc-minimal-task-graph",
+        "graph_name": "task6-c-fc-minimal-task-graph",
         "graph_kind": "streamtensor-lite-minimal-proof",
         "representation_level": selected["representation_level"],
         "source_artifacts": {
@@ -111,7 +122,7 @@ def main() -> None:
                 "kind": "weight-pack-read",
                 "source": "bias_pack",
                 "outputs": ["fc_bias"],
-                "shape": "tensor<16xf32>",
+                "shape": f"tensor<{expected_bias_shape[0]}xf32>",
             },
             {
                 "name": "c_fc_gemv",
@@ -137,6 +148,16 @@ def main() -> None:
             {"from": "bias_fetch", "to": "c_fc_bias_add", "tensor": "fc_bias"},
         ],
     }
+
+    if args.contract_manifest is not None:
+        contract_doc = load_json(args.contract_manifest)
+        contract_tensors = {tensor["name"]: tensor for tensor in contract_doc["tensors"]}
+        graph["source_artifacts"]["contract_manifest"] = str(args.contract_manifest)
+        graph["sample_io"] = {
+            "input_tensor": contract_tensors["activation_in"],
+            "output_tensor": contract_tensors["activation_out"],
+            "sample_input_ids": contract_doc["sample_input_ids"],
+        }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(graph, indent=2) + "\n", encoding="utf-8")

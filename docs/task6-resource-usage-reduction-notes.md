@@ -1967,3 +1967,158 @@ Representative-core sweep setup later on 2026-04-22:
   - either refine this graph into a more explicit executable contract
   - or spend the next slice on the lightest possible `task6-l0-gemv64`
     simulation harness
+
+### L1 contract capture and pack replay later on 2026-04-22
+
+- Added:
+  - `scripts/task6/export_l1_contract.py`
+  - `scripts/task6/verify_l1_contract.py`
+- First contract artifact:
+  - `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_fc-contract/`
+- Captured tensors:
+  - `activation_in.bin`
+    - shape:
+      - `(1, 1, 4)`
+    - bytes:
+      - `16`
+  - `activation_out.bin`
+    - shape:
+      - `(1, 1, 16)`
+    - bytes:
+      - `64`
+  - `manifest.json`
+    - records:
+      - module path
+      - representative-core config
+      - sample input ids `[[0]]`
+      - selected-site linkage back to line `363` / `%75`
+- Measured contract capture:
+  - wall-clock:
+    - `2.42 s`
+  - peak RSS:
+    - `342,280 KB`
+- First replay-check artifact:
+  - `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_fc-contract-check.json`
+- Measured replay check:
+  - wall-clock:
+    - `0.93 s`
+  - peak RSS:
+    - `226,472 KB`
+- Replay result:
+  - formula:
+    - `activation_in @ weight.T + bias`
+  - max absolute error:
+    - `0.0`
+  - mean absolute error:
+    - `0.0`
+  - verdict:
+    - `pass`
+- Task-graph follow-up:
+  - the minimal `L1` task graph now points at:
+    - the selected `linalg` site
+    - the packed weight/bias manifest
+    - the captured sample contract
+- Interpretation:
+  - `L1` now has a real executable proof path that stays below the heavier
+    handshake-level simulation boundary
+  - the packed tensors are no longer only exported; they are replayed against a
+    captured module-level contract with exact agreement
+- Immediate next choice:
+  - either add the lightest honest Verilator harness for `L0`
+  - or start `L2` with the reduced-vocab `h64` ladder now that `L1` has a
+    pack-backed executable contract
+
+### L2 reduced-vocab `h64` rung start later on 2026-04-22
+
+- Added rung definitions:
+  - `tiny-stories-v1k-h64-l1`
+  - `tiny-stories-v4k-h64-l1`
+- Supporting script change:
+  - generalized `scripts/task6/find_l1_gemv_candidate.py`
+    - it now accepts explicit `lhs`, `rhs`, and `out` tensor shapes so the same
+      boundary finder can work on both `L1` and reduced-vocab `h64` rungs
+- First `L2` build:
+  - `nix build .#tiny-stories-v1k-h64-l1-linalg --no-link --print-out-paths`
+  - artifact:
+    - `/nix/store/x8lnd266sjig478x9b34bmlv8p0x4m61-tiny-stories-v1k-h64-l1-linalg.mlir`
+- `L2` first boundary result:
+  - artifact:
+    - `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-candidate.json`
+  - measured candidate-finder runtime:
+    - wall-clock:
+      - `0.03 s`
+    - peak RSS:
+      - `15,644 KB`
+  - selected site:
+    - line `357`
+    - value `%81`
+  - shape contract:
+    - `tensor<1x1x64xf32>`
+    - `tensor<1x64x256xf32>`
+    - `tensor<1x1x256xf32>`
+  - interpretation:
+    - the same block-0 `transformer.h.0.mlp.c_fc` boundary survives cleanly at
+      the first reduced-vocab `h64` rung
+    - there is exactly one matching site because the rung uses one transformer
+      layer
+- `L2` first packed artifact:
+  - `artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/`
+  - measured export:
+    - wall-clock:
+      - `2.38 s`
+    - peak RSS:
+      - `337,536 KB`
+  - tensor shapes:
+    - weight:
+      - `(256, 64)`
+    - bias:
+      - `(256,)`
+- `L2` first contract artifact:
+  - `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/`
+  - measured capture:
+    - wall-clock:
+      - `2.40 s`
+    - peak RSS:
+      - `342,932 KB`
+  - sample contract:
+    - input ids:
+      - `[[0]]`
+    - activation in:
+      - `(1, 1, 64)`
+    - activation out:
+      - `(1, 1, 256)`
+- `L2` replay check:
+  - artifact:
+    - `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract-check.json`
+  - measured replay:
+    - wall-clock:
+      - `0.92 s`
+    - peak RSS:
+      - `226,720 KB`
+  - replay result:
+    - formula:
+      - `activation_in @ weight.T + bias`
+    - max absolute error:
+      - `0.0`
+    - mean absolute error:
+      - `0.0`
+    - verdict:
+      - `pass`
+- `L2` task-graph artifact:
+  - `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-task-graph.json`
+  - measured build:
+    - wall-clock:
+      - `0.03 s`
+    - peak RSS:
+      - `14,268 KB`
+- Supporting fix:
+  - generalized `scripts/task6/build_task_graph.py`
+    - it now derives expected weight and bias tensor shapes from the selected
+      candidate contract instead of assuming the `L1` `4 -> 16` case
+- Interpretation:
+  - `L2` is now active rather than planned only
+  - the first reduced-vocab `h64` rung preserves the same `c_fc` boundary and
+    external-pack replay contract as `L1`
+  - the next decision is no longer whether `L2` exists; it is whether to widen
+    to `L3` (`v4k-h64-l1`) or spend the next slice on kernel-level synthesis /
+    simulation evidence
