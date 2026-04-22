@@ -1933,3 +1933,37 @@ Representative-core sweep setup later on 2026-04-22:
 - Immediate next choice:
   - either build the smallest task-graph consumer around this pack
   - or add the lightest possible Verilator harness for `task6-l0-gemv64`
+
+### L1 minimal task-graph consumer later on 2026-04-22
+
+- Added:
+  - `scripts/task6/build_task_graph.py`
+- First task-graph artifact:
+  - `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_fc-task-graph.json`
+- Measured build:
+  - wall-clock:
+    - `0.03 s`
+  - peak RSS:
+    - `13,456 KB`
+- Structure:
+  - one activation input
+  - one packed-weight reader
+  - one packed-bias reader
+  - one `gemv` node
+  - one `bias-add` node
+  - one activation output
+- Key linkage:
+  - selected site:
+    - line `363`
+    - value `%75`
+  - pack source:
+    - `transformer.h.0.mlp.c_fc/manifest.json`
+- Interpretation:
+  - the lane now has both:
+    - a first packed-weight producer
+    - and a first consumer-side task graph around the same `L1` site
+  - the task-graph budget is satisfied comfortably
+- Immediate next choice:
+  - either refine this graph into a more explicit executable contract
+  - or spend the next slice on the lightest possible `task6-l0-gemv64`
+    simulation harness

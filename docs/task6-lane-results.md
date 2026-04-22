@@ -20,7 +20,7 @@ Branch: `task6-streamtensor-lite`
 | Stage | Budget | Last measured | Status |
 | --- | --- | --- | --- |
 | Python export + weight pack | `< 30 s` | `2.42 s` on `export_weights_pack.py` for `transformer.h.0.mlp.c_fc` | pass-L1-pack |
-| Task-graph generation | `< 10 s` | n/a | pending |
+| Task-graph generation | `< 10 s` | `0.03 s` on `build_task_graph.py` for the selected `c_fc` site | pass-L1-graph |
 | Verilator kernel test | `< 20 s` | n/a | pending |
 | Yosys stat for kernel | `< 30 s` | `9.23 s` on `task6-l0-gemv64-yosys-stat` | pass-L0 |
 | Yosys stat for one-block top | `< 2 min` | n/a | pending |
@@ -74,7 +74,7 @@ Branch: `task6-streamtensor-lite`
 | L0 kernel model | `task6-l0-gemv64` | ready |
 | L1 candidate finder | `scripts/task6/find_l1_gemv_candidate.py` | ready |
 | Weight pack export | `scripts/task6/export_weights_pack.py` | ready |
-| Task-graph build | `scripts/task6/build_task_graph.py` | planned |
+| Task-graph build | `scripts/task6/build_task_graph.py` | ready |
 | Packed-weight artifacts | `artifacts/task6/weights_pack/<model-rung>/` | running |
 | Stage-local runner | `just task6-l0` through `just task6-l7` | planned |
 
@@ -89,6 +89,7 @@ Branch: `task6-streamtensor-lite`
 | 2026-04-22 | `task6-l0-gemv64-yosys-stat` rerun | synthetic external-weight `64x64` GEMV | `linalg -> yosys-stat` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `9.23 s` | `560,684 KB` | pass-runtime | inspect mapped resource signature and add Verilator kernel coverage |
 | 2026-04-22 | `representative-core-v64-h4-c_fc-candidate.json` | `transformer.h.0.mlp.c_fc` candidate | `linalg` | n/a | n/a | n/a | n/a | `0.05 s` | `13,024 KB` | selected | use line `363` / `%75` as the first L1 cutout and begin weight-pack extraction around the first `4 -> 16` site |
 | 2026-04-22 | `export_weights_pack.py` for `transformer.h.0.mlp.c_fc` | `transformer.h.0.mlp.c_fc` | `pytorch-state-dict` | n/a | n/a | n/a | n/a | `2.42 s` | `336,816 KB` | pass-pack | use `weight.bin` / `bias.bin` plus `manifest.json` as the first external pack backing the selected L1 site |
+| 2026-04-22 | `representative-core-v64-h4-c_fc-task-graph.json` | `transformer.h.0.mlp.c_fc` | `linalg` | n/a | n/a | n/a | n/a | `0.03 s` | `13,456 KB` | pass-graph | use the minimal graph as the first consumer contract for the packed `c_fc` tensors and decide whether the next slice is graph refinement or an L0 sim harness |
 
 ## Rejections
 
