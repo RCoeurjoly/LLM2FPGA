@@ -1694,3 +1694,40 @@ Representative-core sweep setup later on 2026-04-22:
 - Current decision:
   - use the sweep to find the crossover where `top4-memory` stops being shell
     overhead and starts reducing the real design
+
+## StreamTensor-lite lane start on 2026-04-22
+
+- Priority shift:
+  - new lane branch: `task6-streamtensor-lite`
+  - new lane worktree: `/tmp/LLM2FPGA_task6_streamtensor_lite`
+  - lane note: `docs/task6-lane.md` inside that worktree
+- Actual shared-plan anchor:
+  - shared thread:
+    `https://chatgpt.com/s/t_69e8e80bdd388191bcc4279dc0e00fc4`
+  - key conclusion:
+    - `StreamTensor-lite / fit-first accelerator lane` is the most promising
+      active path right now
+- Purpose:
+  - treat this as a fit-first accelerator lane, not a generic streaming survey
+    and not a full StreamTensor port
+  - keep Torch-MLIR / Linalg as the frontend
+  - stop treating full-model RTL lowering as the target architecture for this
+    lane
+  - prove that one reused kernel with external weights can change the resource
+    signature away from `0 DSP / 0 BRAM`
+- Immediate plan:
+  - start from representative-core artifacts rather than the `top4-memory`
+    shell path
+  - begin with `tiny-stories-1m-representative-core-v64-h4` unless it is too
+    small for the first meaningful proof
+  - identify one Linalg linear / GEMV region that can be redirected into a
+    small reused kernel
+  - model weights as external inputs in that proof
+  - require the proof to consume DSPs or otherwise visibly change the current
+    all-fabric signature before promoting the lane
+- Required first output:
+  - shortlist of candidate insertion points with:
+    - targeted linear / GEMV region
+    - expected resource-signature change
+    - cheapest validation artifact
+    - replay target if the result is helpful
