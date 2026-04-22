@@ -39,6 +39,183 @@ Expected baseline files:
 - `summary.txt`
 - `stat.json`
 
+## Current execution program (2026-04-21)
+
+This section is the live Task 6 operating contract. Use it to decide what to
+run next, when to stop a lane, and what evidence must be recorded before a lane
+earns more work.
+
+### Goal and success bar
+
+- Primary goal for the next 1-2 weeks:
+  - produce a reproducible reduction in peak host memory pressure or mapped
+    utilization relative to the copied baseline bundle above
+- Primary success bar:
+  - one lane produces a durable artifact bundle showing either:
+    - lower peak memory / no OOM where baseline or a prior candidate OOMs, or
+    - a better mapped resource result than the copied baseline bundle
+
+### Operating rules
+
+- Keep `task6` as the integration and notes branch.
+- Run strategy work in separate worktrees or sibling branches derived from
+  `task6`.
+- Optimize for feedback-loop speed first:
+  - prefer the smallest representative core and cheapest measurement artifact
+    that still preserves relevant operator/structure coverage
+  - prove that coverage with MLIR op stats before trusting the smaller core for
+    Task 6 decisions
+  - replay only the promising changes on the larger representative/full lanes
+- Treat external memory / DDR3 as an allowed first-class strategy, not only as
+  a fallback.
+- Compare every result against
+  `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`.
+- Record every evidence milestone in this file immediately after it lands.
+- Fast-prune a lane after 1-2 measured attempts unless it exposes a new,
+  narrower bottleneck that is worth isolating.
+
+### Evidence contract for every lane
+
+Every active lane must leave behind:
+
+- the exact flake output or command that was run
+- the first failing or last completed stage
+- the main output artifact path(s)
+- the baseline delta being claimed
+- the continue / prune decision
+
+Minimum metrics to record when available:
+
+- wall-clock time
+- peak host memory or the best available proxy
+- Yosys / mapped utilization delta
+- size or count signals that explain the change
+  - e.g. RTLIL size, selected module count, eligible memory bits
+
+Preferred capture helper for future runs:
+
+- `scripts/pipeline/monitor_build.sh`
+  - wrap long `nix build ... -L` runs with it when host-RAM evidence matters
+  - it records the raw build log, per-process `VmRSS` / `VmHWM` samples, and a
+    short summary with the last emitted stage banner
+
+### Active lane queue
+
+0. Fast-iteration lane: representative TinyStories core
+   - branch/worktree: `task6`
+   - package family:
+     - `tiny-stories-1m-representative-core-*`
+     - `tiny-stories-1m-representative-core-selftest-all-memory-*`
+   - current milestone:
+     - use a reduced GPT-Neo core derived from the TinyStories-1M config to
+       preserve the same model family and operator mix while cutting vocabulary
+       table size and layer count for faster compile/debug cycles
+   - current profile:
+     - `vocab_size = 32`
+     - `num_layers = 2`
+     - `hidden_size = 2`
+     - `num_heads = 1`
+     - `max_position_embeddings = 4`
+     - `window_size = 2`
+   - intended use:
+     - frontend/lowering iteration
+     - stage-splitting experiments
+     - quick checks of whether a flow or patch changes the shape of the
+       synthesized design before spending hours on the full baseline
+   - guardrail:
+     - do not treat this as a replacement baseline; every real Task 6 claim
+       still has to come back to the copied baseline bundle
+     - treat MLIR op coverage against the baseline as the admission check for
+       this lane; if the smaller core drops baseline ops/dialects, grow it back
+
+1. Main lane: narrowed external-memory shell
+   - branch/worktree: `task6` until the next structural branch split is needed
+   - package family:
+     - `tiny-stories-1m-baseline-float-selftest-top4-memory-*`
+   - current milestone:
+     - finish the narrowed-shell utilization run and record whether the split
+       `stage6a` / `stage8*` path completes or still hits an OOM-class
+       bottleneck
+   - continue only if:
+     - the lane reaches a later stage than baseline or lowers peak memory / RSS
+   - prune only if:
+     - the narrowed shell still fails without improving the bottleneck shape
+
+2. Side lane A: quantization viability
+   - preferred branch/worktree: `task6-quant`
+   - package family:
+     - `tiny-stories-1m-*`
+   - current milestone:
+     - classify the three quantized routes by earliest completed stage and keep
+       investing only in the route that produces the best measurable shell
+       reduction
+   - current default:
+     - continue only with `tiny-stories-1m` unless patched import work changes
+       the frontier
+
+3. Side lane B: alternate-dialect substitution
+   - preferred branch/worktree:
+     - `task6-alt-dialect`
+   - current milestone:
+     - identify one or two concrete non-handshake lowering families worth
+       testing instead of treating "another dialect" as an open-ended research
+       bucket
+   - required first output:
+     - candidate shortlist with:
+       - candidate dialect / lowering family
+       - plausible insertion point from the current `cf` or nearby pipeline
+       - expected benefit versus handshake
+       - expected patch burden
+       - first narrow experiment to run
+   - entry guardrail:
+     - do not start by rewriting the whole flow
+     - start by proving one alternative is concrete enough to compare against
+       the current handshake path
+
+4. Side lane C: structural lowering / eqmap / LSQ
+   - preferred branch/worktrees:
+     - `task6-eqmap`
+     - `task6-lsq`
+   - entry condition:
+     - only after the main lane isolates a residual structural bottleneck that
+       looks larger than a pure late-Yosys mapping problem
+   - required evidence:
+     - changed stage, changed RTLIL size or module count, and whether the
+       mapped bottleneck moved
+
+5. Side lane D: board RAM interface path
+   - preferred branch/worktree: `task6-board-ram`
+   - entry condition:
+     - once the top4-memory shell numbers are stable enough to justify a board
+       contract
+   - required evidence:
+     - what memories move off-chip, what stays on-chip, and whether the
+       remaining shell becomes materially more synthesis-tractable
+
+6. Side lane E: DOCC / feedback-driven compiler path
+   - preferred branch/worktree:
+     - `task6-docc`
+   - current milestone:
+     - decide whether Daisytuner DOCC is viable here as an actual toolchain
+       lane, or whether only its SDFG plus feedback-loop ideas are reusable for
+       Task 6
+   - required first output:
+     - a viability memo with:
+       - what part is usable locally
+       - what part depends on Daisy Cloud or external runners
+       - what input artifact from this repo could feed the lane first
+       - what measurable Task 6 question this lane would answer
+   - entry guardrail:
+     - do not start with account setup or cloud integration
+     - first prove the lane can answer a Task 6 bottleneck question faster or
+       better than the existing pipeline
+
+7. Reference lanes only
+   - `task6-paper-review`
+   - `task6-moe`
+   - use these only to justify a specific next experiment in another active
+     lane
+
 ### Stage A import status
 
 Status on 2026-04-16:
@@ -517,6 +694,386 @@ Implementation follow-up later on 2026-04-20:
   next measurement to capture is whether the rewritten single-pass `stage6a`
   materially reduces wall-clock time in addition to the earlier RSS reduction.
 
+Integration follow-up on 2026-04-21:
+
+- The first 2026-04-21 narrowed-shell rebuild did not reach Yosys. It failed in
+  the patched `circt` dependency during `checkPhase`, after CIRCT compiled
+  successfully, with `18` `HandshakeToHW`-area regression failures.
+- The immediate cause was the local CIRCT patch stack in `flake.nix`, not a new
+  Task 6 OOM. A dry-run against the pinned `RCoeurjoly/circt` `task3` source
+  showed that the older patches `0003`, `0004`, `0005`, `0008`, `0009`,
+  `0013`, `0014`, and `0015` were already present upstream.
+- Inspection of `0013-handle-memref-model-io-and-cache-submodule-lookups.patch`
+  showed that it already supersedes the earlier `0010`..`0012`
+  `FuncOpConversionPattern` / `HandshakeToHW` legality changes. Reapplying
+  `0010`..`0012` on top of that source is what broke the `HandshakeToHW`
+  regression tests.
+- The active CIRCT patch stack is now reduced to the two patches that still
+  look genuinely unapplied in this source snapshot:
+  - `0006-add-lsq-memory-lowering.patch`
+  - `0007-lower-lazy-fork-to-hw.patch`
+- Continue decision:
+  - keep the main narrowed-shell lane active
+  - current gate is verifying that the reduced CIRCT stack clears `checkPhase`
+    and allows the top4-memory utilization build to reach the actual Task 6
+    staged flow again
+
+Recovered side-lane status on 2026-04-21:
+
+- Quant lane (`task6-quant`):
+  - existing lane note:
+    - `docs/task6-lane-results.md` in the `task6-quant` worktree records the
+      latest measured classification from 2026-04-17
+  - strongest route so far:
+    - `tiny-stories-1m` remains the only quantized full-model route that has
+      clearly reached past frontend export in this repo, with `cf-stats` as the
+      farthest confirmed successful stage
+  - current rejects:
+    - `tiny-stories-1m-dynamic-int8` fails at `torch` on both the unpatched and
+      lane-local patched `torch-mlir` path with the same illegal
+      `torch.operator` legalization failure in the GPT-Neo `torch.nn.Linear`
+      path
+    - `tiny-stories-1m-torchao` also fails at `torch` with an illegal
+      `torch.operator` rooted in `torch.nn.Embedding`
+  - continue decision:
+    - keep only `tiny-stories-1m` active for future quant follow-up
+    - freeze `dynamic-int8` and `torchao` unless importer work changes the
+      frontier materially
+
+- Board-RAM lane (`task6-board-ram`):
+  - existing lane note:
+    - `docs/task6-lane-results.md` in the `task6-board-ram` worktree records
+      the current board-facing recommendation from 2026-04-17
+  - strongest candidate:
+    - move the four `3216448 x 32` vocab-sized tables off-chip first
+    - those four modules account for `411,705,344` modeled bits (`49.08 MiB`),
+      about `95.1%` of the eligible memory bits in the prior all-memory
+      inventory
+  - prior shell evidence:
+    - the broader all-memory threshold `>= 131072` bits reduced LUTs from
+      `40,416,086` to `34,950,553` (`-5,465,533`, about `-13.5%`) while FFs
+      stayed flat
+  - continue decision:
+    - keep this lane ready as the next architecture candidate once the current
+      top4-memory shell run lands, because it already matches the same dominant
+      memory picture
+
+- Structural lanes:
+  - `task6-eqmap` and `task6-lsq` already exist as separate worktrees, but they
+    currently carry lane instructions rather than a newer measured result
+  - keep both lanes parked until the main narrowed-shell run either completes
+    or isolates a blocker that still looks structural after memory removal
+
+- Alternate-dialect lane (`task6-alt-dialect`):
+  - current lane status:
+    - dedicated worktree created on 2026-04-21 to own non-handshake lowering
+      exploration separately from generic lowering/LSQ experiments
+  - current milestone:
+    - identify one or two concrete dialect/lowering families that could replace
+      the current handshake-centered path for a useful subset of the flow
+  - current guardrail:
+    - this lane is not allowed to become an unbounded "survey MLIR" thread
+    - it must quickly narrow to a shortlist with a first real experiment
+  - continue decision:
+    - keep this lane in candidate-identification mode until the shortlist is
+      written down and one first experiment is concrete enough to implement
+
+- DOCC lane (`task6-docc`):
+  - current lane status:
+    - dedicated worktree created on 2026-04-21 to evaluate the FOSDEM 2026
+      DOCC / Daisytuner idea as a Task 6 strategy lane rather than leaving it
+      in paper-review limbo
+  - current milestone:
+    - determine whether this is a real executable lane in the current repo, or
+      mainly a source of reusable SDFG / benchmarking / feedback-loop ideas
+  - current guardrail:
+    - reject any version of this lane that immediately depends on external
+      cloud setup before it produces a concrete Task 6 measurement plan
+  - continue decision:
+    - keep this lane in viability-check mode until it names one concrete first
+      artifact and one Task 6 question it can answer better than the stock flow
+
+Live narrowed-shell rebuild update later on 2026-04-21:
+
+- The repaired `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization`
+  rebuild is back in the staged Yosys flow for this branch.
+- Build-log stages confirmed so far in this specific rerun:
+  - `stage1 synth_xilinx begin:prepare`
+  - `stage2 synth_xilinx coarse:map_memory`
+  - `stage3 opt -fast -full`
+  - `stage4 targeted memory_map`
+  - `stage5a fine opt -full`
+- Process sampling from the live Yosys child shows:
+  - the `stage2`-era process completed after reaching about `20.9 GiB`
+    `VmHWM`
+  - a later live Yosys process, after the build log had already advanced into
+    the post-`stage4` band, reached about `25.1 GiB` `VmHWM` while still
+    running on CPU
+- What is confirmed versus inferred:
+  - confirmed from the build log: the rerun has cleared `stage5a`
+  - inferred from process sampling only: the current active bottleneck is now
+    somewhere in the late `stage5*` to pre-`stage7` region, but the exact
+    sub-stage is not yet logged because this rerun was launched without a
+    dedicated stage/memory wrapper and the Yosys stages run `-q`
+- Process improvement made during this investigation:
+  - future long Task 6 builds should use
+    `scripts/pipeline/monitor_build.sh <output-dir> -- nix build ... -L`
+    so stage banners, sampled `VmRSS` / `VmHWM`, and the final summary are
+    captured in one artifact bundle
+- Continue decision:
+  - keep the narrowed-shell main lane active
+  - if this rerun still dies late, treat the next immediate task as capturing a
+    wrapped rerun with the new monitor helper before opening a structural lane
+
+Fast-iteration core update on 2026-04-21:
+
+- Added a new reduced model lane for quicker iteration:
+  - pipeline model key: `tiny-stories-1m-representative-core`
+  - selftest bundle prefix:
+    - `tiny-stories-1m-representative-core-selftest-all-memory-*`
+- The new model is intentionally synthetic and deterministic:
+  - it derives its config from the real TinyStories-1M GPT-Neo config
+  - it keeps the same model family, float path, and attention-style mix
+  - it uses random weights with `torch.manual_seed(0)` instead of the real
+    checkpoint
+- Current default trim profile:
+  - `vocab_size = 1024` instead of `50257`
+  - `num_layers = 1` instead of `8`
+  - `hidden_size = 32` instead of `2048`
+  - `num_heads = 4` instead of `16`
+  - `max_position_embeddings = 64` instead of `2048`
+  - `window_size = 32` instead of `256`
+- Intended use:
+  - get faster answers on export/lowering/stage-shape questions
+  - test whether future flow changes move the same synthesis bottlenecks in a
+    structurally similar design
+  - provide a cheaper target for the new `monitor_build.sh` wrapper
+- Guardrail:
+  - do not compare this synthetic core directly against the copied baseline
+    bundle as a success claim
+  - use it to accelerate iteration, then replay promising changes on the real
+    TinyStories baseline path
+- First verification in this branch:
+  - `nix build .#tiny-stories-1m-representative-core-cf-stats --no-link`
+    completes successfully
+  - frontend artifact sizes versus the full baseline-float path:
+    - `torch.mlir`: `3,061,503` bytes versus `30,091,456` bytes
+    - `cf.mlir`: `3,221,259` bytes versus `30,664,646` bytes
+    - `cf.mlir` line count: `4,218` versus `14,545`
+  - the reduced core still preserves the same broad operator families in
+    `cf.mlir`, including `arith.addf`, `arith.mulf`, `math.exp`, `math.tanh`,
+    `cf.br`, and `cf.cond_br`
+  - interpretation:
+    - this is already a meaningful frontend/lowering acceleration target
+    - it is not yet evidence about late Yosys behavior, because the selftest
+      utilization path has not been run for this reduced core yet
+
+Representative-core simplification follow-up later on 2026-04-21:
+
+- The earlier representative-core profile was still too expensive to be the
+  fast iteration loop:
+  - the `abc9` lane reached `stage7` with roughly `29 GiB` resident Yosys
+    memory even after the narrowed-shell and restart-batched `stage6a`
+    improvements
+- Action taken:
+  - simplified the default representative-core profile again in place
+  - current effective preset is now:
+    - `vocab_size = 1024`
+    - `num_layers = 1`
+    - `hidden_size = 32`
+    - `num_heads = 4`
+    - `max_position_embeddings = 64`
+    - `window_size = 32`
+  - updated both:
+    - `TinyStories/model_adapter_representative_core.py`
+    - `nix/models.nix`
+- Intended interpretation:
+  - this no longer tries to be a mid-scale structural proxy
+  - it is the fast-loop Task 6 synthesis target
+  - if changes work here, replay them on the older representative-core shape or
+    directly on the real narrowed-shell baseline as needed
+- First rerun on the smaller preset:
+  - frontend validation:
+    - `nix build .#tiny-stories-1m-representative-core-cf-stats --no-link`
+  - monitored synthesis run:
+    - `artifacts/task6/runs/representative-core-v2-selftest-top4-memory-json-20260421-225531`
+  - current confirmed frontier:
+    - `stage1 synth_xilinx begin:prepare`
+    - `stage2 synth_xilinx coarse:map_memory`
+  - live staged memory shape so far:
+    - active staged Yosys around `1.1 GiB` RSS when first entering staged
+      synthesis
+    - later live `stage2` Yosys around `3.7 GiB` RSS after ~30 seconds of work
+
+Late-stage blocker update later on 2026-04-21:
+
+- The narrowed-shell full-baseline rerun has now been localized precisely:
+  - `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization` reaches
+    `stage6a targeted techmap cells_map`
+  - the builder then dies with exit code `137`
+  - the logged stage banner reports `473` selected modules at that point
+- Interpretation:
+  - the active main-lane blocker is no longer CIRCT
+  - it is the late Yosys `cells_map` step on the narrowed shell
+  - this is a tighter and more actionable frontier than the earlier generic
+    OOM picture
+- First mitigation attempted in `task6`:
+  - split `stage6a` into batches of `32` selected modules
+  - initial implementation only batched the `select`/`techmap` calls inside one
+    long-lived Yosys process
+- Follow-up correction:
+  - batching inside one Yosys process is unlikely to reclaim pass-local memory
+    aggressively enough, because the whole design and pass state stay resident
+  - `mkSynthStageTargetedTechmapIl` now supports restart-per-batch mode so the
+    process can fully exit between `stage6a` chunks
+  - `stage6a` is now configured with:
+    - `batchSize = 32`
+    - `restartPerBatch = true`
+- Fast-loop validation in progress:
+  - current command family:
+    - `tiny-stories-1m-representative-core-selftest-top4-memory-json`
+  - current monitored run directory:
+    - `artifacts/task6/runs/representative-core-selftest-top4-memory-json-restart-20260421-181333`
+  - purpose:
+    - confirm the restart-per-batch `stage6a` path is functionally valid on the
+      representative core before spending another full-baseline run
+- Monitoring update:
+  - `monitor_build.sh` plus
+    `MONITOR_GLOBAL_PGREP_PATTERN='default-builder.sh|yosys -q -s run.ys'`
+    now captures the builder-side Yosys worker for daemonized Nix builds
+  - the live representative-core `stage2` Yosys process has already reached
+    about `6.45 GiB` `VmHWM` in this wrapped run
+- Continue decision:
+  - if the representative-core split path clears `stage6a`, replay the new
+    restart-per-batch implementation on the full baseline narrowed-shell lane
+  - if it still fails before or during `stage6a`, inspect batch semantics or
+    reduce batch size further before launching another expensive full run
+
+Restart-batched validation follow-up later on 2026-04-21:
+
+- The first representative-core validation run against the new restart-per-batch
+  path did reach `stage6a`, but failed for an implementation bug rather than a
+  synthesis limit:
+  - monitored run:
+    - `artifacts/task6/runs/representative-core-selftest-top4-memory-json-restart-20260421-181333`
+  - confirmed stages:
+    - `stage1`
+    - `stage2`
+    - `stage3`
+    - `stage4`
+    - `stage5a`
+    - `stage5b`
+    - `stage5c`
+    - `stage5d`
+    - `stage6a targeted techmap cells_map`
+  - failure cause:
+    - malformed shell heredoc in the newly added restart-per-batch builder
+      fragment
+    - not a Yosys OOM and not a semantic hardware-lowering failure
+- Follow-up fix:
+  - replaced the nested restart-loop heredocs in `mkSynthStageTargetedTechmapIl`
+    with `printf`-based `run.ys` generation so the staged builder script is no
+    longer sensitive to indentation of nested `EOF` markers
+- Second validation run after the fix:
+  - monitored run:
+    - `artifacts/task6/runs/representative-core-selftest-top4-memory-json-restart-fix-20260421-184404`
+  - current confirmed behavior:
+    - the run now re-enters `stage6a` cleanly
+    - it emits per-batch banners
+    - it has progressed through at least batch `6/8`
+  - interpretation:
+    - restart-per-batch `stage6a` is now real, not just syntactically present
+    - the representative-core lane no longer dies immediately at the start of
+      `stage6a`
+    - each new Yosys worker restarts with a much lower RSS than the prior
+      batch's high-water mark, which is the intended memory-shaping behavior
+  - observed memory shape from the wrapped run:
+    - earlier batches climbed into the low `3.3 GiB` range
+    - later live batches have reached about `7.1 GiB` `VmRSS` / `VmHWM`
+      without an immediate kill
+- Continue decision:
+  - keep the representative-core validation run active until it either clears
+    `stage6a` or fails with a real synthesis/resource limit
+  - if it clears `stage6a`, promote the same restart-per-batch approach to the
+    full-baseline narrowed-shell main lane immediately
+  - if it fails materially before batch `8/8` or before `stage7`, consider a
+    smaller `batchSize` before spending another full-baseline run
+
+Stage-measurement tooling follow-up later on 2026-04-21:
+
+- Added a reusable stage-stats path for the RTLIL/Yosys synthesis stages.
+- Purpose:
+  - answer questions like:
+    - what does `stage6a` look like in the baseline path?
+    - what does `stage6a` look like in the experiment path?
+  - using structural stage stats rather than only wall-clock or RSS evidence
+- Implementation:
+  - new report script:
+    - `scripts/pipeline/write_rtlil_stage_stat_report.py`
+  - new comparison script:
+    - `scripts/pipeline/compare_stage_stats.py`
+  - new flake outputs now expose:
+    - per-bundle stage-stat directories
+    - direct `stage6a` stat outputs for the top4-memory lanes
+- New package families of interest:
+  - `tiny-stories-1m-baseline-float-selftest-top4-memory-stage-stats`
+  - `tiny-stories-1m-baseline-float-selftest-top4-memory-stage6a-stats`
+  - `tiny-stories-1m-representative-core-selftest-top4-memory-stage-stats`
+  - `tiny-stories-1m-representative-core-selftest-top4-memory-stage6a-stats`
+- Current interpretation:
+  - these are Yosys/RTLIL stats, not MLIR op stats
+  - that is still the right measurement class for `stage6a` and later, because
+    those stages no longer operate on MLIR
+  - the earlier pipeline already has `cf-stats` for MLIR-level measurement
+- Guardrail:
+  - the bundled comparison output
+    `tiny-stories-1m-top4-memory-stage-stats-baseline-vs-representative-core`
+    is useful for structural trend inspection, but it is not an apples-to-apples
+    resource comparison because the representative core is intentionally smaller
+- Continue decision:
+  - once the active representative-core late-stage run is no longer consuming
+    the machine, build the new `stage6a` stat outputs and use them as the
+    default artifact for baseline-versus-experiment structural inspection
+
+ABC9 lane follow-up later on 2026-04-21:
+
+- Trigger:
+  - after confirming that the narrowed-shell representative-core lane had moved
+    the blocker from `stage6a` to a very long single-process
+    `stage8b abc -luts 2:2,3,6:5,10,20` run, we decided to stop the live plain
+    `abc` run and try the Xilinx `abc9` flow explicitly
+- Implementation:
+  - `flake.nix` now supports `useAbc9 = true` in `mkSynthJsonStages`
+  - for the split fine-stage path, `abc9` is entered through
+    `synth_xilinx -family xc7 -top <top> -noiopad -abc9`
+    at:
+    - `stage7 map_ffs:map_ffs`
+    - `stage8 map_luts:check`
+  - this intentionally avoids replacing the old `stage8b` raw `abc` command
+    with a standalone `abc9` call, because the supported Xilinx `abc9` flow
+    changes the late-stage sequence beyond one command
+- New package family:
+  - `tiny-stories-1m-representative-core-selftest-top4-memory-abc9-json`
+  - `tiny-stories-1m-representative-core-selftest-top4-memory-abc9-stage-stats`
+- Current monitored run:
+  - `artifacts/task6/runs/representative-core-selftest-top4-memory-abc9-json-20260421-220353`
+  - current confirmed progress:
+    - rebuilt `model-opt`
+    - rebuilt `model-shell`
+    - entered staged synthesis derivations
+    - reached at least `stage1`
+- Current interpretation:
+  - this is a real `abc9` lane, not a documentation-only idea
+  - it should let us compare the late Xilinx LUT-mapping path against the
+    previous long-running plain `abc` frontier on the same representative-core
+    shell
+- Continue decision:
+  - keep the `abc9` representative-core run active until it either:
+    - reaches a later frontier than the old plain-`abc` run, or
+    - fails in a way that clearly does not justify promotion
+  - if it looks promising on runtime or peak memory, replay the same `abc9`
+    option on the full baseline narrowed-shell lane
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.
@@ -524,9 +1081,12 @@ Use one lane per strategy, derived from `task6`.
 Recommended lane names:
 
 - `task6-quant`
+- `task6-docc`
+- `task6-alt-dialect`
 - `task6-eqmap`
 - `task6-board-ram`
 - `task6-lsq`
+- `task6-lowering`
 - `task6-paper-review`
 
 Recommended workspace layout:
@@ -841,3 +1401,296 @@ Decision gate:
   as future work?
 - Which donor branch should become the base for the TinyStories Task 6 execution
   work once Task 3 cleanup is far enough along?
+
+## Feedback-loop-first update later on 2026-04-21
+
+- New standing maxim for later sessions:
+  - maximize iteration speed, learning speed, and feedback-loop speed first
+  - use the cheapest artifact that answers the current question
+  - only escalate to long synthesis runs after a smaller measurement path stops
+    being informative
+- Action taken:
+  - shrank `tiny-stories-1m-representative-core` again to the current fast-loop
+    profile:
+    - `vocab_size = 32`
+    - `num_layers = 2`
+    - `hidden_size = 2`
+    - `num_heads = 1`
+    - `max_position_embeddings = 4`
+    - `window_size = 2`
+  - kept `num_layers = 2` specifically so the reduced core still exercises both
+    the `global` and `local` GPT-Neo attention patterns
+- New MLIR op-coverage tooling:
+  - raw stats outputs:
+    - `tiny-stories-1m-baseline-float-torch-stats`
+    - `tiny-stories-1m-representative-core-torch-stats`
+    - existing `*-cf-stats`
+  - comparison outputs:
+    - `tiny-stories-1m-baseline-float-vs-representative-core-torch-op-coverage`
+    - `tiny-stories-1m-baseline-float-vs-representative-core-cf-op-coverage`
+    - `tiny-stories-1m-baseline-float-vs-representative-core-op-coverage`
+- Intended use:
+  - baseline float is the witness
+  - representative core is allowed to shrink only if it keeps the baseline op
+    and dialect coverage we care about at `torch` and `cf`
+  - this is the default admission check before another Task 6 synthesis loop
+- Verification result from the current shrink sweep:
+  - full op-name and dialect coverage is still intact against the baseline at
+    both `torch` and `cf`
+  - measured artifact reduction at the current floor:
+    - `torch.mlir`: `30,091,456` bytes / `996` lines -> `36,485` bytes /
+      `303` lines
+    - `cf.mlir`: `30,664,646` bytes / `14,545` lines -> `194,052` bytes /
+      `4,177` lines
+    - `torch` op coverage: `36/36` distinct baseline ops retained
+    - `cf` op coverage: `32/32` distinct baseline ops retained
+- Current decision:
+  - keep this as the default representative-core floor for fast iteration
+  - do not spend more time shrinking it unless a later structural metric shows
+    that the op-coverage check was not enough
+
+Minimal representative-core synthesis follow-up later on 2026-04-21:
+
+- Command under test:
+  - `nix build .#tiny-stories-1m-representative-core-selftest-top4-memory-json --no-link --print-out-paths`
+- Scope:
+  - first narrowed-shell synthesis run on the new representative-core floor
+    after the MLIR op-coverage admission check passed
+- Confirmed stage progression so far:
+  - `stage1`
+  - `stage2`
+  - `stage3`
+  - `stage4`
+  - `stage5a`
+  - `stage5b`
+  - `stage5c`
+  - `stage5d`
+  - `stage6a`
+  - `stage6b`
+  - `stage7`
+  - `stage8a`
+  - live in `stage8b` at the time of this note
+- Measured live memory shape from direct `/proc` sampling:
+  - `stage2` worker:
+    - `VmPeak` about `6.6 GiB`
+    - later current `VmRSS` dropped back toward `1.9-4.6 GiB` while still in
+      the same stage
+  - `stage5a` worker:
+    - `VmPeak` about `6.27 GiB`
+    - `VmHWM` about `4.81 GiB`
+  - `stage6a` restart-batched worker family:
+    - repeated fresh Yosys PIDs observed inside the same `stage6a` derivation
+    - each fresh batch worker remained around `1.78-1.81 GiB` `VmRSS` /
+      `VmHWM`
+  - `stage8b` live split:
+    - parent `yosys` around `2.05 GiB` RSS
+    - child `yosys-abc` around `725 MiB` RSS after roughly `80` seconds
+- Interpretation:
+  - the minimal representative core is no longer just a frontend witness
+  - it now clears the old `stage6a` frontier and reaches the late `stage8b`
+    band with a much smaller memory envelope than the earlier
+    representative-core presets
+  - the restart-per-batch `stage6a` path is confirmed on this floor by direct
+    observation of multiple fresh Yosys worker PIDs within one `stage6a`
+    derivation
+- Continue decision:
+  - keep this run alive until `stage8b` clears or fails
+  - if it clears late `stage8*`, promote this minimal floor as the default Task
+    6 synthesis debug target
+  - after the live run settles, rebuild the same target under
+    `scripts/pipeline/monitor_build.sh` only if a wrapped artifact bundle is
+    still needed for later comparison
+
+Minimal representative-core synthesis completion on 2026-04-22:
+
+- The unwrapped synthesis target completed successfully:
+  - command:
+    - `nix build .#tiny-stories-1m-representative-core-selftest-top4-memory-json --no-link --print-out-paths`
+  - output:
+    - `/nix/store/x71jisw24p9w10yhv93yxximas587pci-tiny-stories-1m-representative-core-selftest-top4-memory.json`
+- Follow-up artifacts also completed successfully:
+  - utilization:
+    - `nix build .#tiny-stories-1m-representative-core-selftest-top4-memory-utilization --no-link --print-out-paths`
+    - output:
+      - `/nix/store/djnni1viapdqfs8n45vny1135zw9s53g-tiny-stories-1m-representative-core-selftest-top4-memory-utilization`
+  - stage stats:
+    - `nix build .#tiny-stories-1m-representative-core-selftest-top4-memory-stage-stats --no-link --print-out-paths`
+    - output:
+      - `/nix/store/f22qqhvhpxr7rhbnwv5y7qq201g7q56q-tiny-stories-1m-representative-core-selftest-top4-memory-stage-stats`
+- Confirmed stage coverage:
+  - the minimal representative-core floor now clears the full narrowed-shell
+    synthesis path through `stage8h` and final `json` emission
+- Useful structural checkpoints from the stage-stats bundle:
+  - `stage6a`:
+    - `641,719,733` RTLIL bytes
+    - `9,256,137` RTLIL lines
+    - `225` module definitions
+    - `242` top cells
+    - `0` memories / `0` memory bits
+  - `stage8b`:
+    - `473,231,814` RTLIL bytes
+    - `6,601,755` RTLIL lines
+    - `225` module definitions
+    - `203` top cells
+  - `stage8h`:
+    - `996,246,572` RTLIL bytes
+    - `12,031,729` RTLIL lines
+    - `225` module definitions
+    - `166` top cells
+- Current interpretation:
+  - the minimal representative core is now a real synthesis debug target, not
+    just a frontend witness
+  - it is suitable as the default fast Task 6 loop for flow debugging and lane
+    comparison before replay on the full TinyStories baseline
+- Current decision:
+  - promote this representative-core floor as the default Task 6 synthesis
+    debug target
+  - use the full baseline only for replay once a change proves itself here
+
+Main-lane replay start on 2026-04-22:
+
+- Wrapped replay launched for the real narrowed-shell baseline path:
+  - command:
+    - `MONITOR_GLOBAL_PGREP_PATTERN="default-builder.sh|yosys -q -s run.ys|yosys-abc" scripts/pipeline/monitor_build.sh artifacts/task6/runs/baseline-float-selftest-top4-memory-json-20260422-075933 5 -- nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-json --no-link -L`
+  - run directory:
+    - `artifacts/task6/runs/baseline-float-selftest-top4-memory-json-20260422-075933`
+- Current status at note time:
+  - active
+  - still in the model/shell build band before the first staged Yosys banner
+- Current decision:
+  - let this replay establish whether the restart-batched `stage6a` fix carries
+    over from the minimal representative-core lane to the real TinyStories
+    baseline path
+
+Representative-core same-core pipeline comparison setup on 2026-04-22:
+
+- Question being answered:
+  - compare the same minimal representative core under the two Task 6 pipeline
+    shapes:
+    - `tiny-stories-1m-representative-core-selftest-all-memory-*`
+    - `tiny-stories-1m-representative-core-selftest-top4-memory-*`
+  - do not confuse this with the already-built baseline-vs-representative-core
+    compare
+- Fix landed first:
+  - the monolithic all-memory stage-stats path was broken because the staged
+    synth record exposed `stage5Monolithic` / `stage6Monolithic` but not the
+    `stage5` / `stage6` attribute names that the stage-stats bundle expected
+  - added explicit aliases for `stage5` and `stage6` so monolithic
+    representative-core bundles can now materialize stage stats
+- New direct compare outputs:
+  - `tiny-stories-1m-representative-core-all-memory-vs-top4-memory-stage-stats`
+  - `tiny-stories-1m-representative-core-all-memory-vs-top4-memory-utilization`
+  - `tiny-stories-1m-representative-core-all-memory-vs-top4-memory-compare`
+- Comparison alignment:
+  - use exact same-stage compares for `stage1` through `stage4` and `stage7`
+  - compare the monolithic all-memory milestones against the split top4-memory
+    milestones at:
+    - `stage5` vs `stage5d`
+    - `stage6` vs `stage6b`
+    - `stage8` vs `stage8h`
+- Current status at note time:
+  - direct same-core compare build launched
+  - first fixed all-memory stage-stats artifact already materialized:
+    - `/nix/store/5nsiy5rbp3w3cfsaxz8sp7j7a0iy5vkv-tiny-stories-1m-representative-core-selftest-all-memory-stage1-stats`
+  - full compare bundle still in progress
+- Current decision:
+  - use this same-core compare as the default way to judge whether `top4-memory`
+    is helping on the representative core before talking about the full
+    baseline lane
+
+Representative-core same-core pipeline comparison result later on 2026-04-22:
+
+- Direct same-core compare outputs completed:
+  - `tiny-stories-1m-representative-core-selftest-all-memory-stage-stats`
+  - `tiny-stories-1m-representative-core-selftest-all-memory-utilization`
+  - `tiny-stories-1m-representative-core-all-memory-vs-top4-memory-stage-stats`
+  - `tiny-stories-1m-representative-core-all-memory-vs-top4-memory-utilization`
+  - `tiny-stories-1m-representative-core-all-memory-vs-top4-memory-compare`
+- Result:
+  - on the current minimal representative core, `top4-memory` is worse than
+    `all-memory` at every comparable stage and at final mapped utilization
+- Stage-stat deltas, `all-memory` -> `top4-memory`:
+  - `stage1`:
+    - `163,087,589` -> `166,555,929` RTLIL bytes (`+2.13%`)
+  - `stage5` vs `stage5d`:
+    - `628,922,879` -> `632,085,438` RTLIL bytes (`+0.50%`)
+  - `stage6` vs `stage6b`:
+    - `628,922,846` -> `641,684,683` RTLIL bytes (`+2.03%`)
+  - `stage7`:
+    - `628,951,844` -> `641,898,669` RTLIL bytes (`+2.06%`)
+  - `stage8` vs `stage8h`:
+    - `622,447,688` -> `996,246,572` RTLIL bytes (`+60.05%`)
+- Utilization delta, `all-memory` -> `top4-memory`:
+  - `clb_luts`:
+    - `9,181,200` -> `12,472,727` (`+35.85%`)
+  - `clb_ffs`:
+    - `12,837,053` -> `12,845,684` (`+0.07%`)
+  - `slices_lower_bound`:
+    - `1,604,632` -> `1,605,711` (`+0.07%`)
+  - largest driver:
+    - `LUT3` cells rise from `4,484,247` to `7,636,072` (`+70.29%`)
+- Interpretation:
+  - the current representative-core floor is too small to show the intended
+    benefit of externalizing only the top four memories
+  - on this floor, the extra shell/interface structure dominates and makes the
+    narrowed path look strictly worse than the monolithic all-memory path
+- Current decision:
+  - do not use this minimal representative core to judge whether `top4-memory`
+    helps
+  - keep using it for fast general flow debugging only
+  - evaluate `top4-memory` on a larger representative core or the real baseline
+
+Main-lane replay result later on 2026-04-22:
+
+- The wrapped full-baseline narrowed-shell replay failed in late `stage6a`:
+  - last completed progress:
+    - `stage6a targeted techmap cells_map batch 12/15`
+  - failure mode:
+    - `yosys` killed with exit `137`-class behavior during the batch loop
+  - monitored peak memory:
+    - about `29.1 GiB` `VmRSS`
+- Interpretation:
+  - restart-per-batch `stage6a` improved the baseline frontier substantially
+  - but it is not enough to carry the real TinyStories baseline through the
+    full narrowed-shell `stage6a` band
+
+Representative-core sweep setup later on 2026-04-22:
+
+- Decision:
+  - because the minimal representative core is too small to judge when
+    `top4-memory` helps, add a real representative-core sweep instead of
+    arguing from one floor
+- Sweep points currently registered through the model registry:
+  - `tiny-stories-1m-representative-core`
+    - `vocab=32 hidden=2 layers=2 heads=1 pos=4 win=2`
+  - `tiny-stories-1m-representative-core-v64-h4`
+    - `vocab=64 hidden=4 layers=2 heads=1 pos=8 win=4`
+  - `tiny-stories-1m-representative-core-v128-h8`
+    - `vocab=128 hidden=8 layers=2 heads=2 pos=16 win=8`
+  - `tiny-stories-1m-representative-core-v256-h16`
+    - `vocab=256 hidden=16 layers=2 heads=4 pos=32 win=16`
+  - `tiny-stories-1m-representative-core-v512-h32`
+    - `vocab=512 hidden=32 layers=2 heads=4 pos=64 win=32`
+  - `tiny-stories-1m-representative-core-v1024-h64`
+    - `vocab=1024 hidden=64 layers=2 heads=8 pos=128 win=64`
+- Structural rule kept:
+  - `num_layers = 2` across the sweep so both TinyStories GPT-Neo attention
+    variants remain exercised
+- New flake outputs:
+  - cheap manifest:
+    - `tiny-stories-1m-representative-core-sweep-manifest`
+  - expensive aggregate summary:
+    - `tiny-stories-1m-representative-core-sweep-all-memory-vs-top4-memory-summary`
+  - per-sweep-point compare outputs:
+    - `<key>-all-memory-vs-top4-memory-compare`
+    - plus the corresponding `selftest-all-memory-*` and
+      `selftest-top4-memory-*` bundles
+- Verification:
+  - the sweep manifest now builds cheaply on its own
+  - a nondefault sweep point was validated through the normal derivation path:
+    - `nix build .#tiny-stories-1m-representative-core-v64-h4-cf-stats --no-link --print-out-paths`
+    - output:
+      - `/nix/store/w71iwb04zs0gpiffkbcr46nx4xqp2a6p-tiny-stories-1m-representative-core-v64-h4-cf.stats`
+- Current decision:
+  - use the sweep to find the crossover where `top4-memory` stops being shell
+    overhead and starts reducing the real design

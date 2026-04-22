@@ -2,6 +2,7 @@
 let
   stageNames = [
     "torch"
+    "torch-stats"
     "linalg"
     "cf"
     "cf-stats"
@@ -47,6 +48,12 @@ let
       cp ${torchMlirInput} "$out"
     '';
 
+  mkMlirOpStatsDerivation = { name, stageName, tool, input }:
+    pkgs.runCommand "${name}-${stageName}.stats" { } ''
+      ${pkgs.bash}/bin/bash ${pipelineScripts}/mlir_op_stats.sh \
+        ${tool} ${input} "$out"
+    '';
+
   mkLinalgDerivation = { name, torch }:
     pkgs.runCommand "${name}-linalg.mlir" { buildInputs = [ torchMlir ]; } ''
       ${pkgs.bash}/bin/bash ${pipelineScripts}/torch_to_linalg.sh \
@@ -57,12 +64,6 @@ let
     pkgs.runCommand "${name}-cf.mlir" { buildInputs = [ mlir ]; } ''
       ${pkgs.bash}/bin/bash ${pipelineScripts}/linalg_to_cf.sh \
         ${mlir}/bin/mlir-opt ${linalg} "$out"
-    '';
-
-  mkCfStatsDerivation = { name, cf }:
-    pkgs.runCommand "${name}-cf.stats" { buildInputs = [ mlir ]; } ''
-      ${pkgs.bash}/bin/bash ${pipelineScripts}/cf_stats.sh \
-        ${mlir}/bin/mlir-opt ${cf} "$out"
     '';
 
   mkHandshakeDerivation = { name, cf }:
@@ -147,6 +148,12 @@ let
     let
       self = {
         torch = mkTorchDerivation { inherit name torchMlirInput; };
+        "torch-stats" = mkMlirOpStatsDerivation {
+          inherit name;
+          stageName = "torch";
+          tool = torchMlirOpt;
+          input = self.torch;
+        };
         linalg = mkLinalgDerivation {
           inherit name;
           inherit (self) torch;
@@ -155,9 +162,11 @@ let
           inherit name;
           inherit (self) linalg;
         };
-        "cf-stats" = mkCfStatsDerivation {
+        "cf-stats" = mkMlirOpStatsDerivation {
           inherit name;
-          inherit (self) cf;
+          stageName = "cf";
+          tool = "${mlir}/bin/mlir-opt";
+          input = self.cf;
         };
         handshake = handshakeFromCf {
           inherit name;

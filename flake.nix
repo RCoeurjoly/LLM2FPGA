@@ -54,19 +54,8 @@
           (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
           (old: {
             patches = (old.patches or [ ]) ++ [
-              ./patches/circt-task3-rfp/0003-flatten-memref-shape-ops.patch
-              ./patches/circt-task3-rfp/0004-handle-cfg-threaded-memrefs.patch
-              ./patches/circt-task3-rfp/0005-support-extra-frontend-ops-in-handshake-to-hw.patch
               ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
               ./patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch
-              ./patches/circt-task3-rfp/0008-mark-assert-and-math-illegal-in-handshake-to-hw.patch
-              ./patches/circt-task3-rfp/0009-handle-dense-resource-globals-in-flatten-memrefs.patch
-              ./patches/circt-task3-rfp/0010-lower-func-conversion-priority-in-handshake-to-hw.patch
-              ./patches/circt-task3-rfp/0011-legalize-unrealized-conversion-casts-in-handshake-to-hw.patch
-              ./patches/circt-task3-rfp/0012-defer-func-lowering-until-body-is-legal.patch
-              ./patches/circt-task3-rfp/0013-handle-memref-model-io-and-cache-submodule-lookups.patch
-              ./patches/circt-task3-rfp/0014-update-buffer-lowering-test-for-constant-order.patch
-              ./patches/circt-task3-rfp/0015-lower-float-ops-as-externs-in-handshake-to-hw.patch
             ];
           });
         circt = circtBase;
@@ -263,6 +252,8 @@
           sourceDir = ./TinyStories;
           adapterPy = ./TinyStories/model_adapter.py;
         };
+        representativeCoreSweepSpecs =
+          import ./nix/representative-core-sweep.nix;
         pipelineLib = import ./nix/pipeline.nix {
           inherit pkgs mlir circt yosysPkg yosysSlang torchMlir python;
           inherit pipelineScripts;
@@ -277,10 +268,13 @@
           matmulPy = ./src/matmul.py;
           matmulAdapterPy = ./src/matmul_adapter.py;
           matmulSrcDir = ./src;
+          tinyStoriesRepresentativeCoreAdapterPy =
+            ./TinyStories/model_adapter_representative_core.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;
           tinyStoriesPt2eStaticQuantAdapterPy =
             ./TinyStories/model_adapter_pt2e_static_quant.py;
           simDir = ./sim;
+          inherit representativeCoreSweepSpecs;
         };
         modelPipelines = pipelineLib.modelPipelinesFromRegistry modelRegistry;
         pipelineStagePackages =
@@ -307,6 +301,12 @@
         tinyStories1mBaselineFloatPipeline =
           modelPipelines."tiny-stories-1m-baseline-float";
         tinyStories1mBaselineFloatIl = tinyStories1mBaselineFloatPipeline.il;
+        representativeCoreDefaultKey =
+          (builtins.head representativeCoreSweepSpecs).key;
+        tinyStories1mRepresentativeCorePipeline =
+          builtins.getAttr representativeCoreDefaultKey modelPipelines;
+        tinyStories1mRepresentativeCoreIl =
+          tinyStories1mRepresentativeCorePipeline.il;
         tinyStoriesCapacities = {
           slices = 74650;
           clb_luts = 298600;
@@ -336,6 +336,16 @@
               cat run.ys >&2
               exit 1
             fi
+          '';
+
+        mkYosysJson = { name, modelIl, topName, topSv }:
+          pkgs.runCommand "${name}.json" { } ''
+            ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -p "
+              read_rtlil ${modelIl}
+              read_slang ${topSv}
+              hierarchy -top ${topName} -check
+              write_json $out
+            "
           '';
 
         mkSynthStageIl = { name, stageId, stageLabel, inputIl, topName
@@ -413,7 +423,7 @@
 
         mkSynthStageTargetedTechmapIl = { name, stageId, stageLabel, inputIl
           , topName, quiet ? false, memoryLimitKb ? null, cellRegex, techmapArgs
-          }:
+          , batchSize ? null, restartPerBatch ? false }:
           pkgs.runCommand "${name}-${stageId}.il" { } ''
             awk '
               /^module / { mod = $2 }
@@ -428,34 +438,130 @@
               }
             ' ${inputIl} | sort > stage-modules.txt
 
-            cat > run.ys <<EOF
-            read_rtlil ${inputIl}
-            hierarchy -top ${topName} -check
-            select -none
-            EOF
-
-            while IFS= read -r moduleName; do
-              printf '%s\n' \
-                "select -add $moduleName" \
-                >> run.ys
-            done < stage-modules.txt
-
             moduleCount=$(wc -l < stage-modules.txt)
-
-            cat >> run.ys <<EOF
-            techmap ${techmapArgs}
-            select -clear
-            write_rtlil $out
-            EOF
+            ${pkgs.lib.optionalString (batchSize != null) ''
+              batchSize=${toString batchSize}
+              if [ "$moduleCount" -eq 0 ]; then
+                batchCount=0
+              else
+                batchCount=$(( (moduleCount + batchSize - 1) / batchSize ))
+              fi
+            ''}
 
             ${pkgs.lib.optionalString (memoryLimitKb != null) ''
               ulimit -v ${toString memoryLimitKb}
             ''}
 
-            echo "[mkSynthJson:${name}] ${stageLabel} (selected modules: $moduleCount)" >&2
-            ${yosysPkg}/bin/yosys ${
-              pkgs.lib.optionalString quiet "-q"
-            } -s run.ys
+            echo "[mkSynthJson:${name}] ${stageLabel} (selected modules: $moduleCount${
+              pkgs.lib.optionalString (batchSize != null)
+              ", batch size: ${toString batchSize}, batches: \$batchCount${
+                pkgs.lib.optionalString restartPerBatch ", mode: restart"
+              }"
+            })" >&2
+
+            ${pkgs.lib.optionalString (batchSize == null) ''
+              cat > run.ys <<EOF
+              read_rtlil ${inputIl}
+              hierarchy -top ${topName} -check
+              select -none
+              EOF
+
+              while IFS= read -r moduleName; do
+                printf '%s\n' \
+                  "select -add $moduleName" \
+                  >> run.ys
+              done < stage-modules.txt
+
+              cat >> run.ys <<EOF
+              techmap ${techmapArgs}
+              select -clear
+              write_rtlil $out
+              EOF
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s run.ys
+            ''}
+
+            ${pkgs.lib.optionalString (batchSize != null && !restartPerBatch) ''
+              cat > run.ys <<EOF
+              read_rtlil ${inputIl}
+              hierarchy -top ${topName} -check
+              select -none
+              EOF
+
+              batchModules=0
+              while IFS= read -r moduleName; do
+                if [ "$batchModules" -gt 0 ] && [ $((batchModules % batchSize)) -eq 0 ]; then
+                  cat >> run.ys <<EOF
+            techmap ${techmapArgs}
+            select -clear
+            select -none
+            EOF
+                fi
+                printf '%s\n' \
+                  "select -add $moduleName" \
+                  >> run.ys
+                batchModules=$((batchModules + 1))
+              done < stage-modules.txt
+
+              if [ "$moduleCount" -gt 0 ]; then
+                cat >> run.ys <<EOF
+            techmap ${techmapArgs}
+            select -clear
+            EOF
+              fi
+
+              cat >> run.ys <<EOF
+            write_rtlil $out
+            EOF
+
+              ${yosysPkg}/bin/yosys ${
+                pkgs.lib.optionalString quiet "-q"
+              } -s run.ys
+            ''}
+
+            ${pkgs.lib.optionalString (batchSize != null && restartPerBatch) ''
+              cp ${inputIl} work.il
+
+              if [ "$moduleCount" -gt 0 ]; then
+                batchIndex=0
+                while [ "$batchIndex" -lt "$batchCount" ]; do
+                  startLine=$((batchIndex * batchSize + 1))
+                  endLine=$((startLine + batchSize - 1))
+                  sed -n "''${startLine},''${endLine}p" stage-modules.txt > batch-modules.txt
+
+                  echo "[mkSynthJson:${name}] ${stageLabel} batch $((batchIndex + 1))/$batchCount" >&2
+
+                  printf '%s\n' \
+                    'read_rtlil work.il' \
+                    'hierarchy -top ${topName} -check' \
+                    'select -none' \
+                    > run.ys
+
+                  while IFS= read -r moduleName; do
+                    printf '%s\n' \
+                      "select -add $moduleName" \
+                      >> run.ys
+                  done < batch-modules.txt
+
+                  printf '%s\n' \
+                    'techmap ${techmapArgs}' \
+                    'select -clear' \
+                    'write_rtlil next.il' \
+                    >> run.ys
+
+                  ${yosysPkg}/bin/yosys ${
+                    pkgs.lib.optionalString quiet "-q"
+                  } -s run.ys
+
+                  mv next.il work.il
+                  batchIndex=$((batchIndex + 1))
+                done
+              fi
+
+              cp work.il $out
+            ''}
 
             if [ ! -e "$out" ]; then
               echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
@@ -497,62 +603,9 @@
             fi
           '';
 
-        mkSynthStageTargetedTechmapIl = { name, stageId, stageLabel, inputIl
-          , topName, quiet ? false, memoryLimitKb ? null, cellRegex, techmapArgs
-          }:
-          pkgs.runCommand "${name}-${stageId}.il" { } ''
-            awk '
-              /^module / { mod = $2 }
-              /^[[:space:]]*cell / {
-                cell_name = $2
-                if (cell_name ~ ${builtins.toJSON cellRegex})
-                  mods[mod] = 1
-              }
-              END {
-                for (mod in mods)
-                  print mod
-              }
-            ' ${inputIl} | sort > stage-modules.txt
-
-            cat > run.ys <<EOF
-            read_rtlil ${inputIl}
-            hierarchy -top ${topName} -check
-            select -none
-            EOF
-
-            while IFS= read -r moduleName; do
-              printf '%s\n' \
-                "select -add $moduleName" \
-                >> run.ys
-            done < stage-modules.txt
-
-            moduleCount=$(wc -l < stage-modules.txt)
-
-            cat >> run.ys <<EOF
-            techmap ${techmapArgs}
-            select -clear
-            write_rtlil $out
-            EOF
-
-            ${pkgs.lib.optionalString (memoryLimitKb != null) ''
-              ulimit -v ${toString memoryLimitKb}
-            ''}
-
-            echo "[mkSynthJson:${name}] ${stageLabel} (selected modules: $moduleCount)" >&2
-            ${yosysPkg}/bin/yosys ${
-              pkgs.lib.optionalString quiet "-q"
-            } -s run.ys
-
-            if [ ! -e "$out" ]; then
-              echo "mkSynthJson ${stageId} expected output path was not created: $out" >&2
-              echo "--- run.ys ---" >&2
-              cat run.ys >&2
-              exit 1
-            fi
-          '';
-
         mkSynthJsonStages = { name, modelIl, topName, topSv ? null
-          , quiet ? false, memoryLimitKb ? null, splitFineStage ? false }: rec {
+          , quiet ? false, memoryLimitKb ? null, splitFineStage ? false
+          , useAbc9 ? false }: rec {
             stage1 = mkSynthStageIl {
               inherit name topName topSv quiet memoryLimitKb;
               stageId = "stage1";
@@ -632,6 +685,7 @@
                 "synth_xilinx -family xc7 -top ${topName} -noiopad -run fine:fine"
               ];
             };
+            stage5 = stage5Monolithic;
 
             stage6a = mkSynthStageTargetedTechmapIl {
               inherit name topName quiet memoryLimitKb;
@@ -640,6 +694,8 @@
               inputIl = if splitFineStage then stage5d else stage5Monolithic;
               cellRegex = "^\\$";
               techmapArgs = "-map +/techmap.v -map +/xilinx/cells_map.v";
+              batchSize = 32;
+              restartPerBatch = true;
             };
 
             stage6b = mkSynthStageIl {
@@ -659,14 +715,20 @@
                 "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_cells:map_cells"
               ];
             };
+            stage6 = stage6Monolithic;
 
             stage7 = mkSynthStageIl {
               inherit name topName quiet memoryLimitKb;
               stageId = "stage7";
-              stageLabel = "stage7 synth_xilinx map_ffs:map_ffs";
+              stageLabel = if useAbc9 then
+                "stage7 synth_xilinx -abc9 map_ffs:map_ffs"
+              else
+                "stage7 synth_xilinx map_ffs:map_ffs";
               inputIl = if splitFineStage then stage6b else stage6Monolithic;
               commands = [
-                "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_ffs:map_ffs"
+                "synth_xilinx -family xc7 -top ${topName} -noiopad ${
+                  pkgs.lib.optionalString useAbc9 "-abc9 "
+                }-run map_ffs:map_ffs"
               ];
             };
 
@@ -740,14 +802,32 @@
             stage8Monolithic = mkSynthStageIl {
               inherit name topName quiet memoryLimitKb;
               stageId = "stage8";
-              stageLabel = "stage8 final synth/write";
+              stageLabel = if useAbc9 then
+                "stage8 final synth/write -abc9"
+              else
+                "stage8 final synth/write";
               inputIl = stage7;
               commands = [
-                "synth_xilinx -family xc7 -top ${topName} -noiopad -run map_luts:check"
+                "synth_xilinx -family xc7 -top ${topName} -noiopad ${
+                  pkgs.lib.optionalString useAbc9 "-abc9 "
+                }-run map_luts:check"
               ];
             };
 
-            stage8 = if splitFineStage then stage8h else stage8Monolithic;
+            stage8Abc9 = mkSynthStageIl {
+              inherit name topName quiet memoryLimitKb;
+              stageId = "stage8";
+              stageLabel = "stage8 synth_xilinx -abc9 map_luts:check";
+              inputIl = stage7;
+              commands = [
+                "synth_xilinx -family xc7 -top ${topName} -noiopad -abc9 -run map_luts:check"
+              ];
+            };
+
+            stage8 = if splitFineStage then
+              (if useAbc9 then stage8Abc9 else stage8h)
+            else
+              stage8Monolithic;
             stage9 = mkSynthStageJson {
               inherit name quiet memoryLimitKb;
               stageId = "stage9";
@@ -815,6 +895,249 @@
             fi
           '';
 
+        mkRtlilStageStatReport = { name, stageId, inputIl, topName }:
+          pkgs.runCommand "${name}-${stageId}-stats" {
+            nativeBuildInputs = [ pkgs.python311 yosysPkg ];
+          } ''
+            cat > run.ys <<EOF
+            read_rtlil ${inputIl}
+            hierarchy -top ${topName} -check
+            tee -o raw-stat.json stat -json
+            EOF
+
+            ${yosysPkg}/bin/yosys -q -s run.ys >/dev/null
+
+            mkdir -p "$out"
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/write_rtlil_stage_stat_report.py
+            } \
+              --input-il ${inputIl} \
+              --raw-yosys-json raw-stat.json \
+              --summary-json "$out/summary.json" \
+              --summary-txt "$out/summary.txt" \
+              --stat-json "$out/stat.json" \
+              --top ${topName} \
+              --stage-id ${stageId}
+          '';
+
+        mkRtlilStageStats = { name, stages, topName, splitFineStage ? false
+          , useAbc9 ? false }:
+          let
+            stageOrder =
+              if splitFineStage then
+                if useAbc9 then
+                  [
+                    "stage1"
+                    "stage2"
+                    "stage3"
+                    "stage4"
+                    "stage5a"
+                    "stage5b"
+                    "stage5c"
+                    "stage5d"
+                    "stage6a"
+                    "stage6b"
+                    "stage7"
+                    "stage8"
+                  ]
+                else
+                  [
+                    "stage1"
+                    "stage2"
+                    "stage3"
+                    "stage4"
+                    "stage5a"
+                    "stage5b"
+                    "stage5c"
+                    "stage5d"
+                    "stage6a"
+                    "stage6b"
+                    "stage7"
+                    "stage8a"
+                    "stage8b"
+                    "stage8c"
+                    "stage8d"
+                    "stage8e"
+                    "stage8f"
+                    "stage8g"
+                    "stage8h"
+                  ]
+              else
+                [
+                  "stage1"
+                  "stage2"
+                  "stage3"
+                  "stage4"
+                  "stage5"
+                  "stage6"
+                  "stage7"
+                  "stage8"
+                ];
+            reports = builtins.listToAttrs (map (stageId: {
+              name = stageId;
+              value = mkRtlilStageStatReport {
+                inherit name stageId topName;
+                inputIl = builtins.getAttr stageId stages;
+              };
+            }) stageOrder);
+            index = pkgs.writeText "${name}-stage-stats-index.json"
+              (builtins.toJSON {
+                inherit name stageOrder;
+                top = topName;
+              });
+            bundle = pkgs.runCommand "${name}-stage-stats" { } ''
+              mkdir -p "$out"
+              cp ${index} "$out/index.json"
+              ${builtins.concatStringsSep "\n" (map (stageId: ''
+                mkdir -p "$out/${stageId}"
+                cp ${builtins.getAttr stageId reports}/summary.json "$out/${stageId}/summary.json"
+                cp ${builtins.getAttr stageId reports}/summary.txt "$out/${stageId}/summary.txt"
+                cp ${builtins.getAttr stageId reports}/stat.json "$out/${stageId}/stat.json"
+              '') stageOrder)}
+            '';
+          in {
+            inherit stageOrder reports bundle;
+          };
+
+        mkStageStatComparison = { name, baselineDir, candidateDir
+          , baselineLabel, candidateLabel, stageMapJson ? null }:
+          pkgs.runCommand "${name}-stage-stats-compare" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
+            mkdir -p "$out"
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/compare_stage_stats.py
+            } \
+              --baseline-dir ${baselineDir} \
+              --candidate-dir ${candidateDir} \
+              --baseline-label ${
+                pkgs.lib.escapeShellArg baselineLabel
+              } \
+              --candidate-label ${
+                pkgs.lib.escapeShellArg candidateLabel
+              } ${
+                pkgs.lib.optionalString (stageMapJson != null)
+                "--stage-map-json ${stageMapJson}"
+              } \
+              --summary-json "$out/summary.json" \
+              --summary-txt "$out/summary.txt"
+          '';
+
+        mkUtilizationComparison = { name, baselineDir, candidateDir
+          , baselineLabel, candidateLabel }:
+          pkgs.runCommand "${name}-utilization-compare" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
+            mkdir -p "$out"
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/compare_utilization_reports.py
+            } \
+              --baseline-dir ${baselineDir} \
+              --candidate-dir ${candidateDir} \
+              --baseline-label ${
+                pkgs.lib.escapeShellArg baselineLabel
+              } \
+              --candidate-label ${
+                pkgs.lib.escapeShellArg candidateLabel
+              } \
+              --summary-json "$out/summary.json" \
+              --summary-txt "$out/summary.txt"
+          '';
+
+        mkComparisonBundle = { name, baselineLabel, candidateLabel
+          , stageStatsCompare, utilizationCompare }:
+          let
+            index = pkgs.writeText "${name}-index.json" (builtins.toJSON {
+              inherit baselineLabel candidateLabel;
+              views = {
+                stageStats = "stage-stats/summary.json";
+                utilization = "utilization/summary.json";
+              };
+            });
+          in pkgs.runCommand "${name}-compare-bundle" { } ''
+            mkdir -p "$out/stage-stats" "$out/utilization"
+            cp ${index} "$out/index.json"
+            cp ${stageStatsCompare}/summary.json "$out/stage-stats/summary.json"
+            cp ${stageStatsCompare}/summary.txt "$out/stage-stats/summary.txt"
+            cp ${utilizationCompare}/summary.json "$out/utilization/summary.json"
+            cp ${utilizationCompare}/summary.txt "$out/utilization/summary.txt"
+            {
+              echo "baseline: ${baselineLabel}"
+              echo "candidate: ${candidateLabel}"
+              echo
+              echo "[stage-stats]"
+              cat ${stageStatsCompare}/summary.txt
+              echo
+              echo "[utilization]"
+              cat ${utilizationCompare}/summary.txt
+            } > "$out/summary.txt"
+          '';
+
+        mkRepresentativeCoreSweepSummary = { name, manifestJson }:
+          pkgs.runCommand "${name}-summary" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
+            mkdir -p "$out"
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/summarize_representative_core_sweep.py
+            } \
+              --manifest-json ${manifestJson} \
+              --summary-json "$out/summary.json" \
+              --summary-txt "$out/summary.txt"
+          '';
+
+        mkMlirOpStatsComparison = { name, baselineInput, baselineStats
+          , candidateInput, candidateStats, baselineLabel, candidateLabel }:
+          pkgs.runCommand "${name}-op-coverage" {
+            nativeBuildInputs = [ pkgs.python311 ];
+          } ''
+            mkdir -p "$out"
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/compare_mlir_op_stats.py
+            } \
+              --baseline-input ${baselineInput} \
+              --candidate-input ${candidateInput} \
+              --baseline-stats ${baselineStats} \
+              --candidate-stats ${candidateStats} \
+              --baseline-label ${
+                pkgs.lib.escapeShellArg baselineLabel
+              } \
+              --candidate-label ${
+                pkgs.lib.escapeShellArg candidateLabel
+              } \
+              --summary-json "$out/summary.json" \
+              --summary-txt "$out/summary.txt"
+          '';
+
+        mkMlirOpCoverageBundle = { name, baselineLabel, candidateLabel
+          , torchCoverage, cfCoverage }:
+          let
+            index = pkgs.writeText "${name}-index.json" (builtins.toJSON {
+              inherit baselineLabel candidateLabel;
+              views = {
+                torch = "torch/summary.json";
+                cf = "cf/summary.json";
+              };
+            });
+          in pkgs.runCommand "${name}-op-coverage-bundle" { } ''
+            mkdir -p "$out/torch" "$out/cf"
+            cp ${index} "$out/index.json"
+            cp ${torchCoverage}/summary.json "$out/torch/summary.json"
+            cp ${torchCoverage}/summary.txt "$out/torch/summary.txt"
+            cp ${cfCoverage}/summary.json "$out/cf/summary.json"
+            cp ${cfCoverage}/summary.txt "$out/cf/summary.txt"
+            {
+              echo "baseline: ${baselineLabel}"
+              echo "candidate: ${candidateLabel}"
+              echo
+              echo "[torch]"
+              cat ${torchCoverage}/summary.txt
+              echo
+              echo "[cf]"
+              cat ${cfCoverage}/summary.txt
+            } > "$out/summary.txt"
+          '';
+
         mkMappedJsonUtilizationReport =
           { name, capacities, topName, designJson }:
           pkgs.runCommand "${name}-utilization" { } ''
@@ -857,7 +1180,7 @@
 
         mkTinyStoriesSelftestBundle = { name, topName, mainSv, modelIl
           , capacities, externalMemoryMinModuleBits ? (128 * 1024)
-          , externalMemoryMaxModules ? null }:
+          , externalMemoryMaxModules ? null, useAbc9 ? false }:
           let
             top = pkgs.runCommand "${name}-top.sv" { } ''
               ${python}/bin/python ${
@@ -899,6 +1222,7 @@
               topSv = top;
               quiet = true;
               splitFineStage = externalMemoryMaxModules != null;
+              inherit useAbc9;
             };
             inherit (stages) json;
             yosysJson = mkYosysJson {
@@ -911,10 +1235,216 @@
               inherit name capacities topName;
               designJson = json;
             };
+            rtlilStageStats = mkRtlilStageStats {
+              inherit name stages topName;
+              splitFineStage = externalMemoryMaxModules != null;
+              inherit useAbc9;
+            };
           in {
             inherit top modelOptIl modelShellIl externalMemoryPlan stages json
-              yosysJson utilizationReport;
+              yosysJson utilizationReport rtlilStageStats;
           };
+
+        representativeCoreAllMemoryVsTop4MemoryStageMap = pkgs.writeText
+          "tiny-stories-1m-representative-core-all-memory-vs-top4-memory-stage-map.json"
+          (builtins.toJSON [
+            {
+              id = "stage1";
+              baseline = "stage1";
+              candidate = "stage1";
+              label = "begin:prepare";
+            }
+            {
+              id = "stage2";
+              baseline = "stage2";
+              candidate = "stage2";
+              label = "coarse:map_memory";
+            }
+            {
+              id = "stage3";
+              baseline = "stage3";
+              candidate = "stage3";
+              label = "post-memory-map opt";
+            }
+            {
+              id = "stage4";
+              baseline = "stage4";
+              candidate = "stage4";
+              label = "targeted memory_map";
+            }
+            {
+              id = "stage5";
+              baseline = "stage5";
+              candidate = "stage5d";
+              label = "fine:fine frontier";
+            }
+            {
+              id = "stage6";
+              baseline = "stage6";
+              candidate = "stage6b";
+              label = "map_cells frontier";
+            }
+            {
+              id = "stage7";
+              baseline = "stage7";
+              candidate = "stage7";
+              label = "map_ffs frontier";
+            }
+            {
+              id = "stage8";
+              baseline = "stage8";
+              candidate = "stage8h";
+              label = "map_luts:check frontier";
+            }
+          ]);
+
+        mkRepresentativeCoreAllMemoryVsTop4MemoryArtifacts = { key, allMemory
+          , top4Memory }:
+          let
+            comparisonName = "${key}-all-memory-vs-top4-memory";
+            baselineLabel = "${key}-selftest-all-memory";
+            candidateLabel = "${key}-selftest-top4-memory";
+            stageStatsCompare = mkStageStatComparison {
+              name = comparisonName;
+              baselineDir = allMemory.rtlilStageStats.bundle;
+              candidateDir = top4Memory.rtlilStageStats.bundle;
+              inherit baselineLabel candidateLabel;
+              stageMapJson = representativeCoreAllMemoryVsTop4MemoryStageMap;
+            };
+            utilizationCompare = mkUtilizationComparison {
+              name = comparisonName;
+              baselineDir = allMemory.utilizationReport;
+              candidateDir = top4Memory.utilizationReport;
+              inherit baselineLabel candidateLabel;
+            };
+            compare = mkComparisonBundle {
+              name = comparisonName;
+              inherit baselineLabel candidateLabel stageStatsCompare
+                utilizationCompare;
+            };
+          in {
+            inherit stageStatsCompare utilizationCompare compare;
+          };
+
+        mkRepresentativeCoreSweepVariantArtifacts = spec:
+          let
+            key = spec.key;
+            pipeline = builtins.getAttr key modelPipelines;
+            modelIl = pipeline.il;
+            allMemory = mkTinyStoriesSelftestBundle {
+              name = "${key}-selftest-all-memory";
+              topName = "tiny_stories_selftest_top";
+              mainSv = "${pipeline.sv}/sv/main.sv";
+              inherit modelIl;
+              capacities = tinyStoriesCapacities;
+              externalMemoryMinModuleBits = 1;
+            };
+            top4Memory = mkTinyStoriesSelftestBundle {
+              name = "${key}-selftest-top4-memory";
+              topName = "tiny_stories_selftest_top";
+              mainSv = "${pipeline.sv}/sv/main.sv";
+              inherit modelIl;
+              capacities = tinyStoriesCapacities;
+              externalMemoryMinModuleBits = 1;
+              externalMemoryMaxModules = 4;
+            };
+            allVsTop4 = mkRepresentativeCoreAllMemoryVsTop4MemoryArtifacts {
+              inherit key allMemory top4Memory;
+            };
+          in {
+            inherit spec pipeline modelIl allMemory top4Memory allVsTop4;
+          };
+
+        representativeCoreSweepArtifacts = builtins.listToAttrs
+          (map (spec: {
+            name = spec.key;
+            value = mkRepresentativeCoreSweepVariantArtifacts spec;
+          }) representativeCoreSweepSpecs);
+
+        representativeCoreSweepManifest = pkgs.writeText
+          "tiny-stories-1m-representative-core-sweep-manifest.json"
+          (builtins.toJSON (map (spec: {
+            inherit (spec) key label;
+            config = {
+              vocab_size = spec.vocabSize;
+              num_layers = spec.numLayers;
+              max_position_embeddings = spec.maxPositionEmbeddings;
+              window_size = spec.windowSize;
+              hidden_size = spec.hiddenSize;
+              num_heads = spec.numHeads;
+            };
+            packages = {
+              compare = "${spec.key}-all-memory-vs-top4-memory-compare";
+              all_memory_utilization =
+                "${spec.key}-selftest-all-memory-utilization";
+              top4_memory_utilization =
+                "${spec.key}-selftest-top4-memory-utilization";
+            };
+          }) representativeCoreSweepSpecs));
+
+        representativeCoreSweepSummaryManifest = pkgs.writeText
+          "tiny-stories-1m-representative-core-sweep-summary-manifest.json"
+          (builtins.toJSON (map (spec:
+            let artifacts = builtins.getAttr spec.key representativeCoreSweepArtifacts;
+            in {
+              inherit (spec) key label;
+              config = {
+                vocab_size = spec.vocabSize;
+                num_layers = spec.numLayers;
+                max_position_embeddings = spec.maxPositionEmbeddings;
+                window_size = spec.windowSize;
+                hidden_size = spec.hiddenSize;
+                num_heads = spec.numHeads;
+              };
+              compare_dir = "${artifacts.allVsTop4.compare}";
+            }) representativeCoreSweepSpecs));
+
+        representativeCoreSweepSummary = mkRepresentativeCoreSweepSummary {
+          name = "tiny-stories-1m-representative-core-sweep-all-memory-vs-top4-memory";
+          manifestJson = representativeCoreSweepSummaryManifest;
+        };
+        representativeCoreAdditionalSweepArtifacts = pkgs.lib.filterAttrs
+          (key: _: key != representativeCoreDefaultKey)
+          representativeCoreSweepArtifacts;
+        representativeCoreSweepPackages = pkgs.lib.concatMapAttrs
+          (key: artifacts: {
+            "${key}-selftest-all-memory-top" = artifacts.allMemory.top;
+            "${key}-selftest-all-memory-model-opt-il" =
+              artifacts.allMemory.modelOptIl;
+            "${key}-selftest-all-memory-model-shell-il" =
+              artifacts.allMemory.modelShellIl;
+            "${key}-selftest-all-memory-external-memory-plan" =
+              artifacts.allMemory.externalMemoryPlan;
+            "${key}-selftest-all-memory-json" = artifacts.allMemory.json;
+            "${key}-selftest-all-memory-yosys-json" =
+              artifacts.allMemory.yosysJson;
+            "${key}-selftest-all-memory-utilization" =
+              artifacts.allMemory.utilizationReport;
+            "${key}-selftest-all-memory-stage-stats" =
+              artifacts.allMemory.rtlilStageStats.bundle;
+            "${key}-selftest-top4-memory-top" = artifacts.top4Memory.top;
+            "${key}-selftest-top4-memory-model-opt-il" =
+              artifacts.top4Memory.modelOptIl;
+            "${key}-selftest-top4-memory-model-shell-il" =
+              artifacts.top4Memory.modelShellIl;
+            "${key}-selftest-top4-memory-external-memory-plan" =
+              artifacts.top4Memory.externalMemoryPlan;
+            "${key}-selftest-top4-memory-json" = artifacts.top4Memory.json;
+            "${key}-selftest-top4-memory-yosys-json" =
+              artifacts.top4Memory.yosysJson;
+            "${key}-selftest-top4-memory-utilization" =
+              artifacts.top4Memory.utilizationReport;
+            "${key}-selftest-top4-memory-stage-stats" =
+              artifacts.top4Memory.rtlilStageStats.bundle;
+            "${key}-selftest-top4-memory-stage6a-stats" =
+              artifacts.top4Memory.rtlilStageStats.reports.stage6a;
+            "${key}-all-memory-vs-top4-memory-stage-stats" =
+              artifacts.allVsTop4.stageStatsCompare;
+            "${key}-all-memory-vs-top4-memory-utilization" =
+              artifacts.allVsTop4.utilizationCompare;
+            "${key}-all-memory-vs-top4-memory-compare" =
+              artifacts.allVsTop4.compare;
+          }) representativeCoreAdditionalSweepArtifacts;
 
         mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
           let
@@ -1008,6 +1538,74 @@
             capacities = tinyStoriesCapacities;
             externalMemoryMinModuleBits = 1;
             externalMemoryMaxModules = 4;
+          };
+        tinyStories1mRepresentativeCoreArtifacts =
+          builtins.getAttr representativeCoreDefaultKey
+          representativeCoreSweepArtifacts;
+        tinyStories1mRepresentativeCoreSelftestAllMemory =
+          tinyStories1mRepresentativeCoreArtifacts.allMemory;
+        tinyStories1mRepresentativeCoreSelftestTop4Memory =
+          tinyStories1mRepresentativeCoreArtifacts.top4Memory;
+        tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9 =
+          mkTinyStoriesSelftestBundle {
+            name =
+              "tiny-stories-1m-representative-core-selftest-top4-memory-abc9";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mRepresentativeCorePipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mRepresentativeCoreIl;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+            externalMemoryMaxModules = 4;
+            useAbc9 = true;
+          };
+        tinyStories1mRepresentativeCoreVsBaselineFloatTop4MemoryStageStats =
+          mkStageStatComparison {
+            name =
+              "tiny-stories-1m-representative-core-vs-baseline-float-top4-memory";
+            baselineDir =
+              tinyStories1mBaselineFloatSelftestTop4Memory.rtlilStageStats.bundle;
+            candidateDir =
+              tinyStories1mRepresentativeCoreSelftestTop4Memory.rtlilStageStats.bundle;
+            baselineLabel = "tiny-stories-1m-baseline-float-selftest-top4-memory";
+            candidateLabel =
+              "tiny-stories-1m-representative-core-selftest-top4-memory";
+          };
+        tinyStories1mRepresentativeCoreAllMemoryVsTop4MemoryStageStats =
+          tinyStories1mRepresentativeCoreArtifacts.allVsTop4.stageStatsCompare;
+        tinyStories1mRepresentativeCoreAllMemoryVsTop4MemoryUtilization =
+          tinyStories1mRepresentativeCoreArtifacts.allVsTop4.utilizationCompare;
+        tinyStories1mRepresentativeCoreAllMemoryVsTop4MemoryComparison =
+          tinyStories1mRepresentativeCoreArtifacts.allVsTop4.compare;
+        tinyStories1mBaselineFloatVsRepresentativeCoreTorchOpCoverage =
+          mkMlirOpStatsComparison {
+            name =
+              "tiny-stories-1m-baseline-float-vs-representative-core-torch";
+            baselineInput = tinyStories1mBaselineFloatPipeline.torch;
+            baselineStats = tinyStories1mBaselineFloatPipeline."torch-stats";
+            candidateInput = tinyStories1mRepresentativeCorePipeline.torch;
+            candidateStats =
+              tinyStories1mRepresentativeCorePipeline."torch-stats";
+            baselineLabel = "tiny-stories-1m-baseline-float-torch";
+            candidateLabel = "tiny-stories-1m-representative-core-torch";
+          };
+        tinyStories1mBaselineFloatVsRepresentativeCoreCfOpCoverage =
+          mkMlirOpStatsComparison {
+            name = "tiny-stories-1m-baseline-float-vs-representative-core-cf";
+            baselineInput = tinyStories1mBaselineFloatPipeline.cf;
+            baselineStats = tinyStories1mBaselineFloatPipeline."cf-stats";
+            candidateInput = tinyStories1mRepresentativeCorePipeline.cf;
+            candidateStats = tinyStories1mRepresentativeCorePipeline."cf-stats";
+            baselineLabel = "tiny-stories-1m-baseline-float-cf";
+            candidateLabel = "tiny-stories-1m-representative-core-cf";
+          };
+        tinyStories1mBaselineFloatVsRepresentativeCoreMlirOpCoverage =
+          mkMlirOpCoverageBundle {
+            name = "tiny-stories-1m-baseline-float-vs-representative-core";
+            baselineLabel = "tiny-stories-1m-baseline-float";
+            candidateLabel = "tiny-stories-1m-representative-core";
+            torchCoverage =
+              tinyStories1mBaselineFloatVsRepresentativeCoreTorchOpCoverage;
+            cfCoverage = tinyStories1mBaselineFloatVsRepresentativeCoreCfOpCoverage;
           };
 
         tbDataSv = pkgs.runCommand "tb-data-sv" { } ''
@@ -1119,8 +1717,6 @@
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
           matmul-selftest-bitstream = matmulSelftestBitstream;
-          tiny-stories-1m-baseline-float-selftest-all-memory-utilization =
-            tinyStories1mBaselineFloatSelftestAllMemory.utilizationReport;
           matmul-selftest-fasm = matmulSelftestFasm;
           matmul-selftest-top = matmulSelftestTop;
           matmul-selftest-xdc = matmulSelftestXdc;
@@ -1139,6 +1735,8 @@
             tinyStories1mSelftestAllMemory.yosysJson;
           tiny-stories-1m-selftest-all-memory-utilization =
             tinyStories1mSelftestAllMemory.utilizationReport;
+          tiny-stories-1m-selftest-all-memory-stage-stats =
+            tinyStories1mSelftestAllMemory.rtlilStageStats.bundle;
           tiny-stories-1m-baseline-float-selftest-all-memory-top =
             tinyStories1mBaselineFloatSelftestAllMemory.top;
           tiny-stories-1m-baseline-float-selftest-all-memory-model-opt-il =
@@ -1153,6 +1751,8 @@
             tinyStories1mBaselineFloatSelftestAllMemory.yosysJson;
           tiny-stories-1m-baseline-float-selftest-all-memory-utilization =
             tinyStories1mBaselineFloatSelftestAllMemory.utilizationReport;
+          tiny-stories-1m-baseline-float-selftest-all-memory-stage-stats =
+            tinyStories1mBaselineFloatSelftestAllMemory.rtlilStageStats.bundle;
           tiny-stories-1m-baseline-float-selftest-top4-memory-top =
             tinyStories1mBaselineFloatSelftestTop4Memory.top;
           tiny-stories-1m-baseline-float-selftest-top4-memory-model-opt-il =
@@ -1167,7 +1767,80 @@
             tinyStories1mBaselineFloatSelftestTop4Memory.yosysJson;
           tiny-stories-1m-baseline-float-selftest-top4-memory-utilization =
             tinyStories1mBaselineFloatSelftestTop4Memory.utilizationReport;
-        } // pipelineStagePackages // pipelineMetadataPackages;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-stage-stats =
+            tinyStories1mBaselineFloatSelftestTop4Memory.rtlilStageStats.bundle;
+          tiny-stories-1m-baseline-float-selftest-top4-memory-stage6a-stats =
+            tinyStories1mBaselineFloatSelftestTop4Memory.rtlilStageStats.reports.stage6a;
+          tiny-stories-1m-representative-core-selftest-all-memory-top =
+            tinyStories1mRepresentativeCoreSelftestAllMemory.top;
+          tiny-stories-1m-representative-core-selftest-all-memory-model-opt-il =
+            tinyStories1mRepresentativeCoreSelftestAllMemory.modelOptIl;
+          tiny-stories-1m-representative-core-selftest-all-memory-model-shell-il =
+            tinyStories1mRepresentativeCoreSelftestAllMemory.modelShellIl;
+          tiny-stories-1m-representative-core-selftest-all-memory-external-memory-plan =
+            tinyStories1mRepresentativeCoreSelftestAllMemory.externalMemoryPlan;
+          tiny-stories-1m-representative-core-selftest-all-memory-json =
+            tinyStories1mRepresentativeCoreSelftestAllMemory.json;
+          tiny-stories-1m-representative-core-selftest-all-memory-yosys-json =
+            tinyStories1mRepresentativeCoreSelftestAllMemory.yosysJson;
+          tiny-stories-1m-representative-core-selftest-all-memory-utilization =
+            tinyStories1mRepresentativeCoreSelftestAllMemory.utilizationReport;
+          tiny-stories-1m-representative-core-selftest-all-memory-stage-stats =
+            tinyStories1mRepresentativeCoreSelftestAllMemory.rtlilStageStats.bundle;
+          tiny-stories-1m-representative-core-selftest-top4-memory-top =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.top;
+          tiny-stories-1m-representative-core-selftest-top4-memory-model-opt-il =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.modelOptIl;
+          tiny-stories-1m-representative-core-selftest-top4-memory-model-shell-il =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.modelShellIl;
+          tiny-stories-1m-representative-core-selftest-top4-memory-external-memory-plan =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.externalMemoryPlan;
+          tiny-stories-1m-representative-core-selftest-top4-memory-json =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.json;
+          tiny-stories-1m-representative-core-selftest-top4-memory-yosys-json =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.yosysJson;
+          tiny-stories-1m-representative-core-selftest-top4-memory-utilization =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.utilizationReport;
+          tiny-stories-1m-representative-core-selftest-top4-memory-stage-stats =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.rtlilStageStats.bundle;
+          tiny-stories-1m-representative-core-selftest-top4-memory-stage6a-stats =
+            tinyStories1mRepresentativeCoreSelftestTop4Memory.rtlilStageStats.reports.stage6a;
+          tiny-stories-1m-representative-core-all-memory-vs-top4-memory-stage-stats =
+            tinyStories1mRepresentativeCoreAllMemoryVsTop4MemoryStageStats;
+          tiny-stories-1m-representative-core-all-memory-vs-top4-memory-utilization =
+            tinyStories1mRepresentativeCoreAllMemoryVsTop4MemoryUtilization;
+          tiny-stories-1m-representative-core-all-memory-vs-top4-memory-compare =
+            tinyStories1mRepresentativeCoreAllMemoryVsTop4MemoryComparison;
+          tiny-stories-1m-representative-core-selftest-top4-memory-abc9-top =
+            tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9.top;
+          tiny-stories-1m-representative-core-selftest-top4-memory-abc9-model-opt-il =
+            tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9.modelOptIl;
+          tiny-stories-1m-representative-core-selftest-top4-memory-abc9-model-shell-il =
+            tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9.modelShellIl;
+          tiny-stories-1m-representative-core-selftest-top4-memory-abc9-external-memory-plan =
+            tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9.externalMemoryPlan;
+          tiny-stories-1m-representative-core-selftest-top4-memory-abc9-json =
+            tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9.json;
+          tiny-stories-1m-representative-core-selftest-top4-memory-abc9-yosys-json =
+            tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9.yosysJson;
+          tiny-stories-1m-representative-core-selftest-top4-memory-abc9-utilization =
+            tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9.utilizationReport;
+          tiny-stories-1m-representative-core-selftest-top4-memory-abc9-stage-stats =
+            tinyStories1mRepresentativeCoreSelftestTop4MemoryAbc9.rtlilStageStats.bundle;
+          tiny-stories-1m-representative-core-sweep-manifest =
+            representativeCoreSweepManifest;
+          tiny-stories-1m-representative-core-sweep-all-memory-vs-top4-memory-summary =
+            representativeCoreSweepSummary;
+          tiny-stories-1m-top4-memory-stage-stats-baseline-vs-representative-core =
+            tinyStories1mRepresentativeCoreVsBaselineFloatTop4MemoryStageStats;
+          tiny-stories-1m-baseline-float-vs-representative-core-torch-op-coverage =
+            tinyStories1mBaselineFloatVsRepresentativeCoreTorchOpCoverage;
+          tiny-stories-1m-baseline-float-vs-representative-core-cf-op-coverage =
+            tinyStories1mBaselineFloatVsRepresentativeCoreCfOpCoverage;
+          tiny-stories-1m-baseline-float-vs-representative-core-op-coverage =
+            tinyStories1mBaselineFloatVsRepresentativeCoreMlirOpCoverage;
+        } // representativeCoreSweepPackages // pipelineStagePackages
+          // pipelineMetadataPackages;
 
         checks = {
           nix = pkgs.runCommand "llm2fpga-nix" {

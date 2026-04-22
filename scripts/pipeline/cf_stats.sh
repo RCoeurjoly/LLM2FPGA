@@ -12,4 +12,4 @@ output="${3:?usage: cf_stats.sh <mlir-opt> <input-cf-mlir> <output-stats>}"
 require_executable "$mlir_opt"
 require_file "$input"
 
-"$mlir_opt" "$input" --print-op-stats -o /dev/null >"$output"
+"$mlir_opt" "$input" --print-op-stats -o /dev/null >"$output" 2>&1

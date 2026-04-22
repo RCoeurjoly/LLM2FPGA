@@ -1,10 +1,56 @@
 { registerModel, registerQuantizedModel, pythonWithTorch, pythonWithTinyStories
 , pythonWithTinyStoriesTorchAO, torchMlir, python, tinyStories1m, matmulPy
 , matmulAdapterPy, matmulSrcDir, tinyStoriesTorchaoAdapterPy
-, tinyStoriesPt2eStaticQuantAdapterPy, fpPrimsSv, simDir, compilePyTorch }:
+, tinyStoriesRepresentativeCoreAdapterPy, tinyStoriesPt2eStaticQuantAdapterPy
+, fpPrimsSv, simDir, compilePyTorch, representativeCoreSweepSpecs }:
 let
   torchMlirPythonPath =
     "${torchMlir}/${python.sitePackages}:${torchMlir}/${python.sitePackages}/torch_mlir";
+  mkRepresentativeCoreModel = spec:
+    let
+      key = spec.key;
+      name = key;
+      inherit (spec) profile vocabSize numLayers maxPositionEmbeddings windowSize
+        hiddenSize numHeads;
+    in {
+      inherit name;
+      value = registerModel {
+        inherit key name;
+        description =
+          "Deterministic reduced GPT-Neo core derived from the TinyStories-1M config for fast Task 6 iteration. This representative-core sweep point is intentionally minimized and must justify itself by preserving baseline MLIR op coverage before it is trusted for Task 6 iteration decisions.";
+        source = {
+          type = "derived";
+          base_model_id = tinyStories1m.modelId;
+          inherit (tinyStories1m) revision;
+          inherit profile;
+          vocab_size = vocabSize;
+          num_layers = numLayers;
+          max_position_embeddings = maxPositionEmbeddings;
+          window_size = windowSize;
+          hidden_size = hiddenSize;
+          num_heads = numHeads;
+        };
+        allowHwExterns = true;
+        slangPerFileExternModules = true;
+        inherit fpPrimsSv;
+        torchInputBuildInputs = [ pythonWithTinyStories ];
+        torchInputCommand = ''
+          export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+          export TINYSTORIES_CORE_VOCAB_SIZE=${toString vocabSize}
+          export TINYSTORIES_CORE_NUM_LAYERS=${toString numLayers}
+          export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=${toString maxPositionEmbeddings}
+          export TINYSTORIES_CORE_WINDOW_SIZE=${toString windowSize}
+          export TINYSTORIES_CORE_HIDDEN_SIZE=${toString hiddenSize}
+          export TINYSTORIES_CORE_NUM_HEADS=${toString numHeads}
+          python ${compilePyTorch} \
+            --adapter ${tinyStoriesRepresentativeCoreAdapterPy} \
+            --model-path ${tinyStories1m.snapshot} \
+            --out "$out" >/dev/null
+        '';
+      };
+    };
+  representativeCoreModels =
+    builtins.listToAttrs (map mkRepresentativeCoreModel representativeCoreSweepSpecs);
 in {
   matmul = registerModel {
     key = "matmul";
@@ -107,4 +153,4 @@ in {
         --out "$out" >/dev/null
     '';
   };
-}
+} // representativeCoreModels

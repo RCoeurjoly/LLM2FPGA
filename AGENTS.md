@@ -6,3 +6,4 @@
 - If Task 6 work later grows beyond a short note, keep this file concise and extend the task-specific notes file instead.
 - Task 6 strategy evaluations must compare against the copied baseline bundle at [artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization](artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization), not a Nix store path that may disappear after garbage collection.
 - If Task 6 strategy work is split across parallel repos, prefer separate `git worktree`s or branches derived from `task6` over deleting and recloning the main workspace.
+- Optimize Task 6 for feedback-loop speed: prefer the smallest model and cheapest measurement path that still preserves relevant operator/structure coverage, then replay promising changes on larger lanes.
