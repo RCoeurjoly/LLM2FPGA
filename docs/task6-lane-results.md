@@ -12,6 +12,7 @@ Branch: `task6-streamtensor-lite`
 | LUT ceiling | `<= 29,860` LUT | pending |
 | FF ceiling | `<= 59,720` FF | pending |
 | Verilator | kernel test passes | pending |
+| Micro-proof runtime | kernel Yosys stat completes in `< 30 s` | pending |
 | Whole-model dependency | no whole-model lowering required | pending |
 
 ## Benchmark Budgets
@@ -31,16 +32,16 @@ Branch: `task6-streamtensor-lite`
 | `L0` | synthetic `64x64` GEMV smoke | existing `matmul` path, frozen into a `64x64` kernel harness | planned | first synthetic kernel scaffold |
 | `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | ready | first cheap boundary check |
 | `L2` | reduced-vocab single-block replay | planned `tiny-stories-v1k-h64-l1` | planned | first reduced-vocab micro-fit rung |
-| `L3` | reduced-vocab MLP replay | planned `tiny-stories-v4k-h64-l1` | planned | promotion only after `L2` passes |
-| `L4` | reduced-vocab block skeleton | planned `tiny-stories-v10k-h64-l1` | planned | first 10k-token rung |
-| `L5` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after reduced-vocab structural win |
-| `L6` | full baseline replay | existing `tiny-stories-1m-baseline-float` | reserve | replay only after `L5` stays believable |
+| `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promotion only after `L2` passes |
+| `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after reduced-vocab structural win |
 
-Optional bridge rung:
+## Deferred Extensions
 
 | Rung | Model target | Status | Notes |
 | --- | --- | --- | --- |
-| `L4b` | planned `tiny-stories-v10k-h64-l2` | planned | use only if `L4` is still too small before `L5` |
+| `X1` | planned `tiny-stories-v10k-h64-l1` | planned | later fidelity step, not part of the default fast loop |
+| `X2` | planned `tiny-stories-v10k-h64-l2` | planned | later reuse step if `X1` is still too small |
+| `X3` | existing `tiny-stories-1m-baseline-float` | reserve | final replay only after `L4` remains believable |
 
 ## Current Decisions
 
@@ -52,7 +53,7 @@ Optional bridge rung:
 | What is the first target class? | One reused GEMV kernel boundary around that block-0 MLP linear | Shared ChatGPT plan plus lane plan | decided |
 | What first transformation should be implemented? | Redirect one linear proof toward a small reused kernel with external weights and DSP-backed arithmetic | Shared ChatGPT plan plus lane plan | decided |
 | What is the first success metric? | Move the resource signature away from `0 DSP / 0 BRAM`, with `DSP > 0` mandatory | Shared ChatGPT plan plus baseline summary | decided |
-| What replay target is required before merge-back? | Representative-core replay and then real TinyStories baseline only after the reduced-vocab ladder is structurally credible | Lane plan in `docs/task6-lane.md` | decided |
+| What replay target is required before merge-back? | Representative-core replay after the reduced-vocab ladder is structurally credible; larger `v10k` and full-baseline steps are deferred extensions | Lane plan in `docs/task6-lane.md` | decided |
 | What is the stop rule for the whole-model lane? | Keep it as comparison only once a reduced-vocab `h64` rung exists | Lane feedback pass on 2026-04-22 | decided |
 
 ## Fixed First Proof Record
@@ -77,10 +78,11 @@ Optional bridge rung:
 
 ## Experiment Ledger
 
-| Date | Rung | Insertion point | Representation level | DSP | BRAM | LUT | FF | Wall-clock | Peak RAM | Verdict | Next action |
+| Date | Artifact | Insertion point | Representation level | DSP | BRAM | LUT | FF | Wall-clock | Peak RAM | Verdict | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-04-22 | planning | not fixed yet | not fixed yet | n/a | n/a | n/a | n/a | n/a | n/a | open | tighten the lane around one exact GEMV proof |
 | 2026-04-22 | planning | `transformer.h.0.mlp.c_fc` | `linalg` on tensors | n/a | n/a | n/a | n/a | n/a | n/a | decided | implement the weight-pack path and validate `L0` then `L1` |
+| 2026-04-22 | planning | `transformer.h.0.mlp.c_fc` | `linalg` on tensors | n/a | n/a | n/a | n/a | n/a | n/a | decided | keep the primary fast loop at `L0` to `L4`, defer `v10k` and full-baseline replay |
 
 ## Rejections
 

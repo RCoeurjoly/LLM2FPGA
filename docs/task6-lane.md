@@ -91,6 +91,7 @@ Must-have checks:
 | LUT ceiling | `<= 29,860` LUT | keeps the first proof small enough to matter |
 | FF ceiling | `<= 59,720` FF | same reason as LUT ceiling |
 | Verilator | kernel test passes | preserves functional credibility |
+| Micro-proof runtime | kernel Yosys stat completes in `< 30 s` | keeps rejection fast enough to drive daily iteration |
 | Whole-model dependency | proof is meaningful without whole-model lowering | preserves fast rejection |
 
 Fail-fast checks:
@@ -119,33 +120,32 @@ Operational rule:
 
 ## Model Ladder
 
-The lane needs a fixed rung ladder so experiments do not drift upward without a
-decision. The reduced-vocab path is now explicit and comes before broader
-representative-core or whole-model replay.
+The primary execution ladder is now the minimum fast-feedback loop required for
+this lane to drive day-to-day Task 6 decisions.
 
 | Rung | Artifact class | Model target | Status | Promotion rule |
 | --- | --- | --- | --- | --- |
 | `L0` | synthetic `64x64` GEMV smoke | existing `matmul` path, frozen into a `64x64` single-kernel harness | planned | use only for kernel plumbing and DSP validation |
-| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from existing `tiny-stories-1m-representative-core-v64-h4` | ready | promote only if the kernel boundary is visible at Linalg level |
-| `L2` | reduced-vocab single-block replay | planned `tiny-stories-v1k-h64-l1` | planned | first reduced-vocab micro-fit rung after `L1` |
-| `L3` | reduced-vocab MLP replay | planned `tiny-stories-v4k-h64-l1` | planned | promote only if `L2` clears the first-proof scorecard |
-| `L4` | reduced-vocab block skeleton | planned `tiny-stories-v10k-h64-l1` | planned | promote only if `L3` remains inside the time budget |
-| `L5` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after the reduced-vocab ladder shows a structural win |
-| `L6` | full baseline replay | existing `tiny-stories-1m-baseline-float` | reserve | replay only after `L5` stays believable downstream |
+| `L1` | TinyStories single linear op | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | ready | promote only if the kernel boundary is visible at Linalg level |
+| `L2` | reduced-vocab replay | planned `tiny-stories-v1k-h64-l1` | planned | first reduced-vocab micro-fit rung after `L1` |
+| `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promote only if `L2` clears the first-proof scorecard |
+| `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after `L3` shows a structural win |
 
-Optional bridge rung:
+Deferred extension ladder:
 
-- `tiny-stories-v10k-h64-l2`
-  - use only if `L4` is still too small to test block reuse honestly before
-    `L5`
+| Rung | Model target | Status | Use |
+| --- | --- | --- | --- |
+| `X1` | planned `tiny-stories-v10k-h64-l1` | planned | later fidelity step, not part of the default fast loop |
+| `X2` | planned `tiny-stories-v10k-h64-l2` | planned | later reuse step if `X1` is still too small |
+| `X3` | existing `tiny-stories-1m-baseline-float` | reserve | final replay only after `L4` remains believable downstream |
 
 Model-ladder rule:
 
 - hold `hidden_size = 64` fixed in the reduced-vocab ladder
 - vary vocabulary size and layer count before touching width
 - keep single-token forward as the default path
-- do not let the representative-core replay become the default loop once the
-  reduced-vocab ladder exists
+- do not let the deferred extension ladder become the default loop until the
+  primary ladder is exhausted
 
 ## Exact First Insertion Point
 
@@ -264,9 +264,10 @@ Required first output:
    - first promotion target:
      - `tiny-stories-v1k-h64-l1`
    - stop widening once a rung fails the scorecard
-   - use `tiny-stories-v10k-h64-l2` only as an optional bridge rung
-   - replay on representative-core and then the real TinyStories baseline only
-     after the reduced-vocab ladder shows a believable structural win
+   - replay on representative-core only after the reduced-vocab ladder shows a
+     believable structural win
+   - keep `tiny-stories-v10k-h64-l1`, `tiny-stories-v10k-h64-l2`, and the real
+     TinyStories baseline as deferred extension steps, not the default loop
 
 ## Candidate First Experiments
 

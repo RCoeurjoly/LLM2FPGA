@@ -1808,3 +1808,28 @@ Representative-core sweep setup later on 2026-04-22:
     - peak RAM
     - verdict
     - next action
+
+### Further refinement later on 2026-04-22
+
+- The lane was tightened again to make it operational as a daily execution loop,
+  not just a well-framed concept:
+  - the first-proof scorecard now includes the micro-proof runtime directly:
+    - kernel Yosys stat must finish in `< 30 s`
+  - the primary ladder was shortened to the minimum fast-feedback path:
+    - `L0`:
+      - synthetic `64x64` GEMV harness
+    - `L1`:
+      - single-op TinyStories linear cutout
+    - `L2`:
+      - `tiny-stories-v1k-h64-l1`
+    - `L3`:
+      - `tiny-stories-v4k-h64-l1`
+    - `L4`:
+      - representative-core replay
+  - the larger-fidelity steps were explicitly demoted to deferred extensions:
+    - `tiny-stories-v10k-h64-l1`
+    - `tiny-stories-v10k-h64-l2`
+    - real TinyStories baseline replay
+  - the experiment ledger was renamed toward artifact-centric logging and now
+    has an explicit row recording that the fast loop stops at `L4` unless the
+    earlier rungs justify widening
