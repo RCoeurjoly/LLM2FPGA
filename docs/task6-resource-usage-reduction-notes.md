@@ -1897,3 +1897,39 @@ Representative-core sweep setup later on 2026-04-22:
   - begin weight-pack extraction around the selected `%75` / line `363` `L1`
     site
   - add Verilator coverage for `L0`
+
+### L1 weight-pack extraction later on 2026-04-22
+
+- Added:
+  - `scripts/task6/export_weights_pack.py`
+- First packed artifact:
+  - `artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_fc/`
+- Exported tensors:
+  - `weight.bin`
+    - shape:
+      - `(16, 4)`
+    - bytes:
+      - `256`
+  - `bias.bin`
+    - shape:
+      - `(16,)`
+    - bytes:
+      - `64`
+  - `manifest.json`
+    - records:
+      - module path
+      - representative-core config
+      - tensor shapes
+      - raw-f32-le format
+- Measured export:
+  - wall-clock:
+    - `2.42 s`
+  - peak RSS:
+    - `336,816 KB`
+- Interpretation:
+  - the lane now has a first real external pack artifact tied directly to the
+    selected `L1` `c_fc` site
+  - the export + pack budget is satisfied for the representative-core proof
+- Immediate next choice:
+  - either build the smallest task-graph consumer around this pack
+  - or add the lightest possible Verilator harness for `task6-l0-gemv64`
