@@ -1,6 +1,7 @@
 { registerModel, registerQuantizedModel, pythonWithTorch, pythonWithTinyStories
 , pythonWithTinyStoriesTorchAO, torchMlir, python, tinyStories1m, matmulPy
-, matmulAdapterPy, matmulSrcDir, tinyStoriesTorchaoAdapterPy
+, matmulAdapterPy, matmulSrcDir, gemv64Py, gemv64AdapterPy
+, tinyStoriesTorchaoAdapterPy
 , tinyStoriesRepresentativeCoreAdapterPy, tinyStoriesPt2eStaticQuantAdapterPy
 , fpPrimsSv, simDir, compilePyTorch, representativeCoreSweepSpecs }:
 let
@@ -67,6 +68,27 @@ in {
       export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
       python ${compilePyTorch} \
         --adapter ${matmulAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "task6-l0-gemv64" = registerModel {
+    key = "task6-l0-gemv64";
+    name = "task6-l0-gemv64";
+    description =
+      "StreamTensor-lite L0 synthetic external-weight 64x64 GEMV kernel.";
+    source = {
+      type = "local";
+      path = "${gemv64Py}";
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${gemv64AdapterPy} \
         --out "$out" >/dev/null
     '';
   };

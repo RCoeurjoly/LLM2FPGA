@@ -8,12 +8,12 @@ Branch: `task6-streamtensor-lite`
 | Check | Threshold | Status |
 | --- | --- | --- |
 | DSP use | `DSP > 0` in the kernel or one-block-top Yosys stat | pending |
-| Weight placement | packed or ROM-style external weights, not giant RTL constants | pending |
-| LUT ceiling | `<= 29,860` LUT | pending |
-| FF ceiling | `<= 59,720` FF | pending |
+| Weight placement | packed or ROM-style external weights, not giant RTL constants | pass-L0 |
+| LUT ceiling | `<= 29,860` LUT | pending pre-map |
+| FF ceiling | `<= 59,720` FF | pending pre-map |
 | Verilator | kernel test passes | pending |
-| Micro-proof runtime | kernel Yosys stat completes in `< 30 s` | pending |
-| Whole-model dependency | no whole-model lowering required | pending |
+| Micro-proof runtime | kernel Yosys stat completes in `< 30 s` | pass-L0 (`9.23 s`) |
+| Whole-model dependency | no whole-model lowering required | pass-L0/L1 |
 
 ## Benchmark Budgets
 
@@ -22,15 +22,15 @@ Branch: `task6-streamtensor-lite`
 | Python export + weight pack | `< 30 s` | n/a | pending |
 | Task-graph generation | `< 10 s` | n/a | pending |
 | Verilator kernel test | `< 20 s` | n/a | pending |
-| Yosys stat for kernel | `< 30 s` | n/a | pending |
+| Yosys stat for kernel | `< 30 s` | `9.23 s` on `task6-l0-gemv64-yosys-stat` | pass-L0 |
 | Yosys stat for one-block top | `< 2 min` | n/a | pending |
 
 ## Frozen Ladder
 
 | Rung | Artifact class | Model target | Status | Notes |
 | --- | --- | --- | --- | --- |
-| `L0` | synthetic `64x64` GEMV smoke | existing `matmul` path, frozen into a `64x64` kernel harness | planned | first synthetic kernel scaffold |
-| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | ready | first cheap boundary check |
+| `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | built through `yosys-stat`; first rerun passes runtime budget |
+| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | candidate finder selected line `363`; two total candidates across the core |
 | `L2` | reduced-vocab single-block replay | planned `tiny-stories-v1k-h64-l1` | planned | first reduced-vocab micro-fit rung |
 | `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promotion only after `L2` passes |
 | `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after reduced-vocab structural win |
@@ -71,6 +71,8 @@ Branch: `task6-streamtensor-lite`
 
 | Item | Planned location or command | Status |
 | --- | --- | --- |
+| L0 kernel model | `task6-l0-gemv64` | ready |
+| L1 candidate finder | `scripts/task6/find_l1_gemv_candidate.py` | ready |
 | Weight pack export | `scripts/task6/export_weights_pack.py` | planned |
 | Task-graph build | `scripts/task6/build_task_graph.py` | planned |
 | Packed-weight artifacts | `artifacts/task6/weights_pack/<model-rung>/` | planned |
@@ -83,7 +85,14 @@ Branch: `task6-streamtensor-lite`
 | 2026-04-22 | planning | not fixed yet | not fixed yet | n/a | n/a | n/a | n/a | n/a | n/a | open | tighten the lane around one exact GEMV proof |
 | 2026-04-22 | planning | `transformer.h.0.mlp.c_fc` | `linalg` on tensors | n/a | n/a | n/a | n/a | n/a | n/a | decided | implement the weight-pack path and validate `L0` then `L1` |
 | 2026-04-22 | planning | `transformer.h.0.mlp.c_fc` | `linalg` on tensors | n/a | n/a | n/a | n/a | n/a | n/a | decided | keep the primary fast loop at `L0` to `L4`, defer `v10k` and full-baseline replay |
+| 2026-04-22 | `task6-l0-gemv64-yosys-stat` first attempt | synthetic external-weight `64x64` GEMV | full pipeline to `sv` | n/a | n/a | n/a | n/a | `14.75 s` | `560,856 KB` | fixed blocker | reuse TinyStories float-extern wiring after `sv` export failed on `arith_addf` / `arith_mulf` externs |
+| 2026-04-22 | `task6-l0-gemv64-yosys-stat` rerun | synthetic external-weight `64x64` GEMV | `linalg -> yosys-stat` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `9.23 s` | `560,684 KB` | pass-runtime | inspect mapped resource signature and add Verilator kernel coverage |
+| 2026-04-22 | `representative-core-v64-h4-c_fc-candidate.json` | `transformer.h.0.mlp.c_fc` candidate | `linalg` | n/a | n/a | n/a | n/a | `0.05 s` | `13,024 KB` | selected | use line `363` / `%75` as the first L1 cutout and begin weight-pack extraction around the first `4 -> 16` site |
 
 ## Rejections
 
-None yet.
+- None yet.
+- Resolved blocker:
+  - the first `task6-l0-gemv64` `sv` export failed until the model reused the
+    baseline float extern wiring (`allowHwExterns`, per-file extern import, and
+    `fpPrimsSv`)

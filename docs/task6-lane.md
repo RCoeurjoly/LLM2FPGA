@@ -125,7 +125,7 @@ this lane to drive day-to-day Task 6 decisions.
 
 | Rung | Artifact class | Model target | Status | Promotion rule |
 | --- | --- | --- | --- | --- |
-| `L0` | synthetic `64x64` GEMV smoke | existing `matmul` path, frozen into a `64x64` single-kernel harness | planned | use only for kernel plumbing and DSP validation |
+| `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | use only for kernel plumbing and DSP validation |
 | `L1` | TinyStories single linear op | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | ready | promote only if the kernel boundary is visible at Linalg level |
 | `L2` | reduced-vocab replay | planned `tiny-stories-v1k-h64-l1` | planned | first reduced-vocab micro-fit rung after `L1` |
 | `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promote only if `L2` clears the first-proof scorecard |
@@ -254,8 +254,8 @@ Required first output:
    - aim for DSP-backed arithmetic first
 
 4. Validate on `L0` and `L1`.
-   - use the `matmul` path only after freezing it into a `64x64` GEMV harness
-     for plumbing and kernel smoke validation
+   - use `task6-l0-gemv64` as the synthetic external-weight `64x64` GEMV
+     harness for plumbing and kernel smoke validation
    - use `tiny-stories-1m-representative-core-v64-h4` for the first
      TinyStories-shaped boundary check
    - do not promote if the scorecard or time budgets fail

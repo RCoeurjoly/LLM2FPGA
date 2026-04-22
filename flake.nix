@@ -268,6 +268,8 @@
           matmulPy = ./src/matmul.py;
           matmulAdapterPy = ./src/matmul_adapter.py;
           matmulSrcDir = ./src;
+          gemv64Py = ./src/gemv64.py;
+          gemv64AdapterPy = ./src/gemv64_adapter.py;
           tinyStoriesRepresentativeCoreAdapterPy =
             ./TinyStories/model_adapter_representative_core.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;

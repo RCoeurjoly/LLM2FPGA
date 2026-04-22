@@ -1833,3 +1833,67 @@ Representative-core sweep setup later on 2026-04-22:
   - the experiment ledger was renamed toward artifact-centric logging and now
     has an explicit row recording that the fast loop stops at `L4` unless the
     earlier rungs justify widening
+
+### L0 and L1 execution start later on 2026-04-22
+
+- `L0` implementation:
+  - added a new local model:
+    - `task6-l0-gemv64`
+  - shape:
+    - activation input `tensor<1x64xf32>`
+    - weight input `tensor<64x64xf32>`
+    - result `tensor<1x64xf32>`
+  - purpose:
+    - make the synthetic kernel explicitly external-weighted rather than
+      embedding a constant matrix
+- `L0` first results:
+  - `linalg` now contains the expected single op:
+    - `linalg.matmul ins(%arg0, %arg1 : tensor<1x64xf32>, tensor<64x64xf32>)`
+  - first `yosys-stat` attempt failed at `sv` export because float externs were
+    not enabled for the new model
+  - after reusing the baseline float-extern wiring
+    (`allowHwExterns`, per-file extern import, `fpPrimsSv`), the rerun
+    succeeded
+  - measured rerun:
+    - wall-clock:
+      - `9.23 s`
+    - peak RSS:
+      - `560,684 KB`
+    - Yosys design cells:
+      - `11,471`
+    - memory bits:
+      - `2,048`
+    - cell signal:
+      - one `$mul`
+      - one `arith_mulf_in_f32_f32_out_f32`
+      - one `arith_addf_in_f32_f32_out_f32`
+  - interpretation:
+    - the micro-proof runtime budget is already satisfied on `L0`
+    - externalized weights are present at `linalg` because the matrix is a
+      function argument, not a dense resource constant
+    - mapped DSP / LUT / FF conclusions are still pending because this is only
+      the generic Yosys stat stage
+- `L1` implementation:
+  - added:
+    - `scripts/task6/find_l1_gemv_candidate.py`
+  - artifact:
+    - `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_fc-candidate.json`
+- `L1` first results:
+  - the representative-core `linalg` export contains exactly two matching
+    `1x1x4` by `1x4x16` `linalg.batch_matmul` sites across the two-layer core
+  - the selected first candidate is:
+    - line `363`
+    - value `%75`
+  - immediate surrounding structure matches the intended cutout:
+    - tensor materialization into `tensor<1x4x16xf32>`
+    - `linalg.batch_matmul`
+    - bias-add style `linalg.generic` immediately after
+  - measured candidate-finder runtime:
+    - wall-clock:
+      - `0.05 s`
+    - peak RSS:
+      - `13,024 KB`
+- Next execution step:
+  - begin weight-pack extraction around the selected `%75` / line `363` `L1`
+    site
+  - add Verilator coverage for `L0`
