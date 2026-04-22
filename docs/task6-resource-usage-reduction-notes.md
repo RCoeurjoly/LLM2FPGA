@@ -1763,3 +1763,48 @@ Representative-core sweep setup later on 2026-04-22:
   - canonical experiment ledger moved into `docs/task6-lane-results.md`
   - whole-model TinyStories lane is now explicitly comparison-only once any
     reduced-vocab `h64` rung exists
+
+### Follow-up feedback pass later on 2026-04-22
+
+- The lane plan was tightened again to match the requested fast-rejection shape
+  more literally:
+  - the first proof record is now frozen at:
+    - insertion point:
+      - `transformer.h.0.mlp.c_fc`
+    - representation level:
+      - `linalg` on tensors immediately after Torch-MLIR backend-to-Linalg
+        lowering
+    - shape contract:
+      - `[1, hidden_size] x [hidden_size, 4 * hidden_size]`
+      - representative-core discovery rung:
+        - `[1, 4] x [4, 16]`
+      - reduced-vocab `h64` ladder:
+        - `[1, 64] x [64, 256]`
+  - the rung ladder now makes the reduced-vocab path explicit before broader
+    replay:
+    - `L0`:
+      - synthetic `64x64` GEMV harness
+    - `L1`:
+      - single-op cutout from
+        `tiny-stories-1m-representative-core-v64-h4`
+    - `L2`:
+      - `tiny-stories-v1k-h64-l1`
+    - `L3`:
+      - `tiny-stories-v4k-h64-l1`
+    - `L4`:
+      - `tiny-stories-v10k-h64-l1`
+    - optional bridge rung:
+      - `tiny-stories-v10k-h64-l2`
+    - `L5`:
+      - representative-core replay
+    - `L6`:
+      - real TinyStories baseline replay
+  - the results ledger schema was tightened to include:
+    - rung
+    - insertion point
+    - representation level
+    - `DSP`, `BRAM`, `LUT`, `FF`
+    - wall-clock
+    - peak RAM
+    - verdict
+    - next action

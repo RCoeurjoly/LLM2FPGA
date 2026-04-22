@@ -28,26 +28,43 @@ Branch: `task6-streamtensor-lite`
 
 | Rung | Artifact class | Model target | Status | Notes |
 | --- | --- | --- | --- | --- |
-| `L0` | synthetic kernel smoke | existing `matmul` path | ready | first synthetic kernel scaffold |
-| `L1` | TinyStories-derived single linear op | existing `tiny-stories-1m-representative-core-v64-h4` | ready | first cheap boundary check |
-| `L2` | single linear replay | planned `tinystories_v1k_h64_l1` | planned | first reduced-vocab micro-fit rung |
-| `L3` | one MLP subpath | planned `tinystories_v4k_h64_l1` | planned | promotion only after `L2` passes |
-| `L4` | one transformer-block skeleton | planned `tinystories_v10k_h64_l1` | planned | first 10k-token rung |
-| `L5` | repeated-block replay | planned `tinystories_v10k_h64_l2` | planned | first repeated-block rung |
-| `L6` | one-token scorer with tiled `lm_head` | planned `tinystories_v10k_h64_l8` | planned | last reduced-vocab rung before full replay |
-| `L7` | full baseline replay | existing `tiny-stories-1m-baseline-float` | reserve | replay only after structural win |
+| `L0` | synthetic `64x64` GEMV smoke | existing `matmul` path, frozen into a `64x64` kernel harness | planned | first synthetic kernel scaffold |
+| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | ready | first cheap boundary check |
+| `L2` | reduced-vocab single-block replay | planned `tiny-stories-v1k-h64-l1` | planned | first reduced-vocab micro-fit rung |
+| `L3` | reduced-vocab MLP replay | planned `tiny-stories-v4k-h64-l1` | planned | promotion only after `L2` passes |
+| `L4` | reduced-vocab block skeleton | planned `tiny-stories-v10k-h64-l1` | planned | first 10k-token rung |
+| `L5` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after reduced-vocab structural win |
+| `L6` | full baseline replay | existing `tiny-stories-1m-baseline-float` | reserve | replay only after `L5` stays believable |
+
+Optional bridge rung:
+
+| Rung | Model target | Status | Notes |
+| --- | --- | --- | --- |
+| `L4b` | planned `tiny-stories-v10k-h64-l2` | planned | use only if `L4` is still too small before `L5` |
 
 ## Current Decisions
 
 | Question | Current answer | Evidence | Status |
 | --- | --- | --- | --- |
 | What first artifact should this lane inspect? | Representative-core artifacts, starting from `tiny-stories-1m-representative-core-v64-h4` | Shared ChatGPT plan plus lane plan | decided |
-| What is the exact first insertion point? | Block-0 MLP expansion linear, `transformer.h.0.mlp.c_fc`, or the equivalent first post-norm MLP linear in exported IR | Lane feedback pass on 2026-04-22 | decided |
+| What is the exact first insertion point? | Block-0 MLP expansion linear, `transformer.h.0.mlp.c_fc` | Lane feedback pass on 2026-04-22 | decided |
+| At what representation level is that boundary frozen? | `linalg` on tensors immediately after Torch-MLIR backend-to-Linalg lowering | Lane feedback pass on 2026-04-22 | decided |
 | What is the first target class? | One reused GEMV kernel boundary around that block-0 MLP linear | Shared ChatGPT plan plus lane plan | decided |
 | What first transformation should be implemented? | Redirect one linear proof toward a small reused kernel with external weights and DSP-backed arithmetic | Shared ChatGPT plan plus lane plan | decided |
 | What is the first success metric? | Move the resource signature away from `0 DSP / 0 BRAM`, with `DSP > 0` mandatory | Shared ChatGPT plan plus baseline summary | decided |
-| What replay target is required before merge-back? | Real TinyStories baseline only after the constrained proof is structurally credible through the reduced-vocab ladder | Lane plan in `docs/task6-lane.md` | decided |
+| What replay target is required before merge-back? | Representative-core replay and then real TinyStories baseline only after the reduced-vocab ladder is structurally credible | Lane plan in `docs/task6-lane.md` | decided |
 | What is the stop rule for the whole-model lane? | Keep it as comparison only once a reduced-vocab `h64` rung exists | Lane feedback pass on 2026-04-22 | decided |
+
+## Fixed First Proof Record
+
+| Field | Value |
+| --- | --- |
+| Insertion point | `transformer.h.0.mlp.c_fc` |
+| Representation level | `linalg` on tensors immediately after `torch_to_linalg.sh` output |
+| Shape contract | `[1, hidden_size] x [hidden_size, 4 * hidden_size]` |
+| Discovery rung shape | `[1, 4] x [4, 16]` on `tiny-stories-1m-representative-core-v64-h4` |
+| Reduced-vocab rung shape | `[1, 64] x [64, 256]` on `tiny-stories-v*k*-h64-l*` |
+| Why chosen | plain static-shape linear, repeats across blocks, avoids attention-specific control |
 
 ## Planned Operational Surface
 
@@ -60,10 +77,10 @@ Branch: `task6-streamtensor-lite`
 
 ## Experiment Ledger
 
-| Date | Artifact | Model rung | Insertion point | DSP | BRAM | LUT | FF | Compile time | Verdict | Next action |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-04-22 | Lane creation and plan freeze | planning | not fixed yet | n/a | n/a | n/a | n/a | n/a | open | tighten the lane around one exact GEMV proof |
-| 2026-04-22 | Feedback-driven plan revision | planning | `transformer.h.0.mlp.c_fc` | n/a | n/a | n/a | n/a | n/a | decided | implement the weight-pack path and validate `L0` then `L1` |
+| Date | Rung | Insertion point | Representation level | DSP | BRAM | LUT | FF | Wall-clock | Peak RAM | Verdict | Next action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-04-22 | planning | not fixed yet | not fixed yet | n/a | n/a | n/a | n/a | n/a | n/a | open | tighten the lane around one exact GEMV proof |
+| 2026-04-22 | planning | `transformer.h.0.mlp.c_fc` | `linalg` on tensors | n/a | n/a | n/a | n/a | n/a | n/a | decided | implement the weight-pack path and validate `L0` then `L1` |
 
 ## Rejections
 

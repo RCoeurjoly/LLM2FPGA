@@ -120,26 +120,32 @@ Operational rule:
 ## Model Ladder
 
 The lane needs a fixed rung ladder so experiments do not drift upward without a
-decision. The current repo already contains the representative-core sweep. The
-`tinystories_v*k*_h64_l*` names below are the next lane-specific variants to
-add, with width held at `64` and single-token forward kept as the default.
+decision. The reduced-vocab path is now explicit and comes before broader
+representative-core or whole-model replay.
 
 | Rung | Artifact class | Model target | Status | Promotion rule |
 | --- | --- | --- | --- | --- |
-| `L0` | synthetic kernel smoke | existing `matmul` smoke path, used first as a synthetic GEMV-like scaffold | existing | only for kernel plumbing and DSP validation |
-| `L1` | TinyStories-derived single linear op | existing `tiny-stories-1m-representative-core-v64-h4` | existing | use only to locate the boundary cheaply |
-| `L2` | single linear replay | planned `tinystories_v1k_h64_l1` | planned | promote once `L1` identifies the reusable kernel boundary |
-| `L3` | one MLP subpath | planned `tinystories_v4k_h64_l1` | planned | promote only if `L2` clears the first-proof scorecard |
-| `L4` | one transformer-block skeleton | planned `tinystories_v10k_h64_l1` | planned | promote only if `L3` remains under the time budget |
-| `L5` | repeated-block replay | planned `tinystories_v10k_h64_l2` | planned | promote only if block reuse still looks structural |
-| `L6` | one-token scorer with tiled `lm_head` | planned `tinystories_v10k_h64_l8` | planned | promote only after the internal GEMV path is credible |
-| `L7` | full baseline replay | existing `tiny-stories-1m-baseline-float` | existing | replay only after `L4` to `L6` produce a credible structural win |
+| `L0` | synthetic `64x64` GEMV smoke | existing `matmul` path, frozen into a `64x64` single-kernel harness | planned | use only for kernel plumbing and DSP validation |
+| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from existing `tiny-stories-1m-representative-core-v64-h4` | ready | promote only if the kernel boundary is visible at Linalg level |
+| `L2` | reduced-vocab single-block replay | planned `tiny-stories-v1k-h64-l1` | planned | first reduced-vocab micro-fit rung after `L1` |
+| `L3` | reduced-vocab MLP replay | planned `tiny-stories-v4k-h64-l1` | planned | promote only if `L2` clears the first-proof scorecard |
+| `L4` | reduced-vocab block skeleton | planned `tiny-stories-v10k-h64-l1` | planned | promote only if `L3` remains inside the time budget |
+| `L5` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after the reduced-vocab ladder shows a structural win |
+| `L6` | full baseline replay | existing `tiny-stories-1m-baseline-float` | reserve | replay only after `L5` stays believable downstream |
+
+Optional bridge rung:
+
+- `tiny-stories-v10k-h64-l2`
+  - use only if `L4` is still too small to test block reuse honestly before
+    `L5`
 
 Model-ladder rule:
 
-- hold `hidden_size = 64` fixed in the micro-fit ladder
+- hold `hidden_size = 64` fixed in the reduced-vocab ladder
 - vary vocabulary size and layer count before touching width
 - keep single-token forward as the default path
+- do not let the representative-core replay become the default loop once the
+  reduced-vocab ladder exists
 
 ## Exact First Insertion Point
 
@@ -148,8 +154,18 @@ The first insertion point is fixed now:
 - target the block-0 MLP expansion linear
 - GPT-Neo module path:
   - `transformer.h.0.mlp.c_fc`
+- representation level:
+  - `linalg` on tensors immediately after the Torch-MLIR backend-to-Linalg
+    lowering step
 - exported-IR fallback:
   - the first post-norm MLP linear op in block `0` if importer naming changes
+- shape contract:
+  - single-token MLP expansion GEMV:
+    - `[1, hidden_size] x [hidden_size, 4 * hidden_size]`
+  - discovery rung target:
+    - `[1, 4] x [4, 16]` on `tiny-stories-1m-representative-core-v64-h4`
+  - reduced-vocab ladder target:
+    - `[1, 64] x [64, 256]` on `tiny-stories-v*k*-h64-l*`
 
 Why this is first:
 
@@ -162,7 +178,7 @@ Why this is first:
 Artifact rule:
 
 - discover the boundary first on `tiny-stories-1m-representative-core-v64-h4`
-- replay the first real micro-fit proof on `tinystories_v1k_h64_l1`
+- replay the first real micro-fit proof on `tiny-stories-v1k-h64-l1`
 
 ## Immediate Tracks
 
@@ -238,17 +254,19 @@ Required first output:
    - aim for DSP-backed arithmetic first
 
 4. Validate on `L0` and `L1`.
-   - use `matmul` only for plumbing and kernel smoke validation
+   - use the `matmul` path only after freezing it into a `64x64` GEMV harness
+     for plumbing and kernel smoke validation
    - use `tiny-stories-1m-representative-core-v64-h4` for the first
      TinyStories-shaped boundary check
    - do not promote if the scorecard or time budgets fail
 
 5. Promote to the micro-fit ladder or reject.
    - first promotion target:
-     - `tinystories_v1k_h64_l1`
+     - `tiny-stories-v1k-h64-l1`
    - stop widening once a rung fails the scorecard
-   - replay on the real TinyStories baseline only after the ladder shows a
-     believable structural win
+   - use `tiny-stories-v10k-h64-l2` only as an optional bridge rung
+   - replay on representative-core and then the real TinyStories baseline only
+     after the reduced-vocab ladder shows a believable structural win
 
 ## Candidate First Experiments
 
@@ -266,12 +284,10 @@ Required first output:
 
 ## Open Questions
 
-- Is Linalg the cleanest interception point, or is the first practical cut at
-  `cf` after the Linalg-to-loops path?
 - Should the first packed-weight proof use a file-backed pack, a mocked ROM
   interface, or both?
 - Is `tiny-stories-1m-representative-core-v64-h4` large enough to preserve the
-  block-0 MLP boundary meaningfully, or should promotion to `tinystories_v1k_h64_l1`
+  block-0 MLP boundary meaningfully, or should promotion to `tiny-stories-v1k-h64-l1`
   happen immediately after the boundary is identified?
 - What is the smallest Verilator harness that still proves the kernel contract
   honestly?
