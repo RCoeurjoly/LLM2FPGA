@@ -1731,3 +1731,35 @@ Representative-core sweep setup later on 2026-04-22:
     - expected resource-signature change
     - cheapest validation artifact
     - replay target if the result is helpful
+
+### Feedback pass later on 2026-04-22
+
+- The lane plan was tightened to add operational rejection structure, not just
+  direction:
+  - hard first-proof scorecard with fixed ceilings:
+    - `DSP > 0`
+    - large weights not emitted as RTL constants
+    - `<= 29,860` LUT
+    - `<= 59,720` FF
+    - Verilator pass required
+  - benchmark pack with explicit time budgets:
+    - export + pack `< 30 s`
+    - task-graph build `< 10 s`
+    - Verilator kernel test `< 20 s`
+    - kernel Yosys stat `< 30 s`
+    - one-block-top Yosys stat `< 2 min`
+  - fixed first insertion point:
+    - block-0 MLP expansion linear
+    - GPT-Neo path: `transformer.h.0.mlp.c_fc`
+  - frozen model ladder:
+    - keep the current `v64-h4` representative-core artifact for cheap boundary
+      discovery
+    - add reduced-vocab, `hidden_size = 64` lane variants next:
+      - `tinystories_v1k_h64_l1`
+      - `tinystories_v4k_h64_l1`
+      - `tinystories_v10k_h64_l1`
+      - `tinystories_v10k_h64_l2`
+      - `tinystories_v10k_h64_l8`
+  - canonical experiment ledger moved into `docs/task6-lane-results.md`
+  - whole-model TinyStories lane is now explicitly comparison-only once any
+    reduced-vocab `h64` rung exists

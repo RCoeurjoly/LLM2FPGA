@@ -5,13 +5,13 @@ This worktree owns the StreamTensor-lite Task 6 lane.
 The goal is not to port StreamTensor wholesale. The goal is to test the
 smallest architecture change that attacks the actual current bottleneck:
 replace full-model RTL expansion with a reusable block-engine direction built
-around a narrow GEMV/matvec proof.
+around a narrow GEMV proof that can be rejected quickly if it fails.
 
-## Scope
+## Thesis
 
 - keep Torch-MLIR / Linalg as the frontend
 - stop treating full-model RTL lowering as the default success path
-- target a reusable block-engine direction, not a monolithic whole-model RTL
+- target a reusable block-engine direction, not monolithic whole-model RTL
 - use external weights explicitly in the first real experiment
 - force a resource signature that moves away from `0 DSP / 0 BRAM`
 - prefer the cheapest artifact that answers the current question
@@ -21,7 +21,7 @@ around a narrow GEMV/matvec proof.
   - alternate-dialect or LSQ lane work
 - reject any version of this lane that turns into a full compiler rewrite
 
-## Source idea
+## Source Idea
 
 This lane is grounded in the shared ChatGPT plan plus the existing Task 6
 paper-review findings:
@@ -46,7 +46,7 @@ Practical interpretation for this lane:
   broader compiler changes
 - do not start with a whole-model scheduler, HLS port, or new compiler stack
 
-## Baseline
+## Baseline And Comparison Rule
 
 Use:
 
@@ -54,7 +54,7 @@ Use:
 
 Measurement rule for this lane:
 
-- for early experiments, compare the same model and the same stage first
+- compare the same model and the same stage first
 - use representative-core artifacts for the first constrained proof
 - prefer pre-RTL structural checkpoints where possible
 - replay on the real TinyStories baseline only after the constrained proof
@@ -63,27 +63,158 @@ Measurement rule for this lane:
 Always record:
 
 - exact stage reached or first failing stage
-- exact linear / GEMV / block-engine boundary being changed
+- exact kernel boundary being changed
 - stage-stat delta at the same stage
 - mapped utilization delta when available
 - host wall-clock time and peak memory
 - DSP / BRAM / LUT / FF mix before and after the change
 - whether the result still looks useful once downstream stages are included
 
+## First-Proof Scorecard
+
+Artifact under test:
+
+- one redirected GEMV proof around a single reused kernel boundary
+
+Fixed ceilings for the first proof:
+
+- use at most `10%` of the copied device budget from the baseline summary
+- LUT ceiling: `29,860`
+- FF ceiling: `59,720`
+
+Must-have checks:
+
+| Check | Requirement | Why |
+| --- | --- | --- |
+| DSP use | `DSP > 0` in the kernel or one-block-top Yosys stat | proves arithmetic is no longer all-fabric |
+| Weight placement | large weights come from a pack file or mocked ROM-style interface | rejects constant-materialized RTL as the main story |
+| LUT ceiling | `<= 29,860` LUT | keeps the first proof small enough to matter |
+| FF ceiling | `<= 59,720` FF | same reason as LUT ceiling |
+| Verilator | kernel test passes | preserves functional credibility |
+| Whole-model dependency | proof is meaningful without whole-model lowering | preserves fast rejection |
+
+Fail-fast checks:
+
+- still `0 DSP`
+- weights are still emitted as giant RTL constants
+- the proof only becomes meaningful after whole-model lowering
+- the compile loop breaks the stage budgets below by more than `2x` on repeat
+
+## Benchmark Pack And Time Budgets
+
+These budgets are the default feedback-loop guardrails for the lane:
+
+| Stage | Budget | Notes |
+| --- | --- | --- |
+| Python export + weight pack | `< 30 s` | export should stay cheap enough to rerun repeatedly |
+| Task-graph generation | `< 10 s` | graph construction must be almost free |
+| Verilator kernel test | `< 20 s` | fast functional rejection |
+| Yosys stat for kernel | `< 30 s` | first structural check |
+| Yosys stat for one-block top | `< 2 min` | highest allowed "slow" loop for promotion |
+
+Operational rule:
+
+- record wall-clock and peak RSS on every run
+- reject stages that keep missing these budgets before widening the artifact
+
+## Model Ladder
+
+The lane needs a fixed rung ladder so experiments do not drift upward without a
+decision. The current repo already contains the representative-core sweep. The
+`tinystories_v*k*_h64_l*` names below are the next lane-specific variants to
+add, with width held at `64` and single-token forward kept as the default.
+
+| Rung | Artifact class | Model target | Status | Promotion rule |
+| --- | --- | --- | --- | --- |
+| `L0` | synthetic kernel smoke | existing `matmul` smoke path, used first as a synthetic GEMV-like scaffold | existing | only for kernel plumbing and DSP validation |
+| `L1` | TinyStories-derived single linear op | existing `tiny-stories-1m-representative-core-v64-h4` | existing | use only to locate the boundary cheaply |
+| `L2` | single linear replay | planned `tinystories_v1k_h64_l1` | planned | promote once `L1` identifies the reusable kernel boundary |
+| `L3` | one MLP subpath | planned `tinystories_v4k_h64_l1` | planned | promote only if `L2` clears the first-proof scorecard |
+| `L4` | one transformer-block skeleton | planned `tinystories_v10k_h64_l1` | planned | promote only if `L3` remains under the time budget |
+| `L5` | repeated-block replay | planned `tinystories_v10k_h64_l2` | planned | promote only if block reuse still looks structural |
+| `L6` | one-token scorer with tiled `lm_head` | planned `tinystories_v10k_h64_l8` | planned | promote only after the internal GEMV path is credible |
+| `L7` | full baseline replay | existing `tiny-stories-1m-baseline-float` | existing | replay only after `L4` to `L6` produce a credible structural win |
+
+Model-ladder rule:
+
+- hold `hidden_size = 64` fixed in the micro-fit ladder
+- vary vocabulary size and layer count before touching width
+- keep single-token forward as the default path
+
+## Exact First Insertion Point
+
+The first insertion point is fixed now:
+
+- target the block-0 MLP expansion linear
+- GPT-Neo module path:
+  - `transformer.h.0.mlp.c_fc`
+- exported-IR fallback:
+  - the first post-norm MLP linear op in block `0` if importer naming changes
+
+Why this is first:
+
+- it is a plain linear / GEMV-shaped region with static shape
+- it avoids attention-specific control and softmax concerns
+- it repeats across transformer blocks, so success has a believable replay path
+- it is a better first proof than `lm_head`, which is larger and more likely to
+  dominate the experiment before the kernel boundary is stable
+
+Artifact rule:
+
+- discover the boundary first on `tiny-stories-1m-representative-core-v64-h4`
+- replay the first real micro-fit proof on `tinystories_v1k_h64_l1`
+
+## Immediate Tracks
+
+1. Frozen micro-fit ladder
+   - add the reduced-vocab, `hidden_size = 64` rung family in the order listed
+     above
+   - do not widen the ladder until each rung clears or fails the scorecard
+
+2. First-class weight-packer path
+   - add:
+     - `scripts/task6/export_weights_pack.py`
+     - `scripts/task6/build_task_graph.py`
+     - `artifacts/task6/weights_pack/<model-rung>/`
+   - the first proof must consume packed weights or a mocked ROM-style
+     interface, not embedded constants
+
+3. Stage-local runner surface
+   - desired command surface:
+     - `just task6-l0`
+     - `just task6-l1`
+     - `just task6-l2`
+     - and upward through the ladder
+   - each rung should emit:
+     - structural summary
+     - Yosys stat
+     - wall-clock
+     - peak memory
+     - verdict
+   - note:
+     - the repo does not currently ship a `justfile`, so these are required
+       follow-up work items, not a current claim
+
+4. Stop rule for the whole-model lane
+   - once a reduced-vocab `h64` rung exists, the whole-model TinyStories lane
+     stays only as a comparison artifact
+   - it must not remain the default iteration route for StreamTensor-lite work
+
 ## Immediate Mission
 
-Produce one narrow proof that a single Linalg linear / GEMV op can be
+Produce one narrow proof that the block-0 MLP expansion linear can be
 redirected into a small reused kernel that:
 
-- uses externalized weights,
-- consumes DSPs,
-- avoids full-model RTL expansion as the core story,
-- and gives a measurable move away from the current `0 DSP / 0 BRAM` pattern.
+- uses externalized weights
+- consumes DSPs
+- avoids full-model RTL expansion as the core story
+- gives a measurable move away from the current `0 DSP / 0 BRAM` pattern
+- stays within the first-proof scorecard and stage budgets
 
 Required first output:
 
 - one shortlist memo with:
-  - candidate linear / GEMV insertion point
+  - the chosen block-0 linear boundary
   - cheapest artifact where that region is still identifiable
   - why it can become a reused kernel boundary
   - how weights are externalized in the proof
@@ -93,73 +224,57 @@ Required first output:
 
 ## Execution Plan
 
-1. Freeze the lane thesis.
-   - keep Torch-MLIR / Linalg
-   - do not pursue a full-model RTL lowering victory condition here
-   - treat external weights plus a reused kernel as the primary architectural
-     hypothesis
+1. Freeze the scorecard, rung ladder, and first insertion point.
+   - do not let experiments move forward without using them
 
-2. Isolate one candidate linear / GEMV region.
-   - begin with `tiny-stories-1m-representative-core-v64-h4`
-   - move to a larger representative-core sweep point only if the region is not
-     structurally meaningful there
-   - prefer a point where the boundary is still obvious in Linalg, or at worst
-     in a nearby lower-level representation that is still mechanically
-     transformable
+2. Export and pack the first kernel weights.
+   - isolate the block-0 `mlp.c_fc` weights
+   - write them into a first-class weight pack artifact
+   - reject any path that immediately materializes them back into constants
 
-3. Define the first reusable-kernel proof.
-   - choose one linear / GEMV-shaped op or short subgraph
-   - define a tiny task graph around it
-   - keep activations on-chip and model weights as external inputs
-   - require the implementation direction to be DSP-backed rather than
-     all-fabric arithmetic
+3. Build the smallest task graph around the kernel.
+   - keep activations on-chip
+   - make the packed weights external inputs
+   - aim for DSP-backed arithmetic first
 
-4. Implement the narrow redirection.
-   - build the smallest possible proof that the chosen region can stop behaving
-     like generic expanded RTL and start behaving like an invoked reusable
-     kernel boundary
-   - accept a synthetic or constrained first demo if it preserves the
-     architectural point
+4. Validate on `L0` and `L1`.
+   - use `matmul` only for plumbing and kernel smoke validation
+   - use `tiny-stories-1m-representative-core-v64-h4` for the first
+     TinyStories-shaped boundary check
+   - do not promote if the scorecard or time budgets fail
 
-5. Judge by resource signature first.
-   - the first pass/fail question is not token throughput
-   - it is whether the proof moves the design away from `0 DSP / 0 BRAM`
-   - if that does not happen, the StreamTensor-lite thesis weakens immediately
-
-6. Promote or prune.
-   - replay on the real TinyStories baseline only if the constrained proof is
-     structurally credible and changes the mix in the intended direction
-   - prune if the lane requires whole-compiler surgery before one linear / GEMV
-     proof works
+5. Promote to the micro-fit ladder or reject.
+   - first promotion target:
+     - `tinystories_v1k_h64_l1`
+   - stop widening once a rung fails the scorecard
+   - replay on the real TinyStories baseline only after the ladder shows a
+     believable structural win
 
 ## Candidate First Experiments
 
-1. Single Linalg linear / GEMV redirection
-   - prove that one representative linear op can be carved out of the current
-     flow and redirected into a reused kernel boundary
-   - weights become explicit external inputs
-   - the success signal is visible DSP usage and a less fabric-heavy structure
+1. Block-0 `mlp.c_fc` kernel extraction
+   - primary experiment
+   - carve out the first MLP expansion linear as the reused kernel boundary
 
-2. Single-block task-graph proof
-   - keep one transformer-style block boundary but only as a control/task graph
-     sketch
-   - do not lower the whole block into generic RTL
-   - use this only if the single-linear proof needs one level of surrounding
-     context to stay meaningful
+2. Block-0 `mlp.c_proj` kernel extraction
+   - reserve fallback if the expansion linear imports badly
+   - still keep the proof inside the MLP path, not attention
 
-3. Bounded activation buffering around the reused kernel
-   - add FIFO or ping-pong buffering only as support for the GEMV proof
-   - do not make generic buffering the primary experiment
+3. Tiled `lm_head` scorer
+   - later rung only
+   - use only after the internal MLP kernel path is structurally credible
 
-## Questions To Answer
+## Open Questions
 
-- Which exact TinyStories linear / GEMV region is the best first reused-kernel
-  candidate?
-- At what representation level can that region still be redirected cleanly?
-- Can the first proof consume DSPs and externalized weights without collapsing
-  back into generic RTL expansion?
-- Which representative-core sweep point is the first one large enough to make
-  that proof credible?
+- Is Linalg the cleanest interception point, or is the first practical cut at
+  `cf` after the Linalg-to-loops path?
+- Should the first packed-weight proof use a file-backed pack, a mocked ROM
+  interface, or both?
+- Is `tiny-stories-1m-representative-core-v64-h4` large enough to preserve the
+  block-0 MLP boundary meaningfully, or should promotion to `tinystories_v1k_h64_l1`
+  happen immediately after the boundary is identified?
+- What is the smallest Verilator harness that still proves the kernel contract
+  honestly?
 
 ## Out Of Scope
 
@@ -177,9 +292,9 @@ This lane is ready to merge back when it produces one measured conclusion with
 evidence:
 
 - `helpful`
-  - one local linear / GEMV redirection produces a credible reused-kernel proof
-    with external weights and a better resource signature, and is worth replaying
-    on the real baseline
+  - one local MLP linear redirection produces a credible reused-kernel proof
+    with external weights, `DSP > 0`, and a better resource signature, and is
+    worth replaying on the real baseline
 - `mixed`
   - the idea only works in a constrained demo without a believable replay path
 - `reject`
