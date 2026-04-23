@@ -3318,3 +3318,99 @@ Representative-core sweep setup later on 2026-04-22:
   - do not widen to `L3` or `L4` from this result alone
   - the next slice, if any, should be a different fit lever than the rejected
     control/merge hotspot
+
+### L1 local `ui1` selector-buffer FIFO2 proof later on 2026-04-23
+
+- Added:
+  - `rtl/task6/task6_ui1_fifo2_buffer.sv`
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-json`
+    - `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T12-49-10+0200/l1-index-ring3-ui1buf263-fifo2-proof/summary.md`
+
+#### Why this slice
+
+- After the control/merge hotspot missed, the next smallest visibly different
+  fit lever near the frozen ring-3 region was not another `ui64` branch
+  widening, but the selector-side `ui1` state feeding the local fanout:
+  - `arith_cmpi5 -> handshake_buffer263 -> handshake_fork49`
+- Only six `handshake_buffer_in_ui1_out_ui1_2slots_seq` instances exist in the
+  whole kernel, and `handshake_buffer263` is the one sitting directly inside
+  the ring-3 neighborhood.
+- The specific hypothesis was:
+  - if the local compare result buffer is overbuilt in the same way as the
+    profitable `ui64` buffers, replacing just this one selector buffer with a
+    lean FIFO2 helper might recover LUT without another broad patch
+
+#### Implementation note
+
+- The first mapped build attempt exposed a packaging bug, not a design failure:
+  - the copied source bundle still referenced the parent `sources.f` paths, so
+    `mkSynthJson` saw both the old and new `main.sv` and failed with a duplicate
+    `main` definition
+- That was fixed by rewriting `sources.f` and `sv/filelist.f` to the new output
+  directory before rerunning the probe.
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=150.24`
+    - `RSS_KB=436780`
+- Interpretation:
+  - trimming this one selector-side `ui1` buffer is contract-safe
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/ga92apld656zs2h1w0515iw76yr9ppmm-task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=150.20`
+    - `RSS_KB=561796`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `30,370`
+    - CLB FFs:
+      - `47,388`
+- Primitive signature:
+  - `FDRE`:
+    - `47,385`
+  - `LUT6`:
+    - `14,711`
+  - `LUT3`:
+    - `7,746`
+  - `LUT2`:
+    - `3,271`
+  - `LUT5`:
+    - `3,114`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against the frozen ring-3 reference:
+  - LUT:
+    - `30,320 -> 30,370` (`+50`)
+  - FF:
+    - `47,392 -> 47,388` (`-4`)
+- Interpretation:
+  - the local `ui1` selector-buffer trim is real and safe, but it is not a fit
+    win
+  - this is the second deliberate post-ring-3 hotspot that points the wrong
+    way on LUT, so it should not become the next default lane direction
