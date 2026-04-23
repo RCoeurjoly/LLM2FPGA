@@ -51,6 +51,26 @@ def cell_counts(module: dict[str, Any]) -> Counter[str]:
     return counts
 
 
+def attr_is_true(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return False
+        if stripped in {"0", "false", "False"}:
+            return False
+        return any(char != "0" for char in stripped)
+    return bool(value)
+
+
+def is_blackbox_module(module: dict[str, Any]) -> bool:
+    attrs = module.get("attributes") or {}
+    if not isinstance(attrs, dict):
+        return False
+    return attr_is_true(attrs.get("blackbox"))
+
+
 def leaf_counts(
     modules: dict[str, dict[str, Any]],
     name: str,
@@ -63,6 +83,11 @@ def leaf_counts(
         raise SystemExit(f"module hierarchy cycle at {name}")
     if name not in modules:
         raise SystemExit(f"module {name!r} not found in design JSON")
+
+    if is_blackbox_module(modules[name]):
+        counts = Counter({name: 1})
+        memo[name] = counts
+        return counts
 
     stack.add(name)
     counts: Counter[str] = Counter()

@@ -270,6 +270,10 @@
           matmulSrcDir = ./src;
           gemv64Py = ./src/gemv64.py;
           gemv64AdapterPy = ./src/gemv64_adapter.py;
+          gemv64Int16Py = ./src/gemv64_int16.py;
+          gemv64Int16AdapterPy = ./src/gemv64_int16_adapter.py;
+          task6RectGemvPy = ./src/task6_rect_gemv.py;
+          task6RectGemvAdapterPy = ./src/task6_rect_gemv_adapter.py;
           tinyStoriesRepresentativeCoreAdapterPy =
             ./TinyStories/model_adapter_representative_core.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;
@@ -298,6 +302,62 @@
         matmulSv = matmulPipeline.sv;
         matmulIl = matmulPipeline.il;
         matmulYosysStat = matmulPipeline."yosys-stat";
+        task6L0Gemv64Pipeline = modelPipelines."task6-l0-gemv64";
+        task6L0Gemv64Sv = task6L0Gemv64Pipeline.sv;
+        task6L0Gemv64Json = mkSynthJson {
+          name = "task6-l0-gemv64";
+          svFilelist = "${task6L0Gemv64Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L0Gemv64Sv}/sv/main.sv";
+        };
+        task6L0Gemv64Utilization = mkMappedJsonUtilizationReport {
+          name = "task6-l0-gemv64";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L0Gemv64Json;
+        };
+        task6L0Gemv64Int16Pipeline = modelPipelines."task6-l0-gemv64-int16";
+        task6L0Gemv64Int16Sv = task6L0Gemv64Int16Pipeline.sv;
+        task6L0Gemv64Int16Json = mkSynthJson {
+          name = "task6-l0-gemv64-int16";
+          svFilelist = "${task6L0Gemv64Int16Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L0Gemv64Int16Sv}/sv/main.sv";
+        };
+        task6L0Gemv64Int16Utilization = mkMappedJsonUtilizationReport {
+          name = "task6-l0-gemv64-int16";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L0Gemv64Int16Json;
+        };
+        task6L1CFcRedirectPipeline = modelPipelines."task6-l1-c-fc-redirect";
+        task6L1CFcRedirectSv = task6L1CFcRedirectPipeline.sv;
+        task6L1CFcRedirectJson = mkSynthJson {
+          name = "task6-l1-c-fc-redirect";
+          svFilelist = "${task6L1CFcRedirectSv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectSv}/sv/main.sv";
+        };
+        task6L1CFcRedirectUtilization = mkMappedJsonUtilizationReport {
+          name = "task6-l1-c-fc-redirect";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L1CFcRedirectJson;
+        };
+        task6L2CFcRedirectPipeline = modelPipelines."task6-l2-c-fc-redirect";
+        task6L2CFcRedirectSv = task6L2CFcRedirectPipeline.sv;
+        task6L2CFcRedirectJson = mkSynthJson {
+          name = "task6-l2-c-fc-redirect";
+          svFilelist = "${task6L2CFcRedirectSv}/sources.f";
+          topName = "main";
+          topSv = "${task6L2CFcRedirectSv}/sv/main.sv";
+        };
+        task6L2CFcRedirectUtilization = mkMappedJsonUtilizationReport {
+          name = "task6-l2-c-fc-redirect";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L2CFcRedirectJson;
+        };
         tinyStories1mPipeline = modelPipelines."tiny-stories-1m";
         tinyStories1mIl = tinyStories1mPipeline.il;
         tinyStories1mBaselineFloatPipeline =
@@ -1618,6 +1678,41 @@
           }/gen_tb_data.py > "$out/tb_data.sv"
         '';
 
+        task6L0Gemv64TbDataSv = pkgs.runCommand "task6-l0-gemv64-tb-data-sv" { } ''
+          mkdir -p "$out"
+          export GEMV64_PY=${./src/gemv64.py}
+          export PYTHONPATH="${./src}:${./sim}:''${PYTHONPATH:-}"
+          ${pythonWithTorch}/bin/python ${
+            ./sim
+          }/gen_task6_l0_gemv64_tb_data.py > "$out/tb_data.sv"
+        '';
+
+        task6L1CFcRedirectTbDataSv = pkgs.runCommand "task6-l1-c-fc-redirect-tb-data-sv" { } ''
+          mkdir -p "$out"
+          ${pythonWithTorch}/bin/python ${
+            ./sim
+          }/gen_task6_contract_gemv_tb_data.py \
+            --contract-manifest ${
+              ./artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_fc-contract
+            }/manifest.json \
+            --weight-pack-manifest ${
+              ./artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_fc
+            }/manifest.json > "$out/tb_data.sv"
+        '';
+
+        task6L2CFcRedirectTbDataSv = pkgs.runCommand "task6-l2-c-fc-redirect-tb-data-sv" { } ''
+          mkdir -p "$out"
+          ${pythonWithTorch}/bin/python ${
+            ./sim
+          }/gen_task6_contract_gemv_tb_data.py \
+            --contract-manifest ${
+              ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+            }/manifest.json \
+            --weight-pack-manifest ${
+              ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+            }/manifest.json > "$out/tb_data.sv"
+        '';
+
         simMain = pkgs.runCommand "sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
         } ''
@@ -1627,6 +1722,39 @@
             -I${tbDataSv} \
             -top tb -Mdir "$out/obj_dir" -o sim_main \
             -f ${matmulSv}/sources.f ${./sim/tb_main.sv}
+        '';
+
+        task6L0Gemv64SimMain = pkgs.runCommand "task6-l0-gemv64-sim-main" {
+          buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+        } ''
+          set -euo pipefail
+          mkdir -p "$out/obj_dir"
+          verilator --binary --timing --language 1800-2017 -Wno-fatal \
+            -I${task6L0Gemv64TbDataSv} \
+            -top task6_l0_gemv64_tb -Mdir "$out/obj_dir" -o sim_main \
+            -f ${task6L0Gemv64Sv}/sources.f ${./sim/task6_l0_gemv64_tb_main.sv}
+        '';
+
+        task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
+          buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+        } ''
+          set -euo pipefail
+          mkdir -p "$out/obj_dir"
+          verilator --binary --timing --language 1800-2017 -Wno-fatal \
+            -I${task6L1CFcRedirectTbDataSv} \
+            -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+            -f ${task6L1CFcRedirectSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+        '';
+
+        task6L2CFcRedirectSimMain = pkgs.runCommand "task6-l2-c-fc-redirect-sim-main" {
+          buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+        } ''
+          set -euo pipefail
+          mkdir -p "$out/obj_dir"
+          verilator --binary --timing --language 1800-2017 -Wno-fatal \
+            -I${task6L2CFcRedirectTbDataSv} \
+            -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+            -f ${task6L2CFcRedirectSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
         '';
 
         matmulSvSim = pkgs.runCommand "matmul-sv-sim.json" {
@@ -1650,6 +1778,69 @@
           EOF
         '';
 
+        task6L0Gemv64SvSim = pkgs.runCommand "task6-l0-gemv64-sv-sim.json" {
+          buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+        } ''
+          set -euo pipefail
+          ${task6L0Gemv64SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+          pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+          if [ -z "$pass_line" ]; then
+            echo "task6-l0-gemv64 SV simulation did not produce a PASS line" >&2
+            exit 1
+          fi
+          stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+          outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+          cat > "$out" <<EOF
+          {
+            "status": "PASS",
+            "stores": $stores,
+            "outputs": $outputs
+          }
+          EOF
+        '';
+
+        task6L1CFcRedirectSvSim = pkgs.runCommand "task6-l1-c-fc-redirect-sv-sim.json" {
+          buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+        } ''
+          set -euo pipefail
+          ${task6L1CFcRedirectSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+          pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+          if [ -z "$pass_line" ]; then
+            echo "task6-l1-c-fc-redirect SV simulation did not produce a PASS line" >&2
+            exit 1
+          fi
+          stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+          outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+          cat > "$out" <<EOF
+          {
+            "status": "PASS",
+            "stores": $stores,
+            "outputs": $outputs
+          }
+          EOF
+        '';
+
+        task6L2CFcRedirectSvSim = pkgs.runCommand "task6-l2-c-fc-redirect-sv-sim.json" {
+          buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+        } ''
+          set -euo pipefail
+          ${task6L2CFcRedirectSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+          pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+          if [ -z "$pass_line" ]; then
+            echo "task6-l2-c-fc-redirect SV simulation did not produce a PASS line" >&2
+            exit 1
+          fi
+          stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+          outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+          cat > "$out" <<EOF
+          {
+            "status": "PASS",
+            "stores": $stores,
+            "outputs": $outputs
+          }
+          EOF
+        '';
+
         matmulSvWave = pkgs.runCommand "matmul-wave.vcd" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
         } ''
@@ -1662,6 +1853,23 @@
           ./obj_dir/sim_main
           if [ ! -f wave.vcd ]; then
             echo "wave.vcd was not produced by simulation" >&2
+            exit 1
+          fi
+          cp wave.vcd "$out"
+        '';
+
+        task6L0Gemv64SvWave = pkgs.runCommand "task6-l0-gemv64-wave.vcd" {
+          buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+        } ''
+          set -euo pipefail
+          mkdir -p obj_dir
+          verilator --binary --trace -DENABLE_WAVES -DENABLE_WAVES_VCD --timing --language 1800-2017 -Wno-fatal \
+            -I${task6L0Gemv64TbDataSv} \
+            -top task6_l0_gemv64_tb -Mdir obj_dir -o sim_main \
+            -f ${task6L0Gemv64Sv}/sources.f ${./sim/task6_l0_gemv64_tb_main.sv}
+          ./obj_dir/sim_main
+          if [ ! -f wave.vcd ]; then
+            echo "wave.vcd was not produced by task6-l0-gemv64 simulation" >&2
             exit 1
           fi
           cp wave.vcd "$out"
@@ -1718,6 +1926,24 @@
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
           matmul-sv-wave = matmulSvWave;
+          task6-l0-gemv64-tb-data-sv = task6L0Gemv64TbDataSv;
+          task6-l0-gemv64-sim-main = task6L0Gemv64SimMain;
+          task6-l0-gemv64-json = task6L0Gemv64Json;
+          task6-l0-gemv64-utilization = task6L0Gemv64Utilization;
+          task6-l0-gemv64-int16-json = task6L0Gemv64Int16Json;
+          task6-l0-gemv64-int16-utilization = task6L0Gemv64Int16Utilization;
+          task6-l0-gemv64-sv-sim = task6L0Gemv64SvSim;
+          task6-l0-gemv64-sv-wave = task6L0Gemv64SvWave;
+          task6-l1-c-fc-redirect-tb-data-sv = task6L1CFcRedirectTbDataSv;
+          task6-l1-c-fc-redirect-sim-main = task6L1CFcRedirectSimMain;
+          task6-l1-c-fc-redirect-json = task6L1CFcRedirectJson;
+          task6-l1-c-fc-redirect-utilization = task6L1CFcRedirectUtilization;
+          task6-l1-c-fc-redirect-sv-sim = task6L1CFcRedirectSvSim;
+          task6-l2-c-fc-redirect-tb-data-sv = task6L2CFcRedirectTbDataSv;
+          task6-l2-c-fc-redirect-sim-main = task6L2CFcRedirectSimMain;
+          task6-l2-c-fc-redirect-json = task6L2CFcRedirectJson;
+          task6-l2-c-fc-redirect-utilization = task6L2CFcRedirectUtilization;
+          task6-l2-c-fc-redirect-sv-sim = task6L2CFcRedirectSvSim;
           matmul-selftest-bitstream = matmulSelftestBitstream;
           matmul-selftest-fasm = matmulSelftestFasm;
           matmul-selftest-top = matmulSelftestTop;
@@ -1885,6 +2111,17 @@
               -I${tbDataSv} \
               -f ${matmulSv}/sources.f \
               ${./sim}/tb_main.sv
+            verilator \
+              --lint-only \
+              --timing \
+              --language 1800-2017 \
+              --top-module task6_l0_gemv64_tb \
+              --Wall \
+              --Wno-fatal \
+              --Wno-TIMESCALEMOD \
+              -I${task6L0Gemv64TbDataSv} \
+              -f ${task6L0Gemv64Sv}/sources.f \
+              ${./sim}/task6_l0_gemv64_tb_main.sv
             mkdir -p "$out"
           '';
 

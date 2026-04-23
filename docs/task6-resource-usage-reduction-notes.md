@@ -1108,6 +1108,9 @@ Per-lane rules:
   `artifacts/task6/baselines/...`
 - keep strategy-specific edits isolated to that lane until they are worth
   merging back to `task6`
+- if a new script, testbench, or helper file must be visible to `nix build`,
+  make sure it is tracked by git first; untracked files are omitted from the
+  flake source snapshot
 - do not rebuild `tiny-stories-1m-baseline-float-sv` just to recreate the
   baseline reference if the copied baseline bundle already answers the
   comparison question
@@ -2122,3 +2125,326 @@ Representative-core sweep setup later on 2026-04-22:
   - the next decision is no longer whether `L2` exists; it is whether to widen
     to `L3` (`v4k-h64-l1`) or spend the next slice on kernel-level synthesis /
     simulation evidence
+
+### L0 Verilator harness later on 2026-04-22
+
+- Added:
+  - `sim/gen_task6_l0_gemv64_tb_data.py`
+  - `sim/task6_l0_gemv64_tb_main.sv`
+  - `sim/sim_utils.py`
+  - flake outputs:
+    - `task6-l0-gemv64-sim-main`
+    - `task6-l0-gemv64-sv-sim`
+    - `task6-l0-gemv64-sv-wave`
+- First pass:
+  - `nix build .#task6-l0-gemv64-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 64 outputs 64`
+- Harness contract:
+  - activation source:
+    - `64` deterministic `f32` words
+  - weight source:
+    - `4096` deterministic `f32` words
+  - completion rule:
+    - observe `64` stores and compare them bit-exactly against generated
+      expected outputs
+  - memory-side behavior:
+    - one outstanding read per source plus explicit `stDone` acknowledgement
+      handling so the testbench matches the kernel's external-memory handshake
+- Measured direct execution:
+  - command target:
+    - `/nix/store/cfcang44fpaifcchz6xrny925pgzx984-task6-l0-gemv64-sim-main/obj_dir/sim_main`
+  - wall-clock:
+    - `0.55 s`
+  - peak RSS:
+    - `4,852 KB`
+- Build caveat:
+  - Nix did not see the new simulation files until they were tracked by git,
+    because the flake source snapshot omits untracked files
+- Interpretation:
+  - the `L0` Verilator scorecard item now passes
+  - the Verilator runtime budget is comfortably satisfied
+  - the next useful slice is mapped kernel synthesis, because DSP / LUT / FF
+    evidence is still the main unanswered first-proof question
+
+### L0 mapped utilization later on 2026-04-22
+
+- Added:
+  - flake outputs:
+    - `task6-l0-gemv64-json`
+    - `task6-l0-gemv64-utilization`
+- Supporting fix:
+  - `scripts/pipeline/write_utilization_report.py`
+    - it now treats mapped blackbox modules such as `LUT*`, `FDRE`, and
+      `DSP48E1` as leaf cells instead of recursing into their internal
+      `$specify*` scaffolding
+- First mapped report:
+  - `nix build .#task6-l0-gemv64-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/57r5sdcry3nmh04x5hqz8shz9w65z0a1-task6-l0-gemv64-utilization`
+- Mapped resource summary:
+  - DSP:
+    - `4`
+  - BRAM36:
+    - `0`
+  - CLB LUTs:
+    - `32,449`
+  - CLB FFs:
+    - `46,736`
+  - slice lower bound:
+    - `5,842`
+- Synth runtime from the mapped `task6-l0-gemv64.json` build log:
+  - wall-clock:
+    - `57.95 s`
+  - peak RSS:
+    - `851,592 KB`
+- Interpretation:
+  - the first-proof DSP requirement now passes on `L0`
+  - the FF ceiling also passes on `L0`
+  - the LUT ceiling still fails by `2,589` LUT, so the synthetic kernel is not
+    yet small enough to count as a clean first-proof win
+  - the next useful choice is to cut LUT cost before promoting the lane, not to
+    spend more time on basic simulation plumbing
+
+### L0 int16 alternate datatype probe later on 2026-04-22
+
+- Added:
+  - `src/gemv64_int16.py`
+  - `src/gemv64_int16_adapter.py`
+  - flake outputs:
+    - `task6-l0-gemv64-int16-json`
+    - `task6-l0-gemv64-int16-utilization`
+- First mapped report:
+  - `nix build .#task6-l0-gemv64-int16-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/li6g5avkfdfjnfffp7924m1ndrxkik6b-task6-l0-gemv64-int16-utilization`
+- Timed direct synth check:
+  - wall-clock:
+    - `54.57 s`
+  - peak RSS:
+    - `873,180 KB`
+- Mapped resource summary:
+  - DSP:
+    - `1`
+  - BRAM36:
+    - `0`
+  - CLB LUTs:
+    - `35,737`
+  - CLB FFs:
+    - `59,276`
+  - slice lower bound:
+    - `7,410`
+- Interpretation:
+  - the int16 variant stays buildable, but it is not an improvement over the
+    float `L0` proof
+  - LUT cost gets worse by `3,288` relative to the float `L0` mapped result
+  - the DSP signal weakens from `4 DSP48E1` to `1 DSP48E1`
+  - this is a rejection of a datatype-only int16 substitution, not a promotion
+    candidate for the lane
+
+### L0 int8 alternate datatype probe later on 2026-04-22
+
+- Probe setup:
+  - verified locally that `torch.export` plus `torch_mlir.fx.export_and_import`
+    can represent `torch.aten.mm` on `si8`
+  - briefly wired an `int8` `L0` adapter to test the real lane pipeline
+- Failure point:
+  - `task6-l0-gemv64-int8-linalg`
+  - error:
+    - `unimplemented: for conversion to byte or char type dstOriginalDtype has to be passed to convertScalarToDtype`
+  - observed behavior:
+    - `torch-mlir-opt` crashes during `torch` to `linalg` lowering on the
+      `si8` `torch.aten.mm` path
+- Interpretation:
+  - `int8` is currently a tooling blocker rather than a usable LUT-reduction
+    path in this repo state
+  - do not keep an `int8` `L0` package surface active until the byte/char
+    lowering bug is fixed upstream or patched locally
+
+### L1 redirected-kernel proof later on 2026-04-22
+
+- Added:
+  - `src/task6_rect_gemv.py`
+  - `src/task6_rect_gemv_adapter.py`
+  - `sim/gen_task6_contract_gemv_tb_data.py`
+  - `sim/task6_contract_gemv_tb_main.sv`
+  - model key:
+    - `task6-l1-c-fc-redirect`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-22T23-22-07+0200/`
+
+#### Folded-bias attempt
+
+- Goal:
+  - keep the redirect surface at two inputs by appending bias as an extra
+    external weight row and a constant `1` activation lane
+- Outcome:
+  - structural compilation succeeded, but exact replay failed at simulation on
+    all `16` outputs
+  - representative log lines:
+    - `FAIL: addr 0 expected 0x3d085992 got 0x3d082000`
+    - `FAIL: addr 1 expected 0x3d2a1d92 got 0x3d29e000`
+  - maximum observed absolute error:
+    - `0.000075929`
+- Interpretation:
+  - do not treat algebraic bias folding as an exact replay proof under the
+    current float primitive lowering path
+
+#### Explicit external bias attempt
+
+- Goal:
+  - keep bias explicit as a third input and prove that it survives as a top
+    level external memory interface
+- Early IR evidence:
+  - `linalg` showed:
+    - `func.func @main(%arg0: tensor<1x5xf32>, %arg1: tensor<5x16xf32>, %arg2: tensor<16xf32>)`
+  - the body still separated `linalg.matmul` from the later bias add
+- Failure point:
+  - handshake and `hw-clean` no longer surfaced bias as a top-level load
+    interface
+  - the lowered top instead materialized an internal `handshake_memory_out_f32`
+    block for that path
+- Interpretation:
+  - this is the one explicit externalization failure for the L1 bias path, so
+    stop spending more slices there and use the kernel-only fallback
+
+#### Accepted kernel-only fallback
+
+- Accepted boundary:
+  - the selected pre-bias `batch_matmul` site for
+    `transformer.h.0.mlp.c_fc`
+- Timed `yosys-stat`:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-yosys-stat --no-link -L`
+  - result:
+    - `ELAPSED=4.07`
+    - `RSS_KB=564032`
+  - design summary:
+    - `num_cells = 12611`
+    - `num_memory_bits = 512`
+    - `$mul = 1`
+    - `arith_mulf_in_f32_f32_out_f32 = 1`
+    - `arith_addf_in_f32_f32_out_f32 = 1`
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/cgk31f78g5c0rd8bwyw98v1p38m0vz4f-task6-l1-c-fc-redirect-utilization`
+  - result:
+    - `ELAPSED=64.82`
+    - `RSS_KB=562944`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `33,116`
+    - CLB FFs:
+      - `51,296`
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=61.91`
+    - `RSS_KB=437820`
+  - testbench rule:
+    - `ABS_TOL = 1.0e-4`
+  - reason for tolerance:
+    - the observed mismatch scale matched the visible `q16.16` float primitive
+      path, so the accepted proof checks the redirected kernel against an
+      explicit absolute error bound instead of bit-exact float equality
+- Weight placement evidence:
+  - `hw-clean` and `main.sv` still expose top-level `in1_ld0_*` weight load
+    ports, so the large `16 x 4` weight tensor is not emitted as a giant RTL
+    constant bundle
+- Interpretation:
+  - `L1` now has a valid redirected-kernel structural proof:
+    - external weights: pass
+    - `yosys-stat` runtime: pass
+    - mapped DSP use: pass
+    - Verilator proof: pass
+  - the mapped LUT count still fails the lane ceiling at `33,116 > 29,860`
+  - the next useful slice is `L2`, not further L1 bias surgery
+
+### L2 redirected-kernel proof later on 2026-04-22
+
+- Added:
+  - model key:
+    - `task6-l2-c-fc-redirect`
+  - flake outputs:
+    - `task6-l2-c-fc-redirect-tb-data-sv`
+    - `task6-l2-c-fc-redirect-sim-main`
+    - `task6-l2-c-fc-redirect-json`
+    - `task6-l2-c-fc-redirect-utilization`
+    - `task6-l2-c-fc-redirect-sv-sim`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-22T23-22-07+0200/`
+
+#### Accepted reduced-vocab proof
+
+- Accepted boundary:
+  - the selected pre-bias `batch_matmul` site for
+    `tiny-stories-v1k-h64-l1`
+    `transformer.h.0.mlp.c_fc`
+- Manifest alignment:
+  - `task6-l2-c-fc-redirect-tb-data-sv`
+  - output:
+    - `/nix/store/kv3li6fbzgj3w1sp5zzypvrh23a7c62g-task6-l2-c-fc-redirect-tb-data-sv`
+- Timed `yosys-stat`:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-yosys-stat --no-link -L`
+  - result:
+    - `ELAPSED=9.13`
+    - `RSS_KB=563512`
+  - design summary:
+    - `num_cells = 13703`
+    - `num_memory_bits = 8192`
+    - `$mul = 1`
+    - `arith_mulf_in_f32_f32_out_f32 = 1`
+    - `arith_addf_in_f32_f32_out_f32 = 1`
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-utilization --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/2sfssv27f1ijhwlwzaxsny76ixvjrzmn-task6-l2-c-fc-redirect-utilization`
+  - result:
+    - `ELAPSED=88.93`
+    - `RSS_KB=562776`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `50,235`
+    - CLB FFs:
+      - `65,523`
+- Timed Verilator proof:
+  - first run failure:
+    - `Timeout waiting for redirected GEMV completion`
+  - harness fix:
+    - `sim/task6_contract_gemv_tb_main.sv`
+    - `TIMEOUT_CYCLES` now scales with
+      `ACTIVATION_WORDS + WEIGHT_WORDS + EXPECTED_STORE_COUNT`
+  - rerun command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-sv-sim --no-link -L`
+  - rerun result:
+    - `PASS: stores 256 outputs 256`
+    - `ELAPSED=47.06`
+    - `RSS_KB=437352`
+- Weight placement evidence:
+  - `hw-clean` and `main.sv` still expose top-level `in1_ld0_*` weight load
+    ports, so the reduced-vocab `256 x 64` weight tensor is still external
+- Interpretation:
+  - `L2` is a valid reduced-vocab redirected-kernel proof:
+    - external weights: pass
+    - `yosys-stat` runtime: pass
+    - mapped DSP use: pass
+    - Verilator proof: pass
+  - `L2` is not a promotion candidate for fit-first work:
+    - LUT grows from `33,116` on `L1` to `50,235`
+    - FF grows from `51,296` on `L1` to `65,523`
+  - the next useful slice is fit reduction on the cheaper `L1` proof, not
+    larger-lane bring-up

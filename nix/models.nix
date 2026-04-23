@@ -1,6 +1,7 @@
 { registerModel, registerQuantizedModel, pythonWithTorch, pythonWithTinyStories
 , pythonWithTinyStoriesTorchAO, torchMlir, python, tinyStories1m, matmulPy
-, matmulAdapterPy, matmulSrcDir, gemv64Py, gemv64AdapterPy
+, matmulAdapterPy, matmulSrcDir, gemv64Py, gemv64AdapterPy, gemv64Int16Py
+, gemv64Int16AdapterPy, task6RectGemvPy, task6RectGemvAdapterPy
 , tinyStoriesTorchaoAdapterPy
 , tinyStoriesRepresentativeCoreAdapterPy, tinyStoriesPt2eStaticQuantAdapterPy
 , fpPrimsSv, simDir, compilePyTorch, representativeCoreSweepSpecs }:
@@ -89,6 +90,70 @@ in {
       export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
       python ${compilePyTorch} \
         --adapter ${gemv64AdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "task6-l0-gemv64-int16" = registerModel {
+    key = "task6-l0-gemv64-int16";
+    name = "task6-l0-gemv64-int16";
+    description =
+      "StreamTensor-lite L0 synthetic external-weight 64x64 GEMV kernel using int16 arithmetic.";
+    source = {
+      type = "local";
+      path = "${gemv64Int16Py}";
+    };
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${gemv64Int16AdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "task6-l1-c-fc-redirect" = registerModel {
+    key = "task6-l1-c-fc-redirect";
+    name = "task6-l1-c-fc-redirect";
+    description =
+      "Task 6 L1 redirected kernel-only GEMV proof for transformer.h.0.mlp.c_fc at the selected batch_matmul site before bias-add.";
+    source = {
+      type = "local";
+      path = "${task6RectGemvPy}";
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TASK6_RECT_GEMV_IN_DIM=4
+      export TASK6_RECT_GEMV_OUT_DIM=16
+      python ${compilePyTorch} \
+        --adapter ${task6RectGemvAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "task6-l2-c-fc-redirect" = registerModel {
+    key = "task6-l2-c-fc-redirect";
+    name = "task6-l2-c-fc-redirect";
+    description =
+      "Task 6 L2 redirected kernel-only GEMV proof for tiny-stories-v1k-h64-l1 transformer.h.0.mlp.c_fc at the selected batch_matmul site before bias-add.";
+    source = {
+      type = "local";
+      path = "${task6RectGemvPy}";
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TASK6_RECT_GEMV_IN_DIM=64
+      export TASK6_RECT_GEMV_OUT_DIM=256
+      python ${compilePyTorch} \
+        --adapter ${task6RectGemvAdapterPy} \
         --out "$out" >/dev/null
     '';
   };
