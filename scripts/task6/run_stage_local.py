@@ -194,6 +194,17 @@ def iso_timestamp() -> str:
     return datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S%z")
 
 
+def allocate_run_dir() -> Path:
+    base = iso_timestamp()
+    candidate = RUNS_ROOT / base
+    index = 0
+    while candidate.exists():
+        index += 1
+        candidate = RUNS_ROOT / f"{base}-{index:02d}"
+    candidate.mkdir(parents=True, exist_ok=False)
+    return candidate
+
+
 def run_command(spec: CommandSpec, output_dir: Path) -> dict[str, Any]:
     log_path = output_dir / spec.log_name
     with log_path.open("w", encoding="utf-8") as log_file:
@@ -424,8 +435,7 @@ def write_readme(run_dir: Path, stage: StageSpec, leaf_dir: Path) -> None:
 def main() -> None:
     args = parse_args()
     stage = STAGES[args.stage]
-    timestamp = iso_timestamp()
-    run_dir = RUNS_ROOT / timestamp
+    run_dir = allocate_run_dir()
     leaf_dir = run_dir / f"stage-local-{args.stage}"
     leaf_dir.mkdir(parents=True, exist_ok=False)
 
