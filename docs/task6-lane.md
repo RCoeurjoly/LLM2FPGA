@@ -155,6 +155,10 @@ The lane has moved beyond the original monolithic `L2 c_fc` search.
 - Keep `L1 c_fc` as the solved first-proof reference:
   - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9`
   - `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`
+  - treat the earlier selective-buffer widening through `72a502f` as a closed
+    search phase:
+    - it proved local FIFO2 replacement can compose safely with `abc9`
+    - it did not justify more blind ring expansion once the curve tapered
 - Keep `mlp.c_proj` reserve-only:
   - structurally validated and executable, but still worse than the frozen
     `L1 c_fc` point on the scorecard
@@ -176,6 +180,10 @@ Current continuation rule:
 - do not promote to `L3` until the tiled `L2` reference clears the ceiling
 - do not make another local `L2 c_fc` RTL edit without a new structural
   hypothesis that is stronger than "another nearby buffer cluster may help"
+- before another experiment wave, consolidate the probe plumbing:
+  - keep one canonical FIFO2 helper for the `ui64` two-slot sequential buffer
+  - drive local rewrite sites from a small patch map instead of adding more
+    near-duplicate helper modules and ad hoc site lists
 
 ## Exact First Insertion Point
 
@@ -302,6 +310,10 @@ Required first output:
    - stop widening once a rung fails the scorecard
    - if the monolithic reduced-vocab rung misses, pivot to one bounded tiled
      wrapper experiment before changing the boundary
+   - after the selective-buffer `L1` phase clears the ceiling, do not keep
+     widening that loop blindly:
+     - freeze the winning `L1` reference
+     - carry only reusable tile-kernel edits forward into `L2`
    - replay on representative-core only after the reduced-vocab ladder shows a
      believable structural win
    - keep `tiny-stories-v10k-h64-l1`, `tiny-stories-v10k-h64-l2`, and the real
@@ -310,11 +322,14 @@ Required first output:
 6. Current active step.
    - freeze `L1`
    - keep `c_proj` reserve-only
-   - instrument the tiled `L2` reference so tile-kernel cost is separated from
-     the wrapper seam
-   - spend at most one more bounded probe on that active tiled path
-   - stop `L2 c_fc` work for now if that bounded probe does not materially
-     reduce the remaining LUT gap
+   - keep tiled `L2 c_fc` as the only active mainline
+   - keep monolithic `L2 c_fc` surgery closed
+   - do not spend another local `L2 c_fc` probe until a new structural
+     hypothesis exists
+   - before the next probe wave, refactor the probe plumbing so local rewrites
+     come from:
+     - one canonical FIFO2 helper plus wrappers where old module names must stay
+     - one small patch map that names the rewritten sites
 
 ## Candidate First Experiments
 

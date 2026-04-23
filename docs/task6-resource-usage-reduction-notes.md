@@ -4650,3 +4650,38 @@ Wrapper delta versus the current `L1` reference:
 - Treat the amended one-probe plan as spent.
 - Any further `L2 c_fc` work now needs a new structural hypothesis that is
   stronger than "another nearby buffer cluster may help."
+
+### 2026-04-23 - Amend the live plan after the selective-buffer phase
+
+The branch evidence now fixes the continuation rule more tightly than the older
+`72a502f` selective-buffer checkpoint alone.
+
+Interpretation:
+
+- Treat the selective-buffer widening that led into `72a502f` as the end of the
+  blind ring-expansion loop, not the start of more generic widening.
+- Freeze `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9` as
+  the `L1` gold reference.
+- Keep `mlp.c_proj` reserve-only.
+- Keep monolithic `L2 c_fc` micro-surgery closed.
+- Treat tiled `L2 c_fc` as the sole active mainline until a stronger structural
+  hypothesis appears.
+
+One code-structure cleanup is now part of the plan before another local probe
+wave:
+
+- `rtl/task6/task6_ui64_fifo2_buffer.sv`
+- `rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq_fifo2.sv`
+
+These currently carry the same FIFO body under two names. That duplication was
+acceptable for fast proof work, but it is now a drift risk. Future local
+rewrites should be driven by:
+
+- one canonical FIFO2 helper implementation
+- thin wrappers or aliases only where an old module name must be preserved
+- one small patch map naming the rewritten sites, instead of scattering more
+  near-duplicate helper modules and ad hoc site lists across `flake.nix`
+
+This is a plan amendment only. It does not reopen the spent `L2` probe budget,
+and it does not authorize another local `L2 c_fc` edit without a new bounded
+structural hypothesis.
