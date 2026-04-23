@@ -553,6 +553,11 @@
             siteIds = task6Ui64Fifo2SiteMap.l1.postBranchOutBufOnly;
             ensureHelper = false;
           };
+        task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2YosysStat =
+          mkSvYosysStat {
+            name = "task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2";
+            sv = task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2Sv;
+          };
         task6L1CFcRedirectJson = mkSynthJson {
           name = "task6-l1-c-fc-redirect";
           svFilelist = "${task6L1CFcRedirectSv}/sources.f";
@@ -1030,6 +1035,11 @@
               ${task6L2CFcRedirectTile64PostBranchOutBufFifo2Sv}/sv/filelist.f > "$out/sv/filelist.f"
             printf '%s\n' "main.sv" >> "$out/sv/filelist.f"
           '';
+        task6L2CFcRedirectTile4x64PostBranchOutBufFifo2YosysStat =
+          mkSvYosysStat {
+            name = "task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2";
+            sv = task6L2CFcRedirectTile4x64PostBranchOutBufFifo2Sv;
+          };
         task6L2CFcRedirectTile4x64Abc9Json = mkSynthJson {
           name = "task6-l2-c-fc-redirect-tile4x64-abc9";
           svFilelist = "${task6L2CFcRedirectTile4x64Sv}/sources.f";
@@ -1983,6 +1993,19 @@
               --capacity-dsp ${toString capacities.dsp} \
               --capacity-bram36 ${toString capacities.bram36} \
               --capacity-bram-kb ${toString capacities.bram_kb}
+          '';
+
+        mkSvYosysStat = { name, sv, slangPerFileExternModules ? false }:
+          pkgs.runCommand "${name}-yosys.stat" {
+            buildInputs = [ yosysPkg python ];
+          } ''
+            ${pkgs.lib.optionalString slangPerFileExternModules ''
+              export YOSYS_SLANG_PER_FILE_EXTERNS=1
+            ''}
+            ${pkgs.bash}/bin/bash ${pipelineScripts}/sv_to_yosys_stat.sh \
+              ${yosysPkg}/bin/yosys \
+              ${yosysSlang}/share/yosys/plugins/slang.so \
+              ${sv}/sources.f "$out"
           '';
 
         mkExternalizedMemoryPlan =
@@ -3479,6 +3502,8 @@
             task6L1CFcRedirectIndexRing3PostBranchFifo2SvSim;
           task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sim-main =
             task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2SimMain;
+          task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-yosys-stat =
+            task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2YosysStat;
           task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-json =
             task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2Abc9Json;
           task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-utilization =
@@ -3531,6 +3556,8 @@
             task6L2CFcRedirectTile4x64SvSim;
           task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-sim-main =
             task6L2CFcRedirectTile4x64PostBranchOutBufFifo2SimMain;
+          task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-yosys-stat =
+            task6L2CFcRedirectTile4x64PostBranchOutBufFifo2YosysStat;
           task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-json =
             task6L2CFcRedirectTile4x64PostBranchOutBufFifo2Abc9Json;
           task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-utilization =

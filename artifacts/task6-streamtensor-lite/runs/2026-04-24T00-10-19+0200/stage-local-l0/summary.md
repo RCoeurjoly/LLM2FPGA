@@ -31,12 +31,16 @@
 
 ## Metrics
 
-- Yosys stat wall-clock: 3.17 s
-- Yosys stat peak RSS: 561,868 KB
-- Verilator wall-clock: 2.26 s
-- Verilator peak RSS: 438,160 KB
+- measurement mode: `cache-hit status replay`
+- timing note: replay timings are status-surface timings and are not comparable to frontier experiment timings in the main ledger
+- Yosys stat replay wall-clock: 3.25 s
+- Yosys stat replay peak RSS: 563,960 KB
+- Verilator replay wall-clock: 2.26 s
+- Verilator replay peak RSS: 438,164 KB
 - Verilator result: `PASS: stores 64 outputs 64`
 - sv-sim output: `/nix/store/49n76ar5b42sd0mjqcapd3v4spwzm571-task6-l0-gemv64-sv-sim.json`
+- utilization replay wall-clock: 3.20 s
+- utilization replay peak RSS: 563,512 KB
 - CLB LUTs: 32,449
 - CLB FFs: 46,736
 - DSP48E1: 4

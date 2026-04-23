@@ -194,6 +194,13 @@ Current continuation rule:
 - do not spend another local `tile64` seam slice on helper substitution in
   this neighborhood
 - further `L2 c_fc` RTL work now requires a new structural hypothesis
+- execution gate for any future frontier edit:
+  - before another `L2 c_fc` RTL experiment, record one short hypothesis note
+    in `docs/task6-resource-usage-reduction-notes.md` with:
+    - expected dominant cost center
+    - expected LUT delta
+    - explicit falsifier
+  - without that note, only the frozen status-replay surface is allowed
 
 ## Exact First Insertion Point
 
@@ -265,14 +272,18 @@ Artifact rule:
    - implementation:
      - `justfile`
      - `scripts/task6/run_stage_local.py`
+     - exact reference `yosys-stat` packages for the frozen `L1` and active
+       tiled `L2` references
    - blocked rungs should still emit a summary bundle with the active promotion
      gate recorded explicitly
    - validation:
-     - `just task6-l0`, `just task6-l1`, and `just task6-l2` replay the
+     - `just task6-l0`, `just task6-l1`, and `just task6-l2` replay the exact
        current frozen/reference proof surfaces
-     - `just task6-l3`, `task6-l4`, `task6-x1`, `task6-x2`, and `task6-x3`
-       emit blocked summary bundles instead of pretending to run forbidden
-       promotions
+   - execution rule:
+     - this is a frozen status surface, not a frontier-discovery surface
+     - treat its timings as cache-hit replay timings, not experiment timings
+     - do not spend more branch bandwidth on blocked-rung sweeps unless the
+       frontier itself changes
 
 4. Stop rule for the whole-model lane
    - once a reduced-vocab `h64` rung exists, the whole-model TinyStories lane

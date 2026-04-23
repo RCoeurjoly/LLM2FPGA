@@ -89,7 +89,9 @@ STAGES: dict[str, StageSpec] = {
             CommandSpec(
                 label="yosys-stat",
                 log_name="yosys-stat.log",
-                argv=timed_nix_build("task6-l1-c-fc-redirect-yosys-stat"),
+                argv=timed_nix_build(
+                    "task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-yosys-stat"
+                ),
             ),
             CommandSpec(
                 label="sv-sim",
@@ -118,7 +120,9 @@ STAGES: dict[str, StageSpec] = {
             CommandSpec(
                 label="yosys-stat",
                 log_name="yosys-stat.log",
-                argv=timed_nix_build("task6-l2-c-fc-redirect-tile64-yosys-stat"),
+                argv=timed_nix_build(
+                    "task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-yosys-stat"
+                ),
             ),
             CommandSpec(
                 label="sv-sim",
@@ -196,13 +200,15 @@ def iso_timestamp() -> str:
 
 def allocate_run_dir() -> Path:
     base = iso_timestamp()
-    candidate = RUNS_ROOT / base
     index = 0
-    while candidate.exists():
-        index += 1
-        candidate = RUNS_ROOT / f"{base}-{index:02d}"
-    candidate.mkdir(parents=True, exist_ok=False)
-    return candidate
+    while True:
+        suffix = "" if index == 0 else f"-{index:02d}"
+        candidate = RUNS_ROOT / f"{base}{suffix}"
+        try:
+            candidate.mkdir(parents=True, exist_ok=False)
+            return candidate
+        except FileExistsError:
+            index += 1
 
 
 def run_command(spec: CommandSpec, output_dir: Path) -> dict[str, Any]:
@@ -378,13 +384,31 @@ def write_summary(
     lines.append("## Metrics")
     lines.append("")
     if stage.blocked_reason is None:
-        lines.append(f"- Yosys stat wall-clock: {format_seconds(yosys.get('elapsed_s'))}")
-        lines.append(f"- Yosys stat peak RSS: {format_int(yosys.get('rss_kb'))} KB")
-        lines.append(f"- Verilator wall-clock: {format_seconds(sim.get('elapsed_s'))}")
-        lines.append(f"- Verilator peak RSS: {format_int(sim.get('rss_kb'))} KB")
+        lines.append("- measurement mode: `cache-hit status replay`")
+        lines.append(
+            "- timing note: replay timings are status-surface timings and are not comparable to frontier experiment timings in the main ledger"
+        )
+        lines.append(
+            f"- Yosys stat replay wall-clock: {format_seconds(yosys.get('elapsed_s'))}"
+        )
+        lines.append(
+            f"- Yosys stat replay peak RSS: {format_int(yosys.get('rss_kb'))} KB"
+        )
+        lines.append(
+            f"- Verilator replay wall-clock: {format_seconds(sim.get('elapsed_s'))}"
+        )
+        lines.append(
+            f"- Verilator replay peak RSS: {format_int(sim.get('rss_kb'))} KB"
+        )
         lines.append(f"- Verilator result: `{sim.get('pass_line') or sim.get('fail_line') or 'n/a'}`")
         if sim.get("store_path"):
             lines.append(f"- sv-sim output: `{sim['store_path']}`")
+        lines.append(
+            f"- utilization replay wall-clock: {format_seconds(util.get('elapsed_s'))}"
+        )
+        lines.append(
+            f"- utilization replay peak RSS: {format_int(util.get('rss_kb'))} KB"
+        )
         lines.append(f"- CLB LUTs: {format_int(util.get('lut'))}")
         lines.append(f"- CLB FFs: {format_int(util.get('ff'))}")
         lines.append(f"- DSP48E1: {format_int(util.get('dsp'))}")
@@ -419,13 +443,14 @@ def write_summary(
 
 
 def write_readme(run_dir: Path, stage: StageSpec, leaf_dir: Path) -> None:
+    relative_summary = f"./{leaf_dir.name}/summary.md"
     readme = "\n".join(
         [
             f"# Task 6 Stage-Local Runner - {stage.stage}",
             "",
             "## Contents",
             "",
-            f"- [{leaf_dir.name}/summary.md]({leaf_dir / 'summary.md'})",
+            f"- [{leaf_dir.name}/summary.md]({relative_summary})",
             "",
         ]
     )

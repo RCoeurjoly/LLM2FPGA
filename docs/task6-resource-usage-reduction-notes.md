@@ -4856,7 +4856,8 @@ search:
   - `scripts/task6/run_stage_local.py`
 - exported the missing package surfaces needed by the runner:
   - `task6-l0-gemv64-yosys-stat`
-  - `task6-l1-c-fc-redirect-yosys-stat`
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-yosys-stat`
+  - `task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-yosys-stat`
 
 The runner now covers the active and gated ladder surfaces:
 
@@ -4875,94 +4876,75 @@ Design rule:
   fresh run bundle under `artifacts/task6-streamtensor-lite/runs/<timestamp>/`
 - blocked rungs do not pretend to run; they emit a summary bundle that records
   the current promotion gate and next action explicitly
+- the runner is a frozen status surface:
+  - its timings are replay timings, not frontier experiment timings
+  - do not keep spending frontier bandwidth on blocked-rung sweeps or runner
+    feature growth unless the frontier itself changes
 
-This is operational plumbing, not a new fit hypothesis. The validation below
-records the runner on the concrete `L0` / `L1` / `L2` references and closes
-the surface as ready in the artifact log.
+### 2026-04-24 - Clean the stage-local runner and freeze it as status-only
 
-### 2026-04-23 - Validate the stage-local runner on the active and blocked rungs
+The runner needed execution cleanup, not more feature growth.
+
+Problems fixed:
+
+- `L1` and `L2` were previously mixing different surfaces inside one rung:
+  - `yosys-stat` came from the base kernel path
+  - sim and mapped utilization came from the frozen/reference patched surface
+- `README.md` used absolute workstation paths, which are not useful in GitHub
+- run-directory allocation used an `exists()` check before `mkdir()`, which was
+  collision-resistant in practice but not race-safe in principle
+- the branch was recording blocked-run sweeps as if they were frontier
+  experiments
+
+Fixes applied:
+
+- added exact `yosys-stat` derivations for the frozen `L1` and active tiled `L2`
+  references
+- changed the runner summaries to label timings explicitly as cache-hit status
+  replay timings
+- changed runner `README.md` links to relative paths
+- changed run-directory allocation to retry on `FileExistsError`
+- pruned the blocked-run sweep artifacts from the current tree and stopped
+  treating them as experiment rows
+
+Execution gate:
+
+- before any new `L2 c_fc` frontier experiment, record one short hypothesis
+  note here with:
+  - expected dominant cost center
+  - expected LUT delta
+  - explicit falsifier
+- without that note, only `just task6-l0`, `task6-l1`, and `task6-l2` status
+  replays are allowed
+
+### 2026-04-24 - Revalidate the frozen status surface on the active rungs only
 
 Run bundles:
 
-- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-49-25+0200/`
-- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-49-40+0200/`
-- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-49-52+0200/`
-- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-50-03+0200/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-24T00-10-19+0200/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-24T00-10-27+0200/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-24T00-10-36+0200/`
 
 Commands run:
 
 - `nix shell nixpkgs#just -c just task6-l0`
 - `nix shell nixpkgs#just -c just task6-l1`
 - `nix shell nixpkgs#just -c just task6-l2`
-- `nix shell nixpkgs#just -c just task6-l3`
 
 Results:
 
-- `just task6-l0` replays the expected kernel-only miss:
+- `just task6-l0` remains a replay of the kernel-only miss:
   - Verilator: `PASS: stores 64 outputs 64`
   - mapped utilization: `32,449 LUT / 46,736 FF / 4 DSP / 0 BRAM`
-- `just task6-l1` replays the frozen passing `L1` reference:
+- `just task6-l1` is now stage-pure across Yosys, sim, and utilization:
   - Verilator: `PASS: stores 16 outputs 16`
   - mapped utilization: `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`
-- `just task6-l2` replays the current tiled `L2` reference:
+- `just task6-l2` is now stage-pure across Yosys, sim, and utilization:
   - Verilator: `PASS: stores 256 outputs 256`
   - mapped utilization: `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
-- `just task6-l3` does not fake progress:
-  - emits a blocked summary with the active gate
-  - records that `L2` still sits above the `29,860` LUT ceiling
 
 Operational conclusion:
 
-- The stage-local runner surface is now real, not planned.
-- It reproduces the active rung references quickly because the proof surfaces
-  are already cached and frozen.
-- The runner also encodes the promotion rule in the surface itself, so blocked
-  rungs now produce explicit evidence instead of relying on oral process.
-
-Next action:
-
-- Keep using `just task6-l0`, `task6-l1`, and `task6-l2` as the cheap status
-  replay surface.
-- Do not execute more `L2 c_fc` local RTL experiments until a new structural
-  hypothesis is stated; the plan remains blocked on hypothesis, not tooling.
-
-### 2026-04-23 - Validate the remaining blocked stage-local runner surfaces
-
-While sweeping the remaining blocked commands, one runner bug surfaced: two
-invocations launched in the same second could share the same run-directory root
-and overwrite `README.md`. I fixed that by making `run_stage_local.py` allocate
-collision-safe suffixed run directories before re-running the blocked sweep.
-
-Run bundles:
-
-- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-52-12+0200/`
-- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-52-12+0200-01/`
-- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-52-12+0200-02/`
-- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-52-13+0200/`
-
-Commands run:
-
-- `nix shell nixpkgs#just -c just task6-l4`
-- `nix shell nixpkgs#just -c just task6-x1`
-- `nix shell nixpkgs#just -c just task6-x2`
-- `nix shell nixpkgs#just -c just task6-x3`
-
-Results:
-
-- `just task6-l4` emits a blocked summary:
-  - `L4` stays reserve-only until `L3` demonstrates a believable structural win
-- `just task6-x1` emits a blocked summary:
-  - the deferred fidelity ladder cannot become the default loop while the
-    primary ladder remains unresolved
-- `just task6-x2` emits a blocked summary:
-  - `X2` remains gated behind `X1`
-- `just task6-x3` emits a blocked summary:
-  - the whole-model lane remains comparison-only until `L4` is believable
-
-Operational conclusion:
-
-- Every planned `just` surface in the current lane now exists and has been
-  exercised at least once.
-- The remaining stop condition is the actual lane rule:
-  - no more local `L2 c_fc` RTL work without a new structural hypothesis
-  - no ladder promotion while `L2` still misses the LUT ceiling
+- The runner is now a cleaner status surface for the active ladder.
+- It is no longer the frontier.
+- The branch remains blocked on a new structural hypothesis, not on tooling.
