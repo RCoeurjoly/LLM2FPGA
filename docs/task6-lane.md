@@ -251,16 +251,22 @@ Artifact rule:
      - `just task6-l0`
      - `just task6-l1`
      - `just task6-l2`
-     - and upward through the ladder
+     - `just task6-l3`
+     - `just task6-l4`
+     - `just task6-x1`
+     - `just task6-x2`
+     - `just task6-x3`
    - each rung should emit:
      - structural summary
      - Yosys stat
      - wall-clock
      - peak memory
      - verdict
-   - note:
-     - the repo does not currently ship a `justfile`, so these are required
-       follow-up work items, not a current claim
+   - implementation:
+     - `justfile`
+     - `scripts/task6/run_stage_local.py`
+   - blocked rungs should still emit a summary bundle with the active promotion
+     gate recorded explicitly
 
 4. Stop rule for the whole-model lane
    - once a reduced-vocab `h64` rung exists, the whole-model TinyStories lane

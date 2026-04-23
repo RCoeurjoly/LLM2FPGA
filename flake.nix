@@ -304,6 +304,7 @@
         matmulIl = matmulPipeline.il;
         matmulYosysStat = matmulPipeline."yosys-stat";
         task6L0Gemv64Pipeline = modelPipelines."task6-l0-gemv64";
+        task6L0Gemv64YosysStat = task6L0Gemv64Pipeline."yosys-stat";
         task6L0Gemv64Sv = task6L0Gemv64Pipeline.sv;
         task6L0Gemv64Json = mkSynthJson {
           name = "task6-l0-gemv64";
@@ -372,6 +373,7 @@
           designJson = task6L1CProjRedirectAbc9Json;
         };
         task6L1CFcRedirectPipeline = modelPipelines."task6-l1-c-fc-redirect";
+        task6L1CFcRedirectYosysStat = task6L1CFcRedirectPipeline."yosys-stat";
         task6L1CFcRedirectSv = task6L1CFcRedirectPipeline.sv;
         task6L1CFcRedirectIl = task6L1CFcRedirectPipeline.il;
         task6L1CFcRedirectUi64BufferLiteSv = pkgs.runCommand
@@ -3348,6 +3350,7 @@
           matmul-sv-wave = matmulSvWave;
           task6-l0-gemv64-tb-data-sv = task6L0Gemv64TbDataSv;
           task6-l0-gemv64-sim-main = task6L0Gemv64SimMain;
+          task6-l0-gemv64-yosys-stat = task6L0Gemv64YosysStat;
           task6-l0-gemv64-json = task6L0Gemv64Json;
           task6-l0-gemv64-utilization = task6L0Gemv64Utilization;
           task6-l0-gemv64-abc9-json = task6L0Gemv64Abc9Json;
@@ -3366,6 +3369,7 @@
           task6-l1-c-proj-redirect-sv-sim = task6L1CProjRedirectSvSim;
           task6-l1-c-fc-redirect-tb-data-sv = task6L1CFcRedirectTbDataSv;
           task6-l1-c-fc-redirect-sim-main = task6L1CFcRedirectSimMain;
+          task6-l1-c-fc-redirect-yosys-stat = task6L1CFcRedirectYosysStat;
           task6-l1-c-fc-redirect-json = task6L1CFcRedirectJson;
           task6-l1-c-fc-redirect-utilization = task6L1CFcRedirectUtilization;
           task6-l1-c-fc-redirect-abc9-json = task6L1CFcRedirectAbc9Json;

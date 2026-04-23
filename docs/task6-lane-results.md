@@ -115,7 +115,7 @@ Branch: `task6-streamtensor-lite`
 | Task-graph build | `scripts/task6/build_task_graph.py` | ready |
 | Packed-weight artifacts | `artifacts/task6/weights_pack/<model-rung>/` | running |
 | Contract artifacts | `artifacts/task6/streamtensor-lite/<rung>/<contract-dir>/` | running |
-| Stage-local runner | `just task6-l0` through `just task6-l7` | planned |
+| Stage-local runner | `just task6-l0` / `task6-l1` / `task6-l2` / `task6-l3` / `task6-l4` / `task6-x1` / `task6-x2` / `task6-x3` via `scripts/task6/run_stage_local.py` | ready |
 
 ## Experiment Ledger
 

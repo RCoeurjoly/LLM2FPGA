@@ -4844,3 +4844,38 @@ Blocking state:
 - The current amended `L2` plan is now exhausted.
 - More local `L2 c_fc` RTL edits would violate the lane rule unless a new
   structural hypothesis is stated first.
+
+### 2026-04-23 - Implement the stage-local runner surface
+
+The only remaining concrete operational item in the current lane plan was the
+missing stage-local runner surface. I closed that gap without reopening the RTL
+search:
+
+- added:
+  - `justfile`
+  - `scripts/task6/run_stage_local.py`
+- exported the missing package surfaces needed by the runner:
+  - `task6-l0-gemv64-yosys-stat`
+  - `task6-l1-c-fc-redirect-yosys-stat`
+
+The runner now covers the active and gated ladder surfaces:
+
+- `just task6-l0`
+- `just task6-l1`
+- `just task6-l2`
+- `just task6-l3`
+- `just task6-l4`
+- `just task6-x1`
+- `just task6-x2`
+- `just task6-x3`
+
+Design rule:
+
+- active rungs execute the existing frozen/reference proof surfaces and write a
+  fresh run bundle under `artifacts/task6-streamtensor-lite/runs/<timestamp>/`
+- blocked rungs do not pretend to run; they emit a summary bundle that records
+  the current promotion gate and next action explicitly
+
+This is operational plumbing, not a new fit hypothesis. The next step is to
+validate the runner on the concrete `L0` / `L1` / `L2` references and record
+that surface as ready in the artifact log.
