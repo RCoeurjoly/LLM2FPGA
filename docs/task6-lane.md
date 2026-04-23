@@ -187,8 +187,13 @@ Current continuation rule:
   - local rewrite sites come from
     `nix/task6-ui64-fifo2-site-map.nix` through shared flake helpers instead
     of repeated inline site lists
-- the next bounded `L2` probe should target the mixed data/control store-path
-  seam in the tiled `64 -> 64` kernel, not another `ui64` buffer-only rewrite
+- the first mixed store-path helper seam is now closed:
+  - the combined `fork50`/`fork51`/`fork52` plus ctrl-buffer helper probe
+    aborted after only `64` observed stores
+  - the narrowed fork-only follow-up reproduced the same `64`-store failure
+- do not spend another local `tile64` seam slice on helper substitution in
+  this neighborhood
+- further `L2 c_fc` RTL work now requires a new structural hypothesis
 
 ## Exact First Insertion Point
 

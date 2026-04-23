@@ -4800,3 +4800,47 @@ Next action:
   - `fork50`
   - `fork51`
   - `fork52`
+
+### 2026-04-23 - Fork-only follow-up reproduces the same `64`-store failure
+
+The narrowed follow-up kept the original zero-width control buffers and changed
+only the local fanout helpers:
+
+- `fork50`
+- `fork51`
+- `fork52`
+
+Surface:
+
+- `task6-l2-c-fc-redirect-tile64-storepath-forks-*`
+
+Run bundle:
+
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T18-18-28+0200/`
+
+Command run:
+
+- `nix build .#task6-l2-c-fc-redirect-tile64-storepath-forks-sv-sim --no-link -L`
+
+Result:
+
+- same contract failure as the wider cluster:
+  - `FAIL: expected 256 stores but observed 64`
+- runtime:
+  - `83.16 s`
+- peak RSS:
+  - `438,492 KB`
+
+Verdict:
+
+- The remaining local store-path helper substitution line is closed.
+- The failure survives after removing the ctrl-buffer substitutions, so the
+  problem is not just the zero-width FIFO replacements.
+- Do not spend another `L2 tile64` slice on helper replacement in this same
+  neighborhood.
+
+Blocking state:
+
+- The current amended `L2` plan is now exhausted.
+- More local `L2 c_fc` RTL edits would violate the lane rule unless a new
+  structural hypothesis is stated first.
