@@ -4685,3 +4685,63 @@ rewrites should be driven by:
 This is a plan amendment only. It does not reopen the spent `L2` probe budget,
 and it does not authorize another local `L2 c_fc` edit without a new bounded
 structural hypothesis.
+
+### 2026-04-23 - Consolidate the `ui64` FIFO2 probe plumbing and validate no regression
+
+This closes the code-structure cleanup that the amended plan required before
+another local probe wave.
+
+Changes:
+
+- Added `nix/task6-ui64-fifo2-site-map.nix` as the single source of truth for
+  the Task 6 `ui64` FIFO2 rewrite site lists.
+- Added shared flake helpers:
+  - `mkTask6PatchedSv`
+  - `mkTask6Ui64Fifo2SitePatchSv`
+  - `mkTask6Ui64Fifo2WholeClassSv`
+- Replaced the repeated inline `runCommand` site-rewrite blocks for the
+  existing `L1` and `L2` FIFO2 probes with those helpers.
+- Reduced duplicate RTL:
+  - `rtl/task6/task6_ui64_fifo2_buffer.sv` is now the canonical FIFO2 body.
+  - `rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq_fifo2.sv` is now
+    only a thin wrapper that instantiates the canonical helper under the legacy
+    module name expected by the old whole-class path.
+- Needed operational step:
+  - `nix/task6-ui64-fifo2-site-map.nix` had to be staged before Nix could see
+    it because the flake source snapshot excludes untracked files.
+
+Validation bundle:
+
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T18-08-31+0200/`
+
+Commands rerun:
+
+- `nix build .#task6-l1-c-fc-redirect-ui64-buffer-fifo2-utilization --no-link --print-out-paths -L`
+- `nix build .#task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-utilization --no-link --print-out-paths -L`
+- `nix build .#task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-utilization --no-link --print-out-paths -L`
+- `nix build .#task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-sv-sim --no-link -L`
+- direct rerun:
+  - `/nix/store/4hdp3s5lqqwqkpwqwy6mxwc634fk5ixd-task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-sim-main/obj_dir/sim_main`
+
+Results:
+
+- legacy whole-class wrapper still builds through the alias wrapper:
+  - `23,161 LUT / 27,591 FF / 4 DSP / 0 BRAM`
+- frozen `L1` reference is unchanged:
+  - `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`
+- active tiled `L2` reference is unchanged:
+  - `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
+- direct rerun still passes:
+  - `PASS: stores 256 outputs 256`
+
+Verdict:
+
+- The cleanup is accepted.
+- The probe plumbing is now safe to reuse for future local rewrites.
+- No accepted Task 6 reference moved, and no old evidence path was stranded.
+
+Next action:
+
+- Use the cleaned plumbing for one new bounded `L2 tile64` structural
+  hypothesis on the remaining mixed data/control store path, not for another
+  generic `ui64` buffer-only sweep.

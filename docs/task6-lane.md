@@ -180,10 +180,15 @@ Current continuation rule:
 - do not promote to `L3` until the tiled `L2` reference clears the ceiling
 - do not make another local `L2 c_fc` RTL edit without a new structural
   hypothesis that is stronger than "another nearby buffer cluster may help"
-- before another experiment wave, consolidate the probe plumbing:
-  - keep one canonical FIFO2 helper for the `ui64` two-slot sequential buffer
-  - drive local rewrite sites from a small patch map instead of adding more
-    near-duplicate helper modules and ad hoc site lists
+- the probe plumbing is now consolidated:
+  - `rtl/task6/task6_ui64_fifo2_buffer.sv` is the canonical FIFO2 helper
+  - `rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq_fifo2.sv` is only
+    the legacy wrapper module name
+  - local rewrite sites come from
+    `nix/task6-ui64-fifo2-site-map.nix` through shared flake helpers instead
+    of repeated inline site lists
+- the next bounded `L2` probe should target the mixed data/control store-path
+  seam in the tiled `64 -> 64` kernel, not another `ui64` buffer-only rewrite
 
 ## Exact First Insertion Point
 

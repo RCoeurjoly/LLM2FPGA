@@ -288,6 +288,7 @@
         pipelineMetadataPackages =
           pipelineLib.metadataPackagesFromRegistry modelRegistry;
         modelRegistryJson = pipelineLib.registryIndexPackage modelRegistry;
+        task6Ui64Fifo2SiteMap = import ./nix/task6-ui64-fifo2-site-map.nix;
 
         matmulPipeline = modelPipelines.matmul;
         matmulTorch = matmulPipeline.torch;
@@ -387,152 +388,54 @@
               "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
               ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
           '';
-        task6L1CFcRedirectUi64BufferFifo2Sv = pkgs.runCommand
-          "task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectSv} "$out"
-            chmod -R u+w "$out"
-            cp ${
-              ./rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq_fifo2.sv
-            } "$out/sv/handshake_buffer_in_ui64_out_ui64_2slots_seq.sv"
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-          '';
-        task6L1CFcRedirectBuffer165Fifo2Sv = pkgs.runCommand
-          "task6-l1-c-fc-redirect-buffer165-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectSv} "$out"
-            chmod -R u+w "$out"
-            cp ${
-              ./rtl/task6/task6_ui64_fifo2_buffer.sv
-            } "$out/sv/task6_ui64_fifo2_buffer.sv"
-            sed -i \
-              's/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer165 (/  task6_ui64_fifo2_buffer handshake_buffer165 (/' \
-              "$out/sv/main.sv"
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
-          '';
-        task6L1CFcRedirectIndexSpineFifo2Sv = pkgs.runCommand
-          "task6-l1-c-fc-redirect-index-spine-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectSv} "$out"
-            chmod -R u+w "$out"
-            cp ${
-              ./rtl/task6/task6_ui64_fifo2_buffer.sv
-            } "$out/sv/task6_ui64_fifo2_buffer.sv"
-            for id in 160 161 162 163 164 165; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
-          '';
-        task6L1CFcRedirectIndexFanoutFifo2Sv = pkgs.runCommand
-          "task6-l1-c-fc-redirect-index-fanout-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectSv} "$out"
-            chmod -R u+w "$out"
-            cp ${
-              ./rtl/task6/task6_ui64_fifo2_buffer.sv
-            } "$out/sv/task6_ui64_fifo2_buffer.sv"
-            for id in 160 161 162 163 164 165 173 174 175 176 177 178 179 180 181 182; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
-          '';
-        task6L1CFcRedirectIndexRing2Fifo2Sv = pkgs.runCommand
-          "task6-l1-c-fc-redirect-index-ring2-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectSv} "$out"
-            chmod -R u+w "$out"
-            cp ${
-              ./rtl/task6/task6_ui64_fifo2_buffer.sv
-            } "$out/sv/task6_ui64_fifo2_buffer.sv"
-            for id in 160 161 162 163 164 165 173 174 175 176 177 178 179 180 181 182 185 186 187 188 189 190 191 192; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
-          '';
-        task6L1CFcRedirectIndexRing3Fifo2Sv = pkgs.runCommand
-          "task6-l1-c-fc-redirect-index-ring3-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectSv} "$out"
-            chmod -R u+w "$out"
-            cp ${
-              ./rtl/task6/task6_ui64_fifo2_buffer.sv
-            } "$out/sv/task6_ui64_fifo2_buffer.sv"
-            for id in 160 161 162 163 164 165 173 174 175 176 177 178 179 180 181 182 185 186 187 188 189 190 191 192 213 214 215 216 217 218 219; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
-            sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
-          '';
+        task6L1CFcRedirectUi64BufferFifo2Sv = mkTask6Ui64Fifo2WholeClassSv {
+          name = "task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv";
+          baseSv = task6L1CFcRedirectSv;
+        };
+        task6L1CFcRedirectBuffer165Fifo2Sv = mkTask6Ui64Fifo2SitePatchSv {
+          name = "task6-l1-c-fc-redirect-buffer165-fifo2-sv";
+          baseSv = task6L1CFcRedirectSv;
+          siteIds = task6Ui64Fifo2SiteMap.l1.buffer165;
+        };
+        task6L1CFcRedirectIndexSpineFifo2Sv = mkTask6Ui64Fifo2SitePatchSv {
+          name = "task6-l1-c-fc-redirect-index-spine-fifo2-sv";
+          baseSv = task6L1CFcRedirectSv;
+          siteIds = task6Ui64Fifo2SiteMap.l1.indexSpine;
+        };
+        task6L1CFcRedirectIndexFanoutFifo2Sv = mkTask6Ui64Fifo2SitePatchSv {
+          name = "task6-l1-c-fc-redirect-index-fanout-fifo2-sv";
+          baseSv = task6L1CFcRedirectSv;
+          siteIds = task6Ui64Fifo2SiteMap.l1.indexFanout;
+        };
+        task6L1CFcRedirectIndexRing2Fifo2Sv = mkTask6Ui64Fifo2SitePatchSv {
+          name = "task6-l1-c-fc-redirect-index-ring2-fifo2-sv";
+          baseSv = task6L1CFcRedirectSv;
+          siteIds = task6Ui64Fifo2SiteMap.l1.indexRing2;
+        };
+        task6L1CFcRedirectIndexRing3Fifo2Sv = mkTask6Ui64Fifo2SitePatchSv {
+          name = "task6-l1-c-fc-redirect-index-ring3-fifo2-sv";
+          baseSv = task6L1CFcRedirectSv;
+          siteIds = task6Ui64Fifo2SiteMap.l1.indexRing3;
+        };
         task6L1CFcRedirectIndexRing3CtrlMergeFifo2Sv = pkgs.runCommand
           "task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectSv} "$out"
+            cp -r ${task6L1CFcRedirectIndexRing3Fifo2Sv} "$out"
             chmod -R u+w "$out"
-            cp ${
-              ./rtl/task6/task6_ui64_fifo2_buffer.sv
-            } "$out/sv/task6_ui64_fifo2_buffer.sv"
             cp ${
               ./rtl/task6/task6_ctrl_fifo2_buffer.sv
             } "$out/sv/task6_ctrl_fifo2_buffer.sv"
-            for id in 160 161 162 163 164 165 173 174 175 176 177 178 179 180 181 182 185 186 187 188 189 190 191 192 213 214 215 216 217 218 219; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
             for id in 194 220 229 237; do
               sed -i \
                 "s/^  handshake_buffer_in_none_out_none_2slots_seq_1ins_1outs_ctrl handshake_buffer''${id} (/  task6_ctrl_fifo2_buffer handshake_buffer''${id} (/" \
                 "$out/sv/main.sv"
             done
             sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
+              "s#${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sources.f > "$out/sources.f"
             printf '%s\n' "$out/sv/task6_ctrl_fifo2_buffer.sv" >> "$out/sources.f"
             sed \
-              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
+              "s#${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/filelist.f > "$out/sv/filelist.f"
             printf '%s\n' "$out/sv/task6_ctrl_fifo2_buffer.sv" >> "$out/sv/filelist.f"
           '';
         task6L1CFcRedirectIndexRing3Ui1Buf263Fifo2Sv = pkgs.runCommand
@@ -633,38 +536,21 @@
               ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/filelist.f > "$out/sv/filelist.f"
             printf '%s\n' "$out/sv/task6_ui1_init0_fifo2_fork4.sv" >> "$out/sv/filelist.f"
           '';
-        task6L1CFcRedirectIndexRing3PostBranchFifo2Sv = pkgs.runCommand
-          "task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectIndexRing3Fifo2Sv} "$out"
-            chmod -R u+w "$out"
-            for id in 264 265 266 269 270 271; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sources.f > "$out/sources.f"
-            sed \
-              "s#${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/filelist.f > "$out/sv/filelist.f"
-          '';
-        task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2Sv = pkgs.runCommand
-          "task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sv" { } ''
-            cp -r ${task6L1CFcRedirectIndexRing3PostBranchFifo2Sv} "$out"
-            chmod -R u+w "$out"
-            for id in 279 280; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L1CFcRedirectIndexRing3PostBranchFifo2Sv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectIndexRing3PostBranchFifo2Sv}/sources.f > "$out/sources.f"
-            sed \
-              "s#${task6L1CFcRedirectIndexRing3PostBranchFifo2Sv}/sv/#$out/sv/#g" \
-              ${task6L1CFcRedirectIndexRing3PostBranchFifo2Sv}/sv/filelist.f > "$out/sv/filelist.f"
-          '';
+        task6L1CFcRedirectIndexRing3PostBranchFifo2Sv =
+          mkTask6Ui64Fifo2SitePatchSv {
+            name = "task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-sv";
+            baseSv = task6L1CFcRedirectIndexRing3Fifo2Sv;
+            siteIds = task6Ui64Fifo2SiteMap.l1.postBranchOnly;
+            ensureHelper = false;
+          };
+        task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2Sv =
+          mkTask6Ui64Fifo2SitePatchSv {
+            name =
+              "task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sv";
+            baseSv = task6L1CFcRedirectIndexRing3PostBranchFifo2Sv;
+            siteIds = task6Ui64Fifo2SiteMap.l1.postBranchOutBufOnly;
+            ensureHelper = false;
+          };
         task6L1CFcRedirectJson = mkSynthJson {
           name = "task6-l1-c-fc-redirect";
           svFilelist = "${task6L1CFcRedirectSv}/sources.f";
@@ -903,44 +789,17 @@
         };
         task6L2CFcRedirectPipeline = modelPipelines."task6-l2-c-fc-redirect";
         task6L2CFcRedirectSv = task6L2CFcRedirectPipeline.sv;
-        task6L2CFcRedirectPostBranchFifo2Sv = pkgs.runCommand
-          "task6-l2-c-fc-redirect-postbranch-fifo2-sv" { } ''
-            cp -r ${task6L2CFcRedirectSv} "$out"
-            chmod -R u+w "$out"
-            cp ${./rtl/task6/task6_ui64_fifo2_buffer.sv} "$out/sv/task6_ui64_fifo2_buffer.sv"
-            for id in 264 265 266 270 271; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L2CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L2CFcRedirectSv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
-            sed \
-              "s#${task6L2CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L2CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
-          '';
-        task6L2CFcRedirectDownstreamOutBufFifo2Sv = pkgs.runCommand
-          "task6-l2-c-fc-redirect-downstream-outbuf-fifo2-sv" { } ''
-            cp -r ${task6L2CFcRedirectSv} "$out"
-            chmod -R u+w "$out"
-            cp ${./rtl/task6/task6_ui64_fifo2_buffer.sv} "$out/sv/task6_ui64_fifo2_buffer.sv"
-            for id in 272 273 274 275 276 278; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L2CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L2CFcRedirectSv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
-            sed \
-              "s#${task6L2CFcRedirectSv}/sv/#$out/sv/#g" \
-              ${task6L2CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
-          '';
+        task6L2CFcRedirectPostBranchFifo2Sv = mkTask6Ui64Fifo2SitePatchSv {
+          name = "task6-l2-c-fc-redirect-postbranch-fifo2-sv";
+          baseSv = task6L2CFcRedirectSv;
+          siteIds = task6Ui64Fifo2SiteMap.l2.monolithicPostBranch;
+        };
+        task6L2CFcRedirectDownstreamOutBufFifo2Sv =
+          mkTask6Ui64Fifo2SitePatchSv {
+            name = "task6-l2-c-fc-redirect-downstream-outbuf-fifo2-sv";
+            baseSv = task6L2CFcRedirectSv;
+            siteIds = task6Ui64Fifo2SiteMap.l2.monolithicDownstreamOutBuf;
+          };
         task6L2CFcRedirectJson = mkSynthJson {
           name = "task6-l2-c-fc-redirect";
           svFilelist = "${task6L2CFcRedirectSv}/sources.f";
@@ -1000,27 +859,12 @@
             topName = "main";
             designJson = task6L2CFcRedirectTile64Abc9Json;
           };
-        task6L2CFcRedirectTile64PostBranchOutBufFifo2Sv = pkgs.runCommand
-          "task6-l2-c-fc-redirect-tile64-postbranch-outbuf-fifo2-sv" { } ''
-            cp -r ${task6L2CFcRedirectTile64Sv} "$out"
-            chmod -R u+w "$out"
-            cp ${
-              ./rtl/task6/task6_ui64_fifo2_buffer.sv
-            } "$out/sv/task6_ui64_fifo2_buffer.sv"
-            for id in 244 245 248 250 252 253 254 256; do
-              sed -i \
-                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
-                "$out/sv/main.sv"
-            done
-            sed \
-              "s#${task6L2CFcRedirectTile64Sv}/sv/#$out/sv/#g" \
-              ${task6L2CFcRedirectTile64Sv}/sources.f > "$out/sources.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
-            sed \
-              "s#${task6L2CFcRedirectTile64Sv}/sv/#$out/sv/#g" \
-              ${task6L2CFcRedirectTile64Sv}/sv/filelist.f > "$out/sv/filelist.f"
-            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
-          '';
+        task6L2CFcRedirectTile64PostBranchOutBufFifo2Sv =
+          mkTask6Ui64Fifo2SitePatchSv {
+            name = "task6-l2-c-fc-redirect-tile64-postbranch-outbuf-fifo2-sv";
+            baseSv = task6L2CFcRedirectTile64Sv;
+            siteIds = task6Ui64Fifo2SiteMap.l2.tile64PostBranchOutBuf;
+          };
         task6L2CFcRedirectTile64PostBranchOutBufFifo2Abc9Json = mkSynthJson {
           name = "task6-l2-c-fc-redirect-tile64-postbranch-outbuf-fifo2-abc9";
           svFilelist = "${task6L2CFcRedirectTile64PostBranchOutBufFifo2Sv}/sources.f";
@@ -1671,6 +1515,69 @@
             printf '\n'
           } >> run.ys
         '';
+
+        mkTask6PatchedSv =
+          { name, baseSv, copiedSv ? [ ], rewriteMain ? "" }:
+          let
+            copyCommands = pkgs.lib.concatMapStringsSep "\n" (entry: ''
+              cp ${entry.src} "$out/sv/${entry.dest}"
+            '') copiedSv;
+            appendSourcesCommands =
+              pkgs.lib.concatMapStringsSep "\n" (entry:
+                pkgs.lib.optionalString (entry.appendToFilelists or false) ''
+                  printf '%s\n' "$out/sv/${entry.dest}" >> "$out/sources.f"
+                '') copiedSv;
+            appendFilelistCommands =
+              pkgs.lib.concatMapStringsSep "\n" (entry:
+                pkgs.lib.optionalString (entry.appendToFilelists or false) ''
+                  printf '%s\n' "$out/sv/${entry.dest}" >> "$out/sv/filelist.f"
+                '') copiedSv;
+          in pkgs.runCommand name { } ''
+            cp -r ${baseSv} "$out"
+            chmod -R u+w "$out"
+            ${copyCommands}
+            ${rewriteMain}
+            sed \
+              "s#${baseSv}/sv/#$out/sv/#g" \
+              ${baseSv}/sources.f > "$out/sources.f"
+            ${appendSourcesCommands}
+            sed \
+              "s#${baseSv}/sv/#$out/sv/#g" \
+              ${baseSv}/sv/filelist.f > "$out/sv/filelist.f"
+            ${appendFilelistCommands}
+          '';
+
+        mkTask6Ui64Fifo2SitePatchSv =
+          { name, baseSv, siteIds, ensureHelper ? true }:
+          mkTask6PatchedSv {
+            inherit name baseSv;
+            copiedSv = pkgs.lib.optionals ensureHelper [{
+              src = ./rtl/task6/task6_ui64_fifo2_buffer.sv;
+              dest = "task6_ui64_fifo2_buffer.sv";
+              appendToFilelists = true;
+            }];
+            rewriteMain = pkgs.lib.concatMapStringsSep "\n" (id: ''
+              sed -i \
+                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer${toString id} (/  task6_ui64_fifo2_buffer handshake_buffer${toString id} (/" \
+                "$out/sv/main.sv"
+            '') siteIds;
+          };
+
+        mkTask6Ui64Fifo2WholeClassSv = { name, baseSv }:
+          mkTask6PatchedSv {
+            inherit name baseSv;
+            copiedSv = [
+              {
+                src = ./rtl/task6/task6_ui64_fifo2_buffer.sv;
+                dest = "task6_ui64_fifo2_buffer.sv";
+                appendToFilelists = true;
+              }
+              {
+                src = ./rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq_fifo2.sv;
+                dest = "handshake_buffer_in_ui64_out_ui64_2slots_seq.sv";
+              }
+            ];
+          };
 
         mkSynthJson =
           { name, modelIl ? null, svFilelist ? null, topName, topSv
