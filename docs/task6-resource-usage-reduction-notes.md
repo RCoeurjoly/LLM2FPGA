@@ -2618,3 +2618,555 @@ Representative-core sweep setup later on 2026-04-22:
     - find a semantically correct way to cut `ui64` buffer state, likely by
       targeting only a subset of buffers or by matching the existing ready/valid
       scheduling more faithfully than a generic one-slot drop-in
+
+### L1 selective `buffer165` FIFO2 proof later on 2026-04-23
+
+- Added:
+  - helper module:
+    - `rtl/task6/task6_ui64_fifo2_buffer.sv`
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-buffer165-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-buffer165-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-buffer165-fifo2-json`
+    - `task6-l1-c-fc-redirect-buffer165-fifo2-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T10-59-21+0200/`
+
+#### Why this slice
+
+- The class-wide `ui64` buffer replacements failed three times:
+  - strict one-slot FIFO
+  - fall-through one-slot FIFO
+  - class-wide lean two-entry FIFO
+- the next smallest non-redundant test was a single central loop-index site:
+  - `handshake_buffer165`
+  - this is the buffer that feeds `handshake_fork34`, which fans the loop index
+    into the `handshake_mux30..37` selection tree
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-buffer165-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=56.13`
+    - `RSS_KB=437056`
+- Interpretation:
+  - targeted replacement is viable:
+    - at least one central `ui64` loop-index buffer can move to the lean FIFO2
+      implementation without breaking the accepted `L1` contract
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-buffer165-fifo2-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/ay0550kjz47qmv3ig0wrr212sflz78fd-task6-l1-c-fc-redirect-buffer165-fifo2-utilization`
+  - result:
+    - `ELAPSED=66.21`
+    - `RSS_KB=562608`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `33,020`
+    - CLB FFs:
+      - `51,292`
+- Delta against accepted base `L1`:
+  - LUT:
+    - `33,116 -> 33,020` (`-96`)
+  - FF:
+    - `51,296 -> 51,292` (`-4`)
+- Interpretation:
+  - a single safe replacement is not enough to matter on its own
+  - but it proves the right next shape:
+    - do not replace the full `ui64` buffer class again
+    - widen only within the same local index-distribution spine and keep
+      Verilator as the immediate gate
+
+### L1 class-wide `ui64` FIFO2 rejection later on 2026-04-23
+
+- Added:
+  - helper module:
+    - `rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq_fifo2.sv`
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-ui64-buffer-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-ui64-buffer-fifo2-json`
+    - `task6-l1-c-fc-redirect-ui64-buffer-fifo2-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T11-05-39+0200/l1-ui64-buffer-fifo2-reject/summary.md`
+
+#### Why this slice
+
+- The one-slot class-wide replacements had already failed twice:
+  - strict FIFO
+  - fall-through FIFO
+- the smallest remaining same-class check was a class-wide lean two-entry FIFO:
+  - keep the `ui64` buffer interface and depth at `2`
+  - cut the internal state and control logic compared with the generated
+    baseline implementation
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv-sim --no-link -L`
+  - result:
+    - `Timeout waiting for redirected GEMV completion`
+    - `ELAPSED=42.50`
+    - `RSS_KB=437644`
+- Interpretation:
+  - this is the third failure of the same whole-class path:
+    - one-slot strict
+    - one-slot fall-through
+    - two-slot FIFO2
+  - per lane rules, whole-class `ui64` buffer replacement should stop here
+
+### L1 selective index-spine FIFO2 proof later on 2026-04-23
+
+- Added:
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-spine-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-index-spine-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-index-spine-fifo2-json`
+    - `task6-l1-c-fc-redirect-index-spine-fifo2-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T11-05-39+0200/l1-index-spine-fifo2-proof/summary.md`
+
+#### Why this slice
+
+- After the class-wide path was exhausted, the next bounded test was a local
+  cluster around the already-safe `handshake_buffer165` site:
+  - `handshake_buffer160`
+  - `handshake_buffer161`
+  - `handshake_buffer162`
+  - `handshake_buffer163`
+  - `handshake_buffer164`
+  - `handshake_buffer165`
+- these six sites sit on the same loop-index distribution spine feeding the
+  local `handshake_mux30..37` / `handshake_cond_br32..39` region
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-spine-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=58.30`
+    - `RSS_KB=437376`
+- Interpretation:
+  - the safe selective replacement can widen at least across this local spine
+    without breaking the accepted `L1` contract
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-spine-fifo2-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/dkwlcml8ckf8gg5kx2c3v4w8d5yq43i6-task6-l1-c-fc-redirect-index-spine-fifo2-utilization`
+  - result:
+    - `ELAPSED=64.88`
+    - `RSS_KB=563044`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `32,808`
+    - CLB FFs:
+      - `50,642`
+- Primitive signature:
+  - `FDRE`:
+    - `50,639`
+  - `LUT6`:
+    - `18,981`
+  - `LUT3`:
+    - `6,595`
+  - `LUT2`:
+    - `3,591`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+    - this slice only swaps selected buffer instances in copied `sv/main.sv`,
+      so it inherits the accepted `L1` externalized-weight path unchanged
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against accepted base `L1`:
+  - LUT:
+    - `33,116 -> 32,808` (`-308`)
+  - FF:
+    - `51,296 -> 50,642` (`-654`)
+- Interpretation:
+  - the widened local spine is a real safe improvement, not measurement noise
+  - but it still misses the LUT ceiling and still trails the direct `abc9`
+    result of `32,236` LUT
+  - the next cheapest valid slice is to test whether this safe structural
+    reduction stacks with `abc9` before widening to more buffer sites
+
+### L1 selective index-spine FIFO2 `abc9` proof later on 2026-04-23
+
+- Added:
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-spine-fifo2-abc9-json`
+    - `task6-l1-c-fc-redirect-index-spine-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T11-09-44+0200/l1-index-spine-fifo2-abc9-proof/summary.md`
+
+#### Why this slice
+
+- The two strongest valid `L1` signals before this point were:
+  - direct `abc9`:
+    - `32,236` LUT
+  - safe local `160..165` FIFO2 spine:
+    - `32,808` LUT
+- the cheapest remaining learning step was to test whether those two valid
+  reductions compose without widening the structural patch
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-spine-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/0hxm9fclxr0sgg5wl6nq2w0r7f568p60-task6-l1-c-fc-redirect-index-spine-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=92.79`
+    - `RSS_KB=562772`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `32,036`
+    - CLB FFs:
+      - `50,642`
+- Primitive signature:
+  - `FDRE`:
+    - `50,639`
+  - `LUT6`:
+    - `17,374`
+  - `LUT3`:
+    - `6,570`
+  - `LUT2`:
+    - `3,474`
+  - `LUT5`:
+    - `3,086`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+    - this slice still reuses the accepted external-weight `L1` kernel and only
+      changes selected buffer modules plus mapper selection
+  - Verilator passed:
+    - `yes`
+    - inherited from the identical `task6-l1-c-fc-redirect-index-spine-fifo2`
+      structural variant
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against prior `L1` points:
+  - accepted base `L1`:
+    - `33,116 -> 32,036` LUT (`-1,080`)
+    - `51,296 -> 50,642` FF (`-654`)
+  - direct `abc9`:
+    - `32,236 -> 32,036` LUT (`-200`)
+  - non-`abc9` local spine:
+    - `32,808 -> 32,036` LUT (`-772`)
+- Interpretation:
+  - the safe local FIFO2 reduction and `abc9` do compose
+  - this is the best `L1` mapped result in the lane so far, but it still misses
+    the LUT ceiling by `2,176`
+  - the next bounded local test is one more adjacent buffer cluster under the
+    same `abc9` recipe, because the structural path is now validated and still
+    has measurable headroom
+
+### L1 selective index-fanout FIFO2 `abc9` proof later on 2026-04-23
+
+- Added:
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-fanout-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-index-fanout-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-json`
+    - `task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T11-14-57+0200/l1-index-fanout-fifo2-abc9-proof/summary.md`
+
+#### Why this slice
+
+- The current safe local recipe had already improved twice:
+  - `160..165` index spine:
+    - `32,036` LUT under `abc9`
+- the next directly adjacent ring is the `ui64` branch-output fanout driven by
+  that spine:
+  - `handshake_buffer173`
+  - `handshake_buffer174`
+  - `handshake_buffer175`
+  - `handshake_buffer176`
+  - `handshake_buffer177`
+  - `handshake_buffer178`
+  - `handshake_buffer179`
+  - `handshake_buffer180`
+  - `handshake_buffer181`
+  - `handshake_buffer182`
+- the exact hypothesis was:
+  - if this immediate fanout ring still passes the kernel contract, the local
+    FIFO2 replacement has not yet reached its safe boundary
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-fanout-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=65.50`
+    - `RSS_KB=436664`
+- Interpretation:
+  - the safe selective region extends through this immediate downstream fanout
+    ring; the next gate remains mapped utilization, not more functional debug
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/adf0la4c5xkqdmvc6n5i37db5zaz929x-task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=93.49`
+    - `RSS_KB=563372`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `31,309`
+    - CLB FFs:
+      - `49,342`
+- Primitive signature:
+  - `FDRE`:
+    - `49,339`
+  - `LUT6`:
+    - `16,067`
+  - `LUT3`:
+    - `7,213`
+  - `LUT2`:
+    - `3,392`
+  - `LUT5`:
+    - `3,101`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+    - this variant still only swaps selected local buffer instances and keeps
+      the accepted externalized-weight `L1` kernel intact
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against prior `L1` points:
+  - previous best `index-spine-fifo2-abc9`:
+    - `32,036 -> 31,309` LUT (`-727`)
+    - `50,642 -> 49,342` FF (`-1,300`)
+  - accepted base `L1`:
+    - `33,116 -> 31,309` LUT (`-1,807`)
+    - `51,296 -> 49,342` FF (`-1,954`)
+- Interpretation:
+  - the local selective FIFO2 path is still productive and not yet at noise
+  - this is the best `L1` mapped result in the lane so far, now within `1,449`
+    LUT of the ceiling while preserving `4 DSP48E1`
+  - the next bounded question is whether one further adjacent hop keeps paying
+    or whether the local fit curve is flattening
+
+### L1 selective index ring-2 FIFO2 `abc9` proof later on 2026-04-23
+
+- Added:
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-ring2-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-index-ring2-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-json`
+    - `task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T11-20-09+0200/l1-index-ring2-fifo2-abc9-proof/summary.md`
+
+#### Why this slice
+
+- After the `173..182` fanout ring still improved fit materially, the next
+  directly connected `ui64` ring was:
+  - `handshake_buffer185`
+  - `handshake_buffer186`
+  - `handshake_buffer187`
+  - `handshake_buffer188`
+  - `handshake_buffer189`
+  - `handshake_buffer190`
+  - `handshake_buffer191`
+  - `handshake_buffer192`
+- these buffers are the next immediate downstream stage fed by the already-safe
+  local ring, so they were the smallest remaining adjacent expansion
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring2-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=69.90`
+    - `RSS_KB=436804`
+- Interpretation:
+  - the safe local replacement region extends through this second downstream
+    ring as well
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/saahgj5jaiv7bvhxjds1qypv62q57wbg-task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=93.67`
+    - `RSS_KB=563284`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `30,762`
+    - CLB FFs:
+      - `48,302`
+- Primitive signature:
+  - `FDRE`:
+    - `48,299`
+  - `LUT6`:
+    - `15,147`
+  - `LUT3`:
+    - `7,614`
+  - `LUT2`:
+    - `3,299`
+  - `LUT5`:
+    - `3,135`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against prior `L1` points:
+  - previous best `index-fanout-fifo2-abc9`:
+    - `31,309 -> 30,762` LUT (`-547`)
+    - `49,342 -> 48,302` FF (`-1,040`)
+  - accepted base `L1`:
+    - `33,116 -> 30,762` LUT (`-2,354`)
+    - `51,296 -> 48,302` FF (`-2,994`)
+- Interpretation:
+  - the widening curve is still improving and has not flattened yet
+  - this is the best `L1` mapped result in the lane so far, now only `902` LUT
+    above the ceiling while preserving `4 DSP48E1`
+  - the next bounded question is whether the connected `213..219` mux-return
+    buffers provide one last meaningful drop or whether this is where the local
+    buffer path tops out
+
+### L1 selective index ring-3 FIFO2 `abc9` proof later on 2026-04-23
+
+- Added:
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-ring3-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-index-ring3-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-json`
+    - `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T11-24-52+0200/l1-index-ring3-fifo2-abc9-proof/summary.md`
+
+#### Why this slice
+
+- The next still-local connected `ui64` stage after ring-2 was the mux-return
+  ring:
+  - `handshake_buffer213`
+  - `handshake_buffer214`
+  - `handshake_buffer215`
+  - `handshake_buffer216`
+  - `handshake_buffer217`
+  - `handshake_buffer218`
+  - `handshake_buffer219`
+- this was treated as the last blind local hop worth checking before the region
+  became too diffuse for fast-learning work
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=82.55`
+    - `RSS_KB=437104`
+- Interpretation:
+  - the connected mux-return ring is still structurally safe under the kernel
+    contract
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/y57gd36j5fbplkw51iv6if0cflppn052-task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=93.19`
+    - `RSS_KB=563112`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `30,320`
+    - CLB FFs:
+      - `47,392`
+- Primitive signature:
+  - `FDRE`:
+    - `47,389`
+  - `LUT6`:
+    - `14,728`
+  - `LUT3`:
+    - `7,749`
+  - `LUT2`:
+    - `3,242`
+  - `LUT5`:
+    - `3,132`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against prior `L1` points:
+  - previous best `index-ring2-fifo2-abc9`:
+    - `30,762 -> 30,320` LUT (`-442`)
+    - `48,302 -> 47,392` FF (`-910`)
+  - accepted base `L1`:
+    - `33,116 -> 30,320` LUT (`-2,796`)
+    - `51,296 -> 47,392` FF (`-3,904`)
+- Interpretation:
+  - the local selective path still improves, but the gains are tapering
+  - this is the best `L1` mapped result in the lane so far, now only `460` LUT
+    above the ceiling while preserving `4 DSP48E1`
+  - this is a good place to stop blind widening:
+    - the next move should be a deliberate choice among the remaining adjacent
+      control/merge sites rather than another generic ring expansion

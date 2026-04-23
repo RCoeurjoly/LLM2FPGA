@@ -360,6 +360,123 @@
               "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
               ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
           '';
+        task6L1CFcRedirectUi64BufferFifo2Sv = pkgs.runCommand
+          "task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv" { } ''
+            cp -r ${task6L1CFcRedirectSv} "$out"
+            chmod -R u+w "$out"
+            cp ${
+              ./rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq_fifo2.sv
+            } "$out/sv/handshake_buffer_in_ui64_out_ui64_2slots_seq.sv"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
+          '';
+        task6L1CFcRedirectBuffer165Fifo2Sv = pkgs.runCommand
+          "task6-l1-c-fc-redirect-buffer165-fifo2-sv" { } ''
+            cp -r ${task6L1CFcRedirectSv} "$out"
+            chmod -R u+w "$out"
+            cp ${
+              ./rtl/task6/task6_ui64_fifo2_buffer.sv
+            } "$out/sv/task6_ui64_fifo2_buffer.sv"
+            sed -i \
+              's/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer165 (/  task6_ui64_fifo2_buffer handshake_buffer165 (/' \
+              "$out/sv/main.sv"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
+          '';
+        task6L1CFcRedirectIndexSpineFifo2Sv = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-spine-fifo2-sv" { } ''
+            cp -r ${task6L1CFcRedirectSv} "$out"
+            chmod -R u+w "$out"
+            cp ${
+              ./rtl/task6/task6_ui64_fifo2_buffer.sv
+            } "$out/sv/task6_ui64_fifo2_buffer.sv"
+            for id in 160 161 162 163 164 165; do
+              sed -i \
+                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
+                "$out/sv/main.sv"
+            done
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
+          '';
+        task6L1CFcRedirectIndexFanoutFifo2Sv = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-fanout-fifo2-sv" { } ''
+            cp -r ${task6L1CFcRedirectSv} "$out"
+            chmod -R u+w "$out"
+            cp ${
+              ./rtl/task6/task6_ui64_fifo2_buffer.sv
+            } "$out/sv/task6_ui64_fifo2_buffer.sv"
+            for id in 160 161 162 163 164 165 173 174 175 176 177 178 179 180 181 182; do
+              sed -i \
+                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
+                "$out/sv/main.sv"
+            done
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
+          '';
+        task6L1CFcRedirectIndexRing2Fifo2Sv = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring2-fifo2-sv" { } ''
+            cp -r ${task6L1CFcRedirectSv} "$out"
+            chmod -R u+w "$out"
+            cp ${
+              ./rtl/task6/task6_ui64_fifo2_buffer.sv
+            } "$out/sv/task6_ui64_fifo2_buffer.sv"
+            for id in 160 161 162 163 164 165 173 174 175 176 177 178 179 180 181 182 185 186 187 188 189 190 191 192; do
+              sed -i \
+                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
+                "$out/sv/main.sv"
+            done
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
+          '';
+        task6L1CFcRedirectIndexRing3Fifo2Sv = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring3-fifo2-sv" { } ''
+            cp -r ${task6L1CFcRedirectSv} "$out"
+            chmod -R u+w "$out"
+            cp ${
+              ./rtl/task6/task6_ui64_fifo2_buffer.sv
+            } "$out/sv/task6_ui64_fifo2_buffer.sv"
+            for id in 160 161 162 163 164 165 173 174 175 176 177 178 179 180 181 182 185 186 187 188 189 190 191 192 213 214 215 216 217 218 219; do
+              sed -i \
+                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
+                "$out/sv/main.sv"
+            done
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
+          '';
         task6L1CFcRedirectJson = mkSynthJson {
           name = "task6-l1-c-fc-redirect";
           svFilelist = "${task6L1CFcRedirectSv}/sources.f";
@@ -397,6 +514,101 @@
             capacities = tinyStoriesCapacities;
             topName = "main";
             designJson = task6L1CFcRedirectUi64BufferLiteJson;
+          };
+        task6L1CFcRedirectUi64BufferFifo2Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-ui64-buffer-fifo2";
+          svFilelist = "${task6L1CFcRedirectUi64BufferFifo2Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectUi64BufferFifo2Sv}/sv/main.sv";
+        };
+        task6L1CFcRedirectUi64BufferFifo2Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-ui64-buffer-fifo2";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectUi64BufferFifo2Json;
+          };
+        task6L1CFcRedirectBuffer165Fifo2Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-buffer165-fifo2";
+          svFilelist = "${task6L1CFcRedirectBuffer165Fifo2Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectBuffer165Fifo2Sv}/sv/main.sv";
+        };
+        task6L1CFcRedirectBuffer165Fifo2Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-buffer165-fifo2";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectBuffer165Fifo2Json;
+          };
+        task6L1CFcRedirectIndexSpineFifo2Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-index-spine-fifo2";
+          svFilelist = "${task6L1CFcRedirectIndexSpineFifo2Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectIndexSpineFifo2Sv}/sv/main.sv";
+        };
+        task6L1CFcRedirectIndexSpineFifo2Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-index-spine-fifo2";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectIndexSpineFifo2Json;
+          };
+        task6L1CFcRedirectIndexSpineFifo2Abc9Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-index-spine-fifo2-abc9";
+          svFilelist = "${task6L1CFcRedirectIndexSpineFifo2Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectIndexSpineFifo2Sv}/sv/main.sv";
+          useAbc9 = true;
+        };
+        task6L1CFcRedirectIndexSpineFifo2Abc9Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-index-spine-fifo2-abc9";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectIndexSpineFifo2Abc9Json;
+          };
+        task6L1CFcRedirectIndexFanoutFifo2Abc9Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-index-fanout-fifo2-abc9";
+          svFilelist = "${task6L1CFcRedirectIndexFanoutFifo2Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectIndexFanoutFifo2Sv}/sv/main.sv";
+          useAbc9 = true;
+        };
+        task6L1CFcRedirectIndexFanoutFifo2Abc9Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-index-fanout-fifo2-abc9";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectIndexFanoutFifo2Abc9Json;
+          };
+        task6L1CFcRedirectIndexRing2Fifo2Abc9Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-index-ring2-fifo2-abc9";
+          svFilelist = "${task6L1CFcRedirectIndexRing2Fifo2Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectIndexRing2Fifo2Sv}/sv/main.sv";
+          useAbc9 = true;
+        };
+        task6L1CFcRedirectIndexRing2Fifo2Abc9Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-index-ring2-fifo2-abc9";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectIndexRing2Fifo2Abc9Json;
+          };
+        task6L1CFcRedirectIndexRing3Fifo2Abc9Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-index-ring3-fifo2-abc9";
+          svFilelist = "${task6L1CFcRedirectIndexRing3Fifo2Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/main.sv";
+          useAbc9 = true;
+        };
+        task6L1CFcRedirectIndexRing3Fifo2Abc9Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-index-ring3-fifo2-abc9";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectIndexRing3Fifo2Abc9Json;
           };
         task6L1CFcRedirectStagedAbc9 = mkSynthJsonStages {
           name = "task6-l1-c-fc-redirect-staged-abc9";
@@ -1826,6 +2038,73 @@
               -f ${task6L1CFcRedirectUi64BufferLiteSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
           '';
 
+        task6L1CFcRedirectUi64BufferFifo2SimMain = pkgs.runCommand
+          "task6-l1-c-fc-redirect-ui64-buffer-fifo2-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectUi64BufferFifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
+        task6L1CFcRedirectBuffer165Fifo2SimMain = pkgs.runCommand
+          "task6-l1-c-fc-redirect-buffer165-fifo2-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectBuffer165Fifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
+        task6L1CFcRedirectIndexSpineFifo2SimMain = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-spine-fifo2-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectIndexSpineFifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
+        task6L1CFcRedirectIndexFanoutFifo2SimMain = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-fanout-fifo2-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectIndexFanoutFifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
+        task6L1CFcRedirectIndexRing2Fifo2SimMain = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring2-fifo2-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectIndexRing2Fifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
+        task6L1CFcRedirectIndexRing3Fifo2SimMain = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring3-fifo2-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
+
         task6L2CFcRedirectSimMain = pkgs.runCommand "task6-l2-c-fc-redirect-sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
         } ''
@@ -1909,6 +2188,133 @@
             pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
             if [ -z "$pass_line" ]; then
               echo "task6-l1-c-fc-redirect-ui64-buffer-lite SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
+
+        task6L1CFcRedirectUi64BufferFifo2SvSim = pkgs.runCommand
+          "task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectUi64BufferFifo2SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-ui64-buffer-fifo2 SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
+        task6L1CFcRedirectBuffer165Fifo2SvSim = pkgs.runCommand
+          "task6-l1-c-fc-redirect-buffer165-fifo2-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectBuffer165Fifo2SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-buffer165-fifo2 SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
+        task6L1CFcRedirectIndexSpineFifo2SvSim = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-spine-fifo2-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectIndexSpineFifo2SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-index-spine-fifo2 SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
+        task6L1CFcRedirectIndexFanoutFifo2SvSim = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-fanout-fifo2-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectIndexFanoutFifo2SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-index-fanout-fifo2 SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
+        task6L1CFcRedirectIndexRing2Fifo2SvSim = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring2-fifo2-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectIndexRing2Fifo2SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-index-ring2-fifo2 SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
+        task6L1CFcRedirectIndexRing3Fifo2SvSim = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring3-fifo2-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectIndexRing3Fifo2SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-index-ring3-fifo2 SV simulation did not produce a PASS line" >&2
               exit 1
             fi
             stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
@@ -2053,6 +2459,58 @@
             task6L1CFcRedirectUi64BufferLiteUtilization;
           task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim =
             task6L1CFcRedirectUi64BufferLiteSvSim;
+          task6-l1-c-fc-redirect-ui64-buffer-fifo2-sim-main =
+            task6L1CFcRedirectUi64BufferFifo2SimMain;
+          task6-l1-c-fc-redirect-ui64-buffer-fifo2-json =
+            task6L1CFcRedirectUi64BufferFifo2Json;
+          task6-l1-c-fc-redirect-ui64-buffer-fifo2-utilization =
+            task6L1CFcRedirectUi64BufferFifo2Utilization;
+          task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv-sim =
+            task6L1CFcRedirectUi64BufferFifo2SvSim;
+          task6-l1-c-fc-redirect-buffer165-fifo2-sim-main =
+            task6L1CFcRedirectBuffer165Fifo2SimMain;
+          task6-l1-c-fc-redirect-buffer165-fifo2-json =
+            task6L1CFcRedirectBuffer165Fifo2Json;
+          task6-l1-c-fc-redirect-buffer165-fifo2-utilization =
+            task6L1CFcRedirectBuffer165Fifo2Utilization;
+          task6-l1-c-fc-redirect-buffer165-fifo2-sv-sim =
+            task6L1CFcRedirectBuffer165Fifo2SvSim;
+          task6-l1-c-fc-redirect-index-spine-fifo2-sim-main =
+            task6L1CFcRedirectIndexSpineFifo2SimMain;
+          task6-l1-c-fc-redirect-index-spine-fifo2-json =
+            task6L1CFcRedirectIndexSpineFifo2Json;
+          task6-l1-c-fc-redirect-index-spine-fifo2-utilization =
+            task6L1CFcRedirectIndexSpineFifo2Utilization;
+          task6-l1-c-fc-redirect-index-spine-fifo2-abc9-json =
+            task6L1CFcRedirectIndexSpineFifo2Abc9Json;
+          task6-l1-c-fc-redirect-index-spine-fifo2-abc9-utilization =
+            task6L1CFcRedirectIndexSpineFifo2Abc9Utilization;
+          task6-l1-c-fc-redirect-index-spine-fifo2-sv-sim =
+            task6L1CFcRedirectIndexSpineFifo2SvSim;
+          task6-l1-c-fc-redirect-index-fanout-fifo2-sim-main =
+            task6L1CFcRedirectIndexFanoutFifo2SimMain;
+          task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-json =
+            task6L1CFcRedirectIndexFanoutFifo2Abc9Json;
+          task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-utilization =
+            task6L1CFcRedirectIndexFanoutFifo2Abc9Utilization;
+          task6-l1-c-fc-redirect-index-fanout-fifo2-sv-sim =
+            task6L1CFcRedirectIndexFanoutFifo2SvSim;
+          task6-l1-c-fc-redirect-index-ring2-fifo2-sim-main =
+            task6L1CFcRedirectIndexRing2Fifo2SimMain;
+          task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-json =
+            task6L1CFcRedirectIndexRing2Fifo2Abc9Json;
+          task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-utilization =
+            task6L1CFcRedirectIndexRing2Fifo2Abc9Utilization;
+          task6-l1-c-fc-redirect-index-ring2-fifo2-sv-sim =
+            task6L1CFcRedirectIndexRing2Fifo2SvSim;
+          task6-l1-c-fc-redirect-index-ring3-fifo2-sim-main =
+            task6L1CFcRedirectIndexRing3Fifo2SimMain;
+          task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-json =
+            task6L1CFcRedirectIndexRing3Fifo2Abc9Json;
+          task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-utilization =
+            task6L1CFcRedirectIndexRing3Fifo2Abc9Utilization;
+          task6-l1-c-fc-redirect-index-ring3-fifo2-sv-sim =
+            task6L1CFcRedirectIndexRing3Fifo2SvSim;
           task6-l1-c-fc-redirect-staged-abc9-json =
             task6L1CFcRedirectStagedAbc9.json;
           task6-l1-c-fc-redirect-staged-abc9-utilization =

@@ -81,6 +81,13 @@ Branch: `task6-streamtensor-lite`
 | L1 candidate finder | `scripts/task6/find_l1_gemv_candidate.py` | ready |
 | L1 `abc9` mapped utilization | `task6-l1-c-fc-redirect-abc9-json` / `task6-l1-c-fc-redirect-abc9-utilization` | ready |
 | L1 `ui64` buffer-lite probe | `task6-l1-c-fc-redirect-ui64-buffer-lite-json` / `task6-l1-c-fc-redirect-ui64-buffer-lite-utilization` / `task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim` | experimental |
+| L1 class-wide `ui64` FIFO2 probe | `task6-l1-c-fc-redirect-ui64-buffer-fifo2-json` / `task6-l1-c-fc-redirect-ui64-buffer-fifo2-utilization` / `task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv-sim` | rejected |
+| L1 selective `buffer165` FIFO2 probe | `task6-l1-c-fc-redirect-buffer165-fifo2-json` / `task6-l1-c-fc-redirect-buffer165-fifo2-utilization` / `task6-l1-c-fc-redirect-buffer165-fifo2-sv-sim` | experimental |
+| L1 selective index-spine FIFO2 probe | `task6-l1-c-fc-redirect-index-spine-fifo2-json` / `task6-l1-c-fc-redirect-index-spine-fifo2-utilization` / `task6-l1-c-fc-redirect-index-spine-fifo2-sv-sim` | experimental |
+| L1 selective index-spine FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-spine-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-spine-fifo2-abc9-utilization` | experimental |
+| L1 selective index-fanout FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-fanout-fifo2-sv-sim` | experimental |
+| L1 selective index ring-2 FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring2-fifo2-sv-sim` | experimental |
+| L1 selective index ring-3 FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-fifo2-sv-sim` | experimental |
 | L1 staged `abc9` mapped utilization | `task6-l1-c-fc-redirect-staged-abc9-json` / `task6-l1-c-fc-redirect-staged-abc9-utilization` | experimental |
 | Weight pack export | `scripts/task6/export_weights_pack.py` | ready |
 | L1/L2 contract export | `scripts/task6/export_l1_contract.py` | ready |
@@ -126,6 +133,18 @@ Branch: `task6-streamtensor-lite`
 | 2026-04-23 | `task6-l1-c-fc-redirect-staged-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `il -> staged synth_xilinx -abc9` | n/a | n/a | n/a | n/a | `15.14 s` | `564,392 KB` | reject-staged-mapper | stop the staged `abc9` path after one failure because stage8 dies on `FDRE` parameter handling before any mapped JSON is produced |
 | 2026-04-23 | `task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `22.69 s` | `437,508 KB` | reject-functional | the `ui64` one-slot buffer override is not a valid drop-in because both tested variants timed out the kernel-only contract |
 | 2026-04-23 | `task6-l1-c-fc-redirect-ui64-buffer-lite-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv override -> synth_xilinx -> mapped JSON` | `4` | `0` | `20,725` | `15,731` | `53.61 s` | `562,884 KB` | fit-diagnostic-only | treat this as an upper-bound fit signal only: `ui64` buffer state dominates area, but the current low-state override fails the Verilator contract |
+| 2026-04-23 | `task6-l1-c-fc-redirect-ui64-buffer-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `42.50 s` | `437,644 KB` | reject-functional | count this as the third same-class whole-buffer failure and stop class-wide `ui64` replacement after the lean FIFO2 override also times out the kernel contract |
+| 2026-04-23 | `task6-l1-c-fc-redirect-buffer165-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `56.13 s` | `437,056 KB` | pass-sim | one central loop-index buffer can be replaced with the lean FIFO2 implementation without breaking the kernel contract |
+| 2026-04-23 | `task6-l1-c-fc-redirect-buffer165-fifo2-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -> mapped JSON` | `4` | `0` | `33,020` | `51,292` | `66.21 s` | `562,608 KB` | pass-dsp fail-lut | selective replacement is structurally viable but the single-instance win is small, so widen only around the same index spine if the next slice stays simulation-safe |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-spine-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `58.30 s` | `437,376 KB` | pass-sim | the local `160..165` loop-index spine still satisfies the kernel contract, so the next gate is mapped utilization rather than more simulation-only widening |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-spine-fifo2-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -> mapped JSON` | `4` | `0` | `32,808` | `50,642` | `64.88 s` | `563,044 KB` | pass-dsp fail-lut | the safe `160..165` local cluster trims `308` LUT and `654` FF versus accepted base `L1`, but it is still short of the ceiling, so the next cheapest slice is to test whether this safe reduction stacks with `abc9` before widening further |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-spine-fifo2-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `32,036` | `50,642` | `92.79 s` | `562,772 KB` | pass-dsp fail-lut | safe local FIFO2 reduction and `abc9` do stack, so this is the best `L1` result so far and the next bounded slice is one more adjacent local cluster under the same `abc9` recipe |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-fanout-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `65.50 s` | `436,664 KB` | pass-sim | widening from the index spine into the immediate `173..182` branch-output fanout still satisfies the kernel contract, so the cluster is valid enough to score under `abc9` |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-fanout-fifo2-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `31,309` | `49,342` | `93.49 s` | `563,372 KB` | pass-dsp fail-lut | the adjacent fanout ring is still productive, dropping another `727` LUT and `1,300` FF versus the prior best, so one more bounded local hop remains justified before declaring the selective path exhausted |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring2-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `69.90 s` | `436,804 KB` | pass-sim | extending the same local recipe through `185..192` still preserves the kernel contract, so the safe selective region reaches the second downstream ring |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring2-fifo2-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `30,762` | `48,302` | `93.67 s` | `563,284 KB` | pass-dsp fail-lut | the second downstream ring still buys a meaningful step, reducing another `547` LUT and `1,040` FF and leaving the lane only `902` LUT over the ceiling, so one final adjacent hop is now defensible |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `82.55 s` | `437,104 KB` | pass-sim | the connected `213..219` mux-return ring still preserves the kernel contract, so the safe local region extends one more hop without functional fallout |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `30,320` | `47,392` | `93.19 s` | `563,112 KB` | pass-dsp fail-lut | the final local hop still helps but with smaller returns, leaving the lane only `460` LUT over the ceiling; this is the best `L1` point so far and a reasonable stop for blind widening |
 
 ## Rejections
 
@@ -158,10 +177,26 @@ Branch: `task6-streamtensor-lite`
   - `task6-l1-c-fc-redirect-staged-abc9-utilization` fails at `stage8` with
     `ERROR: Module \`FDRE' is used with parameters but is not parametric!`, so
     that path is stopped after one failure
-- The `ui64` buffer-lite override is not a valid `L1` drop-in:
-  - both tested one-slot variants timed out the kernel-only Verilator proof, so
-    the `20,725` LUT / `15,731` FF mapped result is diagnostic only, not an
-    accepted fit proof
+- The whole-class `ui64` buffer replacement path is exhausted for `L1`:
+  - the strict one-slot, fall-through one-slot, and class-wide FIFO2 overrides
+    all timed out the kernel-only Verilator proof, so the `20,725` LUT /
+    `15,731` FF mapped result remains diagnostic only and the lane should not
+    spend more slices on full-class buffer swaps
+- A selective `ui64` buffer replacement is viable but still modest:
+  - replacing only `handshake_buffer165` trims mapped utilization to `33,020`
+    LUT / `51,292` FF, and widening to the local `160..165` spine improves that
+    to `32,808` LUT / `50,642` FF while keeping the kernel proof intact
+  - combining that safe local spine with `abc9` improves again to `32,036` LUT
+    while keeping `4 DSP48E1`, so the selective path is real and composable
+  - extending one more hop into the immediate `173..182` branch-output fanout
+    improves again to `31,309` LUT / `49,342` FF with `4 DSP48E1`
+  - extending through the next downstream `185..192` ring improves again to
+    `30,762` LUT / `48,302` FF with `4 DSP48E1`
+  - extending through the connected `213..219` mux-return ring improves again
+    to `30,320` LUT / `47,392` FF with `4 DSP48E1`
+  - at only `460` LUT over the ceiling, the next step should be chosen
+    deliberately rather than by another blind local expansion, because the
+    marginal gains are now tapering
 - Resolved blocker:
   - the first `task6-l0-gemv64` `sv` export failed until the model reused the
     baseline float extern wiring (`allowHwExterns`, per-file extern import, and
