@@ -4209,3 +4209,134 @@ Representative-core sweep setup later on 2026-04-22:
 
 - Add the minimal `L1 c_proj` Verilator and mapped-utilization surfaces using
   the newly generated `c_proj` contract and weight-pack artifacts.
+
+### `L1 c_proj` executable proof and mapper follow-up later on 2026-04-23
+
+- Added flake outputs:
+  - `task6-l1-c-proj-redirect-tb-data-sv`
+  - `task6-l1-c-proj-redirect-sim-main`
+  - `task6-l1-c-proj-redirect-json`
+  - `task6-l1-c-proj-redirect-utilization`
+  - `task6-l1-c-proj-redirect-sv-sim`
+  - `task6-l1-c-proj-redirect-abc9-json`
+  - `task6-l1-c-proj-redirect-abc9-utilization`
+- Logged run bundles:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T15-01-29+0200/l1-cproj-redirect-proof/summary.md`
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T15-04-46+0200/l1-cproj-redirect-abc9-proof/summary.md`
+
+#### Why this slice
+
+- After `yosys-stat`, the next smallest honest question was:
+  - does the untouched `L1 c_proj` redirected kernel pass the captured contract
+    under Verilator
+  - and if so, is the first mapped result competitive enough to justify more
+    real fit work
+- The follow-up stop rule was:
+  - if the first mapped result still trails the frozen `L1 c_fc` reference,
+    allow at most one cheap mapper-only discriminator before leaving `c_proj`
+    reserve-only
+
+#### Base executable proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-proj-redirect-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 4 outputs 4`
+    - `ELAPSED=106.74`
+    - `RSS_KB=437244`
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-proj-redirect-utilization --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/hlq0lqfxrbglnc8dxzp0jgandqjw2i4m-task6-l1-c-proj-redirect-utilization`
+  - result:
+    - `ELAPSED=97.85`
+    - `RSS_KB=562712`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `32,393`
+    - CLB FFs:
+      - `50,864`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+    - inherited redirected-kernel structure still uses external loads plus the
+      generated task6 contract/pack flow
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - `17.52 s`
+- Delta against raw `L1 c_fc` redirect:
+  - LUT:
+    - `33,116 -> 32,393` (`-723`)
+  - FF:
+    - `51,296 -> 50,864` (`-432`)
+- Delta against frozen `L1 c_fc` reference:
+  - LUT:
+    - `29,778 -> 32,393` (`+2,615`)
+  - FF:
+    - `46,352 -> 50,864` (`+4,512`)
+- Interpretation:
+  - the untouched `L1 c_proj` redirect is a real executable fallback proof:
+    - external weights hold
+    - `4 DSP48E1` hold
+    - Verilator passes
+  - but it is not a mainline fit win:
+    - it still misses the LUT ceiling by `2,533`
+    - it clearly trails the frozen `L1 c_fc` reference
+  - that justified only one cheap mapper-only discriminator, not a new blind
+    optimization branch
+
+#### Direct `abc9` follow-up
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-proj-redirect-abc9-utilization --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/lffxb0w5ac1hwhfyyd12vxfnmsj9sd64-task6-l1-c-proj-redirect-abc9-utilization`
+  - result:
+    - `ELAPSED=143.08`
+    - `RSS_KB=563156`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `31,611`
+    - CLB FFs:
+      - `50,864`
+- Delta against base `L1 c_proj` redirect:
+  - LUT:
+    - `32,393 -> 31,611` (`-782`)
+  - FF:
+    - `50,864 -> 50,864` (`+0`)
+- Delta against frozen `L1 c_fc` reference:
+  - LUT:
+    - `29,778 -> 31,611` (`+1,833`)
+  - FF:
+    - `46,352 -> 50,864` (`+4,512`)
+- Interpretation:
+  - direct `abc9` does buy a real reduction on the untouched `c_proj` kernel
+  - but it still does not change lane order:
+    - the kernel remains `1,751` LUT above the ceiling
+    - and still worse than the frozen `L1 c_fc` reference by `1,833` LUT
+  - treat this as enough evidence to keep `c_proj` reserve-only:
+    - structurally valid
+    - reproducible
+    - useful fallback
+    - not the main fit-first lane on mapper-only evidence
+
+#### Next action
+
+- Keep `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9` as
+  the main `L1` reference.
+- Keep `c_proj` as a validated reserve fallback, and do not start another blind
+  `c_proj` optimization loop unless there is a new bounded structural
+  hypothesis stronger than mapper-only improvement.

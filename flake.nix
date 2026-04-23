@@ -343,6 +343,33 @@
           topName = "main";
           designJson = task6L0Gemv64Int16Json;
         };
+        task6L1CProjRedirectPipeline = modelPipelines."task6-l1-c-proj-redirect";
+        task6L1CProjRedirectSv = task6L1CProjRedirectPipeline.sv;
+        task6L1CProjRedirectJson = mkSynthJson {
+          name = "task6-l1-c-proj-redirect";
+          svFilelist = "${task6L1CProjRedirectSv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CProjRedirectSv}/sv/main.sv";
+        };
+        task6L1CProjRedirectAbc9Json = mkSynthJson {
+          name = "task6-l1-c-proj-redirect-abc9";
+          svFilelist = "${task6L1CProjRedirectSv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CProjRedirectSv}/sv/main.sv";
+          useAbc9 = true;
+        };
+        task6L1CProjRedirectUtilization = mkMappedJsonUtilizationReport {
+          name = "task6-l1-c-proj-redirect";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L1CProjRedirectJson;
+        };
+        task6L1CProjRedirectAbc9Utilization = mkMappedJsonUtilizationReport {
+          name = "task6-l1-c-proj-redirect-abc9";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L1CProjRedirectAbc9Json;
+        };
         task6L1CFcRedirectPipeline = modelPipelines."task6-l1-c-fc-redirect";
         task6L1CFcRedirectSv = task6L1CFcRedirectPipeline.sv;
         task6L1CFcRedirectIl = task6L1CFcRedirectPipeline.il;
@@ -2297,6 +2324,19 @@
             }/manifest.json > "$out/tb_data.sv"
         '';
 
+        task6L1CProjRedirectTbDataSv = pkgs.runCommand "task6-l1-c-proj-redirect-tb-data-sv" { } ''
+          mkdir -p "$out"
+          ${pythonWithTorch}/bin/python ${
+            ./sim
+          }/gen_task6_contract_gemv_tb_data.py \
+            --contract-manifest ${
+              ./artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_proj-contract
+            }/manifest.json \
+            --weight-pack-manifest ${
+              ./artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_proj
+            }/manifest.json > "$out/tb_data.sv"
+        '';
+
         task6L2CFcRedirectTbDataSv = pkgs.runCommand "task6-l2-c-fc-redirect-tb-data-sv" { } ''
           mkdir -p "$out"
           ${pythonWithTorch}/bin/python ${
@@ -2341,6 +2381,17 @@
             -I${task6L1CFcRedirectTbDataSv} \
             -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
             -f ${task6L1CFcRedirectSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+        '';
+
+        task6L1CProjRedirectSimMain = pkgs.runCommand "task6-l1-c-proj-redirect-sim-main" {
+          buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+        } ''
+          set -euo pipefail
+          mkdir -p "$out/obj_dir"
+          verilator --binary --timing --language 1800-2017 -Wno-fatal \
+            -I${task6L1CProjRedirectTbDataSv} \
+            -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+            -f ${task6L1CProjRedirectSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
         '';
 
         task6L1CFcRedirectUi64BufferLiteSimMain = pkgs.runCommand
@@ -2571,6 +2622,27 @@
           pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
           if [ -z "$pass_line" ]; then
             echo "task6-l1-c-fc-redirect SV simulation did not produce a PASS line" >&2
+            exit 1
+          fi
+          stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+          outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+          cat > "$out" <<EOF
+          {
+            "status": "PASS",
+            "stores": $stores,
+            "outputs": $outputs
+          }
+          EOF
+        '';
+
+        task6L1CProjRedirectSvSim = pkgs.runCommand "task6-l1-c-proj-redirect-sv-sim.json" {
+          buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+        } ''
+          set -euo pipefail
+          ${task6L1CProjRedirectSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+          pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+          if [ -z "$pass_line" ]; then
+            echo "task6-l1-c-proj-redirect SV simulation did not produce a PASS line" >&2
             exit 1
           fi
           stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
@@ -3017,6 +3089,14 @@
           task6-l0-gemv64-int16-utilization = task6L0Gemv64Int16Utilization;
           task6-l0-gemv64-sv-sim = task6L0Gemv64SvSim;
           task6-l0-gemv64-sv-wave = task6L0Gemv64SvWave;
+          task6-l1-c-proj-redirect-tb-data-sv = task6L1CProjRedirectTbDataSv;
+          task6-l1-c-proj-redirect-sim-main = task6L1CProjRedirectSimMain;
+          task6-l1-c-proj-redirect-json = task6L1CProjRedirectJson;
+          task6-l1-c-proj-redirect-utilization = task6L1CProjRedirectUtilization;
+          task6-l1-c-proj-redirect-abc9-json = task6L1CProjRedirectAbc9Json;
+          task6-l1-c-proj-redirect-abc9-utilization =
+            task6L1CProjRedirectAbc9Utilization;
+          task6-l1-c-proj-redirect-sv-sim = task6L1CProjRedirectSvSim;
           task6-l1-c-fc-redirect-tb-data-sv = task6L1CFcRedirectTbDataSv;
           task6-l1-c-fc-redirect-sim-main = task6L1CFcRedirectSimMain;
           task6-l1-c-fc-redirect-json = task6L1CFcRedirectJson;

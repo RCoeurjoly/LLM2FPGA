@@ -9,10 +9,10 @@ Branch: `task6-streamtensor-lite`
 | --- | --- | --- |
 | DSP use | `DSP > 0` in the kernel or one-block-top Yosys stat | pass-L0/L1/L2 (`4 DSP48E1`) |
 | Weight placement | packed or ROM-style external weights, not giant RTL constants | pass-L0/L1-pack/L1-kernel/L2-pack/L2-kernel |
-| LUT ceiling | `<= 29,860` LUT | pass-L1 fail-L0/L2 (`32,449` LUT / `29,778` LUT best validated `L1` / `50,235` LUT base `L2` / `51,622` LUT aligned replay / `51,832` LUT downstream out-buffer probe); diagnostic `ui64` buffer-lite reaches `20,725` LUT but fails Verilator |
-| FF ceiling | `<= 59,720` FF | pass-L0/L1 fail-L2 (`46,736` FF / `46,352` FF / `65,523` FF base `L2` / `64,873` FF aligned replay / `64,743` FF downstream out-buffer probe) |
-| Verilator | kernel test passes | pass-L0/L1-kernel/L2-kernel |
-| Micro-proof runtime | kernel Yosys stat completes in `< 30 s` | pass-L0/L1/L2 (`9.23 s` / `4.07 s` / `9.13 s`) |
+| LUT ceiling | `<= 29,860` LUT | pass-L1 fail-L0/L2 (`32,449` LUT / `29,778` LUT best validated `L1` / `31,611` LUT best validated `L1 c_proj` / `50,235` LUT base `L2` / `51,622` LUT aligned replay / `51,832` LUT downstream out-buffer probe); diagnostic `ui64` buffer-lite reaches `20,725` LUT but fails Verilator |
+| FF ceiling | `<= 59,720` FF | pass-L0/L1 fail-L2 (`46,736` FF / `46,352` FF / `50,864` FF best validated `L1 c_proj` / `65,523` FF base `L2` / `64,873` FF aligned replay / `64,743` FF downstream out-buffer probe) |
+| Verilator | kernel test passes | pass-L0/L1-kernel/L1-cproj/L2-kernel |
+| Micro-proof runtime | kernel Yosys stat completes in `< 30 s` | pass-L0/L1/L1-cproj/L2 (`9.23 s` / `4.07 s` / `17.52 s` / `9.13 s`) |
 | Whole-model dependency | no whole-model lowering required | pass-L0/L1/L2 |
 
 ## Benchmark Budgets
@@ -32,7 +32,7 @@ Branch: `task6-streamtensor-lite`
 | Rung | Artifact class | Model target | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | `yosys-stat`, Verilator, and mapped utilization now pass the DSP/FF proof, but direct `abc9` slightly worsened LUT (`32,478`), so the kernel still misses the ceiling |
-| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the current reference is `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9` at `29,778` LUT / `46,352` FF after the downstream post-branch `ui64` buffer clusters (`264..271` then `279..280`) proved to be the first non-selector lever that clears the `L1` LUT ceiling |
+| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the current reference is `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9` at `29,778` LUT / `46,352` FF after the downstream post-branch `ui64` buffer clusters (`264..271` then `279..280`) proved to be the first non-selector lever that clears the `L1` LUT ceiling. The reserve `mlp.c_proj` fallback is now structurally live too, but its untouched redirected kernel only reaches `32,393` LUT / `50,864` FF (`31,611` LUT under direct `abc9`), so it remains reserve-only rather than replacing the frozen `c_fc` reference |
 | `L2` | reduced-vocab single-block replay | `tiny-stories-v1k-h64-l1` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the repo one-block-top Yosys gate also completes in `99.26 s`, but both the aligned replay of the new `L1` post-branch fit path on matching `ui64` buffers `264/265/266/270/271` and the first `L2`-native downstream out-buffer probe on `272/273/274/275/276/278` worsen official CLB LUTs to `51,622` and `51,832`, so there is still no promotion to `L3`, `L2 c_fc` micro-surgery is closed, and the next fallback boundary is `mlp.c_proj` |
 | `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promotion only after `L2` passes |
 | `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after reduced-vocab structural win |
@@ -98,6 +98,8 @@ Branch: `task6-streamtensor-lite`
 | L2 downstream out-buffer FIFO2 `abc9` probe | `task6-l2-c-fc-redirect-downstream-outbuf-fifo2-abc9-json` / `task6-l2-c-fc-redirect-downstream-outbuf-fifo2-abc9-utilization` / `task6-l2-c-fc-redirect-downstream-outbuf-fifo2-sv-sim` | experimental |
 | `c_proj` fallback boundary artifacts | `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_proj-*` / `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-*` | ready |
 | L1 `c_proj` redirected kernel | `task6-l1-c-proj-redirect` | experimental |
+| L1 `c_proj` redirected kernel proof surfaces | `task6-l1-c-proj-redirect-tb-data-sv` / `task6-l1-c-proj-redirect-sim-main` / `task6-l1-c-proj-redirect-json` / `task6-l1-c-proj-redirect-utilization` / `task6-l1-c-proj-redirect-sv-sim` | experimental |
+| L1 `c_proj` redirected kernel `abc9` mapped utilization | `task6-l1-c-proj-redirect-abc9-json` / `task6-l1-c-proj-redirect-abc9-utilization` | experimental |
 | L1 staged `abc9` mapped utilization | `task6-l1-c-fc-redirect-staged-abc9-json` / `task6-l1-c-fc-redirect-staged-abc9-utilization` | experimental |
 | L2 one-block-top Yosys gate | `tiny-stories-v1k-h64-l1-selftest-top4-memory-yosys-json` | ready |
 | Weight pack export | `scripts/task6/export_weights_pack.py` | ready |
@@ -146,6 +148,9 @@ Branch: `task6-streamtensor-lite`
 | 2026-04-23 | `representative-core-v64-h4-c_proj-contract-check.json` | `transformer.h.0.mlp.c_proj` fallback boundary | `linalg -> pack -> contract replay` | n/a | n/a | n/a | n/a | `1.83 s` | `226,384 KB` | pass-fallback | the reserve `L1` fallback boundary is real: the selected representative-core `c_proj` site at line `418` / `%88` replays exactly from packed weights and captured activations, so the next slice can start a redirected `c_proj` kernel without more `L1` boundary scouting |
 | 2026-04-23 | `tiny-stories-v1k-h64-l1-c_proj-contract-check.json` | `transformer.h.0.mlp.c_proj` fallback boundary | `linalg -> pack -> contract replay` | n/a | n/a | n/a | n/a | `1.83 s` | `226,016 KB` | pass-fallback | the same reserve fallback boundary survives on the reduced-vocab rung at line `412` / `%94`, so `c_proj` is now ready for the same redirected-kernel path on `L1` before any replay back onto `L2` |
 | 2026-04-23 | `task6-l1-c-proj-redirect-yosys-stat` | `transformer.h.0.mlp.c_proj` pre-bias kernel | `linalg -> yosys-stat` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `17.52 s` | `563,732 KB` | pass-runtime | the first redirected `c_proj` kernel compiles through the inherited float-extern flow, keeps one `$mul` plus one `arith_mulf` / `arith_addf`, and stays inside the micro-proof budget, so the next slice is Verilator plus mapped utilization rather than more fallback-boundary scouting |
+| 2026-04-23 | `task6-l1-c-proj-redirect-sv-sim` | `transformer.h.0.mlp.c_proj` pre-bias kernel | `sv -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `106.74 s` | `437,244 KB` | pass-sim | the untouched `L1 c_proj` redirected kernel passes the captured contract with `PASS: stores 4 outputs 4`, so the fallback boundary is now a real executable RTL proof and mapped utilization can judge whether it is lane-worthy |
+| 2026-04-23 | `task6-l1-c-proj-redirect-utilization` | `transformer.h.0.mlp.c_proj` pre-bias kernel | `sv -> synth_xilinx -> mapped JSON` | `4` | `0` | `32,393` | `50,864` | `97.85 s` | `562,712 KB` | pass-dsp fail-lut | the first mapped `L1 c_proj` redirect is structurally valid and slightly better than raw `L1 c_fc`, but it still misses the LUT ceiling by `2,533` and trails the frozen `L1 c_fc` reference by `2,615` LUT, so only one cheap mapper-only check is justified before keeping it reserve-only |
+| 2026-04-23 | `task6-l1-c-proj-redirect-abc9-utilization` | `transformer.h.0.mlp.c_proj` pre-bias kernel | `sv -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `31,611` | `50,864` | `143.08 s` | `563,156 KB` | reserve-only | direct `abc9` buys a real `782` LUT reduction on the untouched `L1 c_proj` redirect, but it still misses the ceiling by `1,751` and remains worse than the frozen `L1 c_fc` reference, so keep `c_proj` as a validated reserve fallback rather than switching the main lane to it |
 | 2026-04-23 | `task6-l0-gemv64-abc9-utilization` | synthetic external-weight `64x64` GEMV | `sv -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `32,478` | `46,736` | `94.83 s` | `561,388 KB` | reject-mapper | stop treating direct `abc9` as an `L0` fit path because it slightly worsens LUT while leaving the rest of the signature unchanged |
 | 2026-04-23 | `task6-l1-c-fc-redirect-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `32,236` | `51,296` | `94.27 s` | `561,892 KB` | pass-dsp fail-lut | keep direct `abc9` as the best mapped `L1` result so far, but move on because the kernel still misses the LUT ceiling by `2,376` |
 | 2026-04-23 | `task6-l1-c-fc-redirect-staged-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `il -> staged synth_xilinx -abc9` | n/a | n/a | n/a | n/a | `15.14 s` | `564,392 KB` | reject-staged-mapper | stop the staged `abc9` path after one failure because stage8 dies on `FDRE` parameter handling before any mapped JSON is produced |
@@ -212,6 +217,12 @@ Branch: `task6-streamtensor-lite`
     scorecard uses official CLB LUTs and those still worsen to `51,832` while
     FF only trims to `64,743`, so `L2 c_fc` micro-surgery is closed and the
     next fallback boundary is `mlp.c_proj`
+- The untouched `L1 c_proj` redirect is not a mainline replacement for the frozen `L1 c_fc` proof:
+  - the base mapped proof reaches `32,393` LUT / `50,864` FF and direct `abc9`
+    improves that to `31,611` LUT / `50,864` FF while preserving Verilator and
+    `4 DSP48E1`, but both still trail the accepted `29,778` LUT / `46,352` FF
+    `c_fc` reference, so `c_proj` stays as a validated reserve fallback rather
+    than the primary fit-first lane
 - The direct `abc9` mapper variant is not enough to clear the lane:
   - it improves the accepted `L1` proof to `32,236` LUT, but that still misses
     the ceiling by `2,376`, and the same mapper slightly worsens `L0` to
