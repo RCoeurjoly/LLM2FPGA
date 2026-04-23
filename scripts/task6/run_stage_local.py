@@ -264,18 +264,32 @@ def summarize_utilization(result: dict[str, Any]) -> dict[str, Any]:
 def summarize_sim(result: dict[str, Any]) -> dict[str, Any]:
     pass_line = None
     fail_line = None
-    for line in result["log_text"].splitlines():
-        stripped = line.strip()
-        if stripped.startswith("PASS:"):
-            pass_line = stripped
-        if stripped.startswith("FAIL:") or "Timeout waiting" in stripped:
-            fail_line = stripped
+    payload: dict[str, Any] = {}
+    if result["store_path"] is not None:
+        payload = load_json(Path(result["store_path"]))
+        status = payload.get("status")
+        stores = payload.get("stores")
+        outputs = payload.get("outputs")
+        if status == "PASS":
+            pass_line = f"PASS: stores {stores} outputs {outputs}"
+        elif status is not None:
+            fail_line = f"{status}: stores {stores} outputs {outputs}"
+    if pass_line is None and fail_line is None:
+        for line in result["log_text"].splitlines():
+            stripped = line.strip()
+            if stripped.startswith("PASS:"):
+                pass_line = stripped
+            if stripped.startswith("FAIL:") or "Timeout waiting" in stripped:
+                fail_line = stripped
     return {
         "store_path": result["store_path"],
         "elapsed_s": result["elapsed_s"],
         "rss_kb": result["rss_kb"],
         "pass_line": pass_line,
         "fail_line": fail_line,
+        "status": payload.get("status"),
+        "stores": payload.get("stores"),
+        "outputs": payload.get("outputs"),
     }
 
 
@@ -358,6 +372,8 @@ def write_summary(
         lines.append(f"- Verilator wall-clock: {format_seconds(sim.get('elapsed_s'))}")
         lines.append(f"- Verilator peak RSS: {format_int(sim.get('rss_kb'))} KB")
         lines.append(f"- Verilator result: `{sim.get('pass_line') or sim.get('fail_line') or 'n/a'}`")
+        if sim.get("store_path"):
+            lines.append(f"- sv-sim output: `{sim['store_path']}`")
         lines.append(f"- CLB LUTs: {format_int(util.get('lut'))}")
         lines.append(f"- CLB FFs: {format_int(util.get('ff'))}")
         lines.append(f"- DSP48E1: {format_int(util.get('dsp'))}")
