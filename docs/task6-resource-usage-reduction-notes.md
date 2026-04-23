@@ -3755,3 +3755,105 @@ Representative-core sweep setup later on 2026-04-22:
     contract
   - stop widening `L1` again here; the next replay should move to `L2` before
     any promotion toward `L3`
+
+### L2 aligned post-branch FIFO2 replay later on 2026-04-23
+
+- Added flake outputs:
+  - `task6-l2-c-fc-redirect-postbranch-fifo2-sim-main`
+  - `task6-l2-c-fc-redirect-postbranch-fifo2-sv-sim`
+  - `task6-l2-c-fc-redirect-postbranch-fifo2-abc9-json`
+  - `task6-l2-c-fc-redirect-postbranch-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T14-23-08+0200/l2-postbranch-fifo2-proof/summary.md`
+
+#### Why this slice
+
+- The lane rule after the new `L1` reference was:
+  - replay that exact fit lever on `L2` before considering any `L3` promotion
+- The generated `L2` SV does not match the `L1` post-branch neighborhood one
+  for one:
+  - `handshake_buffer264`, `265`, `266`, `270`, and `271` are still
+    `ui64 -> ui64` buffers
+  - `handshake_buffer269`, `279`, and `280` have changed type, so the full
+    `L1` out-buffer replay is not a legal direct copy
+- The smallest aligned hypothesis was therefore:
+  - replace only the still-matching post-branch `ui64` buffers
+    `264/265/266/270/271` with `task6_ui64_fifo2_buffer`
+  - then re-run Verilator plus mapped `abc9` and stop if LUT moves the wrong
+    way
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-postbranch-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 256 outputs 256`
+    - `ELAPSED=77.00`
+    - `RSS_KB=437400`
+- Interpretation:
+  - the aligned subset replay is functionally valid on `L2`
+  - no broad compiler or kernel surgery was needed to carry the `L1` lever
+    over
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-postbranch-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/85z4gz624dqdmqf9hszcxn65gqrv5drc-task6-l2-c-fc-redirect-postbranch-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=255.15`
+    - `RSS_KB=563416`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `51,622`
+    - CLB FFs:
+      - `64,873`
+- Primitive signature:
+  - `FDRE`:
+    - `64,870`
+  - `LUT6`:
+    - `29,438`
+  - `LUT5`:
+    - `8,333`
+  - `LUT3`:
+    - `7,749`
+  - `LUT2`:
+    - `4,005`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+    - unchanged from the accepted `L2` redirect; this replay only swaps local
+      buffer modules and does not touch the external load interface
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `not rerun`
+    - the accepted `L2` kernel still has a separate `yosys-stat` proof at
+      `9.13 s`, but this replay was judged directly on Verilator plus mapped
+      `abc9`
+- Delta against the existing `L2` kernel:
+  - LUT:
+    - `50,235 -> 51,622` (`+1,387`)
+  - FF:
+    - `65,523 -> 64,873` (`-650`)
+- Delta against the current `L1` reference:
+  - LUT:
+    - `29,778 -> 51,622` (`+21,844`)
+  - FF:
+    - `46,352 -> 64,873` (`+18,521`)
+- Interpretation:
+  - the bounded `L1` fit lever does not survive as a useful fit lever on `L2`
+    even when replayed only on the structurally matching `ui64` sites
+  - this is a clean negative datapoint, not a broken build:
+    - external weights still hold
+    - `4 DSP48E1` still hold
+    - the kernel contract still passes
+  - close this exact replay path rather than widening it blindly, because LUT
+    moved in the wrong direction on the first aligned test

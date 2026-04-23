@@ -876,6 +876,25 @@
         };
         task6L2CFcRedirectPipeline = modelPipelines."task6-l2-c-fc-redirect";
         task6L2CFcRedirectSv = task6L2CFcRedirectPipeline.sv;
+        task6L2CFcRedirectPostBranchFifo2Sv = pkgs.runCommand
+          "task6-l2-c-fc-redirect-postbranch-fifo2-sv" { } ''
+            cp -r ${task6L2CFcRedirectSv} "$out"
+            chmod -R u+w "$out"
+            cp ${./rtl/task6/task6_ui64_fifo2_buffer.sv} "$out/sv/task6_ui64_fifo2_buffer.sv"
+            for id in 264 265 266 270 271; do
+              sed -i \
+                "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer''${id} (/  task6_ui64_fifo2_buffer handshake_buffer''${id} (/" \
+                "$out/sv/main.sv"
+            done
+            sed \
+              "s#${task6L2CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L2CFcRedirectSv}/sources.f > "$out/sources.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sources.f"
+            sed \
+              "s#${task6L2CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L2CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
+            printf '%s\n' "$out/sv/task6_ui64_fifo2_buffer.sv" >> "$out/sv/filelist.f"
+          '';
         task6L2CFcRedirectJson = mkSynthJson {
           name = "task6-l2-c-fc-redirect";
           svFilelist = "${task6L2CFcRedirectSv}/sources.f";
@@ -888,6 +907,20 @@
           topName = "main";
           designJson = task6L2CFcRedirectJson;
         };
+        task6L2CFcRedirectPostBranchFifo2Abc9Json = mkSynthJson {
+          name = "task6-l2-c-fc-redirect-postbranch-fifo2-abc9";
+          svFilelist = "${task6L2CFcRedirectPostBranchFifo2Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L2CFcRedirectPostBranchFifo2Sv}/sv/main.sv";
+          useAbc9 = true;
+        };
+        task6L2CFcRedirectPostBranchFifo2Abc9Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l2-c-fc-redirect-postbranch-fifo2-abc9";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L2CFcRedirectPostBranchFifo2Abc9Json;
+          };
         tinyStories1mPipeline = modelPipelines."tiny-stories-1m";
         tinyStories1mIl = tinyStories1mPipeline.il;
         tinyStories1mBaselineFloatPipeline =
@@ -2432,6 +2465,17 @@
             -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
             -f ${task6L2CFcRedirectSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
         '';
+        task6L2CFcRedirectPostBranchFifo2SimMain = pkgs.runCommand
+          "task6-l2-c-fc-redirect-postbranch-fifo2-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L2CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L2CFcRedirectPostBranchFifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
 
         matmulSvSim = pkgs.runCommand "matmul-sv-sim.json" {
           buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -2791,6 +2835,27 @@
           }
           EOF
         '';
+        task6L2CFcRedirectPostBranchFifo2SvSim = pkgs.runCommand
+          "task6-l2-c-fc-redirect-postbranch-fifo2-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L2CFcRedirectPostBranchFifo2SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l2-c-fc-redirect-postbranch-fifo2 SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
 
         matmulSvWave = pkgs.runCommand "matmul-wave.vcd" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -3014,6 +3079,14 @@
           task6-l2-c-fc-redirect-json = task6L2CFcRedirectJson;
           task6-l2-c-fc-redirect-utilization = task6L2CFcRedirectUtilization;
           task6-l2-c-fc-redirect-sv-sim = task6L2CFcRedirectSvSim;
+          task6-l2-c-fc-redirect-postbranch-fifo2-sim-main =
+            task6L2CFcRedirectPostBranchFifo2SimMain;
+          task6-l2-c-fc-redirect-postbranch-fifo2-abc9-json =
+            task6L2CFcRedirectPostBranchFifo2Abc9Json;
+          task6-l2-c-fc-redirect-postbranch-fifo2-abc9-utilization =
+            task6L2CFcRedirectPostBranchFifo2Abc9Utilization;
+          task6-l2-c-fc-redirect-postbranch-fifo2-sv-sim =
+            task6L2CFcRedirectPostBranchFifo2SvSim;
           matmul-selftest-bitstream = matmulSelftestBitstream;
           matmul-selftest-fasm = matmulSelftestFasm;
           matmul-selftest-top = matmulSelftestTop;
