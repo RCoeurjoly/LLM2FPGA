@@ -3170,3 +3170,151 @@ Representative-core sweep setup later on 2026-04-22:
   - this is a good place to stop blind widening:
     - the next move should be a deliberate choice among the remaining adjacent
       control/merge sites rather than another generic ring expansion
+
+### L1 deliberate control-merge FIFO2 `abc9` proof later on 2026-04-23
+
+- Added:
+  - `rtl/task6/task6_ctrl_fifo2_buffer.sv`
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-json`
+    - `task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-abc9-json`
+    - `task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T12-36-17+0200/l1-index-ring3-ctrlmerge-fifo2-proof/summary.md`
+
+#### Why this slice
+
+- The shared follow-up instruction was to:
+  - freeze `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9` as the reference
+  - avoid more blind ring expansion
+  - do one deliberate hotspot pass on the remaining nearby control or merge
+    state
+- The nearest still-local control-heavy sites around the frozen ring-3 region
+  were:
+  - `handshake_buffer194`
+  - `handshake_buffer220`
+  - `handshake_buffer229`
+  - `handshake_buffer237`
+- These buffers feed the nearby control-merge chain:
+  - `handshake_buffer194 -> handshake_buffer220 -> handshake_control_merge2`
+  - `handshake_buffer229 -> handshake_buffer237 -> handshake_control_merge1`
+- The specific hypothesis was:
+  - if these zero-width control buffers were still overprovisioned in the same
+    way as the already-profitable `ui64` ring, a lean FIFO2 replacement might
+    close the remaining `460` LUT gap without broadening the patch radius
+
+#### Functional proof
+
+- Because the derivation was already cached, the timed rerun first deleted the
+  previous simulation outputs:
+  - `nix-store --delete /nix/store/1xphnja7abzdswcfxqmhcfz3lj0y1wja-task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-sim-main /nix/store/llngvrfdwz6a78hwml7ia2k6pam9i56c-task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-sv-sim.json >/dev/null`
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=149.22`
+    - `RSS_KB=436284`
+- Interpretation:
+  - the deliberate control/merge hotspot is contract-safe, so the result is a
+    real fit comparison rather than another functional dead end
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/h6mh3s3skf8spnczfabhl71khhb6asgv-task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=156.72`
+    - `RSS_KB=562952`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `30,360`
+    - CLB FFs:
+      - `47,384`
+- Primitive signature:
+  - `FDRE`:
+    - `47,381`
+  - `LUT6`:
+    - `14,718`
+  - `LUT3`:
+    - `7,740`
+  - `LUT2`:
+    - `3,297`
+  - `LUT5`:
+    - `3,140`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+    - this slice still reuses the accepted external-weight `L1` kernel and only
+      changes four local control buffers plus the helper module they instantiate
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against the frozen ring-3 reference:
+  - LUT:
+    - `30,320 -> 30,360` (`+40`)
+  - FF:
+    - `47,392 -> 47,384` (`-8`)
+- Interpretation:
+  - this hotspot is real and safe, but it is not a fit win
+  - the result is close enough to rule out measurement noise as the likely
+    explanation, but it still points the wrong way on the metric that matters
+  - the right conclusion is to keep
+    `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9` frozen as the current `L1`
+    reference and stop spending more slices on this local control/merge branch
+
+### Reduced-vocab one-block-top Yosys gate later on 2026-04-23
+
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T12-36-17+0200/l1-one-block-top-yosys-gate/summary.md`
+
+#### Why this gate
+
+- The shared follow-up instruction also required:
+  - after one deliberate hotspot pass, run the pending one-block-top Yosys gate
+    before any `L3` or `L4` promotion
+- The repo surface available for that check is:
+  - `tiny-stories-v1k-h64-l1-selftest-top4-memory-yosys-json`
+- This is a `yosys-json` gate rather than a dedicated `yosys-stat` package, but
+  it exercises the one-block-top build path and is the existing reproducible
+  budget gate in-tree
+
+#### Timed gate
+
+- Timed one-block-top Yosys build:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-v1k-h64-l1-selftest-top4-memory-yosys-json --no-link --print-out-paths`
+  - output:
+    - `/nix/store/hh7fkqlis1kdgi07qgmxxjl1nl6lxrq9-tiny-stories-v1k-h64-l1-selftest-top4-memory-yosys.json`
+  - result:
+    - `ELAPSED=99.26`
+    - `RSS_KB=564340`
+
+#### Interpretation
+
+- Relative to the lane budget:
+  - one-block-top Yosys gate:
+    - `99.26 s`
+    - this passes the `< 2 min` budget
+- Structural implications:
+  - the promotion gate is no longer missing
+  - but it does not rescue the fit-first decision:
+    - the frozen `L1` reference still sits at `30,320` LUT, which is `460` over
+      the ceiling
+    - the best reduced-vocab `L2` mapped replay is still materially worse than
+      that reference
+- Conclusion:
+  - do not widen to `L3` or `L4` from this result alone
+  - the next slice, if any, should be a different fit lever than the rejected
+    control/merge hotspot
