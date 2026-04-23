@@ -9,7 +9,7 @@ Branch: `task6-streamtensor-lite`
 | --- | --- | --- |
 | DSP use | `DSP > 0` in the kernel or one-block-top Yosys stat | pass-L0/L1/L2 (`4 DSP48E1`) |
 | Weight placement | packed or ROM-style external weights, not giant RTL constants | pass-L0/L1-pack/L1-kernel/L2-pack/L2-kernel |
-| LUT ceiling | `<= 29,860` LUT | fail-L0/L1/L2 (`32,449` LUT / `33,116` LUT / `50,235` LUT) |
+| LUT ceiling | `<= 29,860` LUT | fail-L0/L1/L2 (`32,449` LUT / `32,236` LUT best validated `L1` / `50,235` LUT); diagnostic `ui64` buffer-lite reaches `20,725` LUT but fails Verilator |
 | FF ceiling | `<= 59,720` FF | pass-L0/L1 fail-L2 (`46,736` FF / `51,296` FF / `65,523` FF) |
 | Verilator | kernel test passes | pass-L0/L1-kernel/L2-kernel |
 | Micro-proof runtime | kernel Yosys stat completes in `< 30 s` | pass-L0/L1/L2 (`9.23 s` / `4.07 s` / `9.13 s`) |
@@ -31,8 +31,8 @@ Branch: `task6-streamtensor-lite`
 
 | Rung | Artifact class | Model target | Status | Notes |
 | --- | --- | --- | --- | --- |
-| `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | `yosys-stat`, Verilator, and mapped utilization now pass the DSP/FF proof, but the kernel still misses the LUT ceiling |
-| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP, but explicit bias externalization failed and the mapped LUT count still misses the ceiling |
+| `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | `yosys-stat`, Verilator, and mapped utilization now pass the DSP/FF proof, but direct `abc9` slightly worsened LUT (`32,478`), so the kernel still misses the ceiling |
+| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; direct `abc9` lowers mapped LUT from `33,116` to `32,236`, and a `ui64` buffer-lite diagnostic collapses fit to `20,725` LUT / `15,731` FF but times out the kernel proof |
 | `L2` | reduced-vocab single-block replay | `tiny-stories-v1k-h64-l1` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP, but the mapped LUT and FF counts are both worse than `L1` |
 | `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promotion only after `L2` passes |
 | `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after reduced-vocab structural win |
@@ -76,8 +76,12 @@ Branch: `task6-streamtensor-lite`
 | L0 kernel model | `task6-l0-gemv64` | ready |
 | L0 Verilator harness | `task6-l0-gemv64-sim-main` / `task6-l0-gemv64-sv-sim` | ready |
 | L0 mapped utilization | `task6-l0-gemv64-json` / `task6-l0-gemv64-utilization` | ready |
+| L0 `abc9` mapped utilization | `task6-l0-gemv64-abc9-json` / `task6-l0-gemv64-abc9-utilization` | ready |
 | L0 int16 mapped variant | `task6-l0-gemv64-int16-json` / `task6-l0-gemv64-int16-utilization` | ready |
 | L1 candidate finder | `scripts/task6/find_l1_gemv_candidate.py` | ready |
+| L1 `abc9` mapped utilization | `task6-l1-c-fc-redirect-abc9-json` / `task6-l1-c-fc-redirect-abc9-utilization` | ready |
+| L1 `ui64` buffer-lite probe | `task6-l1-c-fc-redirect-ui64-buffer-lite-json` / `task6-l1-c-fc-redirect-ui64-buffer-lite-utilization` / `task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim` | experimental |
+| L1 staged `abc9` mapped utilization | `task6-l1-c-fc-redirect-staged-abc9-json` / `task6-l1-c-fc-redirect-staged-abc9-utilization` | experimental |
 | Weight pack export | `scripts/task6/export_weights_pack.py` | ready |
 | L1/L2 contract export | `scripts/task6/export_l1_contract.py` | ready |
 | L1/L2 pack replay check | `scripts/task6/verify_l1_contract.py` | ready |
@@ -117,6 +121,11 @@ Branch: `task6-streamtensor-lite`
 | 2026-04-22 | `task6-l2-c-fc-redirect-yosys-stat` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `linalg -> yosys-stat` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `9.13 s` | `563,512 KB` | pass-runtime | use the aligned `64 -> 256` redirected kernel as the first reduced-vocab structural proof before spending on mapped utilization |
 | 2026-04-22 | `task6-l2-c-fc-redirect-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv -> synth_xilinx -> mapped JSON` | `4` | `0` | `50,235` | `65,523` | `88.93 s` | `562,776 KB` | pass-dsp fail-fit | do not promote `L2` as the fit-first lane because both LUT and FF counts regress relative to `L1` |
 | 2026-04-22 | `task6-l2-c-fc-redirect-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `47.06 s` | `437,352 KB` | pass-sim-tol | keep the `L2` redirect as a valid functional proof, but move fit-reduction work back to the cheaper `L1` rung |
+| 2026-04-23 | `task6-l0-gemv64-abc9-utilization` | synthetic external-weight `64x64` GEMV | `sv -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `32,478` | `46,736` | `94.83 s` | `561,388 KB` | reject-mapper | stop treating direct `abc9` as an `L0` fit path because it slightly worsens LUT while leaving the rest of the signature unchanged |
+| 2026-04-23 | `task6-l1-c-fc-redirect-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `32,236` | `51,296` | `94.27 s` | `561,892 KB` | pass-dsp fail-lut | keep direct `abc9` as the best mapped `L1` result so far, but move on because the kernel still misses the LUT ceiling by `2,376` |
+| 2026-04-23 | `task6-l1-c-fc-redirect-staged-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `il -> staged synth_xilinx -abc9` | n/a | n/a | n/a | n/a | `15.14 s` | `564,392 KB` | reject-staged-mapper | stop the staged `abc9` path after one failure because stage8 dies on `FDRE` parameter handling before any mapped JSON is produced |
+| 2026-04-23 | `task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `22.69 s` | `437,508 KB` | reject-functional | the `ui64` one-slot buffer override is not a valid drop-in because both tested variants timed out the kernel-only contract |
+| 2026-04-23 | `task6-l1-c-fc-redirect-ui64-buffer-lite-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv override -> synth_xilinx -> mapped JSON` | `4` | `0` | `20,725` | `15,731` | `53.61 s` | `562,884 KB` | fit-diagnostic-only | treat this as an upper-bound fit signal only: `ui64` buffer state dominates area, but the current low-state override fails the Verilator contract |
 
 ## Rejections
 
@@ -141,6 +150,18 @@ Branch: `task6-streamtensor-lite`
   - even though it keeps `4 DSP48E1` and passes Verilator, mapped utilization
     rises to `50,235` LUT and `65,523` FF, which is worse than the accepted
     `L1` structural proof
+- The direct `abc9` mapper variant is not enough to clear the lane:
+  - it improves the accepted `L1` proof to `32,236` LUT, but that still misses
+    the ceiling by `2,376`, and the same mapper slightly worsens `L0` to
+    `32,478` LUT
+- The staged `abc9` micro-flow is currently broken on the accepted `L1` kernel:
+  - `task6-l1-c-fc-redirect-staged-abc9-utilization` fails at `stage8` with
+    `ERROR: Module \`FDRE' is used with parameters but is not parametric!`, so
+    that path is stopped after one failure
+- The `ui64` buffer-lite override is not a valid `L1` drop-in:
+  - both tested one-slot variants timed out the kernel-only Verilator proof, so
+    the `20,725` LUT / `15,731` FF mapped result is diagnostic only, not an
+    accepted fit proof
 - Resolved blocker:
   - the first `task6-l0-gemv64` `sv` export failed until the model reused the
     baseline float extern wiring (`allowHwExterns`, per-file extern import, and

@@ -310,11 +310,24 @@
           topName = "main";
           topSv = "${task6L0Gemv64Sv}/sv/main.sv";
         };
+        task6L0Gemv64Abc9Json = mkSynthJson {
+          name = "task6-l0-gemv64-abc9";
+          svFilelist = "${task6L0Gemv64Sv}/sources.f";
+          topName = "main";
+          topSv = "${task6L0Gemv64Sv}/sv/main.sv";
+          useAbc9 = true;
+        };
         task6L0Gemv64Utilization = mkMappedJsonUtilizationReport {
           name = "task6-l0-gemv64";
           capacities = tinyStoriesCapacities;
           topName = "main";
           designJson = task6L0Gemv64Json;
+        };
+        task6L0Gemv64Abc9Utilization = mkMappedJsonUtilizationReport {
+          name = "task6-l0-gemv64-abc9";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L0Gemv64Abc9Json;
         };
         task6L0Gemv64Int16Pipeline = modelPipelines."task6-l0-gemv64-int16";
         task6L0Gemv64Int16Sv = task6L0Gemv64Int16Pipeline.sv;
@@ -332,17 +345,71 @@
         };
         task6L1CFcRedirectPipeline = modelPipelines."task6-l1-c-fc-redirect";
         task6L1CFcRedirectSv = task6L1CFcRedirectPipeline.sv;
+        task6L1CFcRedirectIl = task6L1CFcRedirectPipeline.il;
+        task6L1CFcRedirectUi64BufferLiteSv = pkgs.runCommand
+          "task6-l1-c-fc-redirect-ui64-buffer-lite-sv" { } ''
+            cp -r ${task6L1CFcRedirectSv} "$out"
+            chmod -R u+w "$out"
+            cp ${
+              ./rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq.sv
+            } "$out/sv/handshake_buffer_in_ui64_out_ui64_2slots_seq.sv"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sources.f > "$out/sources.f"
+            sed \
+              "s#${task6L1CFcRedirectSv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectSv}/sv/filelist.f > "$out/sv/filelist.f"
+          '';
         task6L1CFcRedirectJson = mkSynthJson {
           name = "task6-l1-c-fc-redirect";
           svFilelist = "${task6L1CFcRedirectSv}/sources.f";
           topName = "main";
           topSv = "${task6L1CFcRedirectSv}/sv/main.sv";
         };
+        task6L1CFcRedirectAbc9Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-abc9";
+          svFilelist = "${task6L1CFcRedirectSv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectSv}/sv/main.sv";
+          useAbc9 = true;
+        };
         task6L1CFcRedirectUtilization = mkMappedJsonUtilizationReport {
           name = "task6-l1-c-fc-redirect";
           capacities = tinyStoriesCapacities;
           topName = "main";
           designJson = task6L1CFcRedirectJson;
+        };
+        task6L1CFcRedirectAbc9Utilization = mkMappedJsonUtilizationReport {
+          name = "task6-l1-c-fc-redirect-abc9";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L1CFcRedirectAbc9Json;
+        };
+        task6L1CFcRedirectUi64BufferLiteJson = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-ui64-buffer-lite";
+          svFilelist = "${task6L1CFcRedirectUi64BufferLiteSv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectUi64BufferLiteSv}/sv/main.sv";
+        };
+        task6L1CFcRedirectUi64BufferLiteUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-ui64-buffer-lite";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectUi64BufferLiteJson;
+          };
+        task6L1CFcRedirectStagedAbc9 = mkSynthJsonStages {
+          name = "task6-l1-c-fc-redirect-staged-abc9";
+          modelIl = task6L1CFcRedirectIl;
+          topName = "main";
+          quiet = true;
+          useAbc9 = true;
+        };
+        task6L1CFcRedirectStagedAbc9Utilization = mkMappedJsonUtilizationReport {
+          name = "task6-l1-c-fc-redirect-staged-abc9";
+          capacities = tinyStoriesCapacities;
+          topName = "main";
+          designJson = task6L1CFcRedirectStagedAbc9.json;
         };
         task6L2CFcRedirectPipeline = modelPipelines."task6-l2-c-fc-redirect";
         task6L2CFcRedirectSv = task6L2CFcRedirectPipeline.sv;
@@ -924,7 +991,8 @@
         '';
 
         mkSynthJson =
-          { name, modelIl ? null, svFilelist ? null, topName, topSv }:
+          { name, modelIl ? null, svFilelist ? null, topName, topSv
+          , useAbc9 ? false }:
           let
             useModelIl = modelIl != null;
             useSvFilelist = svFilelist != null;
@@ -943,10 +1011,10 @@
             ${appendYosysCommands [
               "hierarchy -top ${topName} -check"
               "proc"
-              "synth_xilinx -family xc7 -top ${topName} -noiopad -json $out"
+              "synth_xilinx -family xc7 -top ${topName} -noiopad ${pkgs.lib.optionalString useAbc9 "-abc9 "} -json $out"
             ]}
 
-            echo "[mkSynthJson:${name}] stage8 final synth/write" >&2
+            echo "[mkSynthJson:${name}] stage8 final synth/write${pkgs.lib.optionalString useAbc9 " -abc9"}" >&2
             ${yosysPkg}/bin/yosys -m ${yosysSlang}/share/yosys/plugins/slang.so -s run.ys
 
             if [ ! -e "$out" ]; then
@@ -1746,6 +1814,18 @@
             -f ${task6L1CFcRedirectSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
         '';
 
+        task6L1CFcRedirectUi64BufferLiteSimMain = pkgs.runCommand
+          "task6-l1-c-fc-redirect-ui64-buffer-lite-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectUi64BufferLiteSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
+
         task6L2CFcRedirectSimMain = pkgs.runCommand "task6-l2-c-fc-redirect-sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
         } ''
@@ -1819,6 +1899,28 @@
           }
           EOF
         '';
+
+        task6L1CFcRedirectUi64BufferLiteSvSim = pkgs.runCommand
+          "task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectUi64BufferLiteSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-ui64-buffer-lite SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
 
         task6L2CFcRedirectSvSim = pkgs.runCommand "task6-l2-c-fc-redirect-sv-sim.json" {
           buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -1930,6 +2032,8 @@
           task6-l0-gemv64-sim-main = task6L0Gemv64SimMain;
           task6-l0-gemv64-json = task6L0Gemv64Json;
           task6-l0-gemv64-utilization = task6L0Gemv64Utilization;
+          task6-l0-gemv64-abc9-json = task6L0Gemv64Abc9Json;
+          task6-l0-gemv64-abc9-utilization = task6L0Gemv64Abc9Utilization;
           task6-l0-gemv64-int16-json = task6L0Gemv64Int16Json;
           task6-l0-gemv64-int16-utilization = task6L0Gemv64Int16Utilization;
           task6-l0-gemv64-sv-sim = task6L0Gemv64SvSim;
@@ -1938,6 +2042,21 @@
           task6-l1-c-fc-redirect-sim-main = task6L1CFcRedirectSimMain;
           task6-l1-c-fc-redirect-json = task6L1CFcRedirectJson;
           task6-l1-c-fc-redirect-utilization = task6L1CFcRedirectUtilization;
+          task6-l1-c-fc-redirect-abc9-json = task6L1CFcRedirectAbc9Json;
+          task6-l1-c-fc-redirect-abc9-utilization =
+            task6L1CFcRedirectAbc9Utilization;
+          task6-l1-c-fc-redirect-ui64-buffer-lite-sim-main =
+            task6L1CFcRedirectUi64BufferLiteSimMain;
+          task6-l1-c-fc-redirect-ui64-buffer-lite-json =
+            task6L1CFcRedirectUi64BufferLiteJson;
+          task6-l1-c-fc-redirect-ui64-buffer-lite-utilization =
+            task6L1CFcRedirectUi64BufferLiteUtilization;
+          task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim =
+            task6L1CFcRedirectUi64BufferLiteSvSim;
+          task6-l1-c-fc-redirect-staged-abc9-json =
+            task6L1CFcRedirectStagedAbc9.json;
+          task6-l1-c-fc-redirect-staged-abc9-utilization =
+            task6L1CFcRedirectStagedAbc9Utilization;
           task6-l1-c-fc-redirect-sv-sim = task6L1CFcRedirectSvSim;
           task6-l2-c-fc-redirect-tb-data-sv = task6L2CFcRedirectTbDataSv;
           task6-l2-c-fc-redirect-sim-main = task6L2CFcRedirectSimMain;

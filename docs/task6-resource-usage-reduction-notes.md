@@ -2448,3 +2448,173 @@ Representative-core sweep setup later on 2026-04-22:
     - FF grows from `51,296` on `L1` to `65,523`
   - the next useful slice is fit reduction on the cheaper `L1` proof, not
     larger-lane bring-up
+
+### L1 mapper-only fit check later on 2026-04-23
+
+- Added:
+  - direct `abc9` flake outputs:
+    - `task6-l0-gemv64-abc9-json`
+    - `task6-l0-gemv64-abc9-utilization`
+    - `task6-l1-c-fc-redirect-abc9-json`
+    - `task6-l1-c-fc-redirect-abc9-utilization`
+  - staged `abc9` flake outputs:
+    - `task6-l1-c-fc-redirect-staged-abc9-json`
+    - `task6-l1-c-fc-redirect-staged-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T09-23-28+0200/`
+
+#### Direct `abc9` control on `L0`
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l0-gemv64-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/mp68ywi5hy4zr5ldvjmm0zib5a5anddh-task6-l0-gemv64-abc9-utilization`
+  - result:
+    - `ELAPSED=94.83`
+    - `RSS_KB=561388`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `32,478`
+    - CLB FFs:
+      - `46,736`
+- Interpretation:
+  - direct `abc9` is not a useful `L0` fit tactic:
+    - LUT rises from `32,449` to `32,478`
+    - FF and DSP stay effectively unchanged
+
+#### Direct `abc9` on the accepted `L1` kernel
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/iamh08ddr6pahr3py2ach61abzpxbrqs-task6-l1-c-fc-redirect-abc9-utilization`
+  - result:
+    - `ELAPSED=94.27`
+    - `RSS_KB=561892`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `32,236`
+    - CLB FFs:
+      - `51,296`
+- Weight placement and replay status:
+  - unchanged from the accepted kernel-only `L1` proof:
+    - large weights still enter through top-level `in1_ld0_*`
+    - Verilator still passes on `task6-l1-c-fc-redirect-sv-sim`
+    - `yosys-stat` still fits the micro-proof budget at `4.07 s`
+- Interpretation:
+  - direct `abc9` is a real but insufficient improvement on the active lane:
+    - LUT falls from `33,116` to `32,236`
+    - the ceiling still fails by `2,376`
+  - mapper choice matters, but it is not enough on its own to clear the lane
+
+#### Staged `abc9` check on the accepted `L1` kernel
+
+- Timed staged build:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-staged-abc9-utilization --no-link --print-out-paths`
+  - result:
+    - `ELAPSED=15.14`
+    - `RSS_KB=564392`
+  - failure:
+    - `ERROR: Module \`FDRE' is used with parameters but is not parametric!`
+    - failure point:
+      - `task6-l1-c-fc-redirect-staged-abc9-stage8.il`
+- Interpretation:
+  - stop the staged micro-flow after one failure:
+    - it does not currently produce a mapped JSON on the accepted `L1` kernel
+    - fixing the staged Xilinx primitive handling would be plumbing work, not a
+      fit-first micro-proof
+  - the next useful slice is no longer mapper-only:
+    - keep direct `abc9` as the current best mapped `L1` result
+    - move the next effort to RTL-structural LUT reduction on the shared float
+      kernel path
+
+### L1 `ui64` buffer-lite diagnostic later on 2026-04-23
+
+- Added:
+  - override file:
+    - `rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq.sv`
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-ui64-buffer-lite-sim-main`
+    - `task6-l1-c-fc-redirect-ui64-buffer-lite-json`
+    - `task6-l1-c-fc-redirect-ui64-buffer-lite-utilization`
+    - `task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T09-23-28+0200/`
+
+#### Why this slice
+
+- Structural inspection of the accepted `L1` RTL showed:
+  - `204` instances of `handshake_buffer_in_ui64_out_ui64_2slots_seq`
+  - `48` instances of `handshake_buffer_in_none_out_none_2slots_seq_1ins_1outs_ctrl`
+  - only one `arith_mulf_in_f32_f32_out_f32` and one
+    `arith_addf_in_f32_f32_out_f32`
+- that made the `ui64` two-slot buffer the cheapest first target for a fit
+  probe without broad compiler surgery
+
+#### Functional check
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-ui64-buffer-lite-sv-sim --no-link -L`
+  - tracked-file reminder:
+    - the first rerun failed until `rtl/task6/handshake_buffer_in_ui64_out_ui64_2slots_seq.sv`
+      was git-tracked, because the flake source snapshot omits untracked files
+  - tested variants:
+    - strict one-slot FIFO
+    - fall-through skid-style one-slot FIFO
+  - final result:
+    - `ELAPSED=22.69`
+    - `RSS_KB=437508`
+    - `Timeout waiting for redirected GEMV completion`
+- Interpretation:
+  - the current `ui64` one-slot replacements are not valid drop-ins for the
+    accepted `L1` handshake schedule
+  - this counts as two failures of the same replacement class, so do not spend
+    another slice on a third ad hoc `ui64` one-slot variant without a stronger
+    semantic argument
+
+#### Fit-only diagnostic
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-ui64-buffer-lite-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/aw5y4ri37p3zp0dksym0y2f2agm5p5ax-task6-l1-c-fc-redirect-ui64-buffer-lite-utilization`
+  - result:
+    - `ELAPSED=53.61`
+    - `RSS_KB=562884`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `20,725`
+    - CLB FFs:
+      - `15,731`
+- Primitive signature:
+  - `FDRE` drops from `51,293` on the accepted `L1` proof to `15,728`
+  - `LUT6` drops from `19,276` to `3,750`
+- Interpretation:
+  - this is the strongest fit signal in the lane so far:
+    - replacing only the `ui64` two-slot buffer class pushes the mapped design
+      comfortably under the LUT ceiling while keeping `4 DSP48E1`
+  - but it is diagnostic only:
+    - the current replacement breaks the kernel contract, so it is not a valid
+      promotion candidate
+  - the next useful slice is now clear:
+    - preserve the accepted `L1` functionality
+    - find a semantically correct way to cut `ui64` buffer state, likely by
+      targeting only a subset of buffers or by matching the existing ready/valid
+      scheduling more faithfully than a generic one-slot drop-in
