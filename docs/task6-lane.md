@@ -116,6 +116,7 @@ These budgets are the default feedback-loop guardrails for the lane:
 Operational rule:
 
 - record wall-clock and peak RSS on every run
+- once an experiment is recorded, commit and push before starting the next one
 - reject stages that keep missing these budgets before widening the artifact
 
 ## Model Ladder
@@ -126,8 +127,8 @@ this lane to drive day-to-day Task 6 decisions.
 | Rung | Artifact class | Model target | Status | Promotion rule |
 | --- | --- | --- | --- | --- |
 | `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | use only for kernel plumbing and DSP validation |
-| `L1` | TinyStories single linear op | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | ready | boundary, pack, contract, and pack-backed replay all pass |
-| `L2` | reduced-vocab replay | `tiny-stories-v1k-h64-l1` | running | first reduced-vocab micro-fit rung after `L1`; keep going only while the same `c_fc` boundary survives cleanly |
+| `L1` | TinyStories single linear op | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | frozen reference | first-proof bar cleared at `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`; do not reopen local `L1` hotspot surgery unless `L2` forces a boundary rethink |
+| `L2` | reduced-vocab replay | `tiny-stories-v1k-h64-l1` | running | monolithic `64 -> 256` micro-surgery is closed; the active mainline is the tiled `4 x 64` wrapper around one reused `64 -> 64` kernel |
 | `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promote only if `L2` clears the first-proof scorecard |
 | `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after `L3` shows a structural win |
 
@@ -146,6 +147,35 @@ Model-ladder rule:
 - keep single-token forward as the default path
 - do not let the deferred extension ladder become the default loop until the
   primary ladder is exhausted
+
+## Active Frontier
+
+The lane has moved beyond the original monolithic `L2 c_fc` search.
+
+- Keep `L1 c_fc` as the solved first-proof reference:
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9`
+  - `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`
+- Keep `mlp.c_proj` reserve-only:
+  - structurally validated and executable, but still worse than the frozen
+    `L1 c_fc` point on the scorecard
+- Treat tiled `L2 c_fc` as the sole active mainline:
+  - `task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-utilization`
+  - `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
+  - the seam split showed the wrapper only contributes about `18 LUT` beyond
+    the base tile kernel, and one bounded tile-kernel post-branch/output probe
+    then trimmed another `553 LUT` / `808 FF` from the tiled `L2` reference
+  - this is still `2,047 LUT` over the ceiling, so `L3` remains blocked
+
+Current continuation rule:
+
+- the amended one-probe tiled-`L2` follow-up has been spent:
+  - seam instrumentation was effectively flat
+  - one bounded tile-kernel post-branch/output probe improved `L2`, but did
+    not clear the ceiling
+- do not return to monolithic `64 -> 256` `L2` micro-surgery
+- do not promote to `L3` until the tiled `L2` reference clears the ceiling
+- do not make another local `L2 c_fc` RTL edit without a new structural
+  hypothesis that is stronger than "another nearby buffer cluster may help"
 
 ## Exact First Insertion Point
 
@@ -270,10 +300,21 @@ Required first output:
    - first promotion target:
      - `tiny-stories-v1k-h64-l1`
    - stop widening once a rung fails the scorecard
+   - if the monolithic reduced-vocab rung misses, pivot to one bounded tiled
+     wrapper experiment before changing the boundary
    - replay on representative-core only after the reduced-vocab ladder shows a
      believable structural win
    - keep `tiny-stories-v10k-h64-l1`, `tiny-stories-v10k-h64-l2`, and the real
      TinyStories baseline as deferred extension steps, not the default loop
+
+6. Current active step.
+   - freeze `L1`
+   - keep `c_proj` reserve-only
+   - instrument the tiled `L2` reference so tile-kernel cost is separated from
+     the wrapper seam
+   - spend at most one more bounded probe on that active tiled path
+   - stop `L2 c_fc` work for now if that bounded probe does not materially
+     reduce the remaining LUT gap
 
 ## Candidate First Experiments
 

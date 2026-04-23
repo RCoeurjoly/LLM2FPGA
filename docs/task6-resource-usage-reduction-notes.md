@@ -71,6 +71,9 @@ earns more work.
 - Compare every result against
   `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`.
 - Record every evidence milestone in this file immediately after it lands.
+- Treat every recorded Task 6 experiment as a checkpointed unit:
+  - once its docs and artifact bundle are written, commit and push the branch
+    before starting the next experiment
 - Fast-prune a lane after 1-2 measured attempts unless it exposes a new,
   narrower bottleneck that is worth isolating.
 
@@ -4482,3 +4485,168 @@ Representative-core sweep setup later on 2026-04-22:
   reusable `64 -> 64` tile kernel or tile/wrapper seam.
 - Do not reopen the abandoned monolithic `64 -> 256` local micro-surgery loop,
   and do not promote to `L3` until the tiled `L2` path clears the LUT ceiling.
+
+### 2026-04-23 - Amend the active `L2` plan around the tiled wrapper
+
+The branch had moved beyond the original Apr 22 ladder, so
+`docs/task6-lane.md` was amended to match the recorded frontier in
+`docs/task6-lane-results.md`.
+
+The live contract is now:
+
+- freeze `L1 c_fc` as solved for the first-proof bar
+- keep `mlp.c_proj` reserve-only
+- treat tiled `L2 c_fc` as the sole active mainline
+- spend the already-authorized single follow-up probe on the tiled `L2`
+  structure, not on the abandoned monolithic `64 -> 256` path
+
+### 2026-04-23 - Instrument the tiled `L2` seam before touching RTL again
+
+The first amended follow-up was a seam split: measure the untouched reusable
+`64 -> 64` tile kernel directly, then compare it against the existing `4 x 64`
+wrapper result.
+
+#### Command
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-tile64-abc9-utilization --no-link --print-out-paths -L`
+
+#### Output
+
+- `/nix/store/1jsmab9fgsjdv0n4czy9pqcgmy9l6rns-task6-l2-c-fc-redirect-tile64-abc9-utilization`
+
+#### Result
+
+- `CLB LUTs = 32,478`
+- `CLB FFs = 46,736`
+- `DSP48E1 = 4`
+- `BRAM36 = 0`
+- `Estimated number of LCs = 29,116`
+- `ELAPSED = 92.53 s`
+- `RSS_KB = 563,708`
+
+#### Verdict
+
+- The seam is not the dominant cost center.
+- The existing tiled wrapper lands at `32,460 LUT / 46,740 FF`, so the seam
+  delta is only:
+  - `32,478 -> 32,460` (`-18 LUT`)
+  - `46,736 -> 46,740` (`+4 FF`)
+- That is too small to justify another seam-only iteration. The single
+  remaining bounded probe had to target the reusable tile kernel itself.
+
+### 2026-04-23 - One bounded tile-kernel follow-up on the tiled `L2` mainline
+
+With the seam effectively flat, the single allowed follow-up probe moved into
+the tile kernel's local post-branch/output `ui64` cluster.
+
+Bounded edit:
+
+- reuse the existing `task6_ui64_fifo2_buffer` helper
+- replace only:
+  - `handshake_buffer244`
+  - `handshake_buffer245`
+  - `handshake_buffer248`
+  - `handshake_buffer250`
+  - `handshake_buffer252`
+  - `handshake_buffer253`
+  - `handshake_buffer254`
+  - `handshake_buffer256`
+- do not change arithmetic, weight loading, or the tiled wrapper protocol
+
+This stays inside the existing StreamTensor-lite lane and is intentionally
+smaller than reopening monolithic `L2` surgery.
+
+#### Cheap kernel gate
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-tile64-postbranch-outbuf-fifo2-abc9-utilization --no-link --print-out-paths -L`
+
+Output:
+
+- `/nix/store/jxgi6fqjd9hivzhkgmjqpnm1m4ghkwx9-task6-l2-c-fc-redirect-tile64-postbranch-outbuf-fifo2-abc9-utilization`
+
+Kernel-gate result:
+
+- `CLB LUTs = 31,968`
+- `CLB FFs = 45,928`
+- `DSP48E1 = 4`
+- `BRAM36 = 0`
+- `Estimated number of LCs = 28,689`
+- `ELAPSED = 93.06 s`
+- `RSS_KB = 563,328`
+
+Kernel-gate delta versus the untouched tile kernel:
+
+- LUT:
+  - `32,478 -> 31,968` (`-510`)
+- FF:
+  - `46,736 -> 45,928` (`-808`)
+
+Verdict:
+
+- This is a real kernel-local win, so the same bounded hypothesis was worth one
+  replay into the full `4 x 64` wrapper.
+
+#### Full wrapper replay
+
+- Verilator proof:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-sv-sim --no-link -L`
+- Direct rerun for a clean run-bundle sim log:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' /nix/store/363slmdlg8mv44sqxczkd0vbp9sji7ig-task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-sim-main/obj_dir/sim_main`
+- Mapped `abc9` utilization:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-utilization --no-link --print-out-paths -L`
+
+Output:
+
+- `/nix/store/cj1s942zmpcwg0xz73g86k58idwavari-task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-utilization`
+
+Wrapper replay result:
+
+- Verilator:
+  - `PASS: stores 256 outputs 256`
+  - build-time `ELAPSED = 85.86 s`
+  - build-time `RSS_KB = 437,444`
+  - direct rerun `ELAPSED = 2.25 s`
+  - direct rerun `RSS_KB = 5,224`
+- mapped `abc9` utilization:
+  - `CLB LUTs = 31,907`
+  - `CLB FFs = 45,932`
+  - `DSP48E1 = 4`
+  - `BRAM36 = 0`
+  - `Estimated number of LCs = 28,653`
+  - `ELAPSED = 94.03 s`
+  - `RSS_KB = 562,812`
+
+Wrapper delta versus the prior tiled `L2` reference:
+
+- LUT:
+  - `32,460 -> 31,907` (`-553`)
+- FF:
+  - `46,740 -> 45,932` (`-808`)
+
+Wrapper delta versus the current `L1` reference:
+
+- LUT:
+  - `29,778 -> 31,907` (`+2,129`)
+- FF:
+  - `46,352 -> 45,932` (`-420`)
+
+#### Verdict
+
+- The amended tiled-`L2` follow-up succeeded in the narrow sense:
+  - the seam hypothesis is now falsified
+  - the bounded tile-kernel post-branch/output probe is real
+  - replaying it into the full tiled wrapper preserves external weights,
+    `4 DSP48E1`, and the `L2` contract
+- The new `L2` reference is now:
+  - `task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-utilization`
+  - `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
+- This is still not enough to unblock `L3`:
+  - `31,907` LUT is still `2,047` above the `29,860` ceiling
+
+#### Next action
+
+- Do not reopen monolithic `L2 c_fc` micro-surgery.
+- Do not reopen the already-closed seam-only line.
+- Treat the amended one-probe plan as spent.
+- Any further `L2 c_fc` work now needs a new structural hypothesis that is
+  stronger than "another nearby buffer cluster may help."
