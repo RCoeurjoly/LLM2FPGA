@@ -3584,3 +3584,174 @@ Representative-core sweep setup later on 2026-04-22:
     helper exactly on top-line fit metrics
   - that is enough to close the selector-control tree as the next fit lever:
     it stays safe, but it does not beat the frozen ring-3 reference
+
+### L1 downstream post-branch FIFO2 proof later on 2026-04-23
+
+- Added flake outputs:
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-sim-main`
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-sv-sim`
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-abc9-json`
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T13-55-32+0200/l1-index-ring3-postbranch-fifo2-proof/summary.md`
+
+#### Why this slice
+
+- After the selector-control tree closed, the next bounded non-selector area in
+  the same `L1` kernel was the downstream post-branch `ui64` cluster:
+  - `handshake_buffer264`, `265`, `266`, `269`, `270`, and `271`
+- The specific hypothesis was:
+  - the next real fit lever is still local FIFO state, but not in the selector
+    neighborhood; replacing the branch-success data path and its immediate
+    address/data staging should trim both LUTs and FFs without reopening the
+    stalled selector-side search
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=149.45`
+    - `RSS_KB=437752`
+- Interpretation:
+  - the downstream post-branch data cluster is contract-safe
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/vgfr4q1q35jnlpdy8j5k0gdi3f6b7rhz-task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=149.96`
+    - `RSS_KB=562980`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `29,967`
+    - CLB FFs:
+      - `46,612`
+- Primitive signature:
+  - `FDRE`:
+    - `46,609`
+  - `LUT6`:
+    - `13,989`
+  - `LUT3`:
+    - `8,076`
+  - `LUT2`:
+    - `3,241`
+  - `LUT5`:
+    - `3,194`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against the frozen ring-3 reference:
+  - LUT:
+    - `30,320 -> 29,967` (`-353`)
+  - FF:
+    - `47,392 -> 46,612` (`-780`)
+- Interpretation:
+  - this is the first productive non-selector follow-up after the selector
+    branch closed
+  - the cluster is still just short of the ceiling, so exactly one bounded
+    follow-up on the same downstream data path is justified
+
+### L1 downstream post-branch out-buffer FIFO2 proof later on 2026-04-23
+
+- Added flake outputs:
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sim-main`
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sv-sim`
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-json`
+  - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T13-55-32+0200/l1-index-ring3-postbranch-outbuf-fifo2-proof/summary.md`
+
+#### Why this slice
+
+- The first post-branch cut left the lane only `107` LUT over the ceiling.
+- The cheapest same-direction extension was the pair of immediate `ui64`
+  out-buffers from that cluster:
+  - `handshake_buffer279` and `280`
+- The specific hypothesis was:
+  - if the downstream post-branch path is the right lever, replacing the two
+    first post-fork out-buffers should be enough to clear `L1` without
+    touching control state or reopening the selector-side search
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=133.51`
+    - `RSS_KB=437680`
+- Interpretation:
+  - extending the same downstream data-path lever through the immediate
+    out-buffers remains contract-safe
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/7z3fdnp57z3b5bs1ziv1bjlrhbnlid3h-task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=149.06`
+    - `RSS_KB=562936`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `29,778`
+    - CLB FFs:
+      - `46,352`
+- Primitive signature:
+  - `FDRE`:
+    - `46,349`
+  - `LUT6`:
+    - `13,887`
+  - `LUT3`:
+    - `8,050`
+  - `LUT5`:
+    - `3,189`
+  - `LUT2`:
+    - `3,188`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against the first post-branch cut:
+  - LUT:
+    - `29,967 -> 29,778` (`-189`)
+  - FF:
+    - `46,612 -> 46,352` (`-260`)
+- Delta against the frozen ring-3 reference:
+  - LUT:
+    - `30,320 -> 29,778` (`-542`)
+  - FF:
+    - `47,392 -> 46,352` (`-1,040`)
+- Interpretation:
+  - this is the first validated `L1` point that clears both the LUT and FF
+    ceilings while preserving external weights, `4 DSP48E1`, and the kernel
+    contract
+  - stop widening `L1` again here; the next replay should move to `L2` before
+    any promotion toward `L3`

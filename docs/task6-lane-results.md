@@ -9,8 +9,8 @@ Branch: `task6-streamtensor-lite`
 | --- | --- | --- |
 | DSP use | `DSP > 0` in the kernel or one-block-top Yosys stat | pass-L0/L1/L2 (`4 DSP48E1`) |
 | Weight placement | packed or ROM-style external weights, not giant RTL constants | pass-L0/L1-pack/L1-kernel/L2-pack/L2-kernel |
-| LUT ceiling | `<= 29,860` LUT | fail-L0/L1/L2 (`32,449` LUT / `30,320` LUT best validated `L1` / `50,235` LUT); diagnostic `ui64` buffer-lite reaches `20,725` LUT but fails Verilator |
-| FF ceiling | `<= 59,720` FF | pass-L0/L1 fail-L2 (`46,736` FF / `47,392` FF / `65,523` FF) |
+| LUT ceiling | `<= 29,860` LUT | pass-L1 fail-L0/L2 (`32,449` LUT / `29,778` LUT best validated `L1` / `50,235` LUT); diagnostic `ui64` buffer-lite reaches `20,725` LUT but fails Verilator |
+| FF ceiling | `<= 59,720` FF | pass-L0/L1 fail-L2 (`46,736` FF / `46,352` FF / `65,523` FF) |
 | Verilator | kernel test passes | pass-L0/L1-kernel/L2-kernel |
 | Micro-proof runtime | kernel Yosys stat completes in `< 30 s` | pass-L0/L1/L2 (`9.23 s` / `4.07 s` / `9.13 s`) |
 | Whole-model dependency | no whole-model lowering required | pass-L0/L1/L2 |
@@ -32,8 +32,8 @@ Branch: `task6-streamtensor-lite`
 | Rung | Artifact class | Model target | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | `yosys-stat`, Verilator, and mapped utilization now pass the DSP/FF proof, but direct `abc9` slightly worsened LUT (`32,478`), so the kernel still misses the ceiling |
-| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the frozen reference is `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9` at `30,320` LUT / `47,392` FF, while the recent selector-control probes remain safe but worse, with the closest miss tied at `30,358` LUT from both the local `fork49` statevec helper and the `buffer255 -> fork46` selector-cluster helper |
-| `L2` | reduced-vocab single-block replay | `tiny-stories-v1k-h64-l1` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the repo one-block-top Yosys gate also completes in `99.26 s`, but the mapped LUT and FF counts are still both worse than frozen `L1`, so there is no promotion to `L3` |
+| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the current reference is `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9` at `29,778` LUT / `46,352` FF after the downstream post-branch `ui64` buffer clusters (`264..271` then `279..280`) proved to be the first non-selector lever that clears the `L1` LUT ceiling |
+| `L2` | reduced-vocab single-block replay | `tiny-stories-v1k-h64-l1` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the repo one-block-top Yosys gate also completes in `99.26 s`, but the only measured mapped `L2` point is still the older kernel and remains worse than the current `L1` reference, so there is still no promotion to `L3` before replaying the new `L1` fit path on `L2` |
 | `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promotion only after `L2` passes |
 | `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after reduced-vocab structural win |
 
@@ -92,6 +92,8 @@ Branch: `task6-streamtensor-lite`
 | L1 selective index ring-3 `ui1` selector buffer FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-sv-sim` | experimental |
 | L1 selective index ring-3 `fork49` statevec `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sv-sim` | experimental |
 | L1 selective index ring-3 selector cluster FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-sv-sim` | experimental |
+| L1 selective index ring-3 post-branch FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-sv-sim` | experimental |
+| L1 selective index ring-3 post-branch out-buffer FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sv-sim` | experimental |
 | L1 staged `abc9` mapped utilization | `task6-l1-c-fc-redirect-staged-abc9-json` / `task6-l1-c-fc-redirect-staged-abc9-utilization` | experimental |
 | L2 one-block-top Yosys gate | `tiny-stories-v1k-h64-l1-selftest-top4-memory-yosys-json` | ready |
 | Weight pack export | `scripts/task6/export_weights_pack.py` | ready |
@@ -159,6 +161,10 @@ Branch: `task6-streamtensor-lite`
 | 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `30,358` | `47,392` | `144.56 s` | `562,532 KB` | reject-hotspot | the local `fork49` statevec probe is safe and slightly better than the other hotspot misses, but it still regresses LUT by `38` against frozen ring-3, so this is the third deliberate post-ring-3 hotspot miss and the lane should move on from local hotspot surgery |
 | 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `149.01 s` | `437,064 KB` | pass-sim | the local selector-cluster helper for `buffer255 -> fork46` preserves the kernel contract, so mapped `abc9` can decide whether this first real cluster cut beats the nearby one-site probes |
 | 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `30,358` | `47,392` | `147.09 s` | `562,120 KB` | reject-cluster | the selector-cluster helper ties the `fork49` statevec miss and still loses by `38` LUT to frozen ring-3, so the selector-control tree is not the next fit lever |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `149.45 s` | `437,752 KB` | pass-sim | the downstream post-branch `ui64` buffer cluster `264..271` preserves the kernel contract, so this is the first non-selector follow-up worth scoring after the selector tree closed |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-postbranch-fifo2-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `29,967` | `46,612` | `149.96 s` | `562,980 KB` | pass-dsp fail-lut | the first downstream post-branch data-cluster probe is a real fit win, cutting `353` LUT and `780` FF versus frozen ring-3 and leaving the lane only `107` LUT over the ceiling, so one more bounded extension on the same cluster is justified |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `133.51 s` | `437,680 KB` | pass-sim | extending the same post-branch fit lever through the immediate `ui64` output buffers `279..280` still preserves the kernel contract, so the mapped run can decide whether `L1` finally clears the ceiling |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `29,778` | `46,352` | `149.06 s` | `562,936 KB` | pass-fit | the bounded post-branch out-buffer extension clears the `L1` ceiling by `82` LUT while preserving external weights, `4 DSP48E1`, and the kernel contract, so this becomes the new `L1` reference and the next replay should move to `L2` rather than widening `L1` again |
 
 ## Rejections
 
@@ -241,6 +247,20 @@ Branch: `task6-streamtensor-lite`
     still losing by `38` LUT to the frozen `30,320` LUT point
   - this closes the selector-control tree as a fit lever; the next probe should
     move to a different non-selector area of the `L1` kernel
+- The downstream post-branch `ui64` buffer cluster is the first productive
+  non-selector lever after the selector tree closed:
+  - replacing `handshake_buffer264`, `265`, `266`, `269`, `270`, and `271` on
+    top of the frozen ring-3 reference still passes Verilator and keeps
+    `4 DSP48E1`, while mapped `abc9` drops to `29,967` LUT / `46,612` FF
+  - that trims `353` LUT and `780` FF versus the frozen `30,320` LUT /
+    `47,392` FF point and leaves the lane only `107` LUT over the ceiling
+- Extending the same post-branch fit lever through the immediate `ui64`
+  out-buffers clears `L1`:
+  - replacing `handshake_buffer279` and `280` on top of the first post-branch
+    cut still passes Verilator and keeps external weights plus `4 DSP48E1`,
+    while mapped `abc9` lands at `29,778` LUT / `46,352` FF
+  - this is the first validated `L1` point under both the LUT and FF ceilings,
+    so the next replay should move to `L2` rather than widening `L1` again
 - Resolved blocker:
   - the first `task6-l0-gemv64` `sv` export failed until the model reused the
     baseline float extern wiring (`allowHwExterns`, per-file extern import, and
