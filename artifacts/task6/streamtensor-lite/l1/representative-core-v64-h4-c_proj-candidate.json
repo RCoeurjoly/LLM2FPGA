@@ -1,0 +1,210 @@
+{
+  "artifact": "/nix/store/2xz1757a13j8x630jhjy3ranvfc0lfsj-tiny-stories-1m-representative-core-v64-h4-linalg.mlir",
+  "candidate_count": 2,
+  "selected_candidate": {
+    "candidate_index": 0,
+    "line_number": 418,
+    "result_value": "%88",
+    "lhs_value": "%84",
+    "rhs_value": "%87",
+    "out_value": "%31",
+    "representation_level": "linalg",
+    "shape_contract": {
+      "lhs": "tensor<1x1x16xf32>",
+      "rhs": "tensor<1x16x4xf32>",
+      "out": "tensor<1x1x4xf32>"
+    },
+    "context": [
+      {
+        "line_number": 412,
+        "text": "    %transposed_64 = linalg.transpose ins(%cst_17 : tensor<4x16xf32>) outs(%85 : tensor<16x4xf32>) permutation = [1, 0] "
+      },
+      {
+        "line_number": 413,
+        "text": "    %86 = tensor.empty() : tensor<1x16x4xf32>"
+      },
+      {
+        "line_number": 414,
+        "text": "    %87 = linalg.generic {indexing_maps = [#map8, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%transposed_64 : tensor<16x4xf32>) outs(%86 : tensor<1x16x4xf32>) {"
+      },
+      {
+        "line_number": 415,
+        "text": "    ^bb0(%in: f32, %out: f32):"
+      },
+      {
+        "line_number": 416,
+        "text": "      linalg.yield %in : f32"
+      },
+      {
+        "line_number": 417,
+        "text": "    } -> tensor<1x16x4xf32>"
+      },
+      {
+        "line_number": 418,
+        "text": "    %88 = linalg.batch_matmul ins(%84, %87 : tensor<1x1x16xf32>, tensor<1x16x4xf32>) outs(%31 : tensor<1x1x4xf32>) -> tensor<1x1x4xf32>"
+      },
+      {
+        "line_number": 419,
+        "text": "    %89 = linalg.generic {indexing_maps = [#map1, #map7, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%88, %cst_16 : tensor<1x1x4xf32>, tensor<4xf32>) outs(%0 : tensor<1x1x4xf32>) {"
+      },
+      {
+        "line_number": 420,
+        "text": "    ^bb0(%in: f32, %in_95: f32, %out: f32):"
+      },
+      {
+        "line_number": 421,
+        "text": "      %170 = arith.addf %in, %in_95 : f32"
+      },
+      {
+        "line_number": 422,
+        "text": "      linalg.yield %170 : f32"
+      },
+      {
+        "line_number": 423,
+        "text": "    } -> tensor<1x1x4xf32>"
+      },
+      {
+        "line_number": 424,
+        "text": "    %90 = linalg.generic {indexing_maps = [#map1, #map1, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%56, %89 : tensor<1x1x4xf32>, tensor<1x1x4xf32>) outs(%0 : tensor<1x1x4xf32>) {"
+      }
+    ]
+  },
+  "all_candidates": [
+    {
+      "candidate_index": 0,
+      "line_number": 418,
+      "result_value": "%88",
+      "lhs_value": "%84",
+      "rhs_value": "%87",
+      "out_value": "%31",
+      "representation_level": "linalg",
+      "shape_contract": {
+        "lhs": "tensor<1x1x16xf32>",
+        "rhs": "tensor<1x16x4xf32>",
+        "out": "tensor<1x1x4xf32>"
+      },
+      "context": [
+        {
+          "line_number": 412,
+          "text": "    %transposed_64 = linalg.transpose ins(%cst_17 : tensor<4x16xf32>) outs(%85 : tensor<16x4xf32>) permutation = [1, 0] "
+        },
+        {
+          "line_number": 413,
+          "text": "    %86 = tensor.empty() : tensor<1x16x4xf32>"
+        },
+        {
+          "line_number": 414,
+          "text": "    %87 = linalg.generic {indexing_maps = [#map8, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%transposed_64 : tensor<16x4xf32>) outs(%86 : tensor<1x16x4xf32>) {"
+        },
+        {
+          "line_number": 415,
+          "text": "    ^bb0(%in: f32, %out: f32):"
+        },
+        {
+          "line_number": 416,
+          "text": "      linalg.yield %in : f32"
+        },
+        {
+          "line_number": 417,
+          "text": "    } -> tensor<1x16x4xf32>"
+        },
+        {
+          "line_number": 418,
+          "text": "    %88 = linalg.batch_matmul ins(%84, %87 : tensor<1x1x16xf32>, tensor<1x16x4xf32>) outs(%31 : tensor<1x1x4xf32>) -> tensor<1x1x4xf32>"
+        },
+        {
+          "line_number": 419,
+          "text": "    %89 = linalg.generic {indexing_maps = [#map1, #map7, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%88, %cst_16 : tensor<1x1x4xf32>, tensor<4xf32>) outs(%0 : tensor<1x1x4xf32>) {"
+        },
+        {
+          "line_number": 420,
+          "text": "    ^bb0(%in: f32, %in_95: f32, %out: f32):"
+        },
+        {
+          "line_number": 421,
+          "text": "      %170 = arith.addf %in, %in_95 : f32"
+        },
+        {
+          "line_number": 422,
+          "text": "      linalg.yield %170 : f32"
+        },
+        {
+          "line_number": 423,
+          "text": "    } -> tensor<1x1x4xf32>"
+        },
+        {
+          "line_number": 424,
+          "text": "    %90 = linalg.generic {indexing_maps = [#map1, #map1, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%56, %89 : tensor<1x1x4xf32>, tensor<1x1x4xf32>) outs(%0 : tensor<1x1x4xf32>) {"
+        }
+      ]
+    },
+    {
+      "candidate_index": 1,
+      "line_number": 709,
+      "result_value": "%148",
+      "lhs_value": "%146",
+      "rhs_value": "%147",
+      "out_value": "%31",
+      "representation_level": "linalg",
+      "shape_contract": {
+        "lhs": "tensor<1x1x16xf32>",
+        "rhs": "tensor<1x16x4xf32>",
+        "out": "tensor<1x1x4xf32>"
+      },
+      "context": [
+        {
+          "line_number": 703,
+          "text": "    } -> tensor<1x1x16xf32>"
+        },
+        {
+          "line_number": 704,
+          "text": "    %transposed_91 = linalg.transpose ins(%cst_4 : tensor<4x16xf32>) outs(%85 : tensor<16x4xf32>) permutation = [1, 0] "
+        },
+        {
+          "line_number": 705,
+          "text": "    %147 = linalg.generic {indexing_maps = [#map8, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%transposed_91 : tensor<16x4xf32>) outs(%86 : tensor<1x16x4xf32>) {"
+        },
+        {
+          "line_number": 706,
+          "text": "    ^bb0(%in: f32, %out: f32):"
+        },
+        {
+          "line_number": 707,
+          "text": "      linalg.yield %in : f32"
+        },
+        {
+          "line_number": 708,
+          "text": "    } -> tensor<1x16x4xf32>"
+        },
+        {
+          "line_number": 709,
+          "text": "    %148 = linalg.batch_matmul ins(%146, %147 : tensor<1x1x16xf32>, tensor<1x16x4xf32>) outs(%31 : tensor<1x1x4xf32>) -> tensor<1x1x4xf32>"
+        },
+        {
+          "line_number": 710,
+          "text": "    %149 = linalg.generic {indexing_maps = [#map1, #map7, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%148, %cst_3 : tensor<1x1x4xf32>, tensor<4xf32>) outs(%0 : tensor<1x1x4xf32>) {"
+        },
+        {
+          "line_number": 711,
+          "text": "    ^bb0(%in: f32, %in_95: f32, %out: f32):"
+        },
+        {
+          "line_number": 712,
+          "text": "      %170 = arith.addf %in, %in_95 : f32"
+        },
+        {
+          "line_number": 713,
+          "text": "      linalg.yield %170 : f32"
+        },
+        {
+          "line_number": 714,
+          "text": "    } -> tensor<1x1x4xf32>"
+        },
+        {
+          "line_number": 715,
+          "text": "    %150 = linalg.generic {indexing_maps = [#map1, #map1, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%122, %149 : tensor<1x1x4xf32>, tensor<1x1x4xf32>) outs(%0 : tensor<1x1x4xf32>) {"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "verification_kind": "packed-gemv-replay",
+  "contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json",
+  "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json",
+  "formula": "activation_in @ weight.T + bias",
+  "tolerances": {
+    "atol": 1e-06,
+    "rtol": 1e-06
+  },
+  "metrics": {
+    "max_abs_error": 0.0,
+    "mean_abs_error": 0.0
+  },
+  "shapes": {
+    "activation_in": [
+      1,
+      1,
+      256
+    ],
+    "weight": [
+      64,
+      256
+    ],
+    "bias": [
+      64
+    ],
+    "activation_out": [
+      1,
+      1,
+      64
+    ]
+  },
+  "verdict": "pass"
+}

@@ -3857,3 +3857,355 @@ Representative-core sweep setup later on 2026-04-22:
     - the kernel contract still passes
   - close this exact replay path rather than widening it blindly, because LUT
     moved in the wrong direction on the first aligned test
+
+### L2 downstream out-buffer FIFO2 probe later on 2026-04-23
+
+- Added flake outputs:
+  - `task6-l2-c-fc-redirect-downstream-outbuf-fifo2-sim-main`
+  - `task6-l2-c-fc-redirect-downstream-outbuf-fifo2-sv-sim`
+  - `task6-l2-c-fc-redirect-downstream-outbuf-fifo2-abc9-json`
+  - `task6-l2-c-fc-redirect-downstream-outbuf-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T14-36-13+0200/l2-downstream-outbuf-fifo2-proof/summary.md`
+
+#### Why this slice
+
+- The next bounded `L2` rule after the aligned replay miss was:
+  - try exactly one `L2`-native local probe in the changed downstream
+    `272..280` neighborhood before abandoning `L2 c_fc` micro-surgery
+- The generated `L2` SV in that neighborhood contains:
+  - `handshake_buffer272`, `273`, `274`, `275`, `276`, and `278` as
+    `ui64 -> ui64` buffers on the downstream data fanout
+  - `handshake_buffer277` and `279` as ctrl-only buffers
+  - `handshake_buffer280` as a `ui1` buffer
+- The smallest legal hypothesis was therefore:
+  - replace only `272/273/274/275/276/278` with
+    `task6_ui64_fifo2_buffer`
+  - keep the ctrl and `ui1` sites untouched
+  - stop the `L2 c_fc` path if official CLB LUTs still moved the wrong way
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-downstream-outbuf-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 256 outputs 256`
+    - `ELAPSED=80.01`
+    - `RSS_KB=437188`
+- Interpretation:
+  - the first `L2`-native downstream out-buffer cluster is functionally valid
+  - the changed `272..280` neighborhood is not blocked by contract breakage
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-downstream-outbuf-fifo2-abc9-utilization --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/6rvwfbgznp2jad70hxmm69j8kqwgab0w-task6-l2-c-fc-redirect-downstream-outbuf-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=261.04`
+    - `RSS_KB=563320`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `51,832`
+    - CLB FFs:
+      - `64,743`
+    - Estimated number of LCs:
+      - `47,802`
+- Primitive signature:
+  - `FDRE`:
+    - `64,740`
+  - `LUT6`:
+    - `29,301`
+  - `LUT5`:
+    - `8,416`
+  - `LUT3`:
+    - `8,112`
+  - `LUT2`:
+    - `4,027`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+    - unchanged from the accepted `L2` redirect; this probe only swaps local
+      buffer modules and does not touch the external load interface
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `not rerun`
+    - the accepted `L2` kernel still has a separate `yosys-stat` proof at
+      `9.13 s`, but this probe was judged directly on Verilator plus mapped
+      `abc9`
+- Delta against the existing `L2` kernel:
+  - LUT:
+    - `50,235 -> 51,832` (`+1,597`)
+  - FF:
+    - `65,523 -> 64,743` (`-780`)
+- Delta against the aligned `L2` replay:
+  - LUT:
+    - `51,622 -> 51,832` (`+210`)
+  - FF:
+    - `64,873 -> 64,743` (`-130`)
+- Delta against the current `L1` reference:
+  - LUT:
+    - `29,778 -> 51,832` (`+22,054`)
+  - FF:
+    - `46,352 -> 64,743` (`+18,391`)
+- Interpretation:
+  - this first `L2`-native local probe does improve one diagnostic number:
+    - mapped `Estimated number of LCs` drops to `47,802`
+  - but the lane scorecard does not use that diagnostic number:
+    - the official metric is CLB LUTs, and those worsen again to `51,832`
+  - treat this as the second clean move-on signal for `L2 c_fc`:
+    - external weights still hold
+    - `4 DSP48E1` still hold
+    - the kernel contract still passes
+    - the official fit metric still moves the wrong way
+  - stop `L2 c_fc` micro-surgery here and pivot within StreamTensor-lite to
+    the reserve fallback boundary `mlp.c_proj`
+
+### `c_proj` fallback boundary scout later on 2026-04-23
+
+- Supporting script change:
+  - generalized `scripts/task6/build_task_graph.py`
+    - it now derives graph and tensor node names from the module leaf instead
+      of hard-coding `c_fc`, so the same lightweight artifact path stays honest
+      on `c_proj`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T14-46-31+0200/cproj-fallback-scout/summary.md`
+
+#### Why this slice
+
+- The lane move-on rule after the second clean `L2 c_fc` miss was:
+  - stop local `L2 c_fc` micro-surgery
+  - pivot within StreamTensor-lite to the reserve fallback boundary
+    `transformer.h.0.mlp.c_proj`
+- The smallest honest question before building a new redirected kernel was:
+  - does `c_proj` preserve the same lightweight artifact path at both `L1` and
+    `L2`:
+    - `linalg` candidate
+    - external weight pack
+    - module-level activation contract
+    - exact packed replay
+    - minimal task graph
+
+#### L1 fallback boundary
+
+- First `L1` candidate artifact:
+  - `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_proj-candidate.json`
+  - measured finder runtime:
+    - wall-clock:
+      - `0.07 s`
+    - peak RSS:
+      - `13,272 KB`
+  - selected site:
+    - line `418`
+    - value `%88`
+  - shape contract:
+    - `tensor<1x1x16xf32>`
+    - `tensor<1x16x4xf32>`
+    - `tensor<1x1x4xf32>`
+  - candidate count:
+    - `2`
+- First `L1` `c_proj` pack:
+  - `artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_proj/`
+  - measured export:
+    - wall-clock:
+      - `4.69 s`
+    - peak RSS:
+      - `334,732 KB`
+  - tensor shapes:
+    - weight:
+      - `(4, 16)`
+    - bias:
+      - `(4,)`
+- First `L1` `c_proj` contract:
+  - `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_proj-contract/`
+  - measured capture:
+    - wall-clock:
+      - `4.51 s`
+    - peak RSS:
+      - `342,492 KB`
+  - sample contract:
+    - input ids:
+      - `[[0]]`
+    - activation in:
+      - `(1, 1, 16)`
+    - activation out:
+      - `(1, 1, 4)`
+- First `L1` `c_proj` replay check:
+  - artifact:
+    - `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_proj-contract-check.json`
+  - measured replay:
+    - wall-clock:
+      - `1.83 s`
+    - peak RSS:
+      - `226,384 KB`
+  - replay result:
+    - formula:
+      - `activation_in @ weight.T + bias`
+    - max absolute error:
+      - `0.0`
+    - mean absolute error:
+      - `0.0`
+    - verdict:
+      - `pass`
+- First `L1` `c_proj` task graph:
+  - `artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_proj-task-graph.json`
+  - measured build:
+    - wall-clock:
+      - `0.07 s`
+    - peak RSS:
+      - `14,020 KB`
+  - graph name:
+    - `task6-c_proj-minimal-task-graph`
+
+#### L2 fallback boundary
+
+- First `L2` candidate artifact:
+  - `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-candidate.json`
+  - measured finder runtime:
+    - wall-clock:
+      - `0.08 s`
+    - peak RSS:
+      - `14,888 KB`
+  - selected site:
+    - line `412`
+    - value `%94`
+  - shape contract:
+    - `tensor<1x1x256xf32>`
+    - `tensor<1x256x64xf32>`
+    - `tensor<1x1x64xf32>`
+  - candidate count:
+    - `1`
+- First `L2` `c_proj` pack:
+  - `artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/`
+  - measured export:
+    - wall-clock:
+      - `4.71 s`
+    - peak RSS:
+      - `335,104 KB`
+  - tensor shapes:
+    - weight:
+      - `(64, 256)`
+    - bias:
+      - `(64,)`
+- First `L2` `c_proj` contract:
+  - `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/`
+  - measured capture:
+    - wall-clock:
+      - `4.54 s`
+    - peak RSS:
+      - `342,668 KB`
+  - sample contract:
+    - input ids:
+      - `[[0]]`
+    - activation in:
+      - `(1, 1, 256)`
+    - activation out:
+      - `(1, 1, 64)`
+- First `L2` `c_proj` replay check:
+  - artifact:
+    - `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract-check.json`
+  - measured replay:
+    - wall-clock:
+      - `1.83 s`
+    - peak RSS:
+      - `226,016 KB`
+  - replay result:
+    - formula:
+      - `activation_in @ weight.T + bias`
+    - max absolute error:
+      - `0.0`
+    - mean absolute error:
+      - `0.0`
+    - verdict:
+      - `pass`
+- First `L2` `c_proj` task graph:
+  - `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-task-graph.json`
+  - measured build:
+    - wall-clock:
+      - `0.08 s`
+    - peak RSS:
+      - `13,760 KB`
+  - graph name:
+    - `task6-c_proj-minimal-task-graph`
+
+#### Interpretation
+
+- The reserve `mlp.c_proj` fallback boundary is now validated on the same
+  lightweight gates that previously brought up `c_fc`:
+  - clean `linalg.batch_matmul` sites exist on both `L1` and `L2`
+  - external weight packs exist on both `L1` and `L2`
+  - module-level activation contracts exist on both `L1` and `L2`
+  - packed replay is exact on both `L1` and `L2`
+- This does not yet claim any mapped fit result:
+  - no redirected `c_proj` kernel has been built
+  - no Verilator kernel harness has been run
+  - no mapped utilization has been collected
+- The next useful slice is therefore:
+  - build the first redirected `c_proj` kernel at `L1`
+  - judge it with the same fast loop before replaying onto `L2`
+
+### `L1 c_proj` redirected kernel start later on 2026-04-23
+
+- Added model:
+  - `task6-l1-c-proj-redirect`
+  - location:
+    - `nix/models.nix`
+  - implementation:
+    - reuse the existing `task6_rect_gemv.py` kernel with
+      `TASK6_RECT_GEMV_IN_DIM=16` and `TASK6_RECT_GEMV_OUT_DIM=4`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T14-51-00+0200/l1-cproj-redirect-yosys-stat-proof/summary.md`
+
+#### Why this slice
+
+- After the fallback scout, the cheapest honest next claim was:
+  - the first redirected `c_proj` kernel should compile through the inherited
+    flow at `L1`
+  - stop there if even `yosys-stat` breaks or exceeds the budget
+- Reusing the existing rectangular GEMV kernel keeps this narrow:
+  - no new arithmetic module
+  - no new compiler path
+  - only the boundary shape changes from `4 -> 16` to `16 -> 4`
+
+#### First `yosys-stat` result
+
+- Timed build:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-proj-redirect-yosys-stat --no-link -L`
+  - result:
+    - `ELAPSED=17.52`
+    - `RSS_KB=563732`
+- Pre-map structural signature:
+  - `$mul`:
+    - `1`
+  - `arith_mulf_in_f32_f32_out_f32`:
+    - `1`
+  - `arith_addf_in_f32_f32_out_f32`:
+    - `1`
+  - `handshake_buffer_in_ui64_out_ui64_2slots_seq`:
+    - `204`
+  - `handshake_load_in_ui64_f32_none_out_f32_ui64`:
+    - `4`
+  - `handshake_store_in_ui64_f32_none_out_f32_ui64`:
+    - `3`
+- Interpretation:
+  - the first redirected `c_proj` kernel is structurally live
+  - it stays inside the `< 30 s` micro-proof budget on the first inherited gate
+  - the expected float arithmetic extern signature is still present, so this is
+    not blocked by a boundary mismatch
+  - no fit claim should be made yet:
+    - Verilator is still pending
+    - mapped utilization is still pending
+
+#### Next action
+
+- Add the minimal `L1 c_proj` Verilator and mapped-utilization surfaces using
+  the newly generated `c_proj` contract and weight-pack artifacts.

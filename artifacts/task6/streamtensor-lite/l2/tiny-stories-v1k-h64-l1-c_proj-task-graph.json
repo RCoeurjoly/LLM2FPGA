@@ -1,0 +1,174 @@
+{
+  "graph_name": "task6-c_proj-minimal-task-graph",
+  "graph_kind": "streamtensor-lite-minimal-proof",
+  "representation_level": "linalg",
+  "source_artifacts": {
+    "candidate_json": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-candidate.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json",
+    "linalg_artifact": "/nix/store/x8lnd266sjig478x9b34bmlv8p0x4m61-tiny-stories-v1k-h64-l1-linalg.mlir",
+    "contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json"
+  },
+  "selected_site": {
+    "module_name": "transformer.h.0.mlp.c_proj",
+    "line_number": 412,
+    "result_value": "%94",
+    "lhs_value": "%90",
+    "rhs_value": "%93",
+    "out_value": "%31"
+  },
+  "interfaces": {
+    "inputs": [
+      {
+        "name": "activation_in",
+        "dtype": "float32",
+        "shape": "tensor<1x1x256xf32>",
+        "role": "single-token activation vector"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "activation_out",
+        "dtype": "float32",
+        "shape": "tensor<1x1x64xf32>",
+        "role": "post-bias GEMV output"
+      }
+    ]
+  },
+  "buffers": [
+    {
+      "name": "weight_pack",
+      "kind": "external-pack",
+      "tensor": {
+        "name": "weight",
+        "filename": "weight.bin",
+        "dtype": "float32",
+        "shape": [
+          64,
+          256
+        ],
+        "numel": 16384,
+        "byte_length": 65536
+      }
+    },
+    {
+      "name": "bias_pack",
+      "kind": "external-pack",
+      "tensor": {
+        "name": "bias",
+        "filename": "bias.bin",
+        "dtype": "float32",
+        "shape": [
+          64
+        ],
+        "numel": 64,
+        "byte_length": 256
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "name": "activation_source",
+      "kind": "input",
+      "outputs": [
+        "activation_in"
+      ]
+    },
+    {
+      "name": "weight_fetch",
+      "kind": "weight-pack-read",
+      "source": "weight_pack",
+      "outputs": [
+        "c_proj_weight"
+      ],
+      "shape": "tensor<1x256x64xf32>"
+    },
+    {
+      "name": "bias_fetch",
+      "kind": "weight-pack-read",
+      "source": "bias_pack",
+      "outputs": [
+        "c_proj_bias"
+      ],
+      "shape": "tensor<64xf32>"
+    },
+    {
+      "name": "c_proj_gemv",
+      "kind": "gemv",
+      "inputs": [
+        "activation_in",
+        "c_proj_weight"
+      ],
+      "outputs": [
+        "gemv_out"
+      ],
+      "lhs_shape": "tensor<1x1x256xf32>",
+      "rhs_shape": "tensor<1x256x64xf32>",
+      "out_shape": "tensor<1x1x64xf32>"
+    },
+    {
+      "name": "c_proj_bias_add",
+      "kind": "bias-add",
+      "inputs": [
+        "gemv_out",
+        "c_proj_bias"
+      ],
+      "outputs": [
+        "activation_out"
+      ],
+      "shape": "tensor<1x1x64xf32>"
+    }
+  ],
+  "edges": [
+    {
+      "from": "activation_source",
+      "to": "c_proj_gemv",
+      "tensor": "activation_in"
+    },
+    {
+      "from": "weight_fetch",
+      "to": "c_proj_gemv",
+      "tensor": "c_proj_weight"
+    },
+    {
+      "from": "c_proj_gemv",
+      "to": "c_proj_bias_add",
+      "tensor": "gemv_out"
+    },
+    {
+      "from": "bias_fetch",
+      "to": "c_proj_bias_add",
+      "tensor": "c_proj_bias"
+    }
+  ],
+  "sample_io": {
+    "input_tensor": {
+      "name": "activation_in",
+      "filename": "activation_in.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        256
+      ],
+      "numel": 256,
+      "byte_length": 1024
+    },
+    "output_tensor": {
+      "name": "activation_out",
+      "filename": "activation_out.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        64
+      ],
+      "numel": 64,
+      "byte_length": 256
+    },
+    "sample_input_ids": [
+      [
+        0
+      ]
+    ]
+  }
+}

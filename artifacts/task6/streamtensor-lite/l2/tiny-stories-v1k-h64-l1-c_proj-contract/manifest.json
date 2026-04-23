@@ -1,0 +1,55 @@
+{
+  "model_label": "tiny-stories-v1k-h64-l1",
+  "module_name": "transformer.h.0.mlp.c_proj",
+  "representation_level": "pytorch-module-hook",
+  "capture_kind": "representative-core-single-token",
+  "sample_input_ids": [
+    [
+      0
+    ]
+  ],
+  "config": {
+    "vocab_size": 1024,
+    "num_layers": 1,
+    "max_position_embeddings": 128,
+    "window_size": 64,
+    "hidden_size": 64,
+    "num_heads": 16
+  },
+  "tensors": [
+    {
+      "name": "activation_in",
+      "filename": "activation_in.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        256
+      ],
+      "numel": 256,
+      "byte_length": 1024
+    },
+    {
+      "name": "activation_out",
+      "filename": "activation_out.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        64
+      ],
+      "numel": 64,
+      "byte_length": 256
+    }
+  ],
+  "selected_site": {
+    "candidate_json": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-candidate.json",
+    "line_number": 412,
+    "result_value": "%94",
+    "shape_contract": {
+      "lhs": "tensor<1x1x256xf32>",
+      "rhs": "tensor<1x256x64xf32>",
+      "out": "tensor<1x1x64xf32>"
+    }
+  }
+}

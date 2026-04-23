@@ -135,6 +135,29 @@ in {
     '';
   };
 
+  "task6-l1-c-proj-redirect" = registerModel {
+    key = "task6-l1-c-proj-redirect";
+    name = "task6-l1-c-proj-redirect";
+    description =
+      "Task 6 L1 redirected kernel-only GEMV proof for transformer.h.0.mlp.c_proj at the selected batch_matmul site before bias-add.";
+    source = {
+      type = "local";
+      path = "${task6RectGemvPy}";
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TASK6_RECT_GEMV_IN_DIM=16
+      export TASK6_RECT_GEMV_OUT_DIM=4
+      python ${compilePyTorch} \
+        --adapter ${task6RectGemvAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
   "task6-l2-c-fc-redirect" = registerModel {
     key = "task6-l2-c-fc-redirect";
     name = "task6-l2-c-fc-redirect";

@@ -36,6 +36,8 @@ def main() -> None:
     weight_pack = load_json(args.weight_pack_manifest)
 
     selected = candidate_doc["selected_candidate"]
+    module_name = weight_pack["module_name"]
+    module_leaf = module_name.split(".")[-1].replace("-", "_")
     lhs_shape = selected["shape_contract"]["lhs"]
     rhs_shape = selected["shape_contract"]["rhs"]
     out_shape = selected["shape_contract"]["out"]
@@ -58,7 +60,7 @@ def main() -> None:
         )
 
     graph = {
-        "graph_name": "task6-c-fc-minimal-task-graph",
+        "graph_name": f"task6-{module_leaf}-minimal-task-graph",
         "graph_kind": "streamtensor-lite-minimal-proof",
         "representation_level": selected["representation_level"],
         "source_artifacts": {
@@ -67,7 +69,7 @@ def main() -> None:
             "linalg_artifact": candidate_doc["artifact"],
         },
         "selected_site": {
-            "module_name": weight_pack["module_name"],
+            "module_name": module_name,
             "line_number": selected["line_number"],
             "result_value": selected["result_value"],
             "lhs_value": selected["lhs_value"],
@@ -114,38 +116,54 @@ def main() -> None:
                 "name": "weight_fetch",
                 "kind": "weight-pack-read",
                 "source": "weight_pack",
-                "outputs": ["fc_weight"],
+                "outputs": [f"{module_leaf}_weight"],
                 "shape": rhs_shape,
             },
             {
                 "name": "bias_fetch",
                 "kind": "weight-pack-read",
                 "source": "bias_pack",
-                "outputs": ["fc_bias"],
+                "outputs": [f"{module_leaf}_bias"],
                 "shape": f"tensor<{expected_bias_shape[0]}xf32>",
             },
             {
-                "name": "c_fc_gemv",
+                "name": f"{module_leaf}_gemv",
                 "kind": "gemv",
-                "inputs": ["activation_in", "fc_weight"],
+                "inputs": ["activation_in", f"{module_leaf}_weight"],
                 "outputs": ["gemv_out"],
                 "lhs_shape": lhs_shape,
                 "rhs_shape": rhs_shape,
                 "out_shape": out_shape,
             },
             {
-                "name": "c_fc_bias_add",
+                "name": f"{module_leaf}_bias_add",
                 "kind": "bias-add",
-                "inputs": ["gemv_out", "fc_bias"],
+                "inputs": ["gemv_out", f"{module_leaf}_bias"],
                 "outputs": ["activation_out"],
                 "shape": out_shape,
             },
         ],
         "edges": [
-            {"from": "activation_source", "to": "c_fc_gemv", "tensor": "activation_in"},
-            {"from": "weight_fetch", "to": "c_fc_gemv", "tensor": "fc_weight"},
-            {"from": "c_fc_gemv", "to": "c_fc_bias_add", "tensor": "gemv_out"},
-            {"from": "bias_fetch", "to": "c_fc_bias_add", "tensor": "fc_bias"},
+            {
+                "from": "activation_source",
+                "to": f"{module_leaf}_gemv",
+                "tensor": "activation_in",
+            },
+            {
+                "from": "weight_fetch",
+                "to": f"{module_leaf}_gemv",
+                "tensor": f"{module_leaf}_weight",
+            },
+            {
+                "from": f"{module_leaf}_gemv",
+                "to": f"{module_leaf}_bias_add",
+                "tensor": "gemv_out",
+            },
+            {
+                "from": "bias_fetch",
+                "to": f"{module_leaf}_bias_add",
+                "tensor": f"{module_leaf}_bias",
+            },
         ],
     }
 
