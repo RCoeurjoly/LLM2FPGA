@@ -4876,6 +4876,52 @@ Design rule:
 - blocked rungs do not pretend to run; they emit a summary bundle that records
   the current promotion gate and next action explicitly
 
-This is operational plumbing, not a new fit hypothesis. The next step is to
-validate the runner on the concrete `L0` / `L1` / `L2` references and record
-that surface as ready in the artifact log.
+This is operational plumbing, not a new fit hypothesis. The validation below
+records the runner on the concrete `L0` / `L1` / `L2` references and closes
+the surface as ready in the artifact log.
+
+### 2026-04-23 - Validate the stage-local runner on the active and blocked rungs
+
+Run bundles:
+
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-49-25+0200/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-49-40+0200/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-49-52+0200/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-50-03+0200/`
+
+Commands run:
+
+- `nix shell nixpkgs#just -c just task6-l0`
+- `nix shell nixpkgs#just -c just task6-l1`
+- `nix shell nixpkgs#just -c just task6-l2`
+- `nix shell nixpkgs#just -c just task6-l3`
+
+Results:
+
+- `just task6-l0` replays the expected kernel-only miss:
+  - Verilator: `PASS: stores 64 outputs 64`
+  - mapped utilization: `32,449 LUT / 46,736 FF / 4 DSP / 0 BRAM`
+- `just task6-l1` replays the frozen passing `L1` reference:
+  - Verilator: `PASS: stores 16 outputs 16`
+  - mapped utilization: `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`
+- `just task6-l2` replays the current tiled `L2` reference:
+  - Verilator: `PASS: stores 256 outputs 256`
+  - mapped utilization: `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
+- `just task6-l3` does not fake progress:
+  - emits a blocked summary with the active gate
+  - records that `L2` still sits above the `29,860` LUT ceiling
+
+Operational conclusion:
+
+- The stage-local runner surface is now real, not planned.
+- It reproduces the active rung references quickly because the proof surfaces
+  are already cached and frozen.
+- The runner also encodes the promotion rule in the surface itself, so blocked
+  rungs now produce explicit evidence instead of relying on oral process.
+
+Next action:
+
+- Keep using `just task6-l0`, `task6-l1`, and `task6-l2` as the cheap status
+  replay surface.
+- Do not execute more `L2 c_fc` local RTL experiments until a new structural
+  hypothesis is stated; the plan remains blocked on hypothesis, not tooling.
