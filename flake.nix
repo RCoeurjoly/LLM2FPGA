@@ -880,6 +880,66 @@
             designJson =
               task6L2CFcRedirectTile64PostBranchOutBufFifo2Abc9Json;
           };
+        task6L2CFcRedirectTile64StorepathForkCtrlSv = mkTask6PatchedSv {
+          name = "task6-l2-c-fc-redirect-tile64-storepath-forkctrl-sv";
+          baseSv = task6L2CFcRedirectTile64PostBranchOutBufFifo2Sv;
+          copiedSv = [
+            {
+              src = ./rtl/task6/task6_ctrl_fifo2_buffer.sv;
+              dest = "task6_ctrl_fifo2_buffer.sv";
+              appendToFilelists = true;
+            }
+            {
+              src = ./rtl/task6/task6_ui64_fork2.sv;
+              dest = "task6_ui64_fork2.sv";
+              appendToFilelists = true;
+            }
+            {
+              src = ./rtl/task6/task6_ui64_fork3.sv;
+              dest = "task6_ui64_fork3.sv";
+              appendToFilelists = true;
+            }
+            {
+              src = ./rtl/task6/task6_ctrl_fork3.sv;
+              dest = "task6_ctrl_fork3.sv";
+              appendToFilelists = true;
+            }
+          ];
+          rewriteMain =
+            let
+              ctrlBufferRewrites = pkgs.lib.concatMapStringsSep "\n" (id: ''
+                sed -i \
+                  "s/^  handshake_buffer_in_none_out_none_2slots_seq_1ins_1outs_ctrl handshake_buffer${toString id} (/  task6_ctrl_fifo2_buffer handshake_buffer${toString id} (/" \
+                  "$out/sv/main.sv"
+              '') task6Ui64Fifo2SiteMap.l2.tile64StorePathCtrlBuffers;
+            in ''
+              ${ctrlBufferRewrites}
+              sed -i \
+                's/^  handshake_fork_in_ui64_out_ui64_ui64 handshake_fork50 (/  task6_ui64_fork2 handshake_fork50 (/' \
+                "$out/sv/main.sv"
+              sed -i \
+                's/^  handshake_fork_in_ui64_out_ui64_ui64_ui64 handshake_fork51 (/  task6_ui64_fork3 handshake_fork51 (/' \
+                "$out/sv/main.sv"
+              sed -i \
+                's/^  handshake_fork_in_none_out_none_none_none_1ins_3outs_ctrl handshake_fork52 (/  task6_ctrl_fork3 handshake_fork52 (/' \
+                "$out/sv/main.sv"
+            '';
+        };
+        task6L2CFcRedirectTile64StorepathForkCtrlAbc9Json = mkSynthJson {
+          name = "task6-l2-c-fc-redirect-tile64-storepath-forkctrl-abc9";
+          svFilelist = "${task6L2CFcRedirectTile64StorepathForkCtrlSv}/sources.f";
+          topName = "main";
+          topSv = "${task6L2CFcRedirectTile64StorepathForkCtrlSv}/sv/main.sv";
+          useAbc9 = true;
+        };
+        task6L2CFcRedirectTile64StorepathForkCtrlAbc9Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l2-c-fc-redirect-tile64-storepath-forkctrl-abc9";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson =
+              task6L2CFcRedirectTile64StorepathForkCtrlAbc9Json;
+          };
         task6L2CFcRedirectTile4x64Sv = pkgs.runCommand
           "task6-l2-c-fc-redirect-tile4x64-sv" { } ''
             cp -r ${task6L2CFcRedirectTile64Sv} "$out"
@@ -2626,6 +2686,17 @@
               -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
               -f ${task6L2CFcRedirectTile4x64PostBranchOutBufFifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
           '';
+        task6L2CFcRedirectTile64StorepathForkCtrlSimMain = pkgs.runCommand
+          "task6-l2-c-fc-redirect-tile64-storepath-forkctrl-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L2CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L2CFcRedirectTile64StorepathForkCtrlSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
 
         matmulSvSim = pkgs.runCommand "matmul-sv-sim.json" {
           buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -3090,6 +3161,27 @@
             }
             EOF
           '';
+        task6L2CFcRedirectTile64StorepathForkCtrlSvSim = pkgs.runCommand
+          "task6-l2-c-fc-redirect-tile64-storepath-forkctrl-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L2CFcRedirectTile64StorepathForkCtrlSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l2-c-fc-redirect-tile64-storepath-forkctrl SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
 
         matmulSvWave = pkgs.runCommand "matmul-wave.vcd" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -3331,6 +3423,14 @@
             task6L2CFcRedirectTile64PostBranchOutBufFifo2Abc9Json;
           task6-l2-c-fc-redirect-tile64-postbranch-outbuf-fifo2-abc9-utilization =
             task6L2CFcRedirectTile64PostBranchOutBufFifo2Abc9Utilization;
+          task6-l2-c-fc-redirect-tile64-storepath-forkctrl-sim-main =
+            task6L2CFcRedirectTile64StorepathForkCtrlSimMain;
+          task6-l2-c-fc-redirect-tile64-storepath-forkctrl-abc9-json =
+            task6L2CFcRedirectTile64StorepathForkCtrlAbc9Json;
+          task6-l2-c-fc-redirect-tile64-storepath-forkctrl-abc9-utilization =
+            task6L2CFcRedirectTile64StorepathForkCtrlAbc9Utilization;
+          task6-l2-c-fc-redirect-tile64-storepath-forkctrl-sv-sim =
+            task6L2CFcRedirectTile64StorepathForkCtrlSvSim;
           task6-l2-c-fc-redirect-tile4x64-sim-main =
             task6L2CFcRedirectTile4x64SimMain;
           task6-l2-c-fc-redirect-tile4x64-abc9-json =

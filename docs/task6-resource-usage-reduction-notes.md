@@ -4745,3 +4745,58 @@ Next action:
 - Use the cleaned plumbing for one new bounded `L2 tile64` structural
   hypothesis on the remaining mixed data/control store path, not for another
   generic `ui64` buffer-only sweep.
+
+### 2026-04-23 - First mixed `tile64` fork/control seam probe fails functionally
+
+The first post-cleanup seam probe targeted the remaining local store-path
+fanout state in the tiled `64 -> 64` kernel:
+
+- `handshake_fork50`
+- `handshake_fork51`
+- `handshake_fork52`
+- `handshake_buffer246`
+- `handshake_buffer247`
+- `handshake_buffer255`
+
+Implementation:
+
+- Added lean fork helpers:
+  - `rtl/task6/task6_ui64_fork2.sv`
+  - `rtl/task6/task6_ui64_fork3.sv`
+  - `rtl/task6/task6_ctrl_fork3.sv`
+- Reused `rtl/task6/task6_ctrl_fifo2_buffer.sv` for the zero-width control
+  buffers in the same seam.
+- Added the local surface:
+  - `task6-l2-c-fc-redirect-tile64-storepath-forkctrl-*`
+
+Run bundle:
+
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T18-14-40+0200/`
+
+Command run:
+
+- `nix build .#task6-l2-c-fc-redirect-tile64-storepath-forkctrl-sv-sim --no-link -L`
+
+Result:
+
+- Verilator build completed, but the contract failed:
+  - `FAIL: expected 256 stores but observed 64`
+- runtime:
+  - `80.97 s`
+- peak RSS:
+  - `438,164 KB`
+
+Verdict:
+
+- Reject this combined helper cluster as a valid drop-in.
+- The failure happens before mapped scoring, so there is no reason to run
+  `abc9` on this exact surface.
+
+Next action:
+
+- Narrow the same seam.
+- Keep the zero-width control buffers untouched on the next attempt.
+- If the seam work continues, isolate the fork-state helpers only:
+  - `fork50`
+  - `fork51`
+  - `fork52`

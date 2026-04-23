@@ -71,5 +71,8 @@
     monolithicPostBranch = [ 264 265 266 270 271 ];
     monolithicDownstreamOutBuf = [ 272 273 274 275 276 278 ];
     tile64PostBranchOutBuf = [ 244 245 248 250 252 253 254 256 ];
+    tile64StorePathCtrlBuffers = [ 246 247 255 ];
+    tile64StorePathUi64Forks = [ 50 51 ];
+    tile64StorePathCtrlForks = [ 52 ];
   };
 }
