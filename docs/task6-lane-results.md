@@ -32,7 +32,7 @@ Branch: `task6-streamtensor-lite`
 | Rung | Artifact class | Model target | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `L0` | synthetic `64x64` GEMV smoke | `task6-l0-gemv64` external-weight kernel | running | `yosys-stat`, Verilator, and mapped utilization now pass the DSP/FF proof, but direct `abc9` slightly worsened LUT (`32,478`), so the kernel still misses the ceiling |
-| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the frozen reference is `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9` at `30,320` LUT / `47,392` FF, while the first deliberate control/merge hotspot stays safe but regresses slightly to `30,360` LUT |
+| `L1` | TinyStories-derived single linear cutout | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the frozen reference is `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9` at `30,320` LUT / `47,392` FF, while the recent post-ring-3 hotspot probes remain safe but worse, with the closest miss at `30,358` LUT from the local `fork49` statevec helper |
 | `L2` | reduced-vocab single-block replay | `tiny-stories-v1k-h64-l1` | running | kernel-only redirected proof now passes weight placement, Verilator, `yosys-stat`, and mapped DSP; the repo one-block-top Yosys gate also completes in `99.26 s`, but the mapped LUT and FF counts are still both worse than frozen `L1`, so there is no promotion to `L3` |
 | `L3` | reduced-vocab replay | planned `tiny-stories-v4k-h64-l1` | planned | promotion only after `L2` passes |
 | `L4` | representative-core replay | existing `tiny-stories-1m-representative-core-v64-h4` | reserve | replay only after reduced-vocab structural win |
@@ -90,6 +90,7 @@ Branch: `task6-streamtensor-lite`
 | L1 selective index ring-3 FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-fifo2-sv-sim` | experimental |
 | L1 selective index ring-3 control/merge FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-json` / `task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-ctrlmerge-fifo2-sv-sim` | experimental |
 | L1 selective index ring-3 `ui1` selector buffer FIFO2 `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-sv-sim` | experimental |
+| L1 selective index ring-3 `fork49` statevec `abc9` probe | `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-json` / `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-utilization` / `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sv-sim` | experimental |
 | L1 staged `abc9` mapped utilization | `task6-l1-c-fc-redirect-staged-abc9-json` / `task6-l1-c-fc-redirect-staged-abc9-utilization` | experimental |
 | L2 one-block-top Yosys gate | `tiny-stories-v1k-h64-l1-selftest-top4-memory-yosys-json` | ready |
 | Weight pack export | `scripts/task6/export_weights_pack.py` | ready |
@@ -153,6 +154,8 @@ Branch: `task6-streamtensor-lite`
 | 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `150.24 s` | `436,780 KB` | pass-sim | the selector-side `ui1` buffer263 trim still preserves the kernel contract, so mapped `abc9` can score whether local selector state is worth touching |
 | 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `30,370` | `47,388` | `150.20 s` | `561,796 KB` | reject-hotspot | the local `ui1` selector-buffer probe is safe but regresses LUT by `50` against frozen ring-3, so it does not beat the current `L1` reference |
 | 2026-04-23 | `tiny-stories-v1k-h64-l1-selftest-top4-memory-yosys-json` | reduced-vocab one-block top | one-block top `yosys-json` gate | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `99.26 s` | `564,340 KB` | pass-runtime-gate | the repo one-block-top gate now clears the `< 2 min` budget, but `L3`/`L4` stay blocked because frozen `L1` still misses the LUT ceiling |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sv-sim` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> Verilator` | pending pre-map | pending pre-map | pending pre-map | pending pre-map | `147.32 s` | `437,320 KB` | pass-sim | the local `fork49` statevec helper preserves the kernel contract, so mapped `abc9` can decide whether fork-side completion encoding is a better fit lever than buffer trimming |
+| 2026-04-23 | `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-utilization` | `transformer.h.0.mlp.c_fc` pre-bias kernel | `sv selective override -> synth_xilinx -abc9 -> mapped JSON` | `4` | `0` | `30,358` | `47,392` | `144.56 s` | `562,532 KB` | reject-hotspot | the local `fork49` statevec probe is safe and slightly better than the other hotspot misses, but it still regresses LUT by `38` against frozen ring-3, so this is the third deliberate post-ring-3 hotspot miss and the lane should move on from local hotspot surgery |
 
 ## Rejections
 
@@ -221,6 +224,13 @@ Branch: `task6-streamtensor-lite`
     than the frozen `30,320` LUT point
   - treat this as another negative hotspot signal rather than a new lane
     direction
+- The first local `fork49` statevec helper is also not a better fit point:
+  - replacing only `handshake_fork49`, the five-way local `ui1` selector fork
+    after `handshake_buffer263`, still passes Verilator and keeps `4 DSP48E1`,
+    but mapped `abc9` lands at `30,358` LUT / `47,392` FF, which is `38` LUT
+    worse than the frozen `30,320` LUT point
+  - this is the third deliberate post-ring-3 hotspot miss, so move on from
+    local hotspot surgery rather than stacking more buffer or fork micro-swaps
 - Resolved blocker:
   - the first `task6-l0-gemv64` `sv` export failed until the model reused the
     baseline float extern wiring (`allowHwExterns`, per-file extern import, and

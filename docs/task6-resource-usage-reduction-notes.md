@@ -3414,3 +3414,90 @@ Representative-core sweep setup later on 2026-04-22:
     win
   - this is the second deliberate post-ring-3 hotspot that points the wrong
     way on LUT, so it should not become the next default lane direction
+
+### L1 local `fork49` statevec proof later on 2026-04-23
+
+- Added:
+  - `rtl/task6/task6_ui1_fork5.sv`
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sim-main`
+    - `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sv-sim`
+    - `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-json`
+    - `task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T13-02-39+0200/l1-index-ring3-fork49-statevec-proof/summary.md`
+
+#### Why this slice
+
+- After the selector-buffer trim missed, the next smallest visibly different
+  fit lever in the same frozen ring-3 neighborhood was the five-way local
+  selector fork itself:
+  - `handshake_buffer263 -> handshake_fork49`
+- The generated `handshake_fork49` implementation keeps one scalar `emitted`
+  register per output leg.
+- The specific hypothesis was:
+  - a semantically equivalent local helper that keeps the same staggered
+    handshake contract but packs completion state into one vector might let
+    `abc9` share the control terms more effectively than the generated fork
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=147.32`
+    - `RSS_KB=437320`
+- Interpretation:
+  - trimming only the local `fork49` state encoding is contract-safe
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/gii6p7aprr0szvjfr8vg6m1sylywa081-task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-utilization`
+  - result:
+    - `ELAPSED=144.56`
+    - `RSS_KB=562532`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `30,358`
+    - CLB FFs:
+      - `47,392`
+- Primitive signature:
+  - `FDRE`:
+    - `47,389`
+  - `LUT6`:
+    - `14,734`
+  - `LUT3`:
+    - `7,754`
+  - `LUT2`:
+    - `3,276`
+  - `LUT5`:
+    - `3,130`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against the frozen ring-3 reference:
+  - LUT:
+    - `30,320 -> 30,358` (`+38`)
+  - FF:
+    - `47,392 -> 47,392` (`+0`)
+- Interpretation:
+  - the local `fork49` statevec helper is safe and the least-bad post-ring-3
+    hotspot miss so far, but it is still not a fit win
+  - this is the third deliberate post-ring-3 hotspot miss, so the lane should
+    move on from local hotspot surgery rather than stacking more nearby buffer
+    or fork micro-swaps

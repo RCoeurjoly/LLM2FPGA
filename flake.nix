@@ -527,6 +527,25 @@
               ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/filelist.f > "$out/sv/filelist.f"
             printf '%s\n' "$out/sv/task6_ui1_fifo2_buffer.sv" >> "$out/sv/filelist.f"
           '';
+        task6L1CFcRedirectIndexRing3Fork49StatevecSv = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sv" { } ''
+            cp -r ${task6L1CFcRedirectIndexRing3Fifo2Sv} "$out"
+            chmod -R u+w "$out"
+            cp ${
+              ./rtl/task6/task6_ui1_fork5.sv
+            } "$out/sv/task6_ui1_fork5.sv"
+            sed -i \
+              "s/^  handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1 handshake_fork49 (/  task6_ui1_fork5 handshake_fork49 (/" \
+              "$out/sv/main.sv"
+            sed \
+              "s#${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sources.f > "$out/sources.f"
+            printf '%s\n' "$out/sv/task6_ui1_fork5.sv" >> "$out/sources.f"
+            sed \
+              "s#${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/#$out/sv/#g" \
+              ${task6L1CFcRedirectIndexRing3Fifo2Sv}/sv/filelist.f > "$out/sv/filelist.f"
+            printf '%s\n' "$out/sv/task6_ui1_fork5.sv" >> "$out/sv/filelist.f"
+          '';
         task6L1CFcRedirectJson = mkSynthJson {
           name = "task6-l1-c-fc-redirect";
           svFilelist = "${task6L1CFcRedirectSv}/sources.f";
@@ -693,6 +712,20 @@
             capacities = tinyStoriesCapacities;
             topName = "main";
             designJson = task6L1CFcRedirectIndexRing3Ui1Buf263Fifo2Abc9Json;
+          };
+        task6L1CFcRedirectIndexRing3Fork49StatevecAbc9Json = mkSynthJson {
+          name = "task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9";
+          svFilelist = "${task6L1CFcRedirectIndexRing3Fork49StatevecSv}/sources.f";
+          topName = "main";
+          topSv = "${task6L1CFcRedirectIndexRing3Fork49StatevecSv}/sv/main.sv";
+          useAbc9 = true;
+        };
+        task6L1CFcRedirectIndexRing3Fork49StatevecAbc9Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson = task6L1CFcRedirectIndexRing3Fork49StatevecAbc9Json;
           };
         task6L1CFcRedirectStagedAbc9 = mkSynthJsonStages {
           name = "task6-l1-c-fc-redirect-staged-abc9";
@@ -2210,6 +2243,17 @@
               -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
               -f ${task6L1CFcRedirectIndexRing3Ui1Buf263Fifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
           '';
+        task6L1CFcRedirectIndexRing3Fork49StatevecSimMain = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectIndexRing3Fork49StatevecSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
 
         task6L2CFcRedirectSimMain = pkgs.runCommand "task6-l2-c-fc-redirect-sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -2475,6 +2519,27 @@
             }
             EOF
           '';
+        task6L1CFcRedirectIndexRing3Fork49StatevecSvSim = pkgs.runCommand
+          "task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectIndexRing3Fork49StatevecSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-index-ring3-fork49-statevec SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
 
         task6L2CFcRedirectSvSim = pkgs.runCommand "task6-l2-c-fc-redirect-sv-sim.json" {
           buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -2677,6 +2742,14 @@
             task6L1CFcRedirectIndexRing3Ui1Buf263Fifo2Abc9Utilization;
           task6-l1-c-fc-redirect-index-ring3-ui1buf263-fifo2-sv-sim =
             task6L1CFcRedirectIndexRing3Ui1Buf263Fifo2SvSim;
+          task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sim-main =
+            task6L1CFcRedirectIndexRing3Fork49StatevecSimMain;
+          task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-json =
+            task6L1CFcRedirectIndexRing3Fork49StatevecAbc9Json;
+          task6-l1-c-fc-redirect-index-ring3-fork49-statevec-abc9-utilization =
+            task6L1CFcRedirectIndexRing3Fork49StatevecAbc9Utilization;
+          task6-l1-c-fc-redirect-index-ring3-fork49-statevec-sv-sim =
+            task6L1CFcRedirectIndexRing3Fork49StatevecSvSim;
           task6-l1-c-fc-redirect-staged-abc9-json =
             task6L1CFcRedirectStagedAbc9.json;
           task6-l1-c-fc-redirect-staged-abc9-utilization =
