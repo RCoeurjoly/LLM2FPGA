@@ -3501,3 +3501,86 @@ Representative-core sweep setup later on 2026-04-22:
   - this is the third deliberate post-ring-3 hotspot miss, so the lane should
     move on from local hotspot surgery rather than stacking more nearby buffer
     or fork micro-swaps
+
+### L1 selector-cluster FIFO2 proof later on 2026-04-23
+
+- Added:
+  - `rtl/task6/task6_ui1_init0_fifo2_fork4.sv`
+  - flake outputs:
+    - `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-sim-main`
+    - `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-sv-sim`
+    - `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-abc9-json`
+    - `task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-abc9-utilization`
+- Logged run bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T13-13-00+0200/l1-index-ring3-selectcluster-fifo2-proof/summary.md`
+
+#### Why this slice
+
+- After the one-site selector and fork hotspots missed, the next smallest
+  structural cut inside the same local control tree was the selector leg:
+  - `handshake_fork49_out4 -> handshake_buffer255 -> handshake_fork46`
+- The specific hypothesis was:
+  - if the cost is in the interaction between the init-0 selector buffer and
+    the four-way fork, then replacing that whole local leg with one helper
+    should be more informative than yet another one-instance swap
+
+#### Functional proof
+
+- Timed Verilator proof:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-sv-sim --no-link -L`
+  - result:
+    - `PASS: stores 16 outputs 16`
+    - `ELAPSED=149.01`
+    - `RSS_KB=437064`
+- Interpretation:
+  - collapsing the local selector cluster is contract-safe
+
+#### Mapped utilization
+
+- Timed mapped utilization:
+  - command:
+    - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-abc9-utilization --no-link --print-out-paths`
+  - output:
+    - `/nix/store/9d5q0szcjv49jmnwjnr5v2hz8jliffqd-task6-l1-c-fc-redirect-index-ring3-selectcluster-fifo2-abc9-utilization`
+  - result:
+    - `ELAPSED=147.09`
+    - `RSS_KB=562120`
+  - mapped summary:
+    - DSP:
+      - `4`
+    - BRAM36:
+      - `0`
+    - CLB LUTs:
+      - `30,358`
+    - CLB FFs:
+      - `47,392`
+- Primitive signature:
+  - `FDRE`:
+    - `47,389`
+  - `LUT6`:
+    - `14,715`
+  - `LUT3`:
+    - `7,727`
+  - `LUT2`:
+    - `3,285`
+  - `LUT5`:
+    - `3,145`
+- Weight placement and runtime checks:
+  - large weights emitted as RTL constants:
+    - `no`
+  - Verilator passed:
+    - `yes`
+  - Yosys stat finished within budget:
+    - `yes`
+    - unchanged from the accepted `L1` kernel at `4.07 s`
+- Delta against the frozen ring-3 reference:
+  - LUT:
+    - `30,320 -> 30,358` (`+38`)
+  - FF:
+    - `47,392 -> 47,392` (`+0`)
+- Interpretation:
+  - the first real selector-cluster cut ties the earlier `fork49` statevec
+    helper exactly on top-line fit metrics
+  - that is enough to close the selector-control tree as the next fit lever:
+    it stays safe, but it does not beat the frozen ring-3 reference
