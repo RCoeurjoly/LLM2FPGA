@@ -4925,3 +4925,44 @@ Next action:
   replay surface.
 - Do not execute more `L2 c_fc` local RTL experiments until a new structural
   hypothesis is stated; the plan remains blocked on hypothesis, not tooling.
+
+### 2026-04-23 - Validate the remaining blocked stage-local runner surfaces
+
+While sweeping the remaining blocked commands, one runner bug surfaced: two
+invocations launched in the same second could share the same run-directory root
+and overwrite `README.md`. I fixed that by making `run_stage_local.py` allocate
+collision-safe suffixed run directories before re-running the blocked sweep.
+
+Run bundles:
+
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-52-12+0200/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-52-12+0200-01/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-52-12+0200-02/`
+- `artifacts/task6-streamtensor-lite/runs/2026-04-23T21-52-13+0200/`
+
+Commands run:
+
+- `nix shell nixpkgs#just -c just task6-l4`
+- `nix shell nixpkgs#just -c just task6-x1`
+- `nix shell nixpkgs#just -c just task6-x2`
+- `nix shell nixpkgs#just -c just task6-x3`
+
+Results:
+
+- `just task6-l4` emits a blocked summary:
+  - `L4` stays reserve-only until `L3` demonstrates a believable structural win
+- `just task6-x1` emits a blocked summary:
+  - the deferred fidelity ladder cannot become the default loop while the
+    primary ladder remains unresolved
+- `just task6-x2` emits a blocked summary:
+  - `X2` remains gated behind `X1`
+- `just task6-x3` emits a blocked summary:
+  - the whole-model lane remains comparison-only until `L4` is believable
+
+Operational conclusion:
+
+- Every planned `just` surface in the current lane now exists and has been
+  exercised at least once.
+- The remaining stop condition is the actual lane rule:
+  - no more local `L2 c_fc` RTL work without a new structural hypothesis
+  - no ladder promotion while `L2` still misses the LUT ceiling

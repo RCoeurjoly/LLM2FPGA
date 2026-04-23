@@ -270,8 +270,9 @@ Artifact rule:
    - validation:
      - `just task6-l0`, `just task6-l1`, and `just task6-l2` replay the
        current frozen/reference proof surfaces
-     - `just task6-l3` emits a blocked summary bundle instead of pretending to
-       run a forbidden promotion
+     - `just task6-l3`, `task6-l4`, `task6-x1`, `task6-x2`, and `task6-x3`
+       emit blocked summary bundles instead of pretending to run forbidden
+       promotions
 
 4. Stop rule for the whole-model lane
    - once a reduced-vocab `h64` rung exists, the whole-model TinyStories lane
