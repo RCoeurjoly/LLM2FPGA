@@ -4340,3 +4340,145 @@ Representative-core sweep setup later on 2026-04-22:
 - Keep `c_proj` as a validated reserve fallback, and do not start another blind
   `c_proj` optimization loop unless there is a new bounded structural
   hypothesis stronger than mapper-only improvement.
+
+### Bounded `L2` structural hypothesis on 2026-04-23
+
+#### Hypothesis
+
+- The remaining `L2 c_fc` fit failure is now more likely to be dominated by the
+  monolithic `64 -> 256` downstream wrapper shape than by the GEMV arithmetic
+  kernel itself:
+  - `L1` only crossed the ceiling after trimming the downstream post-branch
+    `ui64` cluster
+  - the aligned `L2` replay of that same lever and the first `L2`-native
+    downstream out-buffer probe both worsened official CLB LUTs
+- The next bounded structural test is therefore:
+  - replace the monolithic `64 -> 256` redirected kernel with one sequential
+    `4 x 64` output-tiled wrapper that reuses a single `64 -> 64` redirected
+    kernel instance across four phases
+  - keep the same external activation/weight/store contract at the top level
+  - remap only:
+    - weight addresses:
+      - `phase[1:0] ++ local_tile_addr[11:0]`
+    - store addresses:
+      - `phase[1:0] ++ local_store_addr[5:0]`
+  - pass the same full `L2` contract and weight-pack artifacts through the
+    existing Verilator harness
+
+#### Bounds and stop rule
+
+- Stay strictly inside `task6-streamtensor-lite` and only touch the `L2 c_fc`
+  redirect path.
+- Reuse the existing rectangular GEMV kernel and current proof harness.
+- Do not broaden into compiler redesign, alternate dialects, or whole-model
+  RTL.
+- Reject the hypothesis immediately if any of these happen:
+  - mapped `abc9` does not beat the current `L2` base at `50,235` LUT by a
+    clear margin
+  - DSP falls back to `0`
+  - large weights reappear as RTL constants
+  - the wrapper requires broad RTL surgery instead of a local top-level
+    sequencer
+
+### `L2 c_fc` tiled `4 x 64` wrapper proof later on 2026-04-23
+
+- New bounded proof surfaces:
+  - `task6-l2-c-fc-redirect-tile64-yosys-stat`
+  - `task6-l2-c-fc-redirect-tile4x64-sim-main`
+  - `task6-l2-c-fc-redirect-tile4x64-sv-sim`
+  - `task6-l2-c-fc-redirect-tile4x64-abc9-json`
+  - `task6-l2-c-fc-redirect-tile4x64-abc9-utilization`
+- New local wrapper:
+  - `rtl/task6/task6_l2_c_fc_tile4x64_main.sv`
+- Artifact bundle:
+  - `artifacts/task6-streamtensor-lite/runs/2026-04-23T16-03-42+0200/l2-cfc-tile4x64-proof/summary.md`
+
+#### What was implemented
+
+- The hypothesis was executed exactly as bounded:
+  - one reused `64 -> 64` redirected kernel generated as
+    `task6-l2-c-fc-redirect-tile64`
+  - one local top-level sequencer that runs the tile kernel across four output
+    phases while preserving the same external activation, weight, and store
+    contract as the original `L2` kernel
+- The wrapper only remaps:
+  - weight addresses:
+    - `{phase[1:0], local_tile_addr[11:0]}`
+  - store addresses:
+    - `{phase[1:0], local_store_addr[5:0]}`
+- No compiler redesign or alternate lowering path was introduced; this stays
+  strictly inside the existing StreamTensor-lite lane.
+
+#### Commands
+
+- Cheap kernel gate:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-tile64-yosys-stat --no-link -L`
+- Full-contract Verilator proof:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-tile4x64-sv-sim --no-link -L`
+- Mapped `abc9` utilization:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l2-c-fc-redirect-tile4x64-abc9-utilization --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/cj8356nv9izcs60znfqfdysydrxdy8vc-task6-l2-c-fc-redirect-tile4x64-abc9-utilization`
+
+#### Results
+
+- `task6-l2-c-fc-redirect-tile64-yosys-stat`:
+  - `ELAPSED=16.09`
+  - `RSS_KB=561720`
+  - stays inside the `< 30 s` micro-proof budget
+- `task6-l2-c-fc-redirect-tile4x64-sv-sim`:
+  - `PASS: stores 256 outputs 256`
+  - `ELAPSED=161.55`
+  - `RSS_KB=437564`
+- `task6-l2-c-fc-redirect-tile4x64-abc9-utilization`:
+  - `ELAPSED=153.09`
+  - `RSS_KB=563056`
+  - mapped resources:
+    - `DSP48E1`
+      - `4`
+    - `BRAM36`
+      - `0`
+    - `CLB LUTs`
+      - `32,460`
+    - `CLB FFs`
+      - `46,740`
+    - `Estimated mapped LCs`
+      - `29,089`
+- Large weights emitted as RTL constants:
+  - `no`
+  - the top-level interface is still external-memory based, and the new
+    wrapper only sequences one reused tile kernel around that contract
+
+#### Deltas
+
+- Against the existing untiled `L2` reference:
+  - LUT:
+    - `50,235 -> 32,460` (`-17,775`)
+  - FF:
+    - `65,523 -> 46,740` (`-18,783`)
+- Against the best validated `L1` reference:
+  - LUT:
+    - `29,778 -> 32,460` (`+2,682`)
+  - FF:
+    - `46,352 -> 46,740` (`+388`)
+
+#### Verdict
+
+- The bounded structural hypothesis is supported.
+- The monolithic `64 -> 256` wrapper shape was a major `L2` cost center:
+  - reusing one external-weight `64 -> 64` kernel across four phases keeps
+    `4 DSP48E1`, preserves the full `L2` contract, and collapses the mapped
+    `L2` footprint to near-`L0`/`L1` scale
+- This is the first fit-positive `L2` structural result in the lane and the new
+  `L2 c_fc` reference.
+- It is not yet enough to unblock `L3`:
+  - `32,460` LUT is still `2,600` over the `29,860` ceiling
+
+#### Next action
+
+- Freeze `task6-l2-c-fc-redirect-tile4x64-abc9-utilization` as the new `L2`
+  reference.
+- If `L2 c_fc` continues, use at most one more bounded fit hypothesis on the
+  reusable `64 -> 64` tile kernel or tile/wrapper seam.
+- Do not reopen the abandoned monolithic `64 -> 256` local micro-surgery loop,
+  and do not promote to `L3` until the tiled `L2` path clears the LUT ceiling.

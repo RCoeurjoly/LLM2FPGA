@@ -181,6 +181,29 @@ in {
     '';
   };
 
+  "task6-l2-c-fc-redirect-tile64" = registerModel {
+    key = "task6-l2-c-fc-redirect-tile64";
+    name = "task6-l2-c-fc-redirect-tile64";
+    description =
+      "Task 6 L2 redirected 64x64 GEMV tile used to test whether a sequential 4x64 output wrapper beats the monolithic 64x256 c_fc kernel on fit.";
+    source = {
+      type = "local";
+      path = "${task6RectGemvPy}";
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TASK6_RECT_GEMV_IN_DIM=64
+      export TASK6_RECT_GEMV_OUT_DIM=64
+      python ${compilePyTorch} \
+        --adapter ${task6RectGemvAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
   "tiny-stories-1m-baseline-float" = registerModel {
     key = "tiny-stories-1m-baseline-float";
     name = "tiny-stories-1m-baseline-float";
