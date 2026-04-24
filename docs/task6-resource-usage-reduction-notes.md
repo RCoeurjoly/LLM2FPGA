@@ -5152,3 +5152,77 @@ Next action:
   captured as a real artifact
 - otherwise move on to the bounded PT2E-static quantized replay rather than
   waiting blindly on another uninstrumented narrowed-shell build
+
+### 2026-04-24 - Execute the bounded PT2E-static quantized replay
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T11-32-46+0200/`
+
+Commands run:
+
+- `nix build .#tiny-stories-1m-cf-stats --no-link --print-out-paths`
+- `nix build .#tiny-stories-1m-cf --no-link --print-out-paths`
+- `nix build .#tiny-stories-1m-handshake --no-link --print-out-paths`
+- cache-hot timing replays:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-cf-stats --no-link --print-out-paths`
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-handshake --no-link --print-out-paths`
+
+Direct outputs:
+
+- `cf-stats`:
+  - `/nix/store/zz6f4lb25aiajxwg3qipcwvky2q2fzcr-tiny-stories-1m-cf.stats`
+- `cf`:
+  - `/nix/store/m6a5fb7i1bxn2dyb6bidj3f7fkjvbkq7-tiny-stories-1m-cf.mlir`
+- `handshake`:
+  - `/nix/store/00bda3b97cnrgfi002d0hwjckkak25xg-tiny-stories-1m-handshake.mlir`
+
+What this bounded pass confirms:
+
+- the surviving quantized route in this branch is still `tiny-stories-1m`
+  PT2E-static
+- it still clears `cf-stats`
+- it also now demonstrably clears:
+  - full `cf`
+  - full `handshake`
+- important structural fact:
+  - the quantized `handshake` path is currently built through
+    `scripts/pipeline/cf_to_handshake_lsq.sh`
+  - the live process invocation confirmed:
+    - `circt-opt ... --lower-cf-to-handshake=lsq -handshake-insert-buffers`
+- this means the surviving quantized route is already riding the LSQ handshake
+  lowering path rather than the exact stock handshake script used by the float
+  StreamTensor-lite mainline
+
+Measured / observed details:
+
+- `cf` artifact size:
+  - `28,826,105` bytes
+- `handshake` artifact size:
+  - `500,285,892` bytes
+- cache-hot replay timings:
+  - `cf-stats`:
+    - `ELAPSED=1.60`
+    - `RSS_KB=294,732`
+  - `handshake`:
+    - `ELAPSED=0.26`
+    - `RSS_KB=37,024`
+- live frontier sample during the first `handshake` build:
+  - `circt-opt` RSS around `3,195,504 KB`
+
+Verdict:
+
+- This bounded pass is `helpful`.
+- The quantized route is stronger than the older note that stopped at
+  `cf-stats`; it now reaches real `handshake`.
+- `dynamic-int8` and `torchao` still stay frozen.
+
+Next action:
+
+- use this result to frame the alternate-lowering slice carefully:
+  - do not compare "float stock handshake" versus "quantized LSQ handshake" as
+    if only one variable changed
+  - instead, pick one bounded A/B where the contract and representation are
+    aligned well enough to isolate the lowering question
+- keep the quantized route active, but do not widen it blindly into heavier
+  downstream stages before that comparison is explicit
