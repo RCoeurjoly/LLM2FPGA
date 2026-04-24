@@ -1,0 +1,13 @@
+Baseline direct isolation:
+- canonicalize + cse: OK
+- flatten-memref-calls: OK
+- flatten-memref: crashes
+Representative-core quant direct isolation:
+- flatten-memref: crashes
+Reducer attempts:
+- circt-reduce cannot parse memref.global input in this packaging
+- mlir-reduce hidden tester options are unusable as top-level CLI here; no reduced file emitted
+Manual scratch probes:
+- trivial memref.global: OK
+- trivial strided arg load/store: OK
+- trivial expand_shape/subview snippets fail with legalization leftovers, not crashes

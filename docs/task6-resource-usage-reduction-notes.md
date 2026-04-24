@@ -5836,8 +5836,8 @@ Command run:
 
 Observed result:
 
-- The minimized representative-core quantized route fails at the same upstream
-  CIRCT legalization step as the baseline float shell:
+- The minimized representative-core quantized route fails in the same upstream
+  CIRCT shell pipeline as the baseline float shell:
   - `circt-opt ... -flatten-memref -flatten-memref-calls -canonicalize -cse -handshake-legalize-memrefs -canonicalize -cse`
 - crash signature matches the baseline reproducer:
   - `mlir::DenseElementsAttr::getNumElements() const`
@@ -5863,3 +5863,76 @@ Next action:
   removed or worked around.
 - Keep the minimized representative-core PT2E-static `cf-stats` result as the
   live quant reference surface below that blocker.
+
+### 2026-04-24 - Direct pass isolation for the shared upstream CIRCT crash
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T18-28-54+0200-flatten-memref-isolation/`
+
+Command set:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' /nix/store/9am975q7rmbvpzxzgg1j260da3qhkqzq-circt-1.144.0g20260331_5dc62fe/bin/circt-opt /nix/store/k34gyy0qqnsd0f7yi595kxs2mx3nfjr1-tiny-stories-1m-baseline-float-cf.mlir -flatten-memref`
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' /nix/store/9am975q7rmbvpzxzgg1j260da3qhkqzq-circt-1.144.0g20260331_5dc62fe/bin/circt-opt /nix/store/a0jsiyfh8py537xidmx38hkkdkz773j3-tiny-stories-1m-representative-core-pt2e-static-cf.mlir -flatten-memref`
+
+Supporting control checks:
+
+- baseline `-canonicalize -cse`:
+  - passes
+- baseline `-flatten-memref-calls`:
+  - passes
+
+Observed result:
+
+- The shared upstream blocker is narrower than the earlier shell logs implied:
+  both the baseline float shell and the minimized representative-core PT2E-static
+  quant spike crash on `-flatten-memref` alone.
+- crash signature matches in both cases:
+  - `mlir::DenseElementsAttr::getNumElements() const`
+- measured direct reproducer costs:
+  - baseline float:
+    - `ELAPSED=2.35`
+    - `RSS_KB=93,940`
+  - representative-core PT2E-static:
+    - `ELAPSED=1.29`
+    - `RSS_KB=43,764`
+
+Manual bounded probes:
+
+- These do **not** reproduce the crash:
+  - trivial `memref.global` plus `memref.get_global`
+  - trivial `memref.global` plus `memref.load`
+  - trivial strided-arg `memref.load` / `memref.store`
+- These fail as legalization leftovers, not as crashes:
+  - trivial `memref.expand_shape`
+  - trivial `memref.subview`
+
+Reducer attempts:
+
+- `circt-reduce` from the upstream CIRCT package is not usable for this input in
+  current packaging:
+  - it cannot parse the `memref`-dialect file as invoked here
+- `mlir-reduce` from the paired MLIR package exposes reducer/test options only
+  through reduction-pass configuration and did not emit a reduced test case for
+  this crash in one bounded attempt
+
+Interpretation:
+
+- The mainline external-memory blocker and the bounded quant blocker are the
+  same single-pass CIRCT failure:
+  - `flatten-memref`
+- That is a better blocker statement than the earlier broader label
+  `handshake-legalize-memrefs`.
+- The current state is sufficient to justify one of only two next moves:
+  - pin back to a known non-crashing CIRCT pair for branch progress
+  - or extract/report the crashing full-model `cf.mlir` inputs upstream
+
+Verdict:
+
+- Record this as `pass-shared-flatten-memref-reproducer`.
+
+Next action:
+
+- Do not spend more lane time on downstream shell or quant widening until the
+  `flatten-memref` blocker is either worked around or swapped out by a different
+  CIRCT pair.
