@@ -365,11 +365,17 @@ Required next outputs:
 2. PT2E-static quantized TinyStories replay
    - primary quantization experiment
    - reuse the existing quantized model route already kept alive in this repo
+   - this remains the next active architecture track after the bounded LSQ
+     alternate-lowering pass
 
 3. Alternate-lowering `L1 c_fc` A/B
    - primary structural comparison
    - use exactly the same extracted contract to judge whether handshake/control
      amplification is the dominant residual cost
+   - the first bounded LSQ same-contract pass is now spent:
+     - mapped LUT improved to `29,329`
+     - the identical redirected contract still timed out in Verilator
+   - keep this comparison closed unless a stronger lowering hypothesis appears
 
 4. Low-bit tile kernel
    - locked behind a surviving quantized format
@@ -379,10 +385,9 @@ Required next outputs:
 
 - What is the minimum believable DDR3 bandwidth assumption for the current
   board-facing shell story?
-- Can the surviving PT2E-static route reach the extracted-op proof harness, or
-  does it fail earlier for structural reasons?
-- Which alternate lowering family is concrete enough to compare against the
-  current handshake-heavy path without starting a compiler rewrite?
+- Can the surviving PT2E-static route reach the extracted-op proof harness with
+  parity surfaces that are directly comparable to the frozen float `L1` and
+  tiled `L2` references?
 
 ## Out Of Scope
 

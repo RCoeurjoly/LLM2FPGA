@@ -1,4 +1,4 @@
-{ registerModel, registerQuantizedModel, pythonWithTorch, pythonWithTinyStories
+{ registerModel, registerLsqModel, registerQuantizedModel, pythonWithTorch, pythonWithTinyStories
 , pythonWithTinyStoriesTorchAO, torchMlir, python, tinyStories1m, matmulPy
 , matmulAdapterPy, matmulSrcDir, gemv64Py, gemv64AdapterPy, gemv64Int16Py
 , gemv64Int16AdapterPy, task6RectGemvPy, task6RectGemvAdapterPy
@@ -135,6 +135,29 @@ in {
     '';
   };
 
+  "task6-l1-c-fc-redirect-lsq" = registerLsqModel {
+    key = "task6-l1-c-fc-redirect-lsq";
+    name = "task6-l1-c-fc-redirect-lsq";
+    description =
+      "Task 6 L1 redirected kernel-only GEMV proof for transformer.h.0.mlp.c_fc using the LSQ handshake lowering on the same extracted float32 contract.";
+    source = {
+      type = "local";
+      path = "${task6RectGemvPy}";
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TASK6_RECT_GEMV_IN_DIM=4
+      export TASK6_RECT_GEMV_OUT_DIM=16
+      python ${compilePyTorch} \
+        --adapter ${task6RectGemvAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
   "task6-l1-c-proj-redirect" = registerModel {
     key = "task6-l1-c-proj-redirect";
     name = "task6-l1-c-proj-redirect";
@@ -186,6 +209,29 @@ in {
     name = "task6-l2-c-fc-redirect-tile64";
     description =
       "Task 6 L2 redirected 64x64 GEMV tile used to test whether a sequential 4x64 output wrapper beats the monolithic 64x256 c_fc kernel on fit.";
+    source = {
+      type = "local";
+      path = "${task6RectGemvPy}";
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TASK6_RECT_GEMV_IN_DIM=64
+      export TASK6_RECT_GEMV_OUT_DIM=64
+      python ${compilePyTorch} \
+        --adapter ${task6RectGemvAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "task6-l2-c-fc-redirect-tile64-lsq" = registerLsqModel {
+    key = "task6-l2-c-fc-redirect-tile64-lsq";
+    name = "task6-l2-c-fc-redirect-tile64-lsq";
+    description =
+      "Task 6 L2 redirected 64x64 GEMV tile using the LSQ handshake lowering on the same extracted float32 contract.";
     source = {
       type = "local";
       path = "${task6RectGemvPy}";

@@ -5226,3 +5226,134 @@ Next action:
     aligned well enough to isolate the lowering question
 - keep the quantized route active, but do not widen it blindly into heavier
   downstream stages before that comparison is explicit
+
+### 2026-04-24 - Execute the bounded LSQ alternate-lowering `L1` A/B
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T11-40-03+0200/`
+
+Commands run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-yosys-stat --no-link --print-out-paths -L`
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-abc9-utilization --no-link --print-out-paths -L`
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-sv-sim --no-link --print-out-paths -L`
+
+Why this A/B was chosen:
+
+- The amended plan called for exactly one bounded alternate-lowering comparison
+  on the same extracted `L1 c_fc` contract before any more kernel work.
+- The surviving quantized full-model route already reaches `handshake` through
+  `cf_to_handshake_lsq.sh`, so LSQ is the one concrete non-default lowering
+  family already alive in this repo.
+- The right first slice was therefore not "quantized LSQ versus float stock",
+  but "same float extracted contract, LSQ lowering versus stock lowering",
+  followed by the same validated selective `ui64` FIFO2 override pattern.
+
+First issue found:
+
+- Tightening the selective `ui64` patch helper to require exact replacement
+  exposed that the historical `L1` hotspot site lists were not stage-pure on
+  the LSQ path.
+- The helper now fails fast if a listed `handshake_buffer*` site is not
+  actually a `task6_ui64_fifo2_buffer` replacement target in the generated
+  `sv/main.sv`.
+- On the LSQ bundle, several old hotspot IDs are not `ui64` buffers:
+  - ctrl buffers: `163,164,174,175,192,270`
+  - `ui1` buffers: `176,271,280`
+  - `f32` buffer: `216`
+- The effective LSQ patchable subsets were:
+  - index ring 3:
+    - `160,161,162,165,173,177,178,179,180,181,182,185,186,187,188,189,190,191,213,214,215,217,218,219`
+  - post-branch:
+    - `264,265,266,269`
+  - post-branch out-buffer:
+    - `279`
+
+Direct outputs:
+
+- raw LSQ `sv` bundle:
+  - `/nix/store/vv4bdibfff16bqg6vbv16dn7amxy2nmq-task6-l1-c-fc-redirect-lsq-sv`
+- `yosys-stat`:
+  - `/nix/store/zpimvrnbsi6yzg8iwzdi9f2lhqajn83f-task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-yosys.stat`
+- mapped utilization:
+  - `/nix/store/3agxx5vklnklbz91mw1rgkj6sijsmcyh-task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-abc9-utilization`
+- built `sim_main`:
+  - `/nix/store/zrvkisdq6476jccidssq8mr4y421wl7i-task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-sim-main/obj_dir/sim_main`
+
+Structural comparison against the frozen float `L1` reference:
+
+- frozen float `sv` bundle:
+  - `main.sv`: `7,664` lines, `809,614` bytes
+  - total `sv`: `54` files, `1,109,724` bytes
+- LSQ `sv` bundle:
+  - `main.sv`: `8,241` lines, `896,749` bytes
+  - total `sv`: `54` files, `1,185,425` bytes
+- frozen float `yosys-stat`:
+  - `num_cells=11,519`
+- LSQ `yosys-stat`:
+  - `ELAPSED=4.69`
+  - `RSS_KB=564,140`
+  - `num_cells=12,222`
+  - `num_memory_bits=512`
+  - top cell types:
+    - `$mux=3,440`
+    - `$and=2,845`
+    - `$not=2,459`
+    - `$dff=2,181`
+    - `$or=722`
+
+Mapped comparison against the frozen float `L1` reference:
+
+- frozen float mapped reference:
+  - `DSP=4`
+  - `BRAM36=0`
+  - `CLB LUTs=29,778`
+  - `CLB FFs=46,352`
+- LSQ mapped result:
+  - `ELAPSED=89.23`
+  - `RSS_KB=563,056`
+  - `DSP=4`
+  - `BRAM36=0`
+  - `CLB LUTs=29,329`
+  - `CLB FFs=46,570`
+  - dominant mapped leaf types:
+    - `LUT6=14,399`
+    - `LUT3=7,653`
+    - `LUT2=3,329`
+    - `LUT5=2,568`
+    - `LUT4=1,380`
+    - `FDRE=46,567`
+    - `RAM32M=6`
+
+Functional result:
+
+- `sv-sim` does not pass the same redirected `L1` contract.
+- Verilator built successfully, but the run aborted with:
+  - `Timeout waiting for redirected GEMV completion`
+  - `task6_contract_gemv_tb_main.sv:259`
+- measured sim timing:
+  - `ELAPSED=82.09`
+  - `RSS_KB=437,484`
+
+Verdict:
+
+- This bounded LSQ A/B is `structurally interesting but operationally negative`.
+- Positive signal:
+  - it beats the frozen float `L1` reference on mapped LUT
+    - `29,778 -> 29,329`
+  - it preserves `4 DSP48E1`
+  - it stays under the `29,860` LUT ceiling on mapped area alone
+- Negative signal:
+  - it is not a drop-in-safe replacement for the same proof harness because the
+    redirected `L1` contract still times out under Verilator
+- The one-pass alternate-lowering slice is therefore spent and closed without
+  becoming the new mainline.
+
+Next action:
+
+- Do not widen alternate-lowering work on this branch without a stronger
+  hypothesis than "LSQ might lower LUT".
+- Keep the result recorded as a negative A/B reference.
+- Continue with quantized extracted-op parity on the Task 6 proof harness,
+  using the surviving PT2E-static route as the active architecture track.

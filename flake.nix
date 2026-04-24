@@ -259,7 +259,8 @@
           inherit pipelineScripts;
         };
         modelRegistry = import ./nix/models.nix {
-          inherit (pipelineLib) registerModel registerQuantizedModel;
+          inherit (pipelineLib) registerModel registerLsqModel
+            registerQuantizedModel;
           inherit pythonWithTorch pythonWithTinyStories
             pythonWithTinyStoriesTorchAO torchMlir python;
           inherit tinyStories1m;
@@ -376,6 +377,83 @@
         task6L1CFcRedirectYosysStat = task6L1CFcRedirectPipeline."yosys-stat";
         task6L1CFcRedirectSv = task6L1CFcRedirectPipeline.sv;
         task6L1CFcRedirectIl = task6L1CFcRedirectPipeline.il;
+        task6L1CFcRedirectLsqPipeline =
+          modelPipelines."task6-l1-c-fc-redirect-lsq";
+        task6L1CFcRedirectLsqSv = task6L1CFcRedirectLsqPipeline.sv;
+        task6L1CFcRedirectLsqIndexRing3Ui64SiteIds = [
+          160
+          161
+          162
+          165
+          173
+          177
+          178
+          179
+          180
+          181
+          182
+          185
+          186
+          187
+          188
+          189
+          190
+          191
+          213
+          214
+          215
+          217
+          218
+          219
+        ];
+        task6L1CFcRedirectLsqPostBranchUi64SiteIds = [ 264 265 266 269 ];
+        task6L1CFcRedirectLsqPostBranchOutBufUi64SiteIds = [ 279 ];
+        task6L1CFcRedirectLsqIndexRing3Fifo2Sv = mkTask6Ui64Fifo2SitePatchSv {
+          name = "task6-l1-c-fc-redirect-lsq-index-ring3-fifo2-sv";
+          baseSv = task6L1CFcRedirectLsqSv;
+          siteIds = task6L1CFcRedirectLsqIndexRing3Ui64SiteIds;
+        };
+        task6L1CFcRedirectLsqIndexRing3PostBranchFifo2Sv =
+          mkTask6Ui64Fifo2SitePatchSv {
+            name = "task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-fifo2-sv";
+            baseSv = task6L1CFcRedirectLsqIndexRing3Fifo2Sv;
+            siteIds = task6L1CFcRedirectLsqPostBranchUi64SiteIds;
+            ensureHelper = false;
+          };
+        task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Sv =
+          mkTask6Ui64Fifo2SitePatchSv {
+            name =
+              "task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-sv";
+            baseSv = task6L1CFcRedirectLsqIndexRing3PostBranchFifo2Sv;
+            siteIds = task6L1CFcRedirectLsqPostBranchOutBufUi64SiteIds;
+            ensureHelper = false;
+          };
+        task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2YosysStat =
+          mkSvYosysStat {
+            name =
+              "task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2";
+            sv = task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Sv;
+          };
+        task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Abc9Json =
+          mkSynthJson {
+            name =
+              "task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-abc9";
+            svFilelist =
+              "${task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Sv}/sources.f";
+            topName = "main";
+            topSv =
+              "${task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Sv}/sv/main.sv";
+            useAbc9 = true;
+          };
+        task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Abc9Utilization =
+          mkMappedJsonUtilizationReport {
+            name =
+              "task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-abc9";
+            capacities = tinyStoriesCapacities;
+            topName = "main";
+            designJson =
+              task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Abc9Json;
+          };
         task6L1CFcRedirectUi64BufferLiteSv = pkgs.runCommand
           "task6-l1-c-fc-redirect-ui64-buffer-lite-sv" { } ''
             cp -r ${task6L1CFcRedirectSv} "$out"
@@ -1678,6 +1756,9 @@
               sed -i \
                 "s/^  handshake_buffer_in_ui64_out_ui64_2slots_seq handshake_buffer${toString id} (/  task6_ui64_fifo2_buffer handshake_buffer${toString id} (/" \
                 "$out/sv/main.sv"
+              grep -q \
+                "^  task6_ui64_fifo2_buffer handshake_buffer${toString id} (" \
+                "$out/sv/main.sv"
             '') siteIds;
           };
 
@@ -2546,6 +2627,18 @@
             -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
             -f ${task6L1CFcRedirectSv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
         '';
+        task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2SimMain =
+          pkgs.runCommand
+          "task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6L1CFcRedirectTbDataSv} \
+              -top task6_contract_gemv_tb -Mdir "$out/obj_dir" -o sim_main \
+              -f ${task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Sv}/sources.f ${./sim/task6_contract_gemv_tb_main.sv}
+          '';
 
         task6L1CProjRedirectSimMain = pkgs.runCommand "task6-l1-c-proj-redirect-sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -3138,6 +3231,28 @@
             }
             EOF
           '';
+        task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2SvSim =
+          pkgs.runCommand
+          "task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: stores [0-9]+ outputs [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2 SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            stores="$(${pkgs.gawk}/bin/awk '{print $3}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "stores": $stores,
+              "outputs": $outputs
+            }
+            EOF
+          '';
 
         task6L2CFcRedirectSvSim = pkgs.runCommand "task6-l2-c-fc-redirect-sv-sim.json" {
           buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -3510,6 +3625,16 @@
             task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2Abc9Utilization;
           task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-sv-sim =
             task6L1CFcRedirectIndexRing3PostBranchOutBufFifo2SvSim;
+          task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-sim-main =
+            task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2SimMain;
+          task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-yosys-stat =
+            task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2YosysStat;
+          task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-abc9-json =
+            task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Abc9Json;
+          task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-abc9-utilization =
+            task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2Abc9Utilization;
+          task6-l1-c-fc-redirect-lsq-index-ring3-postbranch-outbuf-fifo2-sv-sim =
+            task6L1CFcRedirectLsqIndexRing3PostBranchOutBufFifo2SvSim;
           task6-l1-c-fc-redirect-staged-abc9-json =
             task6L1CFcRedirectStagedAbc9.json;
           task6-l1-c-fc-redirect-staged-abc9-utilization =

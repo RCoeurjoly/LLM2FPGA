@@ -214,7 +214,7 @@ let
       handshakeFromCf = mkHandshakeDerivation;
     };
 
-  mkQuantizedPipeline = { name, torchMlirInput, allowHwExterns ? false
+  mkLsqPipeline = { name, torchMlirInput, allowHwExterns ? false
     , fpPrimsSv ? null, slangPerFileExternModules ? false }:
     mkBasePipeline {
       inherit name torchMlirInput allowHwExterns fpPrimsSv
@@ -278,8 +278,11 @@ let
   registerModel = args:
     registerPipelineModel (args // { pipelineFactory = mkPipeline; });
 
+  registerLsqModel = args:
+    registerPipelineModel (args // { pipelineFactory = mkLsqPipeline; });
+
   registerQuantizedModel = args:
-    registerPipelineModel (args // { pipelineFactory = mkQuantizedPipeline; });
+    registerPipelineModel (args // { pipelineFactory = mkLsqPipeline; });
 
   modelPipelinesFromRegistry = registry:
     pkgs.lib.mapAttrs (_: model: model.pipeline) registry;
@@ -307,6 +310,7 @@ let
         }) registry));
 in {
   inherit registerModel;
+  inherit registerLsqModel;
   inherit registerQuantizedModel;
   inherit modelPipelinesFromRegistry;
   inherit pipelineStagePackagesFromRegistry;
