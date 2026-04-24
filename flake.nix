@@ -14,21 +14,13 @@
     };
     circt-src = {
       type = "github";
-      owner = "RCoeurjoly";
+      owner = "llvm";
       repo = "circt";
-      ref = "task3";
       flake = false;
     };
     circt-nix = {
       url = "git+https://github.com/dtzSiFive/circt-nix?ref=main";
       inputs."circt-src".follows = "circt-src";
-      inputs."llvm-submodule-src" = {
-        type = "github";
-        owner = "llvm";
-        repo = "llvm-project";
-        rev = "972cd847efb20661ea7ee8982dd19730aa040c75";
-        flake = false;
-      };
     };
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "github:RCoeurjoly/toolchain-nix";

@@ -12,11 +12,11 @@
         "slang-src": "slang-src"
       },
       "locked": {
-        "lastModified": 1774303045,
-        "narHash": "sha256-C4Z57ZEJi9J2vQmxVrBmMxtcg/NJN6P3fUM5nMDcgOc=",
+        "lastModified": 1775056957,
+        "narHash": "sha256-x10gkH2LuvToTpy1k+i5mrcmf+I7+QyYXj4DB4OFhKc=",
         "ref": "main",
-        "rev": "43170bca0a5b32a87aa6ad300a50f79667cd08e3",
-        "revCount": 1728,
+        "rev": "305a7a3e8bf95e3770db5391ed0f3e9a6a0078c2",
+        "revCount": 1734,
         "type": "git",
         "url": "https://github.com/dtzSiFive/circt-nix"
       },
@@ -29,16 +29,15 @@
     "circt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1776679965,
-        "narHash": "sha256-jjkb17tbamoDpA+j7ZoZeNynTrZJgkUnbJsSdmj8IZ0=",
-        "owner": "RCoeurjoly",
+        "lastModified": 1777013769,
+        "narHash": "sha256-gu+yZAZlQHJPSgQ465Lxql4xLAS9ciXdquh0yi2Oj2M=",
+        "owner": "llvm",
         "repo": "circt",
-        "rev": "ef651cd82539964928c9de44a93a9f1871a89fde",
+        "rev": "d07f832f12b39fe13e2be836195bd92171c36f38",
         "type": "github"
       },
       "original": {
-        "owner": "RCoeurjoly",
-        "ref": "task3",
+        "owner": "llvm",
         "repo": "circt",
         "type": "github"
       }
@@ -134,28 +133,28 @@
     "llvm-submodule-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1770325089,
-        "narHash": "sha256-ynifeUooKPFnHY0dgPP9kJvQQXvf+DzKgR3CxL3wbKM=",
+        "lastModified": 1773296919,
+        "narHash": "sha256-LLBh1Ndj6y8cOjGFcBTeM1x3VOVatok4jjayQnfbijM=",
         "owner": "llvm",
         "repo": "llvm-project",
-        "rev": "972cd847efb20661ea7ee8982dd19730aa040c75",
+        "rev": "7cb3005ba22899b8ab7efe4fe43cba09cb7e12d4",
         "type": "github"
       },
       "original": {
         "owner": "llvm",
         "repo": "llvm-project",
-        "rev": "972cd847efb20661ea7ee8982dd19730aa040c75",
+        "rev": "7cb3005ba22899b8ab7efe4fe43cba09cb7e12d4",
         "type": "github"
       }
     },
     "nextpnrXilinxFork": {
       "flake": false,
       "locked": {
-        "lastModified": 1772047723,
-        "narHash": "sha256-/9PY2NFl2mn7ZH41aOHRHSHAnYAif3eV+Ea53geU5S8=",
+        "lastModified": 1773321188,
+        "narHash": "sha256-5s1eWJ+t8MEwefRc6o+4KKze22X+c4H49W7/Blj115I=",
         "ref": "stable-backports",
-        "rev": "4ef2518428b33f160ff93d38c781f08cc3a41566",
-        "revCount": 3126,
+        "rev": "49b29b292469b15ca5330bd620caa0bd143eb8dd",
+        "revCount": 3127,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/RCoeurjoly/nextpnr-xilinx"
@@ -172,11 +171,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1773303822,
-        "narHash": "sha256-Aey3PT/xisIHj8y696NiS65xzNxpW5rDzm2iK9X2DSw=",
+        "lastModified": 1776011338,
+        "narHash": "sha256-NMzDk7Xr0wYK8ME20BLfJRC7xZoTICHDfBfwX9qyL2M=",
         "owner": "fossi-foundation",
         "repo": "nix-eda",
-        "rev": "691472a25cf4d6c1a6e9975b9149f32deba6e0c7",
+        "rev": "7194881ff991f487200fc51d01982ace2b7d1aa9",
         "type": "github"
       },
       "original": {
@@ -397,11 +396,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1773229666,
-        "narHash": "sha256-xr3tx5Vd3bWwHt/wikCBxNEINUGGKyPOzpQnnIKUt5M=",
+        "lastModified": 1776959277,
+        "narHash": "sha256-P/DrvHsMzfJLjxQ57cLycQvP8fuVorKMgL+3JRD6vyk=",
         "ref": "refs/heads/main",
-        "rev": "4716f4410f1508cad384d2f8542ada9f61bb7339",
-        "revCount": 16802,
+        "rev": "2dc69a75783b00e151e500d036c7bf4add26a93b",
+        "revCount": 17058,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
@@ -415,11 +414,11 @@
     "yosys-slang": {
       "flake": false,
       "locked": {
-        "lastModified": 1771668508,
-        "narHash": "sha256-z+eEhTb9UZJ/L4X0GLwJMcjPcaPbnGFXJe09eLXGBB4=",
+        "lastModified": 1776884539,
+        "narHash": "sha256-Eq7Kzmyp+kg0mHA4BwNWoEMYN2pC5ich6Z2ok5Wptqk=",
         "ref": "refs/heads/master",
-        "rev": "d82b0b163a725fc1a401fbb6b465cd862517ec1f",
-        "revCount": 572,
+        "rev": "eabdfd1b836f08047de64dca93c286f2a935d68a",
+        "revCount": 614,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/povik/yosys-slang"
