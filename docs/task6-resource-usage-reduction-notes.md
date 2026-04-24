@@ -5032,3 +5032,123 @@ Smallest validating artifact:
   - or a `tile64`-kernel-only substitution of that memory behavior
 - Only replay into the full `tile4x64` wrapper if the `tile64`-local probe
   shows a clear mapped win while keeping the current contract intact
+
+### 2026-04-24 - Amend the live execution order after the deep research audit
+
+The external audit does not change the branch thesis, but it does change what
+counts as the next mainline execution step.
+
+Decision:
+
+- keep StreamTensor-lite, but narrow its role:
+  - it remains the fast extraction / contract / kernel-comparison harness
+  - it is no longer assumed to be the whole board-fit solution by itself
+- freeze the current validated StreamTensor-lite references:
+  - `L1` gold reference:
+    - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9`
+    - `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`
+  - active tiled `L2` reference:
+    - `task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-utilization`
+    - `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
+- keep `mlp.c_proj` reserve-only
+- keep monolithic `L2 c_fc` surgery closed
+- keep `L3` blocked
+
+New mainline execution order:
+
+1. Finish the `top4-memory` / DDR3 shell evidence.
+   - use the existing narrowed external-memory packages
+   - record a final utilization result plus a short bandwidth note
+2. Promote quantization from deferred follow-up to a bounded core track.
+   - start from `task3-experiments`
+   - import only the smallest donor set needed to test one surviving route on
+     the same extracted-op proof surfaces
+3. Run one bounded alternate-lowering comparison.
+   - compare the current handshake-heavy path against one alternative on the
+     same extracted contract
+4. Only if one quantized route survives do we design a new low-bit tile
+   kernel.
+
+Operational rule change:
+
+- the default next action is no longer "another local StreamTensor-lite RTL
+  tweak"
+- architecture-level tracks now take priority over further float32 helper
+  surgery
+- each new architecture-level track gets one bounded pass before we decide
+  whether it deserves another slice
+
+### 2026-04-24 - Execute the first bounded DDR3 / `top4-memory` pass
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T11-26-50+0200/`
+
+Commands run:
+
+- `nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-external-memory-plan --no-link --print-out-paths`
+- `nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-utilization --no-link --print-out-paths`
+  - interrupted after the narrowed shell re-entered staged Yosys and no new
+    mapped result had landed inside the bounded pass window
+
+Direct outputs:
+
+- external-memory-plan output:
+  - `/nix/store/92wwyy3d90z6kiclnqncig9365ikd64n-tiny-stories-1m-baseline-float-selftest-top4-memory-external-memory-plan`
+- live narrowed-shell utilization observations before interruption:
+  - `stage1.il` and `stage2.il` began building
+  - active staged Yosys worker reached at least:
+    - `8,935,948 KB` RSS
+    - later sampled at `6,215,864 KB` RSS while still active
+
+What this bounded pass confirms:
+
+- the narrowed `top4-memory` plan is still reproducible in the current branch
+- the selected DDR3 candidates are unchanged:
+  - `\handshake_memory_out_f32_id342`
+  - `\handshake_memory_out_f32_id341`
+  - `\handshake_memory_out_f32_id340`
+  - `\handshake_memory_out_f32_id18`
+- each selected module remains `3216448 x 32` bits:
+  - `102,926,336` bits each
+- selected total:
+  - `411,705,344` bits
+  - `49.08 MiB`
+  - `95.1%` of the `433,040,010` eligible bits
+- the narrowed shell still re-enters staged Yosys cleanly on the real baseline
+  after the external-memory plan is applied
+
+Bounded bandwidth worksheet:
+
+- full cold sweep of the selected top-four footprint:
+  - `1.6 GB/s` -> `32.16 ms`
+  - `2.0 GB/s` -> `25.73 ms`
+  - `3.2 GB/s` -> `16.08 ms`
+  - `4.0 GB/s` -> `12.87 ms`
+  - `6.4 GB/s` -> `8.04 ms`
+- pessimistic upper bound if all four tables were reread every token:
+  - `1 tok/s` -> `0.051 GB/s`
+  - `10 tok/s` -> `0.515 GB/s`
+  - `50 tok/s` -> `2.573 GB/s`
+  - `100 tok/s` -> `5.146 GB/s`
+- interpretation:
+  - the selected memory footprint is small enough to be board-credible only if
+    the runtime access pattern is far below the full-cold-sweep upper bound
+  - this worksheet is a sizing note, not a measured DDR3 traffic trace
+
+Verdict:
+
+- This bounded pass is `partial`, not `closed`.
+- The exact top-four DDR3 target set is reconfirmed and the narrowed shell
+  still reaches staged Yosys on the real baseline.
+- It did not produce a new mapped shell utilization result within the bounded
+  pass.
+
+Next action:
+
+- if the DDR3 track gets another slice, rerun
+  `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization` under
+  `scripts/pipeline/monitor_build.sh` so the late-stage shell frontier is
+  captured as a real artifact
+- otherwise move on to the bounded PT2E-static quantized replay rather than
+  waiting blindly on another uninstrumented narrowed-shell build

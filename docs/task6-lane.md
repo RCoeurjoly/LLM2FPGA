@@ -15,10 +15,8 @@ around a narrow GEMV proof that can be rejected quickly if it fails.
 - use external weights explicitly in the first real experiment
 - force a resource signature that moves away from `0 DSP / 0 BRAM`
 - prefer the cheapest artifact that answers the current question
-- keep this separate from:
-  - board-RAM / `top4-memory` shell work
-  - quantization follow-up
-  - alternate-dialect or LSQ lane work
+- keep StreamTensor-lite as the fast contract-extraction and kernel-comparison
+  harness, not as the whole board-fit solution by itself
 - reject any version of this lane that turns into a full compiler rewrite
 
 ## Source Idea
@@ -150,7 +148,8 @@ Model-ladder rule:
 
 ## Active Frontier
 
-The lane has moved beyond the original monolithic `L2 c_fc` search.
+The lane has moved beyond the original monolithic `L2 c_fc` search, and the
+execution order has changed accordingly.
 
 - Keep `L1 c_fc` as the solved first-proof reference:
   - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9`
@@ -162,7 +161,7 @@ The lane has moved beyond the original monolithic `L2 c_fc` search.
 - Keep `mlp.c_proj` reserve-only:
   - structurally validated and executable, but still worse than the frozen
     `L1 c_fc` point on the scorecard
-- Treat tiled `L2 c_fc` as the sole active mainline:
+- Keep tiled `L2 c_fc` as the active StreamTensor-lite reference surface:
   - `task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9-utilization`
   - `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
   - the seam split showed the wrapper only contributes about `18 LUT` beyond
@@ -172,12 +171,13 @@ The lane has moved beyond the original monolithic `L2 c_fc` search.
 
 Current continuation rule:
 
-- the amended one-probe tiled-`L2` follow-up has been spent:
+- the old helper-micro-surgery loop is closed:
+  - the amended one-probe tiled-`L2` follow-up has been spent
   - seam instrumentation was effectively flat
   - one bounded tile-kernel post-branch/output probe improved `L2`, but did
     not clear the ceiling
 - do not return to monolithic `64 -> 256` `L2` micro-surgery
-- do not promote to `L3` until the tiled `L2` reference clears the ceiling
+- do not promote to `L3` until a new architecture-level result justifies it
 - do not make another local `L2 c_fc` RTL edit without a new structural
   hypothesis that is stronger than "another nearby buffer cluster may help"
 - the probe plumbing is now consolidated:
@@ -201,6 +201,37 @@ Current continuation rule:
     - expected LUT delta
     - explicit falsifier
   - without that note, only the frozen status-replay surface is allowed
+
+## Mainline Execution Order
+
+The mainline no longer assumes that the next best move is another local
+StreamTensor-lite RTL tweak.
+
+1. Finish the `top4-memory` / DDR3 shell evidence.
+   - use the existing narrowed external-memory packages and comparison bundles
+   - record a final utilization result plus a short bandwidth note
+   - treat this as the first architecture-level question because the dominant
+     eligible memory blocks are already known and reproducible in this repo
+2. Promote quantization from deferred follow-up to a bounded core track.
+   - start from `task3-experiments`
+   - import only the smallest donor set needed to test one surviving route on
+     the same extracted-op proof surfaces
+   - require parity with the current StreamTensor-lite proof harness before
+     widening scope
+3. Run one alternate-lowering comparison on the same extracted contracts.
+   - compare the current handshake-heavy path against one bounded alternative
+   - do not let this become a broad compiler survey
+4. Only if one quantized route survives do we design a new low-bit tile
+   kernel.
+   - do not keep extending the float32 tile family as the default path
+
+Default kill rule:
+
+- each architecture-level track gets one bounded pass before we decide whether
+  it deserves another slice
+- if DDR3, quantization import, or alternate lowering does not produce a
+  materially better system story quickly, close that path explicitly before
+  starting another
 
 ## Exact First Insertion Point
 
@@ -237,178 +268,143 @@ Artifact rule:
 
 ## Immediate Tracks
 
-1. Frozen micro-fit ladder
-   - add the reduced-vocab, `hidden_size = 64` rung family in the order listed
-     above
-   - do not widen the ladder until each rung clears or fails the scorecard
+1. Frozen reference harness
+   - keep `just task6-l0`, `just task6-l1`, and `just task6-l2` as the
+     status-only replay surface
+   - keep the existing packed-weight, contract, and task-graph artifacts as the
+     comparison harness for future architecture tracks
+   - do not spend more branch effort on runner growth or blocked-rung sweeps
 
-2. First-class weight-packer path
-   - add:
-     - `scripts/task6/export_weights_pack.py`
-     - `scripts/task6/export_l1_contract.py`
-     - `scripts/task6/verify_l1_contract.py`
-     - `scripts/task6/build_task_graph.py`
-     - `artifacts/task6/weights_pack/<model-rung>/`
-     - `artifacts/task6/streamtensor-lite/l1/<contract-dir>/`
-   - the first proof must consume packed weights or a mocked ROM-style
-     interface, not embedded constants
+2. DDR3 / `top4-memory` shell evidence
+   - use the existing narrowed external-memory packages first
+   - close the question with:
+     - one reproducible external-memory-plan result
+     - one shell utilization result if it completes within a bounded pass
+     - one short bandwidth note with explicit assumptions
+   - if the narrowed shell still fails late, record the blocker exactly and
+     move on instead of widening this loop blindly
 
-3. Stage-local runner surface
-   - desired command surface:
-     - `just task6-l0`
-     - `just task6-l1`
-     - `just task6-l2`
-     - `just task6-l3`
-     - `just task6-l4`
-     - `just task6-x1`
-     - `just task6-x2`
-     - `just task6-x3`
-   - each rung should emit:
-     - structural summary
-     - Yosys stat
-     - wall-clock
-     - peak memory
-     - verdict
-   - implementation:
-     - `justfile`
-     - `scripts/task6/run_stage_local.py`
-     - exact reference `yosys-stat` packages for the frozen `L1` and active
-       tiled `L2` references
-   - blocked rungs should still emit a summary bundle with the active promotion
-     gate recorded explicitly
-   - validation:
-     - `just task6-l0`, `just task6-l1`, and `just task6-l2` replay the exact
-       current frozen/reference proof surfaces
-   - execution rule:
-     - this is a frozen status surface, not a frontier-discovery surface
-     - treat its timings as cache-hit replay timings, not experiment timings
-     - do not spend more branch bandwidth on blocked-rung sweeps unless the
-       frontier itself changes
+3. Quantization bounded replay
+   - treat the PT2E-static `tiny-stories-1m` route as the first candidate
+   - keep `dynamic-int8` and `torchao` frozen unless importer behavior changes
+   - require parity with the existing proof harness before widening scope:
+     - extracted-op contract replay first
+     - then `yosys-stat`
+     - then sim / mapped utilization only if the earlier stages survive
 
-4. Stop rule for the whole-model lane
+4. Alternate-lowering comparison
+   - compare the current handshake-heavy path against one bounded alternative
+     on the same extracted contract
+   - this is a structural A/B, not a broad compiler survey
+
+5. Stop rule for the whole-model lane
    - once a reduced-vocab `h64` rung exists, the whole-model TinyStories lane
      stays only as a comparison artifact
    - it must not remain the default iteration route for StreamTensor-lite work
 
 ## Immediate Mission
 
-Produce one narrow proof that the block-0 MLP expansion linear can be
-redirected into a small reused kernel that:
+Keep the existing narrow proof harness intact while shifting the next execution
+steps to the first architecture-level questions:
 
-- uses externalized weights
-- consumes DSPs
-- avoids full-model RTL expansion as the core story
-- gives a measurable move away from the current `0 DSP / 0 BRAM` pattern
-- stays within the first-proof scorecard and stage budgets
+- can the top four dominant memory tables be externalized into a believable
+  DDR3-facing shell story?
+- can one surviving quantized route reach the same extracted-op proof surfaces
+  as the float StreamTensor-lite harness?
+- does one alternate lowering materially reduce control/buffer amplification on
+  the same extracted contract?
 
-Required first output:
+Required next outputs:
 
-- one shortlist memo with:
-  - the chosen block-0 linear boundary
-  - cheapest artifact where that region is still identifiable
-  - why it can become a reused kernel boundary
-  - how weights are externalized in the proof
-  - what resource-signature change should appear if the idea is working
-  - cheapest validation artifact
-  - replay target if the result is helpful
+- one closed DDR3 / `top4-memory` evidence bundle
+- one bounded quantization replay result on the surviving route
+- one bounded alternate-lowering comparison result
 
 ## Execution Plan
 
-1. Freeze the scorecard, rung ladder, and first insertion point.
-   - do not let experiments move forward without using them
+1. Keep the frozen StreamTensor-lite references as the comparison baseline.
+   - `L1`: `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9`
+   - `L2`: `task6-l2-c-fc-redirect-tile4x64-postbranch-outbuf-fifo2-abc9`
+   - `c_proj` stays reserve-only
+   - monolithic `L2 c_fc` surgery stays closed
 
-2. Export and pack the first kernel weights.
-   - isolate the block-0 `mlp.c_fc` weights
-   - write them into a first-class weight pack artifact
-   - reject any path that immediately materializes them back into constants
+2. Execute one bounded DDR3 / `top4-memory` pass.
+   - rebuild the reproducible external-memory plan
+   - attempt the narrowed shell utilization path once
+   - record the exact stage reached if it does not close
+   - include a bandwidth note grounded in the selected-module size
 
-3. Build the smallest task graph around the kernel.
-   - keep activations on-chip
-   - make the packed weights external inputs
-   - aim for DSP-backed arithmetic first
+3. Execute one bounded quantization pass.
+   - use `tiny-stories-1m` PT2E-static first
+   - start from the cheapest comparable stage
+   - only widen if it reaches parity with the existing extracted-op harness
 
-4. Validate on `L0` and `L1`.
-   - use `task6-l0-gemv64` as the synthetic external-weight `64x64` GEMV
-     harness for plumbing and kernel smoke validation
-   - use `tiny-stories-1m-representative-core-v64-h4` for the first
-     TinyStories-shaped boundary check
-   - capture one deterministic `L1` sample contract at the selected
-     `transformer.h.0.mlp.c_fc` site and replay it directly from the packed
-     weight/bias tensors before widening into any heavier simulation path
-   - do not promote if the scorecard or time budgets fail
+4. Execute one bounded alternate-lowering pass.
+   - compare one non-default lowering family against the handshake-heavy path
+     on the same `L1 c_fc` contract
+   - require direct structural comparability and preserved external weights
 
-5. Promote to the micro-fit ladder or reject.
-   - first promotion target:
-     - `tiny-stories-v1k-h64-l1`
-   - stop widening once a rung fails the scorecard
-   - if the monolithic reduced-vocab rung misses, pivot to one bounded tiled
-     wrapper experiment before changing the boundary
-   - after the selective-buffer `L1` phase clears the ceiling, do not keep
-     widening that loop blindly:
-     - freeze the winning `L1` reference
-     - carry only reusable tile-kernel edits forward into `L2`
-   - replay on representative-core only after the reduced-vocab ladder shows a
-     believable structural win
-   - keep `tiny-stories-v10k-h64-l1`, `tiny-stories-v10k-h64-l2`, and the real
-     TinyStories baseline as deferred extension steps, not the default loop
+5. Gate any new kernel design on the quantization result.
+   - do not design another float32 tile family as the default next step
+   - only start a low-bit tile kernel after one quantized route survives the
+     bounded pass above
 
-6. Current active step.
-   - freeze `L1`
-   - keep `c_proj` reserve-only
-   - keep tiled `L2 c_fc` as the only active mainline
-   - keep monolithic `L2 c_fc` surgery closed
-   - do not spend another local `L2 c_fc` probe until a new structural
-     hypothesis exists
-   - before the next probe wave, refactor the probe plumbing so local rewrites
-     come from:
-     - one canonical FIFO2 helper plus wrappers where old module names must stay
-     - one small patch map that names the rewritten sites
+6. Kill rule.
+   - each architecture-level track gets one bounded pass before another slice
+     is allowed
+   - if a pass does not produce a materially better system story, close it
+     explicitly and move on
 
-## Candidate First Experiments
+## Candidate Architecture Experiments
 
-1. Block-0 `mlp.c_fc` kernel extraction
-   - primary experiment
-   - carve out the first MLP expansion linear as the reused kernel boundary
+1. `top4-memory` narrowed shell
+   - primary architecture experiment
+   - externalize the four dominant vocab-sized tables and judge whether the
+     shell story is becoming board-credible
 
-2. Block-0 `mlp.c_proj` kernel extraction
-   - reserve fallback if the expansion linear imports badly
-   - still keep the proof inside the MLP path, not attention
+2. PT2E-static quantized TinyStories replay
+   - primary quantization experiment
+   - reuse the existing quantized model route already kept alive in this repo
 
-3. Tiled `lm_head` scorer
-   - later rung only
-   - use only after the internal MLP kernel path is structurally credible
+3. Alternate-lowering `L1 c_fc` A/B
+   - primary structural comparison
+   - use exactly the same extracted contract to judge whether handshake/control
+     amplification is the dominant residual cost
+
+4. Low-bit tile kernel
+   - locked behind a surviving quantized format
+   - only start once the arithmetic format question is no longer open
 
 ## Open Questions
 
-- Should the first packed-weight proof use a file-backed pack, a mocked ROM
-  interface, or both?
-- Is `tiny-stories-1m-representative-core-v64-h4` large enough to preserve the
-  block-0 MLP boundary meaningfully, or should promotion to `tiny-stories-v1k-h64-l1`
-  happen immediately after the boundary is identified?
-- What is the smallest Verilator harness that still proves the kernel contract
-  honestly?
+- What is the minimum believable DDR3 bandwidth assumption for the current
+  board-facing shell story?
+- Can the surviving PT2E-static route reach the extracted-op proof harness, or
+  does it fail earlier for structural reasons?
+- Which alternate lowering family is concrete enough to compare against the
+  current handshake-heavy path without starting a compiler rewrite?
 
 ## Out Of Scope
 
 - full StreamTensor reimplementation
-- porting the whole model into a new accelerator architecture before one narrow
-  linear / GEMV proof works
-- on-board DDR3 / external-memory work
-- quantization route debugging
-- alternate-dialect, LSQ, or eqmap work unless a specific dependency emerges
+- reopening local FIFO/fork micro-surgery as the default loop
+- reopening monolithic `L2 c_fc` surgery
+- promoting `L3` before an architecture-level result changes the story
+- designing a new low-bit kernel before one quantized route survives
+- broad compiler/toolchain redesign instead of bounded A/B comparisons
 - reviewer-facing project-plan edits
 
 ## Exit Condition
 
-This lane is ready to merge back when it produces one measured conclusion with
-evidence:
+This lane is ready to hand off when it produces one measured architecture-level
+conclusion with evidence:
 
 - `helpful`
-  - one local MLP linear redirection produces a credible reused-kernel proof
-    with external weights, `DSP > 0`, and a better resource signature, and is
-    worth replaying on the real baseline
+  - at least one bounded architecture track materially improves the board-fit
+    story while preserving the existing proof harness
 - `mixed`
-  - the idea only works in a constrained demo without a believable replay path
+  - StreamTensor-lite remains valuable as comparison infrastructure, but the
+    winning system story comes from DDR3, quantization, or alternate lowering
 - `reject`
-  - the idea cannot redirect one narrow linear / GEMV region without turning
-    Task 6 into a compiler-rewrite project
+  - the branch cannot produce a believable board-facing story without turning
+    Task 6 into a broad compiler or hardware retargeting project

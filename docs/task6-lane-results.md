@@ -57,6 +57,7 @@ Branch: `task6-streamtensor-lite`
 | What is the first success metric? | Move the resource signature away from `0 DSP / 0 BRAM`, with `DSP > 0` mandatory | Shared ChatGPT plan plus baseline summary | decided |
 | What replay target is required before merge-back? | Representative-core replay after the reduced-vocab ladder is structurally credible; larger `v10k` and full-baseline steps are deferred extensions | Lane plan in `docs/task6-lane.md` | decided |
 | What is the stop rule for the whole-model lane? | Keep it as comparison only once a reduced-vocab `h64` rung exists | Lane feedback pass on 2026-04-22 | decided |
+| What is the current mainline execution order? | Freeze StreamTensor-lite references, then run one bounded DDR3 / `top4-memory` pass, one bounded PT2E-static quantization pass, and one bounded alternate-lowering comparison before any new kernel design | Deep research audit plus amended lane plan on 2026-04-24 | decided |
 
 ## Fixed First Proof Record
 
@@ -203,6 +204,7 @@ Branch: `task6-streamtensor-lite`
 | 2026-04-24 | `just task6-l0` | synthetic external-weight `64x64` GEMV | cache-hit status replay on exact rung surface | `4` | `0` | `32,449` | `46,736` | `3.25 s / 2.26 s / 3.20 s` | `563,960 KB / 438,164 KB / 563,512 KB` | pass-surface fail-lut | keep the `L0` runner only as a cheap status replay; the timings are replay timings and the rung still fails only on LUT |
 | 2026-04-24 | `just task6-l1` | block-0 `mlp.c_fc` extracted from `tiny-stories-1m-representative-core-v64-h4` | cache-hit status replay on exact frozen reference | `4` | `0` | `29,778` | `46,352` | `3.17 s / 2.28 s / 3.20 s` | `563,944 KB / 437,844 KB / 563,220 KB` | pass-surface | keep `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9` as the `L1` gold reference; the cleaned runner now measures the exact same surface for Yosys, sim, and utilization |
 | 2026-04-24 | `just task6-l2` | `tiny-stories-v1k-h64-l1` tiled `4 x 64` replay | cache-hit status replay on exact active reference | `4` | `0` | `31,907` | `45,932` | `3.17 s / 2.42 s / 3.16 s` | `564,112 KB / 437,840 KB / 563,344 KB` | pass-surface fail-lut | keep tiled `L2` as the active mainline, but treat the runner only as a status replay; it now measures the exact tiled wrapper reference while `L3` remains blocked |
+| 2026-04-24 | `tiny-stories-1m-baseline-float-selftest-top4-memory-{external-memory-plan,utilization}` bounded pass | full TinyStories baseline shell | narrowed external-memory shell | pending mapped result | pending mapped result | pending mapped result | pending mapped result | `127.70 s` plan rebuild; utilization interrupted after staged re-entry | `8,935,948 KB` observed live Yosys RSS during `stage2` | pass-plan partial-shell | the reproducible top-four DDR3 target set rebuilt cleanly and still selects four `3216448 x 32` modules totaling `411,705,344` bits (`49.08 MiB`, `95.1%` of eligible memory), but the narrowed shell utilization did not produce a new mapped result inside the bounded pass; if this track gets another slice, rerun it under `monitor_build.sh` and otherwise move on to the PT2E-static quantized replay |
 
 ## Rejections
 
