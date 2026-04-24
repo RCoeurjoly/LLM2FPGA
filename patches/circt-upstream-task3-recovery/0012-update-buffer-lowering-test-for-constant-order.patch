@@ -1,0 +1,58 @@
+From 75d87b8a2512c6bbca7f4f779a736bca097a6e77 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Mon, 20 Apr 2026 12:12:44 +0200
+Subject: [PATCH] Update buffer lowering test for constant order
+
+---
+ test/Conversion/HandshakeToHW/test_buffer.mlir | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/test/Conversion/HandshakeToHW/test_buffer.mlir b/test/Conversion/HandshakeToHW/test_buffer.mlir
+index e0e8c2532..5918e36d7 100644
+--- a/test/Conversion/HandshakeToHW/test_buffer.mlir
++++ b/test/Conversion/HandshakeToHW/test_buffer.mlir
+@@ -4,9 +4,9 @@
+ // CHECK-SAME:            %[[VAL_0:.*]] : !esi.channel<i0>, in %[[VAL_1:.*]] : !seq.clock, in %[[VAL_2:.*]] : i1, out out0 : !esi.channel<i0>) {
+ // CHECK:           %[[VAL_3:.*]], %[[VAL_4:.*]] = esi.unwrap.vr %[[VAL_0]], %[[VAL_5:.*]] : i0
+ // CHECK:           %[[VAL_6:.*]], %[[VAL_7:.*]] = esi.wrap.vr %[[VAL_8:.*]], %[[VAL_9:.*]] : i0
+-// CHECK:           %[[VAL_10:.*]] = hw.constant 0 : i0
+ // CHECK:           %[[VAL_11:.*]] = hw.constant false
+ // CHECK:           %[[VAL_12:.*]] = seq.compreg sym @valid0_reg %[[VAL_13:.*]], %[[VAL_1]] reset %[[VAL_2]], %[[VAL_11]]  : i1
++// CHECK:           %[[VAL_10:.*]] = hw.constant 0 : i0
+ // CHECK:           %[[VAL_14:.*]] = hw.constant true
+ // CHECK:           %[[VAL_15:.*]] = comb.xor %[[VAL_12]], %[[VAL_14]] : i1
+ // CHECK:           %[[VAL_5]] = comb.or %[[VAL_15]], %[[VAL_16:.*]] : i1
+@@ -25,8 +25,8 @@
+ // CHECK:           %[[VAL_29:.*]] = comb.mux %[[VAL_19]], %[[VAL_27]], %[[VAL_18]] : i0
+ // CHECK:           %[[VAL_30:.*]] = comb.mux %[[VAL_24]], %[[VAL_18]], %[[VAL_27]] : i0
+ // CHECK:           %[[VAL_28]] = comb.mux %[[VAL_26]], %[[VAL_10]], %[[VAL_30]] : i0
+-// CHECK:           %[[VAL_31:.*]] = hw.constant 0 : i0
+ // CHECK:           %[[VAL_32:.*]] = seq.compreg sym @valid1_reg %[[VAL_33:.*]], %[[VAL_1]] reset %[[VAL_2]], %[[VAL_11]]  : i1
++// CHECK:           %[[VAL_31:.*]] = hw.constant 0 : i0
+ // CHECK:           %[[VAL_34:.*]] = comb.xor %[[VAL_32]], %[[VAL_14]] : i1
+ // CHECK:           %[[VAL_23]] = comb.or %[[VAL_34]], %[[VAL_35:.*]] : i1
+ // CHECK:           %[[VAL_33]] = comb.mux %[[VAL_23]], %[[VAL_21]], %[[VAL_32]] : i1
+@@ -44,8 +44,8 @@
+ // CHECK:           %[[VAL_48:.*]] = comb.mux %[[VAL_38]], %[[VAL_46]], %[[VAL_37]] : i0
+ // CHECK:           %[[VAL_49:.*]] = comb.mux %[[VAL_43]], %[[VAL_37]], %[[VAL_46]] : i0
+ // CHECK:           %[[VAL_47]] = comb.mux %[[VAL_45]], %[[VAL_31]], %[[VAL_49]] : i0
+-// CHECK:           %[[VAL_50:.*]] = hw.constant 0 : i0
+ // CHECK:           %[[VAL_51:.*]] = seq.compreg sym @valid2_reg %[[VAL_52:.*]], %[[VAL_1]] reset %[[VAL_2]], %[[VAL_11]]  : i1
++// CHECK:           %[[VAL_50:.*]] = hw.constant 0 : i0
+ // CHECK:           %[[VAL_53:.*]] = comb.xor %[[VAL_51]], %[[VAL_14]] : i1
+ // CHECK:           %[[VAL_42]] = comb.or %[[VAL_53]], %[[VAL_54:.*]] : i1
+ // CHECK:           %[[VAL_52]] = comb.mux %[[VAL_42]], %[[VAL_40]], %[[VAL_51]] : i1
+@@ -77,9 +77,9 @@ handshake.func @test_buffer_none(%arg0: none, %arg1: none, ...) -> (none, none)
+ // CHECK-SAME:               %[[VAL_0:.*]] : !esi.channel<i64>, in %[[VAL_1:.*]] : !seq.clock, in %[[VAL_2:.*]] : i1, out out0 : !esi.channel<i64>) {
+ // CHECK:           %[[VAL_3:.*]], %[[VAL_4:.*]] = esi.unwrap.vr %[[VAL_0]], %[[VAL_5:.*]] : i64
+ // CHECK:           %[[VAL_6:.*]], %[[VAL_7:.*]] = esi.wrap.vr %[[VAL_8:.*]], %[[VAL_9:.*]] : i64
+-// CHECK:           %[[VAL_10:.*]] = hw.constant 0 : i64
+ // CHECK:           %[[VAL_11:.*]] = hw.constant false
+ // CHECK:           %[[VAL_12:.*]] = seq.compreg sym @valid0_reg %[[VAL_13:.*]], %[[VAL_1]] reset %[[VAL_2]], %[[VAL_11]]  : i1
++// CHECK:           %[[VAL_10:.*]] = hw.constant 0 : i64
+ // CHECK:           %[[VAL_14:.*]] = hw.constant true
+ // CHECK:           %[[VAL_15:.*]] = comb.xor %[[VAL_12]], %[[VAL_14]] : i1
+ // CHECK:           %[[VAL_5]] = comb.or %[[VAL_15]], %[[VAL_16:.*]] : i1
+-- 
+2.49.0
+

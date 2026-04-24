@@ -42,6 +42,7 @@
               ./patches/circt-upstream-task3-recovery/0002-handle-cfg-threaded-memrefs-in-handshake-lowering.patch
               ./patches/circt-upstream-task3-recovery/0005-handle-dense-resource-globals-in-flattenmemrefs.patch
               ./patches/circt-upstream-task3-recovery/0011-rebased-handshaketohw-stack.patch
+              ./patches/circt-upstream-task3-recovery/0012-update-buffer-lowering-test-for-constant-order.patch
             ];
           });
         yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {

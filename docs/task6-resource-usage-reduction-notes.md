@@ -6061,3 +6061,59 @@ Next action:
 - Recover the matching buffer-test update from the local fork history and rerun
   the same representative-core `handshake` gate unchanged before moving on to a
   heavier external-memory rerun.
+
+### 2026-04-24 - Rebased fork stack plus buffer-test fix clears CIRCT and exposes the next quant blocker
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T19-41-24+0200-representative-core-pt2e-static-handshake-rebased-fork-patches-plus-testfix/`
+
+Additional patch added from local fork history:
+
+- `patches/circt-upstream-task3-recovery/0012-update-buffer-lowering-test-for-constant-order.patch`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-representative-core-pt2e-static-handshake --no-link --print-out-paths -L`
+
+Observed result:
+
+- CIRCT now builds completely under Nix with the rebased patch stack plus the
+  matching test update.
+- The build reaches `fixupPhase`, so:
+  - the old upstream `flatten-memref` crash is cleared
+  - the earlier `check-circt` blocker on
+    `Conversion/HandshakeToHW/test_buffer.mlir` is also cleared
+- The representative-core quantized `handshake` derivation then fails later in
+  its own lowering pipeline with:
+  - `<Pass-Options-Parser>: no such option lsq`
+  - `failed to add lower-cf-to-handshake with options lsq`
+- measured cost:
+  - `ELAPSED=829.21`
+  - `RSS_KB=421,940`
+
+Interpretation:
+
+- This is the first clean proof that the local fork fixes are functionally
+  relevant on current upstream packaging:
+  - we are no longer blocked by patch drift
+  - we are no longer blocked by the upstream CIRCT `flatten-memref` crash
+  - we are no longer blocked by the one failing Handshake-to-HW regression test
+- The quantized representative-core route is still blocked, but now on a more
+  specific contract mismatch:
+  - the route expects an LSQ-specific `lower-cf-to-handshake=lsq` option
+  - the current patched upstream stack does not expose that option
+- This means the external-memory float mainline can be resumed on the repaired
+  CIRCT base, while the quant spike now needs either:
+  - restoration of the older LSQ memory-lowering extension, or
+  - a non-LSQ handshake path
+
+Verdict:
+
+- Record this as `block-missing-lsq-option`.
+
+Next action:
+
+- Rerun the external-memory mainline on the repaired CIRCT stack first.
+- Keep the quant spike bounded and decide separately whether to restore the LSQ
+  option support or switch that route onto a non-LSQ path.
