@@ -12,15 +12,8 @@
       url = "git+https://github.com/povik/yosys-slang?submodules=1";
       flake = false;
     };
-    circt-src = {
-      type = "github";
-      owner = "llvm";
-      repo = "circt";
-      flake = false;
-    };
     circt-nix = {
       url = "git+https://github.com/dtzSiFive/circt-nix?ref=main";
-      inputs."circt-src".follows = "circt-src";
     };
     nix-eda.url = "github:fossi-foundation/nix-eda";
     openXC7.url = "github:RCoeurjoly/toolchain-nix";
@@ -42,15 +35,7 @@
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        circtBase =
-          (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
-          (old: {
-            patches = (old.patches or [ ]) ++ [
-              ./patches/circt-task3-rfp/0006-add-lsq-memory-lowering.patch
-              ./patches/circt-task3-rfp/0007-lower-lazy-fork-to-hw.patch
-            ];
-          });
-        circt = circtBase;
+        circt = circtPkgs.circt.override { enableSlang = false; };
         yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {
           src = yosys.outPath;
           version = "unstable-${builtins.substring 0 8 yosys.sourceInfo.rev}";
