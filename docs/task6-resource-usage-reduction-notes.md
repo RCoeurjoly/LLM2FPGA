@@ -5732,3 +5732,134 @@ Next action:
 
 - Track the new representative-core PT2E-static adapter in Git, commit the
   current lane state, then rerun the same `cf-stats` gate unchanged.
+
+### 2026-04-24 - Standalone repro for the baseline float `cf -> handshake` crash
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T18-11-02+0200-baseline-handshake-repro/`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' /nix/store/9am975q7rmbvpzxzgg1j260da3qhkqzq-circt-1.144.0g20260331_5dc62fe/bin/circt-opt /nix/store/k34gyy0qqnsd0f7yi595kxs2mx3nfjr1-tiny-stories-1m-baseline-float-cf.mlir -flatten-memref -flatten-memref-calls -canonicalize -cse -handshake-legalize-memrefs -canonicalize -cse`
+
+Observed result:
+
+- The upstream CIRCT crash reproduces directly outside the Nix pipeline.
+- key crash signature:
+  - `mlir::DenseElementsAttr::getNumElements() const`
+- measured direct reproducer cost:
+  - `ELAPSED=1.42`
+  - `RSS_KB=94,720`
+- output file stays empty:
+  - `0` bytes in `/tmp/task6-baseline-float-handshake-repro.mlir`
+
+Interpretation:
+
+- The active external-memory blocker is a clean standalone CIRCT runtime crash,
+  not a wrapper bug in the Task 6 shell machinery.
+- That makes the next external-memory choice much narrower:
+  - either pin back to a non-crashing CIRCT pair for shell work
+  - or isolate and report the crashing `cf.mlir` reproducer upstream
+
+Verdict:
+
+- Record this as `pass-reproducer`.
+
+Next action:
+
+- Use this reproducer as the concrete blocker reference for the external-memory
+  mainline while the bounded quant spike continues.
+
+### 2026-04-24 - Representative-core PT2E-static quant spike rerun on a tracked tree
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T18-11-27+0200-representative-core-pt2e-static-cf-stats/`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-representative-core-pt2e-static-cf-stats --no-link --print-out-paths -L`
+
+Direct outputs:
+
+- `cf-stats`:
+  - `/nix/store/lggrgacn2ymq9b579sgca94wbpvawwz0-tiny-stories-1m-representative-core-pt2e-static-cf.stats`
+- quantized `torch` MLIR:
+  - `/nix/store/gx4kwvs2sajyd55vzyggc8r4ag1wajl2-tiny-stories-1m-representative-core-pt2e-static-torch.mlir`
+
+Observed result:
+
+- The minimized representative-core PT2E-static route is a real surviving full
+  model surface, not a no-op like the rejected direct external-weight
+  extracted-op route.
+- Measured build cost:
+  - `ELAPSED=49.58`
+  - `RSS_KB=293,732`
+- The exported `torch` MLIR contains explicit quantized structure:
+  - `66` `torch.aten.quantize_per_tensor` ops
+  - `17` `torch.aten.matmul` ops
+- Torch-MLIR warns that several quantized operands are only partially traced and
+  therefore remain in QDQ form around `torch.aten.matmul`.
+- The route reaches real `cf-stats` on the minimized model, with a nontrivial
+  lowered control/memory shape:
+  - `arith.cmpi=1,724`
+  - `cf.cond_br=1,419`
+  - `memref.alloc=104`
+  - `memref.global=18`
+
+Interpretation:
+
+- This is the first bounded quant spike on minimized TinyStories that actually
+  survives as a quantized full-model artifact in this branch.
+- It is therefore materially stronger than the earlier direct extracted-op
+  PT2E-static no-op result.
+
+Verdict:
+
+- Record this as `pass-quant-minimized-cf`.
+
+Next action:
+
+- Spend exactly one more gate on the same minimized surface:
+  - `tiny-stories-1m-representative-core-pt2e-static-handshake`
+
+### 2026-04-24 - Representative-core PT2E-static `handshake` gate
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T18-12-19+0200-representative-core-pt2e-static-handshake/`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-representative-core-pt2e-static-handshake --no-link --print-out-paths -L`
+
+Observed result:
+
+- The minimized representative-core quantized route fails at the same upstream
+  CIRCT legalization step as the baseline float shell:
+  - `circt-opt ... -flatten-memref -flatten-memref-calls -canonicalize -cse -handshake-legalize-memrefs -canonicalize -cse`
+- crash signature matches the baseline reproducer:
+  - `mlir::DenseElementsAttr::getNumElements() const`
+- measured cost:
+  - `ELAPSED=5.45`
+  - `RSS_KB=421,944`
+
+Interpretation:
+
+- The external-memory mainline and the bounded quant spike now share the same
+  concrete blocker:
+  - upstream CIRCT crashes in `-handshake-legalize-memrefs`
+- This means the next architecture-level choice is no longer "which lane first"
+  so much as "which CIRCT pair is allowed to answer either lane at all"
+
+Verdict:
+
+- Record this as `block-shared-upstream-circt-handshake-crash`.
+
+Next action:
+
+- Do not widen quantization further on this branch until the handshake crash is
+  removed or worked around.
+- Keep the minimized representative-core PT2E-static `cf-stats` result as the
+  live quant reference surface below that blocker.
