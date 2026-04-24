@@ -256,6 +256,8 @@
             ./src/task6_rect_gemv_pt2e_static_quant_adapter.py;
           tinyStoriesRepresentativeCoreAdapterPy =
             ./TinyStories/model_adapter_representative_core.py;
+          tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy =
+            ./TinyStories/model_adapter_representative_core_pt2e_static_quant.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;
           tinyStoriesPt2eStaticQuantAdapterPy =
             ./TinyStories/model_adapter_pt2e_static_quant.py;

@@ -1,0 +1,11 @@
+command: nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-utilization --no-link --print-out-paths -L 
+exit_status: 1
+wall_seconds: 16
+sample_interval_seconds: 5
+peak_vmrss_kb: 565464
+peak_vmrss_pid: 594449
+peak_vmrss_name: nix
+peak_vmhwm_kb: 565464
+peak_vmhwm_pid: 594449
+peak_vmhwm_name: nix
+last_stage_line: 

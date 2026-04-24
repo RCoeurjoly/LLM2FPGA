@@ -1,0 +1,3 @@
+pid	name	cmdline
+594449	nix	nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-utilization --no-link --print-out-paths -L 
+594451	tee	tee artifacts/task6/runs/2026-04-24T18-05-18+0200-baseline-top4-memory-utilization/build.log 

@@ -5578,3 +5578,157 @@ Next action:
 - Stop spending experiment slices on restarted Task 6 targets.
 - Let one full upstream bootstrap finish, then resume with the monitored
   baseline `top4-memory` pass.
+
+### 2026-04-24 - Resume execution with external memory mainline and one bounded quant spike
+
+Execution change:
+
+- keep the thesis unchanged:
+  - external memory and quantization stay the two active architecture tracks
+  - StreamTensor-lite stays the comparison harness, not the whole solution
+- change the emphasis:
+  - make external memory the mainline lane
+  - keep quantization as a single bounded spike on minimized TinyStories
+    surfaces rather than a survey
+
+Mainline external-memory hypothesis:
+
+- The correct next architecture-level run is still the monitored baseline
+  `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization` pass.
+- With the repo-local CIRCT overlay removed and the `circt-nix` upstream pair
+  restored, this rerun should finally produce a real narrowed-shell utilization
+  result instead of spending the entire bounded pass in toolchain bootstrap.
+- Expected result:
+  - either a mapped `top4-memory` shell bundle with real `DSP / BRAM / LUT / FF`
+    numbers and a usable monitor summary
+  - or a new concrete blocker later than toolchain bootstrap
+- Falsifier:
+  - the run again fails to reach the actual `top4-memory` model stages
+  - or produces no narrowed-shell utilization artifact
+
+Bounded quantization-spike hypothesis:
+
+- The surviving PT2E-static route should be replayed first on minimized
+  TinyStories full-model surfaces, not on the already-rejected direct
+  external-weight extracted-op surface.
+- The missing fast-loop surface in this repo is a representative-core
+  PT2E-static model key that uses the same reduced-config construction as
+  `tiny-stories-1m-representative-core`, then runs through the existing LSQ
+  quantized pipeline.
+- Expected result:
+  - a minimized representative-core PT2E-static route that reaches at least
+    `cf-stats`, and ideally `handshake`, faster than the full
+    `tiny-stories-1m` quantized path
+- Falsifier:
+  - the minimized representative-core PT2E-static route fails before `cf`
+  - or it clearly collapses back to the same unquantized surface without
+    surviving as a meaningful quantized full-model artifact
+
+Operational split:
+
+- Start the monitored baseline `top4-memory` rerun first and let it consume the
+  larger experiment budget.
+- Use the wait time to add the representative-core PT2E-static quant surface
+  and run exactly one bounded minimized-surface quant replay.
+
+### 2026-04-24 - Mainline `top4-memory` rerun after restoring `circt-nix` as shipped
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T18-05-18+0200-baseline-top4-memory-utilization/`
+
+Command run:
+
+- `MONITOR_GLOBAL_PGREP_PATTERN="default-builder.sh|yosys -q -s run.ys|yosys-abc" scripts/pipeline/monitor_build.sh artifacts/task6/runs/2026-04-24T18-05-18+0200-baseline-top4-memory-utilization 5 -- nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-utilization --no-link --print-out-paths -L`
+
+Observed result:
+
+- This is no longer blocked on upstream LLVM/MLIR/CIRCT bootstrap.
+- The run reaches the real baseline TinyStories lowering stack and fails at:
+  - `tiny-stories-1m-baseline-float-handshake.mlir.drv`
+  - `circt-opt ... -flatten-memref -flatten-memref-calls -canonicalize -cse -handshake-legalize-memrefs -canonicalize -cse`
+- failure mode:
+  - upstream CIRCT segfault
+  - `pipeline/common.sh: line 28: Segmentation fault (core dumped)`
+- monitor summary:
+  - `exit_status=1`
+  - `wall_seconds=16`
+  - `peak_vmrss_kb=565,464`
+- no narrowed-shell utilization artifact was emitted
+
+Interpretation:
+
+- Restoring `circt-nix` as shipped fixed the earlier source-pair compile
+  mismatch, but it exposes a new downstream blocker on this branch:
+  - upstream CIRCT now crashes during the baseline float `cf -> handshake`
+    lowering before the `top4-memory` shell flow can answer the real shell-fit
+    question
+- So the external-memory lane is still the mainline, but it is currently
+  blocked by a concrete upstream CIRCT runtime failure rather than by bootstrap
+  warm-up
+
+Verdict:
+
+- Record this as `block-upstream-circt-handshake-crash`.
+- Do not treat it as evidence for or against `top4-memory` itself.
+
+Next action:
+
+- Keep external memory as the mainline lane.
+- Before another baseline `top4-memory` shell pass, either:
+  - pin back to a CIRCT pair that survives `tiny-stories-1m-baseline-float-handshake`
+  - or isolate the minimal crashing `cf.mlir` reproducer for the upstream
+    `-handshake-legalize-memrefs` failure
+- Use the bounded quantization spike meanwhile, since it does not require
+  reopening the closed StreamTensor-lite float32 tuning loop
+
+### 2026-04-24 - First minimized representative-core PT2E-static quant spike attempt
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T18-06-57+0200-representative-core-pt2e-static-cf-stats-attempt/`
+
+Why this slice was chosen:
+
+- The plan calls for quantization to stay a bounded spike on minimized
+  TinyStories surfaces first, not another full `tiny-stories-1m` replay and
+  not another extracted-op PT2E-static retry.
+- The missing fast-loop surface was a representative-core full-model
+  PT2E-static key, so this slice adds exactly that and tries the smallest
+  meaningful gate:
+  - `tiny-stories-1m-representative-core-pt2e-static-cf-stats`
+
+Implementation added:
+
+- `TinyStories/model_adapter_representative_core_pt2e_static_quant.py`
+- model key:
+  - `tiny-stories-1m-representative-core-pt2e-static`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-representative-core-pt2e-static-cf-stats --no-link --print-out-paths -L`
+
+Observed result:
+
+- The first attempt does not reach PyTorch export or MLIR stages.
+- Nix evaluation fails immediately because the new adapter file is untracked and
+  therefore omitted from the flake source snapshot:
+  - `Path 'TinyStories/model_adapter_representative_core_pt2e_static_quant.py' ... is not tracked by Git`
+- measured front-end cost:
+  - `ELAPSED=1.24`
+  - `RSS_KB=184,688`
+
+Interpretation:
+
+- This is not a quantization verdict yet.
+- It is only the flake tracked-file rule firing on the newly added minimized
+  quant adapter.
+
+Verdict:
+
+- Record this as `block-untracked-quant-surface`.
+
+Next action:
+
+- Track the new representative-core PT2E-static adapter in Git, commit the
+  current lane state, then rerun the same `cf-stats` gate unchanged.
