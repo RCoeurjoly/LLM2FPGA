@@ -5535,3 +5535,46 @@ Next action:
 
 - Warm the upstream LLVM/MLIR/CIRCT stack once, then rerun the monitored
   baseline `top4-memory` pass.
+
+### 2026-04-24 - Cheapest `L0` warm-up probe after the upstream rerun block
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T13-37-32+0200/`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l0-gemv64-yosys-stat --no-link --print-out-paths -L`
+
+Observed result:
+
+- measured wall-clock before manual stop:
+  - `32.17 s`
+- no store path was emitted
+- the log again re-entered the upstream toolchain bootstrap before any Task 6
+  IR stage:
+  - `llvm-tblgen`
+  - `llvm`
+  - `mlir`
+  - `circt`
+- deepest direct progress seen before stop:
+  - `llvm-tblgen` configure complete
+
+Interpretation:
+
+- This confirms the blocker is not specific to the baseline `top4-memory`
+  shell.
+- The branch is currently blocked on completing one full upstream
+  LLVM/MLIR/CIRCT bootstrap on this machine after the `llvm/circt` switch.
+- Restarted Task 6 targets do not meaningfully advance the plan until that
+  bootstrap lands once.
+
+Verdict:
+
+- Record this as the second `blocked-upstream-toolchain-bootstrap` signal.
+
+Next action:
+
+- Stop spending experiment slices on restarted Task 6 targets.
+- Let one full upstream bootstrap finish, then resume with the monitored
+  baseline `top4-memory` pass.
