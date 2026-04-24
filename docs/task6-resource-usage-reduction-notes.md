@@ -5457,3 +5457,81 @@ Next action:
 - Any further quantization work now needs a new extracted-op hypothesis that
   actually quantizes with external weights instead of collapsing back to the
   frozen float graph.
+
+### 2026-04-24 - Amend execution after the second deep-research audit
+
+The latest audit changes the execution posture, not the Task 6 thesis.
+
+Keep:
+
+- StreamTensor-lite as the rapid extraction / contract / kernel-comparison
+  harness
+- `mlp.c_fc` as the mainline boundary
+- `mlp.c_proj` as reserve-only
+- monolithic `L2 c_fc` surgery closed
+- `L3` blocked until an architecture-level result changes the story
+
+Change:
+
+- stop treating more float32 helper tuning as the default frontier
+- make the `top4-memory` / DDR3 shell pass the first architecture-level track
+- keep quantization active only if it starts from minimized TinyStories
+  surfaces first:
+  - `tiny-stories-1m-representative-core`
+  - then the frozen `L1` cutout
+  - only then wider replay
+- keep alternate-lowering closed unless a new bounded hypothesis appears
+- do not start a new low-bit kernel family until one quantized route survives
+  the extracted-op parity gates as a genuinely quantized artifact
+
+Operational consequence:
+
+- `just task6-l0`, `just task6-l1`, and `just task6-l2` remain status-only
+  replay surfaces
+- the next live execution slice is the monitored baseline
+  `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization` rerun,
+  not another local kernel edit
+
+### 2026-04-24 - First `top4-memory` rerun after switching to upstream CIRCT
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T13-34-06+0200/`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-external-memory-plan --no-link --print-out-paths -L`
+
+Observed result:
+
+- The command did not reach the `top4-memory` model derivations.
+- It first re-entered the one-time upstream toolchain bootstrap:
+  - `llvm-tblgen`
+  - `llvm`
+  - `mlir`
+  - `circt`
+- measured wall-clock before manual stop:
+  - `77.96 s`
+- deepest direct progress seen in the build log:
+  - `llvm-tblgen` configure complete
+  - `llvm-tblgen` build at `[221/388]`
+- no external-memory-plan store path was emitted
+
+Interpretation:
+
+- This is not a new DDR3 shell result.
+- It is the first concrete cost of the earlier branch decision to switch from
+  the local CIRCT fork to upstream `llvm/circt`.
+- Until that toolchain bootstrap lands once on this machine, architecture-level
+  reruns will spend their bounded pass budget on toolchain re-entry instead of
+  on the actual `top4-memory` shell question.
+
+Verdict:
+
+- Record this as `blocked-upstream-toolchain-bootstrap`.
+- Do not treat it as evidence for or against the `top4-memory` shell itself.
+
+Next action:
+
+- Warm the upstream LLVM/MLIR/CIRCT stack once, then rerun the monitored
+  baseline `top4-memory` pass.

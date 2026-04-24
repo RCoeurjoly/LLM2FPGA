@@ -151,6 +151,10 @@ Model-ladder rule:
 The lane has moved beyond the original monolithic `L2 c_fc` search, and the
 execution order has changed accordingly.
 
+Treat the branch as a rapid extraction, contract, and kernel-comparison harness,
+not as proof that more float32 helper tuning will solve the full-model
+board-fit story by itself.
+
 - Keep `L1 c_fc` as the solved first-proof reference:
   - `task6-l1-c-fc-redirect-index-ring3-postbranch-outbuf-fifo2-abc9`
   - `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`
@@ -216,6 +220,10 @@ StreamTensor-lite RTL tweak.
    - start from `task3-experiments`
    - import only the smallest donor set needed to test one surviving route on
      the same extracted-op proof surfaces
+   - default to the minimized TinyStories ladder first:
+     - `tiny-stories-1m-representative-core`
+     - then the frozen `L1` cutout
+     - only then the active tiled `L2` replay
    - require parity with the current StreamTensor-lite proof harness before
      widening scope
 3. Run one alternate-lowering comparison on the same extracted contracts.
@@ -273,6 +281,8 @@ Artifact rule:
      status-only replay surface
    - keep the existing packed-weight, contract, and task-graph artifacts as the
      comparison harness for future architecture tracks
+   - treat this lane as the comparison harness for architecture experiments,
+     not the default place to keep polishing the float32 redirected kernel
    - do not spend more branch effort on runner growth or blocked-rung sweeps
 
 2. DDR3 / `top4-memory` shell evidence
@@ -281,11 +291,18 @@ Artifact rule:
      - one reproducible external-memory-plan result
      - one shell utilization result if it completes within a bounded pass
      - one short bandwidth note with explicit assumptions
+   - after the upstream CIRCT switch, record a first-pass LLVM/MLIR/CIRCT
+     bootstrap hit as a toolchain blocker, not as a shell-fit verdict
    - if the narrowed shell still fails late, record the blocker exactly and
      move on instead of widening this loop blindly
 
 3. Quantization bounded replay
-   - treat the PT2E-static `tiny-stories-1m` route as the first candidate
+   - treat the PT2E-static `tiny-stories-1m` route as the surviving reference
+     route, not the default first replay surface
+   - start execution on the minimized TinyStories family first:
+     - `tiny-stories-1m-representative-core`
+     - then the frozen `L1` cutout
+     - only then wider replay if the smaller surface survives
    - keep `dynamic-int8` and `torchao` frozen unless importer behavior changes
    - require parity with the existing proof harness before widening scope:
      - extracted-op contract replay first
@@ -365,6 +382,7 @@ Required next outputs:
 2. PT2E-static quantized TinyStories replay
    - primary quantization experiment
    - reuse the existing quantized model route already kept alive in this repo
+   - replay it on the minimized TinyStories surfaces before any wider replay
    - the first extracted-op parity slice is now spent negative:
      - `task6-l1-c-fc-redirect-pt2e-static-torch` is byte-identical to the
        frozen float `torch` export
