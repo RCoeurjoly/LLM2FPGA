@@ -137,9 +137,10 @@ index 3a1530f2b..4cc880ba8 100644
      return MemRefType::get(llvm::SmallVector<int64_t>{memref.getNumElements()},
                             memref.getElementType());
    });
-@@ -425,12 +515,16 @@ public:
+@@ -438,16 +529,19 @@ public:
      auto *ctx = &getContext();
      TypeConverter typeConverter;
+     FlattenMemRefsState state;
      populateTypeConversionPatterns(typeConverter);
 +    typeConverter.addSourceMaterialization(materializeExpandShapeFromFlattened);
 +    typeConverter.addTargetMaterialization(materializeCollapseShapeFlattening);
@@ -147,14 +148,15 @@ index 3a1530f2b..4cc880ba8 100644
      RewritePatternSet patterns(ctx);
      SetVector<StringRef> rewrittenCallees;
      patterns.add<LoadOpConversion, StoreOpConversion, AllocOpConversion,
-                  AllocaOpConversion, GlobalOpConversion, GetGlobalOpConversion,
--                 ReshapeOpConversion, OperandConversionPattern<func::ReturnOp>,
-+                 ReshapeOpConversion, ExpandShapeOpConversion,
-+                 CollapseShapeOpConversion,
-+                 OperandConversionPattern<func::ReturnOp>,
+-                 AllocaOpConversion, ReshapeOpConversion,
++                 AllocaOpConversion, ReshapeOpConversion,
++                 ExpandShapeOpConversion, CollapseShapeOpConversion,
+                  OperandConversionPattern<func::ReturnOp>,
                   OperandConversionPattern<memref::DeallocOp>,
                   OperandConversionPattern<memref::DeallocOp>,
                   OperandConversionPattern<memref::CopyOp>, CallOpConversion>(
+         typeConverter, ctx);
+     patterns.add<GlobalOpConversion, GetGlobalOpConversion>(typeConverter, ctx,
+                                                             state);
 -- 
 2.53.0
-

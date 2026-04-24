@@ -40,14 +40,8 @@
             patches = (old.patches or [ ]) ++ [
               ./patches/circt-upstream-task3-recovery/0001-flatten-memref-shape-ops-after-memref-flattening.patch
               ./patches/circt-upstream-task3-recovery/0002-handle-cfg-threaded-memrefs-in-handshake-lowering.patch
-              ./patches/circt-upstream-task3-recovery/0003-support-extra-frontend-ops-in-handshaketohw.patch
-              ./patches/circt-upstream-task3-recovery/0004-mark-assert-and-math-illegal-in-handshaketohw.patch
               ./patches/circt-upstream-task3-recovery/0005-handle-dense-resource-globals-in-flattenmemrefs.patch
-              ./patches/circt-upstream-task3-recovery/0006-lower-func-conversion-priority-in-handshaketohw.patch
-              ./patches/circt-upstream-task3-recovery/0007-legalize-unrealized-conversion-casts-in-handshaketohw.patch
-              ./patches/circt-upstream-task3-recovery/0008-defer-func-lowering-until-body-is-legal.patch
-              ./patches/circt-upstream-task3-recovery/0009-handle-memref-model-io-and-cache-submodule-lookups.patch
-              ./patches/circt-upstream-task3-recovery/0010-lower-float-ops-as-externs-in-handshaketohw.patch
+              ./patches/circt-upstream-task3-recovery/0011-rebased-handshaketohw-stack.patch
             ];
           });
         yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {

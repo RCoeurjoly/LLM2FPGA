@@ -5996,3 +5996,68 @@ Next action:
 - Rebase or hand-adapt the `FlattenMemRefs` fixes onto the current upstream
   source, then rerun the same minimized representative-core `handshake` gate
   unchanged before spending another slice on the heavier external-memory shell.
+
+### 2026-04-24 - Rebased fork patch stack clears CIRCT compile but trips one buffer regression test
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T19-18-44+0200-representative-core-pt2e-static-handshake-rebased-fork-patches/`
+
+Rebased patch set now applied in this repo:
+
+- `patches/circt-upstream-task3-recovery/0001-flatten-memref-shape-ops-after-memref-flattening.patch`
+- `patches/circt-upstream-task3-recovery/0002-handle-cfg-threaded-memrefs-in-handshake-lowering.patch`
+- `patches/circt-upstream-task3-recovery/0005-handle-dense-resource-globals-in-flattenmemrefs.patch`
+- `patches/circt-upstream-task3-recovery/0011-rebased-handshaketohw-stack.patch`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-representative-core-pt2e-static-handshake --no-link --print-out-paths -L`
+
+Observed result:
+
+- The rebased patch stack now applies cleanly to the `circt-nix` packaged
+  CIRCT source.
+- CIRCT completes `buildPhase` successfully.
+- The critical patched files compile and link:
+  - `lib/Transforms/FlattenMemRefs.cpp`
+  - `lib/Dialect/Handshake/Transforms/LegalizeMemrefs.cpp`
+  - `lib/Conversion/HandshakeToHW/HandshakeToHW.cpp`
+- `check-circt` then runs and reports exactly one failure:
+  - `CIRCT :: Conversion/HandshakeToHW/test_buffer.mlir`
+- The failing FileCheck expects:
+  - `hw.constant false`
+- The patched lowering emits:
+  - `hw.constant 0 : i0`
+- measured build cost:
+  - `ELAPSED=803.01`
+  - `RSS_KB=421,760`
+- test summary:
+  - `Passed: 1163`
+  - `Failed: 1`
+  - `Expectedly Failed: 6`
+  - `Unsupported: 39`
+
+Interpretation:
+
+- This is a real step forward from the original upstream blocker.
+- The local fork fixes are no longer blocked by patch drift, and the old
+  `flatten-memref` infrastructure path is cleared far enough to rebuild the
+  whole packaged CIRCT toolchain.
+- The active blocker has shifted again:
+  - away from runtime `flatten-memref` crash
+  - away from patch drift
+  - to one CIRCT regression expectation in Handshake-to-HW buffer lowering
+- That is the right scale of blocker to address next because it keeps checks
+  enabled and should let the same representative-core `handshake` gate answer
+  the actual Task 6 question once aligned.
+
+Verdict:
+
+- Record this as `block-circt-check-buffer-test`.
+
+Next action:
+
+- Recover the matching buffer-test update from the local fork history and rerun
+  the same representative-core `handshake` gate unchanged before moving on to a
+  heavier external-memory rerun.
