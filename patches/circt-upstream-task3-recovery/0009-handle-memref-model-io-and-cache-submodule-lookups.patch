@@ -1,0 +1,340 @@
+From c047aaf62a5af36176d4c87817824cc0e2cfb377 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Mon, 20 Apr 2026 12:12:44 +0200
+Subject: [PATCH] Handle memref model I/O and cache submodule lookups
+
+---
+ .../HandshakeToHW/HandshakeToHW.cpp           | 158 ++++++++++++++----
+ 1 file changed, 122 insertions(+), 36 deletions(-)
+
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index 3b7ba94c7..42f399696 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -31,6 +31,7 @@
+ #include "mlir/Pass/Pass.h"
+ #include "mlir/Pass/PassManager.h"
+ #include "mlir/Transforms/DialectConversion.h"
++#include "llvm/ADT/StringMap.h"
+ #include "llvm/ADT/TypeSwitch.h"
+ #include "llvm/Support/MathExtras.h"
+ #include <optional>
+@@ -58,6 +59,7 @@ static Type tupleToStruct(TypeRange types) {
+ struct HandshakeLoweringState {
+   ModuleOp parentModule;
+   NameUniquer nameUniquer;
++  llvm::StringMap<Operation *> subModuleCache;
+ };
+ 
+ // A type converter is needed to perform the in-flight materialization of "raw"
+@@ -163,6 +165,11 @@ static std::string getTypeName(Location loc, Type type) {
+     typeName += "_struct";
+     for (auto element : structType.getElements())
+       typeName += "_" + element.name.str() + getTypeName(loc, element.type);
++  } else if (auto memrefType = dyn_cast<MemRefType>(type)) {
++    typeName += "_memref";
++    for (auto dim : memrefType.getShape())
++      typeName += "_" + std::to_string(dim);
++    typeName += getTypeName(loc, memrefType.getElementType());
+   } else if (isa<NoneType>(type)) {
+     typeName += "_none";
+   } else
+@@ -270,22 +277,37 @@ static std::string getSubModuleName(Operation *oldOp) {
+ /// Check whether a submodule with the same name has been created elsewhere in
+ /// the top level module. Return the matched module operation if true, otherwise
+ /// return nullptr.
+-static HWModuleLike checkSubModuleOp(mlir::ModuleOp parentModule,
++static HWModuleLike checkSubModuleOp(HandshakeLoweringState &ls,
+                                      StringRef modName) {
+-  if (auto mod = parentModule.lookupSymbol<HWModuleOp>(modName))
++  if (auto it = ls.subModuleCache.find(modName); it != ls.subModuleCache.end()) {
++    if (!it->second)
++      return {};
++    if (auto mod = dyn_cast<HWModuleOp>(it->second))
++      return mod;
++    return cast<HWModuleExternOp>(it->second);
++  }
++
++  Operation *cached = nullptr;
++  if (auto mod = ls.parentModule.lookupSymbol<HWModuleOp>(modName))
++    cached = mod.getOperation();
++  else if (auto mod = ls.parentModule.lookupSymbol<HWModuleExternOp>(modName))
++    cached = mod.getOperation();
++  ls.subModuleCache[modName] = cached;
++
++  if (auto mod = dyn_cast_or_null<HWModuleOp>(cached))
+     return mod;
+-  if (auto mod = parentModule.lookupSymbol<HWModuleExternOp>(modName))
++  if (auto mod = dyn_cast_or_null<HWModuleExternOp>(cached))
+     return mod;
+   return {};
+ }
+ 
+-static HWModuleLike checkSubModuleOp(mlir::ModuleOp parentModule,
++static HWModuleLike checkSubModuleOp(HandshakeLoweringState &ls,
+                                      Operation *oldOp) {
+   HWModuleLike targetModule;
+   if (auto instanceOp = dyn_cast<handshake::InstanceOp>(oldOp))
+-    targetModule = checkSubModuleOp(parentModule, instanceOp.getModule());
++    targetModule = checkSubModuleOp(ls, instanceOp.getModule());
+   else
+-    targetModule = checkSubModuleOp(parentModule, getSubModuleName(oldOp));
++    targetModule = checkSubModuleOp(ls, getSubModuleName(oldOp));
+ 
+   if (isa<handshake::InstanceOp>(oldOp))
+     assert(targetModule &&
+@@ -336,15 +358,70 @@ static LogicalResult convertExtMemoryOps(HWModuleOp mod) {
+     return portInfo;
+   };
+ 
++  auto findExtMemoryInstance =
++      [&](Value arg) -> FailureOr<std::optional<hw::InstanceOp>> {
++    hw::InstanceOp extmemInstance;
++    SmallVector<StringRef> userNames;
++    SmallVector<Value> worklist{arg};
++    DenseSet<Value> visited;
++    while (!worklist.empty()) {
++      Value value = worklist.pop_back_val();
++      if (!visited.insert(value).second)
++        continue;
++
++      for (Operation *user : value.getUsers()) {
++        userNames.push_back(user->getName().getStringRef());
++        if (auto unwrap = dyn_cast<esi::UnwrapValidReadyOp>(user)) {
++          worklist.push_back(unwrap.getRawOutput());
++          continue;
++        }
++        if (auto wrap = dyn_cast<esi::WrapValidReadyOp>(user)) {
++          worklist.push_back(wrap.getChanOutput());
++          continue;
++        }
++        if (auto cast = dyn_cast<UnrealizedConversionCastOp>(user)) {
++          llvm::append_range(worklist, cast.getResults());
++          continue;
++        }
++
++        auto instance = dyn_cast<hw::InstanceOp>(user);
++        if (!instance)
++          continue;
++
++        auto *symbol = SymbolTable::lookupNearestSymbolFrom(
++            instance, instance.getModuleNameAttr());
++        if (!isa_and_nonnull<hw::HWModuleExternOp>(symbol))
++          continue;
++
++        if (extmemInstance && extmemInstance != instance) {
++          auto diag = emitError(arg.getLoc())
++                      << "multiple extern instances attached to memref port";
++          diag.attachNote(mod.getLoc()) << "module: " << mod.getModuleName();
++          return failure();
++        }
++        extmemInstance = instance;
++      }
++    }
++
++    if (!extmemInstance)
++      return std::optional<hw::InstanceOp>();
++    return std::optional<hw::InstanceOp>(extmemInstance);
++  };
++
+   for (auto [i, arg] : memrefPorts) {
+     // Insert ports into the module
+     auto memName = mod.getArgName(i);
+ 
+     // Get the attached extmemory external module.
+-    auto extmemInstance = cast<hw::InstanceOp>(*arg.getUsers().begin());
++    auto extmemInstance = findExtMemoryInstance(arg);
++    if (failed(extmemInstance))
++      return failure();
++    if (!*extmemInstance)
++      continue;
++    hw::InstanceOp extmemInst = **extmemInstance;
+     auto extmemMod =
+         cast<hw::HWModuleExternOp>(SymbolTable::lookupNearestSymbolFrom(
+-            extmemInstance, extmemInstance.getModuleNameAttr()));
++            extmemInst, extmemInst.getModuleNameAttr()));
+ 
+     ModulePortInfo portInfo(extmemMod.getPortList());
+ 
+@@ -365,7 +442,7 @@ static LogicalResult convertExtMemoryOps(HWModuleOp mod) {
+     b.setInsertionPointToStart(mod.getBodyBlock());
+     auto newInPortExploded = hw::StructExplodeOp::create(
+         b, arg.getLoc(), extmemMod.getOutputTypes(), newInPort);
+-    extmemInstance.replaceAllUsesWith(newInPortExploded.getResults());
++    extmemInst.replaceAllUsesWith(newInPortExploded.getResults());
+ 
+     // Add memory output - this is the inputs of the extmemory op (without the
+     // first argument);
+@@ -375,7 +452,7 @@ static LogicalResult convertExtMemoryOps(HWModuleOp mod) {
+         getMemoryIOInfo(arg.getLoc(), memName.strref() + "_out", outArgI,
+                         inputs, hw::ModulePort::Direction::Output);
+ 
+-    auto memOutputArgs = extmemInstance.getOperands().drop_front();
++    auto memOutputArgs = extmemInst.getOperands().drop_front();
+     b.setInsertionPoint(mod.getBodyBlock()->getTerminator());
+     auto memOutputStruct = hw::StructCreateOp::create(
+         b, arg.getLoc(), outPortInfo.type, memOutputArgs);
+@@ -384,7 +461,7 @@ static LogicalResult convertExtMemoryOps(HWModuleOp mod) {
+     // Erase the extmemory submodule instace since the i/o has now been
+     // plumbed.
+     extmemMod.erase();
+-    extmemInstance.erase();
++    extmemInst.erase();
+ 
+     // Erase the original memref argument of the top-level i/o now that it's use
+     // has been removed.
+@@ -762,7 +839,7 @@ public:
+     // Check if a submodule has already been created for the op. If so,
+     // instantiate the submodule. Else, run the pattern-defined module
+     // builder.
+-    hw::HWModuleLike implModule = checkSubModuleOp(ls.parentModule, op);
++    hw::HWModuleLike implModule = checkSubModuleOp(ls, op);
+     if (!implModule) {
+       auto portInfo = ModulePortInfo(getPortInfoForOp(op));
+ 
+@@ -783,6 +860,7 @@ public:
+             RTLBuilder s(ports.getPortList(), b, op.getLoc(), clk, rst);
+             this->buildModule(op, bb, s, ports);
+           });
++      ls.subModuleCache[implModule.getModuleName()] = implModule.getOperation();
+     }
+ 
+     // Instantiate the submodule.
+@@ -1732,9 +1810,6 @@ public:
+                    RTLBuilder &s, size_t index,
+                    std::optional<int64_t> initValue)
+         : dataType(dataType), preStage(preStage), s(s), bb(bb), index(index) {
+-
+-      // Todo: Change when i0 support is added.
+-      c0s = createZeroDataConst(s, s.loc, dataType);
+       currentStage.ready = std::make_shared<Backedge>(bb.get(s.b.getI1Type()));
+ 
+       auto hasInitValue = s.constant(1, initValue.has_value());
+@@ -1742,6 +1817,19 @@ public:
+       auto validReg = s.reg(getRegName("valid"), validBE, hasInitValue);
+       auto readyBE = bb.get(s.b.getI1Type());
+ 
++      // Memrefs in the current handshake lowering act as stable memory
++      // references, not synthesizable hardware data words. Buffer only their
++      // control path and forward the payload directly.
++      if (isa<MemRefType>(dataType)) {
++        buildValidBufferLogic(validReg, validBE, readyBE);
++        buildControlBufferLogic(validReg, readyBE, preStage.data,
++                                /*passDataThrough=*/true);
++        return;
++      }
++
++      // Todo: Change when i0 support is added.
++      c0s = createZeroDataConst(s, s.loc, dataType);
++
+       Value initValueCs = c0s;
+       if (initValue.has_value())
+         initValueCs = s.constant(dataType.getIntOrFloatBitWidth(), *initValue);
+@@ -1758,7 +1846,7 @@ public:
+     }
+ 
+     void buildControlBufferLogic(Value validReg, Backedge &readyBE,
+-                                 Value dataReg) {
++                                 Value dataReg, bool passDataThrough = false) {
+       auto c0I1 = s.constant(1, 0);
+       auto readyRegWire = bb.get(s.b.getI1Type());
+       auto readyReg = s.reg(getRegName("ready"), readyRegWire, c0I1);
+@@ -1781,6 +1869,11 @@ public:
+       auto resetSignal = s.mux(bothReady, {ctrlNotReady, c0I1});
+       readyRegWire.setValue(resetSignal);
+ 
++      if (passDataThrough) {
++        currentStage.data = dataReg;
++        return;
++      }
++
+       // Add same logic for the data path if necessary.
+       auto ctrlDataRegBE = bb.get(dataType);
+       auto ctrlDataReg = s.reg(getRegName("ctrl_data"), ctrlDataRegBE, c0s);
+@@ -1792,8 +1885,8 @@ public:
+       ctrlDataRegBE.setValue(dataResetSignal);
+     }
+ 
+-    Value buildDataBufferLogic(Value validReg, Value initValue,
+-                               Backedge &validBE, Backedge &readyBE) {
++    Value buildValidBufferLogic(Value validReg, Backedge &validBE,
++                                Backedge &readyBE) {
+       // Create a signal for when the valid register is empty or the successor
+       // is ready to accept new token.
+       auto notValidReg = s.bNot(validReg);
+@@ -1808,6 +1901,12 @@ public:
+ 
+       // Now we can drive the valid register.
+       validBE.setValue(validRegMux);
++      return emptyOrReady;
++    }
++
++    Value buildDataBufferLogic(Value validReg, Value initValue,
++                               Backedge &validBE, Backedge &readyBE) {
++      auto emptyOrReady = buildValidBufferLogic(validReg, validBE, readyBE);
+ 
+       // Create a mux that drives the date register.
+       auto dataRegBE = bb.get(dataType);
+@@ -1885,12 +1984,13 @@ public:
+   matchAndRewrite(T op, OpAdaptor adaptor,
+                   ConversionPatternRewriter &rewriter) const override {
+ 
+-    hw::HWModuleLike implModule = checkSubModuleOp(ls.parentModule, op);
++    hw::HWModuleLike implModule = checkSubModuleOp(ls, op);
+     if (!implModule) {
+       auto portInfo = ModulePortInfo(getPortInfoForOp(op));
+       implModule = hw::HWModuleExternOp::create(
+           submoduleBuilder, op.getLoc(),
+           submoduleBuilder.getStringAttr(getSubModuleName(op)), portInfo);
++      ls.subModuleCache[implModule.getModuleName()] = implModule.getOperation();
+     }
+ 
+     llvm::SmallVector<Value> operands = adaptor.getOperands();
+@@ -1907,20 +2007,11 @@ private:
+ 
+ class FuncOpConversionPattern : public OpConversionPattern<handshake::FuncOp> {
+ public:
+-  FuncOpConversionPattern(TypeConverter &typeConverter, MLIRContext *context,
+-                          ConversionTarget &target)
+-      : OpConversionPattern(typeConverter, context,
+-                            PatternBenefit(/*benefit=*/0)),
+-        target(target) {}
++  using OpConversionPattern::OpConversionPattern;
+ 
+   LogicalResult
+   matchAndRewrite(handshake::FuncOp op, OpAdaptor operands,
+                   ConversionPatternRewriter &rewriter) const override {
+-    if (!llvm::all_of(op.getBody().getOps(), [&](Operation &nestedOp) {
+-          return target.isLegal(&nestedOp);
+-        }))
+-      return failure();
+-
+     ModulePortInfo ports =
+         getPortInfoForOpTypes(op, op.getArgumentTypes(), op.getResultTypes());
+ 
+@@ -1956,9 +2047,6 @@ public:
+     rewriter.eraseOp(op);
+     return success();
+   }
+-
+-private:
+-  ConversionTarget &target;
+ };
+ 
+ } // namespace
+@@ -1989,10 +2077,8 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+   auto ls = HandshakeLoweringState{op->getParentOfType<mlir::ModuleOp>(),
+                                    instanceUniquer};
+   RewritePatternSet patterns(op.getContext());
+-  patterns.insert<FuncOpConversionPattern>(typeConverter, op.getContext(),
+-                                          target);
+-  patterns.insert<ReturnConversionPattern, AssertConversionPattern>(
+-      typeConverter, op.getContext());
++  patterns.insert<FuncOpConversionPattern, ReturnConversionPattern,
++                  AssertConversionPattern>(op.getContext());
+   patterns.insert<JoinConversionPattern, ForkConversionPattern,
+                   SyncConversionPattern>(typeConverter, op.getContext(),
+                                          moduleBuilder, ls);
+-- 
+2.53.0
+

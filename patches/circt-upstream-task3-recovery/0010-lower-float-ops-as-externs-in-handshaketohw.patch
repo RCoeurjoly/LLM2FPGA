@@ -1,0 +1,63 @@
+From ef651cd82539964928c9de44a93a9f1871a89fde Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Mon, 20 Apr 2026 12:12:45 +0200
+Subject: [PATCH] Lower float ops as externs in HandshakeToHW
+
+---
+ .../HandshakeToHW/HandshakeToHW.cpp           | 30 ++++++++++++-------
+ 1 file changed, 20 insertions(+), 10 deletions(-)
+
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index 42f399696..9b913d293 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -2113,6 +2113,25 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+       MergeConversionPattern, ControlMergeConversionPattern,
+       LoadConversionPattern, StoreConversionPattern, MemoryConversionPattern,
+       InstanceConversionPattern,
++      // Floating-point arith operations are lowered as extern modules.
++      ExtModuleConversionPattern<arith::AddFOp>,
++      ExtModuleConversionPattern<arith::SubFOp>,
++      ExtModuleConversionPattern<arith::MulFOp>,
++      ExtModuleConversionPattern<arith::DivFOp>,
++      ExtModuleConversionPattern<arith::MaximumFOp>,
++      ExtModuleConversionPattern<arith::CmpFOp>,
++      ExtModuleConversionPattern<arith::SIToFPOp>,
++      ExtModuleConversionPattern<arith::UIToFPOp>,
++      ExtModuleConversionPattern<arith::FPToSIOp>,
++      ExtModuleConversionPattern<arith::FPToUIOp>,
++      ExtModuleConversionPattern<arith::ExtFOp>,
++      ExtModuleConversionPattern<arith::TruncFOp>,
++      ExtModuleConversionPattern<math::ExpOp>,
++      ExtModuleConversionPattern<math::FPowIOp>,
++      ExtModuleConversionPattern<math::RsqrtOp>,
++      ExtModuleConversionPattern<math::TanhOp>,
++      ExtModuleConversionPattern<math::AbsFOp>,
++      ExtModuleConversionPattern<math::RoundEvenOp>,
+       // Arith operations.
+       ExtendConversionPattern<arith::ExtUIOp, /*signExtend=*/false>,
+       ExtendConversionPattern<arith::ExtSIOp, /*signExtend=*/true>,
+@@ -2156,19 +2175,10 @@ public:
+     ConversionTarget target(getContext());
+     // All top-level logic of a handshake module will be the interconnectivity
+     // between instantiated modules.
+-    target.addLegalOp<UnrealizedConversionCastOp, hw::HWModuleOp,
+-                      hw::HWModuleExternOp, hw::OutputOp,
++    target.addLegalOp<hw::HWModuleOp, hw::HWModuleExternOp, hw::OutputOp,
+                       hw::InstanceOp>();
+     target
+         .addIllegalDialect<handshake::HandshakeDialect, arith::ArithDialect>();
+-    target.addDynamicallyLegalOp<handshake::FuncOp>(
+-        [&](handshake::FuncOp funcOp) {
+-          return typeConverter.isSignatureLegal(funcOp.getFunctionType()) &&
+-                 llvm::all_of(funcOp.getBody().getOps(),
+-                              [&](Operation &nestedOp) {
+-                                return target.isLegal(&nestedOp);
+-                              });
+-        });
+     target.addIllegalOp<cf::AssertOp>();
+     target.addIllegalDialect<math::MathDialect>();
+ 
+-- 
+2.53.0
+

@@ -5936,3 +5936,63 @@ Next action:
 - Do not spend more lane time on downstream shell or quant widening until the
   `flatten-memref` blocker is either worked around or swapped out by a different
   CIRCT pair.
+
+### 2026-04-24 - First replay of the local CIRCT fork fixes on top of `circt-nix`
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T19-05-18+0200-representative-core-pt2e-static-handshake-fork-patches/`
+
+Local source used:
+
+- `/home/roland/circt`
+
+Patch set added to this repo:
+
+- `patches/circt-upstream-task3-recovery/0001-flatten-memref-shape-ops-after-memref-flattening.patch`
+- `patches/circt-upstream-task3-recovery/0002-handle-cfg-threaded-memrefs-in-handshake-lowering.patch`
+- `patches/circt-upstream-task3-recovery/0003-support-extra-frontend-ops-in-handshaketohw.patch`
+- `patches/circt-upstream-task3-recovery/0004-mark-assert-and-math-illegal-in-handshaketohw.patch`
+- `patches/circt-upstream-task3-recovery/0005-handle-dense-resource-globals-in-flattenmemrefs.patch`
+- `patches/circt-upstream-task3-recovery/0006-lower-func-conversion-priority-in-handshaketohw.patch`
+- `patches/circt-upstream-task3-recovery/0007-legalize-unrealized-conversion-casts-in-handshaketohw.patch`
+- `patches/circt-upstream-task3-recovery/0008-defer-func-lowering-until-body-is-legal.patch`
+- `patches/circt-upstream-task3-recovery/0009-handle-memref-model-io-and-cache-submodule-lookups.patch`
+- `patches/circt-upstream-task3-recovery/0010-lower-float-ops-as-externs-in-handshaketohw.patch`
+
+Command run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#tiny-stories-1m-representative-core-pt2e-static-handshake --no-link --print-out-paths -L`
+
+Observed result:
+
+- The replay gets past Nix evaluation and starts rebuilding CIRCT with the new
+  patch stack.
+- It fails in `patchPhase`, before compile or MLIR lowering, because the first
+  `FlattenMemRefs` patch no longer applies cleanly to the newer upstream CIRCT
+  revision packaged by `circt-nix`.
+- Direct patch failure from the build log:
+  - `Hunk #5 FAILED at 515`
+  - reject file:
+    - `lib/Transforms/FlattenMemRefs.cpp.rej`
+- measured cost:
+  - `ELAPSED=6.15`
+  - `RSS_KB=421,892`
+
+Interpretation:
+
+- The April 20 fork fixes are directionally relevant, but they are not
+  drop-in-applicable to the current upstream CIRCT package as-is.
+- The active blocker has therefore shifted one step earlier:
+  - from runtime `flatten-memref` crash
+  - to source drift in `FlattenMemRefs.cpp` during patch application
+
+Verdict:
+
+- Record this as `block-circt-patch-drift`.
+
+Next action:
+
+- Rebase or hand-adapt the `FlattenMemRefs` fixes onto the current upstream
+  source, then rerun the same minimized representative-core `handshake` gate
+  unchanged before spending another slice on the heavier external-memory shell.

@@ -35,7 +35,21 @@
         pkgs = import nixpkgs { inherit system; };
         pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
         circtPkgs = circt-nix.packages.${system};
-        circt = circtPkgs.circt.override { enableSlang = false; };
+        circt = (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
+          (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./patches/circt-upstream-task3-recovery/0001-flatten-memref-shape-ops-after-memref-flattening.patch
+              ./patches/circt-upstream-task3-recovery/0002-handle-cfg-threaded-memrefs-in-handshake-lowering.patch
+              ./patches/circt-upstream-task3-recovery/0003-support-extra-frontend-ops-in-handshaketohw.patch
+              ./patches/circt-upstream-task3-recovery/0004-mark-assert-and-math-illegal-in-handshaketohw.patch
+              ./patches/circt-upstream-task3-recovery/0005-handle-dense-resource-globals-in-flattenmemrefs.patch
+              ./patches/circt-upstream-task3-recovery/0006-lower-func-conversion-priority-in-handshaketohw.patch
+              ./patches/circt-upstream-task3-recovery/0007-legalize-unrealized-conversion-casts-in-handshaketohw.patch
+              ./patches/circt-upstream-task3-recovery/0008-defer-func-lowering-until-body-is-legal.patch
+              ./patches/circt-upstream-task3-recovery/0009-handle-memref-model-io-and-cache-submodule-lookups.patch
+              ./patches/circt-upstream-task3-recovery/0010-lower-float-ops-as-externs-in-handshaketohw.patch
+            ];
+          });
         yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {
           src = yosys.outPath;
           version = "unstable-${builtins.substring 0 8 yosys.sourceInfo.rev}";

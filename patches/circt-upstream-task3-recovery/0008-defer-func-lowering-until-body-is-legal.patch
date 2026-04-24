@@ -1,0 +1,62 @@
+From fa4c65b0d6c3f596a3fcd1ed811e08e35fc9d47c Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Mon, 20 Apr 2026 12:12:44 +0200
+Subject: [PATCH] Defer func lowering until body is legal
+
+---
+ .../HandshakeToHW/HandshakeToHW.cpp           | 20 +++++++++++++++----
+ 1 file changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index ce93d8fe4..3b7ba94c7 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -1907,13 +1907,20 @@ private:
+ 
+ class FuncOpConversionPattern : public OpConversionPattern<handshake::FuncOp> {
+ public:
+-  FuncOpConversionPattern(TypeConverter &typeConverter, MLIRContext *context)
++  FuncOpConversionPattern(TypeConverter &typeConverter, MLIRContext *context,
++                          ConversionTarget &target)
+       : OpConversionPattern(typeConverter, context,
+-                            PatternBenefit(/*benefit=*/0)) {}
++                            PatternBenefit(/*benefit=*/0)),
++        target(target) {}
+ 
+   LogicalResult
+   matchAndRewrite(handshake::FuncOp op, OpAdaptor operands,
+                   ConversionPatternRewriter &rewriter) const override {
++    if (!llvm::all_of(op.getBody().getOps(), [&](Operation &nestedOp) {
++          return target.isLegal(&nestedOp);
++        }))
++      return failure();
++
+     ModulePortInfo ports =
+         getPortInfoForOpTypes(op, op.getArgumentTypes(), op.getResultTypes());
+ 
+@@ -1949,6 +1956,9 @@ public:
+     rewriter.eraseOp(op);
+     return success();
+   }
++
++private:
++  ConversionTarget &target;
+ };
+ 
+ } // namespace
+@@ -1979,8 +1989,10 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
+   auto ls = HandshakeLoweringState{op->getParentOfType<mlir::ModuleOp>(),
+                                    instanceUniquer};
+   RewritePatternSet patterns(op.getContext());
+-  patterns.insert<FuncOpConversionPattern, ReturnConversionPattern,
+-                  AssertConversionPattern>(typeConverter, op.getContext());
++  patterns.insert<FuncOpConversionPattern>(typeConverter, op.getContext(),
++                                          target);
++  patterns.insert<ReturnConversionPattern, AssertConversionPattern>(
++      typeConverter, op.getContext());
+   patterns.insert<JoinConversionPattern, ForkConversionPattern,
+                   SyncConversionPattern>(typeConverter, op.getContext(),
+                                          moduleBuilder, ls);
+-- 
+2.53.0
+

@@ -1,0 +1,26 @@
+From 81f5607334777666a0ea6d02b7d77e0748282c85 Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Mon, 20 Apr 2026 12:12:44 +0200
+Subject: [PATCH] Legalize unrealized conversion casts in HandshakeToHW
+
+---
+ lib/Conversion/HandshakeToHW/HandshakeToHW.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index 83c9e8d04..ce93d8fe4 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -2058,7 +2058,8 @@ public:
+     ConversionTarget target(getContext());
+     // All top-level logic of a handshake module will be the interconnectivity
+     // between instantiated modules.
+-    target.addLegalOp<hw::HWModuleOp, hw::HWModuleExternOp, hw::OutputOp,
++    target.addLegalOp<UnrealizedConversionCastOp, hw::HWModuleOp,
++                      hw::HWModuleExternOp, hw::OutputOp,
+                       hw::InstanceOp>();
+     target
+         .addIllegalDialect<handshake::HandshakeDialect, arith::ArithDialect>();
+-- 
+2.53.0
+

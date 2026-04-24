@@ -1,0 +1,25 @@
+From 24650acfe46a70408c8b3783c6e34798183aa6ae Mon Sep 17 00:00:00 2001
+From: Roland Coeurjoly <rolandcoeurjoly@gmail.com>
+Date: Mon, 20 Apr 2026 12:09:10 +0200
+Subject: [PATCH] Mark assert and math illegal in HandshakeToHW
+
+---
+ lib/Conversion/HandshakeToHW/HandshakeToHW.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+index 9b41d81c4..30a550c4b 100644
+--- a/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
++++ b/lib/Conversion/HandshakeToHW/HandshakeToHW.cpp
+@@ -2060,6 +2060,8 @@ public:
+                       hw::InstanceOp>();
+     target
+         .addIllegalDialect<handshake::HandshakeDialect, arith::ArithDialect>();
++    target.addIllegalOp<cf::AssertOp>();
++    target.addIllegalDialect<math::MathDialect>();
+ 
+     // Convert the handshake.func operations in post-order wrt. the instance
+     // graph. This ensures that any referenced submodules (through
+-- 
+2.53.0
+
