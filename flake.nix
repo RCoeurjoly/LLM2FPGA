@@ -275,6 +275,8 @@
           gemv64Int16AdapterPy = ./src/gemv64_int16_adapter.py;
           task6RectGemvPy = ./src/task6_rect_gemv.py;
           task6RectGemvAdapterPy = ./src/task6_rect_gemv_adapter.py;
+          task6RectGemvPt2eStaticQuantAdapterPy =
+            ./src/task6_rect_gemv_pt2e_static_quant_adapter.py;
           tinyStoriesRepresentativeCoreAdapterPy =
             ./TinyStories/model_adapter_representative_core.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;

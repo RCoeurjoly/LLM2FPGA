@@ -5357,3 +5357,103 @@ Next action:
 - Keep the result recorded as a negative A/B reference.
 - Continue with quantized extracted-op parity on the Task 6 proof harness,
   using the surviving PT2E-static route as the active architecture track.
+
+### 2026-04-24 - Execute the bounded PT2E-static extracted-op parity pass
+
+Run bundle:
+
+- `artifacts/task6/runs/2026-04-24T13-02-11+0200/`
+
+Why this slice was next:
+
+- After the bounded full-model PT2E-static replay and the bounded LSQ A/B, the
+  smallest remaining architecture question was:
+  - can the surviving PT2E-static route actually survive on the direct Task 6
+    extracted-op harness once the weight matrix is externalized?
+- The right first slice was the smallest `L1` surface:
+  - `tiny-stories-1m-representative-core-v64-h4`
+  - `task6-l1-c-fc-redirect`
+  - shape `[1, 4] x [4, 16]`
+
+Implementation added:
+
+- `src/task6_rect_gemv_pt2e_static_quant_adapter.py`
+- model key:
+  - `task6-l1-c-fc-redirect-pt2e-static`
+
+Commands run:
+
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-pt2e-static-torch --no-link --print-out-paths -L`
+- `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' nix build .#task6-l1-c-fc-redirect-torch --no-link --print-out-paths -L`
+- local PT2E graph inspection under the pinned `python-with-tiny-stories` env
+  with:
+  - `TASK6_RECT_GEMV_IN_DIM=4`
+  - `TASK6_RECT_GEMV_OUT_DIM=16`
+
+Direct outputs:
+
+- quantized extracted-op `torch`:
+  - `/nix/store/qfamvz0l8b6axi8pr7snnxm61y5yfp31-task6-l1-c-fc-redirect-pt2e-static-torch.mlir`
+- frozen float `L1` `torch` reference:
+  - `/nix/store/zbg1drcqw0a1w77pww3nv8xq3whvqg5p-task6-l1-c-fc-redirect-torch.mlir`
+
+Measured details:
+
+- quantized extracted-op `torch` build:
+  - `ELAPSED=4.61`
+  - `RSS_KB=276,128`
+- frozen float `L1` `torch` build:
+  - `ELAPSED=4.24`
+  - `RSS_KB=276,464`
+- local PT2E inspection:
+  - `ELAPSED=2.26`
+  - `RSS_KB=341,772`
+
+Key result:
+
+- the exported `torch` MLIR is byte-identical between the PT2E-static route and
+  the frozen float route:
+  - quantized size:
+    - `299` bytes
+  - float size:
+    - `299` bytes
+  - shared SHA-256:
+    - `f72bdc8d20105e9b8ee048aec691ee16839eee7d9020ce7e18330b1590810d9b`
+  - `cmp` result:
+    - `TORCH_EXPORT_IDENTICAL=1`
+
+Local graph inspection explains why:
+
+- prepared graph:
+  - still only `aten.matmul.default`
+- converted graph:
+  - still only `aten.matmul.default`
+- re-exported graph:
+  - still only `aten.matmul.default`
+- there are no inserted quant/dequant nodes on this direct external-weight
+  GEMV surface
+
+Interpretation:
+
+- This is not "quantized, then optimized away later in MLIR".
+- PT2E-static is already a no-op at the PyTorch export surface for this
+  external-weight kernel.
+- So the direct extracted-op parity path fails before any later IR or RTL
+  question becomes relevant.
+
+Verdict:
+
+- This bounded quantization slice is `reject-quant-noop`.
+- The broader `tiny-stories-1m` PT2E-static route remains useful as a
+  full-model reference because it reaches real `handshake`.
+- But the direct external-weight Task 6 kernel does not currently survive as a
+  quantized extracted-op route.
+
+Next action:
+
+- Do not widen `task6-l1-c-fc-redirect-pt2e-static` onto `L2` or any heavier
+  parity surface.
+- Do not start a low-bit kernel from this route.
+- Any further quantization work now needs a new extracted-op hypothesis that
+  actually quantizes with external weights instead of collapsing back to the
+  frozen float graph.

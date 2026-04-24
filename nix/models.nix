@@ -2,6 +2,7 @@
 , pythonWithTinyStoriesTorchAO, torchMlir, python, tinyStories1m, matmulPy
 , matmulAdapterPy, matmulSrcDir, gemv64Py, gemv64AdapterPy, gemv64Int16Py
 , gemv64Int16AdapterPy, task6RectGemvPy, task6RectGemvAdapterPy
+, task6RectGemvPt2eStaticQuantAdapterPy
 , tinyStoriesTorchaoAdapterPy
 , tinyStoriesRepresentativeCoreAdapterPy, tinyStoriesPt2eStaticQuantAdapterPy
 , fpPrimsSv, simDir, compilePyTorch, representativeCoreSweepSpecs }:
@@ -154,6 +155,29 @@ in {
       export TASK6_RECT_GEMV_OUT_DIM=16
       python ${compilePyTorch} \
         --adapter ${task6RectGemvAdapterPy} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "task6-l1-c-fc-redirect-pt2e-static" = registerQuantizedModel {
+    key = "task6-l1-c-fc-redirect-pt2e-static";
+    name = "task6-l1-c-fc-redirect-pt2e-static";
+    description =
+      "Task 6 L1 redirected kernel-only GEMV proof for transformer.h.0.mlp.c_fc using the PT2E-static quantized route on the same extracted representative-core contract.";
+    source = {
+      type = "local";
+      path = "${task6RectGemvPy}";
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTorch ];
+    torchInputCommand = ''
+      export PYTHONPATH="${matmulSrcDir}:${simDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TASK6_RECT_GEMV_IN_DIM=4
+      export TASK6_RECT_GEMV_OUT_DIM=16
+      python ${compilePyTorch} \
+        --adapter ${task6RectGemvPt2eStaticQuantAdapterPy} \
         --out "$out" >/dev/null
     '';
   };

@@ -365,8 +365,12 @@ Required next outputs:
 2. PT2E-static quantized TinyStories replay
    - primary quantization experiment
    - reuse the existing quantized model route already kept alive in this repo
-   - this remains the next active architecture track after the bounded LSQ
-     alternate-lowering pass
+   - the first extracted-op parity slice is now spent negative:
+     - `task6-l1-c-fc-redirect-pt2e-static-torch` is byte-identical to the
+       frozen float `torch` export
+     - the direct external-weight GEMV stays plain `aten.matmul`
+   - keep the broader `tiny-stories-1m` PT2E-static route only as a reference
+     surface unless a new extracted-op quant hypothesis appears
 
 3. Alternate-lowering `L1 c_fc` A/B
    - primary structural comparison
@@ -385,9 +389,9 @@ Required next outputs:
 
 - What is the minimum believable DDR3 bandwidth assumption for the current
   board-facing shell story?
-- Can the surviving PT2E-static route reach the extracted-op proof harness with
-  parity surfaces that are directly comparable to the frozen float `L1` and
-  tiled `L2` references?
+- Is there any extracted-op boundary that PT2E-static actually quantizes once
+  weights are externalized, or does the route collapse back to float on all
+  direct StreamTensor-lite kernels?
 
 ## Out Of Scope
 
