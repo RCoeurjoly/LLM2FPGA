@@ -4948,3 +4948,87 @@ Operational conclusion:
 - The runner is now a cleaner status surface for the active ladder.
 - It is no longer the frontier.
 - The branch remains blocked on a new structural hypothesis, not on tooling.
+
+### 2026-04-24 - New bounded structural hypothesis: the tile-local output scratch memory is the remaining `L2` cost center
+
+This is a research note only. No new RTL experiment was run here.
+
+Evidence reviewed from the exact stage-pure frozen/reference surfaces:
+
+- `L1` exact frozen reference:
+  - `29,778 LUT / 46,352 FF / 4 DSP / 0 BRAM`
+  - `11,519` pre-map design cells
+- `L2` exact active tiled reference:
+  - `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
+  - `11,265` pre-map design cells
+- The tiled `L2` wrapper shell itself is tiny:
+  - `main.sv` is only `128` lines in the exact `yosys-stat` bundle
+- The mapped leaf mix shifts materially from `L1` to `L2` even though the
+  pre-map cell count does not grow:
+  - `LUT6`: `13,887 -> 15,280` (`+1,393`)
+  - `LUT5`: `3,189 -> 5,526` (`+2,337`)
+  - `LUT3`: `8,050 -> 6,295` (`-1,755`)
+  - `FF` stays roughly flat
+- The exact memory inventory shows only one memory module in each bundle:
+  - `L1`: `handshake_memory_out_f32_id3 = 512 bits`
+  - `L2`: `handshake_memory_out_f32_id3 = 2,048 bits`
+- The generated SV confirms that this module is the same control shape in both
+  cases, but the tiled `L2` kernel grows it from:
+  - `reg [31:0] _handshake_memory_3[0:15]`
+  - to `reg [31:0] _handshake_memory_3[0:63]`
+- That `L2` memory remains a local multi-ported register array with:
+  - two write ports
+  - two combinational read ports
+  - `6-bit` local addresses
+- That shape is consistent with LUT-mux expansion rather than BRAM use, which
+  matches the current resource signature:
+  - `4 DSP / 0 BRAM`
+  - higher `LUT5/LUT6`, not a large FF increase
+
+Hypothesis:
+
+- The remaining `L2` gap is dominated by the tile-local output scratch memory
+  and its widened address/mux logic inside `task6_l2_c_fc_tile64_kernel`, not
+  by the `tile4x64` phase wrapper seam.
+- The next bounded structural move should therefore be a storage-class /
+  access-pattern rewrite on that local scratchpad, not another nearby FIFO/site
+  sweep.
+- Concretely: replace the current `2R/2W` async register-array behavior behind
+  `handshake_memory_out_f32_id3` with a bounded alternative that exploits the
+  already-serial tiled wrapper, so the tile kernel no longer pays for the same
+  wide multi-port mux structure.
+
+Expected dominant cost center:
+
+- `handshake_memory_out_f32_id3` plus its immediate `ldAddr*` / `stAddr*`
+  decode and valid/ready cone inside the `64 -> 64` tile kernel
+
+Expected LUT delta:
+
+- `-1,000` to `-2,500` LUT on the active tiled `L2` reference if this memory
+  shape is actually dominant
+- That is large enough to close most or all of the remaining `2,047` LUT gap
+  without needing another architecture pivot
+
+Explicit falsifier:
+
+- A bounded rewrite of this tile-local scratch storage does not improve the
+  active tiled `L2` mapped result by at least `800` LUT
+- Or the mapped leaf mix stays dominated by the same `LUT5/LUT6` pattern
+  without a clear storage-shape change
+- Or the rewrite requires broad compiler/backend surgery instead of a local
+  tile-kernel substitution
+- Or the result breaks any of the current retained wins:
+  - external weights
+  - `DSP > 0`
+  - passing tile-kernel / tiled-wrapper Verilator proof
+
+Smallest validating artifact:
+
+- Do not start at the full `tile4x64` wrapper
+- First build the cheapest possible probe around the tile-local scratch memory:
+  - either a standalone mapped comparison of the current `64 x 32` multi-port
+    scratchpad against one bounded alternative
+  - or a `tile64`-kernel-only substitution of that memory behavior
+- Only replay into the full `tile4x64` wrapper if the `tile64`-local probe
+  shows a clear mapped win while keeping the current contract intact
