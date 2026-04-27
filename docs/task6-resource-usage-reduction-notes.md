@@ -1077,6 +1077,224 @@ ABC9 lane follow-up later on 2026-04-21:
   - if it looks promising on runtime or peak memory, replay the same `abc9`
     option on the full baseline narrowed-shell lane
 
+Full-baseline external-memory priority update on 2026-04-26:
+
+- Current priority remains externalization of memory, specifically the
+  full-baseline `top4-memory` shell that blackboxes the four
+  `3216448 x 32` vocab-sized handshake memories.
+- Latest repaired-CIRCT full-baseline rerun:
+  - artifact directory:
+    - `artifacts/task6/runs/2026-04-24T20-05-40+0200-baseline-top4-memory-utilization-repaired-circt`
+  - command:
+    - `nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-utilization --no-link --print-out-paths -L`
+  - result:
+    - failed in `stage6a targeted techmap cells_map`
+    - reached restart batch `13/15`
+    - exit status `137`
+    - sampled peak `VmRSS` about `30.3 GiB`
+- Interpretation:
+  - the active blocker is still the Yosys `cells_map` pass after successful
+    external-memory shell construction, not frontend lowering and not the CIRCT
+    patch stack.
+  - restart-per-batch is functioning, because the full-baseline run advanced
+    through multiple independent `stage6a` batches, but `batchSize = 32` is
+    still too wide for the larger late batches on this host.
+- Immediate execution change:
+  - keep the same memory-externalization target and comparison baseline.
+  - reduce `stage6a` restart batch size from `32` to `8` for the split
+    `top4-memory` synthesis path.
+  - rerun the monitored
+    `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization` build.
+- Success criterion for this slice:
+  - first, clear `stage6a` without exit `137`.
+  - second, record the next frontier or final utilization against the copied
+    all-memory baseline bundle.
+
+Batch-8 rerun result on 2026-04-26:
+
+- Monitored run:
+  - `artifacts/task6/runs/2026-04-26T00-34-00+0200-baseline-top4-memory-utilization-stage6a-batch8`
+- Result:
+  - failed in `stage6a targeted techmap cells_map`
+  - reached batch `52/59`
+  - exit status `137`
+  - wall time `8393` seconds
+  - sampled peak `VmRSS` `30,171,296 KiB`
+  - sampled peak `VmHWM` `30,171,664 KiB`
+- Interpretation:
+  - `batchSize = 8` is materially better than `32`; it advanced into the
+    heavy late module range and cleared several batches that previously sat
+    inside the killed region.
+  - it is still too wide for the heaviest late `cells_map` group on this host.
+- Immediate follow-up:
+  - reduce `stage6a` restart batch size again, from `8` to `4`.
+  - rerun the same monitored
+    `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization` target.
+
+Batch-4 rerun result on 2026-04-26:
+
+- Monitored run:
+  - `artifacts/task6/runs/2026-04-26T02-55-01+0200-baseline-top4-memory-utilization-stage6a-batch4`
+- Result:
+  - failed in `stage6a targeted techmap cells_map`
+  - reached batch `103/118`
+  - exit status `1`, with the Yosys worker killed by exit `137`
+  - wall time `20566` seconds
+  - sampled peak `VmRSS` `29,808,588 KiB`
+  - sampled peak `VmHWM` `29,809,904 KiB`
+- Interpretation:
+  - `batchSize = 4` advanced deeper than `8`, but the heaviest late
+    `cells_map` groups still reach the host memory ceiling.
+  - this is still a memory-pressure / OOM-kill frontier, not a new frontend or
+    external-memory-plan failure.
+- Immediate follow-up:
+  - reduce `stage6a` restart batch size from `4` to `2`.
+  - rerun the same monitored
+    `tiny-stories-1m-baseline-float-selftest-top4-memory-utilization` target.
+
+Batch-2 rerun result on 2026-04-26:
+
+- Monitored run:
+  - `artifacts/task6/runs/2026-04-26T22-24-33+0200-baseline-top4-memory-utilization-stage6a-batch2`
+- Result:
+  - failed in `stage6a targeted techmap cells_map`
+  - reached batch `205/236`
+  - exit status `1`, with the Yosys worker killed by exit `137`
+  - wall time `23229` seconds
+  - sampled peak `VmRSS` `29,865,256 KiB`
+  - sampled peak `VmHWM` `29,866,344 KiB`
+- Failure localization:
+  - batch `205/236` corresponds to residual modules
+    `\handshake_memory_out_f32_id70` and
+    `\handshake_memory_out_f32_id71`.
+  - each module still contains a `16384 x 32` memory after the `top4-memory`
+    shell externalizes only the four `3216448 x 32` vocab-sized tables.
+- Interpretation:
+  - uniform `stage6a` batch reduction improved progress from `13/15` to
+    `205/236`, but the remaining OOM frontier is still a residual handshake
+    memory mapping problem.
+  - continuing to shrink only the batch size is now lower leverage than moving
+    more of the residual memory tail out of the Yosys `cells_map` path.
+- Immediate follow-up:
+  - add a baseline-float `top32-memory` externalization target that keeps the
+    same copied all-memory baseline comparison while selecting more of the
+    residual handshake memory modules.
+  - first build and inspect the `top32-memory` external-memory plan, confirming
+    whether the failing `id70` / `id71` modules are selected before spending a
+    full utilization run.
+
+`top32-memory` plan check on 2026-04-27:
+
+- Flake output:
+  - `tiny-stories-1m-baseline-float-selftest-top32-memory-external-memory-plan`
+- Output path:
+  - `/nix/store/dgxg2chvf3ig5g779lp5iidc5ps5pyc9-tiny-stories-1m-baseline-float-selftest-top32-memory-external-memory-plan`
+- Plan summary:
+  - eligible modules: `326`
+  - eligible memory bits: `433,040,010`
+  - selected modules: `32`
+  - selected memory bits: `428,780,064`
+- Relevant selected modules:
+  - `\handshake_memory_out_f32_id70`, `16384 x 32`
+  - `\handshake_memory_out_f32_id71`, `16384 x 32`
+- Decision:
+  - continue with a monitored
+    `tiny-stories-1m-baseline-float-selftest-top32-memory-utilization` run.
+  - keep `stage6a` restart batch size at `2` for this first wider-memory run,
+    because batch size `2` is the current most conservative surviving setting
+    and the changed variable should be memory externalization breadth.
+
+`top32-memory` utilization result on 2026-04-27:
+
+- Monitored run:
+  - `artifacts/task6/runs/2026-04-27T08-57-20+0200-baseline-top32-memory-utilization-stage6a-batch2`
+- Command:
+  - `nix build .#tiny-stories-1m-baseline-float-selftest-top32-memory-utilization --no-link --print-out-paths -L`
+- Result:
+  - failed in `stage8b abc -luts 2:2,3,6:5,10,20`
+  - exit status `1`, with the Yosys worker killed by exit `137`
+  - wall time `23890` seconds
+  - sampled peak `VmRSS` `24,736,208 KiB`
+  - sampled peak `VmHWM` `26,633,804 KiB`
+- Important progress:
+  - `stage6a targeted techmap cells_map` completed all `222/222` restart
+    batches.
+  - this crosses the previous `top4-memory` batch-size-2 failure point, which
+    died at `stage6a` batch `205/236`.
+  - around the old failure index, the `top32-memory` run sampled roughly
+    `20 GiB` RSS instead of the previous `29.9 GiB` OOM-region RSS.
+- Interpretation:
+  - widening external memory from top 4 to top 32 selected modules fixed the
+    immediate residual-memory `cells_map` frontier.
+  - the new frontier is later ABC/LUT mapping in `stage8b`, not `stage6a`
+    memory-module `cells_map`.
+- Immediate follow-up:
+  - keep the `top32-memory` target as the current main external-memory lane.
+  - inspect the `stage8a` input to identify whether `stage8b` is dominated by
+    a small number of residual memory modules before changing ABC itself.
+
+`stage8b` frontier localization on 2026-04-27:
+
+- Input inspected:
+  - `/nix/store/vg7ls8jbswv1vaazvrp0ix19jawyhr77-tiny-stories-1m-baseline-float-selftest-top32-memory-stage8a.il`
+- Largest residual `$_*` cell owners entering ABC:
+  - `\handshake_memory_out_f32_id36`: `8,783,360` cells
+  - `\handshake_memory_out_f32_id35`: `8,783,360` cells
+  - next largest module:
+    - `\handshake_memory_out_f32_id77`: `962,720` cells
+- Original memory sizes:
+  - `\handshake_memory_out_f32_id36`: `4096 x 32`
+  - `\handshake_memory_out_f32_id35`: `4096 x 32`
+- External-memory rank:
+  - `id36` is rank `33`
+  - `id35` is rank `34`
+- Decision:
+  - add a `top34-memory` target that externalizes exactly the two newly
+    identified ABC-dominant residual memory modules beyond `top32`.
+  - this keeps the lane focused on externalization of memory before adding an
+    ABC-specific split or alternate mapping strategy.
+
+`top34-memory` plan check on 2026-04-27:
+
+- Flake output:
+  - `tiny-stories-1m-baseline-float-selftest-top34-memory-external-memory-plan`
+- Output path:
+  - `/nix/store/0z3gaxjvp5843k9imlj3kcgxapl7qkl0-tiny-stories-1m-baseline-float-selftest-top34-memory-external-memory-plan`
+- Plan summary:
+  - eligible modules: `326`
+  - eligible memory bits: `433,040,010`
+  - selected modules: `34`
+  - selected memory bits: `429,042,208`
+- Relevant selected modules:
+  - `\handshake_memory_out_f32_id36`, `4096 x 32`
+  - `\handshake_memory_out_f32_id35`, `4096 x 32`
+- Decision:
+  - continue with a monitored
+    `tiny-stories-1m-baseline-float-selftest-top34-memory-utilization` run.
+  - keep `stage6a` restart batch size at `2`, because the next changed
+    variable is only the two additional externalized memory modules.
+
+`top34-memory` utilization interruption on 2026-04-27:
+
+- Monitored run:
+  - `artifacts/task6/runs/2026-04-27T15-43-36+0200-baseline-top34-memory-utilization-stage6a-batch2`
+- Observed state:
+  - run was no longer active when checked at `2026-04-27T16:28:57+02:00`
+  - no `nix` or `yosys` process remained
+  - artifact directory had process samples and a build log, but no generated
+    completion summary
+  - final logged synthesis line was `stage6a targeted techmap cells_map batch
+    16/221`
+- Interpretation:
+  - treat this as an interrupted or abandoned run, not as evidence for or
+    against `top34-memory`.
+  - the last valid consolidated result remains the `top32-memory` run, which
+    cleared `stage6a` and moved the blocker to `stage8b`.
+- Immediate follow-up:
+  - rerun `tiny-stories-1m-baseline-float-selftest-top34-memory-utilization`
+    under the monitor before drawing conclusions from the top34 externalization
+    target.
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.

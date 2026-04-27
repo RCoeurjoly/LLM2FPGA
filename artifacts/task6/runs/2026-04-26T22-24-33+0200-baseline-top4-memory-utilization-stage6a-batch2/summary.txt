@@ -1,0 +1,11 @@
+command: nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-utilization --no-link --print-out-paths -L
+exit_status: 1
+wall_seconds: 23229
+sample_interval_seconds: 5
+peak_vmrss_kb: 29865256
+peak_vmrss_pid: 615524
+peak_vmrss_name: .yosys-wrapped
+peak_vmhwm_kb: 29866344
+peak_vmhwm_pid: 615524
+peak_vmhwm_name: .yosys-wrapped
+last_stage_line:        > [mkSynthJson:tiny-stories-1m-baseline-float-selftest-top4-memory] stage6a targeted techmap cells_map batch 205/236

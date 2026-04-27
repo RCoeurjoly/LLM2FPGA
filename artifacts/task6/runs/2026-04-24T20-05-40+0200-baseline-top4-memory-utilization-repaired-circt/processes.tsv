@@ -1,0 +1,44 @@
+pid	name	cmdline
+642272	nix	nix build .#tiny-stories-1m-baseline-float-selftest-top4-memory-utilization --no-link --print-out-paths -L
+642274	tee	tee artifacts/task6/runs/2026-04-24T20-05-40+0200-baseline-top4-memory-utilization-repaired-circt/build.log
+642392	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+642484	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+642551	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+642578	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+642648	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+642754	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+642862	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+643233	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+643264	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+645752	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+646178	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+646206	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+646715	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+647022	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+647026	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+652157	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+652161	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+652743	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+652780	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+662667	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+662671	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+676072	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+676076	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+677066	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+677129	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+678472	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+678476	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+681693	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh
+682115	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+683312	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+684886	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+685891	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+686913	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+687994	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+689153	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+690333	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+691473	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+692617	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+693799	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+694977	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys
+696959	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys

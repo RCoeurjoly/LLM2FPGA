@@ -1,0 +1,7 @@
+command: nix build .#tiny-stories-1m-baseline-float-selftest-top34-memory-utilization --no-link --print-out-paths -L
+exit_status: interrupted
+checked_at: 2026-04-27T16:28:57+02:00
+active_nix_or_yosys_process_at_check: none
+sample_interval_seconds: 5
+last_stage_line:        > [mkSynthJson:tiny-stories-1m-baseline-float-selftest-top34-memory] stage6a targeted techmap cells_map batch 16/221
+note: Monitor completion summary was absent; treat this as an interrupted or abandoned run, not a completed measurement.

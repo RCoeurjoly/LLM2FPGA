@@ -1535,7 +1535,7 @@
               inputIl = if splitFineStage then stage5d else stage5Monolithic;
               cellRegex = "^\\$";
               techmapArgs = "-map +/techmap.v -map +/xilinx/cells_map.v";
-              batchSize = 32;
+              batchSize = 2;
               restartPerBatch = true;
             };
 
@@ -2459,6 +2459,26 @@
             capacities = tinyStoriesCapacities;
             externalMemoryMinModuleBits = 1;
             externalMemoryMaxModules = 4;
+          };
+        tinyStories1mBaselineFloatSelftestTop32Memory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-float-selftest-top32-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineFloatPipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineFloatIl;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+            externalMemoryMaxModules = 32;
+          };
+        tinyStories1mBaselineFloatSelftestTop34Memory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-float-selftest-top34-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineFloatPipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineFloatIl;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+            externalMemoryMaxModules = 34;
           };
         tinyStories1mRepresentativeCoreArtifacts =
           builtins.getAttr representativeCoreDefaultKey
@@ -3750,6 +3770,42 @@
             tinyStories1mBaselineFloatSelftestTop4Memory.rtlilStageStats.bundle;
           tiny-stories-1m-baseline-float-selftest-top4-memory-stage6a-stats =
             tinyStories1mBaselineFloatSelftestTop4Memory.rtlilStageStats.reports.stage6a;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-top =
+            tinyStories1mBaselineFloatSelftestTop32Memory.top;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-model-opt-il =
+            tinyStories1mBaselineFloatSelftestTop32Memory.modelOptIl;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-model-shell-il =
+            tinyStories1mBaselineFloatSelftestTop32Memory.modelShellIl;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-external-memory-plan =
+            tinyStories1mBaselineFloatSelftestTop32Memory.externalMemoryPlan;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-json =
+            tinyStories1mBaselineFloatSelftestTop32Memory.json;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-yosys-json =
+            tinyStories1mBaselineFloatSelftestTop32Memory.yosysJson;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-utilization =
+            tinyStories1mBaselineFloatSelftestTop32Memory.utilizationReport;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-stage-stats =
+            tinyStories1mBaselineFloatSelftestTop32Memory.rtlilStageStats.bundle;
+          tiny-stories-1m-baseline-float-selftest-top32-memory-stage6a-stats =
+            tinyStories1mBaselineFloatSelftestTop32Memory.rtlilStageStats.reports.stage6a;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-top =
+            tinyStories1mBaselineFloatSelftestTop34Memory.top;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-model-opt-il =
+            tinyStories1mBaselineFloatSelftestTop34Memory.modelOptIl;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-model-shell-il =
+            tinyStories1mBaselineFloatSelftestTop34Memory.modelShellIl;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-external-memory-plan =
+            tinyStories1mBaselineFloatSelftestTop34Memory.externalMemoryPlan;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-json =
+            tinyStories1mBaselineFloatSelftestTop34Memory.json;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-yosys-json =
+            tinyStories1mBaselineFloatSelftestTop34Memory.yosysJson;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-utilization =
+            tinyStories1mBaselineFloatSelftestTop34Memory.utilizationReport;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-stage-stats =
+            tinyStories1mBaselineFloatSelftestTop34Memory.rtlilStageStats.bundle;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-stage6a-stats =
+            tinyStories1mBaselineFloatSelftestTop34Memory.rtlilStageStats.reports.stage6a;
           tiny-stories-1m-representative-core-selftest-all-memory-top =
             tinyStories1mRepresentativeCoreSelftestAllMemory.top;
           tiny-stories-1m-representative-core-selftest-all-memory-model-opt-il =
