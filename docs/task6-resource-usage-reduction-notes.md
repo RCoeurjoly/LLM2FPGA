@@ -1364,6 +1364,48 @@ Batch-2 rerun result on 2026-04-26:
   - the feedback loop is now roughly minutes for this frontier instead of a
     full monitored utilization rerun.
 
+`top34-memory` continuation plan after stage9 replay on 2026-04-27:
+
+- Gate 1: rerun the real fixed `top34-memory` utilization target.
+  - command:
+    - `nix build .#tiny-stories-1m-baseline-float-selftest-top34-memory-utilization --no-link --print-out-paths -L`
+  - expected value:
+    - reuses the already successful staged derivations where possible
+    - verifies that the committed filter fix carries through the production
+      utilization output, not only the manual replay bundle
+  - promotion rule:
+    - if utilization completes, inspect LUT/FF/DSP/BRAM and largest remaining
+      mapped cell owners.
+    - if it fails, use the new failure stage as the next frontier before
+      changing DDR3 or memory-shell variables.
+- Gate 2: perform FPGA-fit accounting before implementing a DDR3 controller.
+  - report selected external bits and expected off-chip capacity use.
+  - estimate per-token read/write traffic, port width, clock assumptions,
+    buffering BRAM, arbitration cost, and memory-interface LUT/FF overhead.
+  - treat the current `top34-memory` `429,042,208` selected bits
+    (`~51.2 MiB`) as a synthesis proof, not yet as a board implementation
+    proof.
+- Gate 3: define the external-memory shell contract.
+  - determine whether the externalized memories expose many independent
+    module-local ports or can be collapsed behind a smaller shared board-memory
+    interface.
+  - specify address width, data width, read latency, write behavior,
+    valid/ready timing, initialization/loading path, and arbitration policy.
+- Gate 4: choose or integrate DDR3 only after the shell contract is known.
+  - GitHub DDR3 cores are useful candidates, but selecting one before the
+    traffic shape and handshake contract are known risks optimizing the wrong
+    interface.
+  - pivot to DDR3 implementation once the fixed utilization output and memory
+    shell accounting show that board RAM bandwidth/latency is the active
+    blocker rather than synthesis fit.
+
+Immediate execution:
+
+- Run the fixed full `top34-memory` utilization target under the monitor.
+- Record completed stage, peak RSS/HWM, final resource report or failing
+  frontier, and whether any residual memory owners still dominate the mapped
+  design.
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.
