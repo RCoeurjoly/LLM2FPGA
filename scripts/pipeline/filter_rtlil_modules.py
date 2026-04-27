@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 MODULE_RE = re.compile(r"^module (\S+)")
+ATTRIBUTE_RE = re.compile(r"^attribute\s")
 
 
 def parse_args() -> argparse.Namespace:
@@ -52,6 +53,8 @@ def main() -> None:
         )
 
     dropping = False
+    at_top_level = True
+    pending_attributes: list[str] = []
     with input_path.open("r", encoding="utf-8", errors="ignore") as src, output_path.open(
         "w", encoding="utf-8"
     ) as dst:
@@ -59,16 +62,32 @@ def main() -> None:
             module_match = MODULE_RE.match(line)
             if module_match is not None:
                 dropping = should_drop(module_match.group(1))
+                at_top_level = False
                 if not dropping:
+                    dst.writelines(pending_attributes)
+                    pending_attributes.clear()
                     dst.write(line)
+                else:
+                    pending_attributes.clear()
                 continue
 
             if dropping:
                 if line == "end\n":
                     dropping = False
+                    at_top_level = True
                 continue
 
+            if at_top_level and ATTRIBUTE_RE.match(line):
+                pending_attributes.append(line)
+                continue
+
+            if pending_attributes:
+                dst.writelines(pending_attributes)
+                pending_attributes.clear()
+
             dst.write(line)
+            if line == "end\n":
+                at_top_level = True
 
 
 if __name__ == "__main__":

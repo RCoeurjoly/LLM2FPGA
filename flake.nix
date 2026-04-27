@@ -1444,6 +1444,70 @@
             fi
           '';
 
+        mkSynthStage9Debug = { name, inputIl, failingLine ? 66916687
+          , contextLines ? 40 }:
+          pkgs.runCommand "${name}-stage9-debug" { } ''
+            mkdir -p "$out"
+
+            ${pkgs.python311}/bin/python3 ${
+              ./scripts/pipeline/filter_rtlil_modules.py
+            } \
+              --input ${inputIl} \
+              --output stage8-stripped.il \
+              --drop-escaped-uppercase-modules
+
+            line=${toString failingLine}
+            context=${toString contextLines}
+            line_count=$(wc -l < stage8-stripped.il)
+            focus_line=$line
+            if [ "$focus_line" -gt "$line_count" ]; then
+              focus_line=$line_count
+            fi
+            start=$((line - context))
+            end=$((line + context))
+            if [ "$line" -gt "$line_count" ]; then
+              start=$((line_count - context))
+              end=$line_count
+            fi
+            if [ "$start" -lt 1 ]; then
+              start=1
+            fi
+
+            {
+              echo "name: ${name}"
+              echo "input_il: ${inputIl}"
+              echo "filtered_line_count: $line_count"
+              echo "failing_line: $line"
+              echo "context_focus_line: $focus_line"
+              echo "context_start: $start"
+              echo "context_end: $end"
+            } > "$out/summary.txt"
+
+            sed -n "''${start},''${end}p" stage8-stripped.il \
+              > "$out/failing-line-context.il"
+            sed -n "''${start},''${end}p" stage8-stripped.il \
+              | nl -ba -v "$start" \
+              > "$out/failing-line-context-numbered.il"
+            tail -n "$context" stage8-stripped.il > "$out/eof-context.il"
+
+            cat > "$out/run.ys" <<EOF
+            read_rtlil stage8-stripped.il
+            proc
+            write_json stage9-debug.json
+            EOF
+
+            set +e
+            ${yosysPkg}/bin/yosys -s "$out/run.ys" \
+              > "$out/stage9-debug.log" 2>&1
+            status=$?
+            set -e
+
+            echo "yosys_exit_status: $status" >> "$out/summary.txt"
+            if [ -e stage9-debug.json ]; then
+              cp stage9-debug.json "$out/stage9-debug.json"
+            fi
+          '';
+
         mkSynthJsonStages = { name, modelIl, topName, topSv ? null
           , quiet ? false, memoryLimitKb ? null, splitFineStage ? false
           , useAbc9 ? false }: rec {
@@ -2161,9 +2225,13 @@
               splitFineStage = externalMemoryMaxModules != null;
               inherit useAbc9;
             };
+            stage9Debug = mkSynthStage9Debug {
+              inherit name;
+              inputIl = stages.stage8;
+            };
           in {
             inherit top modelOptIl modelShellIl externalMemoryPlan stages json
-              yosysJson utilizationReport rtlilStageStats;
+              yosysJson utilizationReport rtlilStageStats stage9Debug;
           };
 
         representativeCoreAllMemoryVsTop4MemoryStageMap = pkgs.writeText
@@ -3802,6 +3870,10 @@
             tinyStories1mBaselineFloatSelftestTop34Memory.yosysJson;
           tiny-stories-1m-baseline-float-selftest-top34-memory-utilization =
             tinyStories1mBaselineFloatSelftestTop34Memory.utilizationReport;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-stage8h-il =
+            tinyStories1mBaselineFloatSelftestTop34Memory.stages.stage8h;
+          tiny-stories-1m-baseline-float-selftest-top34-memory-stage9-debug =
+            tinyStories1mBaselineFloatSelftestTop34Memory.stage9Debug;
           tiny-stories-1m-baseline-float-selftest-top34-memory-stage-stats =
             tinyStories1mBaselineFloatSelftestTop34Memory.rtlilStageStats.bundle;
           tiny-stories-1m-baseline-float-selftest-top34-memory-stage6a-stats =

@@ -1334,6 +1334,36 @@ Batch-2 rerun result on 2026-04-26:
   - add a cheaper `stage9`-only replay or parser-check target so this new
     frontier can be debugged without rerunning the full utilization path.
 
+`top34-memory` stage9-only replay result on 2026-04-27:
+
+- New flake outputs:
+  - `tiny-stories-1m-baseline-float-selftest-top34-memory-stage8h-il`
+  - `tiny-stories-1m-baseline-float-selftest-top34-memory-stage9-debug`
+- Cached replay input:
+  - `/nix/store/v40xbypjmh5vyxyd6ic3wg7caqywb9cx-tiny-stories-1m-baseline-float-selftest-top34-memory-stage8h.il`
+- Manual stage9-only replay bundle:
+  - `/tmp/task6-stage9-debug-fixed`
+- Result:
+  - patched filter produced `66,915,339` RTLIL lines
+  - Yosys completed `read_rtlil; proc; write_json`
+  - `stage9-debug.json` was emitted successfully
+  - Yosys wall time was `140.73` seconds
+  - Yosys peak memory was `23,290.57 MB`
+- Root cause:
+  - the final-stage filter dropped selected blackbox modules but did not drop
+    the top-level `attribute` lines immediately preceding those dropped
+    modules.
+  - after the final dropped module, the filtered RTLIL ended with orphan module
+    attributes, which Yosys reported as `dangling attribute` at EOF.
+- Fix:
+  - `scripts/pipeline/filter_rtlil_modules.py` now buffers top-level attributes
+    and emits them only when the following module is retained.
+- Interpretation:
+  - the `top34-memory` stage9 failure was a replayable boundary bug in the
+    filtering step, not evidence against the external-memory synthesis path.
+  - the feedback loop is now roughly minutes for this frontier instead of a
+    full monitored utilization rerun.
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.
