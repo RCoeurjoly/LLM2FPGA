@@ -1295,6 +1295,45 @@ Batch-2 rerun result on 2026-04-26:
     under the monitor before drawing conclusions from the top34 externalization
     target.
 
+`top34-memory` utilization rerun result on 2026-04-27:
+
+- Monitored run:
+  - `artifacts/task6/runs/2026-04-27T16-35-00+0200-baseline-top34-memory-utilization-stage6a-batch2-rerun`
+- Command:
+  - `nix build .#tiny-stories-1m-baseline-float-selftest-top34-memory-utilization --no-link --print-out-paths -L`
+- Result:
+  - failed in `stage9 write_json`
+  - exit status `1`
+  - wall time `11367` seconds
+  - sampled peak `VmRSS` `19,928,932 KiB`
+  - sampled peak `VmHWM` `20,280,128 KiB`
+  - final error:
+    - `ERROR: Parser error in line 66916687: dangling attribute`
+- Important progress:
+  - `stage6a targeted techmap cells_map` completed all `221/221` restart
+    batches.
+  - this crosses the old `top4-memory` batch-size-2 failure point, which died
+    at `stage6a` batch `205/236`.
+  - `stage8b abc -luts 2:2,3,6:5,10,20` completed, crossing the prior
+    `top32-memory` frontier.
+  - the run also completed `stage8c`, `stage8d`, `stage8e`, `stage8f`,
+    `stage8g`, and `stage8h`.
+- Interpretation:
+  - externalizing the rank-33/rank-34 memory owners `id36` and `id35` fixed the
+    `top32-memory` ABC frontier.
+  - the active blocker is now final JSON emission or parsing of the very large
+    mapped design, not the previous residual-memory `cells_map` or ABC OOM
+    frontier.
+  - this strengthens the external-memory mainline and supports an
+    owner-driven externalization loop.
+- Immediate follow-up:
+  - inspect the `stage8h` output or failed `stage9` input around line
+    `66916687` to determine whether the dangling attribute is a Yosys writer
+    issue, a malformed RTLIL attribute from a prior pass, or a scale/streaming
+    artifact in `write_json`.
+  - add a cheaper `stage9`-only replay or parser-check target so this new
+    frontier can be debugged without rerunning the full utilization path.
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.

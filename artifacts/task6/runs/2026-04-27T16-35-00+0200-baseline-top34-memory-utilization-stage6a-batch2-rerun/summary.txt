@@ -1,0 +1,11 @@
+command: nix build .#tiny-stories-1m-baseline-float-selftest-top34-memory-utilization --no-link --print-out-paths -L
+exit_status: 1
+wall_seconds: 11367
+sample_interval_seconds: 5
+peak_vmrss_kb: 19928932
+peak_vmrss_pid: 897208
+peak_vmrss_name: .yosys-wrapped
+peak_vmhwm_kb: 20280128
+peak_vmhwm_pid: 897208
+peak_vmhwm_name: .yosys-wrapped
+last_stage_line:        > [mkSynthJson:tiny-stories-1m-baseline-float-selftest-top34-memory] stage9 write_json
