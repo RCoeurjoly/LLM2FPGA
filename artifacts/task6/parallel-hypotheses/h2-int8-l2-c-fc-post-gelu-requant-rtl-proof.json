@@ -1,0 +1,155 @@
+{
+  "artifact_name": "h2-int8-l2-c-fc-post-gelu-requant-rtl-proof",
+  "status": "PASS",
+  "source_artifacts": {
+    "contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "downstream_boundary_json": "artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-downstream-int8-boundary.json",
+    "model_label": "tiny-stories-v1k-h64-l1",
+    "module_name": "transformer.h.0.mlp.c_fc"
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_l2_c_fc_post_gelu_requant_kernel",
+    "in_dim": 64,
+    "out_dim": 256,
+    "lane_count": 4,
+    "packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "accumulator_dtype": "int32",
+    "output_dtype": "int8",
+    "activation_quantization": "int8-per-tensor-symmetric",
+    "weight_quantization": "int8-per-output-symmetric",
+    "output_quantization": "int8-per-tensor-symmetric",
+    "boundary": "post_gelu_int8_activation",
+    "local_activation_memory": true,
+    "local_packed_weight_memory": true,
+    "local_requant_sidecar_memory": true,
+    "local_output_memory": true
+  },
+  "fixed_point": {
+    "x_frac": 12,
+    "scale_shift": 24,
+    "gelu_approximation": "0.5*x + 0.39894228*x*x",
+    "gelu_quad_q": 1634,
+    "output_requant_shift": 16,
+    "output_requant_mult": 8032,
+    "postprocess_formula": "x_q = round_shift(acc * scale_mul, scale_shift) + bias_q; y_q = (x_q >> 1) + round_shift(gelu_quad_q * x_q * x_q, 2*x_frac); q = saturate_i8(round_shift(y_q * output_requant_mult, output_requant_shift))"
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "activation_scale": 0.01876247210765448,
+    "output_scale": 0.0019919775901474546,
+    "effective_scale_min": 5.004310978396703e-06,
+    "effective_scale_max": 1.1217028679000805e-05,
+    "scale_mul_min": 343894,
+    "scale_mul_max": 770828,
+    "bias_q_min": 0,
+    "bias_q_max": 0,
+    "accumulator_min": -51239,
+    "accumulator_max": 54338,
+    "pre_gelu_min": -0.3890774397806243,
+    "pre_gelu_max": 0.38768501500220276,
+    "output_q_min": -67,
+    "output_q_max": 127,
+    "activation_q_sha256": "78332c69c1096032cfb46202319795165d67825e001507682f78f2f13011e3b8",
+    "weight_q_sha256": "7172f0c6c47a27b7218c774dc729811bc8398879c85f2df5ac7bd2b90486a864",
+    "packed_weight_sha256": "d5d3ac17daf0b03d50431d42aac63f26724eee1793ef9f3f92853e4b912ef5d8",
+    "expected_acc_sha256": "48210df491400387ec2871d66aaac0b659e1dcd0dd49ed0a7314b616ff56fcf9",
+    "scale_mul_sha256": "3e3729ebec0c04b98e90248ed14a44f9c146e8f918a826309ffce91d0b6bad98",
+    "bias_q_sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+    "output_q_sha256": "e26fbb6dcf21ad4736001d669235b21273bf83ad8c373bf76ce73ffc7d3fb189",
+    "max_abs_error": 0.0025458221821932497,
+    "mean_abs_error": 0.0006904464901049622,
+    "rmse": 0.0008626075791574817,
+    "normalized_rmse": 0.011991351771288544,
+    "signal_max_abs": 0.2529811539487267,
+    "signal_mean_abs": 0.05661709054561349,
+    "verdict": "pass"
+  },
+  "byte_budget": {
+    "activation_int8_bytes": 64,
+    "packed_weight_bytes": 16384,
+    "scale_mul_sidecar_bytes": 1024,
+    "bias_q_sidecar_bytes": 1024,
+    "output_int8_bytes": 256,
+    "f32_output_bytes_replaced": 1024,
+    "int8_output_write_savings_vs_f32_bytes": 768
+  },
+  "sim_result": {
+    "status": "PASS",
+    "reads": 256,
+    "outputs": 256,
+    "compute_cycles": 4939,
+    "cycles": 5195
+  },
+  "yosys_result": {
+    "path": "/nix/store/yz0g979bl9ghfg5c82gk6k5vdlxclbyk-task6-int8-l2-c-fc-post-gelu-requant-yosys-stat.json",
+    "top_name": "task6_int8_l2_c_fc_post_gelu_requant_kernel",
+    "num_cells": 1469,
+    "num_wires": 483,
+    "num_wire_bits": 8895,
+    "dsp48e1": 26,
+    "ramb36e1": 4,
+    "ramb18e1": 3,
+    "ram64m": 15,
+    "fdre": 217,
+    "carry4": 216,
+    "lut_primitive_cells": 653,
+    "lut_breakdown": {
+      "LUT2": 300,
+      "LUT3": 99,
+      "LUT4": 140,
+      "LUT5": 16,
+      "LUT6": 98
+    }
+  },
+  "mapped_utilization": {
+    "path": "/nix/store/7z38qbssw76fyljf3zkisgn5p8vk878l-task6-int8-l2-c-fc-post-gelu-requant-utilization/summary.json",
+    "resources": {
+      "clb_luts": {
+        "capacity": 298600,
+        "pct": 0.22,
+        "used": 653
+      },
+      "clb_ffs": {
+        "capacity": 597200,
+        "pct": 0.04,
+        "used": 217
+      },
+      "dsp": {
+        "capacity": 1920,
+        "pct": 1.35,
+        "used": 26
+      },
+      "bram36": {
+        "capacity": 955,
+        "pct": 0.42,
+        "used": 4
+      },
+      "bram18": {
+        "used": 3
+      },
+      "bram36_equiv": {
+        "capacity": 955,
+        "pct": 0.58,
+        "used": 5.5
+      },
+      "bram_kb": {
+        "capacity": 34380,
+        "pct": 0.58,
+        "used": 198
+      },
+      "slices_lower_bound": {
+        "capacity": 74650,
+        "pct": 0.11,
+        "used": 82
+      }
+    }
+  },
+  "interpretation": [
+    "This proof keeps c_fc accumulation in the existing int8 local-I/O RTL and adds a fixed-point post-GELU requant/output-memory stage.",
+    "The GELU stage is a bounded small-range quadratic approximation, matched to the captured L2 c_fc activation range.",
+    "The output is checked as an int8 post-GELU activation, so this avoids the explicit f32 scale/bias/output buffer boundary."
+  ]
+}

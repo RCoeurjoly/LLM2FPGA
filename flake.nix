@@ -2725,6 +2725,25 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2CFcPostGeluRequantTbDataSv =
+          pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./sim
+            }/gen_task6_int8_l2_c_fc_post_gelu_requant_tb_data.py \
+              --contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --downstream-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-downstream-int8-boundary.json
+              } \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
         simMain = pkgs.runCommand "sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
         } ''
@@ -2838,6 +2857,23 @@
               ${./sim/task6_int8_l2_c_fc_contract_local_io_tb_main.sv}
           '';
 
+        task6Int8L2CFcPostGeluRequantSimMain =
+          pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6Int8L2CFcPostGeluRequantTbDataSv} \
+              -top task6_int8_l2_c_fc_post_gelu_requant_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./sim/task6_int8_l2_c_fc_post_gelu_requant_tb_main.sv}
+          '';
+
         task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -2936,6 +2972,25 @@
             cp stat.json "$out"
           '';
 
+        task6Int8L2CFcPostGeluRequantYosysStat =
+          pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-yosys-stat.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            hierarchy -top task6_int8_l2_c_fc_post_gelu_requant_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_c_fc_post_gelu_requant_kernel -noiopad
+            tee -o stat.json stat -json
+            EOF
+            yosys -s run.ys
+            cp stat.json "$out"
+          '';
+
         task6Int8Gemv64Json = pkgs.runCommand "task6-int8-gemv64.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3028,6 +3083,24 @@
             yosys -s run.ys
           '';
 
+        task6Int8L2CFcPostGeluRequantJson =
+          pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            hierarchy -top task6_int8_l2_c_fc_post_gelu_requant_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_c_fc_post_gelu_requant_kernel -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
           name = "task6-int8-gemv64";
           capacities = tinyStoriesCapacities;
@@ -3070,6 +3143,14 @@
             capacities = tinyStoriesCapacities;
             topName = "task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel";
             designJson = task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoJson;
+          };
+
+        task6Int8L2CFcPostGeluRequantUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-int8-l2-c-fc-post-gelu-requant";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_int8_l2_c_fc_post_gelu_requant_kernel";
+            designJson = task6Int8L2CFcPostGeluRequantJson;
           };
 
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
@@ -3559,6 +3640,53 @@
               "cycles": $total_cycles
             }
             EOF
+          '';
+
+        task6Int8L2CFcPostGeluRequantSvSim =
+          pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6Int8L2CFcPostGeluRequantSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 int8 L2 c_fc postgelu requant reads [0-9]+ outputs [0-9]+ compute_cycles [0-9]+ total_cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-int8-l2-c-fc-post-gelu-requant SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            reads="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            compute_cycles="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            total_cycles="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "reads": $reads,
+              "outputs": $outputs,
+              "compute_cycles": $compute_cycles,
+              "cycles": $total_cycles
+            }
+            EOF
+          '';
+
+        task6Int8L2CFcPostGeluRequantRtlProof =
+          pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-rtl-proof" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./sim
+            }/gen_task6_int8_l2_c_fc_post_gelu_requant_tb_data.py \
+              --contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --downstream-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-downstream-int8-boundary.json
+              } \
+              --sim-result-json ${task6Int8L2CFcPostGeluRequantSvSim} \
+              --yosys-stat-json ${task6Int8L2CFcPostGeluRequantYosysStat} \
+              --mapped-utilization-summary-json ${task6Int8L2CFcPostGeluRequantUtilization}/summary.json \
+              --out-json "$out/summary.json"
           '';
 
         task6L1CProjRedirectSvSim = pkgs.runCommand "task6-l1-c-proj-redirect-sv-sim.json" {
@@ -4177,6 +4305,20 @@
             task6Int8L2CFcScaleBiasOutputBoundary;
           task6-int8-l2-c-fc-downstream-int8-boundary =
             task6Int8L2CFcDownstreamInt8Boundary;
+          task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv =
+            task6Int8L2CFcPostGeluRequantTbDataSv;
+          task6-int8-l2-c-fc-post-gelu-requant-sim-main =
+            task6Int8L2CFcPostGeluRequantSimMain;
+          task6-int8-l2-c-fc-post-gelu-requant-sv-sim =
+            task6Int8L2CFcPostGeluRequantSvSim;
+          task6-int8-l2-c-fc-post-gelu-requant-yosys-stat =
+            task6Int8L2CFcPostGeluRequantYosysStat;
+          task6-int8-l2-c-fc-post-gelu-requant-json =
+            task6Int8L2CFcPostGeluRequantJson;
+          task6-int8-l2-c-fc-post-gelu-requant-utilization =
+            task6Int8L2CFcPostGeluRequantUtilization;
+          task6-int8-l2-c-fc-post-gelu-requant-rtl-proof =
+            task6Int8L2CFcPostGeluRequantRtlProof;
           task6-l1-c-proj-redirect-tb-data-sv = task6L1CProjRedirectTbDataSv;
           task6-l1-c-proj-redirect-sim-main = task6L1CProjRedirectSimMain;
           task6-l1-c-proj-redirect-json = task6L1CProjRedirectJson;

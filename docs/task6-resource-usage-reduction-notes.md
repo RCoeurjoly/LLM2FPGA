@@ -7539,3 +7539,118 @@ Decision:
   - keep the f32 scale/bias boundary as the fallback if the fixed-point
     requant proof fails or if wider calibration invalidates the single-sample
     activation scale
+
+### 2026-04-28 - H2 post-GELU int8 requant/output-memory RTL proof
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json`
+
+Sources:
+
+- `flake.nix`
+- `rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv`
+- `sim/task6_int8_l2_c_fc_post_gelu_requant_tb_main.sv`
+- `sim/gen_task6_int8_l2_c_fc_post_gelu_requant_tb_data.py`
+
+Nix targets:
+
+- `task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv`
+- `task6-int8-l2-c-fc-post-gelu-requant-sv-sim`
+- `task6-int8-l2-c-fc-post-gelu-requant-yosys-stat`
+- `task6-int8-l2-c-fc-post-gelu-requant-utilization`
+- `task6-int8-l2-c-fc-post-gelu-requant-rtl-proof`
+- proof output:
+  `/nix/store/r49371dw4wpxfg8n9kgljvqdjjs764p3-task6-int8-l2-c-fc-post-gelu-requant-rtl-proof`
+
+Commands:
+
+- `nix build .#task6-int8-l2-c-fc-post-gelu-requant-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-l2-c-fc-post-gelu-requant-rtl-proof --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_l2_c_fc_post_gelu_requant_tb_data.py --contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json --weight-pack-manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json --downstream-boundary-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-downstream-int8-boundary.json --sim-result-json /nix/store/j724i985rk0ghnr7ignyiaawa2wahx5k-task6-int8-l2-c-fc-post-gelu-requant-sv-sim.json --yosys-stat-json /nix/store/yz0g979bl9ghfg5c82gk6k5vdlxclbyk-task6-int8-l2-c-fc-post-gelu-requant-yosys-stat.json --mapped-utilization-summary-json /nix/store/7z38qbssw76fyljf3zkisgn5p8vk878l-task6-int8-l2-c-fc-post-gelu-requant-utilization/summary.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json`
+
+RTL contract:
+
+- input:
+  - the existing captured `L2 c_fc` int8 local-I/O contract
+  - `64` int8 activation bytes
+  - `4,096` packed int8 weight words
+  - per-output fixed-point scale multiplier sidecar
+  - per-output fixed-point bias sidecar
+- postprocess:
+  - `x_q = round_shift(acc * scale_mul, scale_shift) + bias_q`
+  - `y_q = (x_q >> 1) + round_shift(gelu_quad_q * x_q * x_q, 2*x_frac)`
+  - `q = saturate_i8(round_shift(y_q * output_requant_mult, output_requant_shift))`
+- fixed-point constants:
+  - `x_frac = 12`
+  - `scale_shift = 24`
+  - `gelu_quad_q = 1634`
+  - `output_requant_shift = 16`
+  - `output_requant_mult = 8032`
+- GELU approximation:
+  - bounded small-range quadratic: `0.5*x + 0.39894228*x*x`
+  - valid for this proof's captured pre-GELU range:
+    `-0.3890774397806243..0.38768501500220276`
+
+Execution status:
+
+- status: `PASS`
+- Verilator:
+  - output:
+    `/nix/store/j724i985rk0ghnr7ignyiaawa2wahx5k-task6-int8-l2-c-fc-post-gelu-requant-sv-sim.json`
+  - pass line:
+    `PASS: task6 int8 L2 c_fc postgelu requant reads 256 outputs 256 compute_cycles 4939 total_cycles 5195`
+- fixed-point post-GELU score:
+  - normalized RMSE: `0.011991351771288544`
+  - threshold: `0.02`
+  - max absolute error: `0.0025458221821932497`
+  - output q range: `-67..127`
+  - output scale: `0.0019919775901474546`
+
+Mapped resources:
+
+- output:
+  `/nix/store/7z38qbssw76fyljf3zkisgn5p8vk878l-task6-int8-l2-c-fc-post-gelu-requant-utilization`
+- `clb_luts`: `653`
+- `clb_ffs`: `217`
+- `dsp`: `26`
+- `bram36`: `4`
+- `bram18`: `3`
+- `bram36_equiv`: `5.5`
+- `bram_kb`: `198`
+- `slices_lower_bound`: `82`
+
+Delta against the prior captured `L2 c_fc` int8 local-I/O proof:
+
+- LUT: `257 -> 653` (`+396`)
+- FF: `198 -> 217` (`+19`)
+- DSP: `4 -> 26` (`+22`)
+- BRAM36-equivalent: `4.5 -> 5.5` (`+1.0`)
+- lower-bound slices: `33 -> 82` (`+49`)
+- compute cycles: `4426 -> 4939` (`+513`)
+- total cycles: `4682 -> 5195` (`+513`)
+
+Byte-budget implication:
+
+- output activation stays at `256` int8 bytes
+- f32 output bytes replaced: `1,024`
+- int8 output write savings versus f32: `768` bytes
+- fixed-point sidecars are:
+  - scale multiplier: `1,024` bytes
+  - bias q: `1,024` bytes
+- in this captured `c_fc` contract, `bias_q` is all zero, but the proof keeps
+  the sidecar memory present so the boundary is not specialized to this one
+  zero-bias checkpoint
+
+Decision:
+
+- The recommended post-GELU int8 activation boundary now has a bounded RTL
+  proof, not just an offline scorer.
+- The proof is functionally and numerically valid, but the local in-kernel GELU
+  approximation costs `+22` DSP over the accumulator-only local-I/O proof.
+- H2 remains active.
+- Next gate:
+  - either accept the extra DSP as a fit-positive tradeoff and integrate this
+    post-GELU int8 boundary into the `L2 c_fc` replacement path
+  - or run one bounded DSP-reduction follow-up for the postprocess stage before
+    integration, such as a multi-cycle square/output-multiply schedule
