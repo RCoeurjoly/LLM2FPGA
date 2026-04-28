@@ -95,7 +95,10 @@ def build_payload(
     lane_count: int,
     packed_weight_words: int,
     local_packed_weight_memory: bool,
+    local_activation_memory: bool,
+    local_output_memory: bool,
     packed_weight_read_latency_cycles: int,
+    output_memory_read_latency_cycles: int,
     nix_target_prefix: str,
     sim_result_json: Path | None,
     yosys_stat_json: Path | None,
@@ -186,6 +189,25 @@ def build_payload(
                 "weight_interface": "loadable synchronous local packed-weight memory",
             }
         )
+    if local_activation_memory:
+        contract.update(
+            {
+                "local_activation_memory": True,
+                "activation_interface": "loadable local activation memory",
+            }
+        )
+    if local_output_memory:
+        contract.update(
+            {
+                "local_output_memory": True,
+                "output_interface": "captured local output memory",
+                "output_memory_read_latency_cycles": output_memory_read_latency_cycles,
+            }
+        )
+    if local_activation_memory or local_output_memory:
+        contract["interface"] = (
+            "loadable local input memories plus captured local output memory"
+        )
 
     object_dir_stem = top_name.removesuffix("_kernel")
     testbench_top = f"{object_dir_stem}_tb"
@@ -257,7 +279,10 @@ def build_payload(
             lane_count,
             packed_weight_words,
             local_packed_weight_memory,
+            local_activation_memory,
+            local_output_memory,
             packed_weight_read_latency_cycles,
+            output_memory_read_latency_cycles,
         ),
     }
 
@@ -269,7 +294,10 @@ def build_interpretation(
     lane_count: int,
     packed_weight_words: int,
     local_packed_weight_memory: bool,
+    local_activation_memory: bool,
+    local_output_memory: bool,
     packed_weight_read_latency_cycles: int,
+    output_memory_read_latency_cycles: int,
 ) -> list[str]:
     lines = [
         "This is a bounded H2 fixed-point kernel proof, not a replay of the earlier f32-activation contract.",
@@ -287,6 +315,13 @@ def build_interpretation(
         lines.append(
             "It adds a loadable local packed-weight memory with "
             f"{packed_weight_read_latency_cycles} cycle read latency."
+        )
+    if local_activation_memory:
+        lines.append("It adds a loadable local activation memory boundary.")
+    if local_output_memory:
+        lines.append(
+            "It captures results into a local output memory with "
+            f"{output_memory_read_latency_cycles} cycle read latency."
         )
     if sim_result is not None and sim_result.get("status") == "PASS":
         lines.append("Nix-provided Verilator simulation passed the deterministic self-checking testbench.")
@@ -365,7 +400,20 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
     )
     parser.add_argument(
+        "--local-activation-memory",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--local-output-memory",
+        action="store_true",
+    )
+    parser.add_argument(
         "--packed-weight-read-latency-cycles",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
+        "--output-memory-read-latency-cycles",
         type=int,
         default=0,
     )
@@ -405,7 +453,10 @@ def main() -> None:
         args.lane_count,
         args.packed_weight_words,
         args.local_packed_weight_memory,
+        args.local_activation_memory,
+        args.local_output_memory,
         args.packed_weight_read_latency_cycles,
+        args.output_memory_read_latency_cycles,
         args.nix_target_prefix,
         args.sim_result_json,
         args.yosys_stat_json,

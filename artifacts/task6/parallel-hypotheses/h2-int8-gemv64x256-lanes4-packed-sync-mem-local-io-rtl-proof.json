@@ -1,0 +1,240 @@
+{
+  "acceptance_gates": {
+    "functional": "Verilator or Icarus PASS line from the self-checking testbench",
+    "resource": "mapped LUT below the current float L0/L2 kernel class or a documented dequantization boundary change",
+    "synthesis": "Yosys stat with DSP > 0"
+  },
+  "artifact": "h2-int8-gemv64x256-lanes4-packed-sync-mem-local-io-rtl-proof",
+  "blocked_reason": "",
+  "execution": {
+    "can_execute_sim_from_path": false,
+    "can_score_synthesis_from_path": false,
+    "mapped_utilization_result": {
+      "design_json": "/nix/store/vf8njjmj8nskivmmbs32j85xsm8ch8b8-task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io.json",
+      "path": "/nix/store/jkii8nbpgsd9jkxi3qzf253v99f8lxb9-task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-utilization/summary.json",
+      "resources": {
+        "bram36": {
+          "capacity": 955,
+          "pct": 0.42,
+          "used": 4
+        },
+        "bram36_equiv": {
+          "capacity": 955,
+          "pct": 0.47,
+          "used": 4.5
+        },
+        "bram_kb": {
+          "capacity": 34380,
+          "pct": 0.47,
+          "used": 162
+        },
+        "clb_ffs": {
+          "capacity": 597200,
+          "pct": 0.03,
+          "used": 198
+        },
+        "clb_luts": {
+          "capacity": 298600,
+          "pct": 0.09,
+          "used": 257
+        },
+        "dsp": {
+          "capacity": 1920,
+          "pct": 0.21,
+          "used": 4
+        },
+        "slices_lower_bound": {
+          "capacity": 74650,
+          "pct": 0.04,
+          "used": 33
+        }
+      },
+      "top": "task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel",
+      "top_leaf_cell_types": [
+        {
+          "count": 198,
+          "type": "FDRE"
+        },
+        {
+          "count": 165,
+          "type": "LUT2"
+        },
+        {
+          "count": 40,
+          "type": "LUT3"
+        },
+        {
+          "count": 39,
+          "type": "LUT6"
+        },
+        {
+          "count": 11,
+          "type": "CARRY4"
+        },
+        {
+          "count": 8,
+          "type": "LUT5"
+        },
+        {
+          "count": 5,
+          "type": "LUT4"
+        },
+        {
+          "count": 5,
+          "type": "INV"
+        },
+        {
+          "count": 4,
+          "type": "DSP48E1"
+        },
+        {
+          "count": 4,
+          "type": "RAMB36E1"
+        },
+        {
+          "count": 3,
+          "type": "RAM64M"
+        },
+        {
+          "count": 2,
+          "type": "MUXF7"
+        }
+      ]
+    },
+    "nix_mapped_utilization_target": ".#task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-utilization",
+    "nix_sim_target": ".#task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-sv-sim",
+    "nix_yosys_target": ".#task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-yosys-stat",
+    "sim_binary_template": "/tmp/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_obj/sim_main",
+    "sim_executed": true,
+    "sim_result": {
+      "compute_cycles": 4426,
+      "cycles": 4682,
+      "outputs": 256,
+      "reads": 256,
+      "status": "PASS"
+    },
+    "synthesis_executed": true,
+    "verilator_command_template": "verilator --binary --timing --language 1800-2017 -Wno-fatal -top task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_tb -Mdir /tmp/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_obj -o sim_main rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv sim/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_tb_main.sv",
+    "yosys_result": {
+      "cells_by_type": {
+        "BUFG": 1,
+        "CARRY4": 11,
+        "DSP48E1": 4,
+        "FDRE": 198,
+        "INV": 5,
+        "LUT2": 165,
+        "LUT3": 40,
+        "LUT4": 5,
+        "LUT5": 8,
+        "LUT6": 39,
+        "MUXF7": 2,
+        "MUXF8": 1,
+        "RAM64M": 3,
+        "RAMB18E1": 1,
+        "RAMB36E1": 4
+      },
+      "creator": "Yosys 0.38 (git sha1 543faed9c8c, gcc 13.2.0 -fPIC -Os)",
+      "dsp_cells": 4,
+      "dsp_gate_pass": true,
+      "ff_cells": 198,
+      "lut_cells": 257,
+      "num_cells": 487,
+      "num_wire_bits": 2286,
+      "num_wires": 244,
+      "path": "/nix/store/s45pmvyb84j6ch8kynp2q0bkzz68yg0p-task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-yosys-stat.json",
+      "top": "task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel"
+    }
+  },
+  "interpretation": [
+    "This is a bounded H2 fixed-point kernel proof, not a replay of the earlier f32-activation contract.",
+    "It avoids the old torch-mlir int8 byte/char lowering route that blocked the prior L0 int8 probe.",
+    "It scales the standalone proof to 4 parallel int8 MAC lanes sharing one controller.",
+    "It uses 4096 packed weight words so each cycle fetches one 4-lane weight vector.",
+    "It adds a loadable local packed-weight memory with 1 cycle read latency.",
+    "It adds a loadable local activation memory boundary.",
+    "It captures results into a local output memory with 1 cycle read latency.",
+    "Nix-provided Verilator simulation passed the deterministic self-checking testbench.",
+    "Light Yosys synth_xilinx maps the bounded MAC datapath to at least one DSP cell.",
+    "Mapped JSON utilization reports 257 CLB LUTs, 198 CLB FFs, and 4 DSP."
+  ],
+  "rtl": {
+    "contract": {
+      "accumulator_dtype": "int32",
+      "activation_dtype": "int8",
+      "activation_interface": "loadable local activation memory",
+      "in_dim": 64,
+      "interface": "loadable local input memories plus captured local output memory",
+      "local_activation_memory": true,
+      "local_output_memory": true,
+      "local_packed_weight_memory": true,
+      "mac_lanes_per_cycle": 4,
+      "macs": 16384,
+      "out_dim": 256,
+      "output_interface": "captured local output memory",
+      "output_memory_read_latency_cycles": 1,
+      "output_tile_count": 64,
+      "packed_weight_read_latency_cycles": 1,
+      "packed_weight_word_bits": 32,
+      "packed_weight_words": 4096,
+      "parallel_output_lanes": 4,
+      "weight_dtype": "int8",
+      "weight_interface": "loadable synchronous local packed-weight memory",
+      "weight_words": 16384
+    },
+    "extra_kernel_sources": [
+      "rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv",
+      "rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv"
+    ],
+    "kernel_source": "rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv",
+    "testbench_source": "sim/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_tb_main.sv"
+  },
+  "status": "sim_pass_yosys_dsp_pass_mapped",
+  "tools": {
+    "iverilog_on_path": false,
+    "iverilog_path": "",
+    "verilator_on_path": false,
+    "verilator_path": "",
+    "yosys_on_path": false,
+    "yosys_path": ""
+  },
+  "vectors": {
+    "activation_count": 64,
+    "activation_preview": [
+      -12,
+      -5,
+      2,
+      9,
+      -15,
+      -8,
+      -1,
+      6
+    ],
+    "activation_sha256_i8_le": "9d8e95167716149b582c1e8f772e5b312655bc79adf990872b9ecc46ce150174",
+    "expected_count": 256,
+    "expected_max": 1688,
+    "expected_min": -1164,
+    "expected_preview": [
+      -742,
+      -1164,
+      -411,
+      1188,
+      -1161,
+      -737,
+      -78,
+      1333
+    ],
+    "expected_sha256_i32_le": "f75765cf6955594f826f969b4c2292cff86f490280df46cb0377164ca00a4180",
+    "weight_count": 16384,
+    "weight_row0_preview": [
+      -22,
+      -17,
+      -12,
+      -7,
+      -2,
+      3,
+      8,
+      13
+    ],
+    "weight_sha256_i8_le": "f5facba3136edee0eeb317773cc5fd64cf2ac4c21862b44604565a43d63e0fb7"
+  }
+}

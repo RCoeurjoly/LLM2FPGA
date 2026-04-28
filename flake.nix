@@ -2755,6 +2755,21 @@
               ${./sim/task6_int8_gemv64x256_lanes4_packed_sync_mem_tb_main.sv}
           '';
 
+        task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoSimMain =
+          pkgs.runCommand "task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./sim/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_tb_main.sv}
+          '';
+
         task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -2829,6 +2844,24 @@
             hierarchy -top task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel -check
             proc
             synth_xilinx -family xc7 -top task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel -noiopad
+            tee -o stat.json stat -json
+            EOF
+            yosys -s run.ys
+            cp stat.json "$out"
+          '';
+
+        task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoYosysStat =
+          pkgs.runCommand "task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-yosys-stat.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            hierarchy -top task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel -noiopad
             tee -o stat.json stat -json
             EOF
             yosys -s run.ys
@@ -2910,6 +2943,23 @@
             yosys -s run.ys
           '';
 
+        task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoJson =
+          pkgs.runCommand "task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            hierarchy -top task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
           name = "task6-int8-gemv64";
           capacities = tinyStoriesCapacities;
@@ -2944,6 +2994,14 @@
             capacities = tinyStoriesCapacities;
             topName = "task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel";
             designJson = task6Int8Gemv64x256Lanes4PackedSyncMemJson;
+          };
+
+        task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel";
+            designJson = task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoJson;
           };
 
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
@@ -3379,6 +3437,32 @@
               "stores": $stores,
               "outputs": $outputs,
               "cycles": $cycles
+            }
+            EOF
+          '';
+
+        task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoSvSim =
+          pkgs.runCommand "task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 int8 GEMV4x256 localio reads [0-9]+ outputs [0-9]+ compute_cycles [0-9]+ total_cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            reads="$(${pkgs.gawk}/bin/awk '{print $7}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            compute_cycles="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            total_cycles="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "reads": $reads,
+              "outputs": $outputs,
+              "compute_cycles": $compute_cycles,
+              "cycles": $total_cycles
             }
             EOF
           '';
@@ -3979,6 +4063,16 @@
             task6Int8Gemv64x256Lanes4PackedSyncMemJson;
           task6-int8-gemv64x256-lanes4-packed-sync-mem-utilization =
             task6Int8Gemv64x256Lanes4PackedSyncMemUtilization;
+          task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-sim-main =
+            task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoSimMain;
+          task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-sv-sim =
+            task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoSvSim;
+          task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-yosys-stat =
+            task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoYosysStat;
+          task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-json =
+            task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoJson;
+          task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-utilization =
+            task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoUtilization;
           task6-l1-c-proj-redirect-tb-data-sv = task6L1CProjRedirectTbDataSv;
           task6-l1-c-proj-redirect-sim-main = task6L1CProjRedirectSimMain;
           task6-l1-c-proj-redirect-json = task6L1CProjRedirectJson;
