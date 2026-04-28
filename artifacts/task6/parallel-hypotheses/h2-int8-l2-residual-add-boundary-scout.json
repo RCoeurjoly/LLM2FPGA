@@ -1,0 +1,141 @@
+{
+  "artifact_name": "h2-int8-l2-residual-add-boundary-scout",
+  "status": "NEEDS_CAPTURE",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json",
+    "c_proj_candidate_json": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-candidate.json",
+    "c_proj_requant_rtl_proof_json": "artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json"
+  },
+  "upstream_c_proj_requant": {
+    "status": "PASS",
+    "output_scale": 0.0006137476192684625,
+    "output_q_min": -91,
+    "output_q_max": 127,
+    "output_q_sha256": "93020d792e1a60480198b96b4daf79beca0cb1507253c14b2a4494eaed8b5f8d",
+    "output_matches_boundary_quantizer": true,
+    "accumulator_matches_boundary": true,
+    "normalized_rmse": 0.015465772661379428,
+    "mapped_utilization": {
+      "path": "/nix/store/yr50sn5ism58j33iv6z8m6xadp692jh7-task6-int8-l2-mlp-chain-c-proj-requant-utilization/summary.json",
+      "resources": {
+        "clb_luts": {
+          "capacity": 298600,
+          "pct": 0.38,
+          "used": 1123
+        },
+        "clb_ffs": {
+          "capacity": 597200,
+          "pct": 0.07,
+          "used": 443
+        },
+        "dsp": {
+          "capacity": 1920,
+          "pct": 1.77,
+          "used": 34
+        },
+        "bram36": {
+          "capacity": 955,
+          "pct": 0.84,
+          "used": 8
+        },
+        "bram18": {
+          "used": 6
+        },
+        "bram36_equiv": {
+          "capacity": 955,
+          "pct": 1.15,
+          "used": 11.0
+        },
+        "bram_kb": {
+          "capacity": 34380,
+          "pct": 1.15,
+          "used": 396
+        },
+        "slices_lower_bound": {
+          "capacity": 74650,
+          "pct": 0.19,
+          "used": 141
+        }
+      }
+    }
+  },
+  "linalg_boundary": {
+    "linalg_artifact": "/nix/store/x8lnd266sjig478x9b34bmlv8p0x4m61-tiny-stories-v1k-h64-l1-linalg.mlir",
+    "c_proj_matmul_line": 412,
+    "c_proj_matmul_value": "%94",
+    "post_c_proj_add_site": {
+      "line_number": 418,
+      "text": "    %96 = linalg.generic {indexing_maps = [#map1, #map1, #map1], iterator_types = [\"parallel\", \"parallel\", \"parallel\"]} ins(%62, %95 : tensor<1x1x64xf32>, tensor<1x1x64xf32>) outs(%0 : tensor<1x1x64xf32>) {",
+      "result_value": "%96",
+      "operands": [
+        "%62",
+        "%95"
+      ],
+      "residual_operand_value": "%62",
+      "c_proj_operand_value": "%95"
+    },
+    "interpretation": "The next same-shape add consumes the c_proj bias-add result and a separate residual tensor. The current c_proj contract captures only the MLP projection boundary, so the residual operand still needs a separate activation capture before numeric residual-add claims are made."
+  },
+  "pytorch_capture_plan": {
+    "model_family": "GPT-Neo via TinyStories representative-core adapter",
+    "sample_input_ids": [
+      [
+        0
+      ]
+    ],
+    "residual_operand_hook": {
+      "module": "transformer.h.0.ln_2",
+      "tensor": "activation_in",
+      "reason": "GPT-Neo block code applies ln_2 to the post-attention hidden state, then adds that same pre-ln_2 residual to the MLP output."
+    },
+    "normalization_cross_check": {
+      "module": "transformer.h.0.ln_2",
+      "tensor": "activation_out",
+      "expected_match": {
+        "module": "transformer.h.0.mlp.c_fc",
+        "tensor": "activation_in",
+        "shape": [
+          1,
+          1,
+          64
+        ]
+      }
+    },
+    "c_proj_cross_check": {
+      "module": "transformer.h.0.mlp.c_proj",
+      "tensor": "activation_out",
+      "shape": [
+        1,
+        1,
+        64
+      ]
+    },
+    "residual_add_cross_check": {
+      "module": "transformer.h.0",
+      "tensor": "first output tensor",
+      "formula": "block_out = ln_2.activation_in + mlp.c_proj.activation_out"
+    }
+  },
+  "next_numeric_scores": [
+    {
+      "name": "f32_residual_plus_int8_c_proj_dequant",
+      "formula": "residual_f32 + c_proj_output_q * c_proj_output_scale",
+      "purpose": "test the promoted int8 c_proj output as a dequantized residual-add input"
+    },
+    {
+      "name": "int8_residual_plus_int8_c_proj_dequant",
+      "formula": "residual_q * residual_scale + c_proj_output_q * c_proj_output_scale",
+      "purpose": "test whether the residual operand can also cross the add as int8"
+    },
+    {
+      "name": "int8_final_residual_add_output",
+      "formula": "quantize(residual_dequant + c_proj_dequant)",
+      "purpose": "test whether the residual-add output can remain quantized for the next block boundary"
+    }
+  ],
+  "decision": {
+    "verdict": "capture-residual-add-contract",
+    "next_gate": "capture transformer.h.0.ln_2 input plus block output, then score the residual add against the c_proj int8 output q/scale"
+  }
+}

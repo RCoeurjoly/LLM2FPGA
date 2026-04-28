@@ -8120,3 +8120,70 @@ Decision:
   - capture the residual/add tensor after `c_proj`
   - score whether an int8 residual-add boundary is viable
   - only then implement or reject a fused residual-add RTL proof
+
+### 2026-04-28 - H2 residual-add boundary scout after `c_proj`
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-residual-add-boundary-scout.json`
+
+Script and Nix target:
+
+- `scripts/task6/trace_int8_residual_add_boundary.py`
+- `task6-int8-l2-residual-add-boundary-scout`
+- output:
+  `/nix/store/5g8z9m1gmf2w453kw61v7pg5qniyxiyl-task6-int8-l2-residual-add-boundary-scout`
+
+Commands:
+
+- `python3 scripts/task6/trace_int8_residual_add_boundary.py --c-fc-contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json --c-proj-contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json --c-proj-candidate-json artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-candidate.json --c-proj-requant-rtl-proof-json artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-l2-residual-add-boundary-scout.json`
+- `nix build .#task6-int8-l2-residual-add-boundary-scout --no-link --print-out-paths -L`
+
+Result:
+
+- status: `NEEDS_CAPTURE`
+- upstream `c_proj` int8 output proof remains usable:
+  - status: `PASS`
+  - output scale: `0.0006137476192684625`
+  - output q range: `-91..127`
+  - normalized RMSE: `0.015465772661379428`
+  - output-q hash: `93020d792e1a60480198b96b4daf79beca0cb1507253c14b2a4494eaed8b5f8d`
+- next Linalg add site:
+  - line: `418`
+  - result: `%96`
+  - operands: `%62`, `%95`
+  - interpretation:
+    - `%95` is the post-`c_proj` bias-add value
+    - `%62` is the separate residual tensor that is not present in the current
+      `c_proj` module contract
+
+Capture route for the next numeric gate:
+
+- capture residual operand from `transformer.h.0.ln_2` `activation_in`
+- cross-check `transformer.h.0.ln_2` `activation_out` against the existing
+  `transformer.h.0.mlp.c_fc` `activation_in` contract
+- cross-check `transformer.h.0.mlp.c_proj` `activation_out` against the
+  existing `c_proj` contract
+- cross-check block output with:
+  `block_out = ln_2.activation_in + mlp.c_proj.activation_out`
+- then score:
+  - `residual_f32 + c_proj_output_q * c_proj_output_scale`
+  - `residual_q * residual_scale + c_proj_output_q * c_proj_output_scale`
+  - quantized residual-add output for the next boundary
+
+Execution notes:
+
+- the old L2 Linalg store path recorded in the candidate JSON could not be
+  restored with `nix-store -r`
+- a direct rebuild of `tiny-stories-v1k-h64-l1-linalg` started compiling the
+  full Torch/Triton closure, so it was stopped and replaced with this
+  lower-cost scout artifact
+- the prior Python environment used for the original contract capture had been
+  garbage-collected, so the actual residual tensor capture still needs either a
+  restored lightweight Python environment or an intentional rebuild of that
+  capture environment
+
+Decision:
+
+- Do not claim residual-add numeric viability yet.
+- Promote the exact capture route above as the next executable gate.

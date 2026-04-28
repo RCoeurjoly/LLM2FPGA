@@ -4151,6 +4151,27 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2ResidualAddBoundaryScout =
+          pkgs.runCommand "task6-int8-l2-residual-add-boundary-scout" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/trace_int8_residual_add_boundary.py \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-candidate-json ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-candidate.json
+              } \
+              --c-proj-requant-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --out-json "$out/summary.json"
+          '';
+
         task6Int8L2CProjFromPostGeluRtlProof =
           pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-rtl-proof" { } ''
             mkdir -p "$out"
@@ -4840,6 +4861,8 @@
             task6Int8L2MlpChainCProjRequantUtilization;
           task6-int8-l2-mlp-chain-c-proj-requant-rtl-proof =
             task6Int8L2MlpChainCProjRequantRtlProof;
+          task6-int8-l2-residual-add-boundary-scout =
+            task6Int8L2ResidualAddBoundaryScout;
           task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv =
             task6Int8L2CFcPostGeluRequantTbDataSv;
           task6-int8-l2-c-fc-post-gelu-requant-sim-main =
