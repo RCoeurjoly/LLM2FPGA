@@ -1,0 +1,111 @@
+{
+  "artifact_name": "h2-int8-l2-c-fc-scale-bias-output-boundary",
+  "status": "PASS",
+  "source_artifacts": {
+    "contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "contract_replay_json": "artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-local-io-contract-replay.json"
+  },
+  "module": {
+    "model_label": "tiny-stories-v1k-h64-l1",
+    "module_name": "transformer.h.0.mlp.c_fc",
+    "in_features": 64,
+    "out_features": 256,
+    "macs": 16384
+  },
+  "boundary_contract": {
+    "rtl_output": "int32 accumulators in local output memory",
+    "postprocess_formula": "f32_out[i] = int32_acc[i] * effective_scale[i] + bias[i]",
+    "effective_scale": "activation_scale * per-output weight_scale",
+    "activation_quantization": "int8-per-tensor-symmetric",
+    "weight_quantization": "int8-per-output-symmetric",
+    "scale_dtype": "float32",
+    "bias_dtype": "float32",
+    "output_dtype": "float32",
+    "output_count": 256,
+    "postprocess_ops": {
+      "f32_muls": 256,
+      "f32_adds": 256
+    }
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "activation_scale": 0.01876247210765448,
+    "effective_scale_min": 5.004310978396703e-06,
+    "effective_scale_max": 1.1217028679000805e-05,
+    "effective_scale_count": 256,
+    "accumulator_min": -51239,
+    "accumulator_max": 54338,
+    "effective_scale_sha256": "7e70d09bd94b0a9fa02d6e8069efa2f96e0d96a7f12b4c3e2cd3d3b682a78b50",
+    "bias_sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+    "accumulator_sha256": "48210df491400387ec2871d66aaac0b659e1dcd0dd49ed0a7314b616ff56fcf9",
+    "dequantized_output_sha256": "ab22493ba7152c163e59019787a4e52742d0ed44a82df83caa023df1ed084bd9",
+    "max_abs_error": 0.003402371872713708,
+    "mean_abs_error": 0.0009829674033341605,
+    "rmse": 0.001240494634505304,
+    "normalized_rmse": 0.008803690780475175,
+    "signal_max_abs": 0.38926950097084045,
+    "signal_mean_abs": 0.11327259177363658,
+    "verdict": "pass"
+  },
+  "byte_budget": {
+    "activation_int8_bytes": 64,
+    "packed_weight_local_memory_bytes": 16384,
+    "weight_value_int8_bytes": 16384,
+    "accumulator_output_int32_bytes": 1024,
+    "effective_scale_f32_bytes": 1024,
+    "bias_f32_bytes": 1024,
+    "dequantized_output_f32_bytes": 1024,
+    "scale_plus_bias_sidecar_bytes": 2048,
+    "postprocess_read_write_bytes": 4096,
+    "minimum_external_payload_bytes_if_sidecars_loaded_once": 18496
+  },
+  "mapped_reference": {
+    "path": "/nix/store/jkii8nbpgsd9jkxi3qzf253v99f8lxb9-task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-utilization/summary.json",
+    "resources": {
+      "clb_luts": {
+        "capacity": 298600,
+        "pct": 0.09,
+        "used": 257
+      },
+      "clb_ffs": {
+        "capacity": 597200,
+        "pct": 0.03,
+        "used": 198
+      },
+      "dsp": {
+        "capacity": 1920,
+        "pct": 0.21,
+        "used": 4
+      },
+      "bram36": {
+        "capacity": 955,
+        "pct": 0.42,
+        "used": 4
+      },
+      "bram18": {
+        "used": 1
+      },
+      "bram36_equiv": {
+        "capacity": 955,
+        "pct": 0.47,
+        "used": 4.5
+      },
+      "bram_kb": {
+        "capacity": 34380,
+        "pct": 0.47,
+        "used": 162
+      },
+      "slices_lower_bound": {
+        "capacity": 74650,
+        "pct": 0.04,
+        "used": 33
+      }
+    }
+  },
+  "decision": {
+    "replacement_candidate_boundary": "replace the float L2 c_fc GEMV body with the int8 local-memory accumulator contract plus an explicit scale/bias f32 output boundary",
+    "do_not_assume_yet": "this does not prove the f32 postprocess should be implemented in the same RTL kernel; that needs a separate cost gate",
+    "next_gate": "measure the scale/bias postprocess option or define an int8-to-int8 downstream boundary before replacing the full float L2 wrapper"
+  }
+}

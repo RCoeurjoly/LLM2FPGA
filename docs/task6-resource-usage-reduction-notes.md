@@ -7365,3 +7365,85 @@ Interpretation:
 - H2 remains the strongest concrete path. The next useful gate is to make the
   scale/bias/output boundary explicit around this int8 contract, then use that
   as the replacement candidate for the float `L2` wrapper boundary.
+
+### 2026-04-28 - H2 explicit scale/bias/output boundary for `L2 c_fc`
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-scale-bias-output-boundary.json`
+
+Script:
+
+- `scripts/task6/score_int8_output_boundary.py`
+
+Nix target:
+
+- `task6-int8-l2-c-fc-scale-bias-output-boundary`
+- output:
+  `/nix/store/jv6845gszc5qgb601r6x43i4ih4lgzj2-task6-int8-l2-c-fc-scale-bias-output-boundary`
+
+Command:
+
+- `python3 scripts/task6/score_int8_output_boundary.py --contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json --weight-pack-manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json --contract-replay-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-local-io-contract-replay.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-scale-bias-output-boundary.json`
+- `nix build .#task6-int8-l2-c-fc-scale-bias-output-boundary --no-link --print-out-paths -L`
+
+Boundary contract:
+
+- RTL output:
+  - int32 accumulators in local output memory
+- output formula:
+  - `f32_out[i] = int32_acc[i] * effective_scale[i] + bias[i]`
+- effective scale:
+  - `activation_scale * per-output weight_scale`
+- sidecar dtypes:
+  - scale: `float32`
+  - bias: `float32`
+- output dtype:
+  - `float32`
+- postprocess operations:
+  - `256` f32 multiplies
+  - `256` f32 adds
+
+Result:
+
+- status: `PASS`
+- normalized RMSE: `0.008803690780475175`
+- threshold: `0.02`
+- effective scale range:
+  - `5.004310978396703e-06..1.1217028679000805e-05`
+- accumulator range:
+  - `-51239..54338`
+- sidecar hashes:
+  - effective scale SHA256:
+    `7e70d09bd94b0a9fa02d6e8069efa2f96e0d96a7f12b4c3e2cd3d3b682a78b50`
+  - bias SHA256:
+    `5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef`
+
+Byte budget:
+
+- activation int8 bytes: `64`
+- packed-weight local memory bytes: `16,384`
+- accumulator output int32 bytes: `1,024`
+- effective-scale f32 bytes: `1,024`
+- bias f32 bytes: `1,024`
+- dequantized output f32 bytes: `1,024`
+- scale plus bias sidecar bytes: `2,048`
+- postprocess read/write bytes:
+  - `4,096`
+  - accumulator read + scale read + bias read + f32 output write
+- minimum external payload if sidecars are loaded once:
+  - `18,496` bytes
+
+Decision:
+
+- The replacement candidate boundary is now explicit:
+  - replace the float `L2 c_fc` GEMV body with the int8 local-memory
+    accumulator contract plus a scale/bias f32 output boundary.
+- This does not prove that f32 postprocess should be implemented in the same
+  RTL kernel:
+  - the f32 scale/bias stage needs a separate mapped-cost gate
+  - an alternate int8-to-int8 downstream boundary may be cheaper if the next
+    layer can accept a quantized activation contract.
+- Next gate:
+  - measure the scale/bias postprocess option or define an int8-to-int8
+    downstream boundary before replacing the full float `L2` wrapper.
