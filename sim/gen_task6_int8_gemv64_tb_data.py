@@ -88,10 +88,13 @@ def summarize_mapped_utilization(path: Path) -> dict[str, object]:
 def build_payload(
     artifact_name: str,
     kernel_source: Path,
+    extra_kernel_sources: list[Path],
     testbench_source: Path,
     top_name: str,
     lane_count: int,
     packed_weight_words: int,
+    local_packed_weight_memory: bool,
+    packed_weight_read_latency_cycles: int,
     nix_target_prefix: str,
     sim_result_json: Path | None,
     yosys_stat_json: Path | None,
@@ -174,19 +177,34 @@ def build_payload(
                 "weight_interface": "one packed weight word per activation step",
             }
         )
+    if local_packed_weight_memory:
+        contract.update(
+            {
+                "local_packed_weight_memory": True,
+                "packed_weight_read_latency_cycles": packed_weight_read_latency_cycles,
+                "weight_interface": "loadable synchronous local packed-weight memory",
+            }
+        )
 
     object_dir_stem = top_name.removesuffix("_kernel")
     testbench_top = f"{object_dir_stem}_tb"
+    rtl_sources = [*extra_kernel_sources, kernel_source]
+    rtl_sources_text = " ".join(str(source) for source in rtl_sources)
+    rtl = {
+        "kernel_source": str(kernel_source),
+        "testbench_source": str(testbench_source),
+        "contract": contract,
+    }
+    if extra_kernel_sources:
+        rtl["extra_kernel_sources"] = [
+            str(extra_kernel_source) for extra_kernel_source in extra_kernel_sources
+        ]
 
     return {
         "artifact": artifact_name,
         "status": status,
         "blocked_reason": blocked_reason,
-        "rtl": {
-            "kernel_source": str(kernel_source),
-            "testbench_source": str(testbench_source),
-            "contract": contract,
-        },
+        "rtl": rtl,
         "tools": {
             "verilator_on_path": tools["verilator"] is not None,
             "yosys_on_path": tools["yosys"] is not None,
@@ -209,7 +227,7 @@ def build_payload(
             "verilator_command_template": (
                 "verilator --binary --timing --language 1800-2017 -Wno-fatal "
                 f"-top {testbench_top} -Mdir /tmp/{object_dir_stem}_obj "
-                f"-o sim_main {kernel_source} {testbench_source}"
+                f"-o sim_main {rtl_sources_text} {testbench_source}"
             ),
             "sim_binary_template": f"/tmp/{object_dir_stem}_obj/sim_main",
         },
@@ -232,7 +250,13 @@ def build_payload(
             "resource": "mapped LUT below the current float L0/L2 kernel class or a documented dequantization boundary change",
         },
         "interpretation": build_interpretation(
-            sim_result, yosys_result, mapped_result, lane_count, packed_weight_words
+            sim_result,
+            yosys_result,
+            mapped_result,
+            lane_count,
+            packed_weight_words,
+            local_packed_weight_memory,
+            packed_weight_read_latency_cycles,
         ),
     }
 
@@ -243,6 +267,8 @@ def build_interpretation(
     mapped_result: dict[str, object] | None,
     lane_count: int,
     packed_weight_words: int,
+    local_packed_weight_memory: bool,
+    packed_weight_read_latency_cycles: int,
 ) -> list[str]:
     lines = [
         "This is a bounded H2 fixed-point kernel proof, not a replay of the earlier f32-activation contract.",
@@ -255,6 +281,11 @@ def build_interpretation(
     if packed_weight_words > 0:
         lines.append(
             f"It uses {packed_weight_words} packed weight words so each cycle fetches one {lane_count}-lane weight vector."
+        )
+    if local_packed_weight_memory:
+        lines.append(
+            "It adds a loadable local packed-weight memory with "
+            f"{packed_weight_read_latency_cycles} cycle read latency."
         )
     if sim_result is not None and sim_result.get("status") == "PASS":
         lines.append("Nix-provided Verilator simulation passed the deterministic self-checking testbench.")
@@ -289,6 +320,13 @@ def parse_args() -> argparse.Namespace:
         default=Path("rtl/task6/task6_int8_gemv64_kernel.sv"),
     )
     parser.add_argument(
+        "--extra-kernel-source",
+        action="append",
+        type=Path,
+        default=[],
+        help="Additional RTL source to compile before --kernel-source.",
+    )
+    parser.add_argument(
         "--testbench-source",
         type=Path,
         default=Path("sim/task6_int8_gemv64_tb_main.sv"),
@@ -308,6 +346,15 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--packed-weight-words",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
+        "--local-packed-weight-memory",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--packed-weight-read-latency-cycles",
         type=int,
         default=0,
     )
@@ -339,10 +386,13 @@ def main() -> None:
     payload = build_payload(
         args.artifact_name,
         args.kernel_source,
+        args.extra_kernel_source,
         args.testbench_source,
         args.top_name,
         args.lane_count,
         args.packed_weight_words,
+        args.local_packed_weight_memory,
+        args.packed_weight_read_latency_cycles,
         args.nix_target_prefix,
         args.sim_result_json,
         args.yosys_stat_json,

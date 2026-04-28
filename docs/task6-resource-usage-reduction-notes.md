@@ -7037,3 +7037,75 @@ Interpretation:
 - The next H2 gate should add an explicit small packed-weight memory boundary
   or an `L2`-shape tile wrapper around this packed interface, so the memory
   read latency and storage mapping are represented before scaling further.
+
+### 2026-04-28 - H2 four-lane int8 packed-weight sync-memory proof
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-gemv64-lanes4-packed-sync-mem-rtl-proof.json`
+
+Sources:
+
+- `flake.nix`
+- `rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv`
+- `rtl/task6/task6_int8_gemv64_lanes4_packed_sync_mem_kernel.sv`
+- `sim/task6_int8_gemv64_lanes4_packed_sync_mem_tb_main.sv`
+- `sim/gen_task6_int8_gemv64_tb_data.py`
+
+Command:
+
+- `nix build .#task6-int8-gemv64-lanes4-packed-sync-mem-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-gemv64-lanes4-packed-sync-mem-yosys-stat --no-link --print-out-paths -L`
+- `nix build .#task6-int8-gemv64-lanes4-packed-sync-mem-utilization --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_gemv64_tb_data.py --artifact-name h2-int8-gemv64-lanes4-packed-sync-mem-rtl-proof --extra-kernel-source rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv --kernel-source rtl/task6/task6_int8_gemv64_lanes4_packed_sync_mem_kernel.sv --testbench-source sim/task6_int8_gemv64_lanes4_packed_sync_mem_tb_main.sv --top-name task6_int8_gemv64_lanes4_packed_sync_mem_kernel --lane-count 4 --packed-weight-words 1024 --local-packed-weight-memory --packed-weight-read-latency-cycles 1 --nix-target-prefix task6-int8-gemv64-lanes4-packed-sync-mem --sim-result-json /nix/store/54q4wq3182nhmvkf6sfrk6rvabz779a6-task6-int8-gemv64-lanes4-packed-sync-mem-sv-sim.json --yosys-stat-json /nix/store/lx8jdyxh3ckph7p6qn0y7zn4pxxrlx2y-task6-int8-gemv64-lanes4-packed-sync-mem-yosys-stat.json --mapped-utilization-summary-json /nix/store/y62fmdqmhj5ls485qanksvrqn6fhq7gn-task6-int8-gemv64-lanes4-packed-sync-mem-utilization/summary.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-lanes4-packed-sync-mem-rtl-proof.json`
+
+Prepared contract:
+
+- `64 x 64` GEMV
+- signed int8 activations
+- signed int8 weights
+- signed int32 accumulation
+- `4,096` MACs
+- `4` parallel output/MAC lanes sharing one controller
+- `1,024` packed weight words, each carrying one `4`-lane int8 weight vector
+- loadable synchronous local packed-weight memory
+- one-cycle packed-weight read latency
+- ready/valid output stream
+
+Execution status:
+
+- The RTL simulation passes through Nix-provided Verilator:
+  - output: `/nix/store/54q4wq3182nhmvkf6sfrk6rvabz779a6-task6-int8-gemv64-lanes4-packed-sync-mem-sv-sim.json`
+  - pass line: `PASS: task6 int8 GEMV4 syncmem stores 64 outputs 64 cycles 1106`
+- The light Yosys gate passes through Nix-provided `pkgs.yosys`:
+  - output: `/nix/store/lx8jdyxh3ckph7p6qn0y7zn4pxxrlx2y-task6-int8-gemv64-lanes4-packed-sync-mem-yosys-stat.json`
+  - `DSP48E1`: `4`
+  - `RAMB36E1`: `1`
+  - LUT primitive cells: `250` (`LUT2=160`, `LUT3=41`, `LUT4=2`,
+    `LUT5=6`, `LUT6=41`)
+  - `FDRE`: `193`
+  - `CARRY4`: `11`
+  - Yosys log estimated LCs: `149`
+- The mapped JSON utilization gate passes through the existing utilization
+  reporter:
+  - output: `/nix/store/y62fmdqmhj5ls485qanksvrqn6fhq7gn-task6-int8-gemv64-lanes4-packed-sync-mem-utilization`
+  - `clb_luts`: `250`
+  - `clb_ffs`: `193`
+  - `dsp`: `4`
+  - `bram36`: `1`
+  - `bram36_equiv`: `1.0`
+  - `bram_kb`: `36`
+  - `slices_lower_bound`: `32`
+
+Interpretation:
+
+- This is the first H2 proof that crosses from a combinational packed-weight
+  interface into an explicit loadable local memory boundary.
+- Yosys infers one `RAMB36E1` for the `1024 x 32` packed-weight store, so the
+  proof now exercises BRAM as well as the four DSP MAC lanes.
+- Compared with the prior packed combinational proof, the memory boundary costs
+  only `+8` LUT, `+6` FF, and `+1` slice lower bound while adding one BRAM36
+  and increasing simulation from `1090` to `1106` cycles.
+- H2 remains active. The next useful gate is either an `L2`-shape tile wrapper
+  around this sync-memory interface or a direct resource comparison for the
+  activation/output memory boundary on the same int8 datapath.
