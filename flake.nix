@@ -2829,6 +2829,34 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2MlpChainCProjRequantTbDataSv =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-c-proj-requant-tb-data-sv" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./sim
+            }/gen_task6_int8_l2_mlp_chain_c_proj_requant_tb_data.py \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --c-proj-output-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-output-boundary.json
+              } \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -3012,6 +3040,26 @@
               ${./sim/task6_int8_l2_mlp_chain_post_gelu_c_proj_tb_main.sv}
           '';
 
+        task6Int8L2MlpChainCProjRequantSimMain =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-c-proj-requant-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6Int8L2MlpChainCProjRequantTbDataSv} \
+              -top task6_int8_l2_mlp_chain_c_proj_requant_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./sim/task6_int8_l2_mlp_chain_c_proj_requant_tb_main.sv}
+          '';
+
         task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3167,6 +3215,28 @@
             cp stat.json "$out"
           '';
 
+        task6Int8L2MlpChainCProjRequantYosysStat =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-c-proj-requant-yosys-stat.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            hierarchy -top task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel -noiopad
+            tee -o stat.json stat -json
+            EOF
+            yosys -s run.ys
+            cp stat.json "$out"
+          '';
+
         task6Int8Gemv64Json = pkgs.runCommand "task6-int8-gemv64.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3313,6 +3383,27 @@
             yosys -s run.ys
           '';
 
+        task6Int8L2MlpChainCProjRequantJson =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-c-proj-requant.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            hierarchy -top task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
           name = "task6-int8-gemv64";
           capacities = tinyStoriesCapacities;
@@ -3379,6 +3470,14 @@
             capacities = tinyStoriesCapacities;
             topName = "task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel";
             designJson = task6Int8L2MlpChainPostGeluCProjJson;
+          };
+
+        task6Int8L2MlpChainCProjRequantUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-int8-l2-mlp-chain-c-proj-requant";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel";
+            designJson = task6Int8L2MlpChainCProjRequantJson;
           };
 
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
@@ -3948,6 +4047,32 @@
             EOF
           '';
 
+        task6Int8L2MlpChainCProjRequantSvSim =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-c-proj-requant-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6Int8L2MlpChainCProjRequantSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 int8 L2 mlp chain c_proj requant reads [0-9]+ outputs [0-9]+ compute_cycles [0-9]+ total_cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-int8-l2-mlp-chain-c-proj-requant SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            reads="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            compute_cycles="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            total_cycles="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "reads": $reads,
+              "outputs": $outputs,
+              "compute_cycles": $compute_cycles,
+              "cycles": $total_cycles
+            }
+            EOF
+          '';
+
         task6Int8L2CFcPostGeluRequantRtlProof =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-rtl-proof" { } ''
             mkdir -p "$out"
@@ -3993,6 +4118,36 @@
               --sim-result-json ${task6Int8L2MlpChainPostGeluCProjSvSim} \
               --yosys-stat-json ${task6Int8L2MlpChainPostGeluCProjYosysStat} \
               --mapped-utilization-summary-json ${task6Int8L2MlpChainPostGeluCProjUtilization}/summary.json \
+              --out-json "$out/summary.json"
+          '';
+
+        task6Int8L2MlpChainCProjRequantRtlProof =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-c-proj-requant-rtl-proof" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./sim
+            }/gen_task6_int8_l2_mlp_chain_c_proj_requant_tb_data.py \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --c-proj-output-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-output-boundary.json
+              } \
+              --sim-result-json ${task6Int8L2MlpChainCProjRequantSvSim} \
+              --yosys-stat-json ${task6Int8L2MlpChainCProjRequantYosysStat} \
+              --mapped-utilization-summary-json ${task6Int8L2MlpChainCProjRequantUtilization}/summary.json \
               --out-json "$out/summary.json"
           '';
 
@@ -4671,6 +4826,20 @@
             task6Int8L2MlpChainPostGeluCProjUtilization;
           task6-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof =
             task6Int8L2MlpChainPostGeluCProjRtlProof;
+          task6-int8-l2-mlp-chain-c-proj-requant-tb-data-sv =
+            task6Int8L2MlpChainCProjRequantTbDataSv;
+          task6-int8-l2-mlp-chain-c-proj-requant-sim-main =
+            task6Int8L2MlpChainCProjRequantSimMain;
+          task6-int8-l2-mlp-chain-c-proj-requant-sv-sim =
+            task6Int8L2MlpChainCProjRequantSvSim;
+          task6-int8-l2-mlp-chain-c-proj-requant-yosys-stat =
+            task6Int8L2MlpChainCProjRequantYosysStat;
+          task6-int8-l2-mlp-chain-c-proj-requant-json =
+            task6Int8L2MlpChainCProjRequantJson;
+          task6-int8-l2-mlp-chain-c-proj-requant-utilization =
+            task6Int8L2MlpChainCProjRequantUtilization;
+          task6-int8-l2-mlp-chain-c-proj-requant-rtl-proof =
+            task6Int8L2MlpChainCProjRequantRtlProof;
           task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv =
             task6Int8L2CFcPostGeluRequantTbDataSv;
           task6-int8-l2-c-fc-post-gelu-requant-sim-main =

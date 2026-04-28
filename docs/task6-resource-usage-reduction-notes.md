@@ -8040,3 +8040,83 @@ Decision:
   - implement a bounded fixed-point `c_proj` requant/output-memory RTL proof
   - then decide whether to capture the residual tensor for an int8 residual-add
     score or fall back to a f32 dequantized residual boundary
+
+### 2026-04-28 - H2 composed MLP chain with `c_proj` int8 output requant
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json`
+
+RTL and test files:
+
+- `rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv`
+- `sim/task6_int8_l2_mlp_chain_c_proj_requant_tb_main.sv`
+- `sim/gen_task6_int8_l2_mlp_chain_c_proj_requant_tb_data.py`
+
+Nix targets:
+
+- `task6-int8-l2-mlp-chain-c-proj-requant-sv-sim`
+- `task6-int8-l2-mlp-chain-c-proj-requant-rtl-proof`
+- output:
+  `/nix/store/n5z8yq3dxkqq52pjk0zshpyhyadkimih-task6-int8-l2-mlp-chain-c-proj-requant-rtl-proof`
+
+Commands:
+
+- `nix build .#task6-int8-l2-mlp-chain-c-proj-requant-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-l2-mlp-chain-c-proj-requant-rtl-proof --no-link --print-out-paths -L`
+
+Purpose:
+
+- extend the promoted composed chain:
+  `c_fc -> fixed-point GELU -> int8 handoff -> c_proj`
+- add a bounded fixed-point post-`c_proj` output stage:
+  `q[i] = saturate_i8(round_shift(acc[i] * scale_mul[i], 24) + bias_q[i])`
+- store the 64-wide `c_proj` result as int8 in local output memory instead of
+  leaving the chain at the int32 accumulator boundary
+
+Execution result:
+
+- status: `PASS`
+- Verilator:
+  - reads: `64`
+  - outputs: `64`
+  - compute cycles: `9760`
+  - total cycles: `9824`
+- fixed-point output:
+  - output scale: `0.0006137476192684625`
+  - output q range: `-91..127`
+  - normalized RMSE: `0.015465772661379428`
+  - output-q hash matches the prior `c_proj` int8 output-boundary quantizer
+  - accumulator hash matches the prior composed-chain and output-boundary
+    artifacts
+- Yosys mapped check:
+  - `0` reported problems
+
+Mapped utilization:
+
+- LUTs: `1123 / 298600 = 0.38%`
+- FFs: `443 / 597200 = 0.07%`
+- DSPs: `34 / 1920 = 1.77%`
+- BRAM36: `8 / 955 = 0.84%`
+- BRAM18: `6`
+- BRAM36-equivalent: `11.0 / 955 = 1.15%`
+
+Delta versus the previous composed-chain accumulator-boundary proof:
+
+- LUTs: `+179`
+- FFs: `+17`
+- DSPs: `+4`
+- BRAM36-equivalent: `+1.0`
+- Interpretation:
+  - the int8 output stage costs a small amount of logic and one additional
+    BRAM36-equivalent for the `c_proj` requant sidecars/output storage
+  - the overall resource picture remains very small relative to the board
+
+Decision:
+
+- Promote this as the current H2 RTL reference for the bounded MLP-chain output
+  boundary.
+- Next gate:
+  - capture the residual/add tensor after `c_proj`
+  - score whether an int8 residual-add boundary is viable
+  - only then implement or reject a fused residual-add RTL proof
