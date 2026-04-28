@@ -6817,3 +6817,74 @@ Next action:
   - `DSP > 0`
   - mapped LUT below the current float L0/L2 kernel class, or a clear reason
     why dequantization must move outside the kernel.
+
+### 2026-04-28 - H2 bounded int8 GEMV RTL proof surface prepared
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-gemv64-rtl-proof.json`
+
+Sources:
+
+- `flake.nix`
+- `rtl/task6/task6_int8_gemv64_kernel.sv`
+- `sim/task6_int8_gemv64_tb_main.sv`
+- `sim/gen_task6_int8_gemv64_tb_data.py`
+
+Command:
+
+- `python3 sim/gen_task6_int8_gemv64_tb_data.py --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-rtl-proof.json`
+- `nix build .#task6-int8-gemv64-sv-sim --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_gemv64_tb_data.py --sim-result-json /nix/store/alwiq620fdhryhhz9kxhdfg5f3p955wr-task6-int8-gemv64-sv-sim.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-rtl-proof.json`
+- `nix build .#task6-int8-gemv64-yosys-stat --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_gemv64_tb_data.py --sim-result-json /nix/store/alwiq620fdhryhhz9kxhdfg5f3p955wr-task6-int8-gemv64-sv-sim.json --yosys-stat-json /nix/store/2p1gl2hpfw0q1shbnpbyv4avrwjs87gh-task6-int8-gemv64-yosys-stat.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-rtl-proof.json`
+
+Prepared contract:
+
+- `64 x 64` GEMV
+- signed int8 activations
+- signed int8 weights
+- signed int32 accumulation
+- `4,096` MACs
+- combinational address/data activation and weight memories
+- ready/valid output stream
+
+Deterministic vector summary:
+
+- activation SHA256: `9d8e95167716149b582c1e8f772e5b312655bc79adf990872b9ecc46ce150174`
+- weight SHA256: `498ae3ff71f98690cd4ec3aafa2d70f6adc5600f869cac426dad14e091ff7fa9`
+- expected-output SHA256: `7bd0a431ea01f3cd043896562031b5792ecce0f35f3850f0dc0ff271f77abed8`
+- expected output range: `-1164..1688`
+
+Execution status:
+
+- RTL source and self-checking testbench are prepared.
+- Flake target `.#task6-int8-gemv64-sv-sim` is wired.
+- `python3 -m py_compile sim/gen_task6_int8_gemv64_tb_data.py` passes.
+- The JSON artifact validates with `python3 -m json.tool`.
+- The RTL simulation passes through Nix-provided Verilator:
+  - output: `/nix/store/alwiq620fdhryhhz9kxhdfg5f3p955wr-task6-int8-gemv64-sv-sim.json`
+  - pass line: `PASS: task6 int8 GEMV stores 64 outputs 64 cycles 4162`
+- The light Yosys gate passes through Nix-provided `pkgs.yosys`:
+  - output: `/nix/store/2p1gl2hpfw0q1shbnpbyv4avrwjs87gh-task6-int8-gemv64-yosys-stat.json`
+  - `DSP48E1`: `1`
+  - LUT primitive cells: `68` (`LUT2=42`, `LUT3=1`, `LUT4=1`,
+    `LUT5=2`, `LUT6=22`)
+  - `FDRE`: `66`
+  - `CARRY4`: `7`
+  - Yosys log estimated LCs: `46`
+- Full mapped utilization has not been executed for this standalone kernel.
+
+Interpretation:
+
+- This answers the immediate "do we have an int8 RTL surface?" question with
+  "yes, a bounded fixed-point int8 kernel now passes Verilator and maps one
+  DSP48E1 under light `synth_xilinx`."
+- It is deliberately narrower than the earlier H2 numeric replay:
+  the replay kept activations and bias in `f32`, while this bounded RTL proof is
+  a fixed-point int8-activation/int8-weight kernel with int32 accumulation.
+- It avoids the older torch-mlir byte/char int8 route that blocked the prior
+  local `task6-l0-gemv64-int8` probe.
+- H2 stays active, but the next required evidence is a mapped LUT comparison
+  on the same standalone kernel or a tiled variant; do not extrapolate this
+  small `46`-LC proof directly to the full MLP shell.

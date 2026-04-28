@@ -123,6 +123,7 @@ The first H1/H2/H5 scoring artifacts are:
 - `artifacts/task6/parallel-hypotheses/h1-h2-streaming-contract-score.json`
 - `artifacts/task6/parallel-hypotheses/h2-quantized-weight-replay.csv`
 - `artifacts/task6/parallel-hypotheses/h2-quantized-weight-replay.json`
+- `artifacts/task6/parallel-hypotheses/h2-int8-gemv64-rtl-proof.json`
 
 The first H3 narrowing artifact is:
 

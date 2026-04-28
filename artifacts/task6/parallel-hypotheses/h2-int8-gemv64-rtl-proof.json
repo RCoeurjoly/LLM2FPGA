@@ -1,0 +1,120 @@
+{
+  "acceptance_gates": {
+    "functional": "Verilator or Icarus PASS line from the self-checking testbench",
+    "resource": "mapped LUT below the current float L0/L2 kernel class or a documented dequantization boundary change",
+    "synthesis": "Yosys stat with DSP > 0"
+  },
+  "artifact": "h2-int8-gemv64-rtl-proof",
+  "blocked_reason": "",
+  "execution": {
+    "can_execute_sim_from_path": false,
+    "can_score_synthesis_from_path": false,
+    "nix_sim_target": ".#task6-int8-gemv64-sv-sim",
+    "nix_yosys_target": ".#task6-int8-gemv64-yosys-stat",
+    "sim_binary_template": "/tmp/task6_int8_gemv64_obj/sim_main",
+    "sim_executed": true,
+    "sim_result": {
+      "cycles": 4162,
+      "outputs": 64,
+      "status": "PASS",
+      "stores": 64
+    },
+    "synthesis_executed": true,
+    "verilator_command_template": "verilator --binary --timing --language 1800-2017 -Wno-fatal -top task6_int8_gemv64_tb -Mdir /tmp/task6_int8_gemv64_obj -o sim_main rtl/task6/task6_int8_gemv64_kernel.sv sim/task6_int8_gemv64_tb_main.sv",
+    "yosys_result": {
+      "cells_by_type": {
+        "BUFG": 1,
+        "CARRY4": 7,
+        "DSP48E1": 1,
+        "FDRE": 66,
+        "INV": 3,
+        "LUT2": 42,
+        "LUT3": 1,
+        "LUT4": 1,
+        "LUT5": 2,
+        "LUT6": 22,
+        "MUXF7": 2,
+        "MUXF8": 1
+      },
+      "creator": "Yosys 0.38 (git sha1 543faed9c8c, gcc 13.2.0 -fPIC -Os)",
+      "dsp_cells": 1,
+      "dsp_gate_pass": true,
+      "ff_cells": 66,
+      "lut_cells": 68,
+      "num_cells": 149,
+      "num_wire_bits": 386,
+      "num_wires": 73,
+      "path": "/nix/store/2p1gl2hpfw0q1shbnpbyv4avrwjs87gh-task6-int8-gemv64-yosys-stat.json",
+      "top": "task6_int8_gemv64_kernel"
+    }
+  },
+  "interpretation": [
+    "This is a bounded H2 fixed-point kernel proof, not a replay of the earlier f32-activation contract.",
+    "It avoids the old torch-mlir int8 byte/char lowering route that blocked the prior L0 int8 probe.",
+    "Nix-provided Verilator simulation passed the deterministic self-checking testbench.",
+    "Light Yosys synth_xilinx maps the bounded MAC datapath to at least one DSP cell."
+  ],
+  "rtl": {
+    "contract": {
+      "accumulator_dtype": "int32",
+      "activation_dtype": "int8",
+      "in_dim": 64,
+      "interface": "combinational address/data memories plus ready/valid output",
+      "macs": 4096,
+      "out_dim": 64,
+      "weight_dtype": "int8",
+      "weight_words": 4096
+    },
+    "kernel_source": "rtl/task6/task6_int8_gemv64_kernel.sv",
+    "testbench_source": "sim/task6_int8_gemv64_tb_main.sv"
+  },
+  "status": "sim_pass_yosys_dsp_pass",
+  "tools": {
+    "iverilog_on_path": false,
+    "iverilog_path": "",
+    "verilator_on_path": false,
+    "verilator_path": "",
+    "yosys_on_path": false,
+    "yosys_path": ""
+  },
+  "vectors": {
+    "activation_count": 64,
+    "activation_preview": [
+      -12,
+      -5,
+      2,
+      9,
+      -15,
+      -8,
+      -1,
+      6
+    ],
+    "activation_sha256_i8_le": "9d8e95167716149b582c1e8f772e5b312655bc79adf990872b9ecc46ce150174",
+    "expected_count": 64,
+    "expected_max": 1688,
+    "expected_min": -1164,
+    "expected_preview": [
+      -742,
+      -1164,
+      -411,
+      1188,
+      -1161,
+      -737,
+      -78,
+      1333
+    ],
+    "expected_sha256_i32_le": "7bd0a431ea01f3cd043896562031b5792ecce0f35f3850f0dc0ff271f77abed8",
+    "weight_count": 4096,
+    "weight_row0_preview": [
+      -22,
+      -17,
+      -12,
+      -7,
+      -2,
+      3,
+      8,
+      13
+    ],
+    "weight_sha256_i8_le": "498ae3ff71f98690cd4ec3aafa2d70f6adc5600f869cac426dad14e091ff7fa9"
+  }
+}

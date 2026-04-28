@@ -2695,6 +2695,31 @@
             -f ${task6L0Gemv64Sv}/sources.f ${./sim/task6_l0_gemv64_tb_main.sv}
         '';
 
+        task6Int8Gemv64SimMain = pkgs.runCommand "task6-int8-gemv64-sim-main" {
+          buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+        } ''
+          set -euo pipefail
+          mkdir -p "$out/obj_dir"
+          verilator --binary --timing --language 1800-2017 -Wno-fatal \
+            -top task6_int8_gemv64_tb -Mdir "$out/obj_dir" -o sim_main \
+            ${./rtl/task6/task6_int8_gemv64_kernel.sv} ${./sim/task6_int8_gemv64_tb_main.sv}
+        '';
+
+        task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
+          buildInputs = [ pkgs.yosys ];
+        } ''
+          set -euo pipefail
+          cat > run.ys <<EOF
+          read_verilog -sv ${./rtl/task6/task6_int8_gemv64_kernel.sv}
+          hierarchy -top task6_int8_gemv64_kernel -check
+          proc
+          synth_xilinx -family xc7 -top task6_int8_gemv64_kernel -noiopad
+          tee -o stat.json stat -json
+          EOF
+          yosys -s run.ys
+          cp stat.json "$out"
+        '';
+
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
         } ''
@@ -3010,6 +3035,29 @@
             "status": "PASS",
             "stores": $stores,
             "outputs": $outputs
+          }
+          EOF
+        '';
+
+        task6Int8Gemv64SvSim = pkgs.runCommand "task6-int8-gemv64-sv-sim.json" {
+          buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+        } ''
+          set -euo pipefail
+          ${task6Int8Gemv64SimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+          pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 int8 GEMV stores [0-9]+ outputs [0-9]+ cycles [0-9]+' sim.log | tail -n1 || true)"
+          if [ -z "$pass_line" ]; then
+            echo "task6-int8-gemv64 SV simulation did not produce a PASS line" >&2
+            exit 1
+          fi
+          stores="$(${pkgs.gawk}/bin/awk '{print $6}' <<<"$pass_line")"
+          outputs="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+          cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+          cat > "$out" <<EOF
+          {
+            "status": "PASS",
+            "stores": $stores,
+            "outputs": $outputs,
+            "cycles": $cycles
           }
           EOF
         '';
@@ -3575,6 +3623,9 @@
           task6-l0-gemv64-int16-utilization = task6L0Gemv64Int16Utilization;
           task6-l0-gemv64-sv-sim = task6L0Gemv64SvSim;
           task6-l0-gemv64-sv-wave = task6L0Gemv64SvWave;
+          task6-int8-gemv64-sim-main = task6Int8Gemv64SimMain;
+          task6-int8-gemv64-sv-sim = task6Int8Gemv64SvSim;
+          task6-int8-gemv64-yosys-stat = task6Int8Gemv64YosysStat;
           task6-l1-c-proj-redirect-tb-data-sv = task6L1CProjRedirectTbDataSv;
           task6-l1-c-proj-redirect-sim-main = task6L1CProjRedirectSimMain;
           task6-l1-c-proj-redirect-json = task6L1CProjRedirectJson;
