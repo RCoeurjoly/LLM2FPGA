@@ -6898,3 +6898,72 @@ Interpretation:
   either multiple DSP lanes sharing the same controller, or a small tiled
   `L2`-shape wrapper that proves the low standalone LUT count survives the
   interface and sequencing needed by a real MLP slice.
+
+### 2026-04-28 - H2 bounded int8 GEMV four-lane RTL proof
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-gemv64-lanes4-rtl-proof.json`
+
+Sources:
+
+- `flake.nix`
+- `rtl/task6/task6_int8_gemv64_lanes4_kernel.sv`
+- `sim/task6_int8_gemv64_lanes4_tb_main.sv`
+- `sim/gen_task6_int8_gemv64_tb_data.py`
+
+Command:
+
+- `nix build .#task6-int8-gemv64-lanes4-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-gemv64-lanes4-yosys-stat --no-link --print-out-paths -L`
+- `nix build .#task6-int8-gemv64-lanes4-utilization --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_gemv64_tb_data.py --artifact-name h2-int8-gemv64-lanes4-rtl-proof --kernel-source rtl/task6/task6_int8_gemv64_lanes4_kernel.sv --testbench-source sim/task6_int8_gemv64_lanes4_tb_main.sv --top-name task6_int8_gemv64_lanes4_kernel --lane-count 4 --nix-target-prefix task6-int8-gemv64-lanes4 --sim-result-json /nix/store/z1fdggakr9xbd5wb5l3iyxknbvkc902a-task6-int8-gemv64-lanes4-sv-sim.json --yosys-stat-json /nix/store/pcj9qnir5n61zvfnqd9j1pw9yis8fh01-task6-int8-gemv64-lanes4-yosys-stat.json --mapped-utilization-summary-json /nix/store/1020khq23md4gdl7kscx7b9p3kxiy0qm-task6-int8-gemv64-lanes4-utilization/summary.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-lanes4-rtl-proof.json`
+
+Prepared contract:
+
+- `64 x 64` GEMV
+- signed int8 activations
+- signed int8 weights
+- signed int32 accumulation
+- `4,096` MACs
+- `4` parallel output/MAC lanes sharing one controller
+- `16` output tiles
+- combinational address/data activation and packed-lane weight memories
+- ready/valid output stream
+
+Execution status:
+
+- The RTL simulation passes through Nix-provided Verilator:
+  - output: `/nix/store/z1fdggakr9xbd5wb5l3iyxknbvkc902a-task6-int8-gemv64-lanes4-sv-sim.json`
+  - pass line: `PASS: task6 int8 GEMV4 stores 64 outputs 64 cycles 1090`
+- The light Yosys gate passes through Nix-provided `pkgs.yosys`:
+  - output: `/nix/store/pcj9qnir5n61zvfnqd9j1pw9yis8fh01-task6-int8-gemv64-lanes4-yosys-stat.json`
+  - `DSP48E1`: `4`
+  - LUT primitive cells: `242` (`LUT2=149`, `LUT3=39`, `LUT4=1`,
+    `LUT5=11`, `LUT6=42`)
+  - `FDRE`: `187`
+  - `CARRY4`: `18`
+  - Yosys log estimated LCs: `148`
+- The mapped JSON utilization gate passes through the existing utilization
+  reporter:
+  - output: `/nix/store/1020khq23md4gdl7kscx7b9p3kxiy0qm-task6-int8-gemv64-lanes4-utilization`
+  - `clb_luts`: `242`
+  - `clb_ffs`: `187`
+  - `dsp`: `4`
+  - `bram36_equiv`: `0`
+  - `slices_lower_bound`: `31`
+
+Interpretation:
+
+- The four-lane proof keeps the same fixed-point int8/int8/int32 contract as
+  the single-lane proof, but proves the controller can feed and retire four
+  parallel DSP MAC lanes.
+- Compared with the single-lane proof, simulation cycles improve from `4162`
+  to `1090`, while mapped DSP usage scales linearly from `1` to `4`.
+- Mapped LUTs rise from `68` to `242` and FFs rise from `66` to `187`, so the
+  widened datapath does not create the kind of control/interface explosion
+  seen in the float baseline lanes.
+- H2 remains the strongest local resource-reduction lane. The next evidence
+  should attach this four-lane fixed-point datapath to a small explicit
+  packed-weight memory or an `L2`-shape tile wrapper before extrapolating to
+  the full MLP shell.

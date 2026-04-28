@@ -34,7 +34,7 @@ def sha256_ints(values: Iterable[int], byte_width: int) -> str:
     return digest.hexdigest()
 
 
-def summarize_yosys_stat(path: Path) -> dict[str, object]:
+def summarize_yosys_stat(path: Path, top_name: str) -> dict[str, object]:
     stat = json.loads(path.read_text(encoding="utf-8"))
     design = stat.get("design", {})
     cells_by_type = design.get("num_cells_by_type", {})
@@ -50,7 +50,7 @@ def summarize_yosys_stat(path: Path) -> dict[str, object]:
     return {
         "path": str(path),
         "creator": stat.get("creator", ""),
-        "top": "task6_int8_gemv64_kernel",
+        "top": top_name,
         "num_cells": int(design.get("num_cells", 0)),
         "num_wires": int(design.get("num_wires", 0)),
         "num_wire_bits": int(design.get("num_wire_bits", 0)),
@@ -86,8 +86,12 @@ def summarize_mapped_utilization(path: Path) -> dict[str, object]:
 
 
 def build_payload(
+    artifact_name: str,
     kernel_source: Path,
     testbench_source: Path,
+    top_name: str,
+    lane_count: int,
+    nix_target_prefix: str,
     sim_result_json: Path | None,
     yosys_stat_json: Path | None,
     mapped_utilization_summary_json: Path | None,
@@ -111,7 +115,7 @@ def build_payload(
         sim_result = json.loads(sim_result_json.read_text(encoding="utf-8"))
     yosys_result = None
     if yosys_stat_json is not None:
-        yosys_result = summarize_yosys_stat(yosys_stat_json)
+        yosys_result = summarize_yosys_stat(yosys_stat_json, top_name)
     mapped_result = None
     if mapped_utilization_summary_json is not None:
         mapped_result = summarize_mapped_utilization(mapped_utilization_summary_json)
@@ -143,23 +147,36 @@ def build_payload(
         status = "prepared_not_executed"
         blocked_reason = "verilator and iverilog are not available on PATH"
 
+    contract = {
+        "in_dim": IN_DIM,
+        "out_dim": OUT_DIM,
+        "activation_dtype": "int8",
+        "weight_dtype": "int8",
+        "accumulator_dtype": "int32",
+        "weight_words": WEIGHT_WORDS,
+        "macs": IN_DIM * OUT_DIM,
+        "interface": "combinational address/data memories plus ready/valid output",
+    }
+    if lane_count > 1:
+        contract.update(
+            {
+                "parallel_output_lanes": lane_count,
+                "mac_lanes_per_cycle": lane_count,
+                "output_tile_count": OUT_DIM // lane_count,
+            }
+        )
+
+    object_dir_stem = top_name.removesuffix("_kernel")
+    testbench_top = f"{object_dir_stem}_tb"
+
     return {
-        "artifact": "h2-int8-gemv64-rtl-proof",
+        "artifact": artifact_name,
         "status": status,
         "blocked_reason": blocked_reason,
         "rtl": {
             "kernel_source": str(kernel_source),
             "testbench_source": str(testbench_source),
-            "contract": {
-                "in_dim": IN_DIM,
-                "out_dim": OUT_DIM,
-                "activation_dtype": "int8",
-                "weight_dtype": "int8",
-                "accumulator_dtype": "int32",
-                "weight_words": WEIGHT_WORDS,
-                "macs": IN_DIM * OUT_DIM,
-                "interface": "combinational address/data memories plus ready/valid output",
-            },
+            "contract": contract,
         },
         "tools": {
             "verilator_on_path": tools["verilator"] is not None,
@@ -177,16 +194,15 @@ def build_payload(
             "mapped_utilization_result": mapped_result or {},
             "can_execute_sim_from_path": can_execute_sim,
             "can_score_synthesis_from_path": can_score_synthesis,
-            "nix_sim_target": ".#task6-int8-gemv64-sv-sim",
-            "nix_yosys_target": ".#task6-int8-gemv64-yosys-stat",
-            "nix_mapped_utilization_target": ".#task6-int8-gemv64-utilization",
+            "nix_sim_target": f".#{nix_target_prefix}-sv-sim",
+            "nix_yosys_target": f".#{nix_target_prefix}-yosys-stat",
+            "nix_mapped_utilization_target": f".#{nix_target_prefix}-utilization",
             "verilator_command_template": (
                 "verilator --binary --timing --language 1800-2017 -Wno-fatal "
-                "-top task6_int8_gemv64_tb -Mdir /tmp/task6_int8_gemv64_obj "
-                "-o sim_main rtl/task6/task6_int8_gemv64_kernel.sv "
-                "sim/task6_int8_gemv64_tb_main.sv"
+                f"-top {testbench_top} -Mdir /tmp/{object_dir_stem}_obj "
+                f"-o sim_main {kernel_source} {testbench_source}"
             ),
-            "sim_binary_template": "/tmp/task6_int8_gemv64_obj/sim_main",
+            "sim_binary_template": f"/tmp/{object_dir_stem}_obj/sim_main",
         },
         "vectors": {
             "activation_count": len(activations),
@@ -206,7 +222,9 @@ def build_payload(
             "synthesis": "Yosys stat with DSP > 0",
             "resource": "mapped LUT below the current float L0/L2 kernel class or a documented dequantization boundary change",
         },
-        "interpretation": build_interpretation(sim_result, yosys_result, mapped_result),
+        "interpretation": build_interpretation(
+            sim_result, yosys_result, mapped_result, lane_count
+        ),
     }
 
 
@@ -214,11 +232,16 @@ def build_interpretation(
     sim_result: dict[str, object] | None,
     yosys_result: dict[str, object] | None,
     mapped_result: dict[str, object] | None,
+    lane_count: int,
 ) -> list[str]:
     lines = [
         "This is a bounded H2 fixed-point kernel proof, not a replay of the earlier f32-activation contract.",
         "It avoids the old torch-mlir int8 byte/char lowering route that blocked the prior L0 int8 probe.",
     ]
+    if lane_count > 1:
+        lines.append(
+            f"It scales the standalone proof to {lane_count} parallel int8 MAC lanes sharing one controller."
+        )
     if sim_result is not None and sim_result.get("status") == "PASS":
         lines.append("Nix-provided Verilator simulation passed the deterministic self-checking testbench.")
     else:
@@ -256,6 +279,23 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("sim/task6_int8_gemv64_tb_main.sv"),
     )
+    parser.add_argument(
+        "--artifact-name",
+        default="h2-int8-gemv64-rtl-proof",
+    )
+    parser.add_argument(
+        "--top-name",
+        default="task6_int8_gemv64_kernel",
+    )
+    parser.add_argument(
+        "--lane-count",
+        type=int,
+        default=1,
+    )
+    parser.add_argument(
+        "--nix-target-prefix",
+        default="task6-int8-gemv64",
+    )
     parser.add_argument("--out-json", type=Path)
     parser.add_argument(
         "--sim-result-json",
@@ -278,8 +318,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     payload = build_payload(
+        args.artifact_name,
         args.kernel_source,
         args.testbench_source,
+        args.top_name,
+        args.lane_count,
+        args.nix_target_prefix,
         args.sim_result_json,
         args.yosys_stat_json,
         args.mapped_utilization_summary_json,
