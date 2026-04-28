@@ -7280,3 +7280,88 @@ Interpretation:
   gate is either to replay this shape against the captured `c_fc` numeric
   contract or to begin replacing the float `L2` wrapper boundary with this
   local-memory int8 contract.
+
+### 2026-04-28 - H2 captured `L2 c_fc` int8 local-I/O contract replay
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-local-io-contract-replay.json`
+
+Sources:
+
+- `flake.nix`
+- `sim/gen_task6_int8_l2_c_fc_contract_tb_data.py`
+- `sim/task6_int8_l2_c_fc_contract_local_io_tb_main.sv`
+- `rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv`
+- `rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv`
+- `rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv`
+
+Input artifacts:
+
+- contract:
+  `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json`
+- weight pack:
+  `artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json`
+- generated testbench data:
+  `/nix/store/n35ch4f4g660c4jajc6f6a3m07lbqp4d-task6-int8-l2-c-fc-contract-local-io-tb-data-sv`
+
+Command:
+
+- `nix build .#task6-int8-l2-c-fc-contract-local-io-sv-sim --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_l2_c_fc_contract_tb_data.py --artifact-name h2-int8-l2-c-fc-local-io-contract-replay --contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json --weight-pack-manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json --sim-result-json /nix/store/p6swbg96jynrh9gzj300n86871dhyfvi-task6-int8-l2-c-fc-contract-local-io-sv-sim.json --yosys-stat-json /nix/store/s45pmvyb84j6ch8kynp2q0bkzz68yg0p-task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-yosys-stat.json --mapped-utilization-summary-json /nix/store/jkii8nbpgsd9jkxi3qzf253v99f8lxb9-task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-utilization/summary.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-local-io-contract-replay.json`
+
+Quantization contract:
+
+- activation:
+  - int8 per-tensor symmetric
+  - scale: `0.01876247210765448`
+  - quantized range: `-105..127`
+- weight:
+  - int8 per-output symmetric
+  - scale range: `0.00026671916950406053..0.0005978438563234224`
+  - quantized range: `-127..127`
+- accumulator:
+  - int32 raw RTL output
+  - expected accumulator range: `-51239..54338`
+- bias:
+  - f32 bias is not inside the RTL
+  - it is added during dequantized contract scoring
+
+Execution status:
+
+- Verilator contract replay passes:
+  - output:
+    `/nix/store/p6swbg96jynrh9gzj300n86871dhyfvi-task6-int8-l2-c-fc-contract-local-io-sv-sim.json`
+  - pass line:
+    `PASS: task6 int8 L2 c_fc localio reads 256 outputs 256 compute_cycles 4426 total_cycles 4682`
+- Dequantized replay against captured `activation_out` passes the current
+  threshold:
+  - normalized RMSE: `0.008803690780475175`
+  - threshold: `0.02`
+  - max absolute error: `0.003402371872713701`
+  - mean absolute error: `0.0009829674033341599`
+  - RMSE: `0.0012404946345053037`
+- Mapped resources reuse the proven local-I/O RTL shape:
+  - `clb_luts`: `257`
+  - `clb_ffs`: `198`
+  - `dsp`: `4`
+  - `bram36`: `4`
+  - `bram18`: `1`
+  - `bram36_equiv`: `4.5`
+  - `bram_kb`: `162`
+  - `slices_lower_bound`: `33`
+
+Interpretation:
+
+- This closes the previous H2 numeric gap: the local-memory int8 RTL is no
+  longer only a synthetic-vector proof; it now replays the captured
+  `tiny-stories-v1k-h64-l1` `transformer.h.0.mlp.c_fc` contract.
+- The Verilator test checks the raw int32 accumulators exactly. The JSON
+  artifact separately scores the dequantized output against the captured f32
+  module output with f32 bias applied outside the RTL.
+- The resource story does not change from the prior local-I/O proof because the
+  same RTL shape is used; only the loaded activation and weight contents now
+  come from the captured `L2 c_fc` contract.
+- H2 remains the strongest concrete path. The next useful gate is to make the
+  scale/bias/output boundary explicit around this int8 contract, then use that
+  as the replacement candidate for the float `L2` wrapper boundary.

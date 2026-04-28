@@ -1,0 +1,135 @@
+{
+  "artifact_name": "h2-int8-l2-c-fc-local-io-contract-replay",
+  "status": "PASS",
+  "source_contract": {
+    "contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "model_label": "tiny-stories-v1k-h64-l1",
+    "module_name": "transformer.h.0.mlp.c_fc",
+    "selected_site": {
+      "candidate_json": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-candidate.json",
+      "line_number": 357,
+      "result_value": "%81",
+      "shape_contract": {
+        "lhs": "tensor<1x1x64xf32>",
+        "rhs": "tensor<1x64x256xf32>",
+        "out": "tensor<1x1x256xf32>"
+      }
+    }
+  },
+  "rtl_contract": {
+    "in_dim": 64,
+    "out_dim": 256,
+    "lane_count": 4,
+    "packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "accumulator_dtype": "int32",
+    "activation_quantization": "int8-per-tensor-symmetric",
+    "weight_quantization": "int8-per-output-symmetric",
+    "bias_handling": "f32 bias added during dequantized contract scoring, not inside RTL",
+    "local_activation_memory": true,
+    "local_packed_weight_memory": true,
+    "local_output_memory": true
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "activation_scale": 0.01876247210765448,
+    "weight_scale_min": 0.00026671916950406053,
+    "weight_scale_max": 0.0005978438563234224,
+    "weight_scale_count": 256,
+    "activation_q_min": -105,
+    "activation_q_max": 127,
+    "weight_q_min": -127,
+    "weight_q_max": 127,
+    "expected_acc_min": -51239,
+    "expected_acc_max": 54338,
+    "activation_q_sha256": "78332c69c1096032cfb46202319795165d67825e001507682f78f2f13011e3b8",
+    "weight_q_sha256": "7172f0c6c47a27b7218c774dc729811bc8398879c85f2df5ac7bd2b90486a864",
+    "packed_weight_sha256": "d5d3ac17daf0b03d50431d42aac63f26724eee1793ef9f3f92853e4b912ef5d8",
+    "expected_acc_sha256": "48210df491400387ec2871d66aaac0b659e1dcd0dd49ed0a7314b616ff56fcf9",
+    "max_abs_error": 0.003402371872713701,
+    "mean_abs_error": 0.0009829674033341599,
+    "rmse": 0.0012404946345053037,
+    "normalized_rmse": 0.008803690780475175,
+    "signal_max_abs": 0.38926950097084045,
+    "signal_mean_abs": 0.11327259177363658,
+    "verdict": "pass"
+  },
+  "sim_result": {
+    "status": "PASS",
+    "reads": 256,
+    "outputs": 256,
+    "compute_cycles": 4426,
+    "cycles": 4682
+  },
+  "yosys_result": {
+    "path": "/nix/store/s45pmvyb84j6ch8kynp2q0bkzz68yg0p-task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-yosys-stat.json",
+    "top_name": "task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel",
+    "num_cells": 487,
+    "num_wires": 244,
+    "num_wire_bits": 2286,
+    "dsp48e1": 4,
+    "ramb36e1": 4,
+    "ramb18e1": 1,
+    "ram64m": 3,
+    "fdre": 198,
+    "carry4": 11,
+    "lut_primitive_cells": 257,
+    "lut_breakdown": {
+      "LUT2": 165,
+      "LUT3": 40,
+      "LUT4": 5,
+      "LUT5": 8,
+      "LUT6": 39
+    }
+  },
+  "mapped_utilization": {
+    "path": "/nix/store/jkii8nbpgsd9jkxi3qzf253v99f8lxb9-task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-utilization/summary.json",
+    "resources": {
+      "clb_luts": {
+        "capacity": 298600,
+        "pct": 0.09,
+        "used": 257
+      },
+      "clb_ffs": {
+        "capacity": 597200,
+        "pct": 0.03,
+        "used": 198
+      },
+      "dsp": {
+        "capacity": 1920,
+        "pct": 0.21,
+        "used": 4
+      },
+      "bram36": {
+        "capacity": 955,
+        "pct": 0.42,
+        "used": 4
+      },
+      "bram18": {
+        "used": 1
+      },
+      "bram36_equiv": {
+        "capacity": 955,
+        "pct": 0.47,
+        "used": 4.5
+      },
+      "bram_kb": {
+        "capacity": 34380,
+        "pct": 0.47,
+        "used": 162
+      },
+      "slices_lower_bound": {
+        "capacity": 74650,
+        "pct": 0.04,
+        "used": 33
+      }
+    }
+  },
+  "interpretation": [
+    "This replays the captured L2 c_fc contract through the fixed-point int8 local-memory RTL shape.",
+    "Verilator checks the raw int32 accumulators produced by quantized activation and per-output quantized weights.",
+    "The JSON error metrics dequantize those accumulators with f32 bias added outside the RTL boundary."
+  ]
+}
