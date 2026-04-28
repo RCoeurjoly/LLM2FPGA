@@ -7,9 +7,8 @@ import shutil
 from pathlib import Path
 from typing import Iterable
 
-IN_DIM = 64
-OUT_DIM = 64
-WEIGHT_WORDS = IN_DIM * OUT_DIM
+DEFAULT_IN_DIM = 64
+DEFAULT_OUT_DIM = 64
 
 
 def activation_value(index: int) -> int:
@@ -20,10 +19,10 @@ def weight_value(out_index: int, in_index: int) -> int:
     return ((out_index * 11 + in_index * 5 + 1) % 47) - 23
 
 
-def expected_value(out_index: int) -> int:
+def expected_value(out_index: int, in_dim: int) -> int:
     return sum(
         activation_value(in_index) * weight_value(out_index, in_index)
-        for in_index in range(IN_DIM)
+        for in_index in range(in_dim)
     )
 
 
@@ -91,6 +90,8 @@ def build_payload(
     extra_kernel_sources: list[Path],
     testbench_source: Path,
     top_name: str,
+    in_dim: int,
+    out_dim: int,
     lane_count: int,
     packed_weight_words: int,
     local_packed_weight_memory: bool,
@@ -100,13 +101,13 @@ def build_payload(
     yosys_stat_json: Path | None,
     mapped_utilization_summary_json: Path | None,
 ) -> dict[str, object]:
-    activations = [activation_value(index) for index in range(IN_DIM)]
+    activations = [activation_value(index) for index in range(in_dim)]
     weights = [
         weight_value(out_index, in_index)
-        for out_index in range(OUT_DIM)
-        for in_index in range(IN_DIM)
+        for out_index in range(out_dim)
+        for in_index in range(in_dim)
     ]
-    expected = [expected_value(out_index) for out_index in range(OUT_DIM)]
+    expected = [expected_value(out_index, in_dim) for out_index in range(out_dim)]
     tools = {
         "verilator": shutil.which("verilator"),
         "yosys": shutil.which("yosys"),
@@ -152,13 +153,13 @@ def build_payload(
         blocked_reason = "verilator and iverilog are not available on PATH"
 
     contract = {
-        "in_dim": IN_DIM,
-        "out_dim": OUT_DIM,
+        "in_dim": in_dim,
+        "out_dim": out_dim,
         "activation_dtype": "int8",
         "weight_dtype": "int8",
         "accumulator_dtype": "int32",
-        "weight_words": WEIGHT_WORDS,
-        "macs": IN_DIM * OUT_DIM,
+        "weight_words": in_dim * out_dim,
+        "macs": in_dim * out_dim,
         "interface": "combinational address/data memories plus ready/valid output",
     }
     if lane_count > 1:
@@ -166,7 +167,7 @@ def build_payload(
             {
                 "parallel_output_lanes": lane_count,
                 "mac_lanes_per_cycle": lane_count,
-                "output_tile_count": OUT_DIM // lane_count,
+                "output_tile_count": out_dim // lane_count,
             }
         )
     if packed_weight_words > 0:
@@ -340,6 +341,16 @@ def parse_args() -> argparse.Namespace:
         default="task6_int8_gemv64_kernel",
     )
     parser.add_argument(
+        "--in-dim",
+        type=int,
+        default=DEFAULT_IN_DIM,
+    )
+    parser.add_argument(
+        "--out-dim",
+        type=int,
+        default=DEFAULT_OUT_DIM,
+    )
+    parser.add_argument(
         "--lane-count",
         type=int,
         default=1,
@@ -389,6 +400,8 @@ def main() -> None:
         args.extra_kernel_source,
         args.testbench_source,
         args.top_name,
+        args.in_dim,
+        args.out_dim,
         args.lane_count,
         args.packed_weight_words,
         args.local_packed_weight_memory,
