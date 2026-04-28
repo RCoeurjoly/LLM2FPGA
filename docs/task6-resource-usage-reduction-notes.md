@@ -6763,3 +6763,57 @@ Decision:
   build or sketch a bounded static `64x64` tile-kernel proof that removes the
   generated handshake buffers/forks/muxes inside the kernel while preserving
   the existing activation/weight/store contract.
+
+### 2026-04-28 - H2 quantized-weight contract replay
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-quantized-weight-replay.csv`
+- `artifacts/task6/parallel-hypotheses/h2-quantized-weight-replay.json`
+
+Script:
+
+- `scripts/task6/score_quantized_weight_replay.py`
+
+Command:
+
+- `python3 scripts/task6/score_quantized_weight_replay.py --case l1-c_fc=artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_fc-contract/manifest.json=artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_fc/manifest.json --case l1-c_proj=artifacts/task6/streamtensor-lite/l1/representative-core-v64-h4-c_proj-contract/manifest.json=artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_proj/manifest.json --case l2-c_fc=artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json=artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json --case l2-c_proj=artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json=artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json --normalized-rmse-threshold 0.02 --out-csv artifacts/task6/parallel-hypotheses/h2-quantized-weight-replay.csv --out-json artifacts/task6/parallel-hypotheses/h2-quantized-weight-replay.json`
+
+Method:
+
+- Replay captured `activation_in @ dequantized(weight).T + bias` contracts.
+- Test symmetric int8 and int4 weights with:
+  - one per-tensor scale
+  - per-output-channel scales
+- Keep activations and bias in `f32`.
+- Use `normalized_rmse <= 0.02` as the first bounded pass/fail threshold.
+
+Result:
+
+- int8 passes all four captured contracts:
+  - `L1 c_fc`: per-tensor `0.00674`, per-output `0.00278`
+  - `L1 c_proj`: per-tensor `0.00608`, per-output `0.00658`
+  - `L2 c_fc`: per-tensor `0.00991`, per-output `0.00656`
+  - `L2 c_proj`: per-tensor `0.00881`, per-output `0.00663`
+- int4 fails all four captured contracts even with per-output scales:
+  - `L1 c_fc`: best `0.05647`
+  - `L1 c_proj`: best `0.12575`
+  - `L2 c_fc`: best `0.12264`
+  - `L2 c_proj`: best `0.11153`
+
+Decision:
+
+- Keep int8 as the active H2 packed-weight RTL candidate.
+- Do not spend RTL implementation time on this simple int4 scheme.
+- Reopen int4 only if a different bounded quantization scheme is proposed,
+  such as group-wise scaling, mixed precision, or activation-aware calibration.
+
+Next action:
+
+- Build the smallest int8 packed-weight GEMV proof that can be compared against
+  the current `4 DSP` L0/L1/L2 references.
+- The first RTL gate should prove:
+  - functional replay against the captured contract
+  - `DSP > 0`
+  - mapped LUT below the current float L0/L2 kernel class, or a clear reason
+    why dequantization must move outside the kernel.
