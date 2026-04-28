@@ -9,6 +9,99 @@
   "execution": {
     "can_execute_sim_from_path": false,
     "can_score_synthesis_from_path": false,
+    "mapped_utilization_result": {
+      "design_json": "/nix/store/kbps955ldymwvbdm7a324kv43rxrm8k7-task6-int8-gemv64.json",
+      "path": "/nix/store/lwizcdpbhh36ah4fafa0zgvbv8n3zs4a-task6-int8-gemv64-utilization/summary.json",
+      "resources": {
+        "bram36": {
+          "capacity": 955,
+          "pct": 0.0,
+          "used": 0
+        },
+        "bram36_equiv": {
+          "capacity": 955,
+          "pct": 0.0,
+          "used": 0.0
+        },
+        "bram_kb": {
+          "capacity": 34380,
+          "pct": 0.0,
+          "used": 0
+        },
+        "clb_ffs": {
+          "capacity": 597200,
+          "pct": 0.01,
+          "used": 66
+        },
+        "clb_luts": {
+          "capacity": 298600,
+          "pct": 0.02,
+          "used": 68
+        },
+        "dsp": {
+          "capacity": 1920,
+          "pct": 0.05,
+          "used": 1
+        },
+        "slices_lower_bound": {
+          "capacity": 74650,
+          "pct": 0.01,
+          "used": 9
+        }
+      },
+      "top": "task6_int8_gemv64_kernel",
+      "top_leaf_cell_types": [
+        {
+          "count": 66,
+          "type": "FDRE"
+        },
+        {
+          "count": 42,
+          "type": "LUT2"
+        },
+        {
+          "count": 22,
+          "type": "LUT6"
+        },
+        {
+          "count": 7,
+          "type": "CARRY4"
+        },
+        {
+          "count": 3,
+          "type": "INV"
+        },
+        {
+          "count": 2,
+          "type": "LUT5"
+        },
+        {
+          "count": 2,
+          "type": "MUXF7"
+        },
+        {
+          "count": 1,
+          "type": "LUT4"
+        },
+        {
+          "count": 1,
+          "type": "MUXF8"
+        },
+        {
+          "count": 1,
+          "type": "LUT3"
+        },
+        {
+          "count": 1,
+          "type": "BUFG"
+        },
+        {
+          "count": 1,
+          "type": "DSP48E1"
+        }
+      ]
+    },
+    "nix_mapped_utilization_target": ".#task6-int8-gemv64-utilization",
     "nix_sim_target": ".#task6-int8-gemv64-sv-sim",
     "nix_yosys_target": ".#task6-int8-gemv64-yosys-stat",
     "sim_binary_template": "/tmp/task6_int8_gemv64_obj/sim_main",
@@ -52,7 +145,8 @@
     "This is a bounded H2 fixed-point kernel proof, not a replay of the earlier f32-activation contract.",
     "It avoids the old torch-mlir int8 byte/char lowering route that blocked the prior L0 int8 probe.",
     "Nix-provided Verilator simulation passed the deterministic self-checking testbench.",
-    "Light Yosys synth_xilinx maps the bounded MAC datapath to at least one DSP cell."
+    "Light Yosys synth_xilinx maps the bounded MAC datapath to at least one DSP cell.",
+    "Mapped JSON utilization reports 68 CLB LUTs, 66 CLB FFs, and 1 DSP."
   ],
   "rtl": {
     "contract": {
@@ -68,7 +162,7 @@
     "kernel_source": "rtl/task6/task6_int8_gemv64_kernel.sv",
     "testbench_source": "sim/task6_int8_gemv64_tb_main.sv"
   },
-  "status": "sim_pass_yosys_dsp_pass",
+  "status": "sim_pass_yosys_dsp_pass_mapped",
   "tools": {
     "iverilog_on_path": false,
     "iverilog_path": "",

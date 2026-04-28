@@ -2720,6 +2720,27 @@
           cp stat.json "$out"
         '';
 
+        task6Int8Gemv64Json = pkgs.runCommand "task6-int8-gemv64.json" {
+          buildInputs = [ pkgs.yosys ];
+        } ''
+          set -euo pipefail
+          cat > run.ys <<EOF
+          read_verilog -sv ${./rtl/task6/task6_int8_gemv64_kernel.sv}
+          hierarchy -top task6_int8_gemv64_kernel -check
+          proc
+          synth_xilinx -family xc7 -top task6_int8_gemv64_kernel -noiopad
+          write_json "$out"
+          EOF
+          yosys -s run.ys
+        '';
+
+        task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
+          name = "task6-int8-gemv64";
+          capacities = tinyStoriesCapacities;
+          topName = "task6_int8_gemv64_kernel";
+          designJson = task6Int8Gemv64Json;
+        };
+
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
         } ''
@@ -3626,6 +3647,8 @@
           task6-int8-gemv64-sim-main = task6Int8Gemv64SimMain;
           task6-int8-gemv64-sv-sim = task6Int8Gemv64SvSim;
           task6-int8-gemv64-yosys-stat = task6Int8Gemv64YosysStat;
+          task6-int8-gemv64-json = task6Int8Gemv64Json;
+          task6-int8-gemv64-utilization = task6Int8Gemv64Utilization;
           task6-l1-c-proj-redirect-tb-data-sv = task6L1CProjRedirectTbDataSv;
           task6-l1-c-proj-redirect-sim-main = task6L1CProjRedirectSimMain;
           task6-l1-c-proj-redirect-json = task6L1CProjRedirectJson;

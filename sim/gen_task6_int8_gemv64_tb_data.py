@@ -62,11 +62,35 @@ def summarize_yosys_stat(path: Path) -> dict[str, object]:
     }
 
 
+def summarize_mapped_utilization(path: Path) -> dict[str, object]:
+    summary = json.loads(path.read_text(encoding="utf-8"))
+    resources = summary.get("resources", {})
+    return {
+        "path": str(path),
+        "design_json": summary.get("design_json", ""),
+        "top": summary.get("top", ""),
+        "resources": {
+            name: resources.get(name, {})
+            for name in (
+                "slices_lower_bound",
+                "clb_luts",
+                "clb_ffs",
+                "dsp",
+                "bram36",
+                "bram36_equiv",
+                "bram_kb",
+            )
+        },
+        "top_leaf_cell_types": summary.get("top_leaf_cell_types", []),
+    }
+
+
 def build_payload(
     kernel_source: Path,
     testbench_source: Path,
     sim_result_json: Path | None,
     yosys_stat_json: Path | None,
+    mapped_utilization_summary_json: Path | None,
 ) -> dict[str, object]:
     activations = [activation_value(index) for index in range(IN_DIM)]
     weights = [
@@ -88,8 +112,20 @@ def build_payload(
     yosys_result = None
     if yosys_stat_json is not None:
         yosys_result = summarize_yosys_stat(yosys_stat_json)
+    mapped_result = None
+    if mapped_utilization_summary_json is not None:
+        mapped_result = summarize_mapped_utilization(mapped_utilization_summary_json)
 
     if (
+        sim_result is not None
+        and sim_result.get("status") == "PASS"
+        and yosys_result is not None
+        and yosys_result.get("dsp_gate_pass")
+        and mapped_result is not None
+    ):
+        status = "sim_pass_yosys_dsp_pass_mapped"
+        blocked_reason = ""
+    elif (
         sim_result is not None
         and sim_result.get("status") == "PASS"
         and yosys_result is not None
@@ -138,10 +174,12 @@ def build_payload(
             "synthesis_executed": yosys_result is not None,
             "sim_result": sim_result or {},
             "yosys_result": yosys_result or {},
+            "mapped_utilization_result": mapped_result or {},
             "can_execute_sim_from_path": can_execute_sim,
             "can_score_synthesis_from_path": can_score_synthesis,
             "nix_sim_target": ".#task6-int8-gemv64-sv-sim",
             "nix_yosys_target": ".#task6-int8-gemv64-yosys-stat",
+            "nix_mapped_utilization_target": ".#task6-int8-gemv64-utilization",
             "verilator_command_template": (
                 "verilator --binary --timing --language 1800-2017 -Wno-fatal "
                 "-top task6_int8_gemv64_tb -Mdir /tmp/task6_int8_gemv64_obj "
@@ -168,13 +206,14 @@ def build_payload(
             "synthesis": "Yosys stat with DSP > 0",
             "resource": "mapped LUT below the current float L0/L2 kernel class or a documented dequantization boundary change",
         },
-        "interpretation": build_interpretation(sim_result, yosys_result),
+        "interpretation": build_interpretation(sim_result, yosys_result, mapped_result),
     }
 
 
 def build_interpretation(
     sim_result: dict[str, object] | None,
     yosys_result: dict[str, object] | None,
+    mapped_result: dict[str, object] | None,
 ) -> list[str]:
     lines = [
         "This is a bounded H2 fixed-point kernel proof, not a replay of the earlier f32-activation contract.",
@@ -190,6 +229,16 @@ def build_interpretation(
         lines.append("Light Yosys synth_xilinx ran, but the DSP gate did not pass.")
     else:
         lines.append("Yosys/DSP scoring is still pending.")
+    if mapped_result is not None:
+        resources = mapped_result.get("resources", {})
+        luts = (resources.get("clb_luts") or {}).get("used")
+        ffs = (resources.get("clb_ffs") or {}).get("used")
+        dsp = (resources.get("dsp") or {}).get("used")
+        lines.append(
+            f"Mapped JSON utilization reports {luts} CLB LUTs, {ffs} CLB FFs, and {dsp} DSP."
+        )
+    else:
+        lines.append("Mapped JSON utilization scoring is still pending.")
     return lines
 
 
@@ -218,6 +267,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Optional JSON emitted by .#task6-int8-gemv64-yosys-stat.",
     )
+    parser.add_argument(
+        "--mapped-utilization-summary-json",
+        type=Path,
+        help="Optional summary.json emitted by .#task6-int8-gemv64-utilization.",
+    )
     return parser.parse_args()
 
 
@@ -228,6 +282,7 @@ def main() -> None:
         args.testbench_source,
         args.sim_result_json,
         args.yosys_stat_json,
+        args.mapped_utilization_summary_json,
     )
     text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
     if args.out_json is None:

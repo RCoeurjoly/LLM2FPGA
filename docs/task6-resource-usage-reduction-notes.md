@@ -6838,6 +6838,8 @@ Command:
 - `python3 sim/gen_task6_int8_gemv64_tb_data.py --sim-result-json /nix/store/alwiq620fdhryhhz9kxhdfg5f3p955wr-task6-int8-gemv64-sv-sim.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-rtl-proof.json`
 - `nix build .#task6-int8-gemv64-yosys-stat --no-link --print-out-paths -L`
 - `python3 sim/gen_task6_int8_gemv64_tb_data.py --sim-result-json /nix/store/alwiq620fdhryhhz9kxhdfg5f3p955wr-task6-int8-gemv64-sv-sim.json --yosys-stat-json /nix/store/2p1gl2hpfw0q1shbnpbyv4avrwjs87gh-task6-int8-gemv64-yosys-stat.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-rtl-proof.json`
+- `nix build .#task6-int8-gemv64-utilization --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_gemv64_tb_data.py --sim-result-json /nix/store/alwiq620fdhryhhz9kxhdfg5f3p955wr-task6-int8-gemv64-sv-sim.json --yosys-stat-json /nix/store/2p1gl2hpfw0q1shbnpbyv4avrwjs87gh-task6-int8-gemv64-yosys-stat.json --mapped-utilization-summary-json /nix/store/lwizcdpbhh36ah4fafa0zgvbv8n3zs4a-task6-int8-gemv64-utilization/summary.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-rtl-proof.json`
 
 Prepared contract:
 
@@ -6873,18 +6875,26 @@ Execution status:
   - `FDRE`: `66`
   - `CARRY4`: `7`
   - Yosys log estimated LCs: `46`
-- Full mapped utilization has not been executed for this standalone kernel.
+- The mapped JSON utilization gate passes through the existing utilization
+  reporter:
+  - output: `/nix/store/lwizcdpbhh36ah4fafa0zgvbv8n3zs4a-task6-int8-gemv64-utilization`
+  - `clb_luts`: `68`
+  - `clb_ffs`: `66`
+  - `dsp`: `1`
+  - `bram36_equiv`: `0`
+  - `slices_lower_bound`: `9`
 
 Interpretation:
 
 - This answers the immediate "do we have an int8 RTL surface?" question with
   "yes, a bounded fixed-point int8 kernel now passes Verilator and maps one
-  DSP48E1 under light `synth_xilinx`."
+  DSP48E1 under light `synth_xilinx`, with a durable mapped utilization row."
 - It is deliberately narrower than the earlier H2 numeric replay:
   the replay kept activations and bias in `f32`, while this bounded RTL proof is
   a fixed-point int8-activation/int8-weight kernel with int32 accumulation.
 - It avoids the older torch-mlir byte/char int8 route that blocked the prior
   local `task6-l0-gemv64-int8` probe.
-- H2 stays active, but the next required evidence is a mapped LUT comparison
-  on the same standalone kernel or a tiled variant; do not extrapolate this
-  small `46`-LC proof directly to the full MLP shell.
+- H2 stays active. The next required evidence is a scaled bounded variant:
+  either multiple DSP lanes sharing the same controller, or a small tiled
+  `L2`-shape wrapper that proves the low standalone LUT count survives the
+  interface and sequencing needed by a real MLP slice.
