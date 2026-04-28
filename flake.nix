@@ -2707,6 +2707,24 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2CFcDownstreamInt8Boundary =
+          pkgs.runCommand "task6-int8-l2-c-fc-downstream-int8-boundary" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/score_int8_downstream_boundary.py \
+              --contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --contract-replay-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-local-io-contract-replay.json
+              } \
+              --out-json "$out/summary.json"
+          '';
+
         simMain = pkgs.runCommand "sim-main" {
           buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
         } ''
@@ -4157,6 +4175,8 @@
             task6Int8L2CFcContractLocalIoSvSim;
           task6-int8-l2-c-fc-scale-bias-output-boundary =
             task6Int8L2CFcScaleBiasOutputBoundary;
+          task6-int8-l2-c-fc-downstream-int8-boundary =
+            task6Int8L2CFcDownstreamInt8Boundary;
           task6-l1-c-proj-redirect-tb-data-sv = task6L1CProjRedirectTbDataSv;
           task6-l1-c-proj-redirect-sim-main = task6L1CProjRedirectSimMain;
           task6-l1-c-proj-redirect-json = task6L1CProjRedirectJson;

@@ -1,0 +1,98 @@
+{
+  "artifact_name": "h2-int8-l2-c-fc-downstream-int8-boundary",
+  "status": "PASS",
+  "source_artifacts": {
+    "contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "contract_replay_json": "artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-local-io-contract-replay.json"
+  },
+  "assumptions": {
+    "gelu_variant": "tanh approximation",
+    "output_scale_source": "single captured contract sample used as calibration reference",
+    "threshold": 0.02,
+    "calibration_caveat": "This is a bounded single-sample gate. A production activation scale needs a calibration set before board-level claims."
+  },
+  "module": {
+    "model_label": "tiny-stories-v1k-h64-l1",
+    "module_name": "transformer.h.0.mlp.c_fc",
+    "in_features": 64,
+    "out_features": 256,
+    "macs": 16384
+  },
+  "input_replay": {
+    "contract_replay_status": "PASS",
+    "activation_scale": 0.01876247210765448,
+    "effective_scale_min": 5.004310978396703e-06,
+    "effective_scale_max": 1.1217028679000805e-05,
+    "accumulator_min": -51239,
+    "accumulator_max": 54338,
+    "f32_boundary_normalized_rmse": 0.008803690780475175
+  },
+  "candidates": [
+    {
+      "name": "pre_gelu_int8_activation",
+      "output_quantization": "int8-per-tensor-symmetric",
+      "output_scale": 0.0030651141808727593,
+      "output_q_min": -127,
+      "output_q_max": 126,
+      "output_q_sha256": "83a56463bdbe935daa3caf11e49eff4ccc44a3017160a07ecc08dcf715143934",
+      "output_int8_bytes": 256,
+      "output_scale_bytes": 4,
+      "c_fc_output_metrics": {
+        "max_abs_error": 0.004254478650482914,
+        "mean_abs_error": 0.0011610886031090152,
+        "rmse": 0.0014710218089946888,
+        "normalized_rmse": 0.010439723621125493,
+        "signal_max_abs": 0.38926950097084045,
+        "signal_mean_abs": 0.11327259177363658
+      },
+      "gelu_output_metrics": {
+        "max_abs_error": 0.0021484396782362747,
+        "mean_abs_error": 0.0005846703570673668,
+        "rmse": 0.0007489314075991482,
+        "normalized_rmse": 0.010411107180230455,
+        "signal_max_abs": 0.2529811539487267,
+        "signal_mean_abs": 0.05661709054561349
+      },
+      "verdict": "pass"
+    },
+    {
+      "name": "post_gelu_int8_activation",
+      "output_quantization": "int8-per-tensor-symmetric",
+      "output_scale": 0.0019919775901474546,
+      "output_q_min": -68,
+      "output_q_max": 127,
+      "output_q_sha256": "6d916e1a8c7edaae8e36b01bcb97f12b22aa38a2c713248d64db0cba2a844e86",
+      "output_int8_bytes": 256,
+      "output_scale_bytes": 4,
+      "c_fc_output_metrics": {
+        "max_abs_error": 0.003402371872713708,
+        "mean_abs_error": 0.0009829674033341605,
+        "rmse": 0.001240494634505304,
+        "normalized_rmse": 0.008803690780475175,
+        "signal_max_abs": 0.38926950097084045,
+        "signal_mean_abs": 0.11327259177363658
+      },
+      "gelu_output_metrics": {
+        "max_abs_error": 0.0025458221821932497,
+        "mean_abs_error": 0.0006882585469526075,
+        "rmse": 0.0008569745283467167,
+        "normalized_rmse": 0.011913045139803343,
+        "signal_max_abs": 0.2529811539487267,
+        "signal_mean_abs": 0.05661709054561349
+      },
+      "verdict": "pass"
+    }
+  ],
+  "byte_budget": {
+    "pre_gelu_int8_output_bytes": 256,
+    "post_gelu_int8_output_bytes": 256,
+    "f32_output_bytes_replaced": 1024,
+    "output_scale_bytes": 4,
+    "int8_output_write_savings_vs_f32_bytes": 768
+  },
+  "decision": {
+    "recommended_boundary": "post_gelu_int8_activation",
+    "next_gate": "if a candidate passes, implement a bounded fixed-point requant/output memory proof; otherwise fall back to the explicit f32 scale/bias boundary"
+  }
+}

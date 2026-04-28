@@ -7447,3 +7447,95 @@ Decision:
 - Next gate:
   - measure the scale/bias postprocess option or define an int8-to-int8
     downstream boundary before replacing the full float `L2` wrapper.
+
+### 2026-04-28 - H2 int8-to-int8 downstream boundary plan for `L2 c_fc`
+
+Plan amendment:
+
+- Default next direction:
+  - do not implement the f32 scale/bias postprocess in RTL first
+  - first score whether the existing int8 `c_fc` proof can hand a quantized
+    activation to the downstream path
+- First gate:
+  - score `c_fc int32 accumulator -> int8 activation` candidates against the
+    captured `L2 c_fc` contract
+  - include the immediate GELU implication, because the next consumer is not
+    just raw `c_fc` output
+- Candidate boundaries:
+  - `pre_gelu_int8_activation`
+  - `post_gelu_int8_activation`
+- Continue rule:
+  - if either candidate stays under normalized RMSE `0.02`, implement a
+    bounded fixed-point requant/output-memory RTL proof
+  - if both candidates fail, fall back to the explicit f32 scale/bias boundary
+    recorded above
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-downstream-int8-boundary.json`
+
+Script:
+
+- `scripts/task6/score_int8_downstream_boundary.py`
+
+Nix target:
+
+- `task6-int8-l2-c-fc-downstream-int8-boundary`
+- output:
+  `/nix/store/vh5jr6pngp2x6xgmrpfid6gbimbvmqnx-task6-int8-l2-c-fc-downstream-int8-boundary`
+
+Command:
+
+- `python3 scripts/task6/score_int8_downstream_boundary.py --contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json --weight-pack-manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json --contract-replay-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-local-io-contract-replay.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-downstream-int8-boundary.json`
+- `nix build .#task6-int8-l2-c-fc-downstream-int8-boundary --no-link --print-out-paths -L`
+
+Execution result:
+
+- status: `PASS`
+- threshold: `0.02`
+- output scale source:
+  - single captured contract sample used as calibration reference
+- calibration caveat:
+  - a production activation scale still needs a calibration set before
+    board-level claims
+
+Candidate results:
+
+- `pre_gelu_int8_activation`:
+  - verdict: `pass`
+  - output scale: `0.0030651141808727593`
+  - output q range: `-127..126`
+  - raw `c_fc` normalized RMSE: `0.010439723621125493`
+  - downstream GELU normalized RMSE: `0.010411107180230455`
+  - output payload: `256` int8 bytes plus one `4` byte scale
+- `post_gelu_int8_activation`:
+  - verdict: `pass`
+  - output scale: `0.0019919775901474546`
+  - output q range: `-68..127`
+  - raw `c_fc` normalized RMSE before post-GELU requant:
+    `0.008803690780475175`
+  - downstream GELU normalized RMSE after post-GELU requant:
+    `0.011913045139803343`
+  - output payload: `256` int8 bytes plus one `4` byte scale
+
+Byte-budget implication:
+
+- f32 output bytes replaced: `1,024`
+- int8 output write savings versus f32: `768` bytes per captured `c_fc` output
+- this is smaller than the prior explicit f32 boundary, which required:
+  - `1,024` int32 output bytes
+  - `1,024` scale bytes
+  - `1,024` bias bytes
+  - `1,024` f32 output bytes
+  - `4,096` bytes of postprocess read/write traffic
+
+Decision:
+
+- The recommended next boundary is `post_gelu_int8_activation`.
+- H2 remains active.
+- Next gate:
+  - implement a bounded fixed-point requant/output-memory RTL proof for the
+    recommended post-GELU int8 activation boundary
+  - keep the f32 scale/bias boundary as the fallback if the fixed-point
+    requant proof fails or if wider calibration invalidates the single-sample
+    activation scale
