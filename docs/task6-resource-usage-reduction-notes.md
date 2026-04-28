@@ -6967,3 +6967,73 @@ Interpretation:
   should attach this four-lane fixed-point datapath to a small explicit
   packed-weight memory or an `L2`-shape tile wrapper before extrapolating to
   the full MLP shell.
+
+### 2026-04-28 - H2 four-lane int8 packed-weight interface proof
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-gemv64-lanes4-packed-rtl-proof.json`
+
+Sources:
+
+- `flake.nix`
+- `rtl/task6/task6_int8_gemv64_lanes4_packed_kernel.sv`
+- `sim/task6_int8_gemv64_lanes4_packed_tb_main.sv`
+- `sim/gen_task6_int8_gemv64_tb_data.py`
+
+Command:
+
+- `nix build .#task6-int8-gemv64-lanes4-packed-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-gemv64-lanes4-packed-yosys-stat --no-link --print-out-paths -L`
+- `nix build .#task6-int8-gemv64-lanes4-packed-utilization --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_gemv64_tb_data.py --artifact-name h2-int8-gemv64-lanes4-packed-rtl-proof --kernel-source rtl/task6/task6_int8_gemv64_lanes4_packed_kernel.sv --testbench-source sim/task6_int8_gemv64_lanes4_packed_tb_main.sv --top-name task6_int8_gemv64_lanes4_packed_kernel --lane-count 4 --packed-weight-words 1024 --nix-target-prefix task6-int8-gemv64-lanes4-packed --sim-result-json /nix/store/0q6r90sdfd4jgksdwf5sfixnrj3dap59-task6-int8-gemv64-lanes4-packed-sv-sim.json --yosys-stat-json /nix/store/f8500lrc4gn6k8wnswlv2n6k5lizsaia-task6-int8-gemv64-lanes4-packed-yosys-stat.json --mapped-utilization-summary-json /nix/store/sh60mam9pc36p3mh5w2wsiznbd56434b-task6-int8-gemv64-lanes4-packed-utilization/summary.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-gemv64-lanes4-packed-rtl-proof.json`
+
+Prepared contract:
+
+- `64 x 64` GEMV
+- signed int8 activations
+- signed int8 weights
+- signed int32 accumulation
+- `4,096` MACs
+- `4` parallel output/MAC lanes sharing one controller
+- `1,024` packed weight words, each carrying one `4`-lane int8 weight vector
+- one packed weight address/data port per activation step
+- ready/valid output stream
+
+Execution status:
+
+- The RTL simulation passes through Nix-provided Verilator:
+  - output: `/nix/store/0q6r90sdfd4jgksdwf5sfixnrj3dap59-task6-int8-gemv64-lanes4-packed-sv-sim.json`
+  - pass line: `PASS: task6 int8 GEMV4 packed stores 64 outputs 64 cycles 1090`
+- The light Yosys gate passes through Nix-provided `pkgs.yosys`:
+  - output: `/nix/store/f8500lrc4gn6k8wnswlv2n6k5lizsaia-task6-int8-gemv64-lanes4-packed-yosys-stat.json`
+  - `DSP48E1`: `4`
+  - LUT primitive cells: `242` (`LUT2=149`, `LUT3=39`, `LUT4=1`,
+    `LUT5=11`, `LUT6=42`)
+  - `FDRE`: `187`
+  - `CARRY4`: `9`
+  - Yosys log estimated LCs: `148`
+- The mapped JSON utilization gate passes through the existing utilization
+  reporter:
+  - output: `/nix/store/sh60mam9pc36p3mh5w2wsiznbd56434b-task6-int8-gemv64-lanes4-packed-utilization`
+  - `clb_luts`: `242`
+  - `clb_ffs`: `187`
+  - `dsp`: `4`
+  - `bram36_equiv`: `0`
+  - `slices_lower_bound`: `31`
+
+Interpretation:
+
+- The packed interface proof preserves the four-lane fixed-point datapath and
+  throughput from the previous H2 proof while replacing four independent
+  weight addresses with one packed-word address.
+- Compared with the unpacked four-lane proof, mapped LUTs, FFs, DSPs, and
+  lower-bound slices remain unchanged (`242`, `187`, `4`, and `31`), while
+  `CARRY4` cells drop from `18` to `9` and public wire bits drop from `629` to
+  `587`.
+- This is still a kernel/interface proof, not a full local-memory proof: the
+  weights are supplied through a combinational packed data port rather than an
+  inferred or explicit BRAM.
+- The next H2 gate should add an explicit small packed-weight memory boundary
+  or an `L2`-shape tile wrapper around this packed interface, so the memory
+  read latency and storage mapping are represented before scaling further.

@@ -91,6 +91,7 @@ def build_payload(
     testbench_source: Path,
     top_name: str,
     lane_count: int,
+    packed_weight_words: int,
     nix_target_prefix: str,
     sim_result_json: Path | None,
     yosys_stat_json: Path | None,
@@ -165,6 +166,14 @@ def build_payload(
                 "output_tile_count": OUT_DIM // lane_count,
             }
         )
+    if packed_weight_words > 0:
+        contract.update(
+            {
+                "packed_weight_words": packed_weight_words,
+                "packed_weight_word_bits": lane_count * 8,
+                "weight_interface": "one packed weight word per activation step",
+            }
+        )
 
     object_dir_stem = top_name.removesuffix("_kernel")
     testbench_top = f"{object_dir_stem}_tb"
@@ -223,7 +232,7 @@ def build_payload(
             "resource": "mapped LUT below the current float L0/L2 kernel class or a documented dequantization boundary change",
         },
         "interpretation": build_interpretation(
-            sim_result, yosys_result, mapped_result, lane_count
+            sim_result, yosys_result, mapped_result, lane_count, packed_weight_words
         ),
     }
 
@@ -233,6 +242,7 @@ def build_interpretation(
     yosys_result: dict[str, object] | None,
     mapped_result: dict[str, object] | None,
     lane_count: int,
+    packed_weight_words: int,
 ) -> list[str]:
     lines = [
         "This is a bounded H2 fixed-point kernel proof, not a replay of the earlier f32-activation contract.",
@@ -241,6 +251,10 @@ def build_interpretation(
     if lane_count > 1:
         lines.append(
             f"It scales the standalone proof to {lane_count} parallel int8 MAC lanes sharing one controller."
+        )
+    if packed_weight_words > 0:
+        lines.append(
+            f"It uses {packed_weight_words} packed weight words so each cycle fetches one {lane_count}-lane weight vector."
         )
     if sim_result is not None and sim_result.get("status") == "PASS":
         lines.append("Nix-provided Verilator simulation passed the deterministic self-checking testbench.")
@@ -293,6 +307,11 @@ def parse_args() -> argparse.Namespace:
         default=1,
     )
     parser.add_argument(
+        "--packed-weight-words",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
         "--nix-target-prefix",
         default="task6-int8-gemv64",
     )
@@ -323,6 +342,7 @@ def main() -> None:
         args.testbench_source,
         args.top_name,
         args.lane_count,
+        args.packed_weight_words,
         args.nix_target_prefix,
         args.sim_result_json,
         args.yosys_stat_json,
