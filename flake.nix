@@ -2725,6 +2725,30 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2CProjFromPostGeluBoundary =
+          pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-boundary" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/score_int8_c_proj_from_post_gelu.py \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --out-json "$out/summary.json"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -4305,6 +4329,8 @@
             task6Int8L2CFcScaleBiasOutputBoundary;
           task6-int8-l2-c-fc-downstream-int8-boundary =
             task6Int8L2CFcDownstreamInt8Boundary;
+          task6-int8-l2-c-proj-from-post-gelu-boundary =
+            task6Int8L2CProjFromPostGeluBoundary;
           task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv =
             task6Int8L2CFcPostGeluRequantTbDataSv;
           task6-int8-l2-c-fc-post-gelu-requant-sim-main =

@@ -7654,3 +7654,88 @@ Decision:
     post-GELU int8 boundary into the `L2 c_fc` replacement path
   - or run one bounded DSP-reduction follow-up for the postprocess stage before
     integration, such as a multi-cycle square/output-multiply schedule
+
+### 2026-04-28 - H2 `c_proj` handoff from the post-GELU int8 boundary
+
+Plan update:
+
+- Treat the post-GELU proof's `26 DSP` result as fit-positive:
+  - this is only `1.35%` of the XC7A200T `1,920` DSP budget
+  - the active float `L2 c_fc` reference still costs
+    `31,907 LUT / 45,932 FF / 4 DSP / 0 BRAM`
+  - the post-GELU int8 proof costs only
+    `653 LUT / 217 FF / 26 DSP / 5.5 BRAM36-equivalent`
+- Do not spend the next slice trying to reduce DSP use.
+- Instead, prove that the accepted `c_fc -> GELU -> int8 activation` boundary
+  remains useful when consumed by the next MLP operator, `c_proj`.
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-from-post-gelu-boundary.json`
+
+Script:
+
+- `scripts/task6/score_int8_c_proj_from_post_gelu.py`
+
+Nix target:
+
+- `task6-int8-l2-c-proj-from-post-gelu-boundary`
+- output:
+  `/nix/store/w7jfi6han1f8fhwhdryy9aci9x1qgk7d-task6-int8-l2-c-proj-from-post-gelu-boundary`
+
+Command:
+
+- `python3 scripts/task6/score_int8_c_proj_from_post_gelu.py --c-fc-contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json --c-fc-weight-pack-manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json --c-proj-contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json --c-proj-weight-pack-manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json --post-gelu-requant-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-from-post-gelu-boundary.json`
+- `nix build .#task6-int8-l2-c-proj-from-post-gelu-boundary --no-link --print-out-paths -L`
+
+Execution result:
+
+- status: `PASS`
+- threshold: `0.02`
+- `c_proj` input versus `GELU(c_fc expected)`:
+  - normalized RMSE: `3.939776752351999e-08`
+  - max absolute error: `1.600132085166628e-08`
+- post-GELU int8 dequantized activation versus captured `c_proj` input:
+  - normalized RMSE: `0.01199135641153676`
+  - max absolute error: `0.0025458211614692583`
+- `c_proj` output from post-GELU int8 activation and per-output int8 weights:
+  - normalized RMSE: `0.014010386505018001`
+  - max absolute error: `0.0009424232727163438`
+  - mean absolute error: `0.0002511875694791357`
+
+`c_proj` quantization contract:
+
+- input features: `256`
+- output features: `64`
+- MACs: `16,384`
+- activation quantization:
+  - post-GELU int8 per-tensor symmetric
+- weight quantization:
+  - int8 per-output symmetric
+- weight scale range:
+  - `0.0004040582442846824..0.0006334623248558345`
+- accumulator range:
+  - `-53371..78617`
+
+Byte-budget implication:
+
+- post-GELU activation:
+  - `256` int8 bytes replaces `1,024` f32 bytes
+  - activation transfer savings: `768` bytes
+- `c_proj` weights:
+  - `16,384` int8 bytes replaces `65,536` f32 bytes
+  - weight transfer savings: `49,152` bytes
+  - per-output scale sidecar: `256` bytes
+
+Decision:
+
+- Promote H2 from a `c_fc`-only proof to a `c_fc -> GELU -> c_proj` chain
+  candidate.
+- Next gate:
+  - implement a bounded `256x64` int8 `c_proj` RTL proof fed by the
+    post-GELU int8 activation
+- Falsifier:
+  - if the bounded `c_proj` RTL proof does not stay under normalized RMSE
+    `0.02`, or if its mapped LUT/FF cost erases the post-GELU `c_fc` win, fall
+    back to the narrower `c_fc` boundary before claiming an MLP-chain
+    replacement.
