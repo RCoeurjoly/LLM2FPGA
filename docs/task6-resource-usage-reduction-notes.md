@@ -7961,3 +7961,82 @@ Decision:
     residual/add, or the next quantized handoff target
   - keep this composed RTL proof as the current H2 promotion reference until a
     larger calibrated sample set or downstream boundary invalidates it
+
+### 2026-04-28 - H2 `c_proj` output boundary score
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-output-boundary.json`
+
+Script:
+
+- `scripts/task6/score_int8_c_proj_output_boundary.py`
+
+Nix target:
+
+- `task6-int8-l2-c-proj-output-boundary`
+- output:
+  `/nix/store/cjvhkpgmk6hk673jp67l7pwqpp1xqm65-task6-int8-l2-c-proj-output-boundary`
+
+Command:
+
+- `nix build .#task6-int8-l2-c-proj-output-boundary --no-link --print-out-paths -L`
+
+Purpose:
+
+- define the output side of the composed int8 MLP proof before adding more RTL
+- score both:
+  - int32 accumulator to f32 `c_proj` output
+  - int32 accumulator to int8 `c_proj` output
+- carry forward the nearby Linalg context showing the next operation after
+  `c_proj`:
+  - bias add
+  - then a same-shape add with another `1x1x64` tensor, which is the residual
+    path that still needs explicit capture before a residual/add RTL proof
+
+Execution result:
+
+- status: `PASS`
+- accumulator hash matches the composed-chain proof:
+  - `8ef8c2a85f1cc1369dd6cad3d716215c8311ec8a407497a003947a5e222025e2`
+- f32 output candidate:
+  - formula:
+    `f32_out[i] = int32_acc[i] * post_gelu_scale * weight_scale[i] + bias[i]`
+  - normalized RMSE: `0.014010386505018001`
+  - verdict: `pass`
+- int8 output candidate:
+  - calibration:
+    single captured `c_proj` `activation_out` max-abs scale
+  - output scale:
+    `0.0006137476192684625`
+  - output q range:
+    `-91..127`
+  - normalized RMSE: `0.015465772661379424`
+  - verdict: `pass`
+
+Byte-budget implication:
+
+- `c_proj` accumulator output:
+  - `256` int32 bytes
+- f32 output boundary sidecars:
+  - `256` effective-scale bytes
+  - `256` bias bytes
+- f32 output bytes:
+  - `256`
+- int8 output bytes:
+  - `64`
+- int8 output write savings versus f32:
+  - `192` bytes for this `64`-wide `c_proj` output
+
+Decision:
+
+- Promote the post-`c_proj` int8 output boundary as the next H2 implementation
+  target.
+- Do not implement residual/add yet:
+  - the Linalg context confirms the add is next, but the residual tensor itself
+    is not in the current `c_proj` module contract
+  - capture that residual tensor before claiming a fused residual path
+- Next gate:
+  - implement a bounded fixed-point `c_proj` requant/output-memory RTL proof
+  - then decide whether to capture the residual tensor for an int8 residual-add
+    score or fall back to a f32 dequantized residual boundary

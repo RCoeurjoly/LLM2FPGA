@@ -2749,6 +2749,36 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2CProjOutputBoundary =
+          pkgs.runCommand "task6-int8-l2-c-proj-output-boundary" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/score_int8_c_proj_output_boundary.py \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --mlp-chain-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof.json
+              } \
+              --c-proj-candidate-json ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-candidate.json
+              } \
+              --out-json "$out/summary.json"
+          '';
+
         task6Int8L2CProjFromPostGeluTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -4611,6 +4641,8 @@
             task6Int8L2CFcDownstreamInt8Boundary;
           task6-int8-l2-c-proj-from-post-gelu-boundary =
             task6Int8L2CProjFromPostGeluBoundary;
+          task6-int8-l2-c-proj-output-boundary =
+            task6Int8L2CProjOutputBoundary;
           task6-int8-l2-c-proj-from-post-gelu-tb-data-sv =
             task6Int8L2CProjFromPostGeluTbDataSv;
           task6-int8-l2-c-proj-from-post-gelu-sim-main =
