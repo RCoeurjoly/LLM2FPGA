@@ -40,7 +40,17 @@ FIELDNAMES = [
     "top_leaf_cell_types",
 ]
 
-LUT_CELL_PREFIXES = ("LUT",)
+LUT_CELL_TYPES = {
+    "CFGLUT5",
+    "LUT1",
+    "LUT2",
+    "LUT3",
+    "LUT4",
+    "LUT5",
+    "LUT6",
+    "LUT6_2",
+}
+FF_CELL_TYPES = {"FDCE", "FDPE", "FDRE", "FDSE", "LDCE", "LDPE"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -104,17 +114,75 @@ def cell_count_score(counts: dict[str, int]) -> tuple[int, int]:
     lut_like = 0
     ff_like = 0
     for cell_type, count in counts.items():
-        if cell_type.startswith(LUT_CELL_PREFIXES):
+        if cell_type in LUT_CELL_TYPES:
             lut_like += int(count)
-        elif cell_type in {"FDRE", "FDSE", "FDCE", "FDPE"}:
+        elif cell_type in FF_CELL_TYPES:
             ff_like += int(count)
     return lut_like, ff_like
+
+
+def module_lookup(modules: dict[str, Any], name: str) -> dict[str, Any] | None:
+    if name in modules:
+        return modules[name]
+    escaped = "\\" + name
+    if escaped in modules:
+        return modules[escaped]
+    return None
+
+
+def top_owner_rows(payload: dict[str, Any]) -> list[tuple[int, int, int, str]]:
+    modules = payload.get("modules") or {}
+    if not isinstance(modules, dict):
+        return []
+
+    root_name = payload.get("top") or payload.get("top_module")
+    if not isinstance(root_name, str):
+        return []
+
+    root = module_lookup(modules, root_name)
+    if root is None:
+        return []
+
+    direct_counts = root.get("direct_cell_counts") or {}
+    # TinyStories selftest wraps the actual synthesized model in `main`.
+    # Attribute the owner rows to `main`'s direct children so repeated
+    # handshake primitives are weighted by their actual instance counts.
+    main_module = module_lookup(modules, "main")
+    if main_module is not None and direct_counts.get("main") == 1:
+        direct_counts = main_module.get("direct_cell_counts") or {}
+
+    rows: list[tuple[int, int, int, str]] = []
+    for owner_type, instances in direct_counts.items():
+        owner_module = module_lookup(modules, owner_type)
+        if owner_module is None:
+            counts = {owner_type: 1}
+        else:
+            counts = owner_module.get("leaf_cell_counts") or {}
+        lut_like, ff_like = cell_count_score(counts)
+        lut_total = int(instances) * lut_like
+        ff_total = int(instances) * ff_like
+        if lut_total or ff_total:
+            rows.append((
+                lut_total,
+                ff_total,
+                int(instances),
+                owner_type.lstrip("\\"),
+            ))
+    rows.sort(reverse=True)
+    return rows
 
 
 def top_owners_from_stat(stat_path: Path, limit: int = 20) -> str:
     if not stat_path.exists():
         return ""
     payload = read_json(stat_path)
+    rows = top_owner_rows(payload)
+    if rows:
+        return "; ".join(
+            f"{name}:count={count},lut={lut},ff={ff}"
+            for lut, ff, count, name in rows[:limit]
+        )
+
     rows: list[tuple[int, int, str]] = []
     for module_name, module in (payload.get("modules") or {}).items():
         clean_name = module_name.lstrip("\\")

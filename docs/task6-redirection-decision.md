@@ -112,4 +112,6 @@ The first Task 6 redirection artifact is:
 - `artifacts/task6/parallel-hypotheses/baseline-top34.csv`
 
 It records `top34-memory`, `L1`, and `L2` as machine-readable baseline rows for
-the parallel hypothesis lanes.
+the parallel hypothesis lanes. Its `top_owners` field is weighted by owner
+instance count under `main`, so repeated handshake buffers are visible as the
+dominant `top34-memory` shell cost.

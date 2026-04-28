@@ -6554,3 +6554,111 @@ Decision:
     this lane gets another slice
   - compare any follow-up against the copied all-memory baseline, not only
     against OOM progress
+
+### 2026-04-28 - Redirection baseline owner extraction corrected
+
+Decision record:
+
+- `docs/task6-redirection-decision.md`
+
+Machine-readable baseline:
+
+- `artifacts/task6/parallel-hypotheses/baseline-top34.csv`
+
+Command:
+
+- `python3 scripts/task6/extract_metrics.py artifacts/task6/runs/2026-04-28T03-11-30+0200-baseline-top34-memory-utilization-filterfix-json-rerun artifacts/task6-streamtensor-lite/runs/2026-04-24T00-10-27+0200/stage-local-l1 artifacts/task6-streamtensor-lite/runs/2026-04-24T00-10-36+0200/stage-local-l2 --artifact top34-memory --artifact l1-c-fc-frozen --artifact l2-c-fc-tile4x64 --out artifacts/task6/parallel-hypotheses/baseline-top34.csv`
+
+Script update:
+
+- `scripts/task6/extract_metrics.py` now weights `top_owners` by direct owner
+  instance count under the real synthesized `main` module when the design is
+  wrapped by `tiny_stories_selftest_top`.
+- The old extraction ranked one instance of each module definition, which made
+  single large owners like `handshake_memory_out_f32_id77` look dominant while
+  hiding heavily repeated buffer types.
+
+Corrected `top34-memory` owner signal:
+
+- `handshake_buffer_in_ui64_out_ui64_2slots_seq`:
+  `168,260` instances, `34,156,780` LUT, `43,747,600` FF.
+- `handshake_buffer_in_f64_out_f64_2slots_seq`:
+  `28,455` instances, `5,776,365` LUT, `7,398,300` FF.
+- `handshake_buffer_in_f32_out_f32_2slots_seq`:
+  `50,929` instances, `5,449,403` LUT, `6,722,628` FF.
+- The copied all-memory baseline delta is still unchanged:
+  `+16,482,923` LUT and `+424,183` FF for `top34-memory`.
+
+Interpretation:
+
+- The negative baseline is stronger than the earlier owner list suggested:
+  the external-memory shell is dominated by repeated two-slot handshake buffers
+  and mux/index fabric, not only by a few large residual memory modules.
+- This supports the redirection decision:
+  external memory remains useful only when paired with streaming/tiled engines
+  that avoid reconstructing the full lowered handshake shell.
+
+Immediate execution queue:
+
+1. `H1`: score a streaming/tiled GEMV memory contract before any DDR3 work.
+   Required first artifact: cycles/token, bytes/token, external weight bytes,
+   and `DSP > 0` on the existing `L2` tiled surface or a smaller synthetic
+   derivative.
+2. `H2`: add int8/int4 packed-weight GEMV candidates only on bounded kernels.
+   Required first artifact: Verilator pass, bounded numeric error, and either
+   `<15k` LUT on `L2` scale or at least `2x` LUT reduction versus the current
+   `31,907` LUT `L2` reference.
+3. `H3`: replace the `L2` tiled wrapper's handshake-heavy sequencing with a
+   static counter/FSM proof. Required first artifact: Verilator pass and mapped
+   LUT below the current `31,907` LUT reference.
+4. `H5`: compute model/rung byte budgets before larger replays. Required first
+   artifact: weight bytes, activation bytes, and minimum bandwidth for the
+   reduced-vocab, representative-core, and any proposed staged TinyStories
+   rungs.
+
+Stop rule:
+
+- Do not spend another full-model `topN-memory` mapped run unless one of the
+  bounded lanes above first predicts an order-of-magnitude fabric reduction or
+  eliminates the repeated two-slot buffer class from the top-owner list.
+
+### 2026-04-28 - H5 first byte-budget artifact from existing weight packs
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h5-rung-byte-budgets.csv`
+
+Inputs:
+
+- `artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_fc/manifest.json`
+- `artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_proj/manifest.json`
+- `artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json`
+- `artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json`
+
+Assumption:
+
+- This is a minimum sequential traffic estimate for the MLP weights if weights
+  are streamed once per token and activations/bias remain `f32`.
+- It does not include tokenizer, embeddings, attention, layernorm, activation
+  approximation, DDR burst overhead, or cache reuse.
+
+Observed budgets:
+
+- `tiny-stories-1m-representative-core-v64-h4` full MLP stack:
+  - f32 weights: `1,504` bytes/token
+  - int8 weights with f32 activations/bias: `736` bytes/token
+  - int4 weights with f32 activations/bias: `608` bytes/token
+- `tiny-stories-v1k-h64-l1` full MLP stack:
+  - f32 weights: `134,912` bytes/token
+  - int8 weights with f32 activations/bias: `36,608` bytes/token
+  - int4 weights with f32 activations/bias: `20,224` bytes/token
+
+Interpretation:
+
+- The `v1k-h64-l1` MLP is the first useful H1/H2 bandwidth surface:
+  it is small enough to reason about by inspection but large enough that f32
+  weight streaming is already about `132 KiB` per token for the MLP alone.
+- The immediate H2 value is concrete:
+  int8 packed weights cut the `v1k-h64-l1` MLP traffic estimate by about `3.7x`,
+  and int4 packed weights cut it by about `6.7x`, before any activation or
+  sequencer savings.

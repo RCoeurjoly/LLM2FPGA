@@ -1,0 +1,9 @@
+rung,scope,layers,hidden_size,vocab_size,weight_numel,weight_f32_bytes,bias_f32_bytes,input_f32_bytes,output_f32_bytes,min_f32_bytes_per_token,min_int8_weight_bytes_per_token,min_int4_weight_bytes_per_token,notes
+tiny-stories-1m-representative-core-v64-h4,block0.mlp.c_fc,2,4,64,64,256,64,16,64,400,208,176,from existing c_fc weight-pack manifest
+tiny-stories-1m-representative-core-v64-h4,block0.mlp.c_proj,2,4,64,64,256,16,64,16,352,160,128,from existing c_proj weight-pack manifest
+tiny-stories-1m-representative-core-v64-h4,per_block_mlp,2,4,64,128,512,80,80,80,752,368,304,c_fc plus c_proj
+tiny-stories-1m-representative-core-v64-h4,full_mlp_stack,2,4,64,256,1024,160,160,160,1504,736,608,per_block_mlp multiplied by layer count
+tiny-stories-v1k-h64-l1,block0.mlp.c_fc,1,64,1024,16384,65536,1024,256,1024,67840,18688,10496,from existing c_fc weight-pack manifest
+tiny-stories-v1k-h64-l1,block0.mlp.c_proj,1,64,1024,16384,65536,256,1024,256,67072,17920,9728,from existing c_proj weight-pack manifest
+tiny-stories-v1k-h64-l1,per_block_mlp,1,64,1024,32768,131072,1280,1280,1280,134912,36608,20224,c_fc plus c_proj
+tiny-stories-v1k-h64-l1,full_mlp_stack,1,64,1024,32768,131072,1280,1280,1280,134912,36608,20224,per_block_mlp multiplied by layer count
