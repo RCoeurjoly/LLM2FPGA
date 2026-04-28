@@ -33,7 +33,11 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        pkgsLlvm21 = import nixpkgs-llvm21 { inherit system; };
+        pkgsLlvm21 = import nixpkgs-llvm21 {
+          inherit system;
+          config.allowUnfreePredicate = pkg:
+            builtins.elem (nixpkgs.lib.getName pkg) [ "torch" ];
+        };
         circtPkgs = circt-nix.packages.${system};
         circt = (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
           (old: {
@@ -142,6 +146,38 @@
           python.withPackages (ps: [ ps.torch ps.packaging torchao ]);
         pythonWithTinyStories =
           python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
+        torchCpu = python.pkgs.torch-bin.overridePythonAttrs (_old: {
+          version = "2.9.1+cpu";
+          src = pkgs.fetchurl {
+            name = "torch-2.9.1+cpu-cp311-cp311-manylinux_2_28_x86_64.whl";
+            url =
+              "https://download.pytorch.org/whl/cpu/torch-2.9.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl";
+            hash = "sha256-PeKtubREPckhDvHxsW2jZHrOU1UxZtY2C7vX7dbxbk0=";
+          };
+          buildInputs = [ ];
+          dependencies = with python.pkgs; [
+            filelock
+            fsspec
+            jinja2
+            networkx
+            numpy
+            pyyaml
+            requests
+            setuptools
+            sympy
+            typing-extensions
+          ];
+          extraRunpaths = [ ];
+        });
+        safetensorsWithTorchBin = python.pkgs.safetensors.override {
+          torch = torchCpu;
+        };
+        transformersWithTorchBin = python.pkgs.transformers.override {
+          safetensors = safetensorsWithTorchBin;
+          torch = torchCpu;
+        };
+        pythonWithTinyStoriesBin = python.withPackages
+          (ps: [ torchCpu ps.packaging transformersWithTorchBin ]);
         pythonWithTinyStoriesTorchAO = python.withPackages
           (ps: [ ps.torch ps.packaging ps.transformers torchao ]);
         nanobindBootstrap =
@@ -4172,6 +4208,62 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2ResidualAddContract =
+          pkgs.runCommand "task6-int8-l2-residual-add-contract" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./scripts/task6
+            }/export_residual_add_contract.py \
+              --model-path ${tinyStories1m.snapshot} \
+              --output-dir "$out" \
+              --adapter-path ${./TinyStories/model_adapter_representative_core.py} \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --vocab-size 1024 \
+              --num-layers 1 \
+              --max-position-embeddings 128 \
+              --window-size 64 \
+              --hidden-size 64 \
+              --num-heads 16 \
+              --token-id 0 \
+              --model-label tiny-stories-v1k-h64-l1
+          '';
+
+        task6Int8L2ResidualAddBoundary =
+          pkgs.runCommand "task6-int8-l2-residual-add-boundary" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/score_int8_residual_add_boundary.py \
+              --residual-contract-manifest ${task6Int8L2ResidualAddContract}/manifest.json \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --c-proj-output-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-output-boundary.json
+              } \
+              --c-proj-requant-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --out-json "$out/summary.json"
+          '';
+
         task6Int8L2CProjFromPostGeluRtlProof =
           pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-rtl-proof" { } ''
             mkdir -p "$out"
@@ -4863,6 +4955,10 @@
             task6Int8L2MlpChainCProjRequantRtlProof;
           task6-int8-l2-residual-add-boundary-scout =
             task6Int8L2ResidualAddBoundaryScout;
+          task6-int8-l2-residual-add-contract =
+            task6Int8L2ResidualAddContract;
+          task6-int8-l2-residual-add-boundary =
+            task6Int8L2ResidualAddBoundary;
           task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv =
             task6Int8L2CFcPostGeluRequantTbDataSv;
           task6-int8-l2-c-fc-post-gelu-requant-sim-main =

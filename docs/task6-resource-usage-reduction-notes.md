@@ -8187,3 +8187,90 @@ Decision:
 
 - Do not claim residual-add numeric viability yet.
 - Promote the exact capture route above as the next executable gate.
+
+### 2026-04-28 - H2 residual-add boundary capture and score
+
+Artifacts:
+
+- `artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-residual-add-contract/`
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-residual-add-boundary.json`
+
+Scripts and Nix targets:
+
+- `scripts/task6/export_residual_add_contract.py`
+- `scripts/task6/score_int8_residual_add_boundary.py`
+- `task6-int8-l2-residual-add-contract`
+- `task6-int8-l2-residual-add-boundary`
+
+Environment note:
+
+- The first attempt through `python.pkgs.torch-bin` still pulled CUDA/NCCL
+  source builds through the CUDA wheel closure.
+- The capture target now uses a local CPU-only PyTorch wheel override:
+  `torch-2.9.1+cpu-cp311-cp311-manylinux_2_28_x86_64.whl`
+  with hash `sha256-PeKtubREPckhDvHxsW2jZHrOU1UxZtY2C7vX7dbxbk0=`.
+- `transformers` and `safetensors` are overridden to use that CPU wheel for
+  this capture path.
+
+Contract capture result:
+
+- status: `PASS`
+- residual source: `transformer.h.0.ln_2` `activation_in`
+- block output check:
+  - `residual_activation_in + c_proj_activation_out` vs block output
+  - normalized RMSE: `0.0`
+- cross-checks against existing module contracts:
+  - `ln2_activation_out` vs `c_fc.activation_in`: normalized RMSE
+    `1.8294183695719108e-07`
+  - `c_proj.activation_in` vs contract: normalized RMSE
+    `2.8896815448809813e-07`
+  - `c_proj.activation_out` vs contract: normalized RMSE
+    `3.9373162995150223e-07`
+
+Residual-add boundary score:
+
+- status: `PASS`
+- threshold: normalized RMSE `<= 0.02`
+- `c_proj` output q hash:
+  `93020d792e1a60480198b96b4daf79beca0cb1507253c14b2a4494eaed8b5f8d`
+  - matches both the output-boundary scorer and RTL proof
+- residual quantization:
+  - scale: `0.0007355256578115028`
+  - q range: `-114..127`
+  - q hash:
+    `a455841a965b5073c01ded9aa310f6d496376139cb9ccb3f3fc0c62a8e84d3f7`
+- final residual-add output quantization:
+  - scale: `0.0007500236330698129`
+  - q range: `-125..127`
+  - q hash:
+    `28654845bf312e6298524e3444dd045cf7fb7fb30a0c693f211214ddc7970418`
+
+Boundary metrics:
+
+- `f32_residual_plus_int8_c_proj_vs_block_output`:
+  - normalized RMSE: `0.007978545180826635`
+  - verdict: pass
+- `int8_residual_plus_int8_c_proj_vs_block_output`:
+  - normalized RMSE: `0.009136092226376756`
+  - verdict: pass
+- `int8_final_residual_add_output_vs_block_output`:
+  - normalized RMSE: `0.01095521307528224`
+  - verdict: pass
+
+Byte budget for this single-token L2 gate:
+
+- residual f32: `256` bytes
+- residual int8: `64` bytes
+- `c_proj` int8 output: `64` bytes
+- final residual-add int8 output: `64` bytes
+- residual int8 savings vs f32: `192` bytes
+- final output int8 savings vs f32: `192` bytes
+
+Decision:
+
+- Promote the residual-add boundary to the next implementation gate.
+- Next gate: implement a bounded residual-add RTL proof that consumes:
+  - residual int8 vector plus residual scale
+  - `c_proj` int8 output vector plus `c_proj` output scale
+  - final output scale
+  - expected final q hash above

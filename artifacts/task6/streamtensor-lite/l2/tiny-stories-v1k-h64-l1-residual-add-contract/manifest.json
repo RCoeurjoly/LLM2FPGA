@@ -1,0 +1,142 @@
+{
+  "artifact_name": "h2-int8-l2-residual-add-contract",
+  "status": "PASS",
+  "model_label": "tiny-stories-v1k-h64-l1",
+  "representation_level": "pytorch-module-hooks",
+  "capture_kind": "representative-core-single-token-residual-add",
+  "sample_input_ids": [
+    [
+      0
+    ]
+  ],
+  "config": {
+    "vocab_size": 1024,
+    "num_layers": 1,
+    "max_position_embeddings": 128,
+    "window_size": 64,
+    "hidden_size": 64,
+    "num_heads": 16
+  },
+  "modules": {
+    "residual_operand": "transformer.h.0.ln_2",
+    "mlp_projection": "transformer.h.0.mlp.c_proj",
+    "block": "transformer.h.0"
+  },
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json"
+  },
+  "tensors": [
+    {
+      "name": "residual_activation_in",
+      "filename": "residual_activation_in.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        64
+      ],
+      "numel": 64,
+      "byte_length": 256
+    },
+    {
+      "name": "ln2_activation_out",
+      "filename": "ln2_activation_out.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        64
+      ],
+      "numel": 64,
+      "byte_length": 256
+    },
+    {
+      "name": "c_proj_activation_in",
+      "filename": "c_proj_activation_in.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        256
+      ],
+      "numel": 256,
+      "byte_length": 1024
+    },
+    {
+      "name": "c_proj_activation_out",
+      "filename": "c_proj_activation_out.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        64
+      ],
+      "numel": 64,
+      "byte_length": 256
+    },
+    {
+      "name": "block_output",
+      "filename": "block_output.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        64
+      ],
+      "numel": 64,
+      "byte_length": 256
+    },
+    {
+      "name": "residual_add_f32",
+      "filename": "residual_add_f32.bin",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        64
+      ],
+      "numel": 64,
+      "byte_length": 256
+    }
+  ],
+  "cross_checks": {
+    "ln2_activation_out_vs_c_fc_activation_in": {
+      "max_abs_error": 4.76837158203125e-07,
+      "mean_abs_error": 1.4544639270752668e-07,
+      "rmse": 1.8238788879309264e-07,
+      "normalized_rmse": 1.8294183695719108e-07,
+      "signal_max_abs": 2.382833957672119,
+      "signal_mean_abs": 0.8192111298412783
+    },
+    "c_proj_activation_in_vs_contract": {
+      "max_abs_error": 8.940696716308594e-08,
+      "mean_abs_error": 1.526157689113461e-08,
+      "rmse": 2.078715754905074e-08,
+      "normalized_rmse": 2.8896815448809813e-07,
+      "signal_max_abs": 0.25298115611076355,
+      "signal_mean_abs": 0.05661709034291107
+    },
+    "c_proj_activation_out_vs_contract": {
+      "max_abs_error": 2.9802322387695312e-08,
+      "mean_abs_error": 6.692744136671536e-09,
+      "rmse": 9.230918435858581e-09,
+      "normalized_rmse": 3.9373162995150223e-07,
+      "signal_max_abs": 0.07794594764709473,
+      "signal_mean_abs": 0.01680324105359432
+    },
+    "residual_plus_c_proj_vs_block_output": {
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0,
+      "rmse": 0.0,
+      "normalized_rmse": 0.0,
+      "signal_max_abs": 0.09504204243421555,
+      "signal_mean_abs": 0.039193880154925864
+    }
+  },
+  "error_threshold": 1e-06,
+  "decision": {
+    "verdict": "score-residual-add-boundary",
+    "next_gate": "score residual_f32 + int8 c_proj output and quantized residual-add output"
+  }
+}
