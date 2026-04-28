@@ -115,3 +115,13 @@ It records `top34-memory`, `L1`, and `L2` as machine-readable baseline rows for
 the parallel hypothesis lanes. Its `top_owners` field is weighted by owner
 instance count under `main`, so repeated handshake buffers are visible as the
 dominant `top34-memory` shell cost.
+
+The first H1/H2/H5 scoring artifacts are:
+
+- `artifacts/task6/parallel-hypotheses/h5-rung-byte-budgets.csv`
+- `artifacts/task6/parallel-hypotheses/h1-h2-streaming-contract-score.csv`
+- `artifacts/task6/parallel-hypotheses/h1-h2-streaming-contract-score.json`
+
+The first H3 narrowing artifact is:
+
+- `artifacts/task6/parallel-hypotheses/h3-static-wrapper-inspection.json`

@@ -1,0 +1,9 @@
+rung,scope,layers,hidden_size,vocab_size,in_features,out_features,macs_per_token,dsp_lanes,min_compute_cycles,weight_f32_bytes,bias_f32_bytes,input_f32_bytes,output_f32_bytes,min_f32_bytes_per_token,min_int8_weight_bytes_per_token,min_int4_weight_bytes_per_token,f32_bytes_per_cycle,int8_weight_bytes_per_cycle,int4_weight_bytes_per_cycle,notes
+tiny-stories-1m-representative-core-v64-h4,full_mlp_stack,2,4,64,,,256,4,64,1024,160,160,160,1504,736,608,23.5,11.5,9.5,per_block_mlp multiplied by layer count
+tiny-stories-1m-representative-core-v64-h4,per_block_mlp,2,4,64,,,128,4,32,512,80,80,80,752,368,304,23.5,11.5,9.5,sum of available c_fc/c_proj manifests
+tiny-stories-1m-representative-core-v64-h4,transformer.h.0.mlp.c_fc,2,4,64,4,16,64,4,16,256,64,16,64,400,208,176,25.0,13.0,11.0,from artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_fc/manifest.json
+tiny-stories-1m-representative-core-v64-h4,transformer.h.0.mlp.c_proj,2,4,64,16,4,64,4,16,256,16,64,16,352,160,128,22.0,10.0,8.0,from artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_proj/manifest.json
+tiny-stories-v1k-h64-l1,full_mlp_stack,1,64,1024,,,32768,4,8192,131072,1280,1280,1280,134912,36608,20224,16.46875,4.46875,2.46875,per_block_mlp multiplied by layer count
+tiny-stories-v1k-h64-l1,per_block_mlp,1,64,1024,,,32768,4,8192,131072,1280,1280,1280,134912,36608,20224,16.46875,4.46875,2.46875,sum of available c_fc/c_proj manifests
+tiny-stories-v1k-h64-l1,transformer.h.0.mlp.c_fc,1,64,1024,64,256,16384,4,4096,65536,1024,256,1024,67840,18688,10496,16.5625,4.5625,2.5625,from artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json
+tiny-stories-v1k-h64-l1,transformer.h.0.mlp.c_proj,1,64,1024,256,64,16384,4,4096,65536,256,1024,256,67072,17920,9728,16.375,4.375,2.375,from artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json

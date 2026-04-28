@@ -1,0 +1,28 @@
+{
+  "artifact": "h3-static-wrapper-inspection",
+  "date": "2026-04-28",
+  "source": "rtl/task6/task6_l2_c_fc_tile4x64_main.sv",
+  "hypothesis": "H3 static sequencer beats handshake lowering",
+  "inspection": {
+    "wrapper_state": [
+      "active_q",
+      "phase_q",
+      "launch_pending_q"
+    ],
+    "wrapper_behavior": [
+      "reuses one tile kernel across four output phases",
+      "forms the upper weight address bits from phase_q",
+      "forms the upper output store address bits from phase_q",
+      "auto-acks tile output for phases 0..2 and exposes out0_valid only on phase 3"
+    ],
+    "instantiated_kernel": "task6_l2_c_fc_tile64_kernel"
+  },
+  "prior_mapped_evidence": {
+    "untouched_tile64_kernel_lut": 32478,
+    "untouched_tile4x64_wrapper_lut": 32460,
+    "postbranch_tile64_kernel_lut": 31968,
+    "postbranch_tile4x64_wrapper_lut": 31907
+  },
+  "decision": "Static wrapper replacement is not the next H3 lever; the existing wrapper is already static and adds negligible mapped cost relative to the generated tile kernel.",
+  "next_h3_target": "A bounded static tile-kernel proof that removes generated handshake buffers/forks/muxes inside the 64x64 kernel while preserving the external activation/weight/store contract."
+}

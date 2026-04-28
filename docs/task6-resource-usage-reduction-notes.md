@@ -6662,3 +6662,104 @@ Interpretation:
   int8 packed weights cut the `v1k-h64-l1` MLP traffic estimate by about `3.7x`,
   and int4 packed weights cut it by about `6.7x`, before any activation or
   sequencer savings.
+
+### 2026-04-28 - H1/H2 streaming-contract score artifact
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h1-h2-streaming-contract-score.csv`
+- `artifacts/task6/parallel-hypotheses/h1-h2-streaming-contract-score.json`
+
+Script:
+
+- `scripts/task6/score_streaming_contract.py`
+
+Command:
+
+- `python3 scripts/task6/score_streaming_contract.py --manifest artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_fc/manifest.json --manifest artifacts/task6/weights_pack/tiny-stories-1m-representative-core-v64-h4/transformer.h.0.mlp.c_proj/manifest.json --manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json --manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json --dsp-lanes 4 --out-csv artifacts/task6/parallel-hypotheses/h1-h2-streaming-contract-score.csv --out-json artifacts/task6/parallel-hypotheses/h1-h2-streaming-contract-score.json`
+
+Assumption:
+
+- `dsp_lanes = 4`, matching the current mapped `L1`/`L2` references.
+- Cycle estimates are hard lower bounds: `ceil(MACs / dsp_lanes)`.
+- Byte estimates count streamed weights once per token plus f32 bias,
+  activation input, and activation output. They exclude burst overhead,
+  attention, layernorm, activation approximation, and any cache reuse.
+
+Key rows:
+
+- `tiny-stories-v1k-h64-l1` full MLP stack:
+  - `32,768` MACs/token
+  - `8,192` minimum compute cycles/token at `4` DSP lanes
+  - `134,912` f32 bytes/token
+  - `36,608` bytes/token with int8 weights and f32 activations/bias
+  - `20,224` bytes/token with int4 weights and f32 activations/bias
+  - `16.47` f32 bytes/cycle, `4.47` int8-weight bytes/cycle,
+    `2.47` int4-weight bytes/cycle
+- `tiny-stories-1m-representative-core-v64-h4` full MLP stack:
+  - `256` MACs/token
+  - `64` minimum compute cycles/token at `4` DSP lanes
+  - `1,504` f32 bytes/token
+  - `736` bytes/token with int8 weights and f32 activations/bias
+  - `608` bytes/token with int4 weights and f32 activations/bias
+
+Interpretation:
+
+- H1 is viable as a memory-contract lane only if the implementation avoids the
+  full lowered handshake shell. The corrected `top34-memory` owner list shows
+  the shell cost is repeated two-slot buffers, while this score shows the
+  sequential MLP traffic itself is small enough to model cheaply on `v1k-h64-l1`.
+- H2 has a measurable bandwidth payoff before RTL work:
+  int8 weights reduce the `v1k-h64-l1` MLP traffic from about `132 KiB/token`
+  to about `36 KiB/token`, and int4 reduces it to about `20 KiB/token`.
+- This does not yet prove a mapped LUT reduction. The next H2 implementation
+  should be a bounded packed-weight GEMV kernel, not another full-model
+  quantized lowering route.
+
+Next action:
+
+- Use the generated H1/H2 score as the acceptance target for the next bounded
+  implementation:
+  - H1 static/streaming GEMV should preserve `4 DSP` and keep memory traffic
+    close to the `v1k-h64-l1` score rows.
+  - H2 packed int8/int4 GEMV should prove functional error bounds and mapped
+    resource reduction on a small kernel before any `L3` or whole-model replay.
+
+### 2026-04-28 - H3 wrapper inspection narrows the static-sequencer target
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h3-static-wrapper-inspection.json`
+
+Inspected source:
+
+- `rtl/task6/task6_l2_c_fc_tile4x64_main.sv`
+
+Observation:
+
+- The `L2` tiled wrapper is already a static phase sequencer:
+  - `active_q`
+  - `phase_q`
+  - `launch_pending_q`
+- It reuses one `task6_l2_c_fc_tile64_kernel` over four output phases.
+- It forms the upper weight address and output store address bits from
+  `phase_q`.
+- It auto-acks tile output for phases `0..2` and only exposes `out0_valid` on
+  phase `3`.
+
+Prior mapped evidence:
+
+- untouched tile64 kernel: `32,478` LUT
+- untouched tile4x64 wrapper: `32,460` LUT
+- postbranch tile64 kernel: `31,968` LUT
+- postbranch tile4x64 wrapper: `31,907` LUT
+
+Decision:
+
+- H3 should not spend its next slice replacing the outer tiled wrapper.
+- The wrapper is already static and has negligible mapped cost relative to the
+  tile kernel.
+- The real H3 target is now narrower:
+  build or sketch a bounded static `64x64` tile-kernel proof that removes the
+  generated handshake buffers/forks/muxes inside the kernel while preserving
+  the existing activation/weight/store contract.
