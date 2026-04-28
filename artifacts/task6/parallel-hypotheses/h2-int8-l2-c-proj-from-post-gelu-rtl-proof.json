@@ -1,0 +1,169 @@
+{
+  "artifact_name": "h2-int8-l2-c-proj-from-post-gelu-rtl-proof",
+  "status": "PASS",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json",
+    "model_label": "tiny-stories-v1k-h64-l1"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_fc",
+    "boundary": "post_gelu_int8_activation",
+    "consumer": "transformer.h.0.mlp.c_proj",
+    "interpretation": "RTL proof for c_proj consuming the accepted post-GELU int8 activation from the c_fc proof."
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_l2_c_proj_from_post_gelu_kernel",
+    "in_dim": 256,
+    "out_dim": 64,
+    "lane_count": 4,
+    "packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "accumulator_dtype": "int32",
+    "output_dtype": "int32",
+    "output_score_dtype": "float32",
+    "activation_quantization": "post-GELU int8-per-tensor-symmetric",
+    "weight_quantization": "int8-per-output-symmetric",
+    "local_activation_memory": true,
+    "local_packed_weight_memory": true,
+    "local_output_memory": true
+  },
+  "c_fc_post_gelu_activation": {
+    "dtype": "int8",
+    "scale": 0.0019919775901474546,
+    "q_min": -67,
+    "q_max": 127,
+    "q_sha256": "e26fbb6dcf21ad4736001d669235b21273bf83ad8c373bf76ce73ffc7d3fb189",
+    "source_accumulator_sha256": "48210df491400387ec2871d66aaac0b659e1dcd0dd49ed0a7314b616ff56fcf9"
+  },
+  "c_proj_quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "weight_scale_min": 0.0004040582442846824,
+    "weight_scale_max": 0.0006334623248558345,
+    "weight_q_min": -127,
+    "weight_q_max": 127,
+    "bias_min": 0.0,
+    "bias_max": 0.0,
+    "accumulator_min": -53371,
+    "accumulator_max": 78617,
+    "activation_q_sha256": "e26fbb6dcf21ad4736001d669235b21273bf83ad8c373bf76ce73ffc7d3fb189",
+    "weight_q_sha256": "116a427df35a8879df7796a3c7ce680598bfd33051411f7f66f134d2fde4b75e",
+    "packed_weight_sha256": "649e19f9993a750c6d2a203e3f7e43e73f0f4024615404f09a0cbf568118331a",
+    "accumulator_sha256": "8ef8c2a85f1cc1369dd6cad3d716215c8311ec8a407497a003947a5e222025e2"
+  },
+  "metrics": {
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 1.600132085166628e-08,
+      "mean_abs_error": 1.7057380450588488e-09,
+      "rmse": 2.8341102417697613e-09,
+      "normalized_rmse": 3.939776752351999e-08,
+      "signal_max_abs": 0.2529811539487267,
+      "signal_mean_abs": 0.05661709054561349
+    },
+    "post_gelu_int8_vs_c_proj_input": {
+      "max_abs_error": 0.0025458211614692583,
+      "mean_abs_error": 0.0006904467031919829,
+      "rmse": 0.000862607907071992,
+      "normalized_rmse": 0.01199135641153676,
+      "signal_max_abs": 0.25298115611076355,
+      "signal_mean_abs": 0.05661709034291107
+    },
+    "c_proj_output_from_rtl_accumulators": {
+      "max_abs_error": 0.0009424232727163438,
+      "mean_abs_error": 0.0002511875694791357,
+      "rmse": 0.0003284692548033415,
+      "normalized_rmse": 0.014010386505018001,
+      "signal_max_abs": 0.07794594764709473,
+      "signal_mean_abs": 0.01680324105359432
+    }
+  },
+  "byte_budget": {
+    "post_gelu_int8_activation_bytes": 256,
+    "f32_activation_bytes_replaced": 1024,
+    "activation_transfer_savings_bytes": 768,
+    "c_proj_weight_int8_bytes": 16384,
+    "c_proj_weight_f32_bytes_replaced": 65536,
+    "c_proj_weight_transfer_savings_bytes": 49152,
+    "c_proj_weight_scale_sidecar_bytes": 256,
+    "c_proj_accumulator_output_bytes": 256
+  },
+  "sim_result": {
+    "status": "PASS",
+    "reads": 64,
+    "outputs": 64,
+    "compute_cycles": 4178,
+    "cycles": 4242
+  },
+  "yosys_result": {
+    "path": "/nix/store/0yfw1qq2hpq8s87gayihaq84hykymbwx-task6-int8-l2-c-proj-from-post-gelu-yosys-stat.json",
+    "top_name": "task6_int8_l2_c_proj_from_post_gelu_kernel",
+    "num_cells": 511,
+    "num_wires": 222,
+    "num_wire_bits": 2156,
+    "dsp48e1": 4,
+    "ramb36e1": 4,
+    "ramb18e1": 1,
+    "ram64m": 12,
+    "fdre": 197,
+    "carry4": 11,
+    "lut_primitive_cells": 271,
+    "lut_breakdown": {
+      "LUT2": 157,
+      "LUT3": 46,
+      "LUT4": 17,
+      "LUT5": 6,
+      "LUT6": 45
+    }
+  },
+  "mapped_utilization": {
+    "path": "/nix/store/qjpmpgaf3gy1yq156ir855cxn20k0gwa-task6-int8-l2-c-proj-from-post-gelu-utilization/summary.json",
+    "resources": {
+      "clb_luts": {
+        "capacity": 298600,
+        "pct": 0.09,
+        "used": 271
+      },
+      "clb_ffs": {
+        "capacity": 597200,
+        "pct": 0.03,
+        "used": 197
+      },
+      "dsp": {
+        "capacity": 1920,
+        "pct": 0.21,
+        "used": 4
+      },
+      "bram36": {
+        "capacity": 955,
+        "pct": 0.42,
+        "used": 4
+      },
+      "bram18": {
+        "used": 1
+      },
+      "bram36_equiv": {
+        "capacity": 955,
+        "pct": 0.47,
+        "used": 4.5
+      },
+      "bram_kb": {
+        "capacity": 34380,
+        "pct": 0.47,
+        "used": 162
+      },
+      "slices_lower_bound": {
+        "capacity": 74650,
+        "pct": 0.05,
+        "used": 34
+      }
+    }
+  },
+  "decision": {
+    "verdict": "promote",
+    "next_gate": "compose the proven c_fc post-GELU int8 producer with this c_proj consumer"
+  }
+}

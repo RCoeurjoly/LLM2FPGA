@@ -2749,6 +2749,31 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2CProjFromPostGeluTbDataSv =
+          pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-tb-data-sv" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./sim
+            }/gen_task6_int8_l2_c_proj_from_post_gelu_tb_data.py \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -2898,6 +2923,21 @@
               ${./sim/task6_int8_l2_c_fc_post_gelu_requant_tb_main.sv}
           '';
 
+        task6Int8L2CProjFromPostGeluSimMain =
+          pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6Int8L2CProjFromPostGeluTbDataSv} \
+              -top task6_int8_l2_c_proj_from_post_gelu_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./sim/task6_int8_l2_c_proj_from_post_gelu_tb_main.sv}
+          '';
+
         task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3015,6 +3055,23 @@
             cp stat.json "$out"
           '';
 
+        task6Int8L2CProjFromPostGeluYosysStat =
+          pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-yosys-stat.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            hierarchy -top task6_int8_l2_c_proj_from_post_gelu_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_c_proj_from_post_gelu_kernel -noiopad
+            tee -o stat.json stat -json
+            EOF
+            yosys -s run.ys
+            cp stat.json "$out"
+          '';
+
         task6Int8Gemv64Json = pkgs.runCommand "task6-int8-gemv64.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3125,6 +3182,22 @@
             yosys -s run.ys
           '';
 
+        task6Int8L2CProjFromPostGeluJson =
+          pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            hierarchy -top task6_int8_l2_c_proj_from_post_gelu_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_c_proj_from_post_gelu_kernel -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
           name = "task6-int8-gemv64";
           capacities = tinyStoriesCapacities;
@@ -3175,6 +3248,14 @@
             capacities = tinyStoriesCapacities;
             topName = "task6_int8_l2_c_fc_post_gelu_requant_kernel";
             designJson = task6Int8L2CFcPostGeluRequantJson;
+          };
+
+        task6Int8L2CProjFromPostGeluUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-int8-l2-c-proj-from-post-gelu";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_int8_l2_c_proj_from_post_gelu_kernel";
+            designJson = task6Int8L2CProjFromPostGeluJson;
           };
 
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
@@ -3692,6 +3773,32 @@
             EOF
           '';
 
+        task6Int8L2CProjFromPostGeluSvSim =
+          pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6Int8L2CProjFromPostGeluSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 int8 L2 c_proj from postgelu reads [0-9]+ outputs [0-9]+ compute_cycles [0-9]+ total_cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-int8-l2-c-proj-from-post-gelu SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            reads="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            compute_cycles="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            total_cycles="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "reads": $reads,
+              "outputs": $outputs,
+              "compute_cycles": $compute_cycles,
+              "cycles": $total_cycles
+            }
+            EOF
+          '';
+
         task6Int8L2CFcPostGeluRequantRtlProof =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-rtl-proof" { } ''
             mkdir -p "$out"
@@ -3710,6 +3817,33 @@
               --sim-result-json ${task6Int8L2CFcPostGeluRequantSvSim} \
               --yosys-stat-json ${task6Int8L2CFcPostGeluRequantYosysStat} \
               --mapped-utilization-summary-json ${task6Int8L2CFcPostGeluRequantUtilization}/summary.json \
+              --out-json "$out/summary.json"
+          '';
+
+        task6Int8L2CProjFromPostGeluRtlProof =
+          pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-rtl-proof" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./sim
+            }/gen_task6_int8_l2_c_proj_from_post_gelu_tb_data.py \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --sim-result-json ${task6Int8L2CProjFromPostGeluSvSim} \
+              --yosys-stat-json ${task6Int8L2CProjFromPostGeluYosysStat} \
+              --mapped-utilization-summary-json ${task6Int8L2CProjFromPostGeluUtilization}/summary.json \
               --out-json "$out/summary.json"
           '';
 
@@ -4331,6 +4465,20 @@
             task6Int8L2CFcDownstreamInt8Boundary;
           task6-int8-l2-c-proj-from-post-gelu-boundary =
             task6Int8L2CProjFromPostGeluBoundary;
+          task6-int8-l2-c-proj-from-post-gelu-tb-data-sv =
+            task6Int8L2CProjFromPostGeluTbDataSv;
+          task6-int8-l2-c-proj-from-post-gelu-sim-main =
+            task6Int8L2CProjFromPostGeluSimMain;
+          task6-int8-l2-c-proj-from-post-gelu-sv-sim =
+            task6Int8L2CProjFromPostGeluSvSim;
+          task6-int8-l2-c-proj-from-post-gelu-yosys-stat =
+            task6Int8L2CProjFromPostGeluYosysStat;
+          task6-int8-l2-c-proj-from-post-gelu-json =
+            task6Int8L2CProjFromPostGeluJson;
+          task6-int8-l2-c-proj-from-post-gelu-utilization =
+            task6Int8L2CProjFromPostGeluUtilization;
+          task6-int8-l2-c-proj-from-post-gelu-rtl-proof =
+            task6Int8L2CProjFromPostGeluRtlProof;
           task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv =
             task6Int8L2CFcPostGeluRequantTbDataSv;
           task6-int8-l2-c-fc-post-gelu-requant-sim-main =

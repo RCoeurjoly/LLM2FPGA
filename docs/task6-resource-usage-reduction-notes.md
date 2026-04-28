@@ -7739,3 +7739,108 @@ Decision:
     `0.02`, or if its mapped LUT/FF cost erases the post-GELU `c_fc` win, fall
     back to the narrower `c_fc` boundary before claiming an MLP-chain
     replacement.
+
+### 2026-04-28 - H2 `c_proj` RTL proof from the post-GELU int8 boundary
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-from-post-gelu-rtl-proof.json`
+
+Sources:
+
+- `flake.nix`
+- `rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv`
+- `sim/task6_int8_l2_c_proj_from_post_gelu_tb_main.sv`
+- `sim/gen_task6_int8_l2_c_proj_from_post_gelu_tb_data.py`
+
+Nix targets:
+
+- `task6-int8-l2-c-proj-from-post-gelu-tb-data-sv`
+- `task6-int8-l2-c-proj-from-post-gelu-sv-sim`
+- `task6-int8-l2-c-proj-from-post-gelu-yosys-stat`
+- `task6-int8-l2-c-proj-from-post-gelu-json`
+- `task6-int8-l2-c-proj-from-post-gelu-utilization`
+- `task6-int8-l2-c-proj-from-post-gelu-rtl-proof`
+- proof output:
+  `/nix/store/95l187w8i0h49a4dgbaj9p7xc1camf0h-task6-int8-l2-c-proj-from-post-gelu-rtl-proof`
+
+Commands:
+
+- `nix build .#task6-int8-l2-c-proj-from-post-gelu-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-l2-c-proj-from-post-gelu-rtl-proof --no-link --print-out-paths -L`
+- `python3 sim/gen_task6_int8_l2_c_proj_from_post_gelu_tb_data.py --c-fc-contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json --c-fc-weight-pack-manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json --c-proj-contract-manifest artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json --c-proj-weight-pack-manifest artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json --post-gelu-requant-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json --sim-result-json /nix/store/9r187q4gm5n3z6glzkk9g9lwlrfkiix2-task6-int8-l2-c-proj-from-post-gelu-sv-sim.json --yosys-stat-json /nix/store/0yfw1qq2hpq8s87gayihaq84hykymbwx-task6-int8-l2-c-proj-from-post-gelu-yosys-stat.json --mapped-utilization-summary-json /nix/store/qjpmpgaf3gy1yq156ir855cxn20k0gwa-task6-int8-l2-c-proj-from-post-gelu-utilization/summary.json --out-json artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-from-post-gelu-rtl-proof.json`
+
+RTL contract:
+
+- input:
+  - post-GELU int8 activation from the proven `L2 c_fc` boundary
+  - `256` int8 activation bytes
+  - `4,096` packed int8 weight words for `64 x 256` `c_proj`
+- compute:
+  - same lanes4 int8 MAC core, instantiated directly as `IN_DIM=256`,
+    `OUT_DIM=64`
+- output:
+  - `64` int32 accumulators
+  - dequantization remains outside this bounded proof and is scored by the
+    generator with per-output weight scales
+
+Execution status:
+
+- status: `PASS`
+- Verilator:
+  - output:
+    `/nix/store/9r187q4gm5n3z6glzkk9g9lwlrfkiix2-task6-int8-l2-c-proj-from-post-gelu-sv-sim.json`
+  - pass line:
+    `PASS: task6 int8 L2 c_proj from postgelu reads 64 outputs 64 compute_cycles 4178 total_cycles 4242`
+- numerical score from RTL accumulators:
+  - normalized RMSE: `0.014010386505018001`
+  - threshold: `0.02`
+  - max absolute error: `0.0009424232727163438`
+  - accumulator range: `-53371..78617`
+
+Mapped resources:
+
+- output:
+  `/nix/store/qjpmpgaf3gy1yq156ir855cxn20k0gwa-task6-int8-l2-c-proj-from-post-gelu-utilization`
+- `clb_luts`: `271`
+- `clb_ffs`: `197`
+- `dsp`: `4`
+- `bram36`: `4`
+- `bram18`: `1`
+- `bram36_equiv`: `4.5`
+- `bram_kb`: `162`
+- `slices_lower_bound`: `34`
+
+Byte-budget implication:
+
+- post-GELU activation:
+  - `256` int8 bytes replaces `1,024` f32 bytes
+  - activation transfer savings: `768` bytes
+- `c_proj` weights:
+  - `16,384` int8 bytes replaces `65,536` f32 bytes
+  - weight transfer savings: `49,152` bytes
+  - per-output scale sidecar: `256` bytes
+- `c_proj` accumulator output:
+  - `256` bytes
+
+Bounded chain resource picture:
+
+- `c_fc -> GELU -> int8 activation` RTL proof:
+  - `653 LUT / 217 FF / 26 DSP / 5.5 BRAM36-equivalent`
+- `c_proj` RTL proof from that activation:
+  - `271 LUT / 197 FF / 4 DSP / 4.5 BRAM36-equivalent`
+- bounded sum before composing one shared top:
+  - `924 LUT / 414 FF / 30 DSP / 10.0 BRAM36-equivalent`
+
+Decision:
+
+- H2 now has bounded RTL evidence on both sides of the MLP handoff:
+  - the producer proof creates the post-GELU int8 activation
+  - the consumer proof accepts that activation and computes exact int32
+    `c_proj` accumulators
+- H2 remains active and should be treated as the leading replacement path.
+- Next gate:
+  - compose the proven `c_fc` post-GELU producer and this `c_proj` consumer in
+    one bounded chain top, with an explicit activation handoff memory or stream
+  - keep the current two-proof bounded sum as the resource expectation until
+    the composed top exists
