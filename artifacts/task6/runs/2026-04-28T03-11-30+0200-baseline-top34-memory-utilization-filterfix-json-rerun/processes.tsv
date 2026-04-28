@@ -1,0 +1,6 @@
+pid	name	cmdline
+110888	nix	nix build .#tiny-stories-1m-baseline-float-selftest-top34-memory-utilization --no-link --print-out-paths -L 
+110890	tee	tee artifacts/task6/runs/2026-04-28T03-11-30+0200-baseline-top34-memory-utilization-filterfix-json-rerun/build.log 
+110969	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh 
+111030	.yosys-wrapped	/nix/store/rv3cx4lj18kknx80sslx3q7dq2zd90km-yosys-with-plugins-0.64/bin/yosys -q -s run.ys 
+111703	bash	bash -e /nix/store/v6x3cs394jgqfbi0a42pam708flxaphh-default-builder.sh 

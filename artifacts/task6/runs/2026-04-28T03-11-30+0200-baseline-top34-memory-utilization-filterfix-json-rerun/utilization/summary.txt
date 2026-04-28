@@ -1,0 +1,22 @@
+top: tiny_stories_selftest_top
+estimated mapped resource usage:
+- slices_lower_bound: 7312089 / 74650 (9795.16%)
+- clb_luts: 56899009 / 298600 (19055.26%)
+- clb_ffs: 58496710 / 597200 (9795.16%)
+- dsp: 0 / 1920 (0.00%)
+- bram36: 0 / 955 (0.00%)
+- bram36_equiv: 0 / 955 (0.00%)
+- bram_kb: 0 / 34380 (0.00%)
+largest leaf cell types:
+- FDRE: 58495964
+- LUT3: 34499183
+- LUT6: 16621623
+- LUT2: 3168604
+- LUT4: 1546226
+- MUXF7: 1239366
+- LUT5: 711302
+- MUXF8: 373079
+- LUT1: 352071
+- CARRY4: 344839
+- INV: 223486
+- FDSE: 675

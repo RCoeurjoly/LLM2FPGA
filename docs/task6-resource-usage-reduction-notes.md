@@ -134,15 +134,19 @@ Preferred capture helper for future runs:
 1. Main lane: narrowed external-memory shell
    - branch/worktree: `task6` until the next structural branch split is needed
    - package family:
-     - `tiny-stories-1m-baseline-float-selftest-top4-memory-*`
+     - `tiny-stories-1m-baseline-float-selftest-top34-memory-*`
    - current milestone:
-     - finish the narrowed-shell utilization run and record whether the split
-       `stage6a` / `stage8*` path completes or still hits an OOM-class
-       bottleneck
+     - completed on 2026-04-28: the fixed `top34-memory` path clears
+       `stage6a`, clears `stage8b`, completes `stage9 write_json`, and emits a
+       final utilization bundle
+     - current result is a toolchain-frontier win but a mapped-resource loss
+       versus the copied all-memory baseline
    - continue only if:
-     - the lane reaches a later stage than baseline or lowers peak memory / RSS
+     - a follow-up explains or removes the LUT growth from the current
+       blackbox shell, or materially changes the board-memory contract
    - prune only if:
-     - the narrowed shell still fails without improving the bottleneck shape
+     - the next slice only widens externalization or adds a DDR3 controller
+       without first addressing the current shell/resource inflation
 
 2. Side lane A: quantization viability
    - preferred branch/worktree: `task6-quant`
@@ -6446,3 +6450,107 @@ Next action:
 - Rerun the external-memory mainline on the repaired CIRCT stack first.
 - Keep the quant spike bounded and decide separately whether to restore the LSQ
   option support or switch that route onto a non-LSQ path.
+
+### 2026-04-28 - Fixed `top34-memory` utilization completes after GC-rooted JSON rerun
+
+Run bundles:
+
+- Full monitored staged rerun:
+  - `artifacts/task6/runs/2026-04-27T23-43-30+0200-baseline-top34-memory-utilization-filterfix-rerun`
+- JSON/utilization rerun after freeing disk:
+  - `artifacts/task6/runs/2026-04-28T03-11-30+0200-baseline-top34-memory-utilization-filterfix-json-rerun`
+
+Commands:
+
+- full staged run:
+  - `nix build .#tiny-stories-1m-baseline-float-selftest-top34-memory-utilization --no-link --print-out-paths -L`
+  - wrapped with `scripts/pipeline/monitor_build.sh`
+- after ENOSPC:
+  - temporarily preserved the successful `stage8h` output with a Nix GC root
+  - ran `nix-store --gc --max-freed 64424509440`, which freed `60.8 GiB`
+  - reran the same utilization target under the monitor
+
+Full staged rerun result:
+
+- exit status: `1`
+- wall time: `12340` seconds
+- peak sampled `VmRSS`: `20,578,672 KiB`
+- peak sampled `VmHWM`: `20,816,540 KiB`
+- completed:
+  - `stage6a targeted techmap cells_map` through all `221/221` restart
+    batches
+  - `stage8b abc -luts 2:2,3,6:5,10,20`
+  - `stage8h opt_lut_ins -tech xilinx`
+- failure:
+  - JSON derivation preparation hit `OSError: [Errno 28] No space left on
+    device` in `filter_rtlil_modules.py`
+- interpretation:
+  - this crossed both prior external-memory frontiers
+  - the failure was disk exhaustion, not a synthesis-path failure
+
+JSON/utilization rerun result:
+
+- exit status: `0`
+- wall time: `294` seconds
+- peak sampled `VmRSS`: `22,539,800 KiB`
+- peak sampled `VmHWM`: `23,849,916 KiB`
+- final monitor stage line:
+  - `stage9 write_json`
+- output:
+  - `/nix/store/lnzv5y9vj69s8hhg3zp0x35hrmzmrrzz-tiny-stories-1m-baseline-float-selftest-top34-memory-utilization`
+  - durable copy:
+    `artifacts/task6/runs/2026-04-28T03-11-30+0200-baseline-top34-memory-utilization-filterfix-json-rerun/utilization`
+
+Mapped utilization:
+
+- `clb_luts`: `56,899,009 / 298,600` (`19055.26%`)
+- `clb_ffs`: `58,496,710 / 597,200` (`9795.16%`)
+- `slices_lower_bound`: `7,312,089 / 74,650` (`9795.16%`)
+- `dsp`: `0 / 1920` (`0.00%`)
+- `bram36`: `0 / 955` (`0.00%`)
+
+Delta versus copied all-memory baseline:
+
+- copied baseline:
+  - `clb_luts`: `40,416,086`
+  - `clb_ffs`: `58,072,527`
+  - `dsp`: `0`
+  - `bram36_equivalent`: `0.0`
+- `top34-memory` delta:
+  - `clb_luts`: `+16,482,923` (`+40.78%`)
+  - `clb_ffs`: `+424,183` (`+0.73%`)
+  - `dsp`: unchanged at `0`
+  - `bram36`: unchanged at `0`
+
+Largest remaining non-top mapped owners by LUT count:
+
+- `handshake_memory_out_f32_id77`: `631,072` LUTs, `8,360` FFs
+- `math_fpowi_in_f32_ui64_out_f32`: `370,334` LUTs, `0` FFs
+- `handshake_memory_out_f32_id25`: `340,924` LUTs, `2,437` FFs
+- `handshake_memory_out_f32_id72`: `47,456` LUTs, `8,212` FFs
+- `handshake_memory_out_f32_id37`: `34,955` LUTs, `2,132` FFs
+
+Interpretation:
+
+- The production filter fix is verified.
+- `top34-memory` is a real toolchain-frontier improvement:
+  - it clears the prior `top4-memory` `stage6a` residual-memory frontier
+  - it clears the prior `top32-memory` `stage8b` ABC frontier
+  - it produces a final utilization bundle after the disk-space issue is fixed
+- `top34-memory` is not a mapped-resource improvement:
+  - LUT usage is materially worse than the copied all-memory baseline
+  - FF usage is slightly worse
+  - DSP and BRAM remain unused
+
+Decision:
+
+- Close this `top34-memory` execution slice as `positive` for compiler
+  frontier movement and `negative` for mapped resource reduction.
+- Do not move directly to DDR3 controller integration for this exact shell.
+- Keep external memory alive only as a contract/interface-shaping lane:
+  - explain why the current blackbox shell inflates LUTs before widening it
+    again
+  - use the largest residual owners above as the next inspection targets if
+    this lane gets another slice
+  - compare any follow-up against the copied all-memory baseline, not only
+    against OOM progress

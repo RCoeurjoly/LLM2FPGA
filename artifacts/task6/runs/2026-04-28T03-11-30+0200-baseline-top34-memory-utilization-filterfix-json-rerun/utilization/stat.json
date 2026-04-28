@@ -1,0 +1,8027 @@
+{
+  "design_json": "/nix/store/yqx62hkm1z8lbwgmqnpmcvi3b0jg6p0n-tiny-stories-1m-baseline-float-selftest-top34-memory.json",
+  "modules": {
+    "\\$__ABC9_LUT7": {
+      "direct_cell_counts": {
+        "$specify2": 7
+      },
+      "leaf_cell_counts": {
+        "\\$__ABC9_LUT7": 1
+      }
+    },
+    "\\$__ABC9_LUT8": {
+      "direct_cell_counts": {
+        "$specify2": 8
+      },
+      "leaf_cell_counts": {
+        "\\$__ABC9_LUT8": 1
+      }
+    },
+    "arith_addf_in_f32_f32_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 157,
+        "INV": 98,
+        "LUT1": 63,
+        "LUT2": 273,
+        "LUT3": 239,
+        "LUT4": 235,
+        "LUT5": 219,
+        "LUT6": 531,
+        "MUXF7": 393,
+        "MUXF8": 121
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 157,
+        "INV": 98,
+        "LUT1": 63,
+        "LUT2": 273,
+        "LUT3": 239,
+        "LUT4": 235,
+        "LUT5": 219,
+        "LUT6": 531,
+        "MUXF7": 393,
+        "MUXF8": 121
+      }
+    },
+    "arith_addi_in_ui64_ui64_out_ui64": {
+      "direct_cell_counts": {
+        "CARRY4": 16,
+        "LUT2": 65,
+        "LUT3": 1
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 16,
+        "LUT2": 65,
+        "LUT3": 1
+      }
+    },
+    "arith_cmpf_in_f32_f32_out_ui1_ogt": {
+      "direct_cell_counts": {
+        "CARRY4": 99,
+        "INV": 76,
+        "LUT1": 122,
+        "LUT2": 247,
+        "LUT3": 202,
+        "LUT4": 173,
+        "LUT5": 199,
+        "LUT6": 498,
+        "MUXF7": 617,
+        "MUXF8": 238
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 99,
+        "INV": 76,
+        "LUT1": 122,
+        "LUT2": 247,
+        "LUT3": 202,
+        "LUT4": 173,
+        "LUT5": 199,
+        "LUT6": 498,
+        "MUXF7": 617,
+        "MUXF8": 238
+      }
+    },
+    "arith_cmpi_in_ui64_ui64_out_ui1_sge": {
+      "direct_cell_counts": {
+        "CARRY4": 6,
+        "LUT2": 3,
+        "LUT3": 1,
+        "LUT6": 42
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 6,
+        "LUT2": 3,
+        "LUT3": 1,
+        "LUT6": 42
+      }
+    },
+    "arith_cmpi_in_ui64_ui64_out_ui1_sgt": {
+      "direct_cell_counts": {
+        "CARRY4": 6,
+        "LUT2": 3,
+        "LUT3": 1,
+        "LUT6": 42
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 6,
+        "LUT2": 3,
+        "LUT3": 1,
+        "LUT6": 42
+      }
+    },
+    "arith_cmpi_in_ui64_ui64_out_ui1_slt": {
+      "direct_cell_counts": {
+        "CARRY4": 6,
+        "LUT2": 3,
+        "LUT3": 1,
+        "LUT6": 42
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 6,
+        "LUT2": 3,
+        "LUT3": 1,
+        "LUT6": 42
+      }
+    },
+    "arith_divf_in_f32_f32_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 2749,
+        "INV": 2130,
+        "LUT1": 2221,
+        "LUT2": 2571,
+        "LUT3": 3349,
+        "LUT4": 351,
+        "LUT5": 693,
+        "LUT6": 6460,
+        "MUXF7": 6279,
+        "MUXF8": 2669
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 2749,
+        "INV": 2130,
+        "LUT1": 2221,
+        "LUT2": 2571,
+        "LUT3": 3349,
+        "LUT4": 351,
+        "LUT5": 693,
+        "LUT6": 6460,
+        "MUXF7": 6279,
+        "MUXF8": 2669
+      }
+    },
+    "arith_index_cast_in_ui64_out_ui16": {
+      "direct_cell_counts": {
+        "LUT2": 1
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1
+      }
+    },
+    "arith_index_cast_in_ui64_out_ui64": {
+      "direct_cell_counts": {
+        "LUT2": 1
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1
+      }
+    },
+    "arith_maximumf_in_f32_f32_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 138,
+        "INV": 106,
+        "LUT1": 96,
+        "LUT2": 419,
+        "LUT3": 315,
+        "LUT4": 242,
+        "LUT5": 210,
+        "LUT6": 533,
+        "MUXF7": 557,
+        "MUXF8": 183
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 138,
+        "INV": 106,
+        "LUT1": 96,
+        "LUT2": 419,
+        "LUT3": 315,
+        "LUT4": 242,
+        "LUT5": 210,
+        "LUT6": 533,
+        "MUXF7": 557,
+        "MUXF8": 183
+      }
+    },
+    "arith_mulf_in_f32_f32_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 157,
+        "INV": 113,
+        "LUT1": 96,
+        "LUT2": 513,
+        "LUT3": 560,
+        "LUT4": 322,
+        "LUT5": 491,
+        "LUT6": 2595,
+        "MUXF7": 1330,
+        "MUXF8": 454
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 157,
+        "INV": 113,
+        "LUT1": 96,
+        "LUT2": 513,
+        "LUT3": 560,
+        "LUT4": 322,
+        "LUT5": 491,
+        "LUT6": 2595,
+        "MUXF7": 1330,
+        "MUXF8": 454
+      }
+    },
+    "arith_muli_in_ui64_ui64_out_ui64": {
+      "direct_cell_counts": {
+        "LUT1": 9,
+        "LUT2": 499,
+        "LUT3": 1510,
+        "LUT4": 140,
+        "LUT5": 183,
+        "LUT6": 1927,
+        "MUXF7": 181,
+        "MUXF8": 61
+      },
+      "leaf_cell_counts": {
+        "LUT1": 9,
+        "LUT2": 499,
+        "LUT3": 1510,
+        "LUT4": 140,
+        "LUT5": 183,
+        "LUT6": 1927,
+        "MUXF7": 181,
+        "MUXF8": 61
+      }
+    },
+    "arith_select_in_ui1_f32_f32_out_f32": {
+      "direct_cell_counts": {
+        "LUT3": 33,
+        "LUT4": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 33,
+        "LUT4": 1
+      }
+    },
+    "arith_select_in_ui1_ui64_ui64_out_ui64": {
+      "direct_cell_counts": {
+        "LUT3": 65,
+        "LUT4": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 65,
+        "LUT4": 1
+      }
+    },
+    "arith_shli_in_ui64_ui64_out_ui64": {
+      "direct_cell_counts": {
+        "LUT2": 9,
+        "LUT3": 22,
+        "LUT4": 49,
+        "LUT5": 11,
+        "LUT6": 146,
+        "MUXF7": 86,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "LUT2": 9,
+        "LUT3": 22,
+        "LUT4": 49,
+        "LUT5": 11,
+        "LUT6": 146,
+        "MUXF7": 86,
+        "MUXF8": 9
+      }
+    },
+    "arith_subf_in_f32_f32_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 157,
+        "INV": 98,
+        "LUT1": 77,
+        "LUT2": 332,
+        "LUT3": 235,
+        "LUT4": 247,
+        "LUT5": 224,
+        "LUT6": 542,
+        "MUXF7": 445,
+        "MUXF8": 135
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 157,
+        "INV": 98,
+        "LUT1": 77,
+        "LUT2": 332,
+        "LUT3": 235,
+        "LUT4": 247,
+        "LUT5": 224,
+        "LUT6": 542,
+        "MUXF7": 445,
+        "MUXF8": 135
+      }
+    },
+    "arith_truncf_in_f64_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 87,
+        "INV": 52,
+        "LUT1": 40,
+        "LUT2": 251,
+        "LUT3": 260,
+        "LUT4": 168,
+        "LUT5": 183,
+        "LUT6": 518,
+        "MUXF7": 476,
+        "MUXF8": 163
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 87,
+        "INV": 52,
+        "LUT1": 40,
+        "LUT2": 251,
+        "LUT3": 260,
+        "LUT4": 168,
+        "LUT5": 183,
+        "LUT6": 518,
+        "MUXF7": 476,
+        "MUXF8": 163
+      }
+    },
+    "arith_uitofp_in_ui1_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 12,
+        "INV": 4,
+        "LUT2": 1,
+        "LUT3": 2,
+        "LUT4": 5,
+        "LUT6": 16
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 12,
+        "INV": 4,
+        "LUT2": 1,
+        "LUT3": 2,
+        "LUT4": 5,
+        "LUT6": 16
+      }
+    },
+    "handshake_buffer_in_f32_out_f32_2slots_seq": {
+      "direct_cell_counts": {
+        "FDRE": 132,
+        "LUT2": 5,
+        "LUT3": 67,
+        "LUT4": 3,
+        "LUT6": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 132,
+        "LUT2": 5,
+        "LUT3": 67,
+        "LUT4": 3,
+        "LUT6": 32
+      }
+    },
+    "handshake_buffer_in_f64_out_f64_2slots_seq": {
+      "direct_cell_counts": {
+        "FDRE": 260,
+        "LUT2": 5,
+        "LUT3": 131,
+        "LUT4": 3,
+        "LUT6": 64
+      },
+      "leaf_cell_counts": {
+        "FDRE": 260,
+        "LUT2": 5,
+        "LUT3": 131,
+        "LUT4": 3,
+        "LUT6": 64
+      }
+    },
+    "handshake_buffer_in_none_out_none_2slots_seq_1ins_1outs_ctrl": {
+      "direct_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 4,
+        "LUT3": 1,
+        "LUT4": 2
+      },
+      "leaf_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 4,
+        "LUT3": 1,
+        "LUT4": 2
+      }
+    },
+    "handshake_buffer_in_ui1_out_ui1_1slots_seq_init_0": {
+      "direct_cell_counts": {
+        "FDRE": 3,
+        "FDSE": 1,
+        "LUT2": 2,
+        "LUT3": 2,
+        "LUT4": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 3,
+        "FDSE": 1,
+        "LUT2": 2,
+        "LUT3": 2,
+        "LUT4": 1
+      }
+    },
+    "handshake_buffer_in_ui1_out_ui1_2slots_seq": {
+      "direct_cell_counts": {
+        "FDRE": 8,
+        "LUT2": 4,
+        "LUT3": 3,
+        "LUT4": 3,
+        "LUT5": 1,
+        "LUT6": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8,
+        "LUT2": 4,
+        "LUT3": 3,
+        "LUT4": 3,
+        "LUT5": 1,
+        "LUT6": 1
+      }
+    },
+    "handshake_buffer_in_ui64_out_ui64_2slots_seq": {
+      "direct_cell_counts": {
+        "FDRE": 260,
+        "LUT2": 5,
+        "LUT3": 131,
+        "LUT4": 3,
+        "LUT6": 64
+      },
+      "leaf_cell_counts": {
+        "FDRE": 260,
+        "LUT2": 5,
+        "LUT3": 131,
+        "LUT4": 3,
+        "LUT6": 64
+      }
+    },
+    "handshake_cond_br_in_ui1_f32_out_f32_f32": {
+      "direct_cell_counts": {
+        "LUT3": 2,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 2,
+        "LUT5": 1
+      }
+    },
+    "handshake_cond_br_in_ui1_f64_out_f64_f64": {
+      "direct_cell_counts": {
+        "LUT3": 2,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 2,
+        "LUT5": 1
+      }
+    },
+    "handshake_cond_br_in_ui1_none_out_none_none_2ins_2outs_ctrl": {
+      "direct_cell_counts": {
+        "LUT3": 2,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 2,
+        "LUT5": 1
+      }
+    },
+    "handshake_cond_br_in_ui1_ui64_out_ui64_ui64": {
+      "direct_cell_counts": {
+        "LUT3": 2,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 2,
+        "LUT5": 1
+      }
+    },
+    "handshake_constant_c0_in_none_out_ui0": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0x0_in_none_out_f32": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0x3EE4F8B588E368F1_in_none_out_f64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0x3F000000_in_none_out_f32": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0x3F800000_in_none_out_f32": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0x3FA6E4E26D4801F7_in_none_out_f64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0x3FE9884533D43651_in_none_out_f64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0x42800000_in_none_out_f32": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0xFF7FFFFF_in_none_out_f32": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c0xFF800000_in_none_out_f32": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c12_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c14_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c16_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c1_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c2048_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c256_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c2_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c3216448_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c3_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c4_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c50257_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c64_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c6_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_constant_c8_in_none_out_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_control_merge_in_none_none_out_none_ui64_2ins_2outs_ctrl": {
+      "direct_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 3,
+        "LUT3": 6,
+        "LUT4": 3,
+        "LUT6": 3,
+        "MUXF7": 2,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 3,
+        "LUT3": 6,
+        "LUT4": 3,
+        "LUT6": 3,
+        "MUXF7": 2,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_f32_out_f32_f32": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_fork_in_f64_out_f64_f64": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_fork_in_none_out_none_none_1ins_2outs_ctrl": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_fork_in_none_out_none_none_none_1ins_3outs_ctrl": {
+      "direct_cell_counts": {
+        "FDRE": 3,
+        "LUT2": 3,
+        "LUT3": 4,
+        "LUT6": 4,
+        "MUXF7": 4
+      },
+      "leaf_cell_counts": {
+        "FDRE": 3,
+        "LUT2": 3,
+        "LUT3": 4,
+        "LUT6": 4,
+        "MUXF7": 4
+      }
+    },
+    "handshake_fork_in_none_out_none_none_none_none_1ins_4outs_ctrl": {
+      "direct_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 4,
+        "LUT3": 3,
+        "LUT6": 5
+      },
+      "leaf_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 4,
+        "LUT3": 3,
+        "LUT6": 5
+      }
+    },
+    "handshake_fork_in_none_out_none_none_none_none_none_1ins_5outs_ctrl": {
+      "direct_cell_counts": {
+        "FDRE": 5,
+        "LUT2": 5,
+        "LUT3": 5,
+        "LUT4": 4,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 5,
+        "LUT2": 5,
+        "LUT3": 5,
+        "LUT4": 4,
+        "LUT5": 3
+      }
+    },
+    "handshake_fork_in_none_out_none_none_none_none_none_none_1ins_6outs_ctrl": {
+      "direct_cell_counts": {
+        "FDRE": 6,
+        "LUT2": 6,
+        "LUT3": 6,
+        "LUT6": 7
+      },
+      "leaf_cell_counts": {
+        "FDRE": 6,
+        "LUT2": 6,
+        "LUT3": 6,
+        "LUT6": 7
+      }
+    },
+    "handshake_fork_in_none_out_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_1ins_26outs_ctrl": {
+      "direct_cell_counts": {
+        "FDRE": 26,
+        "LUT2": 26,
+        "LUT3": 26,
+        "LUT4": 3,
+        "LUT5": 3,
+        "LUT6": 28
+      },
+      "leaf_cell_counts": {
+        "FDRE": 26,
+        "LUT2": 26,
+        "LUT3": 26,
+        "LUT4": 3,
+        "LUT5": 3,
+        "LUT6": 28
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 4,
+        "LUT3": 3,
+        "LUT6": 5
+      },
+      "leaf_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 4,
+        "LUT3": 3,
+        "LUT6": 5
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 5,
+        "LUT2": 5,
+        "LUT3": 5,
+        "LUT4": 4,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 5,
+        "LUT2": 5,
+        "LUT3": 5,
+        "LUT4": 4,
+        "LUT5": 3
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 8,
+        "LUT2": 8,
+        "LUT3": 8,
+        "LUT5": 6,
+        "LUT6": 6
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8,
+        "LUT2": 8,
+        "LUT3": 8,
+        "LUT5": 6,
+        "LUT6": 6
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 9,
+        "LUT2": 9,
+        "LUT3": 10,
+        "LUT5": 5,
+        "LUT6": 8,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 9,
+        "LUT2": 9,
+        "LUT3": 10,
+        "LUT5": 5,
+        "LUT6": 8,
+        "MUXF7": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 10,
+        "LUT2": 10,
+        "LUT3": 11,
+        "LUT5": 4,
+        "LUT6": 12,
+        "MUXF7": 15,
+        "MUXF8": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 10,
+        "LUT2": 10,
+        "LUT3": 11,
+        "LUT5": 4,
+        "LUT6": 12,
+        "MUXF7": 15,
+        "MUXF8": 3
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 11,
+        "LUT2": 11,
+        "LUT3": 12,
+        "LUT5": 2,
+        "LUT6": 13,
+        "MUXF7": 20,
+        "MUXF8": 7
+      },
+      "leaf_cell_counts": {
+        "FDRE": 11,
+        "LUT2": 11,
+        "LUT3": 12,
+        "LUT5": 2,
+        "LUT6": 13,
+        "MUXF7": 20,
+        "MUXF8": 7
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 12,
+        "LUT2": 12,
+        "LUT3": 16,
+        "LUT4": 1,
+        "LUT5": 12,
+        "LUT6": 4,
+        "MUXF7": 4
+      },
+      "leaf_cell_counts": {
+        "FDRE": 12,
+        "LUT2": 12,
+        "LUT3": 16,
+        "LUT4": 1,
+        "LUT5": 12,
+        "LUT6": 4,
+        "MUXF7": 4
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 13,
+        "LUT2": 13,
+        "LUT3": 16,
+        "LUT5": 1,
+        "LUT6": 17,
+        "MUXF7": 14
+      },
+      "leaf_cell_counts": {
+        "FDRE": 13,
+        "LUT2": 13,
+        "LUT3": 16,
+        "LUT5": 1,
+        "LUT6": 17,
+        "MUXF7": 14
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 14,
+        "LUT2": 14,
+        "LUT3": 16,
+        "LUT5": 4,
+        "LUT6": 17,
+        "MUXF7": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 14,
+        "LUT2": 14,
+        "LUT3": 16,
+        "LUT5": 4,
+        "LUT6": 17,
+        "MUXF7": 16
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 15,
+        "LUT2": 15,
+        "LUT3": 16,
+        "LUT5": 6,
+        "LUT6": 17,
+        "MUXF7": 32,
+        "MUXF8": 15
+      },
+      "leaf_cell_counts": {
+        "FDRE": 15,
+        "LUT2": 15,
+        "LUT3": 16,
+        "LUT5": 6,
+        "LUT6": 17,
+        "MUXF7": 32,
+        "MUXF8": 15
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 16,
+        "LUT2": 16,
+        "LUT4": 16,
+        "LUT5": 8,
+        "LUT6": 1,
+        "MUXF7": 2,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 16,
+        "LUT2": 16,
+        "LUT4": 16,
+        "LUT5": 8,
+        "LUT6": 1,
+        "MUXF7": 2,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 17,
+        "LUT2": 17,
+        "LUT3": 1,
+        "LUT4": 17,
+        "LUT5": 7,
+        "LUT6": 2,
+        "MUXF7": 3,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 17,
+        "LUT2": 17,
+        "LUT3": 1,
+        "LUT4": 17,
+        "LUT5": 7,
+        "LUT6": 2,
+        "MUXF7": 3,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 18,
+        "LUT2": 32,
+        "LUT3": 16,
+        "LUT4": 4,
+        "LUT5": 6,
+        "LUT6": 3,
+        "MUXF7": 4,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 18,
+        "LUT2": 32,
+        "LUT3": 16,
+        "LUT4": 4,
+        "LUT5": 6,
+        "LUT6": 3,
+        "MUXF7": 4,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 19,
+        "LUT2": 34,
+        "LUT3": 19,
+        "LUT4": 4,
+        "LUT5": 3,
+        "LUT6": 5,
+        "MUXF7": 6,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 19,
+        "LUT2": 34,
+        "LUT3": 19,
+        "LUT4": 4,
+        "LUT5": 3,
+        "LUT6": 5,
+        "MUXF7": 6,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 20,
+        "LUT2": 25,
+        "LUT3": 17,
+        "LUT4": 2,
+        "LUT5": 21,
+        "LUT6": 6,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 20,
+        "LUT2": 25,
+        "LUT3": 17,
+        "LUT4": 2,
+        "LUT5": 21,
+        "LUT6": 6,
+        "MUXF7": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 21,
+        "LUT2": 38,
+        "LUT3": 22,
+        "LUT4": 4,
+        "LUT5": 3,
+        "LUT6": 6,
+        "MUXF7": 7,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 21,
+        "LUT2": 38,
+        "LUT3": 22,
+        "LUT4": 4,
+        "LUT5": 3,
+        "LUT6": 6,
+        "MUXF7": 7,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 22,
+        "LUT2": 24,
+        "LUT3": 20,
+        "LUT4": 3,
+        "LUT5": 21,
+        "LUT6": 4,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 22,
+        "LUT2": 24,
+        "LUT3": 20,
+        "LUT4": 3,
+        "LUT5": 21,
+        "LUT6": 4,
+        "MUXF7": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 23,
+        "LUT2": 24,
+        "LUT3": 19,
+        "LUT4": 19,
+        "LUT5": 5,
+        "LUT6": 11,
+        "MUXF7": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 23,
+        "LUT2": 24,
+        "LUT3": 19,
+        "LUT4": 19,
+        "LUT5": 5,
+        "LUT6": 11,
+        "MUXF7": 3
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 24,
+        "LUT2": 24,
+        "LUT3": 20,
+        "LUT4": 19,
+        "LUT5": 4,
+        "LUT6": 8,
+        "MUXF7": 2
+      },
+      "leaf_cell_counts": {
+        "FDRE": 24,
+        "LUT2": 24,
+        "LUT3": 20,
+        "LUT4": 19,
+        "LUT5": 4,
+        "LUT6": 8,
+        "MUXF7": 2
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 25,
+        "LUT2": 29,
+        "LUT3": 22,
+        "LUT4": 2,
+        "LUT5": 27,
+        "LUT6": 8,
+        "MUXF7": 2
+      },
+      "leaf_cell_counts": {
+        "FDRE": 25,
+        "LUT2": 29,
+        "LUT3": 22,
+        "LUT4": 2,
+        "LUT5": 27,
+        "LUT6": 8,
+        "MUXF7": 2
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 26,
+        "LUT2": 26,
+        "LUT3": 26,
+        "LUT4": 3,
+        "LUT5": 3,
+        "LUT6": 28
+      },
+      "leaf_cell_counts": {
+        "FDRE": 26,
+        "LUT2": 26,
+        "LUT3": 26,
+        "LUT4": 3,
+        "LUT5": 3,
+        "LUT6": 28
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 27,
+        "LUT2": 38,
+        "LUT3": 17,
+        "LUT4": 2,
+        "LUT5": 21,
+        "LUT6": 14,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 27,
+        "LUT2": 38,
+        "LUT3": 17,
+        "LUT4": 2,
+        "LUT5": 21,
+        "LUT6": 14,
+        "MUXF7": 1
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 28,
+        "LUT2": 28,
+        "LUT3": 29,
+        "LUT4": 5,
+        "LUT5": 4,
+        "LUT6": 32,
+        "MUXF7": 4
+      },
+      "leaf_cell_counts": {
+        "FDRE": 28,
+        "LUT2": 28,
+        "LUT3": 29,
+        "LUT4": 5,
+        "LUT5": 4,
+        "LUT6": 32,
+        "MUXF7": 4
+      }
+    },
+    "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": {
+      "direct_cell_counts": {
+        "FDRE": 29,
+        "LUT2": 29,
+        "LUT3": 29,
+        "LUT4": 4,
+        "LUT5": 2,
+        "LUT6": 35,
+        "MUXF7": 4
+      },
+      "leaf_cell_counts": {
+        "FDRE": 29,
+        "LUT2": 29,
+        "LUT3": 29,
+        "LUT4": 4,
+        "LUT5": 2,
+        "LUT6": 35,
+        "MUXF7": 4
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 3,
+        "LUT2": 3,
+        "LUT3": 4,
+        "LUT6": 4,
+        "MUXF7": 4
+      },
+      "leaf_cell_counts": {
+        "FDRE": 3,
+        "LUT2": 3,
+        "LUT3": 4,
+        "LUT6": 4,
+        "MUXF7": 4
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 4,
+        "LUT3": 3,
+        "LUT6": 5
+      },
+      "leaf_cell_counts": {
+        "FDRE": 4,
+        "LUT2": 4,
+        "LUT3": 3,
+        "LUT6": 5
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 5,
+        "LUT2": 5,
+        "LUT3": 5,
+        "LUT4": 4,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 5,
+        "LUT2": 5,
+        "LUT3": 5,
+        "LUT4": 4,
+        "LUT5": 3
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 8,
+        "LUT2": 8,
+        "LUT3": 8,
+        "LUT5": 6,
+        "LUT6": 6
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8,
+        "LUT2": 8,
+        "LUT3": 8,
+        "LUT5": 6,
+        "LUT6": 6
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 9,
+        "LUT2": 9,
+        "LUT3": 10,
+        "LUT5": 5,
+        "LUT6": 8,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 9,
+        "LUT2": 9,
+        "LUT3": 10,
+        "LUT5": 5,
+        "LUT6": 8,
+        "MUXF7": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 10,
+        "LUT2": 10,
+        "LUT3": 11,
+        "LUT5": 4,
+        "LUT6": 12,
+        "MUXF7": 15,
+        "MUXF8": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 10,
+        "LUT2": 10,
+        "LUT3": 11,
+        "LUT5": 4,
+        "LUT6": 12,
+        "MUXF7": 15,
+        "MUXF8": 3
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 11,
+        "LUT2": 11,
+        "LUT3": 12,
+        "LUT5": 2,
+        "LUT6": 13,
+        "MUXF7": 20,
+        "MUXF8": 7
+      },
+      "leaf_cell_counts": {
+        "FDRE": 11,
+        "LUT2": 11,
+        "LUT3": 12,
+        "LUT5": 2,
+        "LUT6": 13,
+        "MUXF7": 20,
+        "MUXF8": 7
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 12,
+        "LUT2": 12,
+        "LUT3": 16,
+        "LUT4": 1,
+        "LUT5": 12,
+        "LUT6": 4,
+        "MUXF7": 4
+      },
+      "leaf_cell_counts": {
+        "FDRE": 12,
+        "LUT2": 12,
+        "LUT3": 16,
+        "LUT4": 1,
+        "LUT5": 12,
+        "LUT6": 4,
+        "MUXF7": 4
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 14,
+        "LUT2": 14,
+        "LUT3": 16,
+        "LUT5": 4,
+        "LUT6": 17,
+        "MUXF7": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 14,
+        "LUT2": 14,
+        "LUT3": 16,
+        "LUT5": 4,
+        "LUT6": 17,
+        "MUXF7": 16
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 15,
+        "LUT2": 15,
+        "LUT3": 16,
+        "LUT5": 6,
+        "LUT6": 17,
+        "MUXF7": 32,
+        "MUXF8": 15
+      },
+      "leaf_cell_counts": {
+        "FDRE": 15,
+        "LUT2": 15,
+        "LUT3": 16,
+        "LUT5": 6,
+        "LUT6": 17,
+        "MUXF7": 32,
+        "MUXF8": 15
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 16,
+        "LUT2": 16,
+        "LUT4": 16,
+        "LUT5": 8,
+        "LUT6": 1,
+        "MUXF7": 2,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 16,
+        "LUT2": 16,
+        "LUT4": 16,
+        "LUT5": 8,
+        "LUT6": 1,
+        "MUXF7": 2,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 17,
+        "LUT2": 17,
+        "LUT3": 1,
+        "LUT4": 17,
+        "LUT5": 7,
+        "LUT6": 2,
+        "MUXF7": 3,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 17,
+        "LUT2": 17,
+        "LUT3": 1,
+        "LUT4": 17,
+        "LUT5": 7,
+        "LUT6": 2,
+        "MUXF7": 3,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 18,
+        "LUT2": 32,
+        "LUT3": 16,
+        "LUT4": 4,
+        "LUT5": 6,
+        "LUT6": 3,
+        "MUXF7": 4,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 18,
+        "LUT2": 32,
+        "LUT3": 16,
+        "LUT4": 4,
+        "LUT5": 6,
+        "LUT6": 3,
+        "MUXF7": 4,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 19,
+        "LUT2": 34,
+        "LUT3": 19,
+        "LUT4": 4,
+        "LUT5": 3,
+        "LUT6": 5,
+        "MUXF7": 6,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 19,
+        "LUT2": 34,
+        "LUT3": 19,
+        "LUT4": 4,
+        "LUT5": 3,
+        "LUT6": 5,
+        "MUXF7": 6,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 20,
+        "LUT2": 25,
+        "LUT3": 17,
+        "LUT4": 2,
+        "LUT5": 21,
+        "LUT6": 6,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 20,
+        "LUT2": 25,
+        "LUT3": 17,
+        "LUT4": 2,
+        "LUT5": 21,
+        "LUT6": 6,
+        "MUXF7": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 21,
+        "LUT2": 38,
+        "LUT3": 22,
+        "LUT4": 4,
+        "LUT5": 3,
+        "LUT6": 6,
+        "MUXF7": 7,
+        "MUXF8": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 21,
+        "LUT2": 38,
+        "LUT3": 22,
+        "LUT4": 4,
+        "LUT5": 3,
+        "LUT6": 6,
+        "MUXF7": 7,
+        "MUXF8": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 22,
+        "LUT2": 24,
+        "LUT3": 20,
+        "LUT4": 3,
+        "LUT5": 21,
+        "LUT6": 4,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 22,
+        "LUT2": 24,
+        "LUT3": 20,
+        "LUT4": 3,
+        "LUT5": 21,
+        "LUT6": 4,
+        "MUXF7": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 23,
+        "LUT2": 24,
+        "LUT3": 19,
+        "LUT4": 19,
+        "LUT5": 5,
+        "LUT6": 11,
+        "MUXF7": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 23,
+        "LUT2": 24,
+        "LUT3": 19,
+        "LUT4": 19,
+        "LUT5": 5,
+        "LUT6": 11,
+        "MUXF7": 3
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 24,
+        "LUT2": 24,
+        "LUT3": 20,
+        "LUT4": 19,
+        "LUT5": 4,
+        "LUT6": 8,
+        "MUXF7": 2
+      },
+      "leaf_cell_counts": {
+        "FDRE": 24,
+        "LUT2": 24,
+        "LUT3": 20,
+        "LUT4": 19,
+        "LUT5": 4,
+        "LUT6": 8,
+        "MUXF7": 2
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 25,
+        "LUT2": 29,
+        "LUT3": 22,
+        "LUT4": 2,
+        "LUT5": 27,
+        "LUT6": 8,
+        "MUXF7": 2
+      },
+      "leaf_cell_counts": {
+        "FDRE": 25,
+        "LUT2": 29,
+        "LUT3": 22,
+        "LUT4": 2,
+        "LUT5": 27,
+        "LUT6": 8,
+        "MUXF7": 2
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 26,
+        "LUT2": 26,
+        "LUT3": 26,
+        "LUT4": 3,
+        "LUT5": 3,
+        "LUT6": 28
+      },
+      "leaf_cell_counts": {
+        "FDRE": 26,
+        "LUT2": 26,
+        "LUT3": 26,
+        "LUT4": 3,
+        "LUT5": 3,
+        "LUT6": 28
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 27,
+        "LUT2": 38,
+        "LUT3": 17,
+        "LUT4": 2,
+        "LUT5": 21,
+        "LUT6": 14,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "FDRE": 27,
+        "LUT2": 38,
+        "LUT3": 17,
+        "LUT4": 2,
+        "LUT5": 21,
+        "LUT6": 14,
+        "MUXF7": 1
+      }
+    },
+    "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": {
+      "direct_cell_counts": {
+        "FDRE": 28,
+        "LUT2": 28,
+        "LUT3": 29,
+        "LUT4": 5,
+        "LUT5": 4,
+        "LUT6": 32,
+        "MUXF7": 4
+      },
+      "leaf_cell_counts": {
+        "FDRE": 28,
+        "LUT2": 28,
+        "LUT3": 29,
+        "LUT4": 5,
+        "LUT5": 4,
+        "LUT6": 32,
+        "MUXF7": 4
+      }
+    },
+    "handshake_join_in_none_none_none_none_none_none_out_none_6ins_1outs_ctrl": {
+      "direct_cell_counts": {
+        "LUT6": 2,
+        "MUXF7": 1
+      },
+      "leaf_cell_counts": {
+        "LUT6": 2,
+        "MUXF7": 1
+      }
+    },
+    "handshake_join_in_none_none_none_none_none_out_none_5ins_1outs_ctrl": {
+      "direct_cell_counts": {
+        "LUT5": 1,
+        "LUT6": 1
+      },
+      "leaf_cell_counts": {
+        "LUT5": 1,
+        "LUT6": 1
+      }
+    },
+    "handshake_join_in_none_none_none_none_out_none_4ins_1outs_ctrl": {
+      "direct_cell_counts": {
+        "LUT4": 1,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT4": 1,
+        "LUT5": 1
+      }
+    },
+    "handshake_join_in_none_none_none_out_none_3ins_1outs_ctrl": {
+      "direct_cell_counts": {
+        "LUT3": 1,
+        "LUT4": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 1,
+        "LUT4": 1
+      }
+    },
+    "handshake_join_in_none_none_out_none_2ins_1outs_ctrl": {
+      "direct_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      }
+    },
+    "handshake_join_in_ui64_out_none_1ins_1outs_ctrl": {
+      "direct_cell_counts": {
+        "LUT2": 1
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1
+      }
+    },
+    "handshake_load_in_ui64_f32_none_out_f32_ui64": {
+      "direct_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      }
+    },
+    "handshake_load_in_ui64_ui1_none_out_ui1_ui64": {
+      "direct_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      }
+    },
+    "handshake_load_in_ui64_ui64_none_out_ui64_ui64": {
+      "direct_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      }
+    },
+    "handshake_memory_out_f32_id101": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id102": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id103": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id104": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id105": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id106": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id107": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id108": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id109": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id110": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id111": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id112": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id112": 1
+      }
+    },
+    "handshake_memory_out_f32_id113": {
+      "direct_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id114": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id115": {
+      "direct_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      }
+    },
+    "handshake_memory_out_f32_id116": {
+      "direct_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      }
+    },
+    "handshake_memory_out_f32_id117": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id117": 1
+      }
+    },
+    "handshake_memory_out_f32_id118": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id119": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id120": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id121": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id122": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id123": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id124": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id125": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id126": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id127": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id128": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id129": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id130": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id131": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id132": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id133": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id135": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id136": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id138": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id139": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id140": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id141": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id142": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id143": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id144": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id145": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id146": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id147": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id148": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id149": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id149": 1
+      }
+    },
+    "handshake_memory_out_f32_id150": {
+      "direct_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id151": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id152": {
+      "direct_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      }
+    },
+    "handshake_memory_out_f32_id153": {
+      "direct_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      }
+    },
+    "handshake_memory_out_f32_id154": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id154": 1
+      }
+    },
+    "handshake_memory_out_f32_id155": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id156": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id157": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id158": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id159": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id160": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id161": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id162": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id163": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id164": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id165": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id166": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id167": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id168": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id169": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id170": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id172": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id173": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id175": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id176": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id177": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id178": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id179": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id18": 1
+      }
+    },
+    "handshake_memory_out_f32_id180": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id181": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id182": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id183": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id184": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id185": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id186": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id186": 1
+      }
+    },
+    "handshake_memory_out_f32_id187": {
+      "direct_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id188": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id189": {
+      "direct_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      }
+    },
+    "handshake_memory_out_f32_id19": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id190": {
+      "direct_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      }
+    },
+    "handshake_memory_out_f32_id191": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id191": 1
+      }
+    },
+    "handshake_memory_out_f32_id192": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id193": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id194": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id195": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id196": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id197": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id198": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id199": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id200": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id201": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id202": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id203": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id204": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id205": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id206": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id207": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id209": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id21": {
+      "direct_cell_counts": {
+        "FDRE": 68,
+        "LUT2": 6,
+        "LUT3": 32,
+        "LUT4": 2,
+        "LUT5": 3,
+        "LUT6": 66,
+        "MUXF7": 2
+      },
+      "leaf_cell_counts": {
+        "FDRE": 68,
+        "LUT2": 6,
+        "LUT3": 32,
+        "LUT4": 2,
+        "LUT5": 3,
+        "LUT6": 66,
+        "MUXF7": 2
+      }
+    },
+    "handshake_memory_out_f32_id210": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id212": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id213": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id214": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id215": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id216": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id217": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id218": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id219": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id220": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id221": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id222": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id223": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id223": 1
+      }
+    },
+    "handshake_memory_out_f32_id224": {
+      "direct_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id225": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id226": {
+      "direct_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      }
+    },
+    "handshake_memory_out_f32_id227": {
+      "direct_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      }
+    },
+    "handshake_memory_out_f32_id228": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id228": 1
+      }
+    },
+    "handshake_memory_out_f32_id229": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id230": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id231": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id232": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id233": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id234": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id235": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id236": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id237": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id238": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id239": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id24": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id24": 1
+      }
+    },
+    "handshake_memory_out_f32_id240": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id241": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id242": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id243": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id244": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id246": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id247": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id249": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id25": {
+      "direct_cell_counts": {
+        "FDRE": 2437,
+        "LUT1": 11030,
+        "LUT2": 48420,
+        "LUT3": 88857,
+        "LUT4": 10657,
+        "LUT5": 52679,
+        "LUT6": 129281,
+        "MUXF7": 33963,
+        "MUXF8": 9290
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2437,
+        "LUT1": 11030,
+        "LUT2": 48420,
+        "LUT3": 88857,
+        "LUT4": 10657,
+        "LUT5": 52679,
+        "LUT6": 129281,
+        "MUXF7": 33963,
+        "MUXF8": 9290
+      }
+    },
+    "handshake_memory_out_f32_id250": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id251": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id252": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id253": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id254": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id255": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id256": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id257": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id258": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id259": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id26": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id260": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id260": 1
+      }
+    },
+    "handshake_memory_out_f32_id261": {
+      "direct_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id262": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id263": {
+      "direct_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      }
+    },
+    "handshake_memory_out_f32_id264": {
+      "direct_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      }
+    },
+    "handshake_memory_out_f32_id265": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id265": 1
+      }
+    },
+    "handshake_memory_out_f32_id266": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id267": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id268": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id269": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id27": {
+      "direct_cell_counts": {
+        "FDRE": 104,
+        "LUT2": 74,
+        "LUT4": 2,
+        "LUT5": 138
+      },
+      "leaf_cell_counts": {
+        "FDRE": 104,
+        "LUT2": 74,
+        "LUT4": 2,
+        "LUT5": 138
+      }
+    },
+    "handshake_memory_out_f32_id270": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id271": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id272": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id273": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id274": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id275": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id276": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id277": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id278": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id279": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id28": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id280": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id281": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id283": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id284": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id286": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id287": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id288": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id289": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id29": {
+      "direct_cell_counts": {
+        "FDRE": 236,
+        "LUT1": 346,
+        "LUT2": 899,
+        "LUT3": 1554,
+        "LUT4": 153,
+        "LUT5": 33,
+        "LUT6": 507,
+        "MUXF7": 695,
+        "MUXF8": 312
+      },
+      "leaf_cell_counts": {
+        "FDRE": 236,
+        "LUT1": 346,
+        "LUT2": 899,
+        "LUT3": 1554,
+        "LUT4": 153,
+        "LUT5": 33,
+        "LUT6": 507,
+        "MUXF7": 695,
+        "MUXF8": 312
+      }
+    },
+    "handshake_memory_out_f32_id290": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id291": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id292": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id293": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id294": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id295": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id296": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id297": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id297": 1
+      }
+    },
+    "handshake_memory_out_f32_id298": {
+      "direct_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id299": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id30": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id300": {
+      "direct_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      }
+    },
+    "handshake_memory_out_f32_id301": {
+      "direct_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      }
+    },
+    "handshake_memory_out_f32_id302": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id302": 1
+      }
+    },
+    "handshake_memory_out_f32_id303": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id304": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id305": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id306": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id307": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id308": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id309": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id31": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id310": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id311": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id312": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id313": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id314": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id315": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id316": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id317": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id319": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id32": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id320": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id321": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id322": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id323": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id324": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id325": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id326": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id327": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id328": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id329": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id329": 1
+      }
+    },
+    "handshake_memory_out_f32_id33": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id330": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id331": {
+      "direct_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      }
+    },
+    "handshake_memory_out_f32_id332": {
+      "direct_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      }
+    },
+    "handshake_memory_out_f32_id333": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id333": 1
+      }
+    },
+    "handshake_memory_out_f32_id334": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id335": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id336": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id337": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id338": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id339": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id34": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id340": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id340": 1
+      }
+    },
+    "handshake_memory_out_f32_id341": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id341": 1
+      }
+    },
+    "handshake_memory_out_f32_id342": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id342": 1
+      }
+    },
+    "handshake_memory_out_f32_id343": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id343": 1
+      }
+    },
+    "handshake_memory_out_f32_id35": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id35": 1
+      }
+    },
+    "handshake_memory_out_f32_id36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id36": 1
+      }
+    },
+    "handshake_memory_out_f32_id37": {
+      "direct_cell_counts": {
+        "FDRE": 2132,
+        "LUT1": 128,
+        "LUT2": 1483,
+        "LUT3": 547,
+        "LUT4": 9485,
+        "LUT5": 387,
+        "LUT6": 22925,
+        "MUXF7": 7108,
+        "MUXF8": 329
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2132,
+        "LUT1": 128,
+        "LUT2": 1483,
+        "LUT3": 547,
+        "LUT4": 9485,
+        "LUT5": 387,
+        "LUT6": 22925,
+        "MUXF7": 7108,
+        "MUXF8": 329
+      }
+    },
+    "handshake_memory_out_f32_id38": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id39": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id39": 1
+      }
+    },
+    "handshake_memory_out_f32_id40": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id41": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id41": 1
+      }
+    },
+    "handshake_memory_out_f32_id42": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id43": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id44": {
+      "direct_cell_counts": {
+        "FDRE": 2072,
+        "LUT1": 1261,
+        "LUT2": 1417,
+        "LUT3": 5569,
+        "LUT4": 1716,
+        "LUT5": 2574,
+        "LUT6": 8460,
+        "MUXF7": 3178,
+        "MUXF8": 910
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2072,
+        "LUT1": 1261,
+        "LUT2": 1417,
+        "LUT3": 5569,
+        "LUT4": 1716,
+        "LUT5": 2574,
+        "LUT6": 8460,
+        "MUXF7": 3178,
+        "MUXF8": 910
+      }
+    },
+    "handshake_memory_out_f32_id45": {
+      "direct_cell_counts": {
+        "FDRE": 2072,
+        "LUT1": 1261,
+        "LUT2": 1417,
+        "LUT3": 5569,
+        "LUT4": 1716,
+        "LUT5": 2574,
+        "LUT6": 8460,
+        "MUXF7": 3178,
+        "MUXF8": 910
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2072,
+        "LUT1": 1261,
+        "LUT2": 1417,
+        "LUT3": 5569,
+        "LUT4": 1716,
+        "LUT5": 2574,
+        "LUT6": 8460,
+        "MUXF7": 3178,
+        "MUXF8": 910
+      }
+    },
+    "handshake_memory_out_f32_id46": {
+      "direct_cell_counts": {
+        "FDRE": 532,
+        "LUT2": 53,
+        "LUT3": 717,
+        "LUT4": 194,
+        "LUT5": 6,
+        "LUT6": 1722,
+        "MUXF7": 294
+      },
+      "leaf_cell_counts": {
+        "FDRE": 532,
+        "LUT2": 53,
+        "LUT3": 717,
+        "LUT4": 194,
+        "LUT5": 6,
+        "LUT6": 1722,
+        "MUXF7": 294
+      }
+    },
+    "handshake_memory_out_f32_id47": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id49": {
+      "direct_cell_counts": {
+        "FDRE": 664,
+        "LUT1": 1546,
+        "LUT2": 3424,
+        "LUT3": 7788,
+        "LUT4": 684,
+        "LUT5": 4838,
+        "LUT6": 11887,
+        "MUXF7": 3760,
+        "MUXF8": 1185
+      },
+      "leaf_cell_counts": {
+        "FDRE": 664,
+        "LUT1": 1546,
+        "LUT2": 3424,
+        "LUT3": 7788,
+        "LUT4": 684,
+        "LUT5": 4838,
+        "LUT6": 11887,
+        "MUXF7": 3760,
+        "MUXF8": 1185
+      }
+    },
+    "handshake_memory_out_f32_id50": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id52": {
+      "direct_cell_counts": {
+        "FDRE": 532,
+        "LUT2": 53,
+        "LUT3": 717,
+        "LUT4": 194,
+        "LUT5": 6,
+        "LUT6": 1722,
+        "MUXF7": 294
+      },
+      "leaf_cell_counts": {
+        "FDRE": 532,
+        "LUT2": 53,
+        "LUT3": 717,
+        "LUT4": 194,
+        "LUT5": 6,
+        "LUT6": 1722,
+        "MUXF7": 294
+      }
+    },
+    "handshake_memory_out_f32_id53": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id55": {
+      "direct_cell_counts": {
+        "FDRE": 532,
+        "LUT2": 53,
+        "LUT3": 717,
+        "LUT4": 194,
+        "LUT5": 6,
+        "LUT6": 1722,
+        "MUXF7": 294
+      },
+      "leaf_cell_counts": {
+        "FDRE": 532,
+        "LUT2": 53,
+        "LUT3": 717,
+        "LUT4": 194,
+        "LUT5": 6,
+        "LUT6": 1722,
+        "MUXF7": 294
+      }
+    },
+    "handshake_memory_out_f32_id56": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id57": {
+      "direct_cell_counts": {
+        "FDRE": 2068,
+        "LUT1": 20,
+        "LUT2": 386,
+        "LUT3": 119,
+        "LUT4": 3650,
+        "LUT5": 86,
+        "LUT6": 5101,
+        "MUXF7": 1519,
+        "MUXF8": 83
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2068,
+        "LUT1": 20,
+        "LUT2": 386,
+        "LUT3": 119,
+        "LUT4": 3650,
+        "LUT5": 86,
+        "LUT6": 5101,
+        "MUXF7": 1519,
+        "MUXF8": 83
+      }
+    },
+    "handshake_memory_out_f32_id58": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id59": {
+      "direct_cell_counts": {
+        "FDRE": 2072,
+        "LUT1": 1261,
+        "LUT2": 1417,
+        "LUT3": 5569,
+        "LUT4": 1716,
+        "LUT5": 2574,
+        "LUT6": 8460,
+        "MUXF7": 3178,
+        "MUXF8": 910
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2072,
+        "LUT1": 1261,
+        "LUT2": 1417,
+        "LUT3": 5569,
+        "LUT4": 1716,
+        "LUT5": 2574,
+        "LUT6": 8460,
+        "MUXF7": 3178,
+        "MUXF8": 910
+      }
+    },
+    "handshake_memory_out_f32_id60": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id60": 1
+      }
+    },
+    "handshake_memory_out_f32_id61": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id62": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id63": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id64": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id65": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id66": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id67": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id68": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id69": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id69": 1
+      }
+    },
+    "handshake_memory_out_f32_id70": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id70": 1
+      }
+    },
+    "handshake_memory_out_f32_id71": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id71": 1
+      }
+    },
+    "handshake_memory_out_f32_id72": {
+      "direct_cell_counts": {
+        "FDRE": 8212,
+        "LUT1": 76,
+        "LUT2": 724,
+        "LUT3": 9298,
+        "LUT4": 10272,
+        "LUT5": 588,
+        "LUT6": 26498,
+        "MUXF7": 10794,
+        "MUXF8": 163
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8212,
+        "LUT1": 76,
+        "LUT2": 724,
+        "LUT3": 9298,
+        "LUT4": 10272,
+        "LUT5": 588,
+        "LUT6": 26498,
+        "MUXF7": 10794,
+        "MUXF8": 163
+      }
+    },
+    "handshake_memory_out_f32_id73": {
+      "direct_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8198,
+        "LUT1": 16,
+        "LUT2": 392,
+        "LUT3": 8604,
+        "LUT4": 2272,
+        "LUT5": 136,
+        "LUT6": 12297,
+        "MUXF7": 2342,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id74": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id75": {
+      "direct_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8199,
+        "LUT1": 33,
+        "LUT2": 406,
+        "LUT3": 269,
+        "LUT4": 3407,
+        "LUT5": 216,
+        "LUT6": 6103,
+        "MUXF7": 3554,
+        "MUXF8": 53
+      }
+    },
+    "handshake_memory_out_f32_id76": {
+      "direct_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8195,
+        "LUT1": 7,
+        "LUT2": 345,
+        "LUT3": 97,
+        "LUT4": 1089,
+        "LUT5": 56,
+        "LUT6": 2076,
+        "MUXF7": 1142,
+        "MUXF8": 25
+      }
+    },
+    "handshake_memory_out_f32_id77": {
+      "direct_cell_counts": {
+        "FDRE": 8360,
+        "LUT1": 153214,
+        "LUT2": 73403,
+        "LUT3": 73991,
+        "LUT4": 37184,
+        "LUT5": 102925,
+        "LUT6": 190355,
+        "MUXF7": 186172,
+        "MUXF8": 69766
+      },
+      "leaf_cell_counts": {
+        "FDRE": 8360,
+        "LUT1": 153214,
+        "LUT2": 73403,
+        "LUT3": 73991,
+        "LUT4": 37184,
+        "LUT5": 102925,
+        "LUT6": 190355,
+        "MUXF7": 186172,
+        "MUXF8": 69766
+      }
+    },
+    "handshake_memory_out_f32_id78": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id78": 1
+      }
+    },
+    "handshake_memory_out_f32_id79": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id79": 1
+      }
+    },
+    "handshake_memory_out_f32_id80": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id80": 1
+      }
+    },
+    "handshake_memory_out_f32_id81": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id82": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id83": {
+      "direct_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2055,
+        "LUT1": 24,
+        "LUT2": 199,
+        "LUT3": 39,
+        "LUT4": 493,
+        "LUT5": 38,
+        "LUT6": 1690,
+        "MUXF7": 457,
+        "MUXF8": 32
+      }
+    },
+    "handshake_memory_out_f32_id84": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id85": {
+      "direct_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2053,
+        "LUT1": 2,
+        "LUT2": 152,
+        "LUT3": 24,
+        "LUT4": 383,
+        "LUT5": 27,
+        "LUT6": 1107,
+        "MUXF7": 374,
+        "MUXF8": 16
+      }
+    },
+    "handshake_memory_out_f32_id86": {
+      "direct_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      },
+      "leaf_cell_counts": {
+        "FDRE": 38,
+        "LUT2": 8,
+        "LUT4": 2,
+        "LUT5": 39
+      }
+    },
+    "handshake_memory_out_f32_id87": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id88": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id89": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id89": 1
+      }
+    },
+    "handshake_memory_out_f32_id90": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id91": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id91": 1
+      }
+    },
+    "handshake_memory_out_f32_id92": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id93": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "handshake_memory_out_f32_id93": 1
+      }
+    },
+    "handshake_memory_out_f32_id94": {
+      "direct_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2054,
+        "LUT2": 65,
+        "LUT3": 10,
+        "LUT4": 2311,
+        "LUT5": 31,
+        "LUT6": 1249,
+        "MUXF7": 249,
+        "MUXF8": 9
+      }
+    },
+    "handshake_memory_out_f32_id95": {
+      "direct_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2051,
+        "LUT1": 3,
+        "LUT2": 121,
+        "LUT3": 17,
+        "LUT4": 178,
+        "LUT5": 18,
+        "LUT6": 555,
+        "MUXF7": 172,
+        "MUXF8": 10
+      }
+    },
+    "handshake_memory_out_f32_id96": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_f32_id98": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_f32_id99": {
+      "direct_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      },
+      "leaf_cell_counts": {
+        "FDRE": 518,
+        "LUT2": 18,
+        "LUT3": 579,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 738,
+        "MUXF7": 84
+      }
+    },
+    "handshake_memory_out_ui1_id134": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui1_id171": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui1_id208": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui1_id23": {
+      "direct_cell_counts": {
+        "FDRE": 5,
+        "LUT2": 4,
+        "LUT3": 1,
+        "LUT4": 3,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 5,
+        "LUT2": 4,
+        "LUT3": 1,
+        "LUT4": 3,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui1_id245": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui1_id282": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui1_id318": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui1_id48": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui1_id97": {
+      "direct_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 2,
+        "LUT2": 2,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui64_id100": {
+      "direct_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      },
+      "leaf_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      }
+    },
+    "handshake_memory_out_ui64_id137": {
+      "direct_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      },
+      "leaf_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      }
+    },
+    "handshake_memory_out_ui64_id174": {
+      "direct_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      },
+      "leaf_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      }
+    },
+    "handshake_memory_out_ui64_id20": {
+      "direct_cell_counts": {
+        "FDRE": 69,
+        "LUT2": 6,
+        "LUT3": 1,
+        "LUT4": 1,
+        "LUT5": 6
+      },
+      "leaf_cell_counts": {
+        "FDRE": 69,
+        "LUT2": 6,
+        "LUT3": 1,
+        "LUT4": 1,
+        "LUT5": 6
+      }
+    },
+    "handshake_memory_out_ui64_id211": {
+      "direct_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      },
+      "leaf_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      }
+    },
+    "handshake_memory_out_ui64_id22": {
+      "direct_cell_counts": {
+        "FDRE": 131,
+        "LUT2": 4,
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 3
+      },
+      "leaf_cell_counts": {
+        "FDRE": 131,
+        "LUT2": 4,
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 3
+      }
+    },
+    "handshake_memory_out_ui64_id248": {
+      "direct_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      },
+      "leaf_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      }
+    },
+    "handshake_memory_out_ui64_id285": {
+      "direct_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      },
+      "leaf_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      }
+    },
+    "handshake_memory_out_ui64_id51": {
+      "direct_cell_counts": {
+        "FDRE": 1042,
+        "LUT2": 48,
+        "LUT3": 1349,
+        "LUT4": 384,
+        "LUT5": 6,
+        "LUT6": 3134,
+        "MUXF7": 545
+      },
+      "leaf_cell_counts": {
+        "FDRE": 1042,
+        "LUT2": 48,
+        "LUT3": 1349,
+        "LUT4": 384,
+        "LUT5": 6,
+        "LUT6": 3134,
+        "MUXF7": 545
+      }
+    },
+    "handshake_memory_out_ui64_id54": {
+      "direct_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      },
+      "leaf_cell_counts": {
+        "FDRE": 1028,
+        "LUT2": 13,
+        "LUT3": 1065,
+        "LUT4": 46,
+        "LUT5": 6,
+        "LUT6": 1198,
+        "MUXF7": 72
+      }
+    },
+    "handshake_mux_in_ui1_f32_f32_out_f32": {
+      "direct_cell_counts": {
+        "LUT3": 32,
+        "LUT4": 3,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 32,
+        "LUT4": 3,
+        "LUT5": 1
+      }
+    },
+    "handshake_mux_in_ui1_f64_f64_out_f64": {
+      "direct_cell_counts": {
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 1
+      }
+    },
+    "handshake_mux_in_ui1_none_none_out_none_3ins_1outs_ctrl": {
+      "direct_cell_counts": {
+        "LUT4": 3,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT4": 3,
+        "LUT5": 1
+      }
+    },
+    "handshake_mux_in_ui1_ui64_ui64_out_ui64": {
+      "direct_cell_counts": {
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 1
+      }
+    },
+    "handshake_mux_in_ui64_f32_f32_out_f32": {
+      "direct_cell_counts": {
+        "LUT3": 32,
+        "LUT4": 3,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 32,
+        "LUT4": 3,
+        "LUT5": 1
+      }
+    },
+    "handshake_mux_in_ui64_f64_f64_out_f64": {
+      "direct_cell_counts": {
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 1
+      }
+    },
+    "handshake_mux_in_ui64_ui64_ui64_out_ui64": {
+      "direct_cell_counts": {
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 64,
+        "LUT4": 3,
+        "LUT5": 1
+      }
+    },
+    "handshake_sink_in_f32": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_sink_in_f64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_sink_in_ui64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {}
+    },
+    "handshake_store_in_ui64_f32_none_out_f32_ui64": {
+      "direct_cell_counts": {
+        "LUT3": 1,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 1,
+        "LUT5": 1
+      }
+    },
+    "handshake_store_in_ui64_ui1_none_out_ui1_ui64": {
+      "direct_cell_counts": {
+        "LUT3": 1,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 1,
+        "LUT5": 1
+      }
+    },
+    "handshake_store_in_ui64_ui64_none_out_ui64_ui64": {
+      "direct_cell_counts": {
+        "LUT3": 1,
+        "LUT5": 1
+      },
+      "leaf_cell_counts": {
+        "LUT3": 1,
+        "LUT5": 1
+      }
+    },
+    "hw_struct_create_in_ui16_f32_out_struct_address_ui16_data_f32": {
+      "direct_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1,
+        "LUT3": 1
+      }
+    },
+    "main": {
+      "direct_cell_counts": {
+        "arith_addf_in_f32_f32_out_f32": 206,
+        "arith_addi_in_ui64_ui64_out_ui64": 3704,
+        "arith_cmpf_in_f32_f32_out_ui1_ogt": 8,
+        "arith_cmpi_in_ui64_ui64_out_ui1_sge": 2,
+        "arith_cmpi_in_ui64_ui64_out_ui1_sgt": 1,
+        "arith_cmpi_in_ui64_ui64_out_ui1_slt": 1961,
+        "arith_divf_in_f32_f32_out_f32": 42,
+        "arith_index_cast_in_ui64_out_ui16": 1,
+        "arith_index_cast_in_ui64_out_ui64": 3,
+        "arith_maximumf_in_f32_f32_out_f32": 8,
+        "arith_mulf_in_f32_f32_out_f32": 149,
+        "arith_muli_in_ui64_ui64_out_ui64": 10,
+        "arith_select_in_ui1_f32_f32_out_f32": 8,
+        "arith_select_in_ui1_ui64_ui64_out_ui64": 8,
+        "arith_shli_in_ui64_ui64_out_ui64": 1249,
+        "arith_subf_in_f32_f32_out_f32": 25,
+        "arith_truncf_in_f64_out_f32": 33,
+        "arith_uitofp_in_ui1_out_f32": 1,
+        "handshake_buffer_in_f32_out_f32_2slots_seq": 50929,
+        "handshake_buffer_in_f64_out_f64_2slots_seq": 28455,
+        "handshake_buffer_in_none_out_none_2slots_seq_1ins_1outs_ctrl": 13640,
+        "handshake_buffer_in_ui1_out_ui1_1slots_seq_init_0": 675,
+        "handshake_buffer_in_ui1_out_ui1_2slots_seq": 1991,
+        "handshake_buffer_in_ui64_out_ui64_2slots_seq": 168260,
+        "handshake_cond_br_in_ui1_f32_out_f32_f32": 9537,
+        "handshake_cond_br_in_ui1_f64_out_f64_f64": 5691,
+        "handshake_cond_br_in_ui1_none_out_none_none_2ins_2outs_ctrl": 1959,
+        "handshake_cond_br_in_ui1_ui64_out_ui64_ui64": 32422,
+        "handshake_constant_c0_in_none_out_ui0": 1,
+        "handshake_constant_c0_in_none_out_ui64": 2,
+        "handshake_constant_c0x0_in_none_out_f32": 1,
+        "handshake_constant_c0x3EE4F8B588E368F1_in_none_out_f64": 1,
+        "handshake_constant_c0x3F000000_in_none_out_f32": 1,
+        "handshake_constant_c0x3F800000_in_none_out_f32": 1,
+        "handshake_constant_c0x3FA6E4E26D4801F7_in_none_out_f64": 1,
+        "handshake_constant_c0x3FE9884533D43651_in_none_out_f64": 1,
+        "handshake_constant_c0x42800000_in_none_out_f32": 1,
+        "handshake_constant_c0xFF7FFFFF_in_none_out_f32": 1,
+        "handshake_constant_c0xFF800000_in_none_out_f32": 1,
+        "handshake_constant_c12_in_none_out_ui64": 1,
+        "handshake_constant_c14_in_none_out_ui64": 1,
+        "handshake_constant_c16_in_none_out_ui64": 1,
+        "handshake_constant_c1_in_none_out_ui64": 1,
+        "handshake_constant_c2048_in_none_out_ui64": 1,
+        "handshake_constant_c256_in_none_out_ui64": 1,
+        "handshake_constant_c2_in_none_out_ui64": 1,
+        "handshake_constant_c3216448_in_none_out_ui64": 1,
+        "handshake_constant_c3_in_none_out_ui64": 1,
+        "handshake_constant_c4_in_none_out_ui64": 1,
+        "handshake_constant_c50257_in_none_out_ui64": 1,
+        "handshake_constant_c64_in_none_out_ui64": 1,
+        "handshake_constant_c6_in_none_out_ui64": 1,
+        "handshake_constant_c8_in_none_out_ui64": 1,
+        "handshake_control_merge_in_none_none_out_none_ui64_2ins_2outs_ctrl": 1284,
+        "handshake_fork_in_f32_out_f32_f32": 100,
+        "handshake_fork_in_f64_out_f64_f64": 33,
+        "handshake_fork_in_none_out_none_none_1ins_2outs_ctrl": 301,
+        "handshake_fork_in_none_out_none_none_none_1ins_3outs_ctrl": 420,
+        "handshake_fork_in_none_out_none_none_none_none_1ins_4outs_ctrl": 203,
+        "handshake_fork_in_none_out_none_none_none_none_none_1ins_5outs_ctrl": 65,
+        "handshake_fork_in_none_out_none_none_none_none_none_none_1ins_6outs_ctrl": 8,
+        "handshake_fork_in_none_out_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_none_1ins_26outs_ctrl": 1,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1": 1,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1": 1,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 1,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 10,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 18,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 19,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 19,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 9,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 4,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 10,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 9,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 8,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 5,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 23,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 45,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 26,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 3,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 7,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 14,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 578,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 1106,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 531,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 176,
+        "handshake_fork_in_ui1_out_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1_ui1": 11,
+        "handshake_fork_in_ui64_out_ui64_ui64": 9550,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64": 1372,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64": 100,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64": 8,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 1,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 9,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 9,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 10,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 9,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 4,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 5,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 5,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 3,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 2,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 21,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 22,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 3,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 1,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 6,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 8,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 500,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 486,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 169,
+        "handshake_fork_in_ui64_out_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64": 11,
+        "handshake_join_in_none_none_none_none_none_none_out_none_6ins_1outs_ctrl": 8,
+        "handshake_join_in_none_none_none_none_none_out_none_5ins_1outs_ctrl": 65,
+        "handshake_join_in_none_none_none_none_out_none_4ins_1outs_ctrl": 203,
+        "handshake_join_in_none_none_none_out_none_3ins_1outs_ctrl": 420,
+        "handshake_join_in_none_none_out_none_2ins_1outs_ctrl": 301,
+        "handshake_join_in_ui64_out_none_1ins_1outs_ctrl": 2,
+        "handshake_load_in_ui64_f32_none_out_f32_ui64": 1017,
+        "handshake_load_in_ui64_ui1_none_out_ui1_ui64": 9,
+        "handshake_load_in_ui64_ui64_none_out_ui64_ui64": 19,
+        "handshake_memory_out_f32_id101": 1,
+        "handshake_memory_out_f32_id102": 1,
+        "handshake_memory_out_f32_id103": 1,
+        "handshake_memory_out_f32_id104": 1,
+        "handshake_memory_out_f32_id105": 1,
+        "handshake_memory_out_f32_id106": 1,
+        "handshake_memory_out_f32_id107": 1,
+        "handshake_memory_out_f32_id108": 1,
+        "handshake_memory_out_f32_id109": 1,
+        "handshake_memory_out_f32_id110": 1,
+        "handshake_memory_out_f32_id111": 1,
+        "handshake_memory_out_f32_id112": 1,
+        "handshake_memory_out_f32_id113": 1,
+        "handshake_memory_out_f32_id114": 1,
+        "handshake_memory_out_f32_id115": 1,
+        "handshake_memory_out_f32_id116": 1,
+        "handshake_memory_out_f32_id117": 1,
+        "handshake_memory_out_f32_id118": 1,
+        "handshake_memory_out_f32_id119": 1,
+        "handshake_memory_out_f32_id120": 1,
+        "handshake_memory_out_f32_id121": 1,
+        "handshake_memory_out_f32_id122": 1,
+        "handshake_memory_out_f32_id123": 1,
+        "handshake_memory_out_f32_id124": 1,
+        "handshake_memory_out_f32_id125": 1,
+        "handshake_memory_out_f32_id126": 1,
+        "handshake_memory_out_f32_id127": 1,
+        "handshake_memory_out_f32_id128": 1,
+        "handshake_memory_out_f32_id129": 1,
+        "handshake_memory_out_f32_id130": 1,
+        "handshake_memory_out_f32_id131": 1,
+        "handshake_memory_out_f32_id132": 1,
+        "handshake_memory_out_f32_id133": 1,
+        "handshake_memory_out_f32_id135": 1,
+        "handshake_memory_out_f32_id136": 1,
+        "handshake_memory_out_f32_id138": 1,
+        "handshake_memory_out_f32_id139": 1,
+        "handshake_memory_out_f32_id140": 1,
+        "handshake_memory_out_f32_id141": 1,
+        "handshake_memory_out_f32_id142": 1,
+        "handshake_memory_out_f32_id143": 1,
+        "handshake_memory_out_f32_id144": 1,
+        "handshake_memory_out_f32_id145": 1,
+        "handshake_memory_out_f32_id146": 1,
+        "handshake_memory_out_f32_id147": 1,
+        "handshake_memory_out_f32_id148": 1,
+        "handshake_memory_out_f32_id149": 1,
+        "handshake_memory_out_f32_id150": 1,
+        "handshake_memory_out_f32_id151": 1,
+        "handshake_memory_out_f32_id152": 1,
+        "handshake_memory_out_f32_id153": 1,
+        "handshake_memory_out_f32_id154": 1,
+        "handshake_memory_out_f32_id155": 1,
+        "handshake_memory_out_f32_id156": 1,
+        "handshake_memory_out_f32_id157": 1,
+        "handshake_memory_out_f32_id158": 1,
+        "handshake_memory_out_f32_id159": 1,
+        "handshake_memory_out_f32_id160": 1,
+        "handshake_memory_out_f32_id161": 1,
+        "handshake_memory_out_f32_id162": 1,
+        "handshake_memory_out_f32_id163": 1,
+        "handshake_memory_out_f32_id164": 1,
+        "handshake_memory_out_f32_id165": 1,
+        "handshake_memory_out_f32_id166": 1,
+        "handshake_memory_out_f32_id167": 1,
+        "handshake_memory_out_f32_id168": 1,
+        "handshake_memory_out_f32_id169": 1,
+        "handshake_memory_out_f32_id170": 1,
+        "handshake_memory_out_f32_id172": 1,
+        "handshake_memory_out_f32_id173": 1,
+        "handshake_memory_out_f32_id175": 1,
+        "handshake_memory_out_f32_id176": 1,
+        "handshake_memory_out_f32_id177": 1,
+        "handshake_memory_out_f32_id178": 1,
+        "handshake_memory_out_f32_id179": 1,
+        "handshake_memory_out_f32_id18": 1,
+        "handshake_memory_out_f32_id180": 1,
+        "handshake_memory_out_f32_id181": 1,
+        "handshake_memory_out_f32_id182": 1,
+        "handshake_memory_out_f32_id183": 1,
+        "handshake_memory_out_f32_id184": 1,
+        "handshake_memory_out_f32_id185": 1,
+        "handshake_memory_out_f32_id186": 1,
+        "handshake_memory_out_f32_id187": 1,
+        "handshake_memory_out_f32_id188": 1,
+        "handshake_memory_out_f32_id189": 1,
+        "handshake_memory_out_f32_id19": 1,
+        "handshake_memory_out_f32_id190": 1,
+        "handshake_memory_out_f32_id191": 1,
+        "handshake_memory_out_f32_id192": 1,
+        "handshake_memory_out_f32_id193": 1,
+        "handshake_memory_out_f32_id194": 1,
+        "handshake_memory_out_f32_id195": 1,
+        "handshake_memory_out_f32_id196": 1,
+        "handshake_memory_out_f32_id197": 1,
+        "handshake_memory_out_f32_id198": 1,
+        "handshake_memory_out_f32_id199": 1,
+        "handshake_memory_out_f32_id200": 1,
+        "handshake_memory_out_f32_id201": 1,
+        "handshake_memory_out_f32_id202": 1,
+        "handshake_memory_out_f32_id203": 1,
+        "handshake_memory_out_f32_id204": 1,
+        "handshake_memory_out_f32_id205": 1,
+        "handshake_memory_out_f32_id206": 1,
+        "handshake_memory_out_f32_id207": 1,
+        "handshake_memory_out_f32_id209": 1,
+        "handshake_memory_out_f32_id21": 1,
+        "handshake_memory_out_f32_id210": 1,
+        "handshake_memory_out_f32_id212": 1,
+        "handshake_memory_out_f32_id213": 1,
+        "handshake_memory_out_f32_id214": 1,
+        "handshake_memory_out_f32_id215": 1,
+        "handshake_memory_out_f32_id216": 1,
+        "handshake_memory_out_f32_id217": 1,
+        "handshake_memory_out_f32_id218": 1,
+        "handshake_memory_out_f32_id219": 1,
+        "handshake_memory_out_f32_id220": 1,
+        "handshake_memory_out_f32_id221": 1,
+        "handshake_memory_out_f32_id222": 1,
+        "handshake_memory_out_f32_id223": 1,
+        "handshake_memory_out_f32_id224": 1,
+        "handshake_memory_out_f32_id225": 1,
+        "handshake_memory_out_f32_id226": 1,
+        "handshake_memory_out_f32_id227": 1,
+        "handshake_memory_out_f32_id228": 1,
+        "handshake_memory_out_f32_id229": 1,
+        "handshake_memory_out_f32_id230": 1,
+        "handshake_memory_out_f32_id231": 1,
+        "handshake_memory_out_f32_id232": 1,
+        "handshake_memory_out_f32_id233": 1,
+        "handshake_memory_out_f32_id234": 1,
+        "handshake_memory_out_f32_id235": 1,
+        "handshake_memory_out_f32_id236": 1,
+        "handshake_memory_out_f32_id237": 1,
+        "handshake_memory_out_f32_id238": 1,
+        "handshake_memory_out_f32_id239": 1,
+        "handshake_memory_out_f32_id24": 1,
+        "handshake_memory_out_f32_id240": 1,
+        "handshake_memory_out_f32_id241": 1,
+        "handshake_memory_out_f32_id242": 1,
+        "handshake_memory_out_f32_id243": 1,
+        "handshake_memory_out_f32_id244": 1,
+        "handshake_memory_out_f32_id246": 1,
+        "handshake_memory_out_f32_id247": 1,
+        "handshake_memory_out_f32_id249": 1,
+        "handshake_memory_out_f32_id25": 1,
+        "handshake_memory_out_f32_id250": 1,
+        "handshake_memory_out_f32_id251": 1,
+        "handshake_memory_out_f32_id252": 1,
+        "handshake_memory_out_f32_id253": 1,
+        "handshake_memory_out_f32_id254": 1,
+        "handshake_memory_out_f32_id255": 1,
+        "handshake_memory_out_f32_id256": 1,
+        "handshake_memory_out_f32_id257": 1,
+        "handshake_memory_out_f32_id258": 1,
+        "handshake_memory_out_f32_id259": 1,
+        "handshake_memory_out_f32_id26": 1,
+        "handshake_memory_out_f32_id260": 1,
+        "handshake_memory_out_f32_id261": 1,
+        "handshake_memory_out_f32_id262": 1,
+        "handshake_memory_out_f32_id263": 1,
+        "handshake_memory_out_f32_id264": 1,
+        "handshake_memory_out_f32_id265": 1,
+        "handshake_memory_out_f32_id266": 1,
+        "handshake_memory_out_f32_id267": 1,
+        "handshake_memory_out_f32_id268": 1,
+        "handshake_memory_out_f32_id269": 1,
+        "handshake_memory_out_f32_id27": 1,
+        "handshake_memory_out_f32_id270": 1,
+        "handshake_memory_out_f32_id271": 1,
+        "handshake_memory_out_f32_id272": 1,
+        "handshake_memory_out_f32_id273": 1,
+        "handshake_memory_out_f32_id274": 1,
+        "handshake_memory_out_f32_id275": 1,
+        "handshake_memory_out_f32_id276": 1,
+        "handshake_memory_out_f32_id277": 1,
+        "handshake_memory_out_f32_id278": 1,
+        "handshake_memory_out_f32_id279": 1,
+        "handshake_memory_out_f32_id28": 1,
+        "handshake_memory_out_f32_id280": 1,
+        "handshake_memory_out_f32_id281": 1,
+        "handshake_memory_out_f32_id283": 1,
+        "handshake_memory_out_f32_id284": 1,
+        "handshake_memory_out_f32_id286": 1,
+        "handshake_memory_out_f32_id287": 1,
+        "handshake_memory_out_f32_id288": 1,
+        "handshake_memory_out_f32_id289": 1,
+        "handshake_memory_out_f32_id29": 1,
+        "handshake_memory_out_f32_id290": 1,
+        "handshake_memory_out_f32_id291": 1,
+        "handshake_memory_out_f32_id292": 1,
+        "handshake_memory_out_f32_id293": 1,
+        "handshake_memory_out_f32_id294": 1,
+        "handshake_memory_out_f32_id295": 1,
+        "handshake_memory_out_f32_id296": 1,
+        "handshake_memory_out_f32_id297": 1,
+        "handshake_memory_out_f32_id298": 1,
+        "handshake_memory_out_f32_id299": 1,
+        "handshake_memory_out_f32_id30": 1,
+        "handshake_memory_out_f32_id300": 1,
+        "handshake_memory_out_f32_id301": 1,
+        "handshake_memory_out_f32_id302": 1,
+        "handshake_memory_out_f32_id303": 1,
+        "handshake_memory_out_f32_id304": 1,
+        "handshake_memory_out_f32_id305": 1,
+        "handshake_memory_out_f32_id306": 1,
+        "handshake_memory_out_f32_id307": 1,
+        "handshake_memory_out_f32_id308": 1,
+        "handshake_memory_out_f32_id309": 1,
+        "handshake_memory_out_f32_id31": 1,
+        "handshake_memory_out_f32_id310": 1,
+        "handshake_memory_out_f32_id311": 1,
+        "handshake_memory_out_f32_id312": 1,
+        "handshake_memory_out_f32_id313": 1,
+        "handshake_memory_out_f32_id314": 1,
+        "handshake_memory_out_f32_id315": 1,
+        "handshake_memory_out_f32_id316": 1,
+        "handshake_memory_out_f32_id317": 1,
+        "handshake_memory_out_f32_id319": 1,
+        "handshake_memory_out_f32_id32": 1,
+        "handshake_memory_out_f32_id320": 1,
+        "handshake_memory_out_f32_id321": 1,
+        "handshake_memory_out_f32_id322": 1,
+        "handshake_memory_out_f32_id323": 1,
+        "handshake_memory_out_f32_id324": 1,
+        "handshake_memory_out_f32_id325": 1,
+        "handshake_memory_out_f32_id326": 1,
+        "handshake_memory_out_f32_id327": 1,
+        "handshake_memory_out_f32_id328": 1,
+        "handshake_memory_out_f32_id329": 1,
+        "handshake_memory_out_f32_id33": 1,
+        "handshake_memory_out_f32_id330": 1,
+        "handshake_memory_out_f32_id331": 1,
+        "handshake_memory_out_f32_id332": 1,
+        "handshake_memory_out_f32_id333": 1,
+        "handshake_memory_out_f32_id334": 1,
+        "handshake_memory_out_f32_id335": 1,
+        "handshake_memory_out_f32_id336": 1,
+        "handshake_memory_out_f32_id337": 1,
+        "handshake_memory_out_f32_id338": 1,
+        "handshake_memory_out_f32_id339": 1,
+        "handshake_memory_out_f32_id34": 1,
+        "handshake_memory_out_f32_id340": 1,
+        "handshake_memory_out_f32_id341": 1,
+        "handshake_memory_out_f32_id342": 1,
+        "handshake_memory_out_f32_id343": 1,
+        "handshake_memory_out_f32_id35": 1,
+        "handshake_memory_out_f32_id36": 1,
+        "handshake_memory_out_f32_id37": 1,
+        "handshake_memory_out_f32_id38": 1,
+        "handshake_memory_out_f32_id39": 1,
+        "handshake_memory_out_f32_id40": 1,
+        "handshake_memory_out_f32_id41": 1,
+        "handshake_memory_out_f32_id42": 1,
+        "handshake_memory_out_f32_id43": 1,
+        "handshake_memory_out_f32_id44": 1,
+        "handshake_memory_out_f32_id45": 1,
+        "handshake_memory_out_f32_id46": 1,
+        "handshake_memory_out_f32_id47": 1,
+        "handshake_memory_out_f32_id49": 1,
+        "handshake_memory_out_f32_id50": 1,
+        "handshake_memory_out_f32_id52": 1,
+        "handshake_memory_out_f32_id53": 1,
+        "handshake_memory_out_f32_id55": 1,
+        "handshake_memory_out_f32_id56": 1,
+        "handshake_memory_out_f32_id57": 1,
+        "handshake_memory_out_f32_id58": 1,
+        "handshake_memory_out_f32_id59": 1,
+        "handshake_memory_out_f32_id60": 1,
+        "handshake_memory_out_f32_id61": 1,
+        "handshake_memory_out_f32_id62": 1,
+        "handshake_memory_out_f32_id63": 1,
+        "handshake_memory_out_f32_id64": 1,
+        "handshake_memory_out_f32_id65": 1,
+        "handshake_memory_out_f32_id66": 1,
+        "handshake_memory_out_f32_id67": 1,
+        "handshake_memory_out_f32_id68": 1,
+        "handshake_memory_out_f32_id69": 1,
+        "handshake_memory_out_f32_id70": 1,
+        "handshake_memory_out_f32_id71": 1,
+        "handshake_memory_out_f32_id72": 1,
+        "handshake_memory_out_f32_id73": 1,
+        "handshake_memory_out_f32_id74": 1,
+        "handshake_memory_out_f32_id75": 1,
+        "handshake_memory_out_f32_id76": 1,
+        "handshake_memory_out_f32_id77": 1,
+        "handshake_memory_out_f32_id78": 1,
+        "handshake_memory_out_f32_id79": 1,
+        "handshake_memory_out_f32_id80": 1,
+        "handshake_memory_out_f32_id81": 1,
+        "handshake_memory_out_f32_id82": 1,
+        "handshake_memory_out_f32_id83": 1,
+        "handshake_memory_out_f32_id84": 1,
+        "handshake_memory_out_f32_id85": 1,
+        "handshake_memory_out_f32_id86": 1,
+        "handshake_memory_out_f32_id87": 1,
+        "handshake_memory_out_f32_id88": 1,
+        "handshake_memory_out_f32_id89": 1,
+        "handshake_memory_out_f32_id90": 1,
+        "handshake_memory_out_f32_id91": 1,
+        "handshake_memory_out_f32_id92": 1,
+        "handshake_memory_out_f32_id93": 1,
+        "handshake_memory_out_f32_id94": 1,
+        "handshake_memory_out_f32_id95": 1,
+        "handshake_memory_out_f32_id96": 1,
+        "handshake_memory_out_f32_id98": 1,
+        "handshake_memory_out_f32_id99": 1,
+        "handshake_memory_out_ui1_id134": 1,
+        "handshake_memory_out_ui1_id171": 1,
+        "handshake_memory_out_ui1_id208": 1,
+        "handshake_memory_out_ui1_id23": 1,
+        "handshake_memory_out_ui1_id245": 1,
+        "handshake_memory_out_ui1_id282": 1,
+        "handshake_memory_out_ui1_id318": 1,
+        "handshake_memory_out_ui1_id48": 1,
+        "handshake_memory_out_ui1_id97": 1,
+        "handshake_memory_out_ui64_id100": 1,
+        "handshake_memory_out_ui64_id137": 1,
+        "handshake_memory_out_ui64_id174": 1,
+        "handshake_memory_out_ui64_id20": 1,
+        "handshake_memory_out_ui64_id211": 1,
+        "handshake_memory_out_ui64_id22": 1,
+        "handshake_memory_out_ui64_id248": 1,
+        "handshake_memory_out_ui64_id285": 1,
+        "handshake_memory_out_ui64_id51": 1,
+        "handshake_memory_out_ui64_id54": 1,
+        "handshake_mux_in_ui1_f32_f32_out_f32": 3291,
+        "handshake_mux_in_ui1_f64_f64_out_f64": 1961,
+        "handshake_mux_in_ui1_none_none_out_none_3ins_1outs_ctrl": 675,
+        "handshake_mux_in_ui1_ui64_ui64_out_ui64": 10442,
+        "handshake_mux_in_ui64_f32_f32_out_f32": 6246,
+        "handshake_mux_in_ui64_f64_f64_out_f64": 3730,
+        "handshake_mux_in_ui64_ui64_ui64_out_ui64": 21980,
+        "handshake_sink_in_f32": 6,
+        "handshake_sink_in_f64": 3,
+        "handshake_sink_in_ui64": 1974,
+        "handshake_store_in_ui64_f32_none_out_f32_ui64": 697,
+        "handshake_store_in_ui64_ui1_none_out_ui1_ui64": 1,
+        "handshake_store_in_ui64_ui64_none_out_ui64_ui64": 18,
+        "hw_struct_create_in_ui16_f32_out_struct_address_ui16_data_f32": 1,
+        "math_exp_in_f32_out_f32": 8,
+        "math_fpowi_in_f32_ui64_out_f32": 8,
+        "math_rsqrt_in_f32_out_f32": 17,
+        "math_tanh_in_f32_out_f32": 8
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 344820,
+        "FDRE": 58495964,
+        "FDSE": 675,
+        "INV": 223407,
+        "LUT1": 352071,
+        "LUT2": 3168568,
+        "LUT3": 34499177,
+        "LUT4": 1546220,
+        "LUT5": 711269,
+        "LUT6": 16621617,
+        "MUXF7": 1239364,
+        "MUXF8": 373078,
+        "handshake_memory_out_f32_id112": 1,
+        "handshake_memory_out_f32_id117": 1,
+        "handshake_memory_out_f32_id149": 1,
+        "handshake_memory_out_f32_id154": 1,
+        "handshake_memory_out_f32_id18": 1,
+        "handshake_memory_out_f32_id186": 1,
+        "handshake_memory_out_f32_id191": 1,
+        "handshake_memory_out_f32_id223": 1,
+        "handshake_memory_out_f32_id228": 1,
+        "handshake_memory_out_f32_id24": 1,
+        "handshake_memory_out_f32_id260": 1,
+        "handshake_memory_out_f32_id265": 1,
+        "handshake_memory_out_f32_id297": 1,
+        "handshake_memory_out_f32_id302": 1,
+        "handshake_memory_out_f32_id329": 1,
+        "handshake_memory_out_f32_id333": 1,
+        "handshake_memory_out_f32_id340": 1,
+        "handshake_memory_out_f32_id341": 1,
+        "handshake_memory_out_f32_id342": 1,
+        "handshake_memory_out_f32_id343": 1,
+        "handshake_memory_out_f32_id35": 1,
+        "handshake_memory_out_f32_id36": 1,
+        "handshake_memory_out_f32_id39": 1,
+        "handshake_memory_out_f32_id41": 1,
+        "handshake_memory_out_f32_id60": 1,
+        "handshake_memory_out_f32_id69": 1,
+        "handshake_memory_out_f32_id70": 1,
+        "handshake_memory_out_f32_id71": 1,
+        "handshake_memory_out_f32_id78": 1,
+        "handshake_memory_out_f32_id79": 1,
+        "handshake_memory_out_f32_id80": 1,
+        "handshake_memory_out_f32_id89": 1,
+        "handshake_memory_out_f32_id91": 1,
+        "handshake_memory_out_f32_id93": 1
+      }
+    },
+    "math_exp_in_f32_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 5431,
+        "INV": 8071,
+        "LUT1": 4004,
+        "LUT2": 3912,
+        "LUT3": 11003,
+        "LUT4": 735,
+        "LUT5": 494,
+        "LUT6": 6897,
+        "MUXF7": 5993,
+        "MUXF8": 1232
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 5431,
+        "INV": 8071,
+        "LUT1": 4004,
+        "LUT2": 3912,
+        "LUT3": 11003,
+        "LUT4": 735,
+        "LUT5": 494,
+        "LUT6": 6897,
+        "MUXF7": 5993,
+        "MUXF8": 1232
+      }
+    },
+    "math_fpowi_in_f32_ui64_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 2865,
+        "INV": 943,
+        "LUT1": 668,
+        "LUT2": 114820,
+        "LUT3": 187568,
+        "LUT4": 16868,
+        "LUT5": 15369,
+        "LUT6": 35041,
+        "MUXF7": 6374,
+        "MUXF8": 1697
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 2865,
+        "INV": 943,
+        "LUT1": 668,
+        "LUT2": 114820,
+        "LUT3": 187568,
+        "LUT4": 16868,
+        "LUT5": 15369,
+        "LUT6": 35041,
+        "MUXF7": 6374,
+        "MUXF8": 1697
+      }
+    },
+    "math_rsqrt_in_f32_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 299,
+        "INV": 128,
+        "LUT1": 62,
+        "LUT2": 3691,
+        "LUT3": 4524,
+        "LUT4": 1221,
+        "LUT5": 2410,
+        "LUT6": 7736,
+        "MUXF7": 3099,
+        "MUXF8": 759
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 299,
+        "INV": 128,
+        "LUT1": 62,
+        "LUT2": 3691,
+        "LUT3": 4524,
+        "LUT4": 1221,
+        "LUT5": 2410,
+        "LUT6": 7736,
+        "MUXF7": 3099,
+        "MUXF8": 759
+      }
+    },
+    "math_tanh_in_f32_out_f32": {
+      "direct_cell_counts": {
+        "CARRY4": 2803,
+        "INV": 2126,
+        "LUT1": 2122,
+        "LUT2": 3877,
+        "LUT3": 6571,
+        "LUT4": 529,
+        "LUT5": 658,
+        "LUT6": 6606,
+        "MUXF7": 5656,
+        "MUXF8": 2524
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 2803,
+        "INV": 2126,
+        "LUT1": 2122,
+        "LUT2": 3877,
+        "LUT3": 6571,
+        "LUT4": 529,
+        "LUT5": 658,
+        "LUT6": 6606,
+        "MUXF7": 5656,
+        "MUXF8": 2524
+      }
+    },
+    "tiny_stories_selftest_top": {
+      "direct_cell_counts": {
+        "CARRY4": 19,
+        "FDCE": 70,
+        "FDPE": 1,
+        "INV": 79,
+        "LUT2": 36,
+        "LUT3": 6,
+        "LUT4": 6,
+        "LUT5": 33,
+        "LUT6": 6,
+        "MUXF7": 2,
+        "MUXF8": 1,
+        "main": 1
+      },
+      "leaf_cell_counts": {
+        "CARRY4": 344839,
+        "FDCE": 70,
+        "FDPE": 1,
+        "FDRE": 58495964,
+        "FDSE": 675,
+        "INV": 223486,
+        "LUT1": 352071,
+        "LUT2": 3168604,
+        "LUT3": 34499183,
+        "LUT4": 1546226,
+        "LUT5": 711302,
+        "LUT6": 16621623,
+        "MUXF7": 1239366,
+        "MUXF8": 373079,
+        "handshake_memory_out_f32_id112": 1,
+        "handshake_memory_out_f32_id117": 1,
+        "handshake_memory_out_f32_id149": 1,
+        "handshake_memory_out_f32_id154": 1,
+        "handshake_memory_out_f32_id18": 1,
+        "handshake_memory_out_f32_id186": 1,
+        "handshake_memory_out_f32_id191": 1,
+        "handshake_memory_out_f32_id223": 1,
+        "handshake_memory_out_f32_id228": 1,
+        "handshake_memory_out_f32_id24": 1,
+        "handshake_memory_out_f32_id260": 1,
+        "handshake_memory_out_f32_id265": 1,
+        "handshake_memory_out_f32_id297": 1,
+        "handshake_memory_out_f32_id302": 1,
+        "handshake_memory_out_f32_id329": 1,
+        "handshake_memory_out_f32_id333": 1,
+        "handshake_memory_out_f32_id340": 1,
+        "handshake_memory_out_f32_id341": 1,
+        "handshake_memory_out_f32_id342": 1,
+        "handshake_memory_out_f32_id343": 1,
+        "handshake_memory_out_f32_id35": 1,
+        "handshake_memory_out_f32_id36": 1,
+        "handshake_memory_out_f32_id39": 1,
+        "handshake_memory_out_f32_id41": 1,
+        "handshake_memory_out_f32_id60": 1,
+        "handshake_memory_out_f32_id69": 1,
+        "handshake_memory_out_f32_id70": 1,
+        "handshake_memory_out_f32_id71": 1,
+        "handshake_memory_out_f32_id78": 1,
+        "handshake_memory_out_f32_id79": 1,
+        "handshake_memory_out_f32_id80": 1,
+        "handshake_memory_out_f32_id89": 1,
+        "handshake_memory_out_f32_id91": 1,
+        "handshake_memory_out_f32_id93": 1
+      }
+    }
+  },
+  "top": "tiny_stories_selftest_top",
+  "top_leaf_cell_counts": {
+    "CARRY4": 344839,
+    "FDCE": 70,
+    "FDPE": 1,
+    "FDRE": 58495964,
+    "FDSE": 675,
+    "INV": 223486,
+    "LUT1": 352071,
+    "LUT2": 3168604,
+    "LUT3": 34499183,
+    "LUT4": 1546226,
+    "LUT5": 711302,
+    "LUT6": 16621623,
+    "MUXF7": 1239366,
+    "MUXF8": 373079,
+    "handshake_memory_out_f32_id112": 1,
+    "handshake_memory_out_f32_id117": 1,
+    "handshake_memory_out_f32_id149": 1,
+    "handshake_memory_out_f32_id154": 1,
+    "handshake_memory_out_f32_id18": 1,
+    "handshake_memory_out_f32_id186": 1,
+    "handshake_memory_out_f32_id191": 1,
+    "handshake_memory_out_f32_id223": 1,
+    "handshake_memory_out_f32_id228": 1,
+    "handshake_memory_out_f32_id24": 1,
+    "handshake_memory_out_f32_id260": 1,
+    "handshake_memory_out_f32_id265": 1,
+    "handshake_memory_out_f32_id297": 1,
+    "handshake_memory_out_f32_id302": 1,
+    "handshake_memory_out_f32_id329": 1,
+    "handshake_memory_out_f32_id333": 1,
+    "handshake_memory_out_f32_id340": 1,
+    "handshake_memory_out_f32_id341": 1,
+    "handshake_memory_out_f32_id342": 1,
+    "handshake_memory_out_f32_id343": 1,
+    "handshake_memory_out_f32_id35": 1,
+    "handshake_memory_out_f32_id36": 1,
+    "handshake_memory_out_f32_id39": 1,
+    "handshake_memory_out_f32_id41": 1,
+    "handshake_memory_out_f32_id60": 1,
+    "handshake_memory_out_f32_id69": 1,
+    "handshake_memory_out_f32_id70": 1,
+    "handshake_memory_out_f32_id71": 1,
+    "handshake_memory_out_f32_id78": 1,
+    "handshake_memory_out_f32_id79": 1,
+    "handshake_memory_out_f32_id80": 1,
+    "handshake_memory_out_f32_id89": 1,
+    "handshake_memory_out_f32_id91": 1,
+    "handshake_memory_out_f32_id93": 1
+  }
+}

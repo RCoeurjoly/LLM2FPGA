@@ -1,0 +1,94 @@
+{
+  "design_json": "/nix/store/yqx62hkm1z8lbwgmqnpmcvi3b0jg6p0n-tiny-stories-1m-baseline-float-selftest-top34-memory.json",
+  "resources": {
+    "bram18": {
+      "used": 0
+    },
+    "bram36": {
+      "capacity": 955,
+      "pct": 0.0,
+      "used": 0
+    },
+    "bram36_equiv": {
+      "capacity": 955,
+      "pct": 0.0,
+      "used": 0.0
+    },
+    "bram_kb": {
+      "capacity": 34380,
+      "pct": 0.0,
+      "used": 0
+    },
+    "clb_ffs": {
+      "capacity": 597200,
+      "pct": 9795.16,
+      "used": 58496710
+    },
+    "clb_luts": {
+      "capacity": 298600,
+      "pct": 19055.26,
+      "used": 56899009
+    },
+    "dsp": {
+      "capacity": 1920,
+      "pct": 0.0,
+      "used": 0
+    },
+    "slices_lower_bound": {
+      "capacity": 74650,
+      "pct": 9795.16,
+      "used": 7312089
+    }
+  },
+  "top": "tiny_stories_selftest_top",
+  "top_leaf_cell_types": [
+    {
+      "count": 58495964,
+      "type": "FDRE"
+    },
+    {
+      "count": 34499183,
+      "type": "LUT3"
+    },
+    {
+      "count": 16621623,
+      "type": "LUT6"
+    },
+    {
+      "count": 3168604,
+      "type": "LUT2"
+    },
+    {
+      "count": 1546226,
+      "type": "LUT4"
+    },
+    {
+      "count": 1239366,
+      "type": "MUXF7"
+    },
+    {
+      "count": 711302,
+      "type": "LUT5"
+    },
+    {
+      "count": 373079,
+      "type": "MUXF8"
+    },
+    {
+      "count": 352071,
+      "type": "LUT1"
+    },
+    {
+      "count": 344839,
+      "type": "CARRY4"
+    },
+    {
+      "count": 223486,
+      "type": "INV"
+    },
+    {
+      "count": 675,
+      "type": "FDSE"
+    }
+  ]
+}
