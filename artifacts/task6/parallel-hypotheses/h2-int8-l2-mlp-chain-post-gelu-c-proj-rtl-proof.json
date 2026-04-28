@@ -1,0 +1,189 @@
+{
+  "artifact_name": "h2-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof",
+  "status": "PASS",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "/nix/store/r3x9l2f4rbzb0bs0m4dwv6xdg0xgs9ly-tiny-stories-v1k-h64-l1-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "/nix/store/4wxn753f83vp1cp7dn6clgn7xhviwpz0-transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "/nix/store/wir75f4049gjp2mn6r9f9wnhs8774lp2-tiny-stories-v1k-h64-l1-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "/nix/store/lv2g03gp32v74d1qydaapca6gbpl98ka-transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "/nix/store/wcf349271g7m3579i6dl2ylcdjspxxc4-h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json",
+    "model_label": "tiny-stories-v1k-h64-l1"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_fc",
+    "boundary": "post_gelu_int8_activation",
+    "consumer": "transformer.h.0.mlp.c_proj",
+    "interpretation": "Composed RTL proof for c_fc -> fixed-point GELU -> int8 activation handoff -> c_proj."
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel",
+    "c_fc_in_dim": 64,
+    "hidden_dim": 256,
+    "c_proj_out_dim": 64,
+    "lane_count": 4,
+    "c_fc_packed_weight_words": 4096,
+    "c_proj_packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "handoff_dtype": "int8",
+    "c_proj_accumulator_dtype": "int32",
+    "output_score_dtype": "float32",
+    "activation_quantization": "int8-per-tensor-symmetric",
+    "c_fc_weight_quantization": "int8-per-output-symmetric",
+    "handoff_quantization": "post-GELU int8-per-tensor-symmetric",
+    "c_proj_weight_quantization": "int8-per-output-symmetric",
+    "handoff": "explicit sequential read/write through local activation memories"
+  },
+  "fixed_point": {
+    "x_frac": 12,
+    "scale_shift": 24,
+    "gelu_approximation": "0.5*x + 0.39894228*x*x",
+    "gelu_quad_q": 1634,
+    "output_requant_shift": 16,
+    "output_requant_mult": 8032
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "c_fc_activation_scale": 0.01876247210765448,
+    "post_gelu_output_scale": 0.0019919775901474546,
+    "c_fc_effective_scale_min": 5.004310978396703e-06,
+    "c_fc_effective_scale_max": 1.1217028679000805e-05,
+    "c_fc_scale_mul_min": 343894,
+    "c_fc_scale_mul_max": 770828,
+    "c_fc_bias_q_min": 0,
+    "c_fc_bias_q_max": 0,
+    "c_fc_accumulator_min": -51239,
+    "c_fc_accumulator_max": 54338,
+    "post_gelu_q_min": -67,
+    "post_gelu_q_max": 127,
+    "c_proj_weight_scale_min": 0.0004040582442846824,
+    "c_proj_weight_scale_max": 0.0006334623248558345,
+    "c_proj_accumulator_min": -53371,
+    "c_proj_accumulator_max": 78617,
+    "c_fc_activation_q_sha256": "78332c69c1096032cfb46202319795165d67825e001507682f78f2f13011e3b8",
+    "c_fc_weight_q_sha256": "7172f0c6c47a27b7218c774dc729811bc8398879c85f2df5ac7bd2b90486a864",
+    "c_fc_packed_weight_sha256": "d5d3ac17daf0b03d50431d42aac63f26724eee1793ef9f3f92853e4b912ef5d8",
+    "c_fc_accumulator_sha256": "48210df491400387ec2871d66aaac0b659e1dcd0dd49ed0a7314b616ff56fcf9",
+    "c_fc_scale_mul_sha256": "3e3729ebec0c04b98e90248ed14a44f9c146e8f918a826309ffce91d0b6bad98",
+    "c_fc_bias_q_sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+    "post_gelu_q_sha256": "e26fbb6dcf21ad4736001d669235b21273bf83ad8c373bf76ce73ffc7d3fb189",
+    "c_proj_weight_q_sha256": "116a427df35a8879df7796a3c7ce680598bfd33051411f7f66f134d2fde4b75e",
+    "c_proj_packed_weight_sha256": "649e19f9993a750c6d2a203e3f7e43e73f0f4024615404f09a0cbf568118331a",
+    "c_proj_accumulator_sha256": "8ef8c2a85f1cc1369dd6cad3d716215c8311ec8a407497a003947a5e222025e2"
+  },
+  "metrics": {
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 1.600132085166628e-08,
+      "mean_abs_error": 1.7057380450588488e-09,
+      "rmse": 2.8341102417697617e-09,
+      "normalized_rmse": 3.939776752352001e-08,
+      "signal_max_abs": 0.2529811539487267,
+      "signal_mean_abs": 0.05661709054561346
+    },
+    "post_gelu_int8_vs_c_proj_input": {
+      "max_abs_error": 0.0025458211614692583,
+      "mean_abs_error": 0.000690446703191983,
+      "rmse": 0.0008626079070719917,
+      "normalized_rmse": 0.011991356411536758,
+      "signal_max_abs": 0.25298115611076355,
+      "signal_mean_abs": 0.05661709034291107
+    },
+    "c_proj_output_from_chain_accumulators": {
+      "max_abs_error": 0.0009424232727163438,
+      "mean_abs_error": 0.0002511875694791357,
+      "rmse": 0.0003284692548033415,
+      "normalized_rmse": 0.014010386505018005,
+      "signal_max_abs": 0.07794594764709473,
+      "signal_mean_abs": 0.01680324105359432
+    }
+  },
+  "byte_budget": {
+    "c_fc_activation_int8_bytes": 64,
+    "c_fc_packed_weight_bytes": 16384,
+    "c_fc_scale_mul_sidecar_bytes": 1024,
+    "c_fc_bias_q_sidecar_bytes": 1024,
+    "handoff_int8_activation_bytes": 256,
+    "handoff_f32_activation_bytes_replaced": 1024,
+    "handoff_activation_transfer_savings_bytes": 768,
+    "c_proj_weight_int8_bytes": 16384,
+    "c_proj_weight_f32_bytes_replaced": 65536,
+    "c_proj_weight_transfer_savings_bytes": 49152,
+    "c_proj_weight_scale_sidecar_bytes": 256,
+    "c_proj_accumulator_output_bytes": 256
+  },
+  "sim_result": {
+    "status": "PASS",
+    "reads": 64,
+    "outputs": 64,
+    "compute_cycles": 9631,
+    "cycles": 9695
+  },
+  "yosys_result": {
+    "path": "/nix/store/63pgy0098yi74jbxwrpi720kpqm0v9hs-task6-int8-l2-mlp-chain-post-gelu-c-proj-yosys-stat.json",
+    "top_name": "task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel",
+    "num_cells": 2017,
+    "num_wires": 751,
+    "num_wire_bits": 11369,
+    "dsp48e1": 30,
+    "ramb36e1": 8,
+    "ramb18e1": 4,
+    "ram64m": 27,
+    "fdre": 426,
+    "carry4": 229,
+    "lut_primitive_cells": 944,
+    "lut_breakdown": {
+      "LUT2": 460,
+      "LUT3": 157,
+      "LUT4": 161,
+      "LUT5": 23,
+      "LUT6": 143
+    }
+  },
+  "mapped_utilization": {
+    "path": "/nix/store/31zkyv95hfgl853b6rnpzjr371c8zyik-task6-int8-l2-mlp-chain-post-gelu-c-proj-utilization/summary.json",
+    "resources": {
+      "clb_luts": {
+        "capacity": 298600,
+        "pct": 0.32,
+        "used": 944
+      },
+      "clb_ffs": {
+        "capacity": 597200,
+        "pct": 0.07,
+        "used": 426
+      },
+      "dsp": {
+        "capacity": 1920,
+        "pct": 1.56,
+        "used": 30
+      },
+      "bram36": {
+        "capacity": 955,
+        "pct": 0.84,
+        "used": 8
+      },
+      "bram18": {
+        "used": 4
+      },
+      "bram36_equiv": {
+        "capacity": 955,
+        "pct": 1.05,
+        "used": 10.0
+      },
+      "bram_kb": {
+        "capacity": 34380,
+        "pct": 1.05,
+        "used": 360
+      },
+      "slices_lower_bound": {
+        "capacity": 74650,
+        "pct": 0.16,
+        "used": 118
+      }
+    }
+  },
+  "decision": {
+    "verdict": "promote",
+    "next_gate": "replace the two-proof sum with this composed-chain resource point"
+  }
+}

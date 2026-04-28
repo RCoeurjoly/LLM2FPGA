@@ -7844,3 +7844,120 @@ Decision:
     one bounded chain top, with an explicit activation handoff memory or stream
   - keep the current two-proof bounded sum as the resource expectation until
     the composed top exists
+
+### 2026-04-28 - H2 composed `c_fc -> GELU -> c_proj` int8 RTL proof
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof.json`
+
+Sources:
+
+- `flake.nix`
+- `rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv`
+- `sim/task6_int8_l2_mlp_chain_post_gelu_c_proj_tb_main.sv`
+- `sim/gen_task6_int8_l2_mlp_chain_post_gelu_c_proj_tb_data.py`
+
+Nix targets:
+
+- `task6-int8-l2-mlp-chain-post-gelu-c-proj-tb-data-sv`
+- `task6-int8-l2-mlp-chain-post-gelu-c-proj-sv-sim`
+- `task6-int8-l2-mlp-chain-post-gelu-c-proj-yosys-stat`
+- `task6-int8-l2-mlp-chain-post-gelu-c-proj-json`
+- `task6-int8-l2-mlp-chain-post-gelu-c-proj-utilization`
+- `task6-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof`
+- proof output:
+  `/nix/store/8a7k3d05k09vwvgssyxi0zm4k8pldydk-task6-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof`
+
+Commands:
+
+- `nix build .#task6-int8-l2-mlp-chain-post-gelu-c-proj-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof --no-link --print-out-paths -L`
+
+RTL contract:
+
+- composed top:
+  - `task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel`
+- sequence:
+  - load captured `c_fc` activation, packed weights, requant scale sidecars,
+    and fixed-point bias sidecars
+  - run the proven `c_fc -> fixed-point GELU -> post-GELU int8` producer
+  - sequentially transfer the `256` post-GELU int8 activations through an
+    explicit local-memory handoff
+  - run the proven `c_proj` int8 consumer from that handoff activation
+  - expose `64` int32 `c_proj` accumulators through the output read port
+
+Execution status:
+
+- status: `PASS`
+- Verilator:
+  - output:
+    `/nix/store/0bmdr5j5lr43zvmdavs6174rzqp397s6-task6-int8-l2-mlp-chain-post-gelu-c-proj-sv-sim.json`
+  - pass line:
+    `PASS: task6 int8 L2 mlp chain postgelu c_proj reads 64 outputs 64 compute_cycles 9631 total_cycles 9695`
+- numerical score from the composed-chain `c_proj` accumulators:
+  - normalized RMSE: `0.014010386505018005`
+  - threshold: `0.02`
+  - max absolute error: `0.0009424232727163438`
+- post-GELU int8 activation handoff score:
+  - normalized RMSE versus captured `c_proj` input:
+    `0.011991356411536758`
+  - post-GELU q range:
+    `-67..127`
+
+Mapped resources:
+
+- `clb_luts`: `944`
+- `clb_ffs`: `426`
+- `dsp`: `30`
+- `bram36`: `8`
+- `bram18`: `4`
+- `bram36_equiv`: `10.0`
+- `bram_kb`: `360`
+- `slices_lower_bound`: `118`
+
+Delta against the prior two-proof bounded sum:
+
+- prior separate proofs:
+  - `924 LUT / 414 FF / 30 DSP / 10.0 BRAM36-equivalent`
+- composed top:
+  - `944 LUT / 426 FF / 30 DSP / 10.0 BRAM36-equivalent`
+- overhead:
+  - `+20` LUT
+  - `+12` FF
+  - `+0` DSP
+  - `+0.0` BRAM36-equivalent
+
+Byte-budget implication:
+
+- `c_fc` activation:
+  - `64` int8 bytes
+- `c_fc` packed weights:
+  - `16,384` bytes
+- `c_fc` fixed-point sidecars:
+  - `1,024` scale-multiplier bytes
+  - `1,024` bias-q bytes
+- post-GELU handoff:
+  - `256` int8 bytes replaces `1,024` f32 bytes
+  - handoff savings: `768` bytes
+- `c_proj` packed weights:
+  - `16,384` int8 bytes replaces `65,536` f32 bytes
+  - weight transfer savings: `49,152` bytes
+- `c_proj` accumulator output:
+  - `256` bytes
+
+Decision:
+
+- Promote H2 from two bounded RTL proofs to a composed bounded MLP-chain proof.
+- The DSP use is a positive signal, not a problem:
+  - the composed proof uses `30` DSPs, about `1.56%` of the target board's
+    `1,920` DSP budget
+  - the key win is that the MLP chain now maps to DSP and BRAM instead of the
+    repeated LUT/FF-heavy float handshake shell
+- The composed chain keeps the prior numeric result and adds only a tiny
+  handoff/control overhead over the two-proof sum.
+- Next gate:
+  - define the output boundary after `c_proj`, including dequantization,
+    residual/add, or the next quantized handoff target
+  - keep this composed RTL proof as the current H2 promotion reference until a
+    larger calibrated sample set or downstream boundary invalidates it
