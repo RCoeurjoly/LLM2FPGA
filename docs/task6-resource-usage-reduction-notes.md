@@ -8561,3 +8561,20 @@ Use:
 - The LED that turns on during `3'b100` is design LED `[2]`, fail in the
   residual-add selftest.
 - During `3'b111`, all three design-driven user LEDs should be on.
+
+Observed physical mapping:
+
+- top green LED: always on, not one of the three design-driven LEDs
+- design LED `[0]`, pin `P30`: red
+- design LED `[1]`, pin `M30`: green
+- design LED `[2]`, pin `N30`: orange
+
+Residual-add selftest interpretation:
+
+- expected pass pattern:
+  - top green: always on, ignored
+  - red: blinking heartbeat
+  - green: solid on pass
+  - orange: off fail
+- orange off after programming is a good sign: it means the fail LED is not
+  asserted.
