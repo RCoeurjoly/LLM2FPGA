@@ -3,7 +3,8 @@
 module task6_int8_l2_mlp_chain_residual_add_tb;
   `include "tb_data.sv"
 
-  localparam int TIMEOUT_CYCLES = 100000;
+  localparam int TIMEOUT_CYCLES =
+    20000 + ((C_FC_PACKED_WEIGHT_WORDS + C_PROJ_PACKED_WEIGHT_WORDS) * 16);
 
   logic clock;
   logic reset;

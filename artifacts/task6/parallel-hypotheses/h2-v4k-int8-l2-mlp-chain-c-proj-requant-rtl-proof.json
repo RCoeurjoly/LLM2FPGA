@@ -1,0 +1,150 @@
+{
+  "artifact_name": "h2-v4k-int8-l2-mlp-chain-c-proj-requant-rtl-proof",
+  "status": "PASS",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-post-gelu-requant-rtl-proof.json",
+    "c_proj_output_boundary_json": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-proj-output-boundary.json",
+    "model_label": "tiny-stories-v4k-h64-l1"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_fc",
+    "boundary": "c_fc_to_post_gelu_to_c_proj_int8_output",
+    "consumer": "transformer.h.0.mlp.c_proj",
+    "interpretation": "Composed RTL proof for c_fc -> fixed-point GELU -> int8 activation handoff -> c_proj -> fixed-point int8 output requant."
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel",
+    "c_fc_in_dim": 64,
+    "hidden_dim": 256,
+    "c_proj_out_dim": 64,
+    "lane_count": 4,
+    "c_fc_packed_weight_words": 4096,
+    "c_proj_packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "handoff_dtype": "int8",
+    "c_proj_accumulator_dtype": "int32",
+    "output_dtype": "int8",
+    "activation_quantization": "int8-per-tensor-symmetric",
+    "c_fc_weight_quantization": "int8-per-output-symmetric",
+    "handoff_quantization": "post-GELU int8-per-tensor-symmetric",
+    "c_proj_weight_quantization": "int8-per-output-symmetric",
+    "output_quantization": "int8-per-tensor-symmetric",
+    "local_output_memory": true
+  },
+  "fixed_point": {
+    "x_frac": 12,
+    "scale_shift": 24,
+    "gelu_approximation": "0.5*x + 0.39894228*x*x",
+    "gelu_quad_q": 1634,
+    "output_requant_shift": 16,
+    "output_requant_mult": 5429,
+    "c_proj_output_requant_shift": 24,
+    "c_proj_postprocess_formula": "q[i] = saturate_i8(round_shift(acc[i] * scale_mul[i], c_proj_output_requant_shift) + bias_q[i])"
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "c_fc_activation_scale": 0.018751840891800528,
+    "post_gelu_output_scale": 0.0029469242493654676,
+    "c_proj_output_scale": 0.0005451477770730266,
+    "c_fc_effective_scale_min": 4.661679646118518e-06,
+    "c_fc_effective_scale_max": 1.2890539282460188e-05,
+    "c_fc_scale_mul_min": 320348,
+    "c_fc_scale_mul_max": 885831,
+    "c_fc_bias_q_min": 0,
+    "c_fc_bias_q_max": 0,
+    "post_gelu_q_min": -50,
+    "post_gelu_q_max": 127,
+    "c_proj_weight_scale_min": 0.0003695954664016333,
+    "c_proj_weight_scale_max": 0.0006005592116220729,
+    "c_proj_accumulator_min": -45871,
+    "c_proj_accumulator_max": 37873,
+    "c_proj_output_scale_mul_min": 33520,
+    "c_proj_output_scale_mul_max": 54467,
+    "c_proj_output_bias_q_min": 0,
+    "c_proj_output_bias_q_max": 0,
+    "c_proj_output_q_min": -127,
+    "c_proj_output_q_max": 87,
+    "c_fc_activation_q_sha256": "c79371a06193d3ecfc6f9ae310c29deb1f260ed22e70749ebbf357aa3652099d",
+    "c_fc_weight_q_sha256": "dafa14a6f302b888c2044fdca82d0dd7cce82aa46c7853f1b0b610fb7342170c",
+    "c_fc_packed_weight_sha256": "14cac4e2e5eb55a097bce410ec6df36956290962ad01029a46ea81b6ae755e1e",
+    "c_fc_accumulator_sha256": "5552fbae1354d62cce63647e17dc284ac6ecb36395dc3307ba9e93be4273008a",
+    "c_fc_scale_mul_sha256": "e8e4af18da8a63e074d8a0efa7b334ea9470977006fb3961d0c268707c008119",
+    "c_fc_bias_q_sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+    "post_gelu_q_sha256": "113d774c51f693d3ea5f144588670fa80f3f236b1441fa8394a0d3e9bf6e7292",
+    "c_proj_weight_q_sha256": "2da8fa91186794806b71e18473eebff98b5988d08d10500d772766b20f8f4a05",
+    "c_proj_packed_weight_sha256": "5ad0de4e44df9fa6c5abe1f144a8ac9ade6d3436829de5989c4489fc5024ba96",
+    "c_proj_accumulator_sha256": "638cd9b8c9a4897addb4acfa569b8c99a56b39e46189d14a478b23054a970d00",
+    "c_proj_output_scale_mul_sha256": "00f820643659ffc154a8b064e2da16a4f5b4e2977d353d88e115f28e6495391c",
+    "c_proj_output_bias_q_sha256": "5341e6b2646979a70e57653007a1f310169421ec9bdd9f1a5648f75ade005af1",
+    "c_proj_output_q_sha256": "41e4455176c0a7fedb9690a264bf1de66df4ea5f5d55c50c507144f937dd6c38",
+    "c_proj_output_boundary_q_sha256": "41e4455176c0a7fedb9690a264bf1de66df4ea5f5d55c50c507144f937dd6c38",
+    "c_proj_output_matches_boundary_quantizer": true,
+    "c_proj_accumulator_matches_boundary": true
+  },
+  "metrics": {
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 1.216223038946751e-08,
+      "mean_abs_error": 1.8261327807107522e-09,
+      "rmse": 2.7276514815094935e-09,
+      "normalized_rmse": 3.297134576419982e-08,
+      "signal_max_abs": 0.37425937966941436,
+      "signal_mean_abs": 0.06314471046561791
+    },
+    "post_gelu_int8_vs_c_proj_input": {
+      "max_abs_error": 0.0030347118757894365,
+      "mean_abs_error": 0.0008334476682310716,
+      "rmse": 0.0010246843084912194,
+      "normalized_rmse": 0.012386194129262937,
+      "signal_max_abs": 0.3742593824863434,
+      "signal_mean_abs": 0.0631447101015965
+    },
+    "c_proj_f32_output_from_chain_accumulators": {
+      "max_abs_error": 0.0010052434381060786,
+      "mean_abs_error": 0.00033190460916322317,
+      "rmse": 0.00042558564413321375,
+      "normalized_rmse": 0.017932678210325667,
+      "signal_max_abs": 0.06923376768827438,
+      "signal_mean_abs": 0.019637645433249418
+    },
+    "c_proj_int8_output_from_fixed_requant": {
+      "max_abs_error": 0.0008589968261286975,
+      "mean_abs_error": 0.00036237744162341296,
+      "rmse": 0.00044549326123037385,
+      "normalized_rmse": 0.018771514990322893,
+      "signal_max_abs": 0.06923376768827438,
+      "signal_mean_abs": 0.019637645433249418
+    }
+  },
+  "byte_budget": {
+    "c_fc_activation_int8_bytes": 64,
+    "c_fc_packed_weight_bytes": 16384,
+    "c_fc_scale_mul_sidecar_bytes": 1024,
+    "c_fc_bias_q_sidecar_bytes": 1024,
+    "handoff_int8_activation_bytes": 256,
+    "c_proj_packed_weight_bytes": 16384,
+    "c_proj_accumulator_output_bytes": 256,
+    "c_proj_output_scale_mul_sidecar_bytes": 256,
+    "c_proj_output_bias_q_sidecar_bytes": 256,
+    "c_proj_int8_output_bytes": 64,
+    "c_proj_f32_output_bytes_replaced": 256,
+    "c_proj_int8_output_write_savings_vs_f32_bytes": 192
+  },
+  "sim_result": {
+    "status": "PASS",
+    "reads": 64,
+    "outputs": 64,
+    "compute_cycles": 54816,
+    "cycles": 54880
+  },
+  "yosys_result": null,
+  "mapped_utilization": null,
+  "decision": {
+    "verdict": "promote",
+    "next_gate": "capture and score the residual add boundary after c_proj"
+  }
+}

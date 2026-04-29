@@ -1,0 +1,93 @@
+{
+  "artifact_name": "h2-v4k-int8-l2-c-fc-post-gelu-requant-rtl-proof",
+  "status": "PASS",
+  "source_artifacts": {
+    "contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_fc-contract/manifest.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "downstream_boundary_json": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-downstream-int8-boundary.json",
+    "model_label": "tiny-stories-v4k-h64-l1",
+    "module_name": "transformer.h.0.mlp.c_fc"
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_l2_c_fc_post_gelu_requant_kernel",
+    "in_dim": 64,
+    "out_dim": 256,
+    "lane_count": 4,
+    "packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "accumulator_dtype": "int32",
+    "output_dtype": "int8",
+    "activation_quantization": "int8-per-tensor-symmetric",
+    "weight_quantization": "int8-per-output-symmetric",
+    "output_quantization": "int8-per-tensor-symmetric",
+    "boundary": "post_gelu_int8_activation",
+    "local_activation_memory": true,
+    "local_packed_weight_memory": true,
+    "local_requant_sidecar_memory": true,
+    "local_output_memory": true
+  },
+  "fixed_point": {
+    "x_frac": 12,
+    "scale_shift": 24,
+    "gelu_approximation": "0.5*x + 0.39894228*x*x",
+    "gelu_quad_q": 1634,
+    "output_requant_shift": 16,
+    "output_requant_mult": 5429,
+    "postprocess_formula": "x_q = round_shift(acc * scale_mul, scale_shift) + bias_q; y_q = (x_q >> 1) + round_shift(gelu_quad_q * x_q * x_q, 2*x_frac); q = saturate_i8(round_shift(y_q * output_requant_mult, output_requant_shift))"
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "activation_scale": 0.018751840891800528,
+    "output_scale": 0.0029469242493654676,
+    "effective_scale_min": 4.661679646118518e-06,
+    "effective_scale_max": 1.2890539282460188e-05,
+    "scale_mul_min": 320348,
+    "scale_mul_max": 885831,
+    "bias_q_min": 0,
+    "bias_q_max": 0,
+    "accumulator_min": -73382,
+    "accumulator_max": 84485,
+    "pre_gelu_min": -0.471117881920305,
+    "pre_gelu_max": 0.5308851577736923,
+    "output_q_min": -50,
+    "output_q_max": 127,
+    "activation_q_sha256": "c79371a06193d3ecfc6f9ae310c29deb1f260ed22e70749ebbf357aa3652099d",
+    "weight_q_sha256": "dafa14a6f302b888c2044fdca82d0dd7cce82aa46c7853f1b0b610fb7342170c",
+    "packed_weight_sha256": "14cac4e2e5eb55a097bce410ec6df36956290962ad01029a46ea81b6ae755e1e",
+    "expected_acc_sha256": "5552fbae1354d62cce63647e17dc284ac6ecb36395dc3307ba9e93be4273008a",
+    "scale_mul_sha256": "e8e4af18da8a63e074d8a0efa7b334ea9470977006fb3961d0c268707c008119",
+    "bias_q_sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+    "output_q_sha256": "113d774c51f693d3ea5f144588670fa80f3f236b1441fa8394a0d3e9bf6e7292",
+    "max_abs_error": 0.003034720504609262,
+    "mean_abs_error": 0.0008334479925595169,
+    "rmse": 0.0010246846833390942,
+    "normalized_rmse": 0.012386198611765455,
+    "signal_max_abs": 0.37425937966941436,
+    "signal_mean_abs": 0.06314471046561791,
+    "verdict": "pass"
+  },
+  "byte_budget": {
+    "activation_int8_bytes": 64,
+    "packed_weight_bytes": 16384,
+    "scale_mul_sidecar_bytes": 1024,
+    "bias_q_sidecar_bytes": 1024,
+    "output_int8_bytes": 256,
+    "f32_output_bytes_replaced": 1024,
+    "int8_output_write_savings_vs_f32_bytes": 768
+  },
+  "sim_result": {
+    "status": "PASS",
+    "reads": 256,
+    "outputs": 256,
+    "compute_cycles": 47691,
+    "cycles": 47947
+  },
+  "yosys_result": null,
+  "mapped_utilization": null,
+  "interpretation": [
+    "This proof keeps c_fc accumulation in the existing int8 local-I/O RTL and adds a fixed-point post-GELU requant/output-memory stage.",
+    "The GELU stage is a bounded small-range quadratic approximation, matched to the captured L2 c_fc activation range.",
+    "The output is checked as an int8 post-GELU activation, so this avoids the explicit f32 scale/bias/output buffer boundary."
+  ]
+}

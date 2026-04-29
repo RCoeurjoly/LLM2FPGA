@@ -39,6 +39,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--c-proj-output-boundary-json", required=True, type=Path)
     parser.add_argument("--c-proj-requant-rtl-proof-json", required=True, type=Path)
     parser.add_argument("--out-json", required=True, type=Path)
+    parser.add_argument(
+        "--artifact-name",
+        default="h2-int8-l2-residual-add-boundary",
+    )
     parser.add_argument("--normalized-rmse-threshold", type=float, default=0.02)
     return parser.parse_args()
 
@@ -325,7 +329,7 @@ def main() -> None:
     )
 
     payload = {
-        "artifact_name": "h2-int8-l2-residual-add-boundary",
+        "artifact_name": args.artifact_name,
         "status": "PASS" if overall_pass else "FAIL",
         "source_artifacts": {
             "residual_contract_manifest": str(args.residual_contract_manifest),

@@ -1,0 +1,111 @@
+{
+  "artifact_name": "h2-int8-l2-c-proj-output-boundary",
+  "status": "PASS",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-post-gelu-requant-rtl-proof.json",
+    "mlp_chain_rtl_proof_json": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof.json",
+    "c_proj_candidate_json": null
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_fc",
+    "consumer": "transformer.h.0.mlp.c_proj",
+    "boundary": "c_proj_output",
+    "interpretation": "Score the output side of the composed int8 MLP chain after the c_proj int32 accumulators."
+  },
+  "module": {
+    "model_label": "tiny-stories-v4k-h64-l1",
+    "c_proj_in_features": 256,
+    "c_proj_out_features": 64,
+    "c_proj_macs": 16384
+  },
+  "input_boundary": {
+    "activation_dtype": "post-GELU int8",
+    "activation_scale": 0.0029469242493654676,
+    "activation_q_min": -50,
+    "activation_q_max": 127,
+    "activation_q_sha256": "113d774c51f693d3ea5f144588670fa80f3f236b1441fa8394a0d3e9bf6e7292",
+    "activation_vs_c_proj_input": {
+      "max_abs_error": 0.0030347118757894365,
+      "mean_abs_error": 0.0008334476682310716,
+      "rmse": 0.0010246843084912194,
+      "normalized_rmse": 0.012386194129262937,
+      "signal_max_abs": 0.3742593824863434,
+      "signal_mean_abs": 0.0631447101015965
+    },
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 1.216223038946751e-08,
+      "mean_abs_error": 1.8261327807107522e-09,
+      "rmse": 2.7276514815094935e-09,
+      "normalized_rmse": 3.297134576419982e-08,
+      "signal_max_abs": 0.37425937966941436,
+      "signal_mean_abs": 0.06314471046561791
+    }
+  },
+  "accumulator_boundary": {
+    "accumulator_dtype": "int32",
+    "accumulator_min": -45871,
+    "accumulator_max": 37873,
+    "accumulator_sha256": "638cd9b8c9a4897addb4acfa569b8c99a56b39e46189d14a478b23054a970d00",
+    "chain_proof_accumulator_sha256": "638cd9b8c9a4897addb4acfa569b8c99a56b39e46189d14a478b23054a970d00",
+    "matches_chain_proof": true
+  },
+  "f32_output_candidate": {
+    "boundary": "int32_accumulator_to_f32_output",
+    "formula": "f32_out[i] = int32_acc[i] * post_gelu_scale * weight_scale[i] + bias[i]",
+    "scale_dtype": "float32",
+    "bias_dtype": "float32",
+    "output_dtype": "float32",
+    "effective_scale_min": 1.0891698423945132e-06,
+    "effective_scale_max": 1.7698025039088942e-06,
+    "effective_scale_sha256": "de90fc745aaaf3261c7f5e6727806ce6d8f31521325daf2b077be051fe4ecd47",
+    "bias_sha256": "5341e6b2646979a70e57653007a1f310169421ec9bdd9f1a5648f75ade005af1",
+    "dequantized_output_sha256": "0b1a54c698247bf1d1204149d5e9ed1f2ea314d66d4089422a556a8329c284aa",
+    "metrics": {
+      "max_abs_error": 0.0010052434381060786,
+      "mean_abs_error": 0.00033190460916322317,
+      "rmse": 0.00042558564413321375,
+      "normalized_rmse": 0.017932678210325667,
+      "signal_max_abs": 0.06923376768827438,
+      "signal_mean_abs": 0.019637645433249418
+    },
+    "verdict": "pass"
+  },
+  "int8_output_candidate": {
+    "boundary": "int32_accumulator_to_int8_output",
+    "calibration": "single captured c_proj activation_out max-abs scale",
+    "output_scale": 0.0005451477770730266,
+    "output_q_min": -127,
+    "output_q_max": 87,
+    "output_q_sha256": "41e4455176c0a7fedb9690a264bf1de66df4ea5f5d55c50c507144f937dd6c38",
+    "metrics": {
+      "max_abs_error": 0.0008589968261286975,
+      "mean_abs_error": 0.00036237744162341296,
+      "rmse": 0.00044549326123037385,
+      "normalized_rmse": 0.018771514990322893,
+      "signal_max_abs": 0.06923376768827438,
+      "signal_mean_abs": 0.019637645433249418
+    },
+    "verdict": "pass",
+    "calibration_caveat": "A production output scale still needs a calibration set before board-level claims."
+  },
+  "byte_budget": {
+    "c_proj_accumulator_int32_bytes": 256,
+    "c_proj_effective_scale_f32_bytes": 256,
+    "c_proj_bias_f32_bytes": 256,
+    "c_proj_f32_output_bytes": 256,
+    "c_proj_int8_output_bytes": 64,
+    "c_proj_int8_output_scale_bytes": 4,
+    "f32_output_postprocess_read_write_bytes": 1024,
+    "int8_output_write_savings_vs_f32_bytes": 192
+  },
+  "mapped_chain_reference": null,
+  "next_linalg_context": null,
+  "decision": {
+    "verdict": "promote-int8-output-boundary",
+    "next_gate": "implement a bounded fixed-point c_proj requant/output-memory RTL proof"
+  }
+}

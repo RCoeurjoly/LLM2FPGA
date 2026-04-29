@@ -15,7 +15,7 @@
       "embeddings",
       "lm_head/output vocab projection",
       "multi-token calibration",
-      "v4k RTL/bitstream replay"
+      "v4k bitstream replay"
     ]
   },
   "source_artifacts": {
@@ -29,7 +29,14 @@
     "v1k_v4k_quantized_weight_replay": "artifacts/task6/parallel-hypotheses/h2-v1k-v4k-quantized-weight-replay.json",
     "v1k_v4k_streaming_contract_score": "artifacts/task6/parallel-hypotheses/h2-v1k-v4k-streaming-contract-score.json",
     "v4k_c_fc_scale_bias_output_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-scale-bias-output-boundary.json",
-    "v4k_c_fc_downstream_int8_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-downstream-int8-boundary.json"
+    "v4k_c_fc_downstream_int8_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-downstream-int8-boundary.json",
+    "v4k_c_fc_post_gelu_requant_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-post-gelu-requant-rtl-proof.json",
+    "v4k_c_proj_from_post_gelu_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-proj-from-post-gelu-boundary.json",
+    "v4k_mlp_chain_post_gelu_c_proj_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof.json",
+    "v4k_c_proj_output_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-proj-output-boundary.json",
+    "v4k_mlp_chain_c_proj_requant_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json",
+    "v4k_residual_add_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-residual-add-boundary.json",
+    "v4k_mlp_chain_residual_add_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json"
   },
   "checks": {
     "c_fc_f32_replay": {
@@ -66,6 +73,37 @@
       "status": "PASS",
       "recommended_boundary": "post_gelu_int8_activation",
       "gelu_output_normalized_rmse": 0.012050216169024767
+    },
+    "v4k_c_fc_post_gelu_requant_rtl": {
+      "status": "PASS",
+      "post_gelu_normalized_rmse": 0.012386198611765455,
+      "compute_cycles": 47691,
+      "cycles": 47947
+    },
+    "v4k_mlp_chain_post_gelu_c_proj_rtl": {
+      "status": "PASS",
+      "c_proj_output_normalized_rmse": 0.017932678210325667,
+      "compute_cycles": 52383,
+      "cycles": 52447
+    },
+    "v4k_mlp_chain_c_proj_requant_rtl": {
+      "status": "PASS",
+      "c_proj_int8_output_normalized_rmse": 0.018771514990322893,
+      "compute_cycles": 54816,
+      "cycles": 54880
+    },
+    "v4k_residual_add_boundary": {
+      "status": "PASS",
+      "residual_int8_verdict": "pass",
+      "final_output_int8_verdict": "pass",
+      "final_output_normalized_rmse": 0.011521920099889468
+    },
+    "v4k_mlp_chain_residual_add_rtl": {
+      "status": "PASS",
+      "fixed_residual_add_output_normalized_rmse": 0.011521920099889468,
+      "fixed_residual_add_output_vs_boundary_quantizer_normalized_rmse": 0.0,
+      "compute_cycles": 54945,
+      "cycles": 55009
     }
   },
   "streaming_mlp_budget_at_4_dsp_lanes": {
@@ -77,9 +115,9 @@
     "int4_weight_bytes_per_token": 20224
   },
   "decision": {
-    "verdict": "promote-v4k-contracts-to-rtl-replay",
-    "rationale": "The same bounded MLP/residual lane survives the v4k activation and weight values with exact f32 replay, passing int8 replay, and passing the first post-GELU int8 boundary scout.",
-    "caveat": "The v4k MLP has the same matrix dimensions as v1k, so this does not yet prove a larger vocab-dependent memory path. It should be followed by a v4k RTL replay and a separate embedding/lm_head memory-surface score before DDR3 controller work.",
-    "next_gate": "Regenerate same-shape RTL tb_data/sidecars for the v4k contracts, run SV simulation and mapped utilization, then decide whether to add vocab-dependent embedding/output-head scorecards."
+    "verdict": "promote-v4k-rtl-replay-to-vocab-memory-score",
+    "rationale": "The same bounded MLP/residual lane survives the v4k activation and weight values through the composed SV RTL replay: post-GELU requant, c_proj, c_proj requant, and final residual-add all pass.",
+    "caveat": "The v4k MLP has the same matrix dimensions as v1k, so this still does not prove a larger vocab-dependent memory path. Embeddings and lm_head/output vocab projection remain the growth surfaces to score before DDR3 controller work.",
+    "next_gate": "Add a vocab-dependent embedding/output-head memory-surface scorecard, then decide whether the next board step needs DDR3 or a smaller on-chip continuation."
   }
 }

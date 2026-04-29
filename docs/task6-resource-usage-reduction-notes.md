@@ -9860,3 +9860,78 @@ Interpretation:
   v4k contracts and run the SV/mapped replay. After that, add a separate
   embedding/output-head memory-surface score before deciding on DDR3 controller
   integration.
+
+### 2026-04-29 - H2 v4k same-shape RTL replay
+
+Goal:
+
+- Execute the next gate from the v4k contract scout: regenerate same-shape RTL
+  sidecars from the `tiny-stories-v4k-h64-l1` contracts and prove the composed
+  int8 L2 MLP/residual path in SV simulation.
+
+New artifacts:
+
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-post-gelu-requant-rtl-proof.json`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-proj-from-post-gelu-boundary.json`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-post-gelu-c-proj-rtl-proof.json`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-proj-output-boundary.json`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-residual-add-boundary.json`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json`
+- updated `artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json`
+
+Execution notes:
+
+- Reused the checked v4k contracts and packed weights from the v4k scale-up
+  scout.
+- Generated temporary Verilator `tb_data.sv` sidecars under
+  `/tmp/task6-v4k-rtl/`.
+- Used:
+  - `/nix/store/ar40y7sk8dxahqk58rm5cj5p0qy9xa39-python3-3.11.14-env/bin/python`
+  - `/nix/store/0p3wb160b3881j0g02qvvxih7l01kpz2-verilator-5.044/bin/verilator`
+- Fixed the c_proj requant and residual-add testbench timeout constants to
+  scale with generated packed-weight word counts. The old c_proj requant
+  timeout was `16000` cycles, which could expire during v4k load/compute even
+  though the design later completed correctly.
+
+Results:
+
+- v4k `c_fc` post-GELU requant RTL proof:
+  - status: `PASS`
+  - reads / outputs: `256 / 256`
+  - compute cycles / total cycles: `47691 / 47947`
+  - post-GELU normalized RMSE: `0.012386198611765455`
+- v4k post-GELU handoff into `c_proj`:
+  - status: `PASS`
+  - handoff normalized RMSE: `0.012386194129262937`
+- v4k composed post-GELU `c_proj` RTL proof:
+  - status: `PASS`
+  - reads / outputs: `64 / 64`
+  - compute cycles / total cycles: `52383 / 52447`
+  - `c_proj` f32 output normalized RMSE: `0.017932678210325667`
+- v4k `c_proj` requant RTL proof:
+  - status: `PASS`
+  - reads / outputs: `64 / 64`
+  - compute cycles / total cycles: `54816 / 54880`
+  - fixed int8 `c_proj` output normalized RMSE: `0.018771514990322893`
+- v4k residual-add boundary:
+  - status: `PASS`
+  - residual int8 verdict: `pass`
+  - final output int8 verdict: `pass`
+- v4k composed residual-add RTL proof:
+  - status: `PASS`
+  - reads / outputs: `64 / 64`
+  - compute cycles / total cycles: `54945 / 55009`
+  - fixed residual-add output vs block output normalized RMSE:
+    `0.011521920099889468`
+  - fixed residual-add output vs boundary quantizer normalized RMSE: `0.0`
+
+Interpretation:
+
+- The same H2 int8 L2 MLP/residual RTL path that was board-validated on v1k
+  also passes with v4k activation and weight values in SV replay.
+- This closes the same-shape v4k RTL replay gate. It still is not a
+  vocab-growth memory proof because `v4k-h64-l1` keeps the same
+  `64 -> 256 -> 64` MLP dimensions.
+- Next gate: score the vocab-dependent embedding and output-head/lm_head memory
+  surfaces before committing to DDR3 controller integration.
