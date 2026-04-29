@@ -8365,3 +8365,108 @@ Decision:
   - integrate the residual-add proof into a board-programmable selftest lane
   - keep the lane bounded first, then scale only after the programmed-board
     selftest path proves the I/O contract and pass/fail reporting
+
+### 2026-04-29 - H2 residual-add board selftest bitstream
+
+Artifacts:
+
+- `fpga/rtl/task6_int8_l2_mlp_chain_residual_add_selftest_top.sv`
+- `sim/task6_int8_l2_mlp_chain_residual_add_selftest_tb_main.sv`
+
+Nix targets:
+
+- `task6-int8-l2-mlp-chain-residual-add-selftest-top`
+- `task6-int8-l2-mlp-chain-residual-add-selftest-sim-main`
+- `task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim`
+- `task6-int8-l2-mlp-chain-residual-add-selftest-json`
+- `task6-int8-l2-mlp-chain-residual-add-selftest-utilization`
+- `task6-int8-l2-mlp-chain-residual-add-selftest-xdc`
+- `task6-int8-l2-mlp-chain-residual-add-selftest-fasm`
+- `task6-int8-l2-mlp-chain-residual-add-selftest-bitstream`
+
+Purpose:
+
+- move the bounded int8 residual-add RTL proof from simulator-only evidence to
+  a board-programmable pass/fail selftest
+- reuse the existing `matmul_selftest.xdc` board pins:
+  `SYS_CLK`, `SYS_RSTN`, and `led_3bits_tri_o[2:0]`
+- load the fixed proof vectors into the DUT, pulse `start`, wait for `done`,
+  read all `64` output bytes, and assert:
+  - `led_3bits_tri_o[0]`: heartbeat
+  - `led_3bits_tri_o[1]`: pass
+  - `led_3bits_tri_o[2]`: fail
+
+Commands:
+
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-utilization --no-link --print-out-paths -L`
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-fasm --no-link --print-out-paths -L`
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-bitstream --no-link --print-out-paths -L`
+
+Execution result:
+
+- Verilator wrapper selftest: `PASS`
+  - pass LED asserted after `18676` simulated cycles
+  - output path:
+    `/nix/store/7vbz64gnv359myip0j8j26xf5rwn73ds-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+- Yosys mapped check:
+  - `0` reported problems
+  - JSON path:
+    `/nix/store/md3y3hzgpi5gm0cw94wkyx9iz52lzwqd-task6-int8-l2-mlp-chain-residual-add-selftest.json`
+  - utilization report:
+    `/nix/store/ahlxmh9hgw711l3wywld1b1fwp22b047-task6-int8-l2-mlp-chain-residual-add-selftest-utilization`
+- nextpnr/FASM:
+  - legal route: router reached `overused=0`, `overuse=0`, `archfail=0`
+  - post-route max frequency: `141.02 MHz`
+  - requested target: `12.00 MHz`
+  - FASM path:
+    `/nix/store/9m7pxa76vkna92jdfln0l2hp74wggw3g-task6-int8-l2-mlp-chain-residual-add-selftest.fasm`
+- bitstream:
+  - status: `PASS`
+  - bit path:
+    `/nix/store/rdg9hr176qqln2lg0a2dqxscddqamy30-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+
+Mapped utilization:
+
+- LUTs: `6944 / 298600 = 2.33%`
+- FFs: `566 / 597200 = 0.09%`
+- DSPs: `36 / 1920 = 1.88%`
+- BRAM36: `8 / 955 = 0.84%`
+- BRAM18: `6`
+- BRAM36-equivalent: `11.0 / 955 = 1.15%`
+- BRAM KiB: `396 / 34380 = 1.15%`
+- slices lower bound: `868 / 74650 = 1.16%`
+
+Delta versus the bare residual-add RTL proof:
+
+- LUTs: `1226 -> 6944` (`+5718`)
+- FFs: `468 -> 566` (`+98`)
+- DSPs: `36 -> 36` (`+0`)
+- BRAM36-equivalent: `11.0 -> 11.0` (`+0.0`)
+
+Interpretation:
+
+- The selftest wrapper adds LUT-heavy fixed-vector load and compare logic, but
+  it does not increase DSP or BRAM use over the bare residual-add kernel.
+- This is the intended board bring-up tradeoff: spend a small amount of LUT
+  budget to prove the real I/O contract and visible pass/fail reporting.
+- The bitstream artifact is ready for physical programming and LED observation.
+
+Tooling note:
+
+- The first selftest JSON attempt used the generic `mkSynthJson` path, which
+  pulled the `yosys-slang`/`yosys-0.64` bootstrap path and failed before design
+  synthesis with `genericBuild: command not found`.
+- The accepted selftest JSON target uses explicit `read_verilog -sv` commands
+  with `pkgs.yosys`, matching the other Task 6 RTL proof targets.
+
+Decision:
+
+- Board-programmable evidence is now available for the bounded int8 residual
+  add lane.
+- Next gate:
+  - physically program
+    `/nix/store/rdg9hr176qqln2lg0a2dqxscddqamy30-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+  - observe heartbeat/pass/fail LEDs under real board clock/reset
+  - if pass LED asserts and fail LED stays low, promote the lane from
+    bitstream-ready to on-board validated

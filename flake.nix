@@ -2930,6 +2930,13 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2MlpChainResidualAddSelftestTop =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-top.sv" { } ''
+            sed 's|"tb_data.sv"|"${task6Int8L2MlpChainResidualAddTbDataSv}/tb_data.sv"|g' \
+              ${./fpga/rtl/task6_int8_l2_mlp_chain_residual_add_selftest_top.sv} \
+              > "$out"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -3152,6 +3159,28 @@
               ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
               ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
               ${./sim/task6_int8_l2_mlp_chain_residual_add_tb_main.sv}
+          '';
+
+        task6Int8L2MlpChainResidualAddSelftestSimMain =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6Int8L2MlpChainResidualAddTbDataSv} \
+              -top task6_int8_l2_mlp_chain_residual_add_selftest_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${./fpga/rtl/task6_int8_l2_mlp_chain_residual_add_selftest_top.sv} \
+              ${./sim/task6_int8_l2_mlp_chain_residual_add_selftest_tb_main.sv}
           '';
 
         task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
@@ -3543,6 +3572,47 @@
             yosys -s run.ys
           '';
 
+        task6Int8L2MlpChainResidualAddSelftestJson =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            read_verilog -sv ${task6Int8L2MlpChainResidualAddSelftestTop}
+            hierarchy -top task6_int8_l2_mlp_chain_residual_add_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6Int8L2MlpChainResidualAddSelftestXdc = mkXdc {
+          name = "task6-int8-l2-mlp-chain-residual-add-selftest";
+          includeBoardXdc = false;
+          extraConstraints = [ ./fpga/constraints/matmul_selftest.xdc ];
+        };
+
+        task6Int8L2MlpChainResidualAddSelftestFasm = mkFasm {
+          name = "task6-int8-l2-mlp-chain-residual-add-selftest";
+          xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
+          json = task6Int8L2MlpChainResidualAddSelftestJson;
+        };
+
+        task6Int8L2MlpChainResidualAddSelftestBitstream = mkBitstream {
+          name = "task6-int8-l2-mlp-chain-residual-add-selftest";
+          fasm = task6Int8L2MlpChainResidualAddSelftestFasm;
+          framesBase = "task6-int8-l2-mlp-chain-residual-add-selftest";
+        };
+
         task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
           name = "task6-int8-gemv64";
           capacities = tinyStoriesCapacities;
@@ -3625,6 +3695,14 @@
             capacities = tinyStoriesCapacities;
             topName = "task6_int8_l2_mlp_chain_residual_add_kernel";
             designJson = task6Int8L2MlpChainResidualAddJson;
+          };
+
+        task6Int8L2MlpChainResidualAddSelftestUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-int8-l2-mlp-chain-residual-add-selftest";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_int8_l2_mlp_chain_residual_add_selftest_top";
+            designJson = task6Int8L2MlpChainResidualAddSelftestJson;
           };
 
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
@@ -4242,6 +4320,26 @@
               "outputs": $outputs,
               "compute_cycles": $compute_cycles,
               "cycles": $total_cycles
+            }
+            EOF
+          '';
+
+        task6Int8L2MlpChainResidualAddSelftestSvSim =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6Int8L2MlpChainResidualAddSelftestSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 int8 L2 residual add selftest led_pass cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-int8-l2-mlp-chain-residual-add-selftest SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "cycles": $cycles
             }
             EOF
           '';
@@ -5143,6 +5241,22 @@
             task6Int8L2MlpChainResidualAddUtilization;
           task6-int8-l2-mlp-chain-residual-add-rtl-proof =
             task6Int8L2MlpChainResidualAddRtlProof;
+          task6-int8-l2-mlp-chain-residual-add-selftest-top =
+            task6Int8L2MlpChainResidualAddSelftestTop;
+          task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =
+            task6Int8L2MlpChainResidualAddSelftestSimMain;
+          task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim =
+            task6Int8L2MlpChainResidualAddSelftestSvSim;
+          task6-int8-l2-mlp-chain-residual-add-selftest-json =
+            task6Int8L2MlpChainResidualAddSelftestJson;
+          task6-int8-l2-mlp-chain-residual-add-selftest-utilization =
+            task6Int8L2MlpChainResidualAddSelftestUtilization;
+          task6-int8-l2-mlp-chain-residual-add-selftest-xdc =
+            task6Int8L2MlpChainResidualAddSelftestXdc;
+          task6-int8-l2-mlp-chain-residual-add-selftest-fasm =
+            task6Int8L2MlpChainResidualAddSelftestFasm;
+          task6-int8-l2-mlp-chain-residual-add-selftest-bitstream =
+            task6Int8L2MlpChainResidualAddSelftestBitstream;
           task6-int8-l2-residual-add-boundary-scout =
             task6Int8L2ResidualAddBoundaryScout;
           task6-int8-l2-residual-add-contract =
