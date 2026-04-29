@@ -9676,3 +9676,21 @@ Regular non-debug bitstream rebuild after hardware fix:
     result; the failure happens before programming starts
   - next physical action is to power-cycle or reseat the board/HS3 target
     connection, then retry programming the already-built regular bitstream
+
+Regular non-debug bitstream hardware programming retry:
+
+- Retried after the target-side JTAG issue was corrected:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/p6f10gn31s6aram54y0c570kksbpy63d-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+  - SRAM load completed successfully
+  - FPGA `done` was `1`
+- JTAG health check after programming:
+  - `openFPGALoader --detect` reported:
+    - IDCODE `0x23751093`
+    - `xc7k480t`
+    - IR length `6`
+  - direct MPSSE IDCODE read also returned `0x23751093`
+- Interpretation:
+  - the fixed regular non-debug Task 6 self-test bitstream is now programmed
+    on the board
+  - internal self-test pass was already proven with the matching JTAG-debug
+    build; this regular build intentionally has no debug payload readout
