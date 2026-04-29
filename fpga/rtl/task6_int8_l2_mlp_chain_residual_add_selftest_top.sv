@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
-  parameter bit DEBUG_LEDS = 1'b0
+  parameter int DEBUG_LEDS = 0
 )(
   input logic SYS_CLK,
   input logic SYS_RSTN,
@@ -38,7 +38,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic [12:0] load_index_q;
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] check_index_q;
   logic [31:0] cycle_count_q;
-  logic [25:0] blink_count_q;
+  logic [28:0] blink_count_q;
   logic [7:0] config_reset_count_q = 8'd0;
   logic config_reset_done;
   logic selftest_reset;
@@ -46,6 +46,9 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] fail_index_q;
   logic signed [7:0] fail_expected_q;
   logic signed [7:0] fail_observed_q;
+  logic [3:0] value_debug_phase;
+  logic [2:0] fail_expected_high_leds;
+  logic [2:0] fail_observed_high_leds;
 
   logic dut_reset;
   logic start;
@@ -74,6 +77,10 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic signed [7:0] residual_load_data;
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] output_read_addr;
   logic signed [7:0] output_read_data;
+
+  assign value_debug_phase = blink_count_q[28:25];
+  assign fail_expected_high_leds = {1'b0, fail_expected_q[7:6]};
+  assign fail_observed_high_leds = {1'b0, fail_observed_q[7:6]};
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
     if (!SYS_RSTN)
@@ -186,7 +193,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       load_index_q <= 13'd0;
       check_index_q <= '0;
       cycle_count_q <= 32'd0;
-      blink_count_q <= 26'd0;
+      blink_count_q <= 29'd0;
       fail_reason_q <= 2'd0;
       fail_index_q <= '0;
       fail_expected_q <= '0;
@@ -197,13 +204,13 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       load_index_q <= 13'd0;
       check_index_q <= '0;
       cycle_count_q <= 32'd0;
-      blink_count_q <= 26'd0;
+      blink_count_q <= 29'd0;
       fail_reason_q <= 2'd0;
       fail_index_q <= '0;
       fail_expected_q <= '0;
       fail_observed_q <= '0;
     end else begin
-      blink_count_q <= blink_count_q + 26'd1;
+      blink_count_q <= blink_count_q + 29'd1;
 
       if (boot_count_q <= BOOT_RESET_CYCLES)
         boot_count_q <= boot_count_q + 8'd1;
@@ -339,19 +346,40 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     led_3bits_tri_o[1] = (state_q == SELFTEST_PASS);
     led_3bits_tri_o[2] = (state_q == SELFTEST_FAIL);
 
-    if (DEBUG_LEDS) begin
+    if (DEBUG_LEDS != 0) begin
       unique case (state_q)
         SELFTEST_PASS: begin
           led_3bits_tri_o = 3'b010;
         end
 
         SELFTEST_FAIL: begin
-          unique case (blink_count_q[25:24])
-            2'd0: led_3bits_tri_o = {1'b1, fail_reason_q};
-            2'd1: led_3bits_tri_o = fail_index_q[2:0];
-            2'd2: led_3bits_tri_o = fail_index_q[5:3];
-            default: led_3bits_tri_o = 3'b111;
-          endcase
+          if (DEBUG_LEDS == 2) begin
+            unique case (value_debug_phase)
+              4'd0: led_3bits_tri_o = 3'b111;
+              4'd1: led_3bits_tri_o = {1'b1, fail_reason_q};
+              4'd2: led_3bits_tri_o = fail_index_q[2:0];
+              4'd3: led_3bits_tri_o = fail_index_q[5:3];
+              4'd4: led_3bits_tri_o = 3'b101;
+              4'd5: led_3bits_tri_o = fail_expected_q[2:0];
+              4'd6: led_3bits_tri_o = fail_expected_q[5:3];
+              4'd7: led_3bits_tri_o = fail_expected_high_leds;
+              4'd8: led_3bits_tri_o = 3'b011;
+              4'd9: led_3bits_tri_o = fail_observed_q[2:0];
+              4'd10: led_3bits_tri_o = fail_observed_q[5:3];
+              4'd11: led_3bits_tri_o = fail_observed_high_leds;
+              4'd12,
+              4'd13,
+              4'd14: led_3bits_tri_o = 3'b000;
+              default: led_3bits_tri_o = 3'b111;
+            endcase
+          end else begin
+            unique case (blink_count_q[25:24])
+              2'd0: led_3bits_tri_o = {1'b1, fail_reason_q};
+              2'd1: led_3bits_tri_o = fail_index_q[2:0];
+              2'd2: led_3bits_tri_o = fail_index_q[5:3];
+              default: led_3bits_tri_o = 3'b111;
+            endcase
+          end
         end
 
         default: begin

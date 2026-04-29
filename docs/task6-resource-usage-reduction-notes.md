@@ -8685,3 +8685,68 @@ Next physical test:
   `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m /nix/store/xz6ddhxm9l5ijg4ndkd8cv3sq8ki66i1-task6-int8-l2-mlp-chain-residual-add-selftest-debug.bit`
 - Watch the three design-driven LEDs for one full repeating cycle and record:
   fail-reason phase, low-index phase, high-index phase, separator phase.
+
+Follow-up physical observation:
+
+- Observed sequence:
+  - red + green + orange
+  - green + orange
+  - nothing
+- Interpretation:
+  - red + green + orange is the separator phase
+  - green + orange is `FAIL_REASON_MISMATCH`
+  - the following `nothing` phase is failing-index bits `[2:0] = 0`
+  - the board is failing on output index `0`
+- Generated expected value for output index `0`:
+  - `expected_residual_add_output_q_values[0] = 8'sh0a`
+
+Value diagnostic bitstream:
+
+- Added `DEBUG_LEDS=2` mode to
+  `task6_int8_l2_mlp_chain_residual_add_selftest_top`.
+- Added flake targets:
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-value-debug-json`
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-value-debug-fasm`
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-value-debug-bitstream`
+- Verification:
+  - `nix-instantiate --parse flake.nix`: pass
+  - `git diff --check`: pass
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`:
+    pass at `18804` cycles
+    - `/nix/store/63cl9maj4galk7izanpzc6jmnnic803r-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-value-debug-json --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/7465vpi28yc4cjy56b7rq73x78i2bmb8-task6-int8-l2-mlp-chain-residual-add-selftest-value-debug.json`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-value-debug-bitstream --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/11jndspp1b4j7gs46h26nx2mjji8gmrz-task6-int8-l2-mlp-chain-residual-add-selftest-value-debug.bit`
+- Post-route timing:
+  - max frequency: `146.31 MHz`
+  - requested target: `12.00 MHz`
+
+Value debug LED decoding:
+
+- Ignore the always-on top board green LED.
+- On the three design-driven LEDs, red is bit `0`, green is bit `1`, and
+  orange is bit `2`.
+- The cycle has 16 phases:
+  1. all LEDs: start marker
+  2. fail reason
+  3. failing index bits `[2:0]`
+  4. failing index bits `[5:3]`
+  5. red + orange: expected-byte marker
+  6. expected byte bits `[2:0]`
+  7. expected byte bits `[5:3]`
+  8. expected byte bits `[7:6]`, using red for bit `6` and green for bit `7`
+  9. red + green: observed-byte marker
+  10. observed byte bits `[2:0]`
+  11. observed byte bits `[5:3]`
+  12. observed byte bits `[7:6]`, using red for bit `6` and green for bit `7`
+  13. nothing: gap
+  14. nothing: gap
+  15. nothing: gap
+  16. all LEDs: end marker
+- Expected index-0 byte `0x0a` should display after the red + orange marker as:
+  - green
+  - red
+  - nothing

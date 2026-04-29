@@ -3650,6 +3650,30 @@
             yosys -s run.ys
           '';
 
+        task6Int8L2MlpChainResidualAddSelftestValueDebugJson =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-value-debug.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            read_verilog -sv ${task6Int8L2MlpChainResidualAddSelftestTop}
+            chparam -set DEBUG_LEDS 2 task6_int8_l2_mlp_chain_residual_add_selftest_top
+            hierarchy -top task6_int8_l2_mlp_chain_residual_add_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8L2MlpChainResidualAddSelftestXdc = mkXdc {
           name = "task6-int8-l2-mlp-chain-residual-add-selftest";
           includeBoardXdc = false;
@@ -3678,6 +3702,18 @@
           name = "task6-int8-l2-mlp-chain-residual-add-selftest-debug";
           fasm = task6Int8L2MlpChainResidualAddSelftestDebugFasm;
           framesBase = "task6-int8-l2-mlp-chain-residual-add-selftest-debug";
+        };
+
+        task6Int8L2MlpChainResidualAddSelftestValueDebugFasm = mkFasm {
+          name = "task6-int8-l2-mlp-chain-residual-add-selftest-value-debug";
+          xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
+          json = task6Int8L2MlpChainResidualAddSelftestValueDebugJson;
+        };
+
+        task6Int8L2MlpChainResidualAddSelftestValueDebugBitstream = mkBitstream {
+          name = "task6-int8-l2-mlp-chain-residual-add-selftest-value-debug";
+          fasm = task6Int8L2MlpChainResidualAddSelftestValueDebugFasm;
+          framesBase = "task6-int8-l2-mlp-chain-residual-add-selftest-value-debug";
         };
 
         task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
@@ -5318,6 +5354,8 @@
             task6Int8L2MlpChainResidualAddSelftestJson;
           task6-int8-l2-mlp-chain-residual-add-selftest-debug-json =
             task6Int8L2MlpChainResidualAddSelftestDebugJson;
+          task6-int8-l2-mlp-chain-residual-add-selftest-value-debug-json =
+            task6Int8L2MlpChainResidualAddSelftestValueDebugJson;
           task6-int8-l2-mlp-chain-residual-add-selftest-utilization =
             task6Int8L2MlpChainResidualAddSelftestUtilization;
           task6-int8-l2-mlp-chain-residual-add-selftest-xdc =
@@ -5330,6 +5368,10 @@
             task6Int8L2MlpChainResidualAddSelftestDebugFasm;
           task6-int8-l2-mlp-chain-residual-add-selftest-debug-bitstream =
             task6Int8L2MlpChainResidualAddSelftestDebugBitstream;
+          task6-int8-l2-mlp-chain-residual-add-selftest-value-debug-fasm =
+            task6Int8L2MlpChainResidualAddSelftestValueDebugFasm;
+          task6-int8-l2-mlp-chain-residual-add-selftest-value-debug-bitstream =
+            task6Int8L2MlpChainResidualAddSelftestValueDebugBitstream;
           task6-led-map-json = task6LedMapJson;
           task6-led-map-xdc = task6LedMapXdc;
           task6-led-map-fasm = task6LedMapFasm;
