@@ -9600,11 +9600,41 @@ Direct JTAG/MPSSE c_proj memory discriminator:
     - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`
     - `/nix/store/mdq3w2dnh7ibvc59c4750f3pm1344dif-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
     - pass at cycle `63860`
+- JTAG-debug bitstream with explicit lane memories:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug-bitstream --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/pbb86ghz47qqj38il419r6mp1b59vxy3-task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug.bit`
+  - post-route timing:
+    - main clock max frequency `115.71 MHz`, passing the `50.00 MHz` target
+    - JTAG debug shift clock max frequency `712.25 MHz`, passing the
+      `50.00 MHz` target
 - Next check:
-  - complete the JTAG-debug bitstream rebuild with the explicit lane memories
-  - program it and read the payload with:
+  - program the explicit-lane JTAG-debug bitstream and read the payload with:
     - `python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --tdo-bit 7 --poll --poll-count 20 --poll-interval 0.1`
   - if lane-1 weight readback is corrected, keep the memory-lane split or
     pursue a smaller equivalent mapping workaround
   - if it still fails on bit `8`, move the discriminator to distributed memory
     or a direct post-load memory-readback scan
+
+Explicit lane-memory hardware verification:
+
+- Programmed:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/pbb86ghz47qqj38il419r6mp1b59vxy3-task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug.bit`
+  - SRAM load completed and FPGA `done` was `1`
+- Direct JTAG readout:
+  - `python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --tdo-bit 7 --poll --poll-count 20 --poll-interval 0.1`
+  - `magic_ok=True`
+  - state: `SELFTEST_PASS`
+  - fail reason: `NONE`
+  - c_proj GEMV lane-1 final accumulator: `-8353`, expected `-8353`
+- Previously failing c_proj lane-1 weight samples now match:
+  - word `0`: expected `7`, observed `7`
+  - word `1`: expected `-79`, observed `-79`
+  - word `63`: expected `-11`, observed `-11`
+  - word `127`: expected `33`, observed `33`
+- Conclusion:
+  - the explicit byte-lane c_proj packed-weight memories fix the board-level
+    self-test failure
+  - the root cause is still most likely the previous synthesized mapping of the
+    32-bit packed c_proj weight memory/read path, where packed bit `8` behaved
+    as stuck low on hardware
