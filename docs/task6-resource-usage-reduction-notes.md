@@ -9087,3 +9087,86 @@ Next physical test:
   `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/bw89f87zf1pb9a9w7rqc8ayglzksi8b1-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
 - Record one full repeated sequence from the three design-driven LEDs.
 - Ignore the always-on top board green LED.
+
+Follow-up shift-add diagnostic physical observation:
+
+- `DEBUG_LEDS=4` physical sequence:
+  - red + green + orange
+  - green + orange
+  - nothing
+  - red + orange
+  - green
+  - green + red
+  - orange
+  - green
+  - green + red
+  - nothing
+- Interpretation:
+  - failing output index remains `0`
+  - c_proj accumulator, scale multiplier, and bias still match their generated
+    expected values
+  - observed c_proj output byte is now `0xd4`, while the expected c_proj output
+    byte is `0x0a`
+- This is useful because the wrong value changed from `0x7f` under the original
+  multiply/sign-extension path to `0xd4` under the combinational shift-add path
+  while the operands still matched. That points away from memory loading,
+  constants, reset, and upstream accumulation, and toward the synthesized
+  combinational c_proj requant arithmetic shape.
+
+C-proj requant sequential arithmetic trial:
+
+- Replaced the combinational c_proj requant function path with an explicit
+  registered sequence:
+  - capture accumulator, scale multiplier, and bias sidecars
+  - run a 32-cycle unsigned magnitude shift-add multiply
+  - restore product sign
+  - apply rounded fixed right shift
+  - add quantized bias
+  - saturate and write the int8 c_proj output byte
+- Rationale:
+  - the original inferred multiply failed on board with correct operands and
+    output `0x7f`
+  - the combinational shift-add replacement still failed on board with correct
+    operands and output `0xd4`
+  - a sequential implementation removes the large single-cycle arithmetic cone
+    from the c_proj requant path while preserving the same fixed-point math
+- Verification:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`:
+    pass at `21044` cycles
+    - `/nix/store/mfd1kh6p4y70yfvab1lwywpk4ngcpx98-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-utilization --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/0ini8b42xxr4c231d10jff14hsg0qghb-task6-int8-l2-mlp-chain-residual-add-selftest-utilization`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-bitstream --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/7vf2f9xx7f1lcj3y09g1p8waq65vhl62-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- Standard utilization summary:
+  - design JSON:
+    `/nix/store/a20r0dvq34pvr1arkg6jli64z1j5mlpi-task6-int8-l2-mlp-chain-residual-add-selftest.json`
+  - `clb_luts`: `7676 / 298600` (`2.57%`)
+  - `clb_ffs`: `1174 / 597200` (`0.20%`)
+  - `dsp`: `32 / 1920` (`1.67%`)
+  - `bram36`: `8 / 955` (`0.84%`)
+  - `bram18`: `6`
+  - BRAM36-equivalent: `11 / 955` (`1.15%`)
+- Routed packed utilization cross-check:
+  - `SLICE_LUTX`: `12012 / 597200` (`2.01%`)
+  - `SLICE_FFX`: `1174 / 597200` (`0.20%`)
+  - `DSP48E1`: `32 / 1920` (`1.67%`)
+  - `RAMB36E1`: `8 / 955`
+  - `RAMB18E1`: `6 / 1910`
+- Post-route timing:
+  - max frequency: `125.47 MHz`
+  - requested target: `12.00 MHz`
+
+Next physical test:
+
+- Program:
+  `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/7vf2f9xx7f1lcj3y09g1p8waq65vhl62-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- Expected pass indication:
+  - ignore the always-on top board green LED
+  - design red LED blinks as heartbeat
+  - design green LED is solid on
+  - design orange LED is off
+- If the design orange LED still stays on, rebuild the `DEBUG_LEDS=4`
+  diagnostic against this sequential RTL before changing the memory path.

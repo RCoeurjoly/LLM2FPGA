@@ -69,10 +69,19 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
 );
   localparam logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] LAST_C_PROJ_OUT_INDEX =
     C_PROJ_OUT_ADDR_WIDTH'(C_PROJ_OUT_DIM - 1);
+  localparam logic [5:0] LAST_MUL_BIT = 6'd31;
+  localparam logic [63:0] C_PROJ_ROUND_BIAS_U =
+    (C_PROJ_OUTPUT_REQUANT_SHIFT == 0)
+      ? 64'd0
+      : (64'd1 << (C_PROJ_OUTPUT_REQUANT_SHIFT - 1));
 
-  typedef enum logic [1:0] {
+  typedef enum logic [2:0] {
     POST_IDLE,
     POST_WAIT,
+    POST_MUL_INIT,
+    POST_MUL_STEP,
+    POST_ROUND,
+    POST_BIAS,
     POST_WRITE
   } post_state_t;
 
@@ -88,6 +97,24 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
   logic signed [31:0] scale_mul_read_data_q;
   logic signed [31:0] bias_q_read_data_q;
   logic signed [7:0] post_output_w;
+  logic signed [31:0] requant_acc_q;
+  logic signed [31:0] requant_scale_mul_q;
+  logic signed [31:0] requant_bias_q;
+  logic [31:0] acc_magnitude_w;
+  logic [31:0] scale_magnitude_w;
+  logic [31:0] mul_rhs_shift_q;
+  logic [63:0] mul_addend_q;
+  logic [63:0] mul_product_mag_q;
+  logic [63:0] mul_product_next_w;
+  logic [5:0] mul_bit_q;
+  logic mul_negative_q;
+  logic signed [63:0] scaled_product_q;
+  logic [63:0] scaled_product_abs_w;
+  logic [63:0] scaled_product_rounded_abs_w;
+  logic [63:0] scaled_abs_shifted_w;
+  logic signed [63:0] scaled_q_w;
+  logic signed [63:0] scaled_q_q;
+  logic signed [63:0] output_q_q;
 
   (* ram_style = "block" *)
   logic signed [31:0] scale_mul_mem [0:C_PROJ_OUT_DIM - 1];
@@ -98,87 +125,34 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
 
   assign chain_start = start && (post_state_q == POST_IDLE) && !chain_busy;
   assign busy = chain_busy || (post_state_q != POST_IDLE);
-
-  function automatic signed [63:0] round_shift_signed(
-    input signed [63:0] value,
-    input int shift
-  );
-    logic signed [63:0] abs_value;
-    begin
-      if (shift == 0) begin
-        round_shift_signed = value;
-      end else if (value >= 0) begin
-        round_shift_signed = (value + (64'sd1 <<< (shift - 1))) >>> shift;
-      end else begin
-        abs_value = -value;
-        round_shift_signed = -((abs_value + (64'sd1 <<< (shift - 1))) >>> shift);
-      end
-    end
-  endfunction
-
-  function automatic signed [7:0] saturate_i8(input signed [63:0] value);
-    begin
-      if (value > 64'sd127)
-        saturate_i8 = 8'sd127;
-      else if (value < -64'sd127)
-        saturate_i8 = -8'sd127;
-      else
-        saturate_i8 = $signed(value[7:0]);
-    end
-  endfunction
-
-  function automatic signed [63:0] mul_i32_shift_add(
-    input signed [31:0] lhs,
-    input signed [31:0] rhs
-  );
-    logic lhs_negative;
-    logic rhs_negative;
-    logic [31:0] lhs_magnitude;
-    logic [31:0] rhs_magnitude;
-    logic [63:0] product_magnitude;
-    int bit_index;
-    begin
-      lhs_negative = lhs[31];
-      rhs_negative = rhs[31];
-      lhs_magnitude = lhs_negative ? (~lhs + 32'd1) : lhs;
-      rhs_magnitude = rhs_negative ? (~rhs + 32'd1) : rhs;
-      product_magnitude = 64'd0;
-
-      for (bit_index = 0; bit_index < 32; bit_index = bit_index + 1) begin
-        if (rhs_magnitude[bit_index])
-          product_magnitude =
-            product_magnitude + ({32'd0, lhs_magnitude} << bit_index);
-      end
-
-      if (lhs_negative ^ rhs_negative)
-        mul_i32_shift_add = -$signed(product_magnitude);
-      else
-        mul_i32_shift_add = $signed(product_magnitude);
-    end
-  endfunction
-
-  function automatic signed [7:0] c_proj_requant_i8(
-    input signed [31:0] acc,
-    input signed [31:0] scale_mul,
-    input signed [31:0] bias_q
-  );
-    logic signed [63:0] scaled_product;
-    logic signed [63:0] scaled_q;
-    logic signed [63:0] output_q;
-    begin
-      scaled_product = mul_i32_shift_add(acc, scale_mul);
-      scaled_q =
-        round_shift_signed(scaled_product, C_PROJ_OUTPUT_REQUANT_SHIFT);
-      output_q = scaled_q + $signed({{32{bias_q[31]}}, bias_q});
-      c_proj_requant_i8 = saturate_i8(output_q);
-    end
-  endfunction
-
-  assign post_output_w = c_proj_requant_i8(
-    chain_output_read_data,
-    scale_mul_read_data_q,
-    bias_q_read_data_q
-  );
+  assign acc_magnitude_w =
+    chain_output_read_data[31]
+      ? (~chain_output_read_data[31:0] + 32'd1)
+      : chain_output_read_data[31:0];
+  assign scale_magnitude_w =
+    scale_mul_read_data_q[31]
+      ? (~scale_mul_read_data_q + 32'd1)
+      : scale_mul_read_data_q;
+  assign mul_product_next_w =
+    mul_rhs_shift_q[0] ? (mul_product_mag_q + mul_addend_q) : mul_product_mag_q;
+  assign scaled_product_abs_w =
+    scaled_product_q[63] ? (~scaled_product_q + 64'd1) : scaled_product_q;
+  assign scaled_product_rounded_abs_w =
+    (C_PROJ_OUTPUT_REQUANT_SHIFT == 0)
+      ? scaled_product_abs_w
+      : (scaled_product_abs_w + C_PROJ_ROUND_BIAS_U);
+  assign scaled_abs_shifted_w =
+    (C_PROJ_OUTPUT_REQUANT_SHIFT == 0)
+      ? scaled_product_rounded_abs_w
+      : (scaled_product_rounded_abs_w >> C_PROJ_OUTPUT_REQUANT_SHIFT);
+  assign scaled_q_w =
+    scaled_product_q[63]
+      ? -$signed(scaled_abs_shifted_w)
+      : $signed(scaled_abs_shifted_w);
+  assign post_output_w =
+    (output_q_q > 64'sd127)
+      ? 8'sd127
+      : ((output_q_q < -64'sd127) ? -8'sd127 : $signed(output_q_q[7:0]));
 
   always_ff @(posedge clock) begin
     if (c_proj_requant_load_valid) begin
@@ -197,6 +171,17 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
       post_addr_q <= '0;
       sidecar_read_addr_q <= '0;
       chain_output_read_addr_q <= '0;
+      requant_acc_q <= '0;
+      requant_scale_mul_q <= '0;
+      requant_bias_q <= '0;
+      mul_rhs_shift_q <= '0;
+      mul_addend_q <= '0;
+      mul_product_mag_q <= '0;
+      mul_bit_q <= '0;
+      mul_negative_q <= 1'b0;
+      scaled_product_q <= '0;
+      scaled_q_q <= '0;
+      output_q_q <= '0;
       done <= 1'b0;
       debug_requant_valid <= 1'b0;
       debug_requant_addr <= '0;
@@ -219,6 +204,43 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
         end
 
         POST_WAIT: begin
+          post_state_q <= POST_MUL_INIT;
+        end
+
+        POST_MUL_INIT: begin
+          requant_acc_q <= chain_output_read_data[31:0];
+          requant_scale_mul_q <= scale_mul_read_data_q;
+          requant_bias_q <= bias_q_read_data_q;
+          mul_rhs_shift_q <= scale_magnitude_w;
+          mul_addend_q <= {32'd0, acc_magnitude_w};
+          mul_product_mag_q <= 64'd0;
+          mul_bit_q <= 6'd0;
+          mul_negative_q <= chain_output_read_data[31] ^ scale_mul_read_data_q[31];
+          post_state_q <= POST_MUL_STEP;
+        end
+
+        POST_MUL_STEP: begin
+          mul_product_mag_q <= mul_product_next_w;
+          mul_rhs_shift_q <= {1'b0, mul_rhs_shift_q[31:1]};
+          mul_addend_q <= {mul_addend_q[62:0], 1'b0};
+
+          if (mul_bit_q == LAST_MUL_BIT) begin
+            scaled_product_q <=
+              mul_negative_q ? -$signed(mul_product_next_w)
+                             : $signed(mul_product_next_w);
+            post_state_q <= POST_ROUND;
+          end else begin
+            mul_bit_q <= mul_bit_q + 1'b1;
+          end
+        end
+
+        POST_ROUND: begin
+          scaled_q_q <= scaled_q_w;
+          post_state_q <= POST_BIAS;
+        end
+
+        POST_BIAS: begin
+          output_q_q <= scaled_q_q + $signed({{32{requant_bias_q[31]}}, requant_bias_q});
           post_state_q <= POST_WRITE;
         end
 
@@ -226,9 +248,9 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
           output_mem[post_addr_q] <= post_output_w;
           debug_requant_valid <= 1'b1;
           debug_requant_addr <= post_addr_q;
-          debug_requant_acc_q <= chain_output_read_data;
-          debug_requant_scale_mul_q <= scale_mul_read_data_q;
-          debug_requant_bias_q <= bias_q_read_data_q;
+          debug_requant_acc_q <= requant_acc_q;
+          debug_requant_scale_mul_q <= requant_scale_mul_q;
+          debug_requant_bias_q <= requant_bias_q;
           debug_requant_output_q <= post_output_w;
 
           if (post_addr_q == LAST_C_PROJ_OUT_INDEX) begin
