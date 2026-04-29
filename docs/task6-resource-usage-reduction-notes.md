@@ -9047,3 +9047,43 @@ Next physical test:
   - design red LED blinks as heartbeat
   - design green LED is solid on
   - design orange LED is off
+
+Follow-up shift-add physical observation:
+
+- Programmed:
+  `/nix/store/2hi48w49al1yh8z52b8hf0pylrqnpgjg-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- Observed:
+  - red blinking
+  - orange fixed on
+- Interpretation:
+  - the normal self-test still fails after replacing the c_proj requant DSP
+    multiply with explicit shift-add logic
+  - this weakens the simple "bad inferred c_proj DSP multiply" hypothesis
+  - remaining likely causes are the rounded shift/saturation arithmetic, a
+    synthesis issue with the combinational requant function shape, or an
+    unobserved mismatch inside the product/shift intermediate values
+
+Shift-add c-proj requant diagnostic bitstream:
+
+- Rebuilt the `DEBUG_LEDS=4` c_proj requant diagnostic against the shift-add
+  RTL.
+- Verification:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-bitstream --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/bw89f87zf1pb9a9w7rqc8ayglzksi8b1-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
+- Packed utilization:
+  - `SLICE_LUTX`: `15619 / 597200` (`2.61%`)
+  - `SLICE_FFX`: `832 / 597200` (`0.14%`)
+  - `DSP48E1`: `32 / 1920` (`1.67%`)
+  - `RAMB36E1`: `8 / 955`
+  - `RAMB18E1`: `6 / 1910`
+- Post-route timing:
+  - max frequency: `182.05 MHz`
+  - requested target: `12.00 MHz`
+
+Next physical test:
+
+- Program:
+  `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/bw89f87zf1pb9a9w7rqc8ayglzksi8b1-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
+- Record one full repeated sequence from the three design-driven LEDs.
+- Ignore the always-on top board green LED.
