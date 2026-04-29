@@ -8639,3 +8639,49 @@ Expected physical test:
   - orange: off fail
 - If this passes after a JTAG-only reprogram, the reset-sequencing hypothesis
   is confirmed.
+
+Follow-up observation:
+
+- The reset-hardened bitstream asserted the orange fail LED after JTAG
+  programming.
+- Interpretation:
+  - the selftest is now starting after JTAG configuration
+  - the remaining problem is inside the selftest result path, most likely a
+    timeout or output-compare mismatch
+
+Diagnostic bitstream:
+
+- Added `DEBUG_LEDS` mode to
+  `task6_int8_l2_mlp_chain_residual_add_selftest_top`.
+- Added flake targets:
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-debug-json`
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-debug-fasm`
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-debug-bitstream`
+- Built debug bitstream:
+  `/nix/store/xz6ddhxm9l5ijg4ndkd8cv3sq8ki66i1-task6-int8-l2-mlp-chain-residual-add-selftest-debug.bit`
+- Post-route max frequency: `135.91 MHz`
+- Requested target: `12.00 MHz`
+
+Debug LED decoding after a failure:
+
+- The pattern cycles through four slow phases:
+  1. fail reason
+  2. failing output index bits `[2:0]`
+  3. failing output index bits `[5:3]`
+  4. all three design LEDs on as a separator
+- Fail reason phase:
+  - orange + red: timeout
+  - orange + green: output mismatch
+  - red + green + orange: default / unexpected state
+- Index phases use binary on the design LEDs:
+  - red is bit `0`
+  - green is bit `1`
+  - orange is bit `2`
+- The always-on top green board LED is not part of this code.
+
+Next physical test:
+
+- Program the diagnostic bitstream:
+  `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m /nix/store/xz6ddhxm9l5ijg4ndkd8cv3sq8ki66i1-task6-int8-l2-mlp-chain-residual-add-selftest-debug.bit`
+- Watch the three design-driven LEDs for one full repeating cycle and record:
+  fail-reason phase, low-index phase, high-index phase, separator phase.
