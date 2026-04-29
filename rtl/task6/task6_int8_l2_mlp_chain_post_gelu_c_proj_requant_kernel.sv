@@ -78,6 +78,7 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
   typedef enum logic [2:0] {
     POST_IDLE,
     POST_WAIT,
+    POST_CAPTURE,
     POST_MUL_INIT,
     POST_MUL_STEP,
     POST_ROUND,
@@ -126,13 +127,13 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
   assign chain_start = start && (post_state_q == POST_IDLE) && !chain_busy;
   assign busy = chain_busy || (post_state_q != POST_IDLE);
   assign acc_magnitude_w =
-    chain_output_read_data[31]
-      ? (~chain_output_read_data[31:0] + 32'd1)
-      : chain_output_read_data[31:0];
+    requant_acc_q[31]
+      ? (~requant_acc_q[31:0] + 32'd1)
+      : requant_acc_q[31:0];
   assign scale_magnitude_w =
-    scale_mul_read_data_q[31]
-      ? (~scale_mul_read_data_q + 32'd1)
-      : scale_mul_read_data_q;
+    requant_scale_mul_q[31]
+      ? (~requant_scale_mul_q + 32'd1)
+      : requant_scale_mul_q;
   assign mul_product_next_w =
     mul_rhs_shift_q[0] ? (mul_product_mag_q + mul_addend_q) : mul_product_mag_q;
   assign scaled_product_abs_w =
@@ -204,18 +205,22 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
         end
 
         POST_WAIT: begin
+          post_state_q <= POST_CAPTURE;
+        end
+
+        POST_CAPTURE: begin
+          requant_acc_q <= chain_output_read_data[31:0];
+          requant_scale_mul_q <= scale_mul_read_data_q;
+          requant_bias_q <= bias_q_read_data_q;
           post_state_q <= POST_MUL_INIT;
         end
 
         POST_MUL_INIT: begin
-          requant_acc_q <= chain_output_read_data[31:0];
-          requant_scale_mul_q <= scale_mul_read_data_q;
-          requant_bias_q <= bias_q_read_data_q;
           mul_rhs_shift_q <= scale_magnitude_w;
           mul_addend_q <= {32'd0, acc_magnitude_w};
           mul_product_mag_q <= 64'd0;
           mul_bit_q <= 6'd0;
-          mul_negative_q <= chain_output_read_data[31] ^ scale_mul_read_data_q[31];
+          mul_negative_q <= requant_acc_q[31] ^ requant_scale_mul_q[31];
           post_state_q <= POST_MUL_STEP;
         end
 

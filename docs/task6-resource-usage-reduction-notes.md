@@ -1520,6 +1520,93 @@ Physical follow-up:
     c_proj requant multiply/shift path with a narrower or staged arithmetic
     implementation instead of continuing reset/load investigation
 
+Follow-up localization later on 2026-04-29:
+
+- Multiple c_proj requant diagnostic bitstreams all failed at output index `0`
+  while reporting matching c_proj accumulator, scale multiplier, and bias
+  operands.
+- The failing observed c_proj output byte changed across arithmetic
+  implementations:
+  - inferred multiply path: `0x7f`
+  - combinational shift/add path: `0xd4`
+  - sequential shift/add path: `0xc2`
+- Interpretation:
+  - the DDR3 path, residual-add compare, final output constants, reset path,
+    and upstream GEMV accumulation are no longer the leading hypotheses for
+    this board failure
+  - the failure is localized to the integrated c_proj requant handoff or value
+    lifetime around the arithmetic stage
+  - because the wrong value changes with the c_proj arithmetic implementation,
+    this is not currently strong evidence for a generic openXC7 place/route
+    failure
+
+Arithmetic-only discriminator:
+
+- New bitstream tested:
+  - `/nix/store/0kkw15vh3dqc19rhajv3cpzj5f49nrqy-task6-c-proj-requant-arith-selftest.bit`
+- User observation:
+  - green design LED stayed on
+- Decode:
+  - the isolated c_proj requant arithmetic self-test passes on the physical
+    board
+- Build evidence:
+  - simulation passed at cycle `165`
+  - routed at `197.28 MHz`, passing the `50.00 MHz` board-clock target
+  - utilization:
+    - `531` LUTs
+    - `383` FFs
+    - `0` DSP
+    - `0` BRAM
+- Interpretation:
+  - the fixed-point multiply, round, shift, clamp, and expected-value compare
+    can synthesize, place, route, and execute correctly on this FPGA in
+    isolation
+  - the remaining failure is in the integrated c_proj requant path, most
+    likely operand handoff, read-data lifetime, or result capture/control
+
+Registered handoff fix:
+
+- `rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv` now
+  captures the c_proj accumulator, scale multiplier, and bias into registers in
+  a dedicated `POST_CAPTURE` state before initializing the shift/add multiply.
+- The multiply setup now reads `requant_acc_q` and `requant_scale_mul_q`,
+  rather than using the live RAM/read-data outputs directly.
+- An initial attempt to capture one cycle earlier failed simulation at cycle
+  `20984`; keeping `POST_WAIT` as the memory-latency state and adding
+  `POST_CAPTURE` passes simulation.
+- Full residual-add self-test simulation:
+  - command:
+    - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`
+  - result:
+    - pass at cycle `21108`
+  - output:
+    - `/nix/store/8zrh2fdvv0knc13jbhiiw5qp1hj0q102-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+- Full residual-add self-test bitstream:
+  - command:
+    - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-bitstream --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/w8apmmjr009862ba9cc67va7zj8nd6gz-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+  - post-route timing:
+    - `121.60 MHz` maximum frequency, passing the `50.00 MHz` board-clock
+      target
+  - mapped utilization:
+    - CLB LUTs: `7929 / 298600` (`2.66%`)
+    - CLB FFs: `1174 / 597200` (`0.20%`)
+    - DSPs: `32 / 1920` (`1.67%`)
+    - BRAM36-equivalent: `11 / 955` (`1.15%`)
+- Next board action:
+  - program:
+    - `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/w8apmmjr009862ba9cc67va7zj8nd6gz-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+  - expected pass indication:
+    - ignore the always-on board status LED
+    - design red LED blinks as heartbeat
+    - design green LED stays on
+    - design orange LED stays off
+  - if the orange LED still stays on, the next diagnostic should expose
+    intermediate registered multiply state through a scan/debug interface or a
+    more compact LED-coded sequence, rather than changing DDR3 or the upstream
+    load path
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.

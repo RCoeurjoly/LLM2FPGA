@@ -3760,6 +3760,7 @@
           name = "task6-int8-l2-mlp-chain-residual-add-selftest";
           xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
           json = task6Int8L2MlpChainResidualAddSelftestJson;
+          freqMHz = 50;
         };
 
         task6Int8L2MlpChainResidualAddSelftestBitstream = mkBitstream {
@@ -3772,6 +3773,7 @@
           name = "task6-int8-l2-mlp-chain-residual-add-selftest-debug";
           xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
           json = task6Int8L2MlpChainResidualAddSelftestDebugJson;
+          freqMHz = 50;
         };
 
         task6Int8L2MlpChainResidualAddSelftestDebugBitstream = mkBitstream {
@@ -3784,6 +3786,7 @@
           name = "task6-int8-l2-mlp-chain-residual-add-selftest-value-debug";
           xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
           json = task6Int8L2MlpChainResidualAddSelftestValueDebugJson;
+          freqMHz = 50;
         };
 
         task6Int8L2MlpChainResidualAddSelftestValueDebugBitstream = mkBitstream {
@@ -3796,6 +3799,7 @@
           name = "task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug";
           xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
           json = task6Int8L2MlpChainResidualAddSelftestCProjDebugJson;
+          freqMHz = 50;
         };
 
         task6Int8L2MlpChainResidualAddSelftestCProjDebugBitstream = mkBitstream {
@@ -3808,6 +3812,7 @@
           name = "task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug";
           xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
           json = task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugJson;
+          freqMHz = 50;
         };
 
         task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugBitstream = mkBitstream {
