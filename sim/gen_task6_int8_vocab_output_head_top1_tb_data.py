@@ -33,6 +33,7 @@ from gen_task6_int8_l2_mlp_chain_residual_add_tb_data import (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", required=True, type=Path)
+    parser.add_argument("--adapter-path", type=Path)
     parser.add_argument("--residual-add-rtl-proof-json", required=True, type=Path)
     parser.add_argument("--vocab-size", type=int, required=True)
     parser.add_argument("--num-layers", type=int, required=True)
@@ -109,9 +110,10 @@ def load_utilization(path: Path | None) -> dict[str, Any] | None:
     }
 
 
-def load_representative_core_builder() -> Any:
-    repo_root = Path(__file__).resolve().parents[1]
-    adapter_path = repo_root / "TinyStories" / "model_adapter_representative_core.py"
+def load_representative_core_builder(adapter_path: Path | None = None) -> Any:
+    if adapter_path is None:
+        repo_root = Path(__file__).resolve().parents[1]
+        adapter_path = repo_root / "TinyStories" / "model_adapter_representative_core.py"
     sys.path.insert(0, str(adapter_path.parent))
     spec = importlib.util.spec_from_file_location(
         "model_adapter_representative_core", adapter_path
@@ -182,17 +184,48 @@ def residual_args_from_proof(
     proof: dict[str, Any],
 ) -> argparse.Namespace:
     sources = proof["source_artifacts"]
+    def source_path(key: str, attr: str) -> Path:
+        override = getattr(args, attr, None)
+        if override is not None:
+            return override
+        return Path(sources[key])
+
     return argparse.Namespace(
-        residual_contract_manifest=Path(sources["residual_contract_manifest"]),
-        residual_boundary_json=Path(sources["residual_boundary_json"]),
-        c_fc_contract_manifest=Path(sources["c_fc_contract_manifest"]),
-        c_fc_weight_pack_manifest=Path(sources["c_fc_weight_pack_manifest"]),
-        c_proj_contract_manifest=Path(sources["c_proj_contract_manifest"]),
-        c_proj_weight_pack_manifest=Path(sources["c_proj_weight_pack_manifest"]),
-        post_gelu_requant_json=Path(sources["post_gelu_requant_json"]),
-        c_proj_output_boundary_json=Path(sources["c_proj_output_boundary_json"]),
-        c_proj_requant_rtl_proof_json=Path(
-            sources["c_proj_requant_rtl_proof_json"]
+        residual_contract_manifest=source_path(
+            "residual_contract_manifest",
+            "residual_contract_manifest",
+        ),
+        residual_boundary_json=source_path(
+            "residual_boundary_json",
+            "residual_boundary_json",
+        ),
+        c_fc_contract_manifest=source_path(
+            "c_fc_contract_manifest",
+            "c_fc_contract_manifest",
+        ),
+        c_fc_weight_pack_manifest=source_path(
+            "c_fc_weight_pack_manifest",
+            "c_fc_weight_pack_manifest",
+        ),
+        c_proj_contract_manifest=source_path(
+            "c_proj_contract_manifest",
+            "c_proj_contract_manifest",
+        ),
+        c_proj_weight_pack_manifest=source_path(
+            "c_proj_weight_pack_manifest",
+            "c_proj_weight_pack_manifest",
+        ),
+        post_gelu_requant_json=source_path(
+            "post_gelu_requant_json",
+            "post_gelu_requant_json",
+        ),
+        c_proj_output_boundary_json=source_path(
+            "c_proj_output_boundary_json",
+            "c_proj_output_boundary_json",
+        ),
+        c_proj_requant_rtl_proof_json=source_path(
+            "c_proj_requant_rtl_proof_json",
+            "c_proj_requant_rtl_proof_json",
         ),
         c_proj_output_requant_shift=args.c_proj_output_requant_shift,
     )
@@ -273,7 +306,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         )
 
     set_representative_core_env(args)
-    build_model = load_representative_core_builder()
+    build_model = load_representative_core_builder(args.adapter_path)
     model = build_model(str(args.model_path))
     token_embedding = model.transformer.wte.weight.detach().cpu().contiguous()
     lm_head = model.lm_head.weight.detach().cpu().contiguous()

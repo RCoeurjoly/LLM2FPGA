@@ -7,6 +7,7 @@ module task6_int8_vocab_output_head_top1_kernel #(
   parameter int LANES = 4,
   parameter int ACC_WIDTH = 32,
   parameter int PACKED_WEIGHT_WORDS = (VOCAB_SIZE / LANES) * IN_DIM,
+  parameter int PHASE_BANKED_WEIGHT_MEMORY = 0,
   parameter int PACKED_WEIGHT_ADDR_WIDTH =
     (PACKED_WEIGHT_WORDS <= 1) ? 1 : $clog2(PACKED_WEIGHT_WORDS),
   parameter int ACTIVATION_ADDR_WIDTH = (IN_DIM <= 1) ? 1 : $clog2(IN_DIM),
@@ -83,7 +84,8 @@ module task6_int8_vocab_output_head_top1_kernel #(
     .OUT_DIM(VOCAB_SIZE),
     .LANES(LANES),
     .ACC_WIDTH(ACC_WIDTH),
-    .PACKED_WEIGHT_WORDS(PACKED_WEIGHT_WORDS)
+    .PACKED_WEIGHT_WORDS(PACKED_WEIGHT_WORDS),
+    .PHASE_BANKED_WEIGHT_MEMORY(PHASE_BANKED_WEIGHT_MEMORY)
   ) core (
     .clock(clock),
     .reset(reset),

@@ -10118,3 +10118,97 @@ Interpretation:
   proof.
 - Next gate: wrap the residual-add chain and mapped output-head top1 kernel
   into a board-programmable v4k selftest.
+
+### 2026-04-29 - H2 v4k residual-add plus output-head board selftest
+
+Goal:
+
+- Close the board-programmable v4k gate by composing the bounded int8
+  residual-add MLP chain with the streamed tied-vocab output-head top1 kernel.
+- Keep the proof on-chip for this lane; do not add DDR3 until the v4k on-chip
+  prototype shows a resource or route reason to need it.
+
+New artifacts:
+
+- `fpga/rtl/task6_int8_v4k_l2_residual_add_output_head_selftest_top.sv`
+- `sim/gen_task6_int8_v4k_l2_residual_add_output_head_selftest_tb_data.py`
+- `sim/task6_int8_v4k_l2_residual_add_output_head_selftest_tb_main.sv`
+- phase-banked output-head weight memory mode in
+  `rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv`
+
+New Nix targets:
+
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-tb-data-sv`
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-top`
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-sim-main`
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim`
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-json`
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-utilization`
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-xdc`
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-fasm`
+- `task6-int8-v4k-l2-residual-add-output-head-selftest-bitstream`
+
+Simulation:
+
+- Command:
+  - `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim --no-link --print-out-paths -L`
+- Result artifact:
+  - `/nix/store/k7phr2chhabqk62x8z85mcv4jk1z20m1-task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim.json`
+- Result:
+  - status: `PASS`
+  - pass cycle: `265719`
+  - fixed int8 top index: `1321`
+  - fixed int8 top accumulator: `52140`
+
+Mapped utilization:
+
+- Command:
+  - `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-utilization --no-link --print-out-paths -L`
+- Result artifact:
+  - `/nix/store/mi2xnh11v3kmzpc2vxv6ijgrhzysvhzi-task6-int8-v4k-l2-residual-add-output-head-selftest-utilization`
+- CLB LUTs: `13629 / 298600` (`4.56%`)
+- CLB FFs: `8845 / 597200` (`1.48%`)
+- DSP: `14 / 1920` (`0.73%`)
+- BRAM36: `129 / 955` (`13.51%`)
+- BRAM36 equivalent: `132 / 955` (`13.82%`)
+- BRAM storage: `4752 KiB / 34380 KiB` (`13.82%`)
+- slice lower bound: `1704 / 74650` (`2.28%`)
+
+Bitstream:
+
+- Command:
+  - `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-bitstream --no-link --print-out-paths -L`
+- Result artifact:
+  - `/nix/store/48dszxyvnnywh63wl8y616p6hw5cvww3-task6-int8-v4k-l2-residual-add-output-head-selftest.bit`
+- nextpnr result:
+  - route legal: `PASS`
+  - post-route max frequency: `77.99 MHz`
+  - target frequency: `50.00 MHz`
+
+Debugging notes:
+
+- The first combined selftest generator embedded `65536` vocab weight
+  assignments directly in `tb_data.sv`. That was functionally fine, but made
+  Yosys spend too long elaborating constant assignment logic.
+- The board top now reads the vocab table from `vocab_packed_weights.mem` via
+  `$readmemh`, and Yosys maps the ROM into block RAM.
+- The first routed attempt with the output-head's default deep per-lane weight
+  RAM failed in nextpnr on a `RAMB36` cascade arc inside
+  `output_head_dut.core.gen_weight_lane_mem[...]`.
+- The phase-banked memory mode splits the output-head weight store by row
+  phase, so the board selftest no longer needs the problematic deep cascaded
+  BRAM chains. The route now completes.
+
+Interpretation:
+
+- The v4k board-facing H2 lane is now bitstream-ready without DDR3.
+- Resource use remains dominated by the tied-vocab int8 table, but the combined
+  residual-add plus output-head selftest still uses only `13.82%` BRAM
+  equivalent and under `5%` LUTs.
+- The previous route blocker was local to our memory shape, not evidence of a
+  wrong arithmetic kernel or a general openXC7/nextpnr failure.
+- Next gate: program this bitstream on the board and observe the pass/fail LED
+  result. If it passes on hardware, promote H2 from v1k board-validated to v4k
+  board-validated and then decide whether the next full-model gate should add
+  embedding lookup, DDR3-backed vocab/output projection, or another bounded
+  scale-up first.

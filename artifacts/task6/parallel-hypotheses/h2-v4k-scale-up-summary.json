@@ -14,7 +14,7 @@
       "attention",
       "embeddings",
       "multi-token calibration",
-      "v4k bitstream replay"
+      "v4k on-board pass observation"
     ]
   },
   "source_artifacts": {
@@ -37,7 +37,10 @@
     "v4k_residual_add_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-residual-add-boundary.json",
     "v4k_mlp_chain_residual_add_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json",
     "vocab_memory_surface_score": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
-    "v4k_vocab_output_head_top1_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-vocab-output-head-top1-rtl-proof.json"
+    "v4k_vocab_output_head_top1_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-vocab-output-head-top1-rtl-proof.json",
+    "v4k_residual_add_output_head_board_selftest_sim": "/nix/store/k7phr2chhabqk62x8z85mcv4jk1z20m1-task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim.json",
+    "v4k_residual_add_output_head_board_selftest_utilization": "/nix/store/mi2xnh11v3kmzpc2vxv6ijgrhzysvhzi-task6-int8-v4k-l2-residual-add-output-head-selftest-utilization",
+    "v4k_residual_add_output_head_board_selftest_bitstream": "/nix/store/48dszxyvnnywh63wl8y616p6hw5cvww3-task6-int8-v4k-l2-residual-add-output-head-selftest.bit"
   },
   "checks": {
     "c_fc_f32_replay": {
@@ -137,6 +140,31 @@
       "yosys_cells": 3973,
       "yosys_ramb36e1": 64,
       "yosys_dsp48e1": 4
+    },
+    "v4k_residual_add_output_head_board_selftest": {
+      "status": "PASS",
+      "uses_ddr3": false,
+      "sv_sim_pass_cycle": 265719,
+      "fixed_int8_top_index": 1321,
+      "fixed_int8_top_acc": 52140,
+      "phase_banked_output_head_weight_memory": true,
+      "mapped_clb_luts": 13629,
+      "mapped_clb_luts_pct": 4.56,
+      "mapped_clb_ffs": 8845,
+      "mapped_clb_ffs_pct": 1.48,
+      "mapped_dsp": 14,
+      "mapped_dsp_pct": 0.73,
+      "mapped_bram36": 129,
+      "mapped_bram36_pct": 13.51,
+      "mapped_bram36_equiv": 132.0,
+      "mapped_bram36_equiv_pct": 13.82,
+      "mapped_bram_kb": 4752,
+      "mapped_bram_kb_pct": 13.82,
+      "route_status": "PASS",
+      "target_mhz": 50.0,
+      "post_route_fmax_mhz": 77.99,
+      "bitstream": "/nix/store/48dszxyvnnywh63wl8y616p6hw5cvww3-task6-int8-v4k-l2-residual-add-output-head-selftest.bit",
+      "learned": "The prior route failure was caused by the deep per-lane output-head BRAM cascade shape. A phase-banked weight memory removes that cascade blocker and routes successfully."
     }
   },
   "streaming_mlp_budget_at_4_dsp_lanes": {
@@ -148,9 +176,9 @@
     "int4_weight_bytes_per_token": 20224
   },
   "decision": {
-    "verdict": "promote-v4k-output-head-to-board-selftest",
-    "rationale": "The same bounded MLP/residual lane passes v4k RTL replay, tied v4k vocab storage is small enough to prototype on-chip, and the streamed int8 output-head top1 RTL matches the f32 top1 while mapping to 1572 LUT, 2288 FF, 4 DSP, and 64 BRAM36.",
-    "caveat": "The output-head proof is not yet wrapped into a board-programmable selftest. Embedding lookup is still only covered by the tied-storage scorecard, not by RTL.",
-    "next_gate": "Wrap the residual-add chain and mapped output-head top1 kernel into a board-programmable v4k selftest."
+    "verdict": "promote-v4k-board-selftest-bitstream-ready",
+    "rationale": "The bounded v4k residual-add plus streamed tied-vocab output-head selftest passes SV simulation, maps to 13629 LUT, 8845 FF, 14 DSP, and 132 BRAM36-equivalent, and routes to a bitstream at 77.99 MHz against the 50 MHz target without DDR3.",
+    "caveat": "The v4k bitstream has not yet been observed passing on the physical board, and embedding lookup is still only covered by the tied-storage scorecard rather than RTL.",
+    "next_gate": "Program the v4k residual-add plus output-head bitstream on the board and observe pass/fail. If it passes, promote H2 to v4k board-validated and choose the next full-model-facing gate."
   }
 }

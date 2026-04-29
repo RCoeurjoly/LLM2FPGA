@@ -18,7 +18,8 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel #(
   parameter int DEBUG_SAMPLE_COUNT = 8,
   parameter int DEBUG_SAMPLE_WIDTH = 128,
   parameter int DEBUG_LANE_INDEX = 0,
-  parameter int DEBUG_PHASE_INDEX = 0
+  parameter int DEBUG_PHASE_INDEX = 0,
+  parameter int PHASE_BANKED_WEIGHT_MEMORY = 0
 )(
   input  logic clock,
   input  logic reset,
@@ -58,6 +59,8 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel #(
   logic [TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0] core_packed_weight_addr;
   logic [PACKED_WEIGHT_ADDR_WIDTH - 1:0] packed_weight_read_addr;
   logic [LANES * 8 - 1:0] packed_weight_data_q;
+  logic [PHASE_WIDTH - 1:0] load_phase;
+  logic [TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0] load_tile_addr;
   logic [DEBUG_SAMPLE_COUNT * DEBUG_SAMPLE_WIDTH - 1:0] core_debug_lane_samples;
   logic [3:0] core_debug_lane_sample_count;
   logic signed [ACC_WIDTH - 1:0] core_debug_lane_final_acc;
@@ -67,18 +70,47 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel #(
   assign out_data = core_out_data;
   assign out_valid = core_out_valid;
   assign packed_weight_read_addr = {phase_q, core_packed_weight_addr};
+  assign load_phase = load_addr[PACKED_WEIGHT_ADDR_WIDTH - 1 -: PHASE_WIDTH];
+  assign load_tile_addr =
+    load_addr[TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0];
 
   genvar weight_lane;
+  genvar weight_phase;
   generate
-    for (weight_lane = 0; weight_lane < LANES; weight_lane = weight_lane + 1) begin : gen_weight_lane_mem
-      (* ram_style = "block" *)
-      logic [7:0] packed_weight_lane_mem [0:PACKED_WEIGHT_WORDS - 1];
+    if (PHASE_BANKED_WEIGHT_MEMORY != 0) begin : gen_phase_banked_weight_mem
+      logic [LANES * 8 - 1:0] packed_weight_phase_data [0:PHASES - 1];
 
-      always_ff @(posedge clock) begin
-        if (load_valid)
-          packed_weight_lane_mem[load_addr] <= load_data[weight_lane * 8 +: 8];
-        packed_weight_data_q[weight_lane * 8 +: 8] <=
-          packed_weight_lane_mem[packed_weight_read_addr];
+      for (
+        weight_phase = 0;
+        weight_phase < PHASES;
+        weight_phase = weight_phase + 1
+      ) begin : gen_weight_phase_mem
+        (* ram_style = "block" *)
+        logic [LANES * 8 - 1:0] packed_weight_phase_mem
+          [0:TILE_PACKED_WEIGHT_WORDS - 1];
+
+        always_ff @(posedge clock) begin
+          if (load_valid && load_phase == PHASE_WIDTH'(weight_phase))
+            packed_weight_phase_mem[load_tile_addr] <= load_data;
+          packed_weight_phase_data[weight_phase] <=
+            packed_weight_phase_mem[core_packed_weight_addr];
+        end
+      end
+
+      always_comb begin
+        packed_weight_data_q = packed_weight_phase_data[phase_q];
+      end
+    end else begin : gen_lane_weight_mem
+      for (weight_lane = 0; weight_lane < LANES; weight_lane = weight_lane + 1) begin : gen_weight_lane_mem
+        (* ram_style = "block" *)
+        logic [7:0] packed_weight_lane_mem [0:PACKED_WEIGHT_WORDS - 1];
+
+        always_ff @(posedge clock) begin
+          if (load_valid)
+            packed_weight_lane_mem[load_addr] <= load_data[weight_lane * 8 +: 8];
+          packed_weight_data_q[weight_lane * 8 +: 8] <=
+            packed_weight_lane_mem[packed_weight_read_addr];
+        end
       end
     end
   endgenerate
