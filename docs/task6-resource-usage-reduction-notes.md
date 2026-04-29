@@ -9088,6 +9088,59 @@ Next physical test:
 - Record one full repeated sequence from the three design-driven LEDs.
 - Ignore the always-on top board green LED.
 
+Follow-up sequential c-proj requant diagnostic physical observation:
+
+- `DEBUG_LEDS=4` physical sequence:
+  - red + green + orange
+  - green + orange
+  - nothing
+  - red + orange
+  - green
+  - red + green
+  - green
+  - nothing
+  - red + green
+  - nothing
+- Decoding:
+  - fail reason is mismatch
+  - failing output index is still `0`
+  - c_proj accumulator matches the generated expected value
+  - c_proj requant scale multiplier matches the generated expected value
+  - c_proj requant bias matches the generated expected value
+  - observed c_proj output byte is `0xc2`
+  - expected c_proj output byte is `0x0a`
+- Interpretation:
+  - the sequential arithmetic version still produces the wrong c_proj requant
+    byte on board, even with the correct operands captured
+  - the wrong byte changed across implementations:
+    - inferred multiply path: `0x7f`
+    - combinational shift-add path: `0xd4`
+    - sequential shift-add path: `0xc2`
+  - this further narrows the issue to c_proj requant arithmetic/control after
+    operand capture, rather than residual-add, output compare, reset/load
+    sequencing, sidecar constants, or upstream c_proj accumulation
+- Clock/timing note:
+  - local XDC currently constrains `SYS_CLK` to pin `AA28` but does not emit an
+    explicit `create_clock`
+  - public YPCB-00338-1P1 reverse-engineering notes label `AA28` as `clk_50m`
+  - the routed diagnostic reports max frequency `123.79 MHz`, so a simple
+    "actual clock is much faster than timing" explanation is not the leading
+    hypothesis, although adding the explicit 50 MHz clock constraint remains
+    worthwhile for rigor
+
+Next discriminator:
+
+- Build a tiny arithmetic-only board selftest for the index-0 c_proj requant
+  constants:
+  - accumulator: `0x00001cb2`
+  - scale multiplier: `0x00005824`
+  - bias: `0`
+  - expected output: `0x0a`
+- If the arithmetic-only top fails, the problem is a small reproducible
+  synthesis/place/route hardware mismatch for the fixed-point arithmetic.
+- If the arithmetic-only top passes, the problem is in the integrated c_proj
+  requant control/data-capture path around the otherwise-valid arithmetic.
+
 Follow-up shift-add diagnostic physical observation:
 
 - `DEBUG_LEDS=4` physical sequence:
