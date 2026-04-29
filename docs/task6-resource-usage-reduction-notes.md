@@ -8470,3 +8470,48 @@ Decision:
   - observe heartbeat/pass/fail LEDs under real board clock/reset
   - if pass LED asserts and fail LED stays low, promote the lane from
     bitstream-ready to on-board validated
+
+### 2026-04-29 - H2 residual-add board selftest programmed
+
+Programming command:
+
+- `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m /nix/store/rdg9hr176qqln2lg0a2dqxscddqamy30-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+
+Observed LEDs:
+
+- board-visible LED 1: fixed on, believed to be the board power/status LED
+- board-visible LED 2: blinking
+- board-visible LED 3: fixed on
+- board-visible LED 4: off
+
+Design LED mapping:
+
+- `led_3bits_tri_o[0]`: heartbeat, pin `P30`
+- `led_3bits_tri_o[1]`: pass, pin `M30`
+- `led_3bits_tri_o[2]`: fail, pin `N30`
+
+Interpretation:
+
+- The three design-driven LEDs match the expected pass pattern:
+  heartbeat blinking, pass asserted, fail deasserted.
+- This promotes the bounded int8 residual-add lane from bitstream-ready to
+  on-board validated, subject to the board-visible first LED indeed being the
+  always-on board status LED rather than one of the three constrained design
+  pins.
+
+Tooling note:
+
+- Programming through the literal `result` symlink was reported to fail with:
+  `Can't program SPI flash: missing device-package information`.
+- The explicit Nix store `.bit` path works. For future runs, use
+  `$(readlink -f result)` or the direct `.bit` store path so
+  `openFPGALoader` sees the `.bit` file name instead of the extensionless
+  `result` symlink name.
+
+Decision:
+
+- Record this as the first successful on-board validation of the bounded H2
+  int8 residual-add selftest.
+- Next gate:
+  - decide whether to build a DDR3 bring-up selftest or scale the bounded
+    on-board lane to a larger streaming-memory surface
