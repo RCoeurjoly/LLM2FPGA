@@ -2537,6 +2537,37 @@
           framesBase = "matmul-selftest";
         };
 
+        task6LedMapJson =
+          pkgs.runCommand "task6-led-map.json" { buildInputs = [ pkgs.yosys ]; } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./fpga/rtl/task6_led_map_top.sv}
+            hierarchy -top task6_led_map_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_led_map_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6LedMapXdc = mkXdc {
+          name = "task6-led-map";
+          includeBoardXdc = false;
+          extraConstraints = [ ./fpga/constraints/matmul_selftest.xdc ];
+        };
+
+        task6LedMapFasm = mkFasm {
+          name = "task6-led-map";
+          xdc = task6LedMapXdc;
+          json = task6LedMapJson;
+        };
+
+        task6LedMapBitstream = mkBitstream {
+          name = "task6-led-map";
+          fasm = task6LedMapFasm;
+          framesBase = "task6-led-map";
+        };
+
         tinyStories1mSelftestAllMemory = mkTinyStoriesSelftestBundle {
           name = "tiny-stories-1m-selftest-all-memory";
           topName = "tiny_stories_selftest_top";
@@ -5257,6 +5288,10 @@
             task6Int8L2MlpChainResidualAddSelftestFasm;
           task6-int8-l2-mlp-chain-residual-add-selftest-bitstream =
             task6Int8L2MlpChainResidualAddSelftestBitstream;
+          task6-led-map-json = task6LedMapJson;
+          task6-led-map-xdc = task6LedMapXdc;
+          task6-led-map-fasm = task6LedMapFasm;
+          task6-led-map-bitstream = task6LedMapBitstream;
           task6-int8-l2-residual-add-boundary-scout =
             task6Int8L2ResidualAddBoundaryScout;
           task6-int8-l2-residual-add-contract =

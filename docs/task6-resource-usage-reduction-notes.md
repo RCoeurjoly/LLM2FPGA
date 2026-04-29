@@ -8515,3 +8515,49 @@ Decision:
 - Next gate:
   - decide whether to build a DDR3 bring-up selftest or scale the bounded
     on-board lane to a larger streaming-memory surface
+
+### 2026-04-29 - LED map diagnostic bitstream
+
+Artifacts:
+
+- `fpga/rtl/task6_led_map_top.sv`
+
+Nix targets:
+
+- `task6-led-map-json`
+- `task6-led-map-xdc`
+- `task6-led-map-fasm`
+- `task6-led-map-bitstream`
+
+Purpose:
+
+- disambiguate the physical board LED order before interpreting the residual-add
+  pass/fail selftest LEDs
+- use the same `SYS_CLK`, `SYS_RSTN`, and `led_3bits_tri_o[2:0]` pin
+  constraints as the Task 6 residual-add board selftest
+
+Expected repeating pattern:
+
+- `led_3bits_tri_o = 3'b001`
+- `led_3bits_tri_o = 3'b010`
+- `led_3bits_tri_o = 3'b100`
+- `led_3bits_tri_o = 3'b111`
+
+Bitstream:
+
+- `/nix/store/1d7wfvkzaf7bdsigsm5g6hlq8xn7yzw4-task6-led-map.bit`
+
+Programming command:
+
+- `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m /nix/store/1d7wfvkzaf7bdsigsm5g6hlq8xn7yzw4-task6-led-map.bit`
+
+Use:
+
+- Watch which physical LEDs participate in the one-hot sequence.
+- The LED that turns on during `3'b001` is design LED `[0]`, heartbeat in the
+  residual-add selftest.
+- The LED that turns on during `3'b010` is design LED `[1]`, pass in the
+  residual-add selftest.
+- The LED that turns on during `3'b100` is design LED `[2]`, fail in the
+  residual-add selftest.
+- During `3'b111`, all three design-driven user LEDs should be on.
