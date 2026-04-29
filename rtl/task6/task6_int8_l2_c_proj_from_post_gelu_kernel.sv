@@ -9,7 +9,10 @@ module task6_int8_l2_c_proj_from_post_gelu_kernel #(
   parameter int PACKED_WEIGHT_ADDR_WIDTH =
     (PACKED_WEIGHT_WORDS <= 1) ? 1 : $clog2(PACKED_WEIGHT_WORDS),
   parameter int ACTIVATION_ADDR_WIDTH = (IN_DIM <= 1) ? 1 : $clog2(IN_DIM),
-  parameter int OUT_ADDR_WIDTH = (OUT_DIM <= 1) ? 1 : $clog2(OUT_DIM)
+  parameter int OUT_ADDR_WIDTH = (OUT_DIM <= 1) ? 1 : $clog2(OUT_DIM),
+  parameter int DEBUG_SAMPLE_COUNT = 8,
+  parameter int DEBUG_SAMPLE_WIDTH = 128,
+  parameter int DEBUG_GEMV_LANE_INDEX = 0
 )(
   input  logic clock,
   input  logic reset,
@@ -27,7 +30,11 @@ module task6_int8_l2_c_proj_from_post_gelu_kernel #(
   output logic done,
 
   input  logic [OUT_ADDR_WIDTH - 1:0] output_read_addr,
-  output logic signed [ACC_WIDTH - 1:0] output_read_data
+  output logic signed [ACC_WIDTH - 1:0] output_read_data,
+
+  output logic [DEBUG_SAMPLE_COUNT * DEBUG_SAMPLE_WIDTH - 1:0] debug_gemv_lane0_samples,
+  output logic [3:0] debug_gemv_lane0_sample_count,
+  output logic signed [ACC_WIDTH - 1:0] debug_gemv_lane0_final_acc
 );
   logic [ACTIVATION_ADDR_WIDTH - 1:0] core_activation_addr;
   logic signed [7:0] core_activation_data;
@@ -41,7 +48,13 @@ module task6_int8_l2_c_proj_from_post_gelu_kernel #(
   logic signed [7:0] activation_mem [0:IN_DIM - 1];
 
   (* ram_style = "block" *)
-  logic [LANES * 8 - 1:0] packed_weight_mem [0:PACKED_WEIGHT_WORDS - 1];
+  logic [7:0] packed_weight_mem_lane0 [0:PACKED_WEIGHT_WORDS - 1];
+  (* ram_style = "block" *)
+  logic [7:0] packed_weight_mem_lane1 [0:PACKED_WEIGHT_WORDS - 1];
+  (* ram_style = "block" *)
+  logic [7:0] packed_weight_mem_lane2 [0:PACKED_WEIGHT_WORDS - 1];
+  (* ram_style = "block" *)
+  logic [7:0] packed_weight_mem_lane3 [0:PACKED_WEIGHT_WORDS - 1];
 
   (* ram_style = "block" *)
   logic signed [ACC_WIDTH - 1:0] output_mem [0:OUT_DIM - 1];
@@ -51,9 +64,20 @@ module task6_int8_l2_c_proj_from_post_gelu_kernel #(
   always_ff @(posedge clock) begin
     if (activation_load_valid)
       activation_mem[activation_load_addr] <= activation_load_data;
-    if (weight_load_valid)
-      packed_weight_mem[weight_load_addr] <= weight_load_data;
-    core_packed_weight_data_q <= packed_weight_mem[core_packed_weight_addr];
+    if (weight_load_valid) begin
+      packed_weight_mem_lane0[weight_load_addr] <= weight_load_data[0 +: 8];
+      packed_weight_mem_lane1[weight_load_addr] <= weight_load_data[8 +: 8];
+      packed_weight_mem_lane2[weight_load_addr] <= weight_load_data[16 +: 8];
+      packed_weight_mem_lane3[weight_load_addr] <= weight_load_data[24 +: 8];
+    end
+    core_packed_weight_data_q[0 +: 8] <=
+      packed_weight_mem_lane0[core_packed_weight_addr];
+    core_packed_weight_data_q[8 +: 8] <=
+      packed_weight_mem_lane1[core_packed_weight_addr];
+    core_packed_weight_data_q[16 +: 8] <=
+      packed_weight_mem_lane2[core_packed_weight_addr];
+    core_packed_weight_data_q[24 +: 8] <=
+      packed_weight_mem_lane3[core_packed_weight_addr];
     if (core_out_valid)
       output_mem[core_out_addr] <= core_out_data;
     output_read_data <= output_mem[output_read_addr];
@@ -64,7 +88,10 @@ module task6_int8_l2_c_proj_from_post_gelu_kernel #(
     .OUT_DIM(OUT_DIM),
     .LANES(LANES),
     .ACC_WIDTH(ACC_WIDTH),
-    .PACKED_WEIGHT_WORDS(PACKED_WEIGHT_WORDS)
+    .PACKED_WEIGHT_WORDS(PACKED_WEIGHT_WORDS),
+    .DEBUG_SAMPLE_COUNT(DEBUG_SAMPLE_COUNT),
+    .DEBUG_SAMPLE_WIDTH(DEBUG_SAMPLE_WIDTH),
+    .DEBUG_LANE_INDEX(DEBUG_GEMV_LANE_INDEX)
   ) core (
     .clock(clock),
     .reset(reset),
@@ -78,6 +105,9 @@ module task6_int8_l2_c_proj_from_post_gelu_kernel #(
     .out_addr(core_out_addr),
     .out_data(core_out_data),
     .out_valid(core_out_valid),
-    .out_ready(1'b1)
+    .out_ready(1'b1),
+    .debug_lane0_samples(debug_gemv_lane0_samples),
+    .debug_lane0_sample_count(debug_gemv_lane0_sample_count),
+    .debug_lane0_final_acc(debug_gemv_lane0_final_acc)
   );
 endmodule

@@ -11,7 +11,10 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel #(
   parameter int PACKED_WEIGHT_ADDR_WIDTH =
     (PACKED_WEIGHT_WORDS <= 1) ? 1 : $clog2(PACKED_WEIGHT_WORDS),
   parameter int ACTIVATION_ADDR_WIDTH = (IN_DIM <= 1) ? 1 : $clog2(IN_DIM),
-  parameter int OUT_ADDR_WIDTH = (OUT_DIM <= 1) ? 1 : $clog2(OUT_DIM)
+  parameter int OUT_ADDR_WIDTH = (OUT_DIM <= 1) ? 1 : $clog2(OUT_DIM),
+  parameter int DEBUG_SAMPLE_COUNT = 8,
+  parameter int DEBUG_SAMPLE_WIDTH = 128,
+  parameter int DEBUG_LANE_INDEX = 0
 )(
   input  logic clock,
   input  logic reset,
@@ -29,7 +32,11 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel #(
   output logic done,
 
   input  logic [OUT_ADDR_WIDTH - 1:0] output_read_addr,
-  output logic signed [ACC_WIDTH - 1:0] output_read_data
+  output logic signed [ACC_WIDTH - 1:0] output_read_data,
+
+  output logic [DEBUG_SAMPLE_COUNT * DEBUG_SAMPLE_WIDTH - 1:0] debug_lane_samples,
+  output logic [3:0] debug_lane_sample_count,
+  output logic signed [ACC_WIDTH - 1:0] debug_lane_final_acc
 );
   logic [ACTIVATION_ADDR_WIDTH - 1:0] core_activation_addr;
   logic signed [7:0] core_activation_data;
@@ -59,7 +66,10 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel #(
     .LANES(LANES),
     .ACC_WIDTH(ACC_WIDTH),
     .PHASES(PHASES),
-    .PACKED_WEIGHT_WORDS(PACKED_WEIGHT_WORDS)
+    .PACKED_WEIGHT_WORDS(PACKED_WEIGHT_WORDS),
+    .DEBUG_SAMPLE_COUNT(DEBUG_SAMPLE_COUNT),
+    .DEBUG_SAMPLE_WIDTH(DEBUG_SAMPLE_WIDTH),
+    .DEBUG_LANE_INDEX(DEBUG_LANE_INDEX)
   ) core (
     .clock(clock),
     .reset(reset),
@@ -74,6 +84,9 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel #(
     .out_addr(core_out_addr),
     .out_data(core_out_data),
     .out_valid(core_out_valid),
-    .out_ready(1'b1)
+    .out_ready(1'b1),
+    .debug_lane_samples(debug_lane_samples),
+    .debug_lane_sample_count(debug_lane_sample_count),
+    .debug_lane_final_acc(debug_lane_final_acc)
   );
 endmodule

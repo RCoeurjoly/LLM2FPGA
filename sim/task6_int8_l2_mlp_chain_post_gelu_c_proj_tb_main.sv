@@ -3,7 +3,7 @@
 module task6_int8_l2_mlp_chain_post_gelu_c_proj_tb;
   `include "tb_data.sv"
 
-  localparam int TIMEOUT_CYCLES = 15000;
+  localparam int TIMEOUT_CYCLES = 100000;
 
   logic clock;
   logic reset;

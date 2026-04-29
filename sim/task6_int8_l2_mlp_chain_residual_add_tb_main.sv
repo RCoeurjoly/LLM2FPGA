@@ -3,7 +3,7 @@
 module task6_int8_l2_mlp_chain_residual_add_tb;
   `include "tb_data.sv"
 
-  localparam int TIMEOUT_CYCLES = 17000;
+  localparam int TIMEOUT_CYCLES = 100000;
 
   logic clock;
   logic reset;

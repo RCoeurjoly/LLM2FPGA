@@ -1607,6 +1607,77 @@ Registered handoff fix:
     more compact LED-coded sequence, rather than changing DDR3 or the upstream
     load path
 
+JTAG debug follow-up:
+
+- User direction:
+  - stop relying on LED decoding for detailed diagnosis
+  - use JTAG/XVC to read an internal debug payload autonomously
+- First JTAG payload result:
+  - bitstream:
+    - `/nix/store/yxcnqkz4rv3lvxbjdsqmb5qywpcwvn40-task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug.bit`
+  - result:
+    - final state was `SELFTEST_FAIL`
+    - fail reason was `MISMATCH`
+    - failing stage was `ACC`
+    - first failing output index was `0`
+  - critical decoded values:
+    - c_proj final accumulator for output `0` was `-55384`
+    - expected c_proj accumulator for output `0` was `7346`
+    - c_proj scale and bias matched expected constants
+    - c_proj input sample values matched the values transferred from c_fc
+    - c_proj weights and sampled multiply/add behavior matched at the sampled
+      points
+  - interpretation:
+    - this moved the leading fault upstream of c_proj requant arithmetic
+    - the c_proj transfer path and c_proj local input memory agree with each
+      other
+    - the wrong values are already present in the c_fc post-GELU output stream
+      seen by c_proj
+- Second JTAG payload implemented:
+  - added c_fc post-GELU/requant checkpoints for hidden indices
+    `0, 1, 2, 3, 63, 127, 191, 255`
+  - each checkpoint exposes:
+    - hidden index
+    - raw c_fc accumulator
+    - requant scale multiplier
+    - requant bias
+    - rounded/scaled fixed-point value
+    - final post-GELU int8 output byte
+  - decoder updated in `scripts/task6/read_jtag_debug_xvc.py`
+  - payload version is now `4`
+  - payload width is now `2048` bits
+- Verification:
+  - simulation:
+    - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim -L`
+    - passed at cycle `21108`
+  - JTAG-debug bitstream:
+    - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug-bitstream -L`
+    - output:
+      - `/nix/store/gk1m3vghlv61149k329w60mzgdncn0i2-task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug.bit`
+    - route/timing:
+      - router completed with `0` errors
+      - main clock max frequency `118.61 MHz`, passing the `50.00 MHz`
+        target
+      - JTAG debug shift clock max frequency `580.72 MHz`, passing the
+        `50.00 MHz` target
+- Current physical-access blocker:
+  - programming without sudo fails with FTDI USB permission error:
+    - `unable to open ftdi device: -4 (usb_open() failed)`
+  - `sudo -n openFPGALoader ...` fails because no cached sudo credentials are
+    available:
+    - `sudo: a password is required`
+- Immediate next action:
+  - program the v4 JTAG-debug bitstream and start XVC with root USB access
+  - then run:
+    - `python3 scripts/task6/read_jtag_debug_xvc.py --poll --poll-count 50 --poll-interval 0.1`
+  - discriminator:
+    - if raw c_fc accumulators mismatch, debug c_fc GEMV activation/weight/MAC
+      sampling next
+    - if raw c_fc accumulators match but post-GELU output mismatches, debug the
+      c_fc post-GELU/requant arithmetic/control next
+    - if c_fc checkpoints all match, debug the c_fc-to-c_proj transfer
+      boundary next
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.
@@ -9175,6 +9246,57 @@ Next physical test:
 - Record one full repeated sequence from the three design-driven LEDs.
 - Ignore the always-on top board green LED.
 
+JTAG self-test readout transition:
+
+- User requested no further manual LED decoding, so the next diagnostic path is
+  direct JTAG readout over the Digilent HS3.
+- Added an optional `BSCANE2` USER1 scan-chain payload to
+  `task6_int8_l2_mlp_chain_residual_add_selftest_top`, enabled with
+  `ENABLE_JTAG_DEBUG=1`.
+- Added host decoder:
+  `scripts/task6/read_jtag_debug_xvc.py`
+- JTAG debug bitstream:
+  `/nix/store/jj7vnw2cbvm77lazy48w5s9wns7mbnbk-task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug.bit`
+- Verification:
+  - normal self-test simulation still passes at `21108` cycles
+  - JTAG-debug JSON synthesis completed with one `BSCANE2`
+  - bitstream programmed into SRAM with non-sudo `openFPGALoader` after
+    granting user access to `/dev/bus/usb/003/006`
+
+JTAG payload result:
+
+- Command:
+  `scripts/task6/read_jtag_debug_xvc.py --poll --poll-count 20 --poll-interval 0.1`
+- XVC info:
+  `xvcServer_v1.0:2048`
+- Decode summary:
+  - magic check passed
+  - state: `SELFTEST_FAIL`
+  - fail reason: `MISMATCH`
+  - fail index: `0`
+  - final expected: `10`
+  - final observed: `28`
+  - expected c_proj output at index 0: `10`
+  - first residual-add consumed c_proj: `32`
+  - first residual-add output: `28`
+- First c_proj requant capture:
+  - accumulator observed: `23493`
+  - accumulator expected: `7346`
+  - scale observed/expected: `22564 / 22564`
+  - bias observed/expected: `0 / 0`
+  - product observed/expected: `530096052 / 165755144`
+  - scaled observed/expected: `32 / 10`
+  - biased observed/expected: `32 / 10`
+  - output observed/expected: `32 / 10`
+- Interpretation:
+  - the requant scale and bias memories are correct for c_proj output index 0
+  - the failure enters before requant, at the c_proj accumulator value
+  - the previously tested standalone requant arithmetic is no longer the
+    leading suspect
+  - next discriminator should instrument the c_proj GEMV input stream for
+    output index 0: c_fc post-GELU activations, packed c_proj weights, first
+    per-lane products, and partial sums
+
 Follow-up sequential c-proj requant diagnostic physical observation:
 
 - `DEBUG_LEDS=4` physical sequence:
@@ -9429,3 +9551,60 @@ Next physical test:
   `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/29als7l4zv41nl061xvcn889sxj7yhyd-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
 - Record one full repeated sequence from the three design-driven LEDs.
 - Ignore the always-on top board green LED.
+
+Direct JTAG/MPSSE c_proj memory discriminator:
+
+- Motivation:
+  - manual LED decoding has reached diminishing returns
+  - `openFPGALoader --xvc --port 3721` crashes locally with an
+    `FD_SETSIZE` fd-set assertion, so XVC is not reliable enough for the next
+    debug loop
+- Host-side change:
+  - added `scripts/task6/read_jtag_debug_ftdi_bitbang.py`
+  - the bitbang backend can talk to libftdi, but HS3 needs the same MPSSE
+    high-byte buffer-enable setup that openFPGALoader uses
+  - the MPSSE backend programs the Digilent HS3 pins as:
+    - low value `0x88`, low direction `0x8b`
+    - high value `0x20`, high direction `0x30`
+  - IDCODE readback validates the direct JTAG path:
+    - `0x23751093` with TDO on high-byte bit `7`
+- Direct JTAG payload result:
+  - payload magic check passed and repeated reads were stable
+  - final state: `SELFTEST_FAIL`
+  - fail reason: `MISMATCH`
+  - first failing output index: `1`
+  - expected final byte: `76`
+  - observed final byte: `75`
+  - index `0` now passes through c_proj requant and residual-add
+- Narrowed fault:
+  - c_fc transfer activations into c_proj matched expected values at the sampled
+    checkpoints
+  - c_proj requant arithmetic matched expected values for the captured failing
+    path
+  - c_proj packed weight readback showed lane-1 LSB stuck low at sampled words:
+    - word `0`: expected lane1 `7`, observed `6`
+    - word `1`: expected lane1 `-79`, observed `-80`
+    - word `63`: expected lane1 `-11`, observed `-12`
+    - word `127`: expected lane1 `33`, observed `32`
+  - sampled words whose lane-1 LSB was already `0` matched
+- Current hypothesis:
+  - this is no longer primarily a c_fc, c_proj requant, or residual-add
+    arithmetic bug
+  - the leading suspect is the synthesized c_proj packed-weight memory/read
+    path, specifically bit `8` of the 32-bit packed word, which is lane `1` bit
+    `0`
+- RTL discriminator:
+  - split `c_proj` packed weight storage from one 32-bit packed memory into four
+    explicit 8-bit lane memories
+  - simulation passed:
+    - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`
+    - `/nix/store/mdq3w2dnh7ibvc59c4750f3pm1344dif-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+    - pass at cycle `63860`
+- Next check:
+  - complete the JTAG-debug bitstream rebuild with the explicit lane memories
+  - program it and read the payload with:
+    - `python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --tdo-bit 7 --poll --poll-count 20 --poll-interval 0.1`
+  - if lane-1 weight readback is corrected, keep the memory-lane split or
+    pursue a smaller equivalent mapping workaround
+  - if it still fails on bit `8`, move the discriminator to distributed memory
+    or a direct post-load memory-readback scan

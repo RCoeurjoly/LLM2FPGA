@@ -26,7 +26,15 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
   parameter int GELU_QUAD_Q = 1634,
   parameter int OUTPUT_REQUANT_SHIFT = 16,
   parameter int OUTPUT_REQUANT_MULT = 8032,
-  parameter int C_PROJ_OUTPUT_REQUANT_SHIFT = 24
+  parameter int C_PROJ_OUTPUT_REQUANT_SHIFT = 24,
+  parameter int C_PROJ_GEMV_DEBUG_SAMPLE_COUNT = 8,
+  parameter int C_PROJ_GEMV_DEBUG_SAMPLE_WIDTH = 128,
+  parameter int C_PROJ_GEMV_DEBUG_LANE_INDEX = 0,
+  parameter int C_FC_POST_GELU_DEBUG_SAMPLE_COUNT = 8,
+  parameter int C_FC_POST_GELU_DEBUG_SAMPLE_WIDTH = 144,
+  parameter int C_FC_GEMV_DEBUG_SAMPLE_COUNT = 8,
+  parameter int C_FC_GEMV_DEBUG_SAMPLE_WIDTH = 128,
+  parameter int C_FC_GEMV_DEBUG_LANE_INDEX = 1
 )(
   input  logic clock,
   input  logic reset,
@@ -65,7 +73,27 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
   output logic signed [ACC_WIDTH - 1:0] debug_requant_acc_q,
   output logic signed [31:0] debug_requant_scale_mul_q,
   output logic signed [31:0] debug_requant_bias_q,
-  output logic signed [7:0] debug_requant_output_q
+  output logic signed [63:0] debug_requant_product_q,
+  output logic signed [63:0] debug_requant_scaled_q,
+  output logic signed [63:0] debug_requant_biased_q,
+  output logic signed [7:0] debug_requant_output_q,
+
+  output logic [
+    C_PROJ_GEMV_DEBUG_SAMPLE_COUNT * C_PROJ_GEMV_DEBUG_SAMPLE_WIDTH - 1:0
+  ] debug_c_proj_gemv_lane0_samples,
+  output logic [3:0] debug_c_proj_gemv_lane0_sample_count,
+  output logic signed [ACC_WIDTH - 1:0] debug_c_proj_gemv_lane0_final_acc,
+  output logic [C_PROJ_GEMV_DEBUG_SAMPLE_COUNT * 8 - 1:0]
+    debug_c_proj_transfer_post_gelu_samples,
+  output logic [
+    C_FC_POST_GELU_DEBUG_SAMPLE_COUNT * C_FC_POST_GELU_DEBUG_SAMPLE_WIDTH - 1:0
+  ] debug_c_fc_post_gelu_samples,
+  output logic [3:0] debug_c_fc_post_gelu_sample_count,
+  output logic [
+    C_FC_GEMV_DEBUG_SAMPLE_COUNT * C_FC_GEMV_DEBUG_SAMPLE_WIDTH - 1:0
+  ] debug_c_fc_gemv_samples,
+  output logic [3:0] debug_c_fc_gemv_sample_count,
+  output logic signed [ACC_WIDTH - 1:0] debug_c_fc_gemv_final_acc
 );
   localparam logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] LAST_C_PROJ_OUT_INDEX =
     C_PROJ_OUT_ADDR_WIDTH'(C_PROJ_OUT_DIM - 1);
@@ -189,6 +217,9 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
       debug_requant_acc_q <= '0;
       debug_requant_scale_mul_q <= '0;
       debug_requant_bias_q <= '0;
+      debug_requant_product_q <= '0;
+      debug_requant_scaled_q <= '0;
+      debug_requant_biased_q <= '0;
       debug_requant_output_q <= '0;
     end else begin
       done <= 1'b0;
@@ -256,6 +287,9 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
           debug_requant_acc_q <= requant_acc_q;
           debug_requant_scale_mul_q <= requant_scale_mul_q;
           debug_requant_bias_q <= requant_bias_q;
+          debug_requant_product_q <= scaled_product_q;
+          debug_requant_scaled_q <= scaled_q_q;
+          debug_requant_biased_q <= output_q_q;
           debug_requant_output_q <= post_output_w;
 
           if (post_addr_q == LAST_C_PROJ_OUT_INDEX) begin
@@ -290,7 +324,15 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
     .SCALE_SHIFT(SCALE_SHIFT),
     .GELU_QUAD_Q(GELU_QUAD_Q),
     .OUTPUT_REQUANT_SHIFT(OUTPUT_REQUANT_SHIFT),
-    .OUTPUT_REQUANT_MULT(OUTPUT_REQUANT_MULT)
+    .OUTPUT_REQUANT_MULT(OUTPUT_REQUANT_MULT),
+    .C_PROJ_GEMV_DEBUG_SAMPLE_COUNT(C_PROJ_GEMV_DEBUG_SAMPLE_COUNT),
+    .C_PROJ_GEMV_DEBUG_SAMPLE_WIDTH(C_PROJ_GEMV_DEBUG_SAMPLE_WIDTH),
+    .C_PROJ_GEMV_DEBUG_LANE_INDEX(C_PROJ_GEMV_DEBUG_LANE_INDEX),
+    .C_FC_POST_GELU_DEBUG_SAMPLE_COUNT(C_FC_POST_GELU_DEBUG_SAMPLE_COUNT),
+    .C_FC_POST_GELU_DEBUG_SAMPLE_WIDTH(C_FC_POST_GELU_DEBUG_SAMPLE_WIDTH),
+    .C_FC_GEMV_DEBUG_SAMPLE_COUNT(C_FC_GEMV_DEBUG_SAMPLE_COUNT),
+    .C_FC_GEMV_DEBUG_SAMPLE_WIDTH(C_FC_GEMV_DEBUG_SAMPLE_WIDTH),
+    .C_FC_GEMV_DEBUG_LANE_INDEX(C_FC_GEMV_DEBUG_LANE_INDEX)
   ) chain (
     .clock(clock),
     .reset(reset),
@@ -311,6 +353,17 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
     .busy(chain_busy),
     .done(chain_done),
     .output_read_addr(chain_output_read_addr_q),
-    .output_read_data(chain_output_read_data)
+    .output_read_data(chain_output_read_data),
+    .debug_c_proj_gemv_lane0_samples(debug_c_proj_gemv_lane0_samples),
+    .debug_c_proj_gemv_lane0_sample_count(debug_c_proj_gemv_lane0_sample_count),
+    .debug_c_proj_gemv_lane0_final_acc(debug_c_proj_gemv_lane0_final_acc),
+    .debug_c_proj_transfer_post_gelu_samples(
+      debug_c_proj_transfer_post_gelu_samples
+    ),
+    .debug_c_fc_post_gelu_samples(debug_c_fc_post_gelu_samples),
+    .debug_c_fc_post_gelu_sample_count(debug_c_fc_post_gelu_sample_count),
+    .debug_c_fc_gemv_samples(debug_c_fc_gemv_samples),
+    .debug_c_fc_gemv_sample_count(debug_c_fc_gemv_sample_count),
+    .debug_c_fc_gemv_final_acc(debug_c_fc_gemv_final_acc)
   );
 endmodule

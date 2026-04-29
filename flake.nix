@@ -3735,6 +3735,31 @@
             yosys -s run.ys
           '';
 
+        task6Int8L2MlpChainResidualAddSelftestJtagDebugJson =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            read_verilog -sv ${task6Int8L2MlpChainResidualAddSelftestTop}
+            read_verilog -lib +/xilinx/cells_xtra.v
+            chparam -set ENABLE_JTAG_DEBUG 1 task6_int8_l2_mlp_chain_residual_add_selftest_top
+            hierarchy -top task6_int8_l2_mlp_chain_residual_add_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6CProjRequantArithSelftestJson =
           pkgs.runCommand "task6-c-proj-requant-arith-selftest.json" {
             buildInputs = [ pkgs.yosys ];
@@ -3819,6 +3844,19 @@
           name = "task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug";
           fasm = task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugFasm;
           framesBase = "task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug";
+        };
+
+        task6Int8L2MlpChainResidualAddSelftestJtagDebugFasm = mkFasm {
+          name = "task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug";
+          xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
+          json = task6Int8L2MlpChainResidualAddSelftestJtagDebugJson;
+          freqMHz = 50;
+        };
+
+        task6Int8L2MlpChainResidualAddSelftestJtagDebugBitstream = mkBitstream {
+          name = "task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug";
+          fasm = task6Int8L2MlpChainResidualAddSelftestJtagDebugFasm;
+          framesBase = "task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug";
         };
 
         task6CProjRequantArithSelftestXdc = mkXdc {
@@ -5512,6 +5550,8 @@
             task6Int8L2MlpChainResidualAddSelftestCProjDebugJson;
           task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-json =
             task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugJson;
+          task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug-json =
+            task6Int8L2MlpChainResidualAddSelftestJtagDebugJson;
           task6-int8-l2-mlp-chain-residual-add-selftest-utilization =
             task6Int8L2MlpChainResidualAddSelftestUtilization;
           task6-int8-l2-mlp-chain-residual-add-selftest-xdc =
@@ -5536,6 +5576,10 @@
             task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugFasm;
           task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-bitstream =
             task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugBitstream;
+          task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug-fasm =
+            task6Int8L2MlpChainResidualAddSelftestJtagDebugFasm;
+          task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug-bitstream =
+            task6Int8L2MlpChainResidualAddSelftestJtagDebugBitstream;
           task6-c-proj-requant-arith-selftest-sim-main =
             task6CProjRequantArithSelftestSimMain;
           task6-c-proj-requant-arith-selftest-sv-sim =

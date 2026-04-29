@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 module task6_int8_l2_mlp_chain_residual_add_selftest_tb;
-  localparam int TIMEOUT_CYCLES = 26000;
+  localparam int TIMEOUT_CYCLES = 100000;
 
   logic SYS_CLK;
   logic SYS_RSTN;

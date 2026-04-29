@@ -60,6 +60,9 @@ module task6_int8_gemv64_lanes4_packed_sync_mem_kernel #(
     .out_addr(out_addr),
     .out_data(out_data),
     .out_valid(out_valid),
-    .out_ready(out_ready)
+    .out_ready(out_ready),
+    .debug_lane0_samples(),
+    .debug_lane0_sample_count(),
+    .debug_lane0_final_acc()
   );
 endmodule

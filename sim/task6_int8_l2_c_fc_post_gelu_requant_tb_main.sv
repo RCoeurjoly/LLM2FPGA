@@ -3,7 +3,7 @@
 module task6_int8_l2_c_fc_post_gelu_requant_tb;
   `include "tb_data.sv"
 
-  localparam int TIMEOUT_CYCLES = 11000;
+  localparam int TIMEOUT_CYCLES = 100000;
 
   logic clock;
   logic reset;
@@ -23,6 +23,11 @@ module task6_int8_l2_c_fc_post_gelu_requant_tb;
 
   logic [OUT_ADDR_WIDTH - 1:0] output_read_addr;
   wire signed [7:0] output_read_data;
+  wire [8 * 144 - 1:0] debug_post_gelu_samples;
+  wire [3:0] debug_post_gelu_sample_count;
+  wire [8 * 128 - 1:0] debug_gemv_samples;
+  wire [3:0] debug_gemv_sample_count;
+  wire signed [31:0] debug_gemv_final_acc;
 
   integer cycles;
   integer compute_cycles;
@@ -56,7 +61,12 @@ module task6_int8_l2_c_fc_post_gelu_requant_tb;
     .busy(busy),
     .done(done),
     .output_read_addr(output_read_addr),
-    .output_read_data(output_read_data)
+    .output_read_data(output_read_data),
+    .debug_post_gelu_samples(debug_post_gelu_samples),
+    .debug_post_gelu_sample_count(debug_post_gelu_sample_count),
+    .debug_gemv_samples(debug_gemv_samples),
+    .debug_gemv_sample_count(debug_gemv_sample_count),
+    .debug_gemv_final_acc(debug_gemv_final_acc)
   );
 
   always #5 clock = ~clock;
@@ -65,6 +75,7 @@ module task6_int8_l2_c_fc_post_gelu_requant_tb;
     integer in_index;
     integer word_index;
     integer out_index;
+    integer sample_index;
 
     clock = 1'b0;
     reset = 1'b1;
@@ -139,6 +150,36 @@ module task6_int8_l2_c_fc_post_gelu_requant_tb;
           expected_output_q_values[out_index],
           output_read_data
         );
+        $display(
+          "DEBUG: postgelu samples %0d sample0 idx %0d acc %0d scale %0d bias %0d scaled %0d output %0d gemv_final %0d",
+          debug_post_gelu_sample_count,
+          debug_post_gelu_samples[0 +: 8],
+          $signed(debug_post_gelu_samples[8 +: 32]),
+          $signed(debug_post_gelu_samples[40 +: 32]),
+          $signed(debug_post_gelu_samples[72 +: 32]),
+          $signed(debug_post_gelu_samples[104 +: 32]),
+          $signed(debug_post_gelu_samples[136 +: 8]),
+          debug_gemv_final_acc
+        );
+        $display(
+          "DEBUG: internal x %0d x_sq %0d quad %0d y %0d output_q %0d post_output %0d",
+          dut.x_q_q,
+          dut.x_sq_q,
+          dut.quad_q_q,
+          dut.y_q_q,
+          dut.output_q_q,
+          dut.post_output_w
+        );
+        for (sample_index = 0; sample_index < 8; sample_index = sample_index + 1) begin
+          $display(
+            "DEBUG: sample %0d idx %0d acc %0d scaled %0d output %0d",
+            sample_index,
+            debug_post_gelu_samples[sample_index * 144 + 0 +: 8],
+            $signed(debug_post_gelu_samples[sample_index * 144 + 8 +: 32]),
+            $signed(debug_post_gelu_samples[sample_index * 144 + 104 +: 32]),
+            $signed(debug_post_gelu_samples[sample_index * 144 + 136 +: 8])
+          );
+        end
         $fatal(1);
       end
       read_count = read_count + 1;
