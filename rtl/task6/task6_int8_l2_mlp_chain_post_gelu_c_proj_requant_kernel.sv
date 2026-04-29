@@ -58,7 +58,14 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
   output logic done,
 
   input  logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] output_read_addr,
-  output logic signed [7:0] output_read_data
+  output logic signed [7:0] output_read_data,
+
+  output logic debug_requant_valid,
+  output logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] debug_requant_addr,
+  output logic signed [ACC_WIDTH - 1:0] debug_requant_acc_q,
+  output logic signed [31:0] debug_requant_scale_mul_q,
+  output logic signed [31:0] debug_requant_bias_q,
+  output logic signed [7:0] debug_requant_output_q
 );
   localparam logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] LAST_C_PROJ_OUT_INDEX =
     C_PROJ_OUT_ADDR_WIDTH'(C_PROJ_OUT_DIM - 1);
@@ -80,6 +87,7 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] sidecar_read_addr_q;
   logic signed [31:0] scale_mul_read_data_q;
   logic signed [31:0] bias_q_read_data_q;
+  logic signed [7:0] post_output_w;
 
   (* ram_style = "block" *)
   logic signed [31:0] scale_mul_mem [0:C_PROJ_OUT_DIM - 1];
@@ -134,6 +142,12 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
     end
   endfunction
 
+  assign post_output_w = c_proj_requant_i8(
+    chain_output_read_data,
+    scale_mul_read_data_q,
+    bias_q_read_data_q
+  );
+
   always_ff @(posedge clock) begin
     if (c_proj_requant_load_valid) begin
       scale_mul_mem[c_proj_requant_load_addr] <= c_proj_requant_scale_mul_load_data;
@@ -152,8 +166,15 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
       sidecar_read_addr_q <= '0;
       chain_output_read_addr_q <= '0;
       done <= 1'b0;
+      debug_requant_valid <= 1'b0;
+      debug_requant_addr <= '0;
+      debug_requant_acc_q <= '0;
+      debug_requant_scale_mul_q <= '0;
+      debug_requant_bias_q <= '0;
+      debug_requant_output_q <= '0;
     end else begin
       done <= 1'b0;
+      debug_requant_valid <= 1'b0;
 
       case (post_state_q)
         POST_IDLE: begin
@@ -170,11 +191,13 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
         end
 
         POST_WRITE: begin
-          output_mem[post_addr_q] <= c_proj_requant_i8(
-            chain_output_read_data,
-            scale_mul_read_data_q,
-            bias_q_read_data_q
-          );
+          output_mem[post_addr_q] <= post_output_w;
+          debug_requant_valid <= 1'b1;
+          debug_requant_addr <= post_addr_q;
+          debug_requant_acc_q <= chain_output_read_data;
+          debug_requant_scale_mul_q <= scale_mul_read_data_q;
+          debug_requant_bias_q <= bias_q_read_data_q;
+          debug_requant_output_q <= post_output_w;
 
           if (post_addr_q == LAST_C_PROJ_OUT_INDEX) begin
             post_state_q <= POST_IDLE;

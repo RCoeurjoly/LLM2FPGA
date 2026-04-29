@@ -9,6 +9,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
 );
   `include "tb_data.sv"
 
+  localparam int C_PROJ_ACC_WIDTH = 32;
   localparam logic [31:0] TIMEOUT_CYCLES = 32'd50000000;
   localparam logic [7:0] BOOT_RESET_CYCLES = 8'd16;
   localparam logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] LAST_C_PROJ_OUT_INDEX =
@@ -52,6 +53,10 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic [2:0] fail_observed_high_leds;
   logic [2:0] fail_expected_c_proj_high_leds;
   logic [2:0] first_add_c_proj_high_leds;
+  logic [2:0] first_c_proj_requant_output_high_leds;
+  logic [2:0] first_c_proj_requant_acc_match_leds;
+  logic [2:0] first_c_proj_requant_scale_match_leds;
+  logic [2:0] first_c_proj_requant_bias_match_leds;
 
   logic dut_reset;
   logic start;
@@ -89,12 +94,37 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic signed [7:0] first_add_residual_q;
   logic signed [7:0] first_add_c_proj_q;
   logic signed [7:0] first_add_output_q;
+  logic debug_c_proj_requant_valid;
+  logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] debug_c_proj_requant_addr;
+  logic signed [C_PROJ_ACC_WIDTH - 1:0] debug_c_proj_requant_acc_q;
+  logic signed [31:0] debug_c_proj_requant_scale_mul_q;
+  logic signed [31:0] debug_c_proj_requant_bias_q;
+  logic signed [7:0] debug_c_proj_requant_output_q;
+  logic first_c_proj_requant_seen_q;
+  logic signed [C_PROJ_ACC_WIDTH - 1:0] first_c_proj_requant_acc_q;
+  logic signed [31:0] first_c_proj_requant_scale_mul_q;
+  logic signed [31:0] first_c_proj_requant_bias_q;
+  logic signed [7:0] first_c_proj_requant_output_q;
 
   assign value_debug_phase = blink_count_q[28:25];
   assign fail_expected_high_leds = {1'b0, fail_expected_q[7:6]};
   assign fail_observed_high_leds = {1'b0, fail_observed_q[7:6]};
   assign fail_expected_c_proj_high_leds = {1'b0, fail_expected_c_proj_q[7:6]};
   assign first_add_c_proj_high_leds = {1'b0, first_add_c_proj_q[7:6]};
+  assign first_c_proj_requant_output_high_leds =
+    {1'b0, first_c_proj_requant_output_q[7:6]};
+  assign first_c_proj_requant_acc_match_leds =
+    first_c_proj_requant_seen_q &&
+    (first_c_proj_requant_acc_q == expected_c_proj_acc_values[0])
+      ? 3'b010 : 3'b101;
+  assign first_c_proj_requant_scale_match_leds =
+    first_c_proj_requant_seen_q &&
+    (first_c_proj_requant_scale_mul_q == c_proj_requant_scale_mul_values[0])
+      ? 3'b010 : 3'b101;
+  assign first_c_proj_requant_bias_match_leds =
+    first_c_proj_requant_seen_q &&
+    (first_c_proj_requant_bias_q == c_proj_requant_bias_q_values[0])
+      ? 3'b010 : 3'b101;
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
     if (!SYS_RSTN)
@@ -217,6 +247,11 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       first_add_residual_q <= '0;
       first_add_c_proj_q <= '0;
       first_add_output_q <= '0;
+      first_c_proj_requant_seen_q <= 1'b0;
+      first_c_proj_requant_acc_q <= '0;
+      first_c_proj_requant_scale_mul_q <= '0;
+      first_c_proj_requant_bias_q <= '0;
+      first_c_proj_requant_output_q <= '0;
     end else if (!config_reset_done) begin
       state_q <= SELFTEST_BOOT;
       boot_count_q <= 8'd0;
@@ -233,8 +268,23 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       first_add_residual_q <= '0;
       first_add_c_proj_q <= '0;
       first_add_output_q <= '0;
+      first_c_proj_requant_seen_q <= 1'b0;
+      first_c_proj_requant_acc_q <= '0;
+      first_c_proj_requant_scale_mul_q <= '0;
+      first_c_proj_requant_bias_q <= '0;
+      first_c_proj_requant_output_q <= '0;
     end else begin
       blink_count_q <= blink_count_q + 29'd1;
+
+      if (debug_c_proj_requant_valid &&
+          debug_c_proj_requant_addr == '0 &&
+          !first_c_proj_requant_seen_q) begin
+        first_c_proj_requant_seen_q <= 1'b1;
+        first_c_proj_requant_acc_q <= debug_c_proj_requant_acc_q;
+        first_c_proj_requant_scale_mul_q <= debug_c_proj_requant_scale_mul_q;
+        first_c_proj_requant_bias_q <= debug_c_proj_requant_bias_q;
+        first_c_proj_requant_output_q <= debug_c_proj_requant_output_q;
+      end
 
       if (debug_add_valid && debug_add_addr == '0 && !first_add_seen_q) begin
         first_add_seen_q <= 1'b1;
@@ -387,7 +437,26 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
         end
 
         SELFTEST_FAIL: begin
-          if (DEBUG_LEDS == 3) begin
+          if (DEBUG_LEDS == 4) begin
+            unique case (value_debug_phase)
+              4'd0: led_3bits_tri_o = 3'b111;
+              4'd1: led_3bits_tri_o = {1'b1, fail_reason_q};
+              4'd2: led_3bits_tri_o = fail_index_q[2:0];
+              4'd3: led_3bits_tri_o = fail_index_q[5:3];
+              4'd4: led_3bits_tri_o = 3'b101;
+              4'd5: led_3bits_tri_o = first_c_proj_requant_acc_match_leds;
+              4'd6: led_3bits_tri_o = first_c_proj_requant_scale_match_leds;
+              4'd7: led_3bits_tri_o = first_c_proj_requant_bias_match_leds;
+              4'd8: led_3bits_tri_o = 3'b011;
+              4'd9: led_3bits_tri_o = first_c_proj_requant_output_q[2:0];
+              4'd10: led_3bits_tri_o = first_c_proj_requant_output_q[5:3];
+              4'd11: led_3bits_tri_o = first_c_proj_requant_output_high_leds;
+              4'd12,
+              4'd13,
+              4'd14: led_3bits_tri_o = 3'b000;
+              default: led_3bits_tri_o = 3'b111;
+            endcase
+          end else if (DEBUG_LEDS == 3) begin
             unique case (value_debug_phase)
               4'd0: led_3bits_tri_o = 3'b111;
               4'd1: led_3bits_tri_o = {1'b1, fail_reason_q};
@@ -493,6 +562,12 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     .debug_add_addr(debug_add_addr),
     .debug_add_residual_q(debug_add_residual_q),
     .debug_add_c_proj_q(debug_add_c_proj_q),
-    .debug_add_output_q(debug_add_output_q)
+    .debug_add_output_q(debug_add_output_q),
+    .debug_c_proj_requant_valid(debug_c_proj_requant_valid),
+    .debug_c_proj_requant_addr(debug_c_proj_requant_addr),
+    .debug_c_proj_requant_acc_q(debug_c_proj_requant_acc_q),
+    .debug_c_proj_requant_scale_mul_q(debug_c_proj_requant_scale_mul_q),
+    .debug_c_proj_requant_bias_q(debug_c_proj_requant_bias_q),
+    .debug_c_proj_requant_output_q(debug_c_proj_requant_output_q)
   );
 endmodule

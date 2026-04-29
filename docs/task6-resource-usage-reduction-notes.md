@@ -8810,3 +8810,61 @@ C-proj debug LED decoding:
   - red + green + orange
   - red + green + orange
   - red
+
+Follow-up c-proj debug physical observation:
+
+- Observed sequence after the red + orange marker:
+  - green
+  - red
+  - nothing
+- Observed sequence after the red + green marker:
+  - red + green + orange for two phases
+  - red
+  - nothing
+- Interpretation:
+  - expected c_proj byte for output index `0` is `0x0a`
+  - residual-add consumed c_proj byte `0x7f`
+  - this confirms the value-debug inference that output `0x6a` was produced
+    by adding residual `0x02` to saturated c_proj `0x7f`
+
+C-proj requant split diagnostic bitstream:
+
+- Added c_proj requant debug outputs for the first output write:
+  accumulator, scale multiplier, bias, and requantized output byte.
+- Added `DEBUG_LEDS=4` mode to display three match bits for index `0`:
+  accumulator matches expected, scale matches expected, and bias matches
+  expected, followed by the observed c_proj output byte.
+- Added flake targets:
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-json`
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-fasm`
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-bitstream`
+- Verification:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`:
+    pass at `18804` cycles
+    - `/nix/store/4q44akfqr9gl2gkc6bzy9vbj0fx2dm40-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-json --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/49p4im0ckwmia98vyyvfbpnrk484jrcq-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.json`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-bitstream --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/qg4wbb17a00v9212c3nny3ybgk7cpjhp-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
+- Post-route timing:
+  - max frequency: `137.99 MHz`
+  - requested target: `12.00 MHz`
+
+C-proj requant split debug LED decoding:
+
+- Ignore the always-on top board green LED.
+- After the red + orange marker, three phases show match bits:
+  1. c_proj accumulator match
+  2. c_proj scale multiplier match
+  3. c_proj bias match
+- For those match phases:
+  - green means match
+  - red + orange means mismatch or not captured
+- After the red + green marker, the observed c_proj output byte is displayed
+  with the same three-phase byte encoding as before.
+- If the accumulator/scale/bias are all correct but the output is still
+  `0x7f`, the likely fault is in synthesized requant arithmetic.
+- If the accumulator is mismatched while scale and bias match, the likely
+  fault is upstream in the c_fc/post-GELU/c_proj accumulator chain.

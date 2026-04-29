@@ -71,7 +71,14 @@ module task6_int8_l2_mlp_chain_residual_add_kernel #(
   output logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] debug_add_addr,
   output logic signed [7:0] debug_add_residual_q,
   output logic signed [7:0] debug_add_c_proj_q,
-  output logic signed [7:0] debug_add_output_q
+  output logic signed [7:0] debug_add_output_q,
+
+  output logic debug_c_proj_requant_valid,
+  output logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] debug_c_proj_requant_addr,
+  output logic signed [ACC_WIDTH - 1:0] debug_c_proj_requant_acc_q,
+  output logic signed [31:0] debug_c_proj_requant_scale_mul_q,
+  output logic signed [31:0] debug_c_proj_requant_bias_q,
+  output logic signed [7:0] debug_c_proj_requant_output_q
 );
   localparam logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] LAST_C_PROJ_OUT_INDEX =
     C_PROJ_OUT_ADDR_WIDTH'(C_PROJ_OUT_DIM - 1);
@@ -259,6 +266,12 @@ module task6_int8_l2_mlp_chain_residual_add_kernel #(
     .busy(chain_busy),
     .done(chain_done),
     .output_read_addr(chain_output_read_addr_q),
-    .output_read_data(chain_output_read_data)
+    .output_read_data(chain_output_read_data),
+    .debug_requant_valid(debug_c_proj_requant_valid),
+    .debug_requant_addr(debug_c_proj_requant_addr),
+    .debug_requant_acc_q(debug_c_proj_requant_acc_q),
+    .debug_requant_scale_mul_q(debug_c_proj_requant_scale_mul_q),
+    .debug_requant_bias_q(debug_c_proj_requant_bias_q),
+    .debug_requant_output_q(debug_c_proj_requant_output_q)
   );
 endmodule
