@@ -9694,3 +9694,49 @@ Regular non-debug bitstream hardware programming retry:
     on the board
   - internal self-test pass was already proven with the matching JTAG-debug
     build; this regular build intentionally has no debug payload readout
+
+Board-validated H2 comparison against copied baseline:
+
+- Added comparison artifacts:
+  - `artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json`
+  - `artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.csv`
+- Comparison baseline:
+  - `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`
+  - this is the copied baseline bundle required by the repo guidance, not a
+    garbage-collectable Nix store path
+- Scope caveat:
+  - the H2 candidate is a bounded `tiny-stories-v1k-h64-l1` int8 L2
+    MLP/residual slice, not a full TinyStories 1M replacement
+  - the comparison is still useful as Task 6 strategy evidence because it shows
+    the resource impact of the replacement shape under the same target device
+    envelope
+- Resource comparison:
+  - copied float baseline:
+    - LUTs: `40416086 / 298600` (`13535.192900200938%`)
+    - FFs: `58072527 / 597200` (`9724.133791024782%`)
+    - DSPs: `0 / 1920` (`0.0%`)
+    - BRAM36-equivalent: `0.0 / 955` (`0.0%`)
+  - board-validated H2 selftest:
+    - LUTs: `10733 / 298600` (`3.59%`)
+    - FFs: `6530 / 597200` (`1.09%`)
+    - DSPs: `10 / 1920` (`0.52%`)
+    - BRAM36-equivalent: `11.0 / 955` (`1.15%`)
+- Delta:
+  - LUT reduction: `40405353` LUTs, `99.973444%`
+  - FF reduction: `58065997` FFs, `99.988755%`
+  - DSP increase: `10`
+  - BRAM36-equivalent increase: `11.0`
+  - `MUXF7` reduction: `933497`, `99.689238%`
+  - `MUXF8` reduction: `278521`, `99.552139%`
+- Functional and board evidence:
+  - simulation: `PASS`
+  - JTAG-debug hardware payload: `SELFTEST_PASS`
+  - regular bitstream: SRAM programming completed with FPGA `done=1`
+  - post-program IDCODE: `0x23751093`
+- Decision:
+  - promote H2 as a board-validated bounded strategy lane
+  - viability remains `recommended-conditional` because the current proof is
+    not yet a calibrated multi-sample or full-model replacement
+  - next gate is to scale the bounded validated H2 lane to a larger
+    streaming-memory surface before investing in DDR3 integration, because the
+    current lane already fits easily without DDR3

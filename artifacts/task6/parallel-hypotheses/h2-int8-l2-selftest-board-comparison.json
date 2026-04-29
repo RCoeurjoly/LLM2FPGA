@@ -1,0 +1,145 @@
+{
+  "artifact_name": "h2-int8-l2-selftest-board-comparison",
+  "status": "PASS",
+  "date": "2026-04-29",
+  "scope": {
+    "strategy": "H2 int8 StreamTensor-lite bounded L2 MLP/residual-add lane",
+    "candidate_model_label": "tiny-stories-v1k-h64-l1",
+    "baseline_model_label": "tiny-stories-1m-baseline-float-selftest-all-memory",
+    "scope_caveat": "The candidate is a board-validated bounded int8 L2 MLP/residual slice, not a full TinyStories 1M replacement. The copied full-model float baseline is used as the stable Task 6 resource reference required by the repo guidance."
+  },
+  "baseline": {
+    "path": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization",
+    "top_module": "tiny_stories_selftest_top",
+    "fits_overall": false,
+    "resources": {
+      "clb_luts": {
+        "used": 40416086,
+        "capacity": 298600,
+        "pct": 13535.192900200938
+      },
+      "clb_ffs": {
+        "used": 58072527,
+        "capacity": 597200,
+        "pct": 9724.133791024782
+      },
+      "dsp": {
+        "used": 0,
+        "capacity": 1920,
+        "pct": 0.0
+      },
+      "bram36_equiv": {
+        "used": 0.0,
+        "capacity": 955,
+        "pct": 0.0
+      },
+      "muxf7": {
+        "used": 936407
+      },
+      "muxf8": {
+        "used": 279774
+      }
+    }
+  },
+  "candidate": {
+    "top_module": "task6_int8_l2_mlp_chain_residual_add_selftest_top",
+    "utilization_path": "/nix/store/jmw4ibcrm5x099fnynr11sfs0pm8b4fw-task6-int8-l2-mlp-chain-residual-add-selftest-utilization",
+    "simulation_path": "/nix/store/mdq3w2dnh7ibvc59c4750f3pm1344dif-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json",
+    "regular_bitstream": "/nix/store/p6f10gn31s6aram54y0c570kksbpy63d-task6-int8-l2-mlp-chain-residual-add-selftest.bit",
+    "jtag_debug_bitstream": "/nix/store/pbb86ghz47qqj38il419r6mp1b59vxy3-task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug.bit",
+    "fits_overall": true,
+    "resources": {
+      "clb_luts": {
+        "used": 10733,
+        "capacity": 298600,
+        "pct": 3.59
+      },
+      "clb_ffs": {
+        "used": 6530,
+        "capacity": 597200,
+        "pct": 1.09
+      },
+      "dsp": {
+        "used": 10,
+        "capacity": 1920,
+        "pct": 0.52
+      },
+      "bram36": {
+        "used": 8,
+        "capacity": 955,
+        "pct": 0.84
+      },
+      "bram18": {
+        "used": 6
+      },
+      "bram36_equiv": {
+        "used": 11.0,
+        "capacity": 955,
+        "pct": 1.15
+      },
+      "bram_kb": {
+        "used": 396,
+        "capacity": 34380,
+        "pct": 1.15
+      },
+      "muxf7": {
+        "used": 2910
+      },
+      "muxf8": {
+        "used": 1253
+      }
+    },
+    "timing": {
+      "regular_post_route_fmax_mhz": 120.18,
+      "regular_target_mhz": 50.0,
+      "jtag_debug_post_route_fmax_mhz": 115.71,
+      "jtag_debug_target_mhz": 50.0
+    },
+    "functional_evidence": {
+      "simulation": "PASS",
+      "jtag_debug_hardware_selftest": "SELFTEST_PASS",
+      "regular_bitstream_programmed": true,
+      "regular_bitstream_fpga_done": true,
+      "post_program_openfpgaloader_idcode": "0x23751093",
+      "post_program_direct_mpsse_idcode": "0x23751093"
+    }
+  },
+  "delta_vs_baseline": {
+    "clb_luts": {
+      "absolute": -40405353,
+      "reduction_pct": 99.973444
+    },
+    "clb_ffs": {
+      "absolute": -58065997,
+      "reduction_pct": 99.988755
+    },
+    "dsp": {
+      "absolute": 10
+    },
+    "bram36_equiv": {
+      "absolute": 11.0
+    },
+    "muxf7": {
+      "absolute": -933497,
+      "reduction_pct": 99.689238
+    },
+    "muxf8": {
+      "absolute": -278521,
+      "reduction_pct": 99.552139
+    }
+  },
+  "task6_metrics": {
+    "functional_status": "PASS",
+    "first_failing_stage": null,
+    "external_ddr3_usage": "none",
+    "patch_burden": "local RTL shape change for c_proj byte-lane packed-weight memories plus local JTAG debug/readout helpers",
+    "toolchain_status": "Yosys, nextpnr-xilinx, FASM, bitstream generation, SRAM programming all pass for the regular candidate bitstream",
+    "viability": "recommended-conditional",
+    "viability_reason": "Board-validated for the bounded L2 slice and strongly resource-positive versus the copied float baseline, but not yet a full-model replacement or calibrated multi-sample quantization result."
+  },
+  "decision": {
+    "verdict": "promote",
+    "next_gate": "Scale the bounded validated H2 lane to a larger streaming-memory surface before investing in DDR3 integration.",
+    "rationale": "The current lane already fits easily without DDR3, so the next uncertainty is coverage/scale rather than external memory bandwidth."
+  }
+}
