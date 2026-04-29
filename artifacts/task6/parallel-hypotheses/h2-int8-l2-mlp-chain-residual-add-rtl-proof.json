@@ -161,47 +161,48 @@
     "status": "PASS",
     "reads": 64,
     "outputs": 64,
-    "compute_cycles": 9889,
-    "cycles": 9953
+    "compute_cycles": 54945,
+    "cycles": 55009
   },
   "yosys_result": {
-    "path": "/nix/store/idpqm3xqw4dq99z68v4b19npw7h2ccjs-task6-int8-l2-mlp-chain-residual-add-yosys-stat.json",
+    "path": "/nix/store/rqqrhqz7gay071nkc9j7m07n3vwr7fhz-task6-int8-l2-mlp-chain-residual-add-yosys-stat.json",
     "top_name": "task6_int8_l2_mlp_chain_residual_add_kernel",
-    "num_cells": 2693,
-    "num_wires": 966,
-    "num_wire_bits": 14557,
-    "dsp48e1": 36,
+    "num_cells": 12846,
+    "num_wires": 4249,
+    "num_wire_bits": 39735,
+    "dsp48e1": 10,
     "ramb36e1": 8,
     "ramb18e1": 6,
     "ram64m": 36,
-    "fdre": 468,
-    "carry4": 356,
-    "lut_primitive_cells": 1226,
+    "fdre": 6422,
+    "carry4": 493,
+    "lut_primitive_cells": 4875,
     "lut_breakdown": {
-      "LUT2": 545,
-      "LUT3": 220,
-      "LUT4": 236,
-      "LUT5": 30,
-      "LUT6": 195
+      "LUT1": 8,
+      "LUT2": 2940,
+      "LUT3": 650,
+      "LUT4": 262,
+      "LUT5": 331,
+      "LUT6": 684
     }
   },
   "mapped_utilization": {
-    "path": "/nix/store/diajrwircqnlq2wq9qq2r7x3v2fac3gz-task6-int8-l2-mlp-chain-residual-add-utilization/summary.json",
+    "path": "/nix/store/zhayy7jjr8xf35n8pr48sk09a2mmq39f-task6-int8-l2-mlp-chain-residual-add-utilization/summary.json",
     "resources": {
       "clb_luts": {
         "capacity": 298600,
-        "pct": 0.41,
-        "used": 1226
+        "pct": 1.63,
+        "used": 4875
       },
       "clb_ffs": {
         "capacity": 597200,
-        "pct": 0.08,
-        "used": 468
+        "pct": 1.08,
+        "used": 6422
       },
       "dsp": {
         "capacity": 1920,
-        "pct": 1.88,
-        "used": 36
+        "pct": 0.52,
+        "used": 10
       },
       "bram36": {
         "capacity": 955,
@@ -223,8 +224,8 @@
       },
       "slices_lower_bound": {
         "capacity": 74650,
-        "pct": 0.21,
-        "used": 154
+        "pct": 1.08,
+        "used": 803
       }
     }
   },

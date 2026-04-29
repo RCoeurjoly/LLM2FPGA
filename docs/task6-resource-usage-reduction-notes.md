@@ -9740,3 +9740,35 @@ Board-validated H2 comparison against copied baseline:
   - next gate is to scale the bounded validated H2 lane to a larger
     streaming-memory surface before investing in DDR3 integration, because the
     current lane already fits easily without DDR3
+
+Post-fix bare residual-add proof refresh:
+
+- Rebuilt:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-rtl-proof --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/wdnwnixhgqplmd9vivij59hnh1hdbbil-task6-int8-l2-mlp-chain-residual-add-rtl-proof`
+- Updated checked-in proof artifact from the regenerated summary:
+  - `artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-residual-add-rtl-proof.json`
+- Simulation:
+  - status: `PASS`
+  - reads: `64`
+  - outputs: `64`
+  - compute cycles: `54945`
+  - total cycles: `55009`
+- Refreshed bare-kernel mapped utilization:
+  - LUTs: `4875 / 298600` (`1.63%`)
+  - FFs: `6422 / 597200` (`1.08%`)
+  - DSPs: `10 / 1920` (`0.52%`)
+  - BRAM36: `8 / 955` (`0.84%`)
+  - BRAM18: `6`
+  - BRAM36-equivalent: `11.0 / 955` (`1.15%`)
+- Delta from bare proof to board selftest wrapper:
+  - LUTs: `4875 -> 10733` (`+5858`)
+  - FFs: `6422 -> 6530` (`+108`)
+  - DSPs: `10 -> 10` (`+0`)
+  - BRAM36-equivalent: `11.0 -> 11.0` (`+0.0`)
+- Interpretation:
+  - the byte-lane memory fix is now reflected in both the bare proof and the
+    board selftest path
+  - the selftest wrapper mainly adds fixed-vector load/compare LUTs; it does
+    not change DSP or BRAM use
