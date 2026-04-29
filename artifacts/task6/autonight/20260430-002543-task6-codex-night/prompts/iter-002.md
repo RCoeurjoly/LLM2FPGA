@@ -201,3 +201,32 @@ Replace any planned “v4k board replay” work with:
 3. emit exact later board-run commands,
 4. mark the hardware execution step as blocked by no board access.
 
+# Supervisor context for this invocation
+
+You are invocation 2 of an 8-hour supervised overnight run.
+
+The supervisor will restart Codex if this invocation exits before the 8-hour wall-clock budget is over. That is expected. Continue from the repo status and from `AUTONIGHT_STATUS.md`; do not repeat completed work.
+
+Time budget for this invocation: about 35 minutes.
+
+Repository root: /home/roland/LLM2FPGA_task6_streamtensor_lite
+Run directory: artifacts/task6/autonight/20260430-002543-task6-codex-night
+Status file to update before exit: AUTONIGHT_STATUS.md
+
+## Required behavior in this invocation
+
+1. First inspect:
+   - `AUTONIGHT_STATUS.md`
+   - `artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json`
+   - `artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json`
+   - `artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json` if present
+   - recent files under `artifacts/task6/autonight/`
+2. Pick one bounded next experiment from the program.
+3. Prefer quick scripts/scorecards before synthesis.
+4. Keep commands targeted. Do not launch monolithic full-model synthesis.
+5. Write results as JSON/CSV artifacts.
+6. Update `AUTONIGHT_STATUS.md` before exiting with a concrete next step.
+7. If you make code changes, run the cheapest meaningful validation and record the command/result.
+8. Do not push to remote.
+
+If the best next step is to continue a partially completed previous iteration, continue it. If the previous iteration timed out or was interrupted, inspect the files and logs and recover conservatively.

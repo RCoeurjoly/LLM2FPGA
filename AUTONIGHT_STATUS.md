@@ -1,30 +1,60 @@
 # AUTONIGHT_STATUS
 
 ## Last iteration
-No overnight iteration has completed yet.
+Hypothesis: the current repository evidence already advances priority A beyond the supervisor prompt, because the v4k residual-add plus streamed tied-vocab output-head has passed SV simulation, mapped utilization, routing, and bitstream generation. Therefore this slice should not spend time on another v4k synthesis replay; the next bounded gate is board observation of the existing bitstream, or Python-only multi-sample quantization calibration if board access is unavailable.
+
+Result: wrote machine-readable evidence reconciliation and handoff artifacts under the current run directory, then read the primary artifact back with sed. I attempted to add a Python multi-sample calibration script, but apply_patch and Python commands failed with a sandbox bwrap loopback error, so no code script was promoted in this invocation.
 
 ## Current best evidence
-- v1k bounded int8 L2 MLP/residual-add slice is board validated.
-- v4k bounded MLP/residual RTL replay passes.
-- vocab memory score indicates v4k can continue on-chip; full vocab/output projection needs external-memory or streaming planning.
+- v1k bounded int8 L2 MLP/residual-add slice remains the stable board anchor: simulation PASS, JTAG SELFTEST_PASS, regular bitstream programmed, 10,733 LUT, 6,530 FF, 10 DSP, 11.0 BRAM36-equivalent.
+- v4k bounded MLP/residual plus streamed tied-vocab output-head is now stronger than the initial prompt stated: SV simulation PASS, mapped/routed bitstream exists, no DDR3, 13,629 LUT, 8,845 FF, 14 DSP, 132.0 BRAM36-equivalent, 77.99 MHz post-route Fmax against 50 MHz.
+- v4k tied vocab rowwise int8 storage remains on-chip sized at 63 BRAM36 ceiling, while full TinyStories f32 vocab storage does not fit on-chip.
+- The v4k bitstream has not yet been observed passing on physical board hardware.
+- Multi-sample quantization calibration is still open; prior c_fc, post-GELU, c_proj, and residual gates are single-sample surfaces.
 
 ## Accepted/promoted changes
-None yet in this overnight session.
+- Promoted the existing v4k residual-add output-head bitstream evidence to the next board-observation gate in artifacts/task6/autonight/20260430-001227-task6-codex-night/h2-v4k-evidence-reconcile-next-gate.json.
+- Explicitly rejected another blind v4k or full TinyStories synthesis replay before either board observation or a new Python-only calibration surface.
 
 ## Rejected attempts
-None yet in this overnight session.
+- apply_patch add scripts/task6/score_multisample_quant_calibration.py failed: fs sandbox helper failed with bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted.
+- python3 --version failed with exit code 1 and the same bwrap loopback error, so no Python scorecard could be run in this invocation.
+- find/ls/git status/rm commands also failed with exit code 1 and the same bwrap loopback error. Read-only sed commands worked.
+- No full synthesis, full TinyStories monolithic build, board programming, or remote push was attempted.
 
 ## Commands run
-None yet in this overnight session.
+- sed -n 1,260p AUTONIGHT_STATUS.md: PASS.
+- sed reads of h2-int8-l2-selftest-board-comparison.json, h2-v4k-scale-up-summary.json, and h2-vocab-memory-surface-score.json: PASS.
+- sed reads of v4k c_fc, c_proj, residual contracts and selected single-sample boundary artifacts: PASS.
+- python3 --version: FAIL exit 1, bwrap loopback error.
+- apply_patch add calibration script: FAIL exit 1, bwrap loopback error from fs sandbox helper.
+- sed write h2-v4k-evidence-reconcile-next-gate.json and sed readback: PASS.
+- sed write handoff.json: PASS.
+- sed write AUTONIGHT_STATUS.md: PASS.
 
 ## Files changed
-None yet in this overnight session.
+- AUTONIGHT_STATUS.md.
+- artifacts/task6/autonight/20260430-001227-task6-codex-night/h2-v4k-evidence-reconcile-next-gate.json.
+- artifacts/task6/autonight/20260430-001227-task6-codex-night/handoff.json.
+- artifacts/task6/autonight/20260430-001227-task6-codex-night/write-probe.txt, retained as a note because rm failed under the same sandbox error.
 
 ## Open risks
-- v4k embedding/lm_head not yet synthesized.
-- multi-sample quantization not yet calibrated.
-- attention not yet scored.
-- full output-head streaming/DDR3 plan not yet concrete.
+- v4k residual-add output-head bitstream still needs physical board pass/fail observation.
+- Multi-sample quantization calibration remains unrun.
+- Attention is still not scored for v1k/v4k/full scaling.
+- Full TinyStories output-head external-memory streaming remains a planning risk after the v4k board gate.
+- Current shell/write sandbox behavior is unhealthy for Python execution and normal patching.
 
 ## Next recommended step
-Start with a small v4k on-chip tied vocab/output-head score or prototype.
+If board access is available, program /nix/store/48dszxyvnnywh63wl8y616p6hw5cvww3-task6-int8-v4k-l2-residual-add-output-head-selftest.bit and record done/selftest/JTAG evidence without rebuilding it.
+
+If board access is unavailable or the sandbox remains unable to run Python, first recover tooling. Then run priority B as a Python-only 16 or 32 sample calibration scorecard over c_fc, post-GELU, c_proj, residual output, and worst-token outliers. Do not launch a new synthesis run until one of those gates changes the downstream decision.
+
+## Run constraint update
+
+This overnight run has no board access. Do not program the FPGA, run OpenFPGALoader, poll JTAG/FTDI/MPSSE, read FPGA DONE, or claim new hardware results.
+
+Use only off-board validation: Python scorecards, deterministic replays, Verilator/SV simulation, Yosys/stat/utilization when bounded, and board-replay package preparation. Existing checked-in board artifacts remain valid prior evidence, but new board gates must be marked `BLOCKED` or `PREPARED_ONLY` with reason `no board access in this run`.
+
+Updated next recommended step: continue v4k/on-chip-vocab/output-head and scaling experiments off-board; prepare board-run artifacts and commands for later human execution, but do not execute hardware steps.
+

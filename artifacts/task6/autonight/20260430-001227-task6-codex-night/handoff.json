@@ -1,0 +1,21 @@
+{
+  "artifact_name": "autonight-handoff-20260430-001227-invocation-1",
+  "status": "PARTIAL",
+  "date": "2026-04-30",
+  "last_iteration": "Reconciled current evidence and promoted the existing v4k residual-add output-head bitstream to the next board-observation gate; no synthesis was launched.",
+  "primary_artifact": "artifacts/task6/autonight/20260430-001227-task6-codex-night/h2-v4k-evidence-reconcile-next-gate.json",
+  "files_changed": [
+    "AUTONIGHT_STATUS.md",
+    "artifacts/task6/autonight/20260430-001227-task6-codex-night/h2-v4k-evidence-reconcile-next-gate.json",
+    "artifacts/task6/autonight/20260430-001227-task6-codex-night/handoff.json",
+    "artifacts/task6/autonight/20260430-001227-task6-codex-night/write-probe.txt"
+  ],
+  "blocked_commands": [
+    "python3 --version",
+    "apply_patch add scripts/task6/score_multisample_quant_calibration.py",
+    "find artifacts/task6/autonight -maxdepth 3 -type f",
+    "git status --short"
+  ],
+  "blocker": "Commands failed with bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted; read-only sed worked and sed write was used only to satisfy handoff requirements.",
+  "next_recommended_step": "If board access is available, program the existing v4k bitstream and record board evidence. Otherwise recover Python/apply_patch tooling and run priority B multi-sample calibration without launching synthesis."
+}

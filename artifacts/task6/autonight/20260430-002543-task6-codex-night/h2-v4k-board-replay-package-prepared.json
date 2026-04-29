@@ -1,0 +1,71 @@
+{
+  "artifact_name": "h2-v4k-board-replay-package-prepared",
+  "status": "BLOCKED",
+  "date": "2026-04-30",
+  "hypothesis": "Because the v4k residual-add plus streamed tied-vocab output-head already has off-board PASS evidence through SV simulation, mapped utilization, routing, and bitstream generation, the next useful no-board step is a prepared board-replay package rather than another synthesis run.",
+  "source_artifacts": {
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "prior_reconcile": "artifacts/task6/autonight/20260430-001227-task6-codex-night/h2-v4k-evidence-reconcile-next-gate.json"
+  },
+  "preparation": {
+    "package_status": "PASS",
+    "hardware_execution_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run",
+    "no_hardware_commands_executed": true,
+    "regular_bitstream": "/nix/store/48dszxyvnnywh63wl8y616p6hw5cvww3-task6-int8-v4k-l2-residual-add-output-head-selftest.bit",
+    "rebuild_attribute": ".#task6-int8-v4k-l2-residual-add-output-head-selftest-bitstream",
+    "debug_rebuild_attribute": ".#task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug-bitstream"
+  },
+  "commands": [
+    {"cmd": "sed -n 1,220p AUTONIGHT_STATUS.md", "exit_code": 0},
+    {"cmd": "sed -n 1,220p artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json", "exit_code": 0},
+    {"cmd": "sed -n 1,240p artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json", "exit_code": 0},
+    {"cmd": "sed -n 1,520p artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json", "exit_code": 0},
+    {"cmd": "python3 --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "apply_patch update AUTONIGHT_STATUS.md", "exit_code": 1, "failure": "fs sandbox helper failed with bwrap loopback error"},
+    {"cmd": "sed -n ... w artifacts/task6/autonight/20260430-002543-task6-codex-night/write-probe.txt", "exit_code": 0},
+    {"cmd": "sed -n ... w h2-v4k-board-replay-package-prepared.json", "exit_code": 0}
+  ],
+  "metrics": {
+    "v4k_storage": {
+      "tied_vocab_storage": true,
+      "unique_rowwise_int8_bram36_ceiling": 63,
+      "output_projection_int8_topk_stream_bytes_per_token": 278592
+    },
+    "v4k_output_head_top1_rtl": {
+      "status": "PASS",
+      "fixed_int8_top_index": 1321,
+      "int8_top_matches_f32_top": true,
+      "int8_logits_vs_f32_logits_normalized_rmse": 0.012752468245904739,
+      "compute_cycles": 70787,
+      "mapped_dsp": 4,
+      "mapped_bram36": 64
+    },
+    "v4k_residual_add_output_head_selftest": {
+      "sv_sim_status": "PASS",
+      "sv_sim_pass_cycle": 265719,
+      "uses_ddr3": false,
+      "mapped_clb_luts": 13629,
+      "mapped_clb_ffs": 8845,
+      "mapped_dsp": 14,
+      "mapped_bram36_equiv": 132.0,
+      "target_mhz": 50.0,
+      "post_route_fmax_mhz": 77.99,
+      "route_status": "PASS"
+    }
+  },
+  "later_board_run_commands_not_executed": [
+    "nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-bitstream",
+    "nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug-bitstream",
+    "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/48dszxyvnnywh63wl8y616p6hw5cvww3-task6-int8-v4k-l2-residual-add-output-head-selftest.bit",
+    "python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --idcode-only --json-only",
+    "python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --poll --json-only"
+  ],
+  "decision": {
+    "verdict": "prepared-only",
+    "reject": "Do not repeat v4k synthesis or claim v4k hardware PASS during this no-board run.",
+    "next_gate": "When board access returns, run the listed commands and record IDCODE, DONE/programming result, and self-test JSON. While no-board and once Python works, run priority B multi-sample quantization calibration."
+  }
+}

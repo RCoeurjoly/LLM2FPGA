@@ -167,37 +167,32 @@ Before exiting, always update `AUTONIGHT_STATUS.md` with these sections:
 
 Also write or update a small JSON handoff artifact in `artifacts/task6/autonight/`.
 
-## Hardware access constraint for this overnight run
+# Supervisor context for this invocation
 
-This overnight run has **no board access**.
+You are invocation 1 of an 8-hour supervised overnight run.
 
-Do not attempt to program the FPGA, use OpenFPGALoader, read JTAG, read FTDI/MPSSE hardware, check FPGA DONE, or claim any new hardware result.
+The supervisor will restart Codex if this invocation exits before the 8-hour wall-clock budget is over. That is expected. Continue from the repo status and from `AUTONIGHT_STATUS.md`; do not repeat completed work.
 
-Allowed validation for this run:
+Time budget for this invocation: about 35 minutes.
 
-- Python scorecards and model/weight inspections
-- deterministic replay scripts
-- generated JSON/CSV artifacts
-- Verilator/SystemVerilog simulation
-- Yosys stat or mapped utilization only when the expected runtime fits the slice
-- bitstream/package preparation only as an artifact, not as a programmed-board result
-- board-run instructions for a later human-run session
+Repository root: /home/roland/LLM2FPGA_task6_streamtensor_lite
+Run directory: artifacts/task6/autonight/20260430-001227-task6-codex-night
+Status file to update before exit: AUTONIGHT_STATUS.md
 
-Disallowed commands or outcomes:
+## Required behavior in this invocation
 
-- no `openFPGALoader`
-- no `read_jtag_debug_*` hardware read as evidence
-- no FTDI/MPSSE hardware polling
-- no FPGA programming
-- no new `SELFTEST_PASS` hardware claims
-- no new board IDCODE or DONE claims
+1. First inspect:
+   - `AUTONIGHT_STATUS.md`
+   - `artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json`
+   - `artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json`
+   - `artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json` if present
+   - recent files under `artifacts/task6/autonight/`
+2. Pick one bounded next experiment from the program.
+3. Prefer quick scripts/scorecards before synthesis.
+4. Keep commands targeted. Do not launch monolithic full-model synthesis.
+5. Write results as JSON/CSV artifacts.
+6. Update `AUTONIGHT_STATUS.md` before exiting with a concrete next step.
+7. If you make code changes, run the cheapest meaningful validation and record the command/result.
+8. Do not push to remote.
 
-Existing board evidence may be cited only as prior evidence from checked-in artifacts. Any new board-facing gate must be recorded as `BLOCKED` or `PREPARED_ONLY` with reason: `no board access in this run`.
-
-Replace any planned “v4k board replay” work with:
-
-1. prepare an off-board v4k board-replay package,
-2. validate it by simulation/scorecard,
-3. emit exact later board-run commands,
-4. mark the hardware execution step as blocked by no board access.
-
+If the best next step is to continue a partially completed previous iteration, continue it. If the previous iteration timed out or was interrupted, inspect the files and logs and recover conservatively.

@@ -1,0 +1,59 @@
+{
+  "artifact_name": "h2-v4k-evidence-reconcile-next-gate",
+  "status": "PASS",
+  "date": "2026-04-30",
+  "hypothesis": "The current repository evidence already advances priority A beyond the supervisor prompt: v4k residual-add plus a streamed tied-vocab output-head has passed SV simulation, mapping, routing, and bitstream generation. Therefore the next bounded gate should avoid another synthesis replay and either observe that bitstream on the board or, if board access is unavailable, run the Python-only multi-sample quantization calibration surface.",
+  "source_artifacts": {
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "status_before_iteration": "AUTONIGHT_STATUS.md"
+  },
+  "commands": [
+    {"cmd": "sed -n 1,260p AUTONIGHT_STATUS.md", "exit_code": 0},
+    {"cmd": "sed -n 1,240p artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json", "exit_code": 0},
+    {"cmd": "sed -n 1,260p artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json", "exit_code": 0},
+    {"cmd": "sed -n 1,640p artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json", "exit_code": 0},
+    {"cmd": "find artifacts/task6/autonight -maxdepth 3 -type f -printf ...", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "python3 --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "apply_patch add scripts/task6/score_multisample_quant_calibration.py", "exit_code": 1, "failure": "fs sandbox helper failed with bwrap loopback error"},
+    {"cmd": "sed write h2-v4k-evidence-reconcile-next-gate.json", "exit_code": 0}
+  ],
+  "metrics": {
+    "v1k_board_anchor": {
+      "simulation": "PASS",
+      "jtag_hardware_selftest": "SELFTEST_PASS",
+      "regular_bitstream_programmed": true,
+      "candidate_lut": 10733,
+      "candidate_ff": 6530,
+      "candidate_dsp": 10,
+      "candidate_bram36_equiv": 11.0
+    },
+    "v4k_residual_add_output_head_board_selftest": {
+      "sv_sim_status": "PASS",
+      "uses_ddr3": false,
+      "mapped_lut": 13629,
+      "mapped_ff": 8845,
+      "mapped_dsp": 14,
+      "mapped_bram36_equiv": 132.0,
+      "post_route_fmax_mhz": 77.99,
+      "target_mhz": 50.0,
+      "bitstream": "/nix/store/48dszxyvnnywh63wl8y616p6hw5cvww3-task6-int8-v4k-l2-residual-add-output-head-selftest.bit",
+      "board_observation": "not_observed"
+    },
+    "vocab_memory_surface": {
+      "v4k_unique_rowwise_int8_bram36_ceiling": 63,
+      "v4k_output_projection_int8_topk_stream_bytes_per_token": 278592,
+      "full_unique_rowwise_int8_bram36_ceiling": 772,
+      "full_model_f32_storage_fits_on_chip": false
+    }
+  },
+  "decision": {
+    "verdict": "promote-existing-v4k-bitstream-to-board-observation-gate",
+    "reject": "Do not launch another v4k or full TinyStories synthesis until the existing v4k bitstream is either observed on board or rejected.",
+    "next_gate_if_board_available": "Program the existing v4k residual-add output-head bitstream and record JTAG or done/selftest observation.",
+    "next_gate_if_board_unavailable": "Run B: multi-sample quantization calibration as Python-only scorecard at 16 or 32 deterministic token samples.",
+    "tooling_blocker": "This invocation could not add the planned Python calibration script because apply_patch and Python commands failed in the sandbox with bwrap loopback errors."
+  },
+  "next_gate": "Board replay of the existing v4k bitstream, else Python-only multi-sample calibration once write/exec sandbox is healthy."
+}

@@ -1,0 +1,4 @@
+ M AUTONIGHT_STATUS.md
+ M autonight/task6_codex_program.md
+?? artifacts/task6/autonight/20260430-001227-task6-codex-night/
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/

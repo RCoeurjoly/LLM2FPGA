@@ -1,0 +1,2 @@
+This file was created as a one-line sandbox write probe during autonight invocation 1.
+The actual handoff artifact is h2-v4k-evidence-reconcile-next-gate.json.
