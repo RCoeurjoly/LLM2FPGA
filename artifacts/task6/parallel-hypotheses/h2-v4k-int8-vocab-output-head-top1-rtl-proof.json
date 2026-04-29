@@ -1,0 +1,78 @@
+{
+  "artifact_name": "h2-v4k-int8-vocab-output-head-top1-rtl-proof",
+  "status": "PASS",
+  "source_artifacts": {
+    "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+    "residual_add_rtl_proof_json": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json"
+  },
+  "model": {
+    "model_label": "tiny-stories-v4k-h64-l1",
+    "vocab_size": 4096,
+    "hidden_size": 64,
+    "num_layers": 1,
+    "max_position_embeddings": 128,
+    "window_size": 64,
+    "num_heads": 16,
+    "lm_head_tied_to_token_embedding": true
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_vocab_output_head_top1_kernel",
+    "input_dtype": "int8",
+    "weight_dtype": "int8-per-tensor-symmetric",
+    "output": "top1_accumulator_and_index",
+    "in_dim": 64,
+    "vocab_size": 4096,
+    "lanes": 4,
+    "tile_out_dim": 64,
+    "packed_weight_words": 65536,
+    "local_tied_vocab_weight_memory": true
+  },
+  "quantization": {
+    "residual_output_q_sha256": "3940cab9729d5f0b2192509aefcc118680245e3d9f7897cf0743a452e0f57d9c",
+    "residual_output_scale": 0.0008202605681644355,
+    "residual_requant_mult": 14799411,
+    "c_proj_residual_add_requant_mult": 11150191,
+    "vocab_weight_scale": 0.0006963656995240159,
+    "vocab_weight_q_min": -127,
+    "vocab_weight_q_max": 127,
+    "vocab_weight_q_sha256": "e01a4508b371f985186767cc10393c667dcbb6114004196a9cca3e7b41f5adef",
+    "packed_weight_sha256": "a62d0336558371a8d60620a8e00e25a339e21dc28cf0978b2046e5cc17a34287",
+    "accumulator_sha256": "c09e82cfc24a49f9c189876be63e78b4d54c4a62b50750527ef1e2bb3ca4ac62"
+  },
+  "top1": {
+    "fixed_int8_top_index": 1321,
+    "fixed_int8_top_acc": 52140,
+    "fixed_int8_top_logit": 0.029782437051181127,
+    "f32_reference_top_index": 1321,
+    "f32_reference_top_logit": 0.029687250158344253,
+    "int8_top_matches_f32_top": true
+  },
+  "metrics": {
+    "int8_logits_vs_f32_logits": {
+      "max_abs_error": 0.000393424104492899,
+      "mean_abs_error": 6.333754010415157e-05,
+      "rmse": 7.908562220659922e-05,
+      "normalized_rmse": 0.012752468245904739,
+      "signal_max_abs": 0.029687250158344253,
+      "signal_mean_abs": 0.006201593345037057
+    }
+  },
+  "byte_budget": {
+    "hidden_int8_bytes": 64,
+    "tied_vocab_weight_int8_bytes": 262144,
+    "tied_vocab_weight_f32_bytes_replaced": 1048576,
+    "packed_weight_bytes": 262144
+  },
+  "sim_result": {
+    "status": "PASS",
+    "weights": 65536,
+    "top_index": 1321,
+    "top_acc": 52140,
+    "compute_cycles": 70787,
+    "cycles": 70787
+  },
+  "decision": {
+    "verdict": "promote",
+    "next_gate": "synthesize mapped utilization or wrap into a v4k board selftest"
+  }
+}

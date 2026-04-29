@@ -13,7 +13,6 @@
     "not_covered": [
       "attention",
       "embeddings",
-      "lm_head/output vocab projection",
       "multi-token calibration",
       "v4k bitstream replay"
     ]
@@ -37,7 +36,8 @@
     "v4k_mlp_chain_c_proj_requant_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json",
     "v4k_residual_add_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-residual-add-boundary.json",
     "v4k_mlp_chain_residual_add_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json",
-    "vocab_memory_surface_score": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json"
+    "vocab_memory_surface_score": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "v4k_vocab_output_head_top1_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-vocab-output-head-top1-rtl-proof.json"
   },
   "checks": {
     "c_fc_f32_replay": {
@@ -115,6 +115,16 @@
       "full_model_unique_persistent_f32_bram36_ceiling": 2906,
       "full_model_unique_rowwise_int8_bram36_ceiling": 772,
       "four_full_vocab_table_baseline_bram36_ceiling": 11169
+    },
+    "v4k_vocab_output_head_top1_rtl": {
+      "status": "PASS",
+      "fixed_int8_top_index": 1321,
+      "fixed_int8_top_acc": 52140,
+      "int8_top_matches_f32_top": true,
+      "int8_logits_vs_f32_logits_normalized_rmse": 0.012752468245904739,
+      "packed_weight_words": 65536,
+      "compute_cycles": 70787,
+      "cycles": 70787
     }
   },
   "streaming_mlp_budget_at_4_dsp_lanes": {
@@ -126,9 +136,9 @@
     "int4_weight_bytes_per_token": 20224
   },
   "decision": {
-    "verdict": "promote-v4k-on-chip-vocab-prototype-and-full-vocab-ddr3-plan",
-    "rationale": "The same bounded MLP/residual lane passes v4k RTL replay, and tied v4k vocab storage is small enough to prototype on-chip: 235 BRAM36 blocks f32 or 63 BRAM36 blocks rowwise int8. Full TinyStories vocab storage still exceeds on-chip BRAM without compression or external memory.",
-    "caveat": "The scorecard covers vocab-dependent storage and output-projection bandwidth, not a synthesized embedding/lm_head RTL implementation. The full copied all-memory baseline also materializes four full-vocab f32 tables, much larger than the tied physical model storage.",
-    "next_gate": "For the board-facing v4k continuation, add an on-chip tied embedding/output-head prototype or a streamed output-head stub. For full TinyStories, keep DDR3/externalization focused on the vocab tables/output projection."
+    "verdict": "promote-v4k-output-head-to-mapped-or-board-selftest",
+    "rationale": "The same bounded MLP/residual lane passes v4k RTL replay, tied v4k vocab storage is small enough to prototype on-chip, and the streamed int8 output-head top1 RTL matches the f32 top1 for the captured v4k vector.",
+    "caveat": "The output-head proof is simulator evidence for a streamed top1 stub, not yet mapped utilization or a board-programmable selftest. Embedding lookup is still only covered by the tied-storage scorecard, not by RTL.",
+    "next_gate": "Measure mapped utilization for the v4k output-head top1 kernel or wrap it with the existing v4k residual-add proof in a board selftest."
   }
 }

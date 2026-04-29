@@ -10002,3 +10002,67 @@ Interpretation:
     or a streamed output-head stub before adding DDR3 complexity
   - for the full TinyStories route, keep DDR3/externalization focused on the
     vocab tables/output projection
+
+### 2026-04-29 - H2 v4k streamed tied output-head top1 RTL proof
+
+Goal:
+
+- Execute the board-facing v4k vocab follow-up without adding DDR3 yet:
+  prove a streamed tied output-head top1 kernel that consumes the v4k
+  residual-add int8 vector and scans the tied `transformer.wte` vocab table.
+
+New artifacts:
+
+- `rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv`
+- `sim/task6_int8_vocab_output_head_top1_tb_main.sv`
+- `sim/gen_task6_int8_vocab_output_head_top1_tb_data.py`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-vocab-output-head-top1-rtl-proof.json`
+- updated `artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json`
+
+Execution notes:
+
+- Reused the existing 4-lane synchronous packed int8 GEMV core and wrapped it
+  with a top1 accumulator/index tracker.
+- Generated the hidden input from
+  `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json`.
+- Loaded the tied vocab table from the representative-core model:
+  - `transformer.wte.weight`
+  - shape: `4096 x 64`
+  - `lm_head.weight` is tied to the same storage
+- Quantized the tied vocab table as int8 per-tensor symmetric for this top1
+  prototype, so the accumulator order is also the int8 logit order.
+- Generated temporary Verilator sidecar:
+  - `/tmp/task6-v4k-output-head-top1/tb_data.sv`
+  - `65536` packed 32-bit vocab weight words
+
+Simulation:
+
+- Verilator build:
+  - `/nix/store/0p3wb160b3881j0g02qvvxih7l01kpz2-verilator-5.044/bin/verilator --binary --timing --language 1800-2017 -Wno-fatal -I/tmp/task6-v4k-output-head-top1 -top task6_int8_vocab_output_head_top1_tb -Mdir /tmp/task6-v4k-output-head-top1/obj_dir -o sim_main rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv sim/task6_int8_vocab_output_head_top1_tb_main.sv`
+- Result:
+  - status: `PASS`
+  - packed weight words scanned: `65536`
+  - fixed int8 top index: `1321`
+  - fixed int8 top accumulator: `52140`
+  - compute cycles / total cycles: `70787 / 70787`
+
+Numeric check:
+
+- f32 reference top index: `1321`
+- int8 top matches f32 top: `true`
+- int8 logits vs f32 logits normalized RMSE: `0.012752468245904739`
+- tied vocab int8 bytes: `262144`
+- tied vocab f32 bytes replaced: `1048576`
+
+Interpretation:
+
+- The v4k board-facing path now has simulator evidence beyond the same-shape
+  MLP/residual lane: a streamed tied output-head top1 stub works on the
+  captured v4k residual-add vector.
+- This still does not require DDR3 for v4k. The prototype scans an on-chip
+  int8 tied vocab table and returns top1 without materializing all logits.
+- The output-head compute cost is now measured in RTL: `70787` cycles, close
+  to the `65536` lower-bound score and in the same range as the composed
+  residual-add replay (`55009` total cycles).
+- Next gate: measure mapped utilization for this output-head top1 kernel, or
+  wrap it with the residual-add chain in a board-programmable v4k selftest.
