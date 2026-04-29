@@ -46,9 +46,12 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] fail_index_q;
   logic signed [7:0] fail_expected_q;
   logic signed [7:0] fail_observed_q;
+  logic signed [7:0] fail_expected_c_proj_q;
   logic [3:0] value_debug_phase;
   logic [2:0] fail_expected_high_leds;
   logic [2:0] fail_observed_high_leds;
+  logic [2:0] fail_expected_c_proj_high_leds;
+  logic [2:0] first_add_c_proj_high_leds;
 
   logic dut_reset;
   logic start;
@@ -77,10 +80,21 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic signed [7:0] residual_load_data;
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] output_read_addr;
   logic signed [7:0] output_read_data;
+  logic debug_add_valid;
+  logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] debug_add_addr;
+  logic signed [7:0] debug_add_residual_q;
+  logic signed [7:0] debug_add_c_proj_q;
+  logic signed [7:0] debug_add_output_q;
+  logic first_add_seen_q;
+  logic signed [7:0] first_add_residual_q;
+  logic signed [7:0] first_add_c_proj_q;
+  logic signed [7:0] first_add_output_q;
 
   assign value_debug_phase = blink_count_q[28:25];
   assign fail_expected_high_leds = {1'b0, fail_expected_q[7:6]};
   assign fail_observed_high_leds = {1'b0, fail_observed_q[7:6]};
+  assign fail_expected_c_proj_high_leds = {1'b0, fail_expected_c_proj_q[7:6]};
+  assign first_add_c_proj_high_leds = {1'b0, first_add_c_proj_q[7:6]};
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
     if (!SYS_RSTN)
@@ -198,6 +212,11 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       fail_index_q <= '0;
       fail_expected_q <= '0;
       fail_observed_q <= '0;
+      fail_expected_c_proj_q <= '0;
+      first_add_seen_q <= 1'b0;
+      first_add_residual_q <= '0;
+      first_add_c_proj_q <= '0;
+      first_add_output_q <= '0;
     end else if (!config_reset_done) begin
       state_q <= SELFTEST_BOOT;
       boot_count_q <= 8'd0;
@@ -209,8 +228,20 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       fail_index_q <= '0;
       fail_expected_q <= '0;
       fail_observed_q <= '0;
+      fail_expected_c_proj_q <= '0;
+      first_add_seen_q <= 1'b0;
+      first_add_residual_q <= '0;
+      first_add_c_proj_q <= '0;
+      first_add_output_q <= '0;
     end else begin
       blink_count_q <= blink_count_q + 29'd1;
+
+      if (debug_add_valid && debug_add_addr == '0 && !first_add_seen_q) begin
+        first_add_seen_q <= 1'b1;
+        first_add_residual_q <= debug_add_residual_q;
+        first_add_c_proj_q <= debug_add_c_proj_q;
+        first_add_output_q <= debug_add_output_q;
+      end
 
       if (boot_count_q <= BOOT_RESET_CYCLES)
         boot_count_q <= boot_count_q + 8'd1;
@@ -223,6 +254,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
         fail_index_q <= check_index_q;
         fail_expected_q <= expected_residual_add_output_q_values[check_index_q];
         fail_observed_q <= output_read_data;
+        fail_expected_c_proj_q <= expected_c_proj_output_q_values[check_index_q];
         state_q <= SELFTEST_FAIL;
       end else begin
         unique case (state_q)
@@ -315,6 +347,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
               fail_index_q <= check_index_q;
               fail_expected_q <= expected_residual_add_output_q_values[check_index_q];
               fail_observed_q <= output_read_data;
+              fail_expected_c_proj_q <= expected_c_proj_output_q_values[check_index_q];
               state_q <= SELFTEST_FAIL;
             end else if (check_index_q == LAST_C_PROJ_OUT_INDEX) begin
               state_q <= SELFTEST_PASS;
@@ -334,6 +367,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
             fail_index_q <= check_index_q;
             fail_expected_q <= expected_residual_add_output_q_values[check_index_q];
             fail_observed_q <= output_read_data;
+            fail_expected_c_proj_q <= expected_c_proj_output_q_values[check_index_q];
             state_q <= SELFTEST_FAIL;
           end
         endcase
@@ -353,7 +387,26 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
         end
 
         SELFTEST_FAIL: begin
-          if (DEBUG_LEDS == 2) begin
+          if (DEBUG_LEDS == 3) begin
+            unique case (value_debug_phase)
+              4'd0: led_3bits_tri_o = 3'b111;
+              4'd1: led_3bits_tri_o = {1'b1, fail_reason_q};
+              4'd2: led_3bits_tri_o = fail_index_q[2:0];
+              4'd3: led_3bits_tri_o = fail_index_q[5:3];
+              4'd4: led_3bits_tri_o = 3'b101;
+              4'd5: led_3bits_tri_o = fail_expected_c_proj_q[2:0];
+              4'd6: led_3bits_tri_o = fail_expected_c_proj_q[5:3];
+              4'd7: led_3bits_tri_o = fail_expected_c_proj_high_leds;
+              4'd8: led_3bits_tri_o = 3'b011;
+              4'd9: led_3bits_tri_o = first_add_c_proj_q[2:0];
+              4'd10: led_3bits_tri_o = first_add_c_proj_q[5:3];
+              4'd11: led_3bits_tri_o = first_add_c_proj_high_leds;
+              4'd12,
+              4'd13,
+              4'd14: led_3bits_tri_o = 3'b000;
+              default: led_3bits_tri_o = 3'b111;
+            endcase
+          end else if (DEBUG_LEDS == 2) begin
             unique case (value_debug_phase)
               4'd0: led_3bits_tri_o = 3'b111;
               4'd1: led_3bits_tri_o = {1'b1, fail_reason_q};
@@ -435,6 +488,11 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     .busy(busy),
     .done(done),
     .output_read_addr(output_read_addr),
-    .output_read_data(output_read_data)
+    .output_read_data(output_read_data),
+    .debug_add_valid(debug_add_valid),
+    .debug_add_addr(debug_add_addr),
+    .debug_add_residual_q(debug_add_residual_q),
+    .debug_add_c_proj_q(debug_add_c_proj_q),
+    .debug_add_output_q(debug_add_output_q)
   );
 endmodule

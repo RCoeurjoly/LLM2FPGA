@@ -8750,3 +8750,63 @@ Value debug LED decoding:
   - green
   - red
   - nothing
+
+Follow-up value-debug physical observation:
+
+- Observed sequence:
+  - red + green + orange
+  - green + orange
+  - nothing
+  - red + orange
+  - green
+  - red
+  - nothing
+  - red + green
+  - green
+  - red + orange
+  - red
+  - nothing
+  - red + green + orange
+- Interpretation:
+  - fail reason is `FAIL_REASON_MISMATCH`
+  - failing index is still `0`
+  - expected final output byte is `0x0a`
+  - observed final output byte is `0x6a`
+- The residual-add formula produces `0x6a` for index `0` if the add stage
+  consumes `c_proj = 0x7f` with residual `0x02`, so the next diagnostic
+  checks the actual c_proj byte presented to the residual-add write.
+
+C-proj diagnostic bitstream:
+
+- Added `DEBUG_LEDS=3` mode to display the expected c_proj byte and the
+  first c_proj byte observed by the residual-add write path.
+- Added flake targets:
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug-json`
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug-fasm`
+  - `task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug-bitstream`
+- Verification:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug-json --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/hczhy2bwgh3p744sis9fy34anhpk876i-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug.json`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug-bitstream --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/j10fhmdb4w9mvk5gdijjx21762ia5qqf-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug.bit`
+- Post-route timing:
+  - max frequency: `156.67 MHz`
+  - requested target: `12.00 MHz`
+
+C-proj debug LED decoding:
+
+- Ignore the always-on top board green LED.
+- The cycle layout is the same as value debug, except the byte after
+  red + orange is expected c_proj and the byte after red + green is the
+  first c_proj observed by the residual-add write path.
+- Expected c_proj for index `0` is `0x0a`, displayed as:
+  - green
+  - red
+  - nothing
+- If the observed c_proj is `0x7f`, it should display after the red + green
+  marker as:
+  - red + green + orange
+  - red + green + orange
+  - red

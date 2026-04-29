@@ -65,7 +65,13 @@ module task6_int8_l2_mlp_chain_residual_add_kernel #(
   output logic done,
 
   input  logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] output_read_addr,
-  output logic signed [7:0] output_read_data
+  output logic signed [7:0] output_read_data,
+
+  output logic debug_add_valid,
+  output logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] debug_add_addr,
+  output logic signed [7:0] debug_add_residual_q,
+  output logic signed [7:0] debug_add_c_proj_q,
+  output logic signed [7:0] debug_add_output_q
 );
   localparam logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] LAST_C_PROJ_OUT_INDEX =
     C_PROJ_OUT_ADDR_WIDTH'(C_PROJ_OUT_DIM - 1);
@@ -86,6 +92,7 @@ module task6_int8_l2_mlp_chain_residual_add_kernel #(
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] add_addr_q;
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] residual_read_addr_q;
   logic signed [7:0] residual_read_data_q;
+  logic signed [7:0] add_output_w;
 
   (* ram_style = "distributed" *)
   logic signed [7:0] residual_mem [0:C_PROJ_OUT_DIM - 1];
@@ -94,6 +101,8 @@ module task6_int8_l2_mlp_chain_residual_add_kernel #(
 
   assign chain_start = start && (add_state_q == ADD_IDLE) && !chain_busy;
   assign busy = chain_busy || (add_state_q != ADD_IDLE);
+  assign add_output_w =
+    residual_add_requant_i8(residual_read_data_q, chain_output_read_data);
 
   function automatic signed [63:0] round_shift_signed(
     input signed [63:0] value,
@@ -161,8 +170,14 @@ module task6_int8_l2_mlp_chain_residual_add_kernel #(
       residual_read_addr_q <= '0;
       chain_output_read_addr_q <= '0;
       done <= 1'b0;
+      debug_add_valid <= 1'b0;
+      debug_add_addr <= '0;
+      debug_add_residual_q <= '0;
+      debug_add_c_proj_q <= '0;
+      debug_add_output_q <= '0;
     end else begin
       done <= 1'b0;
+      debug_add_valid <= 1'b0;
 
       case (add_state_q)
         ADD_IDLE: begin
@@ -179,10 +194,12 @@ module task6_int8_l2_mlp_chain_residual_add_kernel #(
         end
 
         ADD_WRITE: begin
-          output_mem[add_addr_q] <= residual_add_requant_i8(
-            residual_read_data_q,
-            chain_output_read_data
-          );
+          output_mem[add_addr_q] <= add_output_w;
+          debug_add_valid <= 1'b1;
+          debug_add_addr <= add_addr_q;
+          debug_add_residual_q <= residual_read_data_q;
+          debug_add_c_proj_q <= chain_output_read_data;
+          debug_add_output_q <= add_output_w;
 
           if (add_addr_q == LAST_C_PROJ_OUT_INDEX) begin
             add_state_q <= ADD_IDLE;
