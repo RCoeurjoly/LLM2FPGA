@@ -2893,6 +2893,43 @@
               --out-json "$out/summary.json"
           '';
 
+        task6Int8L2MlpChainResidualAddTbDataSv =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-tb-data-sv" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./sim
+            }/gen_task6_int8_l2_mlp_chain_residual_add_tb_data.py \
+              --residual-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-residual-add-contract
+              }/manifest.json \
+              --residual-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-residual-add-boundary.json
+              } \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --c-proj-output-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-output-boundary.json
+              } \
+              --c-proj-requant-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -3096,6 +3133,27 @@
               ${./sim/task6_int8_l2_mlp_chain_c_proj_requant_tb_main.sv}
           '';
 
+        task6Int8L2MlpChainResidualAddSimMain =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6Int8L2MlpChainResidualAddTbDataSv} \
+              -top task6_int8_l2_mlp_chain_residual_add_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${./sim/task6_int8_l2_mlp_chain_residual_add_tb_main.sv}
+          '';
+
         task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3273,6 +3331,29 @@
             cp stat.json "$out"
           '';
 
+        task6Int8L2MlpChainResidualAddYosysStat =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-yosys-stat.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            hierarchy -top task6_int8_l2_mlp_chain_residual_add_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_kernel -noiopad
+            tee -o stat.json stat -json
+            EOF
+            yosys -s run.ys
+            cp stat.json "$out"
+          '';
+
         task6Int8Gemv64Json = pkgs.runCommand "task6-int8-gemv64.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3440,6 +3521,28 @@
             yosys -s run.ys
           '';
 
+        task6Int8L2MlpChainResidualAddJson =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            hierarchy -top task6_int8_l2_mlp_chain_residual_add_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_kernel -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
           name = "task6-int8-gemv64";
           capacities = tinyStoriesCapacities;
@@ -3514,6 +3617,14 @@
             capacities = tinyStoriesCapacities;
             topName = "task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel";
             designJson = task6Int8L2MlpChainCProjRequantJson;
+          };
+
+        task6Int8L2MlpChainResidualAddUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-int8-l2-mlp-chain-residual-add";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_int8_l2_mlp_chain_residual_add_kernel";
+            designJson = task6Int8L2MlpChainResidualAddJson;
           };
 
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
@@ -4109,6 +4220,32 @@
             EOF
           '';
 
+        task6Int8L2MlpChainResidualAddSvSim =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6Int8L2MlpChainResidualAddSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 int8 L2 mlp chain residual add reads [0-9]+ outputs [0-9]+ compute_cycles [0-9]+ total_cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-int8-l2-mlp-chain-residual-add SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            reads="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            outputs="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            compute_cycles="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            total_cycles="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "reads": $reads,
+              "outputs": $outputs,
+              "compute_cycles": $compute_cycles,
+              "cycles": $total_cycles
+            }
+            EOF
+          '';
+
         task6Int8L2CFcPostGeluRequantRtlProof =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-rtl-proof" { } ''
             mkdir -p "$out"
@@ -4261,6 +4398,45 @@
               --c-proj-requant-rtl-proof-json ${
                 ./artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json
               } \
+              --out-json "$out/summary.json"
+          '';
+
+        task6Int8L2MlpChainResidualAddRtlProof =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-rtl-proof" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./sim
+            }/gen_task6_int8_l2_mlp_chain_residual_add_tb_data.py \
+              --residual-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-residual-add-contract
+              }/manifest.json \
+              --residual-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-residual-add-boundary.json
+              } \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --c-proj-output-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-output-boundary.json
+              } \
+              --c-proj-requant-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --sim-result-json ${task6Int8L2MlpChainResidualAddSvSim} \
+              --yosys-stat-json ${task6Int8L2MlpChainResidualAddYosysStat} \
+              --mapped-utilization-summary-json ${task6Int8L2MlpChainResidualAddUtilization}/summary.json \
               --out-json "$out/summary.json"
           '';
 
@@ -4953,6 +5129,20 @@
             task6Int8L2MlpChainCProjRequantUtilization;
           task6-int8-l2-mlp-chain-c-proj-requant-rtl-proof =
             task6Int8L2MlpChainCProjRequantRtlProof;
+          task6-int8-l2-mlp-chain-residual-add-tb-data-sv =
+            task6Int8L2MlpChainResidualAddTbDataSv;
+          task6-int8-l2-mlp-chain-residual-add-sim-main =
+            task6Int8L2MlpChainResidualAddSimMain;
+          task6-int8-l2-mlp-chain-residual-add-sv-sim =
+            task6Int8L2MlpChainResidualAddSvSim;
+          task6-int8-l2-mlp-chain-residual-add-yosys-stat =
+            task6Int8L2MlpChainResidualAddYosysStat;
+          task6-int8-l2-mlp-chain-residual-add-json =
+            task6Int8L2MlpChainResidualAddJson;
+          task6-int8-l2-mlp-chain-residual-add-utilization =
+            task6Int8L2MlpChainResidualAddUtilization;
+          task6-int8-l2-mlp-chain-residual-add-rtl-proof =
+            task6Int8L2MlpChainResidualAddRtlProof;
           task6-int8-l2-residual-add-boundary-scout =
             task6Int8L2ResidualAddBoundaryScout;
           task6-int8-l2-residual-add-contract =

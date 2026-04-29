@@ -8274,3 +8274,94 @@ Decision:
   - `c_proj` int8 output vector plus `c_proj` output scale
   - final output scale
   - expected final q hash above
+
+### 2026-04-29 - H2 composed MLP chain with int8 residual-add RTL proof
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-residual-add-rtl-proof.json`
+
+RTL, testbench, and generator:
+
+- `rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv`
+- `sim/task6_int8_l2_mlp_chain_residual_add_tb_main.sv`
+- `sim/gen_task6_int8_l2_mlp_chain_residual_add_tb_data.py`
+
+Nix targets:
+
+- `task6-int8-l2-mlp-chain-residual-add-tb-data-sv`
+- `task6-int8-l2-mlp-chain-residual-add-sv-sim`
+- `task6-int8-l2-mlp-chain-residual-add-yosys-stat`
+- `task6-int8-l2-mlp-chain-residual-add-json`
+- `task6-int8-l2-mlp-chain-residual-add-utilization`
+- `task6-int8-l2-mlp-chain-residual-add-rtl-proof`
+- proof output:
+  `/nix/store/a6ysyfr2xmh1a7k94di5clf4qzmnci0j-task6-int8-l2-mlp-chain-residual-add-rtl-proof`
+
+Commands:
+
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-sv-sim --no-link --print-out-paths -L`
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-rtl-proof --no-link --print-out-paths -L`
+
+Purpose:
+
+- close the residual-add implementation gate after the captured boundary score
+- extend the composed H2 RTL chain to:
+  `c_fc -> fixed-point GELU -> post-GELU int8 -> c_proj -> c_proj int8 output -> residual-add int8 output`
+- consume the captured residual vector as int8 and store the final block output
+  as int8 in local output memory
+
+Execution result:
+
+- status: `PASS`
+- Verilator:
+  - reads: `64`
+  - outputs: `64`
+  - compute cycles: `9889`
+  - total cycles: `9953`
+- Yosys mapped check:
+  - `0` reported problems
+- final residual-add output:
+  - output scale: `0.0007500236330698129`
+  - output q range: `-125..127`
+  - output q hash:
+    `28654845bf312e6298524e3444dd045cf7fb7fb30a0c693f211214ddc7970418`
+  - hash matches the captured residual-add boundary quantizer
+  - fixed RTL residual-add output vs block output normalized RMSE:
+    `0.01095521307528224`
+  - fixed RTL residual-add output vs boundary quantizer normalized RMSE: `0.0`
+
+Mapped utilization:
+
+- LUTs: `1226 / 298600 = 0.41%`
+- FFs: `468 / 597200 = 0.08%`
+- DSPs: `36 / 1920 = 1.88%`
+- BRAM36: `8 / 955 = 0.84%`
+- BRAM18: `6`
+- BRAM36-equivalent: `11.0 / 955 = 1.15%`
+- slices lower bound: `154 / 74650 = 0.21%`
+
+Delta versus the previous composed-chain `c_proj` int8-output proof:
+
+- LUTs: `1123 -> 1226` (`+103`)
+- FFs: `443 -> 468` (`+25`)
+- DSPs: `34 -> 36` (`+2`)
+- BRAM36-equivalent: `11.0 -> 11.0` (`+0.0`)
+
+Interpretation:
+
+- The residual-add postprocess is a small incremental cost over the prior
+  `c_proj` int8-output proof.
+- The DSP use remains fit-positive: the full bounded MLP plus residual-add
+  proof uses only `36` DSPs, about `1.88%` of the board budget.
+- This completes the current int8 residual-add question for the bounded L2
+  gate: it works in RTL, passes simulation, matches the captured boundary
+  quantizer, and stays very small in mapped utilization.
+
+Decision:
+
+- Promote this as the current H2 RTL reference for a block-output int8 boundary.
+- Next gate:
+  - integrate the residual-add proof into a board-programmable selftest lane
+  - keep the lane bounded first, then scale only after the programmed-board
+    selftest path proves the I/O contract and pass/fail reporting
