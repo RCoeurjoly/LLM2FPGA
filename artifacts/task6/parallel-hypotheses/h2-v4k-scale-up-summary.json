@@ -124,7 +124,19 @@
       "int8_logits_vs_f32_logits_normalized_rmse": 0.012752468245904739,
       "packed_weight_words": 65536,
       "compute_cycles": 70787,
-      "cycles": 70787
+      "cycles": 70787,
+      "mapped_clb_luts": 1572,
+      "mapped_clb_luts_pct": 0.53,
+      "mapped_clb_ffs": 2288,
+      "mapped_clb_ffs_pct": 0.38,
+      "mapped_dsp": 4,
+      "mapped_dsp_pct": 0.21,
+      "mapped_bram36": 64,
+      "mapped_bram36_pct": 6.7,
+      "mapped_bram_kb": 2304,
+      "yosys_cells": 3973,
+      "yosys_ramb36e1": 64,
+      "yosys_dsp48e1": 4
     }
   },
   "streaming_mlp_budget_at_4_dsp_lanes": {
@@ -136,9 +148,9 @@
     "int4_weight_bytes_per_token": 20224
   },
   "decision": {
-    "verdict": "promote-v4k-output-head-to-mapped-or-board-selftest",
-    "rationale": "The same bounded MLP/residual lane passes v4k RTL replay, tied v4k vocab storage is small enough to prototype on-chip, and the streamed int8 output-head top1 RTL matches the f32 top1 for the captured v4k vector.",
-    "caveat": "The output-head proof is simulator evidence for a streamed top1 stub, not yet mapped utilization or a board-programmable selftest. Embedding lookup is still only covered by the tied-storage scorecard, not by RTL.",
-    "next_gate": "Measure mapped utilization for the v4k output-head top1 kernel or wrap it with the existing v4k residual-add proof in a board selftest."
+    "verdict": "promote-v4k-output-head-to-board-selftest",
+    "rationale": "The same bounded MLP/residual lane passes v4k RTL replay, tied v4k vocab storage is small enough to prototype on-chip, and the streamed int8 output-head top1 RTL matches the f32 top1 while mapping to 1572 LUT, 2288 FF, 4 DSP, and 64 BRAM36.",
+    "caveat": "The output-head proof is not yet wrapped into a board-programmable selftest. Embedding lookup is still only covered by the tied-storage scorecard, not by RTL.",
+    "next_gate": "Wrap the residual-add chain and mapped output-head top1 kernel into a board-programmable v4k selftest."
   }
 }

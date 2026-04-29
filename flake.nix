@@ -3427,6 +3427,24 @@
             cp stat.json "$out"
           '';
 
+        task6Int8VocabOutputHeadTop1YosysStat =
+          pkgs.runCommand "task6-int8-vocab-output-head-top1-yosys-stat.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv}
+            hierarchy -top task6_int8_vocab_output_head_top1_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_vocab_output_head_top1_kernel -noiopad
+            tee -o stat.json stat -json
+            EOF
+            yosys -s run.ys
+            cp stat.json "$out"
+          '';
+
         task6Int8Gemv64Json = pkgs.runCommand "task6-int8-gemv64.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3611,6 +3629,23 @@
             hierarchy -top task6_int8_l2_mlp_chain_residual_add_kernel -check
             proc
             synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_kernel -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6Int8VocabOutputHeadTop1Json =
+          pkgs.runCommand "task6-int8-vocab-output-head-top1.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv}
+            hierarchy -top task6_int8_vocab_output_head_top1_kernel -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_vocab_output_head_top1_kernel -noiopad
             write_json "$out"
             EOF
             yosys -s run.ys
@@ -3960,6 +3995,14 @@
             capacities = tinyStoriesCapacities;
             topName = "task6_int8_l2_mlp_chain_residual_add_kernel";
             designJson = task6Int8L2MlpChainResidualAddJson;
+          };
+
+        task6Int8VocabOutputHeadTop1Utilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-int8-vocab-output-head-top1";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_int8_vocab_output_head_top1_kernel";
+            designJson = task6Int8VocabOutputHeadTop1Json;
           };
 
         task6Int8L2MlpChainResidualAddSelftestUtilization =
@@ -5534,6 +5577,12 @@
             task6Int8L2MlpChainResidualAddUtilization;
           task6-int8-l2-mlp-chain-residual-add-rtl-proof =
             task6Int8L2MlpChainResidualAddRtlProof;
+          task6-int8-vocab-output-head-top1-yosys-stat =
+            task6Int8VocabOutputHeadTop1YosysStat;
+          task6-int8-vocab-output-head-top1-json =
+            task6Int8VocabOutputHeadTop1Json;
+          task6-int8-vocab-output-head-top1-utilization =
+            task6Int8VocabOutputHeadTop1Utilization;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =

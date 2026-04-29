@@ -10066,3 +10066,55 @@ Interpretation:
   residual-add replay (`55009` total cycles).
 - Next gate: measure mapped utilization for this output-head top1 kernel, or
   wrap it with the residual-add chain in a board-programmable v4k selftest.
+
+### 2026-04-29 - H2 v4k output-head top1 mapped utilization
+
+Goal:
+
+- Close the mapped-resource gate for the streamed v4k tied output-head top1
+  kernel before spending time on a board selftest wrapper.
+
+New Nix targets:
+
+- `task6-int8-vocab-output-head-top1-yosys-stat`
+- `task6-int8-vocab-output-head-top1-json`
+- `task6-int8-vocab-output-head-top1-utilization`
+
+Command:
+
+- `nix build .#task6-int8-vocab-output-head-top1-utilization --no-link --print-out-paths -L`
+
+Result artifact:
+
+- `/nix/store/86gdb9damb01qx33qgw5zw9hq3xfikmm-task6-int8-vocab-output-head-top1-utilization`
+
+Mapped resource summary:
+
+- CLB LUTs: `1572 / 298600` (`0.53%`)
+- CLB FFs: `2288 / 597200` (`0.38%`)
+- DSP: `4 / 1920` (`0.21%`)
+- BRAM36: `64 / 955` (`6.70%`)
+- BRAM36 equivalent: `64 / 955` (`6.70%`)
+- BRAM storage: `2304 KiB / 34380 KiB` (`6.70%`)
+- slice lower bound: `286 / 74650` (`0.38%`)
+
+Yosys stat summary:
+
+- top: `task6_int8_vocab_output_head_top1_kernel`
+- cells: `3973`
+- `RAMB36E1`: `64`
+- `DSP48E1`: `4`
+- LUT primitive cells: `1572`
+- `check` reported `0` problems
+
+Interpretation:
+
+- The v4k output-head table maps as intended to block RAM. The BRAM count is
+  the dominant resource, but still only `6.70%` of the target device.
+- LUT, FF, and DSP use are small enough that this standalone output-head top1
+  kernel is not the board-facing limiter.
+- The mapped result agrees with the memory-surface score: v4k tied vocab int8
+  storage is feasible on-chip, so DDR3 is still unnecessary for the v4k board
+  proof.
+- Next gate: wrap the residual-add chain and mapped output-head top1 kernel
+  into a board-programmable v4k selftest.

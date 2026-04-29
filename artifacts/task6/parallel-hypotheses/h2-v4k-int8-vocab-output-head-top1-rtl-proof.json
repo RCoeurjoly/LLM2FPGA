@@ -71,8 +71,72 @@
     "compute_cycles": 70787,
     "cycles": 70787
   },
+  "yosys_result": {
+    "path": "/nix/store/pkzbdyd2l0nyrip8jhpklngh72ffp8k8-task6-int8-vocab-output-head-top1-yosys-stat.json",
+    "top_name": "task6_int8_vocab_output_head_top1_kernel",
+    "num_cells": 3973,
+    "num_wires": 2405,
+    "num_wire_bits": 17370,
+    "dsp48e1": 4,
+    "ramb36e1": 64,
+    "ramb18e1": 0,
+    "ram64m": 3,
+    "fdre": 2287,
+    "carry4": 28,
+    "lut_primitive_cells": 1572,
+    "lut_breakdown": {
+      "LUT2": 1358,
+      "LUT3": 45,
+      "LUT4": 6,
+      "LUT5": 5,
+      "LUT6": 158
+    }
+  },
+  "mapped_utilization": {
+    "path": "/nix/store/86gdb9damb01qx33qgw5zw9hq3xfikmm-task6-int8-vocab-output-head-top1-utilization/summary.json",
+    "resources": {
+      "clb_luts": {
+        "capacity": 298600,
+        "pct": 0.53,
+        "used": 1572
+      },
+      "clb_ffs": {
+        "capacity": 597200,
+        "pct": 0.38,
+        "used": 2288
+      },
+      "dsp": {
+        "capacity": 1920,
+        "pct": 0.21,
+        "used": 4
+      },
+      "bram36": {
+        "capacity": 955,
+        "pct": 6.7,
+        "used": 64
+      },
+      "bram18": {
+        "used": 0
+      },
+      "bram36_equiv": {
+        "capacity": 955,
+        "pct": 6.7,
+        "used": 64.0
+      },
+      "bram_kb": {
+        "capacity": 34380,
+        "pct": 6.7,
+        "used": 2304
+      },
+      "slices_lower_bound": {
+        "capacity": 74650,
+        "pct": 0.38,
+        "used": 286
+      }
+    }
+  },
   "decision": {
     "verdict": "promote",
-    "next_gate": "synthesize mapped utilization or wrap into a v4k board selftest"
+    "next_gate": "wrap the mapped output-head top1 kernel into a v4k board selftest"
   }
 }

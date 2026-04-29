@@ -48,11 +48,65 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-sv", type=Path)
     parser.add_argument("--out-json", type=Path)
     parser.add_argument("--sim-result-json", type=Path)
+    parser.add_argument("--yosys-stat-json", type=Path)
+    parser.add_argument("--mapped-utilization-summary-json", type=Path)
     parser.add_argument("--lanes", type=int, default=4)
     parser.add_argument("--tile-out-dim", type=int, default=64)
     parser.add_argument("--residual-add-requant-shift", type=int, default=24)
     parser.add_argument("--c-proj-output-requant-shift", type=int, default=24)
     return parser.parse_args()
+
+
+def load_design_stats(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    data = load_json(path)
+    design = data.get("design", {})
+    cells = design.get("num_cells_by_type", {})
+    lut_cells = sum(int(cells.get(f"LUT{i}", 0)) for i in range(1, 7))
+    return {
+        "path": str(path),
+        "top_name": "task6_int8_vocab_output_head_top1_kernel",
+        "num_cells": design.get("num_cells"),
+        "num_wires": design.get("num_wires"),
+        "num_wire_bits": design.get("num_wire_bits"),
+        "dsp48e1": cells.get("DSP48E1", 0),
+        "ramb36e1": cells.get("RAMB36E1", 0),
+        "ramb18e1": cells.get("RAMB18E1", 0),
+        "ram64m": cells.get("RAM64M", 0),
+        "fdre": cells.get("FDRE", 0),
+        "carry4": cells.get("CARRY4", 0),
+        "lut_primitive_cells": lut_cells,
+        "lut_breakdown": {
+            f"LUT{i}": cells.get(f"LUT{i}", 0)
+            for i in range(1, 7)
+            if cells.get(f"LUT{i}", 0)
+        },
+    }
+
+
+def load_utilization(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    data = load_json(path)
+    resources = data.get("resources", data)
+    return {
+        "path": str(path),
+        "resources": {
+            key: resources.get(key)
+            for key in (
+                "clb_luts",
+                "clb_ffs",
+                "dsp",
+                "bram36",
+                "bram18",
+                "bram36_equiv",
+                "bram_kb",
+                "slices_lower_bound",
+            )
+            if key in resources
+        },
+    }
 
 
 def load_representative_core_builder() -> Any:
@@ -275,6 +329,13 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     if sim_result is not None and not sim_pass:
         status = "FAIL"
 
+    if status != "PASS":
+        next_gate = "run the Verilator output-head top1 simulation"
+    elif args.mapped_utilization_summary_json is not None:
+        next_gate = "wrap the mapped output-head top1 kernel into a v4k board selftest"
+    else:
+        next_gate = "synthesize mapped utilization or wrap into a v4k board selftest"
+
     payload = {
         "artifact_name": args.artifact_name,
         "status": status,
@@ -331,13 +392,11 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
             "packed_weight_bytes": len(packed_words) * 4,
         },
         "sim_result": sim_result,
+        "yosys_result": load_design_stats(args.yosys_stat_json),
+        "mapped_utilization": load_utilization(args.mapped_utilization_summary_json),
         "decision": {
             "verdict": "promote" if status == "PASS" else "continue",
-            "next_gate": (
-                "synthesize mapped utilization or wrap into a v4k board selftest"
-                if status == "PASS"
-                else "run the Verilator output-head top1 simulation"
-            ),
+            "next_gate": next_gate,
         },
     }
 
