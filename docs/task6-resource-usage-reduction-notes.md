@@ -9772,3 +9772,91 @@ Post-fix bare residual-add proof refresh:
     board selftest path
   - the selftest wrapper mainly adds fixed-vector load/compare LUTs; it does
     not change DSP or BRAM use
+
+### 2026-04-29 - H2 v4k contract scale-up scout
+
+Goal:
+
+- Continue from the board-validated `tiny-stories-v1k-h64-l1` H2 lane by
+  replaying the same bounded MLP/residual surface on the larger
+  `tiny-stories-v4k-h64-l1` representative-core configuration before touching
+  DDR3.
+
+New artifacts:
+
+- `artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_fc/`
+- `artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_proj/`
+- `artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_fc-contract/`
+- `artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_proj-contract/`
+- `artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-residual-add-contract/`
+- `artifacts/task6/parallel-hypotheses/h2-v1k-v4k-quantized-weight-replay.{csv,json}`
+- `artifacts/task6/parallel-hypotheses/h2-v1k-v4k-streaming-contract-score.{csv,json}`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-scale-bias-output-boundary.json`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-downstream-int8-boundary.json`
+- `artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json`
+
+Execution notes:
+
+- Reused the existing Nix-store Python/TinyStories environment:
+  - `/nix/store/ar40y7sk8dxahqk58rm5cj5p0qy9xa39-python3-3.11.14-env/bin/python`
+- Reused the existing local TinyStories snapshot:
+  - `/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot`
+- Avoided `nix build .#tiny-stories-v4k-h64-l1-linalg` for this slice because
+  it tried to rebuild a fresh PyTorch derivation. The scout uses direct module
+  hooks and packed-weight replay instead.
+- Fixed `scripts/task6/score_int8_downstream_boundary.py` so the
+  `input_replay.f32_boundary_metrics` field is recomputed from the current
+  contract instead of copying the old replay JSON metric. This matters when the
+  same-shape RTL metadata is reused for a new v4k contract.
+
+Results:
+
+- v4k `c_fc` f32 replay from packed weights:
+  - verdict: `pass`
+  - max absolute error: `0.0`
+- v4k `c_proj` f32 replay from packed weights:
+  - verdict: `pass`
+  - max absolute error: `0.0`
+- v4k residual-add module-hook contract:
+  - status: `PASS`
+  - all cross-check max absolute errors: `0.0`
+- v4k int8 quantized-weight replay:
+  - `c_fc` best normalized RMSE: `0.005847424386218247`
+  - `c_proj` best normalized RMSE: `0.0073616947821652946`
+  - threshold: `0.02`
+  - verdict: `pass`
+- v4k int4 quantized-weight replay:
+  - `c_fc` best normalized RMSE: `0.10421039539960832`
+  - `c_proj` best normalized RMSE: `0.13570825757817748`
+  - threshold: `0.02`
+  - verdict: `fail`
+- v4k `c_fc` int8 scale/bias/output boundary scout:
+  - status: `PASS`
+  - normalized RMSE: `0.007873001582845127`
+- v4k post-GELU downstream int8 boundary scout:
+  - status: `PASS`
+  - recommended boundary: `post_gelu_int8_activation`
+  - GELU output normalized RMSE: `0.012050216169024767`
+
+Streaming contract result:
+
+- The `v4k-h64-l1` MLP has the same `64 -> 256 -> 64` shape as the v1k lane.
+- At `4` DSP lanes the per-token MLP lower-bound score remains:
+  - `32,768` MACs
+  - `8,192` minimum compute cycles
+  - `134,912` bytes/token with f32 weights and f32 activations/bias
+  - `36,608` bytes/token with int8 weights and f32 activations/bias
+  - `20,224` bytes/token with int4 weights and f32 activations/bias
+
+Interpretation:
+
+- H2 still looks good on the v4k activation/weight values: exact f32 replay
+  holds, int8 replay passes, int4 still fails, and the first post-GELU int8
+  boundary still passes.
+- This is not yet a larger vocab-dependent memory proof. The MLP dimensions do
+  not grow when vocab grows from `1024` to `4096`; embeddings and output-head
+  storage are the vocab-dependent parts.
+- The next gate should regenerate same-shape RTL test data/sidecars for these
+  v4k contracts and run the SV/mapped replay. After that, add a separate
+  embedding/output-head memory-surface score before deciding on DDR3 controller
+  integration.

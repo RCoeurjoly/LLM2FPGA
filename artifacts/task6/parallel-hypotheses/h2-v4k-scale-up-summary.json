@@ -1,0 +1,85 @@
+{
+  "artifact_name": "h2-v4k-scale-up-summary",
+  "status": "PASS",
+  "date": "2026-04-29",
+  "scope": {
+    "baseline_lane": "tiny-stories-v1k-h64-l1 bounded int8 L2 MLP/residual slice",
+    "scale_up_lane": "tiny-stories-v4k-h64-l1 bounded int8 L2 MLP/residual contracts",
+    "covered_modules": [
+      "transformer.h.0.mlp.c_fc",
+      "transformer.h.0.mlp.c_proj",
+      "transformer.h.0 residual add"
+    ],
+    "not_covered": [
+      "attention",
+      "embeddings",
+      "lm_head/output vocab projection",
+      "multi-token calibration",
+      "v4k RTL/bitstream replay"
+    ]
+  },
+  "source_artifacts": {
+    "v4k_c_fc_contract": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_fc-contract/manifest.json",
+    "v4k_c_fc_contract_check": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_fc-contract-check.json",
+    "v4k_c_fc_weight_pack": "artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_fc/manifest.json",
+    "v4k_c_proj_contract": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_proj-contract/manifest.json",
+    "v4k_c_proj_contract_check": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_proj-contract-check.json",
+    "v4k_c_proj_weight_pack": "artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_proj/manifest.json",
+    "v4k_residual_add_contract": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-residual-add-contract/manifest.json",
+    "v1k_v4k_quantized_weight_replay": "artifacts/task6/parallel-hypotheses/h2-v1k-v4k-quantized-weight-replay.json",
+    "v1k_v4k_streaming_contract_score": "artifacts/task6/parallel-hypotheses/h2-v1k-v4k-streaming-contract-score.json",
+    "v4k_c_fc_scale_bias_output_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-scale-bias-output-boundary.json",
+    "v4k_c_fc_downstream_int8_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-downstream-int8-boundary.json"
+  },
+  "checks": {
+    "c_fc_f32_replay": {
+      "verdict": "pass",
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0
+    },
+    "c_proj_f32_replay": {
+      "verdict": "pass",
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0
+    },
+    "residual_add_contract": {
+      "status": "PASS",
+      "max_cross_check_error": 0.0
+    },
+    "v4k_int8_weight_replay": {
+      "c_fc_best_normalized_rmse": 0.005847424386218247,
+      "c_proj_best_normalized_rmse": 0.0073616947821652946,
+      "threshold": 0.02,
+      "verdict": "pass"
+    },
+    "v4k_int4_weight_replay": {
+      "c_fc_best_normalized_rmse": 0.10421039539960832,
+      "c_proj_best_normalized_rmse": 0.13570825757817748,
+      "threshold": 0.02,
+      "verdict": "fail"
+    },
+    "v4k_c_fc_scale_bias_output_boundary": {
+      "status": "PASS",
+      "normalized_rmse": 0.007873001582845127
+    },
+    "v4k_post_gelu_int8_boundary": {
+      "status": "PASS",
+      "recommended_boundary": "post_gelu_int8_activation",
+      "gelu_output_normalized_rmse": 0.012050216169024767
+    }
+  },
+  "streaming_mlp_budget_at_4_dsp_lanes": {
+    "v1k_and_v4k_same_mlp_shape": true,
+    "macs_per_token": 32768,
+    "min_compute_cycles": 8192,
+    "f32_bytes_per_token": 134912,
+    "int8_weight_bytes_per_token": 36608,
+    "int4_weight_bytes_per_token": 20224
+  },
+  "decision": {
+    "verdict": "promote-v4k-contracts-to-rtl-replay",
+    "rationale": "The same bounded MLP/residual lane survives the v4k activation and weight values with exact f32 replay, passing int8 replay, and passing the first post-GELU int8 boundary scout.",
+    "caveat": "The v4k MLP has the same matrix dimensions as v1k, so this does not yet prove a larger vocab-dependent memory path. It should be followed by a v4k RTL replay and a separate embedding/lm_head memory-surface score before DDR3 controller work.",
+    "next_gate": "Regenerate same-shape RTL tb_data/sidecars for the v4k contracts, run SV simulation and mapped utilization, then decide whether to add vocab-dependent embedding/output-head scorecards."
+  }
+}

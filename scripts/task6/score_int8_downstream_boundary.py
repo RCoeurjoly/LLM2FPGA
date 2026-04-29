@@ -213,6 +213,7 @@ def main() -> None:
         bias[out_index] + accs[out_index] * effective_scales[out_index]
         for out_index in range(out_features)
     ]
+    f32_boundary_metrics = score_error(produced_c_fc, expected_c_fc)
     expected_gelu = gelu_tanh(expected_c_fc)
     produced_gelu = gelu_tanh(produced_c_fc)
 
@@ -276,7 +277,7 @@ def main() -> None:
             "effective_scale_max": max(effective_scales),
             "accumulator_min": min(accs),
             "accumulator_max": max(accs),
-            "f32_boundary_normalized_rmse": replay["quantization"]["normalized_rmse"],
+            "f32_boundary_metrics": f32_boundary_metrics,
         },
         "candidates": candidates,
         "byte_budget": {
