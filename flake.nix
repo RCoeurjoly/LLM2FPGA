@@ -2479,7 +2479,7 @@
             cat $constraintFiles > "$out"
           '';
 
-        mkFasm = { name, xdc, json }:
+        mkFasm = { name, xdc, json, freqMHz ? null }:
           pkgs.runCommand "${name}.fasm" { } ''
             if [ ! -f "${fpgaChipdb}" ]; then
               echo "chipdb file missing: ${fpgaChipdb}" >&2
@@ -2490,7 +2490,7 @@
               --chipdb "${fpgaChipdb}" \
               --xdc ${xdc} \
               --json ${json} \
-              --fasm "$out"
+              ${if freqMHz == null then "--fasm \"$out\"" else "--freq ${toString freqMHz} --fasm \"$out\""}
           '';
 
         mkBitstream = { name, fasm, framesBase }:
@@ -3214,6 +3214,19 @@
               ${./sim/task6_int8_l2_mlp_chain_residual_add_selftest_tb_main.sv}
           '';
 
+        task6CProjRequantArithSelftestSimMain =
+          pkgs.runCommand "task6-c-proj-requant-arith-selftest-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_c_proj_requant_arith_selftest_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_c_proj_requant_arith_selftest_top.sv} \
+              ${./sim/task6_c_proj_requant_arith_selftest_tb_main.sv}
+          '';
+
         task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
           buildInputs = [ pkgs.yosys ];
         } ''
@@ -3722,6 +3735,21 @@
             yosys -s run.ys
           '';
 
+        task6CProjRequantArithSelftestJson =
+          pkgs.runCommand "task6-c-proj-requant-arith-selftest.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./fpga/rtl/task6_c_proj_requant_arith_selftest_top.sv}
+            hierarchy -top task6_c_proj_requant_arith_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_c_proj_requant_arith_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8L2MlpChainResidualAddSelftestXdc = mkXdc {
           name = "task6-int8-l2-mlp-chain-residual-add-selftest";
           includeBoardXdc = false;
@@ -3786,6 +3814,25 @@
           name = "task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug";
           fasm = task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugFasm;
           framesBase = "task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug";
+        };
+
+        task6CProjRequantArithSelftestXdc = mkXdc {
+          name = "task6-c-proj-requant-arith-selftest";
+          includeBoardXdc = false;
+          extraConstraints = [ ./fpga/constraints/task6_c_proj_requant_arith_selftest.xdc ];
+        };
+
+        task6CProjRequantArithSelftestFasm = mkFasm {
+          name = "task6-c-proj-requant-arith-selftest";
+          xdc = task6CProjRequantArithSelftestXdc;
+          json = task6CProjRequantArithSelftestJson;
+          freqMHz = 50;
+        };
+
+        task6CProjRequantArithSelftestBitstream = mkBitstream {
+          name = "task6-c-proj-requant-arith-selftest";
+          fasm = task6CProjRequantArithSelftestFasm;
+          framesBase = "task6-c-proj-requant-arith-selftest";
         };
 
         task6Int8Gemv64Utilization = mkMappedJsonUtilizationReport {
@@ -3878,6 +3925,14 @@
             capacities = tinyStoriesCapacities;
             topName = "task6_int8_l2_mlp_chain_residual_add_selftest_top";
             designJson = task6Int8L2MlpChainResidualAddSelftestJson;
+          };
+
+        task6CProjRequantArithSelftestUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-c-proj-requant-arith-selftest";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_c_proj_requant_arith_selftest_top";
+            designJson = task6CProjRequantArithSelftestJson;
           };
 
         task6L1CFcRedirectSimMain = pkgs.runCommand "task6-l1-c-fc-redirect-sim-main" {
@@ -4511,6 +4566,26 @@
               exit 1
             fi
             cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "cycles": $cycles
+            }
+            EOF
+          '';
+
+        task6CProjRequantArithSelftestSvSim =
+          pkgs.runCommand "task6-c-proj-requant-arith-selftest-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6CProjRequantArithSelftestSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 c_proj requant arithmetic selftest cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-c-proj-requant-arith-selftest SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
             cat > "$out" <<EOF
             {
               "status": "PASS",
@@ -5456,6 +5531,20 @@
             task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugFasm;
           task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-bitstream =
             task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugBitstream;
+          task6-c-proj-requant-arith-selftest-sim-main =
+            task6CProjRequantArithSelftestSimMain;
+          task6-c-proj-requant-arith-selftest-sv-sim =
+            task6CProjRequantArithSelftestSvSim;
+          task6-c-proj-requant-arith-selftest-json =
+            task6CProjRequantArithSelftestJson;
+          task6-c-proj-requant-arith-selftest-utilization =
+            task6CProjRequantArithSelftestUtilization;
+          task6-c-proj-requant-arith-selftest-xdc =
+            task6CProjRequantArithSelftestXdc;
+          task6-c-proj-requant-arith-selftest-fasm =
+            task6CProjRequantArithSelftestFasm;
+          task6-c-proj-requant-arith-selftest-bitstream =
+            task6CProjRequantArithSelftestBitstream;
           task6-led-map-json = task6LedMapJson;
           task6-led-map-xdc = task6LedMapXdc;
           task6-led-map-fasm = task6LedMapFasm;

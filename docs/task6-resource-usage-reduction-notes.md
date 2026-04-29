@@ -9141,6 +9141,88 @@ Next discriminator:
 - If the arithmetic-only top passes, the problem is in the integrated c_proj
   requant control/data-capture path around the otherwise-valid arithmetic.
 
+### 2026-04-29 - Arithmetic-only c_proj requant board discriminator
+
+Added a standalone arithmetic-only board selftest for the index-0 c_proj
+requant constants. This top does not instantiate the MLP chain, local memories,
+residual-add, or output compare path. It only runs the same sequential fixed
+point operation:
+
+- accumulator: `0x00001cb2`
+- scale multiplier: `0x00005824`
+- bias: `0`
+- shift: `24`
+- expected int8 output: `0x0a`
+
+Artifacts added:
+
+- `fpga/rtl/task6_c_proj_requant_arith_selftest_top.sv`
+- `fpga/constraints/task6_c_proj_requant_arith_selftest.xdc`
+- `sim/task6_c_proj_requant_arith_selftest_tb_main.sv`
+- flake outputs:
+  - `task6-c-proj-requant-arith-selftest-sv-sim`
+  - `task6-c-proj-requant-arith-selftest-json`
+  - `task6-c-proj-requant-arith-selftest-utilization`
+  - `task6-c-proj-requant-arith-selftest-xdc`
+  - `task6-c-proj-requant-arith-selftest-fasm`
+  - `task6-c-proj-requant-arith-selftest-bitstream`
+
+Verification:
+
+- `nix build .#task6-c-proj-requant-arith-selftest-sv-sim --no-link --print-out-paths -L`:
+  pass at `165` cycles
+  - `/nix/store/4a98in7fwvp65f3gfcsr7lm6lzhbpjn0-task6-c-proj-requant-arith-selftest-sv-sim.json`
+- `nix build .#task6-c-proj-requant-arith-selftest-bitstream --no-link --print-out-paths -L`:
+  pass
+  - `/nix/store/0kkw15vh3dqc19rhajv3cpzj5f49nrqy-task6-c-proj-requant-arith-selftest.bit`
+- `nix build .#task6-c-proj-requant-arith-selftest-utilization --no-link --print-out-paths -L`:
+  pass
+  - `/nix/store/8z85y5m9z8w3p84kdzandljkr559svw2-task6-c-proj-requant-arith-selftest-utilization`
+
+Resource summary:
+
+- design JSON:
+  `/nix/store/2j523d0d598wi07zls06g5gi4f5i2anp-task6-c-proj-requant-arith-selftest.json`
+- `clb_luts`: `531 / 298600` (`0.18%`)
+- `clb_ffs`: `383 / 597200` (`0.06%`)
+- `dsp`: `0 / 1920` (`0.00%`)
+- BRAM36-equivalent: `0 / 955` (`0.00%`)
+- routed packed utilization:
+  - `SLICE_LUTX`: `1427 / 597200`
+  - `SLICE_FFX`: `383 / 597200`
+  - `DSP48E1`: `0 / 1920`
+  - `RAMB36E1`: `0 / 955`
+  - `RAMB18E1`: `0 / 1910`
+- post-route timing:
+  - max frequency: `197.28 MHz`
+  - requested target: `50.00 MHz`
+
+Physical test handoff:
+
+- Program:
+  `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/0kkw15vh3dqc19rhajv3cpzj5f49nrqy-task6-c-proj-requant-arith-selftest.bit`
+- Expected pass indication:
+  - ignore the always-on top board green LED
+  - design green LED is solid on
+  - design orange LED is off
+- If it fails, the fail display loops:
+  - all LEDs marker
+  - observed byte low/mid/high phases
+  - red + orange marker
+  - expected byte low/mid/high phases
+  - blank phases
+
+JTAG debug note:
+
+- The current HS3/openFPGALoader path gives reliable configuration and basic
+  JTAG access, but the present bitstreams do not expose internal fabric signals
+  through JTAG.
+- Autonomous internal-state readout over JTAG would require adding a debug
+  interface to the design, for example a `BSCANE2`-based user scan chain or an
+  ILA/VIO-style flow, plus host-side code to shift and decode that register.
+- Until that path is implemented, LED-coded diagnostics remain the available
+  board-observation channel in the openXC7 flow.
+
 Follow-up shift-add diagnostic physical observation:
 
 - `DEBUG_LEDS=4` physical sequence:
