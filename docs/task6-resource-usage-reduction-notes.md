@@ -9170,3 +9170,40 @@ Next physical test:
   - design orange LED is off
 - If the design orange LED still stays on, rebuild the `DEBUG_LEDS=4`
   diagnostic against this sequential RTL before changing the memory path.
+
+Follow-up sequential arithmetic physical observation:
+
+- Programmed:
+  `/nix/store/7vf2f9xx7f1lcj3y09g1p8waq65vhl62-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- Observed:
+  - design orange LED stays on
+- Interpretation:
+  - the sequential c_proj requant arithmetic did not fix the board-level
+    end-to-end compare
+  - the next discriminator is whether c_proj requant itself is still wrong, or
+    whether the failure has moved downstream to residual-add/output compare
+
+Sequential c-proj requant diagnostic bitstream:
+
+- Rebuilt the `DEBUG_LEDS=4` c_proj requant diagnostic against the sequential
+  c_proj requant RTL.
+- Verification:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug-bitstream --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/29als7l4zv41nl061xvcn889sxj7yhyd-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
+- Packed utilization:
+  - `SLICE_LUTX`: `12428 / 597200` (`2.08%`)
+  - `SLICE_FFX`: `1288 / 597200` (`0.22%`)
+  - `DSP48E1`: `32 / 1920` (`1.67%`)
+  - `RAMB36E1`: `8 / 955`
+  - `RAMB18E1`: `6 / 1910`
+- Post-route timing:
+  - max frequency: `123.79 MHz`
+  - requested target: `12.00 MHz`
+
+Next physical test:
+
+- Program:
+  `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/29als7l4zv41nl061xvcn889sxj7yhyd-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
+- Record one full repeated sequence from the three design-driven LEDs.
+- Ignore the always-on top board green LED.
