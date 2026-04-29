@@ -1,0 +1,4 @@
+label,vocab_size,hidden_size,max_position_embeddings,lm_head_tied,unique_persistent_f32_bytes,unique_persistent_f32_bram36_ceiling,unique_rowwise_int8_bytes,unique_rowwise_int4_bytes,output_projection_macs,output_projection_min_compute_cycles,output_projection_f32_bytes_per_token,output_projection_int8_topk_stream_bytes_per_token
+tiny-stories-v1k-h64-l1,1024,64,128,True,294912,64,78336,41472,65536,16384,266496,69696
+tiny-stories-v4k-h64-l1,4096,64,128,True,1081344,235,287232,152064,262144,65536,1065216,278592
+tiny-stories-1m-full,50257,64,2048,True,13390080,2906,3556740,1882980,3216448,804112,13067076,3417540

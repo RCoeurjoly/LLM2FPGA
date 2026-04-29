@@ -36,7 +36,8 @@
     "v4k_c_proj_output_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-proj-output-boundary.json",
     "v4k_mlp_chain_c_proj_requant_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json",
     "v4k_residual_add_boundary": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-residual-add-boundary.json",
-    "v4k_mlp_chain_residual_add_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json"
+    "v4k_mlp_chain_residual_add_rtl_proof": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json",
+    "vocab_memory_surface_score": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json"
   },
   "checks": {
     "c_fc_f32_replay": {
@@ -104,6 +105,16 @@
       "fixed_residual_add_output_vs_boundary_quantizer_normalized_rmse": 0.0,
       "compute_cycles": 54945,
       "cycles": 55009
+    },
+    "vocab_memory_surface_score": {
+      "status": "PASS",
+      "v4k_lm_head_tied_to_token_embedding": true,
+      "v4k_unique_persistent_f32_bram36_ceiling": 235,
+      "v4k_unique_rowwise_int8_bram36_ceiling": 63,
+      "v4k_output_projection_int8_topk_stream_bytes_per_token": 278592,
+      "full_model_unique_persistent_f32_bram36_ceiling": 2906,
+      "full_model_unique_rowwise_int8_bram36_ceiling": 772,
+      "four_full_vocab_table_baseline_bram36_ceiling": 11169
     }
   },
   "streaming_mlp_budget_at_4_dsp_lanes": {
@@ -115,9 +126,9 @@
     "int4_weight_bytes_per_token": 20224
   },
   "decision": {
-    "verdict": "promote-v4k-rtl-replay-to-vocab-memory-score",
-    "rationale": "The same bounded MLP/residual lane survives the v4k activation and weight values through the composed SV RTL replay: post-GELU requant, c_proj, c_proj requant, and final residual-add all pass.",
-    "caveat": "The v4k MLP has the same matrix dimensions as v1k, so this still does not prove a larger vocab-dependent memory path. Embeddings and lm_head/output vocab projection remain the growth surfaces to score before DDR3 controller work.",
-    "next_gate": "Add a vocab-dependent embedding/output-head memory-surface scorecard, then decide whether the next board step needs DDR3 or a smaller on-chip continuation."
+    "verdict": "promote-v4k-on-chip-vocab-prototype-and-full-vocab-ddr3-plan",
+    "rationale": "The same bounded MLP/residual lane passes v4k RTL replay, and tied v4k vocab storage is small enough to prototype on-chip: 235 BRAM36 blocks f32 or 63 BRAM36 blocks rowwise int8. Full TinyStories vocab storage still exceeds on-chip BRAM without compression or external memory.",
+    "caveat": "The scorecard covers vocab-dependent storage and output-projection bandwidth, not a synthesized embedding/lm_head RTL implementation. The full copied all-memory baseline also materializes four full-vocab f32 tables, much larger than the tied physical model storage.",
+    "next_gate": "For the board-facing v4k continuation, add an on-chip tied embedding/output-head prototype or a streamed output-head stub. For full TinyStories, keep DDR3/externalization focused on the vocab tables/output projection."
   }
 }

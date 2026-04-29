@@ -1,0 +1,389 @@
+{
+  "artifact_name": "h2-vocab-memory-surface-score",
+  "status": "PASS",
+  "source_artifacts": {
+    "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+    "baseline_utilization_json": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.json"
+  },
+  "assumptions": {
+    "bram36_bits": 36864,
+    "bram36_capacity": 955,
+    "dsp_lanes_for_output_projection": 4,
+    "rowwise_quantization_sidecar_bytes_per_row": 4,
+    "lm_head_tying_checked_from_model": true
+  },
+  "lanes": [
+    {
+      "label": "tiny-stories-v1k-h64-l1",
+      "config": {
+        "label": "tiny-stories-v1k-h64-l1",
+        "vocab_size": 1024,
+        "num_layers": 1,
+        "max_position_embeddings": 128,
+        "window_size": 64,
+        "hidden_size": 64,
+        "num_heads": 16
+      },
+      "inspection": {
+        "token_embedding_module": "transformer.wte",
+        "position_embedding_module": "transformer.wpe",
+        "lm_head_module": "lm_head",
+        "token_embedding_shape": [
+          1024,
+          64
+        ],
+        "position_embedding_shape": [
+          128,
+          64
+        ],
+        "lm_head_shape": [
+          1024,
+          64
+        ],
+        "token_embedding_dtype": "float32",
+        "position_embedding_dtype": "float32",
+        "lm_head_dtype": "float32",
+        "lm_head_tied_to_token_embedding": true
+      },
+      "persistent_storage": {
+        "token_embedding_f32_bytes": 262144,
+        "position_embedding_f32_bytes": 32768,
+        "lm_head_logical_f32_bytes": 262144,
+        "lm_head_physical_f32_bytes": 0,
+        "unique_persistent_f32": {
+          "bytes": 294912,
+          "bits": 2359296,
+          "bram36_exact": 64.0,
+          "bram36_ceiling": 64,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 6.701570680628273,
+          "fits_bram36_capacity_by_ceiling": true
+        },
+        "logical_persistent_f32_if_lm_head_materialized": {
+          "bytes": 557056,
+          "bits": 4456448,
+          "bram36_exact": 120.88888888888889,
+          "bram36_ceiling": 121,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 12.670157068062826,
+          "fits_bram36_capacity_by_ceiling": true
+        },
+        "unique_rowwise_int8": {
+          "bytes": 78336,
+          "bits": 626688,
+          "bram36_exact": 17.0,
+          "bram36_ceiling": 17,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 1.780104712041885,
+          "fits_bram36_capacity_by_ceiling": true
+        },
+        "unique_rowwise_int4": {
+          "bytes": 41472,
+          "bits": 331776,
+          "bram36_exact": 9.0,
+          "bram36_ceiling": 9,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 0.9424083769633508,
+          "fits_bram36_capacity_by_ceiling": true
+        }
+      },
+      "per_token_access": {
+        "embedding_lookup": {
+          "f32_read_bytes": 256,
+          "rowwise_int8_read_bytes": 68,
+          "scales_with_vocab_per_token": false
+        },
+        "output_projection": {
+          "macs": 65536,
+          "dsp_lanes": 4,
+          "min_compute_cycles": 16384,
+          "f32_weight_stream_bytes": 262144,
+          "f32_logits_output_bytes": 4096,
+          "f32_input_vector_bytes": 256,
+          "f32_total_weight_input_logits_bytes": 266496,
+          "rowwise_int8_weight_stream_bytes": 69632,
+          "rowwise_int8_input_vector_bytes": 64,
+          "rowwise_int8_logits_output_bytes": 1024,
+          "rowwise_int8_total_with_int8_logits_bytes": 70720,
+          "rowwise_int8_total_topk_stream_no_full_logits_bytes": 69696,
+          "f32_bytes_per_min_compute_cycle": 16.265625,
+          "rowwise_int8_topk_bytes_per_min_compute_cycle": 4.25390625
+        }
+      },
+      "delta_vs_previous_lane": null
+    },
+    {
+      "label": "tiny-stories-v4k-h64-l1",
+      "config": {
+        "label": "tiny-stories-v4k-h64-l1",
+        "vocab_size": 4096,
+        "num_layers": 1,
+        "max_position_embeddings": 128,
+        "window_size": 64,
+        "hidden_size": 64,
+        "num_heads": 16
+      },
+      "inspection": {
+        "token_embedding_module": "transformer.wte",
+        "position_embedding_module": "transformer.wpe",
+        "lm_head_module": "lm_head",
+        "token_embedding_shape": [
+          4096,
+          64
+        ],
+        "position_embedding_shape": [
+          128,
+          64
+        ],
+        "lm_head_shape": [
+          4096,
+          64
+        ],
+        "token_embedding_dtype": "float32",
+        "position_embedding_dtype": "float32",
+        "lm_head_dtype": "float32",
+        "lm_head_tied_to_token_embedding": true
+      },
+      "persistent_storage": {
+        "token_embedding_f32_bytes": 1048576,
+        "position_embedding_f32_bytes": 32768,
+        "lm_head_logical_f32_bytes": 1048576,
+        "lm_head_physical_f32_bytes": 0,
+        "unique_persistent_f32": {
+          "bytes": 1081344,
+          "bits": 8650752,
+          "bram36_exact": 234.66666666666666,
+          "bram36_ceiling": 235,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 24.60732984293194,
+          "fits_bram36_capacity_by_ceiling": true
+        },
+        "logical_persistent_f32_if_lm_head_materialized": {
+          "bytes": 2129920,
+          "bits": 17039360,
+          "bram36_exact": 462.22222222222223,
+          "bram36_ceiling": 463,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 48.48167539267016,
+          "fits_bram36_capacity_by_ceiling": true
+        },
+        "unique_rowwise_int8": {
+          "bytes": 287232,
+          "bits": 2297856,
+          "bram36_exact": 62.333333333333336,
+          "bram36_ceiling": 63,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 6.596858638743456,
+          "fits_bram36_capacity_by_ceiling": true
+        },
+        "unique_rowwise_int4": {
+          "bytes": 152064,
+          "bits": 1216512,
+          "bram36_exact": 33.0,
+          "bram36_ceiling": 33,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 3.4554973821989527,
+          "fits_bram36_capacity_by_ceiling": true
+        }
+      },
+      "per_token_access": {
+        "embedding_lookup": {
+          "f32_read_bytes": 256,
+          "rowwise_int8_read_bytes": 68,
+          "scales_with_vocab_per_token": false
+        },
+        "output_projection": {
+          "macs": 262144,
+          "dsp_lanes": 4,
+          "min_compute_cycles": 65536,
+          "f32_weight_stream_bytes": 1048576,
+          "f32_logits_output_bytes": 16384,
+          "f32_input_vector_bytes": 256,
+          "f32_total_weight_input_logits_bytes": 1065216,
+          "rowwise_int8_weight_stream_bytes": 278528,
+          "rowwise_int8_input_vector_bytes": 64,
+          "rowwise_int8_logits_output_bytes": 4096,
+          "rowwise_int8_total_with_int8_logits_bytes": 282688,
+          "rowwise_int8_total_topk_stream_no_full_logits_bytes": 278592,
+          "f32_bytes_per_min_compute_cycle": 16.25390625,
+          "rowwise_int8_topk_bytes_per_min_compute_cycle": 4.2509765625
+        }
+      },
+      "delta_vs_previous_lane": {
+        "previous_label": "tiny-stories-v1k-h64-l1",
+        "unique_persistent_f32_bytes_delta": 786432,
+        "unique_persistent_f32_bytes_ratio": 3.6666666666666665,
+        "output_projection_min_compute_cycles_delta": 49152,
+        "output_projection_min_compute_cycles_ratio": 4.0,
+        "rowwise_int8_topk_stream_bytes_per_token_delta": 208896,
+        "rowwise_int8_topk_stream_bytes_per_token_ratio": 3.997245179063361
+      }
+    },
+    {
+      "label": "tiny-stories-1m-full",
+      "config": {
+        "label": "tiny-stories-1m-full",
+        "vocab_size": 50257,
+        "num_layers": 8,
+        "max_position_embeddings": 2048,
+        "window_size": 256,
+        "hidden_size": 64,
+        "num_heads": 16
+      },
+      "inspection": {
+        "token_embedding_module": "transformer.wte",
+        "position_embedding_module": "transformer.wpe",
+        "lm_head_module": "lm_head",
+        "token_embedding_shape": [
+          50257,
+          64
+        ],
+        "position_embedding_shape": [
+          2048,
+          64
+        ],
+        "lm_head_shape": [
+          50257,
+          64
+        ],
+        "token_embedding_dtype": "float32",
+        "position_embedding_dtype": "float32",
+        "lm_head_dtype": "float32",
+        "lm_head_tied_to_token_embedding": true
+      },
+      "persistent_storage": {
+        "token_embedding_f32_bytes": 12865792,
+        "position_embedding_f32_bytes": 524288,
+        "lm_head_logical_f32_bytes": 12865792,
+        "lm_head_physical_f32_bytes": 0,
+        "unique_persistent_f32": {
+          "bytes": 13390080,
+          "bits": 107120640,
+          "bram36_exact": 2905.8333333333335,
+          "bram36_ceiling": 2906,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 304.29319371727746,
+          "fits_bram36_capacity_by_ceiling": false
+        },
+        "logical_persistent_f32_if_lm_head_materialized": {
+          "bytes": 26255872,
+          "bits": 210046976,
+          "bram36_exact": 5697.888888888889,
+          "bram36_ceiling": 5698,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 596.6492146596859,
+          "fits_bram36_capacity_by_ceiling": false
+        },
+        "unique_rowwise_int8": {
+          "bytes": 3556740,
+          "bits": 28453920,
+          "bram36_exact": 771.8619791666666,
+          "bram36_ceiling": 772,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 80.83769633507853,
+          "fits_bram36_capacity_by_ceiling": true
+        },
+        "unique_rowwise_int4": {
+          "bytes": 1882980,
+          "bits": 15063840,
+          "bram36_exact": 408.6328125,
+          "bram36_ceiling": 409,
+          "bram36_capacity": 955,
+          "bram36_capacity_pct_ceiling": 42.82722513089005,
+          "fits_bram36_capacity_by_ceiling": true
+        }
+      },
+      "per_token_access": {
+        "embedding_lookup": {
+          "f32_read_bytes": 256,
+          "rowwise_int8_read_bytes": 68,
+          "scales_with_vocab_per_token": false
+        },
+        "output_projection": {
+          "macs": 3216448,
+          "dsp_lanes": 4,
+          "min_compute_cycles": 804112,
+          "f32_weight_stream_bytes": 12865792,
+          "f32_logits_output_bytes": 201028,
+          "f32_input_vector_bytes": 256,
+          "f32_total_weight_input_logits_bytes": 13067076,
+          "rowwise_int8_weight_stream_bytes": 3417476,
+          "rowwise_int8_input_vector_bytes": 64,
+          "rowwise_int8_logits_output_bytes": 50257,
+          "rowwise_int8_total_with_int8_logits_bytes": 3467797,
+          "rowwise_int8_total_topk_stream_no_full_logits_bytes": 3417540,
+          "f32_bytes_per_min_compute_cycle": 16.25031836361104,
+          "rowwise_int8_topk_bytes_per_min_compute_cycle": 4.25007959090276
+        }
+      },
+      "delta_vs_previous_lane": {
+        "previous_label": "tiny-stories-v4k-h64-l1",
+        "unique_persistent_f32_bytes_delta": 12308736,
+        "unique_persistent_f32_bytes_ratio": 12.3828125,
+        "output_projection_min_compute_cycles_delta": 738576,
+        "output_projection_min_compute_cycles_ratio": 12.269775390625,
+        "rowwise_int8_topk_stream_bytes_per_token_delta": 3138948,
+        "rowwise_int8_topk_stream_bytes_per_token_ratio": 12.267186423156444
+      }
+    }
+  ],
+  "copied_baseline_utilization": {
+    "capacities": {
+      "bram36": 955,
+      "bram_kb": 34380,
+      "clb_ffs": 597200,
+      "clb_luts": 298600,
+      "dsp": 1920,
+      "slices": 74650
+    },
+    "fits": {
+      "bram36_equivalent": true,
+      "dsp": true,
+      "ff": false,
+      "lut": false,
+      "overall": false
+    },
+    "top_module": "tiny_stories_selftest_top",
+    "usage": {
+      "bram18_total": 0,
+      "bram36_equivalent": 0.0,
+      "bram36_total": 0,
+      "dsp_total": 0,
+      "ff_total": 58072527,
+      "lut_total": 40416086,
+      "lutram_ram32m": 0,
+      "lutram_ram64m": 0,
+      "muxf7": 936407,
+      "muxf8": 279774
+    },
+    "utilization": {
+      "bram36_equivalent_pct": 0.0,
+      "dsp_pct": 0.0,
+      "ff_pct": 9724.133791024782,
+      "lut_pct": 13535.192900200938
+    }
+  },
+  "four_full_vocab_table_baseline": {
+    "description": "four f32 full-vocab tables observed in the copied all-memory baseline notes",
+    "table_count": 4,
+    "table_shape": [
+      50257,
+      64
+    ],
+    "storage": {
+      "bytes": 51463168,
+      "bits": 411705344,
+      "bram36_exact": 11168.222222222223,
+      "bram36_ceiling": 11169,
+      "bram36_capacity": 955,
+      "bram36_capacity_pct_ceiling": 1169.5287958115184,
+      "fits_bram36_capacity_by_ceiling": false
+    }
+  },
+  "decision": {
+    "verdict": "promote-v4k-on-chip-vocab-prototype-and-full-vocab-ddr3-plan",
+    "v4k_storage_gate": "fits-on-chip",
+    "full_model_storage_gate": "requires-external-memory-or-compression",
+    "next_gate": "Keep the next board-facing v4k prototype on-chip for tied vocab storage, but plan the full TinyStories vocab/output surface as an external-memory or streamed-output-head problem."
+  }
+}

@@ -9935,3 +9935,70 @@ Interpretation:
   `64 -> 256 -> 64` MLP dimensions.
 - Next gate: score the vocab-dependent embedding and output-head/lm_head memory
   surfaces before committing to DDR3 controller integration.
+
+### 2026-04-29 - H2 vocab-dependent memory surface score
+
+Goal:
+
+- Score the embedding and output-head/lm_head surfaces that actually grow with
+  vocabulary size, after the v4k same-shape MLP/residual RTL replay passed.
+- Separate physical storage from logical output-projection bandwidth because
+  GPT-Neo ties `lm_head.weight` to `transformer.wte.weight`.
+
+New artifacts:
+
+- `scripts/task6/score_vocab_memory_surface.py`
+- `artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json`
+- `artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.csv`
+- updated `artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json`
+
+Execution:
+
+- `python scripts/task6/score_vocab_memory_surface.py --model-path /nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot --lane tiny-stories-v1k-h64-l1:1024:1:128:64:64:16 --lane tiny-stories-v4k-h64-l1:4096:1:128:64:64:16 --lane tiny-stories-1m-full:50257:8:2048:256:64:16 --baseline-utilization-json artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.json --include-four-full-vocab-table-baseline --out-json artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json --out-csv artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.csv`
+
+Results:
+
+- The model inspection confirms `lm_head.weight` is tied to
+  `transformer.wte.weight` for all scored lanes.
+- `tiny-stories-v1k-h64-l1`:
+  - unique persistent f32 vocab/position storage: `294912` bytes
+  - BRAM36 ceiling for unique f32 storage: `64`
+  - unique rowwise int8 storage: `78336` bytes
+  - output projection at `4` DSP lanes: `65536` MACs, `16384` minimum cycles
+  - rowwise int8 streamed output-head bytes/token without full logits:
+    `69696`
+- `tiny-stories-v4k-h64-l1`:
+  - unique persistent f32 vocab/position storage: `1081344` bytes
+  - BRAM36 ceiling for unique f32 storage: `235`
+  - unique rowwise int8 storage: `287232` bytes
+  - output projection at `4` DSP lanes: `262144` MACs, `65536` minimum cycles
+  - rowwise int8 streamed output-head bytes/token without full logits:
+    `278592`
+- Full TinyStories-1M config:
+  - unique persistent f32 vocab/position storage: `13390080` bytes
+  - BRAM36 ceiling for unique f32 storage: `2906`
+  - unique rowwise int8 storage: `3556740` bytes
+  - output projection at `4` DSP lanes: `3216448` MACs, `804112` minimum cycles
+  - rowwise int8 streamed output-head bytes/token without full logits:
+    `3417540`
+- Copied all-memory baseline comparison:
+  - the prior four full-vocab f32 table shape is `4 x [50257, 64]`
+  - modeled storage: `51463168` bytes
+  - BRAM36 ceiling: `11169`
+
+Interpretation:
+
+- v4k does not force DDR3 just for tied vocab storage. Even f32 tied
+  vocab/position storage is `235 / 955` BRAM36 blocks, and rowwise int8 is
+  `63 / 955`.
+- The output projection is now a real compute/bandwidth peer to the bounded
+  MLP: v4k output-head lower-bound cycles are `65536`, versus `54945` cycles
+  for the composed residual-add RTL replay.
+- Full TinyStories still needs compression, streaming, or external memory for
+  the vocab surface. Tied f32 storage alone is `2906` BRAM36 blocks, and the
+  copied all-memory four-table shape is `11169` BRAM36 blocks.
+- Next gate:
+  - for the board-facing v4k continuation, prototype tied vocab storage on-chip
+    or a streamed output-head stub before adding DDR3 complexity
+  - for the full TinyStories route, keep DDR3/externalization focused on the
+    vocab tables/output projection
