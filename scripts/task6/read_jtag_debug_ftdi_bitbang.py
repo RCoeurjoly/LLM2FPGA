@@ -329,6 +329,12 @@ def read_payload(client, ir_len, user_ir, bit_count):
     return shift_dr_read(client, bit_count)
 
 
+def read_idcode(client, ir_len, idcode_ir):
+    reset_tap(client)
+    shift_ir(client, idcode_ir, ir_len)
+    return shift_dr_read(client, 32)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", default="210299BF3824")
@@ -340,10 +346,12 @@ def parse_args():
     parser.add_argument("--bits", type=int, default=DEFAULT_BITS)
     parser.add_argument("--ir-len", type=int, default=6)
     parser.add_argument("--user-ir", type=lambda value: int(value, 0), default=0x02)
+    parser.add_argument("--idcode-ir", type=lambda value: int(value, 0), default=0x09)
     parser.add_argument("--poll", action="store_true")
     parser.add_argument("--poll-count", type=int, default=50)
     parser.add_argument("--poll-interval", type=float, default=0.1)
     parser.add_argument("--bit-delay-us", type=float, default=0.0)
+    parser.add_argument("--idcode-only", action="store_true")
     parser.add_argument("--json-only", action="store_true")
     return parser.parse_args()
 
@@ -366,6 +374,17 @@ def main():
             delay_s=args.bit_delay_us / 1_000_000.0,
         )
     try:
+        if args.idcode_only:
+            idcode = read_idcode(client, args.ir_len, args.idcode_ir)
+            result = {
+                "backend": f"ftdi-{args.backend}",
+                "serial": args.serial,
+                "idcode": idcode,
+                "idcode_hex": f"0x{idcode:08x}",
+            }
+            print(json.dumps(result, indent=2, sort_keys=True))
+            return
+
         decoded = None
         attempts = args.poll_count if args.poll else 1
         for attempt in range(attempts):

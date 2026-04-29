@@ -9638,3 +9638,41 @@ Explicit lane-memory hardware verification:
   - the root cause is still most likely the previous synthesized mapping of the
     32-bit packed c_proj weight memory/read path, where packed bit `8` behaved
     as stuck low on hardware
+
+Regular non-debug bitstream rebuild after hardware fix:
+
+- Built the fixed regular self-test simulation and utilization targets:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim .#task6-int8-l2-mlp-chain-residual-add-selftest-utilization --no-link --print-out-paths -L`
+  - simulation output:
+    - `/nix/store/mdq3w2dnh7ibvc59c4750f3pm1344dif-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+  - utilization output:
+    - `/nix/store/jmw4ibcrm5x099fnynr11sfs0pm8b4fw-task6-int8-l2-mlp-chain-residual-add-selftest-utilization`
+- Fixed regular estimated utilization:
+  - `clb_luts`: `10733 / 298600` (`3.59%`)
+  - `clb_ffs`: `6530 / 597200` (`1.09%`)
+  - `dsp`: `10 / 1920` (`0.52%`)
+  - `bram36`: `8 / 955` (`0.84%`)
+  - `bram18`: `6`
+  - BRAM36-equivalent: `11 / 955` (`1.15%`)
+- Built the fixed regular non-debug bitstream:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-bitstream --no-link --print-out-paths -L`
+  - output:
+    - `/nix/store/p6f10gn31s6aram54y0c570kksbpy63d-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+  - post-route timing:
+    - max frequency `120.18 MHz`, passing the `50.00 MHz` target
+- Programming attempt:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/p6f10gn31s6aram54y0c570kksbpy63d-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+  - failed during JTAG init before bitstream load:
+    - `TDO is stuck at 0`
+- Recovery attempts:
+  - `openFPGALoader --detect` also reported `TDO is stuck at 0`
+  - low-frequency detect at `1 MHz` also reported `TDO is stuck at 0`
+  - `usbreset 0403:6014` reset the Digilent HS3 successfully, but did not
+    recover TDO
+  - direct MPSSE IDCODE reads on both previously tested TDO sample bits returned
+    `0x00000000`
+- Interpretation:
+  - this is a target-side JTAG silence/access issue, not a bitstream or RTL
+    result; the failure happens before programming starts
+  - next physical action is to power-cycle or reseat the board/HS3 target
+    connection, then retry programming the already-built regular bitstream
