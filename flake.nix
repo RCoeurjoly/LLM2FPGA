@@ -3780,6 +3780,32 @@
             yosys -s run.ys
           '';
 
+        task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugJson =
+          pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv}
+            read_verilog -sv ${task6Int8V4kL2ResidualAddOutputHeadSelftestTop}
+            read_verilog -lib +/xilinx/cells_xtra.v
+            chparam -set ENABLE_JTAG_DEBUG 1 task6_int8_v4k_l2_residual_add_output_head_selftest_top
+            hierarchy -top task6_int8_v4k_l2_residual_add_output_head_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_v4k_l2_residual_add_output_head_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8L2MlpChainResidualAddSelftestDebugJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-debug.json" {
             buildInputs = [ pkgs.yosys ];
@@ -3952,6 +3978,19 @@
           name = "task6-int8-v4k-l2-residual-add-output-head-selftest";
           fasm = task6Int8V4kL2ResidualAddOutputHeadSelftestFasm;
           framesBase = "task6-int8-v4k-l2-residual-add-output-head-selftest";
+        };
+
+        task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugFasm = mkFasm {
+          name = "task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug";
+          xdc = task6Int8V4kL2ResidualAddOutputHeadSelftestXdc;
+          json = task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugJson;
+          freqMHz = 50;
+        };
+
+        task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugBitstream = mkBitstream {
+          name = "task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug";
+          fasm = task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugFasm;
+          framesBase = "task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug";
         };
 
         task6Int8L2MlpChainResidualAddSelftestDebugFasm = mkFasm {
@@ -5784,6 +5823,12 @@
             task6Int8V4kL2ResidualAddOutputHeadSelftestFasm;
           task6-int8-v4k-l2-residual-add-output-head-selftest-bitstream =
             task6Int8V4kL2ResidualAddOutputHeadSelftestBitstream;
+          task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug-json =
+            task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugJson;
+          task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug-fasm =
+            task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugFasm;
+          task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug-bitstream =
+            task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugBitstream;
           task6-int8-l2-mlp-chain-residual-add-selftest-debug-fasm =
             task6Int8L2MlpChainResidualAddSelftestDebugFasm;
           task6-int8-l2-mlp-chain-residual-add-selftest-debug-bitstream =

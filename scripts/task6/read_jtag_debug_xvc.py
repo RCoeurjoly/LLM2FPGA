@@ -196,6 +196,35 @@ FAIL_REASON_NAMES = {
     3: "DEFAULT",
 }
 
+V4K_STATE_NAMES = {
+    0: "SELFTEST_BOOT",
+    1: "SELFTEST_LOAD_C_FC_ACTIVATION",
+    2: "SELFTEST_LOAD_C_FC_WEIGHT",
+    3: "SELFTEST_LOAD_C_FC_REQUANT",
+    4: "SELFTEST_LOAD_C_PROJ_WEIGHT",
+    5: "SELFTEST_LOAD_C_PROJ_REQUANT",
+    6: "SELFTEST_LOAD_RESIDUAL",
+    7: "SELFTEST_LOAD_VOCAB_WEIGHT_SETUP",
+    8: "SELFTEST_LOAD_VOCAB_WEIGHT_WRITE",
+    9: "SELFTEST_START_RESIDUAL",
+    10: "SELFTEST_RUN_RESIDUAL",
+    11: "SELFTEST_LOAD_HEAD_ACTIVATION_SETUP",
+    12: "SELFTEST_LOAD_HEAD_ACTIVATION_WRITE",
+    13: "SELFTEST_START_OUTPUT_HEAD",
+    14: "SELFTEST_RUN_OUTPUT_HEAD",
+    15: "SELFTEST_PASS",
+    16: "SELFTEST_FAIL",
+}
+
+V4K_FAIL_REASON_NAMES = {
+    0: "NONE",
+    1: "TIMEOUT",
+    2: "RESIDUAL_MISMATCH",
+    3: "TOP_INDEX",
+    4: "TOP_ACC",
+    7: "DEFAULT",
+}
+
 C_PROJ_STAGE_NAMES = {
     0: "OK_OR_DOWNSTREAM",
     1: "ACC",
@@ -266,6 +295,24 @@ FIELDS = [
     ("c_proj_gemv_lane0_expected_weights", 808, 64, False),
     ("c_proj_gemv_expected_activation_samples", 1920, 64, False),
     ("c_proj_transfer_post_gelu_samples", 1984, 64, False),
+]
+
+V4K_FIELDS = [
+    ("magic", 0, 32, False),
+    ("version", 32, 8, False),
+    ("state", 40, 8, False),
+    ("status", 48, 8, False),
+    ("cycle_count", 56, 32, False),
+    ("fail_reason", 88, 8, False),
+    ("fail_index", 96, 8, False),
+    ("fail_expected_residual", 104, 8, True),
+    ("fail_observed_residual", 112, 8, True),
+    ("fail_observed_top_index", 120, 16, False),
+    ("expected_top_index", 136, 16, False),
+    ("fail_observed_top_acc", 152, 32, True),
+    ("expected_top_acc", 184, 32, True),
+    ("live_top_index", 216, 16, False),
+    ("live_top_acc_low24", 232, 24, True),
 ]
 
 
@@ -521,6 +568,42 @@ def read_payload(client, ir_len, user_ir, bit_count):
 
 
 def decode_payload(payload, bit_count):
+    version = unsigned_field(payload, 32, 8) if bit_count >= 40 else 0
+    if version == 10:
+        fields = {}
+        for name, offset, width, signed in V4K_FIELDS:
+            if offset + width <= bit_count:
+                if signed:
+                    fields[name] = signed_field(payload, offset, width)
+                else:
+                    fields[name] = unsigned_field(payload, offset, width)
+
+        state = fields.get("state", -1)
+        status = fields.get("status", 0)
+        fail_reason = fields.get("fail_reason", -1)
+        return {
+            "raw_hex": f"0x{payload:0{(bit_count + 3) // 4}x}",
+            "magic_ok": fields.get("magic") == MAGIC,
+            "fields": fields,
+            "c_proj_gemv_lane0_samples": [],
+            "c_fc_post_gelu_samples": [],
+            "c_fc_transfer_post_gelu_samples": [],
+            "c_fc_gemv_lane1_samples": [],
+            "decoded": {
+                "state": V4K_STATE_NAMES.get(state, f"UNKNOWN_{state}"),
+                "status": {
+                    "pass": bool(status & 0x1),
+                    "fail": bool(status & 0x2),
+                    "residual_done": bool(status & 0x4),
+                    "output_head_done": bool(status & 0x8),
+                },
+                "fail_reason": V4K_FAIL_REASON_NAMES.get(
+                    fail_reason, f"UNKNOWN_{fail_reason}"
+                ),
+                "c_proj_requant_stage": "N/A",
+            },
+        }
+
     fields = {}
     for name, offset, width, signed in FIELDS:
         if offset + width <= bit_count:
@@ -581,6 +664,31 @@ def decode_payload(payload, bit_count):
 def print_summary(decoded):
     fields = decoded["fields"]
     names = decoded["decoded"]
+    if fields.get("version") == 10:
+        print(
+            "summary: "
+            f"magic_ok={decoded['magic_ok']} "
+            f"state={names['state']} "
+            f"status={names['status']} "
+            f"fail_reason={names['fail_reason']}"
+        )
+        print(
+            "residual: "
+            f"index {fields.get('fail_index')} "
+            f"expected {fields.get('fail_expected_residual')} "
+            f"observed {fields.get('fail_observed_residual')}"
+        )
+        print(
+            "output_head: "
+            f"observed_top_index {fields.get('fail_observed_top_index')} "
+            f"expected_top_index {fields.get('expected_top_index')} "
+            f"observed_top_acc {fields.get('fail_observed_top_acc')} "
+            f"expected_top_acc {fields.get('expected_top_acc')} "
+            f"live_top_index {fields.get('live_top_index')} "
+            f"live_top_acc_low24 {fields.get('live_top_acc_low24')}"
+        )
+        return
+
     print(
         "summary: "
         f"magic_ok={decoded['magic_ok']} "

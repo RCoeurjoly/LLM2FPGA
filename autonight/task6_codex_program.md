@@ -1,0 +1,168 @@
+# Task 6 Codex overnight program
+
+You are running an autonomous overnight research loop on branch `task6-streamtensor-lite` of `RCoeurjoly/LLM2FPGA`.
+
+## Objective
+
+Move Task 6 toward fitting TinyStories-1M on the FPGA board by using fast, bounded experiments that reveal which scaling paths are viable before expensive full-design processing.
+
+The current high-level strategy is:
+
+1. Keep the board-validated v1k int8 L2 MLP/residual-add slice as the stable proof anchor.
+2. Use v4k as the next board-facing continuation, because v4k tied vocab storage is small enough for on-chip experiments.
+3. Treat full TinyStories vocab/output projection as the first external-memory or streamed-output-head problem.
+4. Use representative-core, v1k, and v4k scorecards to learn scaling behavior before attempting full TinyStories-1M paths.
+5. Prefer experiments with short feedback loops and machine-readable artifacts over large monolithic synthesis runs.
+
+## Current evidence to respect
+
+Do not redo these unless you are explicitly validating a regression or extending the surface.
+
+- `artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json`
+  - v1k bounded int8 L2 MLP/residual-add self-test is board validated.
+  - Simulation PASS.
+  - JTAG hardware self-test SELFTEST_PASS.
+  - Regular bitstream programmed, FPGA done=1.
+  - Candidate resources: 10,733 LUT, 6,530 FF, 10 DSP, 11.0 BRAM36-equivalent.
+- `artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json`
+  - v4k bounded MLP/residual RTL replay passes.
+  - v4k int8 weight replay passes.
+  - v4k int4 fails at current threshold.
+  - Not yet covered: attention, synthesized embedding/lm_head RTL, multi-token calibration, v4k bitstream replay.
+- `artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json`
+  - v4k tied vocab storage can be on-chip.
+  - full TinyStories f32 tied vocab storage does not fit on-chip.
+  - full TinyStories rowwise int8/4 storage may fit by raw BRAM capacity but output projection bandwidth/cycles remain the scaling pressure.
+
+## Overnight operating mode
+
+This is an autoresearch-style loop. Each cycle must:
+
+1. Read `AUTONIGHT_STATUS.md` first, if present.
+2. Pick one small experiment or implementation step that can finish under the current time slice.
+3. State the hypothesis in one paragraph in the status file.
+4. Make the smallest useful code or artifact change.
+5. Run the cheapest relevant validation.
+6. Record machine-readable results in `artifacts/task6/parallel-hypotheses/` or `artifacts/task6/autonight/`.
+7. Keep/promote or reject the change based on evidence.
+8. End by updating `AUTONIGHT_STATUS.md` with a clear handoff for the next Codex invocation.
+
+## Priority experiment queue
+
+Prefer this order unless evidence makes a later item clearly better.
+
+### A. V4K on-chip tied vocab prototype
+
+Goal: convert the `h2-vocab-memory-surface-score` result into a board-facing prototype plan or small RTL/simulation surface.
+
+Possible outputs:
+
+- a repeatable score/prototype script under `scripts/task6/`
+- an artifact such as `artifacts/task6/parallel-hypotheses/h2-v4k-onchip-vocab-prototype.json`
+- an RTL stub or testbench only if it remains small and quickly testable
+- a clear storage layout for tied token embedding + lm_head reuse
+- output-head streaming strategy that avoids materializing full logits when possible
+
+Validation target:
+
+- Python scorecard first.
+- SV simulation if a small RTL stub is added.
+- Mapped utilization only if the stub is small and the expected runtime is acceptable.
+
+### B. Multi-sample quantization calibration
+
+Goal: replace single-sample confidence with a small multi-sample calibration surface.
+
+Possible outputs:
+
+- export/check scripts for 8, 16, or 32 deterministic prompts/samples
+- artifact reporting normalized RMSE distribution across c_fc, post-GELU, c_proj, residual output
+- explicit pass/fail thresholds
+- identification of outlier tokens/prompts
+
+Validation target:
+
+- Python-only first.
+- No board bitstream unless the artifact changes a downstream decision.
+
+### C. Attention and residual scaling law scorecard
+
+Goal: quantify attention cost and decide whether attention should be the next bounded kernel or remain deferred.
+
+Possible outputs:
+
+- scorecard for QKV, attention score, softmax/approx, value projection, residual
+- bytes/token, MACs/token, BRAM, DSP lanes, min cycles
+- v1k/v4k/full TinyStories comparison
+- recommendation for first attention cutout boundary
+
+Validation target:
+
+- Python scorecard first.
+- No full synthesis.
+
+### D. Full TinyStories output-head external-memory plan
+
+Goal: decide how the full vocab output projection is streamed.
+
+Possible outputs:
+
+- rowwise int8 output-head streaming budget
+- top-k streaming/no-full-logits algorithm sketch
+- DDR3 burst size and bandwidth estimate
+- minimum cycles/token at 4, 8, 16 DSP lanes
+- BRAM staging/cache plan
+
+Validation target:
+
+- Python scorecard first.
+- No DDR3 controller integration until this scorecard says exactly what must be fetched and at what rate.
+
+### E. V4K board replay
+
+Only start after A or B creates a clearer v4k hardware target. Do not blindly synthesize a bigger design without a new target surface.
+
+## Hard stop rules
+
+- Do not launch full TinyStories-1M monolithic synthesis.
+- Do not spend the whole slice on a command expected to exceed the slice budget.
+- Do not delete or rewrite historical artifacts.
+- Do not push to remote.
+- Do not edit secrets or credentials.
+- Do not make broad dependency or flake changes unless they are necessary and validated.
+- Do not hide failures. Record rejected attempts.
+- If a command fails, capture the exact command, exit code, and relevant log path.
+- If uncertain, choose a smaller scorecard experiment instead of a larger build.
+
+## Preferred artifact style
+
+Machine-readable artifacts should be JSON, optionally with a CSV summary. Include:
+
+- `artifact_name`
+- `status`: PASS, FAIL, BLOCKED, or PARTIAL
+- `date`
+- `hypothesis`
+- `source_artifacts`
+- `commands`
+- `metrics`
+- `decision`
+- `next_gate`
+
+## Handoff requirement
+
+Before exiting, always update `AUTONIGHT_STATUS.md` with these sections:
+
+```markdown
+# AUTONIGHT_STATUS
+
+## Last iteration
+## Current best evidence
+## Accepted/promoted changes
+## Rejected attempts
+## Commands run
+## Files changed
+## Open risks
+## Next recommended step
+```
+
+Also write or update a small JSON handoff artifact in `artifacts/task6/autonight/`.

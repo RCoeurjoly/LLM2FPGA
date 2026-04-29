@@ -1,7 +1,8 @@
 `timescale 1ns/1ps
 
 module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
-  parameter int DEBUG_LEDS = 0
+  parameter int DEBUG_LEDS = 0,
+  parameter int ENABLE_JTAG_DEBUG = 0
 )(
   input logic SYS_CLK,
   input logic SYS_RSTN,
@@ -18,6 +19,9 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   localparam logic [2:0] FAIL_REASON_TOP_INDEX = 3'd3;
   localparam logic [2:0] FAIL_REASON_TOP_ACC = 3'd4;
   localparam logic [2:0] FAIL_REASON_DEFAULT = 3'd7;
+  localparam int JTAG_DEBUG_WIDTH = 256;
+  localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd10;
 
   typedef enum logic [4:0] {
     SELFTEST_BOOT,
@@ -54,6 +58,8 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   logic signed [7:0] fail_observed_residual_q;
   logic [VOCAB_ADDR_WIDTH - 1:0] fail_observed_top_index_q;
   logic signed [VOCAB_ACC_WIDTH - 1:0] fail_observed_top_acc_q;
+  logic [7:0] jtag_debug_status;
+  logic [JTAG_DEBUG_WIDTH - 1:0] jtag_debug_payload;
 
   logic residual_reset;
   logic residual_start;
@@ -113,6 +119,36 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   assign residual_start = (state_q == SELFTEST_START_RESIDUAL);
   assign output_head_start = (state_q == SELFTEST_START_OUTPUT_HEAD);
   assign residual_output_read_addr = activation_index_q;
+  assign jtag_debug_status = {
+    4'd0,
+    output_head_done,
+    residual_done,
+    state_q == SELFTEST_FAIL,
+    state_q == SELFTEST_PASS
+  };
+
+  always_comb begin
+    jtag_debug_payload = '0;
+    jtag_debug_payload[0 +: 32] = JTAG_DEBUG_MAGIC;
+    jtag_debug_payload[32 +: 8] = JTAG_DEBUG_VERSION;
+    jtag_debug_payload[40 +: 8] = {3'd0, state_q};
+    jtag_debug_payload[48 +: 8] = jtag_debug_status;
+    jtag_debug_payload[56 +: 32] = cycle_count_q;
+    jtag_debug_payload[88 +: 8] = {5'd0, fail_reason_q};
+    jtag_debug_payload[96 +: 8] =
+      {{(8 - C_PROJ_OUT_ADDR_WIDTH){1'b0}}, fail_index_q};
+    jtag_debug_payload[104 +: 8] = fail_expected_residual_q;
+    jtag_debug_payload[112 +: 8] = fail_observed_residual_q;
+    jtag_debug_payload[120 +: 16] =
+      {{(16 - VOCAB_ADDR_WIDTH){1'b0}}, fail_observed_top_index_q};
+    jtag_debug_payload[136 +: 16] =
+      {{(16 - VOCAB_ADDR_WIDTH){1'b0}}, EXPECTED_TOP_INDEX};
+    jtag_debug_payload[152 +: 32] = fail_observed_top_acc_q[31:0];
+    jtag_debug_payload[184 +: 32] = EXPECTED_TOP_ACC[31:0];
+    jtag_debug_payload[216 +: 16] =
+      {{(16 - VOCAB_ADDR_WIDTH){1'b0}}, top_index};
+    jtag_debug_payload[232 +: 24] = top_acc[23:0];
+  end
 
   initial begin
     $readmemh("vocab_packed_weights.mem", vocab_packed_weight_rom);
@@ -563,5 +599,65 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
     .done(output_head_done),
     .top_index(top_index),
     .top_acc(top_acc)
+  );
+
+  generate
+    if (ENABLE_JTAG_DEBUG != 0) begin : gen_jtag_debug
+      task6_v4k_jtag_debug_shift #(
+        .WIDTH(JTAG_DEBUG_WIDTH),
+        .JTAG_CHAIN(1)
+      ) jtag_debug_shift (
+        .payload_i(jtag_debug_payload)
+      );
+    end
+  endgenerate
+endmodule
+
+module task6_v4k_jtag_debug_shift #(
+  parameter int WIDTH = 256,
+  parameter int JTAG_CHAIN = 1
+)(
+  input logic [WIDTH - 1:0] payload_i
+);
+  logic capture;
+  logic drck;
+  logic reset;
+  logic runtest;
+  logic sel;
+  logic shift;
+  logic tck;
+  logic tdi;
+  logic tms;
+  logic update;
+  logic tdo;
+  logic [WIDTH - 1:0] shift_q;
+
+  assign tdo = shift_q[0];
+
+  always_ff @(posedge drck or posedge reset) begin
+    if (reset) begin
+      shift_q <= '0;
+    end else if (sel && capture) begin
+      shift_q <= payload_i;
+    end else if (sel && shift) begin
+      shift_q <= {tdi, shift_q[WIDTH - 1:1]};
+    end
+  end
+
+  BSCANE2 #(
+    .DISABLE_JTAG("FALSE"),
+    .JTAG_CHAIN(JTAG_CHAIN)
+  ) bscan (
+    .CAPTURE(capture),
+    .DRCK(drck),
+    .RESET(reset),
+    .RUNTEST(runtest),
+    .SEL(sel),
+    .SHIFT(shift),
+    .TCK(tck),
+    .TDI(tdi),
+    .TMS(tms),
+    .UPDATE(update),
+    .TDO(tdo)
   );
 endmodule
