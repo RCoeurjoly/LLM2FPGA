@@ -1505,6 +1505,21 @@ Next board action:
   bitstream again and decode the new LED sequence before changing the memory
   shell or DDR3 direction.
 
+Physical follow-up:
+
+- The fixed normal self-test bitstream above still fails on board:
+  - design red LED blinks
+  - design orange LED stays on
+- Rebuilt the c_proj requant diagnostic against the same patched RTL:
+  - `/nix/store/2xd7pkyg8ydprgcaarfbphvmmswxask4-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
+  - post-route timing: `145.82 MHz`, passing the `12.00 MHz` target
+- Next diagnostic question:
+  - whether the patched design still reports c_proj requant output `0x7f`, or
+    whether the failure moved to a different byte/value
+  - if it still reports `0x7f` while accumulator/scale/bias match, replace the
+    c_proj requant multiply/shift path with a narrower or staged arithmetic
+    implementation instead of continuing reset/load investigation
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.
