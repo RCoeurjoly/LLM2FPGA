@@ -127,20 +127,46 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
     end
   endfunction
 
+  function automatic signed [63:0] mul_i32_shift_add(
+    input signed [31:0] lhs,
+    input signed [31:0] rhs
+  );
+    logic lhs_negative;
+    logic rhs_negative;
+    logic [31:0] lhs_magnitude;
+    logic [31:0] rhs_magnitude;
+    logic [63:0] product_magnitude;
+    int bit_index;
+    begin
+      lhs_negative = lhs[31];
+      rhs_negative = rhs[31];
+      lhs_magnitude = lhs_negative ? (~lhs + 32'd1) : lhs;
+      rhs_magnitude = rhs_negative ? (~rhs + 32'd1) : rhs;
+      product_magnitude = 64'd0;
+
+      for (bit_index = 0; bit_index < 32; bit_index = bit_index + 1) begin
+        if (rhs_magnitude[bit_index])
+          product_magnitude =
+            product_magnitude + ({32'd0, lhs_magnitude} << bit_index);
+      end
+
+      if (lhs_negative ^ rhs_negative)
+        mul_i32_shift_add = -$signed(product_magnitude);
+      else
+        mul_i32_shift_add = $signed(product_magnitude);
+    end
+  endfunction
+
   function automatic signed [7:0] c_proj_requant_i8(
     input signed [31:0] acc,
     input signed [31:0] scale_mul,
     input signed [31:0] bias_q
   );
-    logic signed [63:0] acc_ext;
-    logic signed [63:0] scale_mul_ext;
     logic signed [63:0] scaled_product;
     logic signed [63:0] scaled_q;
     logic signed [63:0] output_q;
     begin
-      acc_ext = $signed({{32{acc[31]}}, acc});
-      scale_mul_ext = $signed({{32{scale_mul[31]}}, scale_mul});
-      scaled_product = acc_ext * scale_mul_ext;
+      scaled_product = mul_i32_shift_add(acc, scale_mul);
       scaled_q =
         round_shift_signed(scaled_product, C_PROJ_OUTPUT_REQUANT_SHIFT);
       output_q = scaled_q + $signed({{32{bias_q[31]}}, bias_q});

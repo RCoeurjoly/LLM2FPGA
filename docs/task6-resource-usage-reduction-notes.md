@@ -8978,3 +8978,72 @@ C-proj requant split debug LED decoding:
   `0x7f`, the likely fault is in synthesized requant arithmetic.
 - If the accumulator is mismatched while scale and bias match, the likely
   fault is upstream in the c_fc/post-GELU/c_proj accumulator chain.
+
+Follow-up c-proj requant split debug physical observation:
+
+- Normal self-test bitstream after the first sign-extension patch still failed
+  on hardware: orange stayed on and red blinked.
+- `DEBUG_LEDS=4` physical sequence:
+  - red + green + orange
+  - green + orange
+  - nothing
+  - red + orange
+  - green
+  - red + green
+  - red + green + orange
+  - red
+  - nothing
+- Interpretation:
+  - failing output index is still `0`
+  - c_proj accumulator matches the generated expected value
+  - c_proj requant scale multiplier matches the generated expected value
+  - c_proj requant bias matches the generated expected value
+  - observed c_proj output byte is still `0x7f`
+  - expected c_proj output byte is `0x0a`
+- This keeps the suspected fault inside the synthesized c_proj requant
+  arithmetic rather than the reset/load path, constant ROM contents, or
+  upstream accumulator path.
+
+C-proj requant shift-add trial:
+
+- Replaced the c_proj requant `acc * scale_mul` expression with an explicit
+  signed 32x32 shift-add multiply helper.
+- Rationale:
+  - simulation already passes with the original `*`
+  - hardware diagnostics show correct operands but a saturated-looking c_proj
+    output
+  - replacing the inferred DSP-backed multiply tests whether the synthesis/P&R
+    implementation of that signed multiply is the hardware-only mismatch
+- Verification:
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`:
+    pass at `18804` cycles
+    - `/nix/store/jky2iv3zjl0d0x4lgx44gb40qllrm23s-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-json --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/kpx1jvxlgd3fa5fmh0wv2vh46kffcx31-task6-int8-l2-mlp-chain-residual-add-selftest.json`
+  - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-bitstream --no-link --print-out-paths -L`:
+    pass
+    - `/nix/store/2hi48w49al1yh8z52b8hf0pylrqnpgjg-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- Yosys synthesis resource note:
+  - `DSP48E1`: `32`, down from `36` before removing this multiply from the DSP
+    path
+- Packed utilization from the routed build:
+  - `SLICE_LUTX`: `15264 / 597200` (`2.56%`)
+  - `SLICE_FFX`: `718 / 597200` (`0.12%`)
+  - `DSP48E1`: `32 / 1920` (`1.67%`)
+  - `RAMB36E1`: `8 / 955`
+  - `RAMB18E1`: `6 / 1910`
+  - BRAM36-equivalent: `11 / 955` (`1.15%`)
+- Post-route timing:
+  - max frequency: `163.48 MHz`
+  - requested target: `12.00 MHz`
+
+Next physical test:
+
+- Program:
+  `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/2hi48w49al1yh8z52b8hf0pylrqnpgjg-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- Expected pass indication:
+  - ignore the always-on top board green LED
+  - design red LED blinks as heartbeat
+  - design green LED is solid on
+  - design orange LED is off
