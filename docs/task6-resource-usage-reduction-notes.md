@@ -1410,6 +1410,101 @@ Immediate execution:
   frontier, and whether any residual memory owners still dominate the mapped
   design.
 
+## Int8 board self-test update on 2026-04-29
+
+Current fast board lane:
+
+- `task6-int8-l2-mlp-chain-residual-add-selftest-*`
+- purpose:
+  - keep using the small int8 L2 MLP chain as the board-facing debug lane
+    before spending more time on the full TinyStories external-memory shell
+  - validate that the generated int8 arithmetic and memories survive synthesis,
+    place/route, bitstream generation, and physical FPGA execution
+
+Physical diagnostic result:
+
+- Bitstream tested:
+  - `/nix/store/qg4wbb17a00v9212c3nny3ybgk7cpjhp-task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.bit`
+- Observed repeating LED sequence, ignoring the always-on board power/status
+  LED:
+  - all
+  - green+orange
+  - off
+  - red+orange
+  - green
+  - red+green
+  - all
+  - red
+  - off
+- Decode:
+  - final residual-add self-test still fails at output index `0`
+  - the expected final residual-add byte is `0x0a`
+  - the c_proj accumulator, c_proj requant scale multiplier, and c_proj bias
+    value for index `0` match the generated constants
+  - the observed c_proj requant output byte is still `0x7f`, while the expected
+    c_proj output byte is `0x0a`
+- Interpretation:
+  - the board failure is no longer plausibly a load/order issue for the c_proj
+    accumulator or constants
+  - the fault is localized to the synthesized c_proj requant arithmetic path
+  - this is useful progress: the diagnostic narrowed the bug from "self-test
+    fails on board" to "c_proj requant saturates to `0x7f` even when its inputs
+    match the expected fixture values"
+
+Fix attempted:
+
+- `rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv`
+  now explicitly sign-extends the 32-bit accumulator and scale multiplier to
+  64 bits before multiplying.
+- The change mirrors the style already used in the residual-add requant path
+  and avoids relying on tool interpretation of the narrower `$signed(acc) *
+  $signed(scale_mul)` expression.
+
+Verification after the fix:
+
+- Simulation:
+  - command:
+    - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`
+  - result:
+    - pass at cycle `18804`
+  - output:
+    - `/nix/store/c6wscp6nc5chixy3649nyc9rzfz1xm1j-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+- Synthesis JSON:
+  - command:
+    - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-json --no-link --print-out-paths -L`
+  - result:
+    - Yosys completed with `0` reported structural problems
+  - output:
+    - `/nix/store/96rsc4lq7crzpnshj110j04yf80h7h7v-task6-int8-l2-mlp-chain-residual-add-selftest.json`
+- Board bitstream:
+  - command:
+    - `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-bitstream --no-link --print-out-paths -L`
+  - result:
+    - completed
+  - output:
+    - `/nix/store/jkqn0blzj40rycb0gmx8h2ibvwgdxpjk-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+  - post-route timing:
+    - `136.37 MHz` maximum frequency, passing the `12.00 MHz` target
+  - packed utilization:
+    - `SLICE_LUTX`: `10998 / 597200`, about `1.84%`
+    - `SLICE_FFX`: `718 / 597200`, about `0.12%`
+    - `DSP48E1`: `36 / 1920`, `1.88%`
+    - BRAM36-equivalent: `8 RAMB36E1 + 6 RAMB18E1`, equivalent to `11 / 955`,
+      about `1.15%`
+
+Next board action:
+
+- Program the fixed normal self-test bitstream:
+  - `/nix/store/jkqn0blzj40rycb0gmx8h2ibvwgdxpjk-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- Expected physical result:
+  - ignore the board's always-on top green LED
+  - design red LED blinks as heartbeat
+  - design green LED stays on for pass
+  - design orange LED stays off
+- If the orange fail LED still turns on, rebuild/run the patched debug
+  bitstream again and decode the new LED sequence before changing the memory
+  shell or DDR3 direction.
+
 ## Parallel strategy execution guidance
 
 Use one lane per strategy, derived from `task6`.

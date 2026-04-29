@@ -132,11 +132,17 @@ module task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel #(
     input signed [31:0] scale_mul,
     input signed [31:0] bias_q
   );
+    logic signed [63:0] acc_ext;
+    logic signed [63:0] scale_mul_ext;
+    logic signed [63:0] scaled_product;
     logic signed [63:0] scaled_q;
     logic signed [63:0] output_q;
     begin
+      acc_ext = $signed({{32{acc[31]}}, acc});
+      scale_mul_ext = $signed({{32{scale_mul[31]}}, scale_mul});
+      scaled_product = acc_ext * scale_mul_ext;
       scaled_q =
-        round_shift_signed($signed(acc) * $signed(scale_mul), C_PROJ_OUTPUT_REQUANT_SHIFT);
+        round_shift_signed(scaled_product, C_PROJ_OUTPUT_REQUANT_SHIFT);
       output_q = scaled_q + $signed({{32{bias_q[31]}}, bias_q});
       c_proj_requant_i8 = saturate_i8(output_q);
     end
