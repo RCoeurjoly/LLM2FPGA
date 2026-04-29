@@ -8578,3 +8578,64 @@ Residual-add selftest interpretation:
   - orange: off fail
 - orange off after programming is a good sign: it means the fail LED is not
   asserted.
+
+### 2026-04-29 - Residual-add selftest JTAG reset hardening
+
+Observed board behavior:
+
+- After a board power cycle, the residual-add selftest asserts the green pass
+  LED in less than a second.
+- After JTAG reprogramming the same bitstream without power cycling, the pass
+  LED does not reliably assert.
+
+Interpretation:
+
+- The compute path is still likely good: a power cycle gives the design a clean
+  reset and the selftest passes quickly.
+- The issue is likely reset sequencing after configuration. JTAG programming
+  can leave the external `SYS_RSTN` input high, so the selftest FSM may not see
+  the same reset edge it sees after a board power cycle.
+
+RTL change:
+
+- `task6_int8_l2_mlp_chain_residual_add_selftest_top` now includes an internal
+  post-configuration reset counter.
+- `config_reset_count_q` is initialized to zero and holds `selftest_reset`
+  asserted until bit `7` becomes high, giving the design `128` clocks of local
+  reset after configuration even if `SYS_RSTN` never toggles.
+- The DUT reset and selftest FSM reset path now use `selftest_reset`.
+
+Verification:
+
+- `nix-instantiate --parse flake.nix`
+- `git diff --check`
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim --no-link --print-out-paths -L`
+  - result: `PASS`
+  - pass LED asserted after `18804` simulated cycles
+  - output path:
+    `/nix/store/bgf2lpchpil22kaq0bfw1l9mcdgmv3af-task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim.json`
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-bitstream --no-link --print-out-paths -L`
+  - result: `PASS`
+  - post-route max frequency: `161.24 MHz`
+  - requested target: `12.00 MHz`
+  - bit path:
+    `/nix/store/vp6gcd52scyys0m694ka0zgnk39di6ym-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-utilization --no-link --print-out-paths -L`
+  - output path:
+    `/nix/store/kihvlwn139wzxmvl2kgl320i5fm44777-task6-int8-l2-mlp-chain-residual-add-selftest-utilization`
+  - LUTs: `7039 / 298600 = 2.36%`
+  - FFs: `574 / 597200 = 0.10%`
+  - DSPs: `36 / 1920 = 1.88%`
+  - BRAM36-equivalent: `11 / 955 = 1.15%`
+
+Expected physical test:
+
+- Program the new bitstream without power cycling:
+  `sudo openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m /nix/store/vp6gcd52scyys0m694ka0zgnk39di6ym-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- Expected LED pattern after less than a second:
+  - top green: always on, ignored
+  - red: blinking heartbeat
+  - green: solid on pass
+  - orange: off fail
+- If this passes after a JTAG-only reprogram, the reset-sequencing hypothesis
+  is confirmed.

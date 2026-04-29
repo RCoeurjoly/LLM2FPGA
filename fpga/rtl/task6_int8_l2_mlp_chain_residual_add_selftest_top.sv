@@ -34,6 +34,9 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top(
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] check_index_q;
   logic [31:0] cycle_count_q;
   logic [25:0] blink_count_q;
+  logic [7:0] config_reset_count_q = 8'd0;
+  logic config_reset_done;
+  logic selftest_reset;
 
   logic dut_reset;
   logic start;
@@ -63,8 +66,18 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top(
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] output_read_addr;
   logic signed [7:0] output_read_data;
 
+  always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
+    if (!SYS_RSTN)
+      config_reset_count_q <= 8'd0;
+    else if (!config_reset_done)
+      config_reset_count_q <= config_reset_count_q + 8'd1;
+  end
+
+  assign config_reset_done = config_reset_count_q[7];
+  assign selftest_reset = !SYS_RSTN || !config_reset_done;
+
   always_comb begin
-    dut_reset = !SYS_RSTN;
+    dut_reset = selftest_reset;
     unique case (state_q)
       SELFTEST_BOOT,
       SELFTEST_LOAD_C_FC_ACTIVATION,
@@ -73,7 +86,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top(
       SELFTEST_LOAD_C_PROJ_WEIGHT,
       SELFTEST_LOAD_C_PROJ_REQUANT,
       SELFTEST_LOAD_RESIDUAL: dut_reset = 1'b1;
-      default: dut_reset = !SYS_RSTN;
+      default: dut_reset = selftest_reset;
     endcase
   end
 
@@ -159,6 +172,13 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top(
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
     if (!SYS_RSTN) begin
+      state_q <= SELFTEST_BOOT;
+      boot_count_q <= 8'd0;
+      load_index_q <= 13'd0;
+      check_index_q <= '0;
+      cycle_count_q <= 32'd0;
+      blink_count_q <= 26'd0;
+    end else if (!config_reset_done) begin
       state_q <= SELFTEST_BOOT;
       boot_count_q <= 8'd0;
       load_index_q <= 13'd0;
