@@ -1,0 +1,94 @@
+{
+  "design_json": "/nix/store/871w8gzqhrxx5fb9fi4g7msbimjkkmyb-h2-ypcb-litedram-open-synth-json/ypcb_litedram_core.json",
+  "resources": {
+    "bram18": {
+      "used": 0
+    },
+    "bram36": {
+      "capacity": 955,
+      "pct": 0.0,
+      "used": 0
+    },
+    "bram36_equiv": {
+      "capacity": 955,
+      "pct": 0.0,
+      "used": 0.0
+    },
+    "bram_kb": {
+      "capacity": 34380,
+      "pct": 0.0,
+      "used": 0
+    },
+    "clb_ffs": {
+      "capacity": 597200,
+      "pct": 1.16,
+      "used": 6929
+    },
+    "clb_luts": {
+      "capacity": 298600,
+      "pct": 2.74,
+      "used": 8196
+    },
+    "dsp": {
+      "capacity": 1920,
+      "pct": 0.0,
+      "used": 0
+    },
+    "slices_lower_bound": {
+      "capacity": 74650,
+      "pct": 1.37,
+      "used": 1025
+    }
+  },
+  "top": "ypcb_litedram_core",
+  "top_leaf_cell_types": [
+    {
+      "count": 6457,
+      "type": "FDRE"
+    },
+    {
+      "count": 2350,
+      "type": "LUT5"
+    },
+    {
+      "count": 2026,
+      "type": "LUT3"
+    },
+    {
+      "count": 1752,
+      "type": "LUT6"
+    },
+    {
+      "count": 1272,
+      "type": "LUT2"
+    },
+    {
+      "count": 794,
+      "type": "LUT4"
+    },
+    {
+      "count": 460,
+      "type": "FDSE"
+    },
+    {
+      "count": 354,
+      "type": "IBUF"
+    },
+    {
+      "count": 316,
+      "type": "INV"
+    },
+    {
+      "count": 282,
+      "type": "CARRY4"
+    },
+    {
+      "count": 252,
+      "type": "RAM32M"
+    },
+    {
+      "count": 213,
+      "type": "OBUF"
+    }
+  ]
+}

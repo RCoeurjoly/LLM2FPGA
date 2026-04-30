@@ -11284,7 +11284,7 @@ Verification:
     exporting the pinned repo `fpgaPrjxrayDb`
 - Fixed and reran:
   - `nix build .#task6-ypcb-litedram-rtl-elaboration --no-link --print-out-paths -L`
-  - `/nix/store/czpsgfkv1drxdnfgf019kzxsplksqpcj-h2-ypcb-litedram-rtl-elaboration`
+  - `/nix/store/bkpkxibqsk4mxi1n9rplp8f9nh07cx72-h2-ypcb-litedram-rtl-elaboration`
 - Result status: `PASS`
 
 Measured result:
@@ -11311,9 +11311,14 @@ Measured result:
   - `csr.json`
   - `csr.csv`
 - Generated RTL size:
-  - top Verilog: `1,448,230` bytes
+  - top Verilog: `1,448,196` bytes
   - bundle file count: `11`
   - bundle size: about `1.5 MiB`
+- Generated text cleanup:
+  - the generator strips trailing whitespace from emitted text artifacts
+  - sanitized generated files:
+    - `build/gateware/build_ypcb_litedram_core.sh`
+    - `build/gateware/ypcb_litedram_core.v`
 - No-`dm` validation:
   - `ddram_dm` top-port mentions: `0`
   - `ddram_dq` top-port mentions: `65`
@@ -11332,3 +11337,88 @@ Decision:
     board-facing payload.
 - Keep the rowstream contract blocked until init/calibration and linear-read
   bandwidth are proven on board.
+
+### 2026-04-30 - YPCB LiteDRAM open synthesis utilization
+
+Goal:
+
+- Run the generated no-`dm` YPCB LiteDRAM/LiteX core through open Yosys
+  `synth_xilinx` and measure the standalone controller/PHY resource footprint
+  before attempting board init or DDR3 bandwidth.
+
+Implementation:
+
+- Added flake packages:
+  - `task6-ypcb-litedram-open-synth-json`
+  - `task6-ypcb-litedram-open-synth-utilization`
+- Reused the repo mapped-utilization reporter:
+  - `scripts/pipeline/write_utilization_report.py`
+- Copied durable proof:
+  - `artifacts/task6/parallel-hypotheses/h2-ypcb-litedram-open-synth-utilization`
+- Copied concise synthesis evidence:
+  - `summary.json`
+  - `summary.txt`
+  - `stat.json`
+  - `run.ys`
+  - `yosys.rpt`
+- Did not copy the generated mapped netlist JSON into the durable artifact:
+  - store netlist size: about `27.4 MiB`
+  - the flake target can regenerate it when needed
+
+Verification:
+
+- Rejected attempt:
+  - first `nix build .#task6-ypcb-litedram-open-synth-utilization --no-link --print-out-paths -L`
+    failed before reaching the design because the repo `yosysPkg` overlay tried
+    to rebuild Yosys and failed with `genericBuild: command not found`
+- Fixed and reran:
+  - switched this new LiteDRAM synthesis gate to `${pkgs.yosys}/bin/yosys`
+  - `nix build .#task6-ypcb-litedram-open-synth-utilization --no-link --print-out-paths -L`
+  - `/nix/store/dvi8prbiw5v52kczkrs2rl3q1b285gji-h2-ypcb-litedram-open-synth-utilization`
+- Result status: `PASS`
+- Yosys result:
+  - frontend parsed the generated LiteDRAM Verilog
+  - `synth_xilinx -flatten -abc9 -arch xc7 -top ypcb_litedram_core` completed
+  - `check` reported `0` problems
+  - Yosys peak memory: `767.82 MiB`
+
+Measured standalone core utilization:
+
+- CLB LUTs: `8196 / 298600` (`2.74%`)
+- CLB FFs: `6929 / 597200` (`1.16%`)
+- DSP: `0 / 1920` (`0.00%`)
+- BRAM36: `0 / 955` (`0.00%`)
+- BRAM36-equivalent: `0 / 955` (`0.00%`)
+- Lower-bound slices: `1025 / 74650` (`1.37%`)
+- Largest mapped leaf types:
+  - `FDRE`: `6457`
+  - `LUT5`: `2350`
+  - `LUT3`: `2026`
+  - `LUT6`: `1752`
+  - `LUT2`: `1272`
+  - `CARRY4`: `282`
+  - `RAM32M`: `252`
+
+Interpretation:
+
+- The open LiteDRAM/LiteX DDR3 controller/PHY lane is viable enough to promote
+  past RTL generation into board-facing bring-up.
+- The controller/PHY footprint is modest relative to the XC7K480T budget.
+- `0` DSP is expected for the controller itself; DSP use belongs in the
+  rowstream/GEMV compute lane, not in the DDR3 PHY/controller.
+- `0` BRAM36 means this standalone generated controller did not introduce a
+  large BRAM footprint at the synthesis gate. It does use distributed RAM
+  (`RAM32M`) for small structures.
+
+Decision:
+
+- Promote open LiteDRAM synthesis.
+- Keep Vivado MIG rejected as an implementation lane.
+- Next gate:
+  - build a minimal LiteDRAM board-facing init/bandwidth probe around this
+    controller
+  - run open place/route only if the wrapper first gives a measurable board
+    test objective: DDR3 init/calibration done and sustained linear-read
+    bandwidth
+  - then connect the existing DDR3 rowstream contract to the measured memory
+    port shape

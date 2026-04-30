@@ -3210,6 +3210,31 @@
               --out-dir "$out"
           '';
 
+        task6YpcbLiteDramOpenSynthJson =
+          pkgs.runCommand "h2-ypcb-litedram-open-synth-json" { } ''
+            mkdir -p "$out"
+            cat > "$out/run.ys" <<EOF
+            verilog_defaults -push
+            verilog_defaults -add -defer
+            read_verilog ${task6YpcbLiteDramRtlElaboration}/build/gateware/ypcb_litedram_core.v
+            verilog_defaults -pop
+            attrmap -tocase keep -imap keep="true" keep=1 -imap keep="false" keep=0 -remove keep=0
+            synth_xilinx -flatten -abc9 -arch xc7 -top ypcb_litedram_core
+            stat -top ypcb_litedram_core
+            write_json $out/ypcb_litedram_core.json
+            EOF
+            ${pkgs.yosys}/bin/yosys -l "$out/yosys.rpt" -s "$out/run.ys"
+          '';
+
+        task6YpcbLiteDramOpenSynthUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "h2-ypcb-litedram-open-synth";
+            capacities = tinyStoriesCapacities;
+            topName = "ypcb_litedram_core";
+            designJson =
+              "${task6YpcbLiteDramOpenSynthJson}/ypcb_litedram_core.json";
+          };
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -6048,6 +6073,10 @@
             task6YpcbLiteDramConfig;
           task6-ypcb-litedram-rtl-elaboration =
             task6YpcbLiteDramRtlElaboration;
+          task6-ypcb-litedram-open-synth-json =
+            task6YpcbLiteDramOpenSynthJson;
+          task6-ypcb-litedram-open-synth-utilization =
+            task6YpcbLiteDramOpenSynthUtilization;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =

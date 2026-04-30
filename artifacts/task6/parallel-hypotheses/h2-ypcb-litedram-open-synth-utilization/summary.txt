@@ -1,0 +1,22 @@
+top: ypcb_litedram_core
+estimated mapped resource usage:
+- slices_lower_bound: 1025 / 74650 (1.37%)
+- clb_luts: 8196 / 298600 (2.74%)
+- clb_ffs: 6929 / 597200 (1.16%)
+- dsp: 0 / 1920 (0.00%)
+- bram36: 0 / 955 (0.00%)
+- bram36_equiv: 0 / 955 (0.00%)
+- bram_kb: 0 / 34380 (0.00%)
+largest leaf cell types:
+- FDRE: 6457
+- LUT5: 2350
+- LUT3: 2026
+- LUT6: 1752
+- LUT2: 1272
+- LUT4: 794
+- FDSE: 460
+- IBUF: 354
+- INV: 316
+- CARRY4: 282
+- RAM32M: 252
+- OBUF: 213
