@@ -11050,3 +11050,33 @@ Decision:
 - Next gate: choose or build the smallest DDR3 init/linear-read bandwidth probe
   first; only connect it to the rowstream cutout after measured board bandwidth
   is available.
+
+### 2026-04-30 - DDR3 controller path precheck
+
+Goal:
+
+- Check whether the pinned Nix environment already exposes an open DDR3
+  controller stack before starting the bandwidth-probe implementation.
+
+Verification:
+
+- Command:
+  - `nix eval --impure --json --expr 'let flake = builtins.getFlake (toString /home/roland/LLM2FPGA_task6_streamtensor_lite); pkgs = import flake.inputs.nixpkgs { system = builtins.currentSystem; }; in { has_litedram_top_level = pkgs ? litedram; has_litedram_python = pkgs.python3Packages ? litedram; has_litex_top_level = pkgs ? litex; has_litex_python = pkgs.python3Packages ? litex; has_migen_python = pkgs.python3Packages ? migen; }'`
+- Result:
+  - `has_litedram_top_level`: `false`
+  - `has_litedram_python`: `false`
+  - `has_litex_top_level`: `false`
+  - `has_litex_python`: `false`
+  - `has_migen_python`: `true`
+
+Decision:
+
+- Do not assume the DDR3 bandwidth probe can be built from existing pinned
+  packages.
+- The two realistic next lanes are now explicit:
+  - vendor-MIG lane: use the existing YPCB Vivado MIG metadata/project as a
+    board bring-up reference, but this is not open-toolchain evidence
+  - open-controller lane: add or vendor a reproducible LiteDRAM/LiteX-style
+    generator/config for Kintex-7 plus the YPCB `MT41K256M8XX-125` interface
+- Keep the next implementation small: DDR3 init plus linear-read bandwidth
+  counter first, not rowstream integration.
