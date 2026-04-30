@@ -42,8 +42,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--payload-byte-lanes", default=8, type=int)
     parser.add_argument(
         "--sdram-phy",
-        default="K7DDRPHY",
+        default="A7DDRPHY",
         choices=["A7DDRPHY", "K7DDRPHY", "V7DDRPHY"],
+        help=(
+            "Series-7 LiteDRAM PHY. Defaults to A7DDRPHY because the YPCB "
+            "DDR3 pins are on HR banks where K7DDRPHY's ODELAYE2 output path "
+            "cannot be placed."
+        ),
     )
     parser.add_argument("--sys-clk-freq", default="100e6")
     return parser.parse_args()
@@ -326,7 +331,7 @@ def main() -> None:
 
     validation = {
         "litedram_module_exists": has_module,
-        "kintex7_phy_exists": has_phy,
+        "series7_phy_exists": has_phy,
         "open_ucf_has_72_physical_dq": len(ddram["dq"]) == 72,
         "open_ucf_has_9_physical_dqs_pairs": (
             len(ddram["dqs_p"]) == 9 and len(ddram["dqs_n"]) == 9
@@ -339,7 +344,7 @@ def main() -> None:
         if all(
             [
                 validation["litedram_module_exists"],
-                validation["kintex7_phy_exists"],
+                validation["series7_phy_exists"],
                 validation["open_ucf_has_72_physical_dq"],
                 validation["open_ucf_has_9_physical_dqs_pairs"],
                 validation["litedram_s7_phy_dm_optional"],

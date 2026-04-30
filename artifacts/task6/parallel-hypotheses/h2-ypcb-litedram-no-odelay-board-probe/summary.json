@@ -889,6 +889,188 @@
       },
       "interpretation": "The low-rate no-ODELAY design can return stable nonzero direct DFII data, but the data does not match any write/read command phase or any tested address-tagged column slot. This weakens a simple column-address-offset hypothesis and points the next loop at DQS phase/latency and DFI write/read phase/beat association."
     },
+    "v56_dqs0_lowrate_dqs_phase_discriminator": {
+      "bitstream": "/nix/store/b1j51cxib6xx1al9cjlfsj82qvkqv2m9-task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.bit",
+      "json": "/nix/store/ajqzizrss2blx93slq42i80sla28vj1v-task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.json",
+      "rtl_check": "/nix/store/gkxagqchxrc79zcqw73hzx3kmbjssybq-h2-ypcb-litedram-no-odelay-lowrate-dqs0-rtl-check",
+      "status": "DQS_PHASE_DISCRIMINATOR_UNCHANGED_FAILURE",
+      "jtag_debug_version": 56,
+      "sys_clk_freq_mhz": 25,
+      "sys4x_freq_mhz": 100,
+      "sys4x_dqs_phase_deg": 0,
+      "synthesis": {
+        "status": "PASS",
+        "check_problems": 0,
+        "yosys_peak_mb": 864.34,
+        "estimated_lcs": 13973
+      },
+      "place_and_route": {
+        "status": "PASS",
+        "target_freq_mhz": 25,
+        "selected_nextpnr_utilization": {
+          "SLICE_LUTX": "21887 / 597200 (3%)",
+          "SLICE_FFX": "13284 / 597200 (2%)",
+          "IDELAYE2": "72 / 400 (18%)",
+          "OSERDESE2": "107 / 400 (26%)",
+          "ISERDESE2": "72 / 400 (18%)",
+          "IDELAYCTRL": "3 / 8 (37%)",
+          "RAMB18E1": "0 / 1910 (0%)",
+          "RAMB36E1": "0 / 955 (0%)",
+          "DSP48E1": "0 / 1920 (0%)"
+        },
+        "post_route_max_freq_mhz": {
+          "clk200": 642.67,
+          "user_clk": 77.42,
+          "core.iodelay_clk": 480.54,
+          "jtag_debug_shift.drck": 328.62
+        }
+      },
+      "artifact_check": {
+        "baseline_90deg_fasm": "/nix/store/agvhcczc9p68lxl860649iby1v2yv9lc-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.fasm",
+        "dqs0_fasm": "/nix/store/mz016fiwqi6f6fphgxh25zzbrsiw5ybv-task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.fasm",
+        "pll_delay_time_changed": true,
+        "baseline_clkout3_clkout2_delay_time": "0b000100",
+        "dqs0_clkout3_clkout2_delay_time": "0b000000"
+      },
+      "programming": {
+        "status": "PASS",
+        "done": true
+      },
+      "board_jtag": {
+        "magic_ok": true,
+        "probe_state": "PROBE_ERROR",
+        "init_state": "INIT_DONE",
+        "init_done": true,
+        "init_error": false,
+        "pll_locked": true,
+        "writes": 65536,
+        "reads": 65536,
+        "responses": 65536,
+        "mismatches": 65536,
+        "matches_v56_90deg_raw_payload": true,
+        "dfii_direct_repeated_words": [
+          "0x00575152",
+          "0x47414262",
+          "0x5751524b",
+          "0x00006200"
+        ],
+        "dfii_address_and_association_matrices_match_v56_90deg": true
+      },
+      "interpretation": "Changing only the routed sys4x_dqs phase from 90 degrees to 0 degrees leaves the board/JTAG signature unchanged. The artifact is a real phase variant, so this weakens the hypothesis that the present blocker is simply the no-ODELAY DQS phase choice."
+    },
+    "v57_dfii_no_write_discriminator": {
+      "purpose": "Suppress only the direct-DFII write command to test whether the v56 DFII readback is stale/write-independent or influenced by issuing writes.",
+      "implementation": {
+        "default_config_phy": "A7DDRPHY",
+        "dfii_disable_write_command": true,
+        "controller_path": "LiteDRAM/LiteX only",
+        "vivado_mig_lane": "rejected"
+      },
+      "guards": {
+        "default_config": {
+          "output": "/nix/store/njlki4yakl3ndca75p4s2bzgyg77lskz-h2-ypcb-litedram-config",
+          "sdram_phy": "A7DDRPHY",
+          "sdram_module_nb": 9
+        },
+        "rtl_check": {
+          "output": "/nix/store/nw9pmgk2vd34ybhqzn6lvq0z01q1y5cm-h2-ypcb-litedram-no-odelay-lowrate-rtl-check",
+          "odelaye2_mentions": 0,
+          "idelaye2_mentions": 288,
+          "sys4x_dqs_mentions": 13
+        },
+        "no_odelay_obuf_cutout": "/nix/store/kpd1i8dsw8br0ygj34cf5wxlxw1fvm49-task6-no-odelay-obuf-cutout.fasm",
+        "no_odelay_obufds_cutout": "/nix/store/f4fw0ch3lbk6gc63s2j9m1ivc37g668l-task6-no-odelay-obufds-cutout.fasm",
+        "old_odelay_negative_controls": "EXPECTED_FAIL: HR-bank IOB33/IOB33M outputs do not have ODELAY"
+      },
+      "artifacts": {
+        "json": "/nix/store/skqhhw122vhb5fplfff4c0v5hg80qb4x-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe.json",
+        "utilization": "/nix/store/vx40x9szjigck2p7b076wqi36mfcsn3m-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-utilization",
+        "fasm": "/nix/store/2wf8g3924zshid1bwm3ik5sw6n1r5cg1-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe.fasm",
+        "bitstream": "/nix/store/dyr1a7c299236ahs00p9ssdcnvabvcdb-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe.bit"
+      },
+      "mapped_utilization": {
+        "clb_luts": "17065 / 298600 (5.72%)",
+        "clb_ffs": "13286 / 597200 (2.22%)",
+        "dsp": "0 / 1920 (0.00%)",
+        "bram36": "0 / 955 (0.00%)",
+        "lower_bound_slices": "2134 / 74650 (2.86%)"
+      },
+      "nextpnr": {
+        "status": "PASS",
+        "target_mhz": 25,
+        "selected_utilization": {
+          "SLICE_LUTX": "22256 / 597200 (3%)",
+          "SLICE_FFX": "13286 / 597200 (2%)",
+          "IDELAYE2": "72 / 400 (18%)",
+          "OSERDESE2": "107 / 400 (26%)",
+          "ISERDESE2": "72 / 400 (18%)",
+          "IDELAYCTRL": "3 / 8 (37%)",
+          "BRAM": 0,
+          "DSP": 0
+        },
+        "max_frequency_mhz": {
+          "clk200": 589.97,
+          "user_clk": 72.39,
+          "core.iodelay_clk": 470.37,
+          "jtag_debug_shift.drck": 362.45
+        }
+      },
+      "programming": {
+        "status": "PASS",
+        "done": true
+      },
+      "board_jtag": {
+        "magic_ok": true,
+        "version": 57,
+        "probe_state": "PROBE_ERROR",
+        "init_state": "INIT_DONE",
+        "init_done": true,
+        "init_error": false,
+        "dfii_disable_write_command": true,
+        "writes": 65536,
+        "reads": 65536,
+        "responses": 65536,
+        "mismatches": 65536,
+        "native_samples_all_zero": true,
+        "dfii_mode_masks": {
+          "uniform": "0xffff",
+          "phase_constant": "0xffff",
+          "byte_ramp": "0xffff"
+        },
+        "dfii_command_phase_pass_combos": [],
+        "dfii_direct_repeated_words": [
+          "0xff000000",
+          "0x00000000",
+          "0x00000000",
+          "0x000000ff"
+        ],
+        "dfii_assoc_nonzero_mask_all_sources": "0x9999",
+        "dfii_assoc_match_mask_all_sources": "0x0000",
+        "dfii_addr_mismatch_mask_all_slots": "0xffff",
+        "dfii_addr_nonzero_mask_all_slots": "0x9999",
+        "dfii_addr_match_mask_all_slots": "0x0000",
+        "dfii_lane_bit_errors": [
+          0,
+          0,
+          0,
+          32,
+          25,
+          6,
+          7,
+          6
+        ]
+      },
+      "comparison_to_v56": {
+        "v56_repeated_words": [
+          "0x00575152",
+          "0x47414262",
+          "0x5751524b",
+          "0x00006200"
+        ],
+        "raw_signature_changed_when_write_command_suppressed": true
+      },
+      "interpretation": "Suppressing the DFII write command changes the direct-DFII board/JTAG signature relative to v56/v56-dqs0, so the v56 readback was not simply stale and write-independent. The next target is DFI write-data/read-data phase or beat association, byte-mask/DM semantics, per-bit order, or read capture latency."
+    },
     "open_flow_regression_guards": {
       "rtl_check": {
         "command": "nix build .#task6-ypcb-litedram-no-odelay-rtl-check --no-link --print-out-paths -L",
@@ -954,9 +1136,11 @@
       "The v55 low-rate probe shows that sys=25 MHz/sys4x=100 MHz still returns all-zero native and byte-enable data, so the blocker is unlikely to be only marginal high-rate timing.",
       "The DQ/DQS lane report shows all nine UCF byte-lane groups are package-bank consistent with their matching DQS pins, making a crude cross-bank lane-grouping error less likely.",
       "The v56 DFII column-address association probe returns stable nonzero direct DFII data at every tested column but no matches, weakening a simple column-address-offset hypothesis.",
-      "The current blocker is DQS phase/latency, DFI write/read phase/beat association, per-bit order, or board control wiring in the no-ODELAY LiteDRAM path, not the open implementation flow itself."
+      "The v56-dqs0 phase discriminator changes the routed sys4x_dqs phase to 0 degrees but produces the same raw board/JTAG signature, weakening a simple DQS-phase-only explanation.",
+      "The v57 no-write discriminator changes the raw direct-DFII signature when only the DFII write command is suppressed, so v56 was not simply stale/write-independent readback.",
+      "The current blocker is DQS phase/latency, DFI write/read phase/beat association, byte-mask/DM semantics, per-bit order, or read capture behavior in the no-ODELAY LiteDRAM path, not the open implementation flow itself."
     ],
-    "next_gate": "Build a compact DFII-only discriminator that changes one dimension at a time: DQS phase, write-data phase/beat source, read command phase, and read capture latency."
+    "next_gate": "Build and run a compact DFII phase/beat association probe that independently varies write-data source phase, write command phase, read command phase, and read capture latency."
   },
   "decision": {
     "verdict": "promote-open-bitstream-and-debug-ddr-data-integrity",
@@ -970,8 +1154,10 @@
       "The v44 clean full-scan byte-enable diagnostic shows the variable-data failure collapses through logical byte lane 4; the next experiment should map byte/phase association rather than widen delay sweeps.",
       "The v55 low-rate bitstream still fails after reducing the no-ODELAY PHY to sys=25 MHz/sys4x=100 MHz, so another broad clock-rate sweep is not the best next loop.",
       "The DQ/DQS lane report makes a crude cross-bank byte-lane grouping mistake unlikely.",
-      "The v56 low-rate DFII address sweep returns nonmatching nonzero data for every tested column, so a simple column-address-offset explanation is also unlikely."
+      "The v56 low-rate DFII address sweep returns nonmatching nonzero data for every tested column, so a simple column-address-offset explanation is also unlikely.",
+      "The v56-dqs0 routed phase variant returns the same board/JTAG signature as the 90-degree image, so a simple sys4x_dqs phase-only explanation is unlikely.",
+      "The v57 no-write discriminator changes the direct-DFII readback pattern when the DFII write command is suppressed, so the prior direct-DFII readback is influenced by issuing writes."
     ],
-    "next_gate": "Build and run a compact DFII-only discriminator over DQS phase, write-data phase/beat source, read command phase, and read capture latency before returning to native-port bandwidth."
+    "next_gate": "Build and run a compact DFII phase/beat association probe before returning to broader DQS/write-data/read-latency sweeps, native-port bandwidth, or rowstream integration."
   }
 }

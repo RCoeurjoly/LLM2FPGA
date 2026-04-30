@@ -3,7 +3,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter int READ_COUNT_LOG2 = 16,
   parameter int CAL_COUNT_LOG2 = 5,
   parameter int TIMEOUT_LOG2 = 28,
-  parameter int WB_TIMEOUT_LOG2 = 20
+  parameter int WB_TIMEOUT_LOG2 = 20,
+  parameter bit DFII_DISABLE_WRITE_COMMAND = 1'b0
 ) (
   input  wire          clk200_p,
   input  wire          clk200_n,
@@ -24,11 +25,12 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd56;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd57;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
   // A/B testing. v56 adds a compact DFII column-address association sweep.
+  // v57 adds a no-write discriminator flag for command reachability tests.
   localparam int CAL_BYTE_LANES = 8;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;
@@ -1265,13 +1267,14 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       8'd25: begin
         dfii_step_wb_addr = dfii_pi_command_addr(dfii_write_command_phase);
         dfii_step_wb_data =
-          DFII_COMMAND_CAS | DFII_COMMAND_WE | DFII_COMMAND_CS |
-          DFII_COMMAND_WRDATA;
+          DFII_DISABLE_WRITE_COMMAND ? 32'd0 :
+          (DFII_COMMAND_CAS | DFII_COMMAND_WE | DFII_COMMAND_CS |
+           DFII_COMMAND_WRDATA);
       end
       8'd26: begin
         dfii_step_wb_addr =
           dfii_pi_command_issue_addr(dfii_write_command_phase);
-        dfii_step_wb_data = 32'd1;
+        dfii_step_wb_data = DFII_DISABLE_WRITE_COMMAND ? 32'd0 : 32'd1;
       end
       8'd27: begin
         dfii_step_is_delay = 1'b1;
@@ -2683,6 +2686,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     jtag_debug_payload[3888 +: 64] = dfii_addr_mismatch_payload;
     jtag_debug_payload[3952 +: 64] = dfii_addr_nonzero_payload;
     jtag_debug_payload[4016 +: 64] = dfii_addr_match_payload;
+    jtag_debug_payload[4080 +: 1] = DFII_DISABLE_WRITE_COMMAND;
   end
 
   ypcb_litedram_core core (

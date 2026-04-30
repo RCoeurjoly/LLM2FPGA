@@ -12440,6 +12440,219 @@ Decision:
 
 - Do not return to native-port bandwidth or rowstream integration yet.
 - Next gate:
-  build a compact DFII-only discriminator that changes one dimension at a time:
-  DQS phase, write-data phase/beat source, read command phase, and read
-  capture latency.
+  build a compact DFII no-write discriminator. If readback is unchanged when
+  the write command is suppressed, the present payload is not being driven by
+  our writes and the next focus should be command/control reachability,
+  DRAM enable/reset behavior, or DFI command semantics.
+
+### 2026-04-30 - v56-dqs0 low-rate DQS phase discriminator
+
+Goal:
+
+- Test whether the low-rate no-ODELAY failure is explained by the selected
+  `sys4x_dqs` phase.
+
+Implementation:
+
+- Derived a low-rate no-ODELAY target from the v56 RTL and changed only the
+  generated PLL `CLKOUT3_PHASE` for `sys4x_dqs` from `90 deg` to `0 deg`.
+- Kept Vivado MIG rejected.
+
+Build result:
+
+- RTL guard:
+  `/nix/store/gkxagqchxrc79zcqw73hzx3kmbjssybq-h2-ypcb-litedram-no-odelay-lowrate-dqs0-rtl-check`
+  - `ODELAYE2`: `0` matches
+  - `IDELAYE2`: present
+  - `sys4x_dqs`: present
+  - `CLKOUT3_PHASE`: confirmed at `0 deg`
+- JSON:
+  `/nix/store/ajqzizrss2blx93slq42i80sla28vj1v-task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.json`
+- Bitstream:
+  `/nix/store/b1j51cxib6xx1al9cjlfsj82qvkqv2m9-task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.bit`
+- Yosys:
+  - check passed with `0` problems
+  - peak memory `864.34 MiB`
+  - estimated logic cells `13973`
+- nextpnr:
+  - `SLICE_LUTX`: `21887 / 597200` (`3%`)
+  - `SLICE_FFX`: `13284 / 597200` (`2%`)
+  - `IDELAYE2`: `72 / 400` (`18%`)
+  - `OSERDESE2`: `107 / 400` (`26%`)
+  - `ISERDESE2`: `72 / 400` (`18%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - BRAM: `0`
+  - DSP: `0`
+- Timing passed at the `25 MHz` target:
+  - `clk200`: `642.67 MHz`
+  - `user_clk`: `77.42 MHz`
+  - `core.iodelay_clk`: `480.54 MHz`
+  - `jtag_debug_shift.drck`: `328.62 MHz`
+
+Artifact check:
+
+- The `dqs0` FASM differs from the v56 `90 deg` FASM:
+  - v56 `90 deg` FASM:
+    `/nix/store/agvhcczc9p68lxl860649iby1v2yv9lc-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.fasm`
+  - `dqs0` FASM:
+    `/nix/store/mz016fiwqi6f6fphgxh25zzbrsiw5ybv-task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.fasm`
+  - the PLL `CLKOUT3_CLKOUT2_DELAY_TIME` changes from `0b000100` to
+    `0b000000`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/b1j51cxib6xx1al9cjlfsj82qvkqv2m9-task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG result:
+  - `magic_ok=true`
+  - `version=56`
+  - `state=PROBE_ERROR`
+  - `init_state=INIT_DONE`
+  - writes/reads/responses: `65536/65536/65536`
+  - mismatches: `65536`
+  - direct DFII repeated words:
+    `0x00575152`, `0x47414262`, `0x5751524b`, `0x00006200`
+  - DFII address and association matrices matched the v56 `90 deg` hardware
+    result exactly.
+
+Interpretation:
+
+- The `dqs0` artifact is a real routed phase variant, but the board/JTAG
+  failure signature is unchanged from the `90 deg` image.
+- This weakens the hypothesis that the present blocker is simply the
+  `sys4x_dqs` phase choice.
+- The next discriminator should suppress only the DFII write command. If the
+  raw payload remains unchanged, the readback is not being influenced by our
+  writes and the focus moves to command/control reachability or DRAM
+  enable/reset/pin behavior.
+
+### 2026-04-30 - v57 DFII no-write discriminator
+
+Goal:
+
+- Test whether the v56 direct-DFII readback is independent of the write command
+  itself. If disabling only the DFII write command leaves the raw payload
+  unchanged, command/control reachability or stale readback becomes the strongest
+  hypothesis.
+
+Implementation:
+
+- Kept the active YPCB DDR3 generator on LiteDRAM/LiteX only; Vivado MIG remains
+  rejected.
+- Changed the unqualified YPCB LiteDRAM config default to `A7DDRPHY`, since the
+  YPCB DDR3 pins are HR-bank pins and the old `K7DDRPHY` output-`ODELAYE2`
+  topology cannot be placed there.
+- Added `DFII_DISABLE_WRITE_COMMAND` to the init/bandwidth probe and exposed the
+  flag in the JTAG payload.
+- Added no-write flake targets:
+  - `task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-xdc`
+  - `task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-fasm`
+  - `task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-bitstream`
+
+Guard results:
+
+- Default YPCB LiteDRAM config:
+  `/nix/store/njlki4yakl3ndca75p4s2bzgyg77lskz-h2-ypcb-litedram-config`
+  - `sdram_phy`: `A7DDRPHY`
+  - `sdram_module_nb`: `9`
+  - controller path: LiteDRAM/LiteX only
+- Low-rate no-ODELAY RTL check:
+  `/nix/store/nw9pmgk2vd34ybhqzn6lvq0z01q1y5cm-h2-ypcb-litedram-no-odelay-lowrate-rtl-check`
+  - `ODELAYE2`: `0`
+  - `IDELAYE2` mentions: `288`
+  - `sys4x_dqs` mentions: `13`
+- No-ODELAY output-buffer smoke tests still pass:
+  - `/nix/store/kpd1i8dsw8br0ygj34cf5wxlxw1fvm49-task6-no-odelay-obuf-cutout.fasm`
+  - `/nix/store/f4fw0ch3lbk6gc63s2j9m1ivc37g668l-task6-no-odelay-obufds-cutout.fasm`
+- Old ODELAY output-buffer negative controls still fail as expected:
+  - `IOB33/OUTBUF`: `High range banks do not have ODELAY`
+  - `IOB33M/OUTBUF`: `High range banks do not have ODELAY`
+
+Build result:
+
+- JSON:
+  `/nix/store/skqhhw122vhb5fplfff4c0v5hg80qb4x-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/vx40x9szjigck2p7b076wqi36mfcsn3m-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-utilization`
+  - CLB LUTs: `17065 / 298600` (`5.72%`)
+  - CLB FFs: `13286 / 597200` (`2.22%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2134 / 74650` (`2.86%`)
+- FASM:
+  `/nix/store/2wf8g3924zshid1bwm3ik5sw6n1r5cg1-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe.fasm`
+- Bitstream:
+  `/nix/store/dyr1a7c299236ahs00p9ssdcnvabvcdb-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe.bit`
+- nextpnr selected utilization:
+  - `SLICE_LUTX`: `22256 / 597200` (`3%`)
+  - `SLICE_FFX`: `13286 / 597200` (`2%`)
+  - `IDELAYE2`: `72 / 400` (`18%`)
+  - `OSERDESE2`: `107 / 400` (`26%`)
+  - `ISERDESE2`: `72 / 400` (`18%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - BRAM: `0`
+  - DSP: `0`
+- Timing passed at the `25 MHz` target:
+  - `clk200`: `589.97 MHz`
+  - `user_clk`: `72.39 MHz`
+  - `core.iodelay_clk`: `470.37 MHz`
+  - `jtag_debug_shift.drck`: `362.45 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/dyr1a7c299236ahs00p9ssdcnvabvcdb-task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=57`
+  - `state=PROBE_ERROR`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_disable_write_command=true`
+  - native writes/reads/responses: `65536/65536/65536`
+  - native mismatches: `65536`
+  - native samples: all zero
+  - DFII mode masks all failed: `uniform=0xffff`, `phase_constant=0xffff`,
+    `byte_ramp=0xffff`
+  - DFII command-phase pass combos: none
+  - DFII read words repeated across phases:
+    `0xff000000`, `0x00000000`, `0x00000000`, `0x000000ff`
+  - DFII association matrix:
+    all sources returned `nonzero=0x9999`, `match=0x0000`
+  - DFII address matrix:
+    all four columns returned `mismatch=0xffff`, `nonzero=0x9999`,
+    `match=0x0000`
+  - DFII lane bit errors:
+    `[0, 0, 0, 32, 25, 6, 7, 6]`
+
+Interpretation:
+
+- The v57 no-write image changes the direct-DFII hardware signature relative to
+  v56/v56-dqs0. v56 read back repeated words
+  `0x00575152`, `0x47414262`, `0x5751524b`, `0x00006200`; v57 instead reads
+  the repeated edge-byte pattern `0xff000000`, `0x00000000`, `0x00000000`,
+  `0x000000ff`.
+- Therefore the v56 direct-DFII data was not just a stale, write-independent
+  readback. Issuing the DFII write command does influence the observed payload.
+- This weakens the broad command/control-not-reaching-DRAM hypothesis.
+- The remaining blocker is now narrower: DFI write-data/read-data phase or beat
+  association, byte-mask/DM semantics, per-bit/order mapping, or read capture
+  latency in the no-ODELAY path.
+
+Decision:
+
+- Keep the no-ODELAY LiteDRAM/LiteX lane active.
+- Do not connect rowstream or TinyStories logic yet.
+- Next gate:
+  build a compact DFII phase/beat association probe that varies write-data
+  source phase, write command phase, read command phase, and read capture
+  latency independently, using v57 as the command-reachability discriminator.

@@ -221,6 +221,7 @@ FIELDS = [
     ("dfii_addr_mismatch_masks", 3888, 64),
     ("dfii_addr_nonzero_masks", 3952, 64),
     ("dfii_addr_match_masks", 4016, 64),
+    ("dfii_disable_write_command", 4080, 1),
     ("first_chunk_mismatch_mask", 1728, 16),
 ]
 
@@ -858,11 +859,12 @@ def print_summary(result: dict[str, object]) -> None:
         )
     if fields.get("version", 0) < 49 or fields.get("version", 0) >= 54:
         print(
-            "dfii state={state} step={step} ack={ack} wait={wait} "
+            "dfii state={state} step={step} no_write={no_write} ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
                 state=decoded["dfii_seq_state"],
                 step=fields.get("dfii_step", 0),
+                no_write=bool(fields.get("dfii_disable_write_command", 0)),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
                 mask=fields.get("dfii_word_mismatch_mask", 0) & 0xFFFF,
