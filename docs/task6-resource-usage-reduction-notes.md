@@ -10877,3 +10877,59 @@ Decision:
   throughput justifies it.
 - Next gate: generate and validate a pack/unpack rowstream image, then build a
   DDR-free RTL rowstream cutout before integrating a DDR3 controller.
+
+### 2026-04-30 - DDR3 row-stream pack/unpack replay
+
+Goal:
+
+- Generate the concrete packed rowstream image for the full TinyStories output
+  head, unpack it, and prove that the unpacked stream reproduces the passing
+  full-vocab rowwise Q0.24 replay before building RTL around the interface.
+
+Implementation:
+
+- Added `scripts/task6/pack_ddr3_row_stream_image.py`.
+- Added flake package:
+  - `task6-ddr3-row-stream-pack-replay`
+- Copied durable bundle:
+  - `artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/`
+  - includes `summary.json` and `rowstream.bin`
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/pack_ddr3_row_stream_image.py`
+  - `nix-instantiate --parse flake.nix`
+- Pack/unpack replay:
+  - `nix build .#task6-ddr3-row-stream-pack-replay --no-link --print-out-paths -L`
+  - `/nix/store/p8xgkxbr0a8mqn44mlcmp1hcfgr6hxns-h2-ddr3-row-stream-pack-replay`
+- Result status: `PASS`
+
+Measured result:
+
+- Rowstream image:
+  - bytes: `3418496`
+  - rows per group: `32`
+  - group count: `1571`
+  - SHA256:
+    `2b30755a9a351538999cdc51cf9e7c6238672b2a0499bfb92b3f1dbf177b43b2`
+- Pack/unpack validation:
+  - quantized-weight mismatches: `0`
+  - Q0.24 scale mismatches: `0`
+  - reserved-byte violations: `0`
+  - tail-padding nonzero bytes: `0`
+- Replay validation from unpacked image:
+  - replay top-k mismatches vs previous rowwise replay: `0`
+  - top1 match count vs f32: `8 / 8`
+  - top5 overlap min vs f32: `4`
+  - top5 overlap mean vs f32: `4.875`
+  - max normalized RMSE: `0.009548773935420423`
+
+Decision:
+
+- Promote the packed rowstream format.
+- The full-output-head memory data is now concrete enough for RTL cutout work:
+  the next step should consume this image through a synthetic row source and
+  the existing Q0.24 comparator, still without integrating a DDR3 controller.
+- Next gate: build a DDR-free RTL rowstream cutout, then measure board DDR3
+  linear-read bandwidth before choosing the controller integration path.

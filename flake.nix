@@ -3059,6 +3059,26 @@
               --out "$out"
           '';
 
+        task6Ddr3RowStreamPackReplay =
+          pkgs.runCommand "h2-ddr3-row-stream-pack-replay" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./scripts/task6
+            }/pack_ddr3_row_stream_image.py \
+              --model-path ${tinyStories1m.snapshot} \
+              --model-artifact-label tiny-stories-1m-snapshot \
+              --adapter-path ${./TinyStories/model_adapter.py} \
+              --adapter-artifact-label TinyStories/model_adapter.py \
+              --contract-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-interface-contract.json
+              } \
+              --replay-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-replay.json
+              } \
+              --date 2026-04-30 \
+              --out-dir "$out"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -5817,6 +5837,8 @@
             task6FullVocabRowwiseTopkReplay;
           task6-ddr3-row-stream-interface-contract =
             task6Ddr3RowStreamInterfaceContract;
+          task6-ddr3-row-stream-pack-replay =
+            task6Ddr3RowStreamPackReplay;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =

@@ -1,0 +1,361 @@
+{
+  "artifact_name": "h2-ddr3-row-stream-pack-replay",
+  "date": "2026-04-30",
+  "decision": {
+    "next_gate": "Build a DDR-free RTL rowstream cutout that consumes this packed image through a synthetic source before integrating a DDR3 controller.",
+    "verdict": "promote-rowstream-pack-format"
+  },
+  "hypothesis": "The generated DDR3 rowstream image can be unpacked into the same rowwise int8/Q0.24 scores that passed the full-vocab replay.",
+  "pack_unpack_validation": {
+    "q_mismatch_count": 0,
+    "reserved_nonzero_count": 0,
+    "scale_q024_mismatch_count": 0,
+    "tail_padding_nonzero_bytes": 0
+  },
+  "replay_summary": {
+    "max_normalized_rmse": 0.009548773935420423,
+    "mean_normalized_rmse": 0.004927072944846944,
+    "min_normalized_rmse": 0.003177768486639652,
+    "p50_normalized_rmse": 0.004663438709721627,
+    "p90_normalized_rmse": 0.005412458858530541,
+    "p95_normalized_rmse": 0.009548773935420423,
+    "replay_topk_mismatch_count": 0,
+    "sample_count": 8,
+    "top1_match_count_vs_f32": 8,
+    "top1_match_rate_vs_f32": 1.0,
+    "top5_overlap_mean_vs_f32": 4.875,
+    "top5_overlap_min_vs_f32": 4
+  },
+  "rowstream_image": {
+    "bytes": 3418496,
+    "group_count": 1571,
+    "path": "rowstream.bin",
+    "row_format": "rowwise-int8-q024-inline-row",
+    "rows_per_group": 32,
+    "sha256": "2b30755a9a351538999cdc51cf9e7c6238672b2a0499bfb92b3f1dbf177b43b2"
+  },
+  "samples": [
+    {
+      "expected_replay_rowwise_q024_top5": [
+        198,
+        314,
+        1375,
+        447,
+        679
+      ],
+      "f32_top5": [
+        198,
+        314,
+        1375,
+        447,
+        679
+      ],
+      "matches_expected_replay_top5": true,
+      "rowwise_error": {
+        "max_abs_error": 0.13158863322894465,
+        "mean_abs_error": 0.017962236382359924,
+        "normalized_rmse": 0.004663438709721627,
+        "rmse": 0.022109172224482086,
+        "signal_max_abs": 13.684486442089714,
+        "signal_mean_abs": 4.740959107791478
+      },
+      "sample_id": "single_zero",
+      "token_ids": [
+        0
+      ],
+      "top5_overlap_vs_f32": 5,
+      "unpacked_rowstream_top5": [
+        198,
+        314,
+        1375,
+        447,
+        679
+      ]
+    },
+    {
+      "expected_replay_rowwise_q024_top5": [
+        40,
+        2949,
+        1026,
+        1639,
+        13787
+      ],
+      "f32_top5": [
+        40,
+        2949,
+        1026,
+        1639,
+        5756
+      ],
+      "matches_expected_replay_top5": true,
+      "rowwise_error": {
+        "max_abs_error": 0.1350441227668564,
+        "mean_abs_error": 0.013938139261129995,
+        "normalized_rmse": 0.005345467055549581,
+        "rmse": 0.01863919041070452,
+        "signal_max_abs": 16.139122865182063,
+        "signal_mean_abs": 3.486915215641185
+      },
+      "sample_id": "single_one",
+      "token_ids": [
+        1
+      ],
+      "top5_overlap_vs_f32": 4,
+      "unpacked_rowstream_top5": [
+        40,
+        2949,
+        1026,
+        1639,
+        13787
+      ]
+    },
+    {
+      "expected_replay_rowwise_q024_top5": [
+        3043,
+        18,
+        707,
+        20709,
+        5657
+      ],
+      "f32_top5": [
+        3043,
+        18,
+        20709,
+        707,
+        5657
+      ],
+      "matches_expected_replay_top5": true,
+      "rowwise_error": {
+        "max_abs_error": 0.13065804827352734,
+        "mean_abs_error": 0.019583742975054722,
+        "normalized_rmse": 0.009548773935420423,
+        "rmse": 0.024542846658097566,
+        "signal_max_abs": 12.881338863603723,
+        "signal_mean_abs": 2.57026156699111
+      },
+      "sample_id": "single_two",
+      "token_ids": [
+        2
+      ],
+      "top5_overlap_vs_f32": 5,
+      "unpacked_rowstream_top5": [
+        3043,
+        18,
+        707,
+        20709,
+        5657
+      ]
+    },
+    {
+      "expected_replay_rowwise_q024_top5": [
+        628,
+        198,
+        50256,
+        220,
+        1752
+      ],
+      "f32_top5": [
+        628,
+        198,
+        50256,
+        220,
+        1752
+      ],
+      "matches_expected_replay_top5": true,
+      "rowwise_error": {
+        "max_abs_error": 0.14416814148821122,
+        "mean_abs_error": 0.014264868202844443,
+        "normalized_rmse": 0.00362380966828208,
+        "rmse": 0.02009030497363816,
+        "signal_max_abs": 17.316989211182786,
+        "signal_mean_abs": 5.5439735561945955
+      },
+      "sample_id": "single_eos",
+      "token_ids": [
+        50256
+      ],
+      "top5_overlap_vs_f32": 5,
+      "unpacked_rowstream_top5": [
+        628,
+        198,
+        50256,
+        220,
+        1752
+      ]
+    },
+    {
+      "expected_replay_rowwise_q024_top5": [
+        387,
+        345,
+        1347,
+        11,
+        283
+      ],
+      "f32_top5": [
+        387,
+        345,
+        1347,
+        11,
+        283
+      ],
+      "matches_expected_replay_top5": true,
+      "rowwise_error": {
+        "max_abs_error": 0.12421262699445856,
+        "mean_abs_error": 0.01334601538477826,
+        "normalized_rmse": 0.004321106410636949,
+        "rmse": 0.01798859638547696,
+        "signal_max_abs": 13.079261843423552,
+        "signal_mean_abs": 4.162960750329073
+      },
+      "sample_id": "short_increment",
+      "token_ids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "top5_overlap_vs_f32": 5,
+      "unpacked_rowstream_top5": [
+        387,
+        345,
+        1347,
+        11,
+        283
+      ]
+    },
+    {
+      "expected_replay_rowwise_q024_top5": [
+        13,
+        290,
+        447,
+        366,
+        705
+      ],
+      "f32_top5": [
+        13,
+        290,
+        447,
+        366,
+        705
+      ],
+      "matches_expected_replay_top5": true,
+      "rowwise_error": {
+        "max_abs_error": 0.13935087546302505,
+        "mean_abs_error": 0.013787471502291801,
+        "normalized_rmse": 0.003177768486639652,
+        "rmse": 0.01899530788635884,
+        "signal_max_abs": 12.577173554241673,
+        "signal_mean_abs": 5.977561916867496
+      },
+      "sample_id": "short_even",
+      "token_ids": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "top5_overlap_vs_f32": 5,
+      "unpacked_rowstream_top5": [
+        13,
+        290,
+        447,
+        366,
+        705
+      ]
+    },
+    {
+      "expected_replay_rowwise_q024_top5": [
+        13,
+        531,
+        0,
+        355,
+        1282
+      ],
+      "f32_top5": [
+        13,
+        531,
+        0,
+        355,
+        1282
+      ],
+      "matches_expected_replay_top5": true,
+      "rowwise_error": {
+        "max_abs_error": 0.13596850803403449,
+        "mean_abs_error": 0.014886908128626607,
+        "normalized_rmse": 0.003323760433994693,
+        "rmse": 0.020235587658168352,
+        "signal_max_abs": 15.557226114619542,
+        "signal_mean_abs": 6.088160702318735
+      },
+      "sample_id": "mixed_low_mid",
+      "token_ids": [
+        42,
+        1024,
+        17,
+        2048
+      ],
+      "top5_overlap_vs_f32": 5,
+      "unpacked_rowstream_top5": [
+        13,
+        531,
+        0,
+        355,
+        1282
+      ]
+    },
+    {
+      "expected_replay_rowwise_q024_top5": [
+        628,
+        2164,
+        11011,
+        270,
+        198
+      ],
+      "f32_top5": [
+        628,
+        2164,
+        11011,
+        270,
+        198
+      ],
+      "matches_expected_replay_top5": true,
+      "rowwise_error": {
+        "max_abs_error": 0.12457210920831785,
+        "mean_abs_error": 0.014240829869884331,
+        "normalized_rmse": 0.005412458858530541,
+        "rmse": 0.018829473424731853,
+        "signal_max_abs": 16.107946473712488,
+        "signal_mean_abs": 3.478912988882094
+      },
+      "sample_id": "mixed_high",
+      "token_ids": [
+        50250,
+        128,
+        4096,
+        7
+      ],
+      "top5_overlap_vs_f32": 5,
+      "unpacked_rowstream_top5": [
+        628,
+        2164,
+        11011,
+        270,
+        198
+      ]
+    }
+  ],
+  "source_artifacts": {
+    "adapter_path": "TinyStories/model_adapter.py",
+    "ddr3_row_stream_interface_contract": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-interface-contract.json",
+    "full_vocab_rowwise_topk_replay": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-replay.json",
+    "model_path": "tiny-stories-1m-snapshot"
+  },
+  "status": "PASS",
+  "validation": {
+    "hardware_run": false,
+    "python_run": true,
+    "simulation_run": false,
+    "synthesis_run": false,
+    "validation_kind": "rowstream-pack-unpack-replay"
+  }
+}
