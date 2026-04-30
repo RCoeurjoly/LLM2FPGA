@@ -77,6 +77,104 @@ earns more work.
 - Fast-prune a lane after 1-2 measured attempts unless it exposes a new,
   narrower bottleneck that is worth isolating.
 
+### Execution doctrine: moonshot plus fast falsification
+
+Primary moonshot:
+
+- Fit a useful TinyStories-1M-derived inference design into the current FPGA
+  board envelope with open, reproducible techniques. Allowed techniques include
+  quantization, external memory, streaming/fusion, time-multiplexing,
+  DSP-first kernels, and structural compiler or RTL changes.
+- Do not count synthesis progress alone as board fit. A board-fit claim needs a
+  plausible memory/interface story and either board/JTAG evidence or a clear
+  path to it.
+
+Experiment ladder:
+
+- L0: isolated arithmetic or memory microkernel, with simulation plus
+  board/JTAG proof when physical behavior matters
+- L1: int8 MLP, attention, or memory sub-block, with board/JTAG proof when it
+  is a hardware-risk reducer
+- L2: one transformer-block-equivalent slice or a fused streaming substitute
+- L3: representative TinyStories core preserving relevant op/dialect and
+  structural coverage
+- L4: full TinyStories-1M replay, or a documented full-model successor if the
+  baseline evolves
+
+Promotion rule:
+
+- L0-L3 wins are hypotheses, not Task 6 success claims.
+- A result may be promoted only if it records:
+  - exact command or flake output
+  - artifact bundle
+  - wall time and peak `VmRSS` / `VmHWM` when available
+  - MLIR op stats or RTLIL/Yosys stage stats appropriate to the level
+  - mapped utilization delta
+  - board/JTAG result when applicable
+  - continue/prune decision
+- A Task 6 success claim must replay against the copied TinyStories baseline
+  bundle or against a documented full-model successor with an explicit
+  comparison bridge.
+
+Scaling knobs to measure:
+
+| Knob | Expected scaling signal | Why it matters here |
+| --- | --- | --- |
+| `vocab_size` | roughly `O(V * H * bitwidth)` for embedding/logit tables | vocab-sized memories already dominate eligible bits |
+| `hidden_size` | `O(H)` activations and often `O(H^2)` projection/MLP weights | controls whether kernels remain reusable or explode |
+| `num_layers` | roughly linear if materialized; lower if hardware is reused | decides whether board fit requires time-multiplexing |
+| `num_heads` / `head_dim` | affects attention fanout, buffering, and projection shape | separates attention cost from MLP/vocab cost |
+| context/window size | grows KV/intermediate memory with decode assumptions | distinguishes one-token selftests from useful decode |
+| bit width / quantization | memory mostly linear; arithmetic mapping non-linear | determines INT8/INT4 benefit and DSP/LUT tradeoff |
+| externalized memory count / bits | non-smooth stage-frontier shifts | top4/top32/top34 showed owner-specific phase changes |
+| streaming/fusion | fewer materialized intermediates if the schedule is real | matches the observed over-materialization failure mode |
+| DSP-first arithmetic | can trade LUT/FF growth for abundant DSP capacity | the board has far more DSP headroom than LUT/FF headroom |
+| time-multiplexed reuse | lowers area at latency/control cost | likely needed if layers cannot be fully materialized |
+
+Moonshot lanes to keep active:
+
+- External-memory mainline:
+  - current anchor is `top34-memory`, which moved the full-model frontier
+    through `stage6a`, `stage8b`, and final JSON emission
+  - next work must explain or reduce the LUT/FF growth and define the board
+    memory contract before choosing a DDR3 controller
+- JTAG-first int8/H2 lane:
+  - LEDs are acceptable only as coarse pass/fail
+  - detailed board diagnosis should expose state, operands, checksums, and
+    result indices through JTAG payloads
+- Representative-core scaling lane:
+  - use the smallest TinyStories-derived core that preserves relevant coverage
+    as the default inner loop
+  - replay representative wins on the copied baseline/full-model lane before
+    claiming Task 6 progress
+- StreamTensor-lite lane:
+  - make each experiment a concrete fused streaming MLP or attention-block
+    slice with a measurable delta target
+  - acceptable targets include fewer materialized memories, smaller RTLIL or
+    stage8 cell owners, lower peak RSS, or lower mapped LUT/FF
+- DSP-first arithmetic lane:
+  - use the passing int8 board kernels as the substrate for larger kernels
+  - measure whether DSP use rises while LUT/FF and route pressure fall
+- Quantization lane:
+  - keep only routes that move past frontend legality and change downstream
+    resource shape
+  - do not revive broad quantization patch stacks without a narrow measured
+    benefit
+
+Immediate execution order as of 2026-04-30:
+
+1. Grow the proven H2 v4k residual-add plus streamed output-head path by one
+   structure increment, keeping a JTAG payload in the first board image.
+2. Continue the full-model external-memory mainline with `top34-memory`
+   resource-owner analysis and board-memory accounting, not a DDR3 controller
+   selection yet.
+3. Add a small representative-core scaling matrix over vocab, layer count,
+   hidden size, bit width, and externalized-memory owner count.
+4. Start the next StreamTensor-lite experiment only after it has one explicit
+   delta target from the list above.
+5. Replay any promising representative or microkernel result on the copied
+   TinyStories baseline bundle or a documented full-model successor.
+
 ### Evidence contract for every lane
 
 Every active lane must leave behind:
