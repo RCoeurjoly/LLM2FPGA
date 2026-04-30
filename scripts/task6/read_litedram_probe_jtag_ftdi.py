@@ -99,6 +99,7 @@ def main() -> None:
                 not args.poll
                 or status["read_target_seen"]
                 or extended_status["probe_done"]
+                or decoded["decoded"]["state"] == "PROBE_DFII_DONE"
                 or extended_status["probe_error"]
                 or extended_status["probe_timeout"]
                 or status["init_error"]

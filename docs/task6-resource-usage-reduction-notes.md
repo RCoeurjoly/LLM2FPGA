@@ -378,6 +378,199 @@ Updated interpretation:
   per-module byte comparisons instead of treating the whole native word as the
   calibration unit.
 
+v32 LiteX-style read-leveling scan result:
+
+- Implemented the read-leveling scan gate:
+  - probe version: `32`
+  - JTAG payload width: `2400` bits
+  - after JEDEC init, the probe scans all `8` byte modules over `8` bitslips
+    and `32` read delays (`2048` candidates total)
+  - each candidate uses the DFII write/read path and scores the current
+    module's LiteX-style positive/negative edge bytes
+- Build outputs:
+  - JSON:
+    `/nix/store/fiwdxk9wp99xv9pvdp7afhvjva1zipfm-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json`
+  - bitstream:
+    `/nix/store/7rbdb3sk8rm5s1kmrfiq9iypc3zmsxp1-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+- Yosys result:
+  - `check` reported `0` problems
+  - peak memory: `792.69 MiB`
+  - estimated LCs: `11819`
+- nextpnr utilization:
+  - `SLICE_LUTX`: `21258 / 597200` (3%)
+  - `SLICE_FFX`: `12253 / 597200` (2%)
+  - `RAMB18E1/RAMB36E1`: 0
+  - `DSP48E1`: 0
+  - DDR PHY hard blocks: `IDELAYE2 64 / 400`, `OSERDESE2 98 / 400`,
+    `ISERDESE2 64 / 400`, `IDELAYCTRL 3 / 8`
+- Post-route timing:
+  - `clk200`: 532.20 MHz
+  - `user_clk`: 74.01 MHz
+  - `core.iodelay_clk`: 513.35 MHz
+  - `jtag_debug_shift.drck`: 462.32 MHz
+- Board/JTAG result after programming:
+  - `magic_ok=true`
+  - state: `PROBE_DFII_DONE`
+  - init state: `INIT_DONE`
+  - candidates tested: `2048 / 2048`
+  - global best candidate: `22` bit errors at `bitslip=0`, `delay=0`
+  - selected settings:
+    - `m0 b0/d3`, best errors `32`
+    - `m1 b0/d0`, best errors `26`
+    - `m2 b0/d7`, best errors `37`
+    - `m3 b0/d0`, best errors `29`
+    - `m4 b0/d0`, best errors `27`
+    - `m5 b0/d0`, best errors `22`
+    - `m6 b0/d0`, best errors `28`
+    - `m7 b0/d0`, best errors `27`
+
+Updated interpretation:
+
+- The read-leveling scan itself works and is observable through JTAG; it
+  completes all `2048` candidates without a timeout or CSR error.
+- No module has a zero-error read window. The best candidate still has `22`
+  bit errors in the LiteX-style per-module byte score.
+- That narrows the next hypothesis: the blocker is not simply a missing read
+  delay/bitslip sweep. The next open-flow probe should classify DFII data
+  packing and write-side timing/phase, for example with one-hot/byte-ramp DFII
+  write patterns and captured per-phase readback before another native-port
+  retry.
+
+v38-v44 DFII/native byte-lane classifier results:
+
+- v38 command-phase sweep:
+  - bitstream:
+    `/nix/store/8s8fr7y2djrlzk5zkjib4qnq85s51p6p-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+  - result: no write-phase/read-phase combination produced a variable-pattern
+    pass; mismatch masks stayed around `0xfff0` / `0xfffa`.
+- v39 WRDATA commit-order change:
+  - bitstream:
+    `/nix/store/j7b54rm40ibdfvhx9m3gwn62gjlr81g4-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+  - result: did not change the core signature; uniform DFII data still passed
+    while phase/byte-ramp patterns failed.
+- v40 direct-native shortcut:
+  - bitstream:
+    `/nix/store/s5p2gjgnp2hahfphbshbfzk2fqvkc43p-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+  - result: invalid debug route. Skipping the proven DFII/calibration setup
+    regressed to an init/probe error, so it is not DDR3 evidence.
+- v41 native BIST after restoring the proven setup:
+  - bitstream:
+    `/nix/store/9ixbljrwkkp9a1ignbh746jdzgzjmjlh-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+  - all `65536` native writes, reads, and responses completed
+  - all `65536` readback words mismatched
+  - first mismatch expected `0xc0de0000eca86420`, actual
+    `0x0000009800000000`
+  - sampled readback varied almost entirely in logical byte lane 4
+    (`[39:32]`)
+- v42 quick lane-setting experiment:
+  - bitstream:
+    `/nix/store/9mq5h3wg7qarag8ngs8gf1rbld4nkxja-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+  - result matched v41, but later inspection showed this was not a clean
+    "apply one setting globally" experiment: it skipped only lane 0 and still
+    scanned lanes 1-7. Treat it as an intermediate diagnostic, not a promoted
+    proof.
+- v43 byte-enable diagnostic:
+  - bitstream:
+    `/nix/store/xrr99jcpbjljbdi7m3wzfgqqgs933cvj-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+  - added masked native byte writes and exposed the eight readback words over
+    JTAG
+  - result: only logical byte lane 4 survived cleanly in that biased image,
+    matching the full-word native readback signature.
+- v44 clean full-scan byte-enable diagnostic:
+  - bitstream:
+    `/nix/store/8iijvvpci31nlz920mrrf7ygrv4z7lw6-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+  - probe version: `44`
+  - JTAG payload width: `3264` bits
+  - full scan completed all `16384` candidates
+  - selected lane settings:
+    - lanes 0-3 and 5-7: `write_bitslip=0`, `read_bitslip=0`, `delay=0`
+    - lane 4: `write_bitslip=2`, `read_bitslip=2`, `delay=17`
+  - lane best mismatch counts: `[12, 12, 12, 12, 3, 12, 12, 12]`
+  - DFII mode masks:
+    - uniform: `0x0000`
+    - phase-constant: `0xfffa`
+    - byte-ramp: `0xfffc`
+  - native BIST still completed all `65536` writes, reads, and responses with
+    `65536` mismatches
+  - first native mismatch expected `0xc0de0000eca86420`, actual
+    `0x000000c800000000`
+  - byte-enable diagnostic readback collapsed into logical byte lane 4:
+    byte writes with masks `0x02` through `0x80` returned values such as
+    `0x0000008100000000`, `0x0000000200000000`,
+    `0x0000008300000000`, and `0x0000008500000000`
+  - nextpnr utilization:
+    - `SLICE_LUTX`: `22595 / 597200` (3%)
+    - `SLICE_FFX`: `13899 / 597200` (2%)
+    - `RAMB18E1/RAMB36E1`: 0
+    - `DSP48E1`: 0
+    - `IDELAYE2`: `64 / 400` (16%)
+    - `OSERDESE2`: `98 / 400` (24%)
+    - `ISERDESE2`: `64 / 400` (16%)
+    - `IDELAYCTRL`: `3 / 8` (37%)
+  - post-route timing:
+    - `clk200`: 479.85 MHz
+    - `user_clk`: 67.31 MHz
+    - `core.iodelay_clk`: 573.07 MHz
+    - `jtag_debug_shift.drck`: 390.02 MHz
+
+Updated interpretation after v44:
+
+- The open LiteDRAM/LiteX lane is still healthy as an implementation path:
+  generated RTL has no `ODELAYE2`, P&R passes, programming passes, JEDEC init
+  completes, DFII CSR commands work, and native commands/responses complete.
+- The remaining blocker is not TinyStories, not Vivado MIG absence, and not a
+  generic open-toolchain P&R failure.
+- The blocker is now narrowed to data-lane association in the no-ODELAY
+  LiteDRAM path: variable data and masked native byte writes collapse through
+  logical byte lane 4, while uniform DFII bursts can round-trip.
+- The next useful hardware experiment is a smaller byte/phase association
+  matrix:
+  - write one distinctive DFII byte/phase/beat at a time
+  - capture which DFII read word and native byte lane sees it
+  - compare that matrix with the generated LiteDRAM DQ/DQS grouping and the
+    YPCB board pin metadata
+  - only after that, try a physical byte-lane permutation or a corrected DFI
+    burst/phase write-data order.
+
+Open-flow no-ODELAY guardrail result:
+
+- Added a generated-RTL check target:
+  - command:
+    `nix build .#task6-ypcb-litedram-no-odelay-rtl-check --no-link --print-out-paths -L`
+  - output:
+    `/nix/store/q7y1ajn85gg23yn0fcmv5dwg35ph088h-h2-ypcb-litedram-no-odelay-rtl-check`
+  - result: PASS
+  - `ODELAYE2` mentions: `0`
+  - `IDELAYE2` mentions: `256`
+  - `sys4x_dqs` mentions: `12`
+- Added minimal no-ODELAY output-buffer cutouts on the same
+  DDR3-relevant HR-bank pin set used by the failing `ODELAYE2` cutouts:
+  - `task6-no-odelay-obuf-cutout-fasm`:
+    `/nix/store/kpd1i8dsw8br0ygj34cf5wxlxw1fvm49-task6-no-odelay-obuf-cutout.fasm`
+  - `task6-no-odelay-obufds-cutout-fasm`:
+    `/nix/store/f4fw0ch3lbk6gc63s2j9m1ivc37g668l-task6-no-odelay-obufds-cutout.fasm`
+  - both P&R runs completed with `0` errors
+  - both used `0` `ODELAYE2` and `0` `IDELAYE2`
+  - the single-ended cutout placed `1` `IOB33_OUTBUF`
+  - the differential cutout placed `1` `IOB33M_OUTBUF` and
+    `1` `IOB33S_OUTBUF`
+- Re-ran the old `ODELAYE2` output-buffer cutouts as negative controls:
+  - `task6-odelay-obuf-cutout-fasm`: expected failure,
+    `BEL IOB_X0Y92/IOB33/OUTBUF is located on a high range bank. High range banks do not have ODELAY`
+  - `task6-odelay-obufds-cutout-fasm`: expected failure,
+    `BEL IOB_X0Y94/IOB33M/OUTBUF is located on a high range bank. High range banks do not have ODELAY`
+
+Updated interpretation:
+
+- The old `K7DDRPHY`/`ODELAYE2` output topology remains rejected for this
+  board, but plain HR-bank `OBUF`/`OBUFDS` output paths are valid in openXC7.
+- The active LiteDRAM/LiteX lane is correctly using the no-ODELAY Series-7
+  path: generated RTL has zero `ODELAYE2` instances and keeps the phase-shifted
+  `sys4x_dqs` clock needed by the no-ODELAY topology.
+- The remaining DDR3 blocker is therefore not the Series-7 PHY choice or the
+  HR-bank output-buffer legality; it is the data-integrity problem exposed by
+  v30-v32.
+
 ### Evidence contract for every lane
 
 Every active lane must leave behind:
@@ -11988,3 +12181,265 @@ Decision:
 - Next gate:
   - widen the JTAG payload to expose LiteDRAM init/calibration and DFI/PHY
     status signals, then rerun the same board-program/JTAG loop.
+
+### 2026-04-30 - No-ODELAY LiteDRAM clean payload and low-rate discriminator
+
+Goal:
+
+- Keep the DDR3 lane on the open LiteDRAM/LiteX path and test whether the
+  no-ODELAY failure is mainly a timing-rate problem or a lower-level
+  PHY/DFI/pin association problem.
+
+Implementation:
+
+- Kept Vivado MIG rejected.
+- Kept the active PHY on LiteDRAM's no-ODELAY Series-7 path (`A7DDRPHY`).
+- Added low-rate no-ODELAY targets:
+  - `task6-ypcb-litedram-no-odelay-lowrate-config`
+  - `task6-ypcb-litedram-no-odelay-lowrate-rtl-elaboration`
+  - `task6-ypcb-litedram-no-odelay-lowrate-rtl-check`
+  - `task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-xdc`
+  - `task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-fasm`
+  - `task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-bitstream`
+- Low-rate LiteDRAM clocks:
+  - `sys`: `25 MHz`
+  - `sys4x`: `100 MHz`
+  - `sys4x_dqs`: `100 MHz`, `90 deg`
+- Bumped the JTAG payload version to `55`; the v54 payload layout is unchanged.
+
+v54 clean payload result:
+
+- Bitstream:
+  `/nix/store/whj2k20lypqm2pf9kalzny1kx2xd8269-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+- Board/JTAG:
+  - `magic_ok=true`
+  - `version=54`
+  - `state=PROBE_ERROR`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - writes/reads/responses: `65536/65536/65536`
+  - mismatches: `65536`
+  - first mismatch expected `0xd0ce1010fcb87430`, actual `0x0000008100000000`
+  - DFII state `DFII_SEQ_DONE`, `ack=50`, `wait=150`
+  - DFII mode masks all failed: `uniform=0xffff`, `phase_constant=0xffff`,
+    `byte_ramp=0xffff`
+  - DFII command-phase pass combos: none
+  - byte-enable diagnostic samples all read back zero
+
+v55 low-rate build result:
+
+- RTL guard:
+  `/nix/store/d95vsfhp0ah4f0ij980rcsz3n0iaz2ci-h2-ypcb-litedram-no-odelay-lowrate-rtl-check`
+- RTL guard result:
+  - `ODELAYE2`: `0`
+  - `IDELAYE2` mentions: `288`
+  - `sys4x_dqs` mentions: `13`
+- Utilization:
+  `/nix/store/8x1b0w5a3hsczznxl6h760whv4lx83ni-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-utilization`
+- Mapped utilization:
+  - CLB LUTs: `15945 / 298600` (`5.34%`)
+  - CLB FFs: `12831 / 597200` (`2.15%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - Lower-bound slices: `1994 / 74650` (`2.67%`)
+- Bitstream:
+  `/nix/store/m56h2lxckxgxxj1b3m0c9hz4vix58qv3-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.bit`
+- Post-route timing:
+  - `clk200`: `716.33 MHz`
+  - `user_clk`: `64.09 MHz`
+  - `core.iodelay_clk`: `521.10 MHz`
+  - `jtag_debug_shift.drck`: `307.79 MHz`
+  - all pass against the `25 MHz` target
+- Board programming:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/m56h2lxckxgxxj1b3m0c9hz4vix58qv3-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.bit`
+  - result: SRAM load completed and `DONE` asserted
+- Board/JTAG:
+  - `magic_ok=true`
+  - `version=55`
+  - `state=PROBE_ERROR`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - writes/reads/responses: `65536/65536/65536`
+  - mismatches: `65536`
+  - first mismatch expected `0xd0ce1010fcb87430`, actual `0x0000000000000000`
+  - first eight native readback samples all read `0x0000000000000000`
+  - DFII state `DFII_SEQ_DONE`, `ack=50`, `wait=150`
+  - DFII mode masks all failed: `uniform=0xffff`, `phase_constant=0xffff`,
+    `byte_ramp=0xffff`
+  - DFII command-phase pass combos: none
+  - byte-enable diagnostic samples all read back zero
+
+Interpretation:
+
+- The open LiteDRAM/LiteX flow remains healthy: no ODELAYE2, open P&R passes,
+  programming passes, PLL locks, JEDEC init completes, and native commands and
+  responses complete.
+- Lowering the no-ODELAY PHY rate from `sys=50 MHz` / `sys4x=200 MHz` to
+  `sys=25 MHz` / `sys4x=100 MHz` does not recover DDR3 data.
+- That weakens the "marginal high-rate timing" hypothesis.
+- The remaining blocker is still below TinyStories and rowstream: PHY/DFI
+  command/address/data association, generated DQ/DQS grouping, or board pin
+  mapping/reset/control behavior.
+
+Decision:
+
+- Do not spend the next loop on another broad rate sweep.
+- Next gate:
+  - inspect generated LiteDRAM DQ/DQS grouping and YPCB pin metadata
+  - build a smaller DFII byte/phase/address association probe
+  - determine whether the fault is byte-lane permutation, DFI burst/phase
+    write-data ordering, address/command issue, or read-side capture behavior
+
+### 2026-04-30 - YPCB DDR3 DQ/DQS lane grouping report
+
+Goal:
+
+- Convert the DQ/DQS pin-order inspection into a reproducible open-metadata
+  artifact before building the next DFII byte/phase/address probe.
+
+Implementation:
+
+- Added `scripts/task6/write_ypcb_ddr3_lane_report.py`.
+- Added flake target:
+  - `task6-ypcb-ddr3-lane-report`
+- Inputs:
+  - `ypcbHack/constraints/MEMORY_CH0.ucf`
+  - `openXC7/prjxray-db/kintex7/xc7k480tffg1156-1/package_pins.csv`
+
+Result:
+
+- Command:
+  - `nix build .#task6-ypcb-ddr3-lane-report --no-link --print-out-paths -L`
+- Output:
+  - `/nix/store/lp631xkw395mjj3da9jhhmzy37cakgsr-h2-ypcb-ddr3-lane-report`
+- All nine UCF byte-lane groups are package-bank consistent with their matching
+  DQS pair:
+  - lanes `0-3`: bank `11`
+  - lanes `4-6` and `8`: bank `13`
+  - lane `7`: bank `12`
+
+Interpretation:
+
+- The UCF lane groups match the basic LiteDRAM expectation that
+  `dq[lane*8 : lane*8+7]` share the same bank as `dqs[lane]`.
+- This does not prove per-bit order, DFI phase/beat order, command/address
+  behavior, or read capture correctness.
+- It does make a crude cross-bank DQ/DQS grouping mistake less likely.
+
+Decision:
+
+- Use the bank-consistent UCF lane groups as the reference for the next compact
+  DFII byte/phase/address association probe.
+
+### 2026-04-30 - v56 compact DFII column-address association probe
+
+Goal:
+
+- Keep the DDR3 lane on the open LiteDRAM/LiteX no-ODELAY path and determine
+  whether the low-rate failure is explained by a simple DFII column-address
+  association error.
+
+Implementation:
+
+- Kept Vivado MIG rejected.
+- Kept the active bitstream on the low-rate LiteDRAM no-ODELAY target:
+  - `sys`: `25 MHz`
+  - `sys4x`: `100 MHz`
+  - `sys4x_dqs`: `100 MHz`, `90 deg`
+- Bumped the JTAG payload to version `56` and widened it to `4096` bits.
+- Added a four-slot DFII column-address sweep over:
+  - `0x0000`
+  - `0x0008`
+  - `0x0040`
+  - `0x0100`
+- Tagged the DFII write pattern by address slot so a simple shifted-column or
+  stale-column mapping could show up as a match in one slot.
+
+Build result:
+
+- JSON:
+  `/nix/store/ahy48ibm3pg2lkbqry87nxdgcb736bax-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.json`
+- Bitstream:
+  `/nix/store/krc1ldc2vsdf690bjv6wwkas8jxkqxvq-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.bit`
+- Yosys:
+  - check passed with `0` problems
+  - peak memory `862.42 MiB`
+  - estimated logic cells `13973`
+- nextpnr:
+  - `SLICE_LUTX`: `21887 / 597200` (`3%`)
+  - `SLICE_FFX`: `13284 / 597200` (`2%`)
+  - `IDELAYE2`: `72 / 400` (`18%`)
+  - `OSERDESE2`: `107 / 400` (`26%`)
+  - `ISERDESE2`: `72 / 400` (`18%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - BRAM: `0`
+  - DSP: `0`
+- Timing passed at the `25 MHz` target:
+  - `clk200`: `585.14 MHz`
+  - `user_clk`: `73.36 MHz`
+  - `core.iodelay_clk`: `517.06 MHz`
+  - `jtag_debug_shift.drck`: `323.31 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/krc1ldc2vsdf690bjv6wwkas8jxkqxvq-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=56`
+  - `state=PROBE_ERROR`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `pll_locked=true`
+  - writes/reads/responses: `65536/65536/65536`
+  - mismatches: `65536`
+  - first native mismatch expected `0xd0ce1010fcb87430`, actual
+    `0x0000000000000000`
+- DFII mode result:
+  - mode masks all failed: `uniform=0xffff`, `phase_constant=0xffff`,
+    `byte_ramp=0xffff`
+  - no write/read command-phase combination passed
+  - direct DFII reads were stable and nonzero, but not matching:
+    `0x00575152`, `0x47414262`, `0x5751524b`, `0x00006200`
+    repeated across phases
+- DFII association matrix:
+  - source `0`: nonzero mask `0x6666`, match mask `0x0000`
+  - source `1`: nonzero mask `0x5555`, match mask `0x0000`
+  - source `2`: nonzero mask `0xaaaa`, match mask `0x0000`
+  - sources `3-15`: nonzero mask `0x0000`, match mask `0x0000`
+- DFII address matrix:
+  - columns `0x0000`, `0x0008`, `0x0040`, and `0x0100` all returned
+    `mismatch=0xffff`, `nonzero=0xffff`, `match=0x0000`
+
+Interpretation:
+
+- The open LiteDRAM/LiteX flow remains viable: no-ODELAY synthesis, P&R,
+  programming, JEDEC init, DFII CSR access, and JTAG payload readback all work.
+- v56 weakens the simple column-address-offset hypothesis. Every tested column
+  returns nonmatching nonzero DFII data, and none matches the address-tagged
+  expected pattern.
+- v56 also keeps the failure below TinyStories and rowstream. The blocker is
+  still DDR3 physical/control association in the no-ODELAY LiteDRAM path.
+- The strongest remaining targets are:
+  - no-ODELAY DQS phase and write/read latency
+  - DFI write-data phase/beat source ordering
+  - read command phase and read capture latency
+  - per-bit order or subtler pin/control mapping issues not covered by the
+    bank-level DQ/DQS report
+
+Decision:
+
+- Do not return to native-port bandwidth or rowstream integration yet.
+- Next gate:
+  build a compact DFII-only discriminator that changes one dimension at a time:
+  DQS phase, write-data phase/beat source, read command phase, and read
+  capture latency.

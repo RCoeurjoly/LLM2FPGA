@@ -351,23 +351,627 @@
       },
       "interpretation": "LiteDRAM/LiteX JEDEC init, DFII CSR commands, and JTAG readback are alive on board; direct DFII data still mismatches without read-leveling."
     },
+    "v32_litex_read_leveling_scan": {
+      "bitstream": "/nix/store/7rbdb3sk8rm5s1kmrfiq9iypc3zmsxp1-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "json": "/nix/store/fiwdxk9wp99xv9pvdp7afhvjva1zipfm-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+      "status": "SCAN_COMPLETE_NO_ZERO_ERROR_WINDOW",
+      "jtag_debug_version": 32,
+      "jtag_debug_bits": 2400,
+      "probe_state": "PROBE_DFII_DONE",
+      "init_state": "INIT_DONE",
+      "calibration_candidates": 2048,
+      "global_best": {
+        "mismatches": 22,
+        "bitslip": 0,
+        "delay": 0
+      },
+      "lane_best_mismatch_counts": [32, 26, 37, 29, 27, 22, 28, 27],
+      "lane_selected_logical_bytes": [0, 1, 2, 3, 4, 5, 6, 7],
+      "lane_selected_settings": [
+        {"module": 0, "logical_byte": 0, "bitslip": 0, "delay": 3},
+        {"module": 1, "logical_byte": 1, "bitslip": 0, "delay": 0},
+        {"module": 2, "logical_byte": 2, "bitslip": 0, "delay": 7},
+        {"module": 3, "logical_byte": 3, "bitslip": 0, "delay": 0},
+        {"module": 4, "logical_byte": 4, "bitslip": 0, "delay": 0},
+        {"module": 5, "logical_byte": 5, "bitslip": 0, "delay": 0},
+        {"module": 6, "logical_byte": 6, "bitslip": 0, "delay": 0},
+        {"module": 7, "logical_byte": 7, "bitslip": 0, "delay": 0}
+      ],
+      "dfii_sequence_state": "DFII_SEQ_DONE",
+      "dfii_wb_ack_count": 50,
+      "dfii_wb_wait_count": 150,
+      "dfii_word_mismatch_mask": "0xffff",
+      "dfii_readback_examples": [
+        {
+          "index": 0,
+          "phase": 0,
+          "word": 0,
+          "expected": "0x11223344",
+          "actual": "0x00abbbcc",
+          "xor": "0x11898888"
+        },
+        {
+          "index": 1,
+          "phase": 0,
+          "word": 1,
+          "expected": "0x55667788",
+          "actual": "0x5566f788",
+          "xor": "0x00008000"
+        },
+        {
+          "index": 4,
+          "phase": 1,
+          "word": 0,
+          "expected": "0x22446688",
+          "actual": "0x0022bb44",
+          "xor": "0x2266ddcc"
+        },
+        {
+          "index": 8,
+          "phase": 2,
+          "word": 0,
+          "expected": "0x0f1e2d3c",
+          "actual": "0x00ffbbff",
+          "xor": "0x0fe196c3"
+        },
+        {
+          "index": 15,
+          "phase": 3,
+          "word": 3,
+          "expected": "0x33832795",
+          "actual": "0x5566f788",
+          "xor": "0x66e5d01d"
+        }
+      ],
+      "nextpnr_utilization": {
+        "SLICE_LUTX": "21258 / 597200 (3%)",
+        "SLICE_FFX": "12253 / 597200 (2%)",
+        "RAMB18E1": "0 / 1910 (0%)",
+        "RAMB36E1": "0 / 955 (0%)",
+        "DSP48E1": "0 / 1920 (0%)",
+        "IDELAYE2": "64 / 400 (16%)",
+        "OSERDESE2": "98 / 400 (24%)",
+        "ISERDESE2": "64 / 400 (16%)",
+        "IDELAYCTRL": "3 / 8 (37%)"
+      },
+      "post_route_max_freq_mhz": {
+        "clk200": 532.20,
+        "user_clk": 74.01,
+        "core.iodelay_clk": 513.35,
+        "jtag_debug_shift.drck": 462.32
+      },
+      "interpretation": "The LiteX-style per-module read-leveling scan completes all 2048 candidates, but no byte lane has a zero-error window; this shifts the next hypothesis away from read delay/bitslip alone and toward DFII packing, write phase, byte-lane direction, or command/data alignment."
+    },
+    "v34_big_csr_order_fix": {
+      "bitstream": "/nix/store/zvr2p2mfl679k7y62qlr6b459fkiw3f1-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "json": "/nix/store/579aq3v5zs7dhqvi10b3n78zx1n6wn1p-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+      "status": "CSR_ORDER_FIXED_DATA_STILL_MISMATCHES",
+      "jtag_debug_version": 34,
+      "probe_state": "PROBE_DFII_DONE",
+      "init_state": "INIT_DONE",
+      "dfii_word_mismatch_mask": "0xffff",
+      "lane_best_mismatch_counts": [12, 12, 12, 12, 10, 12, 10, 10],
+      "interpretation": "Reversing DFII wrdata/rddata subregister order to match CONFIG_CSR_ORDERING_BIG changed the failure from scrambled data to structured byte-ramp mismatch, proving the CSR-order bug was real but not the only issue."
+    },
+    "v35_write_bitslip_scan": {
+      "bitstream": "/nix/store/ym6k4xnqsx6lafwkv961lg8r2xgr3ys7-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "json": "/nix/store/58xf2ijzyrajc0sxac35frr90mdqqpsf-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+      "status": "WRITE_BITSLIP_MATTERS_NO_INTEGRATED_PASS",
+      "jtag_debug_version": 35,
+      "probe_state": "PROBE_DFII_DONE",
+      "init_state": "INIT_DONE",
+      "calibration_candidates": 16384,
+      "global_best": {
+        "mismatches": 0,
+        "read_bitslip": 3,
+        "write_bitslip": 3,
+        "delay": 0
+      },
+      "lane_best_mismatch_counts": [12, 12, 12, 12, 0, 10, 0, 10],
+      "lane_selected_settings": [
+        {"module": 0, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 1, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 2, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 3, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 4, "write_bitslip": 6, "read_bitslip": 3, "delay": 0},
+        {"module": 5, "write_bitslip": 1, "read_bitslip": 2, "delay": 9},
+        {"module": 6, "write_bitslip": 6, "read_bitslip": 3, "delay": 0},
+        {"module": 7, "write_bitslip": 0, "read_bitslip": 6, "delay": 4}
+      ],
+      "interpretation": "Adding write-bitslip to the scan showed write-side alignment matters: modules 4 and 6 reached zero-error candidates. The final captured DFII words were still the last candidate rather than a final all-selected verification pass, so v35 did not prove a selected-lane pass."
+    },
+    "v36_50mhz_final_selected_probe": {
+      "bitstream": "/nix/store/wiyzk7szrzmha2lx8bcqr3z7zrrad27s-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "json": "/nix/store/jgrj7innnymlc1w1hqs259rykr76455f-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+      "status": "FINAL_SELECTED_BYTE_RAMP_FAILS",
+      "jtag_debug_version": 36,
+      "jtag_debug_bits": 2400,
+      "system_clock_mhz": 50,
+      "synthesis_peak_mb": 777.67,
+      "probe_state": "PROBE_DFII_DONE",
+      "init_state": "INIT_DONE",
+      "calibration_candidates": 16384,
+      "dfii_word_mismatch_mask": "0xfffc",
+      "dfii_lane_bit_errors": [12, 12, 12, 12, 3, 12, 12, 12],
+      "lane_best_mismatch_counts": [12, 12, 12, 12, 3, 12, 12, 12],
+      "lane_selected_settings": [
+        {"module": 0, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 1, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 2, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 3, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 4, "write_bitslip": 2, "read_bitslip": 2, "delay": 17},
+        {"module": 5, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 6, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 7, "write_bitslip": 0, "read_bitslip": 0, "delay": 0}
+      ],
+      "post_route_max_freq_mhz": {
+        "user_clk": 69.14
+      },
+      "interpretation": "Regenerating LiteDRAM at 50 MHz made the generated clocking and P&R target agree, but final all-selected byte-ramp verification still failed. The first two 32-bit DFII words matched exactly and later words repeated earlier values, pointing at burst/phase/write-data sequencing rather than gross timing."
+    },
+    "v37_dfii_pattern_classifier": {
+      "bitstream": "/nix/store/mi74yrkgqv59h92zhc2r4bnnra559714-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "json": "/nix/store/4a1k42fyj09yjsny3jqldgy7hr48fwbg-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+      "rtl_check": "/nix/store/5hb6y6jn83b05c91xl95n7xi9v06sfnq-h2-ypcb-litedram-no-odelay-rtl-check",
+      "status": "UNIFORM_DFII_PASS_VARIABLE_BURST_FAILS",
+      "jtag_debug_version": 37,
+      "jtag_debug_bits": 2464,
+      "synthesis_peak_mb": 758.52,
+      "programming": "PASS",
+      "probe_state": "PROBE_DFII_DONE",
+      "init_state": "INIT_DONE",
+      "calibration_candidates": 16384,
+      "dfii_mode_mismatch_masks": {
+        "uniform": "0x0000",
+        "phase_constant": "0xfffa",
+        "byte_ramp": "0xfffc"
+      },
+      "dfii_byte_ramp_word_mismatch_mask": "0xfffc",
+      "dfii_lane_bit_errors": [12, 12, 12, 12, 3, 12, 12, 12],
+      "nextpnr_utilization": {
+        "SLICE_LUTX": "20967 / 597200 (3%)",
+        "SLICE_FFX": "12318 / 597200 (2%)",
+        "RAMB18E1": "0 / 1910 (0%)",
+        "RAMB36E1": "0 / 955 (0%)",
+        "DSP48E1": "0 / 1920 (0%)",
+        "IDELAYE2": "64 / 400 (16%)",
+        "OSERDESE2": "98 / 400 (24%)",
+        "ISERDESE2": "64 / 400 (16%)",
+        "IDELAYCTRL": "3 / 8 (37%)"
+      },
+      "post_route_max_freq_mhz": {
+        "clk200": 471.70,
+        "user_clk": 67.59,
+        "core.iodelay_clk": 630.52,
+        "jtag_debug_shift.drck": 402.41
+      },
+      "interpretation": "A uniform 16-word DFII burst round-trips with zero mismatches, while phase-constant and byte-ramp patterns fail. This strongly narrows the remaining bug to DFI burst/phase/write-data sequencing or data-order assumptions; it is no longer a generic no-ODELAY PHY, pin-map, CSR, JTAG, or gross timing failure."
+    },
+    "v38_command_phase_sweep": {
+      "bitstream": "/nix/store/8s8fr7y2djrlzk5zkjib4qnq85s51p6p-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "NO_PASSING_COMMAND_PHASE_COMBO",
+      "jtag_debug_version": 38,
+      "dfii_command_phase_pass_combos": [],
+      "dfii_command_phase_masks": "around 0xfff0 / 0xfffa",
+      "interpretation": "Changing DFII write/read command phase alone did not produce a variable-pattern pass."
+    },
+    "v39_wrdata_commit_order": {
+      "bitstream": "/nix/store/j7b54rm40ibdfvhx9m3gwn62gjlr81g4-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "VARIABLE_PATTERN_STILL_FAILS",
+      "jtag_debug_version": 39,
+      "interpretation": "Changing the WRDATA CSR commit order did not fix the structured DFII variable-pattern mismatch."
+    },
+    "v40_direct_native_shortcut": {
+      "bitstream": "/nix/store/s5p2gjgnp2hahfphbshbfzk2fqvkc43p-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "INVALID_DEBUG_ROUTE_INIT_PROBE_ERROR",
+      "jtag_debug_version": 40,
+      "interpretation": "Skipping the proven DFII/calibration setup regressed to an init/probe error; this is not DDR3 data-integrity evidence."
+    },
+    "v41_restored_setup_native_bist": {
+      "bitstream": "/nix/store/9ixbljrwkkp9a1ignbh746jdzgzjmjlh-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "NATIVE_COMMAND_FLOW_COMPLETE_DATA_COLLAPSE",
+      "jtag_debug_version": 41,
+      "probe_state": "PROBE_ERROR",
+      "init_state": "INIT_DONE",
+      "writes": 65536,
+      "reads": 65536,
+      "responses": 65536,
+      "mismatches": 65536,
+      "first_mismatch": {
+        "addr": 0,
+        "expected": "0xc0de0000eca86420",
+        "actual": "0x0000009800000000"
+      },
+      "readback_signature": "sampled readback varies almost entirely in logical byte lane 4 ([39:32])",
+      "nextpnr_utilization": {
+        "SLICE_LUTX": "21265 / 597200 (3%)",
+        "SLICE_FFX": "12867 / 597200 (2%)",
+        "RAMB18E1": "0 / 1910 (0%)",
+        "RAMB36E1": "0 / 955 (0%)",
+        "DSP48E1": "0 / 1920 (0%)"
+      },
+      "interpretation": "Restoring the proven setup brought native command flow back; the remaining failure is a data-lane collapse, not init or scheduler deadlock."
+    },
+    "v42_quick_lane_setting": {
+      "bitstream": "/nix/store/9mq5h3wg7qarag8ngs8gf1rbld4nkxja-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "INTERMEDIATE_NOT_GLOBAL_SETTING_PROOF",
+      "jtag_debug_version": 42,
+      "probe_state": "PROBE_ERROR",
+      "init_state": "INIT_DONE",
+      "writes": 65536,
+      "reads": 65536,
+      "responses": 65536,
+      "mismatches": 65536,
+      "first_mismatch": {
+        "addr": 0,
+        "expected": "0xc0de0000eca86420",
+        "actual": "0x0000009800000000"
+      },
+      "correction": "Later code inspection showed this image skipped only lane 0 and still scanned lanes 1-7; treat it as an intermediate diagnostic, not a global-lane-setting proof.",
+      "nextpnr_utilization": {
+        "SLICE_LUTX": "21277 / 597200 (3%)",
+        "SLICE_FFX": "12867 / 597200 (2%)",
+        "RAMB18E1": "0 / 1910 (0%)",
+        "RAMB36E1": "0 / 955 (0%)",
+        "DSP48E1": "0 / 1920 (0%)"
+      }
+    },
+    "v43_byte_enable_diagnostic": {
+      "bitstream": "/nix/store/xrr99jcpbjljbdi7m3wzfgqqgs933cvj-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "BIASED_BYTE_ENABLE_DIAG_LANE4_ONLY",
+      "jtag_debug_version": 43,
+      "jtag_debug_bits": 3264,
+      "probe_state": "PROBE_ERROR",
+      "init_state": "INIT_DONE",
+      "writes": 65536,
+      "reads": 65536,
+      "responses": 65536,
+      "mismatches": 65536,
+      "first_mismatch": {
+        "addr": 0,
+        "expected": "0xc0de0000eca86420",
+        "actual": "0x000000c800000000"
+      },
+      "byte_enable_result": "Only logical byte lane 4 survived cleanly in this biased image.",
+      "interpretation": "The byte-enable diagnostic matched the native full-word readback signature, but the lane-0 shortcut meant a clean full-scan rerun was needed."
+    },
+    "v44_clean_full_scan_byte_enable": {
+      "bitstream": "/nix/store/8iijvvpci31nlz920mrrf7ygrv4z7lw6-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "FULL_SCAN_COMPLETE_VARIABLE_DATA_COLLAPSES_TO_LANE4",
+      "jtag_debug_version": 44,
+      "jtag_debug_bits": 3264,
+      "probe_state": "PROBE_ERROR",
+      "init_state": "INIT_DONE",
+      "calibration_candidates": 16384,
+      "writes": 65536,
+      "reads": 65536,
+      "responses": 65536,
+      "mismatches": 65536,
+      "first_mismatch": {
+        "addr": 0,
+        "expected": "0xc0de0000eca86420",
+        "actual": "0x000000c800000000"
+      },
+      "dfii_mode_mismatch_masks": {
+        "uniform": "0x0000",
+        "phase_constant": "0xfffa",
+        "byte_ramp": "0xfffc"
+      },
+      "dfii_command_phase_pass_combos": [],
+      "lane_best_mismatch_counts": [12, 12, 12, 12, 3, 12, 12, 12],
+      "lane_selected_settings": [
+        {"module": 0, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 1, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 2, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 3, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 4, "write_bitslip": 2, "read_bitslip": 2, "delay": 17},
+        {"module": 5, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 6, "write_bitslip": 0, "read_bitslip": 0, "delay": 0},
+        {"module": 7, "write_bitslip": 0, "read_bitslip": 0, "delay": 0}
+      ],
+      "byte_enable_samples": [
+        {"index": 0, "write_enable": "0x01", "expected": "0x00000000000000a0", "actual": "0x0000000000000000"},
+        {"index": 1, "write_enable": "0x02", "expected": "0x000000000000a100", "actual": "0x0000008100000000"},
+        {"index": 2, "write_enable": "0x04", "expected": "0x0000000000a20000", "actual": "0x0000000200000000"},
+        {"index": 3, "write_enable": "0x08", "expected": "0x00000000a3000000", "actual": "0x0000008300000000"},
+        {"index": 4, "write_enable": "0x10", "expected": "0x000000a400000000", "actual": "0x0000000400000000"},
+        {"index": 5, "write_enable": "0x20", "expected": "0x0000a50000000000", "actual": "0x0000008500000000"},
+        {"index": 6, "write_enable": "0x40", "expected": "0x00a6000000000000", "actual": "0x0000008500000000"},
+        {"index": 7, "write_enable": "0x80", "expected": "0xa700000000000000", "actual": "0x0000008500000000"}
+      ],
+      "nextpnr_utilization": {
+        "SLICE_LUTX": "22595 / 597200 (3%)",
+        "SLICE_FFX": "13899 / 597200 (2%)",
+        "RAMB18E1": "0 / 1910 (0%)",
+        "RAMB36E1": "0 / 955 (0%)",
+        "DSP48E1": "0 / 1920 (0%)",
+        "IDELAYE2": "64 / 400 (16%)",
+        "OSERDESE2": "98 / 400 (24%)",
+        "ISERDESE2": "64 / 400 (16%)",
+        "IDELAYCTRL": "3 / 8 (37%)"
+      },
+      "post_route_max_freq_mhz": {
+        "clk200": 479.85,
+        "user_clk": 67.31,
+        "core.iodelay_clk": 573.07,
+        "jtag_debug_shift.drck": 390.02
+      },
+      "interpretation": "Clean full-scan evidence confirms that variable DFII/native data and masked byte writes collapse through logical byte lane 4. The next target is byte/phase association, not another broad delay sweep."
+    },
+    "v54_clean_dfii_jtag_payload": {
+      "bitstream": "/nix/store/whj2k20lypqm2pf9kalzny1kx2xd8269-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "DATA_INTEGRITY_FAIL_CLEAN_PAYLOAD",
+      "jtag_debug_version": 54,
+      "probe_state": "PROBE_ERROR",
+      "init_state": "INIT_DONE",
+      "init_done": true,
+      "init_error": false,
+      "pll_locked": true,
+      "writes": 65536,
+      "reads": 65536,
+      "responses": 65536,
+      "mismatches": 65536,
+      "first_mismatch": {
+        "addr": 0,
+        "expected": "0xd0ce1010fcb87430",
+        "actual": "0x0000008100000000"
+      },
+      "dfii": {
+        "state": "DFII_SEQ_DONE",
+        "ack": 50,
+        "wait": 150,
+        "mode_mismatch_masks": {
+          "uniform": "0xffff",
+          "phase_constant": "0xffff",
+          "byte_ramp": "0xffff"
+        },
+        "command_phase_pass_combos": []
+      },
+      "byte_enable_samples": "all zero",
+      "interpretation": "The v53 overlapping-payload artifact was removed. Clean v54 evidence shows init and command plumbing complete, but native and DFII data paths still fail."
+    },
+    "v55_lowrate_probe": {
+      "bitstream": "/nix/store/m56h2lxckxgxxj1b3m0c9hz4vix58qv3-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.bit",
+      "status": "LOWRATE_DATA_INTEGRITY_FAIL",
+      "jtag_debug_version": 55,
+      "sys_clk_freq_mhz": 25,
+      "sys4x_freq_mhz": 100,
+      "sys4x_dqs_phase_deg": 90,
+      "rtl_check": {
+        "output": "/nix/store/d95vsfhp0ah4f0ij980rcsz3n0iaz2ci-h2-ypcb-litedram-no-odelay-lowrate-rtl-check",
+        "odelaye2_mentions": 0,
+        "idelaye2_mentions": 288,
+        "sys4x_dqs_mentions": 13
+      },
+      "utilization": {
+        "output": "/nix/store/8x1b0w5a3hsczznxl6h760whv4lx83ni-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-utilization",
+        "clb_luts": "15945 / 298600 (5.34%)",
+        "clb_ffs": "12831 / 597200 (2.15%)",
+        "dsp": "0 / 1920 (0.00%)",
+        "bram36": "0 / 955 (0.00%)",
+        "slices_lower_bound": "1994 / 74650 (2.67%)"
+      },
+      "post_route_max_freq_mhz": {
+        "clk200": 716.33,
+        "user_clk": 64.09,
+        "core.iodelay_clk": 521.10,
+        "jtag_debug_shift.drck": 307.79
+      },
+      "programming": {
+        "status": "PASS",
+        "done": true
+      },
+      "board_jtag": {
+        "magic_ok": true,
+        "probe_state": "PROBE_ERROR",
+        "init_state": "INIT_DONE",
+        "init_done": true,
+        "init_error": false,
+        "pll_locked": true,
+        "writes": 65536,
+        "reads": 65536,
+        "responses": 65536,
+        "mismatches": 65536,
+        "first_mismatch": {
+          "addr": 0,
+          "expected": "0xd0ce1010fcb87430",
+          "actual": "0x0000000000000000"
+        },
+        "first_eight_native_samples": "all zero",
+        "dfii_state": "DFII_SEQ_DONE",
+        "dfii_mode_mismatch_masks": {
+          "uniform": "0xffff",
+          "phase_constant": "0xffff",
+          "byte_ramp": "0xffff"
+        },
+        "dfii_command_phase_pass_combos": [],
+        "byte_enable_samples": "all zero"
+      },
+      "interpretation": "Dropping the no-ODELAY LiteDRAM PHY from sys=50 MHz/sys4x=200 MHz to sys=25 MHz/sys4x=100 MHz does not recover DDR3 data. This weakens the marginal high-rate timing hypothesis and points the next probe at PHY/DFI command, address, byte/phase association, DQ/DQS grouping, or board control wiring."
+    },
+    "dq_dqs_lane_report": {
+      "command": "nix build .#task6-ypcb-ddr3-lane-report --no-link --print-out-paths -L",
+      "output": "/nix/store/lp631xkw395mjj3da9jhhmzy37cakgsr-h2-ypcb-ddr3-lane-report",
+      "status": "PASS",
+      "source_artifacts": {
+        "memory_ch0_ucf": "ypcbHack/constraints/MEMORY_CH0.ucf",
+        "package_pins_csv": "openXC7/prjxray-db/kintex7/xc7k480tffg1156-1/package_pins.csv"
+      },
+      "lane_bank_summary": {
+        "lanes_0_to_3": "bank 11",
+        "lanes_4_to_6_and_8": "bank 13",
+        "lane_7": "bank 12"
+      },
+      "all_lanes_same_bank_as_dqs": true,
+      "interpretation": "The UCF lane groups match the basic LiteDRAM expectation that dq[lane*8..lane*8+7] share the same package bank as dqs[lane]. This does not prove bit order or DFI phase/beat order, but makes a crude cross-bank DQ/DQS grouping mistake unlikely."
+    },
+    "v56_dfii_column_address_association_probe": {
+      "bitstream": "/nix/store/krc1ldc2vsdf690bjv6wwkas8jxkqxvq-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.bit",
+      "json": "/nix/store/ahy48ibm3pg2lkbqry87nxdgcb736bax-task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.json",
+      "status": "LOWRATE_DFII_ADDRESS_ASSOCIATION_FAIL",
+      "jtag_debug_version": 56,
+      "jtag_debug_bits": 4096,
+      "sys_clk_freq_mhz": 25,
+      "sys4x_freq_mhz": 100,
+      "sys4x_dqs_phase_deg": 90,
+      "synthesis": {
+        "status": "PASS",
+        "check_problems": 0,
+        "yosys_peak_mb": 862.42,
+        "estimated_lcs": 13973
+      },
+      "place_and_route": {
+        "status": "PASS",
+        "target_freq_mhz": 25,
+        "selected_nextpnr_utilization": {
+          "SLICE_LUTX": "21887 / 597200 (3%)",
+          "SLICE_FFX": "13284 / 597200 (2%)",
+          "IDELAYE2": "72 / 400 (18%)",
+          "OSERDESE2": "107 / 400 (26%)",
+          "ISERDESE2": "72 / 400 (18%)",
+          "IDELAYCTRL": "3 / 8 (37%)",
+          "RAMB18E1": "0 / 1910 (0%)",
+          "RAMB36E1": "0 / 955 (0%)",
+          "DSP48E1": "0 / 1920 (0%)"
+        },
+        "post_route_max_freq_mhz": {
+          "clk200": 585.14,
+          "user_clk": 73.36,
+          "core.iodelay_clk": 517.06,
+          "jtag_debug_shift.drck": 323.31
+        }
+      },
+      "programming": {
+        "status": "PASS",
+        "done": true
+      },
+      "board_jtag": {
+        "magic_ok": true,
+        "probe_state": "PROBE_ERROR",
+        "init_state": "INIT_DONE",
+        "init_done": true,
+        "init_error": false,
+        "pll_locked": true,
+        "writes": 65536,
+        "reads": 65536,
+        "responses": 65536,
+        "mismatches": 65536,
+        "first_mismatch": {
+          "addr": 0,
+          "expected": "0xd0ce1010fcb87430",
+          "actual": "0x0000000000000000"
+        },
+        "dfii_state": "DFII_SEQ_DONE",
+        "dfii_mode_mismatch_masks": {
+          "uniform": "0xffff",
+          "phase_constant": "0xffff",
+          "byte_ramp": "0xffff"
+        },
+        "dfii_command_phase_pass_combos": [],
+        "dfii_direct_repeated_words": [
+          "0x00575152",
+          "0x47414262",
+          "0x5751524b",
+          "0x00006200"
+        ],
+        "dfii_assoc_matrix_summary": [
+          {"source": 0, "nonzero_mask": "0x6666", "match_mask": "0x0000"},
+          {"source": 1, "nonzero_mask": "0x5555", "match_mask": "0x0000"},
+          {"source": 2, "nonzero_mask": "0xaaaa", "match_mask": "0x0000"},
+          {"source_range": "3-15", "nonzero_mask": "0x0000", "match_mask": "0x0000"}
+        ],
+        "dfii_address_matrix": [
+          {"slot": 0, "column": "0x0000", "mismatch_mask": "0xffff", "nonzero_mask": "0xffff", "match_mask": "0x0000"},
+          {"slot": 1, "column": "0x0008", "mismatch_mask": "0xffff", "nonzero_mask": "0xffff", "match_mask": "0x0000"},
+          {"slot": 2, "column": "0x0040", "mismatch_mask": "0xffff", "nonzero_mask": "0xffff", "match_mask": "0x0000"},
+          {"slot": 3, "column": "0x0100", "mismatch_mask": "0xffff", "nonzero_mask": "0xffff", "match_mask": "0x0000"}
+        ]
+      },
+      "interpretation": "The low-rate no-ODELAY design can return stable nonzero direct DFII data, but the data does not match any write/read command phase or any tested address-tagged column slot. This weakens a simple column-address-offset hypothesis and points the next loop at DQS phase/latency and DFI write/read phase/beat association."
+    },
+    "open_flow_regression_guards": {
+      "rtl_check": {
+        "command": "nix build .#task6-ypcb-litedram-no-odelay-rtl-check --no-link --print-out-paths -L",
+        "output": "/nix/store/5hb6y6jn83b05c91xl95n7xi9v06sfnq-h2-ypcb-litedram-no-odelay-rtl-check",
+        "status": "PASS",
+        "odelaye2_mentions": 0,
+        "idelaye2_mentions": 256,
+        "sys4x_dqs_mentions": 12
+      },
+      "no_odelay_obuf_cutout": {
+        "command": "nix build .#task6-no-odelay-obuf-cutout-fasm --no-link --print-out-paths -L",
+        "output": "/nix/store/kpd1i8dsw8br0ygj34cf5wxlxw1fvm49-task6-no-odelay-obuf-cutout.fasm",
+        "status": "PASS",
+        "pin_topology": "data_i -> OBUF -> data_o on the same DDR3-relevant HR-bank cutout pin set",
+        "nextpnr_errors": 0,
+        "odelaye2_used": 0,
+        "idelaye2_used": 0,
+        "selected_output_cells": {
+          "IOB33_OUTBUF": 1
+        }
+      },
+      "no_odelay_obufds_cutout": {
+        "command": "nix build .#task6-no-odelay-obufds-cutout-fasm --no-link --print-out-paths -L",
+        "output": "/nix/store/f4fw0ch3lbk6gc63s2j9m1ivc37g668l-task6-no-odelay-obufds-cutout.fasm",
+        "status": "PASS",
+        "pin_topology": "data_i -> OBUFDS -> data_p/data_n on the same DDR3-relevant HR-bank cutout pin set",
+        "nextpnr_errors": 0,
+        "odelaye2_used": 0,
+        "idelaye2_used": 0,
+        "selected_output_cells": {
+          "IOB33M_OUTBUF": 1,
+          "IOB33S_OUTBUF": 1
+        }
+      },
+      "old_odelay_negative_controls": {
+        "odelay_obuf_cutout": {
+          "command": "nix build .#task6-odelay-obuf-cutout-fasm --no-link --print-out-paths -L",
+          "status": "EXPECTED_FAIL",
+          "error": "BEL IOB_X0Y92/IOB33/OUTBUF is located on a high range bank. High range banks do not have ODELAY"
+        },
+        "odelay_obufds_cutout": {
+          "command": "nix build .#task6-odelay-obufds-cutout-fasm --no-link --print-out-paths -L",
+          "status": "EXPECTED_FAIL",
+          "error": "BEL IOB_X0Y94/IOB33M/OUTBUF is located on a high range bank. High range banks do not have ODELAY"
+        }
+      },
+      "interpretation": "The old K7DDRPHY ODELAY topology remains the rejected topology. Plain HR-bank output buffers route cleanly, and the generated no-ODELAY LiteDRAM RTL has the required phase-shifted sys4x_dqs clock with zero ODELAYE2 instances."
+    },
     "current_interpretation": [
       "The open LiteDRAM/LiteX flow is not the blocker: synthesis, P&R, programming, JEDEC init, DFII CSR commands, and JTAG readback work.",
+      "The no-ODELAY regression guards pass: generated LiteDRAM RTL has no ODELAYE2, and minimal HR-bank OBUF/OBUFDS cutouts route cleanly.",
       "The remaining blocker is DDR3 data integrity.",
       "The byte-map diagnostic does not show a clean physical-module to native-byte permutation.",
       "The v30 sampler shows the lower 32 bits stuck at zero across the first eight final native readback samples.",
-      "The v31 DFII direct round-trip returns nonzero data but mismatches all 16 words, so the next test must implement LiteX-style per-module read-leveling."
+      "The v31 DFII direct round-trip returns nonzero data but mismatches all 16 words.",
+      "The v32 LiteX-style read-leveling scan completes all candidates but finds no zero-error window, so read delay/bitslip alone is not sufficient.",
+      "The v34 CSR-order fix, v35 write-bitslip scan, and v36 final-selected pass narrowed the failure to structured DFII burst data repetition.",
+      "The v37 classifier proves a uniform DFII burst passes while phase-constant and byte-ramp bursts fail, so the next target is DFI burst/phase/write-data sequencing.",
+      "The v38 command-phase sweep found no passing write/read phase combination.",
+      "The v41-v44 native and byte-enable probes show variable data collapsing through logical byte lane 4 even after a clean full per-lane scan.",
+      "The v42 quick lane-setting image was not a true global-lane-setting proof and should not be cited as one.",
+      "The v54 clean payload confirms the integrated native and DFII failures without the v53 decoder overlap artifact.",
+      "The v55 low-rate probe shows that sys=25 MHz/sys4x=100 MHz still returns all-zero native and byte-enable data, so the blocker is unlikely to be only marginal high-rate timing.",
+      "The DQ/DQS lane report shows all nine UCF byte-lane groups are package-bank consistent with their matching DQS pins, making a crude cross-bank lane-grouping error less likely.",
+      "The v56 DFII column-address association probe returns stable nonzero direct DFII data at every tested column but no matches, weakening a simple column-address-offset hypothesis.",
+      "The current blocker is DQS phase/latency, DFI write/read phase/beat association, per-bit order, or board control wiring in the no-ODELAY LiteDRAM path, not the open implementation flow itself."
     ],
-    "next_gate": "Implement the LiteX-style read-leveling scan with DFII pattern checks and per-module byte comparisons."
+    "next_gate": "Build a compact DFII-only discriminator that changes one dimension at a time: DQS phase, write-data phase/beat source, read command phase, and read capture latency."
   },
   "decision": {
     "verdict": "promote-open-bitstream-and-debug-ddr-data-integrity",
     "what_was_learned": [
       "The open LiteDRAM/LiteX DDR3 lane can now synthesize, place, route, emit a bitstream, program the board, and expose an autonomous JTAG payload.",
       "The K7DDRPHY failure was not a full-controller scale issue; the A7DDRPHY no-ODELAY variant avoids the HR-bank output-ODELAY blocker.",
+      "The no-ODELAY cutouts prove the same HR-bank output-buffer sites route when ODELAYE2 is removed.",
       "JEDEC init, native writes, native reads, DFII CSR commands, and JTAG sampling all complete.",
-      "The remaining blocker is DDR3 data integrity: sampled native reads have the lower 32 bits stuck at zero and direct DFII readback also mismatches without read-leveling."
+      "The remaining blocker is DDR3 data integrity: sampled native reads have the lower 32 bits stuck at zero, direct DFII readback mismatches, and the v32 read-leveling scan finds no zero-error lane window.",
+      "The v37 pattern classifier proves the physical path can round-trip a uniform DFII burst, but variable phase/beat data still aliases or repeats.",
+      "The v44 clean full-scan byte-enable diagnostic shows the variable-data failure collapses through logical byte lane 4; the next experiment should map byte/phase association rather than widen delay sweeps.",
+      "The v55 low-rate bitstream still fails after reducing the no-ODELAY PHY to sys=25 MHz/sys4x=100 MHz, so another broad clock-rate sweep is not the best next loop.",
+      "The DQ/DQS lane report makes a crude cross-bank byte-lane grouping mistake unlikely.",
+      "The v56 low-rate DFII address sweep returns nonmatching nonzero data for every tested column, so a simple column-address-offset explanation is also unlikely."
     ],
-    "next_gate": "Implement the LiteX-style read-leveling scan with DFII pattern checks and per-module byte comparisons."
+    "next_gate": "Build and run a compact DFII-only discriminator over DQS phase, write-data phase/beat source, read command phase, and read capture latency before returning to native-port bandwidth."
   }
 }

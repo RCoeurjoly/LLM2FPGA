@@ -3165,6 +3165,22 @@
               --out "$out"
           '';
 
+        task6YpcbDdr3LaneReport =
+          pkgs.runCommand "h2-ypcb-ddr3-lane-report" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/write_ypcb_ddr3_lane_report.py \
+              --memory-ch0-ucf ${ypcbHack}/constraints/MEMORY_CH0.ucf \
+              --memory-ch0-ucf-artifact-label ypcbHack/constraints/MEMORY_CH0.ucf \
+              --package-pins-csv ${
+                openXC7Nextpnr
+              }/share/nextpnr/external/prjxray-db/${fpgaPartFamily}/${fpgaPartName}/package_pins.csv \
+              --package-pins-csv-artifact-label openXC7/prjxray-db/${fpgaPartFamily}/${fpgaPartName}/package_pins.csv \
+              --date 2026-04-30 \
+              --out-dir "$out"
+          '';
+
         task6LiteDramOpenControllerProbe =
           pkgs.runCommand "h2-litedram-open-controller-probe.json" { } ''
             ${liteDramPython}/bin/python ${
@@ -3210,7 +3226,27 @@
               --board-xml ${ypcbHack}/ypcb003381p1/1.0/board.xml \
               --board-xml-artifact-label ypcbHack/ypcb003381p1/1.0/board.xml \
               --sdram-phy A7DDRPHY \
+              --sys-clk-freq 50e6 \
               --artifact-name h2-ypcb-litedram-no-odelay-config \
+              --date 2026-04-30 \
+              --out-dir "$out"
+          '';
+
+        task6YpcbLiteDramNoOdelayLowrateConfig =
+          pkgs.runCommand "h2-ypcb-litedram-no-odelay-lowrate-config" { } ''
+            mkdir -p "$out"
+            ${liteDramPython}/bin/python ${
+              ./scripts/task6
+            }/write_ypcb_litedram_config.py \
+              --memory-ch0-ucf ${ypcbHack}/constraints/MEMORY_CH0.ucf \
+              --memory-ch0-ucf-artifact-label ypcbHack/constraints/MEMORY_CH0.ucf \
+              --part0-pins-xml ${ypcbHack}/ypcb003381p1/1.0/part0_pins.xml \
+              --part0-pins-xml-artifact-label ypcbHack/ypcb003381p1/1.0/part0_pins.xml \
+              --board-xml ${ypcbHack}/ypcb003381p1/1.0/board.xml \
+              --board-xml-artifact-label ypcbHack/ypcb003381p1/1.0/board.xml \
+              --sdram-phy A7DDRPHY \
+              --sys-clk-freq 25e6 \
+              --artifact-name h2-ypcb-litedram-no-odelay-lowrate-config \
               --date 2026-04-30 \
               --out-dir "$out"
           '';
@@ -3250,6 +3286,106 @@
               --artifact-name h2-ypcb-litedram-no-odelay-rtl-elaboration \
               --date 2026-04-30 \
               --out-dir "$out"
+          '';
+
+        task6YpcbLiteDramNoOdelayLowrateRtlElaboration =
+          pkgs.runCommand "h2-ypcb-litedram-no-odelay-lowrate-rtl-elaboration" { } ''
+            mkdir -p "$out"
+            export CHIPDB=${openXC7Chipdb}
+            export PRJXRAY_DB_DIR=${fpgaPrjxrayDb}
+            ${liteDramPython}/bin/python ${
+              ./scripts/task6
+            }/generate_ypcb_litedram_core.py \
+              --config-yml ${
+                task6YpcbLiteDramNoOdelayLowrateConfig
+              }/ypcb_litedram_64bit_payload.yml \
+              --config-summary-json ${
+                task6YpcbLiteDramNoOdelayLowrateConfig
+              }/summary.json \
+              --name ypcb_litedram_core \
+              --device ${fpgaPartName} \
+              --artifact-name h2-ypcb-litedram-no-odelay-lowrate-rtl-elaboration \
+              --date 2026-04-30 \
+              --out-dir "$out"
+          '';
+
+        task6YpcbLiteDramNoOdelayLowrateDqs0RtlElaboration =
+          pkgs.runCommand "h2-ypcb-litedram-no-odelay-lowrate-dqs0-rtl-elaboration" { } ''
+            set -euo pipefail
+            cp -R ${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/. "$out"
+            chmod -R u+w "$out"
+            rtl="$out/build/gateware/ypcb_litedram_core.v"
+            substituteInPlace "$rtl" \
+              --replace-fail ".CLKOUT3_PHASE  (7'd90)," \
+                             ".CLKOUT3_PHASE  (1'd0),"
+            {
+              echo "source: task6YpcbLiteDramNoOdelayLowrateRtlElaboration"
+              echo "override: sys4x_dqs CLKOUT3_PHASE 90 -> 0 degrees"
+              echo "controller path: LiteDRAM/LiteX only"
+              echo "Vivado MIG lane: rejected"
+            } > "$out/dqs_phase_override.txt"
+          '';
+
+        task6YpcbLiteDramNoOdelayRtlCheck =
+          pkgs.runCommand "h2-ypcb-litedram-no-odelay-rtl-check" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            rtl=${task6YpcbLiteDramNoOdelayRtlElaboration}/build/gateware/ypcb_litedram_core.v
+
+            if ${pkgs.gnugrep}/bin/grep -R "ODELAYE2" "$rtl" > "$out/odelaye2.txt"; then
+              echo "ERROR: no-ODELAY LiteDRAM RTL still contains ODELAYE2" >&2
+              exit 1
+            fi
+
+            ${pkgs.gnugrep}/bin/grep -R "IDELAYE2" "$rtl" > "$out/idelaye2.txt"
+            ${pkgs.gnugrep}/bin/grep -R "sys4x_dqs" "$rtl" > "$out/sys4x_dqs.txt"
+            {
+              echo "PASS: no ODELAYE2 instances found"
+              echo "IDELAYE2 mentions: $(wc -l < "$out/idelaye2.txt")"
+              echo "sys4x_dqs mentions: $(wc -l < "$out/sys4x_dqs.txt")"
+            } > "$out/summary.txt"
+          '';
+
+        task6YpcbLiteDramNoOdelayLowrateRtlCheck =
+          pkgs.runCommand "h2-ypcb-litedram-no-odelay-lowrate-rtl-check" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            rtl=${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.v
+
+            if ${pkgs.gnugrep}/bin/grep -R "ODELAYE2" "$rtl" > "$out/odelaye2.txt"; then
+              echo "ERROR: low-rate no-ODELAY LiteDRAM RTL still contains ODELAYE2" >&2
+              exit 1
+            fi
+
+            ${pkgs.gnugrep}/bin/grep -R "IDELAYE2" "$rtl" > "$out/idelaye2.txt"
+            ${pkgs.gnugrep}/bin/grep -R "sys4x_dqs" "$rtl" > "$out/sys4x_dqs.txt"
+            {
+              echo "PASS: low-rate no-ODELAY RTL has no ODELAYE2 instances"
+              echo "IDELAYE2 mentions: $(wc -l < "$out/idelaye2.txt")"
+              echo "sys4x_dqs mentions: $(wc -l < "$out/sys4x_dqs.txt")"
+            } > "$out/summary.txt"
+          '';
+
+        task6YpcbLiteDramNoOdelayLowrateDqs0RtlCheck =
+          pkgs.runCommand "h2-ypcb-litedram-no-odelay-lowrate-dqs0-rtl-check" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            rtl=${task6YpcbLiteDramNoOdelayLowrateDqs0RtlElaboration}/build/gateware/ypcb_litedram_core.v
+
+            if ${pkgs.gnugrep}/bin/grep -R "ODELAYE2" "$rtl" > "$out/odelaye2.txt"; then
+              echo "ERROR: low-rate dqs0 no-ODELAY LiteDRAM RTL still contains ODELAYE2" >&2
+              exit 1
+            fi
+
+            ${pkgs.gnugrep}/bin/grep -R "IDELAYE2" "$rtl" > "$out/idelaye2.txt"
+            ${pkgs.gnugrep}/bin/grep -R "sys4x_dqs" "$rtl" > "$out/sys4x_dqs.txt"
+            ${pkgs.gnugrep}/bin/grep -R "CLKOUT3_PHASE  (1'd0)" "$rtl" > "$out/dqs0_phase.txt"
+            {
+              echo "PASS: low-rate dqs0 no-ODELAY RTL has no ODELAYE2 instances"
+              echo "IDELAYE2 mentions: $(wc -l < "$out/idelaye2.txt")"
+              echo "sys4x_dqs mentions: $(wc -l < "$out/sys4x_dqs.txt")"
+              echo "CLKOUT3_PHASE 0 degree override: $(wc -l < "$out/dqs0_phase.txt")"
+            } > "$out/summary.txt"
           '';
 
         task6YpcbLiteDramOpenSynthJson =
@@ -3339,12 +3475,66 @@
             ${pkgs.yosys}/bin/yosys -s run.ys
           '';
 
+        task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeJson =
+          pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog ${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.v
+            read_verilog -sv ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            hierarchy -top task6_ypcb_litedram_init_bandwidth_probe_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
+            write_json "$out"
+            EOF
+            ${pkgs.yosys}/bin/yosys -s run.ys
+          '';
+
+        task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeJson =
+          pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog ${task6YpcbLiteDramNoOdelayLowrateDqs0RtlElaboration}/build/gateware/ypcb_litedram_core.v
+            read_verilog -sv ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            hierarchy -top task6_ypcb_litedram_init_bandwidth_probe_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
+            write_json "$out"
+            EOF
+            ${pkgs.yosys}/bin/yosys -s run.ys
+          '';
+
         task6YpcbLiteDramNoOdelayInitBandwidthProbeUtilization =
           mkMappedJsonUtilizationReport {
             name = "task6-ypcb-litedram-no-odelay-init-bandwidth-probe";
             capacities = tinyStoriesCapacities;
             topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
             designJson = task6YpcbLiteDramNoOdelayInitBandwidthProbeJson;
+          };
+
+        task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
+            designJson =
+              task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeJson;
+          };
+
+        task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
+            designJson =
+              task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeJson;
           };
 
         task6YpcbLiteDramInitBandwidthProbeXdc = mkXdc {
@@ -3361,6 +3551,24 @@
           includeBoardXdc = false;
           extraConstraints = [
             "${task6YpcbLiteDramNoOdelayRtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
+            ./fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc
+          ];
+        };
+
+        task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeXdc = mkXdc {
+          name = "task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe";
+          includeBoardXdc = false;
+          extraConstraints = [
+            "${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
+            ./fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc
+          ];
+        };
+
+        task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeXdc = mkXdc {
+          name = "task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe";
+          includeBoardXdc = false;
+          extraConstraints = [
+            "${task6YpcbLiteDramNoOdelayLowrateDqs0RtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
             ./fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc
           ];
         };
@@ -3387,12 +3595,46 @@
           freqMHz = 50;
         };
 
+        task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeFasm = mkFasm {
+          name = "task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe";
+          xdc = task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeXdc;
+          json = task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeJson;
+          seed = 3;
+          freqMHz = 25;
+        };
+
+        task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeFasm = mkFasm {
+          name = "task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe";
+          xdc = task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeXdc;
+          json = task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeJson;
+          seed = 4;
+          freqMHz = 25;
+        };
+
         task6YpcbLiteDramNoOdelayInitBandwidthProbeBitstream =
           mkBitstream {
             name = "task6-ypcb-litedram-no-odelay-init-bandwidth-probe";
             fasm = task6YpcbLiteDramNoOdelayInitBandwidthProbeFasm;
             framesBase =
               "task6-ypcb-litedram-no-odelay-init-bandwidth-probe";
+          };
+
+        task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeBitstream =
+          mkBitstream {
+            name = "task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe";
+            fasm = task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeFasm;
+            framesBase =
+              "task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe";
+          };
+
+        task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeBitstream =
+          mkBitstream {
+            name =
+              "task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe";
+            fasm =
+              task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeFasm;
+            framesBase =
+              "task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe";
           };
 
         task6YpcbLiteDramInitBandwidthProbeIopadFasm = mkFasm {
@@ -3436,6 +3678,33 @@
           topName = "task6_odelay_obufds_cutout_top";
         };
 
+        mkTask6NoOdelayCutoutJson = { name, topName }:
+          pkgs.runCommand "${name}.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./fpga/rtl/task6_no_odelay_obuf_cutout_top.sv}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            hierarchy -top ${topName} -check
+            proc
+            synth_xilinx -family xc7 -top ${topName}
+            write_json "$out"
+            EOF
+            ${pkgs.yosys}/bin/yosys -s run.ys
+          '';
+
+        task6NoOdelayObufCutoutJson = mkTask6NoOdelayCutoutJson {
+          name = "task6-no-odelay-obuf-cutout";
+          topName = "task6_no_odelay_obuf_cutout_top";
+        };
+
+        task6NoOdelayObufdsCutoutJson = mkTask6NoOdelayCutoutJson {
+          name = "task6-no-odelay-obufds-cutout";
+          topName = "task6_no_odelay_obufds_cutout_top";
+        };
+
         task6OdelayObufCutoutXdc = mkXdc {
           name = "task6-odelay-obuf-cutout";
           includeBoardXdc = false;
@@ -3446,6 +3715,22 @@
 
         task6OdelayObufdsCutoutXdc = mkXdc {
           name = "task6-odelay-obufds-cutout";
+          includeBoardXdc = false;
+          extraConstraints = [
+            ./fpga/constraints/task6_odelay_obufds_cutout.xdc
+          ];
+        };
+
+        task6NoOdelayObufCutoutXdc = mkXdc {
+          name = "task6-no-odelay-obuf-cutout";
+          includeBoardXdc = false;
+          extraConstraints = [
+            ./fpga/constraints/task6_odelay_obuf_cutout.xdc
+          ];
+        };
+
+        task6NoOdelayObufdsCutoutXdc = mkXdc {
+          name = "task6-no-odelay-obufds-cutout";
           includeBoardXdc = false;
           extraConstraints = [
             ./fpga/constraints/task6_odelay_obufds_cutout.xdc
@@ -3464,6 +3749,22 @@
           name = "task6-odelay-obufds-cutout";
           xdc = task6OdelayObufdsCutoutXdc;
           json = task6OdelayObufdsCutoutJson;
+          seed = 1;
+          freqMHz = 50;
+        };
+
+        task6NoOdelayObufCutoutFasm = mkFasm {
+          name = "task6-no-odelay-obuf-cutout";
+          xdc = task6NoOdelayObufCutoutXdc;
+          json = task6NoOdelayObufCutoutJson;
+          seed = 1;
+          freqMHz = 50;
+        };
+
+        task6NoOdelayObufdsCutoutFasm = mkFasm {
+          name = "task6-no-odelay-obufds-cutout";
+          xdc = task6NoOdelayObufdsCutoutXdc;
+          json = task6NoOdelayObufdsCutoutJson;
           seed = 1;
           freqMHz = 50;
         };
@@ -6300,16 +6601,30 @@
             task6Ddr3RowStreamCutoutSvSim;
           task6-ddr3-board-support-inventory =
             task6Ddr3BoardSupportInventory;
+          task6-ypcb-ddr3-lane-report =
+            task6YpcbDdr3LaneReport;
           task6-litedram-open-controller-probe =
             task6LiteDramOpenControllerProbe;
           task6-ypcb-litedram-config =
             task6YpcbLiteDramConfig;
           task6-ypcb-litedram-no-odelay-config =
             task6YpcbLiteDramNoOdelayConfig;
+          task6-ypcb-litedram-no-odelay-lowrate-config =
+            task6YpcbLiteDramNoOdelayLowrateConfig;
           task6-ypcb-litedram-rtl-elaboration =
             task6YpcbLiteDramRtlElaboration;
           task6-ypcb-litedram-no-odelay-rtl-elaboration =
             task6YpcbLiteDramNoOdelayRtlElaboration;
+          task6-ypcb-litedram-no-odelay-lowrate-rtl-elaboration =
+            task6YpcbLiteDramNoOdelayLowrateRtlElaboration;
+          task6-ypcb-litedram-no-odelay-lowrate-dqs0-rtl-elaboration =
+            task6YpcbLiteDramNoOdelayLowrateDqs0RtlElaboration;
+          task6-ypcb-litedram-no-odelay-rtl-check =
+            task6YpcbLiteDramNoOdelayRtlCheck;
+          task6-ypcb-litedram-no-odelay-lowrate-rtl-check =
+            task6YpcbLiteDramNoOdelayLowrateRtlCheck;
+          task6-ypcb-litedram-no-odelay-lowrate-dqs0-rtl-check =
+            task6YpcbLiteDramNoOdelayLowrateDqs0RtlCheck;
           task6-ypcb-litedram-open-synth-json =
             task6YpcbLiteDramOpenSynthJson;
           task6-ypcb-litedram-open-synth-utilization =
@@ -6320,20 +6635,40 @@
             task6YpcbLiteDramInitBandwidthProbeUtilization;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-json =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeJson;
+          task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-json =
+            task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeJson;
+          task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe-json =
+            task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeJson;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-utilization =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeUtilization;
+          task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-utilization =
+            task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeUtilization;
+          task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe-utilization =
+            task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeUtilization;
           task6-ypcb-litedram-init-bandwidth-probe-xdc =
             task6YpcbLiteDramInitBandwidthProbeXdc;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-xdc =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeXdc;
+          task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-xdc =
+            task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeXdc;
+          task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe-xdc =
+            task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeXdc;
           task6-ypcb-litedram-init-bandwidth-probe-fasm =
             task6YpcbLiteDramInitBandwidthProbeFasm;
           task6-ypcb-litedram-init-bandwidth-probe-bitstream =
             task6YpcbLiteDramInitBandwidthProbeBitstream;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-fasm =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeFasm;
+          task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-fasm =
+            task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeFasm;
+          task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe-fasm =
+            task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeFasm;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-bitstream =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeBitstream;
+          task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-bitstream =
+            task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeBitstream;
+          task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe-bitstream =
+            task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeBitstream;
           task6-ypcb-litedram-init-bandwidth-probe-iopad-json =
             task6YpcbLiteDramInitBandwidthProbeIopadJson;
           task6-ypcb-litedram-init-bandwidth-probe-iopad-fasm =
@@ -6348,6 +6683,14 @@
             task6OdelayObufdsCutoutJson;
           task6-odelay-obufds-cutout-fasm =
             task6OdelayObufdsCutoutFasm;
+          task6-no-odelay-obuf-cutout-json =
+            task6NoOdelayObufCutoutJson;
+          task6-no-odelay-obuf-cutout-fasm =
+            task6NoOdelayObufCutoutFasm;
+          task6-no-odelay-obufds-cutout-json =
+            task6NoOdelayObufdsCutoutJson;
+          task6-no-odelay-obufds-cutout-fasm =
+            task6NoOdelayObufdsCutoutFasm;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =
