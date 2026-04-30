@@ -223,6 +223,9 @@ FIELDS = [
     ("dfii_addr_match_masks", 4016, 64),
     ("dfii_disable_write_command", 4080, 1),
     ("dfii_phase_matrix_only", 4081, 1),
+    ("dfii_source_command_matrix_only", 4082, 1),
+    ("dfii_source_command_read_phase", 4084, 2),
+    ("dfii_csr_wrdata_mask_controllable", 4086, 1),
     ("first_chunk_mismatch_mask", 1728, 16),
 ]
 
@@ -566,11 +569,15 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     active_mode = fields.get("dfii_pattern_mode", None) if version >= 37 else None
     assoc_index = fields.get("dfii_assoc_index", 0)
     phase_matrix_only = bool(fields.get("dfii_phase_matrix_only", 0))
+    source_command_matrix_only = bool(
+        fields.get("dfii_source_command_matrix_only", 0)
+    )
+    matrix_only = phase_matrix_only or source_command_matrix_only
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
     addr_flags = fields.get("dfii_addr_flags", 0)
     addr_sweep = bool(addr_flags & 0x4)
     addr_index = fields.get("dfii_addr_index", 0)
-    if version >= 54 and not phase_matrix_only and any(
+    if version >= 54 and not matrix_only and any(
         fields.get(f"dfii_assoc_nonzero_mask_{source}", 0)
         or fields.get(f"dfii_assoc_match_mask_{source}", 0)
         for source in range(16)
@@ -581,7 +588,7 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         actual = fields.get(f"dfii_rddata_{index}", 0)
         expected = (
             dfii_phase_source_pattern(phase_matrix_source, index & 0x3)
-            if phase_matrix_only
+            if matrix_only
             else dfii_pattern_word(
                 index,
                 version,
@@ -622,15 +629,18 @@ def decode_dfii_phasecmd_masks(fields: dict[str, int]) -> list[dict[str, int]]:
 
 def decode_dfii_phase_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
     mismatch_masks = fields.get("dfii_phasecmd_mismatch_masks", 0)
+    source_command = bool(fields.get("dfii_source_command_matrix_only", 0))
+    fixed_read_phase = fields.get("dfii_source_command_read_phase", 2) & 0x3
     decoded = []
     for index in range(16):
         source_phase = index >> 2
-        read_phase = index & 0x3
+        write_phase = index & 0x3 if source_command else source_phase
+        read_phase = fixed_read_phase if source_command else index & 0x3
         decoded.append(
             {
                 "index": index,
                 "source_phase": source_phase,
-                "write_phase": source_phase,
+                "write_phase": write_phase,
                 "read_phase": read_phase,
                 "mismatch_mask": (mismatch_masks >> (index * 16)) & 0xFFFF,
                 "nonzero_mask": fields.get(
@@ -903,13 +913,17 @@ def print_summary(result: dict[str, object]) -> None:
     if fields.get("version", 0) < 49 or fields.get("version", 0) >= 54:
         print(
             "dfii state={state} step={step} no_write={no_write} "
-            "phase_matrix={phase_matrix} ack={ack} wait={wait} "
+            "phase_matrix={phase_matrix} source_command_matrix={source_command_matrix} "
+            "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
                 state=decoded["dfii_seq_state"],
                 step=fields.get("dfii_step", 0),
                 no_write=bool(fields.get("dfii_disable_write_command", 0)),
                 phase_matrix=bool(fields.get("dfii_phase_matrix_only", 0)),
+                source_command_matrix=bool(
+                    fields.get("dfii_source_command_matrix_only", 0)
+                ),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
                 mask=fields.get("dfii_word_mismatch_mask", 0) & 0xFFFF,
@@ -930,25 +944,45 @@ def print_summary(result: dict[str, object]) -> None:
             )
         )
     phase_matrix_only = bool(fields.get("dfii_phase_matrix_only", 0))
-    if phase_matrix_only:
+    source_command_matrix_only = bool(
+        fields.get("dfii_source_command_matrix_only", 0)
+    )
+    matrix_only = phase_matrix_only or source_command_matrix_only
+    if matrix_only:
         phase_matrix = decoded["dfii_phase_matrix"]
-        print("dfii phase/source matrix: source/write phase x read phase")
+        if source_command_matrix_only:
+            print(
+                "dfii source/command matrix: source phase x write phase, "
+                f"fixed read phase p{fields.get('dfii_source_command_read_phase', 0)}"
+            )
+            print(
+                "dfii CSR wrdata_mask controllable: "
+                f"{bool(fields.get('dfii_csr_wrdata_mask_controllable', 0))}"
+            )
+        else:
+            print("dfii phase/source matrix: source/write phase x read phase")
         for entry in phase_matrix:
             print(
-                "  [src p{source_phase}/read p{read_phase}] "
+                "  [src p{source_phase}/write p{write_phase}/read p{read_phase}] "
                 "mismatch=0x{mismatch_mask:04x} "
                 "nonzero=0x{nonzero_mask:04x} "
                 "match=0x{match_mask:04x}".format(**entry)
             )
         hits = [
-            "src p{source_phase}/read p{read_phase}:0x{match_mask:04x}".format(
+            (
+                "src p{source_phase}/write p{write_phase}/read p{read_phase}:"
+                "0x{match_mask:04x}"
+            ).format(
                 **entry
             )
             for entry in phase_matrix
             if entry["match_mask"] != 0
         ]
         nonzero = [
-            "src p{source_phase}/read p{read_phase}:0x{nonzero_mask:04x}".format(
+            (
+                "src p{source_phase}/write p{write_phase}/read p{read_phase}:"
+                "0x{nonzero_mask:04x}"
+            ).format(
                 **entry
             )
             for entry in phase_matrix
@@ -983,7 +1017,7 @@ def print_summary(result: dict[str, object]) -> None:
         )
     assoc_matrix = decoded["dfii_assoc_matrix"]
     if (
-        not phase_matrix_only
+        not matrix_only
         and any(entry["nonzero_mask"] or entry["match_mask"] for entry in assoc_matrix)
     ):
         flags = fields.get("dfii_assoc_flags", 0)

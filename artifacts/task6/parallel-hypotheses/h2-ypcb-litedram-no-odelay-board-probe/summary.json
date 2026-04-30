@@ -1196,6 +1196,142 @@
       "interpretation": "No matrix entry matched the expected phase-tagged data. The result is not the v57 no-write edge-byte artifact: with writes enabled, source/write phase 0 produces nonzero readback for all read phases while source/write phases 1..3 read back zero. This narrows the next split toward DFI phase association or write-phase gating, but still does not prove DRAM write acceptance.",
       "next_gate": "Decouple write-data source phase from write command phase, then add a DM/mask polarity discriminator before rowstream or TinyStories integration."
     },
+    "v59_dfii_source_command_matrix": {
+      "purpose": "Decouple the v58 write-data source phase from write command phase with a compact single-bitstream matrix.",
+      "implementation": {
+        "default_config_phy": "A7DDRPHY",
+        "dfii_disable_write_command": false,
+        "dfii_phase_matrix_only": false,
+        "dfii_source_command_matrix_only": true,
+        "fixed_read_command_phase": 2,
+        "controller_path": "LiteDRAM/LiteX only",
+        "vivado_mig_lane": "rejected",
+        "matrix_encoding": "index[3:2] selects write-data source phase; index[1:0] selects write command phase; read command phase is fixed at p2",
+        "payload_reuse": {
+          "dfii_phasecmd_mismatch_masks": "inverse of per-read-word match mask",
+          "dfii_assoc_nonzero_mask": "per-read-word nonzero mask",
+          "dfii_assoc_match_mask": "per-read-word phase-tagged match mask"
+        },
+        "dfii_csr_wrdata_mask_controllable": false,
+        "mask_limitation": "Generated LiteDRAM ties main_csr_dfi_p*_wrdata_mask to 1'd0, and the open YPCB metadata omits physical dm pads; the current DFII CSR path cannot run an all-masked/all-unmasked discriminator without a LiteDRAM/core-generation change."
+      },
+      "artifacts": {
+        "json": "/nix/store/r3c5hwznwar7ysfv0nldrx94cmjnr7jp-task6-ypcb-litedram-no-odelay-lowrate-source-command-matrix-init-bandwidth-probe.json",
+        "utilization": "/nix/store/zi1d0n8l5jcjnxp977wcmf96fw93f9za-task6-ypcb-litedram-no-odelay-lowrate-source-command-matrix-init-bandwidth-probe-utilization",
+        "bitstream": "/nix/store/fcsi2npm39jchyivlxd5ja7iq2myyns1-task6-ypcb-litedram-no-odelay-lowrate-source-command-matrix-init-bandwidth-probe.bit"
+      },
+      "mapped_utilization": {
+        "clb_luts": "16971 / 298600 (5.68%)",
+        "clb_ffs": "13286 / 597200 (2.22%)",
+        "dsp": "0 / 1920 (0.00%)",
+        "bram36": "0 / 955 (0.00%)",
+        "lower_bound_slices": "2122 / 74650 (2.84%)"
+      },
+      "nextpnr": {
+        "status": "PASS",
+        "target_mhz": 25,
+        "selected_utilization": {
+          "SLICE_LUTX": "22068 / 597200 (3%)",
+          "SLICE_FFX": "13286 / 597200 (2%)",
+          "IDELAYE2": "72 / 400 (18%)",
+          "OSERDESE2": "107 / 400 (26%)",
+          "ISERDESE2": "72 / 400 (18%)",
+          "IDELAYCTRL": "3 / 8 (37%)",
+          "BRAM": 0,
+          "DSP": 0
+        },
+        "max_frequency_mhz": {
+          "clk200": 676.13,
+          "user_clk": 72.81,
+          "core.iodelay_clk": 608.27,
+          "jtag_debug_shift.drck": 370.37
+        }
+      },
+      "programming": {
+        "status": "PASS",
+        "done": true
+      },
+      "board_jtag": {
+        "magic_ok": true,
+        "version": 59,
+        "probe_state": "PROBE_DFII_DONE",
+        "init_state": "INIT_DONE",
+        "init_done": true,
+        "init_error": false,
+        "dfii_disable_write_command": false,
+        "dfii_phase_matrix_only": false,
+        "dfii_source_command_matrix_only": true,
+        "fixed_read_command_phase": 2,
+        "dfii_csr_wrdata_mask_controllable": false,
+        "dfii_seq_state": "DFII_SEQ_DONE",
+        "dfii_ack": 50,
+        "dfii_wait": 150,
+        "dfii_mode_masks": {
+          "uniform": "0xffff",
+          "phase_constant": "0xffff",
+          "byte_ramp": "0xffff"
+        },
+        "source_command_matrix": [
+          {
+            "source_phase": 0,
+            "write_phases": "0..3",
+            "read_phase": 2,
+            "nonzero_mask": "0xffff",
+            "match_mask": "0x0000",
+            "mismatch_mask": "0xffff"
+          },
+          {
+            "source_phase": 1,
+            "write_phases": "0..3",
+            "read_phase": 2,
+            "nonzero_mask": "0x0000",
+            "match_mask": "0x0000",
+            "mismatch_mask": "0xffff"
+          },
+          {
+            "source_phase": 2,
+            "write_phases": "0..3",
+            "read_phase": 2,
+            "nonzero_mask": "0x0000",
+            "match_mask": "0x0000",
+            "mismatch_mask": "0xffff"
+          },
+          {
+            "source_phase": 3,
+            "write_phases": "0..3",
+            "read_phase": 2,
+            "nonzero_mask": "0x0000",
+            "match_mask": "0x0000",
+            "mismatch_mask": "0xffff"
+          }
+        ],
+        "matrix_match_combos": [],
+        "nonzero_combos": [
+          "source phase 0, write phase 0, read phase 2",
+          "source phase 0, write phase 1, read phase 2",
+          "source phase 0, write phase 2, read phase 2",
+          "source phase 0, write phase 3, read phase 2"
+        ],
+        "final_captured_words": [
+          "0x00000000",
+          "0x00000000",
+          "0x00000000",
+          "0x00000000"
+        ],
+        "dfii_lane_bit_errors": [
+          28,
+          20,
+          20,
+          12,
+          36,
+          28,
+          28,
+          20
+        ]
+      },
+      "interpretation": "No source/write-command combination matched the expected phase-tagged data. The v58 nonzero result follows write-data source phase, not write command phase: source phase 0 produces nonzero readback for every write-command phase, while source phases 1..3 read back zero for every write-command phase. This weakens write-command-phase selection as the primary blocker and points next at write-data source ordering, DFI phase-to-PHY association, DQ/DQS beat order, or read-capture interpretation. It still does not prove DRAM write acceptance.",
+      "next_gate": "Build a source-phase-0 write-data ordering probe that varies word/beat order and read-capture interpretation; treat DFII mask control as a separate LiteDRAM generation change, because the current DFII CSR path is not mask-controllable."
+    },
     "open_flow_regression_guards": {
       "rtl_check": {
         "command": "nix build .#task6-ypcb-litedram-no-odelay-rtl-check --no-link --print-out-paths -L",
@@ -1264,9 +1400,11 @@
       "The v56-dqs0 phase discriminator changes the routed sys4x_dqs phase to 0 degrees but produces the same raw board/JTAG signature, weakening a simple DQS-phase-only explanation.",
       "The v57 no-write discriminator changes the raw direct-DFII signature when only the DFII write command is suppressed, so v56 was not purely stale/write-independent readback, but it does not prove DRAM write acceptance.",
       "The v58 phase/source matrix finds no exact phase-tagged match; only source/write phase 0 produces nonzero readback for all read phases, while source/write phases 1..3 read back zero.",
-      "The current blocker is DFI phase association or write-phase gating, DM semantics, DQS/DQ beat order, per-bit order, or read capture behavior in the no-ODELAY LiteDRAM path, not the open implementation flow itself."
+      "The v59 source/command matrix decouples source phase from write-command phase: source phase 0 produces nonzero readback for every write-command phase, while source phases 1..3 read back zero for every write-command phase.",
+      "The current generated DFII CSR path cannot toggle write-data masks because main_csr_dfi_p*_wrdata_mask is hardwired to zero; mask polarity needs a separate LiteDRAM generation change if it remains relevant.",
+      "The current blocker is write-data source ordering, DFI phase-to-PHY association, DQ/DQS beat order, per-bit order, or read capture behavior in the no-ODELAY LiteDRAM path, not the open implementation flow itself."
     ],
-    "next_gate": "Decouple DFII write-data source phase from write command phase, then add a compact DM/mask polarity discriminator before returning to native-port bandwidth or rowstream integration."
+    "next_gate": "Build a source-phase-0 write-data ordering probe that varies word/beat order and read-capture interpretation before returning to native-port bandwidth or rowstream integration."
   },
   "decision": {
     "verdict": "promote-open-bitstream-and-debug-ddr-data-integrity",
@@ -1283,8 +1421,10 @@
       "The v56 low-rate DFII address sweep returns nonmatching nonzero data for every tested column, so a simple column-address-offset explanation is also unlikely.",
       "The v56-dqs0 routed phase variant returns the same board/JTAG signature as the 90-degree image, so a simple sys4x_dqs phase-only explanation is unlikely.",
       "The v57 no-write discriminator changes the direct-DFII readback pattern when the DFII write command is suppressed, so the prior direct-DFII readback is influenced by issuing writes but is not yet proof of DRAM write acceptance.",
-      "The v58 phase/source matrix shows source/write phase 0 is the only row that produces nonzero readback, and none of the phase-tagged patterns match."
+      "The v58 phase/source matrix shows source/write phase 0 is the only row that produces nonzero readback, and none of the phase-tagged patterns match.",
+      "The v59 source/command matrix shows the nonzero result follows source phase 0 across all write-command phases; write-command-phase selection is unlikely to be the primary blocker.",
+      "The generated DFII CSR path does not expose write-data mask control, so the requested DFII mask polarity discriminator requires a separate LiteDRAM/core-generation change."
     ],
-    "next_gate": "Decouple write-data source phase from write command phase and add a DM/mask polarity discriminator before returning to broader DQS/write-data/read-latency sweeps, native-port bandwidth, or rowstream integration."
+    "next_gate": "Build a source-phase-0 write-data ordering probe before returning to broader DQS/write-data/read-latency sweeps, native-port bandwidth, or rowstream integration."
   }
 }

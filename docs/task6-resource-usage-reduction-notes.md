@@ -12778,3 +12778,119 @@ Next gate:
 - Add a DM/mask polarity discriminator in the same family: write with explicit
   all-unmasked vs all-masked values and check whether nonzero readback follows
   the mask setting.
+
+### 2026-04-30 - v59 DFII source-vs-command matrix probe
+
+Goal:
+
+- Resolve the main ambiguity left by v58: whether the nonzero result follows
+  the write-data source phase, the write command phase, or only the tied pair.
+- Keep the probe below rowstream/TinyStories and stop after the DFII matrix.
+
+Implementation:
+
+- Added `DFII_SOURCE_COMMAND_MATRIX_ONLY`.
+- Reused the 16-entry matrix payload as:
+  - index high bits: selected write-data source phase
+  - index low bits: selected write command phase
+  - read command phase: fixed at `p2`
+- Kept the phase-tagged write-data pattern from v58.
+- Exposed new JTAG flags:
+  - `dfii_source_command_matrix_only`
+  - `dfii_source_command_read_phase`
+  - `dfii_csr_wrdata_mask_controllable`
+- The current generated LiteDRAM DFII CSR path reports
+  `dfii_csr_wrdata_mask_controllable=false`. Inspection of generated RTL shows
+  `main_csr_dfi_p*_wrdata_mask = 1'd0`; the current DFII path cannot run an
+  all-masked/all-unmasked discriminator without changing LiteDRAM generation or
+  the core wrapper.
+
+Build result:
+
+- JSON:
+  `/nix/store/r3c5hwznwar7ysfv0nldrx94cmjnr7jp-task6-ypcb-litedram-no-odelay-lowrate-source-command-matrix-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/zi1d0n8l5jcjnxp977wcmf96fw93f9za-task6-ypcb-litedram-no-odelay-lowrate-source-command-matrix-init-bandwidth-probe-utilization`
+  - CLB LUTs: `16971 / 298600` (`5.68%`)
+  - CLB FFs: `13286 / 597200` (`2.22%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2122 / 74650` (`2.84%`)
+- Bitstream:
+  `/nix/store/fcsi2npm39jchyivlxd5ja7iq2myyns1-task6-ypcb-litedram-no-odelay-lowrate-source-command-matrix-init-bandwidth-probe.bit`
+- nextpnr selected utilization:
+  - `SLICE_LUTX`: `22068 / 597200` (`3%`)
+  - `SLICE_FFX`: `13286 / 597200` (`2%`)
+  - `IDELAYE2`: `72 / 400` (`18%`)
+  - `OSERDESE2`: `107 / 400` (`26%`)
+  - `ISERDESE2`: `72 / 400` (`18%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - BRAM: `0`
+  - DSP: `0`
+- Timing passed at the `25 MHz` target:
+  - `clk200`: `676.13 MHz`
+  - `user_clk`: `72.81 MHz`
+  - `core.iodelay_clk`: `608.27 MHz`
+  - `jtag_debug_shift.drck`: `370.37 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/fcsi2npm39jchyivlxd5ja7iq2myyns1-task6-ypcb-litedram-no-odelay-lowrate-source-command-matrix-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=59`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_disable_write_command=false`
+  - `dfii_phase_matrix_only=false`
+  - `dfii_source_command_matrix_only=true`
+  - fixed read command phase: `p2`
+  - `dfii_csr_wrdata_mask_controllable=false`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=50`, `wait=150`
+  - DFII mode masks still failed: `uniform=0xffff`,
+    `phase_constant=0xffff`, `byte_ramp=0xffff`
+  - source/command matrix:
+    - `src p0`, write phases `p0..p3`, read phase `p2`:
+      `nonzero=0xffff`, `match=0x0000`, `mismatch=0xffff`
+    - `src p1`, write phases `p0..p3`, read phase `p2`:
+      `nonzero=0x0000`, `match=0x0000`, `mismatch=0xffff`
+    - `src p2`, write phases `p0..p3`, read phase `p2`:
+      `nonzero=0x0000`, `match=0x0000`, `mismatch=0xffff`
+    - `src p3`, write phases `p0..p3`, read phase `p2`:
+      `nonzero=0x0000`, `match=0x0000`, `mismatch=0xffff`
+  - final captured DFII read words for the last matrix entry were all zero.
+  - DFII lane bit errors: `[28, 20, 20, 12, 36, 28, 28, 20]`
+
+Interpretation:
+
+- No source/write-command combination produced an exact phase-tagged match.
+- The v58 nonzero result follows the write-data source phase, not the write
+  command phase. Source phase `0` produces nonzero readback for every
+  write-command phase; source phases `1..3` read back zero for every
+  write-command phase.
+- This weakens write-command-phase selection as the primary blocker. The next
+  useful split is now inside write-data source handling: CSR write-data phase
+  packing, DFI phase-to-PHY data association, DQ/DQS beat order, or read-capture
+  interpretation.
+- The result still does not prove DRAM write acceptance. It proves only that the
+  selected DFII write-data source phase controls whether direct readback becomes
+  nonzero.
+- The requested DFII DM/mask discriminator cannot be run in the current
+  bitstream family because the generated CSR write-data mask is hardwired to
+  zero and YPCB open metadata omits physical `dm` pads.
+
+Next gate:
+
+- Build a v60 write-data-source-order probe: keep source phase `0`, vary the
+  word/beat order and read-capture interpretation, and compare against generated
+  LiteDRAM `main_phaseinjector0_wrdata_storage` ordering.
+- If DM still needs a hardware discriminator, add it as a separate LiteDRAM core
+  generation change that exposes or overrides `csr_dfi_p*_wrdata_mask`; do not
+  treat the current DFII CSR path as mask-controllable.
