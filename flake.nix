@@ -26,10 +26,18 @@
       url = "github:RCoeurjoly/ypcb_00338_1p1_hack";
       flake = false;
     };
+    litex = {
+      url = "github:enjoy-digital/litex";
+      flake = false;
+    };
+    litedram = {
+      url = "github:enjoy-digital/litedram";
+      flake = false;
+    };
   };
 
   outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
-    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, ... }:
+    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litex, litedram, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -127,6 +135,36 @@
         });
         inherit (llvmPackages) mlir;
         python = pkgsLlvm21.python311;
+        litexPkg = pkgs.python311Packages.buildPythonPackage {
+          pname = "litex";
+          version = "flake-input";
+          src = litex;
+          format = "setuptools";
+          propagatedBuildInputs = with pkgs.python311Packages; [
+            migen
+            pyserial
+            pyyaml
+            requests
+          ];
+          doCheck = false;
+        };
+        litedramPkg = pkgs.python311Packages.buildPythonPackage {
+          pname = "litedram";
+          version = "flake-input";
+          src = litedram;
+          format = "setuptools";
+          propagatedBuildInputs = (with pkgs.python311Packages; [
+            migen
+            pyyaml
+          ]) ++ [ litexPkg ];
+          doCheck = false;
+        };
+        liteDramPython = pkgs.python311.withPackages (ps: [
+          ps.migen
+          ps.pyyaml
+          litexPkg
+          litedramPkg
+        ]);
         torchao = python.pkgs.buildPythonPackage rec {
           pname = "torchao";
           version = "0.15.0";
@@ -3120,6 +3158,22 @@
               --out "$out"
           '';
 
+        task6LiteDramOpenControllerProbe =
+          pkgs.runCommand "h2-litedram-open-controller-probe.json" { } ''
+            ${liteDramPython}/bin/python ${
+              ./scripts/task6
+            }/check_litedram_open_controller_path.py \
+              --memory-ch0-ucf ${ypcbHack}/constraints/MEMORY_CH0.ucf \
+              --memory-ch0-ucf-artifact-label ypcbHack/constraints/MEMORY_CH0.ucf \
+              --part0-pins-xml ${ypcbHack}/ypcb003381p1/1.0/part0_pins.xml \
+              --part0-pins-xml-artifact-label ypcbHack/ypcb003381p1/1.0/part0_pins.xml \
+              --board-xml ${ypcbHack}/ypcb003381p1/1.0/board.xml \
+              --board-xml-artifact-label ypcbHack/ypcb003381p1/1.0/board.xml \
+              --memory-part MT41K256M8DA-125 \
+              --date 2026-04-30 \
+              --out "$out"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -5952,6 +6006,8 @@
             task6Ddr3RowStreamCutoutSvSim;
           task6-ddr3-board-support-inventory =
             task6Ddr3BoardSupportInventory;
+          task6-litedram-open-controller-probe =
+            task6LiteDramOpenControllerProbe;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =

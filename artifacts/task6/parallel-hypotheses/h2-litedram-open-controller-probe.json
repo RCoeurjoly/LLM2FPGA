@@ -1,0 +1,181 @@
+{
+  "artifact_name": "h2-litedram-open-controller-probe",
+  "status": "PASS",
+  "date": "2026-04-30",
+  "hypothesis": "The Task 6 DDR3 lane can proceed through an open LiteDRAM/LiteX controller path by first proving that the pinned environment can import the controller stack and see a Kintex-7 PHY plus Micron MT41K module definitions.",
+  "source_artifacts": {
+    "memory_ch0_ucf": "ypcbHack/constraints/MEMORY_CH0.ucf",
+    "part0_pins_xml": "ypcbHack/ypcb003381p1/1.0/part0_pins.xml",
+    "board_xml": "ypcbHack/ypcb003381p1/1.0/board.xml",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "policy": {
+    "vivado_mig_lane": "rejected",
+    "controller_path": "LiteDRAM/LiteX only",
+    "mig_files_used_for_controller_generation": false
+  },
+  "imports": {
+    "litex": {
+      "module": "litex",
+      "file": "/nix/store/g52wgv1s97apydqylrkk85rwxxm2y95g-python3-3.11.10-env/lib/python3.11/site-packages/litex/__init__.py",
+      "package": "litex"
+    },
+    "litedram": {
+      "module": "litedram",
+      "file": "/nix/store/g52wgv1s97apydqylrkk85rwxxm2y95g-python3-3.11.10-env/lib/python3.11/site-packages/litedram/__init__.py",
+      "package": "litedram"
+    },
+    "litedram_modules": {
+      "module": "litedram.modules",
+      "file": "/nix/store/g52wgv1s97apydqylrkk85rwxxm2y95g-python3-3.11.10-env/lib/python3.11/site-packages/litedram/modules.py",
+      "package": "litedram"
+    },
+    "litedram_s7ddrphy": {
+      "module": "litedram.phy.s7ddrphy",
+      "file": "/nix/store/g52wgv1s97apydqylrkk85rwxxm2y95g-python3-3.11.10-env/lib/python3.11/site-packages/litedram/phy/s7ddrphy.py",
+      "package": "litedram.phy"
+    }
+  },
+  "detected_litedram": {
+    "dram_module_class_count": 86,
+    "mt41k_classes": [
+      "MT41K128M16",
+      "MT41K256M16",
+      "MT41K256M8",
+      "MT41K512M16",
+      "MT41K64M16"
+    ],
+    "requested_memory_part": "MT41K256M8DA-125",
+    "requested_part_exact_candidates": [
+      "MT41K256M8"
+    ],
+    "s7ddrphy_classes": [
+      "A7DDRPHY",
+      "K7DDRPHY",
+      "S7DDRPHY",
+      "V7DDRPHY"
+    ],
+    "has_kintex7_phy": true
+  },
+  "ypcb_open_board_facts": {
+    "memory_ch0_ucf": {
+      "total_constrained_nets": 117,
+      "counts_by_net": {
+        "ddr3_addr": 15,
+        "ddr3_ba": 3,
+        "ddr3_cas_n": 1,
+        "ddr3_ck_n": 1,
+        "ddr3_ck_p": 1,
+        "ddr3_cke": 1,
+        "ddr3_cs_n": 1,
+        "ddr3_dq": 72,
+        "ddr3_dqs_n": 9,
+        "ddr3_dqs_p": 9,
+        "ddr3_odt": 1,
+        "ddr3_ras_n": 1,
+        "ddr3_reset_n": 1,
+        "ddr3_we_n": 1
+      },
+      "single_ended_controls_present": [
+        "ddr3_cas_n",
+        "ddr3_ck_n",
+        "ddr3_ck_p",
+        "ddr3_cke",
+        "ddr3_cs_n",
+        "ddr3_odt",
+        "ddr3_ras_n",
+        "ddr3_reset_n",
+        "ddr3_we_n"
+      ]
+    },
+    "part0_pins": {
+      "SW_RESET": {
+        "index": "10",
+        "name": "SW_RESET",
+        "iostandard": "LVCMOS18",
+        "loc": "R28"
+      },
+      "default_200mhz_clk1_n": {
+        "index": "2",
+        "name": "default_200mhz_clk1_n",
+        "iostandard": "LVDS",
+        "loc": "AH28",
+        "dqs_bias": "TRUE"
+      },
+      "default_200mhz_clk1_p": {
+        "index": "1",
+        "name": "default_200mhz_clk1_p",
+        "iostandard": "LVDS",
+        "loc": "AH27",
+        "dqs_bias": "TRUE"
+      },
+      "default_200mhz_clk2_n": {
+        "index": "4",
+        "name": "default_200mhz_clk2_n",
+        "iostandard": "LVDS",
+        "loc": "G26",
+        "dqs_bias": "TRUE"
+      },
+      "default_200mhz_clk2_p": {
+        "index": "3",
+        "name": "default_200mhz_clk2_p",
+        "iostandard": "LVDS",
+        "loc": "G25",
+        "dqs_bias": "TRUE"
+      },
+      "default_50mhz_clk0": {
+        "index": "0",
+        "name": "default_50mhz_clk0",
+        "iostandard": "LVCMOS18",
+        "loc": "AA28"
+      }
+    },
+    "clock_components": {
+      "pcie_refclk": {
+        "display_name": "PCIe MGT reference Clock",
+        "sub_type": "mgt_clock",
+        "parameters": {
+          "frequency": "100000000"
+        }
+      },
+      "default_50mhz_clk0": {
+        "display_name": "50 MHz System clock0",
+        "sub_type": "system_clock",
+        "parameters": {
+          "frequency": "50000000"
+        }
+      },
+      "default_200mhz_clk1": {
+        "display_name": "200 MHz System differential clock1",
+        "sub_type": "system_clock",
+        "parameters": {
+          "frequency": "200000000"
+        }
+      },
+      "default_200mhz_clk2": {
+        "display_name": "200 MHz System differential clock2",
+        "sub_type": "system_clock",
+        "parameters": {
+          "frequency": "200000000"
+        }
+      }
+    }
+  },
+  "validation": {
+    "python_run": true,
+    "simulation_run": false,
+    "synthesis_run": false,
+    "hardware_run": false,
+    "validation_kind": "litedram-litex-open-controller-import-probe",
+    "count_mismatches": {}
+  },
+  "decision": {
+    "verdict": "promote-litedram-open-controller-probe",
+    "next_gate": "Instantiate a minimal YPCB LiteDRAM/LiteX target/config and generate the DDR3 init plus linear-read bandwidth probe RTL.",
+    "notes": [
+      "Do not use Vivado MIG for the Task 6 implementation lane.",
+      "If the exact MT41K256M8DA class is absent, add a small custom LiteDRAM module derived from Micron MT41K256M8 geometry/timing.",
+      "Keep rowstream integration blocked until DDR3 init and linear read bandwidth are measured on board."
+    ]
+  }
+}

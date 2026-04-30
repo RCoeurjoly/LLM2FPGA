@@ -11080,3 +11080,95 @@ Decision:
     generator/config for Kintex-7 plus the YPCB `MT41K256M8XX-125` interface
 - Keep the next implementation small: DDR3 init plus linear-read bandwidth
   counter first, not rowstream integration.
+
+### 2026-04-30 - LiteDRAM/LiteX open-controller probe
+
+Goal:
+
+- Enforce the Task 6 DDR3 implementation lane as open-source
+  LiteDRAM/LiteX only. Vivado MIG is rejected for controller generation and
+  board bring-up. Existing YPCB files may be used only as open board metadata
+  such as UCF pin maps and board XML clock facts.
+
+Implementation:
+
+- Added flake inputs:
+  - `litex`: `github:enjoy-digital/litex`
+  - `litedram`: `github:enjoy-digital/litedram`
+- Locked revisions:
+  - LiteX: `d9918790cadefc51f9904f800cba40ece6e3f07e`
+    (`2026-04-30`)
+  - LiteDRAM: `ef9f94a4aeef88f11567a5efa11fc6e7a3bf9dc2`
+    (`2026-04-08`)
+- Added local Nix Python packages for LiteX/LiteDRAM.
+- Added `scripts/task6/check_litedram_open_controller_path.py`.
+- Added flake package:
+  - `task6-litedram-open-controller-probe`
+- Copied durable proof:
+  - `artifacts/task6/parallel-hypotheses/h2-litedram-open-controller-probe.json`
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/check_litedram_open_controller_path.py`
+  - `nix-instantiate --parse flake.nix`
+  - `git diff --check`
+- Locking:
+  - `nix flake lock --update-input litex --update-input litedram`
+- Rejected attempt:
+  - first `nix build .#task6-litedram-open-controller-probe --no-link --print-out-paths -L`
+    built LiteX and LiteDRAM successfully, then failed because the probe
+    incorrectly treated `litedram.modules` as a package directory instead of a
+    single module file
+- Fixed and reran:
+  - `nix build .#task6-litedram-open-controller-probe --no-link --print-out-paths -L`
+  - `/nix/store/4i75a2iabnf2sbx2rnhyigfs6s0mn2br-h2-litedram-open-controller-probe.json`
+- Result status: `PASS`
+
+Measured result:
+
+- Policy:
+  - `vivado_mig_lane`: `rejected`
+  - `controller_path`: `LiteDRAM/LiteX only`
+  - `mig_files_used_for_controller_generation`: `false`
+- LiteDRAM/LiteX imports:
+  - `litex`: import PASS
+  - `litedram`: import PASS
+  - `litedram.modules`: import PASS
+  - `litedram.phy.s7ddrphy`: import PASS
+- LiteDRAM detected classes:
+  - DRAM module classes: `86`
+  - MT41K family classes:
+    - `MT41K128M16`
+    - `MT41K256M16`
+    - `MT41K256M8`
+    - `MT41K512M16`
+    - `MT41K64M16`
+  - Requested board part: `MT41K256M8DA-125`
+  - Exact usable module class: `MT41K256M8`
+  - 7-series PHY classes:
+    - `A7DDRPHY`
+    - `K7DDRPHY`
+    - `S7DDRPHY`
+    - `V7DDRPHY`
+- YPCB open board facts used by the probe:
+  - DDR3 UCF constrained nets: `117`
+  - `ddr3_dq`: `72`
+  - `ddr3_dqs_p`: `9`
+  - `ddr3_dqs_n`: `9`
+  - `ddr3_addr`: `15`
+  - `ddr3_ba`: `3`
+  - differential `200 MHz` clock 1: `AH27/AH28`
+  - differential `200 MHz` clock 2: `G25/G26`
+  - `50 MHz` clock: `AA28`
+  - reset: `R28`
+
+Decision:
+
+- Promote the LiteDRAM/LiteX open-controller probe.
+- The next gate is now concrete: instantiate a minimal YPCB LiteDRAM/LiteX
+  target/config using `K7DDRPHY` and `MT41K256M8`, then generate a DDR3 init
+  plus linear-read bandwidth probe.
+- Keep the rowstream cutout blocked from DDR3 integration until the open
+  controller proves init/calibration and measured linear-read bandwidth on the
+  board.

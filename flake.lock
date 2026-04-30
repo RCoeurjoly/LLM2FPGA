@@ -129,6 +129,38 @@
         "type": "github"
       }
     },
+    "litedram": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1775661582,
+        "narHash": "sha256-Xbb4lRypUFhYudlBA44aIRE740Vk5lxTM9r+upHdNgw=",
+        "owner": "enjoy-digital",
+        "repo": "litedram",
+        "rev": "ef9f94a4aeef88f11567a5efa11fc6e7a3bf9dc2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "enjoy-digital",
+        "repo": "litedram",
+        "type": "github"
+      }
+    },
+    "litex": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1777539689,
+        "narHash": "sha256-plBJyvihCnEp4bNVAHseKGJ7J68Bswynk5PNJAGqsJ8=",
+        "owner": "enjoy-digital",
+        "repo": "litex",
+        "rev": "d9918790cadefc51f9904f800cba40ece6e3f07e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "enjoy-digital",
+        "repo": "litex",
+        "type": "github"
+      }
+    },
     "llvm-submodule-src": {
       "flake": false,
       "locked": {
@@ -301,6 +333,8 @@
       "inputs": {
         "circt-nix": "circt-nix",
         "flake-utils": "flake-utils_2",
+        "litedram": "litedram",
+        "litex": "litex",
         "nextpnrXilinxFork": "nextpnrXilinxFork",
         "nix-eda": "nix-eda",
         "nixpkgs": "nixpkgs_3",
