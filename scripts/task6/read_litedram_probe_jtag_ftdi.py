@@ -94,11 +94,18 @@ def main() -> None:
             payload = read_payload(client, args.ir_len, args.user_ir, args.bits)
             decoded = decode_payload(payload, args.bits)
             status = decoded["decoded"]["status"]
+            extended_status = decoded["decoded"]["extended_status"]
             if (
                 not args.poll
                 or status["read_target_seen"]
+                or extended_status["probe_done"]
+                or extended_status["probe_error"]
+                or extended_status["probe_timeout"]
                 or status["init_error"]
                 or status["timeout_seen"]
+                or status["init_seq_error"]
+                or status["wb_error_seen"]
+                or status["wb_timeout_seen"]
             ):
                 break
             if attempt + 1 < attempts:

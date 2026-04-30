@@ -179,6 +179,205 @@ Immediate execution order as of 2026-04-30:
 7. Replay any promising representative or microkernel result on the copied
    TinyStories baseline bundle or a documented full-model successor.
 
+### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
+
+Constraint:
+
+- Keep this lane fully open-source. Do not use Vivado MIG; use LiteDRAM/LiteX
+  and the openXC7/nextpnr/openFPGALoader path.
+
+Current hardware result:
+
+- The YPCB LiteDRAM no-ODELAY probe now builds, routes, programs over HS3, and
+  exposes autonomous JTAG debug payloads.
+- The current routed v29 byte-map diagnostic bitstream is:
+  `/nix/store/kkikcq3005nj596j3036fbb3702zfp7r-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+- v29 nextpnr utilization:
+  - `SLICE_LUTX`: `19012 / 597200` (3%)
+  - `SLICE_FFX`: `9732 / 597200` (1%)
+  - `RAMB18E1/RAMB36E1`: 0
+  - `DSP48E1`: 0
+  - DDR PHY hard blocks remain the limiting fixed resources:
+    `IDELAYE2 64 / 400`, `OSERDESE2 98 / 400`,
+    `ISERDESE2 64 / 400`, `IDELAYCTRL 3 / 8`
+- v29 post-route timing passes the 50 MHz target:
+  - `clk200`: 424.81 MHz
+  - `user_clk`: 83.95 MHz
+  - `core.iodelay_clk`: 665.78 MHz
+  - `jtag_debug_shift.drck`: 654.88 MHz
+
+What the board probes have learned:
+
+- v26 seed-2 proved JEDEC init and the native scheduler are alive:
+  - `init_state=INIT_DONE`
+  - all `65536` writes completed
+  - all `65536` reads returned
+  - all reads mismatched, so the remaining blocker is data integrity, not a
+    native-port deadlock.
+- v27 scanned one global read `bitslip/delay` pair across all byte lanes:
+  - all 256 candidates completed
+  - best result was still `32 / 32` mismatches on the 32-word calibration
+    sample
+  - conclusion: one global setting is not sufficient.
+- v28 scanned each physical byte lane independently:
+  - all `2048` lane/bitslip/delay candidates completed
+  - full `65536`-word test still failed
+  - only lanes 6 and 7 improved meaningfully (`4 / 32` and `8 / 32`
+    calibration mismatches); lanes 0-5 stayed poor.
+- v29 added a module-to-logical-byte diagnostic:
+  - all `2048` candidates completed again
+  - the full native-port test still failed with `65536 / 65536` mismatches
+  - selected logical-byte evidence was dominated by logical bytes 6 and 7:
+    `m0->y6`, `m1->y6`, `m2->y6`, `m3->y6`, `m4->y6`, `m5->y7`,
+    `m6->y6`, `m7->y7`
+  - first full-test readback was `0xffdc008700000000` against expected
+    `0xc0de0000eca86420`; lower 32 bits are again zero in the first failing
+    word.
+
+Current interpretation:
+
+- This is not a toolchain synthesis/P&R failure. The open flow routes and the
+  programmed design runs the controller far enough to complete native writes
+  and reads.
+- It is also not a clean byte-lane permutation. The v29 byte-map diagnostic
+  does not show a one-to-one physical-module to native-byte mapping that would
+  make the current native-port calibration sufficient.
+- The next likely blocker is one of:
+  - missing LiteX/LiteDRAM DFII-style read leveling/training before enabling
+    normal native-port traffic
+  - native-port data packing/addressing assumptions in the probe
+  - write/read phase or write-side training behavior that the current native
+    pattern test cannot isolate
+
+Next gate:
+
+- Stop widening the native-port delay sweep.
+- Implement a smaller DFII/LiteX-style read-leveling probe or a native-port
+  packing proof:
+  - DFII route: reproduce LiteX `sdram_read_leveling()` more directly by using
+    the `sdram_dfii_pi*_wrdata/rddata` and command CSRs during software DFI
+    control.
+  - native-port route: first capture a compact multi-address readback sample
+    through JTAG to prove whether address/data packing is wrong before changing
+    PHY calibration again.
+
+v30 native-read sampler result:
+
+- Implemented the native-port route above:
+  - probe version: `30`
+  - JTAG payload width: `1728` bits
+  - added the first eight final native read responses to the JTAG payload
+  - decoder now prints `expected`, `actual`, and `xor` for each sampled word
+- Build outputs:
+  - JSON:
+    `/nix/store/2y8nbbhzz0fd4ygz11ilmg7v6qq50z5i-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json`
+  - bitstream:
+    `/nix/store/xhfay3c7x7bx533pbg11jrg522w2va92-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+- Yosys result:
+  - `check` reported `0` problems
+  - peak memory: `703.36 MiB`
+  - estimated LCs: `10062`
+- nextpnr utilization:
+  - `SLICE_LUTX`: `19376 / 597200` (3%)
+  - `SLICE_FFX`: `10796 / 597200` (1%)
+  - `RAMB18E1/RAMB36E1`: 0
+  - `DSP48E1`: 0
+  - DDR PHY hard blocks: `IDELAYE2 64 / 400`, `OSERDESE2 98 / 400`,
+    `ISERDESE2 64 / 400`, `IDELAYCTRL 3 / 8`
+- Post-route timing:
+  - `clk200`: 665.34 MHz
+  - `user_clk`: 81.48 MHz
+  - `core.iodelay_clk`: 665.78 MHz
+  - `jtag_debug_shift.drck`: 504.03 MHz
+- Board/JTAG result after programming:
+  - `magic_ok=true`
+  - state: `PROBE_ERROR`
+  - init state: `INIT_DONE`
+  - writes: `65536 / 65536`
+  - reads: `65536`
+  - responses: `65536`
+  - mismatches: `65536`
+  - first mismatch expected `0xc0de0000eca86420`, actual
+    `0x40dc028100000000`
+- First eight sampled final native reads:
+  - `0`: expected `0xc0de0000eca86420`, actual `0x40dc028100000000`
+  - `1`: expected `0xc0de0081eca84421`, actual `0x40dc018100000000`
+  - `2`: expected `0xc0de0102eca82422`, actual `0x00dc008700000000`
+  - `3`: expected `0xc0de0183eca80423`, actual `0x00dc008700000000`
+  - `4`: expected `0xc0de0204eca8e424`, actual `0x00dc000400000000`
+  - `5`: expected `0xc0de0285eca8c425`, actual `0x0094000400000000`
+  - `6`: expected `0xc0de0306eca8a426`, actual `0xfb94000000000000`
+  - `7`: expected `0xc0de0387eca88427`, actual `0xfb00680000000000`
+
+Updated interpretation:
+
+- The native-port command path is alive: all commands and responses complete.
+- The lower 32 bits are stuck at zero across the first eight sampled final
+  native reads.
+- The upper 32 bits vary with address, so the read path is not blank.
+- The next gate should stop native-port delay widening and implement the
+  LiteX/DFII-style read-leveling path directly. That path can distinguish
+  missing DFII training from native converter packing or board byte-lane
+  mapping assumptions.
+
+v31 DFII direct round-trip result:
+
+- Implemented the first LiteX/DFII-style probe:
+  - probe version: `31`
+  - JTAG payload width: `2400` bits
+  - after JEDEC init, the probe switches to software DFI control, writes a
+    16-word pattern through the `sdram_dfii_pi*_wrdata` CSRs, issues
+    activate/write/read/precharge commands through the DFII command CSRs, and
+    captures the 16 `sdram_dfii_pi*_rddata` words over JTAG
+- Build outputs:
+  - JSON:
+    `/nix/store/2a69b7w1krivqy6cxhcha4pzbnma3kix-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json`
+  - bitstream:
+    `/nix/store/lhiqqy74zawzajkb92awsbck6bcgkgs2-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+- Yosys result:
+  - `check` reported `0` problems
+  - peak memory: `734.27 MiB`
+  - estimated LCs: `11152`
+- nextpnr utilization:
+  - `SLICE_LUTX`: `20936 / 597200` (3%)
+  - `SLICE_FFX`: `12253 / 597200` (2%)
+  - `RAMB18E1/RAMB36E1`: 0
+  - `DSP48E1`: 0
+  - DDR PHY hard blocks: `IDELAYE2 64 / 400`, `OSERDESE2 98 / 400`,
+    `ISERDESE2 64 / 400`, `IDELAYCTRL 3 / 8`
+- Post-route timing:
+  - `clk200`: 452.28 MHz
+  - `user_clk`: 64.77 MHz
+  - `core.iodelay_clk`: 547.65 MHz
+  - `jtag_debug_shift.drck`: 457.88 MHz
+- Board/JTAG result after programming:
+  - `magic_ok=true`
+  - state: `PROBE_ERROR`
+  - init state: `INIT_DONE`
+  - DFII sequence state: `DFII_SEQ_DONE`
+  - DFII CSR acknowledgements: `50`
+  - DFII word mismatch mask: `0xffff`
+  - all 16 captured DFII readback words mismatched the written pattern
+- Representative captured DFII readback:
+  - `[p0 w0]` expected `0x11223344`, actual `0x00aa3bcc`
+  - `[p0 w1]` expected `0x55667788`, actual `0x556e7788`
+  - `[p1 w0]` expected `0x22446688`, actual `0x00223b44`
+  - `[p2 w0]` expected `0x0f1e2d3c`, actual `0xffff3bff`
+  - `[p3 w3]` expected `0x33832795`, actual `0x556e7788`
+
+Updated interpretation:
+
+- The open LiteDRAM/LiteX CSR, command, and JTAG paths are now proven alive on
+  the board: JEDEC init completes, all DFII CSR transactions acknowledge, and
+  DFII readback returns nonzero data.
+- The failure is still DDR3 data integrity, but v31 moves the hypothesis away
+  from native-port packing as the only explanation. A direct DFII write/read
+  path also fails without training.
+- The next gate is to implement the actual LiteX-style read-leveling scan over
+  `rdly_dq_bitslip` and `rdly_dq_inc`, using the DFII write/read pattern and
+  per-module byte comparisons instead of treating the whole native word as the
+  calibration unit.
+
 ### Evidence contract for every lane
 
 Every active lane must leave behind:

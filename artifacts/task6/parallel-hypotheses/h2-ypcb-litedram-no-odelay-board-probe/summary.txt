@@ -61,3 +61,113 @@ Next gate:
 - Widen the JTAG payload to expose LiteDRAM init/calibration and DFI/PHY status
   signals. Then decide whether the blocker is A7DDRPHY calibration/timing,
   no-DM wiring, reset sequencing, or PHY parameterization.
+
+Latest update, 2026-04-30:
+- Controller path remains LiteDRAM/LiteX only; Vivado MIG is explicitly
+  rejected for this lane.
+- v26 seed-2 proved JEDEC init and native command flow:
+  - init_state=INIT_DONE
+  - 65536/65536 writes completed
+  - 65536/65536 reads returned
+  - 65536 mismatches remained
+- v27 global read-leveling sweep:
+  - bitstream:
+    /nix/store/hghrf6pxj1hlldxg0axfsqrv8dca0wjg-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit
+  - scanned 256 global bitslip/delay candidates
+  - best result stayed 32/32 calibration mismatches
+- v28 per-physical-byte-lane sweep:
+  - bitstream:
+    /nix/store/lhighwq6mpbcd9j8qksrrrglav0r5wqs-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit
+  - scanned 2048 lane/bitslip/delay candidates
+  - full 65536-word native test still failed
+  - best lane mismatch counts: [32, 32, 32, 32, 28, 30, 4, 8]
+- v29 byte-map diagnostic:
+  - bitstream:
+    /nix/store/kkikcq3005nj596j3036fbb3702zfp7r-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit
+  - nextpnr utilization: SLICE_LUTX 19012/597200 (3%),
+    SLICE_FFX 9732/597200 (1%), BRAM 0, DSP 0
+  - post-route timing: clk200 424.81 MHz, user_clk 83.95 MHz,
+    core.iodelay_clk 665.78 MHz, jtag_debug_shift.drck 654.88 MHz
+  - scanned 2048 candidates
+  - full 65536-word native test still failed with 65536 mismatches
+  - lane mapping evidence was not a clean permutation:
+    m0->y6, m1->y6, m2->y6, m3->y6, m4->y6, m5->y7, m6->y6, m7->y7
+  - first failing readback:
+    expected 0xc0de0000eca86420, actual 0xffdc008700000000
+
+Latest interpretation:
+- The open flow is not the blocker: synthesis, P&R, programming, JEDEC init,
+  and native command completion all work.
+- The remaining blocker is DDR3 data integrity. Native-port delay sweeps have
+  not produced a passing calibration, and the byte-map diagnostic suggests the
+  issue is not a simple byte-lane permutation.
+
+Latest next gate:
+- Stop widening native-port delay sweeps.
+- Either reproduce LiteX's DFII/software-control read-leveling path directly,
+  or first add a compact multi-address native readback sample to prove whether
+  the probe's native-port packing/address assumptions are wrong.
+
+v30 native-read sampler update:
+- Implemented the compact native readback sample path.
+- JSON:
+  /nix/store/2y8nbbhzz0fd4ygz11ilmg7v6qq50z5i-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json
+- Bitstream:
+  /nix/store/xhfay3c7x7bx533pbg11jrg522w2va92-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit
+- Yosys check: 0 problems, 703.36 MiB peak, 10062 estimated LCs
+- nextpnr utilization:
+  SLICE_LUTX 19376/597200 (3%), SLICE_FFX 10796/597200 (1%),
+  BRAM 0, DSP 0, IDELAYE2 64/400 (16%), OSERDESE2 98/400 (24%),
+  ISERDESE2 64/400 (16%), IDELAYCTRL 3/8 (37%)
+- Post-route timing:
+  clk200 665.34 MHz, user_clk 81.48 MHz, core.iodelay_clk 665.78 MHz,
+  jtag_debug_shift.drck 504.03 MHz
+- Board/JTAG:
+  magic_ok=true, version=30, state=PROBE_ERROR, init_state=INIT_DONE,
+  writes=65536/65536, reads=65536, responses=65536, mismatches=65536
+- First sampled final native reads:
+  [0] expected 0xc0de0000eca86420 actual 0x40dc028100000000
+  [1] expected 0xc0de0081eca84421 actual 0x40dc018100000000
+  [2] expected 0xc0de0102eca82422 actual 0x00dc008700000000
+  [3] expected 0xc0de0183eca80423 actual 0x00dc008700000000
+  [4] expected 0xc0de0204eca8e424 actual 0x00dc000400000000
+  [5] expected 0xc0de0285eca8c425 actual 0x0094000400000000
+  [6] expected 0xc0de0306eca8a426 actual 0xfb94000000000000
+  [7] expected 0xc0de0387eca88427 actual 0xfb00680000000000
+- Interpretation:
+  native commands/responses complete, lower 32 bits are stuck at zero in all
+  sampled final reads, and upper 32 bits vary by address.
+- Next gate:
+  implement the LiteX/DFII-style read-leveling probe directly; do not widen the
+  native-port delay sweep further.
+
+v31 DFII direct round-trip:
+- JSON artifact:
+  /nix/store/2a69b7w1krivqy6cxhcha4pzbnma3kix-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json
+- Bitstream artifact:
+  /nix/store/lhiqqy74zawzajkb92awsbck6bcgkgs2-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit
+- Yosys:
+  check 0 problems, peak 734.27 MiB, estimated 11152 LCs
+- nextpnr:
+  LUT 20936/597200 (3%), FF 12253/597200 (2%), BRAM 0, DSP 0,
+  IDELAYE2 64/400 (16%), OSERDESE2 98/400 (24%),
+  ISERDESE2 64/400 (16%), IDELAYCTRL 3/8 (37%)
+- Post-route timing:
+  clk200 452.28 MHz, user_clk 64.77 MHz, core.iodelay_clk 547.65 MHz,
+  jtag_debug_shift.drck 457.88 MHz
+- Board/JTAG:
+  magic_ok=true, version=31, state=PROBE_ERROR, init_state=INIT_DONE,
+  dfii_state=DFII_SEQ_DONE, dfii_ack=50, dfii_wait=150,
+  dfii_mismatch_mask=0xffff
+- Captured DFII readback examples:
+  [p0 w0] expected 0x11223344 actual 0x00aa3bcc
+  [p0 w1] expected 0x55667788 actual 0x556e7788
+  [p1 w0] expected 0x22446688 actual 0x00223b44
+  [p2 w0] expected 0x0f1e2d3c actual 0xffff3bff
+  [p3 w3] expected 0x33832795 actual 0x556e7788
+- Interpretation:
+  the LiteDRAM/LiteX JEDEC init, DFII CSR command path, and JTAG readback are
+  alive on board; direct DFII data still mismatches without read-leveling.
+- Next gate:
+  implement the LiteX-style read-leveling scan with DFII pattern checks and
+  per-module byte comparisons.

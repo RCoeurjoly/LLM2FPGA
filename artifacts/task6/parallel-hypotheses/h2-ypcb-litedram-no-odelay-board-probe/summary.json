@@ -122,13 +122,252 @@
       "timeout_seen": false
     }
   },
+  "latest_litedram_litex_debug": {
+    "date": "2026-04-30",
+    "controller_path": "LiteDRAM/LiteX only",
+    "vivado_mig_lane": "rejected",
+    "v26_seed2_native_flow": {
+      "bitstream": "/nix/store/vc7q0mb38msr8fqd9364rz02nhhwklnz-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "DATA_INTEGRITY_FAIL",
+      "init_state": "INIT_DONE",
+      "writes": 65536,
+      "reads": 65536,
+      "responses": 65536,
+      "mismatches": 65536,
+      "interpretation": "JEDEC init and native scheduler completed; data integrity failed."
+    },
+    "v27_global_read_sweep": {
+      "bitstream": "/nix/store/hghrf6pxj1hlldxg0axfsqrv8dca0wjg-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "NO_PASSING_GLOBAL_CANDIDATE",
+      "candidates_tested": 256,
+      "best_mismatch_count": 32,
+      "calibration_words": 32
+    },
+    "v28_per_lane_sweep": {
+      "bitstream": "/nix/store/lhighwq6mpbcd9j8qksrrrglav0r5wqs-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "status": "NO_FULL_NATIVE_PASS",
+      "candidates_tested": 2048,
+      "lane_best_mismatch_counts": [32, 32, 32, 32, 28, 30, 4, 8],
+      "full_test_words": 65536,
+      "full_test_mismatches": 65536
+    },
+    "v29_byte_map_diagnostic": {
+      "bitstream": "/nix/store/kkikcq3005nj596j3036fbb3702zfp7r-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "json": "/nix/store/5gsyrx31kbbya33b2xnb8fsqd5f5qr2v-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+      "status": "NO_FULL_NATIVE_PASS",
+      "candidates_tested": 2048,
+      "full_test_words": 65536,
+      "full_test_mismatches": 65536,
+      "lane_best_mismatch_counts": [24, 16, 24, 16, 16, 20, 0, 8],
+      "lane_selected_logical_bytes": [6, 6, 6, 6, 6, 7, 6, 7],
+      "lane_selected_settings": [
+        {"module": 0, "logical_byte": 6, "bitslip": 0, "delay": 0},
+        {"module": 1, "logical_byte": 6, "bitslip": 0, "delay": 0},
+        {"module": 2, "logical_byte": 6, "bitslip": 0, "delay": 0},
+        {"module": 3, "logical_byte": 6, "bitslip": 0, "delay": 0},
+        {"module": 4, "logical_byte": 6, "bitslip": 0, "delay": 0},
+        {"module": 5, "logical_byte": 7, "bitslip": 0, "delay": 0},
+        {"module": 6, "logical_byte": 6, "bitslip": 0, "delay": 0},
+        {"module": 7, "logical_byte": 7, "bitslip": 2, "delay": 17}
+      ],
+      "first_mismatch": {
+        "addr": 0,
+        "expected": "0xc0de0000eca86420",
+        "actual": "0xffdc008700000000"
+      },
+      "last_rdata": "0x00ff00ff00000000",
+      "checksum": "0xcd370033",
+      "nextpnr_utilization": {
+        "SLICE_LUTX": "19012 / 597200 (3%)",
+        "SLICE_FFX": "9732 / 597200 (1%)",
+        "RAMB18E1": "0 / 1910 (0%)",
+        "RAMB36E1": "0 / 955 (0%)",
+        "DSP48E1": "0 / 1920 (0%)",
+        "IDELAYE2": "64 / 400 (16%)",
+        "OSERDESE2": "98 / 400 (24%)",
+        "ISERDESE2": "64 / 400 (16%)",
+        "IDELAYCTRL": "3 / 8 (37%)"
+      },
+      "post_route_max_freq_mhz": {
+        "clk200": 424.81,
+        "user_clk": 83.95,
+        "core.iodelay_clk": 665.78,
+        "jtag_debug_shift.drck": 654.88
+      }
+    },
+    "v30_native_read_sampler": {
+      "bitstream": "/nix/store/xhfay3c7x7bx533pbg11jrg522w2va92-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "json": "/nix/store/2y8nbbhzz0fd4ygz11ilmg7v6qq50z5i-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+      "status": "NO_FULL_NATIVE_PASS",
+      "jtag_debug_version": 30,
+      "jtag_debug_bits": 1728,
+      "full_test_words": 65536,
+      "writes": 65536,
+      "reads": 65536,
+      "responses": 65536,
+      "full_test_mismatches": 65536,
+      "first_mismatch": {
+        "addr": 0,
+        "expected": "0xc0de0000eca86420",
+        "actual": "0x40dc028100000000"
+      },
+      "readback_samples": [
+        {
+          "index": 0,
+          "expected": "0xc0de0000eca86420",
+          "actual": "0x40dc028100000000",
+          "xor": "0x80020281eca86420"
+        },
+        {
+          "index": 1,
+          "expected": "0xc0de0081eca84421",
+          "actual": "0x40dc018100000000",
+          "xor": "0x80020100eca84421"
+        },
+        {
+          "index": 2,
+          "expected": "0xc0de0102eca82422",
+          "actual": "0x00dc008700000000",
+          "xor": "0xc0020185eca82422"
+        },
+        {
+          "index": 3,
+          "expected": "0xc0de0183eca80423",
+          "actual": "0x00dc008700000000",
+          "xor": "0xc0020104eca80423"
+        },
+        {
+          "index": 4,
+          "expected": "0xc0de0204eca8e424",
+          "actual": "0x00dc000400000000",
+          "xor": "0xc0020200eca8e424"
+        },
+        {
+          "index": 5,
+          "expected": "0xc0de0285eca8c425",
+          "actual": "0x0094000400000000",
+          "xor": "0xc04a0281eca8c425"
+        },
+        {
+          "index": 6,
+          "expected": "0xc0de0306eca8a426",
+          "actual": "0xfb94000000000000",
+          "xor": "0x3b4a0306eca8a426"
+        },
+        {
+          "index": 7,
+          "expected": "0xc0de0387eca88427",
+          "actual": "0xfb00680000000000",
+          "xor": "0x3bde6b87eca88427"
+        }
+      ],
+      "nextpnr_utilization": {
+        "SLICE_LUTX": "19376 / 597200 (3%)",
+        "SLICE_FFX": "10796 / 597200 (1%)",
+        "RAMB18E1": "0 / 1910 (0%)",
+        "RAMB36E1": "0 / 955 (0%)",
+        "DSP48E1": "0 / 1920 (0%)",
+        "IDELAYE2": "64 / 400 (16%)",
+        "OSERDESE2": "98 / 400 (24%)",
+        "ISERDESE2": "64 / 400 (16%)",
+        "IDELAYCTRL": "3 / 8 (37%)"
+      },
+      "post_route_max_freq_mhz": {
+        "clk200": 665.34,
+        "user_clk": 81.48,
+        "core.iodelay_clk": 665.78,
+        "jtag_debug_shift.drck": 504.03
+      },
+      "interpretation": "The native command path completes, the lower 32 bits are stuck at zero across sampled final reads, and the upper 32 bits vary by address."
+    },
+    "v31_dfii_direct_round_trip": {
+      "bitstream": "/nix/store/lhiqqy74zawzajkb92awsbck6bcgkgs2-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+      "json": "/nix/store/2a69b7w1krivqy6cxhcha4pzbnma3kix-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+      "status": "DFII_COMMAND_PATH_LIVE_DATA_MISMATCH",
+      "jtag_debug_version": 31,
+      "jtag_debug_bits": 2400,
+      "dfii_sequence_state": "DFII_SEQ_DONE",
+      "dfii_wb_ack_count": 50,
+      "dfii_wb_wait_count": 150,
+      "dfii_word_mismatch_mask": "0xffff",
+      "dfii_readback_examples": [
+        {
+          "index": 0,
+          "phase": 0,
+          "word": 0,
+          "expected": "0x11223344",
+          "actual": "0x00aa3bcc",
+          "xor": "0x11880888"
+        },
+        {
+          "index": 1,
+          "phase": 0,
+          "word": 1,
+          "expected": "0x55667788",
+          "actual": "0x556e7788",
+          "xor": "0x00080000"
+        },
+        {
+          "index": 4,
+          "phase": 1,
+          "word": 0,
+          "expected": "0x22446688",
+          "actual": "0x00223b44",
+          "xor": "0x22665dcc"
+        },
+        {
+          "index": 8,
+          "phase": 2,
+          "word": 0,
+          "expected": "0x0f1e2d3c",
+          "actual": "0xffff3bff",
+          "xor": "0xf0e116c3"
+        },
+        {
+          "index": 15,
+          "phase": 3,
+          "word": 3,
+          "expected": "0x33832795",
+          "actual": "0x556e7788",
+          "xor": "0x66ed501d"
+        }
+      ],
+      "nextpnr_utilization": {
+        "SLICE_LUTX": "20936 / 597200 (3%)",
+        "SLICE_FFX": "12253 / 597200 (2%)",
+        "RAMB18E1": "0 / 1910 (0%)",
+        "RAMB36E1": "0 / 955 (0%)",
+        "DSP48E1": "0 / 1920 (0%)",
+        "IDELAYE2": "64 / 400 (16%)",
+        "OSERDESE2": "98 / 400 (24%)",
+        "ISERDESE2": "64 / 400 (16%)",
+        "IDELAYCTRL": "3 / 8 (37%)"
+      },
+      "post_route_max_freq_mhz": {
+        "clk200": 452.28,
+        "user_clk": 64.77,
+        "core.iodelay_clk": 547.65,
+        "jtag_debug_shift.drck": 457.88
+      },
+      "interpretation": "LiteDRAM/LiteX JEDEC init, DFII CSR commands, and JTAG readback are alive on board; direct DFII data still mismatches without read-leveling."
+    },
+    "current_interpretation": [
+      "The open LiteDRAM/LiteX flow is not the blocker: synthesis, P&R, programming, JEDEC init, DFII CSR commands, and JTAG readback work.",
+      "The remaining blocker is DDR3 data integrity.",
+      "The byte-map diagnostic does not show a clean physical-module to native-byte permutation.",
+      "The v30 sampler shows the lower 32 bits stuck at zero across the first eight final native readback samples.",
+      "The v31 DFII direct round-trip returns nonzero data but mismatches all 16 words, so the next test must implement LiteX-style per-module read-leveling."
+    ],
+    "next_gate": "Implement the LiteX-style read-leveling scan with DFII pattern checks and per-module byte comparisons."
+  },
   "decision": {
-    "verdict": "promote-open-bitstream-and-debug-ddr-init-stall",
+    "verdict": "promote-open-bitstream-and-debug-ddr-data-integrity",
     "what_was_learned": [
       "The open LiteDRAM/LiteX DDR3 lane can now synthesize, place, route, emit a bitstream, program the board, and expose an autonomous JTAG payload.",
       "The K7DDRPHY failure was not a full-controller scale issue; the A7DDRPHY no-ODELAY variant avoids the HR-bank output-ODELAY blocker.",
-      "The remaining blocker is physical DDR3 initialization: PLL and reset are good, but LiteDRAM init never reaches init_done or init_error within 60 seconds."
+      "JEDEC init, native writes, native reads, DFII CSR commands, and JTAG sampling all complete.",
+      "The remaining blocker is DDR3 data integrity: sampled native reads have the lower 32 bits stuck at zero and direct DFII readback also mismatches without read-leveling."
     ],
-    "next_gate": "Widen the JTAG payload to expose LiteDRAM init/calibration state and DFI/PHY status signals, then decide whether A7DDRPHY timing/calibration, no-DM wiring, reset sequencing, or PHY parameterization is blocking init_done."
+    "next_gate": "Implement the LiteX-style read-leveling scan with DFII pattern checks and per-module byte comparisons."
   }
 }

@@ -3383,7 +3383,7 @@
           name = "task6-ypcb-litedram-no-odelay-init-bandwidth-probe";
           xdc = task6YpcbLiteDramNoOdelayInitBandwidthProbeXdc;
           json = task6YpcbLiteDramNoOdelayInitBandwidthProbeJson;
-          seed = 1;
+          seed = 2;
           freqMHz = 50;
         };
 
