@@ -3079,6 +3079,32 @@
               --out-dir "$out"
           '';
 
+        task6Ddr3RowStreamCutoutTbData =
+          pkgs.runCommand "task6-ddr3-row-stream-cutout-tb-data" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./scripts/task6
+            }/gen_ddr3_rowstream_cutout_tb_data.py \
+              --model-path ${tinyStories1m.snapshot} \
+              --model-artifact-label tiny-stories-1m-snapshot \
+              --adapter-path ${./TinyStories/model_adapter.py} \
+              --adapter-artifact-label TinyStories/model_adapter.py \
+              --contract-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-interface-contract.json
+              } \
+              --contract-artifact-label artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-interface-contract.json \
+              --replay-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-replay.json
+              } \
+              --replay-artifact-label artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-replay.json \
+              --rowstream-bin ${
+                ./artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin
+              } \
+              --rowstream-artifact-label artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin \
+              --date 2026-04-30 \
+              --out-dir "$out"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -3346,6 +3372,22 @@
               ${./rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv} \
               ${task6Int8V4kL2ResidualAddOutputHeadSelftestTop} \
               ${./sim/task6_int8_v4k_l2_residual_add_output_head_selftest_tb_main.sv}
+          '';
+
+        task6Ddr3RowStreamCutoutSimMain =
+          pkgs.runCommand "task6-ddr3-row-stream-cutout-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6Ddr3RowStreamCutoutTbData} \
+              -top task6_ddr3_rowstream_top1_cutout_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_q024_topk_score_compare.sv} \
+              ${./rtl/task6/task6_ddr3_rowstream_mem_source.sv} \
+              ${./rtl/task6/task6_ddr3_rowstream_top1_cutout.sv} \
+              ${./sim/task6_ddr3_rowstream_top1_cutout_tb.sv}
           '';
 
         task6CProjRequantArithSelftestSimMain =
@@ -4910,6 +4952,54 @@
             EOF
           '';
 
+        task6Ddr3RowStreamCutoutSvSim =
+          pkgs.runCommand "h2-ddr3-row-stream-cutout-rtl-proof.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6Ddr3RowStreamCutoutSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 ddr3 rowstream top1 cutout samples [0-9]+ rows_per_sample [0-9]+ total_rows [0-9]+ cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6 DDR3 rowstream cutout SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            samples="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+            rows_per_sample="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            total_rows="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            cycles="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "artifact_name": "h2-ddr3-row-stream-cutout-rtl-proof",
+              "status": "PASS",
+              "date": "2026-04-30",
+              "hypothesis": "A DDR-free RTL cutout can consume the packed full-vocab rowstream through a synthetic source, compute int8 dot products, and match the rowwise Q0.24 top1 replay.",
+              "source_artifacts": {
+                "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization",
+                "ddr3_row_stream_interface_contract": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-interface-contract.json",
+                "rowstream_pack_replay": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/summary.json",
+                "rowstream_bin": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin"
+              },
+              "metrics": {
+                "sample_count": $samples,
+                "rows_per_sample": $rows_per_sample,
+                "total_rows_streamed": $total_rows,
+                "cycles": $cycles
+              },
+              "validation": {
+                "python_run": true,
+                "simulation_run": true,
+                "synthesis_run": false,
+                "hardware_run": false,
+                "validation_kind": "ddr-free-rowstream-rtl-cutout"
+              },
+              "decision": {
+                "verdict": "promote-rtl-rowstream-cutout",
+                "next_gate": "Integrate a measured DDR3 linear-read source for the same rowstream contract."
+              }
+            }
+            EOF
+          '';
+
         task6CProjRequantArithSelftestSvSim =
           pkgs.runCommand "task6-c-proj-requant-arith-selftest-sv-sim.json" {
             buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -5839,6 +5929,12 @@
             task6Ddr3RowStreamInterfaceContract;
           task6-ddr3-row-stream-pack-replay =
             task6Ddr3RowStreamPackReplay;
+          task6-ddr3-row-stream-cutout-tb-data =
+            task6Ddr3RowStreamCutoutTbData;
+          task6-ddr3-row-stream-cutout-sim-main =
+            task6Ddr3RowStreamCutoutSimMain;
+          task6-ddr3-row-stream-cutout-sv-sim =
+            task6Ddr3RowStreamCutoutSvSim;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =

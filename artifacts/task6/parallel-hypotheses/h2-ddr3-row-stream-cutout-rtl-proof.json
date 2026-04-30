@@ -1,0 +1,29 @@
+{
+  "artifact_name": "h2-ddr3-row-stream-cutout-rtl-proof",
+  "status": "PASS",
+  "date": "2026-04-30",
+  "hypothesis": "A DDR-free RTL cutout can consume the packed full-vocab rowstream through a synthetic source, compute int8 dot products, and match the rowwise Q0.24 top1 replay.",
+  "source_artifacts": {
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization",
+    "ddr3_row_stream_interface_contract": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-interface-contract.json",
+    "rowstream_pack_replay": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/summary.json",
+    "rowstream_bin": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin"
+  },
+  "metrics": {
+    "sample_count": 8,
+    "rows_per_sample": 50257,
+    "total_rows_streamed": 402056,
+    "cycles": 402088
+  },
+  "validation": {
+    "python_run": true,
+    "simulation_run": true,
+    "synthesis_run": false,
+    "hardware_run": false,
+    "validation_kind": "ddr-free-rowstream-rtl-cutout"
+  },
+  "decision": {
+    "verdict": "promote-rtl-rowstream-cutout",
+    "next_gate": "Integrate a measured DDR3 linear-read source for the same rowstream contract."
+  }
+}

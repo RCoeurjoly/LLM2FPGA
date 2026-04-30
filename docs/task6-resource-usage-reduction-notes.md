@@ -10933,3 +10933,61 @@ Decision:
   the existing Q0.24 comparator, still without integrating a DDR3 controller.
 - Next gate: build a DDR-free RTL rowstream cutout, then measure board DDR3
   linear-read bandwidth before choosing the controller integration path.
+
+### 2026-04-30 - DDR-free rowstream RTL cutout
+
+Goal:
+
+- Prove that RTL can consume the committed full-vocab rowstream image through a
+  synthetic source, compute one `64`-term int8 dot product per vocab row, feed
+  the existing Q0.24 comparator, and match the rowwise replay top1 result before
+  any DDR3 controller integration.
+
+Implementation:
+
+- Added `scripts/task6/gen_ddr3_rowstream_cutout_tb_data.py`.
+- Added `rtl/task6/task6_ddr3_rowstream_mem_source.sv`.
+- Added `rtl/task6/task6_ddr3_rowstream_top1_cutout.sv`.
+- Added `sim/task6_ddr3_rowstream_top1_cutout_tb.sv`.
+- Added flake packages:
+  - `task6-ddr3-row-stream-cutout-tb-data`
+  - `task6-ddr3-row-stream-cutout-sim-main`
+  - `task6-ddr3-row-stream-cutout-sv-sim`
+- Copied durable proof:
+  - `artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-cutout-rtl-proof.json`
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/gen_ddr3_rowstream_cutout_tb_data.py`
+  - `nix-instantiate --parse flake.nix`
+  - `git diff --check`
+- RTL simulation:
+  - `nix build .#task6-ddr3-row-stream-cutout-sv-sim --no-link --print-out-paths -L`
+  - `/nix/store/yk606dhnlkfh5ggsang8pz7vpxxrhpwg-h2-ddr3-row-stream-cutout-rtl-proof.json`
+- Result status: `PASS`
+
+Measured result:
+
+- Samples: `8`
+- Rows streamed per sample: `50257`
+- Total rows streamed: `402056`
+- Simulation cycles: `402088`
+- Per-sample top1 tokens:
+  - sample `0`: token `198`, score `3094540336`
+  - sample `1`: token `40`, score `3476521854`
+  - sample `2`: token `3043`, score `2724137100`
+  - sample `3`: token `628`, score `3494486263`
+  - sample `4`: token `387`, score `3416165620`
+  - sample `5`: token `13`, score `2193042725`
+  - sample `6`: token `13`, score `2352499775`
+  - sample `7`: token `628`, score `2471619603`
+
+Decision:
+
+- Promote the RTL rowstream cutout.
+- This proves the packed image bit layout, synthetic row decode, int8 row dot,
+  and Q0.24 top1 compare agree with the Python full-vocab replay.
+- Next gate: integrate or choose a measured DDR3 linear-read source for the
+  same rowstream contract, with the `4`-lane target still gated by measured
+  board bandwidth margin above `212.5 MB/s`.
