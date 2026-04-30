@@ -10703,3 +10703,58 @@ Decision:
 - Next H2 decision point: either feed this input-side path into a small
   layernorm/attention substitute, or pause H2 growth and run the representative
   core scaling matrix from the Task 6 execution doctrine.
+
+### 2026-04-30 - Q0.24 top-k score comparator cutout validation
+
+Goal:
+
+- Promote the prepared Q0.24 rowwise sidecar top-k comparator cutout from
+  static/readback evidence to executable simulator evidence.
+- This is the smallest no-board gate for the full-vocab streamed output-head
+  contract: it validates scaled-score comparison, signed ordering, lower-token
+  tie break, reserved sidecar rejection, and the conservative score-register
+  bound before any DDR3 integration or full TinyStories replay.
+
+Implementation:
+
+- Fixed the testbench startup/pass path in
+  `rtl/task6/task6_q024_topk_score_compare_tb.sv`:
+  - removed declaration initializers that Verilator 5.046 reports under
+    `-Wall` when the same signals are procedurally assigned
+  - made the PASS and FAIL branches mutually exclusive after `$finish`
+- Added
+  `scripts/task6/check_q024_topk_score_compare_vectors.py`, which checks the
+  vector artifact, checks the expanded expected-state artifact, runs the
+  Verilator binary, and writes a machine-readable result artifact.
+
+Verification:
+
+- Verilator compile:
+  - command:
+    `nix shell nixpkgs#verilator -c verilator --binary --timing -Wall --top-module task6_q024_topk_score_compare_tb rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv`
+  - result: compile `PASS`
+  - tool: `Verilator 5.046`
+- Simulator run:
+  - command:
+    `./obj_dir/Vtask6_q024_topk_score_compare_tb`
+  - result: `PASS task6_q024_topk_score_compare_tb`
+  - finish time: `360 ns`
+- Result artifact:
+  - `artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-result.json`
+  - checker command:
+    `python3 scripts/task6/check_q024_topk_score_compare_vectors.py --vectors artifacts/task6/parallel-hypotheses/h2-q024-topk-score-comparator-vectors.json --expected-state artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json --sim-bin obj_dir/Vtask6_q024_topk_score_compare_tb --out artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-result.json`
+  - status: `PASS`
+  - vector errors: `0`
+  - expected-state errors: `0`
+  - expected sequences: `6`
+  - candidate steps: `12`
+
+Decision:
+
+- Promote the Q0.24 comparator cutout as simulator-validated no-board
+  arithmetic evidence.
+- This does not validate rowwise scale distributions or full-vocab top-k
+  equivalence yet; it only validates the comparator contract once a rowwise
+  candidate score is presented.
+- Next gate: run an 8-sample full-vocab rowwise top-k replay against f32
+  top1/top5 before DDR3 integration.

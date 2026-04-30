@@ -1,12 +1,12 @@
 `timescale 1ns/1ps
 
 module task6_q024_topk_score_compare_tb;
-  logic clk = 1'b0;
-  logic rst = 1'b1;
-  logic in_valid = 1'b0;
-  logic [15:0] in_token_id = 16'd0;
-  logic signed [21:0] in_acc_signed = '0;
-  logic [31:0] in_sidecar_word = 32'd0;
+  logic clk;
+  logic rst;
+  logic in_valid;
+  logic [15:0] in_token_id;
+  logic signed [21:0] in_acc_signed;
+  logic [31:0] in_sidecar_word;
   logic out_valid;
   logic out_error_reserved_bits;
   logic [15:0] out_top_token_id;
@@ -14,7 +14,7 @@ module task6_q024_topk_score_compare_tb;
 
   localparam logic signed [45:0] SCORE_MIN = {1'b1, 45'd0};
 
-  int errors = 0;
+  int errors;
 
   task6_q024_topk_score_compare dut (
     .clk(clk),
@@ -28,6 +28,8 @@ module task6_q024_topk_score_compare_tb;
     .out_top_token_id(out_top_token_id),
     .out_top_score_signed_q024(out_top_score_signed_q024)
   );
+
+  initial clk = 1'b0;
 
   /* verilator lint_off BLKSEQ */
   always #5 clk = ~clk;
@@ -84,6 +86,13 @@ module task6_q024_topk_score_compare_tb;
   endtask
 
   initial begin
+    errors = 0;
+    rst = 1'b1;
+    in_valid = 1'b0;
+    in_token_id = 16'd0;
+    in_acc_signed = '0;
+    in_sidecar_word = 32'd0;
+
     reset_dut();
     apply_candidate(16'd7, 22'sd1000, 32'h00800000, 1'b0, 16'd7, 46'sd8388608000);
     apply_candidate(16'd9, 22'sd1200, 32'h00600000, 1'b0, 16'd7, 46'sd8388608000);
@@ -113,9 +122,9 @@ module task6_q024_topk_score_compare_tb;
     if (errors == 0) begin
       $display("PASS task6_q024_topk_score_compare_tb");
       $finish;
+    end else begin
+      $display("FAIL task6_q024_topk_score_compare_tb errors=%0d", errors);
+      $fatal(1);
     end
-
-    $display("FAIL task6_q024_topk_score_compare_tb errors=%0d", errors);
-    $fatal(1);
   end
 endmodule

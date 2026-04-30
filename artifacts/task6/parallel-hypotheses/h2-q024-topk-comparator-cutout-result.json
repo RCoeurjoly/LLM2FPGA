@@ -1,0 +1,36 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-result",
+  "checks": {
+    "candidate_step_count": 12,
+    "expected_state_errors": [],
+    "sequence_count": 6,
+    "vector_errors": []
+  },
+  "date": "2026-04-30",
+  "decision": {
+    "next_gate": "Use this as the no-board arithmetic gate for full-vocab rowwise top-k, then run an 8-sample replay against f32 top1/top5 before DDR3 integration.",
+    "rationale": "The cutout accepts scaled-score ordering, signed comparison, arrival-order-independent lower-token tie break, reserved sidecar rejection, and the conservative 46-bit bound vector.",
+    "verdict": "promote-simulator-pass"
+  },
+  "hypothesis": "The Q0.24 rowwise sidecar score comparator can be validated as a tiny deterministic cutout before full-vocab replay or DDR3 work.",
+  "simulator": {
+    "command": "obj_dir/Vtask6_q024_topk_score_compare_tb",
+    "exit_code": 0,
+    "pass_line_seen": true,
+    "stdout": "PASS task6_q024_topk_score_compare_tb\n- rtl/task6/task6_q024_topk_score_compare_tb.sv:124: Verilog $finish\n- S i m u l a t i o n   R e p o r t: Verilator 5.046 2026-02-28\n- Verilator: $finish at 360ns; walltime 0.000 s; speed 7.416 ms/s\n- Verilator: cpu 0.000 s on 1 threads; allocated 6 MB\n"
+  },
+  "source_artifacts": {
+    "expected_state": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json",
+    "vectors": "artifacts/task6/parallel-hypotheses/h2-q024-topk-score-comparator-vectors.json"
+  },
+  "status": "PASS",
+  "validation": {
+    "expected_state_error_count": 0,
+    "hardware_run": false,
+    "python_run": true,
+    "sim_pass": true,
+    "simulation_run": true,
+    "synthesis_run": false,
+    "vector_error_count": 0
+  }
+}
