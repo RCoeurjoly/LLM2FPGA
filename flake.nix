@@ -2479,7 +2479,14 @@
             cat $constraintFiles > "$out"
           '';
 
-        mkFasm = { name, xdc, json, freqMHz ? null }:
+        mkFasm = { name, xdc, json, freqMHz ? null, seed ? null }:
+          let
+            outputArgs =
+              if freqMHz == null then "--fasm \"$out\""
+              else "--freq ${toString freqMHz} --fasm \"$out\"";
+            seedArg =
+              pkgs.lib.optionalString (seed != null) "--seed ${toString seed} ";
+          in
           pkgs.runCommand "${name}.fasm" { } ''
             if [ ! -f "${fpgaChipdb}" ]; then
               echo "chipdb file missing: ${fpgaChipdb}" >&2
@@ -2490,7 +2497,7 @@
               --chipdb "${fpgaChipdb}" \
               --xdc ${xdc} \
               --json ${json} \
-              ${if freqMHz == null then "--fasm \"$out\"" else "--freq ${toString freqMHz} --fasm \"$out\""}
+              ${seedArg}${outputArgs}
           '';
 
         mkBitstream = { name, fasm, framesBase }:
@@ -3023,6 +3030,7 @@
             sed \
               -e 's|"tb_data.sv"|"${task6Int8V4kL2ResidualAddOutputHeadSelftestTbDataSv}/tb_data.sv"|g' \
               -e 's|"vocab_packed_weights.mem"|"${task6Int8V4kL2ResidualAddOutputHeadSelftestTbDataSv}/vocab_packed_weights.mem"|g' \
+              -e 's|"vocab_loader_phase_readmemh_cases.sv"|"${task6Int8V4kL2ResidualAddOutputHeadSelftestTbDataSv}/vocab_loader_phase_readmemh_cases.sv"|g' \
               ${./fpga/rtl/task6_int8_v4k_l2_residual_add_output_head_selftest_top.sv} \
               > "$out"
           '';
@@ -3798,6 +3806,7 @@
             read_verilog -sv ${task6Int8V4kL2ResidualAddOutputHeadSelftestTop}
             read_verilog -lib +/xilinx/cells_xtra.v
             chparam -set ENABLE_JTAG_DEBUG 1 task6_int8_v4k_l2_residual_add_output_head_selftest_top
+            chparam -set PHASE_BANKED_VOCAB_LOADER_ROM 1 task6_int8_v4k_l2_residual_add_output_head_selftest_top
             hierarchy -top task6_int8_v4k_l2_residual_add_output_head_selftest_top -check
             proc
             synth_xilinx -family xc7 -top task6_int8_v4k_l2_residual_add_output_head_selftest_top -noiopad
@@ -3984,6 +3993,7 @@
           name = "task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug";
           xdc = task6Int8V4kL2ResidualAddOutputHeadSelftestXdc;
           json = task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugJson;
+          seed = 2;
           freqMHz = 50;
         };
 

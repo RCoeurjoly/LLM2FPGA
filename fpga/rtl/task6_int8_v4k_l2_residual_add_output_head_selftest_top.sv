@@ -2,7 +2,8 @@
 
 module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   parameter int DEBUG_LEDS = 0,
-  parameter int ENABLE_JTAG_DEBUG = 0
+  parameter int ENABLE_JTAG_DEBUG = 0,
+  parameter int PHASE_BANKED_VOCAB_LOADER_ROM = 1
 )(
   input logic SYS_CLK,
   input logic SYS_RSTN,
@@ -14,14 +15,22 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   localparam logic [7:0] BOOT_RESET_CYCLES = 8'd16;
   localparam logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] LAST_C_PROJ_OUT_INDEX =
     C_PROJ_OUT_ADDR_WIDTH'(C_PROJ_OUT_DIM - 1);
+  localparam int VOCAB_PHASES = VOCAB_SIZE / VOCAB_TILE_OUT_DIM;
+  localparam int VOCAB_TILE_PACKED_WEIGHT_WORDS =
+    (VOCAB_TILE_OUT_DIM / VOCAB_LANES) * VOCAB_IN_DIM;
+  localparam int VOCAB_TILE_PACKED_WEIGHT_ADDR_WIDTH =
+    (VOCAB_TILE_PACKED_WEIGHT_WORDS <= 1) ? 1 :
+      $clog2(VOCAB_TILE_PACKED_WEIGHT_WORDS);
+  localparam int VOCAB_PHASE_WIDTH =
+    (VOCAB_PHASES <= 1) ? 1 : $clog2(VOCAB_PHASES);
   localparam logic [2:0] FAIL_REASON_TIMEOUT = 3'd1;
   localparam logic [2:0] FAIL_REASON_RESIDUAL_MISMATCH = 3'd2;
   localparam logic [2:0] FAIL_REASON_TOP_INDEX = 3'd3;
   localparam logic [2:0] FAIL_REASON_TOP_ACC = 3'd4;
   localparam logic [2:0] FAIL_REASON_DEFAULT = 3'd7;
-  localparam int JTAG_DEBUG_WIDTH = 256;
+  localparam int JTAG_DEBUG_WIDTH = 512;
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd10;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd12;
 
   typedef enum logic [4:0] {
     SELFTEST_BOOT,
@@ -58,6 +67,10 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   logic signed [7:0] fail_observed_residual_q;
   logic [VOCAB_ADDR_WIDTH - 1:0] fail_observed_top_index_q;
   logic signed [VOCAB_ACC_WIDTH - 1:0] fail_observed_top_acc_q;
+  logic [31:0] vocab_load_checksum_q;
+  logic [31:0] vocab_first_word_q;
+  logic [31:0] vocab_last_word_q;
+  logic [31:0] head_activation_checksum_q;
   logic [7:0] jtag_debug_status;
   logic [JTAG_DEBUG_WIDTH - 1:0] jtag_debug_payload;
 
@@ -89,9 +102,6 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] residual_output_read_addr;
   logic signed [7:0] residual_output_read_data;
 
-  (* rom_style = "block", ram_style = "block" *)
-  logic [VOCAB_LANES * 8 - 1:0] vocab_packed_weight_rom
-    [0:VOCAB_PACKED_WEIGHT_WORDS - 1];
   logic [VOCAB_LANES * 8 - 1:0] vocab_packed_weight_rom_data_q;
 
   logic output_head_reset;
@@ -148,16 +158,64 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
     jtag_debug_payload[216 +: 16] =
       {{(16 - VOCAB_ADDR_WIDTH){1'b0}}, top_index};
     jtag_debug_payload[232 +: 24] = top_acc[23:0];
+    jtag_debug_payload[256 +: 32] = vocab_load_checksum_q;
+    jtag_debug_payload[288 +: 32] = EXPECTED_VOCAB_WEIGHT_CHECKSUM;
+    jtag_debug_payload[320 +: 32] = vocab_first_word_q;
+    jtag_debug_payload[352 +: 32] = EXPECTED_VOCAB_FIRST_WORD;
+    jtag_debug_payload[384 +: 32] = vocab_last_word_q;
+    jtag_debug_payload[416 +: 32] = EXPECTED_VOCAB_LAST_WORD;
+    jtag_debug_payload[448 +: 32] = head_activation_checksum_q;
+    jtag_debug_payload[480 +: 32] = EXPECTED_HEAD_ACTIVATION_BYTE_CHECKSUM;
   end
 
-  initial begin
-    $readmemh("vocab_packed_weights.mem", vocab_packed_weight_rom);
-  end
+  generate
+    if (PHASE_BANKED_VOCAB_LOADER_ROM != 0) begin : gen_phase_banked_vocab_loader_rom
+      logic [VOCAB_PHASE_WIDTH - 1:0] vocab_loader_phase;
+      logic [VOCAB_TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0] vocab_loader_tile_addr;
+      logic [VOCAB_LANES * 8 - 1:0] vocab_packed_weight_phase_data
+        [0:VOCAB_PHASES - 1];
 
-  always_ff @(posedge SYS_CLK) begin
-    vocab_packed_weight_rom_data_q <=
-      vocab_packed_weight_rom[VOCAB_PACKED_WEIGHT_ADDR_WIDTH'(load_index_q)];
-  end
+      assign vocab_loader_phase =
+        load_index_q[VOCAB_PACKED_WEIGHT_ADDR_WIDTH - 1 -: VOCAB_PHASE_WIDTH];
+      assign vocab_loader_tile_addr =
+        load_index_q[VOCAB_TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0];
+
+      for (
+        genvar weight_phase = 0;
+        weight_phase < VOCAB_PHASES;
+        weight_phase = weight_phase + 1
+      ) begin : gen_vocab_loader_phase_rom
+        (* rom_style = "block", ram_style = "block" *)
+        logic [VOCAB_LANES * 8 - 1:0] vocab_packed_weight_phase_rom
+          [0:VOCAB_TILE_PACKED_WEIGHT_WORDS - 1];
+
+`include "vocab_loader_phase_readmemh_cases.sv"
+
+        always_ff @(posedge SYS_CLK) begin
+          vocab_packed_weight_phase_data[weight_phase] <=
+            vocab_packed_weight_phase_rom[vocab_loader_tile_addr];
+        end
+      end
+
+      always_comb begin
+        vocab_packed_weight_rom_data_q =
+          vocab_packed_weight_phase_data[vocab_loader_phase];
+      end
+    end else begin : gen_block_vocab_loader_rom
+      (* rom_style = "block", ram_style = "block" *)
+      logic [VOCAB_LANES * 8 - 1:0] vocab_packed_weight_rom
+        [0:VOCAB_PACKED_WEIGHT_WORDS - 1];
+
+      initial begin
+        $readmemh("vocab_packed_weights.mem", vocab_packed_weight_rom);
+      end
+
+      always_ff @(posedge SYS_CLK) begin
+        vocab_packed_weight_rom_data_q <=
+          vocab_packed_weight_rom[VOCAB_PACKED_WEIGHT_ADDR_WIDTH'(load_index_q)];
+      end
+    end
+  endgenerate
 
   always_comb begin
     residual_reset = selftest_reset;
@@ -305,6 +363,10 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
       fail_observed_residual_q <= '0;
       fail_observed_top_index_q <= '0;
       fail_observed_top_acc_q <= '0;
+      vocab_load_checksum_q <= '0;
+      vocab_first_word_q <= '0;
+      vocab_last_word_q <= '0;
+      head_activation_checksum_q <= '0;
     end else if (!config_reset_done) begin
       state_q <= SELFTEST_BOOT;
       boot_count_q <= 8'd0;
@@ -318,6 +380,10 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
       fail_observed_residual_q <= '0;
       fail_observed_top_index_q <= '0;
       fail_observed_top_acc_q <= '0;
+      vocab_load_checksum_q <= '0;
+      vocab_first_word_q <= '0;
+      vocab_last_word_q <= '0;
+      head_activation_checksum_q <= '0;
     end else begin
       blink_count_q <= blink_count_q + 29'd1;
 
@@ -398,10 +464,21 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
           end
 
           SELFTEST_LOAD_VOCAB_WEIGHT_SETUP: begin
+            if (load_index_q == 32'd0) begin
+              vocab_load_checksum_q <= '0;
+              vocab_first_word_q <= '0;
+              vocab_last_word_q <= '0;
+            end
             state_q <= SELFTEST_LOAD_VOCAB_WEIGHT_WRITE;
           end
 
           SELFTEST_LOAD_VOCAB_WEIGHT_WRITE: begin
+            vocab_load_checksum_q <=
+              vocab_load_checksum_q + vocab_packed_weight_rom_data_q;
+            if (load_index_q == 32'd0)
+              vocab_first_word_q <= vocab_packed_weight_rom_data_q;
+            if (load_index_q == 32'(VOCAB_PACKED_WEIGHT_WORDS - 1))
+              vocab_last_word_q <= vocab_packed_weight_rom_data_q;
             if (load_index_q == 32'(VOCAB_PACKED_WEIGHT_WORDS - 1)) begin
               load_index_q <= 32'd0;
               cycle_count_q <= 32'd0;
@@ -427,10 +504,14 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
           end
 
           SELFTEST_LOAD_HEAD_ACTIVATION_SETUP: begin
+            if (activation_index_q == '0)
+              head_activation_checksum_q <= '0;
             state_q <= SELFTEST_LOAD_HEAD_ACTIVATION_WRITE;
           end
 
           SELFTEST_LOAD_HEAD_ACTIVATION_WRITE: begin
+            head_activation_checksum_q <=
+              head_activation_checksum_q + {24'd0, residual_output_read_data};
             if (residual_output_read_data !=
                 expected_residual_add_output_q_values[activation_index_q]) begin
               fail_reason_q <= FAIL_REASON_RESIDUAL_MISMATCH;

@@ -117,6 +117,9 @@ def make_output_head_args(args: argparse.Namespace) -> argparse.Namespace:
 VOCAB_WEIGHT_ASSIGNMENT_RE = re.compile(
     r"^  packed_weight_values\[(?P<index>\d+)\] = 32'h(?P<value>[0-9a-fA-F]+);$"
 )
+RESIDUAL_OUTPUT_ASSIGNMENT_RE = re.compile(
+    r"^  expected_residual_add_output_q_values\[(?P<index>\d+)\] = 8'sh(?P<value>[0-9a-fA-F]+);$"
+)
 
 
 def extract_vocab_weight_values(output_sv: str, expected_words: int) -> list[int]:
@@ -137,6 +140,25 @@ def extract_vocab_weight_values(output_sv: str, expected_words: int) -> list[int
     if missing:
         sample = ", ".join(missing[:8])
         raise SystemExit(f"output-head data missed vocab weight words: {sample}")
+    return [int(value) for value in values]
+
+
+def extract_expected_residual_values(residual_sv: str, expected_words: int) -> list[int]:
+    values: list[int | None] = [None] * expected_words
+    for line in residual_sv.splitlines():
+        match = RESIDUAL_OUTPUT_ASSIGNMENT_RE.match(line)
+        if match is None:
+            continue
+        index = int(match.group("index"))
+        if index < 0 or index >= expected_words:
+            raise SystemExit(
+                f"expected residual index {index} outside 0..{expected_words - 1}"
+            )
+        values[index] = int(match.group("value"), 16) & 0xFF
+    missing = [str(index) for index, value in enumerate(values) if value is None]
+    if missing:
+        sample = ", ".join(missing[:8])
+        raise SystemExit(f"residual data missed expected output bytes: {sample}")
     return [int(value) for value in values]
 
 
@@ -166,6 +188,10 @@ def inject_vocab_data(
     vocab_addr_width = addr_width(vocab_size)
     top_index = int(top1["fixed_int8_top_index"])
     top_acc = int(top1["fixed_int8_top_acc"])
+    values = extract_vocab_weight_values(output_sv, packed_weight_words)
+    expected_residual_values = extract_expected_residual_values(residual_sv, in_dim)
+    vocab_checksum = sum(values) & 0xFFFFFFFF
+    activation_byte_checksum = sum(expected_residual_values) & 0xFFFFFFFF
 
     declarations = [
         f"localparam int VOCAB_IN_DIM = {in_dim};",
@@ -185,8 +211,23 @@ def inject_vocab_data(
             "localparam logic signed [VOCAB_ACC_WIDTH - 1:0] "
             f"EXPECTED_TOP_ACC = {acc_width}'sh{signed_hex(top_acc, acc_width)};"
         ),
+        (
+            "localparam logic [31:0] EXPECTED_VOCAB_WEIGHT_CHECKSUM = "
+            f"32'h{vocab_checksum:08x};"
+        ),
+        (
+            "localparam logic [31:0] EXPECTED_VOCAB_FIRST_WORD = "
+            f"32'h{values[0]:08x};"
+        ),
+        (
+            "localparam logic [31:0] EXPECTED_VOCAB_LAST_WORD = "
+            f"32'h{values[-1]:08x};"
+        ),
+        (
+            "localparam logic [31:0] EXPECTED_HEAD_ACTIVATION_BYTE_CHECKSUM = "
+            f"32'h{activation_byte_checksum:08x};"
+        ),
     ]
-    values = extract_vocab_weight_values(output_sv, packed_weight_words)
     sv_text = (
         "\n".join(
             lines[:initial_index]
@@ -198,6 +239,50 @@ def inject_vocab_data(
     )
     mem_text = "\n".join(f"{value:08x}" for value in values) + "\n"
     return sv_text, mem_text
+
+
+def write_phase_banked_vocab_mem_files(
+    out_vocab_mem: Path,
+    vocab_mem_text: str,
+    *,
+    vocab_size: int,
+    tile_out_dim: int,
+) -> None:
+    values = [line for line in vocab_mem_text.splitlines() if line]
+    if vocab_size % tile_out_dim != 0:
+        raise SystemExit(
+            f"vocab_size {vocab_size} is not divisible by tile_out_dim {tile_out_dim}"
+        )
+    phases = vocab_size // tile_out_dim
+    if len(values) % phases != 0:
+        raise SystemExit(
+            f"packed vocab word count {len(values)} is not divisible by phases {phases}"
+        )
+    words_per_phase = len(values) // phases
+    phase_paths: list[Path] = []
+    for phase in range(phases):
+        phase_path = out_vocab_mem.parent / f"vocab_packed_weights_phase_{phase:02d}.mem"
+        phase_values = values[
+            phase * words_per_phase:(phase + 1) * words_per_phase
+        ]
+        phase_path.write_text("\n".join(phase_values) + "\n", encoding="utf-8")
+        phase_paths.append(phase_path)
+
+    init_lines: list[str] = []
+    for phase, phase_path in enumerate(phase_paths):
+        init_lines.extend(
+            [
+                f"      if (weight_phase == {phase}) begin : gen_readmemh_phase_{phase:02d}",
+                "        initial begin",
+                f"          $readmemh(\"{phase_path}\", vocab_packed_weight_phase_rom);",
+                "        end",
+                "      end",
+            ]
+        )
+    (out_vocab_mem.parent / "vocab_loader_phase_readmemh_cases.sv").write_text(
+        "\n".join(init_lines) + "\n",
+        encoding="utf-8",
+    )
 
 
 def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str, str]:
@@ -289,6 +374,12 @@ def main() -> None:
     if args.out_vocab_mem is not None:
         args.out_vocab_mem.parent.mkdir(parents=True, exist_ok=True)
         args.out_vocab_mem.write_text(vocab_mem_text, encoding="utf-8")
+        write_phase_banked_vocab_mem_files(
+            args.out_vocab_mem,
+            vocab_mem_text,
+            vocab_size=args.vocab_size,
+            tile_out_dim=args.tile_out_dim,
+        )
     if args.out_json is not None:
         args.out_json.parent.mkdir(parents=True, exist_ok=True)
         args.out_json.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

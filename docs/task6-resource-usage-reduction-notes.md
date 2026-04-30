@@ -10212,3 +10212,299 @@ Interpretation:
   board-validated and then decide whether the next full-model gate should add
   embedding lookup, DDR3-backed vocab/output projection, or another bounded
   scale-up first.
+
+### 2026-04-30 - H2 v4k board JTAG-debug permission gate
+
+Goal:
+
+- Continue the v4k board gate after the LED-only combined residual-add plus
+  output-head selftest reported fail on hardware.
+- Avoid further manual LED decoding by programming a JTAG-debug build and
+  reading the internal selftest payload through the Digilent HS3.
+
+Debug bitstream:
+
+- Command:
+  - `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug-bitstream --no-link --print-out-paths -L`
+- Result artifact:
+  - `/nix/store/9hj529a6zdyzxbnd9jb0f9kz4xr7a2g7-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+- nextpnr result:
+  - route legal: `PASS`
+  - post-route main clock max frequency: `104.58 MHz`
+  - post-route JTAG DRCK max frequency: `564.65 MHz`
+  - target frequency: `50.00 MHz`
+  - packed BSCAN blocks: `1 / 4`
+
+Host-side board access:
+
+- Program attempt:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/9hj529a6zdyzxbnd9jb0f9kz4xr7a2g7-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+- Result:
+  - `unable to open ftdi device: -4 (usb_open() failed)`
+  - `JTAG init failed with: unable to open ftdi device`
+- USB enumeration:
+  - `Bus 003 Device 033: ID 0403:6014 Future Technology Devices International, Ltd FT232H Single HS USB-UART/FIFO IC`
+  - `ID_SERIAL_SHORT=210299BF3824`
+  - `ID_MODEL=Digilent_USB_Device`
+- Device-node permissions:
+  - `/dev/bus/usb/003/033`
+  - mode/user/group: `664 root root`
+- Non-interactive repair attempt:
+  - `sudo -n chmod a+rw /dev/bus/usb/003/033`
+  - result: `sudo: a password is required`
+- After manual permission repair:
+  - device-node mode changed to `666 root root`
+  - `openFPGALoader` no longer reports `usb_open() failed`
+  - programming attempt now reports:
+    - `empty`
+    - `Jtag frequency : requested 6.00MHz -> real 6.00MHz`
+    - `Error: no device found`
+  - `openFPGALoader --detect` reports an empty chain at both `6 MHz` and
+    `1 MHz`
+  - direct MPSSE IDCODE read reports `0xffffffff` with both tested TDO bit
+    selections
+- New Thunderbolt / Helios / USB-splitter setup:
+  - `openFPGALoader --scan-usb` detects the HS3:
+    - bus/device: `003/033`
+    - VID:PID: `0403:6014`
+    - probe type: `ft232H`
+    - manufacturer: `Digilent`
+    - serial: `210299BF3824`
+    - product: `Digilent USB Device`
+  - `lsusb -t` shows the HS3 behind the hub path and running at `480M`
+  - device-node mode remains `666 root root`
+  - low-frequency verbose detect still reports:
+    - raw IDCODE `0xffffffff`
+    - `found 0 devices`
+  - MPSSE and bitbang IDCODE reads both return `0xffffffff`
+- Corrected enclosure-over-Thunderbolt setup:
+  - target wiring:
+    - Digilent HS3 connected to the enclosure USB path
+    - enclosure connected to the laptop over Thunderbolt
+    - HS3 connected from the enclosure to the FPGA board JTAG header
+  - after reconnect the HS3 enumerated as `003/054`
+  - temporary node repair:
+    - `sudo chmod a+rw /dev/bus/usb/003/054`
+    - node mode became `666 root root`
+  - non-sudo detect worked:
+    - IDCODE `0x23751093`
+    - manufacturer `xilinx`
+    - family `kintex7`
+    - model `xc7k480t`
+    - IR length `6`
+  - non-sudo programming worked:
+    - bitstream:
+      `/nix/store/9hj529a6zdyzxbnd9jb0f9kz4xr7a2g7-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+    - `Load SRAM` reached `100%`
+    - `isc_done 1`, `init 1`, `done 1`
+  - direct USER1 payload read worked:
+    - backend: `ftdi-mpsse`
+    - serial: `210299BF3824`
+    - `magic_ok=True`
+    - state: `SELFTEST_FAIL`
+    - fail reason: `TOP_INDEX`
+    - observed top index: `2960`
+    - expected top index: `1321`
+    - observed top accumulator: `85301`
+    - expected top accumulator: `52140`
+    - fail cycle count: `70786`
+
+Interpretation:
+
+- The first blocker was host USB permission, not an RTL/synthesis/routing
+  failure.
+- After that permission was repaired, the remaining blocker is target-side
+  JTAG visibility: the HS3 is accessible, but the FPGA TAP is not responding.
+- The Thunderbolt / Helios / splitter path is viable for USB enumeration and
+  FTDI access. The corrected enclosure-over-Thunderbolt wiring is also viable
+  for FPGA JTAG detect, SRAM programming, and USER1 readback.
+- The v4k on-board failure is now localized to the output-head top1 result.
+  It is not a broken HS3 cable, not a broken board JTAG path, and not a host
+  Thunderbolt/USB transport problem.
+- Superseded next step: the target JTAG chain became visible again, and the
+  follow-up discriminator below reads a widened `512`-bit USER1 payload.
+
+### 2026-04-30 - H2 v4k output-head load-path discriminator
+
+Goal:
+
+- Determine whether the v4k on-board failure is in residual activation,
+  output-head arithmetic/top1 selection, or the vocab table load path.
+- Keep the board debug autonomous through JTAG; do not require further LED
+  decoding.
+
+First widened JTAG discriminator:
+
+- Added payload fields for vocab-loader checksum, first word, last word, and
+  head-activation checksum.
+- Bitstream:
+  `/nix/store/x9b8x7v9f4j6572hllfzmc9wigyh1jy0-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+- Read command:
+  - `python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --tdo-bit 7 --bits 512 --poll --poll-count 50 --poll-interval 0.1`
+- Result:
+  - state: `SELFTEST_FAIL`
+  - fail reason: `TOP_INDEX`
+  - observed top index: `2960`
+  - expected top index: `1321`
+  - observed top accumulator: `85301`
+  - expected top accumulator: `52140`
+  - vocab checksum: `0xb6341074`
+  - expected vocab checksum: `0xc4ec5bc1`
+  - vocab first word: `0xee4c0411`
+  - expected vocab first word: `0xee4c0411`
+  - vocab last word: `0x286f8905`
+  - expected vocab last word: `0x28efc925`
+  - head activation checksum: `0x00001ef9`
+  - expected head activation checksum: `0x00001ef9`
+
+Interpretation from first discriminator:
+
+- The residual output/head activation stream is correct on hardware.
+- The output-head expected constants are correct.
+- The vocab load stream is wrong after the first word, including the final word
+  and full checksum.
+- This localizes the failure to the selftest vocab-loader ROM/init/load path,
+  not to the residual-add chain or output-head dot-product/top1 arithmetic.
+
+Rejected probe:
+
+- Tried a distributed vocab-loader ROM variant.
+- Yosys rejected the shape with:
+  - `ERROR: no valid mapping found for memory`
+- Decision: prune distributed ROM for this lane and test a smaller block-RAM
+  shape instead.
+
+Phase-banked loader ROM probe:
+
+- Generated phase-local vocab loader mem files next to the monolithic
+  `vocab_packed_weights.mem`.
+- Added `vocab_loader_phase_readmemh_cases.sv` and a
+  `PHASE_BANKED_VOCAB_LOADER_ROM` top parameter.
+- Data bundle:
+  `/nix/store/81riphjgdb72wfg9yxvw0abjyxq7snfj-task6-int8-v4k-l2-residual-add-output-head-selftest-tb-data-sv`
+- SV simulation:
+  - command:
+    `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim --no-link --print-out-paths -L`
+  - result:
+    `/nix/store/sv8jifa9i5s61sgpb0vw26gp0q31gfl1-task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim.json`
+  - status: `PASS`
+  - top index: `1321`
+  - top accumulator: `52140`
+  - pass cycle: `265719`
+- First phase-banked route attempt failed only timing:
+  - post-route max frequency: `49.25 MHz`
+  - target: `50.00 MHz`
+- Added a nextpnr seed hook and set the JTAG-debug route seed to `2`.
+- Seeded bitstream:
+  `/nix/store/lmc8fwrdg7iya8ycpgacs0zlbf8v52rg-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+- Seeded nextpnr result:
+  - route legal: `PASS`
+  - post-route main clock max frequency: `95.12 MHz`
+  - post-route JTAG DRCK max frequency: `520.56 MHz`
+  - target frequency: `50.00 MHz`
+  - SLICE_LUTX: `20727 / 597200` (`3%`)
+  - SLICE_FFX: `9538 / 597200` (`1%`)
+  - RAMB18E1: `6 / 1910`
+  - RAMB36E1: `136 / 955` (`14%`)
+  - DSP48E1: `14 / 1920`
+
+Board result:
+
+- Program command:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/lmc8fwrdg7iya8ycpgacs0zlbf8v52rg-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+- Program result:
+  - `Load SRAM` reached `100%`
+  - `isc_done 1`, `init 1`, `done 1`
+- USER1 read result:
+  - state: `SELFTEST_PASS`
+  - fail reason: `NONE`
+  - observed top index: `1321`
+  - expected top index: `1321`
+  - observed top accumulator: `52140`
+  - expected top accumulator: `52140`
+  - vocab checksum: `0xc4ec5bc1`
+  - expected vocab checksum: `0xc4ec5bc1`
+  - vocab first word: `0xee4c0411`
+  - expected vocab first word: `0xee4c0411`
+  - vocab last word: `0x28efc925`
+  - expected vocab last word: `0x28efc925`
+  - head activation checksum: `0x00001ef9`
+  - expected head activation checksum: `0x00001ef9`
+
+Conclusion:
+
+- H2 is now v4k board-validated for the bounded residual-add plus streamed
+  output-head top1 path.
+- The on-board failure was ours: the monolithic `65536 x 32` selftest
+  vocab-loader ROM/load path produced wrong data on the board. Splitting that
+  loader ROM into phase-local BRAM init files fixes the hardware result.
+- There is no current evidence that the arithmetic kernels, residual path,
+  output-head top1 kernel, HS3/JTAG path, Thunderbolt transport, Yosys, or
+  nextpnr are wrong for this lane.
+- Continue with the plan by promoting the phase-banked loader ROM workaround
+  from debug-only to the normal v4k board selftest bitstream, then build and
+  program the non-JTAG pass/fail image.
+
+### 2026-04-30 - H2 v4k normal board selftest promotion
+
+Change:
+
+- Promoted `PHASE_BANKED_VOCAB_LOADER_ROM` to the default normal v4k
+  residual-add plus output-head selftest path.
+- Kept the monolithic loader path available behind the parameter, but no longer
+  use it for the normal board bitstream.
+- Fixed the `mkFasm` seed/frequency argument construction so seedless FASM
+  targets still pass the `50.00 MHz` target frequency to nextpnr.
+
+Verification:
+
+- SV simulation after promotion:
+  - command:
+    `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim --no-link --print-out-paths -L`
+  - result:
+    `/nix/store/wm902lyl40w0xv9846srzii2jdzjykwx-task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim.json`
+  - status: `PASS`
+  - pass cycle: `265719`
+  - top index: `1321`
+  - top accumulator: `52140`
+- Normal utilization and bitstream build:
+  - command:
+    `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-utilization .#task6-int8-v4k-l2-residual-add-output-head-selftest-bitstream --no-link --print-out-paths -L`
+  - utilization:
+    `/nix/store/g0yb3gxbjfvxcz26q8y59mqhyipc1nvs-task6-int8-v4k-l2-residual-add-output-head-selftest-utilization`
+  - bitstream:
+    `/nix/store/fkaviyxg9czhlas9hl1r7smwn0lj64iw-task6-int8-v4k-l2-residual-add-output-head-selftest.bit`
+- Normal route result:
+  - route legal: `PASS`
+  - post-route max frequency: `87.88 MHz`
+  - target frequency: `50.00 MHz`
+- Mapped utilization summary:
+  - CLB LUTs: `14136 / 298600` (`4.73%`)
+  - CLB FFs: `8841 / 597200` (`1.48%`)
+  - DSPs: `14 / 1920` (`0.73%`)
+  - BRAM36-equivalent: `139 / 955` (`14.55%`)
+  - packed nextpnr cells:
+    - `SLICE_LUTX`: `20065 / 597200` (`3%`)
+    - `SLICE_FFX`: `8841 / 597200` (`1%`)
+    - `RAMB18E1`: `6 / 1910`
+    - `RAMB36E1`: `136 / 955` (`14%`)
+    - `DSP48E1`: `14 / 1920`
+
+Board programming result:
+
+- Program command:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/fkaviyxg9czhlas9hl1r7smwn0lj64iw-task6-int8-v4k-l2-residual-add-output-head-selftest.bit`
+- Program result:
+  - `Load SRAM` reached `100%`
+  - `isc_done 1`, `init 1`, `done 1`
+
+Decision:
+
+- Treat the phase-banked loader ROM as the board-safe selftest load path for
+  this v4k H2 lane.
+- The normal non-JTAG bitstream cannot expose the internal top-index/checksum
+  payload, but it uses the same promoted loader path that the JTAG-debug image
+  already proved on hardware.
+- Next gate: continue from the proven v4k residual-add plus streamed output
+  head toward the next H2 structure increment, using JTAG payloads again when
+  the pass/fail LEDs are not enough.

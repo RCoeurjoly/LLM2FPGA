@@ -313,6 +313,14 @@ V4K_FIELDS = [
     ("expected_top_acc", 184, 32, True),
     ("live_top_index", 216, 16, False),
     ("live_top_acc_low24", 232, 24, True),
+    ("vocab_load_checksum", 256, 32, False),
+    ("expected_vocab_weight_checksum", 288, 32, False),
+    ("vocab_first_word", 320, 32, False),
+    ("expected_vocab_first_word", 352, 32, False),
+    ("vocab_last_word", 384, 32, False),
+    ("expected_vocab_last_word", 416, 32, False),
+    ("head_activation_checksum", 448, 32, False),
+    ("expected_head_activation_checksum", 480, 32, False),
 ]
 
 
@@ -569,7 +577,7 @@ def read_payload(client, ir_len, user_ir, bit_count):
 
 def decode_payload(payload, bit_count):
     version = unsigned_field(payload, 32, 8) if bit_count >= 40 else 0
-    if version == 10:
+    if version in {10, 11, 12}:
         fields = {}
         for name, offset, width, signed in V4K_FIELDS:
             if offset + width <= bit_count:
@@ -664,7 +672,7 @@ def decode_payload(payload, bit_count):
 def print_summary(decoded):
     fields = decoded["fields"]
     names = decoded["decoded"]
-    if fields.get("version") == 10:
+    if fields.get("version") in {10, 11, 12}:
         print(
             "summary: "
             f"magic_ok={decoded['magic_ok']} "
@@ -687,6 +695,21 @@ def print_summary(decoded):
             f"live_top_index {fields.get('live_top_index')} "
             f"live_top_acc_low24 {fields.get('live_top_acc_low24')}"
         )
+        if fields.get("version", 0) >= 11:
+            print(
+                "vocab_load: "
+                f"checksum 0x{fields.get('vocab_load_checksum', 0):08x} "
+                f"expected 0x{fields.get('expected_vocab_weight_checksum', 0):08x} "
+                f"first 0x{fields.get('vocab_first_word', 0):08x} "
+                f"expected_first 0x{fields.get('expected_vocab_first_word', 0):08x} "
+                f"last 0x{fields.get('vocab_last_word', 0):08x} "
+                f"expected_last 0x{fields.get('expected_vocab_last_word', 0):08x}"
+            )
+            print(
+                "head_activation: "
+                f"checksum 0x{fields.get('head_activation_checksum', 0):08x} "
+                f"expected 0x{fields.get('expected_head_activation_checksum', 0):08x}"
+            )
         return
 
     print(
