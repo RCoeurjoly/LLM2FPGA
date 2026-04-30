@@ -1,0 +1,134 @@
+{
+  "artifact": "h2-ypcb-litedram-no-odelay-board-probe",
+  "date": "2026-04-30",
+  "controller_path": "LiteDRAM/LiteX only",
+  "vivado_mig_lane": "rejected",
+  "hypothesis": "A LiteDRAM A7DDRPHY no-ODELAY variant can avoid the YPCB HR-bank output-ODELAY P&R blocker and produce an open bitstream for autonomous DDR3 init/bandwidth probing.",
+  "implementation": {
+    "sdram_phy": "A7DDRPHY",
+    "wrapper": "fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv",
+    "xvc_reader": "scripts/task6/read_litedram_probe_jtag_xvc.py",
+    "direct_ftdi_reader": "scripts/task6/read_litedram_probe_jtag_ftdi.py",
+    "nextpnr_diagnostic_patch": "patches/nextpnr-xilinx/0001-xc7-allow-odelay-to-hr-output-buffers.patch"
+  },
+  "commands": {
+    "synthesis_utilization": "nix build .#task6-ypcb-litedram-no-odelay-init-bandwidth-probe-utilization --no-link --print-out-paths -L",
+    "bitstream": "nix build .#task6-ypcb-litedram-no-odelay-init-bandwidth-probe-bitstream --no-link --print-out-paths -L",
+    "program": "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/5hsjvbv57vhipd993vvmkab59liviki4-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit",
+    "idcode": "python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --idcode-only",
+    "jtag_payload": "python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2"
+  },
+  "outputs": {
+    "config": "/nix/store/ay5f364h1hb74hd4cjhpf44gw6ab2wcd-h2-ypcb-litedram-no-odelay-config",
+    "rtl_elaboration": "/nix/store/z9692s8wrzmhqzqy9hyi0wbl1daafl1k-h2-ypcb-litedram-no-odelay-rtl-elaboration",
+    "json": "/nix/store/c1n6wszrsh1sf7smpgqxyv01lj261rzf-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json",
+    "utilization": "/nix/store/i1717bsprnkabzfxx7pg3j24nkga9r1b-task6-ypcb-litedram-no-odelay-init-bandwidth-probe-utilization",
+    "xdc": "/nix/store/76xp7rbavb8x2y47lk5kqahbhpba8w2l-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.xdc",
+    "fasm": "/nix/store/zn5hgpi5x6yb591452sshl08nmldbndn-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.fasm",
+    "bitstream": "/nix/store/5hsjvbv57vhipd993vvmkab59liviki4-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit"
+  },
+  "rtl_elaboration_result": {
+    "status": "PASS",
+    "odelaye2_mentions": 0,
+    "idelaye2_mentions": 194,
+    "ddram_dm_top_port_mentions": 0
+  },
+  "synthesis_result": {
+    "status": "PASS",
+    "yosys_peak_mb": 604.81,
+    "check_problems": 0,
+    "resources": {
+      "clb_luts": {
+        "used": 8359,
+        "capacity": 298600,
+        "pct": 2.8
+      },
+      "clb_ffs": {
+        "used": 7706,
+        "capacity": 597200,
+        "pct": 1.29
+      },
+      "dsp": {
+        "used": 0,
+        "capacity": 1920,
+        "pct": 0.0
+      },
+      "bram36": {
+        "used": 0,
+        "capacity": 955,
+        "pct": 0.0
+      },
+      "slices_lower_bound": {
+        "used": 1045,
+        "capacity": 74650,
+        "pct": 1.4
+      }
+    }
+  },
+  "place_and_route_result": {
+    "status": "PASS",
+    "target_freq_mhz": 50,
+    "post_route_max_freq_mhz": {
+      "clk200": 733.68,
+      "user_clk": 104.03,
+      "core.iodelay_clk": 554.94,
+      "jtag_debug_shift.drck": 702.74
+    },
+    "not_a_ddr_calibration_proof": true,
+    "selected_nextpnr_utilization": {
+      "SLICE_LUTX": "13096 / 597200 (2%)",
+      "SLICE_FFX": "7706 / 597200 (1%)",
+      "PAD": "110 / 946 (11%)",
+      "IDELAYE2": "64 / 400 (16%)",
+      "OSERDESE2": "98 / 400 (24%)",
+      "ISERDESE2": "64 / 400 (16%)",
+      "IDELAYCTRL": "3 / 8 (37%)",
+      "BUFGCTRL": "6 / 32 (18%)",
+      "PLLE2_ADV": "1 / 8 (12%)",
+      "BSCAN": "1 / 4 (25%)"
+    }
+  },
+  "programming_result": {
+    "status": "PASS",
+    "loader": "openFPGALoader",
+    "idcode": "0x23751093",
+    "done": true
+  },
+  "jtag_payload_result": {
+    "status": "VALID_PAYLOAD_WAITING_FOR_INIT",
+    "attempts": 300,
+    "magic_ok": true,
+    "version": 20,
+    "state": "PROBE_WAIT_INIT",
+    "fields": {
+      "command_count": 0,
+      "response_count": 0,
+      "command_stall_count": 0,
+      "read_cycle_count": 0,
+      "checksum": 0,
+      "last_rdata": 0,
+      "target_read_count": 65536
+    },
+    "status_bits": {
+      "sys_rstn": true,
+      "pll_locked": true,
+      "user_rst": false,
+      "init_done": false,
+      "init_error": false,
+      "cmd_ready": false,
+      "rdata_valid": false,
+      "read_target_issued": false,
+      "read_target_seen": false,
+      "timeout_seen": false
+    }
+  },
+  "decision": {
+    "verdict": "promote-open-bitstream-and-debug-ddr-init-stall",
+    "what_was_learned": [
+      "The open LiteDRAM/LiteX DDR3 lane can now synthesize, place, route, emit a bitstream, program the board, and expose an autonomous JTAG payload.",
+      "The K7DDRPHY failure was not a full-controller scale issue; the A7DDRPHY no-ODELAY variant avoids the HR-bank output-ODELAY blocker.",
+      "The remaining blocker is physical DDR3 initialization: PLL and reset are good, but LiteDRAM init never reaches init_done or init_error within 60 seconds."
+    ],
+    "next_gate": "Widen the JTAG payload to expose LiteDRAM init/calibration state and DFI/PHY status signals, then decide whether A7DDRPHY timing/calibration, no-DM wiring, reset sequencing, or PHY parameterization is blocking init_done."
+  }
+}

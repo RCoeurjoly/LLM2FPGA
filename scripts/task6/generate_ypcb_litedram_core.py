@@ -148,6 +148,9 @@ def main() -> None:
     )
     verilog_text = top_verilog.read_text(encoding="utf-8")
     ddram_dm_mentions = len(re.findall(r"\bddram_dm\b", verilog_text))
+    odelaye2_mentions = len(re.findall(r"\bODELAYE2\b", verilog_text))
+    idelaye2_mentions = len(re.findall(r"\bIDELAYE2\b", verilog_text))
+    sdram_phy_name = core_config["sdram_phy"].__name__
 
     summary = {
         "artifact_name": args.artifact_name,
@@ -155,8 +158,8 @@ def main() -> None:
         "date": args.date,
         "hypothesis": (
             "The open LiteDRAM/LiteX core can elaborate for YPCB DDR3 CH0 with "
-            "a custom no-dm K7DDRPHY pad description and without invoking "
-            "Vivado or MIG."
+            f"a custom no-dm {sdram_phy_name} pad description and without "
+            "invoking Vivado or MIG."
         ),
         "source_artifacts": {
             "config_bundle": str(args.config_summary_json.parent),
@@ -178,7 +181,7 @@ def main() -> None:
             "device": args.device,
             "sdram_module": core_config["sdram_module"].__name__,
             "sdram_module_nb": core_config["sdram_module_nb"],
-            "sdram_phy": core_config["sdram_phy"].__name__,
+            "sdram_phy": sdram_phy_name,
             "memtype": core_config["memtype"],
             "sys_clk_freq": core_config["sys_clk_freq"],
             "input_clk_freq": core_config["input_clk_freq"],
@@ -198,6 +201,8 @@ def main() -> None:
             "place_and_route_run": False,
             "hardware_run": False,
             "ddram_dm_top_port_mentions": ddram_dm_mentions,
+            "odelaye2_mentions": odelaye2_mentions,
+            "idelaye2_mentions": idelaye2_mentions,
             "ddram_dq_top_port_mentions": len(re.findall(r"\bddram_dq\b", verilog_text)),
             "ddram_dqs_p_top_port_mentions": len(re.findall(r"\bddram_dqs_p\b", verilog_text)),
             "ddram_dqs_n_top_port_mentions": len(re.findall(r"\bddram_dqs_n\b", verilog_text)),

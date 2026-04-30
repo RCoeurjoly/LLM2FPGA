@@ -26,6 +26,27 @@
       "error": "ODELAYE2 'odelay' has DATAOUT connected to unsupported cell type IOB33M_OUTBUF"
     }
   ],
+  "patched_nextpnr_result": {
+    "patch": "patches/nextpnr-xilinx/0001-xc7-allow-odelay-to-hr-output-buffers.patch",
+    "purpose": "Allow the packer to accept ODELAYE2 DATAOUT users of type IOB33_OUTBUF or IOB33M_OUTBUF so the cutout can reach the next architectural check.",
+    "cases": [
+      {
+        "name": "ODELAYE2 to OBUF with patched nextpnr",
+        "fasm_command": "nix build .#task6-odelay-obuf-cutout-fasm --no-link --print-out-paths -L",
+        "failed_derivation": "/nix/store/wylm3dd8jk7bmbqz2jly83zsj9zr2mlq-task6-odelay-obuf-cutout.fasm.drv",
+        "status": "FAIL",
+        "error": "BEL IOB_X0Y92/IOB33/OUTBUF is located on a high range bank. High range banks do not have ODELAY"
+      },
+      {
+        "name": "ODELAYE2 to OBUFDS with patched nextpnr",
+        "fasm_command": "nix build .#task6-odelay-obufds-cutout-fasm --no-link --print-out-paths -L",
+        "failed_derivation": "/nix/store/bh42lyfhzkfz7hqs0ddac2z9bn2y8yg8-task6-odelay-obufds-cutout.fasm.drv",
+        "status": "FAIL",
+        "error": "BEL IOB_X0Y94/IOB33M/OUTBUF is located on a high range bank. High range banks do not have ODELAY"
+      }
+    ],
+    "inference": "The original unsupported-cell error was a narrower nextpnr packer acceptance gap. Once patched, the cutouts expose the board-relevant architectural blocker: these HR-bank IOB33 sites do not provide output ODELAY. The next open path is a LiteDRAM no-ODELAY Series-7 PHY variant, not Vivado MIG."
+  },
   "durable_json_policy": "Generated cutout JSON netlists are not copied into the repository because each is about 9.7 MiB; regenerate them with the recorded flake JSON targets when needed.",
-  "inference": "The LiteDRAM probe P&R blocker is reproduced by a one-ODELAY cutout, so the next work should focus on openXC7/nextpnr support for ODELAYE2 output-buffer packing or a valid LiteDRAM PHY output-delay topology adjustment. It is not explained by TinyStories, the full controller size, or the no-iopad versus iopad synthesis choice."
+  "inference": "The LiteDRAM probe P&R blocker is reproduced by a one-ODELAY cutout. A small nextpnr patch gets past the first unsupported-cell check, but the next failure reports that the constrained HR-bank IOB33 sites have no ODELAY. It is not explained by TinyStories, the full controller size, or the no-iopad versus iopad synthesis choice."
 }

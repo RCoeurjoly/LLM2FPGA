@@ -40,6 +40,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--date", default=dt.date.today().isoformat())
     parser.add_argument("--artifact-name", default="h2-ypcb-litedram-config")
     parser.add_argument("--payload-byte-lanes", default=8, type=int)
+    parser.add_argument(
+        "--sdram-phy",
+        default="K7DDRPHY",
+        choices=["A7DDRPHY", "K7DDRPHY", "V7DDRPHY"],
+    )
     return parser.parse_args()
 
 
@@ -121,7 +126,7 @@ def format_pin_list(pins: list[str]) -> str:
     return " ".join(pins)
 
 
-def build_litedram_config() -> dict[str, Any]:
+def build_litedram_config(sdram_phy: str) -> dict[str, Any]:
     return {
         "speedgrade": -1,
         "cpu": None,
@@ -131,7 +136,7 @@ def build_litedram_config() -> dict[str, Any]:
         "sdram_module": "MT41K256M8",
         "sdram_module_nb": 8,
         "sdram_rank_nb": 1,
-        "sdram_phy": "K7DDRPHY",
+        "sdram_phy": sdram_phy,
         "rtt_nom": "60ohm",
         "rtt_wr": "60ohm",
         "ron": "34ohm",
@@ -318,7 +323,7 @@ def main() -> None:
     clock_n = clock_pins["default_200mhz_clk1_n"]["loc"]
     reset_pin = part0_pins["SW_RESET"]["loc"]
 
-    litedram_config = build_litedram_config()
+    litedram_config = build_litedram_config(args.sdram_phy)
     s7ddrphy_source = inspect.getsource(s7ddrphy.S7DDRPHY)
     dm_optional_in_s7_phy = 'hasattr(pads, "dm")' in s7ddrphy_source
     has_module = hasattr(litedram_modules, litedram_config["sdram_module"])

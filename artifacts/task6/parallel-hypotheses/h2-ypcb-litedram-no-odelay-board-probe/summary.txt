@@ -1,0 +1,63 @@
+artifact: h2-ypcb-litedram-no-odelay-board-probe
+date: 2026-04-30
+controller path: LiteDRAM/LiteX only
+Vivado MIG lane: rejected
+
+Result:
+- A7DDRPHY no-ODELAY RTL elaboration: PASS
+- ODELAYE2 mentions in generated RTL: 0
+- Yosys synthesis: PASS, 0 check problems, 604.81 MiB peak
+- Open P&R: PASS at 50 MHz target
+- Bitstream: /nix/store/5hsjvbv57vhipd993vvmkab59liviki4-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit
+- Board programming through HS3: PASS, DONE asserted
+- Direct FTDI/MPSSE JTAG payload: valid magic/version
+
+Synthesis utilization:
+- CLB LUTs: 8359 / 298600 (2.80%)
+- CLB FFs: 7706 / 597200 (1.29%)
+- DSP: 0 / 1920 (0.00%)
+- BRAM36: 0 / 955 (0.00%)
+- lower-bound slices: 1045 / 74650 (1.40%)
+
+Post-route selected utilization:
+- SLICE_LUTX: 13096 / 597200 (2%)
+- SLICE_FFX: 7706 / 597200 (1%)
+- PAD: 110 / 946 (11%)
+- IDELAYE2: 64 / 400 (16%)
+- OSERDESE2: 98 / 400 (24%)
+- ISERDESE2: 64 / 400 (16%)
+- IDELAYCTRL: 3 / 8 (37%)
+- BUFGCTRL: 6 / 32 (18%)
+
+Post-route timing reported by nextpnr:
+- clk200: 733.68 MHz max, PASS at 50 MHz
+- user_clk: 104.03 MHz max, PASS at 50 MHz
+- core.iodelay_clk: 554.94 MHz max, PASS at 50 MHz
+- jtag_debug_shift.drck: 702.74 MHz max, PASS at 50 MHz
+
+Board/JTAG payload after programming:
+- magic_ok: true
+- version: 20
+- state: PROBE_WAIT_INIT
+- sys_rstn: true
+- pll_locked: true
+- user_rst: false
+- init_done: false
+- init_error: false
+- command_count: 0
+- response_count: 0
+- target_read_count: 65536
+
+Interpretation:
+- The open DDR3 lane has advanced from synthesis-only to a programmed board
+  image with autonomous JTAG visibility.
+- The K7DDRPHY blocker was the HR-bank output-ODELAY topology. A no-ODELAY
+  Series-7 PHY avoids that P&R blocker.
+- The remaining issue is DDR3 init/calibration: the design is alive and the PLL
+  is locked, but LiteDRAM does not assert init_done or init_error within a
+  60-second JTAG poll.
+
+Next gate:
+- Widen the JTAG payload to expose LiteDRAM init/calibration and DFI/PHY status
+  signals. Then decide whether the blocker is A7DDRPHY calibration/timing,
+  no-DM wiring, reset sequencing, or PHY parameterization.

@@ -11603,3 +11603,189 @@ Decision:
   - inspect or patch nextpnr/openXC7 packing support for `ODELAYE2` feeding
     `OBUF` / `OBUFDS`, using the minimal cutouts above as the regression test
   - only return to the full LiteDRAM board probe after a cutout reaches FASM
+
+### 2026-04-30 - Patched ODELAY cutouts expose HR-bank limit
+
+Goal:
+
+- Decide whether the `ODELAYE2 -> OBUF/OBUFDS` blocker is only a nextpnr packer
+  acceptance issue or whether the YPCB DDR3 pin bank cannot support the
+  generated output-delay topology.
+
+Implementation:
+
+- Added a narrow nextpnr-xilinx diagnostic patch:
+  - `patches/nextpnr-xilinx/0001-xc7-allow-odelay-to-hr-output-buffers.patch`
+- The patch lets `pack_iologic` accept `ODELAYE2` `DATAOUT` users of type
+  `IOB33_OUTBUF` and `IOB33M_OUTBUF`.
+- This is still an open nextpnr/openXC7 path; Vivado MIG remains rejected.
+
+Verification:
+
+- Patched single-ended cutout:
+  - `nix build .#task6-odelay-obuf-cutout-fasm --no-link --print-out-paths -L`
+  - failed derivation:
+    `/nix/store/wylm3dd8jk7bmbqz2jly83zsj9zr2mlq-task6-odelay-obuf-cutout.fasm.drv`
+  - new error:
+    `BEL IOB_X0Y92/IOB33/OUTBUF is located on a high range bank. High range banks do not have ODELAY`
+- Patched differential cutout:
+  - `nix build .#task6-odelay-obufds-cutout-fasm --no-link --print-out-paths -L`
+  - failed derivation:
+    `/nix/store/bh42lyfhzkfz7hqs0ddac2z9bn2y8yg8-task6-odelay-obufds-cutout.fasm.drv`
+  - new error:
+    `BEL IOB_X0Y94/IOB33M/OUTBUF is located on a high range bank. High range banks do not have ODELAY`
+
+Interpretation:
+
+- The first error was a narrower nextpnr packer gap, but fixing that exposes a
+  more important board/architecture limit: the constrained HR-bank `IOB33`
+  DDR3 pins do not have output `ODELAY`.
+- That makes the stock LiteDRAM `K7DDRPHY` output-delay topology a poor match
+  for this board/open-flow combination.
+- The right open-source next experiment is the LiteDRAM no-ODELAY Series-7 PHY
+  path (`A7DDRPHY`), not Vivado MIG.
+
+Decision:
+
+- Keep the patch and cutouts as a diagnostic regression.
+- Promote a no-ODELAY LiteDRAM/LiteX board-probe lane.
+
+### 2026-04-30 - YPCB LiteDRAM no-ODELAY board bitstream
+
+Goal:
+
+- Swap the YPCB LiteDRAM probe from `K7DDRPHY` to LiteDRAM's no-ODELAY
+  Series-7 path (`A7DDRPHY`) and test whether that path can synthesize, place,
+  route, program the board, and expose autonomous JTAG state.
+
+Implementation:
+
+- Added configurable LiteDRAM PHY selection:
+  - `scripts/task6/write_ypcb_litedram_config.py --sdram-phy`
+- Added generated-RTL validation counts:
+  - `ODELAYE2` mention count
+  - `IDELAYE2` mention count
+- Added no-ODELAY flake targets:
+  - `task6-ypcb-litedram-no-odelay-config`
+  - `task6-ypcb-litedram-no-odelay-rtl-elaboration`
+  - `task6-ypcb-litedram-no-odelay-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-init-bandwidth-probe-xdc`
+  - `task6-ypcb-litedram-no-odelay-init-bandwidth-probe-fasm`
+  - `task6-ypcb-litedram-no-odelay-init-bandwidth-probe-bitstream`
+- Added direct FTDI/MPSSE LiteDRAM probe reader:
+  - `scripts/task6/read_litedram_probe_jtag_ftdi.py`
+- Durable artifact:
+  - `artifacts/task6/parallel-hypotheses/h2-ypcb-litedram-no-odelay-board-probe`
+
+Generated RTL result:
+
+- Command:
+  - `nix build .#task6-ypcb-litedram-no-odelay-rtl-elaboration --no-link --print-out-paths`
+- Output:
+  - `/nix/store/z9692s8wrzmhqzqy9hyi0wbl1daafl1k-h2-ypcb-litedram-no-odelay-rtl-elaboration`
+- Result:
+  - `status`: `PASS`
+  - `sdram_phy`: `A7DDRPHY`
+  - `ODELAYE2` mentions: `0`
+  - `IDELAYE2` mentions: `194`
+  - `ddram_dm` top-port mentions: `0`
+
+Synthesis result:
+
+- Command:
+  - `nix build .#task6-ypcb-litedram-no-odelay-init-bandwidth-probe-utilization --no-link --print-out-paths -L`
+- Output:
+  - `/nix/store/i1717bsprnkabzfxx7pg3j24nkga9r1b-task6-ypcb-litedram-no-odelay-init-bandwidth-probe-utilization`
+- Result:
+  - `check` reported `0` problems
+  - Yosys peak memory: `604.81 MiB`
+- Measured utilization:
+  - CLB LUTs: `8359 / 298600` (`2.80%`)
+  - CLB FFs: `7706 / 597200` (`1.29%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - Lower-bound slices: `1045 / 74650` (`1.40%`)
+
+Open P&R result:
+
+- Command:
+  - `nix build .#task6-ypcb-litedram-no-odelay-init-bandwidth-probe-bitstream --no-link --print-out-paths -L`
+- Outputs:
+  - FASM:
+    `/nix/store/zn5hgpi5x6yb591452sshl08nmldbndn-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.fasm`
+  - bitstream:
+    `/nix/store/5hsjvbv57vhipd993vvmkab59liviki4-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+- Result:
+  - open P&R completed
+  - bitstream emitted
+  - target frequency was `50 MHz`
+  - post-route reported maximum frequencies:
+    - `clk200`: `733.68 MHz`
+    - `user_clk`: `104.03 MHz`
+    - `core.iodelay_clk`: `554.94 MHz`
+    - `jtag_debug_shift.drck`: `702.74 MHz`
+- Selected nextpnr utilization:
+  - `SLICE_LUTX`: `13096 / 597200` (`2%`)
+  - `SLICE_FFX`: `7706 / 597200` (`1%`)
+  - `PAD`: `110 / 946` (`11%`)
+  - `IDELAYE2`: `64 / 400` (`16%`)
+  - `OSERDESE2`: `98 / 400` (`24%`)
+  - `ISERDESE2`: `64 / 400` (`16%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - `BUFGCTRL`: `6 / 32` (`18%`)
+
+Board/JTAG result:
+
+- JTAG detect:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 --detect`
+  - IDCODE: `0x23751093`
+  - model: `xc7k480t`
+- Program command:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/5hsjvbv57vhipd993vvmkab59liviki4-task6-ypcb-litedram-no-odelay-init-bandwidth-probe.bit`
+- Program result:
+  - SRAM load completed
+  - `DONE` asserted
+- Direct JTAG IDCODE reader:
+  - `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --idcode-only`
+  - IDCODE: `0x23751093`
+- Direct LiteDRAM payload reader:
+  - `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- Payload result after about `60` seconds:
+  - `magic_ok`: `true`
+  - version: `20`
+  - state: `PROBE_WAIT_INIT`
+  - `sys_rstn`: `true`
+  - `pll_locked`: `true`
+  - `user_rst`: `false`
+  - `init_done`: `false`
+  - `init_error`: `false`
+  - command count: `0`
+  - response count: `0`
+  - target read count: `65536`
+
+Interpretation:
+
+- This is major progress for the open DDR3 lane:
+  - open LiteDRAM/LiteX synthesis works
+  - open P&R now works with the no-ODELAY PHY
+  - the board programs successfully
+  - autonomous JTAG payload readout works
+- The remaining failure is no longer toolchain P&R. The design is alive, reset
+  is deasserted, the PLL is locked, and the JTAG payload is valid, but
+  LiteDRAM never reaches `init_done` or `init_error`.
+- This is not yet DDR3 usability. It is a board-programmed, JTAG-observable
+  DDR3-init stall.
+- The next debug target is LiteDRAM init/calibration state:
+  - A7DDRPHY timing/calibration viability on this Kintex board
+  - reset sequencing
+  - no-`dm` wiring assumptions
+  - PHY/module parameterization
+  - DFI control/init FSM state
+
+Decision:
+
+- Promote the no-ODELAY board-probe lane.
+- Next gate:
+  - widen the JTAG payload to expose LiteDRAM init/calibration and DFI/PHY
+    status signals, then rerun the same board-program/JTAG loop.

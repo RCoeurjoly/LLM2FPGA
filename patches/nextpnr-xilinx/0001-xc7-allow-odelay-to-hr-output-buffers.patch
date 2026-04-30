@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 30 Apr 2026 15:00:00 +0200
+Subject: [PATCH] xilinx: allow XC7 ODELAYE2 to drive HR output buffers
+
+On 7-series HR IO, OBUF/OBUFDS are packed as IOB33_OUTBUF and
+IOB33M_OUTBUF. The ODELAYE2 packer only accepted output-buffer types that
+contained OUTBUF_EN or OUTBUF_DCIEN, which rejected valid HR output-delay
+topologies before placement.
+---
+ xilinx/pack_io_xc7.cc | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/xilinx/pack_io_xc7.cc b/xilinx/pack_io_xc7.cc
+--- a/xilinx/pack_io_xc7.cc
++++ b/xilinx/pack_io_xc7.cc
+@@ -770,7 +770,9 @@ void XC7Packer::pack_iologic()
+                 CellInfo *user = userport.cell;
+                 auto user_type = user->type.str(ctx);
+                 // OBUFDS has the negative pin connected to an inverter
+                 if (no_users == 2 && user_type == "INVERTER") continue;
+-                if (   boost::contains(user_type, "OUTBUF_EN")
++                if (   user->type == ctx->id("IOB33_OUTBUF")
++                    || user->type == ctx->id("IOB33M_OUTBUF")
++                    || boost::contains(user_type, "OUTBUF_EN")
+                     || boost::contains(user_type, "OUTBUF_DCIEN"))
+                     io_bel = ctx->getBelByName(ctx->id(user->attrs.at(ctx->id("BEL")).as_string()));
+                 else
