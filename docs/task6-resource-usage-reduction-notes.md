@@ -12894,3 +12894,108 @@ Next gate:
 - If DM still needs a hardware discriminator, add it as a separate LiteDRAM core
   generation change that exposes or overrides `csr_dfi_p*_wrdata_mask`; do not
   treat the current DFII CSR path as mask-controllable.
+
+### 2026-04-30 - v60 DFII source-order byte-tag matrix probe
+
+Goal:
+
+- Keep the v59-winning source phase fixed at `p0`.
+- Stop varying write-command phase, because v59 made it unlikely to be the
+  primary blocker.
+- Map source byte/word ordering directly by writing one tagged byte per matrix
+  entry and recording which DFII read words contain the tag.
+
+Implementation:
+
+- Added `DFII_SOURCE_ORDER_MATRIX_ONLY`.
+- Matrix entry `0..15` selects one byte slot in source phase `p0`.
+- Fixed command phases:
+  - source phase: `p0`
+  - write command phase: `p0`
+  - read command phase: `p2`
+- The existing matrix payload now reports:
+  - `nonzero`: read words that became nonzero
+  - `tag_match`: read words containing the selected byte tag
+  - `tag_absent`: inverse of `tag_match`
+
+Build result:
+
+- JSON:
+  `/nix/store/777dsnhgcq2bc4z1r2qygzv4jsl5nqyf-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/pw39k0sspmc7vimbz5r49bjxgkpyrv5l-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe-utilization`
+  - CLB LUTs: `17756 / 298600` (`5.95%`)
+  - CLB FFs: `13294 / 597200` (`2.23%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2220 / 74650` (`2.97%`)
+- Bitstream:
+  `/nix/store/j8vywyks89l4zssrw8qn6sjyy835p2pm-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe.bit`
+- nextpnr selected utilization:
+  - `SLICE_LUTX`: `22861 / 597200` (`3%`)
+  - `SLICE_FFX`: `13294 / 597200` (`2%`)
+  - `IDELAYE2`: `72 / 400` (`18%`)
+  - `OSERDESE2`: `107 / 400` (`26%`)
+  - `ISERDESE2`: `72 / 400` (`18%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - BRAM: `0`
+  - DSP: `0`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `570.45 MHz`
+  - `user_clk`: `77.03 MHz`
+  - `core.iodelay_clk`: `600.96 MHz`
+  - `jtag_debug_shift.drck`: `386.55 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/j8vywyks89l4zssrw8qn6sjyy835p2pm-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=60`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_source_order_matrix_only=true`
+  - fixed source/write/read phases: `p0`/`p0`/`p2`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=50`, `wait=150`
+  - DFII mode masks still failed: `uniform=0xffff`,
+    `phase_constant=0xffff`, `byte_ramp=0xffff`
+  - visible byte-tag slots:
+    - slots `0`, `1`, `2`: `tag_match=nonzero=0x2222`
+    - slot `3`: `tag_match=nonzero=0x4444`
+    - slots `4`, `5`, `6`: `tag_match=nonzero=0x5555`
+    - slot `8`: `tag_match=nonzero=0xaaaa`
+  - invisible byte-tag slots:
+    - slots `7` and `9..15`: `tag_match=nonzero=0x0000`
+  - final captured DFII words for the last matrix entry were all zero.
+  - DFII lane bit errors: `[0, 0, 0, 0, 0, 0, 0, 20]`
+
+Interpretation:
+
+- v60 is not a pass, but it is a strong discriminator.
+- The readback is byte-slot selective and deterministic, not random.
+- For every visible slot, `tag_match == nonzero`; no extra non-tag nonzero
+  words appeared in the matrix masks.
+- The visible slots are mostly in the lower 72-bit half of the 144-bit DFI
+  write-data storage. Slots `9..15`, which are in the upper half of the lower
+  128-bit CSR window, disappear. Slot `7` also disappears.
+- This points away from write-command phase and toward high/low beat ordering,
+  DFI-to-A7DDRPHY serializer ordering, or read-capture interpretation around
+  the no-ODELAY path.
+- The result still does not prove DRAM write acceptance; it proves that selected
+  source byte slots influence the direct DFII readback in a stable way.
+
+Next gate:
+
+- Build a v61 low/high-half discriminator for source phase `p0`: write paired
+  low-half and high-half tags for the same DQ byte lanes, include the 9th byte
+  lane explicitly, and expose enough readback/status to distinguish
+  low-edge/high-edge loss from read CSR interpretation.
+- If possible, add direct JTAG reporting of selected actual read words for each
+  visible slot class instead of only per-slot masks.

@@ -224,8 +224,12 @@ FIELDS = [
     ("dfii_disable_write_command", 4080, 1),
     ("dfii_phase_matrix_only", 4081, 1),
     ("dfii_source_command_matrix_only", 4082, 1),
+    ("dfii_source_order_matrix_only", 4083, 1),
     ("dfii_source_command_read_phase", 4084, 2),
     ("dfii_csr_wrdata_mask_controllable", 4086, 1),
+    ("dfii_source_order_source_phase", 4088, 2),
+    ("dfii_source_order_write_phase", 4090, 2),
+    ("dfii_source_order_read_phase", 4092, 2),
     ("first_chunk_mismatch_mask", 1728, 16),
 ]
 
@@ -503,6 +507,18 @@ def dfii_phase_source_pattern(source_phase: int, word: int) -> int:
     )
 
 
+def dfii_source_order_tag(slot: int) -> int:
+    return 0x80 + (slot & 0xF)
+
+
+def dfii_source_order_word(slot: int, word: int) -> int:
+    slot &= 0xF
+    word &= 0x3
+    if word != ((slot >> 2) & 0x3):
+        return 0
+    return dfii_source_order_tag(slot) << ((slot & 0x3) * 8)
+
+
 def dfii_pattern_word(
     index: int,
     version: int = 0,
@@ -572,8 +588,12 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     source_command_matrix_only = bool(
         fields.get("dfii_source_command_matrix_only", 0)
     )
-    matrix_only = phase_matrix_only or source_command_matrix_only
+    source_order_matrix_only = bool(fields.get("dfii_source_order_matrix_only", 0))
+    matrix_only = (
+        phase_matrix_only or source_command_matrix_only or source_order_matrix_only
+    )
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
+    source_order_slot = fields.get("dfii_phasecmd_index", 0) & 0xF
     addr_flags = fields.get("dfii_addr_flags", 0)
     addr_sweep = bool(addr_flags & 0x4)
     addr_index = fields.get("dfii_addr_index", 0)
@@ -586,10 +606,12 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     words = []
     for index in range(DFII_WORD_COUNT):
         actual = fields.get(f"dfii_rddata_{index}", 0)
-        expected = (
-            dfii_phase_source_pattern(phase_matrix_source, index & 0x3)
-            if matrix_only
-            else dfii_pattern_word(
+        if source_order_matrix_only:
+            expected = dfii_source_order_word(source_order_slot, index & 0x3)
+        elif matrix_only:
+            expected = dfii_phase_source_pattern(phase_matrix_source, index & 0x3)
+        else:
+            expected = dfii_pattern_word(
                 index,
                 version,
                 active_mode,
@@ -597,7 +619,6 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
                 addr_index,
                 addr_sweep,
             )
-        )
         words.append(
             {
                 "index": index,
@@ -630,18 +651,39 @@ def decode_dfii_phasecmd_masks(fields: dict[str, int]) -> list[dict[str, int]]:
 def decode_dfii_phase_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
     mismatch_masks = fields.get("dfii_phasecmd_mismatch_masks", 0)
     source_command = bool(fields.get("dfii_source_command_matrix_only", 0))
+    source_order = bool(fields.get("dfii_source_order_matrix_only", 0))
     fixed_read_phase = fields.get("dfii_source_command_read_phase", 2) & 0x3
+    source_order_source_phase = fields.get("dfii_source_order_source_phase", 0) & 0x3
+    source_order_write_phase = fields.get("dfii_source_order_write_phase", 0) & 0x3
+    source_order_read_phase = fields.get("dfii_source_order_read_phase", 2) & 0x3
     decoded = []
     for index in range(16):
-        source_phase = index >> 2
-        write_phase = index & 0x3 if source_command else source_phase
-        read_phase = fixed_read_phase if source_command else index & 0x3
+        if source_order:
+            source_phase = source_order_source_phase
+            write_phase = source_order_write_phase
+            read_phase = source_order_read_phase
+            byte_slot = index
+            word = index >> 2
+            byte = index & 0x3
+            tag = dfii_source_order_tag(index)
+        else:
+            source_phase = index >> 2
+            write_phase = index & 0x3 if source_command else source_phase
+            read_phase = fixed_read_phase if source_command else index & 0x3
+            byte_slot = None
+            word = None
+            byte = None
+            tag = None
         decoded.append(
             {
                 "index": index,
                 "source_phase": source_phase,
                 "write_phase": write_phase,
                 "read_phase": read_phase,
+                "byte_slot": byte_slot,
+                "word": word,
+                "byte": byte,
+                "tag": tag,
                 "mismatch_mask": (mismatch_masks >> (index * 16)) & 0xFFFF,
                 "nonzero_mask": fields.get(
                     f"dfii_assoc_nonzero_mask_{index}", 0
@@ -914,6 +956,7 @@ def print_summary(result: dict[str, object]) -> None:
         print(
             "dfii state={state} step={step} no_write={no_write} "
             "phase_matrix={phase_matrix} source_command_matrix={source_command_matrix} "
+            "source_order_matrix={source_order_matrix} "
             "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
@@ -923,6 +966,9 @@ def print_summary(result: dict[str, object]) -> None:
                 phase_matrix=bool(fields.get("dfii_phase_matrix_only", 0)),
                 source_command_matrix=bool(
                     fields.get("dfii_source_command_matrix_only", 0)
+                ),
+                source_order_matrix=bool(
+                    fields.get("dfii_source_order_matrix_only", 0)
                 ),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
@@ -947,10 +993,26 @@ def print_summary(result: dict[str, object]) -> None:
     source_command_matrix_only = bool(
         fields.get("dfii_source_command_matrix_only", 0)
     )
-    matrix_only = phase_matrix_only or source_command_matrix_only
+    source_order_matrix_only = bool(fields.get("dfii_source_order_matrix_only", 0))
+    matrix_only = (
+        phase_matrix_only or source_command_matrix_only or source_order_matrix_only
+    )
     if matrix_only:
         phase_matrix = decoded["dfii_phase_matrix"]
-        if source_command_matrix_only:
+        if source_order_matrix_only:
+            print(
+                "dfii source-order matrix: one tagged byte slot, "
+                "fixed source p{source}/write p{write}/read p{read}".format(
+                    source=fields.get("dfii_source_order_source_phase", 0),
+                    write=fields.get("dfii_source_order_write_phase", 0),
+                    read=fields.get("dfii_source_order_read_phase", 0),
+                )
+            )
+            print(
+                "dfii CSR wrdata_mask controllable: "
+                f"{bool(fields.get('dfii_csr_wrdata_mask_controllable', 0))}"
+            )
+        elif source_command_matrix_only:
             print(
                 "dfii source/command matrix: source phase x write phase, "
                 f"fixed read phase p{fields.get('dfii_source_command_read_phase', 0)}"
@@ -962,34 +1024,51 @@ def print_summary(result: dict[str, object]) -> None:
         else:
             print("dfii phase/source matrix: source/write phase x read phase")
         for entry in phase_matrix:
-            print(
-                "  [src p{source_phase}/write p{write_phase}/read p{read_phase}] "
-                "mismatch=0x{mismatch_mask:04x} "
-                "nonzero=0x{nonzero_mask:04x} "
-                "match=0x{match_mask:04x}".format(**entry)
-            )
+            if source_order_matrix_only:
+                print(
+                    "  [slot {byte_slot:02d} word {word}/byte {byte} "
+                    "tag=0x{tag:02x}] "
+                    "tag_absent=0x{mismatch_mask:04x} "
+                    "nonzero=0x{nonzero_mask:04x} "
+                    "tag_match=0x{match_mask:04x}".format(**entry)
+                )
+            else:
+                print(
+                    "  [src p{source_phase}/write p{write_phase}/read p{read_phase}] "
+                    "mismatch=0x{mismatch_mask:04x} "
+                    "nonzero=0x{nonzero_mask:04x} "
+                    "match=0x{match_mask:04x}".format(**entry)
+                )
         hits = [
             (
-                "src p{source_phase}/write p{write_phase}/read p{read_phase}:"
-                "0x{match_mask:04x}"
-            ).format(
-                **entry
-            )
+                "slot {byte_slot}:0x{match_mask:04x}"
+                if source_order_matrix_only
+                else (
+                    "src p{source_phase}/write p{write_phase}/read p{read_phase}:"
+                    "0x{match_mask:04x}"
+                )
+            ).format(**entry)
             for entry in phase_matrix
             if entry["match_mask"] != 0
         ]
         nonzero = [
             (
-                "src p{source_phase}/write p{write_phase}/read p{read_phase}:"
-                "0x{nonzero_mask:04x}"
-            ).format(
-                **entry
-            )
+                "slot {byte_slot}:0x{nonzero_mask:04x}"
+                if source_order_matrix_only
+                else (
+                    "src p{source_phase}/write p{write_phase}/read p{read_phase}:"
+                    "0x{nonzero_mask:04x}"
+                )
+            ).format(**entry)
             for entry in phase_matrix
             if entry["nonzero_mask"] != 0
         ]
+        label = "dfii source-order tag matches" if source_order_matrix_only else (
+            "dfii phase/source matrix matches"
+        )
         print(
-            "dfii phase/source matrix matches: {matches}; nonzero combos: {nonzero}".format(
+            "{label}: {matches}; nonzero combos: {nonzero}".format(
+                label=label,
                 matches=", ".join(hits) if hits else "none",
                 nonzero=", ".join(nonzero) if nonzero else "none",
             )

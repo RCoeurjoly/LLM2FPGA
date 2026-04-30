@@ -1332,6 +1332,112 @@
       "interpretation": "No source/write-command combination matched the expected phase-tagged data. The v58 nonzero result follows write-data source phase, not write command phase: source phase 0 produces nonzero readback for every write-command phase, while source phases 1..3 read back zero for every write-command phase. This weakens write-command-phase selection as the primary blocker and points next at write-data source ordering, DFI phase-to-PHY association, DQ/DQS beat order, or read-capture interpretation. It still does not prove DRAM write acceptance.",
       "next_gate": "Build a source-phase-0 write-data ordering probe that varies word/beat order and read-capture interpretation; treat DFII mask control as a separate LiteDRAM generation change, because the current DFII CSR path is not mask-controllable."
     },
+    "v60_dfii_source_order_byte_tag_matrix": {
+      "purpose": "Map source-phase-0 byte/word ordering directly with one tagged byte per matrix entry.",
+      "implementation": {
+        "default_config_phy": "A7DDRPHY",
+        "dfii_source_order_matrix_only": true,
+        "fixed_source_phase": 0,
+        "fixed_write_command_phase": 0,
+        "fixed_read_command_phase": 2,
+        "controller_path": "LiteDRAM/LiteX only",
+        "vivado_mig_lane": "rejected",
+        "matrix_encoding": "matrix index 0..15 selects one tagged byte slot in source phase p0",
+        "payload_reuse": {
+          "dfii_phasecmd_mismatch_masks": "inverse of per-read-word tag-match mask",
+          "dfii_assoc_nonzero_mask": "per-read-word nonzero mask",
+          "dfii_assoc_match_mask": "per-read-word selected-tag-present mask"
+        }
+      },
+      "artifacts": {
+        "json": "/nix/store/777dsnhgcq2bc4z1r2qygzv4jsl5nqyf-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe.json",
+        "utilization": "/nix/store/pw39k0sspmc7vimbz5r49bjxgkpyrv5l-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe-utilization",
+        "bitstream": "/nix/store/j8vywyks89l4zssrw8qn6sjyy835p2pm-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe.bit"
+      },
+      "mapped_utilization": {
+        "clb_luts": "17756 / 298600 (5.95%)",
+        "clb_ffs": "13294 / 597200 (2.23%)",
+        "dsp": "0 / 1920 (0.00%)",
+        "bram36": "0 / 955 (0.00%)",
+        "lower_bound_slices": "2220 / 74650 (2.97%)"
+      },
+      "nextpnr": {
+        "status": "PASS",
+        "target_mhz": 25,
+        "selected_utilization": {
+          "SLICE_LUTX": "22861 / 597200 (3%)",
+          "SLICE_FFX": "13294 / 597200 (2%)",
+          "IDELAYE2": "72 / 400 (18%)",
+          "OSERDESE2": "107 / 400 (26%)",
+          "ISERDESE2": "72 / 400 (18%)",
+          "IDELAYCTRL": "3 / 8 (37%)",
+          "BRAM": 0,
+          "DSP": 0
+        },
+        "max_frequency_mhz": {
+          "clk200": 570.45,
+          "user_clk": 77.03,
+          "core.iodelay_clk": 600.96,
+          "jtag_debug_shift.drck": 386.55
+        }
+      },
+      "programming": {
+        "status": "PASS",
+        "done": true
+      },
+      "board_jtag": {
+        "magic_ok": true,
+        "version": 60,
+        "probe_state": "PROBE_DFII_DONE",
+        "init_state": "INIT_DONE",
+        "init_done": true,
+        "init_error": false,
+        "dfii_source_order_matrix_only": true,
+        "fixed_source_phase": 0,
+        "fixed_write_command_phase": 0,
+        "fixed_read_command_phase": 2,
+        "dfii_seq_state": "DFII_SEQ_DONE",
+        "dfii_ack": 50,
+        "dfii_wait": 150,
+        "dfii_mode_masks": {
+          "uniform": "0xffff",
+          "phase_constant": "0xffff",
+          "byte_ramp": "0xffff"
+        },
+        "visible_slots": [
+          {
+            "slots": [0, 1, 2],
+            "tag_match_mask": "0x2222",
+            "nonzero_mask": "0x2222"
+          },
+          {
+            "slots": [3],
+            "tag_match_mask": "0x4444",
+            "nonzero_mask": "0x4444"
+          },
+          {
+            "slots": [4, 5, 6],
+            "tag_match_mask": "0x5555",
+            "nonzero_mask": "0x5555"
+          },
+          {
+            "slots": [8],
+            "tag_match_mask": "0xaaaa",
+            "nonzero_mask": "0xaaaa"
+          }
+        ],
+        "invisible_slots": [7, 9, 10, 11, 12, 13, 14, 15],
+        "final_captured_words": [
+          "0x00000000",
+          "0x00000000",
+          "0x00000000",
+          "0x00000000"
+        ],
+        "dfii_lane_bit_errors": [0, 0, 0, 0, 0, 0, 0, 20]
+      },
+      "interpretation": "The probe does not pass data integrity, but it makes the failure deterministic and byte-slot selective. The visible slots are 0,1,2,3,4,5,6,8; slots 7 and 9..15 disappear. For every visible slot, tag_match equals nonzero, so the observed nonzero data is selected tag data rather than unrelated noise. This points at high/low beat ordering, DFI-to-A7DDRPHY serializer ordering, or read-capture interpretation rather than write-command phase.",
+      "next_gate": "Build a v61 low/high-half discriminator for source phase p0, including the 9th byte lane, and expose selected actual read words in addition to masks."
+    },
     "open_flow_regression_guards": {
       "rtl_check": {
         "command": "nix build .#task6-ypcb-litedram-no-odelay-rtl-check --no-link --print-out-paths -L",
@@ -1402,9 +1508,10 @@
       "The v58 phase/source matrix finds no exact phase-tagged match; only source/write phase 0 produces nonzero readback for all read phases, while source/write phases 1..3 read back zero.",
       "The v59 source/command matrix decouples source phase from write-command phase: source phase 0 produces nonzero readback for every write-command phase, while source phases 1..3 read back zero for every write-command phase.",
       "The current generated DFII CSR path cannot toggle write-data masks because main_csr_dfi_p*_wrdata_mask is hardwired to zero; mask polarity needs a separate LiteDRAM generation change if it remains relevant.",
-      "The current blocker is write-data source ordering, DFI phase-to-PHY association, DQ/DQS beat order, per-bit order, or read capture behavior in the no-ODELAY LiteDRAM path, not the open implementation flow itself."
+      "The v60 source-order byte-tag matrix shows deterministic byte-slot selectivity: slots 0,1,2,3,4,5,6,8 reappear in stable read-word masks, while slot 7 and slots 9..15 disappear.",
+      "The current blocker is high/low beat ordering, DFI-to-A7DDRPHY serializer ordering, per-bit order, or read-capture interpretation in the no-ODELAY LiteDRAM path, not the open implementation flow itself."
     ],
-    "next_gate": "Build a source-phase-0 write-data ordering probe that varies word/beat order and read-capture interpretation before returning to native-port bandwidth or rowstream integration."
+    "next_gate": "Build a v61 low/high-half discriminator for source phase p0, including the 9th byte lane, before returning to native-port bandwidth or rowstream integration."
   },
   "decision": {
     "verdict": "promote-open-bitstream-and-debug-ddr-data-integrity",
@@ -1423,8 +1530,9 @@
       "The v57 no-write discriminator changes the direct-DFII readback pattern when the DFII write command is suppressed, so the prior direct-DFII readback is influenced by issuing writes but is not yet proof of DRAM write acceptance.",
       "The v58 phase/source matrix shows source/write phase 0 is the only row that produces nonzero readback, and none of the phase-tagged patterns match.",
       "The v59 source/command matrix shows the nonzero result follows source phase 0 across all write-command phases; write-command-phase selection is unlikely to be the primary blocker.",
-      "The generated DFII CSR path does not expose write-data mask control, so the requested DFII mask polarity discriminator requires a separate LiteDRAM/core-generation change."
+      "The generated DFII CSR path does not expose write-data mask control, so the requested DFII mask polarity discriminator requires a separate LiteDRAM/core-generation change.",
+      "The v60 byte-tag matrix shows deterministic source-byte selectivity: visible tags come from slots 0,1,2,3,4,5,6,8, while slot 7 and slots 9..15 disappear."
     ],
-    "next_gate": "Build a source-phase-0 write-data ordering probe before returning to broader DQS/write-data/read-latency sweeps, native-port bandwidth, or rowstream integration."
+    "next_gate": "Build a v61 low/high-half discriminator for source phase p0 before returning to broader DQS/write-data/read-latency sweeps, native-port bandwidth, or rowstream integration."
   }
 }

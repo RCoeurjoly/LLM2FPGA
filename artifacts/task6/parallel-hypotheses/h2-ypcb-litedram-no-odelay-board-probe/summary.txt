@@ -600,3 +600,46 @@ v59 DFII source-vs-command matrix:
   build a v60 source-phase-0 write-data ordering probe that varies word/beat
   order and read-capture interpretation, and treat DFII mask control as a
   separate LiteDRAM generation change rather than a current CSR capability.
+
+v60 DFII source-order byte-tag matrix:
+- Implementation:
+  added DFII_SOURCE_ORDER_MATRIX_ONLY. Each matrix entry writes exactly one
+  tagged byte in source phase p0, with write command phase fixed at p0 and read
+  command phase fixed at p2. The matrix payload reports nonzero read words and
+  read words containing the selected tag byte.
+- JSON artifact:
+  /nix/store/777dsnhgcq2bc4z1r2qygzv4jsl5nqyf-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe.json
+- Utilization artifact:
+  /nix/store/pw39k0sspmc7vimbz5r49bjxgkpyrv5l-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe-utilization
+  mapped usage: CLB LUTs 17756/298600 (5.95%), CLB FFs 13294/597200 (2.23%),
+  DSP 0, BRAM36 0, lower-bound slices 2220/74650 (2.97%).
+- Bitstream artifact:
+  /nix/store/j8vywyks89l4zssrw8qn6sjyy835p2pm-task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe.bit
+- nextpnr:
+  passed the 25 MHz target with SLICE_LUTX 22861/597200 (3%),
+  SLICE_FFX 13294/597200 (2%), IDELAYE2 72/400 (18%),
+  OSERDESE2 107/400 (26%), ISERDESE2 72/400 (18%),
+  IDELAYCTRL 3/8 (37%), BRAM 0, DSP 0.
+  Max frequencies: clk200 570.45 MHz, user_clk 77.03 MHz,
+  core.iodelay_clk 600.96 MHz, jtag_debug_shift.drck 386.55 MHz.
+- Programming:
+  openFPGALoader programmed the bitstream over HS3 and DONE asserted.
+- Board/JTAG:
+  magic_ok=true, version=60, state=PROBE_DFII_DONE, init_state=INIT_DONE,
+  init_done=true, init_error=false, dfii_source_order_matrix_only=true,
+  fixed source/write/read phases p0/p0/p2, DFII ack=50, wait=150.
+- Matrix result:
+  slots 0, 1, 2 produced tag_match=nonzero=0x2222; slot 3 produced
+  tag_match=nonzero=0x4444; slots 4, 5, 6 produced
+  tag_match=nonzero=0x5555; slot 8 produced tag_match=nonzero=0xaaaa.
+  Slots 7 and 9..15 produced tag_match=nonzero=0x0000. The final captured
+  DFII words for the last matrix entry were all zero.
+- Interpretation:
+  v60 is not a pass, but it is a strong discriminator. The readback is
+  byte-slot selective and deterministic. Since tag_match equals nonzero for
+  every visible slot, the visible data is the selected tag data, not unrelated
+  nonzero noise. The failure now points at high/low beat ordering,
+  DFI-to-A7DDRPHY serializer ordering, or read-capture interpretation.
+- Next gate:
+  build a v61 low/high-half discriminator for source phase p0, including the
+  9th byte lane, and expose selected actual read words in addition to masks.
