@@ -10758,3 +10758,58 @@ Decision:
   candidate score is presented.
 - Next gate: run an 8-sample full-vocab rowwise top-k replay against f32
   top1/top5 before DDR3 integration.
+
+### 2026-04-30 - Full-vocab rowwise Q0.24 top-k replay
+
+Goal:
+
+- Execute the next no-board gate before DDR3 integration: replay eight
+  deterministic token-id samples through the full TinyStories-1M output head,
+  compare rowwise-int8 plus Q0.24 sidecar scores against f32 top1/top5, and
+  keep the payload-only per-tensor int8 profile as a control.
+
+Implementation:
+
+- Added `scripts/task6/check_full_vocab_rowwise_topk_contract.py`.
+- Added flake package:
+  - `task6-full-vocab-rowwise-topk-replay`
+- Copied result artifact:
+  - `artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-replay.json`
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/check_full_vocab_rowwise_topk_contract.py`
+  - `nix-instantiate --parse flake.nix`
+- Replay command:
+  - `nix build .#task6-full-vocab-rowwise-topk-replay --no-link --print-out-paths -L`
+- Output store path:
+  - `/nix/store/isl763k2rnd8fl3iajn385dlvsj9irf7-h2-full-vocab-rowwise-topk-replay.json`
+- Replay status: `PASS`
+
+Measured result:
+
+- Model: full TinyStories-1M output head, `vocab_size = 50257`,
+  `hidden_size = 64`, tied lm-head/token embedding.
+- Samples: `8`.
+- Profile B, rowwise-int8 plus Q0.24 sidecar:
+  - top1 match count vs f32: `8 / 8`
+  - top1 match rate vs f32: `1.0`
+  - top5 overlap min: `4`
+  - top5 overlap mean: `4.875`
+  - max normalized RMSE: `0.009548773935420423`
+  - changed top1 rows: `0`
+  - Q0.24 reserved upper-byte violations: `0`
+- Profile A, payload-only per-tensor int8 control:
+  - top1 match count vs f32: `8 / 8`
+  - top5 overlap min: `4`
+  - max normalized RMSE: `0.02132032462809377`
+
+Decision:
+
+- Promote the rowwise Q0.24 top-k contract to full-vocab replay evidence.
+- This is still not a synthesis, hardware, or DDR3-controller result; it proves
+  the scoring contract on full-vocab TinyStories values before spending board
+  work on the memory interface.
+- Next gate: define the DDR3 row-stream interface and keep the Q0.24 comparator
+  as the row-score unit.

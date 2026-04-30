@@ -1,0 +1,488 @@
+{
+  "artifact_name": "h2-full-vocab-rowwise-topk-replay",
+  "changed_top1_rows": [],
+  "date": "2026-04-30",
+  "decision": {
+    "next_gate": "Define the DDR3 row-stream interface and keep the Q0.24 comparator as the row-score unit.",
+    "rationale": "The rowwise Q0.24 profile matched f32 top1/top5 thresholds on the deterministic replay.",
+    "verdict": "promote-rowwise-q024-replay"
+  },
+  "hypothesis": "Full-vocab rowwise int8 weights with Q0.24 sidecar scores preserve TinyStories f32 top1/top5 on a deterministic 8-sample replay.",
+  "metrics": {
+    "profile_a_per_tensor": {
+      "max_normalized_rmse": 0.02132032462809377,
+      "mean_normalized_rmse": 0.012938710991949726,
+      "min_normalized_rmse": 0.008782990444406925,
+      "p50_normalized_rmse": 0.012566760809259244,
+      "p90_normalized_rmse": 0.015376236695469038,
+      "p95_normalized_rmse": 0.02132032462809377,
+      "top1_match_count": 8,
+      "top1_match_rate_vs_f32": 1.0,
+      "top5_overlap_mean": 4.75,
+      "top5_overlap_min": 4
+    },
+    "profile_b_rowwise_q024": {
+      "max_normalized_rmse": 0.009548773935420423,
+      "mean_normalized_rmse": 0.004927072944846944,
+      "min_normalized_rmse": 0.003177768486639652,
+      "p50_normalized_rmse": 0.004663438709721627,
+      "p90_normalized_rmse": 0.005412458858530541,
+      "p95_normalized_rmse": 0.009548773935420423,
+      "top1_match_count": 8,
+      "top1_match_rate_vs_f32": 1.0,
+      "top5_overlap_mean": 4.875,
+      "top5_overlap_min": 4
+    }
+  },
+  "model": {
+    "hidden_size": 64,
+    "lm_head_bias_supported": true,
+    "lm_head_tied_to_token_embedding": true,
+    "model_label": "tiny-stories-1m-full",
+    "sample_count": 8,
+    "vocab_size": 50257
+  },
+  "quantization": {
+    "activation": "per-sample symmetric int8",
+    "profile_a": {
+      "compare_rule": "raw int32 accumulator, lower token id tie-break",
+      "name": "payload-only-per-tensor",
+      "weight_scale": 0.006315217712732751
+    },
+    "profile_b": {
+      "compare_rule": "signed accumulator times unsigned Q0.24 sidecar, lower token id tie-break",
+      "name": "rowwise-int8-q024-sidecar",
+      "reserved_nonzero_count": 0,
+      "scale_q024_max": 105952,
+      "scale_q024_min": 14525,
+      "sidecar_scale": "unsigned Q0.24 in low 24 bits"
+    }
+  },
+  "samples": [
+    {
+      "f32_top5": [
+        198,
+        314,
+        1375,
+        447,
+        679
+      ],
+      "hidden_scale": 0.06058353889645554,
+      "per_tensor_error": {
+        "max_abs_error": 0.24503164406938893,
+        "mean_abs_error": 0.0427858105358651,
+        "normalized_rmse": 0.011289349896782867,
+        "rmse": 0.05352234621419752,
+        "signal_max_abs": 13.684486442089714,
+        "signal_mean_abs": 4.740959107791478
+      },
+      "per_tensor_f32_top1_rank": 1,
+      "per_tensor_int8_top5": [
+        198,
+        314,
+        1375,
+        679,
+        632
+      ],
+      "per_tensor_top5_overlap": 4,
+      "position": 0,
+      "rowwise_error": {
+        "max_abs_error": 0.13158863322894465,
+        "mean_abs_error": 0.017962236382359924,
+        "normalized_rmse": 0.004663438709721627,
+        "rmse": 0.022109172224482086,
+        "signal_max_abs": 13.684486442089714,
+        "signal_mean_abs": 4.740959107791478
+      },
+      "rowwise_f32_top1_rank": 1,
+      "rowwise_q024_top5": [
+        198,
+        314,
+        1375,
+        447,
+        679
+      ],
+      "rowwise_top5_overlap": 5,
+      "sample_id": "single_zero",
+      "token_ids": [
+        0
+      ]
+    },
+    {
+      "f32_top5": [
+        40,
+        2949,
+        1026,
+        1639,
+        5756
+      ],
+      "hidden_scale": 0.059666948994313636,
+      "per_tensor_error": {
+        "max_abs_error": 0.22899249025212498,
+        "mean_abs_error": 0.042198845636696625,
+        "normalized_rmse": 0.015140326623537082,
+        "rmse": 0.05279303527338878,
+        "signal_max_abs": 16.139122865182063,
+        "signal_mean_abs": 3.486915215641185
+      },
+      "per_tensor_f32_top1_rank": 1,
+      "per_tensor_int8_top5": [
+        40,
+        2949,
+        1026,
+        1639,
+        1135
+      ],
+      "per_tensor_top5_overlap": 4,
+      "position": 0,
+      "rowwise_error": {
+        "max_abs_error": 0.1350441227668564,
+        "mean_abs_error": 0.013938139261129995,
+        "normalized_rmse": 0.005345467055549581,
+        "rmse": 0.01863919041070452,
+        "signal_max_abs": 16.139122865182063,
+        "signal_mean_abs": 3.486915215641185
+      },
+      "rowwise_f32_top1_rank": 1,
+      "rowwise_q024_top5": [
+        40,
+        2949,
+        1026,
+        1639,
+        13787
+      ],
+      "rowwise_top5_overlap": 4,
+      "sample_id": "single_one",
+      "token_ids": [
+        1
+      ]
+    },
+    {
+      "f32_top5": [
+        3043,
+        18,
+        20709,
+        707,
+        5657
+      ],
+      "hidden_scale": 0.0779415190689207,
+      "per_tensor_error": {
+        "max_abs_error": 0.2430584028845586,
+        "mean_abs_error": 0.04375683203588939,
+        "normalized_rmse": 0.02132032462809377,
+        "rmse": 0.054798810987363444,
+        "signal_max_abs": 12.881338863603723,
+        "signal_mean_abs": 2.57026156699111
+      },
+      "per_tensor_f32_top1_rank": 1,
+      "per_tensor_int8_top5": [
+        3043,
+        20709,
+        18,
+        707,
+        5657
+      ],
+      "per_tensor_top5_overlap": 5,
+      "position": 0,
+      "rowwise_error": {
+        "max_abs_error": 0.13065804827352734,
+        "mean_abs_error": 0.019583742975054722,
+        "normalized_rmse": 0.009548773935420423,
+        "rmse": 0.024542846658097566,
+        "signal_max_abs": 12.881338863603723,
+        "signal_mean_abs": 2.57026156699111
+      },
+      "rowwise_f32_top1_rank": 1,
+      "rowwise_q024_top5": [
+        3043,
+        18,
+        707,
+        20709,
+        5657
+      ],
+      "rowwise_top5_overlap": 5,
+      "sample_id": "single_two",
+      "token_ids": [
+        2
+      ]
+    },
+    {
+      "f32_top5": [
+        628,
+        198,
+        50256,
+        220,
+        1752
+      ],
+      "hidden_scale": 0.0788605607400729,
+      "per_tensor_error": {
+        "max_abs_error": 0.23022472964261764,
+        "mean_abs_error": 0.04471392211144419,
+        "normalized_rmse": 0.010091249570166138,
+        "rmse": 0.05594562076596115,
+        "signal_max_abs": 17.316989211182786,
+        "signal_mean_abs": 5.5439735561945955
+      },
+      "per_tensor_f32_top1_rank": 1,
+      "per_tensor_int8_top5": [
+        628,
+        198,
+        50256,
+        220,
+        1752
+      ],
+      "per_tensor_top5_overlap": 5,
+      "position": 0,
+      "rowwise_error": {
+        "max_abs_error": 0.14416814148821122,
+        "mean_abs_error": 0.014264868202844443,
+        "normalized_rmse": 0.00362380966828208,
+        "rmse": 0.02009030497363816,
+        "signal_max_abs": 17.316989211182786,
+        "signal_mean_abs": 5.5439735561945955
+      },
+      "rowwise_f32_top1_rank": 1,
+      "rowwise_q024_top5": [
+        628,
+        198,
+        50256,
+        220,
+        1752
+      ],
+      "rowwise_top5_overlap": 5,
+      "sample_id": "single_eos",
+      "token_ids": [
+        50256
+      ]
+    },
+    {
+      "f32_top5": [
+        387,
+        345,
+        1347,
+        11,
+        283
+      ],
+      "hidden_scale": 0.057333908681794415,
+      "per_tensor_error": {
+        "max_abs_error": 0.22478622220919742,
+        "mean_abs_error": 0.04182016122913601,
+        "normalized_rmse": 0.012566760809259244,
+        "rmse": 0.05231493200771985,
+        "signal_max_abs": 13.079261843423552,
+        "signal_mean_abs": 4.162960750329073
+      },
+      "per_tensor_f32_top1_rank": 1,
+      "per_tensor_int8_top5": [
+        387,
+        345,
+        1347,
+        11,
+        283
+      ],
+      "per_tensor_top5_overlap": 5,
+      "position": 3,
+      "rowwise_error": {
+        "max_abs_error": 0.12421262699445856,
+        "mean_abs_error": 0.01334601538477826,
+        "normalized_rmse": 0.004321106410636949,
+        "rmse": 0.01798859638547696,
+        "signal_max_abs": 13.079261843423552,
+        "signal_mean_abs": 4.162960750329073
+      },
+      "rowwise_f32_top1_rank": 1,
+      "rowwise_q024_top5": [
+        387,
+        345,
+        1347,
+        11,
+        283
+      ],
+      "rowwise_top5_overlap": 5,
+      "sample_id": "short_increment",
+      "token_ids": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "f32_top5": [
+        13,
+        290,
+        447,
+        366,
+        705
+      ],
+      "hidden_scale": 0.06355133206825557,
+      "per_tensor_error": {
+        "max_abs_error": 0.22763560663393845,
+        "mean_abs_error": 0.04198415844111942,
+        "normalized_rmse": 0.008782990444406925,
+        "rmse": 0.05250086919669797,
+        "signal_max_abs": 12.577173554241673,
+        "signal_mean_abs": 5.977561916867496
+      },
+      "per_tensor_f32_top1_rank": 1,
+      "per_tensor_int8_top5": [
+        13,
+        290,
+        447,
+        366,
+        705
+      ],
+      "per_tensor_top5_overlap": 5,
+      "position": 3,
+      "rowwise_error": {
+        "max_abs_error": 0.13935087546302505,
+        "mean_abs_error": 0.013787471502291801,
+        "normalized_rmse": 0.003177768486639652,
+        "rmse": 0.01899530788635884,
+        "signal_max_abs": 12.577173554241673,
+        "signal_mean_abs": 5.977561916867496
+      },
+      "rowwise_f32_top1_rank": 1,
+      "rowwise_q024_top5": [
+        13,
+        290,
+        447,
+        366,
+        705
+      ],
+      "rowwise_top5_overlap": 5,
+      "sample_id": "short_even",
+      "token_ids": [
+        2,
+        4,
+        6,
+        8
+      ]
+    },
+    {
+      "f32_top5": [
+        13,
+        531,
+        0,
+        355,
+        1282
+      ],
+      "hidden_scale": 0.06483913031150038,
+      "per_tensor_error": {
+        "max_abs_error": 0.26958418395389216,
+        "mean_abs_error": 0.04346080345666979,
+        "normalized_rmse": 0.008942449267882747,
+        "rmse": 0.054443068215202686,
+        "signal_max_abs": 15.557226114619542,
+        "signal_mean_abs": 6.088160702318735
+      },
+      "per_tensor_f32_top1_rank": 1,
+      "per_tensor_int8_top5": [
+        13,
+        531,
+        0,
+        355,
+        1282
+      ],
+      "per_tensor_top5_overlap": 5,
+      "position": 3,
+      "rowwise_error": {
+        "max_abs_error": 0.13596850803403449,
+        "mean_abs_error": 0.014886908128626607,
+        "normalized_rmse": 0.003323760433994693,
+        "rmse": 0.020235587658168352,
+        "signal_max_abs": 15.557226114619542,
+        "signal_mean_abs": 6.088160702318735
+      },
+      "rowwise_f32_top1_rank": 1,
+      "rowwise_q024_top5": [
+        13,
+        531,
+        0,
+        355,
+        1282
+      ],
+      "rowwise_top5_overlap": 5,
+      "sample_id": "mixed_low_mid",
+      "token_ids": [
+        42,
+        1024,
+        17,
+        2048
+      ]
+    },
+    {
+      "f32_top5": [
+        628,
+        2164,
+        11011,
+        270,
+        198
+      ],
+      "hidden_scale": 0.06682184174304873,
+      "per_tensor_error": {
+        "max_abs_error": 0.2221906971189198,
+        "mean_abs_error": 0.0427015025821051,
+        "normalized_rmse": 0.015376236695469038,
+        "rmse": 0.053492589559992726,
+        "signal_max_abs": 16.107946473712488,
+        "signal_mean_abs": 3.478912988882094
+      },
+      "per_tensor_f32_top1_rank": 1,
+      "per_tensor_int8_top5": [
+        628,
+        2164,
+        270,
+        11011,
+        198
+      ],
+      "per_tensor_top5_overlap": 5,
+      "position": 3,
+      "rowwise_error": {
+        "max_abs_error": 0.12457210920831785,
+        "mean_abs_error": 0.014240829869884331,
+        "normalized_rmse": 0.005412458858530541,
+        "rmse": 0.018829473424731853,
+        "signal_max_abs": 16.107946473712488,
+        "signal_mean_abs": 3.478912988882094
+      },
+      "rowwise_f32_top1_rank": 1,
+      "rowwise_q024_top5": [
+        628,
+        2164,
+        11011,
+        270,
+        198
+      ],
+      "rowwise_top5_overlap": 5,
+      "sample_id": "mixed_high",
+      "token_ids": [
+        50250,
+        128,
+        4096,
+        7
+      ]
+    }
+  ],
+  "source_artifacts": {
+    "adapter_path": "/nix/store/2p9z2yafd8r1xbz1jkny1h4wsmf0v25f-model_adapter.py",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization",
+    "full_vocab_rowwise_topk_contract": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-contract.json",
+    "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+    "q024_comparator_cutout_result": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-result.json"
+  },
+  "status": "PASS",
+  "thresholds": {
+    "allowed_changed_top1_samples": 0,
+    "max_scaled_logit_normalized_rmse": 0.02,
+    "top1_match_rate_vs_f32": 1.0,
+    "top5_overlap_min": 4
+  },
+  "validation": {
+    "hardware_run": false,
+    "python_run": true,
+    "replay_kind": "full-vocab-output-head-only",
+    "simulation_run": false,
+    "synthesis_run": false
+  }
+}
