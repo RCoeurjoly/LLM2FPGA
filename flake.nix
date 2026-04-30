@@ -3530,6 +3530,25 @@
             ${pkgs.yosys}/bin/yosys -s run.ys
           '';
 
+        task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeJson =
+          pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog ${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.v
+            read_verilog -sv ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            chparam -set DFII_PHASE_MATRIX_ONLY 1 task6_ypcb_litedram_init_bandwidth_probe_top
+            hierarchy -top task6_ypcb_litedram_init_bandwidth_probe_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
+            write_json "$out"
+            EOF
+            ${pkgs.yosys}/bin/yosys -s run.ys
+          '';
+
         task6YpcbLiteDramNoOdelayInitBandwidthProbeUtilization =
           mkMappedJsonUtilizationReport {
             name = "task6-ypcb-litedram-no-odelay-init-bandwidth-probe";
@@ -3563,6 +3582,15 @@
             topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
             designJson =
               task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeJson;
+          };
+
+        task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
+            designJson =
+              task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeJson;
           };
 
         task6YpcbLiteDramInitBandwidthProbeXdc = mkXdc {
@@ -3603,6 +3631,15 @@
 
         task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeXdc = mkXdc {
           name = "task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe";
+          includeBoardXdc = false;
+          extraConstraints = [
+            "${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
+            ./fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc
+          ];
+        };
+
+        task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeXdc = mkXdc {
+          name = "task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe";
           includeBoardXdc = false;
           extraConstraints = [
             "${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
@@ -3658,6 +3695,16 @@
           freqMHz = 25;
         };
 
+        task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeFasm = mkFasm {
+          name = "task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe";
+          xdc =
+            task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeXdc;
+          json =
+            task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeJson;
+          seed = 6;
+          freqMHz = 25;
+        };
+
         task6YpcbLiteDramNoOdelayInitBandwidthProbeBitstream =
           mkBitstream {
             name = "task6-ypcb-litedram-no-odelay-init-bandwidth-probe";
@@ -3692,6 +3739,16 @@
               task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeFasm;
             framesBase =
               "task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe";
+          };
+
+        task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeBitstream =
+          mkBitstream {
+            name =
+              "task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe";
+            fasm =
+              task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeFasm;
+            framesBase =
+              "task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe";
           };
 
         task6YpcbLiteDramInitBandwidthProbeIopadFasm = mkFasm {
@@ -6698,6 +6755,8 @@
             task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeJson;
           task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-json =
             task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeJson;
+          task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe-json =
+            task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeJson;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-utilization =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeUtilization;
           task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-utilization =
@@ -6706,6 +6765,8 @@
             task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeUtilization;
           task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-utilization =
             task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeUtilization;
+          task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe-utilization =
+            task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeUtilization;
           task6-ypcb-litedram-init-bandwidth-probe-xdc =
             task6YpcbLiteDramInitBandwidthProbeXdc;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-xdc =
@@ -6716,6 +6777,8 @@
             task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeXdc;
           task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-xdc =
             task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeXdc;
+          task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe-xdc =
+            task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeXdc;
           task6-ypcb-litedram-init-bandwidth-probe-fasm =
             task6YpcbLiteDramInitBandwidthProbeFasm;
           task6-ypcb-litedram-init-bandwidth-probe-bitstream =
@@ -6728,6 +6791,8 @@
             task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeFasm;
           task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-fasm =
             task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeFasm;
+          task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe-fasm =
+            task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeFasm;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-bitstream =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeBitstream;
           task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-bitstream =
@@ -6736,6 +6801,8 @@
             task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeBitstream;
           task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe-bitstream =
             task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeBitstream;
+          task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe-bitstream =
+            task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeBitstream;
           task6-ypcb-litedram-init-bandwidth-probe-iopad-json =
             task6YpcbLiteDramInitBandwidthProbeIopadJson;
           task6-ypcb-litedram-init-bandwidth-probe-iopad-fasm =

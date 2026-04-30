@@ -12641,12 +12641,15 @@ Interpretation:
   `0x00575152`, `0x47414262`, `0x5751524b`, `0x00006200`; v57 instead reads
   the repeated edge-byte pattern `0xff000000`, `0x00000000`, `0x00000000`,
   `0x000000ff`.
-- Therefore the v56 direct-DFII data was not just a stale, write-independent
-  readback. Issuing the DFII write command does influence the observed payload.
-- This weakens the broad command/control-not-reaching-DRAM hypothesis.
-- The remaining blocker is now narrower: DFI write-data/read-data phase or beat
-  association, byte-mask/DM semantics, per-bit/order mapping, or read capture
-  latency in the no-ODELAY path.
+- Therefore the v56 direct-DFII data was not purely stale and
+  write-independent. Disabling the DFII write command changes the observed
+  payload.
+- This weakens the stale-readback and totally inert-command hypotheses.
+- It does not prove that the DRAM accepted the write, stored the data, and
+  returned it through a correctly aligned read-capture path.
+- The remaining blocker is still DFI/DDR association: write-data/read-data phase
+  or beat association, byte-mask/DM semantics, DQS/DQ beat order, per-bit/order
+  mapping, or read capture latency in the no-ODELAY path.
 
 Decision:
 
@@ -12656,3 +12659,122 @@ Decision:
   build a compact DFII phase/beat association probe that varies write-data
   source phase, write command phase, read command phase, and read capture
   latency independently, using v57 as the command-reachability discriminator.
+
+### 2026-04-30 - v58 DFII phase/source matrix probe
+
+Goal:
+
+- Keep the no-ODELAY LiteDRAM/LiteX lane active and classify the DFII
+  write-data/read-capture association without reconnecting rowstream or
+  TinyStories logic.
+- Avoid another compile-time-only A/B by using one bitstream that autonomously
+  sweeps a compact matrix and exposes the result through the existing JTAG
+  payload.
+
+Implementation plan:
+
+- Add `DFII_PHASE_MATRIX_ONLY` to the probe.
+- Reuse the existing 16-entry command-phase payload as a 4 x 4 matrix:
+  - index high bits: selected write-data source phase and write command phase
+  - index low bits: selected read command phase
+- For each matrix entry, write phase-tagged data only on the selected source
+  phase and write zeros on the other phases.
+- Reuse the association payload slots as matrix diagnostics:
+  - `dfii_phasecmd_mismatch_masks`: inverse of per-read-word match mask
+  - `dfii_assoc_nonzero_mask_*`: per-read-word nonzero mask
+  - `dfii_assoc_match_mask_*`: per-read-word match mask
+- Stop after the matrix when `DFII_PHASE_MATRIX_ONLY=1`, so later association
+  and address sweeps do not overwrite the matrix result.
+- Keep `DFII_DISABLE_WRITE_COMMAND=0`; v57 remains the no-write discriminator.
+
+Pass/fail discriminator:
+
+- A useful result is any entry with `match_mask != 0`, or at least a nonzero
+  payload that differs from the repeated v57 edge-byte artifact in a way tied to
+  the selected source phase.
+- If every entry is nonmatching and repeats the same edge-byte artifact, the
+  next split is DM mask polarity, DQS/DQ beat order, ISERDES/read-latency tap,
+  or physical byte/bit mapping.
+
+Build result:
+
+- JSON:
+  `/nix/store/m5w6lbkqpy2gplnq7hz4gn80vd3ys0kw-task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/s378kv2nas7nbjb800nkmldccrqh3fyz-task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe-utilization`
+  - CLB LUTs: `17521 / 298600` (`5.87%`)
+  - CLB FFs: `13286 / 597200` (`2.22%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2191 / 74650` (`2.94%`)
+- Bitstream:
+  `/nix/store/jrld7mdmqrn3qsb24fkxy8p56xbd99hi-task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe.bit`
+- nextpnr selected utilization:
+  - `SLICE_LUTX`: `22701 / 597200` (`3%`)
+  - `SLICE_FFX`: `13286 / 597200` (`2%`)
+  - `IDELAYE2`: `72 / 400` (`18%`)
+  - `OSERDESE2`: `107 / 400` (`26%`)
+  - `ISERDESE2`: `72 / 400` (`18%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - BRAM: `0`
+  - DSP: `0`
+- Timing passed at the `25 MHz` target:
+  - `clk200`: `580.38 MHz`
+  - `user_clk`: `69.74 MHz`
+  - `core.iodelay_clk`: `460.19 MHz`
+  - `jtag_debug_shift.drck`: `373.00 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/jrld7mdmqrn3qsb24fkxy8p56xbd99hi-task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=58`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_disable_write_command=false`
+  - `dfii_phase_matrix_only=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=50`, `wait=150`
+  - DFII mode masks still failed: `uniform=0xffff`,
+    `phase_constant=0xffff`, `byte_ramp=0xffff`
+  - phase/source matrix:
+    - `src/write p0`, read phases `p0..p3`: `nonzero=0xffff`,
+      `match=0x0000`, `mismatch=0xffff`
+    - `src/write p1`, read phases `p0..p3`: `nonzero=0x0000`,
+      `match=0x0000`, `mismatch=0xffff`
+    - `src/write p2`, read phases `p0..p3`: `nonzero=0x0000`,
+      `match=0x0000`, `mismatch=0xffff`
+    - `src/write p3`, read phases `p0..p3`: `nonzero=0x0000`,
+      `match=0x0000`, `mismatch=0xffff`
+  - final captured DFII read words for the last matrix entry were all zero.
+  - DFII lane bit errors: `[28, 20, 20, 12, 36, 28, 28, 20]`
+
+Interpretation:
+
+- No phase/source combination produced an exact phase-tagged match.
+- The result is not the v57 no-write edge-byte artifact. With writes enabled,
+  only the source/write phase `0` row produces nonzero readback; source/write
+  phases `1`, `2`, and `3` read back zero for all read-command phases.
+- This narrows the next split toward DFI phase association or write-phase
+  gating. A pure read-command-phase choice is unlikely because read phases
+  `0..3` all behave the same within each selected source/write phase.
+- The result still does not prove DRAM write acceptance. It only shows that
+  write-source/write-command phase selection changes whether the DFII readback
+  is nonzero.
+
+Next gate:
+
+- Decouple write-data source phase from write command phase. Sweep source phase
+  `0..3` against write command phase `0..3` with a fixed read command phase,
+  then repeat the best nonzero combinations across read phase and capture
+  latency.
+- Add a DM/mask polarity discriminator in the same family: write with explicit
+  all-unmasked vs all-masked values and check whether nonzero readback follows
+  the mask setting.

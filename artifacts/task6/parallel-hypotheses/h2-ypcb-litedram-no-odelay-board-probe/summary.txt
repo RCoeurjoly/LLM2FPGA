@@ -498,10 +498,56 @@ v57 DFII no-write discriminator:
 - Interpretation:
   suppressing the DFII write command changed the raw direct-DFII signature
   relative to v56/v56-dqs0, which had repeated words 0x00575152, 0x47414262,
-  0x5751524b, 0x00006200. So the v56 readback was not simply stale and
-  write-independent; issuing the write command does influence the observed
-  payload.
+  0x5751524b, 0x00006200. So the v56 readback was not purely stale and
+  write-independent; suppressing the write command changes the observed
+  payload. This does not yet prove that the DRAM accepted the write, stored the
+  data, and returned it through a correctly aligned read-capture path.
 - Next gate:
   continue with a compact DFII phase/beat association probe. Vary write-data
   source phase, write command phase, read command phase, and read capture
   latency independently before returning to native-port bandwidth or rowstream.
+
+v58 DFII phase/source matrix:
+- Implementation:
+  added DFII_PHASE_MATRIX_ONLY and a single-bitstream autonomous 4 x 4 matrix.
+  The high two bits select both the written DFII source phase and write command
+  phase; the low two bits select read command phase. Only the selected write
+  source phase receives a phase-tagged byte-ramp pattern; the other write-data
+  phases receive zero. The matrix result reuses the command-phase mismatch
+  masks and association nonzero/match masks, then stops before later sweeps can
+  overwrite them.
+- JSON artifact:
+  /nix/store/m5w6lbkqpy2gplnq7hz4gn80vd3ys0kw-task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe.json
+- Utilization artifact:
+  /nix/store/s378kv2nas7nbjb800nkmldccrqh3fyz-task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe-utilization
+  mapped usage: CLB LUTs 17521/298600 (5.87%), CLB FFs 13286/597200 (2.22%),
+  DSP 0, BRAM36 0, lower-bound slices 2191/74650 (2.94%).
+- Bitstream artifact:
+  /nix/store/jrld7mdmqrn3qsb24fkxy8p56xbd99hi-task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe.bit
+- nextpnr:
+  passed the 25 MHz target with SLICE_LUTX 22701/597200 (3%),
+  SLICE_FFX 13286/597200 (2%), IDELAYE2 72/400 (18%),
+  OSERDESE2 107/400 (26%), ISERDESE2 72/400 (18%),
+  IDELAYCTRL 3/8 (37%), BRAM 0, DSP 0.
+  Max frequencies: clk200 580.38 MHz, user_clk 69.74 MHz,
+  core.iodelay_clk 460.19 MHz, jtag_debug_shift.drck 373.00 MHz.
+- Programming:
+  openFPGALoader programmed the bitstream over HS3 and DONE asserted.
+- Board/JTAG:
+  magic_ok=true, version=58, state=PROBE_DFII_DONE, init_state=INIT_DONE,
+  init_done=true, init_error=false, dfii_disable_write_command=false,
+  dfii_phase_matrix_only=true, DFII ack=50, wait=150.
+- Matrix result:
+  no phase/source combination matched the expected phase-tagged data.
+  src/write phase 0 produced nonzero=0xffff and match=0x0000 for all read
+  phases p0..p3. src/write phases 1, 2, and 3 produced nonzero=0x0000 and
+  match=0x0000 for all read phases p0..p3. The final captured DFII words for
+  the last matrix entry were all zero.
+- Interpretation:
+  the result is not the v57 no-write edge-byte artifact. With writes enabled,
+  source/write phase 0 changes the readback to nonzero while source/write
+  phases 1..3 collapse to zero. This points toward DFI phase association or
+  write-phase gating. It still does not prove DRAM write acceptance.
+- Next gate:
+  decouple write-data source phase from write command phase, then add a compact
+  DM/mask polarity discriminator before trying rowstream or TinyStories logic.
