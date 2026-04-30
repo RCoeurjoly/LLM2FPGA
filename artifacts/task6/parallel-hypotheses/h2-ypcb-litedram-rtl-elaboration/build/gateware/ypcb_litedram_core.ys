@@ -1,0 +1,8 @@
+verilog_defaults -push
+verilog_defaults -add -defer
+read_verilog /nix/store/bkpkxibqsk4mxi1n9rplp8f9nh07cx72-h2-ypcb-litedram-rtl-elaboration/build/gateware/ypcb_litedram_core.v
+verilog_defaults -pop
+attrmap -tocase keep -imap keep="true" keep=1 -imap keep="false" keep=0 -remove keep=0
+
+synth_xilinx -flatten -abc9 -arch xc7  -top ypcb_litedram_core
+write_json  ypcb_litedram_core.json

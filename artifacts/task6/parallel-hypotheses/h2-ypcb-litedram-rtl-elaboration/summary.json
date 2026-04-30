@@ -1,0 +1,99 @@
+{
+  "artifact_name": "h2-ypcb-litedram-rtl-elaboration",
+  "status": "PASS",
+  "date": "2026-04-30",
+  "hypothesis": "The open LiteDRAM/LiteX core can elaborate for YPCB DDR3 CH0 with a custom no-dm K7DDRPHY pad description and without invoking Vivado or MIG.",
+  "source_artifacts": {
+    "config_bundle": "/nix/store/b8n8lgl3frk35z0arf3c1f1ahcb3hf3p-h2-ypcb-litedram-config",
+    "config_summary_json": "/nix/store/b8n8lgl3frk35z0arf3c1f1ahcb3hf3p-h2-ypcb-litedram-config/summary.json",
+    "config_yml": "/nix/store/b8n8lgl3frk35z0arf3c1f1ahcb3hf3p-h2-ypcb-litedram-config/ypcb_litedram_64bit_payload.yml",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "policy": {
+    "vivado_mig_lane": "rejected",
+    "controller_path": "LiteDRAM/LiteX only",
+    "mig_files_used_for_controller_generation": false,
+    "gateware_compile_invoked": false,
+    "litex_platform_toolchain": "openxc7"
+  },
+  "core_config": {
+    "device": "xc7k480tffg1156-1",
+    "sdram_module": "MT41K256M8",
+    "sdram_module_nb": 8,
+    "sdram_phy": "K7DDRPHY",
+    "memtype": "DDR3",
+    "sys_clk_freq": 100000000.0,
+    "input_clk_freq": 200000000.0,
+    "iodelay_clk_freq": 200000000.0
+  },
+  "generated": {
+    "top_verilog": "build/gateware/ypcb_litedram_core.v",
+    "csr_json": "csr.json",
+    "csr_csv": "csr.csv",
+    "file_count": 11,
+    "trailing_whitespace_sanitized_files": [
+      "build/gateware/build_ypcb_litedram_core.sh",
+      "build/gateware/ypcb_litedram_core.v"
+    ],
+    "files": [
+      {
+        "path": "build/gateware/build_ypcb_litedram_core.sh",
+        "bytes": 859
+      },
+      {
+        "path": "build/gateware/ypcb_litedram_core.v",
+        "bytes": 1448196
+      },
+      {
+        "path": "build/gateware/ypcb_litedram_core.xdc",
+        "bytes": 13326
+      },
+      {
+        "path": "build/gateware/ypcb_litedram_core.ys",
+        "bytes": 386
+      },
+      {
+        "path": "build/software/include/generated/csr.h",
+        "bytes": 17694
+      },
+      {
+        "path": "build/software/include/generated/git.h",
+        "bytes": 321
+      },
+      {
+        "path": "build/software/include/generated/mem.h",
+        "bytes": 443
+      },
+      {
+        "path": "build/software/include/generated/sdram_phy.h",
+        "bytes": 3807
+      },
+      {
+        "path": "build/software/include/generated/soc.h",
+        "bytes": 1544
+      },
+      {
+        "path": "csr.csv",
+        "bytes": 3208
+      },
+      {
+        "path": "csr.json",
+        "bytes": 6452
+      }
+    ]
+  },
+  "validation": {
+    "rtl_elaborated": true,
+    "synthesis_run": false,
+    "place_and_route_run": false,
+    "hardware_run": false,
+    "ddram_dm_top_port_mentions": 0,
+    "ddram_dq_top_port_mentions": 65,
+    "ddram_dqs_p_top_port_mentions": 9,
+    "ddram_dqs_n_top_port_mentions": 9
+  },
+  "decision": {
+    "verdict": "promote-open-litedram-rtl-generation",
+    "next_gate": "Synthesize the generated LiteDRAM core with Yosys/openXC7 or wrap it in a minimal init/bandwidth probe, still without Vivado or MIG."
+  }
+}

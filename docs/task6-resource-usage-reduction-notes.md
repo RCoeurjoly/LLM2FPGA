@@ -11245,3 +11245,90 @@ Decision:
   invoking Vivado or MIG.
 - Keep DDR3 rowstream integration blocked until this open controller path
   proves init/calibration and then linear-read bandwidth on the board.
+
+### 2026-04-30 - YPCB LiteDRAM no-DM RTL elaboration
+
+Goal:
+
+- Prove the open LiteDRAM/LiteX controller stack can elaborate RTL for the YPCB
+  DDR3 CH0 board shape using `K7DDRPHY`, `MT41K256M8`, eight x8 payload byte
+  lanes, and no `dm` pads.
+
+Implementation:
+
+- Added `scripts/task6/generate_ypcb_litedram_core.py`.
+- Added LiteX package dependency:
+  - `packaging`
+- Added flake package:
+  - `task6-ypcb-litedram-rtl-elaboration`
+- Copied durable proof:
+  - `artifacts/task6/parallel-hypotheses/h2-ypcb-litedram-rtl-elaboration`
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/generate_ypcb_litedram_core.py`
+  - `nix-instantiate --parse flake.nix`
+- Rejected attempts:
+  - first `nix build .#task6-ypcb-litedram-rtl-elaboration --no-link --print-out-paths -L`
+    failed because LiteX Builder imports `packaging.version`; fixed by adding
+    `packaging` to the local LiteX Python package/environment
+  - second attempt failed in the config loader because nested dict values were
+    tested against a string replacement map; fixed by checking replacements
+    only for string values
+  - third attempt elaborated the SoC but failed because the openXC7 LiteX
+    toolchain object required `CHIPDB`; fixed by exporting the pinned
+    `openXC7Chipdb` directory in the flake target
+  - fourth attempt elaborated the SoC but failed because the openXC7 LiteX
+    toolchain object defaulted `PRJXRAY_DB_DIR` to a snap path; fixed by
+    exporting the pinned repo `fpgaPrjxrayDb`
+- Fixed and reran:
+  - `nix build .#task6-ypcb-litedram-rtl-elaboration --no-link --print-out-paths -L`
+  - `/nix/store/czpsgfkv1drxdnfgf019kzxsplksqpcj-h2-ypcb-litedram-rtl-elaboration`
+- Result status: `PASS`
+
+Measured result:
+
+- Policy:
+  - `vivado_mig_lane`: `rejected`
+  - `controller_path`: `LiteDRAM/LiteX only`
+  - `mig_files_used_for_controller_generation`: `false`
+  - `gateware_compile_invoked`: `false`
+  - LiteX platform toolchain object: `openxc7`
+- Core config:
+  - device: `xc7k480tffg1156-1`
+  - `sdram_module`: `MT41K256M8`
+  - `sdram_module_nb`: `8`
+  - `sdram_phy`: `K7DDRPHY`
+  - `memtype`: `DDR3`
+  - input clock: `200 MHz`
+  - system clock: `100 MHz`
+  - iodelay clock: `200 MHz`
+- Generated files:
+  - `build/gateware/ypcb_litedram_core.v`
+  - `build/gateware/ypcb_litedram_core.xdc`
+  - `build/gateware/ypcb_litedram_core.ys`
+  - `csr.json`
+  - `csr.csv`
+- Generated RTL size:
+  - top Verilog: `1,448,230` bytes
+  - bundle file count: `11`
+  - bundle size: about `1.5 MiB`
+- No-`dm` validation:
+  - `ddram_dm` top-port mentions: `0`
+  - `ddram_dq` top-port mentions: `65`
+  - `ddram_dqs_p` top-port mentions: `9`
+  - `ddram_dqs_n` top-port mentions: `9`
+
+Decision:
+
+- Promote open LiteDRAM RTL generation.
+- This is not a board-ready DDR3 proof yet; it proves the controller can be
+  generated for the YPCB no-`dm` 64-bit payload shape with the open stack.
+- Next gate choices:
+  - synthesize the generated LiteDRAM core with Yosys/openXC7 to measure
+    resource and primitive compatibility, or
+  - wrap it first in a minimal init/bandwidth probe and then synthesize that
+    board-facing payload.
+- Keep the rowstream contract blocked until init/calibration and linear-read
+  bandwidth are proven on board.

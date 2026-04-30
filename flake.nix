@@ -142,6 +142,7 @@
           format = "setuptools";
           propagatedBuildInputs = with pkgs.python311Packages; [
             migen
+            packaging
             pyserial
             pyyaml
             requests
@@ -161,6 +162,7 @@
         };
         liteDramPython = pkgs.python311.withPackages (ps: [
           ps.migen
+          ps.packaging
           ps.pyyaml
           litexPkg
           litedramPkg
@@ -3190,6 +3192,24 @@
               --out-dir "$out"
           '';
 
+        task6YpcbLiteDramRtlElaboration =
+          pkgs.runCommand "h2-ypcb-litedram-rtl-elaboration" { } ''
+            mkdir -p "$out"
+            export CHIPDB=${openXC7Chipdb}
+            export PRJXRAY_DB_DIR=${fpgaPrjxrayDb}
+            ${liteDramPython}/bin/python ${
+              ./scripts/task6
+            }/generate_ypcb_litedram_core.py \
+              --config-yml ${
+                task6YpcbLiteDramConfig
+              }/ypcb_litedram_64bit_payload.yml \
+              --config-summary-json ${task6YpcbLiteDramConfig}/summary.json \
+              --name ypcb_litedram_core \
+              --device ${fpgaPartName} \
+              --date 2026-04-30 \
+              --out-dir "$out"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -6026,6 +6046,8 @@
             task6LiteDramOpenControllerProbe;
           task6-ypcb-litedram-config =
             task6YpcbLiteDramConfig;
+          task6-ypcb-litedram-rtl-elaboration =
+            task6YpcbLiteDramRtlElaboration;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =
