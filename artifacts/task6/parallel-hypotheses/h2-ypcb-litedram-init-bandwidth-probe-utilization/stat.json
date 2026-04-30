@@ -1,0 +1,2756 @@
+{
+  "design_json": "/nix/store/1gz4g7vmmj2qa5gbcf39mjz384hq5kxl-task6-ypcb-litedram-init-bandwidth-probe.json",
+  "modules": {
+    "$paramod$d0c2a3590ba41461b7529ffdc49dc42bb6735ed0\\task6_litedram_probe_jtag_debug_shift": {
+      "direct_cell_counts": {
+        "BSCANE2": 1,
+        "BUFG": 1,
+        "FDCE": 512,
+        "LUT6": 512
+      },
+      "leaf_cell_counts": {
+        "BSCANE2": 1,
+        "BUFG": 1,
+        "FDCE": 512,
+        "LUT6": 512
+      }
+    },
+    "AND2B1L": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "AND2B1L": 1
+      }
+    },
+    "BITSLICE_CONTROL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BITSLICE_CONTROL": 1
+      }
+    },
+    "BSCANE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BSCANE2": 1
+      }
+    },
+    "BSCAN_SPARTAN3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BSCAN_SPARTAN3": 1
+      }
+    },
+    "BSCAN_SPARTAN3A": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BSCAN_SPARTAN3A": 1
+      }
+    },
+    "BSCAN_SPARTAN6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BSCAN_SPARTAN6": 1
+      }
+    },
+    "BSCAN_VIRTEX4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BSCAN_VIRTEX4": 1
+      }
+    },
+    "BSCAN_VIRTEX5": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BSCAN_VIRTEX5": 1
+      }
+    },
+    "BSCAN_VIRTEX6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BSCAN_VIRTEX6": 1
+      }
+    },
+    "BUFG": {
+      "direct_cell_counts": {
+        "$specify2": 1
+      },
+      "leaf_cell_counts": {
+        "BUFG": 1
+      }
+    },
+    "BUFGCE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFGCE": 1
+      }
+    },
+    "BUFGCE_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFGCE_1": 1
+      }
+    },
+    "BUFGCE_DIV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFGCE_DIV": 1
+      }
+    },
+    "BUFGCTRL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFGCTRL": 1
+      }
+    },
+    "BUFGMUX": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFGMUX": 1
+      }
+    },
+    "BUFGMUX_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFGMUX_1": 1
+      }
+    },
+    "BUFGMUX_CTRL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFGMUX_CTRL": 1
+      }
+    },
+    "BUFGMUX_VIRTEX4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFGMUX_VIRTEX4": 1
+      }
+    },
+    "BUFG_GT": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFG_GT": 1
+      }
+    },
+    "BUFG_GT_SYNC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFG_GT_SYNC": 1
+      }
+    },
+    "BUFG_PS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFG_PS": 1
+      }
+    },
+    "BUFH": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFH": 1
+      }
+    },
+    "BUFHCE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFHCE": 1
+      }
+    },
+    "BUFIO": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFIO": 1
+      }
+    },
+    "BUFIO2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFIO2": 1
+      }
+    },
+    "BUFIO2FB": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFIO2FB": 1
+      }
+    },
+    "BUFIO2_2CLK": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFIO2_2CLK": 1
+      }
+    },
+    "BUFIODQS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFIODQS": 1
+      }
+    },
+    "BUFMR": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFMR": 1
+      }
+    },
+    "BUFMRCE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFMRCE": 1
+      }
+    },
+    "BUFPLL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFPLL": 1
+      }
+    },
+    "BUFPLL_MCB": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFPLL_MCB": 1
+      }
+    },
+    "BUFR": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFR": 1
+      }
+    },
+    "BUFT": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "BUFT": 1
+      }
+    },
+    "CAPTUREE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CAPTUREE2": 1
+      }
+    },
+    "CAPTURE_SPARTAN3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CAPTURE_SPARTAN3": 1
+      }
+    },
+    "CAPTURE_SPARTAN3A": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CAPTURE_SPARTAN3A": 1
+      }
+    },
+    "CAPTURE_VIRTEX4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CAPTURE_VIRTEX4": 1
+      }
+    },
+    "CAPTURE_VIRTEX5": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CAPTURE_VIRTEX5": 1
+      }
+    },
+    "CAPTURE_VIRTEX6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CAPTURE_VIRTEX6": 1
+      }
+    },
+    "CARRY4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CARRY4": 1
+      }
+    },
+    "CARRY8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CARRY8": 1
+      }
+    },
+    "CFGLUT5": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CFGLUT5": 1
+      }
+    },
+    "CMAC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CMAC": 1
+      }
+    },
+    "CMACE4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CMACE4": 1
+      }
+    },
+    "CRC32": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CRC32": 1
+      }
+    },
+    "CRC64": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "CRC64": 1
+      }
+    },
+    "DCIRESET": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DCIRESET": 1
+      }
+    },
+    "DCM": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DCM": 1
+      }
+    },
+    "DCM_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DCM_ADV": 1
+      }
+    },
+    "DCM_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DCM_BASE": 1
+      }
+    },
+    "DCM_CLKGEN": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DCM_CLKGEN": 1
+      }
+    },
+    "DCM_PS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DCM_PS": 1
+      }
+    },
+    "DCM_SP": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DCM_SP": 1
+      }
+    },
+    "DNA_PORT": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DNA_PORT": 1
+      }
+    },
+    "DNA_PORTE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DNA_PORTE2": 1
+      }
+    },
+    "DSP48": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DSP48": 1
+      }
+    },
+    "DSP48A": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DSP48A": 1
+      }
+    },
+    "DSP48A1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DSP48A1": 1
+      }
+    },
+    "DSP48E": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DSP48E": 1
+      }
+    },
+    "DSP48E1": {
+      "direct_cell_counts": {
+        "$logic_and": 4,
+        "$specify3": 4,
+        "$specrule": 10
+      },
+      "leaf_cell_counts": {
+        "DSP48E1": 1
+      }
+    },
+    "DSP48E2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "DSP48E2": 1
+      }
+    },
+    "EFUSE_USR": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "EFUSE_USR": 1
+      }
+    },
+    "EMAC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "EMAC": 1
+      }
+    },
+    "FDCE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDCE": 1
+      }
+    },
+    "FDCE_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDCE_1": 1
+      }
+    },
+    "FDCPE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDCPE": 1
+      }
+    },
+    "FDCPE_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDCPE_1": 1
+      }
+    },
+    "FDDRCPE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDDRCPE": 1
+      }
+    },
+    "FDDRRSE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDDRRSE": 1
+      }
+    },
+    "FDPE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDPE": 1
+      }
+    },
+    "FDPE_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDPE_1": 1
+      }
+    },
+    "FDRE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDRE": 1
+      }
+    },
+    "FDRE_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDRE_1": 1
+      }
+    },
+    "FDRSE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDRSE": 1
+      }
+    },
+    "FDRSE_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDRSE_1": 1
+      }
+    },
+    "FDSE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDSE": 1
+      }
+    },
+    "FDSE_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FDSE_1": 1
+      }
+    },
+    "FE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FE": 1
+      }
+    },
+    "FIFO16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO16": 1
+      }
+    },
+    "FIFO18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO18": 1
+      }
+    },
+    "FIFO18E1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO18E1": 1
+      }
+    },
+    "FIFO18E2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO18E2": 1
+      }
+    },
+    "FIFO18_36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO18_36": 1
+      }
+    },
+    "FIFO36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO36": 1
+      }
+    },
+    "FIFO36E1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO36E1": 1
+      }
+    },
+    "FIFO36E2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO36E2": 1
+      }
+    },
+    "FIFO36_72": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FIFO36_72": 1
+      }
+    },
+    "FRAME_ECCE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FRAME_ECCE2": 1
+      }
+    },
+    "FRAME_ECCE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FRAME_ECCE3": 1
+      }
+    },
+    "FRAME_ECCE4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FRAME_ECCE4": 1
+      }
+    },
+    "FRAME_ECC_VIRTEX4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FRAME_ECC_VIRTEX4": 1
+      }
+    },
+    "FRAME_ECC_VIRTEX5": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FRAME_ECC_VIRTEX5": 1
+      }
+    },
+    "FRAME_ECC_VIRTEX6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "FRAME_ECC_VIRTEX6": 1
+      }
+    },
+    "GND": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GND": 1
+      }
+    },
+    "GT11CLK": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GT11CLK": 1
+      }
+    },
+    "GT11CLK_MGT": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GT11CLK_MGT": 1
+      }
+    },
+    "GT11_CUSTOM": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GT11_CUSTOM": 1
+      }
+    },
+    "GT11_DUAL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GT11_DUAL": 1
+      }
+    },
+    "GTHE1_QUAD": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTHE1_QUAD": 1
+      }
+    },
+    "GTHE2_CHANNEL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTHE2_CHANNEL": 1
+      }
+    },
+    "GTHE2_COMMON": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTHE2_COMMON": 1
+      }
+    },
+    "GTHE3_CHANNEL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTHE3_CHANNEL": 1
+      }
+    },
+    "GTHE3_COMMON": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTHE3_COMMON": 1
+      }
+    },
+    "GTHE4_CHANNEL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTHE4_CHANNEL": 1
+      }
+    },
+    "GTHE4_COMMON": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTHE4_COMMON": 1
+      }
+    },
+    "GTM_DUAL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTM_DUAL": 1
+      }
+    },
+    "GTPA1_DUAL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTPA1_DUAL": 1
+      }
+    },
+    "GTPE2_CHANNEL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTPE2_CHANNEL": 1
+      }
+    },
+    "GTPE2_COMMON": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTPE2_COMMON": 1
+      }
+    },
+    "GTP_DUAL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTP_DUAL": 1
+      }
+    },
+    "GTXE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTXE1": 1
+      }
+    },
+    "GTXE2_CHANNEL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTXE2_CHANNEL": 1
+      }
+    },
+    "GTXE2_COMMON": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTXE2_COMMON": 1
+      }
+    },
+    "GTX_DUAL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTX_DUAL": 1
+      }
+    },
+    "GTYE3_CHANNEL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTYE3_CHANNEL": 1
+      }
+    },
+    "GTYE3_COMMON": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTYE3_COMMON": 1
+      }
+    },
+    "GTYE4_CHANNEL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTYE4_CHANNEL": 1
+      }
+    },
+    "GTYE4_COMMON": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "GTYE4_COMMON": 1
+      }
+    },
+    "HARD_SYNC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HARD_SYNC": 1
+      }
+    },
+    "HBM_ONE_STACK_INTF": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HBM_ONE_STACK_INTF": 1
+      }
+    },
+    "HBM_REF_CLK": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HBM_REF_CLK": 1
+      }
+    },
+    "HBM_SNGLBLI_INTF_APB": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HBM_SNGLBLI_INTF_APB": 1
+      }
+    },
+    "HBM_SNGLBLI_INTF_AXI": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HBM_SNGLBLI_INTF_AXI": 1
+      }
+    },
+    "HBM_TWO_STACK_INTF": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HBM_TWO_STACK_INTF": 1
+      }
+    },
+    "HPIO_VREF": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HPIO_VREF": 1
+      }
+    },
+    "HSADC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HSADC": 1
+      }
+    },
+    "HSDAC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "HSDAC": 1
+      }
+    },
+    "IBUF": {
+      "direct_cell_counts": {
+        "$specify2": 1
+      },
+      "leaf_cell_counts": {
+        "IBUF": 1
+      }
+    },
+    "IBUFDS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS": 1
+      }
+    },
+    "IBUFDSE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDSE3": 1
+      }
+    },
+    "IBUFDS_DIFF_OUT": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_DIFF_OUT": 1
+      }
+    },
+    "IBUFDS_DIFF_OUT_IBUFDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_DIFF_OUT_IBUFDISABLE": 1
+      }
+    },
+    "IBUFDS_DIFF_OUT_INTERMDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_DIFF_OUT_INTERMDISABLE": 1
+      }
+    },
+    "IBUFDS_DLY_ADJ": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_DLY_ADJ": 1
+      }
+    },
+    "IBUFDS_DPHY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_DPHY": 1
+      }
+    },
+    "IBUFDS_GTE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_GTE2": 1
+      }
+    },
+    "IBUFDS_GTE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_GTE3": 1
+      }
+    },
+    "IBUFDS_GTE4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_GTE4": 1
+      }
+    },
+    "IBUFDS_GTHE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_GTHE1": 1
+      }
+    },
+    "IBUFDS_GTM": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_GTM": 1
+      }
+    },
+    "IBUFDS_GTXE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_GTXE1": 1
+      }
+    },
+    "IBUFDS_IBUFDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_IBUFDISABLE": 1
+      }
+    },
+    "IBUFDS_INTERMDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFDS_INTERMDISABLE": 1
+      }
+    },
+    "IBUFE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFE3": 1
+      }
+    },
+    "IBUFG": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFG": 1
+      }
+    },
+    "IBUFGDS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFGDS": 1
+      }
+    },
+    "IBUFGDS_DIFF_OUT": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUFGDS_DIFF_OUT": 1
+      }
+    },
+    "IBUF_ANALOG": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUF_ANALOG": 1
+      }
+    },
+    "IBUF_DLY_ADJ": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUF_DLY_ADJ": 1
+      }
+    },
+    "IBUF_IBUFDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUF_IBUFDISABLE": 1
+      }
+    },
+    "IBUF_INTERMDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IBUF_INTERMDISABLE": 1
+      }
+    },
+    "ICAPE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ICAPE2": 1
+      }
+    },
+    "ICAPE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ICAPE3": 1
+      }
+    },
+    "ICAP_SPARTAN3A": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ICAP_SPARTAN3A": 1
+      }
+    },
+    "ICAP_SPARTAN6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ICAP_SPARTAN6": 1
+      }
+    },
+    "ICAP_VIRTEX4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ICAP_VIRTEX4": 1
+      }
+    },
+    "ICAP_VIRTEX5": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ICAP_VIRTEX5": 1
+      }
+    },
+    "ICAP_VIRTEX6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ICAP_VIRTEX6": 1
+      }
+    },
+    "IDDR": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IDDR": 1
+      }
+    },
+    "IDDR2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IDDR2": 1
+      }
+    },
+    "IDDRE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IDDRE1": 1
+      }
+    },
+    "IDDR_2CLK": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IDDR_2CLK": 1
+      }
+    },
+    "IDELAY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IDELAY": 1
+      }
+    },
+    "IDELAYCTRL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IDELAYCTRL": 1
+      }
+    },
+    "IDELAYE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IDELAYE2": 1
+      }
+    },
+    "IDELAYE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IDELAYE3": 1
+      }
+    },
+    "IFDDRCPE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IFDDRCPE": 1
+      }
+    },
+    "IFDDRRSE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IFDDRRSE": 1
+      }
+    },
+    "ILKN": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ILKN": 1
+      }
+    },
+    "ILKNE4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ILKNE4": 1
+      }
+    },
+    "INV": {
+      "direct_cell_counts": {
+        "$specify2": 1
+      },
+      "leaf_cell_counts": {
+        "INV": 1
+      }
+    },
+    "IN_FIFO": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IN_FIFO": 1
+      }
+    },
+    "IOBUF": {
+      "direct_cell_counts": {
+        "$specify2": 2
+      },
+      "leaf_cell_counts": {
+        "IOBUF": 1
+      }
+    },
+    "IOBUFDS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUFDS": 1
+      }
+    },
+    "IOBUFDSE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUFDSE3": 1
+      }
+    },
+    "IOBUFDS_DCIEN": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUFDS_DCIEN": 1
+      }
+    },
+    "IOBUFDS_DIFF_OUT": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUFDS_DIFF_OUT": 1
+      }
+    },
+    "IOBUFDS_DIFF_OUT_DCIEN": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUFDS_DIFF_OUT_DCIEN": 1
+      }
+    },
+    "IOBUFDS_DIFF_OUT_INTERMDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUFDS_DIFF_OUT_INTERMDISABLE": 1
+      }
+    },
+    "IOBUFDS_INTERMDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUFDS_INTERMDISABLE": 1
+      }
+    },
+    "IOBUFE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUFE3": 1
+      }
+    },
+    "IOBUF_DCIEN": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUF_DCIEN": 1
+      }
+    },
+    "IOBUF_INTERMDISABLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IOBUF_INTERMDISABLE": 1
+      }
+    },
+    "IODELAY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IODELAY": 1
+      }
+    },
+    "IODELAY2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IODELAY2": 1
+      }
+    },
+    "IODELAYE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IODELAYE1": 1
+      }
+    },
+    "IODRP2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IODRP2": 1
+      }
+    },
+    "IODRP2_MCB": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "IODRP2_MCB": 1
+      }
+    },
+    "ISERDES": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ISERDES": 1
+      }
+    },
+    "ISERDES2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ISERDES2": 1
+      }
+    },
+    "ISERDESE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ISERDESE1": 1
+      }
+    },
+    "ISERDESE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ISERDESE2": 1
+      }
+    },
+    "ISERDESE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ISERDESE3": 1
+      }
+    },
+    "ISERDES_NODELAY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ISERDES_NODELAY": 1
+      }
+    },
+    "KEEPER": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "KEEPER": 1
+      }
+    },
+    "KEY_CLEAR": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "KEY_CLEAR": 1
+      }
+    },
+    "LDCE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "LDCE": 1
+      }
+    },
+    "LDCPE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "LDCPE": 1
+      }
+    },
+    "LDPE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "LDPE": 1
+      }
+    },
+    "LUT1": {
+      "direct_cell_counts": {
+        "$specify2": 1
+      },
+      "leaf_cell_counts": {
+        "LUT1": 1
+      }
+    },
+    "LUT2": {
+      "direct_cell_counts": {
+        "$specify2": 2
+      },
+      "leaf_cell_counts": {
+        "LUT2": 1
+      }
+    },
+    "LUT3": {
+      "direct_cell_counts": {
+        "$specify2": 3
+      },
+      "leaf_cell_counts": {
+        "LUT3": 1
+      }
+    },
+    "LUT4": {
+      "direct_cell_counts": {
+        "$specify2": 4
+      },
+      "leaf_cell_counts": {
+        "LUT4": 1
+      }
+    },
+    "LUT5": {
+      "direct_cell_counts": {
+        "$specify2": 5
+      },
+      "leaf_cell_counts": {
+        "LUT5": 1
+      }
+    },
+    "LUT6": {
+      "direct_cell_counts": {
+        "$specify2": 6
+      },
+      "leaf_cell_counts": {
+        "LUT6": 1
+      }
+    },
+    "LUT6_2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "LUT6_2": 1
+      }
+    },
+    "MASTER_JTAG": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MASTER_JTAG": 1
+      }
+    },
+    "MCB": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MCB": 1
+      }
+    },
+    "MMCME2_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MMCME2_ADV": 1
+      }
+    },
+    "MMCME2_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MMCME2_BASE": 1
+      }
+    },
+    "MMCME3_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MMCME3_ADV": 1
+      }
+    },
+    "MMCME3_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MMCME3_BASE": 1
+      }
+    },
+    "MMCME4_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MMCME4_ADV": 1
+      }
+    },
+    "MMCME4_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MMCME4_BASE": 1
+      }
+    },
+    "MMCM_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MMCM_ADV": 1
+      }
+    },
+    "MMCM_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MMCM_BASE": 1
+      }
+    },
+    "MULT18X18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MULT18X18": 1
+      }
+    },
+    "MULT18X18S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MULT18X18S": 1
+      }
+    },
+    "MULT18X18SIO": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MULT18X18SIO": 1
+      }
+    },
+    "MULT_AND": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MULT_AND": 1
+      }
+    },
+    "MUXCY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MUXCY": 1
+      }
+    },
+    "MUXF5": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MUXF5": 1
+      }
+    },
+    "MUXF6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MUXF6": 1
+      }
+    },
+    "MUXF7": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MUXF7": 1
+      }
+    },
+    "MUXF8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MUXF8": 1
+      }
+    },
+    "MUXF9": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "MUXF9": 1
+      }
+    },
+    "OBUF": {
+      "direct_cell_counts": {
+        "$specify2": 1
+      },
+      "leaf_cell_counts": {
+        "OBUF": 1
+      }
+    },
+    "OBUFDS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFDS": 1
+      }
+    },
+    "OBUFDS_DPHY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFDS_DPHY": 1
+      }
+    },
+    "OBUFDS_GTE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFDS_GTE3": 1
+      }
+    },
+    "OBUFDS_GTE3_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFDS_GTE3_ADV": 1
+      }
+    },
+    "OBUFDS_GTE4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFDS_GTE4": 1
+      }
+    },
+    "OBUFDS_GTE4_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFDS_GTE4_ADV": 1
+      }
+    },
+    "OBUFDS_GTM": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFDS_GTM": 1
+      }
+    },
+    "OBUFDS_GTM_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFDS_GTM_ADV": 1
+      }
+    },
+    "OBUFT": {
+      "direct_cell_counts": {
+        "$specify2": 1
+      },
+      "leaf_cell_counts": {
+        "OBUFT": 1
+      }
+    },
+    "OBUFTDS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OBUFTDS": 1
+      }
+    },
+    "ODDR": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ODDR": 1
+      }
+    },
+    "ODDR2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ODDR2": 1
+      }
+    },
+    "ODDRE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ODDRE1": 1
+      }
+    },
+    "ODELAYE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ODELAYE2": 1
+      }
+    },
+    "ODELAYE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ODELAYE3": 1
+      }
+    },
+    "OFDDRCPE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OFDDRCPE": 1
+      }
+    },
+    "OFDDRRSE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OFDDRRSE": 1
+      }
+    },
+    "OFDDRTCPE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OFDDRTCPE": 1
+      }
+    },
+    "OFDDRTRSE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OFDDRTRSE": 1
+      }
+    },
+    "OR2L": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OR2L": 1
+      }
+    },
+    "ORCY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ORCY": 1
+      }
+    },
+    "OSERDES": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OSERDES": 1
+      }
+    },
+    "OSERDES2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OSERDES2": 1
+      }
+    },
+    "OSERDESE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OSERDESE1": 1
+      }
+    },
+    "OSERDESE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OSERDESE2": 1
+      }
+    },
+    "OSERDESE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OSERDESE3": 1
+      }
+    },
+    "OUT_FIFO": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "OUT_FIFO": 1
+      }
+    },
+    "PCIE40E4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PCIE40E4": 1
+      }
+    },
+    "PCIE4CE4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PCIE4CE4": 1
+      }
+    },
+    "PCIE_2_0": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PCIE_2_0": 1
+      }
+    },
+    "PCIE_2_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PCIE_2_1": 1
+      }
+    },
+    "PCIE_3_0": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PCIE_3_0": 1
+      }
+    },
+    "PCIE_3_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PCIE_3_1": 1
+      }
+    },
+    "PCIE_A1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PCIE_A1": 1
+      }
+    },
+    "PCIE_EP": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PCIE_EP": 1
+      }
+    },
+    "PHASER_IN": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PHASER_IN": 1
+      }
+    },
+    "PHASER_IN_PHY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PHASER_IN_PHY": 1
+      }
+    },
+    "PHASER_OUT": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PHASER_OUT": 1
+      }
+    },
+    "PHASER_OUT_PHY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PHASER_OUT_PHY": 1
+      }
+    },
+    "PHASER_REF": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PHASER_REF": 1
+      }
+    },
+    "PHY_CONTROL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PHY_CONTROL": 1
+      }
+    },
+    "PLLE2_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PLLE2_ADV": 1
+      }
+    },
+    "PLLE2_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PLLE2_BASE": 1
+      }
+    },
+    "PLLE3_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PLLE3_ADV": 1
+      }
+    },
+    "PLLE3_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PLLE3_BASE": 1
+      }
+    },
+    "PLLE4_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PLLE4_ADV": 1
+      }
+    },
+    "PLLE4_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PLLE4_BASE": 1
+      }
+    },
+    "PLL_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PLL_ADV": 1
+      }
+    },
+    "PLL_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PLL_BASE": 1
+      }
+    },
+    "PMCD": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PMCD": 1
+      }
+    },
+    "POST_CRC_INTERNAL": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "POST_CRC_INTERNAL": 1
+      }
+    },
+    "PPC405_ADV": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PPC405_ADV": 1
+      }
+    },
+    "PPC440": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PPC440": 1
+      }
+    },
+    "PS7": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PS7": 1
+      }
+    },
+    "PS8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PS8": 1
+      }
+    },
+    "PULLDOWN": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PULLDOWN": 1
+      }
+    },
+    "PULLUP": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "PULLUP": 1
+      }
+    },
+    "RAM128X1D": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM128X1D": 1
+      }
+    },
+    "RAM128X1S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM128X1S": 1
+      }
+    },
+    "RAM128X1S_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM128X1S_1": 1
+      }
+    },
+    "RAM16X1D": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM16X1D": 1
+      }
+    },
+    "RAM16X1D_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM16X1D_1": 1
+      }
+    },
+    "RAM16X1S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM16X1S": 1
+      }
+    },
+    "RAM16X1S_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM16X1S_1": 1
+      }
+    },
+    "RAM16X2S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM16X2S": 1
+      }
+    },
+    "RAM16X4S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM16X4S": 1
+      }
+    },
+    "RAM16X8S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM16X8S": 1
+      }
+    },
+    "RAM256X1D": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM256X1D": 1
+      }
+    },
+    "RAM256X1S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM256X1S": 1
+      }
+    },
+    "RAM32M": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32M": 1
+      }
+    },
+    "RAM32M16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32M16": 1
+      }
+    },
+    "RAM32X16DR8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32X16DR8": 1
+      }
+    },
+    "RAM32X1D": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32X1D": 1
+      }
+    },
+    "RAM32X1D_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32X1D_1": 1
+      }
+    },
+    "RAM32X1S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32X1S": 1
+      }
+    },
+    "RAM32X1S_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32X1S_1": 1
+      }
+    },
+    "RAM32X2S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32X2S": 1
+      }
+    },
+    "RAM32X4S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32X4S": 1
+      }
+    },
+    "RAM32X8S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM32X8S": 1
+      }
+    },
+    "RAM512X1S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM512X1S": 1
+      }
+    },
+    "RAM64M": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM64M": 1
+      }
+    },
+    "RAM64M8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM64M8": 1
+      }
+    },
+    "RAM64X1D": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM64X1D": 1
+      }
+    },
+    "RAM64X1D_1": {
+      "direct_cell_counts": {
+        "$specify2": 12,
+        "$specify3": 2,
+        "$specrule": 8
+      },
+      "leaf_cell_counts": {
+        "RAM64X1D_1": 1
+      }
+    },
+    "RAM64X1S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM64X1S": 1
+      }
+    },
+    "RAM64X1S_1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM64X1S_1": 1
+      }
+    },
+    "RAM64X2S": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM64X2S": 1
+      }
+    },
+    "RAM64X8SW": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAM64X8SW": 1
+      }
+    },
+    "RAMB16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16": 1
+      }
+    },
+    "RAMB16BWER": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16BWER": 1
+      }
+    },
+    "RAMB16BWE_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16BWE_S18": 1
+      }
+    },
+    "RAMB16BWE_S18_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16BWE_S18_S18": 1
+      }
+    },
+    "RAMB16BWE_S18_S9": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16BWE_S18_S9": 1
+      }
+    },
+    "RAMB16BWE_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16BWE_S36": 1
+      }
+    },
+    "RAMB16BWE_S36_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16BWE_S36_S18": 1
+      }
+    },
+    "RAMB16BWE_S36_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16BWE_S36_S36": 1
+      }
+    },
+    "RAMB16BWE_S36_S9": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16BWE_S36_S9": 1
+      }
+    },
+    "RAMB16_S1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S1": 1
+      }
+    },
+    "RAMB16_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S18": 1
+      }
+    },
+    "RAMB16_S18_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S18_S18": 1
+      }
+    },
+    "RAMB16_S18_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S18_S36": 1
+      }
+    },
+    "RAMB16_S1_S1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S1_S1": 1
+      }
+    },
+    "RAMB16_S1_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S1_S18": 1
+      }
+    },
+    "RAMB16_S1_S2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S1_S2": 1
+      }
+    },
+    "RAMB16_S1_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S1_S36": 1
+      }
+    },
+    "RAMB16_S1_S4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S1_S4": 1
+      }
+    },
+    "RAMB16_S1_S9": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S1_S9": 1
+      }
+    },
+    "RAMB16_S2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S2": 1
+      }
+    },
+    "RAMB16_S2_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S2_S18": 1
+      }
+    },
+    "RAMB16_S2_S2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S2_S2": 1
+      }
+    },
+    "RAMB16_S2_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S2_S36": 1
+      }
+    },
+    "RAMB16_S2_S4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S2_S4": 1
+      }
+    },
+    "RAMB16_S2_S9": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S2_S9": 1
+      }
+    },
+    "RAMB16_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S36": 1
+      }
+    },
+    "RAMB16_S36_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S36_S36": 1
+      }
+    },
+    "RAMB16_S4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S4": 1
+      }
+    },
+    "RAMB16_S4_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S4_S18": 1
+      }
+    },
+    "RAMB16_S4_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S4_S36": 1
+      }
+    },
+    "RAMB16_S4_S4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S4_S4": 1
+      }
+    },
+    "RAMB16_S4_S9": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S4_S9": 1
+      }
+    },
+    "RAMB16_S9": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S9": 1
+      }
+    },
+    "RAMB16_S9_S18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S9_S18": 1
+      }
+    },
+    "RAMB16_S9_S36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S9_S36": 1
+      }
+    },
+    "RAMB16_S9_S9": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB16_S9_S9": 1
+      }
+    },
+    "RAMB18": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB18": 1
+      }
+    },
+    "RAMB18E1": {
+      "direct_cell_counts": {
+        "$specify3": 8,
+        "$specrule": 12
+      },
+      "leaf_cell_counts": {
+        "RAMB18E1": 1
+      }
+    },
+    "RAMB18E2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB18E2": 1
+      }
+    },
+    "RAMB18SDP": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB18SDP": 1
+      }
+    },
+    "RAMB32_S64_ECC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB32_S64_ECC": 1
+      }
+    },
+    "RAMB36": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB36": 1
+      }
+    },
+    "RAMB36E1": {
+      "direct_cell_counts": {
+        "$specify3": 8,
+        "$specrule": 12
+      },
+      "leaf_cell_counts": {
+        "RAMB36E1": 1
+      }
+    },
+    "RAMB36E2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB36E2": 1
+      }
+    },
+    "RAMB36SDP": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB36SDP": 1
+      }
+    },
+    "RAMB4_S1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S1": 1
+      }
+    },
+    "RAMB4_S16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S16": 1
+      }
+    },
+    "RAMB4_S16_S16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S16_S16": 1
+      }
+    },
+    "RAMB4_S1_S1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S1_S1": 1
+      }
+    },
+    "RAMB4_S1_S16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S1_S16": 1
+      }
+    },
+    "RAMB4_S1_S2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S1_S2": 1
+      }
+    },
+    "RAMB4_S1_S4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S1_S4": 1
+      }
+    },
+    "RAMB4_S1_S8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S1_S8": 1
+      }
+    },
+    "RAMB4_S2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S2": 1
+      }
+    },
+    "RAMB4_S2_S16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S2_S16": 1
+      }
+    },
+    "RAMB4_S2_S2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S2_S2": 1
+      }
+    },
+    "RAMB4_S2_S4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S2_S4": 1
+      }
+    },
+    "RAMB4_S2_S8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S2_S8": 1
+      }
+    },
+    "RAMB4_S4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S4": 1
+      }
+    },
+    "RAMB4_S4_S16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S4_S16": 1
+      }
+    },
+    "RAMB4_S4_S4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S4_S4": 1
+      }
+    },
+    "RAMB4_S4_S8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S4_S8": 1
+      }
+    },
+    "RAMB4_S8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S8": 1
+      }
+    },
+    "RAMB4_S8_S16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S8_S16": 1
+      }
+    },
+    "RAMB4_S8_S8": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB4_S8_S8": 1
+      }
+    },
+    "RAMB8BWER": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RAMB8BWER": 1
+      }
+    },
+    "RFADC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RFADC": 1
+      }
+    },
+    "RFDAC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RFDAC": 1
+      }
+    },
+    "RIU_OR": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RIU_OR": 1
+      }
+    },
+    "ROM128X1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ROM128X1": 1
+      }
+    },
+    "ROM16X1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ROM16X1": 1
+      }
+    },
+    "ROM256X1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ROM256X1": 1
+      }
+    },
+    "ROM32X1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ROM32X1": 1
+      }
+    },
+    "ROM64X1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "ROM64X1": 1
+      }
+    },
+    "RXTX_BITSLICE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RXTX_BITSLICE": 1
+      }
+    },
+    "RX_BITSLICE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "RX_BITSLICE": 1
+      }
+    },
+    "SPI_ACCESS": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SPI_ACCESS": 1
+      }
+    },
+    "SRL16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SRL16": 1
+      }
+    },
+    "SRL16E": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SRL16E": 1
+      }
+    },
+    "SRLC16": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SRLC16": 1
+      }
+    },
+    "SRLC16E": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SRLC16E": 1
+      }
+    },
+    "SRLC32E": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SRLC32E": 1
+      }
+    },
+    "STARTUPE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUPE2": 1
+      }
+    },
+    "STARTUPE3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUPE3": 1
+      }
+    },
+    "STARTUP_SPARTAN3": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUP_SPARTAN3": 1
+      }
+    },
+    "STARTUP_SPARTAN3A": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUP_SPARTAN3A": 1
+      }
+    },
+    "STARTUP_SPARTAN3E": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUP_SPARTAN3E": 1
+      }
+    },
+    "STARTUP_SPARTAN6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUP_SPARTAN6": 1
+      }
+    },
+    "STARTUP_VIRTEX4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUP_VIRTEX4": 1
+      }
+    },
+    "STARTUP_VIRTEX5": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUP_VIRTEX5": 1
+      }
+    },
+    "STARTUP_VIRTEX6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "STARTUP_VIRTEX6": 1
+      }
+    },
+    "SUSPEND_SYNC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SUSPEND_SYNC": 1
+      }
+    },
+    "SYSMON": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SYSMON": 1
+      }
+    },
+    "SYSMONE1": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SYSMONE1": 1
+      }
+    },
+    "SYSMONE4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "SYSMONE4": 1
+      }
+    },
+    "TEMAC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "TEMAC": 1
+      }
+    },
+    "TEMAC_SINGLE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "TEMAC_SINGLE": 1
+      }
+    },
+    "TX_BITSLICE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "TX_BITSLICE": 1
+      }
+    },
+    "TX_BITSLICE_TRI": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "TX_BITSLICE_TRI": 1
+      }
+    },
+    "URAM288": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "URAM288": 1
+      }
+    },
+    "URAM288_BASE": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "URAM288_BASE": 1
+      }
+    },
+    "USR_ACCESSE2": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "USR_ACCESSE2": 1
+      }
+    },
+    "USR_ACCESS_VIRTEX4": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "USR_ACCESS_VIRTEX4": 1
+      }
+    },
+    "USR_ACCESS_VIRTEX5": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "USR_ACCESS_VIRTEX5": 1
+      }
+    },
+    "USR_ACCESS_VIRTEX6": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "USR_ACCESS_VIRTEX6": 1
+      }
+    },
+    "VCC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "VCC": 1
+      }
+    },
+    "VCU": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "VCU": 1
+      }
+    },
+    "XADC": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "XADC": 1
+      }
+    },
+    "XORCY": {
+      "direct_cell_counts": {},
+      "leaf_cell_counts": {
+        "XORCY": 1
+      }
+    },
+    "\\$__ABC9_LUT7": {
+      "direct_cell_counts": {
+        "$specify2": 7
+      },
+      "leaf_cell_counts": {
+        "\\$__ABC9_LUT7": 1
+      }
+    },
+    "\\$__ABC9_LUT8": {
+      "direct_cell_counts": {
+        "$specify2": 8
+      },
+      "leaf_cell_counts": {
+        "\\$__ABC9_LUT8": 1
+      }
+    },
+    "task6_ypcb_litedram_init_bandwidth_probe_top": {
+      "direct_cell_counts": {
+        "$paramod$d0c2a3590ba41461b7529ffdc49dc42bb6735ed0\\task6_litedram_probe_jtag_debug_shift": 1,
+        "BUFG": 1,
+        "CARRY4": 55,
+        "FDCE": 8,
+        "FDRE": 255,
+        "IBUFDS": 1,
+        "INV": 21,
+        "LUT2": 40,
+        "LUT3": 65,
+        "LUT4": 3,
+        "LUT5": 3,
+        "LUT6": 33,
+        "MUXF7": 1,
+        "ypcb_litedram_core": 1
+      },
+      "leaf_cell_counts": {
+        "BSCANE2": 1,
+        "BUFG": 5,
+        "CARRY4": 345,
+        "FDCE": 528,
+        "FDPE": 4,
+        "FDRE": 6712,
+        "FDSE": 460,
+        "IBUFDS": 1,
+        "IDELAYCTRL": 1,
+        "IDELAYE2": 64,
+        "INV": 370,
+        "IOBUF": 64,
+        "IOBUFDS": 8,
+        "ISERDESE2": 64,
+        "LUT1": 4,
+        "LUT2": 1529,
+        "LUT3": 1768,
+        "LUT4": 429,
+        "LUT5": 846,
+        "LUT6": 3821,
+        "MUXF7": 118,
+        "MUXF8": 45,
+        "OBUFDS": 1,
+        "ODELAYE2": 98,
+        "OSERDESE2": 98,
+        "PLLE2_ADV": 1,
+        "RAM32M": 252
+      }
+    },
+    "ypcb_litedram_core": {
+      "direct_cell_counts": {
+        "BUFG": 3,
+        "CARRY4": 290,
+        "FDCE": 8,
+        "FDPE": 4,
+        "FDRE": 6457,
+        "FDSE": 460,
+        "IDELAYCTRL": 1,
+        "IDELAYE2": 64,
+        "INV": 349,
+        "IOBUF": 64,
+        "IOBUFDS": 8,
+        "ISERDESE2": 64,
+        "LUT1": 4,
+        "LUT2": 1489,
+        "LUT3": 1703,
+        "LUT4": 426,
+        "LUT5": 843,
+        "LUT6": 3276,
+        "MUXF7": 117,
+        "MUXF8": 45,
+        "OBUFDS": 1,
+        "ODELAYE2": 98,
+        "OSERDESE2": 98,
+        "PLLE2_ADV": 1,
+        "RAM32M": 252
+      },
+      "leaf_cell_counts": {
+        "BUFG": 3,
+        "CARRY4": 290,
+        "FDCE": 8,
+        "FDPE": 4,
+        "FDRE": 6457,
+        "FDSE": 460,
+        "IDELAYCTRL": 1,
+        "IDELAYE2": 64,
+        "INV": 349,
+        "IOBUF": 64,
+        "IOBUFDS": 8,
+        "ISERDESE2": 64,
+        "LUT1": 4,
+        "LUT2": 1489,
+        "LUT3": 1703,
+        "LUT4": 426,
+        "LUT5": 843,
+        "LUT6": 3276,
+        "MUXF7": 117,
+        "MUXF8": 45,
+        "OBUFDS": 1,
+        "ODELAYE2": 98,
+        "OSERDESE2": 98,
+        "PLLE2_ADV": 1,
+        "RAM32M": 252
+      }
+    }
+  },
+  "top": "task6_ypcb_litedram_init_bandwidth_probe_top",
+  "top_leaf_cell_counts": {
+    "BSCANE2": 1,
+    "BUFG": 5,
+    "CARRY4": 345,
+    "FDCE": 528,
+    "FDPE": 4,
+    "FDRE": 6712,
+    "FDSE": 460,
+    "IBUFDS": 1,
+    "IDELAYCTRL": 1,
+    "IDELAYE2": 64,
+    "INV": 370,
+    "IOBUF": 64,
+    "IOBUFDS": 8,
+    "ISERDESE2": 64,
+    "LUT1": 4,
+    "LUT2": 1529,
+    "LUT3": 1768,
+    "LUT4": 429,
+    "LUT5": 846,
+    "LUT6": 3821,
+    "MUXF7": 118,
+    "MUXF8": 45,
+    "OBUFDS": 1,
+    "ODELAYE2": 98,
+    "OSERDESE2": 98,
+    "PLLE2_ADV": 1,
+    "RAM32M": 252
+  }
+}

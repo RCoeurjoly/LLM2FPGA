@@ -3235,6 +3235,146 @@
               "${task6YpcbLiteDramOpenSynthJson}/ypcb_litedram_core.json";
           };
 
+        task6YpcbLiteDramInitBandwidthProbeJson =
+          pkgs.runCommand "task6-ypcb-litedram-init-bandwidth-probe.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog ${task6YpcbLiteDramRtlElaboration}/build/gateware/ypcb_litedram_core.v
+            read_verilog -sv ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            hierarchy -top task6_ypcb_litedram_init_bandwidth_probe_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
+            write_json "$out"
+            EOF
+            ${pkgs.yosys}/bin/yosys -s run.ys
+          '';
+
+        task6YpcbLiteDramInitBandwidthProbeIopadJson =
+          pkgs.runCommand "task6-ypcb-litedram-init-bandwidth-probe-iopad.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog ${task6YpcbLiteDramRtlElaboration}/build/gateware/ypcb_litedram_core.v
+            read_verilog -sv ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            hierarchy -top task6_ypcb_litedram_init_bandwidth_probe_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top
+            write_json "$out"
+            EOF
+            ${pkgs.yosys}/bin/yosys -s run.ys
+          '';
+
+        task6YpcbLiteDramInitBandwidthProbeUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-ypcb-litedram-init-bandwidth-probe";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
+            designJson = task6YpcbLiteDramInitBandwidthProbeJson;
+          };
+
+        task6YpcbLiteDramInitBandwidthProbeXdc = mkXdc {
+          name = "task6-ypcb-litedram-init-bandwidth-probe";
+          includeBoardXdc = false;
+          extraConstraints = [
+            "${task6YpcbLiteDramRtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
+            ./fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc
+          ];
+        };
+
+        task6YpcbLiteDramInitBandwidthProbeFasm = mkFasm {
+          name = "task6-ypcb-litedram-init-bandwidth-probe";
+          xdc = task6YpcbLiteDramInitBandwidthProbeXdc;
+          json = task6YpcbLiteDramInitBandwidthProbeJson;
+          seed = 1;
+          freqMHz = 50;
+        };
+
+        task6YpcbLiteDramInitBandwidthProbeBitstream = mkBitstream {
+          name = "task6-ypcb-litedram-init-bandwidth-probe";
+          fasm = task6YpcbLiteDramInitBandwidthProbeFasm;
+          framesBase = "task6-ypcb-litedram-init-bandwidth-probe";
+        };
+
+        task6YpcbLiteDramInitBandwidthProbeIopadFasm = mkFasm {
+          name = "task6-ypcb-litedram-init-bandwidth-probe-iopad";
+          xdc = task6YpcbLiteDramInitBandwidthProbeXdc;
+          json = task6YpcbLiteDramInitBandwidthProbeIopadJson;
+          seed = 1;
+          freqMHz = 50;
+        };
+
+        task6YpcbLiteDramInitBandwidthProbeIopadBitstream = mkBitstream {
+          name = "task6-ypcb-litedram-init-bandwidth-probe-iopad";
+          fasm = task6YpcbLiteDramInitBandwidthProbeIopadFasm;
+          framesBase = "task6-ypcb-litedram-init-bandwidth-probe-iopad";
+        };
+
+        mkTask6OdelayCutoutJson = { name, topName }:
+          pkgs.runCommand "${name}.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./fpga/rtl/task6_odelay_obuf_cutout_top.sv}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            hierarchy -top ${topName} -check
+            proc
+            synth_xilinx -family xc7 -top ${topName}
+            write_json "$out"
+            EOF
+            ${pkgs.yosys}/bin/yosys -s run.ys
+          '';
+
+        task6OdelayObufCutoutJson = mkTask6OdelayCutoutJson {
+          name = "task6-odelay-obuf-cutout";
+          topName = "task6_odelay_obuf_cutout_top";
+        };
+
+        task6OdelayObufdsCutoutJson = mkTask6OdelayCutoutJson {
+          name = "task6-odelay-obufds-cutout";
+          topName = "task6_odelay_obufds_cutout_top";
+        };
+
+        task6OdelayObufCutoutXdc = mkXdc {
+          name = "task6-odelay-obuf-cutout";
+          includeBoardXdc = false;
+          extraConstraints = [
+            ./fpga/constraints/task6_odelay_obuf_cutout.xdc
+          ];
+        };
+
+        task6OdelayObufdsCutoutXdc = mkXdc {
+          name = "task6-odelay-obufds-cutout";
+          includeBoardXdc = false;
+          extraConstraints = [
+            ./fpga/constraints/task6_odelay_obufds_cutout.xdc
+          ];
+        };
+
+        task6OdelayObufCutoutFasm = mkFasm {
+          name = "task6-odelay-obuf-cutout";
+          xdc = task6OdelayObufCutoutXdc;
+          json = task6OdelayObufCutoutJson;
+          seed = 1;
+          freqMHz = 50;
+        };
+
+        task6OdelayObufdsCutoutFasm = mkFasm {
+          name = "task6-odelay-obufds-cutout";
+          xdc = task6OdelayObufdsCutoutXdc;
+          json = task6OdelayObufdsCutoutJson;
+          seed = 1;
+          freqMHz = 50;
+        };
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -6077,6 +6217,30 @@
             task6YpcbLiteDramOpenSynthJson;
           task6-ypcb-litedram-open-synth-utilization =
             task6YpcbLiteDramOpenSynthUtilization;
+          task6-ypcb-litedram-init-bandwidth-probe-json =
+            task6YpcbLiteDramInitBandwidthProbeJson;
+          task6-ypcb-litedram-init-bandwidth-probe-utilization =
+            task6YpcbLiteDramInitBandwidthProbeUtilization;
+          task6-ypcb-litedram-init-bandwidth-probe-xdc =
+            task6YpcbLiteDramInitBandwidthProbeXdc;
+          task6-ypcb-litedram-init-bandwidth-probe-fasm =
+            task6YpcbLiteDramInitBandwidthProbeFasm;
+          task6-ypcb-litedram-init-bandwidth-probe-bitstream =
+            task6YpcbLiteDramInitBandwidthProbeBitstream;
+          task6-ypcb-litedram-init-bandwidth-probe-iopad-json =
+            task6YpcbLiteDramInitBandwidthProbeIopadJson;
+          task6-ypcb-litedram-init-bandwidth-probe-iopad-fasm =
+            task6YpcbLiteDramInitBandwidthProbeIopadFasm;
+          task6-ypcb-litedram-init-bandwidth-probe-iopad-bitstream =
+            task6YpcbLiteDramInitBandwidthProbeIopadBitstream;
+          task6-odelay-obuf-cutout-json =
+            task6OdelayObufCutoutJson;
+          task6-odelay-obuf-cutout-fasm =
+            task6OdelayObufCutoutFasm;
+          task6-odelay-obufds-cutout-json =
+            task6OdelayObufdsCutoutJson;
+          task6-odelay-obufds-cutout-fasm =
+            task6OdelayObufdsCutoutFasm;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =

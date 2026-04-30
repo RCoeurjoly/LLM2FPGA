@@ -163,16 +163,20 @@ Moonshot lanes to keep active:
 
 Immediate execution order as of 2026-04-30:
 
-1. Grow the proven H2 v4k residual-add plus streamed output-head path by one
+1. Resolve the open LiteDRAM/LiteX board-probe P&R blocker:
+   `ODELAYE2` output-delay packing into `OBUF` / `OBUFDS` fails in openXC7
+   nextpnr even in a one-cell cutout. Do not switch to Vivado MIG.
+2. Once that open P&R blocker clears, program the YPCB LiteDRAM init/bandwidth
+   probe and read status/counters through the JTAG/XVC payload.
+3. Grow the proven H2 v4k residual-add plus streamed output-head path by one
    structure increment, keeping a JTAG payload in the first board image.
-2. Continue the full-model external-memory mainline with `top34-memory`
-   resource-owner analysis and board-memory accounting, not a DDR3 controller
-   selection yet.
-3. Add a small representative-core scaling matrix over vocab, layer count,
+4. Continue the full-model external-memory mainline with `top34-memory`
+   resource-owner analysis and board-memory accounting.
+5. Add a small representative-core scaling matrix over vocab, layer count,
    hidden size, bit width, and externalized-memory owner count.
-4. Start the next StreamTensor-lite experiment only after it has one explicit
+6. Start the next StreamTensor-lite experiment only after it has one explicit
    delta target from the list above.
-5. Replay any promising representative or microkernel result on the copied
+7. Replay any promising representative or microkernel result on the copied
    TinyStories baseline bundle or a documented full-model successor.
 
 ### Evidence contract for every lane
@@ -11422,3 +11426,180 @@ Decision:
     bandwidth
   - then connect the existing DDR3 rowstream contract to the measured memory
     port shape
+
+### 2026-04-30 - YPCB LiteDRAM JTAG init/bandwidth probe
+
+Goal:
+
+- Build the first board-facing open LiteDRAM/LiteX probe around the generated
+  YPCB no-`dm` controller. The probe should expose DDR3 init state and linear
+  read counters through JTAG/XVC instead of LEDs.
+
+Implementation:
+
+- Added wrapper RTL:
+  - `fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv`
+- Added board constraints:
+  - `fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc`
+- Added JTAG/XVC decoder:
+  - `scripts/task6/read_litedram_probe_jtag_xvc.py`
+- Added flake packages:
+  - `task6-ypcb-litedram-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-init-bandwidth-probe-xdc`
+  - `task6-ypcb-litedram-init-bandwidth-probe-fasm`
+  - `task6-ypcb-litedram-init-bandwidth-probe-bitstream`
+  - `task6-ypcb-litedram-init-bandwidth-probe-iopad-json`
+  - `task6-ypcb-litedram-init-bandwidth-probe-iopad-fasm`
+  - `task6-ypcb-litedram-init-bandwidth-probe-iopad-bitstream`
+- Copied durable synthesis proof:
+  - `artifacts/task6/parallel-hypotheses/h2-ypcb-litedram-init-bandwidth-probe-utilization`
+
+Probe behavior:
+
+- Inputs:
+  - `clk200_p` / `clk200_n`
+  - `SYS_RSTN`
+- DDR3 interface:
+  - generated `ypcb_litedram_core` CH0, 64-bit payload, no `ddram_dm`
+- Native-port test:
+  - issue `65536` 64-bit linear reads after `init_done`
+  - track command count, response count, stalls, cycles, checksum, and last
+    returned data
+- JTAG payload:
+  - magic `0x54364a44`
+  - version `20`
+  - state, status bits, read-cycle count, command/response counts, stall
+    count, checksum, last read data, next read address, and target read count
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/read_litedram_probe_jtag_xvc.py scripts/task6/read_jtag_debug_xvc.py`
+  - `nix-instantiate --parse flake.nix`
+- Rejected synthesis attempt:
+  - first utilization build failed because the Yosys script read only
+    `cells_xtra.v`; the generated core also uses primitives such as `FDPE`
+    from `cells_sim.v`
+- Fixed and reran:
+  - added `read_verilog -lib +/xilinx/cells_sim.v` before `cells_xtra.v`
+  - `nix build .#task6-ypcb-litedram-init-bandwidth-probe-utilization --no-link --print-out-paths -L`
+  - `/nix/store/1vgyghy1n360i3q5crinbhn9cq64qwym-task6-ypcb-litedram-init-bandwidth-probe-utilization`
+- Result status: `SYNTHESIS PASS`
+- Yosys result:
+  - `check` reported `0` problems
+  - Yosys peak memory: `606.09 MiB`
+
+Measured probe utilization:
+
+- CLB LUTs: `8397 / 298600` (`2.81%`)
+- CLB FFs: `7704 / 597200` (`1.29%`)
+- DSP: `0 / 1920` (`0.00%`)
+- BRAM36: `0 / 955` (`0.00%`)
+- BRAM36-equivalent: `0 / 955` (`0.00%`)
+- Lower-bound slices: `1050 / 74650` (`1.41%`)
+- Largest mapped leaf types:
+  - `FDRE`: `6712`
+  - `LUT6`: `3821`
+  - `LUT3`: `1768`
+  - `LUT2`: `1529`
+  - `LUT5`: `846`
+  - `FDCE`: `528`
+  - `FDSE`: `460`
+  - `RAM32M`: `252`
+
+Open P&R result:
+
+- Rejected attempt:
+  - `nix build .#task6-ypcb-litedram-init-bandwidth-probe-bitstream --no-link --print-out-paths -L`
+  - failed derivation:
+    `/nix/store/nf51lrrp4bkryb5y7xd7g7ivfgmb4273-task6-ypcb-litedram-init-bandwidth-probe.fasm.drv`
+  - error:
+    `ODELAYE2 'core.ODELAYE2' has DATAOUT connected to unsupported cell type IOB33M_OUTBUF`
+- Bounded iopad variant:
+  - `nix build .#task6-ypcb-litedram-init-bandwidth-probe-iopad-bitstream --no-link --print-out-paths -L`
+  - failed derivation:
+    `/nix/store/lkkdzqbd0bxijig9vssvhzn6kj0acxgs-task6-ypcb-litedram-init-bandwidth-probe-iopad.fasm.drv`
+  - same error:
+    `ODELAYE2 'core.ODELAYE2' has DATAOUT connected to unsupported cell type IOB33M_OUTBUF`
+- Durable concise failure record:
+  - `artifacts/task6/parallel-hypotheses/h2-ypcb-litedram-init-bandwidth-probe-utilization/open-par-failure-summary.json`
+
+Decision:
+
+- Promote the LiteDRAM/LiteX probe through open synthesis only.
+- Do not program the board yet; no valid bitstream was produced.
+- The current blocker is not DDR3 controller scale and not Vivado/MIG
+  availability. It is an open P&R primitive-packing issue around LiteDRAM
+  `K7DDRPHY` output-delay cells.
+- Next gate:
+  - reduce the `ODELAYE2 -> OBUF/OBUFDS` topology to a minimal openXC7 cutout,
+    then either patch/support that topology in the open flow or find a valid
+    LiteDRAM PHY configuration that avoids it.
+
+### 2026-04-30 - Minimal `ODELAYE2` output-buffer cutouts
+
+Goal:
+
+- Decide whether the LiteDRAM probe P&R failure is caused by the full DDR3
+  controller or by a smaller openXC7 primitive-topology limitation.
+
+Implementation:
+
+- Added minimal cutout RTL:
+  - `fpga/rtl/task6_odelay_obuf_cutout_top.sv`
+- Added cutout constraints:
+  - `fpga/constraints/task6_odelay_obuf_cutout.xdc`
+  - `fpga/constraints/task6_odelay_obufds_cutout.xdc`
+- Added flake packages:
+  - `task6-odelay-obuf-cutout-json`
+  - `task6-odelay-obuf-cutout-fasm`
+  - `task6-odelay-obufds-cutout-json`
+  - `task6-odelay-obufds-cutout-fasm`
+- Copied durable artifacts:
+  - `artifacts/task6/parallel-hypotheses/h2-odelay-obuf-cutouts`
+- Did not copy the generated cutout JSON netlists into the repo:
+  - each JSON netlist is about `9.7 MiB`
+  - regenerate with the recorded `task6-odelay-*-cutout-json` flake targets
+    when needed
+
+Verification:
+
+- JSON synthesis:
+  - `nix build .#task6-odelay-obuf-cutout-json .#task6-odelay-obufds-cutout-json --no-link --print-out-paths`
+  - `/nix/store/cwmkpd4l4ixgnvrczwx9ahw0zgfawjml-task6-odelay-obuf-cutout.json`
+  - `/nix/store/2lsns6b9f6f72jras4sc2ma37lkic6h3-task6-odelay-obufds-cutout.json`
+- Single-ended cutout:
+  - command:
+    `nix build .#task6-odelay-obuf-cutout-fasm --no-link --print-out-paths -L`
+  - failed derivation:
+    `/nix/store/a9by92gq2m6jza2nm8iq1zjyzhhc5n8p-task6-odelay-obuf-cutout.fasm.drv`
+  - error:
+    `ODELAYE2 'odelay' has DATAOUT connected to unsupported cell type IOB33_OUTBUF`
+- Differential cutout:
+  - command:
+    `nix build .#task6-odelay-obufds-cutout-fasm --no-link --print-out-paths -L`
+  - failed derivation:
+    `/nix/store/xz9x342piwdwi76aczhql1s9j5l2kdp2-task6-odelay-obufds-cutout.fasm.drv`
+  - error:
+    `ODELAYE2 'odelay' has DATAOUT connected to unsupported cell type IOB33M_OUTBUF`
+
+Interpretation:
+
+- The board-probe failure is now reduced to a one-`ODELAYE2` open-P&R cutout.
+- This is not a TinyStories-model issue, not an int8 arithmetic issue, and not
+  a full LiteDRAM controller size issue.
+- The `-noiopad` vs iopad synthesis choice is also not sufficient to explain
+  the failure; both full-probe variants fail the same way.
+- Current hypothesis:
+  - openXC7/nextpnr does not yet pack this Kintex-7 output-delay-to-output-
+    buffer topology, or our generated PHY topology needs a valid open-flow
+    representation of the same hardware path.
+
+Decision:
+
+- Keep Vivado MIG rejected.
+- Make the next DDR3 board-support task a narrow open-toolchain task:
+  - inspect or patch nextpnr/openXC7 packing support for `ODELAYE2` feeding
+    `OBUF` / `OBUFDS`, using the minimal cutouts above as the regression test
+  - only return to the full LiteDRAM board probe after a cutout reaches FASM

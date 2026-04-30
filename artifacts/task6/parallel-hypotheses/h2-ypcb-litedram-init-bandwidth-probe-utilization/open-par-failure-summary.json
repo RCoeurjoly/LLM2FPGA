@@ -1,0 +1,39 @@
+{
+  "artifact": "h2-ypcb-litedram-init-bandwidth-probe-utilization",
+  "date": "2026-04-30",
+  "controller_path": "LiteDRAM/LiteX only",
+  "vivado_mig_lane": "rejected",
+  "status": "SYNTHESIS_PASS_OPEN_PAR_BLOCKED",
+  "synthesis": {
+    "command": "nix build .#task6-ypcb-litedram-init-bandwidth-probe-utilization --no-link --print-out-paths -L",
+    "store_path": "/nix/store/1vgyghy1n360i3q5crinbhn9cq64qwym-task6-ypcb-litedram-init-bandwidth-probe-utilization",
+    "top": "task6_ypcb_litedram_init_bandwidth_probe_top",
+    "yosys_peak_memory_mib": 606.09,
+    "check_problems": 0,
+    "clb_luts": 8397,
+    "clb_luts_pct": 2.81,
+    "clb_ffs": 7704,
+    "clb_ffs_pct": 1.29,
+    "dsp": 0,
+    "dsp_pct": 0.0,
+    "bram36": 0,
+    "bram36_pct": 0.0
+  },
+  "open_par_attempts": [
+    {
+      "name": "no-iopad probe bitstream",
+      "command": "nix build .#task6-ypcb-litedram-init-bandwidth-probe-bitstream --no-link --print-out-paths -L",
+      "failed_derivation": "/nix/store/nf51lrrp4bkryb5y7xd7g7ivfgmb4273-task6-ypcb-litedram-init-bandwidth-probe.fasm.drv",
+      "status": "FAIL",
+      "error": "ODELAYE2 'core.ODELAYE2' has DATAOUT connected to unsupported cell type IOB33M_OUTBUF"
+    },
+    {
+      "name": "iopad probe bitstream",
+      "command": "nix build .#task6-ypcb-litedram-init-bandwidth-probe-iopad-bitstream --no-link --print-out-paths -L",
+      "failed_derivation": "/nix/store/lkkdzqbd0bxijig9vssvhzn6kj0acxgs-task6-ypcb-litedram-init-bandwidth-probe-iopad.fasm.drv",
+      "status": "FAIL",
+      "error": "ODELAYE2 'core.ODELAYE2' has DATAOUT connected to unsupported cell type IOB33M_OUTBUF"
+    }
+  ],
+  "decision": "Promote the LiteDRAM probe through open synthesis only. Board programming is blocked until the open P&R ODELAYE2-to-IOB output packing issue is resolved or the PHY is validly restructured without that topology."
+}

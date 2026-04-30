@@ -1,0 +1,22 @@
+top: task6_ypcb_litedram_init_bandwidth_probe_top
+estimated mapped resource usage:
+- slices_lower_bound: 1050 / 74650 (1.41%)
+- clb_luts: 8397 / 298600 (2.81%)
+- clb_ffs: 7704 / 597200 (1.29%)
+- dsp: 0 / 1920 (0.00%)
+- bram36: 0 / 955 (0.00%)
+- bram36_equiv: 0 / 955 (0.00%)
+- bram_kb: 0 / 34380 (0.00%)
+largest leaf cell types:
+- FDRE: 6712
+- LUT6: 3821
+- LUT3: 1768
+- LUT2: 1529
+- LUT5: 846
+- FDCE: 528
+- FDSE: 460
+- LUT4: 429
+- INV: 370
+- CARRY4: 345
+- RAM32M: 252
+- MUXF7: 118

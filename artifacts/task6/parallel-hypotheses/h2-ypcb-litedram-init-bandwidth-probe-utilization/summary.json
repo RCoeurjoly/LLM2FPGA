@@ -1,0 +1,94 @@
+{
+  "design_json": "/nix/store/1gz4g7vmmj2qa5gbcf39mjz384hq5kxl-task6-ypcb-litedram-init-bandwidth-probe.json",
+  "resources": {
+    "bram18": {
+      "used": 0
+    },
+    "bram36": {
+      "capacity": 955,
+      "pct": 0.0,
+      "used": 0
+    },
+    "bram36_equiv": {
+      "capacity": 955,
+      "pct": 0.0,
+      "used": 0.0
+    },
+    "bram_kb": {
+      "capacity": 34380,
+      "pct": 0.0,
+      "used": 0
+    },
+    "clb_ffs": {
+      "capacity": 597200,
+      "pct": 1.29,
+      "used": 7704
+    },
+    "clb_luts": {
+      "capacity": 298600,
+      "pct": 2.81,
+      "used": 8397
+    },
+    "dsp": {
+      "capacity": 1920,
+      "pct": 0.0,
+      "used": 0
+    },
+    "slices_lower_bound": {
+      "capacity": 74650,
+      "pct": 1.41,
+      "used": 1050
+    }
+  },
+  "top": "task6_ypcb_litedram_init_bandwidth_probe_top",
+  "top_leaf_cell_types": [
+    {
+      "count": 6712,
+      "type": "FDRE"
+    },
+    {
+      "count": 3821,
+      "type": "LUT6"
+    },
+    {
+      "count": 1768,
+      "type": "LUT3"
+    },
+    {
+      "count": 1529,
+      "type": "LUT2"
+    },
+    {
+      "count": 846,
+      "type": "LUT5"
+    },
+    {
+      "count": 528,
+      "type": "FDCE"
+    },
+    {
+      "count": 460,
+      "type": "FDSE"
+    },
+    {
+      "count": 429,
+      "type": "LUT4"
+    },
+    {
+      "count": 370,
+      "type": "INV"
+    },
+    {
+      "count": 345,
+      "type": "CARRY4"
+    },
+    {
+      "count": 252,
+      "type": "RAM32M"
+    },
+    {
+      "count": 118,
+      "type": "MUXF7"
+    }
+  ]
+}

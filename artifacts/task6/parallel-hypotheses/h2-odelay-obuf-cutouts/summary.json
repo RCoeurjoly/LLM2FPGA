@@ -1,0 +1,31 @@
+{
+  "artifact": "h2-odelay-obuf-cutouts",
+  "date": "2026-04-30",
+  "controller_path": "LiteDRAM/LiteX only",
+  "purpose": "Reduce the LiteDRAM open P&R failure to minimal ODELAYE2 output-buffer topologies.",
+  "source": "fpga/rtl/task6_odelay_obuf_cutout_top.sv",
+  "cases": [
+    {
+      "name": "ODELAYE2 to OBUF",
+      "top": "task6_odelay_obuf_cutout_top",
+      "json_command": "nix build .#task6-odelay-obuf-cutout-json --no-link --print-out-paths",
+      "json_store_path": "/nix/store/cwmkpd4l4ixgnvrczwx9ahw0zgfawjml-task6-odelay-obuf-cutout.json",
+      "fasm_command": "nix build .#task6-odelay-obuf-cutout-fasm --no-link --print-out-paths -L",
+      "failed_derivation": "/nix/store/a9by92gq2m6jza2nm8iq1zjyzhhc5n8p-task6-odelay-obuf-cutout.fasm.drv",
+      "status": "FAIL",
+      "error": "ODELAYE2 'odelay' has DATAOUT connected to unsupported cell type IOB33_OUTBUF"
+    },
+    {
+      "name": "ODELAYE2 to OBUFDS",
+      "top": "task6_odelay_obufds_cutout_top",
+      "json_command": "nix build .#task6-odelay-obufds-cutout-json --no-link --print-out-paths",
+      "json_store_path": "/nix/store/2lsns6b9f6f72jras4sc2ma37lkic6h3-task6-odelay-obufds-cutout.json",
+      "fasm_command": "nix build .#task6-odelay-obufds-cutout-fasm --no-link --print-out-paths -L",
+      "failed_derivation": "/nix/store/xz9x342piwdwi76aczhql1s9j5l2kdp2-task6-odelay-obufds-cutout.fasm.drv",
+      "status": "FAIL",
+      "error": "ODELAYE2 'odelay' has DATAOUT connected to unsupported cell type IOB33M_OUTBUF"
+    }
+  ],
+  "durable_json_policy": "Generated cutout JSON netlists are not copied into the repository because each is about 9.7 MiB; regenerate them with the recorded flake JSON targets when needed.",
+  "inference": "The LiteDRAM probe P&R blocker is reproduced by a one-ODELAY cutout, so the next work should focus on openXC7/nextpnr support for ODELAYE2 output-buffer packing or a valid LiteDRAM PHY output-delay topology adjustment. It is not explained by TinyStories, the full controller size, or the no-iopad versus iopad synthesis choice."
+}

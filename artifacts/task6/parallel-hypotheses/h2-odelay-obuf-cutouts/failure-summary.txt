@@ -1,0 +1,15 @@
+Minimal openXC7 ODELAYE2 output-buffer cutouts on 2026-04-30.
+
+ODELAYE2 -> OBUF:
+- command: nix build .#task6-odelay-obuf-cutout-fasm --no-link --print-out-paths -L
+- failed derivation: /nix/store/a9by92gq2m6jza2nm8iq1zjyzhhc5n8p-task6-odelay-obuf-cutout.fasm.drv
+- error: ODELAYE2 'odelay' has DATAOUT connected to unsupported cell type IOB33_OUTBUF
+
+ODELAYE2 -> OBUFDS:
+- command: nix build .#task6-odelay-obufds-cutout-fasm --no-link --print-out-paths -L
+- failed derivation: /nix/store/xz9x342piwdwi76aczhql1s9j5l2kdp2-task6-odelay-obufds-cutout.fasm.drv
+- error: ODELAYE2 'odelay' has DATAOUT connected to unsupported cell type IOB33M_OUTBUF
+
+Conclusion:
+- The YPCB LiteDRAM/LiteX board probe is blocked by a minimal open P&R
+  primitive-packing issue, not by controller scale or by the Task 6 model.
