@@ -3174,6 +3174,22 @@
               --out "$out"
           '';
 
+        task6YpcbLiteDramConfig =
+          pkgs.runCommand "h2-ypcb-litedram-config" { } ''
+            mkdir -p "$out"
+            ${liteDramPython}/bin/python ${
+              ./scripts/task6
+            }/write_ypcb_litedram_config.py \
+              --memory-ch0-ucf ${ypcbHack}/constraints/MEMORY_CH0.ucf \
+              --memory-ch0-ucf-artifact-label ypcbHack/constraints/MEMORY_CH0.ucf \
+              --part0-pins-xml ${ypcbHack}/ypcb003381p1/1.0/part0_pins.xml \
+              --part0-pins-xml-artifact-label ypcbHack/ypcb003381p1/1.0/part0_pins.xml \
+              --board-xml ${ypcbHack}/ypcb003381p1/1.0/board.xml \
+              --board-xml-artifact-label ypcbHack/ypcb003381p1/1.0/board.xml \
+              --date 2026-04-30 \
+              --out-dir "$out"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -6008,6 +6024,8 @@
             task6Ddr3BoardSupportInventory;
           task6-litedram-open-controller-probe =
             task6LiteDramOpenControllerProbe;
+          task6-ypcb-litedram-config =
+            task6YpcbLiteDramConfig;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =

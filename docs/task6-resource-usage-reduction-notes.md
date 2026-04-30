@@ -11073,11 +11073,12 @@ Decision:
 
 - Do not assume the DDR3 bandwidth probe can be built from existing pinned
   packages.
-- The two realistic next lanes are now explicit:
-  - vendor-MIG lane: use the existing YPCB Vivado MIG metadata/project as a
-    board bring-up reference, but this is not open-toolchain evidence
-  - open-controller lane: add or vendor a reproducible LiteDRAM/LiteX-style
-    generator/config for Kintex-7 plus the YPCB `MT41K256M8XX-125` interface
+- Superseded lane selection:
+  - the vendor-MIG lane is rejected for Task 6 implementation and board
+    bring-up
+  - the active lane is open-controller only: add or vendor a reproducible
+    LiteDRAM/LiteX-style generator/config for Kintex-7 plus the YPCB
+    `MT41K256M8XX-125` interface
 - Keep the next implementation small: DDR3 init plus linear-read bandwidth
   counter first, not rowstream integration.
 
@@ -11172,3 +11173,75 @@ Decision:
 - Keep the rowstream cutout blocked from DDR3 integration until the open
   controller proves init/calibration and measured linear-read bandwidth on the
   board.
+
+### 2026-04-30 - YPCB LiteDRAM 64-bit config bundle
+
+Goal:
+
+- Convert the open YPCB DDR3 CH0 metadata into a reproducible LiteDRAM/LiteX
+  config bundle without using Vivado MIG as a controller lane.
+
+Implementation:
+
+- Added `scripts/task6/write_ypcb_litedram_config.py`.
+- Added flake package:
+  - `task6-ypcb-litedram-config`
+- Copied durable proof:
+  - `artifacts/task6/parallel-hypotheses/h2-ypcb-litedram-config`
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/write_ypcb_litedram_config.py`
+  - `nix-instantiate --parse flake.nix`
+- Rejected attempt:
+  - first `nix build .#task6-ypcb-litedram-config --no-link --print-out-paths -L`
+    failed because the new generator script was not yet tracked by Git, so the
+    flake source snapshot did not include it
+- Fixed and reran:
+  - `git add flake.nix scripts/task6/write_ypcb_litedram_config.py`
+  - `nix build .#task6-ypcb-litedram-config --no-link --print-out-paths -L`
+  - `/nix/store/2skrjxjpzv3b8n2mdr1ib4dqw6973a19-h2-ypcb-litedram-config`
+- Result status: `PASS`
+
+Generated bundle:
+
+- `summary.json`
+- `ypcb_litedram_64bit_payload.yml`
+- `ypcb_litedram_open_io.py`
+- `ypcb_litedram_open_io.xdc`
+
+Measured result:
+
+- Policy:
+  - `vivado_mig_lane`: `rejected`
+  - `controller_path`: `LiteDRAM/LiteX only`
+  - `mig_files_used_for_controller_generation`: `false`
+- Logical LiteDRAM config:
+  - `sdram_module`: `MT41K256M8`
+  - `sdram_module_nb`: `8`
+  - `sdram_phy`: `K7DDRPHY`
+  - payload data width: `64`
+  - input clock: `200 MHz` on `AH27/AH28`
+  - system clock target: `100 MHz`
+  - iodelay clock target: `200 MHz`
+- Open YPCB UCF coverage:
+  - `64` payload DQ pins selected from the first eight x8 byte lanes
+  - `8` payload DQS pairs selected from the first eight byte lanes
+  - the ninth x8 byte lane is present and recorded as ECC/spare
+  - `15` address pins and `3` bank pins are present
+  - DDR3 clock, CKE, CS, ODT, RAS, CAS, WE, and reset pins are present
+- Important board-metadata gap:
+  - open `MEMORY_CH0.ucf` does not expose DDR3 `dm` pins
+  - LiteDRAM's S7 PHY guards DM generation with `hasattr(pads, "dm")`
+  - therefore the next gate should use a custom LiteX target that omits
+    `ddram.dm`, not the stock standalone YAML generator path
+
+Decision:
+
+- Promote the YPCB LiteDRAM config bundle.
+- The next gate is to instantiate a minimal custom LiteX/YPCB `K7DDRPHY`
+  target with the generated no-`dm` DDR3 pads and emit controller RTL without
+  invoking Vivado or MIG.
+- Keep DDR3 rowstream integration blocked until this open controller path
+  proves init/calibration and then linear-read bandwidth on the board.
