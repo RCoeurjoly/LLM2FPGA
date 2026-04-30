@@ -10813,3 +10813,67 @@ Decision:
   work on the memory interface.
 - Next gate: define the DDR3 row-stream interface and keep the Q0.24 comparator
   as the row-score unit.
+
+### 2026-04-30 - DDR3 row-stream interface contract
+
+Goal:
+
+- Convert the passing full-vocab rowwise Q0.24 replay into a concrete memory
+  interface target before any DDR3 controller integration.
+- Keep this as an interface contract and acceptance-gate artifact, not a
+  controller implementation.
+
+Implementation:
+
+- Added `scripts/task6/write_ddr3_row_stream_interface_contract.py`.
+- Added flake package:
+  - `task6-ddr3-row-stream-interface-contract`
+- Copied result artifact:
+  - `artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-interface-contract.json`
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/write_ddr3_row_stream_interface_contract.py`
+  - `nix-instantiate --parse flake.nix`
+- Contract generation:
+  - `nix build .#task6-ddr3-row-stream-interface-contract --no-link --print-out-paths -L`
+  - `/nix/store/qql3sl7wc2jlbfp6vyqvfv8zrqgq8lsz-h2-ddr3-row-stream-interface-contract.json`
+- Contract status: `PASS`
+
+Contract summary:
+
+- Row format: `68` bytes per vocab row.
+  - bytes `0..63`: `64` signed int8 output-head weights
+  - bytes `64..66`: little-endian unsigned Q0.24 row scale
+  - byte `67`: reserved upper byte, required zero
+- DDR3 linear image:
+  - `32` rows per group
+  - `2176` bytes per group
+  - `1571` groups
+  - logical stream bytes: `3417476`
+  - padded stream bytes: `3418496`
+  - tail padding: `15` rows, `1020` bytes
+- Kernel-side row interface:
+  - ready/valid at decoded row granularity
+  - `row_token_id[15:0]`
+  - `row_weight_q_i8[511:0]`
+  - `row_scale_q0_24[23:0]`
+  - reserved-byte-valid and row-last flags
+- Lane budget at `50 MHz`:
+  - `4` DSP lanes: `804112` compute cycles, `212.5 MB/s` useful stream
+    bandwidth target
+  - `8` DSP lanes: `402056` compute cycles, `425.0 MB/s` useful stream
+    bandwidth target
+  - `16` DSP lanes: `201028` compute cycles, `850.0 MB/s` useful stream
+    bandwidth target and bandwidth-limited at one `16`-byte beat per cycle
+
+Decision:
+
+- Promote the DDR3 row-stream contract as the memory-interface target for the
+  full TinyStories output-head lane.
+- First implementation target is the `4`-lane stream. Treat `8` lanes as a
+  bandwidth stretch target and defer `16` lanes until measured DDR3 read
+  throughput justifies it.
+- Next gate: generate and validate a pack/unpack rowstream image, then build a
+  DDR-free RTL rowstream cutout before integrating a DDR3 controller.

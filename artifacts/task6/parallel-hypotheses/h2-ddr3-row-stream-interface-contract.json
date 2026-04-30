@@ -1,0 +1,174 @@
+{
+  "acceptance_gates": [
+    {
+      "gate": "pack-unpack-replay",
+      "requirement": "A generated rowstream image must unpack back to the same rowwise Q0.24 top1/top5 results recorded by the full-vocab replay artifact."
+    },
+    {
+      "gate": "rtl-rowstream-cutout",
+      "requirement": "A Verilator cutout must feed decoded rows through the dot engine and Q0.24 comparator without a DDR3 controller."
+    },
+    {
+      "gate": "ddr3-linear-read-bandwidth",
+      "requirement": "Board DDR3 bring-up must demonstrate sustained linear read bandwidth for the 4-lane target, with margin above 212.5 MB/s useful row payload at 50 MHz."
+    }
+  ],
+  "artifact_name": "h2-ddr3-row-stream-interface-contract",
+  "date": "2026-04-30",
+  "ddr3_linear_image": {
+    "base_symbol": "output_head_rowstream_base",
+    "beat_bytes": 16,
+    "beats_per_group": 136,
+    "group_bytes": 2176,
+    "group_count": 1571,
+    "logical_stream_bytes": 3417476,
+    "padded_stream_bytes": 3418496,
+    "padding_rule": "Rows with token_id >= vocab_size are invalid and must not update top-k state.",
+    "row_address_rule": "group_base + row_in_group * 68; group_base is output_head_rowstream_base + group_index * 2176",
+    "rows_per_group": 32,
+    "tail_padding_bytes": 1020,
+    "tail_padding_rows": 15,
+    "tail_valid_rows": 17
+  },
+  "decision": {
+    "next_gate": "Generate and validate a pack/unpack rowstream image, then build a DDR-free RTL rowstream cutout before integrating a DDR3 controller.",
+    "rationale": "The full-vocab replay passed with zero Q0.24 reserved-byte violations, so the DDR3 work can target this row stream instead of debating row format.",
+    "verdict": "promote-ddr3-row-stream-contract"
+  },
+  "hypothesis": "The full TinyStories output head can be fed from DDR3 as a linear row stream of rowwise int8 payloads plus Q0.24 sidecars, with the existing fixed-point comparator as the row-score unit.",
+  "kernel_side_interface": {
+    "backpressure_rule": "The source may pause between rows. A presented row is consumed only when row_valid and row_ready are both high.",
+    "clock_domain": "kernel clock",
+    "consumer": "dot-product row engine followed by the existing Q0.24 fixed-point score comparator",
+    "flow_control": "ready/valid at decoded row granularity",
+    "signals": [
+      {
+        "bits": 1,
+        "direction": "source_to_kernel",
+        "name": "row_valid"
+      },
+      {
+        "bits": 1,
+        "direction": "kernel_to_source",
+        "name": "row_ready"
+      },
+      {
+        "bits": 16,
+        "direction": "source_to_kernel",
+        "name": "row_token_id"
+      },
+      {
+        "bits": 512,
+        "direction": "source_to_kernel",
+        "name": "row_weight_q_i8"
+      },
+      {
+        "bits": 24,
+        "direction": "source_to_kernel",
+        "name": "row_scale_q0_24"
+      },
+      {
+        "bits": 1,
+        "direction": "source_to_kernel",
+        "name": "row_reserved_valid"
+      },
+      {
+        "bits": 1,
+        "direction": "source_to_kernel",
+        "name": "row_last"
+      }
+    ]
+  },
+  "lane_budget": [
+    {
+      "bytes_per_compute_cycle_required": 4.25,
+      "compute_cycles": 804112,
+      "dsp_lanes": 4,
+      "limiter_if_one_beat_per_cycle": "compute",
+      "minimum_useful_bandwidth_mb_s": 212.5,
+      "row_compute_cycles": 16,
+      "stream_cycles_at_one_beat_per_cycle": 213656,
+      "total_cycles_if_one_beat_per_cycle": 804112
+    },
+    {
+      "bytes_per_compute_cycle_required": 8.5,
+      "compute_cycles": 402056,
+      "dsp_lanes": 8,
+      "limiter_if_one_beat_per_cycle": "compute",
+      "minimum_useful_bandwidth_mb_s": 425.0,
+      "row_compute_cycles": 8,
+      "stream_cycles_at_one_beat_per_cycle": 213656,
+      "total_cycles_if_one_beat_per_cycle": 402056
+    },
+    {
+      "bytes_per_compute_cycle_required": 17.0,
+      "compute_cycles": 201028,
+      "dsp_lanes": 16,
+      "limiter_if_one_beat_per_cycle": "ddr3_bandwidth",
+      "minimum_useful_bandwidth_mb_s": 850.0,
+      "row_compute_cycles": 4,
+      "stream_cycles_at_one_beat_per_cycle": 213656,
+      "total_cycles_if_one_beat_per_cycle": 213656
+    }
+  ],
+  "model": {
+    "hidden_size": 64,
+    "lm_head_tied_to_token_embedding": true,
+    "model_label": "tiny-stories-1m-full",
+    "vocab_size": 50257
+  },
+  "replay_summary": {
+    "max_normalized_rmse": 0.009548773935420423,
+    "reserved_nonzero_count": 0,
+    "sample_count": 8,
+    "status": "PASS",
+    "top1_match_count": 8,
+    "top1_match_rate_vs_f32": 1.0,
+    "top5_overlap_mean": 4.875,
+    "top5_overlap_min": 4
+  },
+  "row_format": {
+    "byte_layout": [
+      {
+        "bytes": 64,
+        "endianness": "dimension order",
+        "field": "weight_q_i8[0:hidden_size]",
+        "offset": 0
+      },
+      {
+        "bytes": 3,
+        "endianness": "little",
+        "field": "scale_q0_24_low24",
+        "offset": 64
+      },
+      {
+        "bytes": 1,
+        "field": "reserved_upper_byte",
+        "offset": 67,
+        "required_value": 0
+      }
+    ],
+    "name": "rowwise-int8-q024-inline-row",
+    "row_bytes": 68,
+    "score_bits": 46,
+    "score_formula": "signed_accumulator * scale_q0_24_low24",
+    "sidecar_bytes": 4,
+    "tie_break": "lower token id wins exact fixed-point score ties",
+    "weight_bytes": 64
+  },
+  "source_artifacts": {
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization",
+    "fixed_point_topk_budget": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-fixed-point-topk-budget.json",
+    "full_vocab_rowwise_topk_contract": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-contract.json",
+    "full_vocab_rowwise_topk_replay": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-replay.json",
+    "q024_comparator_cutout_result": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-result.json"
+  },
+  "status": "PASS",
+  "validation": {
+    "hardware_run": false,
+    "python_run": true,
+    "simulation_run": false,
+    "synthesis_run": false,
+    "validation_kind": "interface-contract-generation"
+  }
+}

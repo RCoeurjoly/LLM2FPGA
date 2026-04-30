@@ -3046,6 +3046,19 @@
               --out "$out"
           '';
 
+        task6Ddr3RowStreamInterfaceContract =
+          pkgs.runCommand "h2-ddr3-row-stream-interface-contract.json" { } ''
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/write_ddr3_row_stream_interface_contract.py \
+              --replay-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-replay.json
+              } \
+              --replay-artifact-label artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-replay.json \
+              --date 2026-04-30 \
+              --out "$out"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -5802,6 +5815,8 @@
             task6Int8VocabOutputHeadTop1Utilization;
           task6-full-vocab-rowwise-topk-replay =
             task6FullVocabRowwiseTopkReplay;
+          task6-ddr3-row-stream-interface-contract =
+            task6Ddr3RowStreamInterfaceContract;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =
