@@ -10991,3 +10991,62 @@ Decision:
 - Next gate: integrate or choose a measured DDR3 linear-read source for the
   same rowstream contract, with the `4`-lane target still gated by measured
   board bandwidth margin above `212.5 MB/s`.
+
+### 2026-04-30 - DDR3 board-support inventory
+
+Goal:
+
+- Summarize the available YPCB DDR3 board metadata before choosing the first
+  controller/bandwidth probe. This separates board facts from open-toolchain
+  controller evidence.
+
+Implementation:
+
+- Added `scripts/task6/summarize_ypcb_ddr3_board_support.py`.
+- Added flake package:
+  - `task6-ddr3-board-support-inventory`
+- Copied durable proof:
+  - `artifacts/task6/parallel-hypotheses/h2-ddr3-board-support-inventory.json`
+
+Verification:
+
+- Syntax checks:
+  - `python3 -m py_compile scripts/task6/summarize_ypcb_ddr3_board_support.py`
+  - `nix-instantiate --parse flake.nix`
+  - `git diff --check`
+- Inventory generation:
+  - `nix build .#task6-ddr3-board-support-inventory --no-link --print-out-paths -L`
+  - `/nix/store/1qdsfd2c2mii79wjnpjqk0vdpz7inxvv-h2-ddr3-board-support-inventory.json`
+- Result status: `PASS`
+
+Measured board facts:
+
+- Board support source: `ypcbHack`.
+- MIG project module: `top_mig_7series_0_0`.
+- Target: `xc7k480t-ffg1156/-2`.
+- Memory device: `DDR3_SDRAM/Components/MT41K256M8XX-125`.
+- MIG interface: `AXI`.
+- MIG data width: `72` bits with ECC enabled, so `64` payload bits.
+- AXI data width in the MIG project: `512` bits.
+- Input clock: `200 MHz`; system clock is differential on `AH27/AH28`.
+- DDR3 timing period: `1875 ps`, about `533.33 MT/s`.
+- Channel 0 constrained pins:
+  - total DDR3 nets: `117`
+  - `ddr3_dq`: `72`
+  - `ddr3_dqs_p`: `9`
+  - `ddr3_dqs_n`: `9`
+  - `ddr3_addr`: `15`
+  - `ddr3_ba`: `3`
+- Derived theoretical payload peak before controller overhead:
+  - `4266.67 MB/s`
+  - about `20.08x` the Task 6 `4`-lane useful target of `212.5 MB/s`
+
+Decision:
+
+- Promote the board-support inventory.
+- The board metadata is viable for the Task 6 rowstream bandwidth target in
+  principle, but it is Vivado MIG-oriented metadata, not open-toolchain DDR3
+  controller evidence.
+- Next gate: choose or build the smallest DDR3 init/linear-read bandwidth probe
+  first; only connect it to the rowstream cutout after measured board bandwidth
+  is available.

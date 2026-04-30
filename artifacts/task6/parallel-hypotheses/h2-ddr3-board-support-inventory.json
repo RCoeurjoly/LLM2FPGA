@@ -1,0 +1,163 @@
+{
+  "artifact_name": "h2-ddr3-board-support-inventory",
+  "status": "PASS",
+  "date": "2026-04-30",
+  "hypothesis": "Before wiring the Task 6 rowstream to external memory, summarize the available YPCB DDR3 board metadata and distinguish board facts from controller-integration evidence.",
+  "source_artifacts": {
+    "mig_prj": "ypcbHack/ypcb003381p1/1.0/mig_0.prj",
+    "memory_ch0_ucf": "ypcbHack/constraints/MEMORY_CH0.ucf",
+    "board_xml": "ypcbHack/ypcb003381p1/1.0/board.xml",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "board_support": {
+    "mig_project": {
+      "module_name": "top_mig_7series_0_0",
+      "target_fpga": "xc7k480t-ffg1156/-2",
+      "system_clock": "Differential",
+      "reference_clock": "Use System Clock",
+      "sys_reset_polarity": "ACTIVE LOW",
+      "controller": {
+        "memory_device": "DDR3_SDRAM/Components/MT41K256M8XX-125",
+        "time_period_ps": 1875,
+        "input_clk_freq_mhz": 200,
+        "phy_ratio": "4:1",
+        "data_width": 72,
+        "data_mask": 0,
+        "ecc": "Enabled",
+        "row_address_bits": 15,
+        "col_address_bits": 10,
+        "bank_address_bits": 3,
+        "memory_size_bytes": 2147483648,
+        "user_memory_address_map": "BANK_ROW_COLUMN",
+        "port_interface": "AXI",
+        "system_clock_pin": {
+          "Bank": "12",
+          "PADName": "AH27/AH28(CC_P/N)",
+          "name": "c0_sys_clk_p/n"
+        },
+        "timing_parameters": {
+          "tcke": "5",
+          "tfaw": "30",
+          "tras": "35",
+          "trcd": "13.75",
+          "trefi": "7.8",
+          "trfc": "160",
+          "trp": "13.75",
+          "trrd": "6",
+          "trtp": "7.5",
+          "twtr": "7.5"
+        },
+        "axi_parameters": {
+          "C0_C_RD_WR_ARB_ALGORITHM": "RD_PRI_REG",
+          "C0_S_AXI_ADDR_WIDTH": "31",
+          "C0_S_AXI_DATA_WIDTH": "512",
+          "C0_S_AXI_ID_WIDTH": "4",
+          "C0_S_AXI_SUPPORTS_NARROW_BURST": "0"
+        }
+      },
+      "pin_selection": {
+        "total_pins": 117,
+        "counts_by_signal": {
+          "ddr3_addr": 15,
+          "ddr3_ba": 3,
+          "ddr3_cas_n": 1,
+          "ddr3_ck_n": 1,
+          "ddr3_ck_p": 1,
+          "ddr3_cke": 1,
+          "ddr3_cs_n": 1,
+          "ddr3_dq": 72,
+          "ddr3_dqs_n": 9,
+          "ddr3_dqs_p": 9,
+          "ddr3_odt": 1,
+          "ddr3_ras_n": 1,
+          "ddr3_reset_n": 1,
+          "ddr3_we_n": 1
+        }
+      }
+    },
+    "memory_ch0_ucf": {
+      "total_constrained_nets": 117,
+      "counts_by_net": {
+        "ddr3_addr": 15,
+        "ddr3_ba": 3,
+        "ddr3_cas_n": 1,
+        "ddr3_ck_n": 1,
+        "ddr3_ck_p": 1,
+        "ddr3_cke": 1,
+        "ddr3_cs_n": 1,
+        "ddr3_dq": 72,
+        "ddr3_dqs_n": 9,
+        "ddr3_dqs_p": 9,
+        "ddr3_odt": 1,
+        "ddr3_ras_n": 1,
+        "ddr3_reset_n": 1,
+        "ddr3_we_n": 1
+      }
+    },
+    "board_xml": {
+      "ddr3_interfaces": [
+        {
+          "name": "ddr3_sdram_ch0",
+          "mode": "master",
+          "type": "xilinx.com:interface:ddrx_rtl:1.0",
+          "preset_proc": "ddr3_sdram_ch0_preset",
+          "preferred_ip": [
+            {
+              "vendor": "xilinx.com",
+              "library": "ip",
+              "name": "mig_7series",
+              "order": "0"
+            }
+          ]
+        },
+        {
+          "name": "ddr3_sdram_ch1",
+          "mode": "master",
+          "type": "xilinx.com:interface:ddrx_rtl:1.0",
+          "preset_proc": "ddr3_sdram_ch1_preset",
+          "preferred_ip": [
+            {
+              "vendor": "xilinx.com",
+              "library": "ip",
+              "name": "mig_7series",
+              "order": "0"
+            }
+          ]
+        },
+        {
+          "name": "ddr3_sdram_ch01",
+          "mode": "master",
+          "type": "xilinx.com:interface:ddrx_rtl:1.0",
+          "preset_proc": "ddr3_sdram_ch01_preset",
+          "preferred_ip": [
+            {
+              "vendor": "xilinx.com",
+              "library": "ip",
+              "name": "mig_7series",
+              "order": "0"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "derived": {
+    "logical_payload_width_bits": 64,
+    "ddr_peak_mt_s_from_mig_time_period": 533.3333333333334,
+    "peak_payload_mb_s_before_controller_overhead": 4266.666666666667,
+    "task6_4_lane_required_useful_mb_s": 212.5,
+    "task6_4_lane_peak_margin_x": 20.07843137254902
+  },
+  "validation": {
+    "python_run": true,
+    "simulation_run": false,
+    "synthesis_run": false,
+    "hardware_run": false,
+    "validation_kind": "ddr3-board-support-inventory"
+  },
+  "decision": {
+    "verdict": "promote-ddr3-board-support-inventory",
+    "next_gate": "Choose a controller path and build the smallest DDR3 init/linear-read bandwidth probe before connecting it to the rowstream cutout.",
+    "controller_note": "The checked board support is Vivado MIG-oriented. This is board metadata, not open-toolchain DDR3 controller evidence."
+  }
+}

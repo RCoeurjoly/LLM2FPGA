@@ -3105,6 +3105,21 @@
               --out-dir "$out"
           '';
 
+        task6Ddr3BoardSupportInventory =
+          pkgs.runCommand "h2-ddr3-board-support-inventory.json" { } ''
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/summarize_ypcb_ddr3_board_support.py \
+              --mig-prj ${ypcbHack}/ypcb003381p1/1.0/mig_0.prj \
+              --mig-prj-artifact-label ypcbHack/ypcb003381p1/1.0/mig_0.prj \
+              --memory-ch0-ucf ${ypcbHack}/constraints/MEMORY_CH0.ucf \
+              --memory-ch0-ucf-artifact-label ypcbHack/constraints/MEMORY_CH0.ucf \
+              --board-xml ${ypcbHack}/ypcb003381p1/1.0/board.xml \
+              --board-xml-artifact-label ypcbHack/ypcb003381p1/1.0/board.xml \
+              --date 2026-04-30 \
+              --out "$out"
+          '';
+
         task6Int8L2CFcPostGeluRequantTbDataSv =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -5935,6 +5950,8 @@
             task6Ddr3RowStreamCutoutSimMain;
           task6-ddr3-row-stream-cutout-sv-sim =
             task6Ddr3RowStreamCutoutSvSim;
+          task6-ddr3-board-support-inventory =
+            task6Ddr3BoardSupportInventory;
           task6-int8-l2-mlp-chain-residual-add-selftest-top =
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =
