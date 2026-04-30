@@ -1,0 +1,58 @@
+{"artifact_name":"h2-v4k-rowpack-replay-tooling-gate","status":"BLOCKED","date":"2026-04-30","hypothesis":"The highest-value next Task 6 experiment is still the v4k tied-rowpack replay: prove one physical token row pack can serve embedding lookup and streamed lm_head top-k before changing RTL or preparing another board-facing package. This invocation rejects starting that implementation because Python and normal repository tooling remain blocked, so any new script would be non-executable and would not improve evidence.","source_artifacts":{"v1k_board_anchor":"artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json","v4k_scale_summary":"artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json","vocab_memory_surface":"artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json","v4k_onchip_vocab_prototype":"artifacts/task6/parallel-hypotheses/h2-v4k-onchip-vocab-prototype.json","v4k_rowpack_contract":"artifacts/task6/parallel-hypotheses/h2-v4k-tied-rowpack-replay-contract.json","v4k_output_head_top1_rtl":"artifacts/task6/parallel-hypotheses/h2-v4k-int8-vocab-output-head-top1-rtl-proof.json","v4k_residual_add_rtl":"artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json"},"commands":[{"cmd":"sed read AUTONIGHT_STATUS and required evidence artifacts","exit_code":0},{"cmd":"python3 --version","exit_code":1,"failure":"bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},{"cmd":"sed -n 1,220p scripts/task6/check_v4k_tied_vocab_rowpack_topk.py","exit_code":2,"failure":"No such file or directory"},{"cmd":"git status --short --branch","exit_code":1,"failure":"bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},{"cmd":"apply_patch add h2-v4k-rowpack-replay-tooling-gate.json","exit_code":1,"failure":"Failed to write file"},{"cmd":"sed substitution write h2-v4k-rowpack-replay-tooling-gate.json and run copy","exit_code":0}],"metrics":{"current_compute_pack":{"quantization":"int8-per-tensor-symmetric","token_rows":4096,"bytes_per_token_row":64,"token_table_bytes":262144,"compact_bram36_ceiling":57,"rtl_banked_bram36_observed":64,"top1_index":1321,"top1_matches_f32":true,"normalized_rmse":0.012752468245904739},"rowwise_storage_pack":{"quantization":"rowwise-int8-with-sidecar","token_rows":4096,"bytes_per_token_row":68,"token_table_bytes":278528,"token_plus_position_bytes":287232,"token_plus_position_compact_bram36_ceiling":63,"sidecar_overhead_bytes":16384,"sidecar_overhead_pct_vs_64_byte_pack":6.25},"validation_available_this_slice":{"python":false,"git_status":false,"script_exists":false,"board_access":false,"simulation_run":false,"synthesis_run":false}},"decision":{"verdict":"reject-code-change-until-tooling-recovers","rationale":"The rowpack replay must inspect weights and traces and compute top1 top5 RMSE across deterministic samples. With Python unavailable and the target script absent, creating an unvalidated script or launching synthesis would add noise rather than evidence.","next_gate":"Recover Python apply_patch git or move to an environment where they work, then implement scripts/task6/check_v4k_tied_vocab_rowpack_topk.py and emit a regenerated PASS or PARTIAL artifact with top1 top5 match rates, RMSE distributions, row payload hashes, and compact-versus-banked BRAM accounting."},"hardware_execution":{"status":"BLOCKED","reason":"no board access in this run","hardware_commands_executed":false}}
+
+## Last iteration
+Hypothesis: The next v4k tied-vocab gate should prove one physical token row pack can serve both embedding lookup and streamed lm_head top-k before any more board-facing packaging. The key reconciliation is that the existing output-head RTL proof uses a 64-byte per-token int8 per-tensor compute pack, while the memory scorecard budgets a 68-byte rowwise-int8 storage pack with sidecar bytes.
+
+Result: Created artifacts/task6/parallel-hypotheses/h2-v4k-tied-rowpack-replay-contract.json and copied it into artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-v4k-tied-rowpack-replay-contract.json. The artifact is PARTIAL because Python, git, ls/find, apply_patch, and shell redirection still fail with the bwrap loopback error. Validation was sed readback only. No board, JTAG, OpenFPGALoader, FTDI/MPSSE polling, synthesis, or simulation command was run.
+
+## Current best evidence
+- v1k bounded int8 L2 MLP/residual-add remains the stable prior board anchor: simulation PASS, JTAG SELFTEST_PASS, regular bitstream programmed, 10,733 LUT, 6,530 FF, 10 DSP, and 11.0 BRAM36-equivalent.
+- v4k bounded MLP/residual plus streamed tied-vocab output-head has off-board PASS evidence: SV simulation PASS at cycle 265719, no DDR3, routed bitstream exists, 13,629 LUT, 8,845 FF, 14 DSP, 132.0 BRAM36-equivalent, and 77.99 MHz post-route Fmax against 50 MHz.
+- v4k tied vocab remains on-chip sized by the memory scorecard: compact rowwise int8 token plus position storage is 287,232 bytes and 63 BRAM36 ceiling.
+- The existing v4k output-head RTL proof is a different concrete pack: int8 per-tensor symmetric, 64 bytes per token row, 262,144 token bytes, 57 compact BRAM36 ceiling, 64 banked RTL BRAM36 observed, top1 index 1321 matches f32, normalized RMSE 0.012752468245904739.
+- Full TinyStories output-head planning still promotes a 4-lane rowwise-int8 external top-k stream as the first full-vocab contract; 8 lanes is conditional on DDR efficiency, and 16 lanes is deferred.
+- The v4k bitstream has not been observed on physical board hardware. This run has no board access, so no new hardware result was attempted or claimed.
+
+## Accepted/promoted changes
+- Created artifacts/task6/parallel-hypotheses/h2-v4k-tied-rowpack-replay-contract.json.
+- Created artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-v4k-tied-rowpack-replay-contract.json.
+- Updated artifacts/task6/autonight/20260430-002543-task6-codex-night/handoff.json.
+- Promoted the next v4k tied-vocab gate as a replay reconciliation between Profile A 64-byte per-tensor rows and Profile B 68-byte rowwise rows before any RTL change.
+
+## Rejected attempts
+- python3 --version failed with exit code 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted.
+- git status --short --branch failed with exit code 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted.
+- ls -la artifacts/task6/autonight and ls -la artifacts/task6/autonight/20260430-002543-task6-codex-night failed with exit code 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted.
+- apply_patch add of h2-v4k-tied-rowpack-replay-contract.json failed with exit code 1: Failed to write file.
+- sed substitution write using shell redirection failed with exit code 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted.
+- No OpenFPGALoader, JTAG, FTDI/MPSSE polling, FPGA programming, full synthesis, full TinyStories monolithic build, or remote push was attempted.
+
+## Commands run
+- sed reads of AUTONIGHT_STATUS.md and required h2 evidence artifacts: PASS.
+- sed reads of h2-v4k-onchip-vocab-prototype.json, h2-v4k-board-replay-package-prepared.json, h2-attention-residual-scaling-scorecard.json, h2-full-output-head-external-memory-plan.json, h2-v4k-int8-vocab-output-head-top1-rtl-proof.json, and h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json: PASS.
+- python3 --version: FAIL exit 1, bwrap loopback error.
+- git status --short --branch: FAIL exit 1, bwrap loopback error.
+- ls -la artifacts/task6/autonight and run dir: FAIL exit 1, bwrap loopback error.
+- apply_patch add h2-v4k-tied-rowpack-replay-contract.json: FAIL exit 1, Failed to write file.
+- sed substitution write with shell redirection: FAIL exit 1, bwrap loopback error.
+- sed w write of write probes, h2-v4k-tied-rowpack-replay-contract.json, run copy, and handoff.json: PASS.
+- sed readback of both h2-v4k-tied-rowpack-replay-contract.json copies: PASS.
+
+## Files changed
+- AUTONIGHT_STATUS.md.
+- artifacts/task6/parallel-hypotheses/h2-v4k-tied-rowpack-replay-contract.json.
+- artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-v4k-tied-rowpack-replay-contract.json.
+- artifacts/task6/autonight/20260430-002543-task6-codex-night/handoff.json.
+- artifacts/task6/autonight/20260430-002543-task6-codex-night/write-probe-inv6.json.
+- artifacts/task6/autonight/20260430-002543-task6-codex-night/write-probe-newline.txt.
+
+## Open risks
+- Python, apply_patch, git, rg/find/ls, and shell redirection remain blocked by the bwrap loopback error, preventing executable replay, JSON parsing validation, and clean git inspection.
+- The new row-pack contract is static and PARTIAL until a script regenerates it from source weights and trace artifacts.
+- The current v4k output-head evidence proves a per-tensor 64-byte compute pack, while the memory scorecard budgets rowwise 68-byte storage. The next replay must choose the smaller passing contract or justify the rowwise sidecars before RTL changes.
+- Multi-sample quantization calibration remains blocked until Python works.
+- v4k residual-add output-head bitstream still needs a physical board pass/fail observation in a later board-access session.
+
+## Next recommended step
+First recover Python and apply_patch tooling. Then implement scripts/task6/check_v4k_tied_vocab_rowpack_topk.py to run Profile A with 64-byte per-tensor rows and Profile B with 68-byte rowwise rows, report top1/top5 agreement, normalized RMSE, row payload hashes, and compact-versus-banked BRAM estimates for at least 8 deterministic samples. If Python remains blocked in the next invocation, do not start synthesis; continue only with sed-verifiable scorecards or tooling recovery.
+

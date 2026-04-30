@@ -1,0 +1,107 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-expected-state",
+  "status": "PARTIAL",
+  "date": "2026-04-30",
+  "hypothesis": "A Q0.24 score-comparator cutout can be validated without model replay by checking the top1 state after each accepted or rejected candidate. The useful next fixture is therefore a deterministic expected-state table that future RTL and Python checks can compare against directly.",
+  "source_artifacts": {
+    "cutout_spec": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-spec.json",
+    "vectors": "artifacts/task6/parallel-hypotheses/h2-q024-topk-score-comparator-vectors.json",
+    "fixed_point_budget": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-fixed-point-topk-budget.json",
+    "topk_contract": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-contract.json",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "initial_state": {
+    "top_token_id": 65535,
+    "top_score_signed_q024": -35184372088832,
+    "top_score_note": "46-bit signed minimum sentinel; lower than the conservative candidate-score range",
+    "error_reserved_bits": false
+  },
+  "expected_sequences": [
+    {
+      "name": "scaled_score_beats_raw_accumulator_order",
+      "steps": [
+        {"candidate_token": 7, "candidate_accumulator": 1000, "sidecar_word_hex": "0x00800000", "candidate_valid": true, "candidate_score_signed_q024": 8388608000, "expected_error_reserved_bits": false, "expected_top_token_id": 7, "expected_top_score_signed_q024": 8388608000, "expected_update": true},
+        {"candidate_token": 9, "candidate_accumulator": 1200, "sidecar_word_hex": "0x00600000", "candidate_valid": true, "candidate_score_signed_q024": 7549747200, "expected_error_reserved_bits": false, "expected_top_token_id": 7, "expected_top_score_signed_q024": 8388608000, "expected_update": false}
+      ],
+      "expected_final_top_token": 7
+    },
+    {
+      "name": "signed_score_ordering",
+      "steps": [
+        {"candidate_token": 2, "candidate_accumulator": -10, "sidecar_word_hex": "0x00800000", "candidate_valid": true, "candidate_score_signed_q024": -83886080, "expected_error_reserved_bits": false, "expected_top_token_id": 2, "expected_top_score_signed_q024": -83886080, "expected_update": true},
+        {"candidate_token": 8, "candidate_accumulator": -9, "sidecar_word_hex": "0x00800000", "candidate_valid": true, "candidate_score_signed_q024": -75497472, "expected_error_reserved_bits": false, "expected_top_token_id": 8, "expected_top_score_signed_q024": -75497472, "expected_update": true},
+        {"candidate_token": 4, "candidate_accumulator": 0, "sidecar_word_hex": "0x00ffffff", "candidate_valid": true, "candidate_score_signed_q024": 0, "expected_error_reserved_bits": false, "expected_top_token_id": 4, "expected_top_score_signed_q024": 0, "expected_update": true}
+      ],
+      "expected_final_top_token": 4
+    },
+    {
+      "name": "lower_token_tie_break_original_order",
+      "steps": [
+        {"candidate_token": 11, "candidate_accumulator": 512, "sidecar_word_hex": "0x00400000", "candidate_valid": true, "candidate_score_signed_q024": 2147483648, "expected_error_reserved_bits": false, "expected_top_token_id": 11, "expected_top_score_signed_q024": 2147483648, "expected_update": true},
+        {"candidate_token": 3, "candidate_accumulator": 1024, "sidecar_word_hex": "0x00200000", "candidate_valid": true, "candidate_score_signed_q024": 2147483648, "expected_error_reserved_bits": false, "expected_top_token_id": 3, "expected_top_score_signed_q024": 2147483648, "expected_update": true}
+      ],
+      "expected_final_top_token": 3
+    },
+    {
+      "name": "lower_token_tie_break_reversed_order",
+      "steps": [
+        {"candidate_token": 3, "candidate_accumulator": 1024, "sidecar_word_hex": "0x00200000", "candidate_valid": true, "candidate_score_signed_q024": 2147483648, "expected_error_reserved_bits": false, "expected_top_token_id": 3, "expected_top_score_signed_q024": 2147483648, "expected_update": true},
+        {"candidate_token": 11, "candidate_accumulator": 512, "sidecar_word_hex": "0x00400000", "candidate_valid": true, "candidate_score_signed_q024": 2147483648, "expected_error_reserved_bits": false, "expected_top_token_id": 3, "expected_top_score_signed_q024": 2147483648, "expected_update": false}
+      ],
+      "expected_final_top_token": 3
+    },
+    {
+      "name": "reserved_upper_byte_reject",
+      "steps": [
+        {"candidate_token": 5, "candidate_accumulator": 1, "sidecar_word_hex": "0x01800000", "candidate_valid": false, "candidate_score_signed_q024_if_accepted": 8388608, "expected_error_reserved_bits": true, "expected_top_token_id": 65535, "expected_top_score_signed_q024": -35184372088832, "expected_update": false}
+      ],
+      "expected_final_top_token": 65535
+    },
+    {
+      "name": "conservative_register_bound",
+      "steps": [
+        {"candidate_token": 50256, "candidate_accumulator": 1048576, "sidecar_word_hex": "0x00ffffff", "candidate_valid": true, "candidate_score_signed_q024": 17592184995840, "expected_error_reserved_bits": false, "expected_top_token_id": 50256, "expected_top_score_signed_q024": 17592184995840, "expected_update": true},
+        {"candidate_token": 0, "candidate_accumulator": -1048576, "sidecar_word_hex": "0x00ffffff", "candidate_valid": true, "candidate_score_signed_q024": -17592184995840, "expected_error_reserved_bits": false, "expected_top_token_id": 50256, "expected_top_score_signed_q024": 17592184995840, "expected_update": false}
+      ],
+      "expected_final_top_token": 50256
+    }
+  ],
+  "pass_fail": {
+    "pass": [
+      "each sequence emits the listed top token and signed Q0.24 score after every step, allowing for the implementation latency declared by the RTL testbench",
+      "reserved upper sidecar bits assert error and do not update top1 state",
+      "the tie-break sequence passes in both original and reversed candidate order",
+      "the conservative bound sequence preserves 17592184995840 without score-register truncation"
+    ],
+    "fail": [
+      "token 9 beats token 7 in the scaled-score vector",
+      "negative scaled scores are compared as unsigned",
+      "exact ties depend on row arrival order",
+      "reserved sidecar metadata updates top1 state",
+      "the bound score is truncated or saturated"
+    ]
+  },
+  "validation": {
+    "method": "static expected-state expansion from checked-in vector artifact; sed readback only",
+    "python_run": false,
+    "simulation_run": false,
+    "synthesis_run": false,
+    "hardware_run": false,
+    "hardware_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run",
+    "tooling_blocked": ["python3", "verilator", "git", "ls", "find", "rg", "apply_patch"]
+  },
+  "commands": [
+    {"cmd": "sed reads of AUTONIGHT_STATUS.md and required Task 6 evidence artifacts", "exit_code": 0},
+    {"cmd": "python3 --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "verilator --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "ls, rg, find, git status, and shell-glob inspection probes", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "apply_patch add h2-q024-topk-comparator-cutout-expected-state.json", "exit_code": 1, "failure": "Failed to write file"},
+    {"cmd": "interactive sed -n w artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json", "exit_code": 0}
+  ],
+  "decision": {
+    "verdict": "promote-prepared-expected-state-only",
+    "rationale": "The expected-state table gives the next RTL/Python implementation a direct oracle while keeping this no-board, tool-blocked invocation from claiming executable validation.",
+    "next_gate": "When Python and Verilator recover, implement rtl/task6/task6_q024_topk_score_compare.sv and its testbench against this expected-state artifact, then emit h2-q024-topk-comparator-cutout-result.json."
+  }
+}

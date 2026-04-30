@@ -1,0 +1,39 @@
+{
+  "artifact_name": "h2-v4k-onchip-vocab-prototype-plan",
+  "status": "PARTIAL",
+  "date": "2026-04-30",
+  "hypothesis": "The v4k tied-token table can be the next board-facing no-DDR3 prototype by sharing one physical int8 token table between embedding lookup and lm_head top1 streaming, keeping position embedding separate, and avoiding full-logit materialization. This invocation promotes only the off-board package plan because board access is unavailable and Python/JQ are blocked.",
+  "source_artifacts": [
+    "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "artifacts/task6/parallel-hypotheses/h2-v4k-int8-vocab-output-head-top1-rtl-proof.json"
+  ],
+  "metrics": {
+    "vocab_size": 4096,
+    "hidden_size": 64,
+    "row_payload_int8_bytes": 64,
+    "rowwise_sidecar_bytes_per_row": 4,
+    "token_rowwise_int8_bytes": 278528,
+    "position_rowwise_int8_bytes": 8704,
+    "compact_tied_token_plus_position_rowwise_int8_bytes": 287232,
+    "compact_tied_token_plus_position_bram36_ceiling": 63,
+    "current_rtl_vocab_payload_int8_bytes": 262144,
+    "current_rtl_vocab_payload_bram36_mapped": 64,
+    "lm_head_extra_physical_bytes": 0,
+    "output_head_macs_per_token": 262144,
+    "min_compute_cycles_at_4_lanes": 65536,
+    "observed_top1_kernel_cycles": 70787,
+    "observed_top1_to_min_cycle_ratio": 1.0801239013671875,
+    "int8_logits_buffer_avoided_bytes": 4096,
+    "integrated_sv_sim_pass_cycle": 265719,
+    "integrated_mapped_bram36_equiv": 132.0,
+    "integrated_post_route_fmax_mhz": 77.99
+  },
+  "prototype_plan": "Use the shared int8 token table for both embedding lookup and streamed top1 output projection; keep position embedding as a 128-row side table; keep only top1 accumulator and index on chip; do not allocate a logits buffer.",
+  "prepared_later_offboard_commands": ["nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim", "nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-utilization", "nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-bitstream"],
+  "prepared_later_board_commands": ["openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 ./result", "python3 scripts/task6/read_jtag_debug_xvc.py --poll --poll-count 50 --poll-interval 0.1"],
+  "validation": {"sed_readback": "PASS", "python_json_validation": "BLOCKED", "jq_validation": "BLOCKED", "hardware_execution_status": "BLOCKED", "hardware_block_reason": "no board access in this run"},
+  "decision": "promote-prepared-only",
+  "next_gate": "When executable tooling recovers, regenerate this artifact from a script or rerun the SV sim attr. When board access returns, build the bitstream attr and execute the prepared board commands as a human-run gate."
+}

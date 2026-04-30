@@ -1,31 +1,5 @@
-# Task 6 Codex overnight session
-
-- session_id: 20260430-002543-task6-codex-night
-- branch: task6-streamtensor-lite
-- start: 2026-04-30T00:25:43+02:00
-- duration_hours: 8
-- slice_minutes: 35
-- idle_timeout_minutes: 90
-- sandbox: workspace-write
-- program: autonight/task6_codex_program.md
-- status_file: AUTONIGHT_STATUS.md
-- codex_version: codex-cli 0.125.0
-
-## Initial git status
-
-```
- M AUTONIGHT_STATUS.md
- M autonight/task6_codex_program.md
-?? artifacts/task6/autonight/20260430-001227-task6-codex-night/
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/
-```
-
-## Final git status
-
-```
  M AUTONIGHT_STATUS.md
  M artifacts/task6/autonight/20260430-002543-task6-codex-night/driver.csv
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/SUMMARY.md
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-002.patch
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-003.patch
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-004.patch
@@ -45,21 +19,6 @@
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-018.patch
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-019.patch
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-020.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-021.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-022.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-023.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-024.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-025.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-026.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-027.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-028.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-029.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-030.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-031.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-032.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-033.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-034.patch
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-035.patch
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-attention-residual-scaling-law-scorecard.json
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-attention-residual-scaling-scorecard.json
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-full-output-head-external-memory-plan.json
@@ -70,11 +29,6 @@
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-expected-state.json
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-rtl-prepared.json
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-spec.json
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-static-width-hardening-invocation27.json
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-validation-blocked-invocation23.json
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-validation-blocked-invocation24.json
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-validation-blocked-invocation25.json
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-validation-blocked-invocation26.json
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-comparator-cutout-validation-blocked.json
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-q024-topk-score-comparator-vectors.json
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-v4k-board-replay-prepared-package.json
@@ -108,20 +62,6 @@
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-019.md
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-020.md
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-021.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-022.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-023.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-024.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-025.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-026.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-027.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-028.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-029.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-030.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-031.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-032.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-033.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-034.md
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-035.md
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-002.status.txt
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-003.status.txt
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-004.status.txt
@@ -142,20 +82,6 @@
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-019.status.txt
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-020.status.txt
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-021.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-022.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-023.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-024.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-025.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-026.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-027.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-028.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-029.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-030.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-031.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-032.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-033.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-034.status.txt
-?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-035.status.txt
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/write-probe-inv6.json
 ?? artifacts/task6/autonight/20260430-002543-task6-codex-night/write-probe-newline.txt
 ?? artifacts/task6/parallel-hypotheses/h2-attention-residual-scaling-law-scorecard.json
@@ -169,18 +95,6 @@
 ?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json
 ?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-rtl-prepared.json
 ?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-spec.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-static-width-hardening-invocation27.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation23.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation24.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation25.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation26.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation28.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation29.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation30.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation32.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation33.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation34.json
-?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation35.json
 ?? artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked.json
 ?? artifacts/task6/parallel-hypotheses/h2-q024-topk-score-comparator-vectors.json
 ?? artifacts/task6/parallel-hypotheses/h2-v4k-board-replay-prepared-package.json
@@ -192,6 +106,3 @@
 ?? artifacts/task6/parallel-hypotheses/h2-v4k-tied-rowpack-replay-contract.json
 ?? rtl/task6/task6_q024_topk_score_compare.sv
 ?? rtl/task6/task6_q024_topk_score_compare_tb.sv
-```
-
-Finished: 2026-04-30T08:24:18+02:00

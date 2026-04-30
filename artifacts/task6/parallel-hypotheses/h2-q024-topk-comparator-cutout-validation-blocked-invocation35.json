@@ -1,0 +1,58 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-validation-blocked-invocation35",
+  "status": "BLOCKED",
+  "date": "2026-04-30",
+  "invocation": 35,
+  "hypothesis": "Invocation 35 should continue the smallest unfinished Task 6 gate: first executable validation of the hardened Q0.24 top-k comparator cutout. If command startup recovered, Verilator would compile and run the checked-in RTL/testbench against the expected-state oracle; because Verilator still fails before compilation with the sandbox loopback error, no simulator, Python replay, synthesis, bitstream, or hardware evidence is promoted.",
+  "source_artifacts": {
+    "status_file": "AUTONIGHT_STATUS.md",
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "q024_expected_state": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json",
+    "invocation34_blocked_artifact": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation34.json",
+    "rtl": "rtl/task6/task6_q024_topk_score_compare.sv",
+    "testbench": "rtl/task6/task6_q024_topk_score_compare_tb.sv",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "commands": [
+    {"cmd": "sed -n '1,220p' AUTONIGHT_STATUS.md", "exit_code": 0},
+    {"cmd": "sed reads of h2-int8-l2-selftest-board-comparison.json, h2-v4k-scale-up-summary.json, and h2-vocab-memory-surface-score.json", "exit_code": 0},
+    {"cmd": "find artifacts/task6/autonight -maxdepth 3 -type f -printf '%T@ %p\\n' | sort -nr | head -40", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed reads of Q0.24 expected-state artifact, RTL, testbench, invocation34 blocked artifact, and current handoff", "exit_code": 0},
+    {"cmd": "verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "apply_patch add h2-q024-topk-comparator-cutout-validation-blocked-invocation35.json", "exit_code": 1, "failure": "Failed to write file /home/roland/LLM2FPGA_task6_streamtensor_lite/artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation35.json"},
+    {"cmd": "sed -n 'w artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation35.json'", "exit_code": 0}
+  ],
+  "metrics": {
+    "sed_readback_passed": true,
+    "recent_autonight_listing_run": false,
+    "recent_autonight_listing_blocked": true,
+    "verilator_command_attempted": true,
+    "verilator_compile_run": false,
+    "verilator_failure_stage": "process_startup",
+    "python_run": false,
+    "git_status_run": false,
+    "simulation_run": false,
+    "synthesis_run": false,
+    "bitstream_generation_run": false,
+    "hardware_run": false,
+    "hardware_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run",
+    "q024_expected_sequences_read": 6,
+    "q024_expected_candidate_steps_read": 11,
+    "rtl_accumulator_bits": 22,
+    "rtl_scale_bits": 24,
+    "rtl_product_bits_static_readback": 47,
+    "rtl_output_score_bits": 46,
+    "rtl_tie_break": "lower token id wins exact score ties",
+    "rtl_reserved_sidecar_policy": "upper 8 sidecar bits set sticky error and do not update top1 state",
+    "static_readback_mismatch_observed": false
+  },
+  "decision": {
+    "verdict": "blocked-no-new-promotion",
+    "rationale": "The Q0.24 comparator remains the right tiny gate, but the only executable validation attempted in this invocation failed before compilation. Static readback did not reveal a mismatch with the prepared oracle, but that is not simulator evidence.",
+    "next_gate": "Recover command startup, then run: verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv && ./obj_dir/Vtask6_q024_topk_score_compare_tb. If it passes, emit h2-q024-topk-comparator-cutout-result.json; if it fails, fix only the tiny comparator/testbench."
+  },
+  "next_gate": "First simulator validation of the hardened Q0.24 comparator cutout; no DDR3 integration, full TinyStories synthesis, OpenFPGALoader, JTAG, FTDI, or MPSSE commands."
+}

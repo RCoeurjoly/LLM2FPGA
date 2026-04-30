@@ -1,0 +1,113 @@
+diff --git a/AUTONIGHT_STATUS.md b/AUTONIGHT_STATUS.md
+index 76e6c16..679414a 100644
+--- a/AUTONIGHT_STATUS.md
++++ b/AUTONIGHT_STATUS.md
+@@ -1,60 +1,56 @@
+ # AUTONIGHT_STATUS
+ 
+ ## Last iteration
+-Hypothesis: the current repository evidence already advances priority A beyond the supervisor prompt, because the v4k residual-add plus streamed tied-vocab output-head has passed SV simulation, mapped utilization, routing, and bitstream generation. Therefore this slice should not spend time on another v4k synthesis replay; the next bounded gate is board observation of the existing bitstream, or Python-only multi-sample quantization calibration if board access is unavailable.
++Hypothesis: The selected bounded experiment for this slice was Priority A, the v4k tied-rowpack replay gate. The hypothesis is that Task 6 should not change v4k vocab RTL or prepare another board-facing package until one physical token row pack is proven to serve both embedding lookup and streamed lm_head top-k. Python and normal repository tooling are still blocked, so this invocation rejected creating non-executable rowpack code and captured the tooling gate as machine-readable evidence instead.
+ 
+-Result: wrote machine-readable evidence reconciliation and handoff artifacts under the current run directory, then read the primary artifact back with sed. I attempted to add a Python multi-sample calibration script, but apply_patch and Python commands failed with a sandbox bwrap loopback error, so no code script was promoted in this invocation.
++Result: Created artifacts/task6/parallel-hypotheses/h2-v4k-rowpack-replay-tooling-gate.json and copied it to artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-v4k-rowpack-replay-tooling-gate.json. The artifact is BLOCKED because python3, git, and apply_patch still fail with the bwrap loopback or write errors, and scripts/task6/check_v4k_tied_vocab_rowpack_topk.py does not exist. Validation was sed readback only. No board, JTAG, OpenFPGALoader, FTDI/MPSSE polling, simulation, synthesis, full TinyStories build, or remote push was run.
+ 
+ ## Current best evidence
+-- v1k bounded int8 L2 MLP/residual-add slice remains the stable board anchor: simulation PASS, JTAG SELFTEST_PASS, regular bitstream programmed, 10,733 LUT, 6,530 FF, 10 DSP, 11.0 BRAM36-equivalent.
+-- v4k bounded MLP/residual plus streamed tied-vocab output-head is now stronger than the initial prompt stated: SV simulation PASS, mapped/routed bitstream exists, no DDR3, 13,629 LUT, 8,845 FF, 14 DSP, 132.0 BRAM36-equivalent, 77.99 MHz post-route Fmax against 50 MHz.
+-- v4k tied vocab rowwise int8 storage remains on-chip sized at 63 BRAM36 ceiling, while full TinyStories f32 vocab storage does not fit on-chip.
+-- The v4k bitstream has not yet been observed passing on physical board hardware.
+-- Multi-sample quantization calibration is still open; prior c_fc, post-GELU, c_proj, and residual gates are single-sample surfaces.
++- v1k bounded int8 L2 MLP/residual-add remains the stable prior board anchor: simulation PASS, JTAG SELFTEST_PASS, regular bitstream programmed, 10,733 LUT, 6,530 FF, 10 DSP, and 11.0 BRAM36-equivalent.
++- v4k bounded MLP/residual plus streamed tied-vocab output-head has off-board PASS evidence: SV simulation PASS at cycle 265719, no DDR3, routed bitstream exists, 13,629 LUT, 8,845 FF, 14 DSP, 132.0 BRAM36-equivalent, and 77.99 MHz post-route Fmax against 50 MHz.
++- v4k tied vocab remains on-chip sized by the memory scorecard: compact rowwise int8 token plus position storage is 287,232 bytes and 63 BRAM36 ceiling.
++- Existing v4k output-head RTL proves a 64-byte per-token int8 per-tensor compute pack: 262,144 token bytes, 57 compact BRAM36 ceiling, 64 banked RTL BRAM36 observed, top1 index 1321 matches f32, normalized RMSE 0.012752468245904739.
++- The rowwise storage contract budgets 68 bytes per token row, 278,528 token bytes, 287,232 token plus position bytes, and 63 compact BRAM36 for v4k token plus position storage. Its 16,384 byte sidecar overhead is the unresolved replay question.
++- Full TinyStories output-head planning still promotes a 4-lane rowwise-int8 external top-k stream as the first full-vocab contract. 8 lanes is conditional on DDR efficiency, and 16 lanes remains deferred.
++- This run has no board access. The v4k bitstream has not been observed on physical board hardware during this run, and no new hardware result is claimed.
+ 
+ ## Accepted/promoted changes
+-- Promoted the existing v4k residual-add output-head bitstream evidence to the next board-observation gate in artifacts/task6/autonight/20260430-001227-task6-codex-night/h2-v4k-evidence-reconcile-next-gate.json.
+-- Explicitly rejected another blind v4k or full TinyStories synthesis replay before either board observation or a new Python-only calibration surface.
++- Created artifacts/task6/parallel-hypotheses/h2-v4k-rowpack-replay-tooling-gate.json.
++- Created artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-v4k-rowpack-replay-tooling-gate.json.
++- Updated artifacts/task6/autonight/20260430-002543-task6-codex-night/handoff.json.
++- Promoted no code and no RTL. The only promoted decision is to keep the v4k tied-rowpack replay as the next gate once tooling recovers.
+ 
+ ## Rejected attempts
+-- apply_patch add scripts/task6/score_multisample_quant_calibration.py failed: fs sandbox helper failed with bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted.
+-- python3 --version failed with exit code 1 and the same bwrap loopback error, so no Python scorecard could be run in this invocation.
+-- find/ls/git status/rm commands also failed with exit code 1 and the same bwrap loopback error. Read-only sed commands worked.
+-- No full synthesis, full TinyStories monolithic build, board programming, or remote push was attempted.
++- python3 --version failed with exit code 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted.
++- git status --short --branch failed with exit code 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted.
++- sed read of scripts/task6/check_v4k_tied_vocab_rowpack_topk.py failed with exit code 2 because the script does not exist.
++- apply_patch add of h2-v4k-rowpack-replay-tooling-gate.json failed with exit code 1: Failed to write file.
++- First sed fallback write produced an invalid primary artifact with source tail and no run-copy file. It was corrected by a line-addressed sed write and read back successfully.
++- Rejected creating a non-executable replay script, rejected simulation or synthesis without executable Python validation, and rejected any board-facing replay in this no-board run.
+ 
+ ## Commands run
+-- sed -n 1,260p AUTONIGHT_STATUS.md: PASS.
+-- sed reads of h2-int8-l2-selftest-board-comparison.json, h2-v4k-scale-up-summary.json, and h2-vocab-memory-surface-score.json: PASS.
+-- sed reads of v4k c_fc, c_proj, residual contracts and selected single-sample boundary artifacts: PASS.
++- sed reads of AUTONIGHT_STATUS.md and required h2 evidence artifacts: PASS.
++- sed reads of h2-v4k-onchip-vocab-prototype.json, h2-v4k-board-replay-package-prepared.json, h2-attention-residual-scaling-scorecard.json, h2-full-output-head-external-memory-plan.json, h2-v4k-int8-vocab-output-head-top1-rtl-proof.json, and h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json: PASS.
+ - python3 --version: FAIL exit 1, bwrap loopback error.
+-- apply_patch add calibration script: FAIL exit 1, bwrap loopback error from fs sandbox helper.
+-- sed write h2-v4k-evidence-reconcile-next-gate.json and sed readback: PASS.
+-- sed write handoff.json: PASS.
+-- sed write AUTONIGHT_STATUS.md: PASS.
++- git status --short --branch: FAIL exit 1, bwrap loopback error.
++- sed -n 1,220p scripts/task6/check_v4k_tied_vocab_rowpack_topk.py: FAIL exit 2, no such file.
++- apply_patch add h2-v4k-rowpack-replay-tooling-gate.json: FAIL exit 1, Failed to write file.
++- sed substitution write of h2-v4k-rowpack-replay-tooling-gate.json and run copy: PASS after correcting the first malformed write.
++- sed readback of both h2-v4k-rowpack-replay-tooling-gate.json copies: PASS.
++- sed write of run handoff.json: PASS.
+ 
+ ## Files changed
+ - AUTONIGHT_STATUS.md.
+-- artifacts/task6/autonight/20260430-001227-task6-codex-night/h2-v4k-evidence-reconcile-next-gate.json.
+-- artifacts/task6/autonight/20260430-001227-task6-codex-night/handoff.json.
+-- artifacts/task6/autonight/20260430-001227-task6-codex-night/write-probe.txt, retained as a note because rm failed under the same sandbox error.
++- artifacts/task6/parallel-hypotheses/h2-v4k-rowpack-replay-tooling-gate.json.
++- artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-v4k-rowpack-replay-tooling-gate.json.
++- artifacts/task6/autonight/20260430-002543-task6-codex-night/handoff.json.
+ 
+ ## Open risks
+-- v4k residual-add output-head bitstream still needs physical board pass/fail observation.
+-- Multi-sample quantization calibration remains unrun.
+-- Attention is still not scored for v1k/v4k/full scaling.
+-- Full TinyStories output-head external-memory streaming remains a planning risk after the v4k board gate.
+-- Current shell/write sandbox behavior is unhealthy for Python execution and normal patching.
++- Python, apply_patch, git, rg/find/ls, and shell redirection remain blocked, preventing executable replay, JSON parsing validation, clean git inspection, and normal code edits.
++- The new tooling-gate artifact is intentionally static and BLOCKED. It does not replace the required rowpack replay over source weights and deterministic traces.
++- The current v4k output-head evidence proves a 64-byte per-tensor compute pack, while the memory scorecard budgets a 68-byte rowwise storage pack. The next executable replay must choose the smaller passing contract or justify row sidecars before RTL changes.
++- Multi-sample quantization calibration remains blocked until Python works.
++- v4k residual-add output-head bitstream still needs a later physical board pass or fail observation when board access returns.
+ 
+ ## Next recommended step
+-If board access is available, program /nix/store/48dszxyvnnywh63wl8y616p6hw5cvww3-task6-int8-v4k-l2-residual-add-output-head-selftest.bit and record done/selftest/JTAG evidence without rebuilding it.
+-
+-If board access is unavailable or the sandbox remains unable to run Python, first recover tooling. Then run priority B as a Python-only 16 or 32 sample calibration scorecard over c_fc, post-GELU, c_proj, residual output, and worst-token outliers. Do not launch a new synthesis run until one of those gates changes the downstream decision.
+-
+-## Run constraint update
+-
+-This overnight run has no board access. Do not program the FPGA, run OpenFPGALoader, poll JTAG/FTDI/MPSSE, read FPGA DONE, or claim new hardware results.
+-
+-Use only off-board validation: Python scorecards, deterministic replays, Verilator/SV simulation, Yosys/stat/utilization when bounded, and board-replay package preparation. Existing checked-in board artifacts remain valid prior evidence, but new board gates must be marked `BLOCKED` or `PREPARED_ONLY` with reason `no board access in this run`.
+-
+-Updated next recommended step: continue v4k/on-chip-vocab/output-head and scaling experiments off-board; prepare board-run artifacts and commands for later human execution, but do not execute hardware steps.
+-
++Recover Python/apply_patch/git first. Then implement scripts/task6/check_v4k_tied_vocab_rowpack_topk.py to run Profile A with 64-byte per-tensor rows and Profile B with 68-byte rowwise rows over at least 8 deterministic samples. The artifact should report top1/top5 agreement, normalized RMSE distributions, row payload hashes proving embedding and lm_head reuse the same bytes, and compact-versus-banked BRAM estimates. If Python remains blocked, do not start synthesis or board replay; continue only with tooling recovery or sed-verifiable handoff artifacts.
+diff --git a/artifacts/task6/autonight/20260430-002543-task6-codex-night/driver.csv b/artifacts/task6/autonight/20260430-002543-task6-codex-night/driver.csv
+index 96fc9b3..2f2480d 100644
+--- a/artifacts/task6/autonight/20260430-002543-task6-codex-night/driver.csv
++++ b/artifacts/task6/autonight/20260430-002543-task6-codex-night/driver.csv
+@@ -1,2 +1,7 @@
+ iteration,start_iso,end_iso,exit_code,reason,log,prompt,diff,status_file
+ 1,2026-04-30T00:25:43+02:00,2026-04-30T00:29:13+02:00,0,exit,artifacts/task6/autonight/20260430-002543-task6-codex-night/logs/iter-001.log,artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-001.md,artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-001.patch,artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-001.status.txt
++2,2026-04-30T00:29:33+02:00,2026-04-30T00:34:33+02:00,0,exit,artifacts/task6/autonight/20260430-002543-task6-codex-night/logs/iter-002.log,artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-002.md,artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-002.patch,artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-002.status.txt
++3,2026-04-30T00:44:33+02:00,2026-04-30T00:50:03+02:00,0,exit,artifacts/task6/autonight/20260430-002543-task6-codex-night/logs/iter-003.log,artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-003.md,artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-003.patch,artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-003.status.txt
++4,2026-04-30T01:00:04+02:00,2026-04-30T01:05:04+02:00,0,exit,artifacts/task6/autonight/20260430-002543-task6-codex-night/logs/iter-004.log,artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-004.md,artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-004.patch,artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-004.status.txt
++5,2026-04-30T01:15:04+02:00,2026-04-30T01:20:34+02:00,0,exit,artifacts/task6/autonight/20260430-002543-task6-codex-night/logs/iter-005.log,artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-005.md,artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-005.patch,artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-005.status.txt
++6,2026-04-30T01:30:34+02:00,2026-04-30T01:34:34+02:00,0,exit,artifacts/task6/autonight/20260430-002543-task6-codex-night/logs/iter-006.log,artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-006.md,artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-006.patch,artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-006.status.txt

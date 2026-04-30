@@ -1,0 +1,3 @@
+ M AUTONIGHT_STATUS.md
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/handoff.json
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-002.status.txt

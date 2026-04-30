@@ -1,0 +1,63 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-rtl-prepared",
+  "status": "PARTIAL",
+  "date": "2026-04-30",
+  "hypothesis": "A tiny Q0.24 top-k score comparator can be advanced from prepared oracle to prepared RTL without model replay, synthesis, DDR3 integration, or board access. If the RTL encodes the score product, signed compare, lower-token tie break, reserved-byte rejection, and conservative score bound directly from the expected-state artifact, the next invocation can spend its first executable slice on Verilator rather than rebuilding the contract.",
+  "source_artifacts": {
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "q024_spec": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-spec.json",
+    "q024_vectors": "artifacts/task6/parallel-hypotheses/h2-q024-topk-score-comparator-vectors.json",
+    "q024_expected_state": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json",
+    "fixed_point_budget": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-fixed-point-topk-budget.json",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "prepared_files": {
+    "rtl": "rtl/task6/task6_q024_topk_score_compare.sv",
+    "testbench": "rtl/task6/task6_q024_topk_score_compare_tb.sv"
+  },
+  "commands": [
+    {"cmd": "sed -n '1,240p' AUTONIGHT_STATUS.md", "exit_code": 0},
+    {"cmd": "sed reads of h2-int8-l2-selftest-board-comparison.json, h2-v4k-scale-up-summary.json, and h2-vocab-memory-surface-score.json", "exit_code": 0},
+    {"cmd": "find artifacts/task6/autonight -maxdepth 3 -type f -printf ...", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "type/python/verilator/git/printf/glob availability probes", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed reads of q024 spec, q024 vectors, fixed-point top-k budget, expected-state oracle, v4k output-head RTL proof, existing output-head RTL, and prior handoff", "exit_code": 0},
+    {"cmd": "sed read probes for scripts/task6/check_vocab_memory_surface.py and scripts/task6/check_full_vocab_rowwise_topk_contract.py", "exit_code": 2, "failure": "No such file at the probed paths"},
+    {"cmd": "apply_patch add rtl/task6/task6_q024_topk_score_compare.sv, rtl/task6/task6_q024_topk_score_compare_tb.sv, and scripts/task6/check_q024_topk_score_compare_vectors.py", "exit_code": 1, "failure": "Failed to write file /home/roland/LLM2FPGA_task6_streamtensor_lite/rtl/task6/task6_q024_topk_score_compare.sv"},
+    {"cmd": "interactive sed -n w rtl/task6/task6_q024_topk_score_compare.sv", "exit_code": 0},
+    {"cmd": "interactive sed -n w rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 0},
+    {"cmd": "sed readback of rtl/task6/task6_q024_topk_score_compare.sv", "exit_code": 0},
+    {"cmd": "sed readback of rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 0},
+    {"cmd": "interactive sed rewrite of comparator to compare the 47-bit product before storing the 46-bit score", "exit_code": 0},
+    {"cmd": "interactive sed rewrite of testbench to add typed task inputs and a local BLKSEQ lint waiver for the generated clock", "exit_code": 0},
+    {"cmd": "verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "python3 --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "git status --short --branch", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"}
+  ],
+  "metrics": {
+    "rtl_files_prepared": 2,
+    "expected_state_sequences_encoded_in_tb": 6,
+    "expected_candidate_steps_encoded_in_tb": 11,
+    "tie_break_orders_encoded": 2,
+    "reserved_reject_cases_encoded": 1,
+    "accumulator_bits": 22,
+    "scale_fractional_bits": 24,
+    "internal_product_bits_compared": 47,
+    "score_register_bits_output": 46,
+    "sentinel_top_score_signed_q024": -35184372088832,
+    "max_expected_abs_score_signed_q024": 17592184995840,
+    "sed_readback_passed": true,
+    "verilator_run": false,
+    "python_run": false,
+    "synthesis_run": false,
+    "hardware_run": false
+  },
+  "decision": {
+    "verdict": "promote-prepared-rtl-cutout-only",
+    "rationale": "The two RTL files now give the Q0.24 comparator a concrete implementation and deterministic testbench surface, but no executable simulator was available, so this is not a PASS result.",
+    "next_gate": "When Verilator recovers, run the listed --binary --timing -Wall command and then ./obj_dir/Vtask6_q024_topk_score_compare_tb. If it passes, emit h2-q024-topk-comparator-cutout-result.json and then add the Python expected-state checker or full-vocab rowwise top-k replay. If Verilator reports lint or syntax issues, fix only the tiny comparator/testbench before moving on."
+  },
+  "hardware_status": "BLOCKED",
+  "hardware_block_reason": "no board access in this run"
+}

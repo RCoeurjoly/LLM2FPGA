@@ -1,0 +1,9 @@
+ M AUTONIGHT_STATUS.md
+ M artifacts/task6/autonight/20260430-002543-task6-codex-night/driver.csv
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/diffs/iter-002.patch
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/h2-attention-residual-scaling-scorecard.json
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/handoff.json
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/prompts/iter-003.md
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-002.status.txt
+?? artifacts/task6/autonight/20260430-002543-task6-codex-night/status/iter-003.status.txt
+?? artifacts/task6/parallel-hypotheses/h2-attention-residual-scaling-scorecard.json

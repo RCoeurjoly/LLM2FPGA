@@ -1,0 +1,51 @@
+{
+  "artifact_name": "autonight-invocation-35-handoff",
+  "status": "BLOCKED",
+  "date": "2026-04-30",
+  "invocation": 35,
+  "hypothesis": "Invocation 35 continued the smallest unfinished gate: first executable validation of the hardened Q0.24 top-k comparator cutout. Verilator still fails before compilation with the sandbox loopback error, so no simulator, synthesis, bitstream, Python replay, or hardware evidence is promoted.",
+  "source_artifacts": {
+    "status_file": "AUTONIGHT_STATUS.md",
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "q024_expected_state": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json",
+    "invocation34_blocked_artifact": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation34.json",
+    "invocation35_blocked_artifact": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation35.json",
+    "rtl": "rtl/task6/task6_q024_topk_score_compare.sv",
+    "testbench": "rtl/task6/task6_q024_topk_score_compare_tb.sv"
+  },
+  "commands": [
+    {"cmd": "sed reads of AUTONIGHT_STATUS.md and required evidence artifacts", "exit_code": 0},
+    {"cmd": "find artifacts/task6/autonight -maxdepth 3 -type f -printf '%T@ %p\\n' | sort -nr | head -40", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed reads of prior handoff, invocation34 blocked artifact, Q0.24 expected-state artifact, Q0.24 RTL, and Q0.24 testbench", "exit_code": 0},
+    {"cmd": "verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "apply_patch add h2-q024-topk-comparator-cutout-validation-blocked-invocation35.json", "exit_code": 1, "failure": "Failed to write file /home/roland/LLM2FPGA_task6_streamtensor_lite/artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation35.json"},
+    {"cmd": "non-interactive sed heredoc write of invocation35 artifact", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "interactive sed -n 'w artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation35.json'", "exit_code": 0},
+    {"cmd": "interactive sed -n 'w artifacts/task6/autonight/20260430-002543-task6-codex-night/handoff.json'", "exit_code": 0}
+  ],
+  "metrics": {
+    "sed_readback_passed": true,
+    "verilator_command_attempted": true,
+    "verilator_compile_run": false,
+    "verilator_failure_stage": "process_startup",
+    "python_run": false,
+    "git_status_run": false,
+    "normal_listing_run": false,
+    "simulation_run": false,
+    "synthesis_run": false,
+    "bitstream_generation_run": false,
+    "hardware_run": false,
+    "hardware_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run",
+    "q024_expected_sequences_read": 6,
+    "q024_expected_candidate_steps_read": 11,
+    "static_readback_mismatch_observed": false
+  },
+  "decision": {
+    "verdict": "blocked-no-new-promotion",
+    "rationale": "The Q0.24 comparator remains the smallest useful gate, but executable validation still cannot start. Do not promote the RTL beyond prepared/static-readback status.",
+    "next_gate": "Recover command startup, then run verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv && ./obj_dir/Vtask6_q024_topk_score_compare_tb."
+  }
+}

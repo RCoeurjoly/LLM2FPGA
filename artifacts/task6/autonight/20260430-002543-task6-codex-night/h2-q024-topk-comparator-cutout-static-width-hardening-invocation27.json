@@ -1,0 +1,64 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-static-width-hardening-invocation27",
+  "status": "PARTIAL",
+  "date": "2026-04-30",
+  "invocation": 27,
+  "hypothesis": "The prepared Q0.24 top-k comparator can be made more robust for the first Verilator pass by eliminating width-sensitive literal and multiply forms while preserving the existing expected-state oracle. This is useful under the current no-board, tool-blocked slice because it reduces the chance that the next recovered simulator run spends time on avoidable width/literal warnings rather than the comparator behavior itself.",
+  "source_artifacts": {
+    "status_file": "AUTONIGHT_STATUS.md",
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "q024_rtl_prepared": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-rtl-prepared.json",
+    "q024_expected_state": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json",
+    "previous_blocked_validation": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation26.json",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "changes": [
+    "Changed rtl/task6/task6_q024_topk_score_compare.sv SCORE_MIN from a 46-bit hex literal to {1'b1, 45'd0}.",
+    "Added explicit 47-bit signed accumulator and scale extensions before the Q0.24 multiply in rtl/task6/task6_q024_topk_score_compare.sv.",
+    "Added a matching SCORE_MIN localparam in rtl/task6/task6_q024_topk_score_compare_tb.sv for the reserved-sidecar reject expectation."
+  ],
+  "commands": [
+    {"cmd": "sed -n '1,240p' AUTONIGHT_STATUS.md", "exit_code": 0},
+    {"cmd": "sed reads of h2-int8-l2-selftest-board-comparison.json, h2-v4k-scale-up-summary.json, and h2-vocab-memory-surface-score.json", "exit_code": 0},
+    {"cmd": "rg --files artifacts/task6/autonight | tail -80", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed reads of run handoff, q024 prepared artifact, q024 expected-state artifact, invocation26 blocked artifact, comparator RTL, and comparator testbench", "exit_code": 0},
+    {"cmd": "type -a python3 verilator rg git true sed printf test '['", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "pwd", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": ":", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "bash --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "apply_patch update comparator/testbench width hardening", "exit_code": 1, "failure": "fs sandbox helper failed: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "interactive sed -n 'w rtl/task6/task6_q024_topk_score_compare.sv'", "exit_code": 0},
+    {"cmd": "interactive sed -n 'w rtl/task6/task6_q024_topk_score_compare_tb.sv'", "exit_code": 0},
+    {"cmd": "sed readback of rtl/task6/task6_q024_topk_score_compare.sv and rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 0},
+    {"cmd": "verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "git status --short --branch", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"}
+  ],
+  "metrics": {
+    "rtl_files_changed": 2,
+    "score_min_literal_forms_remaining_in_changed_files": 0,
+    "accumulator_extension_bits": 47,
+    "scale_extension_bits": 47,
+    "candidate_score_bits": 47,
+    "output_score_bits": 46,
+    "expected_state_sequences_preserved": 6,
+    "expected_candidate_steps_preserved": 11,
+    "sed_readback_passed": true,
+    "verilator_compile_run": false,
+    "python_run": false,
+    "git_status_run": false,
+    "synthesis_run": false,
+    "bitstream_generation_run": false,
+    "hardware_run": false,
+    "hardware_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run"
+  },
+  "decision": {
+    "verdict": "promote-static-hardening-only",
+    "rationale": "The comparator behavior surface and test vectors are unchanged, but the RTL now avoids a width-sensitive signed multiply expression and the testbench no longer relies on a non-nibble-aligned hex signed-min literal. This is not simulator PASS evidence because executable validation remains blocked before tool startup.",
+    "next_gate": "Recover command execution, then run: verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv && ./obj_dir/Vtask6_q024_topk_score_compare_tb. If it passes, emit h2-q024-topk-comparator-cutout-result.json. If it fails, fix only this tiny comparator/testbench before any larger scorecard."
+  },
+  "next_gate": "First simulator validation of the hardened Q0.24 comparator cutout; no DDR3 integration, full synthesis, or hardware programming."
+}

@@ -1,0 +1,108 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-spec",
+  "status": "PARTIAL",
+  "date": "2026-04-30",
+  "hypothesis": "A tiny Q0.24 score-comparator cutout is the cheapest next off-board validation gate for full-vocab rowwise top-k because it isolates the only new arithmetic and control contract introduced by rowwise sidecars: decode the low 24 scale bits, reject reserved metadata, multiply a signed accumulator by the unsigned scale, compare signed scaled scores, and apply the lower-token-id tie break without depending on model replay, DDR3, or board access.",
+  "source_artifacts": {
+    "vectors": "artifacts/task6/parallel-hypotheses/h2-q024-topk-score-comparator-vectors.json",
+    "fixed_point_budget": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-fixed-point-topk-budget.json",
+    "topk_contract": "artifacts/task6/parallel-hypotheses/h2-full-vocab-rowwise-topk-contract.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "cutout_contract": {
+    "module_name": "task6_q024_topk_score_compare",
+    "scope": "single-row candidate acceptance and top1 update; no DDR3, no dot-product MACs, no full logits",
+    "ports": [
+      {"name": "clk", "direction": "input", "width": 1},
+      {"name": "rst", "direction": "input", "width": 1},
+      {"name": "in_valid", "direction": "input", "width": 1},
+      {"name": "in_token_id", "direction": "input", "width": 16},
+      {"name": "in_acc_signed", "direction": "input", "width": 22},
+      {"name": "in_sidecar_word", "direction": "input", "width": 32},
+      {"name": "out_valid", "direction": "output", "width": 1},
+      {"name": "out_error_reserved_bits", "direction": "output", "width": 1},
+      {"name": "out_top_token_id", "direction": "output", "width": 16},
+      {"name": "out_top_score_signed_q024", "direction": "output", "width": 46}
+    ],
+    "decode": {
+      "sidecar_endianness": "little-endian word already presented as a 32-bit value",
+      "scale_q0_24": "in_sidecar_word[23:0]",
+      "reserved_bits": "in_sidecar_word[31:24]",
+      "reserved_policy": "If any reserved bit is nonzero, assert out_error_reserved_bits and do not update the top1 state for that candidate."
+    },
+    "score": {
+      "formula": "signed(in_acc_signed) * unsigned(scale_q0_24)",
+      "domain": "signed Qacc.24",
+      "score_register_bits": 46,
+      "accumulator_bits": 22,
+      "scale_bits": 24,
+      "overflow_policy": "No saturation in the cutout; the 46-bit signed register is sized from the conservative bound in the fixed-point budget."
+    },
+    "compare": {
+      "primary": "larger signed score wins",
+      "tie_break": "if scores are exactly equal, lower token id wins",
+      "row_order_dependency": "none; the tie break must make reversed candidate order deterministic",
+      "initial_state": "top score initialized below the minimum representable candidate score and top token initialized to all ones"
+    },
+    "pipeline": {
+      "target_latency_cycles": 2,
+      "throughput_requirement": "one accepted candidate every 4 cycles is sufficient for the planned 16-DSP full-vocab row interval, so a 2-cycle score unit can be overlapped",
+      "allowed_first_cut": "a simpler multi-cycle test-only implementation is acceptable if it preserves the externally visible compare contract"
+    }
+  },
+  "required_vectors": [
+    {"name": "scaled_score_beats_raw_accumulator_order", "expected": "token 7 beats token 9 even though token 9 has the larger raw accumulator"},
+    {"name": "signed_score_ordering", "expected": "token 4 wins over negative scaled scores"},
+    {"name": "lower_token_tie_break", "expected": "token 3 wins an exact score tie with token 11 independent of arrival order"},
+    {"name": "reserved_upper_byte_reject", "expected": "candidate with sidecar 0x01800000 is rejected and raises the reserved-bit error"},
+    {"name": "conservative_register_bound", "expected": "positive 1048576 * 0x00ffffff fits and wins; negative counterpart is represented without overflow"}
+  ],
+  "recommended_files_when_tools_recover": {
+    "rtl": "rtl/task6/task6_q024_topk_score_compare.sv",
+    "testbench": "rtl/task6/task6_q024_topk_score_compare_tb.sv",
+    "artifact_updater": "scripts/task6/check_q024_topk_score_compare_vectors.py"
+  },
+  "recommended_validation_commands": [
+    "verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv",
+    "./obj_dir/Vtask6_q024_topk_score_compare_tb",
+    "python3 scripts/task6/check_q024_topk_score_compare_vectors.py --vectors artifacts/task6/parallel-hypotheses/h2-q024-topk-score-comparator-vectors.json --out artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-result.json"
+  ],
+  "pass_fail": {
+    "pass": [
+      "all named vectors match expected top token or expected decoder rejection",
+      "reserved upper bits never update top1 state",
+      "tie vector passes in both original and reversed candidate order",
+      "reported signed score for the bound vector equals 17592184995840"
+    ],
+    "fail": [
+      "raw accumulator order is used instead of scaled score order",
+      "reserved upper bits are silently accepted",
+      "exact score ties depend on row arrival order",
+      "score register truncates the conservative bound vector"
+    ]
+  },
+  "validation": {
+    "method": "static cutout specification from checked-in artifacts plus sed readback only",
+    "python_run": false,
+    "simulation_run": false,
+    "synthesis_run": false,
+    "hardware_run": false,
+    "hardware_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run"
+  },
+  "commands": [
+    {"cmd": "sed reads of AUTONIGHT_STATUS.md and required Task 6 evidence artifacts", "exit_code": 0},
+    {"cmd": "find artifacts/task6/autonight -maxdepth 3 -type f | sort | tail -80", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "git status --short", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed read of h2-full-vocab-output-head-external-memory-plan.json", "exit_code": 2, "failure": "No such file or directory; the existing artifact name is h2-full-tinystories-output-head-external-memory-plan.json"},
+    {"cmd": "apply_patch add h2-q024-topk-comparator-cutout-spec.json", "exit_code": 1, "failure": "Failed to write file"},
+    {"cmd": "sed here-doc write of h2-q024-topk-comparator-cutout-spec.json", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "interactive sed -n w h2-q024-topk-comparator-cutout-spec.json", "exit_code": 0}
+  ],
+  "decision": {
+    "verdict": "promote-prepared-cutout-spec-only",
+    "rationale": "The spec converts the handcomputed Q0.24 vectors into an implementation-ready RTL and testbench contract without starting model replay, synthesis, DDR3 integration, or any board action.",
+    "next_gate": "When Verilator and Python recover, implement the tiny comparator cutout and generate h2-q024-topk-comparator-cutout-result.json from the vector artifact."
+  }
+}

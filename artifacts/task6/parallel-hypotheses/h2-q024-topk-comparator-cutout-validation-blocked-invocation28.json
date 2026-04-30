@@ -1,0 +1,58 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-validation-blocked-invocation28",
+  "status": "BLOCKED",
+  "date": "2026-04-30",
+  "invocation": 28,
+  "hypothesis": "The hardened Q0.24 top-k comparator should be promoted only if a single Verilator compile and testbench run can start cleanly. If the sandbox still fails before tool startup, the correct bounded result is no promotion, with the exact blocker and next simulator command recorded for the next invocation.",
+  "source_artifacts": {
+    "status_file": "AUTONIGHT_STATUS.md",
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "q024_rtl_prepared": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-rtl-prepared.json",
+    "q024_expected_state": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json",
+    "q024_static_width_hardening": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-static-width-hardening-invocation27.json",
+    "v4k_board_replay_package": "artifacts/task6/parallel-hypotheses/h2-v4k-board-replay-package-prepared.json",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "commands": [
+    {"cmd": "sed -n '1,240p' AUTONIGHT_STATUS.md", "exit_code": 0},
+    {"cmd": "sed reads of h2-int8-l2-selftest-board-comparison.json, h2-v4k-scale-up-summary.json, and h2-vocab-memory-surface-score.json", "exit_code": 0},
+    {"cmd": "find artifacts/task6/autonight -maxdepth 3 -type f -printf '%TY-%Tm-%Td %TH:%TM %p\\n' | sort | tail -40", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed readback of rtl/task6/task6_q024_topk_score_compare.sv and rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 0},
+    {"cmd": "sed readback of q024 expected-state, prepared RTL, invocation26 blocked, invocation27 hardening, fixed-point budget, and existing v4k board-replay package artifacts", "exit_code": 0},
+    {"cmd": "ls -lt artifacts/task6/autonight/20260430-002543-task6-codex-night", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "git status --short --branch", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "/usr/bin/python3 --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "apply_patch add blocked artifact and update handoff/status", "exit_code": 1, "failure": "Failed to write artifact file"},
+    {"cmd": "interactive sed -n 'w artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation28.json'", "exit_code": 0}
+  ],
+  "metrics": {
+    "sed_readback_passed": true,
+    "static_oracle_cases_seen": 6,
+    "static_candidate_steps_seen": 11,
+    "rtl_accumulator_bits": 22,
+    "rtl_scale_bits": 24,
+    "rtl_compared_product_bits": 47,
+    "rtl_output_score_bits": 46,
+    "testbench_checks_tie_break_both_orders": true,
+    "testbench_checks_reserved_sidecar_reject": true,
+    "testbench_checks_conservative_bound": true,
+    "verilator_compile_run": false,
+    "verilator_failure_stage": "process_startup",
+    "python_run": false,
+    "git_status_run": false,
+    "synthesis_run": false,
+    "bitstream_generation_run": false,
+    "hardware_run": false,
+    "hardware_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run"
+  },
+  "decision": {
+    "verdict": "blocked-no-new-promotion",
+    "rationale": "The comparator RTL and testbench still read back consistently with the expected-state oracle, but Verilator, Python, git, and listing commands fail before tool startup with the same sandbox loopback error. This invocation therefore cannot produce simulator PASS, Python replay, synthesis, bitstream, or hardware evidence.",
+    "next_gate": "Recover executable startup, then run: verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv && ./obj_dir/Vtask6_q024_topk_score_compare_tb. If it passes, emit h2-q024-topk-comparator-cutout-result.json; if it fails, fix only the tiny comparator/testbench."
+  },
+  "next_gate": "First simulator validation of the hardened Q0.24 comparator cutout; no DDR3 integration, full TinyStories synthesis, or hardware commands."
+}

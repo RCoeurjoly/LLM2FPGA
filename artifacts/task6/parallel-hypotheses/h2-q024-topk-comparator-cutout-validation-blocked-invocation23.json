@@ -1,0 +1,54 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-validation-blocked-invocation23",
+  "status": "BLOCKED",
+  "date": "2026-04-30",
+  "invocation": 23,
+  "hypothesis": "The prepared Q0.24 top-k score comparator cutout can be promoted from prepared RTL to simulator-validated evidence if Verilator is available. The smallest useful validation is to compile and run only rtl/task6/task6_q024_topk_score_compare.sv and rtl/task6/task6_q024_topk_score_compare_tb.sv against the checked-in expected-state oracle.",
+  "source_artifacts": {
+    "status_file": "AUTONIGHT_STATUS.md",
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "q024_rtl_prepared": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-rtl-prepared.json",
+    "q024_expected_state": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json",
+    "validation_blocked_prior": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked.json"
+  },
+  "commands": [
+    {"cmd": "sed -n '1,240p' AUTONIGHT_STATUS.md", "exit_code": 0},
+    {"cmd": "sed reads of h2-int8-l2-selftest-board-comparison.json, h2-v4k-scale-up-summary.json, and h2-vocab-memory-surface-score.json", "exit_code": 0},
+    {"cmd": "find artifacts/task6/autonight -maxdepth 3 -type f -printf ...", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed -n '1,260p' artifacts/task6/autonight/20260430-002543-task6-codex-night/handoff.json", "exit_code": 0},
+    {"cmd": "git status --short --branch", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "verilator --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "python3 --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "printf 'hello\\n'", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed reads of h2-q024-topk-comparator-cutout-rtl-prepared.json, rtl/task6/task6_q024_topk_score_compare.sv, rtl/task6/task6_q024_topk_score_compare_tb.sv, and h2-q024-topk-comparator-cutout-expected-state.json", "exit_code": 0},
+    {"cmd": "sed -n '1,260p' artifacts/task6/parallel-hypotheses/h2-q024-topk-expected-state.json", "exit_code": 2, "failure": "No such file or directory; corrected path is h2-q024-topk-comparator-cutout-expected-state.json"},
+    {"cmd": "apply_patch add h2-q024-topk-comparator-cutout-validation-blocked-invocation23.json", "exit_code": 1, "failure": "Failed to write file"},
+    {"cmd": "interactive sed -n w artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked-invocation23.json", "exit_code": 0}
+  ],
+  "metrics": {
+    "sed_readback_passed": true,
+    "static_oracle_cases_seen": 6,
+    "static_candidate_steps_seen": 11,
+    "rtl_declares_signed_accumulator_bits": 22,
+    "rtl_declares_scale_bits": 24,
+    "rtl_declares_compared_product_bits": 47,
+    "rtl_declares_output_score_bits": 46,
+    "testbench_checks_reserved_sidecar_reject": true,
+    "testbench_checks_lower_token_tie_break_both_orders": true,
+    "testbench_checks_conservative_bound": true,
+    "verilator_compile_run": false,
+    "python_run": false,
+    "git_status_run": false,
+    "synthesis_run": false,
+    "hardware_run": false,
+    "hardware_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run"
+  },
+  "decision": {
+    "verdict": "blocked-no-new-promotion",
+    "rationale": "The RTL and testbench still match the prepared expected-state surface by static readback, but no executable simulator or Python checker could start in this invocation, so the comparator remains prepared-only rather than PASS.",
+    "next_gate": "Recover command execution, then run: verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv && ./obj_dir/Vtask6_q024_topk_score_compare_tb. If it passes, emit h2-q024-topk-comparator-cutout-result.json. If it fails, fix only the tiny comparator/testbench before moving to larger scorecards."
+  }
+}

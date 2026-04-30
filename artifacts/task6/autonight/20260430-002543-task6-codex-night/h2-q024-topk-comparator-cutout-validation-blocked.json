@@ -1,0 +1,48 @@
+{
+  "artifact_name": "h2-q024-topk-comparator-cutout-validation-blocked",
+  "status": "BLOCKED",
+  "date": "2026-04-30",
+  "invocation": 21,
+  "hypothesis": "The prepared Q0.24 top-k score comparator cutout can be promoted from prepared RTL to simulator-validated evidence if Verilator is available. This invocation attempted the cheapest relevant validation first, without model replay, synthesis, DDR3 integration, or board access.",
+  "source_artifacts": {
+    "v1k_board_anchor": "artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json",
+    "v4k_scale_summary": "artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json",
+    "vocab_memory_surface": "artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json",
+    "q024_spec": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-spec.json",
+    "q024_vectors": "artifacts/task6/parallel-hypotheses/h2-q024-topk-score-comparator-vectors.json",
+    "q024_expected_state": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-expected-state.json",
+    "q024_rtl_prepared": "artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-rtl-prepared.json",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  },
+  "commands": [
+    {"cmd": "sed -n '1,260p' AUTONIGHT_STATUS.md", "exit_code": 0},
+    {"cmd": "sed reads of h2-int8-l2-selftest-board-comparison.json, h2-v4k-scale-up-summary.json, and h2-vocab-memory-surface-score.json", "exit_code": 0},
+    {"cmd": "find artifacts/task6/autonight -maxdepth 3 -type f | sort | tail -120", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed reads of invocation 20 handoff, Q0.24 prepared artifact, RTL, and testbench", "exit_code": 0},
+    {"cmd": "verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "python3 --version", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "git status --short --branch", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "rg --files rtl/task6 | sed -n '1,80p'", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "verilator --version with tty=true, login=false, and /bin/sh retry variants", "exit_code": 1, "failure": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"},
+    {"cmd": "sed reads of Q0.24 spec, vectors, expected-state oracle, and fixed-point budget", "exit_code": 0},
+    {"cmd": "apply_patch add h2-q024-topk-comparator-cutout-validation-blocked.json", "exit_code": 1, "failure": "Failed to write file /home/roland/LLM2FPGA_task6_streamtensor_lite/artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked.json"},
+    {"cmd": "interactive sed -n w artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-validation-blocked.json", "exit_code": 0}
+  ],
+  "metrics": {
+    "rtl_files_prepared_before_invocation": 2,
+    "expected_state_sequences": 6,
+    "expected_candidate_steps": 11,
+    "verilator_compile_run": false,
+    "verilator_blocked_before_process_start": true,
+    "python_run": false,
+    "synthesis_run": false,
+    "hardware_run": false,
+    "hardware_status": "BLOCKED",
+    "hardware_block_reason": "no board access in this run"
+  },
+  "decision": {
+    "verdict": "reject-promotion-to-pass",
+    "rationale": "The prepared comparator RTL and testbench remain useful, but the required executable validation could not start because the sandbox failed before Verilator, Python, git, rg, find, or ls could run. This invocation records a blocked validation attempt instead of claiming a simulator result.",
+    "next_gate": "Recover the command sandbox or use a clean workspace shell, then run `verilator --binary --timing -Wall rtl/task6/task6_q024_topk_score_compare.sv rtl/task6/task6_q024_topk_score_compare_tb.sv` followed by `./obj_dir/Vtask6_q024_topk_score_compare_tb`. If it passes, emit `artifacts/task6/parallel-hypotheses/h2-q024-topk-comparator-cutout-result.json`; if it fails, fix only the tiny comparator/testbench."
+  }
+}
