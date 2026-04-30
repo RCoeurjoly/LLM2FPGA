@@ -198,22 +198,25 @@ FAIL_REASON_NAMES = {
 
 V4K_STATE_NAMES = {
     0: "SELFTEST_BOOT",
-    1: "SELFTEST_LOAD_C_FC_ACTIVATION",
-    2: "SELFTEST_LOAD_C_FC_WEIGHT",
-    3: "SELFTEST_LOAD_C_FC_REQUANT",
-    4: "SELFTEST_LOAD_C_PROJ_WEIGHT",
-    5: "SELFTEST_LOAD_C_PROJ_REQUANT",
-    6: "SELFTEST_LOAD_RESIDUAL",
-    7: "SELFTEST_LOAD_VOCAB_WEIGHT_SETUP",
-    8: "SELFTEST_LOAD_VOCAB_WEIGHT_WRITE",
-    9: "SELFTEST_START_RESIDUAL",
-    10: "SELFTEST_RUN_RESIDUAL",
-    11: "SELFTEST_LOAD_HEAD_ACTIVATION_SETUP",
-    12: "SELFTEST_LOAD_HEAD_ACTIVATION_WRITE",
-    13: "SELFTEST_START_OUTPUT_HEAD",
-    14: "SELFTEST_RUN_OUTPUT_HEAD",
-    15: "SELFTEST_PASS",
-    16: "SELFTEST_FAIL",
+    1: "SELFTEST_CHECK_EMBED_TOKEN_SETUP",
+    2: "SELFTEST_CHECK_EMBED_TOKEN_ACCUM",
+    3: "SELFTEST_CHECK_EMBED_DONE",
+    4: "SELFTEST_LOAD_C_FC_ACTIVATION",
+    5: "SELFTEST_LOAD_C_FC_WEIGHT",
+    6: "SELFTEST_LOAD_C_FC_REQUANT",
+    7: "SELFTEST_LOAD_C_PROJ_WEIGHT",
+    8: "SELFTEST_LOAD_C_PROJ_REQUANT",
+    9: "SELFTEST_LOAD_RESIDUAL",
+    10: "SELFTEST_LOAD_VOCAB_WEIGHT_SETUP",
+    11: "SELFTEST_LOAD_VOCAB_WEIGHT_WRITE",
+    12: "SELFTEST_START_RESIDUAL",
+    13: "SELFTEST_RUN_RESIDUAL",
+    14: "SELFTEST_LOAD_HEAD_ACTIVATION_SETUP",
+    15: "SELFTEST_LOAD_HEAD_ACTIVATION_WRITE",
+    16: "SELFTEST_START_OUTPUT_HEAD",
+    17: "SELFTEST_RUN_OUTPUT_HEAD",
+    18: "SELFTEST_PASS",
+    19: "SELFTEST_FAIL",
 }
 
 V4K_FAIL_REASON_NAMES = {
@@ -222,6 +225,7 @@ V4K_FAIL_REASON_NAMES = {
     2: "RESIDUAL_MISMATCH",
     3: "TOP_INDEX",
     4: "TOP_ACC",
+    5: "EMBEDDING_MISMATCH",
     7: "DEFAULT",
 }
 
@@ -321,6 +325,14 @@ V4K_FIELDS = [
     ("expected_vocab_last_word", 416, 32, False),
     ("head_activation_checksum", 448, 32, False),
     ("expected_head_activation_checksum", 480, 32, False),
+    ("embedding_token_checksum", 512, 32, False),
+    ("expected_embedding_token_checksum", 544, 32, False),
+    ("embedding_position_checksum", 576, 32, False),
+    ("expected_embedding_position_checksum", 608, 32, False),
+    ("embedding_combined_checksum", 640, 32, False),
+    ("expected_embedding_combined_checksum", 672, 32, False),
+    ("embedding_token_id", 704, 16, False),
+    ("embedding_position_id", 720, 16, False),
 ]
 
 
@@ -577,7 +589,7 @@ def read_payload(client, ir_len, user_ir, bit_count):
 
 def decode_payload(payload, bit_count):
     version = unsigned_field(payload, 32, 8) if bit_count >= 40 else 0
-    if version in {10, 11, 12}:
+    if version in {10, 11, 12, 13}:
         fields = {}
         for name, offset, width, signed in V4K_FIELDS:
             if offset + width <= bit_count:
@@ -672,7 +684,7 @@ def decode_payload(payload, bit_count):
 def print_summary(decoded):
     fields = decoded["fields"]
     names = decoded["decoded"]
-    if fields.get("version") in {10, 11, 12}:
+    if fields.get("version") in {10, 11, 12, 13}:
         print(
             "summary: "
             f"magic_ok={decoded['magic_ok']} "
@@ -709,6 +721,18 @@ def print_summary(decoded):
                 "head_activation: "
                 f"checksum 0x{fields.get('head_activation_checksum', 0):08x} "
                 f"expected 0x{fields.get('expected_head_activation_checksum', 0):08x}"
+            )
+        if fields.get("version", 0) >= 13:
+            print(
+                "embedding: "
+                f"token_id {fields.get('embedding_token_id')} "
+                f"position_id {fields.get('embedding_position_id')} "
+                f"token_checksum 0x{fields.get('embedding_token_checksum', 0):08x} "
+                f"expected 0x{fields.get('expected_embedding_token_checksum', 0):08x} "
+                f"position_checksum 0x{fields.get('embedding_position_checksum', 0):08x} "
+                f"expected 0x{fields.get('expected_embedding_position_checksum', 0):08x} "
+                f"combined_checksum 0x{fields.get('embedding_combined_checksum', 0):08x} "
+                f"expected 0x{fields.get('expected_embedding_combined_checksum', 0):08x}"
             )
         return
 

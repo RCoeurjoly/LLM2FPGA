@@ -10606,3 +10606,100 @@ Decision:
 - Next gate: continue from the proven v4k residual-add plus streamed output
   head toward the next H2 structure increment, using JTAG payloads again when
   the pass/fail LEDs are not enough.
+
+### 2026-04-30 - H2 v4k embedding lookup probe
+
+Goal:
+
+- Add one bounded input-side structure increment to the board-proven H2 v4k
+  residual-add plus streamed output-head image.
+- The new probe reads token id `0` from the tied v4k vocab/output-head table,
+  reads position id `0` from a generated int8 position vector, computes
+  token/position/combined byte checksums, exposes them over JTAG, and then runs
+  the existing residual-add plus output-head selftest.
+- This validates the storage/read/checksum mechanics for a one-token embedding
+  lookup in the board image. It does not yet feed the MLP path; the current H2
+  residual chain still starts from the captured `ln_2`/MLP boundary vector.
+
+Implementation:
+
+- Added the embedding lookup probe to
+  `sim/gen_task6_int8_v4k_l2_residual_add_output_head_selftest_tb_data.py`.
+- Added embedding selftest states and JTAG payload fields to
+  `fpga/rtl/task6_int8_v4k_l2_residual_add_output_head_selftest_top.sv`.
+- Updated `scripts/task6/read_jtag_debug_xvc.py` so the v4k decoder reports
+  the embedding checksum fields and the new state names.
+
+Verification:
+
+- SV simulation:
+  - command:
+    `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-tb-data-sv .#task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim --no-link --print-out-paths -L`
+  - data:
+    `/nix/store/394jl3cnaq64fn9p2562kvlp8j1rjzkf-task6-int8-v4k-l2-residual-add-output-head-selftest-tb-data-sv`
+  - result:
+    `/nix/store/j4av524kwxvskmdncz09qvpv9r0rzdyw-task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim.json`
+  - status: `PASS`
+  - pass cycle: `265848`
+  - top index: `1321`
+  - top accumulator: `52140`
+- Normal mapped utilization:
+  - command:
+    `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-utilization .#task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug-bitstream --no-link --print-out-paths -L`
+  - utilization:
+    `/nix/store/dpczsh8njd84012y1vy8zbrpfi40b1cp-task6-int8-v4k-l2-residual-add-output-head-selftest-utilization`
+  - CLB LUTs: `14229 / 298600` (`4.77%`)
+  - CLB FFs: `8940 / 597200` (`1.50%`)
+  - DSPs: `14 / 1920` (`0.73%`)
+  - BRAM36-equivalent: `139 / 955` (`14.55%`)
+- JTAG-debug bitstream:
+  - bitstream:
+    `/nix/store/rsr6zcswxighq18vpk562aykx934zl57-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+  - route legal: `PASS`
+  - post-route main clock max frequency: `63.76 MHz`
+  - post-route JTAG DRCK max frequency: `536.77 MHz`
+  - target frequency: `50.00 MHz`
+  - packed nextpnr cells:
+    - `SLICE_LUTX`: `22629 / 597200` (`3%`)
+    - `SLICE_FFX`: `9890 / 597200` (`1%`)
+    - `RAMB18E1`: `6 / 1910`
+    - `RAMB36E1`: `136 / 955` (`14%`)
+    - `DSP48E1`: `14 / 1920`
+
+Board/JTAG result:
+
+- Program command:
+  - `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/rsr6zcswxighq18vpk562aykx934zl57-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+- Program result:
+  - `Load SRAM` reached `100%`
+  - `isc_done 1`, `init 1`, `done 1`
+- JTAG read command:
+  - `python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --tdo-bit 7 --poll --poll-count 50 --poll-interval 0.1 --bits 768`
+- USER1 read result:
+  - version: `13`
+  - pass bit: `true`
+  - fail reason: `NONE`
+  - observed top index: `1321`
+  - expected top index: `1321`
+  - observed top accumulator: `52140`
+  - expected top accumulator: `52140`
+  - vocab checksum: `0xc4ec5bc1`
+  - expected vocab checksum: `0xc4ec5bc1`
+  - head activation checksum: `0x00001ef9`
+  - expected head activation checksum: `0x00001ef9`
+  - embedding token checksum: `0x00001cf9`
+  - expected embedding token checksum: `0x00001cf9`
+  - embedding position checksum: `0x00001f92`
+  - expected embedding position checksum: `0x00001f92`
+  - embedding combined checksum: `0x00001f8b`
+  - expected embedding combined checksum: `0x00001f8b`
+
+Decision:
+
+- Keep the embedding lookup probe in the H2 v4k board image as a cheap
+  JTAG-visible input-side invariant.
+- This increment preserves the known good streamed output-head result while
+  adding only a small cycle count delta in simulation (`265719` to `265848`).
+- Next H2 decision point: either feed this input-side path into a small
+  layernorm/attention substitute, or pause H2 growth and run the representative
+  core scaling matrix from the Task 6 execution doctrine.

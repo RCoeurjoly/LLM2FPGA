@@ -27,13 +27,26 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   localparam logic [2:0] FAIL_REASON_RESIDUAL_MISMATCH = 3'd2;
   localparam logic [2:0] FAIL_REASON_TOP_INDEX = 3'd3;
   localparam logic [2:0] FAIL_REASON_TOP_ACC = 3'd4;
+  localparam logic [2:0] FAIL_REASON_EMBEDDING_MISMATCH = 3'd5;
   localparam logic [2:0] FAIL_REASON_DEFAULT = 3'd7;
-  localparam int JTAG_DEBUG_WIDTH = 512;
+  localparam int JTAG_DEBUG_WIDTH = 768;
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd12;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd13;
+
+  function automatic signed [7:0] clamp_signed_i8(input signed [8:0] value);
+    if (value > 9'sd127)
+      clamp_signed_i8 = 8'sd127;
+    else if (value < -9'sd127)
+      clamp_signed_i8 = -8'sd127;
+    else
+      clamp_signed_i8 = value[7:0];
+  endfunction
 
   typedef enum logic [4:0] {
     SELFTEST_BOOT,
+    SELFTEST_CHECK_EMBED_TOKEN_SETUP,
+    SELFTEST_CHECK_EMBED_TOKEN_ACCUM,
+    SELFTEST_CHECK_EMBED_DONE,
     SELFTEST_LOAD_C_FC_ACTIVATION,
     SELFTEST_LOAD_C_FC_WEIGHT,
     SELFTEST_LOAD_C_FC_REQUANT,
@@ -71,6 +84,9 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   logic [31:0] vocab_first_word_q;
   logic [31:0] vocab_last_word_q;
   logic [31:0] head_activation_checksum_q;
+  logic [31:0] embedding_token_checksum_q;
+  logic [31:0] embedding_position_checksum_q;
+  logic [31:0] embedding_combined_checksum_q;
   logic [7:0] jtag_debug_status;
   logic [JTAG_DEBUG_WIDTH - 1:0] jtag_debug_payload;
 
@@ -103,6 +119,11 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   logic signed [7:0] residual_output_read_data;
 
   logic [VOCAB_LANES * 8 - 1:0] vocab_packed_weight_rom_data_q;
+  logic [VOCAB_PACKED_WEIGHT_ADDR_WIDTH - 1:0] vocab_loader_read_addr;
+  logic signed [7:0] embedding_token_value_w;
+  logic signed [7:0] embedding_position_value_w;
+  logic signed [8:0] embedding_sum_w;
+  logic signed [7:0] embedding_combined_value_w;
 
   logic output_head_reset;
   logic output_head_start;
@@ -129,6 +150,14 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   assign residual_start = (state_q == SELFTEST_START_RESIDUAL);
   assign output_head_start = (state_q == SELFTEST_START_OUTPUT_HEAD);
   assign residual_output_read_addr = activation_index_q;
+  assign embedding_token_value_w =
+    vocab_packed_weight_rom_data_q[EMBED_TOKEN_LANE * 8 +: 8];
+  assign embedding_position_value_w =
+    position_embedding_q_values[load_index_q[EMBED_WORD_ADDR_WIDTH - 1:0]];
+  assign embedding_sum_w =
+    {embedding_token_value_w[7], embedding_token_value_w} +
+    {embedding_position_value_w[7], embedding_position_value_w};
+  assign embedding_combined_value_w = clamp_signed_i8(embedding_sum_w);
   assign jtag_debug_status = {
     4'd0,
     output_head_done,
@@ -166,6 +195,22 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
     jtag_debug_payload[416 +: 32] = EXPECTED_VOCAB_LAST_WORD;
     jtag_debug_payload[448 +: 32] = head_activation_checksum_q;
     jtag_debug_payload[480 +: 32] = EXPECTED_HEAD_ACTIVATION_BYTE_CHECKSUM;
+    jtag_debug_payload[512 +: 32] = embedding_token_checksum_q;
+    jtag_debug_payload[544 +: 32] = EXPECTED_EMBED_TOKEN_CHECKSUM;
+    jtag_debug_payload[576 +: 32] = embedding_position_checksum_q;
+    jtag_debug_payload[608 +: 32] = EXPECTED_EMBED_POSITION_CHECKSUM;
+    jtag_debug_payload[640 +: 32] = embedding_combined_checksum_q;
+    jtag_debug_payload[672 +: 32] = EXPECTED_EMBED_COMBINED_CHECKSUM;
+    jtag_debug_payload[704 +: 16] = 16'(EMBED_TOKEN_ID);
+    jtag_debug_payload[720 +: 16] = 16'(EMBED_POSITION_ID);
+  end
+
+  always_comb begin
+    vocab_loader_read_addr = VOCAB_PACKED_WEIGHT_ADDR_WIDTH'(load_index_q);
+    if (state_q == SELFTEST_CHECK_EMBED_TOKEN_SETUP) begin
+      vocab_loader_read_addr =
+        EMBED_TOKEN_BASE_WORD_ADDR + VOCAB_PACKED_WEIGHT_ADDR_WIDTH'(load_index_q);
+    end
   end
 
   generate
@@ -176,9 +221,9 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
         [0:VOCAB_PHASES - 1];
 
       assign vocab_loader_phase =
-        load_index_q[VOCAB_PACKED_WEIGHT_ADDR_WIDTH - 1 -: VOCAB_PHASE_WIDTH];
+        vocab_loader_read_addr[VOCAB_PACKED_WEIGHT_ADDR_WIDTH - 1 -: VOCAB_PHASE_WIDTH];
       assign vocab_loader_tile_addr =
-        load_index_q[VOCAB_TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0];
+        vocab_loader_read_addr[VOCAB_TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0];
 
       for (
         genvar weight_phase = 0;
@@ -212,7 +257,7 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
 
       always_ff @(posedge SYS_CLK) begin
         vocab_packed_weight_rom_data_q <=
-          vocab_packed_weight_rom[VOCAB_PACKED_WEIGHT_ADDR_WIDTH'(load_index_q)];
+          vocab_packed_weight_rom[vocab_loader_read_addr];
       end
     end
   endgenerate
@@ -221,6 +266,9 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
     residual_reset = selftest_reset;
     unique case (state_q)
       SELFTEST_BOOT,
+      SELFTEST_CHECK_EMBED_TOKEN_SETUP,
+      SELFTEST_CHECK_EMBED_TOKEN_ACCUM,
+      SELFTEST_CHECK_EMBED_DONE,
       SELFTEST_LOAD_C_FC_ACTIVATION,
       SELFTEST_LOAD_C_FC_WEIGHT,
       SELFTEST_LOAD_C_FC_REQUANT,
@@ -237,6 +285,9 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
     output_head_reset = selftest_reset;
     unique case (state_q)
       SELFTEST_BOOT,
+      SELFTEST_CHECK_EMBED_TOKEN_SETUP,
+      SELFTEST_CHECK_EMBED_TOKEN_ACCUM,
+      SELFTEST_CHECK_EMBED_DONE,
       SELFTEST_LOAD_C_FC_ACTIVATION,
       SELFTEST_LOAD_C_FC_WEIGHT,
       SELFTEST_LOAD_C_FC_REQUANT,
@@ -367,6 +418,9 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
       vocab_first_word_q <= '0;
       vocab_last_word_q <= '0;
       head_activation_checksum_q <= '0;
+      embedding_token_checksum_q <= '0;
+      embedding_position_checksum_q <= '0;
+      embedding_combined_checksum_q <= '0;
     end else if (!config_reset_done) begin
       state_q <= SELFTEST_BOOT;
       boot_count_q <= 8'd0;
@@ -384,6 +438,9 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
       vocab_first_word_q <= '0;
       vocab_last_word_q <= '0;
       head_activation_checksum_q <= '0;
+      embedding_token_checksum_q <= '0;
+      embedding_position_checksum_q <= '0;
+      embedding_combined_checksum_q <= '0;
     end else begin
       blink_count_q <= blink_count_q + 29'd1;
 
@@ -406,7 +463,44 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
             if (boot_count_q <= BOOT_RESET_CYCLES)
               boot_count_q <= boot_count_q + 8'd1;
             else
+              state_q <= SELFTEST_CHECK_EMBED_TOKEN_SETUP;
+          end
+
+          SELFTEST_CHECK_EMBED_TOKEN_SETUP: begin
+            if (load_index_q == 32'd0) begin
+              embedding_token_checksum_q <= '0;
+              embedding_position_checksum_q <= '0;
+              embedding_combined_checksum_q <= '0;
+            end
+            state_q <= SELFTEST_CHECK_EMBED_TOKEN_ACCUM;
+          end
+
+          SELFTEST_CHECK_EMBED_TOKEN_ACCUM: begin
+            embedding_token_checksum_q <=
+              embedding_token_checksum_q + {24'd0, embedding_token_value_w};
+            embedding_position_checksum_q <=
+              embedding_position_checksum_q + {24'd0, embedding_position_value_w};
+            embedding_combined_checksum_q <=
+              embedding_combined_checksum_q + {24'd0, embedding_combined_value_w};
+            if (load_index_q == 32'(EMBED_WORDS - 1)) begin
+              state_q <= SELFTEST_CHECK_EMBED_DONE;
+            end else begin
+              load_index_q <= load_index_q + 32'd1;
+              state_q <= SELFTEST_CHECK_EMBED_TOKEN_SETUP;
+            end
+          end
+
+          SELFTEST_CHECK_EMBED_DONE: begin
+            if (embedding_token_checksum_q != EXPECTED_EMBED_TOKEN_CHECKSUM ||
+                embedding_position_checksum_q != EXPECTED_EMBED_POSITION_CHECKSUM ||
+                embedding_combined_checksum_q != EXPECTED_EMBED_COMBINED_CHECKSUM) begin
+              fail_reason_q <= FAIL_REASON_EMBEDDING_MISMATCH;
+              fail_index_q <= C_PROJ_OUT_ADDR_WIDTH'(load_index_q);
+              state_q <= SELFTEST_FAIL;
+            end else begin
+              load_index_q <= 32'd0;
               state_q <= SELFTEST_LOAD_C_FC_ACTIVATION;
+            end
           end
 
           SELFTEST_LOAD_C_FC_ACTIVATION: begin

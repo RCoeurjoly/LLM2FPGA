@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -11,6 +12,9 @@ from typing import Any
 
 from gen_task6_int8_l2_c_proj_from_post_gelu_tb_data import (
     addr_width,
+    pack_i8,
+    quantize_symmetric,
+    saturate_i8,
     signed_hex,
 )
 from gen_task6_int8_l2_mlp_chain_residual_add_tb_data import (
@@ -18,6 +22,8 @@ from gen_task6_int8_l2_mlp_chain_residual_add_tb_data import (
 )
 from gen_task6_int8_vocab_output_head_top1_tb_data import (
     build_payload as build_output_head_payload,
+    load_representative_core_builder,
+    set_representative_core_env,
 )
 
 
@@ -162,10 +168,77 @@ def extract_expected_residual_values(residual_sv: str, expected_words: int) -> l
     return [int(value) for value in values]
 
 
+def byte_checksum(values: list[int]) -> int:
+    return sum(value & 0xFF for value in values) & 0xFFFFFFFF
+
+
+def load_embedding_probe(args: argparse.Namespace) -> dict[str, Any]:
+    residual_contract = json.loads(args.residual_contract_manifest.read_text())
+    sample_input_ids = residual_contract.get("sample_input_ids", [[0]])
+    token_id = int(sample_input_ids[0][0])
+    position_id = 0
+
+    set_representative_core_env(args)
+    build_model = load_representative_core_builder(args.adapter_path)
+    model = build_model(str(args.model_path))
+    token_embedding = model.transformer.wte.weight.detach().cpu().contiguous()
+    position_embedding = model.transformer.wpe.weight.detach().cpu().contiguous()
+
+    if list(token_embedding.shape) != [args.vocab_size, args.hidden_size]:
+        raise SystemExit(
+            "unexpected token embedding shape "
+            f"{list(token_embedding.shape)}"
+        )
+    if list(position_embedding.shape) != [
+        args.max_position_embeddings,
+        args.hidden_size,
+    ]:
+        raise SystemExit(
+            "unexpected position embedding shape "
+            f"{list(position_embedding.shape)}"
+        )
+    if token_id < 0 or token_id >= args.vocab_size:
+        raise SystemExit(f"token id {token_id} outside vocab size {args.vocab_size}")
+
+    vocab_weight_f32 = [float(value) for value in token_embedding.flatten().tolist()]
+    vocab_weight_q, vocab_weight_scale = quantize_symmetric(vocab_weight_f32, 8)
+    token_q = vocab_weight_q[
+        token_id * args.hidden_size:(token_id + 1) * args.hidden_size
+    ]
+    position_row_f32 = [
+        float(value)
+        for value in position_embedding[position_id].flatten().tolist()
+    ]
+    position_q = [
+        saturate_i8(round(value / vocab_weight_scale))
+        for value in position_row_f32
+    ]
+    combined_q = [
+        saturate_i8(token + position)
+        for token, position in zip(token_q, position_q, strict=True)
+    ]
+
+    return {
+        "token_id": token_id,
+        "position_id": position_id,
+        "vocab_weight_scale": vocab_weight_scale,
+        "token_q": token_q,
+        "position_q": position_q,
+        "combined_q": combined_q,
+        "token_checksum": byte_checksum(token_q),
+        "position_checksum": byte_checksum(position_q),
+        "combined_checksum": byte_checksum(combined_q),
+        "token_q_sha256": hashlib.sha256(pack_i8(token_q)).hexdigest(),
+        "position_q_sha256": hashlib.sha256(pack_i8(position_q)).hexdigest(),
+        "combined_q_sha256": hashlib.sha256(pack_i8(combined_q)).hexdigest(),
+    }
+
+
 def inject_vocab_data(
     residual_sv: str,
     output_payload: dict[str, Any],
     output_sv: str,
+    embedding_probe: dict[str, Any],
 ) -> tuple[str, str]:
     lines = residual_sv.strip().splitlines()
     try:
@@ -192,6 +265,12 @@ def inject_vocab_data(
     expected_residual_values = extract_expected_residual_values(residual_sv, in_dim)
     vocab_checksum = sum(values) & 0xFFFFFFFF
     activation_byte_checksum = sum(expected_residual_values) & 0xFFFFFFFF
+    embed_token_id = int(embedding_probe["token_id"])
+    embed_position_id = int(embedding_probe["position_id"])
+    embed_word_addr_width = addr_width(in_dim)
+    embed_token_group = embed_token_id // lanes
+    embed_token_lane = embed_token_id % lanes
+    embed_token_base_word_addr = embed_token_group * in_dim
 
     declarations = [
         f"localparam int VOCAB_IN_DIM = {in_dim};",
@@ -227,12 +306,40 @@ def inject_vocab_data(
             "localparam logic [31:0] EXPECTED_HEAD_ACTIVATION_BYTE_CHECKSUM = "
             f"32'h{activation_byte_checksum:08x};"
         ),
+        f"localparam int EMBED_TOKEN_ID = {embed_token_id};",
+        f"localparam int EMBED_POSITION_ID = {embed_position_id};",
+        f"localparam int EMBED_WORDS = {in_dim};",
+        f"localparam int EMBED_WORD_ADDR_WIDTH = {embed_word_addr_width};",
+        f"localparam int EMBED_TOKEN_LANE = {embed_token_lane};",
+        (
+            "localparam logic [VOCAB_PACKED_WEIGHT_ADDR_WIDTH - 1:0] "
+            f"EMBED_TOKEN_BASE_WORD_ADDR = "
+            f"{packed_weight_addr_width}'d{embed_token_base_word_addr};"
+        ),
+        (
+            "localparam logic [31:0] EXPECTED_EMBED_TOKEN_CHECKSUM = "
+            f"32'h{embedding_probe['token_checksum']:08x};"
+        ),
+        (
+            "localparam logic [31:0] EXPECTED_EMBED_POSITION_CHECKSUM = "
+            f"32'h{embedding_probe['position_checksum']:08x};"
+        ),
+        (
+            "localparam logic [31:0] EXPECTED_EMBED_COMBINED_CHECKSUM = "
+            f"32'h{embedding_probe['combined_checksum']:08x};"
+        ),
+        "logic signed [7:0] position_embedding_q_values [0:EMBED_WORDS - 1];",
+    ]
+    assignments = [
+        f"  position_embedding_q_values[{index}] = 8'sh{signed_hex(value, 8)};"
+        for index, value in enumerate(embedding_probe["position_q"])
     ]
     sv_text = (
         "\n".join(
             lines[:initial_index]
             + declarations
             + lines[initial_index:-1]
+            + assignments
             + lines[-1:]
         )
         + "\n"
@@ -290,7 +397,13 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str, str]:
         make_residual_args(args)
     )
     output_payload, output_sv = build_output_head_payload(make_output_head_args(args))
-    combined_sv, vocab_mem = inject_vocab_data(residual_sv, output_payload, output_sv)
+    embedding_probe = load_embedding_probe(args)
+    combined_sv, vocab_mem = inject_vocab_data(
+        residual_sv,
+        output_payload,
+        output_sv,
+        embedding_probe,
+    )
 
     residual_pass = residual_payload.get("status") in {"PASS", "partial"}
     output_pass = output_payload.get("status") in {"PASS", "partial"}
@@ -342,6 +455,18 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str, str]:
                 "packed_weight_words"
             ],
         },
+        "embedding_lookup_probe": {
+            "token_id": embedding_probe["token_id"],
+            "position_id": embedding_probe["position_id"],
+            "quantization": "shared-scale-int8-for-token-plus-position-add",
+            "vocab_weight_scale": embedding_probe["vocab_weight_scale"],
+            "token_checksum": embedding_probe["token_checksum"],
+            "position_checksum": embedding_probe["position_checksum"],
+            "combined_checksum": embedding_probe["combined_checksum"],
+            "token_q_sha256": embedding_probe["token_q_sha256"],
+            "position_q_sha256": embedding_probe["position_q_sha256"],
+            "combined_q_sha256": embedding_probe["combined_q_sha256"],
+        },
         "rtl_contract": {
             "top_name": "task6_int8_v4k_l2_residual_add_output_head_selftest_top",
             "residual_top_name": "task6_int8_l2_mlp_chain_residual_add_kernel",
@@ -351,6 +476,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str, str]:
             "hidden_size": args.hidden_size,
             "lanes": args.lanes,
             "local_tied_vocab_weight_memory": True,
+            "embedding_lookup_probe": True,
             "vocab_loader_memory_file": "vocab_packed_weights.mem",
         },
         "decision": {
