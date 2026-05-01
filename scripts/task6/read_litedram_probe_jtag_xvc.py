@@ -1724,6 +1724,7 @@ def print_summary(result: dict[str, object]) -> None:
                     "write/read columns using promoted final-word compensation"
                 )
                 address_count = 0
+                addr_mismatch_words = 0
                 for index, column in enumerate(DFII_EDGE_COMP_ADDRWALK_COLUMNS):
                     low_mask = masks[index]["mismatch_mask"]
                     high_mask = fields.get(
@@ -1731,6 +1732,7 @@ def print_summary(result: dict[str, object]) -> None:
                         0,
                     ) & 0xF
                     full_mask = low_mask | (high_mask << 16)
+                    addr_mismatch_words += full_mask.bit_count()
                     result = "PASS" if full_mask == 0 else "FAIL"
                     if complete:
                         address_count += 1
@@ -1749,13 +1751,28 @@ def print_summary(result: dict[str, object]) -> None:
                     "actual=0x{actual:08x}".format(
                         complete=complete,
                         addresses=address_count,
-                        mismatches=fields.get("mismatch_count", 0),
+                        mismatches=addr_mismatch_words,
                         addr=first_addr,
                         word=first_word,
                         expected=fields.get("first_expected", 0) & 0xFFFFFFFF,
                         actual=fields.get("first_actual", 0) & 0xFFFFFFFF,
                     )
                 )
+                if fields.get("version", 0) >= 86 and decoded["state"] != "PROBE_DFII_DONE":
+                    print(
+                        "native compact gate after address-walk: "
+                        "complete={complete} writes={writes}/{write_commands} "
+                        "reads={reads} responses={responses} target={target} "
+                        "mismatches={mismatches}".format(
+                            complete=decoded["state"] == "PROBE_DONE",
+                            writes=fields.get("write_data_count", 0),
+                            write_commands=fields.get("write_command_count", 0),
+                            reads=fields.get("command_count", 0),
+                            responses=fields.get("response_count", 0),
+                            target=fields.get("target_read_count", 0),
+                            mismatches=fields.get("mismatch_count", 0),
+                        )
+                    )
             elif fields.get("version", 0) >= 84:
                 masks = decoded["dfii_phasecmd_mismatch_masks"]
                 complete = (
