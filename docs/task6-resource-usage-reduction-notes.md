@@ -14364,3 +14364,87 @@ Next gate:
 - Once native writes/reads pass, measure useful linear read bandwidth and
   compare it against the `212.5 MB/s` rowstream gate before connecting the
   rowstream source.
+
+### 2026-05-01 - v86 addrwalk-then-native gate
+
+Objective:
+
+- Keep the v85 compensated DFII address-walk as an in-image guard, then run a
+  compact LiteDRAM native-port write/read gate in the same bitstream.
+- Use this to separate lower-level PHY/DFII DDR3 correctness from native-port
+  controller data-path correctness.
+
+Implementation:
+
+- Added `DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE`.
+- Added package family:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe-*`.
+- The target first runs the sixteen-column compensated DFII address-walk, then
+  clears native counters and runs a `READ_COUNT_LOG2=4` native write/read gate.
+- Updated the JTAG decoder so the address-walk mismatch summary is not polluted
+  by later native-port mismatches.
+
+Build/route notes:
+
+- JSON:
+  `/nix/store/78vz1zglzqf6mdl5rqj5vgaz1284i8w1-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.json`
+- Passing seed-13 bitstream:
+  `/nix/store/ak67x54vpym9cqhz8q92kc44wbw6j963-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit`
+- JSON has `IDELAYE2=72` and no `ODELAYE2`; the no-ODELAY guard remains intact.
+- Yosys completed with `0` check problems, about `196.49s` user CPU and
+  `1328.47 MB` peak memory.
+- Seed `14` routed and timed, but reproducibly failed at init step `0` with a
+  CSR/Wishbone timeout. Rebuilding current RTL as addrwalk-only still passed,
+  so the board/JTAG/cable and global RTL were not the cause.
+- Seed `13` routed and timed at `25 MHz`:
+  - `clk200`: `693.96 MHz`
+  - `user_clk`: `73.18 MHz`
+  - `core.iodelay_clk`: `508.65 MHz`
+  - `jtag_debug_shift.drck`: `366.30 MHz`
+
+Board/JTAG result with seed `13`:
+
+- DONE asserted: `isc_done 1`, `done 1`.
+- Init passed:
+  - `version=86`
+  - `init_state=INIT_DONE`
+  - `init_done=True`
+  - `init_error=False`
+  - `pll_locked=True`
+  - `wb_ack=86`, `wb_wait=258`
+- DFII guard passed:
+  - `dfii_state=DFII_SEQ_DONE`
+  - `ack=58`, `wait=174`
+  - all sixteen compensated address-walk columns passed with
+    `mismatch=0x00000`
+- Native gate failed:
+  - `writes=16/16`
+  - `reads=16`
+  - `responses=16`
+  - `target=16`
+  - `mismatches=16`
+  - first expected `0xd0ce1010fcb87430`
+  - first actual `0x0000000000000000`
+  - all sampled native readbacks were zero.
+
+Conclusion:
+
+- v86 moves the active DDR3 lane past the earlier seed-14 init timeout and into
+  a native-port data-path failure.
+- The no-ODELAY LiteDRAM/LiteX PHY, JEDEC init, CSR control, and compensated
+  DFII write/read/address retention remain good in the same bitstream.
+- The failing surface is now native-port data visibility: native commands,
+  write-data handshakes, and read responses complete, but native reads return
+  zeros.
+- This still does not prove native-port correctness, sustained bandwidth,
+  rowstream packing, or TinyStories integration. Rowstream/TinyStories remain
+  disconnected.
+
+Next gate:
+
+- Add a native read-scan after the DFII address-walk, before issuing native
+  writes, to classify whether the native read path can see DFII-written DDR3
+  data at any nearby native address.
+- If native read-scan sees nonzero DFII data, debug native address mapping and
+  native write enable/mask behavior. If it reads all zeros, debug native
+  controller release/read-data visibility after DFII manual mode.
