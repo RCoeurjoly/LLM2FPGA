@@ -14448,3 +14448,103 @@ Next gate:
 - If native read-scan sees nonzero DFII data, debug native address mapping and
   native write enable/mask behavior. If it reads all zeros, debug native
   controller release/read-data visibility after DFII manual mode.
+
+### 2026-05-01 - v87 native read-scan after DFII address-walk
+
+Objective:
+
+- Keep the v85/v86 compensated DFII address-walk as an in-image guard, then
+  skip native writes and scan native reads.
+- Use this to classify whether the LiteDRAM native read path can see
+  DFII-written DDR3 data at nearby native addresses before debugging native
+  write enable/mask behavior.
+
+Implementation:
+
+- Added `DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN`.
+- Added package family:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-init-bandwidth-probe-*`.
+- The target first runs the sixteen-column compensated DFII address-walk, then
+  clears native counters and issues `READ_COUNT_LOG2=6` native reads with no
+  preceding native writes.
+- Added JTAG fields for native read-scan nonzero count, first nonzero address,
+  first nonzero data, aggregate nonzero chunk mask, and first nonzero chunk
+  mask.
+
+Build/route notes:
+
+- JSON:
+  `/nix/store/a6gfhc7pzkns3gnb7bpzwbv0b7lzgamc-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/7nhc31v46qddiwiq88pwawnmm7hnayda-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-init-bandwidth-probe-utilization`
+- Passing seed-13 bitstream:
+  `/nix/store/h5p7jgkr5cwzswdd4927k6mkg4s94r0k-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-init-bandwidth-probe.bit`
+- Estimated mapped utilization:
+  - slices lower bound: `2334 / 74650` (`3.13%`)
+  - LUTs: `18669 / 298600` (`6.25%`)
+  - FFs: `14097 / 597200` (`2.36%`)
+  - DSPs: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+- FASM route kept the no-ODELAY invariant:
+  - `IDELAYE2=72`
+  - `ODELAYE2=0`
+- Seed `13` routed and timed at `25 MHz`:
+  - `clk200`: `606.43 MHz`
+  - `user_clk`: `72.35 MHz`
+  - `core.iodelay_clk`: `513.08 MHz`
+  - `jtag_debug_shift.drck`: `287.69 MHz`
+
+Board/JTAG result with seed `13`:
+
+- DONE asserted: `isc_done 1`, `done 1`.
+- Init passed:
+  - `version=87`
+  - `init_state=INIT_DONE`
+  - `init_done=True`
+  - `init_error=False`
+  - `pll_locked=True`
+  - `wb_ack=86`, `wb_wait=258`
+- DFII guard passed:
+  - `dfii_state=DFII_SEQ_DONE`
+  - `ack=58`, `wait=174`
+  - all sixteen compensated address-walk columns passed with
+    `mismatch=0x00000`
+- Native read-scan completed:
+  - `writes=0/0`
+  - `reads=64`
+  - `responses=64`
+  - `target=64`
+  - `mismatches=0`
+  - `nonzero=64`
+  - first nonzero address `0x00000000`
+  - first nonzero data `0xadacafaea9a8abaa`
+  - aggregate nonzero chunk mask `0x1ff`
+  - first nonzero chunk mask `0x1ff`
+- The first eight sampled native reads all returned the same
+  `0xadacafaea9a8abaa` word.
+
+Conclusion:
+
+- v87 proves the native read response path is not electrically/decode dead and
+  is not stuck at zero after the DFII guard.
+- Native reads see a repeated DFII-associated value across all 64 responses and
+  all nine chunks, rather than address-varying native-port data.
+- Combined with v86, the failing surface is now native controller/DFII handoff
+  or native read-data association:
+  - v86 native writes and reads completed but returned zeros instead of the
+    native expected pattern.
+  - v87 native reads without native writes returned repeated nonzero
+    DFII-associated data.
+- This still does not prove native-port correctness, sustained bandwidth,
+  rowstream packing, or TinyStories integration. Rowstream/TinyStories remain
+  disconnected.
+
+Next gate:
+
+- Add a release/flush discriminator before native read-scan:
+  - explicitly write `DFII_CONTROL_HARDWARE` after the DFII address-walk,
+  - insert a hardware-release delay before native reads,
+  - optionally prime/flush one native read response before collecting samples.
+- If the repeated `0xadacafaea9a8abaa` signature disappears or becomes
+  address-varying, continue debugging DFII-to-native handoff. If it persists,
+  debug native read FIFO/capture replay and address association.
