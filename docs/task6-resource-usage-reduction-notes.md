@@ -13633,3 +13633,97 @@ Next gate:
   deterministic byte-lane/phase association map; if it fails, the association
   is not stable enough and the next split should target read-valid timing or
   per-DQS capture.
+
+### 2026-05-01 - v68 compensated edge-map probe
+
+Goal:
+
+- Test whether the v67 byte association can be compensated directly by writing
+  logical lanes `0..6,8` through `p0` low-half and logical lane `7` through the
+  apparent `p2` high-half lane `7` source.
+
+Implementation:
+
+- Added `DFII_EDGE_COMP_PROBE_ONLY`.
+- Added flake targets for:
+  - `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-bitstream`
+- Bumped the JTAG payload version to `68`.
+- Updated the JTAG decoder for the compensated edge-map mode and fixed the
+  local print path to bind the `edge_comp` probe flag.
+
+Build result:
+
+- JSON:
+  `/nix/store/4x1v7rkkil7wirsrdd129cazz4s8pzs1-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/yq5383w8024csqyyy9v4ncaq111lnx4q-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-utilization`
+  - nextpnr pack summary:
+    - `SLICE_LUTX`: `23373 / 597200` (`3%`)
+    - `SLICE_FFX`: `13701 / 597200` (`2%`)
+    - `DSP48E1`: `0 / 1920`
+    - `RAMB36E1`: `0 / 955`
+    - `IDELAYE2`: `72 / 400`
+    - `OSERDESE2`: `107 / 400`
+- Bitstream:
+  `/nix/store/274kac0y84bj1zm851qk4034sbvrvxj6-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `630.52 MHz`
+  - `user_clk`: `69.12 MHz`
+  - `core.iodelay_clk`: `506.07 MHz`
+  - `jtag_debug_shift.drck`: `296.47 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/274kac0y84bj1zm851qk4034sbvrvxj6-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=68`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_edge_comp_probe_only=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=58`, `wait=174`
+  - full `dfii_word_mismatch_mask=0x94a52`
+  - lower printed mismatch mask: `0x4a52`
+  - `dfii_data_pass=false`
+
+Representative corrected readback:
+
+```text
+[p0 w0] expected=0x93929190 actual=0x93929190
+[p0 w1] expected=0x97969594 actual=0x00969594
+[p0 w2] expected=0x92919098 actual=0x92919098
+[p0 w3] expected=0x96959493 actual=0x96959493
+[p0 w4] expected=0x00009897 actual=0x00009800
+```
+
+Interpretation:
+
+- The compensated map did not pass.
+- The good part is strong: logical lanes `0..6` and `8` are stable and return
+  exact compensated tags across the repeated 9-byte beat.
+- The failure is now isolated: every expected `comp_lane7` byte (`0x97`) came
+  back as `0x00`, while the rest of the tagged beat was preserved.
+- Therefore the v67 `0x67` observation should not yet be treated as a proven
+  standalone `p2` high-half lane `7` source. It may depend on a correlated
+  source byte, command/drive timing, or a different physical source slot than
+  the first compensation guess.
+
+Next gate:
+
+- Add a compact lane-7 source locator that keeps the known-good logical lanes
+  fixed and tags plausible lane-7 candidate source slots independently.
+- Candidate set for the first locator:
+  - `p0` low lane `7`
+  - high-half lane `7` for all four DFI phases
+  - neighboring high-half lane `8` and pad bytes if needed
+- Pass criterion: identify a single candidate tag appearing in the logical
+  lane-7 read position without disturbing lanes `0..6,8`.
