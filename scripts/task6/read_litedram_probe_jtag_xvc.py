@@ -232,6 +232,7 @@ FIELDS = [
     ("dfii_source_order_write_phase", 4090, 2),
     ("dfii_source_order_read_phase", 4092, 2),
     ("dfii_displacement_probe_only", 4094, 1),
+    ("dfii_csr_echo_probe_only", 4095, 1),
     ("dfii_rddata_16", 4096, 32),
     ("dfii_rddata_17", 4128, 32),
     ("dfii_rddata_18", 4160, 32),
@@ -637,6 +638,16 @@ def dfii_displacement_word(word: int) -> int:
     return words[word % 5]
 
 
+def dfii_csr_echo_word(index: int) -> int:
+    phase = index // 5
+    word = index % 5
+    base = 0x10 + (phase << 5) + (word << 2)
+    value = dfii_place_byte(base, 0) | dfii_place_byte(base + 1, 1)
+    if word != 4:
+        value |= dfii_place_byte(base + 2, 2) | dfii_place_byte(base + 3, 3)
+    return value
+
+
 def dfii_displacement_tag_label(tag: int) -> str:
     if 0x10 <= tag <= 0x18:
         return f"low_lane{tag - 0x10}"
@@ -743,12 +754,14 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     source_order_matrix_only = bool(fields.get("dfii_source_order_matrix_only", 0))
     half_order_matrix_only = bool(fields.get("dfii_half_order_matrix_only", 0))
     displacement_probe_only = bool(fields.get("dfii_displacement_probe_only", 0))
+    csr_echo_probe_only = bool(fields.get("dfii_csr_echo_probe_only", 0))
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
         or source_order_matrix_only
         or half_order_matrix_only
         or displacement_probe_only
+        or csr_echo_probe_only
     )
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
     source_order_slot = fields.get("dfii_phasecmd_index", 0) & 0xF
@@ -762,9 +775,14 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     ):
         active_mode = 3
     words = []
+    use_five_word_phase = (
+        half_order_matrix_only or displacement_probe_only or csr_echo_probe_only
+    )
     for index in range(DFII_WORD_COUNT):
         actual = fields.get(f"dfii_rddata_{index}", 0)
-        if displacement_probe_only:
+        if csr_echo_probe_only:
+            expected = dfii_csr_echo_word(index)
+        elif displacement_probe_only:
             expected = dfii_displacement_word(index % 5)
         elif half_order_matrix_only:
             expected = dfii_half_order_word(source_order_slot, index % 5)
@@ -784,16 +802,14 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         words.append(
             {
                 "index": index,
-                "phase": index // 5
-                if (half_order_matrix_only or displacement_probe_only)
-                else index // 4,
-                "word": index % 5
-                if (half_order_matrix_only or displacement_probe_only)
-                else index % 4,
+                "phase": index // 5 if use_five_word_phase else index // 4,
+                "word": index % 5 if use_five_word_phase else index % 4,
                 "expected": expected,
                 "actual": actual,
                 "xor": actual ^ expected,
-                "mismatch": bool(mismatch_mask & (1 << index)),
+                "mismatch": (actual != expected)
+                if csr_echo_probe_only
+                else bool(mismatch_mask & (1 << index)),
             }
         )
     return words
@@ -1194,6 +1210,7 @@ def print_summary(result: dict[str, object]) -> None:
             "source_order_matrix={source_order_matrix} "
             "half_order_matrix={half_order_matrix} "
             "displacement_probe={displacement_probe} "
+            "csr_echo={csr_echo} "
             "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
@@ -1213,6 +1230,7 @@ def print_summary(result: dict[str, object]) -> None:
                 displacement_probe=bool(
                     fields.get("dfii_displacement_probe_only", 0)
                 ),
+                csr_echo=bool(fields.get("dfii_csr_echo_probe_only", 0)),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
                 mask=fields.get("dfii_word_mismatch_mask", 0) & 0xFFFF,
@@ -1239,12 +1257,33 @@ def print_summary(result: dict[str, object]) -> None:
     source_order_matrix_only = bool(fields.get("dfii_source_order_matrix_only", 0))
     half_order_matrix_only = bool(fields.get("dfii_half_order_matrix_only", 0))
     displacement_probe_only = bool(fields.get("dfii_displacement_probe_only", 0))
+    csr_echo_probe_only = bool(fields.get("dfii_csr_echo_probe_only", 0))
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
         or source_order_matrix_only
         or half_order_matrix_only
     )
+    if csr_echo_probe_only:
+        words = decoded["dfii_words"]
+        read_count = fields.get("dfii_wb_ack_count", 0)
+        complete = decoded["dfii_seq_state"] == "DFII_SEQ_DONE" and read_count >= 42
+        matches = sum(1 for entry in words if not entry["mismatch"])
+        status = "complete" if complete else "incomplete"
+        print(
+            "dfii csr echo probe: read back pi*_wrdata0..4 CSR storage, "
+            f"{status}, dfii_ack={read_count}, matches={matches}/{len(words)}"
+        )
+        bad = [entry for entry in words if entry["mismatch"]]
+        if bad:
+            formatted = " ".join(
+                "p{phase}/w{word}:exp=0x{expected:08x}/act=0x{actual:08x}".format(
+                    **entry
+                )
+                for entry in bad[:8]
+            )
+            suffix = " ..." if len(bad) > 8 else ""
+            print(f"dfii csr echo mismatches: {formatted}{suffix}")
     if displacement_probe_only:
         observed = decoded["dfii_displacement_observed"]
         print(

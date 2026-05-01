@@ -13234,3 +13234,95 @@ Next gate:
   - if the echo matches but DDR readback still loses the high half, focus on
     A7DDRPHY serializer/read-capture ordering; if the echo does not match, fix
     the probe's CSR address/order first
+
+### 2026-05-01 - v63 DFII CSR echo discriminator
+
+Goal:
+
+- Prove or disprove that the probe is writing the intended LiteDRAM DFII
+  `pi*_wrdata0..4` CSR slots before blaming the no-ODELAY PHY serializer or
+  read-capture path.
+- Avoid issuing any DRAM command in this discriminator. It writes the 20 DFII
+  phase-injector write-data CSRs, reads the same CSR addresses back through
+  Wishbone, and exposes the echo through the existing JTAG payload.
+
+Implementation:
+
+- Added `DFII_CSR_ECHO_PROBE_ONLY`.
+- Bumped the JTAG debug payload version to `63`.
+- Added a CSR-echo pattern with four phase-distinct 144-bit values:
+  - `p0`: `0x10..0x21`
+  - `p1`: `0x30..0x41`
+  - `p2`: `0x50..0x61`
+  - `p3`: `0x70..0x81`
+- Fixed the JTAG decoder so CSR echo uses the 5-word-per-phase layout and
+  computes echo mismatches from actual CSR readback values, not only from the
+  hardware mismatch mask. This prevents a timeout/no-read case from being
+  reported as a false pass.
+- Added flake targets for:
+  - `task6-ypcb-litedram-no-odelay-lowrate-csr-echo-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-csr-echo-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-csr-echo-init-bandwidth-probe-bitstream`
+
+Build result:
+
+- JSON:
+  `/nix/store/cyh6nipy17ig9l4rby64gmn5g504r6dr-task6-ypcb-litedram-no-odelay-lowrate-csr-echo-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/d0prz5f83arl42vihvfjrj8252ldihhz-task6-ypcb-litedram-no-odelay-lowrate-csr-echo-init-bandwidth-probe-utilization`
+  - CLB LUTs: `17419 / 298600` (`5.83%`)
+  - CLB FFs: `13709 / 597200` (`2.30%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2178 / 74650` (`2.92%`)
+- Bitstream:
+  `/nix/store/qb9wwjpyfzxh1ccf602by9x96h2gwvyw-task6-ypcb-litedram-no-odelay-lowrate-csr-echo-init-bandwidth-probe.bit`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `660.07 MHz`
+  - `user_clk`: `64.09 MHz`
+  - `core.iodelay_clk`: `461.89 MHz`
+  - `jtag_debug_shift.drck`: `355.24 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/qb9wwjpyfzxh1ccf602by9x96h2gwvyw-task6-ypcb-litedram-no-odelay-lowrate-csr-echo-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=63`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_csr_echo_probe_only=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=42`, `wait=126`
+  - CSR echo: `20 / 20` words matched
+  - `dfii_data_pass=true`
+  - final echo read: `0x00008180`
+
+Interpretation:
+
+- The wrapper's Wishbone path and DFII write-data CSR address/order are correct
+  for all four phases and all five 32-bit/16-bit words per phase.
+- Therefore the v62 low-half-only DRAM readback is not explained by writing the
+  wrong `pi*_wrdata*` CSR slots or by a JTAG decoder indexing error.
+- The next active hypothesis is below CSR storage: LiteDRAM/A7DDRPHY
+  serializer association, DQS/DQ timing, read-capture ordering, or DRAM
+  byte-lane/write-enable behavior.
+- An earlier seed-10 CSR-echo bitstream timed out before init, while the
+  current-source v62 displacement control and the seed-9 CSR-echo bitstream
+  both reached `INIT_DONE`. Treat the seed-10 run as placement sensitivity, not
+  as DDR3 functional evidence.
+
+Next gate:
+
+- Add a single-bitstream serializer/read-capture discriminator that writes
+  phase/half/word-tagged values through DFII and reads back multiple
+  source/write/read/capture alignments without changing placement between
+  cases.
+- Keep rowstream/TinyStories disconnected until at least one lane/half maps
+  from CSR storage through DRAM readback with a matching expected tag.
