@@ -13528,3 +13528,108 @@ Next gate:
 - If the shifted-window score identifies a stable offset, freeze it into the
   DFII read comparator and then test whether remaining errors are per-lane,
   half-word, or DQS-group specific.
+
+### 2026-05-01 - v66/v67 DFII edge-map and rddata CSR-base correction
+
+Goal:
+
+- Replace the ambiguous dense displacement pattern with a phase/half/lane tagged
+  edge map across all four DFI phases and both 72-bit halves.
+- Recheck the DFII readback interpretation after v65 showed byte fragments but
+  no exact phase/beat match.
+
+Implementation:
+
+- Added `DFII_EDGE_MAP_PROBE_ONLY`.
+- Added flake targets for:
+  - `task6-ypcb-litedram-no-odelay-lowrate-edge-map-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-edge-map-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-edge-map-init-bandwidth-probe-bitstream`
+- v66 exposed a probe bug: `WB_ADDR_PI0_RDDATA` was set to `0x409`, which made
+  the five-word read helper read `rddata1..4` followed by `wrdata0`.
+- v67 fixes the base to `0x40a`, matching the generated LiteDRAM CSR order:
+  `rddata4, rddata3, rddata2, rddata1, rddata0`.
+
+Build result:
+
+- JSON:
+  `/nix/store/i4vrr0b7ckgl0a6bdwipqadjr3jywpxz-task6-ypcb-litedram-no-odelay-lowrate-edge-map-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/gqvla8l6dzdzardkrndrsv0cqw1sk6pz-task6-ypcb-litedram-no-odelay-lowrate-edge-map-init-bandwidth-probe-utilization`
+  - nextpnr pack summary:
+    - `SLICE_LUTX`: `22646 / 597200` (`3%`)
+    - `SLICE_FFX`: `13701 / 597200` (`2%`)
+    - `DSP48E1`: `0 / 1920`
+    - `RAMB36E1`: `0 / 955`
+    - `IDELAYE2`: `72 / 400`
+    - `OSERDESE2`: `107 / 400`
+- Bitstream:
+  `/nix/store/5hpds5kn712aw7hfp3p6xv5zacsd7dk5-task6-ypcb-litedram-no-odelay-lowrate-edge-map-init-bandwidth-probe.bit`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `640.20 MHz`
+  - `user_clk`: `68.92 MHz`
+  - `core.iodelay_clk`: `690.13 MHz`
+  - `jtag_debug_shift.drck`: `350.63 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/5hpds5kn712aw7hfp3p6xv5zacsd7dk5-task6-ypcb-litedram-no-odelay-lowrate-edge-map-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=67`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_edge_map_probe_only=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=58`, `wait=174`
+  - `dfii_word_mismatch_mask=0xffffe`
+
+Representative corrected readback:
+
+```text
+[p0 w0] expected=0x13121110 actual=0x13121110
+[p0 w1] expected=0x17161514 actual=0x67161514
+[p0 w2] expected=0x22212018 actual=0x12111018
+[p0 w3] expected=0x26252423 actual=0x16151413
+[p0 w4] expected=0xd0c02827 actual=0x00001867
+```
+
+Observed 9-byte beat repeated across the 20-byte read window:
+
+```text
+10 11 12 13 14 15 16 67 18
+10 11 12 13 14 15 16 67 18
+00 00
+```
+
+Interpretation:
+
+- v66/v67 falsify part of the earlier interpretation: previous DFII readback
+  results that depended on the old read helper were shifted by one CSR word, and
+  v66 word 4 was actually `wrdata0`, not DRAM read data.
+- With the corrected base, DRAM readback is not random and not stale all-zero
+  data. It returns a stable 9-byte beat twice.
+- Eight byte lanes map to the `p0` low-half write tags:
+  lanes `0..6` and `8`.
+- Byte lane `7` maps to `p2` high-half lane `7` (`0x67`) instead of the
+  expected `p0` low-half lane `7` (`0x17`).
+- All four DFII phase rddata CSR groups expose the same captured 20-byte
+  sequence for this read command, so treating those reads as four independent
+  phase windows is not valid for the next discriminator.
+
+Next gate:
+
+- Add a compact compensated edge-map probe that writes the desired logical
+  9-byte beat through the observed source slots:
+  lanes `0..6,8` through `p0` low-half and lane `7` through `p2` high-half.
+- Pass criterion: the first corrected 20-byte read window exactly matches the
+  repeated 9-byte logical beat. If it passes, the immediate blocker is a
+  deterministic byte-lane/phase association map; if it fails, the association
+  is not stable enough and the next split should target read-valid timing or
+  per-DQS capture.

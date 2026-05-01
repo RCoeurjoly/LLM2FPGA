@@ -338,6 +338,9 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
             bool(fields.get("dfii_wbitslip_sweep_only", 0) or (assoc_flags & 0x08))
         )
         fields["dfii_rbitslip_sweep_only"] = int(bool(assoc_flags & 0x10))
+        fields["dfii_edge_map_probe_only"] = int(
+            bool(version >= 66 and (assoc_flags & 0x20))
+        )
 
     state = fields.get("state", -1)
     status = fields.get("status", 0)
@@ -377,6 +380,12 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
     byte_diag_samples = decode_byte_diag_samples(fields)
     dfii_words = decode_dfii_words(fields)
     dfii_lane_error_counts = decode_dfii_lane_error_counts(dfii_words)
+    displacement_like = bool(
+        fields.get("dfii_displacement_probe_only", 0)
+        or fields.get("dfii_wbitslip_sweep_only", 0)
+        or fields.get("dfii_rbitslip_sweep_only", 0)
+        or fields.get("dfii_edge_map_probe_only", 0)
+    )
     dfii_assoc_matrix = decode_dfii_assoc_matrix(fields)
     dfii_phase_matrix = decode_dfii_phase_matrix(fields)
     dfii_addr_matrix = decode_dfii_addr_matrix(fields)
@@ -456,7 +465,12 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
             "dfii_displacement_observed": decode_dfii_displacement_observed(
                 dfii_words
             )
-            if fields.get("dfii_displacement_probe_only", 0)
+            if displacement_like
+            else [],
+            "dfii_displacement_shift_scores": decode_dfii_displacement_shift_scores(
+                dfii_words
+            )
+            if displacement_like
             else [],
             "dfii_lane_error_counts": dfii_lane_error_counts,
             "dfii_mode_masks": dfii_mode_masks,
@@ -647,6 +661,46 @@ def dfii_displacement_word(word: int) -> int:
     return words[word % 5]
 
 
+def dfii_edge_map_tag(phase: int, high_half: bool, lane: int) -> int:
+    return 0x10 + ((phase & 0x3) << 5) + (0x10 if high_half else 0) + (lane & 0xF)
+
+
+def dfii_edge_map_word(phase: int, word: int) -> int:
+    words = [
+        (
+            dfii_place_byte(dfii_edge_map_tag(phase, False, 0), 0)
+            | dfii_place_byte(dfii_edge_map_tag(phase, False, 1), 1)
+            | dfii_place_byte(dfii_edge_map_tag(phase, False, 2), 2)
+            | dfii_place_byte(dfii_edge_map_tag(phase, False, 3), 3)
+        ),
+        (
+            dfii_place_byte(dfii_edge_map_tag(phase, False, 4), 0)
+            | dfii_place_byte(dfii_edge_map_tag(phase, False, 5), 1)
+            | dfii_place_byte(dfii_edge_map_tag(phase, False, 6), 2)
+            | dfii_place_byte(dfii_edge_map_tag(phase, False, 7), 3)
+        ),
+        (
+            dfii_place_byte(dfii_edge_map_tag(phase, False, 8), 0)
+            | dfii_place_byte(dfii_edge_map_tag(phase, True, 0), 1)
+            | dfii_place_byte(dfii_edge_map_tag(phase, True, 1), 2)
+            | dfii_place_byte(dfii_edge_map_tag(phase, True, 2), 3)
+        ),
+        (
+            dfii_place_byte(dfii_edge_map_tag(phase, True, 3), 0)
+            | dfii_place_byte(dfii_edge_map_tag(phase, True, 4), 1)
+            | dfii_place_byte(dfii_edge_map_tag(phase, True, 5), 2)
+            | dfii_place_byte(dfii_edge_map_tag(phase, True, 6), 3)
+        ),
+        (
+            dfii_place_byte(dfii_edge_map_tag(phase, True, 7), 0)
+            | dfii_place_byte(dfii_edge_map_tag(phase, True, 8), 1)
+            | dfii_place_byte(0xC0 | (phase & 0x3), 2)
+            | dfii_place_byte(0xD0 | (phase & 0x3), 3)
+        ),
+    ]
+    return words[word % 5]
+
+
 def dfii_csr_echo_word(index: int) -> int:
     phase = index // 5
     word = index % 5
@@ -658,6 +712,17 @@ def dfii_csr_echo_word(index: int) -> int:
 
 
 def dfii_displacement_tag_label(tag: int) -> str:
+    for phase in range(4):
+        low_base = 0x10 + (phase << 5)
+        high_base = low_base + 0x10
+        if low_base <= tag <= low_base + 8:
+            return f"p{phase}_low_lane{tag - low_base}"
+        if high_base <= tag <= high_base + 8:
+            return f"p{phase}_high_lane{tag - high_base}"
+        if tag == (0xC0 | phase):
+            return f"p{phase}_pad_w4_b2"
+        if tag == (0xD0 | phase):
+            return f"p{phase}_pad_w4_b3"
     if 0x10 <= tag <= 0x18:
         return f"low_lane{tag - 0x10}"
     if 0x20 <= tag <= 0x28:
@@ -689,6 +754,85 @@ def decode_dfii_displacement_observed(
                 }
             )
     return observed
+
+
+def word_bytes_le(word: int) -> list[int]:
+    return [(word >> (byte * 8)) & 0xFF for byte in range(4)]
+
+
+def decode_dfii_displacement_shift_scores(
+    dfii_words: list[dict[str, int]],
+) -> list[dict[str, object]]:
+    by_phase: dict[int, list[dict[str, int]]] = {}
+    for entry in dfii_words:
+        by_phase.setdefault(entry["phase"], []).append(entry)
+
+    decoded = []
+    for phase in sorted(by_phase):
+        entries = sorted(by_phase[phase], key=lambda item: item["word"])
+        if len(entries) < 2:
+            continue
+
+        expected_bytes: list[int] = []
+        actual_bytes: list[int] = []
+        for entry in entries:
+            expected_bytes.extend(word_bytes_le(entry["expected"]))
+            actual_bytes.extend(word_bytes_le(entry["actual"]))
+
+        scores = []
+        for offset in range(-(len(expected_bytes) - 1), len(expected_bytes)):
+            compared = 0
+            exact = 0
+            tagged = 0
+            false_nonzero = 0
+            matched_positions = []
+            for actual_index, actual in enumerate(actual_bytes):
+                expected_index = actual_index + offset
+                if expected_index < 0 or expected_index >= len(expected_bytes):
+                    continue
+                compared += 1
+                expected = expected_bytes[expected_index]
+                if actual == expected:
+                    exact += 1
+                    if actual != 0:
+                        tagged += 1
+                        matched_positions.append(
+                            {
+                                "actual_byte": actual_index,
+                                "expected_byte": expected_index,
+                                "value": actual,
+                            }
+                        )
+                elif actual != 0:
+                    false_nonzero += 1
+            scores.append(
+                {
+                    "offset": offset,
+                    "compared": compared,
+                    "exact": exact,
+                    "tagged": tagged,
+                    "false_nonzero": false_nonzero,
+                    "matched_positions": matched_positions[:8],
+                }
+            )
+
+        scores.sort(
+            key=lambda item: (
+                item["tagged"],
+                item["exact"],
+                -item["false_nonzero"],
+                item["compared"],
+            ),
+            reverse=True,
+        )
+        decoded.append(
+            {
+                "phase": phase,
+                "byte_count": len(actual_bytes),
+                "top_offsets": scores[:5],
+            }
+        )
+    return decoded
 
 
 def dfii_pattern_word(
@@ -766,6 +910,7 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     csr_echo_probe_only = bool(fields.get("dfii_csr_echo_probe_only", 0))
     wbitslip_sweep_only = bool(fields.get("dfii_wbitslip_sweep_only", 0))
     rbitslip_sweep_only = bool(fields.get("dfii_rbitslip_sweep_only", 0))
+    edge_map_probe_only = bool(fields.get("dfii_edge_map_probe_only", 0))
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
@@ -775,6 +920,7 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         or csr_echo_probe_only
         or wbitslip_sweep_only
         or rbitslip_sweep_only
+        or edge_map_probe_only
     )
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
     source_order_slot = fields.get("dfii_phasecmd_index", 0) & 0xF
@@ -794,11 +940,14 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         or csr_echo_probe_only
         or wbitslip_sweep_only
         or rbitslip_sweep_only
+        or edge_map_probe_only
     )
     for index in range(DFII_WORD_COUNT):
         actual = fields.get(f"dfii_rddata_{index}", 0)
         if csr_echo_probe_only:
             expected = dfii_csr_echo_word(index)
+        elif edge_map_probe_only:
+            expected = dfii_edge_map_word(index // 5, index % 5)
         elif displacement_probe_only or wbitslip_sweep_only or rbitslip_sweep_only:
             expected = dfii_displacement_word(index % 5)
         elif half_order_matrix_only:
@@ -1230,6 +1379,7 @@ def print_summary(result: dict[str, object]) -> None:
             "csr_echo={csr_echo} "
             "wbitslip_sweep={wbitslip_sweep} "
             "rbitslip_sweep={rbitslip_sweep} "
+            "edge_map={edge_map} "
             "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
@@ -1252,6 +1402,7 @@ def print_summary(result: dict[str, object]) -> None:
                 csr_echo=bool(fields.get("dfii_csr_echo_probe_only", 0)),
                 wbitslip_sweep=bool(fields.get("dfii_wbitslip_sweep_only", 0)),
                 rbitslip_sweep=bool(fields.get("dfii_rbitslip_sweep_only", 0)),
+                edge_map=bool(fields.get("dfii_edge_map_probe_only", 0)),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
                 mask=fields.get("dfii_word_mismatch_mask", 0) & 0xFFFF,
@@ -1281,6 +1432,7 @@ def print_summary(result: dict[str, object]) -> None:
     csr_echo_probe_only = bool(fields.get("dfii_csr_echo_probe_only", 0))
     wbitslip_sweep_only = bool(fields.get("dfii_wbitslip_sweep_only", 0))
     rbitslip_sweep_only = bool(fields.get("dfii_rbitslip_sweep_only", 0))
+    edge_map_probe_only = bool(fields.get("dfii_edge_map_probe_only", 0))
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
@@ -1336,16 +1488,52 @@ def print_summary(result: dict[str, object]) -> None:
                     exact=exact_low.bit_count() + exact_high.bit_count(),
                 )
             )
-    if displacement_probe_only:
-        observed = decoded["dfii_displacement_observed"]
-        print(
-            "dfii displacement probe: dense low/high lane-tag pattern, "
-            "fixed source p{source}/write p{write}/read p{read}".format(
-                source=fields.get("dfii_source_order_source_phase", 0),
-                write=fields.get("dfii_source_order_write_phase", 0),
-                read=fields.get("dfii_source_order_read_phase", 0),
+    displacement_like = (
+        displacement_probe_only
+        or wbitslip_sweep_only
+        or rbitslip_sweep_only
+        or edge_map_probe_only
+    )
+    if displacement_like:
+        shift_scores = decoded["dfii_displacement_shift_scores"]
+        if shift_scores:
+            print(
+                "dfii shifted-byte scores: offset means "
+                "actual_byte[i] == expected_byte[i+offset]"
             )
-        )
+            for phase_score in shift_scores:
+                top = phase_score["top_offsets"][:3]
+                formatted = " ".join(
+                    "off={offset:+d}:tagged={tagged}/{compared},exact={exact},"
+                    "false_nz={false_nonzero}".format(**score)
+                    for score in top
+                )
+                print(
+                    "  phase={phase} bytes={byte_count} {scores}".format(
+                        phase=phase_score["phase"],
+                        byte_count=phase_score["byte_count"],
+                        scores=formatted,
+                    )
+                )
+    if displacement_probe_only or edge_map_probe_only:
+        observed = decoded["dfii_displacement_observed"]
+        if edge_map_probe_only:
+            print(
+                "dfii edge-map probe: tagged bytes across all DFI phases/halves, "
+                "write p{write}/read p{read}".format(
+                    write=fields.get("dfii_source_order_write_phase", 0),
+                    read=fields.get("dfii_source_order_read_phase", 0),
+                )
+            )
+        else:
+            print(
+                "dfii displacement probe: dense low/high lane-tag pattern, "
+                "fixed source p{source}/write p{write}/read p{read}".format(
+                    source=fields.get("dfii_source_order_source_phase", 0),
+                    write=fields.get("dfii_source_order_write_phase", 0),
+                    read=fields.get("dfii_source_order_read_phase", 0),
+                )
+            )
         if observed:
             formatted = " ".join(
                 "p{phase}/w{word}/b{byte}=0x{value:02x}({label})".format(
