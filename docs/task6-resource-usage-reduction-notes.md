@@ -14087,3 +14087,90 @@ Next gate:
   - one with variant `0` only;
   - one with variant `1` or `2` only;
   and compare DFI/DRAM readback without adding the CSR echo machinery.
+
+### 2026-05-01 - v80-v83 DFII final-word compensation promoted to active pass
+
+Objective:
+
+- Resolve whether the v77/v80 "all-phase lane7/lane8 final bytes" result was a
+  real DRAM round-trip fix or only a truncated/debug-artifact pass.
+- Keep the lane below rowstream/TinyStories: LiteDRAM/LiteX no-ODELAY DDR3
+  only, with a compact DFII write/read pattern and JTAG readback.
+
+Implementation:
+
+- Added a generated-RTL patcher that exposes compact DFI write-data debug ports
+  from the generated LiteDRAM core:
+  `scripts/task6/patch_litedram_dfi_debug_ports.py`.
+- Kept the active controller on LiteDRAM's no-ODELAY Series-7 path
+  (`A7DDRPHY` / `sys4x_dqs`), not Vivado MIG.
+- v80 restored the v77 DRAM variant sweep and captured DFI word4 taps.
+- v82 packed the high four mismatch bits into the existing edge-comp flags
+  word so each variant reports the full `20` DFII read words.
+- v83 promoted the passing variant to a single active DFII write/read mode:
+  all four DFI phases carry the final-word lane7/lane8 bytes.
+
+Build artifacts:
+
+- v82 bitstream:
+  `/nix/store/lpyq8fkv6wc159k2d3dx7zxs7ia8wy3w-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- v83 bitstream:
+  `/nix/store/h7v1g6dsd0qbvjsfck2q5l436b0dmjb1-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+
+v82 board result:
+
+- `version=82`, `state=PROBE_DFII_DONE`, `init_state=INIT_DONE`,
+  `init_done=True`, `init_error=False`, `pll_locked=True`.
+- Full-mask variant results:
+  - variant0, all-phase lane7/lane8 final bytes:
+    `dram_mismatch=0x00000 PASS`
+  - variant1, phase0-only lane7/lane8 final bytes:
+    `dram_mismatch=0x94a52 FAIL`
+  - variant2, all-phase lane7-only final byte:
+    `dram_mismatch=0x84210 FAIL`
+  - variant3, no final-word bytes:
+    `dram_mismatch=0x94a52 FAIL`
+- This confirms v80/v77's apparent variant0 pass was not a low-16-bit
+  truncation artifact.
+
+v83 board result:
+
+- `version=83`, `state=PROBE_DFII_DONE`, `init_state=INIT_DONE`,
+  `init_done=True`, `init_error=False`, `pll_locked=True`.
+- DFII sequence: `DFII_SEQ_DONE`, `step=63`, `ack=58`, `wait=174`.
+- Active compensated result:
+  - `mismatch_mask=0x00000`
+  - `data_pass=True`
+  - lane bit errors all zero
+  - all `20` captured DFII words matched expected:
+    p0..p3 words `0..4`, including final word `0x000098a0`.
+- v83 utilization/timing:
+  - `SLICE_LUTX`: `23272/597200` (`3%`)
+  - `SLICE_FFX`: `13705/597200` (`2%`)
+  - `RAMB36E1`: `0/955` (`0%`)
+  - `DSP48E1`: `0/1920` (`0%`)
+  - `IDELAYE2`: `72/400` (`18%`)
+  - `OSERDESE2`: `107/400` (`26%`)
+  - `ISERDESE2`: `72/400` (`18%`)
+  - post-route `user_clk`: `62.87 MHz` pass at `25 MHz`
+
+Conclusion:
+
+- The no-ODELAY LiteDRAM/LiteX DDR3 lane is alive below the native/rowstream
+  layer: JEDEC init, DFII CSR control, DFII write/read command sequencing, and
+  the compensated 72-bit/final-word data association can pass on board.
+- The specific missing piece was the final 72-bit word association for lane7
+  and lane8. The DRAM-facing path needs those final-word bytes driven on all
+  four DFI phases for this compact pattern.
+- This does not yet prove general DDR3 usability, native-port packing, burst
+  behavior, or bandwidth. Rowstream/TinyStories remain disconnected until the
+  compensation is replayed across broader write/read patterns and a bandwidth
+  probe.
+
+Next gate:
+
+- Convert v83 from a fixed edge-tag discriminator into a small DDR3 BIST:
+  all-zero, all-one, walking bits, byte-ramp, address-as-data, PRBS, and a
+  linear burst bandwidth counter.
+- Keep the first BIST on the same no-ODELAY LiteDRAM/LiteX path and preserve
+  JTAG-readable `init/pass/fail/first_bad/expected/actual/cycle` counters.

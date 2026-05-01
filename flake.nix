@@ -3309,6 +3309,23 @@
               --out-dir "$out"
           '';
 
+        task6YpcbLiteDramNoOdelayLowrateDfiDebugRtlElaboration =
+          pkgs.runCommand "h2-ypcb-litedram-no-odelay-lowrate-dfi-debug-rtl-elaboration" { } ''
+            set -euo pipefail
+            cp -R ${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/. "$out"
+            chmod -R u+w "$out"
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6
+            }/patch_litedram_dfi_debug_ports.py \
+              "$out/build/gateware/ypcb_litedram_core.v"
+            {
+              echo "source: task6YpcbLiteDramNoOdelayLowrateRtlElaboration"
+              echo "override: add A7 PHY DFI wrdata debug output ports"
+              echo "controller path: LiteDRAM/LiteX only"
+              echo "Vivado MIG lane: rejected"
+            } > "$out/dfi_debug_ports.txt"
+          '';
+
         task6YpcbLiteDramNoOdelayLowrateDqs0RtlElaboration =
           pkgs.runCommand "h2-ypcb-litedram-no-odelay-lowrate-dqs0-rtl-elaboration" { } ''
             set -euo pipefail
@@ -3707,11 +3724,11 @@
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
-            read_verilog ${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.v
-            read_verilog -sv ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+            read_verilog ${task6YpcbLiteDramNoOdelayLowrateDfiDebugRtlElaboration}/build/gateware/ypcb_litedram_core.v
+            read_verilog -sv -DTASK6_LITEDRAM_DEBUG_PORTS ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
-            chparam -set DFII_EDGE_COMP_PROBE_ONLY 1 task6_ypcb_litedram_init_bandwidth_probe_top
+            chparam -set DFII_EDGE_COMP_ACTIVE_ONLY 1 task6_ypcb_litedram_init_bandwidth_probe_top
             hierarchy -top task6_ypcb_litedram_init_bandwidth_probe_top -check
             proc
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
