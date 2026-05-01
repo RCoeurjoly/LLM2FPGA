@@ -13818,3 +13818,124 @@ Next gate:
   `p0` low lane `7`.
 - Rebuild and run the corrected compensated edge-map as v70.
 - Pass criterion: `dfii_data_pass=true` and `dfii_word_mismatch_mask=0`.
+
+### 2026-05-01 - v70-v77 DFII final-word discriminator
+
+Goal:
+
+- Resolve why v69 could expose lane `7` while the first corrected compensated
+  edge-map still missed it.
+- Keep the test below rowstream/TinyStories and use only the open
+  LiteDRAM/LiteX no-ODELAY path.
+- Avoid a placement/routing confound by putting the final discriminator
+  variants into one routed bitstream at separate DDR3 column addresses.
+
+Intermediate results:
+
+- v70 drove logical lane `7` through the `p0` low-half source but kept the
+  earlier `0x97` tag. JEDEC init completed, but lane `7` still read back as
+  zero and the edge-map failed.
+- v71 drove the whole compensated write pattern from every DFI source phase.
+  The image was not a valid discriminator on board: it timed out in the init
+  Wishbone path at step `0`, so it is pruned as an invalid run.
+- v72 drove only the lane-7 source ambiguity across all phases. Init completed,
+  but the edge-map still failed with lane `7` zero.
+- v73 used the repeatable v69 lane-7 locator value `0xa0` but did not restore
+  the final word-4 bytes. Init completed, but lane `7` still read back as zero.
+- v74 restored the v69-style final word-4 bytes and passed:
+  `mismatch_mask=0x0000`, `data_pass=true`, `last_read=0x000098a0`.
+- v75 removed the arbitrary upper filler bytes and kept only the final
+  lane-7/lane-8 bytes. It also passed:
+  `mismatch_mask=0x0000`, `data_pass=true`, `last_read=0x000098a0`.
+- v76 tried to keep those final-word bytes only on phase `0`, but the board
+  run timed out during init (`state=PROBE_ERROR`, `init_state=INIT_ERROR`,
+  `init_step=0`, `wb_wait=524289`). Treat it as invalid, not as evidence
+  against or for phase scope.
+
+v77 implementation:
+
+- Bumped the JTAG payload version to `77`.
+- Kept the active target on the low-rate no-ODELAY LiteDRAM probe:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-*`.
+- Added a one-bitstream final-word variant sweep:
+  - variant `0`: all-phase lane-7/lane-8 final bytes, matching v75.
+  - variant `1`: phase-0-only lane-7/lane-8 final bytes.
+  - variant `2`: all-phase lane-7-only final byte.
+  - variant `3`: no final-word bytes, expected to fail.
+- Wrote each variant to a separate DDR3 column address so readback from one
+  variant cannot explain another variant's result.
+- Updated the JTAG decoder to print the per-variant mismatch masks directly.
+
+Build result:
+
+- JSON:
+  `/nix/store/zq55y858gsk9rmx3rin5bahlxb2in85c-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/16xck10c6vjikwdgnwfk48bxm6azgv2p-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-utilization`
+  - nextpnr pack summary:
+    - `SLICE_LUTX`: `22972 / 597200` (`3%`)
+    - `SLICE_FFX`: `13949 / 597200` (`2%`)
+    - `DSP48E1`: `0 / 1920`
+    - `RAMB36E1`: `0 / 955`
+    - `IDELAYE2`: `72 / 400`
+    - `OSERDESE2`: `107 / 400`
+    - `ISERDESE2`: `72 / 400`
+    - `IDELAYCTRL`: `3 / 8`
+    - `ODELAYE2`: `0`
+- Bitstream:
+  `/nix/store/lazg33h48wcb2clbnysdwk8pmyr992ss-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- Post-route timing passed at the `25 MHz` target:
+  - `user_clk`: `64.65 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/lazg33h48wcb2clbnysdwk8pmyr992ss-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=77`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_step=32`
+  - `init_done=true`
+  - `init_error=false`
+  - `pll_locked=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=58`, `wait=174`
+  - final top-level `mismatch_mask=0x4a52` because the last run is the
+    expected-failing variant `3`
+
+Per-variant result:
+
+```text
+variant0 all-phase lane7/lane8 final bytes: mismatch_mask=0x0000 PASS
+variant1 phase0-only lane7/lane8 final bytes: mismatch_mask=0x4a52 FAIL
+variant2 all-phase lane7-only final byte: mismatch_mask=0x4210 FAIL
+variant3 no final-word bytes, expected to fail: mismatch_mask=0x4a52 FAIL
+```
+
+Interpretation:
+
+- v77 confirms v75 in a single routed image: the passing compensated pattern
+  needs the final DFII word carrying lane `7` and lane `8` bytes on all four
+  phases.
+- The failure is not stale data, command reachability, TinyStories rowstream,
+  arbitrary filler bytes, or a per-bitstream placement artifact.
+- The surprising coupling is that lane `8`'s final byte is required for lane
+  `7` to round-trip cleanly; lane-7-only final bytes still fail.
+- The active blocker is therefore narrowed to final-word DFII packing, write
+  enable, or ninth-byte-lane association at the DFI/PHY boundary.
+
+Next gate:
+
+- Split DFII CSR storage from downstream DFI/PHY behavior.
+- Add a v78 probe that writes each v77 final-word variant into the `pi*_wrdata`
+  CSRs, reads those `wrdata` CSRs back before issuing the DRAM write/read, and
+  records separate CSR-echo masks alongside the existing DRAM readback masks.
+- If CSR echo matches for failing variants, the issue is past Wishbone/CSR
+  storage and in DFI write-enable, serializer, or PHY final-beat behavior.
+- If CSR echo misses for failing variants, debug the CSR address/order/write
+  enable path before another DRAM-facing board test.

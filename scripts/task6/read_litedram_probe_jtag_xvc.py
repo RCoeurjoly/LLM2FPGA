@@ -709,39 +709,42 @@ def dfii_edge_map_word(phase: int, word: int) -> int:
     return words[word % 5]
 
 
-def dfii_edge_comp_tag(lane: int) -> int:
-    return 0x90 + (lane & 0xF)
+def dfii_edge_comp_tag(lane: int, version: int = 0) -> int:
+    lane &= 0xF
+    if version >= 73 and lane == 7:
+        return 0xA0
+    return 0x90 + lane
 
 
-def dfii_edge_comp_read_word(word: int) -> int:
+def dfii_edge_comp_read_word(word: int, version: int = 0) -> int:
     words = [
         (
-            dfii_place_byte(dfii_edge_comp_tag(0), 0)
-            | dfii_place_byte(dfii_edge_comp_tag(1), 1)
-            | dfii_place_byte(dfii_edge_comp_tag(2), 2)
-            | dfii_place_byte(dfii_edge_comp_tag(3), 3)
+            dfii_place_byte(dfii_edge_comp_tag(0, version), 0)
+            | dfii_place_byte(dfii_edge_comp_tag(1, version), 1)
+            | dfii_place_byte(dfii_edge_comp_tag(2, version), 2)
+            | dfii_place_byte(dfii_edge_comp_tag(3, version), 3)
         ),
         (
-            dfii_place_byte(dfii_edge_comp_tag(4), 0)
-            | dfii_place_byte(dfii_edge_comp_tag(5), 1)
-            | dfii_place_byte(dfii_edge_comp_tag(6), 2)
-            | dfii_place_byte(dfii_edge_comp_tag(7), 3)
+            dfii_place_byte(dfii_edge_comp_tag(4, version), 0)
+            | dfii_place_byte(dfii_edge_comp_tag(5, version), 1)
+            | dfii_place_byte(dfii_edge_comp_tag(6, version), 2)
+            | dfii_place_byte(dfii_edge_comp_tag(7, version), 3)
         ),
         (
-            dfii_place_byte(dfii_edge_comp_tag(8), 0)
-            | dfii_place_byte(dfii_edge_comp_tag(0), 1)
-            | dfii_place_byte(dfii_edge_comp_tag(1), 2)
-            | dfii_place_byte(dfii_edge_comp_tag(2), 3)
+            dfii_place_byte(dfii_edge_comp_tag(8, version), 0)
+            | dfii_place_byte(dfii_edge_comp_tag(0, version), 1)
+            | dfii_place_byte(dfii_edge_comp_tag(1, version), 2)
+            | dfii_place_byte(dfii_edge_comp_tag(2, version), 3)
         ),
         (
-            dfii_place_byte(dfii_edge_comp_tag(3), 0)
-            | dfii_place_byte(dfii_edge_comp_tag(4), 1)
-            | dfii_place_byte(dfii_edge_comp_tag(5), 2)
-            | dfii_place_byte(dfii_edge_comp_tag(6), 3)
+            dfii_place_byte(dfii_edge_comp_tag(3, version), 0)
+            | dfii_place_byte(dfii_edge_comp_tag(4, version), 1)
+            | dfii_place_byte(dfii_edge_comp_tag(5, version), 2)
+            | dfii_place_byte(dfii_edge_comp_tag(6, version), 3)
         ),
         (
-            dfii_place_byte(dfii_edge_comp_tag(7), 0)
-            | dfii_place_byte(dfii_edge_comp_tag(8), 1)
+            dfii_place_byte(dfii_edge_comp_tag(7, version), 0)
+            | dfii_place_byte(dfii_edge_comp_tag(8, version), 1)
         ),
     ]
     return words[word % 5]
@@ -1025,7 +1028,7 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         elif lane7_locator_probe_only:
             expected = dfii_lane7_locator_expected_word(index % 5)
         elif edge_comp_probe_only:
-            expected = dfii_edge_comp_read_word(index % 5)
+            expected = dfii_edge_comp_read_word(index % 5, version)
         elif edge_map_probe_only:
             expected = dfii_edge_map_word(index // 5, index % 5)
         elif displacement_probe_only or wbitslip_sweep_only or rbitslip_sweep_only:
@@ -1621,10 +1624,50 @@ def print_summary(result: dict[str, object]) -> None:
                 "and pad source slots"
             )
         elif edge_comp_probe_only:
-            print(
-                "dfii compensated-edge probe: logical lane7 through p2 high "
-                "lane7, other logical lanes through p0 low"
-            )
+            if fields.get("version", 0) >= 77:
+                masks = decoded["dfii_phasecmd_mismatch_masks"]
+                print(
+                    "dfii compensated-edge probe: one-bitstream final-word "
+                    "variant sweep at separate columns"
+                )
+                labels = [
+                    "all-phase lane7/lane8 final bytes",
+                    "phase0-only lane7/lane8 final bytes",
+                    "all-phase lane7-only final byte",
+                    "no final-word bytes, expected to fail",
+                ]
+                for index, label in enumerate(labels):
+                    mask = masks[index]["mismatch_mask"]
+                    result = "PASS" if mask == 0 else "FAIL"
+                    print(
+                        f"  variant{index}: {label}: "
+                        f"mismatch_mask=0x{mask:04x} {result}"
+                    )
+            elif fields.get("version", 0) >= 76:
+                print(
+                    "dfii compensated-edge probe: lane7 expects 0xa0 and "
+                    "only phase-0 lane7/lane8 final-word bytes are written"
+                )
+            elif fields.get("version", 0) >= 75:
+                print(
+                    "dfii compensated-edge probe: lane7 expects 0xa0 and "
+                    "only lane7/lane8 final-word bytes are written"
+                )
+            elif fields.get("version", 0) >= 74:
+                print(
+                    "dfii compensated-edge probe: lane7 expects 0xa0 and "
+                    "v69 word4 filler is restored"
+                )
+            elif fields.get("version", 0) >= 73:
+                print(
+                    "dfii compensated-edge probe: v70 source map, lane7 "
+                    "uses repeatable 0xa0 locator value"
+                )
+            else:
+                print(
+                    "dfii compensated-edge probe: known lanes through source "
+                    "phase 0, lane7 driven on every DFI source phase"
+                )
         elif edge_map_probe_only:
             print(
                 "dfii edge-map probe: tagged bytes across all DFI phases/halves, "
