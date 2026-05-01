@@ -25,6 +25,16 @@ DFII_PATTERN_MODE_NAMES = {
     2: "byte_ramp",
     3: "assoc_onehot",
 }
+DFII_EDGE_COMP_BIST_CASE_NAMES = [
+    "all_zero",
+    "all_one",
+    "walking_one_by_lane",
+    "walking_zero_by_lane",
+    "byte_ramp_by_slot_lane",
+    "checkerboard_by_lane",
+    "address_slot_xor_lane",
+    "prbs_xor_lane",
+]
 
 STATE_NAMES = {
     0: "PROBE_RESET",
@@ -413,7 +423,20 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
         "phase_constant": fields.get("dfii_phase_mismatch_mask", 0) & 0xFFFF,
         "byte_ramp": fields.get("dfii_ramp_mismatch_mask", 0) & 0xFFFF,
     }
-    if version >= 54:
+    edge_comp_bist_mode = bool(
+        version >= 84 and fields.get("dfii_edge_comp_probe_only", 0)
+    )
+    if edge_comp_bist_mode:
+        dfii_data_failed = (
+            fields.get("dfii_wb_ack_count", 0) != 0
+            and fields.get("mismatch_count", 0) != 0
+        )
+        dfii_data_pass = (
+            state == 15
+            and fields.get("dfii_wb_ack_count", 0) != 0
+            and fields.get("mismatch_count", 0) == 0
+        )
+    elif version >= 54:
         dfii_data_failed = (
             fields.get("dfii_wb_ack_count", 0) != 0
             and (
@@ -1668,7 +1691,51 @@ def print_summary(result: dict[str, object]) -> None:
                 "and pad source slots"
             )
         elif edge_comp_probe_only:
-            if fields.get("version", 0) >= 83:
+            if fields.get("version", 0) >= 84:
+                masks = decoded["dfii_phasecmd_mismatch_masks"]
+                complete = (
+                    fields.get("init_state", -1) == 5
+                    and fields.get("dfii_seq_state", -1) == 4
+                )
+                print(
+                    "dfii compensated-edge BIST: eight compact DFII "
+                    "write/read cases using promoted final-word compensation"
+                )
+                case_count = 0
+                for index, label in enumerate(DFII_EDGE_COMP_BIST_CASE_NAMES):
+                    low_mask = masks[index]["mismatch_mask"]
+                    high_mask = fields.get(
+                        f"dfii_assoc_nonzero_mask_{index}",
+                        0,
+                    ) & 0xF
+                    full_mask = low_mask | (high_mask << 16)
+                    result = "PASS" if full_mask == 0 else "FAIL"
+                    if complete:
+                        case_count += 1
+                    column = [0x0000, 0x0008, 0x0040, 0x0100][index & 0x3]
+                    print(
+                        f"  case{index}: {label} col=0x{column:04x} "
+                        f"mismatch=0x{full_mask:05x} "
+                        f"{result if complete else 'invalid'}"
+                    )
+                first_bad = fields.get("first_mismatch_addr", 0)
+                first_case = (first_bad >> 5) & 0xF
+                first_word = first_bad & 0x1F
+                print(
+                    "  summary: complete={complete} cases={cases} "
+                    "mismatch_words={mismatches} first_case={case} "
+                    "first_word={word} expected=0x{expected:08x} "
+                    "actual=0x{actual:08x}".format(
+                        complete=complete,
+                        cases=case_count,
+                        mismatches=fields.get("mismatch_count", 0),
+                        case=first_case,
+                        word=first_word,
+                        expected=fields.get("first_expected", 0) & 0xFFFFFFFF,
+                        actual=fields.get("first_actual", 0) & 0xFFFFFFFF,
+                    )
+                )
+            elif fields.get("version", 0) >= 83:
                 full_mask = fields.get("dfii_word_mismatch_mask", 0) & 0xFFFFF
                 result = "PASS" if full_mask == 0 else "FAIL"
                 print(

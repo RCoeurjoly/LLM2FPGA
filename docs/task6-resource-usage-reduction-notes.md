@@ -14174,3 +14174,99 @@ Next gate:
   linear burst bandwidth counter.
 - Keep the first BIST on the same no-ODELAY LiteDRAM/LiteX path and preserve
   JTAG-readable `init/pass/fail/first_bad/expected/actual/cycle` counters.
+
+### 2026-05-01 - v84 compensated DFII BIST board pass
+
+Objective:
+
+- Replay the v83 final-word compensation across a compact DDR3 BIST before
+  reconnecting native-port, rowstream, or TinyStories logic.
+- Keep the active lane on LiteDRAM/LiteX no-ODELAY DDR3 only; Vivado MIG remains
+  out of scope.
+
+Implementation:
+
+- Added `DFII_EDGE_COMP_BIST_ONLY` to the YPCB LiteDRAM init/bandwidth probe.
+- Reused the promoted v83 compensation: all four DFI phases carry the final
+  lane7/lane8 bytes for the fifth DFII word.
+- Added eight compact DFII write/read cases over four DDR3 columns:
+  all-zero, all-one, walking-one, walking-zero, byte-ramp,
+  checkerboard, address/slot xor, and PRBS-like xor.
+- Added a JTAG decoder summary for the eight BIST cases and fixed the summary
+  case count to derive from the decoded v84 rows.
+- Added package family:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe-*`.
+
+Build artifacts:
+
+- JSON:
+  `/nix/store/g1dqbqf7ql8pgzzimidhsirncz4hxkq8-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/cx7w5mr2w2gnd73ki69069hgfg6dw807-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe-utilization`
+- Bitstream:
+  `/nix/store/fi0n703yyy1xncn51i8dpqay5hijcwzs-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe.bit`
+
+Build results:
+
+- Final JSON has `IDELAYE2=72` and no `ODELAYE2`; the no-ODELAY guard remains
+  intact.
+- Yosys completed with `0` check problems, about `169.85s` user CPU and
+  `1006.12 MB` peak memory.
+- Mapped utilization:
+  - `clb_luts`: `19739/298600` (`6.61%`)
+  - `clb_ffs`: `14081/597200` (`2.36%`)
+  - `bram36`: `0/955` (`0.00%`)
+  - `dsp`: `0/1920` (`0.00%`)
+  - `slices_lower_bound`: `2468/74650` (`3.31%`)
+- Post-route timing at `25 MHz`:
+  - `clk200`: `713.27 MHz`
+  - `user_clk`: `70.69 MHz`
+  - `core.iodelay_clk`: `631.71 MHz`
+  - `jtag_debug_shift.drck`: `379.36 MHz`
+
+Board/JTAG result:
+
+- Programmed over HS3:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824
+  /nix/store/fi0n703yyy1xncn51i8dpqay5hijcwzs-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe.bit`
+- DONE asserted: `isc_done 1`, `done 1`.
+- JTAG payload:
+  - `version=84`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=True`
+  - `init_error=False`
+  - `pll_locked=True`
+  - `dfii_state=DFII_SEQ_DONE`
+  - `ack=58`, `wait=174`
+  - `mismatch_mask=0x00000`
+  - `mismatch_words=0`
+  - `data_pass=True`
+- All eight compact BIST cases passed:
+  - case0 all-zero, column `0x0000`: `PASS`
+  - case1 all-one, column `0x0008`: `PASS`
+  - case2 walking-one-by-lane, column `0x0040`: `PASS`
+  - case3 walking-zero-by-lane, column `0x0100`: `PASS`
+  - case4 byte-ramp-by-slot/lane, column `0x0000`: `PASS`
+  - case5 checkerboard-by-lane, column `0x0008`: `PASS`
+  - case6 address-slot-xor-lane, column `0x0040`: `PASS`
+  - case7 PRBS-xor-lane, column `0x0100`: `PASS`
+
+Conclusion:
+
+- v84 promotes v83 from a single compensated pattern to a compact
+  pattern-diverse DFII DDR3 BIST.
+- The active no-ODELAY LiteDRAM/LiteX lane now has board evidence for JEDEC
+  init, DFII CSR control, compensated write/read command sequencing, and
+  multiple write/read data patterns.
+- This still does not prove native-port correctness, burst-turnaround
+  behavior, sustained bandwidth, rowstream packing, or TinyStories integration.
+  Rowstream/TinyStories stay disconnected.
+
+Next gate:
+
+- Extend the compensated DFII path from four columns to a larger address-walk
+  or page-walk BIST with first-bad address/expected/actual reporting.
+- After the address-walk passes, re-enable a native-port or controller-facing
+  bandwidth probe and compare measured useful bandwidth against the
+  `212.5 MB/s` rowstream gate.
