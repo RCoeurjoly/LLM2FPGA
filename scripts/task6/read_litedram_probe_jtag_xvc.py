@@ -1764,8 +1764,13 @@ def print_summary(result: dict[str, object]) -> None:
                     )
                 )
                 if fields.get("version", 0) >= 87 and decoded["state"] != "PROBE_DFII_DONE":
+                    readscan_label = (
+                        "native read-scan after address-walk release"
+                        if fields.get("version", 0) >= 88
+                        else "native read-scan after address-walk"
+                    )
                     print(
-                        "native read-scan after address-walk: "
+                        f"{readscan_label}: "
                         "complete={complete} reads={reads} responses={responses} "
                         "target={target} nonzero={nonzero} "
                         "first_nonzero_addr=0x{first_addr:08x} "

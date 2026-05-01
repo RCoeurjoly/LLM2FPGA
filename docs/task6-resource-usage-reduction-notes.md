@@ -14548,3 +14548,108 @@ Next gate:
 - If the repeated `0xadacafaea9a8abaa` signature disappears or becomes
   address-varying, continue debugging DFII-to-native handoff. If it persists,
   debug native read FIFO/capture replay and address association.
+
+### 2026-05-01 - v88 DFII release-delay native read-scan
+
+Objective:
+
+- Test whether the v87 repeated native read word is caused by immediately
+  switching from DFII/manual access to native reads.
+- Keep v87 intact, but add a new target that repeats the
+  `DFII_CONTROL_HARDWARE` write and waits `10,000` user-clock cycles before
+  native read-scan.
+
+Implementation:
+
+- Added `DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_RELEASE`.
+- Bumped the JTAG payload version to `88`.
+- Added package family:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-release-init-bandwidth-probe-*`.
+- The DFII wide-word sequence now uses two extra steps only for this target:
+  - step `63`: write `DFII_CONTROL_HARDWARE` again,
+  - step `64`: wait `10,000` cycles,
+  - done marker moves from step `63` to step `65`.
+
+Build/route notes:
+
+- JSON:
+  `/nix/store/izxrs2q93gi0sk8zy7xyx06k5flc547p-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-release-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/rsd2qkwc98my1kr712x7zpa3a58bazk6-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-release-init-bandwidth-probe-utilization`
+- FASM:
+  `/nix/store/mgw9icg6dpfqv8447wlq78g9j12dvzpp-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-release-init-bandwidth-probe.fasm`
+- Passing seed-13 bitstream:
+  `/nix/store/g3r9ispif189dz0vjxfnjf2m8ibc51h9-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-release-init-bandwidth-probe.bit`
+- Estimated mapped utilization:
+  - slices lower bound: `2390 / 74650` (`3.20%`)
+  - LUTs: `19119 / 298600` (`6.40%`)
+  - FFs: `14097 / 597200` (`2.36%`)
+  - DSPs: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+- Synthesized JSON has `72` `IDELAYE2` instances and `0` `ODELAYE2`
+  instances.
+- Seed `13` routed and timed at `25 MHz`:
+  - `clk200`: `539.67 MHz`
+  - `user_clk`: `70.80 MHz`
+  - `core.iodelay_clk`: `581.06 MHz`
+  - `jtag_debug_shift.drck`: `377.93 MHz`
+
+Board/JTAG result with seed `13`:
+
+- Programmed over HS3:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824
+  /nix/store/g3r9ispif189dz0vjxfnjf2m8ibc51h9-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-release-init-bandwidth-probe.bit`
+- DONE asserted: `isc_done 1`, `done 1`.
+- Init passed:
+  - `version=88`
+  - `state=PROBE_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=True`
+  - `init_error=False`
+  - `pll_locked=True`
+  - `wb_ack=87`, `wb_wait=261`
+- DFII guard passed:
+  - `dfii_state=DFII_SEQ_DONE`
+  - `dfii_step=65`
+  - `ack=59`, `wait=177`
+  - all sixteen compensated address-walk columns passed with
+    `mismatch=0x00000`
+- Native read-scan completed:
+  - `writes=0/0`
+  - `reads=64`
+  - `responses=64`
+  - `target=64`
+  - `mismatches=0`
+  - `nonzero=64`
+  - first nonzero address `0x00000000`
+  - first nonzero data `0xadacafaea9a8abaa`
+  - aggregate nonzero chunk mask `0x1ff`
+  - first nonzero chunk mask `0x1ff`
+- The first eight sampled native reads still all returned
+  `0xadacafaea9a8abaa`.
+
+Conclusion:
+
+- The extra DFII hardware-control write and release delay do not change the
+  native read-scan signature.
+- This weakens the simple DFII-to-native handoff-delay hypothesis.
+- The repeated native read value remains tied to the final compensated DFII
+  readback pattern and is still not address-varying.
+- The active failing surface is now narrower: native read FIFO/capture replay,
+  native address association, or native-controller data selection after DFII
+  manual access.
+- This still does not prove native-port correctness, sustained bandwidth,
+  rowstream packing, or TinyStories integration. Rowstream/TinyStories remain
+  disconnected.
+
+Next gate:
+
+- Add a v89 native read association discriminator:
+  - after the DFII address-walk, issue native reads at a sparse address set
+    matching the DFII-tested columns instead of only linear `0..63`,
+  - optionally discard the first response and record the next `N` responses,
+  - expose per-address first chunk and change-count fields over JTAG.
+- If every sparse native address still returns the same
+  `0xadacafaea9a8abaa` word, debug native read FIFO/capture replay. If the
+  word changes by sparse address, debug the native address mapping against the
+  DFII column map.
