@@ -13423,3 +13423,108 @@ Next gate:
   displacement pattern and a fixed write-bitslip value in the `7/0` region.
 - Keep the result in one bitstream so differences are attributable to the
   capture setting rather than placement/routing changes.
+
+### 2026-05-01 - v65 DFII read-bitslip sweep discriminator
+
+Goal:
+
+- Test whether the remaining dense-displacement mismatch is explained by a
+  global read-bitslip selection after v64 showed that the reset/default
+  write-bitslip region is the only broadly visible region.
+- Keep placement fixed within one bitstream by sweeping read-bitslip pulses
+  `0..7`, then rerunning the same phase/half/word-tagged DFII displacement
+  probe for every setting.
+
+Implementation:
+
+- Added `DFII_RBITSLIP_SWEEP_ONLY`.
+- Bumped the JTAG debug payload version to `65`.
+- Reused the all-DQS-group bitslip configuration path, but swept
+  `cal_bitslip_q` while holding `cal_wbitslip_q = 0` and `cal_delay_q = 0`.
+- Updated the JTAG decoder to distinguish write-bitslip and read-bitslip
+  sweeps from the v65 association flags and to print a read-bitslip table.
+- Added flake targets for:
+  - `task6-ypcb-litedram-no-odelay-lowrate-rbitslip-sweep-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-rbitslip-sweep-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-rbitslip-sweep-init-bandwidth-probe-bitstream`
+
+Build result:
+
+- JSON:
+  `/nix/store/s5vx9cfgfxnyqj1hd2na91d8h1h7agbn-task6-ypcb-litedram-no-odelay-lowrate-rbitslip-sweep-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/if7apqp599hw602jjn3pwxcs45ff4shc-task6-ypcb-litedram-no-odelay-lowrate-rbitslip-sweep-init-bandwidth-probe-utilization`
+  - CLB LUTs: `17912 / 298600` (`6.00%`)
+  - CLB FFs: `13864 / 597200` (`2.32%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2239 / 74650` (`3.00%`)
+- Bitstream:
+  `/nix/store/fp383rnf1apq25k5mq3g4q28k476d780-task6-ypcb-litedram-no-odelay-lowrate-rbitslip-sweep-init-bandwidth-probe.bit`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `651.47 MHz`
+  - `user_clk`: `61.55 MHz`
+  - `core.iodelay_clk`: `630.52 MHz`
+  - `jtag_debug_shift.drck`: `347.34 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/fp383rnf1apq25k5mq3g4q28k476d780-task6-ypcb-litedram-no-odelay-lowrate-rbitslip-sweep-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=65`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_rbitslip_sweep_only=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=58`, `wait=174`
+  - no candidate produced any exact word match
+
+Read-bitslip sweep table:
+
+```text
+pulses  value  nonzero_low  exact_low  nonzero_high  exact_high  visible  exact
+0       7      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+1       0      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+2       1      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+3       2      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+4       3      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+5       4      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+6       5      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+7       6      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+```
+
+Representative returned words:
+
+```text
+[p0 w0] expected=0x13121110 actual=0x00161514
+[p0 w1] expected=0x17161514 actual=0x12111018
+[p0 w2] expected=0x22212018 actual=0x16151413
+[p0 w3] expected=0x26252423 actual=0x00001800
+[p0 w4] expected=0x2b2a2827 actual=0x13121110
+```
+
+Interpretation:
+
+- Read-bitslip is not the missing global knob in this configuration. Every
+  read-bitslip setting produced the same visibility and exact-match masks.
+- The returned data is not random and not stale all-zero data: it contains
+  recognizable byte-ramp fragments from the expected pattern, but shifted into
+  the wrong word/beat positions.
+- Combined with v63 and v64, the active failure is now a DFII/PHY beat or
+  capture association problem, not CSR addressing, not pure command inertness,
+  and not a simple global write-bitslip or read-bitslip offset.
+
+Next gate:
+
+- Add a v66 beat/word association probe that scores shifted windows of the
+  dense displacement stream, not only exact same-index word matches.
+- If the shifted-window score identifies a stable offset, freeze it into the
+  DFII read comparator and then test whether remaining errors are per-lane,
+  half-word, or DQS-group specific.
