@@ -11,6 +11,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter bit DFII_HALF_ORDER_MATRIX_ONLY = 1'b0,
   parameter bit DFII_DISPLACEMENT_PROBE_ONLY = 1'b0,
   parameter bit DFII_CSR_ECHO_PROBE_ONLY = 1'b0,
+  parameter bit DFII_WBITSLIP_SWEEP_ONLY = 1'b0,
   parameter int DFII_SOURCE_COMMAND_READ_PHASE = 2,
   parameter int DFII_SOURCE_ORDER_SOURCE_PHASE = 0,
   parameter int DFII_SOURCE_ORDER_WRITE_PHASE = 0,
@@ -35,7 +36,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd63;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd64;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -47,6 +48,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v61 maps low/high 72-bit half tags, including the ninth byte lane.
   // v62 writes a dense low/high lane-tag pattern for read-capture mapping.
   // v63 reads back DFII wrdata CSRs before DRAM commands to prove CSR order.
+  // v64 sweeps write-bitslip pulses before the dense displacement probe.
   localparam int CAL_BYTE_LANES = 8;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;
@@ -146,7 +148,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     PROBE_PHASE_RUN_WRITES = 5'd22,
     PROBE_PHASE_WRITE_DRAIN = 5'd23,
     PROBE_PHASE_RUN_READS = 5'd24,
-    PROBE_PHASE_APPLY_BEST = 5'd25
+    PROBE_PHASE_APPLY_BEST = 5'd25,
+    PROBE_DFII_WBITSLIP_CONFIG = 5'd26
   } probe_state_t;
 
   typedef enum logic [3:0] {
@@ -455,8 +458,10 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   wire dfii_half_order_matrix_mode;
   wire dfii_displacement_probe_mode;
   wire dfii_csr_echo_probe_mode;
+  wire dfii_wbitslip_sweep_mode;
   wire dfii_wide_word_mode;
   wire [1:0] dfii_matrix_source_phase;
+  wire [3:0] dfii_result_slot;
   wire [7:0] dfii_source_order_tag;
   wire [7:0] dfii_half_low_tag;
   wire [7:0] dfii_half_high_tag;
@@ -1157,7 +1162,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     state_q == PROBE_BYTE_WRITE_DRAIN;
   assign cal_config_active =
     phase_config_active ||
-    state_q == PROBE_CAL_CONFIG || state_q == PROBE_CAL_APPLY_BEST;
+    state_q == PROBE_CAL_CONFIG || state_q == PROBE_CAL_APPLY_BEST ||
+    state_q == PROBE_DFII_WBITSLIP_CONFIG;
   assign cal_apply_state = state_q == PROBE_CAL_APPLY_BEST;
   assign dfii_seq_running = state_q == PROBE_DFII_RUN;
   assign cal_mode =
@@ -1244,6 +1250,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   assign dfii_wrdata_index20 = dfii_step_q[4:0] - 5'd2;
   assign dfii_rddata_index20 = dfii_step_q[4:0] - 5'd10;
   assign dfii_csr_echo_read_index20 = dfii_step_q[4:0] - 5'd22;
+  assign dfii_wbitslip_sweep_mode =
+    DFII_WBITSLIP_SWEEP_ONLY && dfii_phasecmd_sweep_q;
   assign dfii_wide_word_mode =
     dfii_half_order_matrix_mode || dfii_displacement_probe_mode ||
     dfii_csr_echo_probe_mode;
@@ -1260,7 +1268,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   assign dfii_phase_matrix_mode =
     (DFII_PHASE_MATRIX_ONLY || DFII_SOURCE_COMMAND_MATRIX_ONLY ||
      DFII_SOURCE_ORDER_MATRIX_ONLY || DFII_HALF_ORDER_MATRIX_ONLY ||
-     DFII_DISPLACEMENT_PROBE_ONLY) &&
+     DFII_DISPLACEMENT_PROBE_ONLY || DFII_WBITSLIP_SWEEP_ONLY) &&
     dfii_phasecmd_sweep_q;
   assign dfii_source_command_matrix_mode =
     DFII_SOURCE_COMMAND_MATRIX_ONLY && dfii_phasecmd_sweep_q;
@@ -1269,13 +1277,18 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   assign dfii_half_order_matrix_mode =
     DFII_HALF_ORDER_MATRIX_ONLY && dfii_phasecmd_sweep_q;
   assign dfii_displacement_probe_mode =
-    DFII_DISPLACEMENT_PROBE_ONLY && dfii_phasecmd_sweep_q;
+    (DFII_DISPLACEMENT_PROBE_ONLY || DFII_WBITSLIP_SWEEP_ONLY) &&
+    dfii_phasecmd_sweep_q;
   assign dfii_csr_echo_probe_mode =
     DFII_CSR_ECHO_PROBE_ONLY && dfii_phasecmd_sweep_q;
   assign dfii_matrix_source_phase =
     (dfii_source_order_matrix_mode || dfii_half_order_matrix_mode ||
-     dfii_displacement_probe_mode || dfii_csr_echo_probe_mode) ?
+     dfii_displacement_probe_mode || dfii_csr_echo_probe_mode ||
+     dfii_wbitslip_sweep_mode) ?
     DFII_SOURCE_ORDER_SOURCE_PHASE[1:0] : dfii_phasecmd_index_q[3:2];
+  assign dfii_result_slot =
+    DFII_WBITSLIP_SWEEP_ONLY ? {1'b0, cal_wbitslip_q} :
+    dfii_phasecmd_index_q;
   assign dfii_source_order_tag =
     dfii_source_order_tag_byte(dfii_phasecmd_index_q);
   assign dfii_half_low_tag =
@@ -1285,14 +1298,16 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   assign dfii_write_command_phase =
     dfii_source_command_matrix_mode ? dfii_phasecmd_index_q[1:0] :
     (dfii_source_order_matrix_mode || dfii_half_order_matrix_mode ||
-     dfii_displacement_probe_mode || dfii_csr_echo_probe_mode) ?
+     dfii_displacement_probe_mode || dfii_csr_echo_probe_mode ||
+     dfii_wbitslip_sweep_mode) ?
     DFII_SOURCE_ORDER_WRITE_PHASE[1:0] :
     dfii_phasecmd_sweep_q ? dfii_phasecmd_index_q[3:2] : 2'd3;
   assign dfii_read_command_phase =
     dfii_source_command_matrix_mode ?
     DFII_SOURCE_COMMAND_READ_PHASE[1:0] :
     (dfii_source_order_matrix_mode || dfii_half_order_matrix_mode ||
-     dfii_displacement_probe_mode || dfii_csr_echo_probe_mode) ?
+     dfii_displacement_probe_mode || dfii_csr_echo_probe_mode ||
+     dfii_wbitslip_sweep_mode) ?
     DFII_SOURCE_ORDER_READ_PHASE[1:0] :
     dfii_phasecmd_sweep_q ? dfii_phasecmd_index_q[1:0] : 2'd2;
   assign cal_last_candidate =
@@ -1444,7 +1459,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     cal_apply_state ? selected_wbitslip_q : cal_wbitslip_q;
   assign cal_config_delay =
     cal_apply_state ? selected_delay_q : cal_delay_q;
-  assign cal_config_lane_mask = 32'd1 << cal_lane_q;
+  assign cal_config_lane_mask =
+    DFII_WBITSLIP_SWEEP_ONLY ? 32'h0000_01ff : (32'd1 << cal_lane_q);
   assign init_seq_done = init_state_q == INIT_DONE;
   assign init_seq_running =
     init_state_q != INIT_RESET && init_state_q != INIT_DONE &&
@@ -2075,7 +2091,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                  state_q == PROBE_CAL_CONFIG ||
                  state_q == PROBE_CAL_APPLY_BEST ||
                  state_q == PROBE_CAL_NEXT_LANE ||
-                 state_q == PROBE_DFII_RESTART) begin
+                 state_q == PROBE_DFII_RESTART ||
+                 state_q == PROBE_DFII_WBITSLIP_CONFIG) begin
       dfii_seq_state_q <= DFII_SEQ_IDLE;
       dfii_step_q <= 8'd0;
       dfii_delay_q <= 32'd0;
@@ -2451,16 +2468,22 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             first_actual_full_q <= 576'd0;
             first_chunk_mismatch_q <= 9'd0;
             dfii_final_q <= !(DFII_DISPLACEMENT_PROBE_ONLY ||
-                              DFII_CSR_ECHO_PROBE_ONLY);
+                              DFII_CSR_ECHO_PROBE_ONLY ||
+                              DFII_WBITSLIP_SWEEP_ONLY);
             dfii_phasecmd_sweep_q <=
-              DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY;
+              DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
+              DFII_WBITSLIP_SWEEP_ONLY;
             dfii_assoc_sweep_q <= 1'b0;
             dfii_addr_sweep_q <= 1'b0;
             dfii_pattern_mode_q <= DFII_PATTERN_MODE_UNIFORM;
             dfii_phasecmd_index_q <= 4'd0;
             dfii_assoc_index_q <= 4'd0;
             dfii_addr_index_q <= 2'd0;
-            state_q <= PROBE_DFII_RUN;
+            cal_bitslip_q <= 3'd0;
+            cal_wbitslip_q <= 3'd0;
+            cal_delay_q <= 5'd0;
+            state_q <= DFII_WBITSLIP_SWEEP_ONLY ?
+              PROBE_DFII_WBITSLIP_CONFIG : PROBE_DFII_RUN;
           end
           else
             state_q <= PROBE_WAIT_INIT;
@@ -2488,15 +2511,29 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             first_actual_full_q <= 576'd0;
             first_chunk_mismatch_q <= 9'd0;
             dfii_final_q <= !(DFII_DISPLACEMENT_PROBE_ONLY ||
-                              DFII_CSR_ECHO_PROBE_ONLY);
+                              DFII_CSR_ECHO_PROBE_ONLY ||
+                              DFII_WBITSLIP_SWEEP_ONLY);
             dfii_phasecmd_sweep_q <=
-              DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY;
+              DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
+              DFII_WBITSLIP_SWEEP_ONLY;
             dfii_assoc_sweep_q <= 1'b0;
             dfii_addr_sweep_q <= 1'b0;
             dfii_pattern_mode_q <= DFII_PATTERN_MODE_UNIFORM;
             dfii_phasecmd_index_q <= 4'd0;
             dfii_assoc_index_q <= 4'd0;
             dfii_addr_index_q <= 2'd0;
+            cal_bitslip_q <= 3'd0;
+            cal_wbitslip_q <= 3'd0;
+            cal_delay_q <= 5'd0;
+            state_q <= DFII_WBITSLIP_SWEEP_ONLY ?
+              PROBE_DFII_WBITSLIP_CONFIG : PROBE_DFII_RUN;
+          end
+        end
+        PROBE_DFII_WBITSLIP_CONFIG: begin
+          if (cal_config_failed) begin
+            state_q <= PROBE_ERROR;
+          end else if (cal_config_done) begin
+            read_cycle_count_q <= 32'd0;
             state_q <= PROBE_DFII_RUN;
           end
         end
@@ -2508,7 +2545,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             state_q <= PROBE_ERROR;
           end else if (dfii_done_q) begin
             if (dfii_phasecmd_sweep_q) begin
-              dfii_phasecmd_mismatch_q[dfii_phasecmd_index_q] <=
+              dfii_phasecmd_mismatch_q[dfii_result_slot] <=
                 dfii_displacement_probe_mode ?
                 dfii_word_mismatch_q[15:0] :
                 dfii_half_order_matrix_mode ?
@@ -2518,39 +2555,52 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                 dfii_word_mismatch_q[15:0];
               if (dfii_phase_matrix_mode) begin
                 if (dfii_displacement_probe_mode) begin
-                  dfii_assoc_nonzero_mask_q[dfii_phasecmd_index_q] <=
+                  dfii_assoc_nonzero_mask_q[dfii_result_slot] <=
                     dfii_half_nonzero_mask_next[15:0];
-                  dfii_assoc_match_mask_q[dfii_phasecmd_index_q] <=
+                  dfii_assoc_match_mask_q[dfii_result_slot] <=
                     ~dfii_word_mismatch_q[15:0];
-                  dfii_half_nonzero_high_q[dfii_phasecmd_index_q] <=
+                  dfii_half_nonzero_high_q[dfii_result_slot] <=
                     dfii_half_nonzero_mask_next[19:16];
-                  dfii_half_low_match_high_q[dfii_phasecmd_index_q] <=
+                  dfii_half_low_match_high_q[dfii_result_slot] <=
                     ~dfii_word_mismatch_q[19:16];
-                  dfii_half_high_match_low_q[dfii_phasecmd_index_q] <=
+                  dfii_half_high_match_low_q[dfii_result_slot] <=
                     16'd0;
-                  dfii_half_high_match_high_q[dfii_phasecmd_index_q] <=
+                  dfii_half_high_match_high_q[dfii_result_slot] <=
                     4'd0;
                 end else if (dfii_half_order_matrix_mode) begin
-                  dfii_assoc_nonzero_mask_q[dfii_phasecmd_index_q] <=
+                  dfii_assoc_nonzero_mask_q[dfii_result_slot] <=
                     dfii_half_nonzero_mask_next[15:0];
-                  dfii_assoc_match_mask_q[dfii_phasecmd_index_q] <=
+                  dfii_assoc_match_mask_q[dfii_result_slot] <=
                     dfii_half_low_match_mask_next[15:0];
-                  dfii_half_nonzero_high_q[dfii_phasecmd_index_q] <=
+                  dfii_half_nonzero_high_q[dfii_result_slot] <=
                     dfii_half_nonzero_mask_next[19:16];
-                  dfii_half_low_match_high_q[dfii_phasecmd_index_q] <=
+                  dfii_half_low_match_high_q[dfii_result_slot] <=
                     dfii_half_low_match_mask_next[19:16];
-                  dfii_half_high_match_low_q[dfii_phasecmd_index_q] <=
+                  dfii_half_high_match_low_q[dfii_result_slot] <=
                     dfii_half_high_match_mask_next[15:0];
-                  dfii_half_high_match_high_q[dfii_phasecmd_index_q] <=
+                  dfii_half_high_match_high_q[dfii_result_slot] <=
                     dfii_half_high_match_mask_next[19:16];
                 end else begin
-                  dfii_assoc_nonzero_mask_q[dfii_phasecmd_index_q] <=
+                  dfii_assoc_nonzero_mask_q[dfii_result_slot] <=
                     dfii_phase_matrix_nonzero_mask_next;
-                  dfii_assoc_match_mask_q[dfii_phasecmd_index_q] <=
+                  dfii_assoc_match_mask_q[dfii_result_slot] <=
                     dfii_phase_matrix_match_mask_next;
                 end
               end
-              if (DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY) begin
+              if (DFII_WBITSLIP_SWEEP_ONLY) begin
+                if (cal_wbitslip_q == 3'd7) begin
+                  dfii_phasecmd_sweep_q <= 1'b0;
+                  dfii_assoc_sweep_q <= 1'b0;
+                  dfii_addr_sweep_q <= 1'b0;
+                  state_q <= PROBE_DFII_DONE;
+                end else begin
+                  cal_wbitslip_q <= cal_wbitslip_q + 3'd1;
+                  cal_bitslip_q <= 3'd0;
+                  cal_delay_q <= 5'd0;
+                  state_q <= PROBE_DFII_WBITSLIP_CONFIG;
+                end
+              end else if (DFII_DISPLACEMENT_PROBE_ONLY ||
+                           DFII_CSR_ECHO_PROBE_ONLY) begin
                 dfii_phasecmd_sweep_q <= 1'b0;
                 dfii_assoc_sweep_q <= 1'b0;
                 dfii_addr_sweep_q <= 1'b0;
@@ -3391,7 +3441,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     jtag_debug_payload[4082 +: 1] = DFII_SOURCE_COMMAND_MATRIX_ONLY;
     jtag_debug_payload[4083 +: 1] = DFII_SOURCE_ORDER_MATRIX_ONLY;
     jtag_debug_payload[4084 +: 2] = DFII_SOURCE_COMMAND_READ_PHASE[1:0];
-    jtag_debug_payload[4086 +: 1] = 1'b0;
+    jtag_debug_payload[4086 +: 1] = DFII_WBITSLIP_SWEEP_ONLY;
     jtag_debug_payload[4087 +: 1] = DFII_HALF_ORDER_MATRIX_ONLY;
     jtag_debug_payload[4088 +: 2] = DFII_SOURCE_ORDER_SOURCE_PHASE[1:0];
     jtag_debug_payload[4090 +: 2] = DFII_SOURCE_ORDER_WRITE_PHASE[1:0];

@@ -13326,3 +13326,100 @@ Next gate:
   cases.
 - Keep rowstream/TinyStories disconnected until at least one lane/half maps
   from CSR storage through DRAM readback with a matching expected tag.
+
+### 2026-05-01 - v64 DFII write-bitslip sweep discriminator
+
+Goal:
+
+- Test whether LiteDRAM/A7DDRPHY write-bitslip selection alone explains the
+  v62 low-half-only displacement signature.
+- Keep placement fixed within a single bitstream by sweeping the number of
+  write-bitslip pulses after the PHY's write-bitslip reset, then running the
+  same dense DFII displacement pattern for each setting.
+
+Implementation:
+
+- Added `DFII_WBITSLIP_SWEEP_ONLY`.
+- Bumped the JTAG debug payload version to `64`.
+- Added `PROBE_DFII_WBITSLIP_CONFIG`, which selects all nine DQS groups,
+  applies `0..7` write-bitslip pulses, reruns the dense displacement DFII
+  probe, and stores low/high nonzero and exact-match masks per candidate.
+- Updated the JTAG decoder to report the active write-bitslip sweep and print
+  a compact per-candidate table.
+- Added flake targets for:
+  - `task6-ypcb-litedram-no-odelay-lowrate-wbitslip-sweep-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-wbitslip-sweep-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-wbitslip-sweep-init-bandwidth-probe-bitstream`
+
+Build result:
+
+- JSON:
+  `/nix/store/j2b5cr95afsdb9wz0bh4nmxhy7w5w8ak-task6-ypcb-litedram-no-odelay-lowrate-wbitslip-sweep-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/s91j2y2h37d16lc6qd7q1iifvmb81263-task6-ypcb-litedram-no-odelay-lowrate-wbitslip-sweep-init-bandwidth-probe-utilization`
+  - CLB LUTs: `17539 / 298600` (`5.87%`)
+  - CLB FFs: `13864 / 597200` (`2.32%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2193 / 74650` (`2.94%`)
+- Bitstream:
+  `/nix/store/8dmq7wagm57xcm5fbj68hgnyih902yhm-task6-ypcb-litedram-no-odelay-lowrate-wbitslip-sweep-init-bandwidth-probe.bit`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `453.10 MHz`
+  - `user_clk`: `67.15 MHz`
+  - `core.iodelay_clk`: `505.31 MHz`
+  - `jtag_debug_shift.drck`: `358.04 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/8dmq7wagm57xcm5fbj68hgnyih902yhm-task6-ypcb-litedram-no-odelay-lowrate-wbitslip-sweep-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=64`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_wbitslip_sweep_only=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=58`, `wait=174`
+  - no candidate produced any exact word match
+
+Write-bitslip sweep table:
+
+```text
+pulses  value  nonzero_low  exact_low  nonzero_high  exact_high  visible  exact
+0       7      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+1       0      0xbdff       0x0000     0x0007        0x0000      17/20    0/20
+2       1      0x0010       0x0000     0x0000        0x0000       1/20    0/20
+3       2      0x0010       0x0000     0x0000        0x0000       1/20    0/20
+4       3      0x0010       0x0000     0x0000        0x0000       1/20    0/20
+5       4      0x0010       0x0000     0x0000        0x0000       1/20    0/20
+6       5      0x0010       0x0000     0x0000        0x0000       1/20    0/20
+7       6      0x0010       0x0000     0x0000        0x0000       1/20    0/20
+```
+
+Interpretation:
+
+- Write-bitslip is a real discriminator: values `7` and `0` preserve the broad
+  visible-data signature, while values `1..6` collapse almost all observed
+  tags.
+- Write-bitslip alone is not sufficient: no setting produced an exact
+  phase/half/word association, and no setting recovered a valid high-half
+  mapping.
+- The preferred write-bitslip region is therefore the reset/default region
+  (`7` or `0`), not one of the intermediate offsets.
+- Combined with v63, the remaining issue is past the DFII CSR write path and
+  not solved by global write-bitslip. The next split should target read-side
+  capture association or byte-lane/DQS timing.
+
+Next gate:
+
+- Add a v65 read-bitslip or read-capture sweep using the same dense
+  displacement pattern and a fixed write-bitslip value in the `7/0` region.
+- Keep the result in one bitstream so differences are attributable to the
+  capture setting rather than placement/routing changes.

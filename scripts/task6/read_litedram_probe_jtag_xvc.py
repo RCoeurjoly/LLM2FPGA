@@ -53,6 +53,7 @@ STATE_NAMES = {
     23: "PROBE_PHASE_WRITE_DRAIN",
     24: "PROBE_PHASE_RUN_READS",
     25: "PROBE_PHASE_APPLY_BEST",
+    26: "PROBE_DFII_WBITSLIP_CONFIG",
 }
 
 INIT_STATE_NAMES = {
@@ -227,6 +228,7 @@ FIELDS = [
     ("dfii_source_order_matrix_only", 4083, 1),
     ("dfii_source_command_read_phase", 4084, 2),
     ("dfii_csr_wrdata_mask_controllable", 4086, 1),
+    ("dfii_wbitslip_sweep_only", 4086, 1),
     ("dfii_half_order_matrix_only", 4087, 1),
     ("dfii_source_order_source_phase", 4088, 2),
     ("dfii_source_order_write_phase", 4090, 2),
@@ -755,6 +757,7 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     half_order_matrix_only = bool(fields.get("dfii_half_order_matrix_only", 0))
     displacement_probe_only = bool(fields.get("dfii_displacement_probe_only", 0))
     csr_echo_probe_only = bool(fields.get("dfii_csr_echo_probe_only", 0))
+    wbitslip_sweep_only = bool(fields.get("dfii_wbitslip_sweep_only", 0))
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
@@ -762,6 +765,7 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         or half_order_matrix_only
         or displacement_probe_only
         or csr_echo_probe_only
+        or wbitslip_sweep_only
     )
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
     source_order_slot = fields.get("dfii_phasecmd_index", 0) & 0xF
@@ -776,13 +780,16 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         active_mode = 3
     words = []
     use_five_word_phase = (
-        half_order_matrix_only or displacement_probe_only or csr_echo_probe_only
+        half_order_matrix_only
+        or displacement_probe_only
+        or csr_echo_probe_only
+        or wbitslip_sweep_only
     )
     for index in range(DFII_WORD_COUNT):
         actual = fields.get(f"dfii_rddata_{index}", 0)
         if csr_echo_probe_only:
             expected = dfii_csr_echo_word(index)
-        elif displacement_probe_only:
+        elif displacement_probe_only or wbitslip_sweep_only:
             expected = dfii_displacement_word(index % 5)
         elif half_order_matrix_only:
             expected = dfii_half_order_word(source_order_slot, index % 5)
@@ -1211,6 +1218,7 @@ def print_summary(result: dict[str, object]) -> None:
             "half_order_matrix={half_order_matrix} "
             "displacement_probe={displacement_probe} "
             "csr_echo={csr_echo} "
+            "wbitslip_sweep={wbitslip_sweep} "
             "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
@@ -1231,6 +1239,7 @@ def print_summary(result: dict[str, object]) -> None:
                     fields.get("dfii_displacement_probe_only", 0)
                 ),
                 csr_echo=bool(fields.get("dfii_csr_echo_probe_only", 0)),
+                wbitslip_sweep=bool(fields.get("dfii_wbitslip_sweep_only", 0)),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
                 mask=fields.get("dfii_word_mismatch_mask", 0) & 0xFFFF,
@@ -1258,6 +1267,7 @@ def print_summary(result: dict[str, object]) -> None:
     half_order_matrix_only = bool(fields.get("dfii_half_order_matrix_only", 0))
     displacement_probe_only = bool(fields.get("dfii_displacement_probe_only", 0))
     csr_echo_probe_only = bool(fields.get("dfii_csr_echo_probe_only", 0))
+    wbitslip_sweep_only = bool(fields.get("dfii_wbitslip_sweep_only", 0))
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
@@ -1284,6 +1294,34 @@ def print_summary(result: dict[str, object]) -> None:
             )
             suffix = " ..." if len(bad) > 8 else ""
             print(f"dfii csr echo mismatches: {formatted}{suffix}")
+    if wbitslip_sweep_only:
+        half_nonzero_high = fields.get("dfii_half_nonzero_high_masks", 0)
+        half_low_high = fields.get("dfii_half_low_match_high_masks", 0)
+        print(
+            "dfii wbitslip sweep: dense displacement probe after write-bitslip "
+            "reset plus N pulses across all nine DQS groups"
+        )
+        for pulses in range(8):
+            value = (7 + pulses) & 0x7
+            nonzero_low = fields.get(f"dfii_assoc_nonzero_mask_{pulses}", 0)
+            exact_low = fields.get(f"dfii_assoc_match_mask_{pulses}", 0)
+            nonzero_high = (half_nonzero_high >> (pulses * 4)) & 0xF
+            exact_high = (half_low_high >> (pulses * 4)) & 0xF
+            print(
+                "  pulses={pulses} value={value} "
+                "nonzero_low=0x{nonzero_low:04x} exact_low=0x{exact_low:04x} "
+                "nonzero_high=0x{nonzero_high:x} exact_high=0x{exact_high:x} "
+                "visible={visible}/20 exact={exact}/20".format(
+                    pulses=pulses,
+                    value=value,
+                    nonzero_low=nonzero_low,
+                    exact_low=exact_low,
+                    nonzero_high=nonzero_high,
+                    exact_high=exact_high,
+                    visible=nonzero_low.bit_count() + nonzero_high.bit_count(),
+                    exact=exact_low.bit_count() + exact_high.bit_count(),
+                )
+            )
     if displacement_probe_only:
         observed = decoded["dfii_displacement_observed"]
         print(
