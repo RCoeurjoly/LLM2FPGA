@@ -13727,3 +13727,94 @@ Next gate:
   - neighboring high-half lane `8` and pad bytes if needed
 - Pass criterion: identify a single candidate tag appearing in the logical
   lane-7 read position without disturbing lanes `0..6,8`.
+
+### 2026-05-01 - v69 lane-7 source locator
+
+Goal:
+
+- Resolve the v68 ambiguity by tagging multiple plausible lane-7 source slots
+  in the same bitstream while keeping known-good lanes `0..6,8` fixed.
+
+Implementation:
+
+- Added `DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY`.
+- Added flake targets for:
+  - `task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-bitstream`
+- Bumped the JTAG payload version to `69`.
+- Tagged these candidate slots:
+  - `0xa0`: `p0` low lane `7`
+  - `0xa1..0xa4`: high lane `7` for phases `p0..p3`
+  - `0xa5..0xa8`: high lane `8` for phases `p0..p3`
+  - `0xa9..0xb0`: high word-4 pad slots for phases `p0..p3`
+
+Build result:
+
+- JSON:
+  `/nix/store/k88p4jr9wfl058bm21w9mhhj6qh6yvsh-task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/wqk0rf227paska1096b70bb26apgnz8a-task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-utilization`
+  - nextpnr pack summary:
+    - `SLICE_LUTX`: `22776 / 597200` (`3%`)
+    - `SLICE_FFX`: `13703 / 597200` (`2%`)
+    - `DSP48E1`: `0 / 1920`
+    - `RAMB36E1`: `0 / 955`
+    - `IDELAYE2`: `72 / 400`
+    - `OSERDESE2`: `107 / 400`
+- Bitstream:
+  `/nix/store/26p1vml8ay2g5f9gj4srn778bm612mf5-task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.bit`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `567.21 MHz`
+  - `user_clk`: `70.96 MHz`
+  - `core.iodelay_clk`: `545.85 MHz`
+  - `jtag_debug_shift.drck`: `401.12 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/26p1vml8ay2g5f9gj4srn778bm612mf5-task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=69`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_edge_lane7_locator_probe_only=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=58`, `wait=174`
+  - full `dfii_word_mismatch_mask=0x94a52`
+  - lower printed mismatch mask: `0x4a52`
+
+Representative readback:
+
+```text
+[p0 w0] expected=0x93929190 actual=0x93929190
+[p0 w1] expected=0x00969594 actual=0xa0969594
+[p0 w2] expected=0x92919098 actual=0x92919098
+[p0 w3] expected=0x96959493 actual=0x96959493
+[p0 w4] expected=0x00009800 actual=0x000098a0
+```
+
+Interpretation:
+
+- The lane-7 source is now identified: `0xa0`, the `p0` low-half lane `7`
+  candidate, appears exactly in both logical lane-7 read positions.
+- None of the high-half lane `7`, high-half lane `8`, or pad candidate tags
+  appear in the corrected 20-byte read window.
+- This supersedes the v67 source interpretation. The stable control fact is
+  now that lanes `0..8` can be driven from the expected `p0` low-half 9-byte
+  beat.
+- v68 failed because it deliberately zeroed the actual `p0` low lane-7 source
+  and tried to drive lane `7` from a high-half candidate instead.
+
+Next gate:
+
+- Update the compensated edge-map probe so logical lane `7` is driven through
+  `p0` low lane `7`.
+- Rebuild and run the corrected compensated edge-map as v70.
+- Pass criterion: `dfii_data_pass=true` and `dfii_word_mismatch_mask=0`.

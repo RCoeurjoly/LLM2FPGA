@@ -344,6 +344,9 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
         fields["dfii_edge_comp_probe_only"] = int(
             bool(version >= 68 and (assoc_flags & 0x40))
         )
+        fields["dfii_edge_lane7_locator_probe_only"] = int(
+            bool(version >= 69 and (assoc_flags & 0x80))
+        )
 
     state = fields.get("state", -1)
     status = fields.get("status", 0)
@@ -389,6 +392,7 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
         or fields.get("dfii_rbitslip_sweep_only", 0)
         or fields.get("dfii_edge_map_probe_only", 0)
         or fields.get("dfii_edge_comp_probe_only", 0)
+        or fields.get("dfii_edge_lane7_locator_probe_only", 0)
     )
     dfii_assoc_matrix = decode_dfii_assoc_matrix(fields)
     dfii_phase_matrix = decode_dfii_phase_matrix(fields)
@@ -743,6 +747,15 @@ def dfii_edge_comp_read_word(word: int) -> int:
     return words[word % 5]
 
 
+def dfii_lane7_locator_expected_word(word: int) -> int:
+    value = dfii_edge_comp_read_word(word)
+    if word % 5 == 1:
+        return value & 0x00FFFFFF
+    if word % 5 == 4:
+        return value & 0xFFFFFF00
+    return value
+
+
 def dfii_csr_echo_word(index: int) -> int:
     phase = index // 5
     word = index % 5
@@ -767,6 +780,17 @@ def dfii_displacement_tag_label(tag: int) -> str:
             return f"p{phase}_pad_w4_b3"
     if 0x90 <= tag <= 0x98:
         return f"comp_lane{tag - 0x90}"
+    if 0xA0 <= tag <= 0xB0:
+        candidate = tag - 0xA0
+        if candidate == 0:
+            return "cand_p0_low_lane7"
+        if 1 <= candidate <= 4:
+            return f"cand_p{candidate - 1}_high_lane7"
+        if 5 <= candidate <= 8:
+            return f"cand_p{candidate - 5}_high_lane8"
+        if 9 <= candidate <= 12:
+            return f"cand_p{candidate - 9}_pad_w4_b2"
+        return f"cand_p{candidate - 13}_pad_w4_b3"
     if 0x10 <= tag <= 0x18:
         return f"low_lane{tag - 0x10}"
     if 0x20 <= tag <= 0x28:
@@ -956,6 +980,9 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     rbitslip_sweep_only = bool(fields.get("dfii_rbitslip_sweep_only", 0))
     edge_map_probe_only = bool(fields.get("dfii_edge_map_probe_only", 0))
     edge_comp_probe_only = bool(fields.get("dfii_edge_comp_probe_only", 0))
+    lane7_locator_probe_only = bool(
+        fields.get("dfii_edge_lane7_locator_probe_only", 0)
+    )
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
@@ -967,6 +994,7 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         or rbitslip_sweep_only
         or edge_map_probe_only
         or edge_comp_probe_only
+        or lane7_locator_probe_only
     )
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
     source_order_slot = fields.get("dfii_phasecmd_index", 0) & 0xF
@@ -988,11 +1016,14 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         or rbitslip_sweep_only
         or edge_map_probe_only
         or edge_comp_probe_only
+        or lane7_locator_probe_only
     )
     for index in range(DFII_WORD_COUNT):
         actual = fields.get(f"dfii_rddata_{index}", 0)
         if csr_echo_probe_only:
             expected = dfii_csr_echo_word(index)
+        elif lane7_locator_probe_only:
+            expected = dfii_lane7_locator_expected_word(index % 5)
         elif edge_comp_probe_only:
             expected = dfii_edge_comp_read_word(index % 5)
         elif edge_map_probe_only:
@@ -1430,6 +1461,7 @@ def print_summary(result: dict[str, object]) -> None:
             "rbitslip_sweep={rbitslip_sweep} "
             "edge_map={edge_map} "
             "edge_comp={edge_comp} "
+            "lane7_locator={lane7_locator} "
             "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
@@ -1454,6 +1486,9 @@ def print_summary(result: dict[str, object]) -> None:
                 rbitslip_sweep=bool(fields.get("dfii_rbitslip_sweep_only", 0)),
                 edge_map=bool(fields.get("dfii_edge_map_probe_only", 0)),
                 edge_comp=bool(fields.get("dfii_edge_comp_probe_only", 0)),
+                lane7_locator=bool(
+                    fields.get("dfii_edge_lane7_locator_probe_only", 0)
+                ),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
                 mask=fields.get("dfii_word_mismatch_mask", 0) & 0xFFFF,
@@ -1485,6 +1520,9 @@ def print_summary(result: dict[str, object]) -> None:
     rbitslip_sweep_only = bool(fields.get("dfii_rbitslip_sweep_only", 0))
     edge_map_probe_only = bool(fields.get("dfii_edge_map_probe_only", 0))
     edge_comp_probe_only = bool(fields.get("dfii_edge_comp_probe_only", 0))
+    lane7_locator_probe_only = bool(
+        fields.get("dfii_edge_lane7_locator_probe_only", 0)
+    )
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
@@ -1546,6 +1584,7 @@ def print_summary(result: dict[str, object]) -> None:
         or rbitslip_sweep_only
         or edge_map_probe_only
         or edge_comp_probe_only
+        or lane7_locator_probe_only
     )
     if displacement_like:
         shift_scores = decoded["dfii_displacement_shift_scores"]
@@ -1568,9 +1607,20 @@ def print_summary(result: dict[str, object]) -> None:
                         scores=formatted,
                     )
                 )
-    if displacement_probe_only or edge_map_probe_only or edge_comp_probe_only:
+    if (
+        displacement_probe_only
+        or edge_map_probe_only
+        or edge_comp_probe_only
+        or lane7_locator_probe_only
+    ):
         observed = decoded["dfii_displacement_observed"]
-        if edge_comp_probe_only:
+        if lane7_locator_probe_only:
+            print(
+                "dfii lane7 source locator: known-good lanes fixed, "
+                "candidate tags A0..B0 placed on low/high lane7, lane8, "
+                "and pad source slots"
+            )
+        elif edge_comp_probe_only:
             print(
                 "dfii compensated-edge probe: logical lane7 through p2 high "
                 "lane7, other logical lanes through p0 low"

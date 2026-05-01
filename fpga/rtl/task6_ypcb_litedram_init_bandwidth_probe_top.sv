@@ -15,6 +15,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter bit DFII_RBITSLIP_SWEEP_ONLY = 1'b0,
   parameter bit DFII_EDGE_MAP_PROBE_ONLY = 1'b0,
   parameter bit DFII_EDGE_COMP_PROBE_ONLY = 1'b0,
+  parameter bit DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY = 1'b0,
   parameter int DFII_SOURCE_COMMAND_READ_PHASE = 2,
   parameter int DFII_SOURCE_ORDER_SOURCE_PHASE = 0,
   parameter int DFII_SOURCE_ORDER_WRITE_PHASE = 0,
@@ -39,7 +40,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd68;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd69;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -469,6 +470,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   wire dfii_rbitslip_sweep_mode;
   wire dfii_edge_map_probe_mode;
   wire dfii_edge_comp_probe_mode;
+  wire dfii_edge_lane7_locator_probe_mode;
   wire dfii_bitslip_sweep_mode;
   wire dfii_wide_word_mode;
   wire [1:0] dfii_matrix_source_phase;
@@ -1090,6 +1092,73 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     end
   endfunction
 
+  function automatic logic [7:0] dfii_lane7_locator_tag(
+    input logic [4:0] candidate
+  );
+    begin
+      dfii_lane7_locator_tag = 8'hA0 + {3'd0, candidate};
+    end
+  endfunction
+
+  function automatic logic [31:0] dfii_lane7_locator_write_word(
+    input logic [1:0] phase,
+    input logic [2:0] word
+  );
+    begin
+      dfii_lane7_locator_write_word = dfii_edge_comp_write_word(phase, word);
+      unique case ({phase, word})
+        5'b00_001:
+          dfii_lane7_locator_write_word =
+            dfii_edge_comp_write_word(phase, word) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd0), 2'd3);
+        5'b00_100:
+          dfii_lane7_locator_write_word =
+            dfii_place_byte(dfii_lane7_locator_tag(5'd1), 2'd0) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd5), 2'd1) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd9), 2'd2) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd13), 2'd3);
+        5'b01_100:
+          dfii_lane7_locator_write_word =
+            dfii_place_byte(dfii_lane7_locator_tag(5'd2), 2'd0) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd6), 2'd1) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd10), 2'd2) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd14), 2'd3);
+        5'b10_100:
+          dfii_lane7_locator_write_word =
+            dfii_place_byte(dfii_lane7_locator_tag(5'd3), 2'd0) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd7), 2'd1) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd11), 2'd2) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd15), 2'd3);
+        5'b11_100:
+          dfii_lane7_locator_write_word =
+            dfii_place_byte(dfii_lane7_locator_tag(5'd4), 2'd0) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd8), 2'd1) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd12), 2'd2) |
+            dfii_place_byte(dfii_lane7_locator_tag(5'd16), 2'd3);
+        default:
+          dfii_lane7_locator_write_word = dfii_edge_comp_write_word(phase, word);
+      endcase
+    end
+  endfunction
+
+  function automatic logic [31:0] dfii_lane7_locator_expected_word(
+    input logic [2:0] word
+  );
+    begin
+      dfii_lane7_locator_expected_word = dfii_edge_comp_read_word(word);
+      unique case (word)
+        3'd1:
+          dfii_lane7_locator_expected_word =
+            dfii_edge_comp_read_word(word) & 32'h00ff_ffff;
+        3'd4:
+          dfii_lane7_locator_expected_word =
+            dfii_edge_comp_read_word(word) & 32'hffff_ff00;
+        default:
+          dfii_lane7_locator_expected_word = dfii_edge_comp_read_word(word);
+      endcase
+    end
+  endfunction
+
   function automatic logic [31:0] dfii_csr_echo_word(
     input logic [1:0] phase,
     input logic [2:0] word
@@ -1400,12 +1469,14 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     DFII_EDGE_MAP_PROBE_ONLY && dfii_phasecmd_sweep_q;
   assign dfii_edge_comp_probe_mode =
     DFII_EDGE_COMP_PROBE_ONLY && dfii_phasecmd_sweep_q;
+  assign dfii_edge_lane7_locator_probe_mode =
+    DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY && dfii_phasecmd_sweep_q;
   assign dfii_bitslip_sweep_mode =
     dfii_wbitslip_sweep_mode || dfii_rbitslip_sweep_mode;
   assign dfii_wide_word_mode =
     dfii_half_order_matrix_mode || dfii_displacement_probe_mode ||
     dfii_csr_echo_probe_mode || dfii_edge_map_probe_mode ||
-    dfii_edge_comp_probe_mode;
+    dfii_edge_comp_probe_mode || dfii_edge_lane7_locator_probe_mode;
   assign dfii_read_store_index =
     dfii_csr_echo_probe_mode ? dfii_csr_echo_read_index20 :
     (dfii_wide_word_mode ? dfii_rddata_index20 : dfii_rddata_index);
@@ -1438,6 +1509,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     (dfii_source_order_matrix_mode || dfii_half_order_matrix_mode ||
      dfii_displacement_probe_mode || dfii_csr_echo_probe_mode ||
      dfii_edge_map_probe_mode || dfii_edge_comp_probe_mode ||
+     dfii_edge_lane7_locator_probe_mode ||
      dfii_bitslip_sweep_mode) ?
     DFII_SOURCE_ORDER_SOURCE_PHASE[1:0] : dfii_phasecmd_index_q[3:2];
   assign dfii_result_slot =
@@ -1455,6 +1527,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     (dfii_source_order_matrix_mode || dfii_half_order_matrix_mode ||
      dfii_displacement_probe_mode || dfii_csr_echo_probe_mode ||
      dfii_edge_map_probe_mode || dfii_edge_comp_probe_mode ||
+     dfii_edge_lane7_locator_probe_mode ||
      dfii_bitslip_sweep_mode) ?
     DFII_SOURCE_ORDER_WRITE_PHASE[1:0] :
     dfii_phasecmd_sweep_q ? dfii_phasecmd_index_q[3:2] : 2'd3;
@@ -1464,6 +1537,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     (dfii_source_order_matrix_mode || dfii_half_order_matrix_mode ||
      dfii_displacement_probe_mode || dfii_csr_echo_probe_mode ||
      dfii_edge_map_probe_mode || dfii_edge_comp_probe_mode ||
+     dfii_edge_lane7_locator_probe_mode ||
      dfii_bitslip_sweep_mode) ?
     DFII_SOURCE_ORDER_READ_PHASE[1:0] :
     dfii_phasecmd_sweep_q ? dfii_phasecmd_index_q[1:0] : 2'd2;
@@ -1889,6 +1963,11 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
           dfii_index20_word(dfii_wrdata_index20)
         );
         dfii_step_wb_data =
+          dfii_edge_lane7_locator_probe_mode ?
+          dfii_lane7_locator_write_word(
+            dfii_index20_phase(dfii_wrdata_index20),
+            dfii_index20_word(dfii_wrdata_index20)
+          ) :
           dfii_edge_comp_probe_mode ?
           dfii_edge_comp_write_word(
             dfii_index20_phase(dfii_wrdata_index20),
@@ -2363,6 +2442,12 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                         dfii_index20_word(dfii_read_store_index)
                       ))
                     dfii_word_mismatch_q[dfii_read_store_index] <= 1'b1;
+                end else if (dfii_edge_lane7_locator_probe_mode) begin
+                  if (wb_ctrl_dat_r !=
+                      dfii_lane7_locator_expected_word(
+                        dfii_index20_word(dfii_read_store_index)
+                      ))
+                    dfii_word_mismatch_q[dfii_read_store_index] <= 1'b1;
                 end else if (dfii_edge_comp_probe_mode) begin
                   if (wb_ctrl_dat_r !=
                       dfii_edge_comp_read_word(
@@ -2653,11 +2738,13 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                               DFII_WBITSLIP_SWEEP_ONLY ||
                               DFII_RBITSLIP_SWEEP_ONLY ||
                               DFII_EDGE_MAP_PROBE_ONLY ||
-                              DFII_EDGE_COMP_PROBE_ONLY);
+                              DFII_EDGE_COMP_PROBE_ONLY ||
+                              DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY);
             dfii_phasecmd_sweep_q <=
               DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
               DFII_WBITSLIP_SWEEP_ONLY || DFII_RBITSLIP_SWEEP_ONLY ||
-              DFII_EDGE_MAP_PROBE_ONLY || DFII_EDGE_COMP_PROBE_ONLY;
+              DFII_EDGE_MAP_PROBE_ONLY || DFII_EDGE_COMP_PROBE_ONLY ||
+              DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY;
             dfii_assoc_sweep_q <= 1'b0;
             dfii_addr_sweep_q <= 1'b0;
             dfii_pattern_mode_q <= DFII_PATTERN_MODE_UNIFORM;
@@ -2700,11 +2787,13 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                               DFII_WBITSLIP_SWEEP_ONLY ||
                               DFII_RBITSLIP_SWEEP_ONLY ||
                               DFII_EDGE_MAP_PROBE_ONLY ||
-                              DFII_EDGE_COMP_PROBE_ONLY);
+                              DFII_EDGE_COMP_PROBE_ONLY ||
+                              DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY);
             dfii_phasecmd_sweep_q <=
               DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
               DFII_WBITSLIP_SWEEP_ONLY || DFII_RBITSLIP_SWEEP_ONLY ||
-              DFII_EDGE_MAP_PROBE_ONLY || DFII_EDGE_COMP_PROBE_ONLY;
+              DFII_EDGE_MAP_PROBE_ONLY || DFII_EDGE_COMP_PROBE_ONLY ||
+              DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY;
             dfii_assoc_sweep_q <= 1'b0;
             dfii_addr_sweep_q <= 1'b0;
             dfii_pattern_mode_q <= DFII_PATTERN_MODE_UNIFORM;
@@ -2803,7 +2892,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
               end else if (DFII_DISPLACEMENT_PROBE_ONLY ||
                            DFII_CSR_ECHO_PROBE_ONLY ||
                            DFII_EDGE_MAP_PROBE_ONLY ||
-                           DFII_EDGE_COMP_PROBE_ONLY) begin
+                           DFII_EDGE_COMP_PROBE_ONLY ||
+                           DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY) begin
                 dfii_phasecmd_sweep_q <= 1'b0;
                 dfii_assoc_sweep_q <= 1'b0;
                 dfii_addr_sweep_q <= 1'b0;
@@ -2817,7 +2907,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                     DFII_DISPLACEMENT_PROBE_ONLY ||
                     DFII_CSR_ECHO_PROBE_ONLY ||
                     DFII_EDGE_MAP_PROBE_ONLY ||
-                    DFII_EDGE_COMP_PROBE_ONLY) begin
+                    DFII_EDGE_COMP_PROBE_ONLY ||
+                    DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY) begin
                   dfii_assoc_sweep_q <= 1'b0;
                   dfii_addr_sweep_q <= 1'b0;
                   state_q <= PROBE_DFII_DONE;
@@ -3619,7 +3710,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
         byte_diag_rdata_q[byte_sample_idx];
     jtag_debug_payload[3264 +: 4] = dfii_assoc_index_q;
     jtag_debug_payload[3272 +: 8] = {
-      1'd0,
+      DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY,
       DFII_EDGE_COMP_PROBE_ONLY,
       DFII_EDGE_MAP_PROBE_ONLY,
       DFII_RBITSLIP_SWEEP_ONLY,
@@ -3636,7 +3727,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     end
     jtag_debug_payload[3808 +: 4] = {2'd0, dfii_addr_index_q};
     jtag_debug_payload[3816 +: 8] = {
-      1'd0,
+      DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY,
       DFII_EDGE_COMP_PROBE_ONLY,
       DFII_EDGE_MAP_PROBE_ONLY,
       DFII_RBITSLIP_SWEEP_ONLY,
