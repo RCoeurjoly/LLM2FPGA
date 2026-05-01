@@ -267,6 +267,11 @@ FIELDS = [
     ("dfii_rddata_17", 4128, 32),
     ("dfii_rddata_18", 4160, 32),
     ("dfii_rddata_19", 4192, 32),
+    ("native_readscan_nonzero_count", 4224, 32),
+    ("native_readscan_first_nonzero_addr", 4256, 32),
+    ("native_readscan_first_nonzero_data", 4288, 64),
+    ("native_readscan_nonzero_chunk_seen", 4352, 9),
+    ("native_readscan_first_nonzero_chunk_mask", 4368, 9),
     ("dfii_half_nonzero_high_masks", 4224, 64),
     ("dfii_half_low_match_high_masks", 4288, 64),
     ("dfii_half_high_match_low_masks", 4352, 256),
@@ -1758,7 +1763,41 @@ def print_summary(result: dict[str, object]) -> None:
                         actual=fields.get("first_actual", 0) & 0xFFFFFFFF,
                     )
                 )
-                if fields.get("version", 0) >= 86 and decoded["state"] != "PROBE_DFII_DONE":
+                if fields.get("version", 0) >= 87 and decoded["state"] != "PROBE_DFII_DONE":
+                    print(
+                        "native read-scan after address-walk: "
+                        "complete={complete} reads={reads} responses={responses} "
+                        "target={target} nonzero={nonzero} "
+                        "first_nonzero_addr=0x{first_addr:08x} "
+                        "first_nonzero_data=0x{first_data:016x} "
+                        "chunk_seen=0x{seen:03x} first_chunk=0x{first_chunk:03x}".format(
+                            complete=decoded["state"] == "PROBE_DONE",
+                            reads=fields.get("command_count", 0),
+                            responses=fields.get("response_count", 0),
+                            target=fields.get("target_read_count", 0),
+                            nonzero=fields.get(
+                                "native_readscan_nonzero_count",
+                                0,
+                            ),
+                            first_addr=fields.get(
+                                "native_readscan_first_nonzero_addr",
+                                0,
+                            ),
+                            first_data=fields.get(
+                                "native_readscan_first_nonzero_data",
+                                0,
+                            ),
+                            seen=fields.get(
+                                "native_readscan_nonzero_chunk_seen",
+                                0,
+                            ),
+                            first_chunk=fields.get(
+                                "native_readscan_first_nonzero_chunk_mask",
+                                0,
+                            ),
+                        )
+                    )
+                elif fields.get("version", 0) >= 86 and decoded["state"] != "PROBE_DFII_DONE":
                     print(
                         "native compact gate after address-walk: "
                         "complete={complete} writes={writes}/{write_commands} "
