@@ -14270,3 +14270,97 @@ Next gate:
 - After the address-walk passes, re-enable a native-port or controller-facing
   bandwidth probe and compare measured useful bandwidth against the
   `212.5 MB/s` rowstream gate.
+
+### 2026-05-01 - v85 compensated DFII address-walk board pass
+
+Objective:
+
+- Promote the v84 compact DFII BIST from repeated four-column coverage to a
+  wider address-association check before reconnecting native-port, rowstream,
+  or TinyStories logic.
+- Keep the active lane on LiteDRAM/LiteX no-ODELAY DDR3 only.
+
+Implementation:
+
+- Added `DFII_EDGE_COMP_ADDRWALK_ONLY` to the YPCB LiteDRAM init/bandwidth
+  probe.
+- Reused the passing v83/v84 final-word compensation and wrote sixteen compact
+  address-tagged DFII patterns.
+- Tested columns:
+  `0x0000`, `0x0008`, `0x0010`, `0x0018`, `0x0040`, `0x0048`, `0x0050`,
+  `0x0058`, `0x0100`, `0x0108`, `0x0110`, `0x0118`, `0x0200`, `0x0208`,
+  `0x0210`, and `0x0218`.
+- Updated the JTAG decoder to summarize the sixteen address-walk rows from the
+  v85 payload.
+- Added package family:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe-*`.
+
+Build artifacts:
+
+- JSON:
+  `/nix/store/5rpdfc20gdwxr4sbl7amwn4bd2abbl8y-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/0pb4mb9gp1nlq0b9985c5wbhss6nh68g-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe-utilization`
+- Bitstream:
+  `/nix/store/i1mbg1f0xscdw0w8hq8mc0v9yz83bxa8-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe.bit`
+
+Build results:
+
+- Final JSON has `IDELAYE2=72` and no `ODELAYE2`; the no-ODELAY guard remains
+  intact.
+- Yosys completed with `0` check problems, about `187.97s` user CPU and
+  `1324.01 MB` peak memory.
+- Mapped utilization:
+  - `clb_luts`: `19025/298600` (`6.37%`)
+  - `clb_ffs`: `14069/597200` (`2.36%`)
+  - `bram36`: `0/955` (`0.00%`)
+  - `dsp`: `0/1920` (`0.00%`)
+  - `slices_lower_bound`: `2379/74650` (`3.19%`)
+- Post-route timing at `25 MHz`:
+  - `clk200`: `692.52 MHz`
+  - `user_clk`: `72.80 MHz`
+  - `core.iodelay_clk`: `581.40 MHz`
+  - `jtag_debug_shift.drck`: `399.20 MHz`
+
+Board/JTAG result:
+
+- Programmed over HS3:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824
+  /nix/store/i1mbg1f0xscdw0w8hq8mc0v9yz83bxa8-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe.bit`
+- DONE asserted: `isc_done 1`, `done 1`.
+- JTAG payload:
+  - `version=85`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=True`
+  - `init_error=False`
+  - `pll_locked=True`
+  - `dfii_state=DFII_SEQ_DONE`
+  - `ack=58`, `wait=174`
+  - `mismatch_mask=0x00000`
+  - `mismatch_words=0`
+  - `data_pass=True`
+- All sixteen compact address-walk columns passed:
+  - columns `0x0000`, `0x0008`, `0x0010`, `0x0018`, `0x0040`, `0x0048`,
+    `0x0050`, `0x0058`, `0x0100`, `0x0108`, `0x0110`, `0x0118`, `0x0200`,
+    `0x0208`, `0x0210`, and `0x0218`: `PASS`
+
+Conclusion:
+
+- v85 promotes v84 from a pattern-diverse BIST to a compact multi-column
+  address-association proof.
+- The active no-ODELAY LiteDRAM/LiteX lane now has board evidence for JEDEC
+  init, DFII CSR control, compensated write/read command sequencing, multiple
+  data patterns, and distinct column-address retention.
+- This still does not prove native-port correctness, burst-turnaround
+  behavior, sustained bandwidth, rowstream packing, or TinyStories integration.
+  Rowstream/TinyStories stay disconnected.
+
+Next gate:
+
+- Re-enable a minimal native-port/controller-facing probe and classify whether
+  LiteDRAM native writes and reads can pass using the proven DFII compensation
+  evidence as the lower-level reference.
+- Once native writes/reads pass, measure useful linear read bandwidth and
+  compare it against the `212.5 MB/s` rowstream gate before connecting the
+  rowstream source.
