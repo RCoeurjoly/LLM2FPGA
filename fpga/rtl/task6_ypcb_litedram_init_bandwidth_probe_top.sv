@@ -21,6 +21,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_RELEASE = 1'b0,
+  parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_SPARSE = 1'b0,
   parameter bit DFII_EDGE_COMP_CSR_ONLY = 1'b0,
   parameter bit DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY = 1'b0,
   parameter int DFII_SOURCE_COMMAND_READ_PHASE = 2,
@@ -47,7 +48,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd88;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd89;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -83,6 +84,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v86 runs that address-walk first, then runs a compact native-port gate.
   // v87 skips native writes and scans native reads after the address-walk.
   // v88 repeats hardware-control release and waits before that read-scan.
+  // v89 changes that read-scan to the sparse DFII address-walk columns.
   localparam int CAL_BYTE_LANES = 8;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;
@@ -304,6 +306,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   logic [63:0] native_first_nonzero_data_q = 64'd0;
   logic [8:0] native_first_nonzero_chunk_q = 9'd0;
   logic [8:0] native_nonzero_chunk_seen_q = 9'd0;
+  logic [31:0] native_change_count_q = 32'd0;
+  logic [27:0] native_last_addr_q = 28'd0;
+  logic [63:0] native_last_data_q = 64'd0;
   logic [63:0] sample_rdata_q [0:READBACK_SAMPLE_COUNT - 1];
   logic [7:0] sample_valid_count_q = 8'd0;
   logic [63:0] byte_diag_rdata_q [0:BYTE_DIAG_SAMPLE_COUNT - 1];
@@ -527,6 +532,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   wire dfii_edge_comp_addrwalk_mode;
   wire native_readscan_mode;
   wire native_readscan_release_mode;
+  wire native_sparse_readscan_mode;
   wire dfii_edge_lane7_locator_probe_mode;
   wire dfii_bitslip_sweep_mode;
   wire dfii_wide_word_mode;
@@ -578,6 +584,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   wire [8:0] response_chunk_mismatch;
   wire [8:0] response_nonzero_chunk;
   wire response_any_nonzero;
+  wire [63:0] response_first_nonzero_data;
+  wire [24:0] active_read_addr;
+  wire [24:0] active_compare_addr;
   wire [575:0] expected_rdata;
   wire mismatch_seen;
 
@@ -1332,6 +1341,31 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     end
   endfunction
 
+  function automatic logic [24:0] native_sparse_read_addr(
+    input logic [3:0] addr_index
+  );
+    begin
+      unique case (addr_index)
+        4'd0: native_sparse_read_addr = 25'h0_0000;
+        4'd1: native_sparse_read_addr = 25'h0_0008;
+        4'd2: native_sparse_read_addr = 25'h0_0010;
+        4'd3: native_sparse_read_addr = 25'h0_0018;
+        4'd4: native_sparse_read_addr = 25'h0_0040;
+        4'd5: native_sparse_read_addr = 25'h0_0048;
+        4'd6: native_sparse_read_addr = 25'h0_0050;
+        4'd7: native_sparse_read_addr = 25'h0_0058;
+        4'd8: native_sparse_read_addr = 25'h0_0100;
+        4'd9: native_sparse_read_addr = 25'h0_0108;
+        4'd10: native_sparse_read_addr = 25'h0_0110;
+        4'd11: native_sparse_read_addr = 25'h0_0118;
+        4'd12: native_sparse_read_addr = 25'h0_0200;
+        4'd13: native_sparse_read_addr = 25'h0_0208;
+        4'd14: native_sparse_read_addr = 25'h0_0210;
+        default: native_sparse_read_addr = 25'h0_0218;
+      endcase
+    end
+  endfunction
+
   function automatic logic [7:0] dfii_addrwalk_tag(
     input logic [3:0] addr_index,
     input logic [3:0] lane
@@ -1744,11 +1778,17 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
      (write_command_count_q <= write_data_count_q)) ||
     (read_state && !read_target_issued && !outstanding_full);
   assign cmd_we = write_state;
+  assign active_read_addr =
+    native_sparse_readscan_mode ? native_sparse_read_addr(read_addr_q[3:0]) :
+    read_addr_q;
+  assign active_compare_addr =
+    native_sparse_readscan_mode ? native_sparse_read_addr(compare_addr_q[3:0]) :
+    compare_addr_q;
   assign cmd_addr =
     byte_diag_mode ?
       (BYTE_DIAG_BASE_ADDR +
        (cmd_we ? write_command_count_q[24:0] : read_addr_q)) :
-      (cmd_we ? write_command_count_q[24:0] : read_addr_q);
+      (cmd_we ? write_command_count_q[24:0] : active_read_addr);
   assign wdata_valid =
     write_state && !write_data_target_seen &&
     (write_data_count_q <= write_command_count_q ||
@@ -1760,7 +1800,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       pattern_for_addr(write_data_count_q[24:0]));
   assign wdata_we =
     byte_diag_mask_state ? byte_diag_we_mask(write_data_count_q[2:0]) : {72{1'b1}};
-  assign expected_rdata = pattern_for_addr(compare_addr_q);
+  assign expected_rdata = pattern_for_addr(active_compare_addr);
   assign lane_response_mismatch =
     select_lane_burst(rdata, cal_lane_q) !=
     select_lane_burst(expected_rdata, cal_lane_q);
@@ -1775,6 +1815,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       rdata[chunk_idx * 64 +: 64] != 64'd0;
   end
   assign response_any_nonzero = |response_nonzero_chunk;
+  assign response_first_nonzero_data = first_nonzero_chunk_data(rdata);
   assign next_mismatch_count =
     mismatch_count_q + (response_mismatch ? 32'd1 : 32'd0);
   assign mismatch_seen = mismatch_count_q != 32'd0;
@@ -1816,8 +1857,11 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     DFII_EDGE_COMP_ACTIVE_ONLY && dfii_phasecmd_sweep_q;
   assign dfii_edge_comp_bist_mode =
     DFII_EDGE_COMP_BIST_ONLY && dfii_phasecmd_sweep_q;
+  assign native_sparse_readscan_mode =
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_SPARSE;
   assign native_readscan_release_mode =
-    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_RELEASE;
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_RELEASE ||
+    native_sparse_readscan_mode;
   assign native_readscan_mode =
     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
     native_readscan_release_mode;
@@ -3189,6 +3233,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       native_first_nonzero_data_q <= 64'd0;
       native_first_nonzero_chunk_q <= 9'd0;
       native_nonzero_chunk_seen_q <= 9'd0;
+      native_change_count_q <= 32'd0;
+      native_last_addr_q <= 28'd0;
+      native_last_data_q <= 64'd0;
       sample_valid_count_q <= 8'd0;
       for (int sample_idx = 0; sample_idx < READBACK_SAMPLE_COUNT; sample_idx++)
         sample_rdata_q[sample_idx] <= 64'd0;
@@ -3285,6 +3332,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             native_first_nonzero_data_q <= 64'd0;
             native_first_nonzero_chunk_q <= 9'd0;
             native_nonzero_chunk_seen_q <= 9'd0;
+            native_change_count_q <= 32'd0;
+            native_last_addr_q <= 28'd0;
+            native_last_data_q <= 64'd0;
             dfii_final_q <= !(DFII_DISPLACEMENT_PROBE_ONLY ||
                               DFII_CSR_ECHO_PROBE_ONLY ||
                               DFII_WBITSLIP_SWEEP_ONLY ||
@@ -3351,6 +3401,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             native_first_nonzero_data_q <= 64'd0;
             native_first_nonzero_chunk_q <= 9'd0;
             native_nonzero_chunk_seen_q <= 9'd0;
+            native_change_count_q <= 32'd0;
+            native_last_addr_q <= 28'd0;
+            native_last_data_q <= 64'd0;
             dfii_final_q <= !(DFII_DISPLACEMENT_PROBE_ONLY ||
                               DFII_CSR_ECHO_PROBE_ONLY ||
                               DFII_WBITSLIP_SWEEP_ONLY ||
@@ -3581,6 +3634,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                       native_first_nonzero_data_q <= 64'd0;
                       native_first_nonzero_chunk_q <= 9'd0;
                       native_nonzero_chunk_seen_q <= 9'd0;
+                      native_change_count_q <= 32'd0;
+                      native_last_addr_q <= 28'd0;
+                      native_last_data_q <= 64'd0;
                       sample_valid_count_q <= 8'd0;
                       for (int sample_idx = 0;
                            sample_idx < READBACK_SAMPLE_COUNT;
@@ -4082,15 +4138,22 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             native_nonzero_chunk_seen_q <=
               native_nonzero_chunk_seen_q | response_nonzero_chunk;
             if (native_nonzero_count_q == 32'd0) begin
-              native_first_nonzero_addr_q <= compare_addr_q;
-              native_first_nonzero_data_q <= first_nonzero_chunk_data(rdata);
+              native_first_nonzero_addr_q <= {3'd0, active_compare_addr};
+              native_first_nonzero_data_q <= response_first_nonzero_data;
               native_first_nonzero_chunk_q <= response_nonzero_chunk;
             end
+          end
+          if (native_readscan_mode) begin
+            if (response_count_q != 32'd0 &&
+                response_first_nonzero_data != native_last_data_q)
+              native_change_count_q <= native_change_count_q + 32'd1;
+            native_last_addr_q <= {3'd0, active_compare_addr};
+            native_last_data_q <= response_first_nonzero_data;
           end
           if (response_mismatch) begin
             mismatch_count_q <= next_mismatch_count;
             if (!mismatch_seen) begin
-              first_mismatch_addr_q <= compare_addr_q;
+              first_mismatch_addr_q <= {3'd0, active_compare_addr};
               first_expected_q <= expected_rdata[63:0];
               first_actual_q <= rdata[63:0];
               first_expected_full_q <= expected_rdata;
@@ -4488,6 +4551,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       jtag_debug_payload[4288 +: 64] = native_first_nonzero_data_q;
       jtag_debug_payload[4352 +: 9] = native_nonzero_chunk_seen_q;
       jtag_debug_payload[4368 +: 9] = native_first_nonzero_chunk_q;
+      jtag_debug_payload[4384 +: 32] = native_change_count_q;
+      jtag_debug_payload[4416 +: 32] = {4'd0, native_last_addr_q};
+      jtag_debug_payload[4448 +: 64] = native_last_data_q;
     end else begin
       jtag_debug_payload[4224 +: 64] = dfii_half_nonzero_high_payload;
       jtag_debug_payload[4288 +: 64] = dfii_half_low_match_high_payload;

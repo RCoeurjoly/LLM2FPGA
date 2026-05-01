@@ -14653,3 +14653,111 @@ Next gate:
   `0xadacafaea9a8abaa` word, debug native read FIFO/capture replay. If the
   word changes by sparse address, debug the native address mapping against the
   DFII column map.
+
+### 2026-05-01 - v89 sparse native read-scan after DFII release
+
+Objective:
+
+- Test whether the v88 repeated native read word is caused by linear native
+  address sequencing, or whether sparse native addresses replay the same data.
+- Keep the v88 DFII hardware-control release and `10,000` cycle wait, but read
+  the 16 sparse native addresses matching the compensated DFII address-walk
+  columns.
+
+Implementation:
+
+- Added `DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_SPARSE`.
+- Bumped the JTAG payload version to `89`.
+- Added package family:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-sparse-init-bandwidth-probe-*`.
+- Added native read-scan JTAG counters:
+  - change count,
+  - last requested read address,
+  - last observed first nonzero 64-bit chunk.
+
+Build/route notes:
+
+- JSON:
+  `/nix/store/qnmvm88zc8a0a9f944syqpg2y4sd61f5-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-sparse-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/44nfihnly95m5ri0ang8nkqcsipxwy0x-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-sparse-init-bandwidth-probe-utilization`
+- FASM:
+  `/nix/store/9p95b8xvfn6487p6appr7c1gpy38bvbm-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-sparse-init-bandwidth-probe.fasm`
+- Passing seed-13 bitstream:
+  `/nix/store/hqf0nzw6ll15gl6ci6w93nrkrywxxs2b-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-sparse-init-bandwidth-probe.bit`
+- Estimated mapped utilization:
+  - slices lower bound: `2280 / 74650` (`3.05%`)
+  - LUTs: `18238 / 298600` (`6.11%`)
+  - FFs: `14221 / 597200` (`2.38%`)
+  - DSPs: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+- Synthesized JSON has `72` `IDELAYE2` instances and `0` `ODELAYE2`
+  instances.
+- Seed `13` routed and timed at `25 MHz`:
+  - `clk200`: `727.80 MHz`
+  - `user_clk`: `58.14 MHz`
+  - `core.iodelay_clk`: `509.16 MHz`
+  - `jtag_debug_shift.drck`: `325.41 MHz`
+
+Board/JTAG result with seed `13`:
+
+- Programmed over HS3:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824
+  /nix/store/hqf0nzw6ll15gl6ci6w93nrkrywxxs2b-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-sparse-init-bandwidth-probe.bit`
+- DONE asserted: `isc_done 1`, `done 1`.
+- Init passed:
+  - `version=89`
+  - `state=PROBE_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=True`
+  - `init_error=False`
+  - `pll_locked=True`
+  - `wb_ack=87`, `wb_wait=261`
+- DFII guard passed:
+  - `dfii_state=DFII_SEQ_DONE`
+  - `dfii_step=65`
+  - `ack=59`, `wait=177`
+  - all sixteen compensated address-walk columns passed with
+    `mismatch=0x00000`
+- Sparse native read-scan completed:
+  - `writes=0/0`
+  - `reads=16`
+  - `responses=16`
+  - `target=16`
+  - `command_stall_count=12`
+  - `mismatches=0`
+  - `nonzero=16`
+  - first nonzero address `0x00000000`
+  - first nonzero data `0xadacafaea9a8abaa`
+  - aggregate nonzero chunk mask `0x1ff`
+  - first nonzero chunk mask `0x1ff`
+  - change count `0`
+  - last requested sparse address `0x00000218`
+  - last observed data `0xadacafaea9a8abaa`
+- The first eight sampled native reads still all returned
+  `0xadacafaea9a8abaa`.
+
+Conclusion:
+
+- Sparse native address selection does not change the native readback
+  signature.
+- The failing surface is no longer just a linear-address sequencing mistake.
+- Because all sparse native reads replay the same DFII-associated word even
+  after hardware-control release, the strongest current hypotheses are native
+  read FIFO/capture replay, native-controller read-data selection after DFII
+  access, or a native read response path that is not consuming the requested
+  address as intended.
+- This still does not prove native-port correctness, sustained bandwidth,
+  rowstream packing, or TinyStories integration. Rowstream/TinyStories remain
+  disconnected.
+
+Next gate:
+
+- Add a no-DFII sparse native read probe:
+  - skip the DFII address-walk entirely after init,
+  - issue the same 16 sparse native reads,
+  - record the same nonzero/change/last-address counters.
+- If no-DFII sparse reads still replay one constant word, debug the native read
+  response capture path in isolation. If no-DFII sparse reads are zero or
+  address-varying, debug DFII/manual-access contamination of the native read
+  path.

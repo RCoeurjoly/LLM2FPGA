@@ -272,6 +272,9 @@ FIELDS = [
     ("native_readscan_first_nonzero_data", 4288, 64),
     ("native_readscan_nonzero_chunk_seen", 4352, 9),
     ("native_readscan_first_nonzero_chunk_mask", 4368, 9),
+    ("native_readscan_change_count", 4384, 32),
+    ("native_readscan_last_addr", 4416, 32),
+    ("native_readscan_last_data", 4448, 64),
     ("dfii_half_nonzero_high_masks", 4224, 64),
     ("dfii_half_low_match_high_masks", 4288, 64),
     ("dfii_half_high_match_low_masks", 4352, 256),
@@ -1764,18 +1767,25 @@ def print_summary(result: dict[str, object]) -> None:
                     )
                 )
                 if fields.get("version", 0) >= 87 and decoded["state"] != "PROBE_DFII_DONE":
-                    readscan_label = (
-                        "native read-scan after address-walk release"
-                        if fields.get("version", 0) >= 88
-                        else "native read-scan after address-walk"
-                    )
+                    if fields.get("version", 0) >= 89:
+                        readscan_label = (
+                            "native sparse read-scan after address-walk release"
+                        )
+                    elif fields.get("version", 0) >= 88:
+                        readscan_label = (
+                            "native read-scan after address-walk release"
+                        )
+                    else:
+                        readscan_label = "native read-scan after address-walk"
                     print(
                         f"{readscan_label}: "
                         "complete={complete} reads={reads} responses={responses} "
                         "target={target} nonzero={nonzero} "
                         "first_nonzero_addr=0x{first_addr:08x} "
                         "first_nonzero_data=0x{first_data:016x} "
-                        "chunk_seen=0x{seen:03x} first_chunk=0x{first_chunk:03x}".format(
+                        "chunk_seen=0x{seen:03x} first_chunk=0x{first_chunk:03x} "
+                        "changes={changes} last_addr=0x{last_addr:08x} "
+                        "last_data=0x{last_data:016x}".format(
                             complete=decoded["state"] == "PROBE_DONE",
                             reads=fields.get("command_count", 0),
                             responses=fields.get("response_count", 0),
@@ -1798,6 +1808,18 @@ def print_summary(result: dict[str, object]) -> None:
                             ),
                             first_chunk=fields.get(
                                 "native_readscan_first_nonzero_chunk_mask",
+                                0,
+                            ),
+                            changes=fields.get(
+                                "native_readscan_change_count",
+                                0,
+                            ),
+                            last_addr=fields.get(
+                                "native_readscan_last_addr",
+                                0,
+                            ),
+                            last_data=fields.get(
+                                "native_readscan_last_data",
                                 0,
                             ),
                         )
