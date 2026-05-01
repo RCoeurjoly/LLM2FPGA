@@ -22,7 +22,15 @@ def main() -> None:
     new_ports = """\\1,
     output wire    [3:0] debug_dfi_wrdata_en,
     output wire   [63:0] debug_dfi_wrdata_word4,
-    output wire    [7:0] debug_dfi_wrdata_word4_mask
+    output wire    [7:0] debug_dfi_wrdata_word4_mask,
+    output wire    [3:0] debug_dfi_write_cmd,
+    output wire    [3:0] debug_dfi_read_cmd,
+    output wire    [3:0] debug_dfi_activate_cmd,
+    output wire    [3:0] debug_dfi_odt,
+    output wire    [3:0] debug_dfi_rddata_en,
+    output wire    [3:0] debug_dfi_rddata_valid,
+    output wire   [59:0] debug_dfi_address,
+    output wire   [11:0] debug_dfi_bank
 );"""
     text, count = port_tail.subn(new_ports, text, count=1)
     if count != 1:
@@ -50,6 +58,54 @@ assign debug_dfi_wrdata_word4_mask = {
     main_a7ddrphy_dfi_p2_wrdata_mask[17:16],
     main_a7ddrphy_dfi_p1_wrdata_mask[17:16],
     main_a7ddrphy_dfi_p0_wrdata_mask[17:16]
+};
+assign debug_dfi_write_cmd = {
+    ((~main_a7ddrphy_dfi_p3_cs_n) & main_a7ddrphy_dfi_p3_ras_n & (~main_a7ddrphy_dfi_p3_cas_n) & (~main_a7ddrphy_dfi_p3_we_n)),
+    ((~main_a7ddrphy_dfi_p2_cs_n) & main_a7ddrphy_dfi_p2_ras_n & (~main_a7ddrphy_dfi_p2_cas_n) & (~main_a7ddrphy_dfi_p2_we_n)),
+    ((~main_a7ddrphy_dfi_p1_cs_n) & main_a7ddrphy_dfi_p1_ras_n & (~main_a7ddrphy_dfi_p1_cas_n) & (~main_a7ddrphy_dfi_p1_we_n)),
+    ((~main_a7ddrphy_dfi_p0_cs_n) & main_a7ddrphy_dfi_p0_ras_n & (~main_a7ddrphy_dfi_p0_cas_n) & (~main_a7ddrphy_dfi_p0_we_n))
+};
+assign debug_dfi_read_cmd = {
+    ((~main_a7ddrphy_dfi_p3_cs_n) & main_a7ddrphy_dfi_p3_ras_n & (~main_a7ddrphy_dfi_p3_cas_n) & main_a7ddrphy_dfi_p3_we_n),
+    ((~main_a7ddrphy_dfi_p2_cs_n) & main_a7ddrphy_dfi_p2_ras_n & (~main_a7ddrphy_dfi_p2_cas_n) & main_a7ddrphy_dfi_p2_we_n),
+    ((~main_a7ddrphy_dfi_p1_cs_n) & main_a7ddrphy_dfi_p1_ras_n & (~main_a7ddrphy_dfi_p1_cas_n) & main_a7ddrphy_dfi_p1_we_n),
+    ((~main_a7ddrphy_dfi_p0_cs_n) & main_a7ddrphy_dfi_p0_ras_n & (~main_a7ddrphy_dfi_p0_cas_n) & main_a7ddrphy_dfi_p0_we_n)
+};
+assign debug_dfi_activate_cmd = {
+    ((~main_a7ddrphy_dfi_p3_cs_n) & (~main_a7ddrphy_dfi_p3_ras_n) & main_a7ddrphy_dfi_p3_cas_n & main_a7ddrphy_dfi_p3_we_n),
+    ((~main_a7ddrphy_dfi_p2_cs_n) & (~main_a7ddrphy_dfi_p2_ras_n) & main_a7ddrphy_dfi_p2_cas_n & main_a7ddrphy_dfi_p2_we_n),
+    ((~main_a7ddrphy_dfi_p1_cs_n) & (~main_a7ddrphy_dfi_p1_ras_n) & main_a7ddrphy_dfi_p1_cas_n & main_a7ddrphy_dfi_p1_we_n),
+    ((~main_a7ddrphy_dfi_p0_cs_n) & (~main_a7ddrphy_dfi_p0_ras_n) & main_a7ddrphy_dfi_p0_cas_n & main_a7ddrphy_dfi_p0_we_n)
+};
+assign debug_dfi_address = {
+    main_a7ddrphy_dfi_p3_address,
+    main_a7ddrphy_dfi_p2_address,
+    main_a7ddrphy_dfi_p1_address,
+    main_a7ddrphy_dfi_p0_address
+};
+assign debug_dfi_bank = {
+    main_a7ddrphy_dfi_p3_bank,
+    main_a7ddrphy_dfi_p2_bank,
+    main_a7ddrphy_dfi_p1_bank,
+    main_a7ddrphy_dfi_p0_bank
+};
+assign debug_dfi_odt = {
+    main_a7ddrphy_dfi_p3_odt,
+    main_a7ddrphy_dfi_p2_odt,
+    main_a7ddrphy_dfi_p1_odt,
+    main_a7ddrphy_dfi_p0_odt
+};
+assign debug_dfi_rddata_en = {
+    main_a7ddrphy_dfi_p3_rddata_en,
+    main_a7ddrphy_dfi_p2_rddata_en,
+    main_a7ddrphy_dfi_p1_rddata_en,
+    main_a7ddrphy_dfi_p0_rddata_en
+};
+assign debug_dfi_rddata_valid = {
+    main_a7ddrphy_dfi_p3_rddata_valid,
+    main_a7ddrphy_dfi_p2_rddata_valid,
+    main_a7ddrphy_dfi_p1_rddata_valid,
+    main_a7ddrphy_dfi_p0_rddata_valid
 };
 """
     marker = "\nendmodule\n"

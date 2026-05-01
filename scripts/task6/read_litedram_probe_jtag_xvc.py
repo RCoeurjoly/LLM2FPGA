@@ -10,7 +10,7 @@ import time
 from read_jtag_debug_xvc import XvcClient, read_payload, unsigned_field
 
 
-DEFAULT_BITS = 4672
+DEFAULT_BITS = 6464
 MAGIC = 0x54364A44
 SAMPLE_COUNT = 8
 BYTE_DIAG_SAMPLE_COUNT = 8
@@ -19,6 +19,13 @@ DFII_ADDR_SLOT_COUNT = 4
 NATIVE_CHUNK_COUNT = 9
 PHYSICAL_LANE_COUNT = 9
 NATIVE_PHASE_CANDIDATE_COUNT = 16
+DFII_BYTE_PHASE_SOURCE_COUNT = 72
+DFII_BYTE_PHASE_PHASE0_SOURCE_COUNT = 18
+DFII_BYTE_PHASE_CMD_SOURCE_COUNT = 64
+DFII_BYTE_PHASE_PHY_PHASE_SOURCE_COUNT = 64
+DFII_BYTE_PHASE_FINAL_SOURCE_COUNT = 16
+NATIVE_BYTE_ASSOC_SOURCE_COUNT = 72
+DFII_BYTE_PHASE_DEST_NONE = 0x7F
 DFII_PATTERN_MODE_NAMES = {
     0: "uniform",
     1: "phase_constant",
@@ -263,10 +270,41 @@ FIELDS = [
     ("dfii_source_order_read_phase", 4092, 2),
     ("dfii_displacement_probe_only", 4094, 1),
     ("dfii_csr_echo_probe_only", 4095, 1),
+    ("native_sparse_readscan_only", 4096, 1),
     ("dfii_rddata_16", 4096, 32),
     ("dfii_rddata_17", 4128, 32),
     ("dfii_rddata_18", 4160, 32),
     ("dfii_rddata_19", 4192, 32),
+    ("dfi_debug_wrdata_seen", 4128, 4),
+    ("dfi_debug_wrdata_last_en", 4132, 4),
+    ("dfi_debug_wrdata_word4_mask", 4136, 8),
+    ("dfi_debug_wrdata_event_count", 4144, 4),
+    ("dfi_debug_wrdata_word4_nonzero_seen", 4148, 4),
+    ("dfi_debug_wrdata_word4_unmasked_seen", 4152, 4),
+    ("dfi_debug_wrdata_word4_payload", 4160, 64),
+    ("native_debug_wdata_accept_count", 4224, 8),
+    ("native_debug_cmd_accept_count", 4232, 8),
+    ("native_debug_last_wdata_source", 4240, 7),
+    ("native_debug_last_wdata_invert", 4247, 1),
+    ("native_debug_last_wdata_word4_payload", 4256, 64),
+    ("native_debug_last_wdata_word4_we", 4320, 8),
+    ("dfi_debug_write_cmd_seen", 4336, 4),
+    ("dfi_debug_read_cmd_seen", 4340, 4),
+    ("dfi_debug_activate_cmd_seen", 4344, 4),
+    ("dfi_debug_write_cmd_last", 4348, 4),
+    ("dfi_debug_write_cmd_event_count", 4352, 4),
+    ("dfi_debug_write_cmd_address_payload", 4360, 60),
+    ("dfi_debug_write_cmd_bank_payload", 4420, 12),
+    ("dfi_debug_odt_seen", 4432, 4),
+    ("dfi_debug_rddata_en_seen", 4436, 4),
+    ("dfi_debug_rddata_valid_seen", 4440, 4),
+    ("dfi_debug_phy_write_timing_seen", 4444, 8),
+    ("dfi_debug_wrdata_after_write_cmd", 4452, 16),
+    ("dfi_debug_write_cmd_after_wrdata", 4468, 16),
+    ("dfi_debug_write_cmd_odt", 4484, 4),
+    ("dfi_debug_wrdata_odt", 4488, 4),
+    ("dfi_debug_wrdata_dq_oe", 4492, 4),
+    ("dfi_debug_wrdata_dqs_oe", 4496, 4),
     ("native_readscan_nonzero_count", 4224, 32),
     ("native_readscan_first_nonzero_addr", 4256, 32),
     ("native_readscan_first_nonzero_data", 4288, 64),
@@ -275,10 +313,25 @@ FIELDS = [
     ("native_readscan_change_count", 4384, 32),
     ("native_readscan_last_addr", 4416, 32),
     ("native_readscan_last_data", 4448, 64),
+    ("native_readscan_single_outstanding", 4512, 1),
+    ("native_readscan_max_outstanding", 4544, 32),
     ("dfii_half_nonzero_high_masks", 4224, 64),
     ("dfii_half_low_match_high_masks", 4288, 64),
     ("dfii_half_high_match_low_masks", 4352, 256),
     ("dfii_half_high_match_high_masks", 4608, 64),
+    ("dfii_byte_phase_dest0_payload", 4672, 576),
+    ("dfii_byte_phase_count0_payload", 5248, 288),
+    ("dfii_byte_phase_dest1_payload", 5536, 576),
+    ("dfii_byte_phase_count1_payload", 6112, 288),
+    ("dfii_byte_phase_source", 6400, 7),
+    ("dfii_byte_phase_invert", 6407, 1),
+    ("dfii_byte_phase_assoc_probe_only", 6408, 1),
+    ("dfii_byte_phase_cmd_matrix_probe_only", 6409, 1),
+    ("dfii_byte_phase_phy_phase_matrix_probe_only", 6410, 1),
+    ("dfii_byte_phase_final_matrix_probe_only", 6411, 1),
+    ("native_byte_assoc_probe_only", 6412, 1),
+    ("native_byte_assoc_full_we_probe", 6413, 1),
+    ("dfii_byte_phase_phase0_assoc_probe_only", 6414, 1),
     ("first_chunk_mismatch_mask", 1728, 16),
 ]
 
@@ -433,6 +486,9 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
     dfii_assoc_matrix = decode_dfii_assoc_matrix(fields)
     dfii_phase_matrix = decode_dfii_phase_matrix(fields)
     dfii_addr_matrix = decode_dfii_addr_matrix(fields)
+    dfii_byte_phase_matrix = (
+        decode_dfii_byte_phase_matrix(fields) if version >= 93 else []
+    )
     native_phase_sweep = (
         decode_native_phase_sweep(fields) if 52 <= version < 54 else None
     )
@@ -537,6 +593,7 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
             "dfii_assoc_matrix": dfii_assoc_matrix,
             "dfii_phase_matrix": dfii_phase_matrix,
             "dfii_addr_matrix": dfii_addr_matrix,
+            "dfii_byte_phase_matrix": dfii_byte_phase_matrix,
             "native_phase_sweep": native_phase_sweep,
             "native_first_mismatch_chunks": native_first_mismatch_chunks,
             "dfii_pattern_mode": DFII_PATTERN_MODE_NAMES.get(
@@ -552,6 +609,11 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
                     and not extended_status["mismatch_seen"]
                 )
                 or state == 15
+                or (
+                    state == 11
+                    and bool(fields.get("native_byte_assoc_probe_only", 0))
+                    and extended_status["probe_done"]
+                )
             ),
             "failed": (
                 decoded_status["init_error"]
@@ -1067,6 +1129,43 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     rbitslip_sweep_only = bool(fields.get("dfii_rbitslip_sweep_only", 0))
     edge_map_probe_only = bool(fields.get("dfii_edge_map_probe_only", 0))
     edge_comp_probe_only = bool(fields.get("dfii_edge_comp_probe_only", 0))
+    byte_phase_assoc_probe_only = bool(
+        fields.get("dfii_byte_phase_assoc_probe_only", 0)
+    )
+    byte_phase_phase0_assoc_probe_only = bool(
+        fields.get("dfii_byte_phase_phase0_assoc_probe_only", 0)
+    )
+    byte_phase_cmd_matrix_probe_only = bool(
+        fields.get("dfii_byte_phase_cmd_matrix_probe_only", 0)
+    )
+    byte_phase_phy_phase_matrix_probe_only = bool(
+        fields.get("dfii_byte_phase_phy_phase_matrix_probe_only", 0)
+    )
+    byte_phase_final_matrix_probe_only = bool(
+        fields.get("dfii_byte_phase_final_matrix_probe_only", 0)
+    )
+    native_byte_assoc_probe_only = bool(fields.get("native_byte_assoc_probe_only", 0))
+    byte_phase_source_count = (
+        NATIVE_BYTE_ASSOC_SOURCE_COUNT
+        if native_byte_assoc_probe_only
+        else DFII_BYTE_PHASE_PHASE0_SOURCE_COUNT
+        if byte_phase_phase0_assoc_probe_only
+        else DFII_BYTE_PHASE_FINAL_SOURCE_COUNT
+        if byte_phase_final_matrix_probe_only
+        else
+        DFII_BYTE_PHASE_CMD_SOURCE_COUNT
+        if byte_phase_cmd_matrix_probe_only or byte_phase_phy_phase_matrix_probe_only
+        else DFII_BYTE_PHASE_SOURCE_COUNT
+    )
+    byte_phase_assoc_payload_present = (
+        fields.get("version", 0) >= 93
+        and (
+            bool(fields.get("dfii_byte_phase_dest0_payload", 0))
+            or bool(fields.get("dfii_byte_phase_count0_payload", 0))
+            or fields.get("dfii_byte_phase_source", 0)
+            == byte_phase_source_count - 1
+        )
+    )
     lane7_locator_probe_only = bool(
         fields.get("dfii_edge_lane7_locator_probe_only", 0)
     )
@@ -1081,6 +1180,11 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         or rbitslip_sweep_only
         or edge_map_probe_only
         or edge_comp_probe_only
+        or byte_phase_assoc_probe_only
+        or byte_phase_phase0_assoc_probe_only
+        or byte_phase_cmd_matrix_probe_only
+        or byte_phase_phy_phase_matrix_probe_only
+        or byte_phase_final_matrix_probe_only
         or lane7_locator_probe_only
     )
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
@@ -1327,6 +1431,109 @@ def decode_dfii_addr_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
     return decoded
 
 
+def dfii_byte_phase_dest_label(dest: int) -> str:
+    if dest == DFII_BYTE_PHASE_DEST_NONE:
+        return "none"
+    word = dest >> 2
+    byte = dest & 0x3
+    phase = word // 5
+    phase_word = word % 5
+    return f"p{phase}/w{phase_word}/b{byte}"
+
+
+def decode_dfii_byte_phase_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
+    dest0_payload = fields.get("dfii_byte_phase_dest0_payload", 0)
+    count0_payload = fields.get("dfii_byte_phase_count0_payload", 0)
+    dest1_payload = fields.get("dfii_byte_phase_dest1_payload", 0)
+    count1_payload = fields.get("dfii_byte_phase_count1_payload", 0)
+    cmd_matrix = bool(fields.get("dfii_byte_phase_cmd_matrix_probe_only", 0))
+    phy_phase_matrix = bool(
+        fields.get("dfii_byte_phase_phy_phase_matrix_probe_only", 0)
+    )
+    final_matrix = bool(fields.get("dfii_byte_phase_final_matrix_probe_only", 0))
+    phase0_assoc = bool(fields.get("dfii_byte_phase_phase0_assoc_probe_only", 0))
+    native_byte_assoc = bool(fields.get("native_byte_assoc_probe_only", 0))
+    source_count = (
+        NATIVE_BYTE_ASSOC_SOURCE_COUNT
+        if native_byte_assoc
+        else DFII_BYTE_PHASE_PHASE0_SOURCE_COUNT
+        if phase0_assoc
+        else DFII_BYTE_PHASE_FINAL_SOURCE_COUNT
+        if final_matrix
+        else
+        DFII_BYTE_PHASE_CMD_SOURCE_COUNT
+        if cmd_matrix or phy_phase_matrix
+        else DFII_BYTE_PHASE_SOURCE_COUNT
+    )
+    decoded = []
+    for source in range(source_count):
+        source_phase = (
+            0
+            if native_byte_assoc or phase0_assoc
+            else (source >> 1) & 0x3
+            if final_matrix
+            else (source >> 4) & 0x3
+            if cmd_matrix or phy_phase_matrix
+            else source // 18
+        )
+        source_slot = (
+            source
+            if native_byte_assoc or phase0_assoc
+            else 0
+            if cmd_matrix or phy_phase_matrix or final_matrix
+            else source % 18
+        )
+        dest0 = (dest0_payload >> (source * 8)) & 0x7F
+        dest1 = (dest1_payload >> (source * 8)) & 0x7F
+        entry = {
+            "source": source,
+            "source_phase": source_phase,
+            "source_slot": source_slot,
+            "tag0": 0x80 + source,
+            "tag1": (~(0x80 + source)) & 0xFF,
+            "dest0": dest0,
+            "dest0_label": (
+                f"byte{dest0}" if native_byte_assoc and dest0 != DFII_BYTE_PHASE_DEST_NONE
+                else dfii_byte_phase_dest_label(dest0)
+            ),
+            "count0": (count0_payload >> (source * 4)) & 0xF,
+            "dest1": dest1,
+            "dest1_label": (
+                f"byte{dest1}" if native_byte_assoc and dest1 != DFII_BYTE_PHASE_DEST_NONE
+                else dfii_byte_phase_dest_label(dest1)
+            ),
+            "count1": (count1_payload >> (source * 4)) & 0xF,
+        }
+        if native_byte_assoc:
+            entry["native_byte"] = source
+        if cmd_matrix:
+            entry["write_phase"] = (source >> 2) & 0x3
+            entry["read_phase"] = source & 0x3
+        if phy_phase_matrix:
+            entry["phy_wrphase"] = (source >> 2) & 0x3
+            entry["phy_rdphase"] = source & 0x3
+        if final_matrix:
+            entry["broadcast"] = bool(source & 0x8)
+            entry["lane"] = 8 if source & 0x1 else 7
+            entry["dfi_tag0_flags"] = fields.get(
+                f"dfii_assoc_nonzero_mask_{source}", 0
+            ) & 0xFFFF
+            entry["dfi_tag0_match_mask"] = fields.get(
+                f"dfii_assoc_match_mask_{source}", 0
+            ) & 0xF
+            entry["dfi_tag0_event_count"] = (
+                fields.get(f"dfii_assoc_match_mask_{source}", 0) >> 4
+            ) & 0xF
+            entry["dfi_tag1_flags"] = (
+                fields.get("dfii_half_high_match_low_masks", 0) >> (source * 16)
+            ) & 0xFFFF
+            entry["dfi_tag1_match_mask"] = (
+                fields.get("dfii_half_high_match_high_masks", 0) >> (source * 4)
+            ) & 0xF
+        decoded.append(entry)
+    return decoded
+
+
 def decode_native_phase_sweep(fields: dict[str, int]) -> dict[str, object]:
     counts = fields.get("native_phase_mismatch_counts", 0)
     decoded_counts = []
@@ -1556,6 +1763,11 @@ def print_summary(result: dict[str, object]) -> None:
             "rbitslip_sweep={rbitslip_sweep} "
             "edge_map={edge_map} "
             "edge_comp={edge_comp} "
+            "byte_phase_assoc={byte_phase_assoc} "
+            "byte_phase_phase0_assoc={byte_phase_phase0_assoc} "
+            "byte_phase_cmd_matrix={byte_phase_cmd_matrix} "
+            "byte_phase_phy_phase_matrix={byte_phase_phy_phase_matrix} "
+            "byte_phase_final_matrix={byte_phase_final_matrix} "
             "lane7_locator={lane7_locator} "
             "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:05x} last_read=0x{last:08x} "
@@ -1581,6 +1793,22 @@ def print_summary(result: dict[str, object]) -> None:
                 rbitslip_sweep=bool(fields.get("dfii_rbitslip_sweep_only", 0)),
                 edge_map=bool(fields.get("dfii_edge_map_probe_only", 0)),
                 edge_comp=bool(fields.get("dfii_edge_comp_probe_only", 0)),
+                byte_phase_assoc=bool(
+                    fields.get("dfii_byte_phase_assoc_probe_only", 0)
+                ),
+                byte_phase_phase0_assoc=bool(
+                    fields.get("dfii_byte_phase_phase0_assoc_probe_only", 0)
+                ),
+                byte_phase_cmd_matrix=bool(
+                    fields.get("dfii_byte_phase_cmd_matrix_probe_only", 0)
+                ),
+                byte_phase_phy_phase_matrix=bool(
+                    fields.get("dfii_byte_phase_phy_phase_matrix_probe_only", 0)
+                ),
+                byte_phase_final_matrix=bool(
+                    fields.get("dfii_byte_phase_final_matrix_probe_only", 0)
+                ),
+                native_byte_assoc=bool(fields.get("native_byte_assoc_probe_only", 0)),
                 lane7_locator=bool(
                     fields.get("dfii_edge_lane7_locator_probe_only", 0)
                 ),
@@ -1616,6 +1844,42 @@ def print_summary(result: dict[str, object]) -> None:
     rbitslip_sweep_only = bool(fields.get("dfii_rbitslip_sweep_only", 0))
     edge_map_probe_only = bool(fields.get("dfii_edge_map_probe_only", 0))
     edge_comp_probe_only = bool(fields.get("dfii_edge_comp_probe_only", 0))
+    byte_phase_assoc_probe_only = bool(
+        fields.get("dfii_byte_phase_assoc_probe_only", 0)
+    )
+    byte_phase_phase0_assoc_probe_only = bool(
+        fields.get("dfii_byte_phase_phase0_assoc_probe_only", 0)
+    )
+    byte_phase_cmd_matrix_probe_only = bool(
+        fields.get("dfii_byte_phase_cmd_matrix_probe_only", 0)
+    )
+    byte_phase_phy_phase_matrix_probe_only = bool(
+        fields.get("dfii_byte_phase_phy_phase_matrix_probe_only", 0)
+    )
+    byte_phase_final_matrix_probe_only = bool(
+        fields.get("dfii_byte_phase_final_matrix_probe_only", 0)
+    )
+    native_byte_assoc_probe_only = bool(fields.get("native_byte_assoc_probe_only", 0))
+    byte_phase_source_count = (
+        NATIVE_BYTE_ASSOC_SOURCE_COUNT
+        if native_byte_assoc_probe_only
+        else DFII_BYTE_PHASE_PHASE0_SOURCE_COUNT
+        if byte_phase_phase0_assoc_probe_only
+        else DFII_BYTE_PHASE_FINAL_SOURCE_COUNT
+        if byte_phase_final_matrix_probe_only
+        else
+        DFII_BYTE_PHASE_CMD_SOURCE_COUNT
+        if byte_phase_cmd_matrix_probe_only or byte_phase_phy_phase_matrix_probe_only
+        else DFII_BYTE_PHASE_SOURCE_COUNT
+    )
+    byte_phase_assoc_payload_present = (
+        fields.get("version", 0) >= 93
+        and (
+            bool(fields.get("dfii_byte_phase_dest0_payload", 0))
+            or bool(fields.get("dfii_byte_phase_count0_payload", 0))
+            or fields.get("dfii_byte_phase_source", 0) == byte_phase_source_count - 1
+        )
+    )
     lane7_locator_probe_only = bool(
         fields.get("dfii_edge_lane7_locator_probe_only", 0)
     )
@@ -1624,6 +1888,11 @@ def print_summary(result: dict[str, object]) -> None:
         or source_command_matrix_only
         or source_order_matrix_only
         or half_order_matrix_only
+        or byte_phase_assoc_probe_only
+        or byte_phase_phase0_assoc_probe_only
+        or byte_phase_cmd_matrix_probe_only
+        or byte_phase_phy_phase_matrix_probe_only
+        or byte_phase_final_matrix_probe_only
     )
     if csr_echo_probe_only:
         words = decoded["dfii_words"]
@@ -1645,6 +1914,101 @@ def print_summary(result: dict[str, object]) -> None:
             )
             suffix = " ..." if len(bad) > 8 else ""
             print(f"dfii csr echo mismatches: {formatted}{suffix}")
+    if (
+        byte_phase_assoc_probe_only
+        or byte_phase_phase0_assoc_probe_only
+        or byte_phase_cmd_matrix_probe_only
+        or byte_phase_phy_phase_matrix_probe_only
+        or byte_phase_final_matrix_probe_only
+        or native_byte_assoc_probe_only
+        or byte_phase_assoc_payload_present
+    ):
+        matrix = decoded.get("dfii_byte_phase_matrix", [])
+        complete = (
+            decoded["dfii_seq_state"] == "DFII_SEQ_DONE"
+            and fields.get("dfii_byte_phase_source", 0)
+            == byte_phase_source_count - 1
+            and bool(fields.get("dfii_byte_phase_invert", 0))
+        )
+        seen0 = sum(1 for entry in matrix if entry["count0"])
+        seen1 = sum(1 for entry in matrix if entry["count1"])
+        same_dest = sum(
+            1
+            for entry in matrix
+            if entry["count0"] and entry["count1"] and entry["dest0"] == entry["dest1"]
+        )
+        collapsed = {}
+        for entry in matrix:
+            if entry["count0"]:
+                collapsed.setdefault(entry["dest0_label"], 0)
+                collapsed[entry["dest0_label"]] += 1
+        hot_dests = sorted(collapsed.items(), key=lambda item: item[1], reverse=True)
+        matrix_name = (
+            "native byte association"
+            if native_byte_assoc_probe_only
+            else "dfii byte/phase association"
+        )
+        print(
+            f"{matrix_name} matrix: "
+            f"complete={complete} active_source={fields.get('dfii_byte_phase_source', 0)} "
+            f"invert={bool(fields.get('dfii_byte_phase_invert', 0))} "
+            f"tag0_seen={seen0}/{byte_phase_source_count} "
+            f"tag1_seen={seen1}/{byte_phase_source_count} "
+            f"same_dest={same_dest}/{byte_phase_source_count}"
+        )
+        formatted_hot = "none"
+        if hot_dests:
+            formatted_hot = " ".join(
+                f"{label}:{count}" for label, count in hot_dests[:8]
+            )
+        print(f"{matrix_name} hottest tag0 destinations: {formatted_hot}")
+        print(f"{matrix_name} matrix rows:")
+        for entry in matrix:
+            if native_byte_assoc_probe_only:
+                print(
+                    "  src-byte={native_byte:02d} "
+                    "tag0=0x{tag0:02x}->{dest0_label}#{count0} "
+                    "tag1=0x{tag1:02x}->{dest1_label}#{count1}".format(**entry)
+                )
+            elif byte_phase_final_matrix_probe_only:
+                dfi0 = entry["dfi_tag0_flags"]
+                dfi1 = entry["dfi_tag1_flags"]
+                print(
+                    "  src={source:02d} {mode} sp{source_phase}/lane{lane} "
+                    "tag0=0x{tag0:02x}->{dest0_label}#{count0} "
+                    "tag1=0x{tag1:02x}->{dest1_label}#{count1} "
+                    "dfi0_seen=0x{dfi0_seen:x}/last=0x{dfi0_last:x}/mask=0x{dfi0_mask:02x}/"
+                    "match=0x{dfi_tag0_match_mask:x}/events={dfi_tag0_event_count} "
+                    "dfi1_seen=0x{dfi1_seen:x}/last=0x{dfi1_last:x}/mask=0x{dfi1_mask:02x}/"
+                    "match=0x{dfi_tag1_match_mask:x}".format(
+                        mode="broadcast" if entry["broadcast"] else "single",
+                        dfi0_seen=dfi0 & 0xF,
+                        dfi0_last=(dfi0 >> 4) & 0xF,
+                        dfi0_mask=(dfi0 >> 8) & 0xFF,
+                        dfi1_seen=dfi1 & 0xF,
+                        dfi1_last=(dfi1 >> 4) & 0xF,
+                        dfi1_mask=(dfi1 >> 8) & 0xFF,
+                        **entry,
+                    )
+                )
+            elif byte_phase_phy_phase_matrix_probe_only:
+                print(
+                    "  src={source:02d} sp{source_phase}/phy-w{phy_wrphase}/phy-r{phy_rdphase} "
+                    "tag0=0x{tag0:02x}->{dest0_label}#{count0} "
+                    "tag1=0x{tag1:02x}->{dest1_label}#{count1}".format(**entry)
+                )
+            elif byte_phase_cmd_matrix_probe_only:
+                print(
+                    "  src={source:02d} sp{source_phase}/wp{write_phase}/rp{read_phase} "
+                    "tag0=0x{tag0:02x}->{dest0_label}#{count0} "
+                    "tag1=0x{tag1:02x}->{dest1_label}#{count1}".format(**entry)
+                )
+            else:
+                print(
+                    "  src={source:02d} p{source_phase}/s{source_slot:02d} "
+                    "tag0=0x{tag0:02x}->{dest0_label}#{count0} "
+                    "tag1=0x{tag1:02x}->{dest1_label}#{count1}".format(**entry)
+                )
     if wbitslip_sweep_only or rbitslip_sweep_only:
         half_nonzero_high = fields.get("dfii_half_nonzero_high_masks", 0)
         half_low_high = fields.get("dfii_half_low_match_high_masks", 0)
@@ -1767,7 +2131,12 @@ def print_summary(result: dict[str, object]) -> None:
                     )
                 )
                 if fields.get("version", 0) >= 87 and decoded["state"] != "PROBE_DFII_DONE":
-                    if fields.get("version", 0) >= 89:
+                    if (
+                        fields.get("version", 0) >= 90
+                        and fields.get("native_sparse_readscan_only", 0)
+                    ):
+                        readscan_label = "native sparse read-scan without DFII"
+                    elif fields.get("version", 0) >= 89:
                         readscan_label = (
                             "native sparse read-scan after address-walk release"
                         )
@@ -1785,7 +2154,9 @@ def print_summary(result: dict[str, object]) -> None:
                         "first_nonzero_data=0x{first_data:016x} "
                         "chunk_seen=0x{seen:03x} first_chunk=0x{first_chunk:03x} "
                         "changes={changes} last_addr=0x{last_addr:08x} "
-                        "last_data=0x{last_data:016x}".format(
+                        "last_data=0x{last_data:016x} "
+                        "single_outstanding={single} "
+                        "max_outstanding={max_outstanding}".format(
                             complete=decoded["state"] == "PROBE_DONE",
                             reads=fields.get("command_count", 0),
                             responses=fields.get("response_count", 0),
@@ -1820,6 +2191,16 @@ def print_summary(result: dict[str, object]) -> None:
                             ),
                             last_data=fields.get(
                                 "native_readscan_last_data",
+                                0,
+                            ),
+                            single=bool(
+                                fields.get(
+                                    "native_readscan_single_outstanding",
+                                    0,
+                                )
+                            ),
+                            max_outstanding=fields.get(
+                                "native_readscan_max_outstanding",
                                 0,
                             ),
                         )
