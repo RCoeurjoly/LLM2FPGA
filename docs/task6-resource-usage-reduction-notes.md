@@ -12999,3 +12999,126 @@ Next gate:
   low-edge/high-edge loss from read CSR interpretation.
 - If possible, add direct JTAG reporting of selected actual read words for each
   visible slot class instead of only per-slot masks.
+
+### 2026-05-01 - v61 DFII low/high-half byte-lane discriminator
+
+Goal:
+
+- Keep the v59/v60 fixed phases: source `p0`, write command `p0`, read command
+  `p2`.
+- Distinguish low-72-bit-half visibility from high-72-bit-half visibility in
+  the 144-bit no-ODELAY DFI write-data path.
+- Include the ninth x8 byte lane explicitly, and add a fifth DFII CSR word
+  mapping so lanes `7` and `8` high-half tags are not hidden by the old
+  four-word payload window.
+
+Implementation:
+
+- Added `DFII_HALF_ORDER_MATRIX_ONLY`.
+- Increased the JTAG debug payload to `4672` bits and bumped the board payload
+  version to `61`.
+- Widened direct DFII readback capture from `16` to `20` words
+  (`4` phases x `5` words).
+- Added high-nibble mask payloads for:
+  - high-half nonzero read words
+  - low-tag matches in high read words
+  - high-tag matches in low read words
+  - high-tag matches in high read words
+- Added decoder support for the half-order matrix and direct `dfii_rddata_0`
+  through `dfii_rddata_19`.
+
+Build result:
+
+- JSON:
+  `/nix/store/l2jwzw1kx73vmrr0kf44jqwn089bv43w-task6-ypcb-litedram-no-odelay-lowrate-half-order-matrix-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/gvxam9lk77xvgba2a0knh5lradllqkpf-task6-ypcb-litedram-no-odelay-lowrate-half-order-matrix-init-bandwidth-probe-utilization`
+  - CLB LUTs: `18321 / 298600` (`6.14%`)
+  - CLB FFs: `14450 / 597200` (`2.42%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2291 / 74650` (`3.07%`)
+- Bitstream:
+  `/nix/store/pgdqh71pcf8mzp6jhby7yj5d3j91g2fd-task6-ypcb-litedram-no-odelay-lowrate-half-order-matrix-init-bandwidth-probe.bit`
+- nextpnr selected utilization:
+  - `SLICE_LUTX`: `23619 / 597200` (`3%`)
+  - `SLICE_FFX`: `14450 / 597200` (`2%`)
+  - `IDELAYE2`: `72 / 400` (`18%`)
+  - `OSERDESE2`: `107 / 400` (`26%`)
+  - `ISERDESE2`: `72 / 400` (`18%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - BRAM: `0`
+  - DSP: `0`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `634.92 MHz`
+  - `user_clk`: `64.67 MHz`
+  - `core.iodelay_clk`: `515.20 MHz`
+  - `jtag_debug_shift.drck`: `294.38 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/pgdqh71pcf8mzp6jhby7yj5d3j91g2fd-task6-ypcb-litedram-no-odelay-lowrate-half-order-matrix-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=61`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_half_order_matrix_only=true`
+  - fixed source/write/read phases: `p0`/`p0`/`p2`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=58`, `wait=174`
+  - DFII mode masks still failed: `uniform=0xffff`,
+    `phase_constant=0xffff`, `byte_ramp=0xffff`
+  - low-half tag visibility:
+    - lanes `0`, `1`, `2`: `nonzero=low_match=0x1_0852`
+    - lane `3`: `nonzero=low_match=0x2_1094`
+    - lanes `4`, `5`, `6`: `nonzero=low_match=0x2_94a5`
+    - lane `8`: `nonzero=low_match=0x5_294a`
+  - lane `7` stayed dark in all three lane-7 slots:
+    `nonzero=low_match=high_match=0x0_0000`
+  - high-half tag visibility:
+    `high_match=0x0_0000` for every slot, including the lane-8 fifth-word
+    cases.
+  - selected final direct readback for slot `15` repeated on all phases:
+    - `w0=0x00000000`
+    - `w1=0x0000009f`
+    - `w2=0x00000000`
+    - `w3=0x00009f00`
+    - `w4=0x00000000`
+  - DFII lane bit errors: `[18, 18, 0, 0, 18, 18, 0, 0]`
+
+Interpretation:
+
+- v61 confirms that lane `8` is not globally dead: low-half lane-8 tags are
+  visible in the new fifth-word-aware matrix.
+- v61 confirms that lane `7` is still dark even when retested as low-only,
+  high-only, and paired low/high variants.
+- v61 confirms that the high-half tags are absent for every tested lane and
+  every matrix slot. This is stronger than the v60 result because the high
+  lane-7/lane-8 tags were routed through an explicit fifth DFII CSR word.
+- The selected final direct readback shows a repeatable word displacement:
+  low lane-8 tag `0x9f` appears in `w1/b0` and `w3/b1`, while the expected
+  positions were `w2/b0` and high tag `0xaf` at `w4/b1`.
+- The blocker is now split:
+  - a systematic high-half / DFI beat / read-capture association problem
+  - an independent lane-7 visibility problem
+- This still does not prove DRAM write acceptance, but it rules out the ninth
+  lane being the reason all high-half tags disappear.
+
+Next gate:
+
+- Build a v62 read-capture/word-displacement discriminator before returning to
+  native-port bandwidth or rowstream integration:
+  - keep the v61 source/write/read phases fixed
+  - emit several tagged bytes in one pattern instead of one slot per matrix
+  - report a compact histogram of observed byte values by `phase`, `word`, and
+    byte offset
+  - include a lane-7-only repeat and a lane-8-only repeat
+  - classify whether low-half bytes always move by the same word/byte offset or
+    whether the mapping depends on lane group

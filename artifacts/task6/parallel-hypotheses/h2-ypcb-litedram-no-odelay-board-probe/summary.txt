@@ -643,3 +643,53 @@ v60 DFII source-order byte-tag matrix:
 - Next gate:
   build a v61 low/high-half discriminator for source phase p0, including the
   9th byte lane, and expose selected actual read words in addition to masks.
+
+v61 DFII low/high-half byte-lane discriminator:
+- Implementation:
+  added DFII_HALF_ORDER_MATRIX_ONLY, widened the JTAG payload to 4672 bits,
+  captured 20 direct DFII read words, and added high-nibble half-order masks.
+  The probe keeps source/write/read phases fixed at p0/p0/p2 and writes
+  paired low-half and high-half tags for selected x8 lanes, including the ninth
+  lane and an explicit fifth DFII CSR word.
+- JSON artifact:
+  /nix/store/l2jwzw1kx73vmrr0kf44jqwn089bv43w-task6-ypcb-litedram-no-odelay-lowrate-half-order-matrix-init-bandwidth-probe.json
+- Utilization artifact:
+  /nix/store/gvxam9lk77xvgba2a0knh5lradllqkpf-task6-ypcb-litedram-no-odelay-lowrate-half-order-matrix-init-bandwidth-probe-utilization
+  mapped usage: CLB LUTs 18321/298600 (6.14%), CLB FFs 14450/597200 (2.42%),
+  DSP 0, BRAM36 0, lower-bound slices 2291/74650 (3.07%).
+- Bitstream artifact:
+  /nix/store/pgdqh71pcf8mzp6jhby7yj5d3j91g2fd-task6-ypcb-litedram-no-odelay-lowrate-half-order-matrix-init-bandwidth-probe.bit
+- nextpnr:
+  passed the 25 MHz target with SLICE_LUTX 23619/597200 (3%),
+  SLICE_FFX 14450/597200 (2%), IDELAYE2 72/400 (18%),
+  OSERDESE2 107/400 (26%), ISERDESE2 72/400 (18%),
+  IDELAYCTRL 3/8 (37%), BRAM 0, DSP 0.
+  Max frequencies: clk200 634.92 MHz, user_clk 64.67 MHz,
+  core.iodelay_clk 515.20 MHz, jtag_debug_shift.drck 294.38 MHz.
+- Programming:
+  openFPGALoader programmed the bitstream over HS3 and DONE asserted.
+- Board/JTAG:
+  magic_ok=true, version=61, state=PROBE_DFII_DONE, init_state=INIT_DONE,
+  init_done=true, init_error=false, dfii_half_order_matrix_only=true,
+  fixed source/write/read phases p0/p0/p2, DFII ack=58, wait=174.
+- Matrix result:
+  low-half tags are visible for lanes 0,1,2,3,4,5,6,8:
+  lanes 0..2 use nonzero=low_match=0x1_0852, lane 3 uses 0x2_1094,
+  lanes 4..6 use 0x2_94a5, and lane 8 uses 0x5_294a. Lane 7 remains
+  completely dark across the lane-7 low-only/high-only/paired slots. High-half
+  tag matches are 0x0_0000 for every slot, including the lane-8 fifth-word
+  cases. The selected final direct readback repeats across all phases as
+  w0=0x00000000, w1=0x0000009f, w2=0x00000000, w3=0x00009f00,
+  w4=0x00000000.
+- Interpretation:
+  v61 confirms that lane 8 is alive in the low half, lane 7 has an independent
+  visibility problem, and the high-half tags are systematically absent even
+  after adding the fifth DFII CSR word. The blocker is now a split
+  read/beat-association problem: systematic high-half/DFI beat or read-capture
+  association plus a lane-7-specific disappearance. This still does not prove
+  DRAM write acceptance.
+- Next gate:
+  build a v62 read-capture/word-displacement discriminator that keeps phases
+  fixed, writes multiple tagged bytes in one pattern, and reports observed byte
+  values by phase, word, and byte offset, with lane-7-only and lane-8-only
+  repeats.

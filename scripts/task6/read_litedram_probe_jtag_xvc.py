@@ -10,11 +10,11 @@ import time
 from read_jtag_debug_xvc import XvcClient, read_payload, unsigned_field
 
 
-DEFAULT_BITS = 4096
+DEFAULT_BITS = 4672
 MAGIC = 0x54364A44
 SAMPLE_COUNT = 8
 BYTE_DIAG_SAMPLE_COUNT = 8
-DFII_WORD_COUNT = 16
+DFII_WORD_COUNT = 20
 DFII_ADDR_SLOT_COUNT = 4
 NATIVE_CHUNK_COUNT = 9
 PHYSICAL_LANE_COUNT = 9
@@ -227,9 +227,18 @@ FIELDS = [
     ("dfii_source_order_matrix_only", 4083, 1),
     ("dfii_source_command_read_phase", 4084, 2),
     ("dfii_csr_wrdata_mask_controllable", 4086, 1),
+    ("dfii_half_order_matrix_only", 4087, 1),
     ("dfii_source_order_source_phase", 4088, 2),
     ("dfii_source_order_write_phase", 4090, 2),
     ("dfii_source_order_read_phase", 4092, 2),
+    ("dfii_rddata_16", 4096, 32),
+    ("dfii_rddata_17", 4128, 32),
+    ("dfii_rddata_18", 4160, 32),
+    ("dfii_rddata_19", 4192, 32),
+    ("dfii_half_nonzero_high_masks", 4224, 64),
+    ("dfii_half_low_match_high_masks", 4288, 64),
+    ("dfii_half_high_match_low_masks", 4352, 256),
+    ("dfii_half_high_match_high_masks", 4608, 64),
     ("first_chunk_mismatch_mask", 1728, 16),
 ]
 
@@ -519,6 +528,73 @@ def dfii_source_order_word(slot: int, word: int) -> int:
     return dfii_source_order_tag(slot) << ((slot & 0x3) * 8)
 
 
+def dfii_half_low_tag(slot: int) -> int:
+    return 0x90 + (slot & 0xF)
+
+
+def dfii_half_high_tag(slot: int) -> int:
+    return 0xA0 + (slot & 0xF)
+
+
+def dfii_half_lane(slot: int) -> int:
+    slot &= 0xF
+    if slot <= 8:
+        return slot
+    if slot in (9, 10):
+        return 7
+    if slot in (11, 12, 15):
+        return 8
+    return 0
+
+
+def dfii_half_low_enabled(slot: int) -> bool:
+    slot &= 0xF
+    return slot <= 9 or slot in (11, 13, 15)
+
+
+def dfii_half_high_enabled(slot: int) -> bool:
+    slot &= 0xF
+    return slot <= 8 or slot in (10, 12, 14, 15)
+
+
+def dfii_half_low_position(lane: int) -> tuple[int, int]:
+    lane &= 0xF
+    if lane <= 3:
+        return 0, lane
+    if lane <= 7:
+        return 1, lane - 4
+    return 2, 0
+
+
+def dfii_half_high_position(lane: int) -> tuple[int, int]:
+    lane &= 0xF
+    if lane <= 2:
+        return 2, lane + 1
+    if lane <= 6:
+        return 3, lane - 3
+    if lane == 7:
+        return 4, 0
+    return 4, 1
+
+
+def dfii_place_byte(tag: int, byte: int) -> int:
+    return (tag & 0xFF) << ((byte & 0x3) * 8)
+
+
+def dfii_half_order_word(slot: int, word: int) -> int:
+    lane = dfii_half_lane(slot)
+    value = 0
+    if dfii_half_low_enabled(slot):
+        low_word, low_byte = dfii_half_low_position(lane)
+        if (word & 0x7) == low_word:
+            value |= dfii_place_byte(dfii_half_low_tag(slot), low_byte)
+    if dfii_half_high_enabled(slot):
+        high_word, high_byte = dfii_half_high_position(lane)
+        if (word & 0x7) == high_word:
+            value |= dfii_place_byte(dfii_half_high_tag(slot), high_byte)
+    return value
+
+
 def dfii_pattern_word(
     index: int,
     version: int = 0,
@@ -589,8 +665,12 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         fields.get("dfii_source_command_matrix_only", 0)
     )
     source_order_matrix_only = bool(fields.get("dfii_source_order_matrix_only", 0))
+    half_order_matrix_only = bool(fields.get("dfii_half_order_matrix_only", 0))
     matrix_only = (
-        phase_matrix_only or source_command_matrix_only or source_order_matrix_only
+        phase_matrix_only
+        or source_command_matrix_only
+        or source_order_matrix_only
+        or half_order_matrix_only
     )
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
     source_order_slot = fields.get("dfii_phasecmd_index", 0) & 0xF
@@ -606,7 +686,9 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     words = []
     for index in range(DFII_WORD_COUNT):
         actual = fields.get(f"dfii_rddata_{index}", 0)
-        if source_order_matrix_only:
+        if half_order_matrix_only:
+            expected = dfii_half_order_word(source_order_slot, index % 5)
+        elif source_order_matrix_only:
             expected = dfii_source_order_word(source_order_slot, index & 0x3)
         elif matrix_only:
             expected = dfii_phase_source_pattern(phase_matrix_source, index & 0x3)
@@ -622,8 +704,8 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         words.append(
             {
                 "index": index,
-                "phase": index // 4,
-                "word": index % 4,
+                "phase": index // 5 if half_order_matrix_only else index // 4,
+                "word": index % 5 if half_order_matrix_only else index % 4,
                 "expected": expected,
                 "actual": actual,
                 "xor": actual ^ expected,
@@ -652,20 +734,65 @@ def decode_dfii_phase_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
     mismatch_masks = fields.get("dfii_phasecmd_mismatch_masks", 0)
     source_command = bool(fields.get("dfii_source_command_matrix_only", 0))
     source_order = bool(fields.get("dfii_source_order_matrix_only", 0))
+    half_order = bool(fields.get("dfii_half_order_matrix_only", 0))
     fixed_read_phase = fields.get("dfii_source_command_read_phase", 2) & 0x3
     source_order_source_phase = fields.get("dfii_source_order_source_phase", 0) & 0x3
     source_order_write_phase = fields.get("dfii_source_order_write_phase", 0) & 0x3
     source_order_read_phase = fields.get("dfii_source_order_read_phase", 2) & 0x3
+    half_nonzero_high = fields.get("dfii_half_nonzero_high_masks", 0)
+    half_low_high = fields.get("dfii_half_low_match_high_masks", 0)
+    half_high_low = fields.get("dfii_half_high_match_low_masks", 0)
+    half_high_high = fields.get("dfii_half_high_match_high_masks", 0)
     decoded = []
     for index in range(16):
-        if source_order:
+        if half_order:
+            source_phase = source_order_source_phase
+            write_phase = source_order_write_phase
+            read_phase = source_order_read_phase
+            byte_slot = index
+            word = None
+            byte = None
+            lane = dfii_half_lane(index)
+            tag = None
+            low_tag = dfii_half_low_tag(index)
+            high_tag = dfii_half_high_tag(index)
+            low_word, low_byte = dfii_half_low_position(lane)
+            high_word, high_byte = dfii_half_high_position(lane)
+            nonzero_low_mask = fields.get(
+                f"dfii_assoc_nonzero_mask_{index}", 0
+            ) & 0xFFFF
+            nonzero_high_mask = (half_nonzero_high >> (index * 4)) & 0xF
+            low_match_low_mask = fields.get(
+                f"dfii_assoc_match_mask_{index}", 0
+            ) & 0xFFFF
+            low_match_high_mask = (half_low_high >> (index * 4)) & 0xF
+            high_match_low_mask = (half_high_low >> (index * 16)) & 0xFFFF
+            high_match_high_mask = (half_high_high >> (index * 4)) & 0xF
+        elif source_order:
             source_phase = source_order_source_phase
             write_phase = source_order_write_phase
             read_phase = source_order_read_phase
             byte_slot = index
             word = index >> 2
             byte = index & 0x3
+            lane = None
             tag = dfii_source_order_tag(index)
+            low_tag = None
+            high_tag = None
+            low_word = None
+            low_byte = None
+            high_word = None
+            high_byte = None
+            nonzero_low_mask = fields.get(
+                f"dfii_assoc_nonzero_mask_{index}", 0
+            ) & 0xFFFF
+            nonzero_high_mask = 0
+            low_match_low_mask = fields.get(
+                f"dfii_assoc_match_mask_{index}", 0
+            ) & 0xFFFF
+            low_match_high_mask = 0
+            high_match_low_mask = 0
+            high_match_high_mask = 0
         else:
             source_phase = index >> 2
             write_phase = index & 0x3 if source_command else source_phase
@@ -673,7 +800,24 @@ def decode_dfii_phase_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
             byte_slot = None
             word = None
             byte = None
+            lane = None
             tag = None
+            low_tag = None
+            high_tag = None
+            low_word = None
+            low_byte = None
+            high_word = None
+            high_byte = None
+            nonzero_low_mask = fields.get(
+                f"dfii_assoc_nonzero_mask_{index}", 0
+            ) & 0xFFFF
+            nonzero_high_mask = 0
+            low_match_low_mask = fields.get(
+                f"dfii_assoc_match_mask_{index}", 0
+            ) & 0xFFFF
+            low_match_high_mask = 0
+            high_match_low_mask = 0
+            high_match_high_mask = 0
         decoded.append(
             {
                 "index": index,
@@ -683,14 +827,21 @@ def decode_dfii_phase_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
                 "byte_slot": byte_slot,
                 "word": word,
                 "byte": byte,
+                "lane": lane,
                 "tag": tag,
+                "low_tag": low_tag,
+                "high_tag": high_tag,
+                "low_word": low_word,
+                "low_byte": low_byte,
+                "high_word": high_word,
+                "high_byte": high_byte,
                 "mismatch_mask": (mismatch_masks >> (index * 16)) & 0xFFFF,
-                "nonzero_mask": fields.get(
-                    f"dfii_assoc_nonzero_mask_{index}", 0
-                )
-                & 0xFFFF,
-                "match_mask": fields.get(f"dfii_assoc_match_mask_{index}", 0)
-                & 0xFFFF,
+                "nonzero_mask": nonzero_low_mask,
+                "nonzero_high_mask": nonzero_high_mask,
+                "match_mask": low_match_low_mask,
+                "low_match_high_mask": low_match_high_mask,
+                "high_match_low_mask": high_match_low_mask,
+                "high_match_high_mask": high_match_high_mask,
             }
         )
     return decoded
@@ -957,6 +1108,7 @@ def print_summary(result: dict[str, object]) -> None:
             "dfii state={state} step={step} no_write={no_write} "
             "phase_matrix={phase_matrix} source_command_matrix={source_command_matrix} "
             "source_order_matrix={source_order_matrix} "
+            "half_order_matrix={half_order_matrix} "
             "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
@@ -969,6 +1121,9 @@ def print_summary(result: dict[str, object]) -> None:
                 ),
                 source_order_matrix=bool(
                     fields.get("dfii_source_order_matrix_only", 0)
+                ),
+                half_order_matrix=bool(
+                    fields.get("dfii_half_order_matrix_only", 0)
                 ),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
@@ -994,12 +1149,29 @@ def print_summary(result: dict[str, object]) -> None:
         fields.get("dfii_source_command_matrix_only", 0)
     )
     source_order_matrix_only = bool(fields.get("dfii_source_order_matrix_only", 0))
+    half_order_matrix_only = bool(fields.get("dfii_half_order_matrix_only", 0))
     matrix_only = (
-        phase_matrix_only or source_command_matrix_only or source_order_matrix_only
+        phase_matrix_only
+        or source_command_matrix_only
+        or source_order_matrix_only
+        or half_order_matrix_only
     )
     if matrix_only:
         phase_matrix = decoded["dfii_phase_matrix"]
-        if source_order_matrix_only:
+        if half_order_matrix_only:
+            print(
+                "dfii half-order matrix: low/high 72-bit half tags, "
+                "fixed source p{source}/write p{write}/read p{read}".format(
+                    source=fields.get("dfii_source_order_source_phase", 0),
+                    write=fields.get("dfii_source_order_write_phase", 0),
+                    read=fields.get("dfii_source_order_read_phase", 0),
+                )
+            )
+            print(
+                "dfii CSR wrdata_mask controllable: "
+                f"{bool(fields.get('dfii_csr_wrdata_mask_controllable', 0))}"
+            )
+        elif source_order_matrix_only:
             print(
                 "dfii source-order matrix: one tagged byte slot, "
                 "fixed source p{source}/write p{write}/read p{read}".format(
@@ -1024,7 +1196,18 @@ def print_summary(result: dict[str, object]) -> None:
         else:
             print("dfii phase/source matrix: source/write phase x read phase")
         for entry in phase_matrix:
-            if source_order_matrix_only:
+            if half_order_matrix_only:
+                print(
+                    "  [slot {byte_slot:02d} lane {lane} "
+                    "low=0x{low_tag:02x}@w{low_word}/b{low_byte} "
+                    "high=0x{high_tag:02x}@w{high_word}/b{high_byte}] "
+                    "nonzero=0x{nonzero_high_mask:x}_{nonzero_mask:04x} "
+                    "low_match=0x{low_match_high_mask:x}_{match_mask:04x} "
+                    "high_match=0x{high_match_high_mask:x}_{high_match_low_mask:04x}".format(
+                        **entry
+                    )
+                )
+            elif source_order_matrix_only:
                 print(
                     "  [slot {byte_slot:02d} word {word}/byte {byte} "
                     "tag=0x{tag:02x}] "
@@ -1041,7 +1224,10 @@ def print_summary(result: dict[str, object]) -> None:
                 )
         hits = [
             (
-                "slot {byte_slot}:0x{match_mask:04x}"
+                "slot {byte_slot}:low=0x{low_match_high_mask:x}_{match_mask:04x}/"
+                "high=0x{high_match_high_mask:x}_{high_match_low_mask:04x}"
+                if half_order_matrix_only
+                else "slot {byte_slot}:0x{match_mask:04x}"
                 if source_order_matrix_only
                 else (
                     "src p{source_phase}/write p{write_phase}/read p{read_phase}:"
@@ -1049,11 +1235,18 @@ def print_summary(result: dict[str, object]) -> None:
                 )
             ).format(**entry)
             for entry in phase_matrix
-            if entry["match_mask"] != 0
+            if (
+                entry["match_mask"] != 0
+                or entry.get("low_match_high_mask", 0) != 0
+                or entry.get("high_match_low_mask", 0) != 0
+                or entry.get("high_match_high_mask", 0) != 0
+            )
         ]
         nonzero = [
             (
-                "slot {byte_slot}:0x{nonzero_mask:04x}"
+                "slot {byte_slot}:0x{nonzero_high_mask:x}_{nonzero_mask:04x}"
+                if half_order_matrix_only
+                else "slot {byte_slot}:0x{nonzero_mask:04x}"
                 if source_order_matrix_only
                 else (
                     "src p{source_phase}/write p{write_phase}/read p{read_phase}:"
@@ -1061,10 +1254,14 @@ def print_summary(result: dict[str, object]) -> None:
                 )
             ).format(**entry)
             for entry in phase_matrix
-            if entry["nonzero_mask"] != 0
+            if entry["nonzero_mask"] != 0 or entry.get("nonzero_high_mask", 0) != 0
         ]
-        label = "dfii source-order tag matches" if source_order_matrix_only else (
-            "dfii phase/source matrix matches"
+        label = (
+            "dfii half-order tag matches"
+            if half_order_matrix_only
+            else "dfii source-order tag matches"
+            if source_order_matrix_only
+            else "dfii phase/source matrix matches"
         )
         print(
             "{label}: {matches}; nonzero combos: {nonzero}".format(
