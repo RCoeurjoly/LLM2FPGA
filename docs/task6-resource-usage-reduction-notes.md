@@ -13939,3 +13939,151 @@ Next gate:
   storage and in DFI write-enable, serializer, or PHY final-beat behavior.
 - If CSR echo misses for failing variants, debug the CSR address/order/write
   enable path before another DRAM-facing board test.
+
+### 2026-05-01 - v78/v79 DFII CSR echo split
+
+Goal:
+
+- Separate the v77 final-word discriminator into:
+  - DFII `pi*_wrdata*` CSR storage/echo correctness.
+  - downstream DFI/PHY/DRAM write-read behavior.
+- Keep rowstream and TinyStories disconnected until this association problem is
+  solved.
+
+v78 combined CSR+DRAM attempt:
+
+- Bumped the JTAG payload version to `78`.
+- Added CSR echo reads before the existing DRAM write/read discriminator.
+- Build artifacts:
+  - JSON:
+    `/nix/store/gsn4pnbvkv86dh5qp0wfjpg2l935v4hg-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.json`
+  - Utilization:
+    `/nix/store/74k8fcqpllh4rbfxydgkrxlm90a9j6v4-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-utilization`
+  - Bitstream:
+    `/nix/store/0b4n1i3vdi32mzr8r0b30zifbkaghk0w-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- Resource/timing summary:
+  - `SLICE_LUTX`: `24036 / 597200` (`4%`)
+  - `SLICE_FFX`: `14097 / 597200` (`2%`)
+  - `DSP48E1`: `0 / 1920`
+  - `RAMB36E1`: `0 / 955`
+  - `IDELAYE2`: `72 / 400`
+  - `OSERDESE2`: `107 / 400`
+  - `ISERDESE2`: `72 / 400`
+  - `IDELAYCTRL`: `3 / 8`
+  - `ODELAYE2`: `0`
+  - post-route `user_clk`: `64.05 MHz` at a `25 MHz` target
+- Board result:
+  - SRAM load completed and `DONE` asserted.
+  - JTAG payload showed `version=78`, `state=PROBE_ERROR`,
+    `init_state=INIT_ERROR`, `init_step=0`, `init_done=false`,
+    `pll_locked=true`, `wb_ack=0`, `wb_wait=524289`.
+  - DFII never ran: `DFII_SEQ_IDLE`, `step=0`, `ack=0`.
+- Interpretation:
+  - v78 is an invalid board run, not a DDR3 data result.
+  - It likely perturbed init timing/routing enough to reproduce the step-0
+    Wishbone timeout seen in some earlier invalid variants.
+
+Control rerun:
+
+- Reprogrammed the v77 bitstream after the v78 failure:
+  `/nix/store/lazg33h48wcb2clbnysdwk8pmyr992ss-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- v77 still completed:
+  `version=77`, `state=PROBE_DFII_DONE`, `init_state=INIT_DONE`,
+  `dfii_state=DFII_SEQ_DONE`, `dfii_step=63`, `ack=58`, `wait=174`.
+- Interpretation:
+  - Board, cable, permissions, and the no-ODELAY LiteDRAM lane remained good.
+  - v78 failure is design/route specific and should be pruned.
+
+v79 CSR-only implementation:
+
+- Bumped the JTAG payload version to `79`.
+- Pruned the v78 discriminator to CSR-only:
+  - write the 20 `pi*_wrdata*` CSRs for each final-word variant;
+  - read those same 20 CSRs back;
+  - return DFII control to hardware;
+  - issue no DRAM write or read commands.
+- Updated the decoder so version `79` compares the displayed `dfii_rddata_*`
+  words against the written CSR words, not the expected DRAM readback words.
+- Decoder/checks:
+  - `python3 -m py_compile scripts/task6/read_litedram_probe_jtag_xvc.py scripts/task6/read_litedram_probe_jtag_ftdi.py`
+  - `git diff --check`
+
+Build result:
+
+- JSON:
+  `/nix/store/fznnlxrmn4iiyq7ib87d2dxijv59f9j9-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.json`
+- Yosys summary:
+  - no `ODELAYE2`
+  - `IDELAYE2`: `72`
+  - peak memory: `890.74 MB`
+- Utilization:
+  `/nix/store/3q2g3m5qgzipcsw6q89qd80q6jn1l0gi-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-utilization`
+  - nextpnr pack summary:
+    - `SLICE_LUTX`: `23375 / 597200` (`3%`)
+    - `SLICE_FFX`: `14097 / 597200` (`2%`)
+    - `DSP48E1`: `0 / 1920`
+    - `RAMB36E1`: `0 / 955`
+    - `IDELAYE2`: `72 / 400`
+    - `OSERDESE2`: `107 / 400`
+    - `ISERDESE2`: `72 / 400`
+    - `IDELAYCTRL`: `3 / 8`
+    - `ODELAYE2`: `0`
+- Bitstream:
+  `/nix/store/j0kb9qy3hvbiax7bg21lx939qixyw5j7-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- Post-route timing passed at the `25 MHz` target:
+  - `user_clk`: `67.07 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/j0kb9qy3hvbiax7bg21lx939qixyw5j7-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=79`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_step=32`
+  - `init_done=true`
+  - `init_error=false`
+  - `pll_locked=true`
+  - DFII sequence: `DFII_SEQ_DONE`, `step=43`, `ack=42`, `wait=126`
+  - native DRAM traffic counters remained zero because v79 issues no DRAM
+    write/read commands.
+
+Per-variant CSR echo result:
+
+```text
+variant0 all-phase lane7/lane8 final bytes: csr_echo_mismatch=0x00000 PASS
+variant1 phase0-only lane7/lane8 final bytes: csr_echo_mismatch=0x00000 PASS
+variant2 all-phase lane7-only final byte: csr_echo_mismatch=0x00000 PASS
+variant3 no final-word bytes, expected to fail: csr_echo_mismatch=0x00000 PASS
+```
+
+Interpretation:
+
+- The v77 failing variants are not caused by Wishbone/CSR write ordering,
+  `pi*_wrdata*` address selection, or inability to store sparse final-word
+  data in the DFII write-data CSRs.
+- The active failure is downstream of CSR storage: DFI write-data enable,
+  DFI phase/beat packing, serializer/OSERDES behavior, DQS/DQ association, or
+  DRAM readback/capture.
+- The strongest current hypothesis is still a final-word association issue:
+  the DRAM-facing path needs all-phase lane-7/lane-8 final-word bytes even
+  though the CSR-only path stores all four variants exactly.
+
+Next gate:
+
+- Reintroduce DRAM with lower perturbation than v78.
+- Prefer a v80 DRAM-only discriminator that keeps the v77 sequence length and
+  result storage shape as close as possible to v77, while exposing one extra
+  compact signal: the final-word `wrdata_en`/write-data phase mask that is
+  actually presented at the DFI boundary.
+- If that is too invasive, run a pair of placement-stable single-variant
+  bitstreams derived from v77/v79:
+  - one with variant `0` only;
+  - one with variant `1` or `2` only;
+  and compare DFI/DRAM readback without adding the CSR echo machinery.

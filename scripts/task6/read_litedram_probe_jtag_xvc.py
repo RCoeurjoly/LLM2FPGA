@@ -750,6 +750,39 @@ def dfii_edge_comp_read_word(word: int, version: int = 0) -> int:
     return words[word % 5]
 
 
+def dfii_edge_comp_write_word(
+    phase: int, word: int, variant: int = 0, version: int = 0
+) -> int:
+    phase &= 0x3
+    word %= 5
+    variant &= 0x3
+    if phase == 0 and word == 0:
+        return (
+            dfii_place_byte(dfii_edge_comp_tag(0, version), 0)
+            | dfii_place_byte(dfii_edge_comp_tag(1, version), 1)
+            | dfii_place_byte(dfii_edge_comp_tag(2, version), 2)
+            | dfii_place_byte(dfii_edge_comp_tag(3, version), 3)
+        )
+    if phase == 0 and word == 1:
+        return (
+            dfii_place_byte(dfii_edge_comp_tag(4, version), 0)
+            | dfii_place_byte(dfii_edge_comp_tag(5, version), 1)
+            | dfii_place_byte(dfii_edge_comp_tag(6, version), 2)
+            | dfii_place_byte(dfii_edge_comp_tag(7, version), 3)
+        )
+    if phase == 0 and word == 2:
+        return dfii_place_byte(dfii_edge_comp_tag(8, version), 0)
+    if word == 4:
+        if variant == 3:
+            return 0
+        if phase == 0 or variant in (0, 2):
+            value = dfii_place_byte(dfii_edge_comp_tag(7, version), 0)
+            if variant != 2:
+                value |= dfii_place_byte(dfii_edge_comp_tag(8, version), 1)
+            return value
+    return 0
+
+
 def dfii_lane7_locator_expected_word(word: int) -> int:
     value = dfii_edge_comp_read_word(word)
     if word % 5 == 1:
@@ -1028,7 +1061,15 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         elif lane7_locator_probe_only:
             expected = dfii_lane7_locator_expected_word(index % 5)
         elif edge_comp_probe_only:
-            expected = dfii_edge_comp_read_word(index % 5, version)
+            if version >= 79:
+                expected = dfii_edge_comp_write_word(
+                    index // 5,
+                    index % 5,
+                    fields.get("dfii_phasecmd_index", 0) & 0x3,
+                    version,
+                )
+            else:
+                expected = dfii_edge_comp_read_word(index % 5, version)
         elif edge_map_probe_only:
             expected = dfii_edge_map_word(index // 5, index % 5)
         elif displacement_probe_only or wbitslip_sweep_only or rbitslip_sweep_only:
@@ -1630,19 +1671,79 @@ def print_summary(result: dict[str, object]) -> None:
                     "dfii compensated-edge probe: one-bitstream final-word "
                     "variant sweep at separate columns"
                 )
+                dfii_complete = (
+                    fields.get("init_state", -1) == 5
+                    and fields.get("dfii_seq_state", -1) == 4
+                )
+                if fields.get("version", 0) >= 78:
+                    print(
+                        "dfii compensated-edge probe: wrdata CSR echo masks "
+                        "are printed before DRAM readback masks"
+                    )
+                if fields.get("version", 0) >= 79:
+                    print(
+                        "dfii compensated-edge probe: CSR-only variant sweep; "
+                        "no DRAM write/read commands are issued"
+                    )
+                if not dfii_complete:
+                    print(
+                        "dfii compensated-edge probe: variant masks are not "
+                        "valid because init/DFII did not complete"
+                    )
                 labels = [
                     "all-phase lane7/lane8 final bytes",
                     "phase0-only lane7/lane8 final bytes",
                     "all-phase lane7-only final byte",
                     "no final-word bytes, expected to fail",
                 ]
+                csr_echo_high_masks = fields.get("dfii_half_nonzero_high_masks", 0)
                 for index, label in enumerate(labels):
                     mask = masks[index]["mismatch_mask"]
-                    result = "PASS" if mask == 0 else "FAIL"
-                    print(
-                        f"  variant{index}: {label}: "
-                        f"mismatch_mask=0x{mask:04x} {result}"
-                    )
+                    dram_result = "PASS" if mask == 0 else "FAIL"
+                    if fields.get("version", 0) >= 79:
+                        csr_high = (csr_echo_high_masks >> (index * 4)) & 0xF
+                        csr_mask = mask | (csr_high << 16)
+                        csr_result = "PASS" if csr_mask == 0 else "FAIL"
+                        if dfii_complete:
+                            print(
+                                f"  variant{index}: {label}: "
+                                f"csr_echo_mismatch=0x{csr_mask:05x} "
+                                f"{csr_result}"
+                            )
+                        else:
+                            print(
+                                f"  variant{index}: {label}: "
+                                f"csr_echo_mismatch=0x{csr_mask:05x}; invalid"
+                            )
+                    elif fields.get("version", 0) >= 78:
+                        csr_low = fields.get(f"dfii_assoc_nonzero_mask_{index}", 0)
+                        csr_high = (csr_echo_high_masks >> (index * 4)) & 0xF
+                        csr_mask = csr_low | (csr_high << 16)
+                        csr_result = "PASS" if csr_mask == 0 else "FAIL"
+                        if dfii_complete:
+                            print(
+                                f"  variant{index}: {label}: "
+                                f"csr_echo_mismatch=0x{csr_mask:05x} "
+                                f"{csr_result}; "
+                                f"dram_mismatch=0x{mask:04x} {dram_result}"
+                            )
+                        else:
+                            print(
+                                f"  variant{index}: {label}: "
+                                f"csr_echo_mismatch=0x{csr_mask:05x}; "
+                                f"dram_mismatch=0x{mask:04x}; invalid"
+                            )
+                    else:
+                        if dfii_complete:
+                            print(
+                                f"  variant{index}: {label}: "
+                                f"mismatch_mask=0x{mask:04x} {dram_result}"
+                            )
+                        else:
+                            print(
+                                f"  variant{index}: {label}: "
+                                f"mismatch_mask=0x{mask:04x}; invalid"
+                            )
             elif fields.get("version", 0) >= 76:
                 print(
                     "dfii compensated-edge probe: lane7 expects 0xa0 and "
