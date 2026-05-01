@@ -35,6 +35,24 @@ DFII_EDGE_COMP_BIST_CASE_NAMES = [
     "address_slot_xor_lane",
     "prbs_xor_lane",
 ]
+DFII_EDGE_COMP_ADDRWALK_COLUMNS = [
+    0x0000,
+    0x0008,
+    0x0010,
+    0x0018,
+    0x0040,
+    0x0048,
+    0x0050,
+    0x0058,
+    0x0100,
+    0x0108,
+    0x0110,
+    0x0118,
+    0x0200,
+    0x0208,
+    0x0210,
+    0x0218,
+]
 
 STATE_NAMES = {
     0: "PROBE_RESET",
@@ -1691,7 +1709,54 @@ def print_summary(result: dict[str, object]) -> None:
                 "and pad source slots"
             )
         elif edge_comp_probe_only:
-            if fields.get("version", 0) >= 84:
+            edge_comp_addrwalk_mode = (
+                fields.get("version", 0) >= 85
+                and fields.get("dfii_phasecmd_index", 0) == 15
+            )
+            if edge_comp_addrwalk_mode:
+                masks = decoded["dfii_phasecmd_mismatch_masks"]
+                complete = (
+                    fields.get("init_state", -1) == 5
+                    and fields.get("dfii_seq_state", -1) == 4
+                )
+                print(
+                    "dfii compensated-edge address-walk: 16 compact DFII "
+                    "write/read columns using promoted final-word compensation"
+                )
+                address_count = 0
+                for index, column in enumerate(DFII_EDGE_COMP_ADDRWALK_COLUMNS):
+                    low_mask = masks[index]["mismatch_mask"]
+                    high_mask = fields.get(
+                        f"dfii_assoc_nonzero_mask_{index}",
+                        0,
+                    ) & 0xF
+                    full_mask = low_mask | (high_mask << 16)
+                    result = "PASS" if full_mask == 0 else "FAIL"
+                    if complete:
+                        address_count += 1
+                    print(
+                        f"  addr{index:02d}: col=0x{column:04x} "
+                        f"mismatch=0x{full_mask:05x} "
+                        f"{result if complete else 'invalid'}"
+                    )
+                first_bad = fields.get("first_mismatch_addr", 0)
+                first_addr = (first_bad >> 5) & 0xF
+                first_word = first_bad & 0x1F
+                print(
+                    "  summary: complete={complete} addresses={addresses} "
+                    "mismatch_words={mismatches} first_addr={addr} "
+                    "first_word={word} expected=0x{expected:08x} "
+                    "actual=0x{actual:08x}".format(
+                        complete=complete,
+                        addresses=address_count,
+                        mismatches=fields.get("mismatch_count", 0),
+                        addr=first_addr,
+                        word=first_word,
+                        expected=fields.get("first_expected", 0) & 0xFFFFFFFF,
+                        actual=fields.get("first_actual", 0) & 0xFFFFFFFF,
+                    )
+                )
+            elif fields.get("version", 0) >= 84:
                 masks = decoded["dfii_phasecmd_mismatch_masks"]
                 complete = (
                     fields.get("init_state", -1) == 5
