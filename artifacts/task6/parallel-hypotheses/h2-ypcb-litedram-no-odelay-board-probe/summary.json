@@ -1559,6 +1559,121 @@
       "interpretation": "v61 confirms that lane 8 is alive in the low half, lane 7 has an independent visibility problem, and high-half tags are systematically absent even after adding the fifth DFII CSR word. The remaining blocker is split between systematic high-half/DFI beat or read-capture association and a lane-7-specific disappearance. This still does not prove DRAM write acceptance.",
       "next_gate": "Build a v62 read-capture/word-displacement discriminator that keeps phases fixed, writes multiple tagged bytes in one pattern, and reports observed byte values by phase, word, and byte offset, with lane-7-only and lane-8-only repeats."
     },
+    "v62_dfii_displacement_map_discriminator": {
+      "purpose": "Write one dense low/high lane-tag pattern and decode observed nonzero bytes by phase, word, and byte offset.",
+      "implementation": {
+        "default_config_phy": "A7DDRPHY",
+        "dfii_displacement_probe_only": true,
+        "fixed_source_phase": 0,
+        "fixed_write_command_phase": 0,
+        "fixed_read_command_phase": 2,
+        "jtag_debug_version": 62,
+        "jtag_debug_bits": 4672,
+        "captured_dfii_words": 20,
+        "controller_path": "LiteDRAM/LiteX only",
+        "vivado_mig_lane": "rejected",
+        "tag_encoding": {
+          "low_half_lanes_0_to_8": "0x10..0x18",
+          "high_half_lanes_0_to_8": "0x20..0x28",
+          "padding_sentinels": ["0x2a", "0x2b"]
+        }
+      },
+      "artifacts": {
+        "json": "/nix/store/p1ygzkv5pw60nmr30k6npqfad2rf9lz3-task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe.json",
+        "utilization": "/nix/store/wp2j88n0ri408507gfnd2vsdiq2wjw64-task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe-utilization",
+        "bitstream": "/nix/store/ac36hgk4yd2m3x4i1f7xd905zjww7w4x-task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe.bit"
+      },
+      "mapped_utilization": {
+        "clb_luts": "18471 / 298600 (6.19%)",
+        "clb_ffs": "13701 / 597200 (2.29%)",
+        "dsp": "0 / 1920 (0.00%)",
+        "bram36": "0 / 955 (0.00%)",
+        "lower_bound_slices": "2309 / 74650 (3.09%)"
+      },
+      "nextpnr": {
+        "status": "PASS",
+        "target_mhz": 25,
+        "selected_utilization": {
+          "SLICE_LUTX": "23754 / 597200 (3%)",
+          "SLICE_FFX": "13701 / 597200 (2%)",
+          "IDELAYE2": "72 / 400 (18%)",
+          "OSERDESE2": "107 / 400 (26%)",
+          "ISERDESE2": "72 / 400 (18%)",
+          "IDELAYCTRL": "3 / 8 (37%)",
+          "BRAM": 0,
+          "DSP": 0
+        },
+        "max_frequency_mhz": {
+          "clk200": 715.31,
+          "user_clk": 67.13,
+          "core.iodelay_clk": 581.40,
+          "jtag_debug_shift.drck": 336.81
+        }
+      },
+      "programming": {
+        "status": "PASS",
+        "done": true
+      },
+      "board_jtag": {
+        "magic_ok": true,
+        "version": 62,
+        "probe_state": "PROBE_DFII_DONE",
+        "init_state": "INIT_DONE",
+        "init_done": true,
+        "init_error": false,
+        "dfii_displacement_probe_only": true,
+        "fixed_source_phase": 0,
+        "fixed_write_command_phase": 0,
+        "fixed_read_command_phase": 2,
+        "dfii_seq_state": "DFII_SEQ_DONE",
+        "dfii_ack": 58,
+        "dfii_wait": 174,
+        "direct_readback_words": {
+          "repeated_p0_to_p3_words_0_to_3": [
+            "w0=0x00161514",
+            "w1=0x12111018",
+            "w2=0x16151413",
+            "w3=0x00001800"
+          ],
+          "word4": {
+            "phase0": "0x13121110",
+            "phases1_to_3": "0x00000000"
+          }
+        },
+        "visible_tags": [
+          "low_lane0",
+          "low_lane1",
+          "low_lane2",
+          "low_lane3",
+          "low_lane4",
+          "low_lane5",
+          "low_lane6",
+          "low_lane8"
+        ],
+        "missing_tags": [
+          "low_lane7",
+          "high_lane0",
+          "high_lane1",
+          "high_lane2",
+          "high_lane3",
+          "high_lane4",
+          "high_lane5",
+          "high_lane6",
+          "high_lane7",
+          "high_lane8",
+          "pad_w4_b2",
+          "pad_w4_b3"
+        ],
+        "observed_mapping_summary": [
+          "low lanes 4..6 appear at w0/b0..2 and w2/b1..3",
+          "low lanes 0..3 appear at w1/b1..3 plus w2/b0 and phase0 w4/b0..3",
+          "low lane 8 appears at w1/b0 and w3/b1"
+        ],
+        "dfii_lane_bit_errors": [22, 20, 20, 24, 19, 19, 20, 23]
+      },
+      "interpretation": "v62 reproduces the v61 high-half disappearance with a denser pattern. Visible low-half tags are deterministic but not a simple constant displacement; lane 7 remains dark and lane 8 remains alive in the low half. No high-half tag or fifth-word sentinel is visible, keeping the blocker below rowstream/TinyStories in the DFII/PHY association path.",
+      "next_gate": "Inspect and prove the generated LiteDRAM DFII CSR write-data path. Add a v63 CSR-echo probe that writes phase-injector wrdata storage, reads pi*_wrdata0..4 back over Wishbone, and exposes the echo over JTAG before issuing the DRAM command."
+    },
     "open_flow_regression_guards": {
       "rtl_check": {
         "command": "nix build .#task6-ypcb-litedram-no-odelay-rtl-check --no-link --print-out-paths -L",
@@ -1631,9 +1746,10 @@
       "The current generated DFII CSR path cannot toggle write-data masks because main_csr_dfi_p*_wrdata_mask is hardwired to zero; mask polarity needs a separate LiteDRAM generation change if it remains relevant.",
       "The v60 source-order byte-tag matrix shows deterministic byte-slot selectivity: slots 0,1,2,3,4,5,6,8 reappear in stable read-word masks, while slot 7 and slots 9..15 disappear.",
       "The v61 low/high-half discriminator shows lane 8 is alive in the low half, lane 7 remains dark, and high-half tags are absent for every tested slot even with the fifth DFII CSR word.",
+      "The v62 displacement-map discriminator reproduces the same split with a denser pattern: low-half tags are deterministic and repeated, lane 7 is absent, lane 8 is visible, and no high-half or fifth-word sentinel tags are visible.",
       "The current blocker is split between systematic high-half/DFI beat or read-capture association and a lane-7-specific visibility issue in the no-ODELAY LiteDRAM path, not the open implementation flow itself."
     ],
-    "next_gate": "Build a v62 read-capture/word-displacement discriminator before returning to native-port bandwidth or rowstream integration."
+    "next_gate": "Inspect and prove the generated LiteDRAM DFII CSR write-data path with a v63 CSR-echo probe before another board-level phase sweep."
   },
   "decision": {
     "verdict": "promote-open-bitstream-and-debug-ddr-data-integrity",
@@ -1654,8 +1770,9 @@
       "The v59 source/command matrix shows the nonzero result follows source phase 0 across all write-command phases; write-command-phase selection is unlikely to be the primary blocker.",
       "The generated DFII CSR path does not expose write-data mask control, so the requested DFII mask polarity discriminator requires a separate LiteDRAM/core-generation change.",
       "The v60 byte-tag matrix shows deterministic source-byte selectivity: visible tags come from slots 0,1,2,3,4,5,6,8, while slot 7 and slots 9..15 disappear.",
-      "The v61 half-order matrix shows lane 8 is not globally dead, lane 7 remains independently dark, and high-half tags disappear for every tested lane."
+      "The v61 half-order matrix shows lane 8 is not globally dead, lane 7 remains independently dark, and high-half tags disappear for every tested lane.",
+      "The v62 displacement-map matrix shows visible low-half tags repeat deterministically at multiple word/byte positions, while low lane 7, all high-half lane tags, and fifth-word padding sentinels remain absent."
     ],
-    "next_gate": "Build a v62 read-capture/word-displacement discriminator before returning to broader DQS/write-data/read-latency sweeps, native-port bandwidth, or rowstream integration."
+    "next_gate": "Inspect the generated LiteDRAM DFII CSR ordering and build a v63 CSR-echo probe that proves whether pi*_wrdata0..4 writes reach the 144-bit phase-injector storage before the DRAM command is issued."
   }
 }

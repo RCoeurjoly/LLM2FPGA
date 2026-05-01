@@ -231,6 +231,7 @@ FIELDS = [
     ("dfii_source_order_source_phase", 4088, 2),
     ("dfii_source_order_write_phase", 4090, 2),
     ("dfii_source_order_read_phase", 4092, 2),
+    ("dfii_displacement_probe_only", 4094, 1),
     ("dfii_rddata_16", 4096, 32),
     ("dfii_rddata_17", 4128, 32),
     ("dfii_rddata_18", 4160, 32),
@@ -442,6 +443,11 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
             "samples": samples,
             "byte_diag_samples": byte_diag_samples,
             "dfii_words": dfii_words,
+            "dfii_displacement_observed": decode_dfii_displacement_observed(
+                dfii_words
+            )
+            if fields.get("dfii_displacement_probe_only", 0)
+            else [],
             "dfii_lane_error_counts": dfii_lane_error_counts,
             "dfii_mode_masks": dfii_mode_masks,
             "dfii_phasecmd_mismatch_masks": decode_dfii_phasecmd_masks(fields),
@@ -595,6 +601,76 @@ def dfii_half_order_word(slot: int, word: int) -> int:
     return value
 
 
+def dfii_displacement_word(word: int) -> int:
+    words = [
+        (
+            dfii_place_byte(0x10, 0)
+            | dfii_place_byte(0x11, 1)
+            | dfii_place_byte(0x12, 2)
+            | dfii_place_byte(0x13, 3)
+        ),
+        (
+            dfii_place_byte(0x14, 0)
+            | dfii_place_byte(0x15, 1)
+            | dfii_place_byte(0x16, 2)
+            | dfii_place_byte(0x17, 3)
+        ),
+        (
+            dfii_place_byte(0x18, 0)
+            | dfii_place_byte(0x20, 1)
+            | dfii_place_byte(0x21, 2)
+            | dfii_place_byte(0x22, 3)
+        ),
+        (
+            dfii_place_byte(0x23, 0)
+            | dfii_place_byte(0x24, 1)
+            | dfii_place_byte(0x25, 2)
+            | dfii_place_byte(0x26, 3)
+        ),
+        (
+            dfii_place_byte(0x27, 0)
+            | dfii_place_byte(0x28, 1)
+            | dfii_place_byte(0x2A, 2)
+            | dfii_place_byte(0x2B, 3)
+        ),
+    ]
+    return words[word % 5]
+
+
+def dfii_displacement_tag_label(tag: int) -> str:
+    if 0x10 <= tag <= 0x18:
+        return f"low_lane{tag - 0x10}"
+    if 0x20 <= tag <= 0x28:
+        return f"high_lane{tag - 0x20}"
+    if tag == 0x2A:
+        return "pad_w4_b2"
+    if tag == 0x2B:
+        return "pad_w4_b3"
+    return f"unknown_0x{tag:02x}"
+
+
+def decode_dfii_displacement_observed(
+    dfii_words: list[dict[str, int]],
+) -> list[dict[str, int | str]]:
+    observed = []
+    for entry in dfii_words:
+        actual = entry["actual"]
+        for byte in range(4):
+            value = (actual >> (byte * 8)) & 0xFF
+            if value == 0:
+                continue
+            observed.append(
+                {
+                    "phase": entry["phase"],
+                    "word": entry["word"],
+                    "byte": byte,
+                    "value": value,
+                    "label": dfii_displacement_tag_label(value),
+                }
+            )
+    return observed
+
+
 def dfii_pattern_word(
     index: int,
     version: int = 0,
@@ -666,11 +742,13 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     )
     source_order_matrix_only = bool(fields.get("dfii_source_order_matrix_only", 0))
     half_order_matrix_only = bool(fields.get("dfii_half_order_matrix_only", 0))
+    displacement_probe_only = bool(fields.get("dfii_displacement_probe_only", 0))
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
         or source_order_matrix_only
         or half_order_matrix_only
+        or displacement_probe_only
     )
     phase_matrix_source = fields.get("dfii_phasecmd_index", 0) >> 2
     source_order_slot = fields.get("dfii_phasecmd_index", 0) & 0xF
@@ -686,7 +764,9 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
     words = []
     for index in range(DFII_WORD_COUNT):
         actual = fields.get(f"dfii_rddata_{index}", 0)
-        if half_order_matrix_only:
+        if displacement_probe_only:
+            expected = dfii_displacement_word(index % 5)
+        elif half_order_matrix_only:
             expected = dfii_half_order_word(source_order_slot, index % 5)
         elif source_order_matrix_only:
             expected = dfii_source_order_word(source_order_slot, index & 0x3)
@@ -704,8 +784,12 @@ def decode_dfii_words(fields: dict[str, int]) -> list[dict[str, int]]:
         words.append(
             {
                 "index": index,
-                "phase": index // 5 if half_order_matrix_only else index // 4,
-                "word": index % 5 if half_order_matrix_only else index % 4,
+                "phase": index // 5
+                if (half_order_matrix_only or displacement_probe_only)
+                else index // 4,
+                "word": index % 5
+                if (half_order_matrix_only or displacement_probe_only)
+                else index % 4,
                 "expected": expected,
                 "actual": actual,
                 "xor": actual ^ expected,
@@ -1109,6 +1193,7 @@ def print_summary(result: dict[str, object]) -> None:
             "phase_matrix={phase_matrix} source_command_matrix={source_command_matrix} "
             "source_order_matrix={source_order_matrix} "
             "half_order_matrix={half_order_matrix} "
+            "displacement_probe={displacement_probe} "
             "ack={ack} wait={wait} "
             "mismatch_mask=0x{mask:04x} last_read=0x{last:08x} "
             "data_pass={data_pass}".format(
@@ -1124,6 +1209,9 @@ def print_summary(result: dict[str, object]) -> None:
                 ),
                 half_order_matrix=bool(
                     fields.get("dfii_half_order_matrix_only", 0)
+                ),
+                displacement_probe=bool(
+                    fields.get("dfii_displacement_probe_only", 0)
                 ),
                 ack=fields.get("dfii_wb_ack_count", 0),
                 wait=fields.get("dfii_wb_wait_count", 0),
@@ -1150,12 +1238,33 @@ def print_summary(result: dict[str, object]) -> None:
     )
     source_order_matrix_only = bool(fields.get("dfii_source_order_matrix_only", 0))
     half_order_matrix_only = bool(fields.get("dfii_half_order_matrix_only", 0))
+    displacement_probe_only = bool(fields.get("dfii_displacement_probe_only", 0))
     matrix_only = (
         phase_matrix_only
         or source_command_matrix_only
         or source_order_matrix_only
         or half_order_matrix_only
     )
+    if displacement_probe_only:
+        observed = decoded["dfii_displacement_observed"]
+        print(
+            "dfii displacement probe: dense low/high lane-tag pattern, "
+            "fixed source p{source}/write p{write}/read p{read}".format(
+                source=fields.get("dfii_source_order_source_phase", 0),
+                write=fields.get("dfii_source_order_write_phase", 0),
+                read=fields.get("dfii_source_order_read_phase", 0),
+            )
+        )
+        if observed:
+            formatted = " ".join(
+                "p{phase}/w{word}/b{byte}=0x{value:02x}({label})".format(
+                    **entry
+                )
+                for entry in observed
+            )
+        else:
+            formatted = "none"
+        print(f"dfii displacement observed bytes: {formatted}")
     if matrix_only:
         phase_matrix = decoded["dfii_phase_matrix"]
         if half_order_matrix_only:

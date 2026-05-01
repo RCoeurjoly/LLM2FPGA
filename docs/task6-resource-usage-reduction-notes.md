@@ -13122,3 +13122,115 @@ Next gate:
   - include a lane-7-only repeat and a lane-8-only repeat
   - classify whether low-half bytes always move by the same word/byte offset or
     whether the mapping depends on lane group
+
+### 2026-05-01 - v62 DFII displacement-map discriminator
+
+Goal:
+
+- Keep the v59-v61 fixed phases: source `p0`, write command `p0`, read command
+  `p2`.
+- Write a dense 20-byte low/high lane-tag pattern in one DFII transaction so
+  the readback can be decoded as observed byte values instead of only masks.
+- Use tags `0x10..0x18` for low-half lanes `0..8`, tags `0x20..0x28` for
+  high-half lanes `0..8`, and tags `0x2a/0x2b` as fifth-word padding
+  sentinels.
+
+Implementation:
+
+- Added `DFII_DISPLACEMENT_PROBE_ONLY`.
+- Bumped the JTAG debug payload version to `62`.
+- Reused the 20-word v61 DFII readback window and added a decoder that reports
+  each nonzero byte as `phase/word/byte=value(label)`.
+- Added flake targets for:
+  - `task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe-json`
+  - `task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe-utilization`
+  - `task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe-bitstream`
+
+Build result:
+
+- JSON:
+  `/nix/store/p1ygzkv5pw60nmr30k6npqfad2rf9lz3-task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe.json`
+- Utilization:
+  `/nix/store/wp2j88n0ri408507gfnd2vsdiq2wjw64-task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe-utilization`
+  - CLB LUTs: `18471 / 298600` (`6.19%`)
+  - CLB FFs: `13701 / 597200` (`2.29%`)
+  - DSP: `0 / 1920` (`0.00%`)
+  - BRAM36: `0 / 955` (`0.00%`)
+  - lower-bound slices: `2309 / 74650` (`3.09%`)
+- Bitstream:
+  `/nix/store/ac36hgk4yd2m3x4i1f7xd905zjww7w4x-task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe.bit`
+- nextpnr selected utilization:
+  - `SLICE_LUTX`: `23754 / 597200` (`3%`)
+  - `SLICE_FFX`: `13701 / 597200` (`2%`)
+  - `IDELAYE2`: `72 / 400` (`18%`)
+  - `OSERDESE2`: `107 / 400` (`26%`)
+  - `ISERDESE2`: `72 / 400` (`18%`)
+  - `IDELAYCTRL`: `3 / 8` (`37%`)
+  - BRAM: `0`
+  - DSP: `0`
+- Post-route timing passed at the `25 MHz` target:
+  - `clk200`: `715.31 MHz`
+  - `user_clk`: `67.13 MHz`
+  - `core.iodelay_clk`: `581.40 MHz`
+  - `jtag_debug_shift.drck`: `336.81 MHz`
+
+Board/JTAG result:
+
+- Program command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/ac36hgk4yd2m3x4i1f7xd905zjww7w4x-task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe.bit`
+- Program result:
+  SRAM load completed and `DONE` asserted.
+- JTAG read command:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2`
+- JTAG result:
+  - `magic_ok=true`
+  - `version=62`
+  - `state=PROBE_DFII_DONE`
+  - `init_state=INIT_DONE`
+  - `init_done=true`
+  - `init_error=false`
+  - `dfii_displacement_probe_only=true`
+  - fixed source/write/read phases: `p0`/`p0`/`p2`
+  - DFII sequence: `DFII_SEQ_DONE`, `ack=58`, `wait=174`
+  - direct readback repeated across phases for words `0..3`:
+    - `w0=0x00161514`
+    - `w1=0x12111018`
+    - `w2=0x16151413`
+    - `w3=0x00001800`
+  - phase `p0` also captured `w4=0x13121110`; phases `p1..p3` captured
+    `w4=0x00000000`
+  - visible tags were only low-half lane tags:
+    `low_lane0`, `low_lane1`, `low_lane2`, `low_lane3`, `low_lane4`,
+    `low_lane5`, `low_lane6`, and `low_lane8`
+  - `low_lane7` (`0x17`) was absent everywhere.
+  - high-half lane tags `0x20..0x28` were absent everywhere.
+  - padding sentinels `0x2a/0x2b` were absent everywhere.
+  - DFII lane bit errors: `[22, 20, 20, 24, 19, 19, 20, 23]`
+
+Interpretation:
+
+- v62 confirms the v61 result with a denser discriminator: low-half tags are
+  deterministic and repeatable, but the high-half tags are still completely
+  absent.
+- The observed bytes are not a simple constant displacement. Low tags repeat in
+  several word/byte positions:
+  - low lanes `4..6` appear at `w0/b0..2` and again at `w2/b1..3`
+  - low lanes `0..3` appear at `w1/b1..3` plus `w2/b0`/`p0 w4/b0..3`
+  - low lane `8` appears at `w1/b0` and `w3/b1`
+- Lane `7` remains independently dark, while lane `8` is repeatedly visible in
+  the low half.
+- No high-half tag or fifth-word padding sentinel is visible, so the remaining
+  issue is below rowstream/TinyStories and still in the DFII/PHY association
+  path.
+
+Next gate:
+
+- Before another board sweep, inspect and prove the generated LiteDRAM DFII CSR
+  write-data path:
+  - verify the `pi*_wrdata0..4` CSR ordering against the generated Verilog
+  - add a v63 CSR-echo probe that writes the 144-bit DFII phase-injector
+    storage, reads the same `wrdata` CSRs back over Wishbone, and exposes the
+    echo through JTAG before issuing the DRAM command
+  - if the echo matches but DDR readback still loses the high half, focus on
+    A7DDRPHY serializer/read-capture ordering; if the echo does not match, fix
+    the probe's CSR address/order first
