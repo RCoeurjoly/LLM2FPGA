@@ -216,6 +216,13 @@ Immediate execution order as of 2026-04-30:
     first or by providing a working packaged `yosys-slang`/Yosys pair
   - do not attempt a YPCB Ternip wrapper or bitstream until this toolchain gate
     is resolved
+- v112 added and ran a reduced Verilator lint/report gate:
+  - source commit: `54a32c4`
+  - command: `nix build .#task6-ternip-reduced-verilator-lint-report -L`
+  - status: `FAIL`
+  - first blocker: BaseJump parsing cannot find `bsg_defines.sv`
+  - next source fix should add BaseJump include paths before changing any
+    Ternip RTL or reduced configuration
 
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 

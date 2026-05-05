@@ -1,0 +1,44 @@
+{
+  "artifact_name": "h2-ternip-v112-reduced-verilator-lint",
+  "status": "FAIL_BASEJUMP_INCLUDE_PATH",
+  "date": "2026-05-05",
+  "hypothesis": "A Verilator lint/report target can bypass the broken custom-Yosys/yosys-slang path and reach the first real reduced Ternip RTL blocker.",
+  "source_commit": "54a32c4",
+  "commands": [
+    {
+      "cmd": "nix build .#task6-ternip-reduced-verilator-lint-report -L",
+      "exit_code": 0,
+      "note": "The derivation intentionally materializes a report even when Verilator exits nonzero."
+    },
+    {
+      "cmd": "readlink -f result && cat result/summary.json",
+      "exit_code": 0,
+      "result_path": "/nix/store/xc1yiwf8d7ah42bh13rbx1zqjfcpx60q-task6-ternip-reduced-verilator-lint-report",
+      "verilator_exit_code": 1
+    }
+  ],
+  "reduced_config": {
+    "D": 64,
+    "TmatmulParallelism": 8,
+    "VectorParallelism": 4,
+    "BatchSize": 1,
+    "FixedPointPrecision": 8
+  },
+  "first_blocker": {
+    "class": "dependency_include_path",
+    "dependency": "BaseJump STL",
+    "missing_file": "bsg_defines.sv",
+    "first_error": "Cannot find include file: bsg_defines.sv"
+  },
+  "result": {
+    "nix_store_path": "/nix/store/xc1yiwf8d7ah42bh13rbx1zqjfcpx60q-task6-ternip-reduced-verilator-lint-report",
+    "ternip_rtl_reached": false,
+    "synthesis_run": false,
+    "hardware_run": false
+  },
+  "decision": {
+    "verdict": "fix_include_path_only",
+    "next_gate": "Add the BaseJump include directory containing bsg_defines.sv to the Verilator report target and rerun.",
+    "do_not_do_next": "Do not change Ternip RTL, reduced parameters, board wrapper, or DDR integration for this blocker."
+  }
+}

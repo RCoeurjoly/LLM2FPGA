@@ -2767,6 +2767,83 @@
             ${yosysPkg}/bin/yosys -s run.ys
           '';
 
+        task6TernipReducedVerilatorLintReport =
+          pkgs.runCommand "task6-ternip-reduced-verilator-lint-report" {
+            buildInputs = [ pkgs.verilator ];
+          } ''
+            set -euo pipefail
+            cp -r ${task6TernipSrc} ternip
+            chmod -R u+w ternip
+            mkdir -p ternip/config "$out"
+            cp ${task6TernipReducedConfig} ternip/config/reduced_ypcb.svh
+            substituteInPlace ternip/rtl/ternip_pkg.sv \
+              --replace '`include `CONFIG_FILENAME' '`include "config/reduced_ypcb.svh"'
+            find ${task6TernipBasejumpStlSrc}/bsg_dataflow \
+              ${task6TernipBasejumpStlSrc}/bsg_misc \
+              -name '*.sv' | sort > basejump-files.txt
+            cat > ternip-files.txt <<'EOF'
+            ternip/rtl/ternip_pkg.sv
+            ternip/rtl/ternip_vector_registers.sv
+            ternip/rtl/common/ternip_gearbox_fifo.sv
+            ternip/rtl/common/ternip_multioperand_accumulator.sv
+            ternip/rtl/common/ternip_pipelined_interconnect.sv
+            ternip/rtl/common/ternip_pipelined_mem.sv
+            ternip/rtl/math/ternip_add.sv
+            ternip/rtl/math/ternip_sub.sv
+            ternip/rtl/math/ternip_mul.sv
+            ternip/rtl/math/ternip_div.sv
+            ternip/rtl/math/ternip_sqrt_int.sv
+            ternip/rtl/math/ternip_sqrt.sv
+            ternip/rtl/math/ternip_starmul.sv
+            ternip/rtl/math/ternip_fixed_point_convert.sv
+            ternip/rtl/math/ternip_round_robin_operation.sv
+            ternip/rtl/math/ternip_csig.sv
+            ternip/rtl/math/ternip_csig_parallelized.sv
+            ternip/rtl/math/ternip_sig.sv
+            ternip/rtl/math/ternip_sig_parallelized.sv
+            ternip/rtl/math/ternip_silu.sv
+            ternip/rtl/math/ternip_silu_parallelized.sv
+            ternip/rtl/fus/ternip_loadstore.sv
+            ternip/rtl/fus/ternip_rms.sv
+            ternip/rtl/fus/ternip_rowwise_operation.sv
+            ternip/rtl/fus/ternip_tmatmul.sv
+            ternip/rtl/axi/s_axi_ternip_const_rd.v
+            ternip/rtl/axi/s_axi_ternip_rst.v
+            ternip/rtl/axi/s_axi_ternip_wait_for_interrupt.v
+            ternip/rtl/axi/s_axi_ternip_write_byte.v
+            ternip/rtl/ternip/ternip_core.sv
+            EOF
+            tr '\n' ' ' < basejump-files.txt > all-files.txt
+            printf ' ' >> all-files.txt
+            tr '\n' ' ' < ternip-files.txt >> all-files.txt
+            set +e
+            verilator --lint-only --sv --top-module ternip_core \
+              -Iternip -Iternip/rtl \
+              -Wno-fatal -Wno-DECLFILENAME -Wno-PINCONNECTEMPTY \
+              $(cat all-files.txt) > "$out/lint.log" 2>&1
+            rc=$?
+            set -e
+            status=PASS
+            if [ "$rc" -ne 0 ]; then
+              status=FAIL
+            fi
+            cat > "$out/summary.json" <<EOF
+            {
+              "artifact_name": "task6-ternip-reduced-verilator-lint-report",
+              "status": "$status",
+              "verilator_exit_code": $rc,
+              "reduced_config": {
+                "D": 64,
+                "TmatmulParallelism": 8,
+                "VectorParallelism": 4,
+                "BatchSize": 1,
+                "FixedPointPrecision": 8
+              },
+              "next_gate": "If PASS, repair the Yosys/yosys-slang synthesis gate; if FAIL, fix the first RTL lint blocker."
+            }
+            EOF
+          '';
+
         tinyStories1mSelftestAllMemory = mkTinyStoriesSelftestBundle {
           name = "tiny-stories-1m-selftest-all-memory";
           topName = "tiny_stories_selftest_top";
@@ -8070,6 +8147,8 @@
           task6-ternip-upstream-repro = task6TernipUpstreamRepro;
           task6-ternip-reduced-config = task6TernipReducedConfig;
           task6-ternip-reduced-elab-json = task6TernipReducedElabJson;
+          task6-ternip-reduced-verilator-lint-report =
+            task6TernipReducedVerilatorLintReport;
           task6-int8-l2-residual-add-boundary-scout =
             task6Int8L2ResidualAddBoundaryScout;
           task6-int8-l2-residual-add-contract =
