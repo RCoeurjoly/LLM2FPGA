@@ -14269,3 +14269,11 @@ Conclusion: v83 is source-reproducible when built from the v83 code lineage. The
 - DFII result stayed clean: `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_word_mismatch_mask=0`, `dfii_uniform_mismatch_mask=0`, `dfii_phasecmd_mismatch_masks=0`.
 - Native gate still failed: `state=PROBE_ERROR`, `failed=true`, `write_command_count=16`, `write_data_count=16`, `command_count=16`, `response_count=16`, `mismatch_count=16`, `first_actual=0`, `first_expected=15045981070236873776`.
 - Conclusion: command-first write-data ordering does not fix the native write failure. The next target should be native write data mapping or DFI write-data emission, not command/data ahead ordering.
+
+## DDR3 M1 v91 native DFI write capture - 2026-05-05
+
+Experiment v91 restored the original native write ordering and added a DFI write-data capture reset at the start of the native write gate. The run used bitstream `/nix/store/v6x3w4gvrxgrx5snngglqkpq3pc9pdq5-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit` with sha256 `1c10d9a48bd78ba1909518364e145d4f09f9a0a8c604a7bda2e683504882ece8`.
+
+The board still fails the native write/read BIST: `version=91`, `state=PROBE_ERROR`, `failed=true`, `mismatch_count=16`, and readback samples are zero. DDR3 init is still clean: `init_done=true`, `init_error=false`, `pll_locked=true`; the DFII address-walk path is also clean with all mismatch masks zero.
+
+The v91 repurposed payload shows native DFI write activity after the native gate reset: event count `15`, observed enable `0x8`, captured word4 data `0`, and captured word4 mask `0xff`. This localizes M1 to the native write-side DFI data/mask path. More init/seed experiments are not the next surgical move; the next step is to inspect or instrument LiteDRAM's native write data/mask emission at the DFI boundary.

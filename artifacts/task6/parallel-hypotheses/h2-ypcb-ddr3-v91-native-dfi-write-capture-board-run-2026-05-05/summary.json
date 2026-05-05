@@ -1,0 +1,65 @@
+{
+  "experiment": "v91-native-dfi-write-capture",
+  "milestone": "M1 DDR3 native write/read BIST bring-up",
+  "date": "2026-05-05",
+  "source_commit": "6b57f69",
+  "bitstream": "/nix/store/v6x3w4gvrxgrx5snngglqkpq3pc9pdq5-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit",
+  "bitstream_sha256": "1c10d9a48bd78ba1909518364e145d4f09f9a0a8c604a7bda2e683504882ece8",
+  "timing": {
+    "user_clk_mhz": 70.46,
+    "user_clk_target_mhz": 25.0,
+    "clk200_mhz": 602.05,
+    "iodelay_clk_mhz": 580.38,
+    "drck_mhz": 357.53
+  },
+  "programming": {
+    "tool": "openFPGALoader",
+    "cable": "digilent_hs3",
+    "serial": "210299BF3824",
+    "isc_done": true,
+    "init": true,
+    "done": true
+  },
+  "probe": {
+    "version": 91,
+    "magic_ok": true,
+    "state": "PROBE_ERROR",
+    "complete": false,
+    "failed": true,
+    "init_done": true,
+    "init_error": false,
+    "pll_locked": true,
+    "dfii_seq_state": "DFII_SEQ_DONE",
+    "dfii_step": 63,
+    "dfii_word_mismatch_mask": 0,
+    "dfii_uniform_mismatch_mask": 0,
+    "dfii_phasecmd_mismatch_masks": 0,
+    "dfii_addr_mismatch_masks": 0,
+    "write_command_count": 16,
+    "write_data_count": 16,
+    "command_count": 16,
+    "response_count": 16,
+    "mismatch_count": 16,
+    "sample_valid_count": 8,
+    "first_actual": 0,
+    "first_expected": 15045981070236873776,
+    "sample_rdata_all_zero": true,
+    "last_rdata": 0
+  },
+  "dfi_write_capture_payload_mapping": {
+    "native_readscan_nonzero_count": "dfi_debug_wrdata_event_count_q",
+    "native_readscan_first_nonzero_addr": "packed {20'd0, dfi_debug_wrdata_word4_mask_q, dfi_debug_wrdata_seen_q}",
+    "native_readscan_first_nonzero_data": "packed dfi_debug_wrdata_word4_q[3:0]",
+    "native_readscan_nonzero_chunk_seen": "dfi_debug_wrdata_word4_mask_q",
+    "native_readscan_first_nonzero_chunk_mask": "dfi_debug_wrdata_last_en_q"
+  },
+  "dfi_write_capture_decoded": {
+    "event_count": 15,
+    "seen": "0x8",
+    "word4_mask": "0xff",
+    "word4_data": 0,
+    "last_en": "0x8"
+  },
+  "result": "FAIL: native write/read BIST still fails, but v91 localizes the failure to native write-side DFI emission rather than DDR init, PLL, DFII, or native read path.",
+  "next_step": "Instrument or repair the generated LiteDRAM native write data/mask path at the DFI boundary before running more seed/init experiments."
+}

@@ -1,0 +1,28 @@
+# v91 native DFI write capture
+
+Source commit: 6b57f69 task6-ddr3: instrument native DFI write data
+Bitstream: /nix/store/v6x3w4gvrxgrx5snngglqkpq3pc9pdq5-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit
+Bitstream sha256: 1c10d9a48bd78ba1909518364e145d4f09f9a0a8c604a7bda2e683504882ece8
+Timing: user_clk 70.46 MHz at 25 MHz target; clk200 602.05 MHz; iodelay_clk 580.38 MHz; drck 357.53 MHz.
+Programming: openFPGALoader digilent_hs3 serial 210299BF3824, isc_done/init/done all true.
+
+Probe result:
+- version=91, magic_ok=true
+- state=PROBE_ERROR, complete=false, failed=true
+- init_done=true, init_error=false, pll_locked=true
+- DFII remains clean: seq done, step 63, word/uniform/phase/address mismatch masks all zero
+- native port accepted 16 write commands, 16 write data beats, 16 read commands, and 16 responses
+- native readback still fails: mismatch_count=16, first_actual=0, sample reads all zero
+
+Repurposed v91 diagnostic payload:
+- native_readscan_nonzero_count is DFI write-data event count: 15
+- native_readscan_first_nonzero_addr packs {mask, seen}: 0x0ff8, decoded seen=0x8, mask=0xff
+- native_readscan_first_nonzero_data is captured DFI word4 data across phases: 0
+- native_readscan_nonzero_chunk_seen is DFI word4 mask: 0xff
+- native_readscan_first_nonzero_chunk_mask is DFI write enable: 0x8
+
+Interpretation:
+Native writes reach the generated LiteDRAM/DFI boundary, but the captured emitted DFI word is zero and fully masked for the observed word/phase. This keeps M1 blocked on native write-side data/mask emission. It is not a DDR init, PLL, DFII, or native-read-path regression.
+
+Next surgical step:
+Inspect or instrument the generated LiteDRAM native write data/mask path at the DFI boundary. Do not spend more experiments on init seeds before explaining why native write data/masks emit as zero/masked.
