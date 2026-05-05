@@ -77,7 +77,13 @@ def hex16(value: int) -> str:
     return f"0x{value & 0xffff:04x}"
 
 
-def summarize(probe: dict[str, Any], bitstream: str | None, sha256: str | None) -> dict[str, Any]:
+def summarize(
+    raw_probe: dict[str, Any],
+    bitstream: str | None,
+    sha256: str | None,
+) -> dict[str, Any]:
+    probe = raw_probe.get("fields", raw_probe)
+    decoded = raw_probe.get("decoded", {})
     probe_version = get_first_int(
         probe,
         ["probe_version", "version", "jtag_debug_version", "debug_version"],
@@ -144,7 +150,9 @@ def summarize(probe: dict[str, Any], bitstream: str | None, sha256: str | None) 
 
     mapped = [slot for slot in physical_to_logical_byte if slot is not None]
     is_bijective = one_hot and len(mapped) == 16 and len(set(mapped)) == 16
-    status = "PASS" if is_bijective else "FAIL"
+    probe_failed = bool(decoded.get("failed", False))
+    probe_complete = bool(decoded.get("complete", False))
+    status = "PASS" if is_bijective and not probe_failed else "FAIL"
 
     return {
         "status": status,
@@ -152,9 +160,14 @@ def summarize(probe: dict[str, Any], bitstream: str | None, sha256: str | None) 
         "hypothesis": HYPOTHESIS,
         "bitstream": bitstream,
         "bitstream_sha256": sha256,
+        "probe_state": decoded.get("state"),
+        "probe_complete": probe_complete,
+        "probe_failed": probe_failed,
+        "init_state": decoded.get("init_state"),
+        "status_flags": decoded.get("status"),
         "write_cases": write_cases,
         "mapping_inference": {
-            "is_bijective": is_bijective,
+            "is_bijective": is_bijective and not probe_failed,
             "physical_to_logical_byte": physical_to_logical_byte,
             "phase_transform": (
                 f"source_phase={source_phase}, "
@@ -171,7 +184,7 @@ def summarize(probe: dict[str, Any], bitstream: str | None, sha256: str | None) 
             "next_gate": (
                 "apply permutation/phase transform and rerun v44-style "
                 "byte-enable/native BIST"
-                if is_bijective
+                if is_bijective and not probe_failed
                 else "do not change DDR logic; inspect DFII byte/source/read "
                 "phase association before rerunning native BIST"
             )
