@@ -1,0 +1,38 @@
+{
+  "artifact_name": "h2-ternip-v111-reduced-elab",
+  "status": "BLOCKED_TOOLCHAIN",
+  "date": "2026-05-05",
+  "hypothesis": "The pinned Ternip source can elaborate as a reduced D=64 core with open-source tools before any YPCB wrapper or DDR integration is attempted.",
+  "source_commit": "54079f8",
+  "prior_result_commit": "2e9780c",
+  "commands": [
+    {
+      "cmd": "nix build .#task6-ternip-reduced-elab-json -L",
+      "exit_code": 1,
+      "failure": "custom yosys-0.64 dependency failed before Ternip RTL parsing: genericBuild: command not found"
+    }
+  ],
+  "reduced_config": {
+    "D": 64,
+    "TmatmulParallelism": 8,
+    "VectorParallelism": 4,
+    "BatchSize": 1,
+    "FixedPointPrecision": 8
+  },
+  "result": {
+    "ternip_rtl_reached": false,
+    "synthesis_run": false,
+    "hardware_run": false,
+    "board": "none"
+  },
+  "blocker": {
+    "class": "toolchain_dependency",
+    "component": "yosys-slang/custom-yosys",
+    "message": "yosys-0.64 default builder fails with genericBuild: command not found"
+  },
+  "decision": {
+    "verdict": "do_not_promote_to_board_wrapper",
+    "next_gate": "Decouple reduced Ternip RTL gate from the broken custom-Yosys path, preferably with a Verilator lint/elaboration target or a fixed packaged yosys-slang/Yosys pair.",
+    "do_not_do_next": "Do not create a YPCB Ternip bitstream or token-rate claim before reduced RTL elaboration succeeds."
+  }
+}

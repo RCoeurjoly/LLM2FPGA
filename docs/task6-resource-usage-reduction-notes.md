@@ -197,6 +197,26 @@ Immediate execution order as of 2026-04-30:
    reduced open-source elaboration gate; do not attempt a YPCB bitstream until
    the reduced core has synthesized with plausible resources.
 
+### Ternip lane update (2026-05-05)
+
+- v110 passed the upstream reproduction gate:
+  - `sifferman/ternip` pinned at
+    `7573c17dbed8f01e7d9e07e59a863376426a5489`
+  - `bespoke-silicon-group/basejump_stl` pinned at
+    `a43571d2eaaae2dda7c10490e8350dfdac7da878`
+  - result artifact:
+    `artifacts/task6/parallel-hypotheses/h2-ternip-v110-upstream-repro.json`
+- v111 reduced elaboration is blocked before Ternip RTL elaboration:
+  - command: `nix build .#task6-ternip-reduced-elab-json -L`
+  - failure: the existing `yosys-slang` path tries to build the repo's custom
+    `yosys-0.64` derivation and fails with
+    `genericBuild: command not found`
+  - next Ternip source fix should decouple the reduced elaboration gate from
+    the broken custom-Yosys derivation, likely by adding a Verilator lint gate
+    first or by providing a working packaged `yosys-slang`/Yosys pair
+  - do not attempt a YPCB Ternip wrapper or bitstream until this toolchain gate
+    is resolved
+
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
 Constraint:
