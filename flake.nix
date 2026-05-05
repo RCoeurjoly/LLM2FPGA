@@ -2620,6 +2620,153 @@
           framesBase = "task6-led-map";
         };
 
+        task6TernipSrc = pkgs.fetchFromGitHub {
+          owner = "sifferman";
+          repo = "ternip";
+          rev = "7573c17dbed8f01e7d9e07e59a863376426a5489";
+          hash = "sha256-ERtufGKw75r22GcBKNpPcpXRU+qW+S2L25jRwwwWWpE=";
+        };
+
+        task6TernipBasejumpStlSrc = pkgs.fetchFromGitHub {
+          owner = "bespoke-silicon-group";
+          repo = "basejump_stl";
+          rev = "a43571d2eaaae2dda7c10490e8350dfdac7da878";
+          hash = "sha256-7/u2qBhd4qNwQI/KUe+Ka+i6cz2/ZJkphBXjRKduf+4=";
+        };
+
+        task6TernipReducedConfig = pkgs.writeText "ternip-reduced-ypcb.svh" ''
+          localparam int D = 64;
+          localparam int TmatmulParallelism = 8;
+          localparam int VectorParallelism = 4;
+          localparam int LutParallelism = 1;
+
+          localparam int FixedPointPrecision = 8;
+          localparam int FixedPointExponent = -3;
+
+          parameter mul_impl_e MultiplicationImplementation = MUL_BSG;
+          parameter div_impl_e DivisionImplementation = DIV_BSG;
+
+          localparam bit UseHardSigmoid = 1;
+
+          localparam int BatchSize = 1;
+
+          localparam int NumVectorRegisters = 8;
+          localparam int ImmediateWidth = 16;
+          localparam int DdrAddressWidth = 64;
+          localparam int InstructionWidth = 128;
+
+          localparam int DdrDataWidth = 128;
+          localparam int InstrFetchWidth = 128;
+          localparam int CoreInterconnectNumStages = 4;
+
+          localparam real DramMaxBytesPerSecond = 10.0**12;
+          localparam real ClockPeriod = 10.0 * 10.0**-9;
+        '';
+
+        task6TernipUpstreamRepro =
+          pkgs.runCommand "task6-ternip-upstream-repro" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            ln -s ${task6TernipSrc} "$out/ternip-src"
+            ln -s ${task6TernipBasejumpStlSrc} "$out/basejump-stl-src"
+            cp ${task6TernipSrc}/README.md "$out/ternip-README.md"
+            cp ${task6TernipSrc}/LICENSE "$out/ternip-LICENSE"
+            cat > "$out/summary.json" <<'EOF'
+            {
+              "artifact_name": "task6-ternip-upstream-repro",
+              "status": "SOURCE_PINNED",
+              "ternip": {
+                "repository": "https://github.com/sifferman/ternip",
+                "commit": "7573c17dbed8f01e7d9e07e59a863376426a5489",
+                "license": "BSD-3-Clause",
+                "nix_hash": "sha256-ERtufGKw75r22GcBKNpPcpXRU+qW+S2L25jRwwwWWpE="
+              },
+              "basejump_stl": {
+                "repository": "https://github.com/bespoke-silicon-group/basejump_stl",
+                "commit": "a43571d2eaaae2dda7c10490e8350dfdac7da878",
+                "nix_hash": "sha256-7/u2qBhd4qNwQI/KUe+Ka+i6cz2/ZJkphBXjRKduf+4="
+              },
+              "decision": {
+                "next_gate": "Build .#task6-ternip-reduced-elab-json before creating a YPCB wrapper or bitstream.",
+                "board_default": "Board A",
+                "board_b_status": "Blocked until non-DDR LED-map reports INIT=1 and DONE=1."
+              }
+            }
+            EOF
+            cat > "$out/summary.md" <<'EOF'
+            # Task 6 Ternip upstream reproduction gate
+
+            Status: SOURCE_PINNED
+
+            Ternip is pinned to `sifferman/ternip` commit
+            `7573c17dbed8f01e7d9e07e59a863376426a5489`.
+
+            BaseJump STL is pinned to `bespoke-silicon-group/basejump_stl`
+            commit `a43571d2eaaae2dda7c10490e8350dfdac7da878`.
+
+            Ternip is BSD-3-Clause. This gate records source provenance only;
+            the next gate is reduced open-source elaboration.
+            EOF
+          '';
+
+        task6TernipReducedElabJson =
+          pkgs.runCommand "task6-ternip-reduced-elab.json" {
+            buildInputs = [ yosysPkg ];
+          } ''
+            set -euo pipefail
+            cp -r ${task6TernipSrc} ternip
+            chmod -R u+w ternip
+            mkdir -p ternip/config
+            cp ${task6TernipReducedConfig} ternip/config/reduced_ypcb.svh
+            substituteInPlace ternip/rtl/ternip_pkg.sv \
+              --replace '`include `CONFIG_FILENAME' '`include "config/reduced_ypcb.svh"'
+            find ${task6TernipBasejumpStlSrc}/bsg_dataflow \
+              ${task6TernipBasejumpStlSrc}/bsg_misc \
+              -name '*.sv' | sort > basejump-files.txt
+            cat > ternip-files.txt <<'EOF'
+            ternip/rtl/ternip_pkg.sv
+            ternip/rtl/ternip_vector_registers.sv
+            ternip/rtl/common/ternip_gearbox_fifo.sv
+            ternip/rtl/common/ternip_multioperand_accumulator.sv
+            ternip/rtl/common/ternip_pipelined_interconnect.sv
+            ternip/rtl/common/ternip_pipelined_mem.sv
+            ternip/rtl/math/ternip_add.sv
+            ternip/rtl/math/ternip_sub.sv
+            ternip/rtl/math/ternip_mul.sv
+            ternip/rtl/math/ternip_div.sv
+            ternip/rtl/math/ternip_sqrt_int.sv
+            ternip/rtl/math/ternip_sqrt.sv
+            ternip/rtl/math/ternip_starmul.sv
+            ternip/rtl/math/ternip_fixed_point_convert.sv
+            ternip/rtl/math/ternip_round_robin_operation.sv
+            ternip/rtl/math/ternip_csig.sv
+            ternip/rtl/math/ternip_csig_parallelized.sv
+            ternip/rtl/math/ternip_sig.sv
+            ternip/rtl/math/ternip_sig_parallelized.sv
+            ternip/rtl/math/ternip_silu.sv
+            ternip/rtl/math/ternip_silu_parallelized.sv
+            ternip/rtl/fus/ternip_loadstore.sv
+            ternip/rtl/fus/ternip_rms.sv
+            ternip/rtl/fus/ternip_rowwise_operation.sv
+            ternip/rtl/fus/ternip_tmatmul.sv
+            ternip/rtl/axi/s_axi_ternip_const_rd.v
+            ternip/rtl/axi/s_axi_ternip_rst.v
+            ternip/rtl/axi/s_axi_ternip_wait_for_interrupt.v
+            ternip/rtl/axi/s_axi_ternip_write_byte.v
+            ternip/rtl/ternip/ternip_core.sv
+            EOF
+            tr '\n' ' ' < basejump-files.txt > all-files.txt
+            printf ' ' >> all-files.txt
+            tr '\n' ' ' < ternip-files.txt >> all-files.txt
+            cat > run.ys <<EOF
+            plugin -i ${yosysSlang}/share/yosys/plugins/slang.so
+            read_slang --threads 1 --no-proc --top ternip_core -Iternip -Iternip/rtl $(cat all-files.txt)
+            hierarchy -top ternip_core -check
+            write_json "$out"
+            EOF
+            ${yosysPkg}/bin/yosys -s run.ys
+          '';
+
         tinyStories1mSelftestAllMemory = mkTinyStoriesSelftestBundle {
           name = "tiny-stories-1m-selftest-all-memory";
           topName = "tiny_stories_selftest_top";
@@ -7920,6 +8067,9 @@
           task6-led-map-xdc = task6LedMapXdc;
           task6-led-map-fasm = task6LedMapFasm;
           task6-led-map-bitstream = task6LedMapBitstream;
+          task6-ternip-upstream-repro = task6TernipUpstreamRepro;
+          task6-ternip-reduced-config = task6TernipReducedConfig;
+          task6-ternip-reduced-elab-json = task6TernipReducedElabJson;
           task6-int8-l2-residual-add-boundary-scout =
             task6Int8L2ResidualAddBoundaryScout;
           task6-int8-l2-residual-add-contract =

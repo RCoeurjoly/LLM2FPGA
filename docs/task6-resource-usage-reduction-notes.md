@@ -160,6 +160,21 @@ Moonshot lanes to keep active:
     resource shape
   - do not revive broad quantization patch stacks without a narrow measured
     benefit
+- Ternip lane:
+  - evaluate `sifferman/ternip` as an alternate open-source MatmulFree/ternary
+    accelerator path for this board
+  - goal is to reproduce upstream, synthesize a reduced Ternip core with open
+    tools, wrap it for YPCB, program Board A, and only then compare token-rate
+    potential against the reported Artix+ class `~30 tokens/s` claim
+  - keep this separate from the current DDR3/LiteDRAM lane; Ternip may consume
+    DDR later, but it must first pass reduced open-source elaboration,
+    synthesis, and no-DDR board-wrapper gates
+  - use Board A as the default Ternip bring-up board; Board B is excluded until
+    the non-DDR LED-map control reports `INIT=1` and `DONE=1`
+  - first reduced configuration defaults to `D=64`, `TmatmulParallelism=8`,
+    `VectorParallelism=4`, `BatchSize=1`, and `FixedPointPrecision=8`
+  - do not claim TinyStories or token/s equivalence until the exact model,
+    runtime, precision, and token definition are recorded
 
 Immediate execution order as of 2026-04-30:
 
@@ -178,6 +193,9 @@ Immediate execution order as of 2026-04-30:
    delta target from the list above.
 7. Replay any promising representative or microkernel result on the copied
    TinyStories baseline bundle or a documented full-model successor.
+8. Start the Ternip lane with an upstream reproduction/license gate, then a
+   reduced open-source elaboration gate; do not attempt a YPCB bitstream until
+   the reduced core has synthesized with plausible resources.
 
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
