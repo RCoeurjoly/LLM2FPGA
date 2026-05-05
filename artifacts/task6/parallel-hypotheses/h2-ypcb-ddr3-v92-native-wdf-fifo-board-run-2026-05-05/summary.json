@@ -1,0 +1,58 @@
+{
+  "experiment": "v92-native-wdf-fifo",
+  "milestone": "M1 DDR3 native write/read BIST bring-up",
+  "date": "2026-05-05",
+  "source_commit": "351a0e1",
+  "bitstream": "/nix/store/r4vrij2vx7h82vsi01ql11vwjv8zbc61-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit",
+  "bitstream_sha256": "d0c20759df571b03a1c3ac3bb67e779e34d24651c0df5c0a0cce4792d4d0e829",
+  "timing": {
+    "user_clk_mhz": 71.92,
+    "user_clk_target_mhz": 25.0,
+    "clk200_mhz": 682.13,
+    "iodelay_clk_mhz": 554.94,
+    "drck_mhz": 348.43
+  },
+  "programming": {
+    "tool": "openFPGALoader",
+    "cable": "digilent_hs3",
+    "serial": "210299BF3824",
+    "isc_done": true,
+    "init": true,
+    "done": true
+  },
+  "probe": {
+    "version": 92,
+    "magic_ok": true,
+    "state": "PROBE_ERROR",
+    "complete": false,
+    "failed": true,
+    "init_done": true,
+    "init_error": false,
+    "pll_locked": true,
+    "dfii_seq_state": "DFII_SEQ_DONE",
+    "dfii_step": 63,
+    "dfii_word_mismatch_mask": 0,
+    "dfii_uniform_mismatch_mask": 0,
+    "dfii_phasecmd_mismatch_masks": 0,
+    "dfii_addr_mismatch_masks": 0,
+    "write_command_count": 16,
+    "write_data_count": 16,
+    "command_count": 16,
+    "response_count": 16,
+    "mismatch_count": 16,
+    "sample_valid_count": 8,
+    "first_actual": 0,
+    "first_expected": 15045981070236873776,
+    "sample_rdata_all_zero": true,
+    "last_rdata": 0
+  },
+  "dfi_write_capture_decoded": {
+    "event_count": 15,
+    "seen": "0x8",
+    "observed_mask": "0xff",
+    "observed_data": 0,
+    "last_en": "0x8"
+  },
+  "result": "FAIL: native write/read BIST still reads zero. The generated-core native WDF FIFO built and routed, but the observed DFI write-data capture remained zero and fully masked.",
+  "interpretation": "The v91 alignment hypothesis is not fixed by this naive FIFO insertion, or the debug tap remains downstream of another path that still presents zero/masked data. The next step should inspect the post-patch generated RTL path and/or tap the FIFO push/pop/level signals directly before changing DDR timing or seeds."
+}

@@ -1,0 +1,24 @@
+# v92 native WDF FIFO
+
+Source commit: 351a0e1 task6-ddr3: add native write-data FIFO experiment
+Bitstream: /nix/store/r4vrij2vx7h82vsi01ql11vwjv8zbc61-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit
+Bitstream sha256: d0c20759df571b03a1c3ac3bb67e779e34d24651c0df5c0a0cce4792d4d0e829
+Timing: user_clk 71.92 MHz at 25 MHz target; clk200 682.13 MHz; iodelay_clk 554.94 MHz; drck 348.43 MHz.
+Programming: openFPGALoader digilent_hs3 serial 210299BF3824, isc_done/init/done all true.
+
+Probe result:
+- version=92, magic_ok=true
+- state=PROBE_ERROR, complete=false, failed=true
+- init_done=true, init_error=false, pll_locked=true
+- DFII remains clean: seq done, step 63, word/uniform/phase/address mismatch masks all zero
+- native port accepted 16 write commands, 16 write data beats, 16 read commands, and 16 responses
+- native readback still fails: mismatch_count=16, first_actual=0, sample reads all zero
+
+DFI write capture:
+- event count: 15
+- observed enable: 0x8
+- observed data: 0
+- observed mask: 0xff
+
+Interpretation:
+The naive generated-core native WDF FIFO built, routed, programmed, and preserved DDR init/DFII behavior, but it did not change the observed DFI write-data/mask point. This means the failure remains on the native write side, but the next move should be to inspect or tap FIFO push/pop/level and the actual post-patch generated RTL path. More init seeds are still not the right next experiment.

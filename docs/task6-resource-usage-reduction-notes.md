@@ -14277,3 +14277,11 @@ Experiment v91 restored the original native write ordering and added a DFI write
 The board still fails the native write/read BIST: `version=91`, `state=PROBE_ERROR`, `failed=true`, `mismatch_count=16`, and readback samples are zero. DDR3 init is still clean: `init_done=true`, `init_error=false`, `pll_locked=true`; the DFII address-walk path is also clean with all mismatch masks zero.
 
 The v91 repurposed payload shows native DFI write activity after the native gate reset: event count `15`, observed enable `0x8`, captured word4 data `0`, and captured word4 mask `0xff`. This localizes M1 to the native write-side DFI data/mask path. More init/seed experiments are not the next surgical move; the next step is to inspect or instrument LiteDRAM's native write data/mask emission at the DFI boundary.
+
+## DDR3 M1 v92 native WDF FIFO - 2026-05-05
+
+Experiment v92 added a small native write-data FIFO in the generated LiteDRAM RTL patch and moved the debug tap to the low DFI data/mask word. The bitstream built and routed cleanly: `/nix/store/r4vrij2vx7h82vsi01ql11vwjv8zbc61-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit`, sha256 `d0c20759df571b03a1c3ac3bb67e779e34d24651c0df5c0a0cce4792d4d0e829`, user_clk `71.92 MHz` at a `25 MHz` target.
+
+The board result is still a native write/read failure: `version=92`, `state=PROBE_ERROR`, `failed=true`, `mismatch_count=16`, and native read samples are zero. DDR3 init remains clean (`init_done=true`, `init_error=false`, `pll_locked=true`) and DFII remains clean with all mismatch masks zero.
+
+The DFI write capture did not improve: event count `15`, observed enable `0x8`, observed data `0`, observed mask `0xff`. This means the naive FIFO did not feed the observed PHY write-data point, or the debug tap is still downstream of another zero/masked path. The next surgical step is to inspect or expose FIFO push/pop/level and the post-patch generated RTL signal path before making more DDR timing or seed changes.
