@@ -47,7 +47,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd100;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd101;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -88,7 +88,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v97 consumes native WDF data on master/PHY write-data events.
   // v98 promotes a DFII-only one-byte-at-a-time byte/phase association matrix.
   // v99 moves that matrix onto the wide five-word DFII path and records word4.
-  // v100 promotes the existing lane7 locator on the same seed-13 debug-port path.
+  // v100 exposed that the standalone lane7 locator target was not on the v97/v99 path.
+  // v101 keeps the locator logic and fixes only the Nix target construction.
   localparam int CAL_BYTE_LANES = 8;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;
