@@ -110,7 +110,9 @@ wire         task6_native_wdf_master_event =
      main_a7ddrphy_dfi_p2_wrdata_en |
      main_a7ddrphy_dfi_p3_wrdata_en);
 wire         task6_native_wdf_pop =
-    task6_native_wdf_select_native & task6_native_wdf_slave_event;
+    task6_native_wdf_select_native &
+    task6_native_wdf_master_event &
+    ((~task6_native_wdf_empty) | task6_native_wdf_push);
 
 wire [575:0] task6_native_wdf_data_out =
     (task6_native_wdf_empty & task6_native_wdf_push) ?
