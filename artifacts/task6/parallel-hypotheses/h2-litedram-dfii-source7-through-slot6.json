@@ -1,0 +1,62 @@
+{
+  "status": "PASS",
+  "probe_version": 107,
+  "experiment": "v107-source7-through-slot6",
+  "hypothesis": "If source7's 0xa7 tag is forced through source6's known-good byte placement, then readback will show whether the failure follows the tag/source identity or the original byte slot 7.",
+  "source": {
+    "worktree": "/tmp/task6-v107-source7-through-slot6",
+    "commit": "fa198df",
+    "base_result_commit": "cecae7b"
+  },
+  "bitstream": {
+    "path": "/nix/store/rmcdd6bh8x0fcf6fbxpl2lj1yhr8zj9h-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "sha256": "8d45a217035f5befb50ae70a396bef0cc16b753c94eb9b766bcf9a6b254b41b1"
+  },
+  "status_flags": {
+    "state": "PROBE_DFII_DONE",
+    "pll_locked": true,
+    "init_done": true,
+    "init_error": false,
+    "init_seq_done": true,
+    "init_seq_error": false,
+    "wb_timeout_seen": false
+  },
+  "forced_mapping": {
+    "source": 7,
+    "tag": "0xa7",
+    "original_write_side_byte_slot_hex": "0x00080",
+    "forced_write_side_byte_slot_hex": "0x00040",
+    "forced_to_source_slot": 6
+  },
+  "readback_matrix": {
+    "source_masks_hex": [
+      "0x00201",
+      "0x00402",
+      "0x00804",
+      "0x01008",
+      "0x02010",
+      "0x04020",
+      "0x08040",
+      "0x08040",
+      "0x20100",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000"
+    ],
+    "source7_match_mask_hex": "0x08040",
+    "source7_nonzero_mask_hex": "0x08040"
+  },
+  "decision": {
+    "result": "The source7 tag survives when emitted through source6's known-good byte placement.",
+    "boundary": "The missing source7 failure follows original write-side byte slot 7, not the source7 tag value or source identity.",
+    "next_gate": "Move a known-good tag into original byte slot 7. If it disappears, byte slot 7 is confirmed bad; if it survives, investigate the source7 original-placement/read-association interaction."
+  },
+  "artifacts": {
+    "probe_json": "artifacts/task6/experiments/v107-source7-through-slot6/probe.json",
+    "summary": "artifacts/task6/experiments/v107-source7-through-slot6/summary.md"
+  }
+}
