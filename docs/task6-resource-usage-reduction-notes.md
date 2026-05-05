@@ -14285,3 +14285,14 @@ Experiment v92 added a small native write-data FIFO in the generated LiteDRAM RT
 The board result is still a native write/read failure: `version=92`, `state=PROBE_ERROR`, `failed=true`, `mismatch_count=16`, and native read samples are zero. DDR3 init remains clean (`init_done=true`, `init_error=false`, `pll_locked=true`) and DFII remains clean with all mismatch masks zero.
 
 The DFI write capture did not improve: event count `15`, observed enable `0x8`, observed data `0`, observed mask `0xff`. This means the naive FIFO did not feed the observed PHY write-data point, or the debug tap is still downstream of another zero/masked path. The next surgical step is to inspect or expose FIFO push/pop/level and the post-patch generated RTL signal path before making more DDR timing or seed changes.
+
+### DDR3 v93 native WDF counter result (2026-05-05)
+
+Experiment source: `8e440f5 task6-ddr3: expose native WDF FIFO counters`.
+Result artifact: `artifacts/task6/parallel-hypotheses/h2-ypcb-ddr3-v93-native-wdf-counters-board-run-2026-05-05/`.
+Bitstream: `/nix/store/hyi90nh94nnil7kydwmr8ba832zgjd5b-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit`.
+SHA256: `03cc81e050af09eacee5a9a7958897be1fb77c4cc61a1b01367439e6e6e09608`.
+
+Board result: `version=93`, `pll_locked=true`, `init_error=false`, but `init_done=false`, `init_seq_done=false`, `init_seq_error=true`, `wb_timeout_seen=true`, `wb_ack_count=0`, `wb_wait_count=524289`. Native command/data/response counters stayed zero, and the v93 WDF debug fields stayed zero.
+
+Interpretation: v93 regressed before the native write/read BIST, so it does not answer the native write-data question. Treat it as a failed instrumentation experiment. The next surgical fix should restore the v92/v87 init behavior and use a narrower counter/debug path that does not perturb early DFII/Wishbone sequencing.

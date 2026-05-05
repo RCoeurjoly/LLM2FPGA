@@ -1,0 +1,31 @@
+DDR3 v93 native WDF counter experiment, 2026-05-05
+
+Source commit: 8e440f5 task6-ddr3: expose native WDF FIFO counters
+Bitstream: /nix/store/hyi90nh94nnil7kydwmr8ba832zgjd5b-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit
+SHA256: 03cc81e050af09eacee5a9a7958897be1fb77c4cc61a1b01367439e6e6e09608
+Board serial: 210299BF3824
+
+Result: fail, but not a native-write result.
+
+Observed probe highlights:
+- version=93
+- state=PROBE_ERROR
+- pll_locked=true
+- init_error=false
+- init_done=false
+- init_seq_done=false
+- init_seq_error=true
+- wb_timeout_seen=true
+- wb_ack_count=0
+- wb_wait_count=524289
+- dfii_step=0
+- write_command_count=0
+- write_data_count=0
+- response_count=0
+- native WDF debug fields all zero
+
+Interpretation:
+The board never reached the native write/read BIST. v93 regressed before the intended counter observation point, likely through the generated-core instrumentation footprint or by perturbing early DFII/Wishbone behavior. Treat this as a failed instrumentation experiment, not evidence about the native write-data hypothesis.
+
+Next surgical action:
+Back out the broad v93 debug capture style and create a narrower v94 counter probe that preserves the v92/v87 init path. The next probe should avoid driving debug_dfi_wrdata_en from master write events during init and should avoid changing DFII-visible write-data behavior outside native selection.

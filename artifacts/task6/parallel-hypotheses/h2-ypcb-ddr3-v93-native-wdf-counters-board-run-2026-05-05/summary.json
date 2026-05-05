@@ -1,0 +1,30 @@
+{
+  "experiment": "h2-ypcb-ddr3-v93-native-wdf-counters",
+  "date": "2026-05-05",
+  "source_commit": "8e440f5 task6-ddr3: expose native WDF FIFO counters",
+  "bitstream": "/nix/store/hyi90nh94nnil7kydwmr8ba832zgjd5b-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit",
+  "sha256": "03cc81e050af09eacee5a9a7958897be1fb77c4cc61a1b01367439e6e6e09608",
+  "serial": "210299BF3824",
+  "result": "fail",
+  "classification": "regression_before_native_bist",
+  "version": 93,
+  "state": "PROBE_ERROR",
+  "pll_locked": true,
+  "init_error": false,
+  "init_done": false,
+  "init_seq_done": false,
+  "init_seq_error": true,
+  "wb_timeout_seen": true,
+  "wb_ack_count": 0,
+  "wb_wait_count": 524289,
+  "dfii_step": 0,
+  "write_command_count": 0,
+  "write_data_count": 0,
+  "response_count": 0,
+  "native_wdf_debug": {
+    "event_count_field": 0,
+    "status64_field": 0,
+    "mask_status_field": 0
+  },
+  "interpretation": "v93 did not reach the native write/read BIST. The added generated-core WDF counter/debug patch regressed the DFII/init path or early Wishbone/DFII sequencing, so this result cannot answer the native write-data question. Next fix should reduce the instrumentation footprint and preserve v92/v87 init behavior before adding counters again."
+}
