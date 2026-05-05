@@ -14194,3 +14194,15 @@ A DDR3 experiment identity is the tuple below, all recorded together:
 Workflow rule: create a source/config commit first, build only from that clean commit, copy/store the result artifacts, then create a second result commit. If a target is known-good, freeze it as a branch/tag or dedicated immutable target name before adding new modes. Do not continue DDR3 work by layering unrelated experiments on the same mutable top/flake target and assuming the old package name remains reproducible.
 
 For the v83 resurrection lane, start from commit `f4d732e` directly and replay later changes only one at a time, with one code/config commit and one result commit per board experiment.
+
+## DDR3 v83 clean-source rebuild board run (2026-05-05)
+
+Captured in `artifacts/task6/parallel-hypotheses/h2-ypcb-ddr3-v83-clean-source-rebuild-board-run-2026-05-05/`.
+
+Built `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-bitstream` from branch `task6-ddr3-v83-resurrection` at commit `154ad8c2fe3c5b5d969a74d352f7a0306e23071e`. This branch is rooted at the v83 code commit `f4d732e`; `154ad8c` only adds the DDR3 reproducibility-process note. The build resolved to the exact historical known-good bitstream `/nix/store/h7v1g6dsd0qbvjsfck2q5l436b0dmjb1-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit` with sha256 `4aab614a51f9ace4afc90b8c77e2caca308257b6f4b4674434e87ed2972af275`.
+
+Programmed over HS3 serial `210299BF3824`; SRAM load completed with `isc_done=1`, `init=1`, and `done=1`.
+
+Probe result: `magic_ok=true`, `version=83`, `state=PROBE_DFII_DONE`, `init_done=true`, `init_error=false`, `pll_locked=true`, `complete=true`, `failed=false`, `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_data_pass=true`, `dfii_word_mismatch_mask=0x00000`, `dfii_last_read_data=0x000098a0`, all 20 DFII expected/actual words matched, and all 16 command phase combinations passed.
+
+Conclusion: v83 is source-reproducible when built from the v83 code lineage. The prior reproducibility failure was not that v83 was uncommitted or impossible to rebuild; it was that later experiments mutated/reused the same target family, so the current package name no longer meant the v83 experiment.

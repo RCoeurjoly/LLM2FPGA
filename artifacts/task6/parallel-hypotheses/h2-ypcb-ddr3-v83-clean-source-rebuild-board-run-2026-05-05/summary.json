@@ -1,0 +1,60 @@
+{
+  "date": "2026-05-05",
+  "experiment": "v83-clean-source-rebuild-board-run",
+  "purpose": "Build the known-good v83 DDR3 edge-comp target from a clean branch rooted at f4d732e, confirm it reproduces the exact historical bitstream, then program/probe the board.",
+  "source": {
+    "branch": "task6-ddr3-v83-resurrection",
+    "build_commit": "154ad8c2fe3c5b5d969a74d352f7a0306e23071e",
+    "v83_code_base": "f4d732e task6: promote DDR3 DFII final-word compensation",
+    "note": "154ad8c only adds the DDR3 reproducibility process note; the v83 DDR3 code state is f4d732e."
+  },
+  "build": {
+    "command": "nix build .#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-bitstream -L",
+    "flake_attribute": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-bitstream",
+    "bitstream": "/nix/store/h7v1g6dsd0qbvjsfck2q5l436b0dmjb1-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit",
+    "bitstream_sha256": "4aab614a51f9ace4afc90b8c77e2caca308257b6f4b4674434e87ed2972af275",
+    "matches_historical_v83_bitstream_path": true,
+    "bitstream_deriver": "/nix/store/6x5xzi9jn26xrsg4j6r01r1d1lv7rv33-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit.drv",
+    "fasm_deriver": "/nix/store/b9fr4s768a5whvyzwwzdhwjbaphsmsm6-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.fasm.drv",
+    "json_deriver": "/nix/store/xh0x1fbrhigry08m38xwcc5nbgda743p-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.json.drv",
+    "nextpnr_seed": 10,
+    "nextpnr_target_mhz": 25,
+    "generated_litedram_core": "/nix/store/lr1p7iq34b4lsmsqvl6dzg9lha0qq3kg-h2-ypcb-litedram-no-odelay-lowrate-dfi-debug-rtl-elaboration/build/gateware/ypcb_litedram_core.v",
+    "generated_litedram_core_sha256": "3b0eb06fbe515fcd5c0071883e46b4ab111c10284093d2cbb6f7ddb8d3a795d8",
+    "probe_top_snapshot": "/nix/store/sr1k2nkhhr16s5kl45f2vqrg3gmwl73w-task6_ypcb_litedram_init_bandwidth_probe_top.sv",
+    "probe_top_snapshot_sha256": "039a349659c8880331a9491e41d5cd9c652cd2d591850131aee078ed0e392375"
+  },
+  "programming": {
+    "tool": "openFPGALoader",
+    "cable": "digilent_hs3",
+    "serial": "210299BF3824",
+    "command": "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/h7v1g6dsd0qbvjsfck2q5l436b0dmjb1-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit",
+    "result": "success",
+    "isc_done": 1,
+    "init": 1,
+    "done": 1
+  },
+  "probe": {
+    "tool": "scripts/task6/read_litedram_probe_jtag_ftdi.py",
+    "command": "python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --backend mpsse --tdo-bit 7 --json-only",
+    "artifact": "probe.json",
+    "magic_ok": true,
+    "version": 83,
+    "state": "PROBE_DFII_DONE",
+    "init_state": "INIT_DONE",
+    "init_step": 32,
+    "init_done": true,
+    "init_error": false,
+    "pll_locked": true,
+    "complete": true,
+    "failed": false,
+    "dfii_seq_state": "DFII_SEQ_DONE",
+    "dfii_step": 63,
+    "dfii_data_pass": true,
+    "dfii_word_mismatch_mask": "0x00000",
+    "dfii_last_read_data": "0x000098a0",
+    "all_20_dfii_words_match": true,
+    "all_16_command_phase_combinations_pass": true
+  },
+  "conclusion": "The v83-good experiment is source-reproducible when built from the v83 code lineage: the clean branch rebuild resolved to the exact historical bitstream path and still passes on board. The non-reproducibility problem was the later reuse/mutation of the same target family, not an inability to reproduce v83 itself."
+}

@@ -1,0 +1,42 @@
+DDR3 v83 clean-source rebuild board run, 2026-05-05
+
+Source:
+- branch: task6-ddr3-v83-resurrection
+- build commit: 154ad8c2fe3c5b5d969a74d352f7a0306e23071e
+- v83 code base: f4d732e task6: promote DDR3 DFII final-word compensation
+- note: 154ad8c only adds the reproducibility process note; DDR3 code is v83/f4d732e.
+
+Build:
+- command: nix build .#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe-bitstream -L
+- result bitstream: /nix/store/h7v1g6dsd0qbvjsfck2q5l436b0dmjb1-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.bit
+- bitstream sha256: 4aab614a51f9ace4afc90b8c77e2caca308257b6f4b4674434e87ed2972af275
+- this matches the historical v83 known-good bitstream path.
+- nextpnr seed: 10
+- nextpnr target: 25 MHz
+- generated LiteDRAM core: /nix/store/lr1p7iq34b4lsmsqvl6dzg9lha0qq3kg-h2-ypcb-litedram-no-odelay-lowrate-dfi-debug-rtl-elaboration/build/gateware/ypcb_litedram_core.v
+- generated LiteDRAM core sha256: 3b0eb06fbe515fcd5c0071883e46b4ab111c10284093d2cbb6f7ddb8d3a795d8
+- probe top snapshot: /nix/store/sr1k2nkhhr16s5kl45f2vqrg3gmwl73w-task6_ypcb_litedram_init_bandwidth_probe_top.sv
+- probe top snapshot sha256: 039a349659c8880331a9491e41d5cd9c652cd2d591850131aee078ed0e392375
+
+Programming:
+- openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 <bitstream>
+- result: success, isc_done=1, init=1, done=1
+
+Probe:
+- magic_ok=true
+- version=83
+- state=PROBE_DFII_DONE
+- init_state=INIT_DONE, init_step=32, init_done=true
+- init_error=false
+- pll_locked=true
+- complete=true
+- failed=false
+- dfii_seq_state=DFII_SEQ_DONE, dfii_step=63
+- dfii_data_pass=true
+- dfii_word_mismatch_mask=0x00000
+- dfii_last_read_data=0x000098a0
+- all 20 DFII expected/actual words match
+- all 16 write/read command phase combinations pass
+
+Conclusion:
+The v83-good experiment is source-reproducible when built from the v83 code lineage. The clean branch rebuild resolved to the exact historical bitstream path and still passes on board. The previous non-reproducibility problem was target-name mutation after v83, not v83 itself.
