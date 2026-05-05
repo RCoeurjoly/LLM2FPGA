@@ -14318,3 +14318,18 @@ Result artifact: `artifacts/task6/parallel-hypotheses/h2-ypcb-ddr3-v95-native-wd
 Result: build invalid, intentionally interrupted before bitstream/board run. During Yosys `CHECK`, the generated RTL reported 576 conflicting drivers on DFI write-data nets, including `ypcb_litedram_core.main_litedramcore_dfi_p3_wrdata[143]` and `ypcb_litedram_core.main_litedramcore_dfi_p0_wrdata[0]`. The drivers came from the four repeated generated assignments around `ypcb_litedram_core.v` lines 14230-14233 after v95 changed each repeated assignment into a ternary mux.
 
 Interpretation: v95 should not be programmed. The generated LiteDRAM RTL has repeated equivalent assignments to the same DFI buses; replacing all repeats with gated expressions creates independent drivers. Next v96 must leave exactly one DFI bus driver, either by replacing only one repeated assignment and neutralizing duplicates or by patching a single upstream signal instead. The compact status-byte push visibility from v95 remains the right diagnostic once the multi-driver issue is fixed.
+
+### DDR3 v96 single-driver WDF probe result (2026-05-05)
+
+Experiment source: `6e5d1b4 task6-ddr3: prepare v96 single-driver WDF probe`.
+Result artifact: `artifacts/task6/parallel-hypotheses/h2-ypcb-ddr3-v96-single-driver-wdf-probe-board-run-2026-05-05/`.
+Bitstream: `/nix/store/zzd59v0bk2dlb9fmj03lm37bnm7wp47d-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit`.
+SHA256: `c2b430354b5291aacece14e40d2b8f739a375f9dfc42cdd5e2d959dd044b596c`.
+
+Build result: v96 fixed the v95 multi-driver issue. Yosys `CHECK` reported `0 problems` before and after synthesis. Post-placement timing passed, including `user_clk=51.02 MHz`, `clk200=495.05 MHz`, `core.iodelay_clk=917.43 MHz`, and `jtag_debug_shift.drck=282.89 MHz`.
+
+Board result: `version=96`, `pll_locked=true`, `init_error=false`, `init_done=true`, `init_seq_done=true`, `init_seq_error=false`, `dfii_step=63`, and DFII mismatch masks remained zero. Native write/read still failed with `write_command_count=16`, `write_data_count=16`, `response_count=16`, `mismatch_count=16`, and sampled readback data all zero.
+
+New diagnostic: `native_readscan_first_nonzero_addr=0x0cf8`, `native_readscan_nonzero_chunk_seen=0xcf`, `native_readscan_first_nonzero_chunk_mask=0x8`, `native_readscan_nonzero_count=15`. Decoding status byte `0xcf`: push_seen=1, pop_seen=1, fifo_nonempty_at_event=0, push_at_event=0, pop_at_event=1, slave_wrdata_event=1, master_wrdata_event=1, select_native=1.
+
+Interpretation: the generated-core native WDF push does occur, so the push condition is not completely wrong. The failure is that the FIFO is empty by the captured native PHY write-data event while pop/slave/master events are asserted. This points to pop timing: the FIFO is likely being drained by slave wrdata events before the actual PHY/master write-data event. Next v97 should keep the single-driver patch and compact status byte, but pop on native master/PHY wrdata event instead of native slave wrdata event, or otherwise guard against empty pops.

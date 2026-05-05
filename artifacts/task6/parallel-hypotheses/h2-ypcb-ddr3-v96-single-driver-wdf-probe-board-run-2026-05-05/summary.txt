@@ -1,0 +1,50 @@
+DDR3 v96 single-driver WDF probe, 2026-05-05
+
+Source commit: 6e5d1b4 task6-ddr3: prepare v96 single-driver WDF probe
+Bitstream: /nix/store/zzd59v0bk2dlb9fmj03lm37bnm7wp47d-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit
+SHA256: c2b430354b5291aacece14e40d2b8f739a375f9dfc42cdd5e2d959dd044b596c
+Board serial: 210299BF3824
+
+Build result:
+- Yosys CHECK: 0 problems, both pre/post synthesis checks.
+- Post-placement timing passed: user_clk 51.02 MHz, clk200 495.05 MHz, iodelay 917.43 MHz, drck 282.89 MHz.
+
+Board result: fail, but informative.
+
+Observed probe highlights:
+- version=96
+- state=PROBE_ERROR
+- pll_locked=true
+- init_done=true
+- init_error=false
+- init_seq_done=true
+- init_seq_error=false
+- dfii_step=63
+- dfii_word_mismatch_mask=0
+- dfii_uniform_mismatch_mask=0
+- dfii_phase_mismatch_mask=0
+- write_command_count=16
+- write_data_count=16
+- response_count=16
+- mismatch_count=16
+- sample_rdata_0..7=0
+- native debug event_count=15
+- native debug packed mask/seen=0x0cf8
+- native debug status byte=0xcf
+- native debug last_en=0x8
+
+Status byte 0xcf decode:
+- bit7 push_seen=1
+- bit6 pop_seen=1
+- bit5 fifo_nonempty_at_event=0
+- bit4 push_at_event=0
+- bit3 pop_at_event=1
+- bit2 slave_wrdata_event=1
+- bit1 master_wrdata_event=1
+- bit0 select_native=1
+
+Interpretation:
+v96 fixed the v95 multi-driver build issue. Native WDF push does occur, so the push signal is not entirely wrong. However, the captured native PHY write-data event happens with the FIFO empty while pop/slave/master events are asserted and native selection is active. This points to the pop timing: the FIFO is drained before the observed PHY write-data event, likely because pop is tied to the LiteDRAM slave wrdata event rather than the actual PHY/master wrdata event.
+
+Next surgical action:
+For v97, keep the single-driver patch and compact status byte, but pop the FIFO on native master/PHY wrdata event instead of native slave wrdata event, or guard pop so empty cannot be consumed. The goal is to keep accepted native WDF data resident until the PHY write-data event.
