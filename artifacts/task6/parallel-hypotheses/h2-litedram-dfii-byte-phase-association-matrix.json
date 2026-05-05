@@ -1,6 +1,6 @@
 {
-  "bitstream": "/nix/store/d1vxw6kym8805n9zmm9j5pp97f8sw2ic-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
-  "bitstream_sha256": "d7f8df3babe99f78606add8df68a4c148804195ef34aa62f20c4f17ca60033f2",
+  "bitstream": "/nix/store/qmzhnmwwybzmi2cyf3xncj3p1nirz46f-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+  "bitstream_sha256": "b02f9444f17ea595c45e6110867dbb4fe09bc9b4658af3bd7582eee629d0e116",
   "decision": {
     "next_gate": "do not change DDR logic; inspect DFII byte/source/read phase association before rerunning native BIST"
   },
@@ -9,7 +9,8 @@
   "mapping_inference": {
     "confidence": "low",
     "is_bijective": false,
-    "phase_transform": "source_phase=0, write_command_phase=3, read_phase=2; slot=beat*4+byte",
+    "matrix_shape": "16_write_slots_by_20_read_slots",
+    "phase_transform": "source_phase=0, write_command_phase=3, read_phase=2; read_slot=word*4+byte",
     "physical_to_logical_byte": [
       null,
       null,
@@ -19,7 +20,7 @@
       null,
       null,
       null,
-      8,
+      null,
       null,
       null,
       null,
@@ -32,43 +33,79 @@
   "probe_complete": true,
   "probe_failed": true,
   "probe_state": "PROBE_DFII_DONE",
-  "probe_version": 98,
+  "probe_version": 99,
   "raw_masks": {
+    "match_high_nibbles": [
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x2",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0"
+    ],
     "match_masks": [
-      "0x0201",
-      "0x0402",
-      "0x0804",
-      "0x1008",
-      "0x2010",
-      "0x4020",
-      "0x8040",
-      "0x0000",
-      "0x0100",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000"
+      "0x00201",
+      "0x00402",
+      "0x00804",
+      "0x01008",
+      "0x02010",
+      "0x04020",
+      "0x08040",
+      "0x00000",
+      "0x20100",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000"
+    ],
+    "nonzero_high_nibbles": [
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x2",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0"
     ],
     "nonzero_masks": [
-      "0x0201",
-      "0x0402",
-      "0x0804",
-      "0x1008",
-      "0x2010",
-      "0x4020",
-      "0x8040",
-      "0x0000",
-      "0x0100",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000"
+      "0x00201",
+      "0x00402",
+      "0x00804",
+      "0x01008",
+      "0x02010",
+      "0x04020",
+      "0x08040",
+      "0x00000",
+      "0x20100",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000"
     ]
   },
   "status": "FAIL",
@@ -92,12 +129,12 @@
   },
   "write_cases": [
     {
-      "observed": "0x0201",
+      "observed": "0x00201",
       "observed_match_slots": [
         0,
         9
       ],
-      "observed_nonzero_mask": "0x0201",
+      "observed_nonzero_mask": "0x00201",
       "observed_nonzero_slots": [
         0,
         9
@@ -114,12 +151,12 @@
       "write_slot": 0
     },
     {
-      "observed": "0x0402",
+      "observed": "0x00402",
       "observed_match_slots": [
         1,
         10
       ],
-      "observed_nonzero_mask": "0x0402",
+      "observed_nonzero_mask": "0x00402",
       "observed_nonzero_slots": [
         1,
         10
@@ -136,12 +173,12 @@
       "write_slot": 1
     },
     {
-      "observed": "0x0804",
+      "observed": "0x00804",
       "observed_match_slots": [
         2,
         11
       ],
-      "observed_nonzero_mask": "0x0804",
+      "observed_nonzero_mask": "0x00804",
       "observed_nonzero_slots": [
         2,
         11
@@ -158,12 +195,12 @@
       "write_slot": 2
     },
     {
-      "observed": "0x1008",
+      "observed": "0x01008",
       "observed_match_slots": [
         3,
         12
       ],
-      "observed_nonzero_mask": "0x1008",
+      "observed_nonzero_mask": "0x01008",
       "observed_nonzero_slots": [
         3,
         12
@@ -180,12 +217,12 @@
       "write_slot": 3
     },
     {
-      "observed": "0x2010",
+      "observed": "0x02010",
       "observed_match_slots": [
         4,
         13
       ],
-      "observed_nonzero_mask": "0x2010",
+      "observed_nonzero_mask": "0x02010",
       "observed_nonzero_slots": [
         4,
         13
@@ -202,12 +239,12 @@
       "write_slot": 4
     },
     {
-      "observed": "0x4020",
+      "observed": "0x04020",
       "observed_match_slots": [
         5,
         14
       ],
-      "observed_nonzero_mask": "0x4020",
+      "observed_nonzero_mask": "0x04020",
       "observed_nonzero_slots": [
         5,
         14
@@ -224,12 +261,12 @@
       "write_slot": 5
     },
     {
-      "observed": "0x8040",
+      "observed": "0x08040",
       "observed_match_slots": [
         6,
         15
       ],
-      "observed_nonzero_mask": "0x8040",
+      "observed_nonzero_mask": "0x08040",
       "observed_nonzero_slots": [
         6,
         15
@@ -246,9 +283,9 @@
       "write_slot": 6
     },
     {
-      "observed": "0x0000",
+      "observed": "0x00000",
       "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
+      "observed_nonzero_mask": "0x00000",
       "observed_nonzero_slots": [],
       "pattern": "0xa7",
       "read_beat": null,
@@ -262,19 +299,21 @@
       "write_slot": 7
     },
     {
-      "observed": "0x0100",
+      "observed": "0x20100",
       "observed_match_slots": [
-        8
+        8,
+        17
       ],
-      "observed_nonzero_mask": "0x0100",
+      "observed_nonzero_mask": "0x20100",
       "observed_nonzero_slots": [
-        8
+        8,
+        17
       ],
       "pattern": "0xa8",
-      "read_beat": 2,
-      "read_logical_byte": 0,
-      "read_phase": 2,
-      "read_slot": 8,
+      "read_beat": null,
+      "read_logical_byte": null,
+      "read_phase": null,
+      "read_slot": null,
       "write_beat": 2,
       "write_byte": 0,
       "write_command_phase": 3,
@@ -282,9 +321,9 @@
       "write_slot": 8
     },
     {
-      "observed": "0x0000",
+      "observed": "0x00000",
       "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
+      "observed_nonzero_mask": "0x00000",
       "observed_nonzero_slots": [],
       "pattern": "0xa9",
       "read_beat": null,
@@ -298,9 +337,9 @@
       "write_slot": 9
     },
     {
-      "observed": "0x0000",
+      "observed": "0x00000",
       "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
+      "observed_nonzero_mask": "0x00000",
       "observed_nonzero_slots": [],
       "pattern": "0xaa",
       "read_beat": null,
@@ -314,9 +353,9 @@
       "write_slot": 10
     },
     {
-      "observed": "0x0000",
+      "observed": "0x00000",
       "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
+      "observed_nonzero_mask": "0x00000",
       "observed_nonzero_slots": [],
       "pattern": "0xab",
       "read_beat": null,
@@ -330,9 +369,9 @@
       "write_slot": 11
     },
     {
-      "observed": "0x0000",
+      "observed": "0x00000",
       "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
+      "observed_nonzero_mask": "0x00000",
       "observed_nonzero_slots": [],
       "pattern": "0xac",
       "read_beat": null,
@@ -346,9 +385,9 @@
       "write_slot": 12
     },
     {
-      "observed": "0x0000",
+      "observed": "0x00000",
       "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
+      "observed_nonzero_mask": "0x00000",
       "observed_nonzero_slots": [],
       "pattern": "0xad",
       "read_beat": null,
@@ -362,9 +401,9 @@
       "write_slot": 13
     },
     {
-      "observed": "0x0000",
+      "observed": "0x00000",
       "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
+      "observed_nonzero_mask": "0x00000",
       "observed_nonzero_slots": [],
       "pattern": "0xae",
       "read_beat": null,
@@ -378,9 +417,9 @@
       "write_slot": 14
     },
     {
-      "observed": "0x0000",
+      "observed": "0x00000",
       "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
+      "observed_nonzero_mask": "0x00000",
       "observed_nonzero_slots": [],
       "pattern": "0xaf",
       "read_beat": null,
