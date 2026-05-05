@@ -46,7 +46,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd87;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd90;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -81,6 +81,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v85 adds a 16-column compensated DFII address-walk BIST.
   // v86 runs that address-walk first, then runs a compact native-port gate.
   // v87 skips native writes and scans native reads after the address-walk.
+  // v90 serializes native writes command-first to test write data ordering.
   localparam int CAL_BYTE_LANES = 8;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;
@@ -1748,8 +1749,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       (cmd_we ? write_command_count_q[24:0] : read_addr_q);
   assign wdata_valid =
     write_state && !write_data_target_seen &&
-    (write_data_count_q <= write_command_count_q ||
-     ((write_data_count_q - write_command_count_q) < WRITE_DATA_AHEAD_LIMIT));
+    (write_data_count_q < write_command_count_q);
   assign wdata =
     byte_diag_clear_state ? 576'd0 :
     (byte_diag_mask_state ?
