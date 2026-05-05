@@ -14174,3 +14174,23 @@ Next gate:
   linear burst bandwidth counter.
 - Keep the first BIST on the same no-ODELAY LiteDRAM/LiteX path and preserve
   JTAG-readable `init/pass/fail/first_bad/expected/actual/cycle` counters.
+
+## DDR3 reproducible experiment identity rule (2026-05-05)
+
+Do not treat a flake package name as an experiment identity. The v83-good DDR3 result was committed as source (`f4d732e task6: promote DDR3 DFII final-word compensation`) and built as a Nix derivation, but later commits reused the same target family while changing the top RTL, generated LiteDRAM postprocessing, and debug payload. Rebuilding the current package name therefore does not reproduce the v83 experiment.
+
+A DDR3 experiment identity is the tuple below, all recorded together:
+
+- git commit used for the build
+- exact flake attribute/package
+- generated LiteDRAM core hash and path
+- probe top RTL hash and path
+- XDC/JSON/FASM/bitstream paths and hashes
+- Nix derivation paths for the bitstream chain
+- nextpnr seed and target frequency
+- programmer command and board cable/serial
+- raw probe JSON plus concise decoded result
+
+Workflow rule: create a source/config commit first, build only from that clean commit, copy/store the result artifacts, then create a second result commit. If a target is known-good, freeze it as a branch/tag or dedicated immutable target name before adding new modes. Do not continue DDR3 work by layering unrelated experiments on the same mutable top/flake target and assuming the old package name remains reproducible.
+
+For the v83 resurrection lane, start from commit `f4d732e` directly and replay later changes only one at a time, with one code/config commit and one result commit per board experiment.
