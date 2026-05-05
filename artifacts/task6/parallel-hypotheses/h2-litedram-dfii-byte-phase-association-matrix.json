@@ -1,11 +1,11 @@
 {
-  "bitstream": "/nix/store/nkv5jgd6ppdbf6d0pa16alyyc12npzhc-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
-  "bitstream_sha256": "10f15198105da24fa4ea2c89ca62f0cbbf741b830a6b2b3431c4be079ba6597f",
+  "bitstream": "/nix/store/d1vxw6kym8805n9zmm9j5pp97f8sw2ic-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+  "bitstream_sha256": "d7f8df3babe99f78606add8df68a4c148804195ef34aa62f20c4f17ca60033f2",
   "decision": {
     "next_gate": "do not change DDR logic; inspect DFII byte/source/read phase association before rerunning native BIST"
   },
   "hypothesis": "DFII byte/phase writes map to a fixed physical-to-logical byte/phase association",
-  "init_state": "INIT_ERROR",
+  "init_state": "INIT_DONE",
   "mapping_inference": {
     "confidence": "low",
     "is_bijective": false,
@@ -19,7 +19,7 @@
       null,
       null,
       null,
-      null,
+      8,
       null,
       null,
       null,
@@ -29,21 +29,21 @@
       null
     ]
   },
-  "probe_complete": false,
+  "probe_complete": true,
   "probe_failed": true,
-  "probe_state": "PROBE_ERROR",
+  "probe_state": "PROBE_DFII_DONE",
   "probe_version": 98,
   "raw_masks": {
     "match_masks": [
+      "0x0201",
+      "0x0402",
+      "0x0804",
+      "0x1008",
+      "0x2010",
+      "0x4020",
+      "0x8040",
       "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
+      "0x0100",
       "0x0000",
       "0x0000",
       "0x0000",
@@ -53,15 +53,15 @@
       "0x0000"
     ],
     "nonzero_masks": [
+      "0x0201",
+      "0x0402",
+      "0x0804",
+      "0x1008",
+      "0x2010",
+      "0x4020",
+      "0x8040",
       "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
-      "0x0000",
+      "0x0100",
       "0x0000",
       "0x0000",
       "0x0000",
@@ -73,11 +73,11 @@
   },
   "status": "FAIL",
   "status_flags": {
-    "cmd_ready": false,
-    "init_done": false,
+    "cmd_ready": true,
+    "init_done": true,
     "init_error": false,
-    "init_seq_done": false,
-    "init_seq_error": true,
+    "init_seq_done": true,
+    "init_seq_error": false,
     "init_seq_running": false,
     "outstanding_full": false,
     "pll_locked": true,
@@ -88,14 +88,20 @@
     "timeout_seen": false,
     "user_rst": false,
     "wb_error_seen": false,
-    "wb_timeout_seen": true
+    "wb_timeout_seen": false
   },
   "write_cases": [
     {
-      "observed": "0x0000",
-      "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
-      "observed_nonzero_slots": [],
+      "observed": "0x0201",
+      "observed_match_slots": [
+        0,
+        9
+      ],
+      "observed_nonzero_mask": "0x0201",
+      "observed_nonzero_slots": [
+        0,
+        9
+      ],
       "pattern": "0xa0",
       "read_beat": null,
       "read_logical_byte": null,
@@ -108,10 +114,16 @@
       "write_slot": 0
     },
     {
-      "observed": "0x0000",
-      "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
-      "observed_nonzero_slots": [],
+      "observed": "0x0402",
+      "observed_match_slots": [
+        1,
+        10
+      ],
+      "observed_nonzero_mask": "0x0402",
+      "observed_nonzero_slots": [
+        1,
+        10
+      ],
       "pattern": "0xa1",
       "read_beat": null,
       "read_logical_byte": null,
@@ -124,10 +136,16 @@
       "write_slot": 1
     },
     {
-      "observed": "0x0000",
-      "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
-      "observed_nonzero_slots": [],
+      "observed": "0x0804",
+      "observed_match_slots": [
+        2,
+        11
+      ],
+      "observed_nonzero_mask": "0x0804",
+      "observed_nonzero_slots": [
+        2,
+        11
+      ],
       "pattern": "0xa2",
       "read_beat": null,
       "read_logical_byte": null,
@@ -140,10 +158,16 @@
       "write_slot": 2
     },
     {
-      "observed": "0x0000",
-      "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
-      "observed_nonzero_slots": [],
+      "observed": "0x1008",
+      "observed_match_slots": [
+        3,
+        12
+      ],
+      "observed_nonzero_mask": "0x1008",
+      "observed_nonzero_slots": [
+        3,
+        12
+      ],
       "pattern": "0xa3",
       "read_beat": null,
       "read_logical_byte": null,
@@ -156,10 +180,16 @@
       "write_slot": 3
     },
     {
-      "observed": "0x0000",
-      "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
-      "observed_nonzero_slots": [],
+      "observed": "0x2010",
+      "observed_match_slots": [
+        4,
+        13
+      ],
+      "observed_nonzero_mask": "0x2010",
+      "observed_nonzero_slots": [
+        4,
+        13
+      ],
       "pattern": "0xa4",
       "read_beat": null,
       "read_logical_byte": null,
@@ -172,10 +202,16 @@
       "write_slot": 4
     },
     {
-      "observed": "0x0000",
-      "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
-      "observed_nonzero_slots": [],
+      "observed": "0x4020",
+      "observed_match_slots": [
+        5,
+        14
+      ],
+      "observed_nonzero_mask": "0x4020",
+      "observed_nonzero_slots": [
+        5,
+        14
+      ],
       "pattern": "0xa5",
       "read_beat": null,
       "read_logical_byte": null,
@@ -188,10 +224,16 @@
       "write_slot": 5
     },
     {
-      "observed": "0x0000",
-      "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
-      "observed_nonzero_slots": [],
+      "observed": "0x8040",
+      "observed_match_slots": [
+        6,
+        15
+      ],
+      "observed_nonzero_mask": "0x8040",
+      "observed_nonzero_slots": [
+        6,
+        15
+      ],
       "pattern": "0xa6",
       "read_beat": null,
       "read_logical_byte": null,
@@ -220,15 +262,19 @@
       "write_slot": 7
     },
     {
-      "observed": "0x0000",
-      "observed_match_slots": [],
-      "observed_nonzero_mask": "0x0000",
-      "observed_nonzero_slots": [],
+      "observed": "0x0100",
+      "observed_match_slots": [
+        8
+      ],
+      "observed_nonzero_mask": "0x0100",
+      "observed_nonzero_slots": [
+        8
+      ],
       "pattern": "0xa8",
-      "read_beat": null,
-      "read_logical_byte": null,
-      "read_phase": null,
-      "read_slot": null,
+      "read_beat": 2,
+      "read_logical_byte": 0,
+      "read_phase": 2,
+      "read_slot": 8,
       "write_beat": 2,
       "write_byte": 0,
       "write_command_phase": 3,
