@@ -46,7 +46,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd90;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd91;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -82,6 +82,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v86 runs that address-walk first, then runs a compact native-port gate.
   // v87 skips native writes and scans native reads after the address-walk.
   // v90 serializes native writes command-first to test write data ordering.
+  // v91 restores native write ordering and exposes native DFI write capture.
   localparam int CAL_BYTE_LANES = 8;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;
@@ -1749,7 +1750,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       (cmd_we ? write_command_count_q[24:0] : read_addr_q);
   assign wdata_valid =
     write_state && !write_data_target_seen &&
-    (write_data_count_q < write_command_count_q);
+    (write_data_count_q <= write_command_count_q ||
+     ((write_data_count_q - write_command_count_q) < WRITE_DATA_AHEAD_LIMIT));
   assign wdata =
     byte_diag_clear_state ? 576'd0 :
     (byte_diag_mask_state ?
@@ -2672,6 +2674,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
         state_q == PROBE_CAL_CONFIG ||
         state_q == PROBE_DFII_RESTART ||
         state_q == PROBE_DFII_WBITSLIP_CONFIG ||
+        (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE &&
+         state_q == PROBE_RUN_WRITES &&
+         read_cycle_count_q == 32'd0) ||
         (dfii_seq_state_q == DFII_SEQ_IDLE && dfii_seq_running)) begin
       dfi_debug_wrdata_seen_q <= 4'd0;
       dfi_debug_wrdata_last_en_q <= 4'd0;
@@ -4459,7 +4464,22 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     jtag_debug_payload[4092 +: 2] = DFII_SOURCE_ORDER_READ_PHASE[1:0];
     jtag_debug_payload[4094 +: 1] = DFII_DISPLACEMENT_PROBE_ONLY;
     jtag_debug_payload[4095 +: 1] = DFII_CSR_ECHO_PROBE_ONLY;
-    if (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN) begin
+    if (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE) begin
+      jtag_debug_payload[4224 +: 32] =
+        {28'd0, dfi_debug_wrdata_event_count_q};
+      jtag_debug_payload[4256 +: 32] =
+        {20'd0, dfi_debug_wrdata_word4_mask_q, dfi_debug_wrdata_seen_q};
+      jtag_debug_payload[4288 +: 64] = {
+        dfi_debug_wrdata_word4_q[3],
+        dfi_debug_wrdata_word4_q[2],
+        dfi_debug_wrdata_word4_q[1],
+        dfi_debug_wrdata_word4_q[0]
+      };
+      jtag_debug_payload[4352 +: 9] =
+        {1'b0, dfi_debug_wrdata_word4_mask_q};
+      jtag_debug_payload[4368 +: 9] =
+        {5'd0, dfi_debug_wrdata_last_en_q};
+    end else if (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN) begin
       jtag_debug_payload[4224 +: 32] = native_nonzero_count_q;
       jtag_debug_payload[4256 +: 32] = {4'd0, native_first_nonzero_addr_q};
       jtag_debug_payload[4288 +: 64] = native_first_nonzero_data_q;
