@@ -14230,3 +14230,16 @@ Conclusion: v83 is source-reproducible when built from the v83 code lineage. The
 - DFII result: `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_data_pass=true`, `dfii_word_mismatch_mask=0`, `dfii_uniform_mismatch_mask=0`, `dfii_phasecmd_mismatch_masks=0`.
 - Address-walk result: decoded columns `0`, `8`, `64`, and `256`; address mismatch masks all zero; association match masks all `0xffff`; association nonzero masks all zero.
 - Conclusion: `v85` is clean. The address-walk delta does not introduce the DDR3 regression.
+
+### DDR3 v86 native addrwalk replay board result - 2026-05-05
+
+- Commit under test: `f9d534b` on `task6-ddr3-v83-resurrection`.
+- Delta: replayed `v86` DDR3 addrwalk native gate after clean `v85` DFII address-walk.
+- Bitstream: `/nix/store/ak67x54vpym9cqhz8q92kc44wbw6j963-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit`.
+- Bitstream sha256: `e263376d046dfbf67ca95a4831599e0f243c091e0551817900b999fc7311936c`.
+- Board result: program succeeded with `isc_done=1 init=1 done=1`.
+- Init result: `init_done=true`, `init_error=false`, `pll_locked=true`.
+- DFII result stayed clean: `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_word_mismatch_mask=0`, `dfii_uniform_mismatch_mask=0`, `dfii_phasecmd_mismatch_masks=0`, `dfii_addr_mismatch_masks=0`.
+- Native gate result failed: `state=PROBE_ERROR`, `complete=false`, `failed=true`, `probe_error=true`, `mismatch_seen=true`, `mismatch_count=16`.
+- Native transaction evidence: `write_command_count=16`, `write_data_count=16`, `command_count=16`, `response_count=16`, `sample_valid_count=8`, `first_mismatch_addr=0`, `first_actual=0`, `first_expected=15045981070236873776`.
+- Conclusion: this is the first replayed bad delta. It is not an `init_error` or PLL-lock regression; it localizes the failure to the newly introduced native addrwalk gate/native interface path.

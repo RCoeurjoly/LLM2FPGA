@@ -1,0 +1,63 @@
+DDR3 v86 native addrwalk replay experiment
+
+Result: FAIL in native addrwalk gate
+
+Source commit: f9d534b
+Previous clean result commit: 2f77a61
+Delta: replay v86 DDR3 addrwalk native gate after clean DFII v85.
+
+Bitstream:
+/nix/store/ak67x54vpym9cqhz8q92kc44wbw6j963-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit
+sha256: e263376d046dfbf67ca95a4831599e0f243c091e0551817900b999fc7311936c
+
+Programming:
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 <bitstream>
+Result: isc_done=1 init=1 done=1
+
+Probe:
+python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --backend mpsse --tdo-bit 7 --json-only
+
+Clean init/status fields:
+magic_ok=true
+version=86
+init_state=INIT_DONE
+init_step=32
+init_done=true
+init_error=false
+pll_locked=true
+
+Clean DFII diagnostic fields:
+dfii_seq_state=DFII_SEQ_DONE
+dfii_step=63
+dfii_word_mismatch_mask=0
+dfii_uniform_mismatch_mask=0
+dfii_phasecmd_mismatch_masks=0
+dfii_addr_mismatch_masks=0
+dfii_addr_nonzero_masks=0
+
+Failing native-path fields:
+state=PROBE_ERROR
+complete=false
+failed=true
+dfii_data_pass=false
+dfii_data_failed=true
+probe_error=true
+mismatch_seen=true
+read_target_seen=true
+write_command_target_seen=true
+write_data_target_seen=true
+target_read_count=16
+command_count=16
+write_command_count=16
+write_data_count=16
+response_count=16
+sample_valid_count=8
+mismatch_count=16
+first_mismatch_addr=0
+first_actual=0
+first_expected=15045981070236873776
+next_read_addr=16
+compare_addr=16
+
+Conclusion:
+v86 is the first replayed bad delta. The DDR3 PHY/controller init did not regress: init_error remains false and pll_locked remains true. The failure appears when the native addrwalk gate is introduced: native writes and reads are issued, responses return, but the read data is zero instead of the nonzero expected pattern. This points at native-interface/bridge/read-data-valid semantics rather than DDR3 initialization.
