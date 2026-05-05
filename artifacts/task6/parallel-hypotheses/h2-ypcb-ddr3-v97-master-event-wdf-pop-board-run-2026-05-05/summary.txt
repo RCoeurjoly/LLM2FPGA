@@ -1,0 +1,51 @@
+DDR3 v97 master-event WDF pop, 2026-05-05
+
+Source commit: 07b3635 task6-ddr3: prepare v97 master-event WDF pop
+Bitstream: /nix/store/vh036444f3a0kjpz1gnykan58si6q0d4-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit
+SHA256: 0697dc1277858e270399554ba743f896164a1058a8b01a4d1caac84d4e56689e
+Board serial: 210299BF3824
+
+Build result:
+- Post-placement timing passed: user_clk 50.44 MHz, clk200 397.61 MHz, iodelay 816.33 MHz, drck 258.73 MHz.
+- Router converged and bitstream packaged.
+
+Board result: fail, but changed failure mode.
+
+Observed probe highlights:
+- version=97
+- state=PROBE_ERROR
+- pll_locked=true
+- init_done=true
+- init_error=false
+- init_seq_done=true
+- init_seq_error=false
+- dfii_step=63
+- dfii_word_mismatch_mask=0
+- dfii_uniform_mismatch_mask=0
+- dfii_phase_mismatch_mask=0
+- write_command_count=16
+- write_data_count=16
+- response_count=16
+- mismatch_count=16
+- sample_valid_count=8
+- sample_rdata_0..7=0x99ce179ffcb9943f
+- native debug event_count=15
+- native debug packed mask/seen=0x0ef8
+- native debug status byte=0xef
+- native debug last_en=0x8
+
+Status byte 0xef decode:
+- bit7 push_seen=1
+- bit6 pop_seen=1
+- bit5 fifo_nonempty_at_event=1
+- bit4 push_at_event=0
+- bit3 pop_at_event=1
+- bit2 slave_wrdata_event=1
+- bit1 master_wrdata_event=1
+- bit0 select_native=1
+
+Interpretation:
+v97 is a real improvement over v96: native readback is no longer zero. Popping on the master/PHY write-data event keeps the FIFO nonempty at the captured event, and native writes now affect memory. The remaining bug is data correctness: all native read samples return the same wrong constant word, not the per-address expected pattern. This points to wrong beat/phase/chunk selection, FIFO advancement, or DFI data/mask lane mapping, not missing native writes.
+
+Next surgical action:
+For v98, preserve master-event pop and expose whether the same FIFO word is being replayed or the wrong DFI beat/lane is selected. Useful compact data: push_count, pop_count, master_event_count, slave_event_count, low data bits, and low write-enable bits at the captured event.

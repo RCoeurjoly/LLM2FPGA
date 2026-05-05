@@ -14333,3 +14333,18 @@ Board result: `version=96`, `pll_locked=true`, `init_error=false`, `init_done=tr
 New diagnostic: `native_readscan_first_nonzero_addr=0x0cf8`, `native_readscan_nonzero_chunk_seen=0xcf`, `native_readscan_first_nonzero_chunk_mask=0x8`, `native_readscan_nonzero_count=15`. Decoding status byte `0xcf`: push_seen=1, pop_seen=1, fifo_nonempty_at_event=0, push_at_event=0, pop_at_event=1, slave_wrdata_event=1, master_wrdata_event=1, select_native=1.
 
 Interpretation: the generated-core native WDF push does occur, so the push condition is not completely wrong. The failure is that the FIFO is empty by the captured native PHY write-data event while pop/slave/master events are asserted. This points to pop timing: the FIFO is likely being drained by slave wrdata events before the actual PHY/master write-data event. Next v97 should keep the single-driver patch and compact status byte, but pop on native master/PHY wrdata event instead of native slave wrdata event, or otherwise guard against empty pops.
+
+### DDR3 v97 master-event WDF pop result (2026-05-05)
+
+Experiment source: `07b3635 task6-ddr3: prepare v97 master-event WDF pop`.
+Result artifact: `artifacts/task6/parallel-hypotheses/h2-ypcb-ddr3-v97-master-event-wdf-pop-board-run-2026-05-05/`.
+Bitstream: `/nix/store/vh036444f3a0kjpz1gnykan58si6q0d4-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit`.
+SHA256: `0697dc1277858e270399554ba743f896164a1058a8b01a4d1caac84d4e56689e`.
+
+Build result: post-placement timing passed, including `user_clk=50.44 MHz`, `clk200=397.61 MHz`, `core.iodelay_clk=816.33 MHz`, and `jtag_debug_shift.drck=258.73 MHz`. Router converged and bitstream packaged.
+
+Board result: `version=97`, `pll_locked=true`, `init_error=false`, `init_done=true`, `init_seq_done=true`, `init_seq_error=false`, `dfii_step=63`, and DFII mismatch masks remained zero. Native write/read still failed with `write_command_count=16`, `write_data_count=16`, `response_count=16`, and `mismatch_count=16`, but the failure changed: sampled native readback is no longer zero. `sample_rdata_0..7` and `last_rdata` are all `0x99ce179ffcb9943f`.
+
+New diagnostic: `native_readscan_first_nonzero_addr=0x0ef8`, `native_readscan_nonzero_chunk_seen=0xef`, `native_readscan_first_nonzero_chunk_mask=0x8`, `native_readscan_nonzero_count=15`. Decoding status byte `0xef`: push_seen=1, pop_seen=1, fifo_nonempty_at_event=1, push_at_event=0, pop_at_event=1, slave_wrdata_event=1, master_wrdata_event=1, select_native=1.
+
+Interpretation: v97 is a real movement from missing/zero native writes to nonzero native writes with wrong data. Popping the FIFO on the master/PHY write-data event keeps the FIFO nonempty at the captured event, and native writes affect memory. The remaining bug is data correctness/advancement: all read samples return the same wrong constant word rather than the per-address expected pattern. Next v98 should keep master-event pop and expose whether the same FIFO word is being replayed or the wrong DFI beat/lane is selected, ideally by capturing push/pop/master/slave counters plus low `data_out` and `we_out` bits at the event.
