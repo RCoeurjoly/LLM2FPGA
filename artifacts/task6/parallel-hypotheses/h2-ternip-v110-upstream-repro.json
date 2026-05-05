@@ -1,0 +1,43 @@
+{
+  "artifact_name": "h2-ternip-v110-upstream-repro",
+  "status": "PASS_SOURCE_PINNED",
+  "date": "2026-05-05",
+  "hypothesis": "The Ternip lane can start from pinned, open-source upstream sources compatible with the Task 6 open-tooling constraint.",
+  "source_commit": "54079f8",
+  "commands": [
+    {
+      "cmd": "nix build .#task6-ternip-upstream-repro -L",
+      "exit_code": 0
+    },
+    {
+      "cmd": "readlink -f result",
+      "exit_code": 0,
+      "output": "/nix/store/bhm046jvrq9x43w3pm12ja0abgm2bl74-task6-ternip-upstream-repro"
+    }
+  ],
+  "sources": {
+    "ternip": {
+      "repository": "https://github.com/sifferman/ternip",
+      "commit": "7573c17dbed8f01e7d9e07e59a863376426a5489",
+      "hash": "sha256-ERtufGKw75r22GcBKNpPcpXRU+qW+S2L25jRwwwWWpE=",
+      "license": "BSD-3-Clause"
+    },
+    "basejump_stl": {
+      "repository": "https://github.com/bespoke-silicon-group/basejump_stl",
+      "commit": "a43571d2eaaae2dda7c10490e8350dfdac7da878",
+      "hash": "sha256-7/u2qBhd4qNwQI/KUe+Ka+i6cz2/ZJkphBXjRKduf+4="
+    }
+  },
+  "result": {
+    "nix_store_path": "/nix/store/bhm046jvrq9x43w3pm12ja0abgm2bl74-task6-ternip-upstream-repro",
+    "lane": "ternip",
+    "board": "none",
+    "hardware_run": false,
+    "synthesis_run": false
+  },
+  "decision": {
+    "verdict": "promote_to_reduced_elaboration",
+    "next_gate": "nix build .#task6-ternip-reduced-elab-json -L",
+    "do_not_do_next": "Do not create a YPCB bitstream or token-rate claim before reduced elaboration and synthesis resource gates pass."
+  }
+}
