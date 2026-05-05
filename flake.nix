@@ -3610,8 +3610,8 @@
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
-            read_verilog ${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.v
-            read_verilog -sv ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+            read_verilog ${task6YpcbLiteDramNoOdelayLowrateDfiDebugRtlElaboration}/build/gateware/ypcb_litedram_core.v
+            read_verilog -sv -DTASK6_LITEDRAM_DEBUG_PORTS ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
             chparam -set DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY 1 task6_ypcb_litedram_init_bandwidth_probe_top
