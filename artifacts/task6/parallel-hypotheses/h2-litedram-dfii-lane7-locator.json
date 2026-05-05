@@ -1,11 +1,12 @@
 {
   "status": "FAIL_UNINTERPRETABLE",
-  "probe_version": 100,
-  "source_commit": "3ca71f4",
+  "probe_version": 101,
+  "source_commit": "ac9cd25",
   "target": "task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-bitstream",
-  "bitstream": "/nix/store/zjinzswqqnxcw2wzm4dikn8hyzmnqsz3-task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.bit",
-  "bitstream_sha256": "06f454702976dee9a2373f67a8cb48eed9df97594a8f13c5353c42d18435ef1b",
-  "hypothesis": "DFII lane7 source is one of the explicit low/word4 edge candidates, observable through the lane7 locator tags after the v99 word4 visibility result.",
+  "bitstream": "/nix/store/48mrh0ypa10lvvclzv0vbmxvc9x3qjms-task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.bit",
+  "bitstream_sha256": "a787d3e38ed0f368c0dacc60edeba7f221844de6ca184bbeb63b6e1eb52ac063",
+  "hypothesis": "DFII lane7 source is one of the explicit low/word4 edge candidates, observable through locator tags after the v99 word4 visibility result.",
+  "controlled_change_from_v100": "Use the same DFI-debug LiteDRAM elaboration and TASK6_LITEDRAM_DEBUG_PORTS define as the v99 init-clean byte-phase target.",
   "hardware_status": {
     "pll_locked": true,
     "init_done": false,
@@ -25,9 +26,9 @@
   "mapping_inference": {
     "is_bijective": false,
     "candidate_observed": null,
-    "confidence": "none; target did not reach an interpretable locator readback"
+    "confidence": "none; corrected-path standalone locator did not reach an interpretable readback"
   },
   "decision": {
-    "next_gate": "restore init-clean execution for the locator using the exact v99 clean construction, or fold locator tags into the init-clean v99 byte-phase matrix target; do not alter DDR packing from v100"
+    "next_gate": "fold a minimal lane7 tag into the v99 DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY target path instead of using the standalone lane7 locator mode"
   }
 }
