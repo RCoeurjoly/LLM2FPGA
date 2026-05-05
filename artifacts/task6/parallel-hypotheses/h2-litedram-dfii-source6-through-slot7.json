@@ -1,0 +1,85 @@
+{
+  "status": "FAIL_SLOT7_CONFIRMED",
+  "probe_version": 108,
+  "hypothesis": "A known-good source tag routed through original DFII byte slot 7 should still appear if the problem is source-tag identity rather than byte-slot placement.",
+  "source_commit": "9a0fdfc",
+  "source_change": {
+    "file": "fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv",
+    "description": "Force source slot 6 to use original write-side byte slot 7 in dfii_byte_phase_assoc_word5; leave the known v99/v103 LiteDRAM init-clean target path otherwise unchanged."
+  },
+  "build": {
+    "command": "nix build .#task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe-bitstream -L",
+    "bitstream": "/nix/store/z7qkgnmz5w3hkn5c9n1rp22dq9bc4z9v-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "bitstream_sha256": "7512328499721c66072cadb8ba56d47b0b59683f585b8a8eff8b0cb09837f390",
+    "result": "PASS"
+  },
+  "programming": {
+    "command": "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/z7qkgnmz5w3hkn5c9n1rp22dq9bc4z9v-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "serial": "210299BF3824",
+    "isc_done": true,
+    "init": true,
+    "done": true,
+    "result": "PASS"
+  },
+  "probe_read_path": {
+    "valid_command": "python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --tdo-bit 7 --poll --poll-count 200 --poll-interval 0.1 --json-only",
+    "valid_idcode_hex": "0x23751093",
+    "discarded_default_tdo_read": {
+      "reason": "Default MPSSE TDO bit returned invalid decode and was not used as DDR evidence.",
+      "idcode_hex": "0xba8849ff",
+      "magic_ok": false,
+      "decoded_version": 42
+    }
+  },
+  "valid_probe_status": {
+    "magic_ok": true,
+    "version": 108,
+    "state": "PROBE_DFII_DONE",
+    "dfii_seq_state": "DFII_SEQ_DONE",
+    "init_state": "INIT_DONE",
+    "pll_locked": true,
+    "init_done": true,
+    "init_error": false,
+    "init_seq_done": true,
+    "init_seq_error": false,
+    "wb_error_seen": false,
+    "wb_timeout_seen": false,
+    "timeout_seen": false,
+    "dfii_wb_ack_count": 58,
+    "dfii_wb_wait_count": 174
+  },
+  "association_observation": {
+    "source0_baseline_shape": {
+      "match_mask_hex": "0x0201",
+      "nonzero_mask_hex": "0x0201",
+      "interpretation": "Consistent with the v99/v103 one-to-two phase association shape for known-good low slots."
+    },
+    "source5_baseline_shape": {
+      "match_mask_hex": "0x4020",
+      "nonzero_mask_hex": "0x4020"
+    },
+    "source6_forced_through_original_slot7": {
+      "signature_hex": "0xa6b60016",
+      "match_mask_hex": "0x0000",
+      "nonzero_mask_hex": "0x0000",
+      "expected_if_slot7_worked_like_slot6_hex": "0x8040",
+      "result": "known-good source6 tag disappeared when emitted through original byte slot 7"
+    },
+    "source7_original_slot7": {
+      "signature_hex": "0xa7b70017",
+      "match_mask_hex": "0x0000",
+      "nonzero_mask_hex": "0xffff",
+      "result": "original slot7 still produces broad non-matching nonzero data rather than the expected tag"
+    },
+    "source8_control": {
+      "match_mask_hex": "0x0100",
+      "nonzero_mask_hex": "0x0100"
+    }
+  },
+  "decision": {
+    "conclusion": "The failure follows original write-side byte slot 7 placement, not source6/source7 tag identity.",
+    "slot7_confirmed_bad": true,
+    "classification": "write-side byte slot 7 placement/association is nonfunctional or contaminating in the current no-ODELAY LiteDRAM path.",
+    "next_gate": "Stop broad delay sweeps. Compare LiteDRAM/YPCB DQ-DQS-DM byte-lane grouping for original slot 7 against the generated core and either remove the bad lane from the logical data map or apply a fixed byte-slot permutation before native-port tests."
+  }
+}
