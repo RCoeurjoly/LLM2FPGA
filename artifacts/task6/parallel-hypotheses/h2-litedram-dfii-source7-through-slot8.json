@@ -1,0 +1,73 @@
+{
+  "status": "FAIL_SLOT8_NOT_DIRECT_REPLACEMENT",
+  "probe_version": 109,
+  "hypothesis": "Source7's tag should survive if original bad byte slot 7 is replaced only by spare byte placement slot 8.",
+  "source_commit": "943a923",
+  "source_change": {
+    "file": "fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv",
+    "description": "Force source slot 7 to use write-side byte placement slot 8 in dfii_byte_phase_assoc_word5; otherwise preserve the v99/v103/v108 no-ODELAY init-clean path."
+  },
+  "build": {
+    "command": "nix build .#task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe-bitstream -L",
+    "bitstream": "/nix/store/f1z3r362505zjpbnsgn9pfzxzk2rjasp-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "bitstream_sha256": "b471b22587dd66875de311dcc7edb61fd9b8410d01e6a466e7c1ee4570e84ed7",
+    "result": "PASS"
+  },
+  "programming": {
+    "command": "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/f1z3r362505zjpbnsgn9pfzxzk2rjasp-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "serial": "210299BF3824",
+    "isc_done": true,
+    "init": true,
+    "done": true,
+    "result": "PASS"
+  },
+  "probe_read_path": {
+    "valid_command": "python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --tdo-bit 7 --poll --poll-count 200 --poll-interval 0.1 --json-only",
+    "tdo_bit": 7
+  },
+  "valid_probe_status": {
+    "magic_ok": true,
+    "version": 109,
+    "state": "PROBE_DFII_DONE",
+    "dfii_seq_state": "DFII_SEQ_DONE",
+    "init_state": "INIT_DONE",
+    "pll_locked": true,
+    "init_done": true,
+    "init_error": false,
+    "init_seq_done": true,
+    "init_seq_error": false,
+    "wb_error_seen": false,
+    "wb_timeout_seen": false,
+    "timeout_seen": false,
+    "dfii_wb_ack_count": 58,
+    "dfii_wb_wait_count": 174
+  },
+  "association_observation": {
+    "source6_baseline_restored": {
+      "signature_hex": "0xa6b60016",
+      "match_mask_hex": "0x8040",
+      "nonzero_mask_hex": "0x8040",
+      "interpretation": "Restores the known-good source6 shape after v108 moved source6 out of slot6."
+    },
+    "source7_forced_through_spare_slot8": {
+      "signature_hex": "0xa7b70017",
+      "match_mask_hex": "0x0000",
+      "nonzero_mask_hex": "0xffff",
+      "expected_if_slot8_were_direct_replacement_hex": "0x0100",
+      "result": "source7 still fails when only byte placement is changed to slot8"
+    },
+    "source8_control": {
+      "signature_hex": "0xa8b80018",
+      "match_mask_hex": "0x0100",
+      "nonzero_mask_hex": "0x0100",
+      "interpretation": "Spare slot8/source8 path itself is alive in its native source phase/index."
+    }
+  },
+  "decision": {
+    "conclusion": "A simple byte placement remap from source7 to slot8 is not sufficient.",
+    "slot7_confirmed_bad_by_v108": true,
+    "slot8_direct_replacement": false,
+    "classification": "The missing lane is now constrained to the combination of source phase/index and byte placement, not only source tag identity and not only physical slot8 health.",
+    "next_gate": "Test a full source-index/phase remap: emit the logical source7 tag through the native source8 path, or compare generated DFI phase/word packing against the 9-byte LiteDRAM/YPCB grouping before native-port remapping."
+  }
+}
