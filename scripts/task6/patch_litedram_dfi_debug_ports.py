@@ -36,7 +36,8 @@ def main() -> None:
     new_wdata_assign = (
         "assign {main_litedramcore_dfi_p3_wrdata, main_litedramcore_dfi_p2_wrdata, "
         "main_litedramcore_dfi_p1_wrdata, main_litedramcore_dfi_p0_wrdata} = "
-        "task6_native_wdf_data_out;"
+        "task6_native_wdf_select_native ? task6_native_wdf_data_out : "
+        "main_litedramcore_interface_wdata;"
     )
     count = text.count(old_wdata_assign)
     if count != 4:
@@ -53,7 +54,8 @@ def main() -> None:
     new_mask_assign = (
         "assign {main_litedramcore_dfi_p3_wrdata_mask, main_litedramcore_dfi_p2_wrdata_mask, "
         "main_litedramcore_dfi_p1_wrdata_mask, main_litedramcore_dfi_p0_wrdata_mask} = "
-        "(~task6_native_wdf_we_out);"
+        "task6_native_wdf_select_native ? (~task6_native_wdf_we_out) : "
+        "(~main_litedramcore_interface_wdata_we);"
     )
     count = text.count(old_mask_assign)
     if count != 4:
@@ -144,16 +146,16 @@ always @(posedge sys_clk) begin
 end
 
 assign debug_dfi_wrdata_en = {main_a7ddrphy_dfi_p3_wrdata_en, main_a7ddrphy_dfi_p2_wrdata_en, main_a7ddrphy_dfi_p1_wrdata_en, main_a7ddrphy_dfi_p0_wrdata_en};
-assign debug_dfi_wrdata_word4 = {24'd0, task6_native_wdf_push_count, task6_native_wdf_pop_count, task6_native_wdf_master_event_count, task6_native_wdf_slave_event_count, 6'd0, task6_native_wdf_empty, task6_native_wdf_select_native};
+assign debug_dfi_wrdata_word4 = {24'd0, task6_native_wdf_push_count, task6_native_wdf_pop_count, task6_native_wdf_master_event_count, task6_native_wdf_slave_event_count, 2'd0, task6_native_wdf_level};
 assign debug_dfi_wrdata_word4_mask = {
-    main_litedramcore_sel,
-    main_litedramcore_ext_dfi_sel,
-    task6_native_wdf_empty,
+    (task6_native_wdf_push_count != 8'd0),
+    (task6_native_wdf_pop_count != 8'd0),
+    (task6_native_wdf_level != 6'd0),
     task6_native_wdf_push,
     task6_native_wdf_pop,
     task6_native_wdf_slave_event,
     task6_native_wdf_master_event,
-    task6_native_wdf_data_out[0]
+    task6_native_wdf_select_native
 };
 """
     marker = "\nendmodule\n"
