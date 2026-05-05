@@ -72,17 +72,29 @@ reg   [71:0] task6_native_wdf_we_fifo [0:31];
 reg    [4:0] task6_native_wdf_wr_ptr = 5'd0;
 reg    [4:0] task6_native_wdf_rd_ptr = 5'd0;
 reg    [5:0] task6_native_wdf_level = 6'd0;
+reg    [7:0] task6_native_wdf_push_count = 8'd0;
+reg    [7:0] task6_native_wdf_pop_count = 8'd0;
+reg    [7:0] task6_native_wdf_slave_event_count = 8'd0;
+reg    [7:0] task6_native_wdf_master_event_count = 8'd0;
 
 wire         task6_native_wdf_empty = (task6_native_wdf_level == 6'd0);
 wire         task6_native_wdf_push =
     main_user_port_wdata_valid & main_user_port_wdata_ready;
-wire         task6_native_wdf_pop =
+wire         task6_native_wdf_select_native =
     main_litedramcore_sel &
-    (~main_litedramcore_ext_dfi_sel) &
+    (~main_litedramcore_ext_dfi_sel);
+wire         task6_native_wdf_slave_event =
     (main_litedramcore_slave_p0_wrdata_en |
      main_litedramcore_slave_p1_wrdata_en |
      main_litedramcore_slave_p2_wrdata_en |
      main_litedramcore_slave_p3_wrdata_en);
+wire         task6_native_wdf_master_event =
+    (main_a7ddrphy_dfi_p0_wrdata_en |
+     main_a7ddrphy_dfi_p1_wrdata_en |
+     main_a7ddrphy_dfi_p2_wrdata_en |
+     main_a7ddrphy_dfi_p3_wrdata_en);
+wire         task6_native_wdf_pop =
+    task6_native_wdf_select_native & task6_native_wdf_slave_event;
 
 wire [575:0] task6_native_wdf_data_out =
     (task6_native_wdf_empty & task6_native_wdf_push) ?
@@ -98,6 +110,10 @@ always @(posedge sys_clk) begin
         task6_native_wdf_wr_ptr <= 5'd0;
         task6_native_wdf_rd_ptr <= 5'd0;
         task6_native_wdf_level <= 6'd0;
+        task6_native_wdf_push_count <= 8'd0;
+        task6_native_wdf_pop_count <= 8'd0;
+        task6_native_wdf_slave_event_count <= 8'd0;
+        task6_native_wdf_master_event_count <= 8'd0;
     end else begin
         if (task6_native_wdf_push) begin
             task6_native_wdf_data_fifo[task6_native_wdf_wr_ptr] <=
@@ -105,9 +121,19 @@ always @(posedge sys_clk) begin
             task6_native_wdf_we_fifo[task6_native_wdf_wr_ptr] <=
                 main_user_port_wdata_payload_we;
             task6_native_wdf_wr_ptr <= task6_native_wdf_wr_ptr + 1'd1;
+            task6_native_wdf_push_count <= task6_native_wdf_push_count + 1'd1;
         end
         if (task6_native_wdf_pop) begin
             task6_native_wdf_rd_ptr <= task6_native_wdf_rd_ptr + 1'd1;
+            task6_native_wdf_pop_count <= task6_native_wdf_pop_count + 1'd1;
+        end
+        if (task6_native_wdf_slave_event) begin
+            task6_native_wdf_slave_event_count <=
+                task6_native_wdf_slave_event_count + 1'd1;
+        end
+        if (task6_native_wdf_master_event) begin
+            task6_native_wdf_master_event_count <=
+                task6_native_wdf_master_event_count + 1'd1;
         end
         case ({task6_native_wdf_push, task6_native_wdf_pop})
             2'b10: task6_native_wdf_level <= task6_native_wdf_level + 1'd1;
@@ -117,23 +143,27 @@ always @(posedge sys_clk) begin
     end
 end
 
-assign debug_dfi_wrdata_en = {
-    main_a7ddrphy_dfi_p3_wrdata_en,
-    main_a7ddrphy_dfi_p2_wrdata_en,
-    main_a7ddrphy_dfi_p1_wrdata_en,
-    main_a7ddrphy_dfi_p0_wrdata_en
-};
+assign debug_dfi_wrdata_en = {4{task6_native_wdf_master_event}};
 assign debug_dfi_wrdata_word4 = {
-    main_a7ddrphy_dfi_p3_wrdata[15:0],
-    main_a7ddrphy_dfi_p2_wrdata[15:0],
-    main_a7ddrphy_dfi_p1_wrdata[15:0],
-    main_a7ddrphy_dfi_p0_wrdata[15:0]
+    task6_native_wdf_data_out[15:0],
+    task6_native_wdf_we_out[7:0],
+    task6_native_wdf_level[5:0],
+    task6_native_wdf_empty,
+    task6_native_wdf_select_native,
+    task6_native_wdf_master_event_count,
+    task6_native_wdf_slave_event_count,
+    task6_native_wdf_push_count,
+    task6_native_wdf_pop_count
 };
 assign debug_dfi_wrdata_word4_mask = {
-    main_a7ddrphy_dfi_p3_wrdata_mask[1:0],
-    main_a7ddrphy_dfi_p2_wrdata_mask[1:0],
-    main_a7ddrphy_dfi_p1_wrdata_mask[1:0],
-    main_a7ddrphy_dfi_p0_wrdata_mask[1:0]
+    main_litedramcore_sel,
+    main_litedramcore_ext_dfi_sel,
+    task6_native_wdf_empty,
+    task6_native_wdf_push,
+    task6_native_wdf_pop,
+    task6_native_wdf_slave_event,
+    task6_native_wdf_master_event,
+    task6_native_wdf_data_out[0]
 };
 """
     marker = "\nendmodule\n"
