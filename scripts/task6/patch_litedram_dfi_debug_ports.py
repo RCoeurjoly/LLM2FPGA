@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Add narrow DFI write-data debug ports to generated LiteDRAM RTL."""
+"""Patch generated LiteDRAM RTL for Task 6 native write-data bring-up."""
 
 from __future__ import annotations
 
@@ -28,10 +28,94 @@ def main() -> None:
     if count != 1:
         raise SystemExit("could not find LiteDRAM core port tail")
 
+    old_wdata_assign = (
+        "assign {main_litedramcore_dfi_p3_wrdata, main_litedramcore_dfi_p2_wrdata, "
+        "main_litedramcore_dfi_p1_wrdata, main_litedramcore_dfi_p0_wrdata} = "
+        "main_litedramcore_interface_wdata;"
+    )
+    new_wdata_assign = (
+        "assign {main_litedramcore_dfi_p3_wrdata, main_litedramcore_dfi_p2_wrdata, "
+        "main_litedramcore_dfi_p1_wrdata, main_litedramcore_dfi_p0_wrdata} = "
+        "task6_native_wdf_data_out;"
+    )
+    count = text.count(old_wdata_assign)
+    if count != 4:
+        raise SystemExit(
+            f"expected four LiteDRAM interface wrdata assigns, found {count}"
+        )
+    text = text.replace(old_wdata_assign, new_wdata_assign)
+
+    old_mask_assign = (
+        "assign {main_litedramcore_dfi_p3_wrdata_mask, main_litedramcore_dfi_p2_wrdata_mask, "
+        "main_litedramcore_dfi_p1_wrdata_mask, main_litedramcore_dfi_p0_wrdata_mask} = "
+        "(~main_litedramcore_interface_wdata_we);"
+    )
+    new_mask_assign = (
+        "assign {main_litedramcore_dfi_p3_wrdata_mask, main_litedramcore_dfi_p2_wrdata_mask, "
+        "main_litedramcore_dfi_p1_wrdata_mask, main_litedramcore_dfi_p0_wrdata_mask} = "
+        "(~task6_native_wdf_we_out);"
+    )
+    count = text.count(old_mask_assign)
+    if count != 4:
+        raise SystemExit(
+            f"expected four LiteDRAM interface wrdata mask assigns, found {count}"
+        )
+    text = text.replace(old_mask_assign, new_mask_assign)
+
     debug_assigns = """
 //------------------------------------------------------------------------------
-// Task 6 debug taps
+// Task 6 native write-data FIFO and debug taps
 //------------------------------------------------------------------------------
+
+reg  [575:0] task6_native_wdf_data_fifo [0:31];
+reg   [71:0] task6_native_wdf_we_fifo [0:31];
+reg    [4:0] task6_native_wdf_wr_ptr = 5'd0;
+reg    [4:0] task6_native_wdf_rd_ptr = 5'd0;
+reg    [5:0] task6_native_wdf_level = 6'd0;
+
+wire         task6_native_wdf_empty = (task6_native_wdf_level == 6'd0);
+wire         task6_native_wdf_push =
+    main_user_port_wdata_valid & main_user_port_wdata_ready;
+wire         task6_native_wdf_pop =
+    main_litedramcore_sel &
+    (~main_litedramcore_ext_dfi_sel) &
+    (main_litedramcore_slave_p0_wrdata_en |
+     main_litedramcore_slave_p1_wrdata_en |
+     main_litedramcore_slave_p2_wrdata_en |
+     main_litedramcore_slave_p3_wrdata_en);
+
+wire [575:0] task6_native_wdf_data_out =
+    (task6_native_wdf_empty & task6_native_wdf_push) ?
+        main_user_port_wdata_payload_data :
+        task6_native_wdf_data_fifo[task6_native_wdf_rd_ptr];
+wire  [71:0] task6_native_wdf_we_out =
+    (task6_native_wdf_empty & task6_native_wdf_push) ?
+        main_user_port_wdata_payload_we :
+        task6_native_wdf_we_fifo[task6_native_wdf_rd_ptr];
+
+always @(posedge sys_clk) begin
+    if (sys_rst) begin
+        task6_native_wdf_wr_ptr <= 5'd0;
+        task6_native_wdf_rd_ptr <= 5'd0;
+        task6_native_wdf_level <= 6'd0;
+    end else begin
+        if (task6_native_wdf_push) begin
+            task6_native_wdf_data_fifo[task6_native_wdf_wr_ptr] <=
+                main_user_port_wdata_payload_data;
+            task6_native_wdf_we_fifo[task6_native_wdf_wr_ptr] <=
+                main_user_port_wdata_payload_we;
+            task6_native_wdf_wr_ptr <= task6_native_wdf_wr_ptr + 1'd1;
+        end
+        if (task6_native_wdf_pop) begin
+            task6_native_wdf_rd_ptr <= task6_native_wdf_rd_ptr + 1'd1;
+        end
+        case ({task6_native_wdf_push, task6_native_wdf_pop})
+            2'b10: task6_native_wdf_level <= task6_native_wdf_level + 1'd1;
+            2'b01: task6_native_wdf_level <= task6_native_wdf_level - 1'd1;
+            default: task6_native_wdf_level <= task6_native_wdf_level;
+        endcase
+    end
+end
 
 assign debug_dfi_wrdata_en = {
     main_a7ddrphy_dfi_p3_wrdata_en,
@@ -40,16 +124,16 @@ assign debug_dfi_wrdata_en = {
     main_a7ddrphy_dfi_p0_wrdata_en
 };
 assign debug_dfi_wrdata_word4 = {
-    main_a7ddrphy_dfi_p3_wrdata[143:128],
-    main_a7ddrphy_dfi_p2_wrdata[143:128],
-    main_a7ddrphy_dfi_p1_wrdata[143:128],
-    main_a7ddrphy_dfi_p0_wrdata[143:128]
+    main_a7ddrphy_dfi_p3_wrdata[15:0],
+    main_a7ddrphy_dfi_p2_wrdata[15:0],
+    main_a7ddrphy_dfi_p1_wrdata[15:0],
+    main_a7ddrphy_dfi_p0_wrdata[15:0]
 };
 assign debug_dfi_wrdata_word4_mask = {
-    main_a7ddrphy_dfi_p3_wrdata_mask[17:16],
-    main_a7ddrphy_dfi_p2_wrdata_mask[17:16],
-    main_a7ddrphy_dfi_p1_wrdata_mask[17:16],
-    main_a7ddrphy_dfi_p0_wrdata_mask[17:16]
+    main_a7ddrphy_dfi_p3_wrdata_mask[1:0],
+    main_a7ddrphy_dfi_p2_wrdata_mask[1:0],
+    main_a7ddrphy_dfi_p1_wrdata_mask[1:0],
+    main_a7ddrphy_dfi_p0_wrdata_mask[1:0]
 };
 """
     marker = "\nendmodule\n"
