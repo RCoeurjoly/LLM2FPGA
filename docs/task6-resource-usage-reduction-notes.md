@@ -14243,3 +14243,15 @@ Conclusion: v83 is source-reproducible when built from the v83 code lineage. The
 - Native gate result failed: `state=PROBE_ERROR`, `complete=false`, `failed=true`, `probe_error=true`, `mismatch_seen=true`, `mismatch_count=16`.
 - Native transaction evidence: `write_command_count=16`, `write_data_count=16`, `command_count=16`, `response_count=16`, `sample_valid_count=8`, `first_mismatch_addr=0`, `first_actual=0`, `first_expected=15045981070236873776`.
 - Conclusion: this is the first replayed bad delta. It is not an `init_error` or PLL-lock regression; it localizes the failure to the newly introduced native addrwalk gate/native interface path.
+
+### DDR3 v87 native readscan replay board result - 2026-05-05
+
+- Commit under test: `22b4fa7` on `task6-ddr3-v83-resurrection`.
+- Delta: replayed `v87` native readscan after clean DFII address-walk, intentionally skipping native writes.
+- Bitstream: `/nix/store/h5p7jgkr5cwzswdd4927k6mkg4s94r0k-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-init-bandwidth-probe.bit`.
+- Bitstream sha256: `0c36b5f56de73f59b8ee0a7973d50c9a891270e1424dfe722c4213493f62bc34`.
+- Board result: program succeeded with `isc_done=1 init=1 done=1`.
+- Init result: `init_done=true`, `init_error=false`, `pll_locked=true`.
+- Probe result: `version=87`, `state=PROBE_DONE`, `complete=true`, `failed=false`.
+- Native readscan result: `target_read_count=64`, `command_count=64`, `response_count=64`, `write_command_count=0`, `write_data_count=0`, `native_readscan_nonzero_count=64`, `native_readscan_nonzero_chunk_seen=0x1ff`, `native_readscan_first_nonzero_data=0xadacafaea9a8abaa`.
+- Conclusion: native reads can see nonzero DFII-written data. Combined with the v86 native write/read failure, this localizes the bug to native write-side behavior, not DDR3 init, PLL lock, DFII operation, or native read visibility.

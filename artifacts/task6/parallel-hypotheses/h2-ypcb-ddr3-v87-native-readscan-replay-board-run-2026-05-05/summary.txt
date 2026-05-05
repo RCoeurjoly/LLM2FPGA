@@ -1,0 +1,55 @@
+DDR3 v87 native readscan replay experiment
+
+Result: PASS diagnostic
+
+Source commit: 22b4fa7
+Previous failure result commit: ddfc6a7
+Delta: run clean DFII address-walk, skip native writes, then scan native reads.
+
+Bitstream:
+/nix/store/h5p7jgkr5cwzswdd4927k6mkg4s94r0k-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-init-bandwidth-probe.bit
+sha256: 0c36b5f56de73f59b8ee0a7973d50c9a891270e1424dfe722c4213493f62bc34
+
+Programming:
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 <bitstream>
+Result: isc_done=1 init=1 done=1
+
+Probe:
+python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --backend mpsse --tdo-bit 7 --json-only
+
+Clean init/status fields:
+magic_ok=true
+version=87
+state=PROBE_DONE
+complete=true
+failed=false
+init_done=true
+init_error=false
+pll_locked=true
+
+Clean DFII fields:
+dfii_seq_state=DFII_SEQ_DONE
+dfii_step=63
+dfii_word_mismatch_mask=0
+dfii_uniform_mismatch_mask=0
+dfii_phasecmd_mismatch_masks=0
+dfii_addr_mismatch_masks=0
+
+Native readscan fields:
+target_read_count=64
+command_count=64
+response_count=64
+write_command_count=0
+write_data_count=0
+mismatch_count=0
+native_readscan_nonzero_count=64
+native_readscan_nonzero_chunk_seen=0x1ff
+native_readscan_first_nonzero_addr=0
+native_readscan_first_nonzero_data=0xadacafaea9a8abaa
+native_readscan_first_nonzero_chunk_mask=0x1ff
+sample_valid_count=8
+sample_rdata_0=0xadacafaea9a8abaa
+last_rdata=0xadacafaea9a8abaa
+
+Conclusion:
+Native reads are not dead. They can see nonzero data after DFII writes. Combined with v86, the failure is narrowed to the native write side: write-data ordering, write-data mask semantics, or native write address/data pairing.
