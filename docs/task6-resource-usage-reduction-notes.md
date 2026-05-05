@@ -14348,3 +14348,40 @@ Board result: `version=97`, `pll_locked=true`, `init_error=false`, `init_done=tr
 New diagnostic: `native_readscan_first_nonzero_addr=0x0ef8`, `native_readscan_nonzero_chunk_seen=0xef`, `native_readscan_first_nonzero_chunk_mask=0x8`, `native_readscan_nonzero_count=15`. Decoding status byte `0xef`: push_seen=1, pop_seen=1, fifo_nonempty_at_event=1, push_at_event=0, pop_at_event=1, slave_wrdata_event=1, master_wrdata_event=1, select_native=1.
 
 Interpretation: v97 is a real movement from missing/zero native writes to nonzero native writes with wrong data. Popping the FIFO on the master/PHY write-data event keeps the FIFO nonempty at the captured event, and native writes affect memory. The remaining bug is data correctness/advancement: all read samples return the same wrong constant word rather than the per-address expected pattern. Next v98 should keep master-event pop and expose whether the same FIFO word is being replayed or the wrong DFI beat/lane is selected, ideally by capturing push/pop/master/slave counters plus low `data_out` and `we_out` bits at the event.
+
+### DDR3 M1 execution rule: DFII byte/phase association matrix first (2026-05-05)
+
+Decision: keep the open-source LiteDRAM/LiteX no-ODELAY path for M1. Do not switch to Vivado MIG or a new controller at this stage. The current evidence does not show a dead DDR3 stack: init, DFII CSR access, native command/data/response completion, and now v97 nonzero native readback all work. The unresolved problem is narrower: byte/phase/beat/packing association in the no-ODELAY LiteDRAM path.
+
+Operating policy from this point:
+
+```text
+One active DDR3 hypothesis at a time.
+No new native-port BIST variant unless it answers a named hypothesis.
+No rowstream integration until DDR3 linear read is proven.
+No new controller unless LiteDRAM no-ODELAY path is falsified by a byte/phase matrix.
+No Vivado MIG for implementation.
+```
+
+Next promoted artifact:
+
+```text
+artifacts/task6/parallel-hypotheses/h2-litedram-dfii-byte-phase-association-matrix.json
+```
+
+Required hypothesis:
+
+```text
+DFII byte/phase writes map to a fixed physical-to-logical byte/phase association.
+```
+
+Required acceptance rule:
+
+```text
+PASS: matrix is one-to-one or explainable by a fixed permutation/phase transform.
+FAIL: data collapses into one logical byte lane or shows non-bijective aliasing.
+```
+
+Required experiment shape: write one distinctive byte at a time through DFII, with exactly one write phase, beat, byte position, and physical lane candidate active. Then read back through DFII and record the observed phase, beat, logical byte, value, and mask. The output must derive a mapping and make one explicit next decision: apply mapping, fix generator/packing, or falsify the current PHY path.
+
+Do not widen delay sweeps before this matrix exists. The next source experiment should be a DFII byte/phase association probe, not another native BIST variant.
