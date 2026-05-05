@@ -1,0 +1,48 @@
+DDR3 v84 clean replay experiment
+
+Result: PASS
+
+Source commit: fceabb3b3dd272570c9bf2f6f217b7bf9f813afe
+Base known-good lineage: f4d732e
+Delta: replay v84 compensated DFII BIST on top of the reproduced v83 source lineage.
+
+Bitstream:
+/nix/store/xn5d23r0h3lkz04wp6xrjwfxwqcd8zkj-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe.bit
+sha256: 312039484a9282ac61d2e22bb6d6f05ec63d257bf3147e66578661038da9a234
+
+Programming:
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 <bitstream>
+Result: isc_done=1 init=1 done=1
+
+Probe:
+python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --backend mpsse --tdo-bit 7 --json-only
+
+Key probe fields:
+magic_ok=true
+version=84
+state=PROBE_DFII_DONE
+init_state=INIT_DONE
+init_step=32
+init_done=true
+init_error=false
+pll_locked=true
+complete=true
+failed=false
+dfii_seq_state=DFII_SEQ_DONE
+dfii_step=63
+dfii_wb_ack_count=58
+dfii_wb_wait_count=174
+dfii_data_pass=true
+dfii_word_mismatch_mask=0
+dfii_uniform_mismatch_mask=0
+dfii_phasecmd_mismatch_masks=0
+dfii_last_read_data=0x0000bb87
+
+Timing:
+nextpnr user_clk max 70.69 MHz, target 25 MHz, PASS
+clk200 max 713.27 MHz
+core.iodelay_clk max 631.71 MHz
+jtag_debug_shift.drck max 379.36 MHz
+
+Conclusion:
+The first replayed delta after v83 remains board-clean. init_error=false and pll_locked=true are preserved while adding compensated DFII BIST coverage. This confirms v84 is not the DDR3 regression point.

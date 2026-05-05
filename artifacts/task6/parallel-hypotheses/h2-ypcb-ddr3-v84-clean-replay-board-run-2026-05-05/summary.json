@@ -1,0 +1,48 @@
+{
+  "experiment": "h2-ypcb-ddr3-v84-clean-replay-board-run-2026-05-05",
+  "date": "2026-05-05",
+  "branch": "task6-ddr3-v83-resurrection",
+  "source_commit": "fceabb3b3dd272570c9bf2f6f217b7bf9f813afe",
+  "base_known_good_commit": "f4d732e",
+  "delta": "v84 compensated DFII BIST replay from LiteDRAM-derived v83 lineage",
+  "nix_attr": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe-bitstream",
+  "bitstream": "/nix/store/xn5d23r0h3lkz04wp6xrjwfxwqcd8zkj-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe.bit",
+  "bitstream_sha256": "312039484a9282ac61d2e22bb6d6f05ec63d257bf3147e66578661038da9a234",
+  "programmer": "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824",
+  "program_result": {
+    "isc_done": true,
+    "init": true,
+    "done": true
+  },
+  "probe_command": "python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --backend mpsse --tdo-bit 7 --json-only",
+  "probe_result": {
+    "magic_ok": true,
+    "version": 84,
+    "state": "PROBE_DFII_DONE",
+    "init_state": "INIT_DONE",
+    "init_step": 32,
+    "init_done": true,
+    "init_error": false,
+    "pll_locked": true,
+    "complete": true,
+    "failed": false,
+    "dfii_seq_state": "DFII_SEQ_DONE",
+    "dfii_step": 63,
+    "dfii_wb_ack_count": 58,
+    "dfii_wb_wait_count": 174,
+    "dfii_data_pass": true,
+    "dfii_word_mismatch_mask": 0,
+    "dfii_uniform_mismatch_mask": 0,
+    "dfii_phasecmd_mismatch_masks": 0,
+    "dfii_last_read_data": 48007
+  },
+  "timing": {
+    "nextpnr_user_clk_max_mhz": 70.69,
+    "target_user_clk_mhz": 25,
+    "user_clk_timing": "PASS",
+    "clk200_max_mhz": 713.27,
+    "iodelay_clk_max_mhz": 631.71,
+    "jtag_debug_shift_drck_max_mhz": 379.36
+  },
+  "conclusion": "PASS: the first replayed delta after v83 remains board-clean. This preserves init_error=false and pll_locked=true while adding the compensated DFII BIST path. No DDR3 logic regression is observed at v84."
+}

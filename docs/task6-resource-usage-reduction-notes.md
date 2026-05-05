@@ -14206,3 +14206,15 @@ Programmed over HS3 serial `210299BF3824`; SRAM load completed with `isc_done=1`
 Probe result: `magic_ok=true`, `version=83`, `state=PROBE_DFII_DONE`, `init_done=true`, `init_error=false`, `pll_locked=true`, `complete=true`, `failed=false`, `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_data_pass=true`, `dfii_word_mismatch_mask=0x00000`, `dfii_last_read_data=0x000098a0`, all 20 DFII expected/actual words matched, and all 16 command phase combinations passed.
 
 Conclusion: v83 is source-reproducible when built from the v83 code lineage. The prior reproducibility failure was not that v83 was uncommitted or impossible to rebuild; it was that later experiments mutated/reused the same target family, so the current package name no longer meant the v83 experiment.
+
+### DDR3 v84 clean replay board result - 2026-05-05
+
+- Commit under test: `fceabb3b3dd272570c9bf2f6f217b7bf9f813afe` on `task6-ddr3-v83-resurrection`.
+- Delta: replayed `v84` compensated DFII BIST on top of the reproduced `v83` known-good DDR3 lineage.
+- Bitstream: `/nix/store/xn5d23r0h3lkz04wp6xrjwfxwqcd8zkj-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe.bit`.
+- Bitstream sha256: `312039484a9282ac61d2e22bb6d6f05ec63d257bf3147e66578661038da9a234`.
+- Board result: program succeeded with `isc_done=1 init=1 done=1`.
+- Probe result: `magic_ok=true`, `version=84`, `state=PROBE_DFII_DONE`, `init_done=true`, `init_error=false`, `pll_locked=true`, `failed=false`.
+- DFII result: `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_data_pass=true`, `dfii_word_mismatch_mask=0`, `dfii_uniform_mismatch_mask=0`, `dfii_phasecmd_mismatch_masks=0`.
+- Timing: routed `user_clk` max `70.69 MHz` for a `25 MHz` target, PASS.
+- Conclusion: `v84` is clean. The first replayed delta after `v83` does not introduce the DDR3 regression.
