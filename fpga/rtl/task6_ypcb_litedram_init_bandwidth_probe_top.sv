@@ -22,6 +22,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_RELEASE = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN_SPARSE = 1'b0,
+  parameter bit RSTN_LOW_BYPASS = 1'b1,
+  parameter int RSTN_LOW_BYPASS_CYCLES = 32'd25_000_000,
   parameter bit NATIVE_SPARSE_READSCAN_ONLY = 1'b0,
   parameter bit NATIVE_READSCAN_SINGLE_OUTSTANDING = 1'b0,
   parameter bit DFII_BYTE_PHASE_ASSOC_PROBE_ONLY = 1'b0,
@@ -261,19 +263,36 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   wire user_clk;
   wire user_rst;
   wire core_rst;
+  wire active_sys_rstn;
+  logic sys_rstn_fallback_done_q = 1'b0;
+  logic [31:0] sys_rstn_fallback_count_q = 32'd0;
 
   logic [7:0] config_reset_count_q = 8'd0;
   logic config_reset_done;
 
-  always_ff @(posedge clk200 or negedge SYS_RSTN) begin
-    if (!SYS_RSTN)
+  always_ff @(posedge clk200) begin
+    if (SYS_RSTN || !RSTN_LOW_BYPASS) begin
+      sys_rstn_fallback_count_q <= 32'd0;
+      sys_rstn_fallback_done_q <= 1'b0;
+    end else if (!sys_rstn_fallback_done_q) begin
+      if (sys_rstn_fallback_count_q >= RSTN_LOW_BYPASS_CYCLES)
+        sys_rstn_fallback_done_q <= 1'b1;
+      else
+        sys_rstn_fallback_count_q <= sys_rstn_fallback_count_q + 32'd1;
+    end
+  end
+
+  assign active_sys_rstn = SYS_RSTN | (RSTN_LOW_BYPASS & sys_rstn_fallback_done_q);
+
+  always_ff @(posedge clk200) begin
+    if (!active_sys_rstn)
       config_reset_count_q <= 8'd0;
     else if (!config_reset_done)
       config_reset_count_q <= config_reset_count_q + 8'd1;
   end
 
   assign config_reset_done = config_reset_count_q[7];
-  assign core_rst = !SYS_RSTN || !config_reset_done;
+  assign core_rst = !active_sys_rstn || !config_reset_done;
 
   IBUFDS #(
     .DIFF_TERM("TRUE"),
@@ -3520,7 +3539,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     end else begin
       unique case (init_state_q)
         INIT_RESET: begin
-          if (SYS_RSTN && config_reset_done && pll_locked) begin
+          if (active_sys_rstn && config_reset_done && pll_locked) begin
             init_delay_q <= 32'd100_000;
             init_state_q <= INIT_START_WAIT;
           end
@@ -4070,9 +4089,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     end else begin
       unique case (state_q)
         PROBE_RESET: begin
-          if (init_error || init_seq_error_q)
+          if (init_error || (init_seq_error_q && !init_done))
             state_q <= PROBE_ERROR;
-          else if (init_done && init_seq_done) begin
+          else if (init_done) begin
             read_addr_q <= 25'd0;
             compare_addr_q <= 25'd0;
             command_count_q <= 32'd0;
@@ -4171,9 +4190,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             state_q <= PROBE_WAIT_INIT;
         end
         PROBE_WAIT_INIT: begin
-          if (init_error || init_seq_error_q)
+          if (init_error || (init_seq_error_q && !init_done))
             state_q <= PROBE_ERROR;
-          else if (init_done && init_seq_done) begin
+          else if (init_done) begin
             read_addr_q <= 25'd0;
             compare_addr_q <= 25'd0;
             command_count_q <= 32'd0;
@@ -5160,8 +5179,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
               first_chunk_mismatch_q <= response_chunk_mismatch;
             end
           end
-          if (!native_byte_assoc_mode &&
-              (response_count_q + 32'd1) >= active_target_words) begin
+          if ((!native_byte_assoc_mode || native_readscan_mode) &&
+                (response_count_q + 32'd1) >= active_target_words) begin
             if (byte_diag_read_state) begin
               read_addr_q <= 25'd0;
               compare_addr_q <= 25'd0;
@@ -5365,11 +5384,14 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     pll_locked,
     init_error,
     init_done,
-    SYS_RSTN
+    SYS_RSTN,
+    active_sys_rstn
   };
 
   assign extended_status_bits = {
-    9'd0,
+    7'd0,
+    RSTN_LOW_BYPASS,
+    sys_rstn_fallback_done_q,
     cal_last_candidate,
     cal_candidate_success,
     cal_config_done,

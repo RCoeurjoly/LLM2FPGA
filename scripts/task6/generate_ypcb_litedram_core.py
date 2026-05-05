@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from litex.build.generic_platform import IOStandard, Pins, Subsignal
+from litex.build.generic_platform import IOStandard, Misc, Pins, Subsignal
 from litex.build.xilinx import XilinxPlatform
 from litex.soc.integration.builder import Builder
 from migen import log2_int
@@ -58,21 +58,22 @@ def make_no_dm_dram_ios(pin_mapping: dict[str, Any]):
         module = core_config["sdram_module"]
         return [
             ("ddram", 0,
-                Subsignal("a",       Pins(pin_string(pin_mapping["a"]))),
-                Subsignal("ba",      Pins(pin_string(pin_mapping["ba"]))),
-                Subsignal("ras_n",   Pins(pin_mapping["ras_n"])),
-                Subsignal("cas_n",   Pins(pin_mapping["cas_n"])),
-                Subsignal("we_n",    Pins(pin_mapping["we_n"])),
-                Subsignal("cs_n",    Pins(pin_string(pin_mapping["cs_n"]))),
-                Subsignal("dq",      Pins(pin_string(pin_mapping["dq"]))),
-                Subsignal("dqs_p",   Pins(pin_string(pin_mapping["dqs_p"]))),
-                Subsignal("dqs_n",   Pins(pin_string(pin_mapping["dqs_n"]))),
-                Subsignal("clk_p",   Pins(pin_string(pin_mapping["clk_p"]))),
-                Subsignal("clk_n",   Pins(pin_string(pin_mapping["clk_n"]))),
-                Subsignal("cke",     Pins(pin_string(pin_mapping["cke"]))),
-                Subsignal("odt",     Pins(pin_string(pin_mapping["odt"]))),
-                Subsignal("reset_n", Pins(pin_mapping["reset_n"])),
-                IOStandard("SSTL15")),
+                Subsignal("a",       Pins(pin_string(pin_mapping["a"])), IOStandard("SSTL15")),
+                Subsignal("ba",      Pins(pin_string(pin_mapping["ba"])), IOStandard("SSTL15")),
+                Subsignal("ras_n",   Pins(pin_mapping["ras_n"]), IOStandard("SSTL15")),
+                Subsignal("cas_n",   Pins(pin_mapping["cas_n"]), IOStandard("SSTL15")),
+                Subsignal("we_n",    Pins(pin_mapping["we_n"]), IOStandard("SSTL15")),
+                Subsignal("cs_n",    Pins(pin_string(pin_mapping["cs_n"])), IOStandard("SSTL15")),
+                Subsignal("dq",      Pins(pin_string(pin_mapping["dq"])), IOStandard("SSTL15"), Misc("IN_TERM=UNTUNED_SPLIT_40")),
+                Subsignal("dqs_p",   Pins(pin_string(pin_mapping["dqs_p"])), IOStandard("DIFF_SSTL15"), Misc("IN_TERM=UNTUNED_SPLIT_40")),
+                Subsignal("dqs_n",   Pins(pin_string(pin_mapping["dqs_n"])), IOStandard("DIFF_SSTL15"), Misc("IN_TERM=UNTUNED_SPLIT_40")),
+                Subsignal("clk_p",   Pins(pin_string(pin_mapping["clk_p"])), IOStandard("DIFF_SSTL15")),
+                Subsignal("clk_n",   Pins(pin_string(pin_mapping["clk_n"])), IOStandard("DIFF_SSTL15")),
+                Subsignal("cke",     Pins(pin_string(pin_mapping["cke"])), IOStandard("SSTL15")),
+                Subsignal("odt",     Pins(pin_string(pin_mapping["odt"])), IOStandard("SSTL15")),
+                Subsignal("reset_n", Pins(pin_mapping["reset_n"]), IOStandard("SSTL15")),
+                Misc("SLEW=FAST"),
+            ),
         ]
 
     return get_dram_ios_no_dm

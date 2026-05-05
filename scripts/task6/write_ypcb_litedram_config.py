@@ -41,6 +41,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--artifact-name", default="h2-ypcb-litedram-config")
     parser.add_argument("--payload-byte-lanes", default=8, type=int)
     parser.add_argument(
+        "--sdram-module",
+        default="MT41J256M16",
+        help=(
+            "litedram modules class name. The board target currently uses "
+            "MT41J256M16."
+        ),
+    )
+    parser.add_argument("--sdram-module-nb", default=9, type=int)
+    parser.add_argument(
         "--sdram-phy",
         default="A7DDRPHY",
         choices=["A7DDRPHY", "K7DDRPHY", "V7DDRPHY"],
@@ -50,7 +59,7 @@ def parse_args() -> argparse.Namespace:
             "cannot be placed."
         ),
     )
-    parser.add_argument("--sys-clk-freq", default="100e6")
+    parser.add_argument("--sys-clk-freq", default="125e6")
     return parser.parse_args()
 
 
@@ -132,15 +141,20 @@ def format_pin_list(pins: list[str]) -> str:
     return " ".join(pins)
 
 
-def build_litedram_config(sdram_phy: str, sys_clk_freq: str) -> dict[str, Any]:
+def build_litedram_config(
+    sdram_phy: str,
+    sdram_module: str,
+    sdram_module_nb: int,
+    sys_clk_freq: str,
+) -> dict[str, Any]:
     return {
         "speedgrade": -1,
         "cpu": None,
         "memtype": "DDR3",
         "uart": "rs232",
         "cmd_latency": 0,
-        "sdram_module": "MT41K256M8",
-        "sdram_module_nb": 9,
+        "sdram_module": sdram_module,
+        "sdram_module_nb": sdram_module_nb,
         "sdram_rank_nb": 1,
         "sdram_phy": sdram_phy,
         "rtt_nom": "60ohm",
@@ -210,31 +224,35 @@ def render_platform_io_py(
         # a custom LiteX target instantiation using these pads rather than the
         # stock standalone YAML generator.
 
-        from litex.build.generic_platform import IOStandard, Pins, Subsignal
+        from litex.build.generic_platform import IOStandard, Misc, Pins, Subsignal
 
 
         _io = [
             ("clk200", 0,
-                Subsignal("p", Pins("{clock_p}")),
-                Subsignal("n", Pins("{clock_n}")),
-                IOStandard("LVDS")),
-            ("cpu_reset", 0, Pins("{reset_pin}"), IOStandard("LVCMOS18")),
+                Subsignal("p", Pins("{clock_p}"), IOStandard("LVDS_25")),
+                Subsignal("n", Pins("{clock_n}"), IOStandard("LVDS_25")),
+            ),
+            ("SYS_RSTN", 0, Pins("{reset_pin}"), IOStandard("LVCMOS18")),
             ("ddram", 0,
-                Subsignal("a",       Pins("{format_pin_list(ddram["a"])}")),
-                Subsignal("ba",      Pins("{format_pin_list(ddram["ba"])}")),
-                Subsignal("ras_n",   Pins("{ddram["ras_n"]}")),
-                Subsignal("cas_n",   Pins("{ddram["cas_n"]}")),
-                Subsignal("we_n",    Pins("{ddram["we_n"]}")),
-                Subsignal("cs_n",    Pins("{format_pin_list(ddram["cs_n"])}")),
-                Subsignal("dq",      Pins("{format_pin_list(ddram["dq"])}")),
-                Subsignal("dqs_p",   Pins("{format_pin_list(ddram["dqs_p"])}")),
-                Subsignal("dqs_n",   Pins("{format_pin_list(ddram["dqs_n"])}")),
-                Subsignal("clk_p",   Pins("{format_pin_list(ddram["clk_p"])}")),
-                Subsignal("clk_n",   Pins("{format_pin_list(ddram["clk_n"])}")),
-                Subsignal("cke",     Pins("{format_pin_list(ddram["cke"])}")),
-                Subsignal("odt",     Pins("{format_pin_list(ddram["odt"])}")),
-                Subsignal("reset_n", Pins("{ddram["reset_n"]}")),
-                IOStandard("SSTL15")),
+                Subsignal("a",       Pins("{format_pin_list(ddram['a'])}"), IOStandard("SSTL15")),
+                Subsignal("ba",      Pins("{format_pin_list(ddram['ba'])}"), IOStandard("SSTL15")),
+                Subsignal("ras_n",   Pins("{ddram['ras_n']}"), IOStandard("SSTL15")),
+                Subsignal("cas_n",   Pins("{ddram['cas_n']}"), IOStandard("SSTL15")),
+                Subsignal("we_n",    Pins("{ddram['we_n']}"), IOStandard("SSTL15")),
+                Subsignal("cs_n",    Pins("{format_pin_list(ddram['cs_n'])}"), IOStandard("SSTL15")),
+                Subsignal("dq",      Pins("{format_pin_list(ddram['dq'])}"),
+                    IOStandard("SSTL15"), Misc("IN_TERM=UNTUNED_SPLIT_40")),
+                Subsignal("dqs_p",   Pins("{format_pin_list(ddram['dqs_p'])}"),
+                    IOStandard("DIFF_SSTL15"), Misc("IN_TERM=UNTUNED_SPLIT_40")),
+                Subsignal("dqs_n",   Pins("{format_pin_list(ddram['dqs_n'])}"),
+                    IOStandard("DIFF_SSTL15"), Misc("IN_TERM=UNTUNED_SPLIT_40")),
+                Subsignal("clk_p",   Pins("{format_pin_list(ddram['clk_p'])}"), IOStandard("DIFF_SSTL15")),
+                Subsignal("clk_n",   Pins("{format_pin_list(ddram['clk_n'])}"), IOStandard("DIFF_SSTL15")),
+                Subsignal("cke",     Pins("{format_pin_list(ddram['cke'])}"), IOStandard("SSTL15")),
+                Subsignal("odt",     Pins("{format_pin_list(ddram['odt'])}"), IOStandard("SSTL15")),
+                Subsignal("reset_n", Pins("{ddram['reset_n']}"), IOStandard("SSTL15")),
+                Misc("SLEW=FAST"),
+            ),
         ]
         """
     )
@@ -246,11 +264,12 @@ def render_xdc(ddram: dict[str, list[str] | str], clock_p: str, clock_n: str, re
         "# Constraint skeleton for the custom no-dm LiteDRAM/LiteX target.",
         "# No Vivado MIG files were used to generate this mapping.",
         f"set_property PACKAGE_PIN {clock_p} [get_ports clk200_p]",
-        "set_property IOSTANDARD LVDS [get_ports clk200_p]",
+        "set_property IOSTANDARD LVDS_25 [get_ports clk200_p]",
         f"set_property PACKAGE_PIN {clock_n} [get_ports clk200_n]",
-        "set_property IOSTANDARD LVDS [get_ports clk200_n]",
-        f"set_property PACKAGE_PIN {reset_pin} [get_ports cpu_reset]",
-        "set_property IOSTANDARD LVCMOS18 [get_ports cpu_reset]",
+        "set_property IOSTANDARD LVDS_25 [get_ports clk200_n]",
+        f"set_property PACKAGE_PIN {reset_pin} [get_ports SYS_RSTN]",
+        "set_property IOSTANDARD LVCMOS18 [get_ports SYS_RSTN]",
+        "create_clock -period 5.000 -name clk200 [get_ports clk200_p]",
     ]
 
     indexed_ports = {
@@ -279,8 +298,32 @@ def render_xdc(ddram: dict[str, list[str] | str], clock_p: str, clock_n: str, re
         assert isinstance(pin, str)
         lines.append(f"set_property PACKAGE_PIN {pin} [get_ports {port}]")
 
-    for port in sorted({*indexed_ports.keys(), *scalar_ports.keys()}):
-        lines.append(f"set_property IOSTANDARD SSTL15 [get_ports {port}*]")
+    for port in [
+        "ddram_a",
+        "ddram_ba",
+        "ddram_cke",
+        "ddram_cs_n",
+        "ddram_odt",
+        "ddram_ras_n",
+        "ddram_cas_n",
+        "ddram_we_n",
+        "ddram_reset_n",
+    ]:
+        lines.append(f"set_property IOSTANDARD SSTL15 [get_ports {port}]")
+
+    lines.extend([
+        "set_property IOSTANDARD DIFF_SSTL15 [get_ports ddram_dqs_p[*]]",
+        "set_property IOSTANDARD DIFF_SSTL15 [get_ports ddram_dqs_n[*]]",
+        "set_property IOSTANDARD DIFF_SSTL15 [get_ports ddram_clk_p]",
+        "set_property IOSTANDARD DIFF_SSTL15 [get_ports ddram_clk_n]",
+        "set_property IOSTANDARD SSTL15 [get_ports ddram_dq[*]]",
+        "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports ddram_dq[*]]",
+        "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports ddram_dqs_p[*]]",
+        "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports ddram_dqs_n[*]]",
+        "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_clk_p ddram_clk_n}]",
+        "set_property SLEW FAST [get_ports {ddram_clk_p ddram_clk_n ddram_dq[*] ddram_dqs_p[*] ddram_dqs_n[*}]",
+        "set_property SLEW FAST [get_ports {ddram_a[*] ddram_ba[*] ddram_cke ddram_cs_n ddram_odt ddram_ras_n ddram_cas_n ddram_we_n ddram_reset_n}]",
+    ])
     lines.append("")
     return "\n".join(lines)
 
@@ -322,7 +365,12 @@ def main() -> None:
     clock_n = clock_pins["default_200mhz_clk1_n"]["loc"]
     reset_pin = part0_pins["SW_RESET"]["loc"]
 
-    litedram_config = build_litedram_config(args.sdram_phy, args.sys_clk_freq)
+    litedram_config = build_litedram_config(
+        args.sdram_phy,
+        args.sdram_module,
+        args.sdram_module_nb,
+        args.sys_clk_freq,
+    )
     s7ddrphy_source = inspect.getsource(s7ddrphy.S7DDRPHY)
     dm_optional_in_s7_phy = 'hasattr(pads, "dm")' in s7ddrphy_source
     has_module = hasattr(litedram_modules, litedram_config["sdram_module"])
@@ -371,7 +419,7 @@ def main() -> None:
         "date": args.date,
         "hypothesis": (
             "YPCB DDR3 CH0 can move to an open LiteDRAM/LiteX controller gate "
-            "using all nine x8 MT41K256M8 byte lanes as the 72-bit physical "
+            "using all nine x8 MT41J256M16 byte lanes as the 72-bit physical "
             "DDR3 interface. A later rowstream bridge can repack this into "
             "the 64-bit logical payload format after DDR3 is proven."
         ),

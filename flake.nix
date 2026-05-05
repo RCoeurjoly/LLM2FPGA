@@ -26,6 +26,27 @@
       url = "github:RCoeurjoly/ypcb_00338_1p1_hack";
       flake = false;
     };
+    litexBoards = {
+      url =
+        "github:litex-hub/litex-boards?ref=6d58ae6b31d80b255de12c2d3f5bfefda4c38b90";
+      flake = false;
+    };
+    pythondataCpuVexriscv = {
+      url = "github:litex-hub/pythondata-cpu-vexriscv";
+      flake = false;
+    };
+    pythondataSoftwarePicolibc = {
+      url = "github:litex-hub/pythondata-software-picolibc";
+      flake = false;
+    };
+    pythondataSoftwareCompilerRt = {
+      url = "github:litex-hub/pythondata-software-compiler_rt";
+      flake = false;
+    };
+    litepcie = {
+      url = "github:enjoy-digital/litepcie";
+      flake = false;
+    };
     litex = {
       url = "github:enjoy-digital/litex";
       flake = false;
@@ -37,7 +58,9 @@
   };
 
   outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
-    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litex, litedram, ... }:
+    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litexBoards, litepcie, litex
+    , litedram, pythondataCpuVexriscv, pythondataSoftwarePicolibc
+    , pythondataSoftwareCompilerRt, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -140,15 +163,45 @@
           version = "flake-input";
           src = litex;
           format = "setuptools";
-          propagatedBuildInputs = with pkgs.python311Packages; [
+          propagatedBuildInputs = (with pkgs.python311Packages; [
             migen
             packaging
             pyserial
             pyyaml
             requests
-          ];
+          ]) ++ [ pythondataCpuVexriscvPkg ];
+          postInstall = ''
+            chmod u+w "$out/${python.sitePackages}/litex/soc/software/libc/picolibc-minimal.h"
+          '';
           doCheck = false;
         };
+        pythondataCpuVexriscvPkg =
+          pkgs.python311Packages.buildPythonPackage {
+            pname = "pythondata-cpu-vexriscv";
+            version = "flake-input";
+            src = pythondataCpuVexriscv;
+            format = "setuptools";
+            propagatedBuildInputs = [ ];
+            doCheck = false;
+          };
+        pythondataSoftwarePicolibcPkg =
+          pkgs.python311Packages.buildPythonPackage {
+            pname = "pythondata-software-picolibc";
+            version = "flake-input";
+            src = pythondataSoftwarePicolibc;
+            format = "setuptools";
+            propagatedBuildInputs = [ ];
+            doCheck = false;
+          };
+        pythondataSoftwareCompilerRtPkg =
+          pkgs.python311Packages.buildPythonPackage {
+            pname = "pythondata-software-compiler_rt";
+            version = "flake-input";
+            src = pythondataSoftwareCompilerRt;
+            format = "setuptools";
+            propagatedBuildInputs = [ ];
+            doCheck = false;
+          };
         litedramPkg = pkgs.python311Packages.buildPythonPackage {
           pname = "litedram";
           version = "flake-input";
@@ -160,12 +213,39 @@
           ]) ++ [ litexPkg ];
           doCheck = false;
         };
+        litepciePkg = pkgs.python311Packages.buildPythonPackage {
+          pname = "litepcie";
+          version = "flake-input";
+          src = litepcie;
+          format = "setuptools";
+          propagatedBuildInputs = (with pkgs.python311Packages; [
+            migen
+            packaging
+            pyyaml
+            pyserial
+            requests
+          ]) ++ [ litexPkg litedramPkg ];
+          doCheck = false;
+        };
         liteDramPython = pkgs.python311.withPackages (ps: [
           ps.migen
           ps.packaging
           ps.pyyaml
           litexPkg
           litedramPkg
+        ]);
+        litexBoardsPython = pkgs.python311.withPackages (ps: [
+          ps.migen
+          ps.packaging
+          ps.pyyaml
+          ps.pyserial
+          ps.requests
+          litexPkg
+          litedramPkg
+          litepciePkg
+          pythondataCpuVexriscvPkg
+          pythondataSoftwarePicolibcPkg
+          pythondataSoftwareCompilerRtPkg
         ]);
         torchao = python.pkgs.buildPythonPackage rec {
           pname = "torchao";
@@ -3209,6 +3289,9 @@
               --part0-pins-xml-artifact-label ypcbHack/ypcb003381p1/1.0/part0_pins.xml \
               --board-xml ${ypcbHack}/ypcb003381p1/1.0/board.xml \
               --board-xml-artifact-label ypcbHack/ypcb003381p1/1.0/board.xml \
+              --sdram-module MT41J256M16 \
+              --sdram-module-nb 9 \
+              --sys-clk-freq 125e6 \
               --date 2026-04-30 \
               --out-dir "$out"
           '';
@@ -3478,6 +3561,68 @@
             topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
             designJson = task6YpcbLiteDramInitBandwidthProbeJson;
           };
+
+        task6YpcbLiteDramDdr3ExerciseJson = task6YpcbLiteDramInitBandwidthProbeJson;
+
+        task6Ypcb00338LitexBoardsDdr3Bitstream =
+          pkgs.runCommand "task6-ypcb-00338-1p1-litex-boards-ddr3-exercise.bit" {
+            nativeBuildInputs = [
+              litexBoardsPython
+              openXC7Fasm
+              openXC7Nextpnr
+              openXC7Prjxray
+              pkgs.pkgsCross.riscv64-embedded.buildPackages.gcc
+              pkgs.meson
+            ];
+          } ''
+            set -euo pipefail
+            buildDir="$(mktemp -d)"
+            trap 'rm -rf "$buildDir"' EXIT
+            mkdir -p "$buildDir"
+            cp -R ${litex} "$buildDir/litex"
+            cp -R ${litexBoards} "$buildDir/litex_boards_input"
+            cp -R ${pythondataSoftwarePicolibc} "$buildDir/pythondata-software-picolibc"
+            cp -R ${pythondataSoftwareCompilerRt} "$buildDir/pythondata-software-compiler_rt"
+            cp -R ${pythondataCpuVexriscv} "$buildDir/pythondata-cpu-vexriscv"
+            if [ -d "$buildDir/pythondata-software-picolibc/pythondata_software_picolibc/data/newlib/libc" ] \
+               && [ ! -e "$buildDir/pythondata-software-picolibc/pythondata_software_picolibc/data/libc" ]; then
+              ln -s newlib/libc \
+                "$buildDir/pythondata-software-picolibc/pythondata_software_picolibc/data/libc"
+            fi
+            chmod -R u+w "$buildDir"
+            export NEXTPNR_XILINX_DIR="${openXC7Nextpnr}/share/nextpnr"
+            export NEXTPNR_XILINX_PYTHON_DIR="${openXC7Nextpnr}/share/nextpnr/python"
+            export PRJXRAY_DB_DIR="${fpgaPrjxrayDb}"
+            export PRJXRAY_PYTHON_DIR="${openXC7Prjxray}/usr/share/python3"
+            export PYTHONPATH="${prjxrayPythonPath}${PYTHONPATH:+:$PYTHONPATH}"
+            export PYTHONPATH="$buildDir/litex:$buildDir/litex_boards_input:$buildDir/pythondata-software-picolibc:$buildDir/pythondata-software-compiler_rt:$buildDir/pythondata-cpu-vexriscv${PYTHONPATH:+:$PYTHONPATH}"
+
+            # Legacy compat: this commit's liteX expects `data/libc` while newer
+            # pythondata-picolibc layouts ship Newlib under `data/newlib/libc`.
+            if [ -d "$buildDir/pythondata-software-picolibc/pythondata_software_picolibc/data/newlib/libc" ]; then
+              rm -rf "$buildDir/pythondata-software-picolibc/pythondata_software_picolibc/data/libc"
+              cp -R "$buildDir/pythondata-software-picolibc/pythondata_software_picolibc/data/newlib/libc" \
+                "$buildDir/pythondata-software-picolibc/pythondata_software_picolibc/data/libc"
+            fi
+            cd "$buildDir"
+            ${litexBoardsPython}/bin/python "$buildDir/litex_boards_input/litex_boards/targets/ypcb_00338_1p1.py" \
+              --sys-clk-freq 125e6 \
+              --uart-name=jtag_uart \
+              --toolchain openxc7 \
+              --no-compile-software \
+              --build
+            bit="$(
+              find . -path "*/build/gateware/*.bit" -print \
+              | head -n 1
+            )"
+            if [ -z "$bit" ]; then
+              echo "ERROR: no .bit file produced by Litex-Boards target build" >&2
+              find . -maxdepth 4 -type f -name '*.v' -o -name '*.py' -o -name '*.json' | head -n 20
+              exit 1
+            fi
+            mkdir -p "$out"
+            cp "$bit" "$out/task6-ypcb-00338-1p1-litex-boards-ddr3-exercise.bit"
+          '';
 
         task6YpcbLiteDramNoOdelayInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json" {
@@ -4338,6 +4483,15 @@
           ];
         };
 
+        task6YpcbLiteDramDdr3ExerciseXdc = mkXdc {
+          name = "task6-ypcb-litedram-ddr3-exercise";
+          includeBoardXdc = false;
+          extraConstraints = [
+            "${task6YpcbLiteDramRtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
+            ./fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc
+          ];
+        };
+
         task6YpcbLiteDramNoOdelayInitBandwidthProbeXdc = mkXdc {
           name = "task6-ypcb-litedram-no-odelay-init-bandwidth-probe";
           includeBoardXdc = false;
@@ -4634,10 +4788,24 @@
           freqMHz = 50;
         };
 
+        task6YpcbLiteDramDdr3ExerciseFasm = mkFasm {
+          name = "task6-ypcb-litedram-ddr3-exercise";
+          xdc = task6YpcbLiteDramDdr3ExerciseXdc;
+          json = task6YpcbLiteDramDdr3ExerciseJson;
+          seed = 1;
+          freqMHz = 50;
+        };
+
         task6YpcbLiteDramInitBandwidthProbeBitstream = mkBitstream {
           name = "task6-ypcb-litedram-init-bandwidth-probe";
           fasm = task6YpcbLiteDramInitBandwidthProbeFasm;
           framesBase = "task6-ypcb-litedram-init-bandwidth-probe";
+        };
+
+        task6YpcbLiteDramDdr3ExerciseBitstream = mkBitstream {
+          name = "task6-ypcb-litedram-ddr3-exercise";
+          fasm = task6YpcbLiteDramDdr3ExerciseFasm;
+          framesBase = "task6-ypcb-litedram-ddr3-exercise";
         };
 
         task6YpcbLiteDramNoOdelayInitBandwidthProbeFasm = mkFasm {
@@ -8264,6 +8432,8 @@
             task6YpcbLiteDramOpenSynthUtilization;
           task6-ypcb-litedram-init-bandwidth-probe-json =
             task6YpcbLiteDramInitBandwidthProbeJson;
+          task6-ypcb-litedram-ddr3-exercise-json =
+            task6YpcbLiteDramDdr3ExerciseJson;
           task6-ypcb-litedram-init-bandwidth-probe-utilization =
             task6YpcbLiteDramInitBandwidthProbeUtilization;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-json =
@@ -8384,6 +8554,8 @@
             task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeUtilization;
           task6-ypcb-litedram-init-bandwidth-probe-xdc =
             task6YpcbLiteDramInitBandwidthProbeXdc;
+          task6-ypcb-litedram-ddr3-exercise-xdc =
+            task6YpcbLiteDramDdr3ExerciseXdc;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-xdc =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeXdc;
           task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-xdc =
@@ -8448,8 +8620,14 @@
             task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeXdc;
           task6-ypcb-litedram-init-bandwidth-probe-fasm =
             task6YpcbLiteDramInitBandwidthProbeFasm;
+          task6-ypcb-litedram-ddr3-exercise-fasm =
+            task6YpcbLiteDramDdr3ExerciseFasm;
+          task6-ypcb-00338-1p1-litex-boards-ddr3-exercise-bitstream =
+            task6Ypcb00338LitexBoardsDdr3Bitstream;
           task6-ypcb-litedram-init-bandwidth-probe-bitstream =
             task6YpcbLiteDramInitBandwidthProbeBitstream;
+          task6-ypcb-litedram-ddr3-exercise-bitstream =
+            task6YpcbLiteDramDdr3ExerciseBitstream;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-fasm =
             task6YpcbLiteDramNoOdelayInitBandwidthProbeFasm;
           task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe-fasm =

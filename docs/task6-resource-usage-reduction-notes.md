@@ -14751,13 +14751,37 @@ Conclusion:
   rowstream packing, or TinyStories integration. Rowstream/TinyStories remain
   disconnected.
 
+### 2026-05-01 - v90 no-DFII sparse native read-scan gate
+
+Objective:
+
+- Validate native read replay and address-response behavior without running any
+  DFII traffic in the same image.
+- Keep everything open source and avoid PCIe in this path.
+
+Implementation completed:
+
+- `NATIVE_SPARSE_READSCAN_ONLY` wiring is now used to build a variant that:
+  - runs only native read traffic after `INIT_DONE`,
+  - issues the same 16 sparse addresses as the v89 sparse gate,
+  - keeps native read diagnostics (`nonzero`, `change_count`, `last_addr`,
+    `last_data`) enabled.
+- The probe parser now classifies this mode as
+  `"native sparse read-scan without DFII"` when `version>=90` and
+  `native_sparse_readscan_only` is set.
+- Flake outputs are wired for the variant via:
+  - `task6-ypcb-litedram-no-odelay-lowrate-native-sparse-readscan-init-bandwidth-probe`
+  - json/utilization/fasm/bitstream artifact siblings.
+
+Status:
+
+- Build-time plumbing is in place.
+- Board/JTAG execution for v90 is the remaining step (next gate).
+
 Next gate:
 
-- Add a no-DFII sparse native read probe:
-  - skip the DFII address-walk entirely after init,
-  - issue the same 16 sparse native reads,
-  - record the same nonzero/change/last-address counters.
-- If no-DFII sparse reads still replay one constant word, debug the native read
-  response capture path in isolation. If no-DFII sparse reads are zero or
-  address-varying, debug DFII/manual-access contamination of the native read
-  path.
+- Run v90 no-DFII sparse native reads on the YPCB DDR3 board and capture
+  full JTAG output.
+- If constant replay persists:
+  - prioritize isolating native read FIFO/capture-response selection,
+  - then native read-data path consumption and sequencing after DFII-free init.
