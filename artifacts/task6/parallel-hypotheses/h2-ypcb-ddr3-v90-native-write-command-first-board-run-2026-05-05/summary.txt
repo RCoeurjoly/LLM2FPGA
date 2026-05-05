@@ -1,0 +1,62 @@
+DDR3 v90 native write command-first experiment
+
+Result: FAIL, same native write/read symptom as v86
+
+Source commit: c555c0b
+Hypothesis: native writes fail because write data can be same-cycle or ahead of commands.
+Change: serialize native write data command-first; assert wdata_valid only after the corresponding write command count has advanced.
+
+Bitstream:
+/nix/store/srpr1fwcwqalid3mkf3zwvpff8hsfq6q-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit
+sha256: 2e2c39a5bd2ce79952cffeb829bbcf14a3f74c05839b4155e2a35e8d4dc489d7
+
+Programming:
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 <bitstream>
+Result: isc_done=1 init=1 done=1
+
+Timing:
+user_clk max 74.79 MHz at 25 MHz target, PASS
+clk200 max 463.18 MHz
+core.iodelay_clk max 531.07 MHz
+jtag_debug_shift.drck max 388.35 MHz
+
+Probe:
+python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --backend mpsse --tdo-bit 7 --json-only
+
+Clean init/status fields:
+magic_ok=true
+version=90
+init_done=true
+init_error=false
+pll_locked=true
+
+Clean DFII fields:
+dfii_seq_state=DFII_SEQ_DONE
+dfii_step=63
+dfii_word_mismatch_mask=0
+dfii_uniform_mismatch_mask=0
+dfii_phasecmd_mismatch_masks=0
+dfii_addr_mismatch_masks=0
+
+Failing native fields:
+state=PROBE_ERROR
+complete=false
+failed=true
+probe_error=true
+mismatch_seen=true
+target_read_count=16
+command_count=16
+write_command_count=16
+write_data_count=16
+response_count=16
+sample_valid_count=8
+mismatch_count=16
+command_stall_count=59
+first_mismatch_addr=0
+first_actual=0
+first_expected=15045981070236873776
+next_read_addr=16
+compare_addr=16
+
+Conclusion:
+Command-first native write-data ordering does not fix the bug. The write and read transactions still complete, but readback is zero. This rules out data-ahead ordering as the primary cause and keeps the focus on native write data mapping, DFI write-data emission, or controller write-side semantics.

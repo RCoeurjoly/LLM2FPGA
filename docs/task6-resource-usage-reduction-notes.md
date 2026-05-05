@@ -14255,3 +14255,17 @@ Conclusion: v83 is source-reproducible when built from the v83 code lineage. The
 - Probe result: `version=87`, `state=PROBE_DONE`, `complete=true`, `failed=false`.
 - Native readscan result: `target_read_count=64`, `command_count=64`, `response_count=64`, `write_command_count=0`, `write_data_count=0`, `native_readscan_nonzero_count=64`, `native_readscan_nonzero_chunk_seen=0x1ff`, `native_readscan_first_nonzero_data=0xadacafaea9a8abaa`.
 - Conclusion: native reads can see nonzero DFII-written data. Combined with the v86 native write/read failure, this localizes the bug to native write-side behavior, not DDR3 init, PLL lock, DFII operation, or native read visibility.
+
+### DDR3 v90 native write command-first board result - 2026-05-05
+
+- Commit under test: `c555c0b` on `task6-ddr3-v83-resurrection`.
+- Hypothesis: native writes fail because write data can be same-cycle or ahead of write commands.
+- Change: serialized native write data command-first by only asserting `wdata_valid` when `write_data_count_q < write_command_count_q`.
+- Bitstream: `/nix/store/srpr1fwcwqalid3mkf3zwvpff8hsfq6q-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit`.
+- Bitstream sha256: `2e2c39a5bd2ce79952cffeb829bbcf14a3f74c05839b4155e2a35e8d4dc489d7`.
+- Board result: program succeeded with `isc_done=1 init=1 done=1`.
+- Timing: routed `user_clk` max `74.79 MHz` for a `25 MHz` target, PASS.
+- Init result stayed clean: `init_done=true`, `init_error=false`, `pll_locked=true`.
+- DFII result stayed clean: `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_word_mismatch_mask=0`, `dfii_uniform_mismatch_mask=0`, `dfii_phasecmd_mismatch_masks=0`.
+- Native gate still failed: `state=PROBE_ERROR`, `failed=true`, `write_command_count=16`, `write_data_count=16`, `command_count=16`, `response_count=16`, `mismatch_count=16`, `first_actual=0`, `first_expected=15045981070236873776`.
+- Conclusion: command-first write-data ordering does not fix the native write failure. The next target should be native write data mapping or DFI write-data emission, not command/data ahead ordering.
