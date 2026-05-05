@@ -1,0 +1,66 @@
+{
+  "status": "PASS",
+  "probe_version": 106,
+  "experiment": "v106-live-source7-write-tap",
+  "hypothesis": "The source7 byte-phase tag is generated and acknowledged on the live DFII write-data CSR path even though source7 is absent from readback.",
+  "source": {
+    "worktree": "/tmp/task6-v106-live-source7-tap",
+    "commit": "f7eb24c",
+    "base_result_commit": "cecae7b"
+  },
+  "bitstream": {
+    "path": "/nix/store/ylmmfifwdwc0jqmd1zx3nlmlafmg9y3r-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "sha256": "93743bd554740701a5b9282057b4898fe5c6e244c2c68bc29b2df3698bbba319"
+  },
+  "status_flags": {
+    "state": "PROBE_DFII_DONE",
+    "pll_locked": true,
+    "init_done": true,
+    "init_error": false,
+    "init_seq_done": true,
+    "init_seq_error": false,
+    "wb_timeout_seen": false
+  },
+  "live_source7_write_tap": {
+    "field_repurpose": {
+      "dfii_addr_mismatch_masks": "source7 live write-word ack mask",
+      "dfii_addr_nonzero_masks": "source7 live write-side nonzero byte-slot mask",
+      "dfii_addr_match_masks": "source7 live write-side source7-tag byte-slot mask"
+    },
+    "write_word_ack_mask_hex": "0xfffff",
+    "write_side_nonzero_mask_hex": "0x00080",
+    "write_side_tag_match_mask_hex": "0x00080",
+    "expected_live_write_side_tag_slot_hex": "0x00080"
+  },
+  "readback_matrix": {
+    "source_masks_hex": [
+      "0x00201",
+      "0x00402",
+      "0x00804",
+      "0x01008",
+      "0x02010",
+      "0x04020",
+      "0x08040",
+      "0x00000",
+      "0x20100",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000"
+    ],
+    "source7_match_mask_hex": "0x00000",
+    "source7_nonzero_mask_hex": "0x00000"
+  },
+  "decision": {
+    "result": "The source7 tag is generated and all source7 write-data CSR words are acknowledged, but source7 remains absent from the readback matrix.",
+    "boundary": "The fault is downstream of acknowledged DFII write-data CSR issuance.",
+    "next_gate": "Expose actual DFI/PHY write-data at the write command boundary, or force the source7 tag through a known-good source slot to determine whether disappearance follows the tag value or write-side byte slot."
+  },
+  "artifacts": {
+    "probe_json": "artifacts/task6/experiments/v106-live-source7-write-tap/probe.json",
+    "summary": "artifacts/task6/experiments/v106-live-source7-write-tap/summary.md"
+  }
+}
