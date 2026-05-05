@@ -1,0 +1,47 @@
+DDR3 v94 gated native WDF probe, 2026-05-05
+
+Source commit: 1928762 task6-ddr3: prepare v94 gated native WDF probe
+Bitstream: /nix/store/x4qcvsjb2wnagmdgpyhx98axgz2inv6f-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit
+SHA256: 95c1c4303962bda4c35f95da84b1d2bf6633947a61a091a97347c02bb61cc695
+Board serial: 210299BF3824
+
+Result: fail, but init/DFII restored.
+
+Observed probe highlights:
+- source experiment label: v94
+- board telemetry version: 93, version bump missed
+- state=PROBE_ERROR
+- pll_locked=true
+- init_done=true
+- init_error=false
+- init_seq_done=true
+- init_seq_error=false
+- dfii_step=63
+- dfii_word_mismatch_mask=0
+- dfii_uniform_mismatch_mask=0
+- dfii_phase_mismatch_mask=0
+- write_command_count=16
+- write_data_count=16
+- response_count=16
+- mismatch_count=16
+- sample_rdata_0..7=0
+- native debug event_count=15
+- native debug packed mask/seen=0x0ae8
+- native debug mask/status=0xae
+- native debug last_en=0x8
+
+Status byte 0xae decode:
+- bit7 main_litedramcore_sel=1
+- bit6 main_litedramcore_ext_dfi_sel=0
+- bit5 fifo_empty=1
+- bit4 push_at_event=0
+- bit3 pop_at_event=1
+- bit2 slave_wrdata_event=1
+- bit1 master_wrdata_event=1
+- bit0 data_out_bit0=0
+
+Interpretation:
+v94 reverses the v93 early-init regression. The native failure remains: native commands/data/responses are accepted, but readback is zero. The captured write-data event happens in native selection, with slave and master write-data events asserted, while the inserted native WDF FIFO is empty and being popped. That points before/at the FIFO push/capture point, not DDR calibration or route seed.
+
+Next surgical action:
+Fix the version bump, then make v95 expose whether a native WDF push ever occurs and whether the push point is the wrong generated-core signal. Use the compact status byte path, since it is visible and did not perturb init.

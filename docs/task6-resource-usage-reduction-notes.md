@@ -14296,3 +14296,16 @@ SHA256: `03cc81e050af09eacee5a9a7958897be1fb77c4cc61a1b01367439e6e6e09608`.
 Board result: `version=93`, `pll_locked=true`, `init_error=false`, but `init_done=false`, `init_seq_done=false`, `init_seq_error=true`, `wb_timeout_seen=true`, `wb_ack_count=0`, `wb_wait_count=524289`. Native command/data/response counters stayed zero, and the v93 WDF debug fields stayed zero.
 
 Interpretation: v93 regressed before the native write/read BIST, so it does not answer the native write-data question. Treat it as a failed instrumentation experiment. The next surgical fix should restore the v92/v87 init behavior and use a narrower counter/debug path that does not perturb early DFII/Wishbone sequencing.
+
+### DDR3 v94 gated native WDF probe result (2026-05-05)
+
+Experiment source: `1928762 task6-ddr3: prepare v94 gated native WDF probe`.
+Result artifact: `artifacts/task6/parallel-hypotheses/h2-ypcb-ddr3-v94-gated-native-wdf-probe-board-run-2026-05-05/`.
+Bitstream: `/nix/store/x4qcvsjb2wnagmdgpyhx98axgz2inv6f-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit`.
+SHA256: `95c1c4303962bda4c35f95da84b1d2bf6633947a61a091a97347c02bb61cc695`.
+
+Board result: source experiment label v94, but board telemetry still reports `version=93`; the version bump was missed and must be fixed next. Init/DFII behavior recovered from v93: `pll_locked=true`, `init_error=false`, `init_done=true`, `init_seq_done=true`, `init_seq_error=false`, `dfii_step=63`, and DFII mismatch masks remained zero. Native path still failed: `write_command_count=16`, `write_data_count=16`, `response_count=16`, `mismatch_count=16`, and sampled readback data stayed zero.
+
+New diagnostic: `native_readscan_first_nonzero_addr=0x0ae8`, `native_readscan_nonzero_chunk_seen=0xae`, `native_readscan_first_nonzero_chunk_mask=0x8`, `native_readscan_nonzero_count=15`. Decoding status byte `0xae` gives native controller select active, external DFII select inactive, FIFO empty, no push at the event, pop asserted, slave write-data event asserted, and master write-data event asserted.
+
+Interpretation: v94 restored the known-good init path while showing that the native PHY write-data event occurs with the inserted native WDF FIFO empty. This points before or at the FIFO push/capture signal rather than to DDR3 calibration, route seed, or native read response handling. Next v95 should first fix the version bump, then expose whether any native WDF push ever occurs and whether the push condition is tied to the wrong generated-core signal.
