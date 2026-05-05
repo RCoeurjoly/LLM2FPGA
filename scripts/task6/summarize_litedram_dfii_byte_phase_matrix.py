@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Summarize the v98 DFII byte/phase association matrix probe."""
+"""Summarize the v98/v99 DFII byte/phase association matrix probe."""
 
 from __future__ import annotations
 
@@ -69,12 +69,17 @@ def get_mask_row(probe: dict[str, Any], base: str, row: int) -> int:
     return 0
 
 
-def set_bit_positions(mask: int) -> list[int]:
-    return [bit for bit in range(16) if mask & (1 << bit)]
+def get_packed_nibble(probe: dict[str, Any], key: str, row: int) -> int:
+    return (as_int(probe.get(key)) >> (row * 4)) & 0xF
 
 
-def hex16(value: int) -> str:
-    return f"0x{value & 0xffff:04x}"
+def set_bit_positions(mask: int, width: int = 20) -> list[int]:
+    return [bit for bit in range(width) if mask & (1 << bit)]
+
+
+def hex_mask(value: int, width: int = 20) -> str:
+    digits = (width + 3) // 4
+    return f"0x{value & ((1 << width) - 1):0{digits}x}"
 
 
 def summarize(
@@ -109,12 +114,22 @@ def summarize(
         2,
     )
 
+    high_match_masks = [
+        get_packed_nibble(probe, "dfii_half_low_match_high_masks", row)
+        for row in range(16)
+    ]
+    high_nonzero_masks = [
+        get_packed_nibble(probe, "dfii_half_nonzero_high_masks", row)
+        for row in range(16)
+    ]
     match_masks = [
         get_mask_row(probe, "dfii_assoc_match_mask", row)
+        | (high_match_masks[row] << 16)
         for row in range(16)
     ]
     nonzero_masks = [
         get_mask_row(probe, "dfii_assoc_nonzero_mask", row)
+        | (high_nonzero_masks[row] << 16)
         for row in range(16)
     ]
 
@@ -141,8 +156,8 @@ def summarize(
             "read_beat": (observed_slot >> 2) if observed_slot is not None else None,
             "read_logical_byte": (observed_slot & 3) if observed_slot is not None else None,
             "read_slot": observed_slot,
-            "observed": hex16(match_masks[slot]),
-            "observed_nonzero_mask": hex16(nonzero_masks[slot]),
+            "observed": hex_mask(match_masks[slot]),
+            "observed_nonzero_mask": hex_mask(nonzero_masks[slot]),
             "observed_match_slots": matches,
             "observed_nonzero_slots": nonzero,
         }
@@ -168,17 +183,20 @@ def summarize(
         "write_cases": write_cases,
         "mapping_inference": {
             "is_bijective": is_bijective and not probe_failed,
+            "matrix_shape": "16_write_slots_by_20_read_slots",
             "physical_to_logical_byte": physical_to_logical_byte,
             "phase_transform": (
                 f"source_phase={source_phase}, "
                 f"write_command_phase={write_command_phase}, "
-                f"read_phase={read_phase}; slot=beat*4+byte"
+                f"read_phase={read_phase}; read_slot=word*4+byte"
             ),
             "confidence": "high" if is_bijective else "low",
         },
         "raw_masks": {
-            "match_masks": [hex16(mask) for mask in match_masks],
-            "nonzero_masks": [hex16(mask) for mask in nonzero_masks],
+            "match_masks": [hex_mask(mask) for mask in match_masks],
+            "nonzero_masks": [hex_mask(mask) for mask in nonzero_masks],
+            "match_high_nibbles": [f"0x{mask:x}" for mask in high_match_masks],
+            "nonzero_high_nibbles": [f"0x{mask:x}" for mask in high_nonzero_masks],
         },
         "decision": {
             "next_gate": (
