@@ -1,0 +1,12 @@
+Command:
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 --detect
+
+Output:
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz
+index 0:
+	idcode 0x23751093
+	manufacturer xilinx
+	family kintex7
+	model  xc7k480t
+	irlength 6

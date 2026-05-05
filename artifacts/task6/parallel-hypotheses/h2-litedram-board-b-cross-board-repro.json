@@ -1,0 +1,48 @@
+{
+  "status": "INCONCLUSIVE_NOT_CONFIGURED",
+  "probe_version": 108,
+  "hypothesis": "The exact init-clean v99 Board A bitstream reproduces the same DDR3 byte/phase behavior on Board B.",
+  "board": {
+    "label": "Board B",
+    "jtag_adapter": "Digilent HS3",
+    "ftdi_serial": "210299BF3824",
+    "detected_idcode": "0x23751093",
+    "detected_family": "kintex7",
+    "detected_model": "xc7k480t",
+    "jtag_chain_detected": true
+  },
+  "controlled_input": {
+    "bitstream_origin": "v99 Board A init-clean byte-phase association matrix",
+    "bitstream_path": "/nix/store/qmzhnmwwybzmi2cyf3xncj3p1nirz46f-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "bitstream_sha256": "b02f9444f17ea595c45e6110867dbb4fe09bc9b4658af3bd7582eee629d0e116",
+    "rtl_changes": "none",
+    "probe_changes": "none"
+  },
+  "programming_result": {
+    "done": false,
+    "mmcm_lock": false,
+    "eos": false,
+    "init_complete": false
+  },
+  "probe_result": {
+    "artifact": "artifacts/task6/experiments/v108-board-b-cross-board-repro/v99-probe.json",
+    "magic_ok": false,
+    "version": 0,
+    "magic": 0,
+    "pll_locked": false,
+    "init_done": false,
+    "init_error": false,
+    "sys_rstn": false,
+    "state": "PROBE_RESET",
+    "raw_payload": "all_zero"
+  },
+  "interpretation": {
+    "is_ddr3_byte_phase_evidence": false,
+    "is_board_comparison_valid": false,
+    "reason": "Board B did not reach FPGA DONE/configured state with the exact v99 Board A bitstream, although JTAG detects the expected xc7k480t device."
+  },
+  "decision": {
+    "next_gate": "resolve Board B configuration/comparability before programming v106/v107 or interpreting DDR3 behavior",
+    "do_not_run_next": "v106/v107 DDR probes on Board B while exact v99 reports DONE=0"
+  }
+}
