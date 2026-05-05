@@ -1,0 +1,33 @@
+{
+  "status": "FAIL_UNINTERPRETABLE",
+  "probe_version": 100,
+  "source_commit": "3ca71f4",
+  "target": "task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-bitstream",
+  "bitstream": "/nix/store/zjinzswqqnxcw2wzm4dikn8hyzmnqsz3-task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.bit",
+  "bitstream_sha256": "06f454702976dee9a2373f67a8cb48eed9df97594a8f13c5353c42d18435ef1b",
+  "hypothesis": "DFII lane7 source is one of the explicit low/word4 edge candidates, observable through the lane7 locator tags after the v99 word4 visibility result.",
+  "hardware_status": {
+    "pll_locked": true,
+    "init_done": false,
+    "init_error": false,
+    "init_seq_done": false,
+    "init_seq_error": true,
+    "wb_timeout_seen": true,
+    "state": "PROBE_ERROR",
+    "init_state": "INIT_ERROR"
+  },
+  "locator_mode": {
+    "dfii_edge_lane7_locator_probe_only": true,
+    "dfii_displacement_observed": [],
+    "all_dfii_rddata_zero": true,
+    "all_assoc_masks_zero": true
+  },
+  "mapping_inference": {
+    "is_bijective": false,
+    "candidate_observed": null,
+    "confidence": "none; target did not reach an interpretable locator readback"
+  },
+  "decision": {
+    "next_gate": "restore init-clean execution for the locator using the exact v99 clean construction, or fold locator tags into the init-clean v99 byte-phase matrix target; do not alter DDR packing from v100"
+  }
+}
