@@ -14218,3 +14218,15 @@ Conclusion: v83 is source-reproducible when built from the v83 code lineage. The
 - DFII result: `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_data_pass=true`, `dfii_word_mismatch_mask=0`, `dfii_uniform_mismatch_mask=0`, `dfii_phasecmd_mismatch_masks=0`.
 - Timing: routed `user_clk` max `70.69 MHz` for a `25 MHz` target, PASS.
 - Conclusion: `v84` is clean. The first replayed delta after `v83` does not introduce the DDR3 regression.
+
+### DDR3 v85 clean replay board result - 2026-05-05
+
+- Commit under test: `96fcff6` on `task6-ddr3-v83-resurrection`.
+- Delta: replayed `v85` compensated DFII address-walk on top of clean `v83` and `v84` lineage.
+- Bitstream: `/nix/store/i1mbg1f0xscdw0w8hq8mc0v9yz83bxa8-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe.bit`.
+- Bitstream sha256: `64c4fef41a8fef52512158a480812d91cb027f79714ac6e4a5e05851deb4a551`.
+- Board result: program succeeded with `isc_done=1 init=1 done=1`.
+- Probe result: `magic_ok=true`, `version=85`, `state=PROBE_DFII_DONE`, `init_done=true`, `init_error=false`, `pll_locked=true`, `failed=false`.
+- DFII result: `dfii_seq_state=DFII_SEQ_DONE`, `dfii_step=63`, `dfii_data_pass=true`, `dfii_word_mismatch_mask=0`, `dfii_uniform_mismatch_mask=0`, `dfii_phasecmd_mismatch_masks=0`.
+- Address-walk result: decoded columns `0`, `8`, `64`, and `256`; address mismatch masks all zero; association match masks all `0xffff`; association nonzero masks all zero.
+- Conclusion: `v85` is clean. The address-walk delta does not introduce the DDR3 regression.

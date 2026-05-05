@@ -1,0 +1,55 @@
+DDR3 v85 clean replay experiment
+
+Result: PASS
+
+Source commit: 96fcff6
+Previous clean result commit: 6666f86
+Base known-good lineage: f4d732e
+Delta: replay v85 compensated DFII address-walk on top of the reproduced v83/v84 source lineage.
+
+Bitstream:
+/nix/store/i1mbg1f0xscdw0w8hq8mc0v9yz83bxa8-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe.bit
+sha256: 64c4fef41a8fef52512158a480812d91cb027f79714ac6e4a5e05851deb4a551
+
+Programming:
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 <bitstream>
+Result: isc_done=1 init=1 done=1
+
+Probe:
+python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --backend mpsse --tdo-bit 7 --json-only
+
+Key probe fields:
+magic_ok=true
+version=85
+state=PROBE_DFII_DONE
+init_state=INIT_DONE
+init_step=32
+init_done=true
+init_error=false
+pll_locked=true
+complete=true
+failed=false
+dfii_seq_state=DFII_SEQ_DONE
+dfii_step=63
+dfii_wb_ack_count=58
+dfii_wb_wait_count=174
+wb_ack_count=86
+wb_wait_count=258
+dfii_data_pass=true
+dfii_data_failed=false
+dfii_word_mismatch_mask=0
+dfii_uniform_mismatch_mask=0
+dfii_phasecmd_mismatch_masks=0
+dfii_addr_mismatch_masks=0
+dfii_addr_nonzero_masks=0
+dfii_last_read_data=0x0000a2ad
+
+Address-walk coverage observed by decoder:
+columns: 0, 8, 64, 256
+address matrix mismatch masks: all zero
+association matrix match masks: all 0xffff
+association matrix nonzero masks: all zero
+phase-command mismatch masks: all zero
+
+Conclusion:
+v85 preserves clean DDR3 init and DFII pass status. This address-walk delta is not the regression point.
