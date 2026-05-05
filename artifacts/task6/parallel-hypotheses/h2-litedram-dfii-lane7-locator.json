@@ -1,12 +1,12 @@
 {
   "status": "FAIL_UNINTERPRETABLE",
-  "probe_version": 101,
-  "source_commit": "ac9cd25",
-  "target": "task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-bitstream",
-  "bitstream": "/nix/store/48mrh0ypa10lvvclzv0vbmxvc9x3qjms-task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.bit",
-  "bitstream_sha256": "a787d3e38ed0f368c0dacc60edeba7f221844de6ca184bbeb63b6e1eb52ac063",
-  "hypothesis": "DFII lane7 source is one of the explicit low/word4 edge candidates, observable through locator tags after the v99 word4 visibility result.",
-  "controlled_change_from_v100": "Use the same DFI-debug LiteDRAM elaboration and TASK6_LITEDRAM_DEBUG_PORTS define as the v99 init-clean byte-phase target.",
+  "probe_version": 102,
+  "source_commit": "6648032",
+  "target": "task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe-bitstream",
+  "bitstream": "/nix/store/kdjp6v91lbsbp2ndqibbs3p9k1qv7cxz-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+  "bitstream_sha256": "51a85571197a1f8178a5dbe3eefecbe737af779613cf17775f6391e552658883",
+  "hypothesis": "Fold the lane7 locator payload into the v99 byte-phase matrix path so the known-clean byte-phase sequence carries candidate tags without using the standalone locator mode.",
+  "controlled_change_from_v101": "Use DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY, not DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY; only source slot 7 emits the existing locator write pattern.",
   "hardware_status": {
     "pll_locked": true,
     "init_done": false,
@@ -18,7 +18,8 @@
     "init_state": "INIT_ERROR"
   },
   "locator_mode": {
-    "dfii_edge_lane7_locator_probe_only": true,
+    "dfii_edge_lane7_locator_probe_only": false,
+    "byte_phase_assoc_matrix_mode_expected": true,
     "dfii_displacement_observed": [],
     "all_dfii_rddata_zero": true,
     "all_assoc_masks_zero": true
@@ -26,9 +27,9 @@
   "mapping_inference": {
     "is_bijective": false,
     "candidate_observed": null,
-    "confidence": "none; corrected-path standalone locator did not reach an interpretable readback"
+    "confidence": "none; folded byte-phase target did not reach an interpretable readback"
   },
   "decision": {
-    "next_gate": "fold a minimal lane7 tag into the v99 DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY target path instead of using the standalone lane7 locator mode"
+    "next_gate": "restore exact v99 reproducibility before adding any more RTL locator logic; prefer host-side analysis of already captured v99 data first"
   }
 }
