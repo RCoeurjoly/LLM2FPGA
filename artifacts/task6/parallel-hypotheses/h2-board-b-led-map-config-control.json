@@ -1,0 +1,45 @@
+{
+  "status": "FAIL_DONE_LOW",
+  "probe_version": 109,
+  "hypothesis": "A small non-DDR YPCB LED-map bitstream configures Board B and asserts FPGA DONE.",
+  "source": {
+    "source_commit": "33d6252",
+    "flake_target": ".#task6-led-map-bitstream",
+    "bitstream_path": "/nix/store/wxmy0chrhz9kbb4dx0yjfhmf4sn5535q-task6-led-map.bit",
+    "bitstream_sha256": "41798a2cfe76d85adef246ac7507ab6115c36b32df7cbfbac58fcb3d09c99874"
+  },
+  "board": {
+    "label": "Board B",
+    "jtag_adapter": "Digilent HS3",
+    "ftdi_serial": "210299BF3824",
+    "previous_detected_idcode": "0x23751093",
+    "previous_detected_model": "xc7k480t"
+  },
+  "controlled_scope": {
+    "uses_ddr3": false,
+    "uses_litedram": false,
+    "uses_dfii": false,
+    "uses_debug_probe": false
+  },
+  "programming_result": {
+    "transfer_completed": true,
+    "loader_exit_code": 0,
+    "status_register_raw": "0x0",
+    "isc_done": false,
+    "init": false,
+    "done": false,
+    "init_complete": false,
+    "crc_error": false,
+    "id_error": false,
+    "bus_width": "x1"
+  },
+  "interpretation": {
+    "is_ddr3_evidence": false,
+    "falsifies_ddr_specific_config_failure": true,
+    "reason": "The same DONE=0 symptom occurs with a small non-DDR LED-map bitstream, so Board B is not currently usable for DDR3 cross-board comparison."
+  },
+  "decision": {
+    "next_gate": "Make Board B assert DONE with a non-DDR bitstream or independently explain why openFPGALoader status reads all zero.",
+    "blocked_experiments": "Do not run v99/v106/v107 DDR comparison on Board B while the LED-map control reports DONE=0."
+  }
+}

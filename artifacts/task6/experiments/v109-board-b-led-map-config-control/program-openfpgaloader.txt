@@ -1,0 +1,35 @@
+Command:
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/wxmy0chrhz9kbb4dx0yjfhmf4sn5535q-task6-led-map.bit
+
+Output:
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz
+Open file DONE
+Parse file DONE
+load program
+Load SRAM: 100.00%
+
+Done
+Shift IR 01
+ir: 1 isc_done 0 isc_ena 0 init 0 done 0
+Register raw value: 0x0
+CRC Error       No CRC error
+Part Secured    0x0
+MMCM lock       0x0
+DCI match       0x0
+EOS             0x0
+GTS CFG B       0x0
+GWE             0x0
+GHIGH B         0x0
+MODE            0x0
+INIT Complete   0x0
+INIT B          0x0
+Release Done    0x0
+Done            0x0
+ID Error        No ID error
+DEC Error       0x0
+XADC Over temp  0x0
+STARTUP State   0x0
+Reserved        0x0
+BUS Width       x1
+Reserved        0x0
