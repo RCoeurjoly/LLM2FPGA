@@ -14,6 +14,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def replace_repeated_assigns(
+    text: str,
+    old_assign: str,
+    new_assign: str,
+    label: str,
+) -> str:
+    count = text.count(old_assign)
+    if count != 4:
+        raise SystemExit(f"expected four LiteDRAM {label} assigns, found {count}")
+    text = text.replace(old_assign, new_assign, 1)
+    text = text.replace(old_assign, "", 3)
+    return text
+
+
 def main() -> None:
     args = parse_args()
     text = args.rtl.read_text()
@@ -39,12 +53,12 @@ def main() -> None:
         "task6_native_wdf_select_native ? task6_native_wdf_data_out : "
         "main_litedramcore_interface_wdata;"
     )
-    count = text.count(old_wdata_assign)
-    if count != 4:
-        raise SystemExit(
-            f"expected four LiteDRAM interface wrdata assigns, found {count}"
-        )
-    text = text.replace(old_wdata_assign, new_wdata_assign)
+    text = replace_repeated_assigns(
+        text,
+        old_wdata_assign,
+        new_wdata_assign,
+        "interface wrdata",
+    )
 
     old_mask_assign = (
         "assign {main_litedramcore_dfi_p3_wrdata_mask, main_litedramcore_dfi_p2_wrdata_mask, "
@@ -57,12 +71,12 @@ def main() -> None:
         "task6_native_wdf_select_native ? (~task6_native_wdf_we_out) : "
         "(~main_litedramcore_interface_wdata_we);"
     )
-    count = text.count(old_mask_assign)
-    if count != 4:
-        raise SystemExit(
-            f"expected four LiteDRAM interface wrdata mask assigns, found {count}"
-        )
-    text = text.replace(old_mask_assign, new_mask_assign)
+    text = replace_repeated_assigns(
+        text,
+        old_mask_assign,
+        new_mask_assign,
+        "interface wrdata mask",
+    )
 
     debug_assigns = """
 //------------------------------------------------------------------------------
