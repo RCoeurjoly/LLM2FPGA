@@ -1,0 +1,62 @@
+{
+  "status": "PASS",
+  "probe_version": 105,
+  "experiment": "v105-source7-intent-mask",
+  "hypothesis": "The exact v99 byte/phase association build can remain init-clean while exposing the expected source7 slots [7, 16] as a debug intent mask.",
+  "source": {
+    "worktree": "/tmp/task6-v105-source7-intent",
+    "commit": "9db4592",
+    "base_result_commit": "cecae7b"
+  },
+  "bitstream": {
+    "path": "/nix/store/m8cqha2v7aswx1zbhl53mm9lx3nb4gyg-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "sha256": "0fcecda9913a49e06a4c888e98771bd008aab6815c14fcdfd08ad52f69f7edce"
+  },
+  "status_flags": {
+    "state": "PROBE_DFII_DONE",
+    "pll_locked": true,
+    "init_done": true,
+    "init_error": false,
+    "init_seq_done": true,
+    "init_seq_error": false,
+    "wb_timeout_seen": false
+  },
+  "intent_marker": {
+    "source": 7,
+    "expected_slots": [7, 16],
+    "expected_mask_hex": "0x10080",
+    "dfii_addr_match_masks_hex": "0x10080",
+    "dfii_addr_nonzero_masks_hex": "0x10080"
+  },
+  "observed_matrix": {
+    "source_masks_hex": [
+      "0x00201",
+      "0x00402",
+      "0x00804",
+      "0x01008",
+      "0x02010",
+      "0x04020",
+      "0x08040",
+      "0x00000",
+      "0x20100",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000",
+      "0x00000"
+    ],
+    "source7_match_mask_hex": "0x00000",
+    "source7_nonzero_mask_hex": "0x00000"
+  },
+  "decision": {
+    "result": "The tiny debug marker is route-stable and init-clean. Source7 expected intent is visible as 0x10080, but source7 readback remains zero.",
+    "limitation": "The marker exposes the expected source7 intent mask, not a live tap of the final DFII write-data bus.",
+    "next_gate": "Expose a live source7 DFII write-data/mask tap immediately before the DFII CSR write. If live intent is 0x10080 and readback remains zero, move downstream to DFII CSR write/read path or PHY/data-lane behavior."
+  },
+  "artifacts": {
+    "probe_json": "artifacts/task6/experiments/v105-source7-intent-mask/probe.json",
+    "summary": "artifacts/task6/experiments/v105-source7-intent-mask/summary.md"
+  }
+}
