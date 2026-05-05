@@ -1,0 +1,205 @@
+{
+  "status": "HOST_ANALYSIS_ONLY",
+  "inputs": {
+    "v99": "artifacts/task6/experiments/v99-dfii-byte-phase-wide-matrix/probe.json",
+    "v103": "artifacts/task6/experiments/v103-exact-v99-replay/probe.json"
+  },
+  "statuses": {
+    "v99": {
+      "version": 99,
+      "state": "PROBE_DFII_DONE",
+      "init_state": "INIT_DONE",
+      "pll_locked": true,
+      "init_done": true,
+      "init_error": false,
+      "init_seq_done": true,
+      "init_seq_error": false,
+      "wb_timeout_seen": false,
+      "dfii_seq_state": "DFII_SEQ_DONE"
+    },
+    "v103": {
+      "version": 99,
+      "state": "PROBE_DFII_DONE",
+      "init_state": "INIT_DONE",
+      "pll_locked": true,
+      "init_done": true,
+      "init_error": false,
+      "init_seq_done": true,
+      "init_seq_error": false,
+      "wb_timeout_seen": false,
+      "dfii_seq_state": "DFII_SEQ_DONE"
+    }
+  },
+  "matrices_match": true,
+  "nonzero_masks_match": true,
+  "combined_20_slot_match_masks": {
+    "0": "0x00201",
+    "1": "0x00402",
+    "2": "0x00804",
+    "3": "0x01008",
+    "4": "0x02010",
+    "5": "0x04020",
+    "6": "0x08040",
+    "7": "0x00000",
+    "8": "0x20100",
+    "9": "0x00000",
+    "10": "0x00000",
+    "11": "0x00000",
+    "12": "0x00000",
+    "13": "0x00000",
+    "14": "0x00000",
+    "15": "0x00000"
+  },
+  "combined_20_slot_nonzero_masks": {
+    "0": "0x00201",
+    "1": "0x00402",
+    "2": "0x00804",
+    "3": "0x01008",
+    "4": "0x02010",
+    "5": "0x04020",
+    "6": "0x08040",
+    "7": "0x00000",
+    "8": "0x20100",
+    "9": "0x00000",
+    "10": "0x00000",
+    "11": "0x00000",
+    "12": "0x00000",
+    "13": "0x00000",
+    "14": "0x00000",
+    "15": "0x00000"
+  },
+  "source_to_read_slots": {
+    "0": [
+      0,
+      9
+    ],
+    "1": [
+      1,
+      10
+    ],
+    "2": [
+      2,
+      11
+    ],
+    "3": [
+      3,
+      12
+    ],
+    "4": [
+      4,
+      13
+    ],
+    "5": [
+      5,
+      14
+    ],
+    "6": [
+      6,
+      15
+    ],
+    "7": [],
+    "8": [
+      8,
+      17
+    ],
+    "9": [],
+    "10": [],
+    "11": [],
+    "12": [],
+    "13": [],
+    "14": [],
+    "15": []
+  },
+  "observed_sources": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+  ],
+  "unobserved_sources": [
+    7,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "observed_read_slots": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    17
+  ],
+  "missing_read_slots": [
+    7,
+    16,
+    18,
+    19
+  ],
+  "colliding_read_slots": {},
+  "fanout_sources": {
+    "0": [
+      0,
+      9
+    ],
+    "1": [
+      1,
+      10
+    ],
+    "2": [
+      2,
+      11
+    ],
+    "3": [
+      3,
+      12
+    ],
+    "4": [
+      4,
+      13
+    ],
+    "5": [
+      5,
+      14
+    ],
+    "6": [
+      6,
+      15
+    ],
+    "8": [
+      8,
+      17
+    ]
+  },
+  "linear_rule_from_observed_subset": {
+    "rule": "sources 0..6 map to read slots {s, s+9}; source 8 maps to {8, 17}",
+    "host_inferred_source7_expected_slots_if_rule_continues": [
+      7,
+      16
+    ],
+    "source7_observed_slots": [],
+    "confidence": "pattern inference only; not a hardware locator proof"
+  },
+  "decision": {
+    "do_not_change_ddr_packing": true,
+    "next_gate": "Any new RTL experiment must preserve exact v99 source/path as much as possible and include an immediate exact-v99 replay comparator; the current data supports a missing source7/slots7,16 hypothesis but not a corrective transform."
+  }
+}
