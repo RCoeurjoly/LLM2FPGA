@@ -14309,3 +14309,12 @@ Board result: source experiment label v94, but board telemetry still reports `ve
 New diagnostic: `native_readscan_first_nonzero_addr=0x0ae8`, `native_readscan_nonzero_chunk_seen=0xae`, `native_readscan_first_nonzero_chunk_mask=0x8`, `native_readscan_nonzero_count=15`. Decoding status byte `0xae` gives native controller select active, external DFII select inactive, FIFO empty, no push at the event, pop asserted, slave write-data event asserted, and master write-data event asserted.
 
 Interpretation: v94 restored the known-good init path while showing that the native PHY write-data event occurs with the inserted native WDF FIFO empty. This points before or at the FIFO push/capture signal rather than to DDR3 calibration, route seed, or native read response handling. Next v95 should first fix the version bump, then expose whether any native WDF push ever occurs and whether the push condition is tied to the wrong generated-core signal.
+
+### DDR3 v95 native WDF push visibility build result (2026-05-05)
+
+Experiment source: `0cf7fb0 task6-ddr3: prepare v95 native WDF push visibility`.
+Result artifact: `artifacts/task6/parallel-hypotheses/h2-ypcb-ddr3-v95-native-wdf-push-visibility-build-2026-05-05/`.
+
+Result: build invalid, intentionally interrupted before bitstream/board run. During Yosys `CHECK`, the generated RTL reported 576 conflicting drivers on DFI write-data nets, including `ypcb_litedram_core.main_litedramcore_dfi_p3_wrdata[143]` and `ypcb_litedram_core.main_litedramcore_dfi_p0_wrdata[0]`. The drivers came from the four repeated generated assignments around `ypcb_litedram_core.v` lines 14230-14233 after v95 changed each repeated assignment into a ternary mux.
+
+Interpretation: v95 should not be programmed. The generated LiteDRAM RTL has repeated equivalent assignments to the same DFI buses; replacing all repeats with gated expressions creates independent drivers. Next v96 must leave exactly one DFI bus driver, either by replacing only one repeated assignment and neutralizing duplicates or by patching a single upstream signal instead. The compact status-byte push visibility from v95 remains the right diagnostic once the multi-driver issue is fixed.

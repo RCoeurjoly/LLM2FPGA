@@ -1,0 +1,27 @@
+{
+  "experiment": "h2-ypcb-ddr3-v95-native-wdf-push-visibility",
+  "date": "2026-05-05",
+  "source_commit": "0cf7fb0 task6-ddr3: prepare v95 native WDF push visibility",
+  "result": "build_invalid_interrupted",
+  "classification": "generated_rtl_multi_driver",
+  "bitstream": null,
+  "board_run": false,
+  "reason_not_programmed": "Yosys CHECK reported 576 conflicting drivers on generated DFI write-data nets before routing; the build was intentionally interrupted instead of programming an invalid bitstream.",
+  "observed_build_issue": {
+    "tool": "yosys",
+    "phase": "CHECK pass",
+    "problem_count": 576,
+    "example_nets": [
+      "ypcb_litedram_core.main_litedramcore_dfi_p3_wrdata[143]",
+      "ypcb_litedram_core.main_litedramcore_dfi_p0_wrdata[0]"
+    ],
+    "example_driver_locations": [
+      "generated ypcb_litedram_core.v line 14230 mux",
+      "generated ypcb_litedram_core.v line 14231 mux",
+      "generated ypcb_litedram_core.v line 14232 mux",
+      "generated ypcb_litedram_core.v line 14233 mux"
+    ]
+  },
+  "interpretation": "v95 fixed the telemetry version source and attempted to gate DFI write-data replacement, but the generated RTL contains four repeated assignments to the same DFI write-data and mask buses. Replacing each repeated assignment with a ternary produced four independent mux drivers on the same nets, creating 576 multi-driver conflicts. This invalidates v95 before board testing.",
+  "next_action": "Change the generated RTL patch so the DFI buses have exactly one driver: replace only the first assignment with the gated expression and remove or neutralize the duplicate repeated assignments, or patch a single upstream signal instead of all four repeated assigns. Keep the compact status-byte push visibility after the multi-driver issue is fixed."
+}

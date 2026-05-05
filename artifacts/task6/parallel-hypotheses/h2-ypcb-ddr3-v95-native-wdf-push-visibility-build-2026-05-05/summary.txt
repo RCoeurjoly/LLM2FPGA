@@ -1,0 +1,16 @@
+DDR3 v95 native WDF push visibility, 2026-05-05
+
+Source commit: 0cf7fb0 task6-ddr3: prepare v95 native WDF push visibility
+Result: build invalid, interrupted before bitstream/board run.
+
+Observed build issue:
+- Yosys CHECK reported 576 problems.
+- The reported conflicts were multiple drivers on generated DFI write-data nets.
+- Example nets: ypcb_litedram_core.main_litedramcore_dfi_p3_wrdata[143], ypcb_litedram_core.main_litedramcore_dfi_p0_wrdata[0].
+- Example driver locations: generated ypcb_litedram_core.v lines 14230, 14231, 14232, and 14233, each producing a mux driver.
+
+Interpretation:
+v95 attempted to actually gate the DFI write-data replacement. The generated LiteDRAM RTL has four repeated assignments to the same concatenated DFI write-data/mask buses. Replacing all four repeated assignments with ternary expressions produced four independent mux drivers. That is invalid RTL for this experiment, so no bitstream was programmed.
+
+Next surgical action:
+For v96, make the generated RTL patch leave exactly one driver on the DFI buses. Replace only the first repeated assignment with the gated expression and remove or neutralize the duplicate repeated assignments, or patch a single upstream signal instead. Keep the compact status byte for push/pop visibility after the driver issue is corrected.
