@@ -84,7 +84,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v90 serializes native writes command-first to test write data ordering.
   // v91 restores native write ordering and exposes native DFI write capture.
   // v92 keeps native write ordering and tests generated-core native WDF FIFO.
-  // v93 exposes generated-core native WDF push/pop and master/slave event counts.
+  // v94 gates native WDF FIFO replacement and restores phase-local debug capture.
   localparam int CAL_BYTE_LANES = 8;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;

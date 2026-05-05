@@ -143,18 +143,8 @@ always @(posedge sys_clk) begin
     end
 end
 
-assign debug_dfi_wrdata_en = {4{task6_native_wdf_master_event}};
-assign debug_dfi_wrdata_word4 = {
-    task6_native_wdf_data_out[15:0],
-    task6_native_wdf_we_out[7:0],
-    task6_native_wdf_level[5:0],
-    task6_native_wdf_empty,
-    task6_native_wdf_select_native,
-    task6_native_wdf_master_event_count,
-    task6_native_wdf_slave_event_count,
-    task6_native_wdf_push_count,
-    task6_native_wdf_pop_count
-};
+assign debug_dfi_wrdata_en = {main_a7ddrphy_dfi_p3_wrdata_en, main_a7ddrphy_dfi_p2_wrdata_en, main_a7ddrphy_dfi_p1_wrdata_en, main_a7ddrphy_dfi_p0_wrdata_en};
+assign debug_dfi_wrdata_word4 = {24'd0, task6_native_wdf_push_count, task6_native_wdf_pop_count, task6_native_wdf_master_event_count, task6_native_wdf_slave_event_count, 6'd0, task6_native_wdf_empty, task6_native_wdf_select_native};
 assign debug_dfi_wrdata_word4_mask = {
     main_litedramcore_sel,
     main_litedramcore_ext_dfi_sel,
