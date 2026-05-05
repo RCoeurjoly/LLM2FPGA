@@ -1,0 +1,41 @@
+{
+  "status": "REPRODUCED_INIT_CLEAN",
+  "probe_version": 99,
+  "experiment_version": 103,
+  "source_commit": "cecae7b",
+  "worktree": "/tmp/task6-v99-replay",
+  "target": "task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe-bitstream",
+  "bitstream": "/nix/store/qmzhnmwwybzmi2cyf3xncj3p1nirz46f-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+  "bitstream_sha256": "b02f9444f17ea595c45e6110867dbb4fe09bc9b4658af3bd7582eee629d0e116",
+  "hardware_status": {
+    "pll_locked": true,
+    "init_done": true,
+    "init_error": false,
+    "init_seq_done": true,
+    "init_seq_error": false,
+    "wb_timeout_seen": false,
+    "state": "PROBE_DFII_DONE"
+  },
+  "combined_20_slot_masks": {
+    "source0": "0x00201",
+    "source1": "0x00402",
+    "source2": "0x00804",
+    "source3": "0x01008",
+    "source4": "0x02010",
+    "source5": "0x04020",
+    "source6": "0x08040",
+    "source7": "0x00000",
+    "source8": "0x20100",
+    "source9": "0x00000",
+    "source10": "0x00000",
+    "source11": "0x00000",
+    "source12": "0x00000",
+    "source13": "0x00000",
+    "source14": "0x00000",
+    "source15": "0x00000"
+  },
+  "interpretation": "The known v99 result is reproducible when replayed from the exact source snapshot and identical bitstream. v100-v102 failures are therefore introduced by later RTL/target changes, not by board state or JTAG probing.",
+  "decision": {
+    "next_gate": "Do host-side analysis from v99/v103 data before any new RTL. If RTL is needed, introduce exactly one compile-time-neutral debug exposure and require an exact v99 replay immediately before and after."
+  }
+}
