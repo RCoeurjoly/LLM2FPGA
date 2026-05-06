@@ -75,13 +75,13 @@
     "source7_summary": {
       "match_mask_hex": "0x100",
       "nonzero_mask_hex": "0x100",
-      "signature_hex": "0xa7000016",
+      "signature_hex": "0xa7b7c7d7",
       "interpretation": "Source7 remains not fixed and maps only into a single-bit pattern that does not match expected tag occupancy."
     },
     "source8_summary": {
       "match_mask_hex": "0x100",
       "nonzero_mask_hex": "0x100",
-      "signature_hex": "0xa8000017",
+      "signature_hex": "0xa8b8c8d8",
       "interpretation": "Source8 still appears alive but weakly aligned in the same low-lane slot context as source7, not a clean direct remap path for phase association."
     }
   },
