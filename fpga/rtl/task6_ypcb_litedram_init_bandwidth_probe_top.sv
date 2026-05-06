@@ -10,6 +10,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter bit DFII_SOURCE_ORDER_MATRIX_ONLY = 1'b0,
   parameter bit DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY = 1'b0,
   parameter bit DFII_HALF_ORDER_MATRIX_ONLY = 1'b0,
+  parameter bit DFII_INIT_STATUS_ONLY = 1'b0,
   parameter bit DFII_DISPLACEMENT_PROBE_ONLY = 1'b0,
   parameter bit DFII_CSR_ECHO_PROBE_ONLY = 1'b0,
   parameter bit DFII_WBITSLIP_SWEEP_ONLY = 1'b0,
@@ -3478,41 +3479,56 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             native_first_nonzero_data_q <= 64'd0;
             native_first_nonzero_chunk_q <= 9'd0;
             native_nonzero_chunk_seen_q <= 9'd0;
-            dfii_final_q <= !(DFII_DISPLACEMENT_PROBE_ONLY ||
-                              DFII_CSR_ECHO_PROBE_ONLY ||
-                              DFII_WBITSLIP_SWEEP_ONLY ||
-                              DFII_RBITSLIP_SWEEP_ONLY ||
-                              DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY ||
-                              DFII_EDGE_MAP_PROBE_ONLY ||
-                              DFII_EDGE_COMP_PROBE_ONLY ||
-                              DFII_EDGE_COMP_ACTIVE_ONLY ||
-                              DFII_EDGE_COMP_BIST_ONLY ||
-                              DFII_EDGE_COMP_ADDRWALK_ONLY ||
-                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
-                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
-                              DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY);
-            dfii_phasecmd_sweep_q <=
-              DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
-              DFII_WBITSLIP_SWEEP_ONLY || DFII_RBITSLIP_SWEEP_ONLY ||
-              DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY ||
-              DFII_EDGE_MAP_PROBE_ONLY || DFII_EDGE_COMP_PROBE_ONLY ||
-              DFII_EDGE_COMP_ACTIVE_ONLY ||
-              DFII_EDGE_COMP_BIST_ONLY ||
-              DFII_EDGE_COMP_ADDRWALK_ONLY ||
-              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
-              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
-              DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY;
-            dfii_assoc_sweep_q <= 1'b0;
-            dfii_addr_sweep_q <= 1'b0;
-            dfii_pattern_mode_q <= DFII_PATTERN_MODE_UNIFORM;
-            dfii_phasecmd_index_q <= 4'd0;
-            dfii_assoc_index_q <= 4'd0;
-            dfii_addr_index_q <= 2'd0;
-            cal_bitslip_q <= 3'd0;
-            cal_wbitslip_q <= 3'd0;
-            cal_delay_q <= 5'd0;
-            state_q <= (DFII_WBITSLIP_SWEEP_ONLY || DFII_RBITSLIP_SWEEP_ONLY) ?
-              PROBE_DFII_WBITSLIP_CONFIG : PROBE_DFII_RUN;
+            if (DFII_INIT_STATUS_ONLY) begin
+              dfii_final_q <= 1'b1;
+              dfii_phasecmd_sweep_q <= 1'b0;
+              dfii_assoc_sweep_q <= 1'b0;
+              dfii_addr_sweep_q <= 1'b0;
+              dfii_pattern_mode_q <= DFII_PATTERN_MODE_UNIFORM;
+              dfii_phasecmd_index_q <= 4'd0;
+              dfii_assoc_index_q <= 4'd0;
+              dfii_addr_index_q <= 2'd0;
+              cal_bitslip_q <= 3'd0;
+              cal_wbitslip_q <= 3'd0;
+              cal_delay_q <= 5'd0;
+              state_q <= PROBE_DFII_DONE;
+            end else begin
+              dfii_final_q <= !(DFII_DISPLACEMENT_PROBE_ONLY ||
+                                DFII_CSR_ECHO_PROBE_ONLY ||
+                                DFII_WBITSLIP_SWEEP_ONLY ||
+                                DFII_RBITSLIP_SWEEP_ONLY ||
+                                DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY ||
+                                DFII_EDGE_MAP_PROBE_ONLY ||
+                                DFII_EDGE_COMP_PROBE_ONLY ||
+                                DFII_EDGE_COMP_ACTIVE_ONLY ||
+                                DFII_EDGE_COMP_BIST_ONLY ||
+                                DFII_EDGE_COMP_ADDRWALK_ONLY ||
+                                DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
+                                DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                                DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY);
+              dfii_phasecmd_sweep_q <=
+                DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
+                DFII_WBITSLIP_SWEEP_ONLY || DFII_RBITSLIP_SWEEP_ONLY ||
+                DFII_BYTE_PHASE_ASSOC_MATRIX_ONLY ||
+                DFII_EDGE_MAP_PROBE_ONLY || DFII_EDGE_COMP_PROBE_ONLY ||
+                DFII_EDGE_COMP_ACTIVE_ONLY ||
+                DFII_EDGE_COMP_BIST_ONLY ||
+                DFII_EDGE_COMP_ADDRWALK_ONLY ||
+                DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
+                DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY;
+              dfii_assoc_sweep_q <= 1'b0;
+              dfii_addr_sweep_q <= 1'b0;
+              dfii_pattern_mode_q <= DFII_PATTERN_MODE_UNIFORM;
+              dfii_phasecmd_index_q <= 4'd0;
+              dfii_assoc_index_q <= 4'd0;
+              dfii_addr_index_q <= 2'd0;
+              cal_bitslip_q <= 3'd0;
+              cal_wbitslip_q <= 3'd0;
+              cal_delay_q <= 5'd0;
+              state_q <= (DFII_WBITSLIP_SWEEP_ONLY || DFII_RBITSLIP_SWEEP_ONLY) ?
+                PROBE_DFII_WBITSLIP_CONFIG : PROBE_DFII_RUN;
+            end
           end
         end
         PROBE_DFII_WBITSLIP_CONFIG: begin
