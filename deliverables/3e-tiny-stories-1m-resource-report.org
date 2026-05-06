@@ -11,6 +11,23 @@ Gate:
 nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
 #+end_src
 
+* What this command does
+
+This builds the TinyStories-1M baseline-float pipeline through RTLIL,
+wraps it in the TinyStories self-test shell, externalizes oversized
+Handshake memory modules as external-storage candidates, runs staged
+Yosys/Xilinx mapping, writes mapped JSON, and derives utilization
+numbers from that mapped JSON.
+
+The command produces a =result= symlink with:
+- =summary.txt=: human-readable resource summary
+- =summary.json=: same summary in JSON form
+- =stat.json=: leaf-cell counts used to produce the summary
+
+This is not a nextpnr-xilinx place-and-route utilization report. It is a
+mapped Yosys estimate. nextpnr-xilinx was attempted, but it runs out of
+memory on this route and does not produce a final PnR result.
+
 Result:
 
 #+begin_export ascii
@@ -40,11 +57,16 @@ largest leaf cell types:
 
 The conclusion from task 3 is that we have to work on resource minimization next.
 
-With the current pipeline, even after externalizing oversized handshake memory modules as external storage candidates, the shell design for tiny stories 1M does not fit in the target FPGA.
+With the current pipeline, even after externalizing oversized handshake
+memory modules as external storage candidates, the shell design for tiny
+stories 1M does not fit in the target FPGA.
 
-The resource utilization report is an estimate from mapped Yosys JSON for this shell design, because nextpnr-xilinx cannot process it. See Note about resource utilization report in this file.
+The resource utilization report is a Yosys estimate for this shell
+design, because nextpnr-xilinx was attempted as the main path and failed
+with OOM on this design.
 
-Since the design is about 145 times bigger (in terms of LUTs) than the target FPGA, the next task should be task 6 and not task 4.
+Since the design is about 141x bigger (in terms of LUTs) than the target
+FPGA, the next task should be task 6 and not task 4.
 
 Task 6 (see project plan) is about resource minimization.
 Some paths that could be taken, learned from executing task 3 are:
@@ -55,4 +77,4 @@ Some paths that could be taken, learned from executing task 3 are:
 * Note about resource utilization report
 At first, I tried to do place and route with nextpnr-xilinx on this shell design, but it exited with out of memory errors.
 
-I created some patches to try to fix that, but I discarded them after finding out that the shell design was about 145 times bigger than the target FPGA, which is already the largest supported FPGA, so it seems unreasonable to me to expect nextpnr-xilinx to support that design.
+I created some patches to try to fix that, but I discarded them after finding out that the shell design was about 141x bigger than the target FPGA, which is already the largest supported FPGA, so it seems unreasonable to me to expect nextpnr-xilinx to support that design.
