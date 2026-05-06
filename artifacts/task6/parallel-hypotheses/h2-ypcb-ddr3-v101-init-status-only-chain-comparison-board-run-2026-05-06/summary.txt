@@ -1,0 +1,15 @@
+v101: JTAG chain comparison for init-status-only probe target.
+Builds:
+- chain-1 init-status-only target built and loaded to Board A with openFPGALoader --skip-load-bridge and proper xc7k480t detection.
+- chain-0 init-status-only variant fails at synthesis/pack stage: Invalid JTAG_CHAIN number of '0'. Allowed values are 1-4.
+
+Probe (bits=4672, tdo-bit default, json only, serial 210299BF3824):
+- magic_ok=false
+- init_done=false
+- init_error=false
+- pll_locked=false
+- dfii_seq_state=DFII_SEQ_IDLE
+- state=PROBE_RESET
+- zero command/read counters
+
+Interpretation: This continues the init-control failure and confirms chain-0 is not a valid configuration. The reproducer remains on chain-1 only.

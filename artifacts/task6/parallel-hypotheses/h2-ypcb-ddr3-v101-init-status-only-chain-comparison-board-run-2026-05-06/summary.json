@@ -1,0 +1,45 @@
+{
+  "experiment": "h2-ypcb-ddr3-v101-init-status-only-chain-comparison-board-run-2026-05-06",
+  "date": "2026-05-06",
+  "source_commit": "acc0da0 task6: add v113 JTAG IR mapping probe for init-status-only bitstream",
+  "serial": "210299BF3824",
+  "result": "fail",
+  "classification": "jtag_chain_variant_probe_reset",
+  "version": 101,
+  "build": [
+    {
+      "target": "task6-ypcb-litedram-no-odelay-lowrate-init-status-only-init-bandwidth-probe",
+      "jtag_chain": 1,
+      "result_path": "/nix/store/bcbgyc1z5ks35n1rkcl1rsq8cbgps4v5-task6-ypcb-litedram-no-odelay-lowrate-init-status-only-init-bandwidth-probe.bit",
+      "status": "build_ok",
+      "status_notes": "Programmed with openFPGALoader using --skip-load-bridge on Board A (2026-05-06) and confirmed device id: 0x23751093 (xc7k480t)."
+    },
+    {
+      "target": "task6-ypcb-litedram-no-odelay-lowrate-init-status-only-chain0-init-bandwidth-probe",
+      "jtag_chain": 0,
+      "status": "build_failed",
+      "status_notes": "Invalid JTAG_CHAIN value rejected by yosys/nextpnr pipeline. Error: Allowed values are 1-4."
+    }
+  ],
+  "probe": {
+    "backend": "ftdi-mpsse",
+    "bits": 4672,
+    "serial": "210299BF3824",
+    "result": "magic_ok_false",
+    "magic_ok": false,
+    "init_done": false,
+    "pll_locked": false,
+    "init_error": false,
+    "dfii_seq_state": "DFII_SEQ_IDLE",
+    "state": "PROBE_RESET",
+    "dfii_step": 0,
+    "command_count": 0,
+    "response_count": 0,
+    "sample_valid_count": 0,
+    "lane8_best_mismatch_count": null,
+    "native_debug_event_count": 0,
+    "status": "no_progress_after_reset"
+  },
+  "interpretation": "Chain-1 init-status-only probe confirms the same no-progress failure mode on Board A (`PROBE_RESET`, PLL and init not stable). Chain-0 is not a valid implementation variant and cannot be built due JTAG chain bounds.",
+  "next_action": "Keep JTAG chain at 1 and treat `task6...init-status-only` as reproducer for control-path failure. Next step should run explicit IR-mapping diagnostics against this exact build before further DDR logic changes."
+}

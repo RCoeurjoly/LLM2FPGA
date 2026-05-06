@@ -1,5 +1,6 @@
 module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter int JTAG_DEBUG_WIDTH = 4672,
+  parameter int JTAG_CHAIN = 1,
   parameter int READ_COUNT_LOG2 = 16,
   parameter int CAL_COUNT_LOG2 = 5,
   parameter int TIMEOUT_LOG2 = 28,
@@ -4721,7 +4722,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
 
   task6_litedram_probe_jtag_debug_shift #(
     .WIDTH(JTAG_DEBUG_WIDTH),
-    .JTAG_CHAIN(1)
+    .JTAG_CHAIN(JTAG_CHAIN)
   ) jtag_debug_shift (
     .payload_i(jtag_debug_payload)
   );

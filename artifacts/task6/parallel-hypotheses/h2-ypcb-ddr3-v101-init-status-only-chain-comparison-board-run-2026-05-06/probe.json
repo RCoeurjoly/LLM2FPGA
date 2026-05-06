@@ -1,0 +1,37 @@
+{
+  "attempts": 1,
+  "backend": "ftdi-mpsse",
+  "build": {
+    "bitstream": "/nix/store/bcbgyc1z5ks35n1rkcl1rsq8cbgps4v5-task6-ypcb-litedram-no-odelay-lowrate-init-status-only-init-bandwidth-probe.bit",
+    "target": "task6-ypcb-litedram-no-odelay-lowrate-init-status-only-init-bandwidth-probe",
+    "chain": 1,
+    "jtag_probe": {
+      "irlen": 6,
+      "idcode": "0x23751093"
+    }
+  },
+  "probe": {
+    "serial": "210299BF3824",
+    "version": 42,
+    "magic": null,
+    "magic_ok": false,
+    "state": "PROBE_RESET",
+    "dfii_seq_state": "DFII_SEQ_IDLE",
+    "init_done": false,
+    "init_error": false,
+    "pll_locked": false,
+    "command_count": 0,
+    "response_count": 0,
+    "sample_valid_count": 0,
+    "mismatch_count": 0
+  },
+  "chain0_status": {
+    "target": "task6-ypcb-litedram-no-odelay-lowrate-init-status-only-chain0-init-bandwidth-probe",
+    "build": "failed",
+    "error": "ERROR: Instance 'jtag_debug_shift.bscan': Invalid JTAG_CHAIN number of '0'. Allowed values are: 1-4."
+  },
+  "notes": [
+    "OpenFPGALoader confirmed xc7k480t on JTAG chain after --skip-load-bridge program on Board A.",
+    "Raw status is indistinguishable from prior init-status-only regressions."
+  ]
+}
