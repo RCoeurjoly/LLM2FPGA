@@ -604,6 +604,27 @@
             };
           in { inherit stages utilizationReport; };
 
+        docsMdApp = pkgs.writeShellApplication {
+          name = "docs-md";
+          runtimeInputs = [ pkgs.pandoc pkgs.coreutils ];
+          text = ''
+          set -euo pipefail
+
+          repo="$(pwd -P)"
+          if [ "$#" -gt 0 ]; then
+            repo="$1"
+          fi
+          repo="$(cd "$repo" && pwd -P)"
+
+          while IFS= read -r src; do
+            [ -f "$src" ] || continue
+            dst="''${src%.org}.md"
+            pandoc "$src" -f org -t gfm -o "$dst"
+          done < <(printf '%s\n' "$repo/README.org" "$repo"/deliverables/*.org "$repo"/docs/*.org)
+          echo "Generated markdown docs in: $repo"
+          '';
+        };
+
         mkXdc = { name, includeBoardXdc ? true, extraConstraints ? [ ] }:
           let
             constraintFiles = (if includeBoardXdc then [ boardXdc ] else [ ])
@@ -773,6 +794,13 @@
           matmul-selftest-bitstream = matmulSelftestBitstream;
           tiny-stories-1m-baseline-float-selftest-all-memory-utilization =
             tinyStories1mBaselineFloatSelftestAllMemory.utilizationReport;
+        };
+
+        apps = {
+          docs-md = {
+            type = "app";
+            program = "${docsMdApp}/bin/docs-md";
+          };
         };
 
         checks = {
