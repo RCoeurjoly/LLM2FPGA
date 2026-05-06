@@ -14394,6 +14394,34 @@ New diagnostic: `native_readscan_first_nonzero_addr=0x0ef8`, `native_readscan_no
 
 Interpretation: v97 is a real movement from missing/zero native writes to nonzero native writes with wrong data. Popping the FIFO on the master/PHY write-data event keeps the FIFO nonempty at the captured event, and native writes affect memory. The remaining bug is data correctness/advancement: all read samples return the same wrong constant word rather than the per-address expected pattern. Next v98 should keep master-event pop and expose whether the same FIFO word is being replayed or the wrong DFI beat/lane is selected, ideally by capturing push/pop/master/slave counters plus low `data_out` and `we_out` bits at the event.
 
+### DDR3 v98-v100 seed-13 reproducibility reset attempt (2026-05-06)
+
+We rebuilt on the known-good v97 lineage with the same seed-13 target family and explicitly narrowed what changed per experiment. This attempt was to isolate whether we had drifted into route sensitivity after commit churn before touching deeper native data-path edits.
+
+- v98 (seed-13 addrwalk + native) was intentionally rebuilt to the historical `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe` target.
+  - Commit under test: `32abc0f` (`task6-ddr3: correct v110 source7/source8 summary signatures`) on `task6-ddr3-v83-resurrection`.
+  - Source `target`: `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe`.
+  - Board result: `init_done=true`, `pll_locked=false`, `init_error=true`, `state=PROBE_ERROR`, timeout-style read completion.
+  - DFII: `dfii_word_mismatch_mask=0`, `dfii_uniform_mismatch_mask=84`, `dfii_step=130`.
+  - Native activity counters remained absent from effective write/read samples.
+  - Interpretation: this was a seed-13 route-level fail, not a native logic fix.
+- v99 (DFII-only edge-comp addrwalk) kept only DFII test mode from the same seed-13 target lineage.
+  - Source `target`: `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe`.
+  - Board result: `init_done=true`, `pll_locked=false`, `init_error=true`, `state=DFII_SEQ_IDLE`, `state=PROBE_ERROR`.
+  - Native event stream was intentionally inactive, and response counters stayed zero while timeout remained.
+  - Interpretation: this shifted the failure surface to DFII/init-liveness rather than native wiring.
+- v100 (DFII init-only edge-comp) removed write/read scanning entirely to validate init-only sequence health.
+  - Source `target`: `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe`.
+  - Board result: `init_done=true`, `pll_locked=false`, `init_error=true`, `state=DFII_SEQ_IDLE`, `state=PROBE_ERROR`.
+  - Native debug was inactive by design; `read_target_seen=false`, `timeout_seen=true`.
+  - Interpretation: this indicates a persistent init/DFII liveness problem at that probe lineage rather than a native data-path-only regression.
+
+Current execution checkpoint:
+
+- Seed-13 family experiments reproduced the same failure pattern and are currently blocking: clean-init behavior is present but `pll_locked` drops and `init_error` turns true during probe completion.
+- Rebuild reproducibility is now tied to immutable source/target identity per experiment; no assumptions about previous target names.
+- Next active experiment should be the narrowest init/liveness telemetry check: DFII status/state sampling only, with edge-compare and native tests disabled.
+
 ### DDR3 M1 execution rule: DFII byte/phase association matrix first (2026-05-05)
 
 Decision: keep the open-source LiteDRAM/LiteX no-ODELAY path for M1. Do not switch to Vivado MIG or a new controller at this stage. The current evidence does not show a dead DDR3 stack: init, DFII CSR access, native command/data/response completion, and now v97 nonzero native readback all work. The unresolved problem is narrower: byte/phase/beat/packing association in the no-ODELAY LiteDRAM path.
