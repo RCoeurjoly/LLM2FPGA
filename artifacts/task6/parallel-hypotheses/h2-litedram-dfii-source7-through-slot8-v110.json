@@ -1,0 +1,92 @@
+{
+  "status": "FAIL_SOURCE7_STILL_DARK_VIA_DFII_BYPASS_REMOVAL",
+  "probe_version": 110,
+  "hypothesis": "Removing the source7 special-case bypass and using the normal DFII byte/phase path with slot7->slot8 remap should keep source7 observable if the issue was bypass-only routing.",
+  "source_commit": "471ef75",
+  "source_change": {
+    "file": "fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv",
+    "description": "V110 removes the dfii_phasecmd_index==7 direct-lane7 write bypass in DFII-byte-path and restores the normal dfii_byte_phase_assoc_word5 routing with source7 mapped onto slot8 through remap logic."
+  },
+  "build": {
+    "command": "nix build .#task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe-bitstream -L",
+    "bitstream": "/nix/store/7hgz65yz4n787a3mvdw8gis8wq19zh74-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "bitstream_sha256": "6ede2c0a1943b1548f6bd77c604ab436b047782ae7615eb254deb249ce20d0a7",
+    "result": "PASS"
+  },
+  "programming": {
+    "command": "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/7hgz65yz4n787a3mvdw8gis8wq19zh74-task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.bit",
+    "serial": "210299BF3824",
+    "isc_done": true,
+    "init": true,
+    "done": true,
+    "result": "PASS"
+  },
+  "probe_read_path": {
+    "valid_command": "python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --serial 210299BF3824 --tdo-bit 7 --poll --poll-count 200 --poll-interval 0.1 --json-only",
+    "tdo_bit": 7,
+    "raw_output": "artifacts/task6/parallel-hypotheses/h2-litedram-dfii-source7-through-slot8-v110-raw.json"
+  },
+  "valid_probe_status": {
+    "magic_ok": true,
+    "version": 110,
+    "state": "PROBE_DFII_DONE",
+    "dfii_seq_state": "DFII_SEQ_DONE",
+    "init_state": "INIT_DONE",
+    "pll_locked": true,
+    "init_done": true,
+    "init_error": false,
+    "init_seq_done": true,
+    "init_seq_error": false,
+    "wb_error_seen": false,
+    "wb_timeout_seen": false,
+    "timeout_seen": false,
+    "dfii_data_pass": false,
+    "dfii_data_failed": true
+  },
+  "observations": {
+    "dfii_lane_error_counts": [
+      3,
+      2,
+      3,
+      2,
+      0,
+      0,
+      0,
+      0
+    ],
+    "dfii_assoc_match_masks_nonzero": [
+      "0x201",
+      "0x402",
+      "0x804",
+      "0x1008",
+      "0x2010",
+      "0x4020",
+      "0x8040",
+      "0x100",
+      "0x100",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0"
+    ],
+    "source7_summary": {
+      "match_mask_hex": "0x100",
+      "nonzero_mask_hex": "0x100",
+      "signature_hex": "0xa7000016",
+      "interpretation": "Source7 remains not fixed and maps only into a single-bit pattern that does not match expected tag occupancy."
+    },
+    "source8_summary": {
+      "match_mask_hex": "0x100",
+      "nonzero_mask_hex": "0x100",
+      "signature_hex": "0xa8000017",
+      "interpretation": "Source8 still appears alive but weakly aligned in the same low-lane slot context as source7, not a clean direct remap path for phase association."
+    }
+  },
+  "decision": {
+    "conclusion": "Removing the DFII phasecmd==7 bypass did not restore correct source7 behavior; this does not remove the alias-collapse path. The issue is deeper than the old special-case gate.",
+    "next_gate": "Keep source7 path unchanged and proceed with native-write path proofing: verify DFI write enqueue and WDF FIFO occupancy/push before changing further lane associations."
+  }
+}

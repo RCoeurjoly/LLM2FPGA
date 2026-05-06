@@ -47,7 +47,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd109;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd110;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -88,6 +88,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v97 consumes native WDF data on master/PHY write-data events.
   // v98 promotes a DFII-only one-byte-at-a-time byte/phase association matrix.
   // v99 moves that matrix onto the wide five-word DFII path and records word4.
+  // v110 tests source7 through the normal byte-phase mechanism with slot7->slot8
+  // remap logic active, removing the old phasecmd==7 lane7 locator write bypass.
   // v100 exposed that the standalone lane7 locator target was not on the v97/v99 path.
   // v101 keeps the locator logic and fixes only the Nix target construction.
   // v102 folds the lane7 locator payload into the init-clean byte-phase matrix path.
@@ -2523,12 +2525,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             dfii_index20_word(dfii_wrdata_index20)
           ) :
           dfii_byte_phase_assoc_matrix_mode ?
-          ((dfii_phasecmd_index_q == 4'd7) ?
-           dfii_lane7_locator_write_word(
-             dfii_index20_phase(dfii_wrdata_index20),
-             dfii_index20_word(dfii_wrdata_index20)
-           ) :
-           (dfii_index20_phase(dfii_wrdata_index20) ==
+          ((dfii_index20_phase(dfii_wrdata_index20) ==
             dfii_matrix_source_phase) ?
            dfii_byte_phase_assoc_word5(
              dfii_phasecmd_index_q,
