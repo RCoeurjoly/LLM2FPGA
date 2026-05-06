@@ -1,0 +1,386 @@
+[
+  {
+    "ir": 0,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 1,
+    "ir_len": 6,
+    "payload": "0x0002cb7d",
+    "idcode": "0x0002c87d"
+  },
+  {
+    "ir": 2,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 3,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 4,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 5,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 6,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 7,
+    "ir_len": 6,
+    "payload": "0x0000807d",
+    "idcode": "0x0000817d"
+  },
+  {
+    "ir": 8,
+    "ir_len": 6,
+    "payload": "0xfffffffd",
+    "idcode": "0xfffffffd"
+  },
+  {
+    "ir": 9,
+    "ir_len": 6,
+    "payload": "0xba8849fd",
+    "idcode": "0xba8849fd"
+  },
+  {
+    "ir": 10,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 11,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007c"
+  },
+  {
+    "ir": 12,
+    "ir_len": 6,
+    "payload": "0x0000007c",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 13,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 14,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 15,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 16,
+    "ir_len": 6,
+    "payload": "0x0000077d",
+    "idcode": "0x0000077d"
+  },
+  {
+    "ir": 17,
+    "ir_len": 6,
+    "payload": "0x000000fd",
+    "idcode": "0x000000fd"
+  },
+  {
+    "ir": 18,
+    "ir_len": 6,
+    "payload": "0x000000fd",
+    "idcode": "0x000000fd"
+  },
+  {
+    "ir": 19,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 20,
+    "ir_len": 6,
+    "payload": "0x000000fd",
+    "idcode": "0x000000fd"
+  },
+  {
+    "ir": 21,
+    "ir_len": 6,
+    "payload": "0x000000fd",
+    "idcode": "0x000000fd"
+  },
+  {
+    "ir": 22,
+    "ir_len": 6,
+    "payload": "0x000002fd",
+    "idcode": "0x000002fd"
+  },
+  {
+    "ir": 23,
+    "ir_len": 6,
+    "payload": "0xfffffffd",
+    "idcode": "0xfffffffd"
+  },
+  {
+    "ir": 24,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 25,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 26,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 27,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 28,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 29,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 30,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 31,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 32,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 33,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 34,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 35,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 36,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 37,
+    "ir_len": 6,
+    "payload": "0xba8849fd",
+    "idcode": "0xba8849fd"
+  },
+  {
+    "ir": 38,
+    "ir_len": 6,
+    "payload": "0x00124a7d",
+    "idcode": "0x00124a7c"
+  },
+  {
+    "ir": 39,
+    "ir_len": 6,
+    "payload": "0x0000007c",
+    "idcode": "0x0000007c"
+  },
+  {
+    "ir": 40,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 41,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 42,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 43,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 44,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 45,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 46,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 47,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 48,
+    "ir_len": 6,
+    "payload": "0xe400007d",
+    "idcode": "0xe400007d"
+  },
+  {
+    "ir": 49,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 50,
+    "ir_len": 6,
+    "payload": "0x858617fd",
+    "idcode": "0x858617fd"
+  },
+  {
+    "ir": 51,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 52,
+    "ir_len": 6,
+    "payload": "0x0000607d",
+    "idcode": "0x0000607d"
+  },
+  {
+    "ir": 53,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 54,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 55,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 56,
+    "ir_len": 6,
+    "payload": "0x0002c87d",
+    "idcode": "0x0002cb7d"
+  },
+  {
+    "ir": 57,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 58,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 59,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 60,
+    "ir_len": 6,
+    "payload": "0x00124a7d",
+    "idcode": "0x00124a7d"
+  },
+  {
+    "ir": 61,
+    "ir_len": 6,
+    "payload": "0x00120a7c",
+    "idcode": "0x00124a7d"
+  },
+  {
+    "ir": 62,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  },
+  {
+    "ir": 63,
+    "ir_len": 6,
+    "payload": "0x0000007d",
+    "idcode": "0x0000007d"
+  }
+]

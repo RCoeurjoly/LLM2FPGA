@@ -1,0 +1,152 @@
+[
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x00",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x02",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x05",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x07",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x08",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 127
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x09",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 17
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x0b",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x25",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 17
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x26",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x27",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x30",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 1
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x32",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_LOAD_C_FC_ACTIVATION",
+    "version": 64
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x34",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x35",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  },
+  {
+    "init_done": null,
+    "init_error": null,
+    "ir": "0x3f",
+    "magic_ok": false,
+    "pll_locked": null,
+    "raw_prefix": "0x0000000000000000",
+    "state": "SELFTEST_BOOT",
+    "version": 0
+  }
+]
