@@ -1,0 +1,11 @@
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/1vd7z7ysz5s7alslq1l121alz26bpg0r-task6-ypcb-litedram-no-odelay-lowrate-init-status-only-init-bandwidth-probe.bit
+
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz
+Open file DONE
+Parse file DONE
+load program
+Load SRAM: [==================================================] 100.00%
+Done
+Shift IR 35
+ir: 1 isc_done 1 isc_ena 0 init 1 done 1

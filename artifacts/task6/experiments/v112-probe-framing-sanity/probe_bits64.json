@@ -1,0 +1,1028 @@
+{
+  "attempts": 1,
+  "backend": "ftdi-mpsse",
+  "decoded": {
+    "byte_diag_samples": [],
+    "cal_config_state": "UNKNOWN_-1",
+    "complete": false,
+    "current_lane_best_setting": {
+      "bitslip": 0,
+      "delay": 0
+    },
+    "current_lane_best_write_bitslip": 0,
+    "dfii_addr_matrix": [
+      {
+        "column": 0,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_mask": 0,
+        "slot": 0
+      },
+      {
+        "column": 0,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_mask": 0,
+        "slot": 1
+      },
+      {
+        "column": 0,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_mask": 0,
+        "slot": 2
+      },
+      {
+        "column": 0,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_mask": 0,
+        "slot": 3
+      }
+    ],
+    "dfii_assoc_matrix": [
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2695938256,
+        "source": 0
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2712781265,
+        "source": 1
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2729624274,
+        "source": 2
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2746467283,
+        "source": 3
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2763310292,
+        "source": 4
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2780153301,
+        "source": 5
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2796996310,
+        "source": 6
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2813839319,
+        "source": 7
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2830682328,
+        "source": 8
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2847525337,
+        "source": 9
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2864368346,
+        "source": 10
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2881211355,
+        "source": 11
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2898054364,
+        "source": 12
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2914897373,
+        "source": 13
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2931740382,
+        "source": 14
+      },
+      {
+        "match_mask": 0,
+        "nonzero_mask": 0,
+        "signature": 2948583391,
+        "source": 15
+      }
+    ],
+    "dfii_data_failed": false,
+    "dfii_data_pass": true,
+    "dfii_displacement_observed": [],
+    "dfii_displacement_shift_scores": [],
+    "dfii_lane_error_counts": [
+      20,
+      20,
+      20,
+      20,
+      28,
+      28,
+      28,
+      28
+    ],
+    "dfii_mode_masks": {
+      "byte_ramp": 0,
+      "phase_constant": 0,
+      "uniform": 0
+    },
+    "dfii_pattern_mode": "uniform",
+    "dfii_phase_matrix": [
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 0,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 0,
+        "source_phase": 0,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 1,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 1,
+        "source_phase": 0,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 2,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 2,
+        "source_phase": 0,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 3,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 3,
+        "source_phase": 0,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 4,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 0,
+        "source_phase": 1,
+        "tag": null,
+        "word": null,
+        "write_phase": 1
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 5,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 1,
+        "source_phase": 1,
+        "tag": null,
+        "word": null,
+        "write_phase": 1
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 6,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 2,
+        "source_phase": 1,
+        "tag": null,
+        "word": null,
+        "write_phase": 1
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 7,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 3,
+        "source_phase": 1,
+        "tag": null,
+        "word": null,
+        "write_phase": 1
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 8,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 0,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 2
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 9,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 1,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 2
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 10,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 2
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 11,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 3,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 2
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 12,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 0,
+        "source_phase": 3,
+        "tag": null,
+        "word": null,
+        "write_phase": 3
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 13,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 1,
+        "source_phase": 3,
+        "tag": null,
+        "word": null,
+        "write_phase": 3
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 14,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 2,
+        "source_phase": 3,
+        "tag": null,
+        "word": null,
+        "write_phase": 3
+      },
+      {
+        "byte": null,
+        "byte_slot": null,
+        "high_byte": null,
+        "high_match_high_mask": 0,
+        "high_match_low_mask": 0,
+        "high_tag": null,
+        "high_word": null,
+        "index": 15,
+        "lane": null,
+        "low_byte": null,
+        "low_match_high_mask": 0,
+        "low_tag": null,
+        "low_word": null,
+        "match_mask": 0,
+        "mismatch_mask": 0,
+        "nonzero_high_mask": 0,
+        "nonzero_mask": 0,
+        "read_phase": 3,
+        "source_phase": 3,
+        "tag": null,
+        "word": null,
+        "write_phase": 3
+      }
+    ],
+    "dfii_phasecmd_mismatch_masks": [
+      {
+        "index": 0,
+        "mismatch_mask": 0,
+        "read_phase": 0,
+        "write_phase": 0
+      },
+      {
+        "index": 1,
+        "mismatch_mask": 0,
+        "read_phase": 1,
+        "write_phase": 0
+      },
+      {
+        "index": 2,
+        "mismatch_mask": 0,
+        "read_phase": 2,
+        "write_phase": 0
+      },
+      {
+        "index": 3,
+        "mismatch_mask": 0,
+        "read_phase": 3,
+        "write_phase": 0
+      },
+      {
+        "index": 4,
+        "mismatch_mask": 0,
+        "read_phase": 0,
+        "write_phase": 1
+      },
+      {
+        "index": 5,
+        "mismatch_mask": 0,
+        "read_phase": 1,
+        "write_phase": 1
+      },
+      {
+        "index": 6,
+        "mismatch_mask": 0,
+        "read_phase": 2,
+        "write_phase": 1
+      },
+      {
+        "index": 7,
+        "mismatch_mask": 0,
+        "read_phase": 3,
+        "write_phase": 1
+      },
+      {
+        "index": 8,
+        "mismatch_mask": 0,
+        "read_phase": 0,
+        "write_phase": 2
+      },
+      {
+        "index": 9,
+        "mismatch_mask": 0,
+        "read_phase": 1,
+        "write_phase": 2
+      },
+      {
+        "index": 10,
+        "mismatch_mask": 0,
+        "read_phase": 2,
+        "write_phase": 2
+      },
+      {
+        "index": 11,
+        "mismatch_mask": 0,
+        "read_phase": 3,
+        "write_phase": 2
+      },
+      {
+        "index": 12,
+        "mismatch_mask": 0,
+        "read_phase": 0,
+        "write_phase": 3
+      },
+      {
+        "index": 13,
+        "mismatch_mask": 0,
+        "read_phase": 1,
+        "write_phase": 3
+      },
+      {
+        "index": 14,
+        "mismatch_mask": 0,
+        "read_phase": 2,
+        "write_phase": 3
+      },
+      {
+        "index": 15,
+        "mismatch_mask": 0,
+        "read_phase": 3,
+        "write_phase": 3
+      }
+    ],
+    "dfii_seq_state": "UNKNOWN_-1",
+    "dfii_words": [
+      {
+        "actual": 0,
+        "expected": 134480385,
+        "index": 0,
+        "mismatch": false,
+        "phase": 0,
+        "word": 0,
+        "xor": 134480385
+      },
+      {
+        "actual": 0,
+        "expected": 403968529,
+        "index": 1,
+        "mismatch": false,
+        "phase": 0,
+        "word": 1,
+        "xor": 403968529
+      },
+      {
+        "actual": 0,
+        "expected": 673456673,
+        "index": 2,
+        "mismatch": false,
+        "phase": 0,
+        "word": 2,
+        "xor": 673456673
+      },
+      {
+        "actual": 0,
+        "expected": 942944817,
+        "index": 3,
+        "mismatch": false,
+        "phase": 0,
+        "word": 3,
+        "xor": 942944817
+      },
+      {
+        "actual": 0,
+        "expected": 1212432961,
+        "index": 4,
+        "mismatch": false,
+        "phase": 1,
+        "word": 0,
+        "xor": 1212432961
+      },
+      {
+        "actual": 0,
+        "expected": 1481921105,
+        "index": 5,
+        "mismatch": false,
+        "phase": 1,
+        "word": 1,
+        "xor": 1481921105
+      },
+      {
+        "actual": 0,
+        "expected": 1751409249,
+        "index": 6,
+        "mismatch": false,
+        "phase": 1,
+        "word": 2,
+        "xor": 1751409249
+      },
+      {
+        "actual": 0,
+        "expected": 2020897393,
+        "index": 7,
+        "mismatch": false,
+        "phase": 1,
+        "word": 3,
+        "xor": 2020897393
+      },
+      {
+        "actual": 0,
+        "expected": 2290385537,
+        "index": 8,
+        "mismatch": false,
+        "phase": 2,
+        "word": 0,
+        "xor": 2290385537
+      },
+      {
+        "actual": 0,
+        "expected": 2559873681,
+        "index": 9,
+        "mismatch": false,
+        "phase": 2,
+        "word": 1,
+        "xor": 2559873681
+      },
+      {
+        "actual": 0,
+        "expected": 2829361825,
+        "index": 10,
+        "mismatch": false,
+        "phase": 2,
+        "word": 2,
+        "xor": 2829361825
+      },
+      {
+        "actual": 0,
+        "expected": 3098849969,
+        "index": 11,
+        "mismatch": false,
+        "phase": 2,
+        "word": 3,
+        "xor": 3098849969
+      },
+      {
+        "actual": 0,
+        "expected": 3368338113,
+        "index": 12,
+        "mismatch": false,
+        "phase": 3,
+        "word": 0,
+        "xor": 3368338113
+      },
+      {
+        "actual": 0,
+        "expected": 3637826257,
+        "index": 13,
+        "mismatch": false,
+        "phase": 3,
+        "word": 1,
+        "xor": 3637826257
+      },
+      {
+        "actual": 0,
+        "expected": 3907314401,
+        "index": 14,
+        "mismatch": false,
+        "phase": 3,
+        "word": 2,
+        "xor": 3907314401
+      },
+      {
+        "actual": 0,
+        "expected": 4176802545,
+        "index": 15,
+        "mismatch": false,
+        "phase": 3,
+        "word": 3,
+        "xor": 4176802545
+      },
+      {
+        "actual": 0,
+        "expected": 134480385,
+        "index": 16,
+        "mismatch": false,
+        "phase": 4,
+        "word": 0,
+        "xor": 134480385
+      },
+      {
+        "actual": 0,
+        "expected": 403968529,
+        "index": 17,
+        "mismatch": false,
+        "phase": 4,
+        "word": 1,
+        "xor": 403968529
+      },
+      {
+        "actual": 0,
+        "expected": 673456673,
+        "index": 18,
+        "mismatch": false,
+        "phase": 4,
+        "word": 2,
+        "xor": 673456673
+      },
+      {
+        "actual": 0,
+        "expected": 942944817,
+        "index": 19,
+        "mismatch": false,
+        "phase": 4,
+        "word": 3,
+        "xor": 942944817
+      }
+    ],
+    "extended_status": {
+      "cal_candidate_success": false,
+      "cal_config_done": false,
+      "cal_last_candidate": false,
+      "cal_mode": false,
+      "cmd_valid": false,
+      "cmd_we": false,
+      "config_reset_done": false,
+      "core_rst": false,
+      "mismatch_seen": false,
+      "probe_done": false,
+      "probe_error": false,
+      "probe_timeout": false,
+      "read_target_seen": false,
+      "wb_ctrl_ack": false,
+      "wb_ctrl_cyc": false,
+      "wb_ctrl_err": false,
+      "wb_ctrl_stb": false,
+      "wb_ctrl_we": false,
+      "wdata_ready": false,
+      "wdata_valid": false,
+      "write_command_target_seen": false,
+      "write_data_target_seen": false,
+      "write_drain_done": false
+    },
+    "failed": true,
+    "init_state": "UNKNOWN_-1",
+    "lane_best_mismatch_counts": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "lane_selected_logical_bytes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "lane_selected_settings": [
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 0
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 1
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 2
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 3
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 4
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 5
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 6
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 7
+      }
+    ],
+    "lane_selected_write_bitslips": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "native_debug": {
+      "dfi_debug_wrdata_event_count": 0,
+      "dfi_debug_wrdata_last_en": 0,
+      "dfi_debug_wrdata_packed_mask_seen": 0,
+      "dfi_debug_wrdata_packed_mask_seen_hex": "0x000",
+      "dfi_debug_wrdata_phases": [
+        {
+          "last_en": false,
+          "phase": 0,
+          "seen": false,
+          "status": {
+            "level": 0,
+            "slave_event_count": 0
+          },
+          "word4": 0,
+          "word4_hex": "0x0000"
+        },
+        {
+          "last_en": false,
+          "phase": 1,
+          "seen": false,
+          "status": {
+            "master_event_count": 0,
+            "pop_count": 0
+          },
+          "word4": 0,
+          "word4_hex": "0x0000"
+        },
+        {
+          "last_en": false,
+          "phase": 2,
+          "seen": false,
+          "status": {
+            "push_count": 0
+          },
+          "word4": 0,
+          "word4_hex": "0x0000"
+        },
+        {
+          "last_en": false,
+          "phase": 3,
+          "seen": false,
+          "status": {},
+          "word4": 0,
+          "word4_hex": "0x0000"
+        }
+      ],
+      "dfi_debug_wrdata_seen": 0,
+      "dfi_debug_wrdata_status": {
+        "level_nonzero": false,
+        "master_event": false,
+        "pop": false,
+        "pop_count_seen": false,
+        "pop_seen": false,
+        "push": false,
+        "push_count_seen": false,
+        "push_seen": false,
+        "select_native": false,
+        "slave_event": false
+      },
+      "dfi_debug_wrdata_status_byte": 0,
+      "dfi_debug_wrdata_status_byte_hex": "0x00",
+      "dfi_debug_wrdata_word4_mask": 0,
+      "event_count": 0,
+      "packed_mask_seen": 0,
+      "packed_mask_seen_hex": "0x000",
+      "status_byte": 0,
+      "status_byte_hex": "0x00"
+    },
+    "native_first_mismatch_chunks": [],
+    "native_phase_sweep": null,
+    "samples": [],
+    "state": "UNKNOWN_183",
+    "status": {
+      "cmd_ready": false,
+      "init_done": true,
+      "init_error": true,
+      "init_seq_done": true,
+      "init_seq_error": false,
+      "init_seq_running": false,
+      "outstanding_full": true,
+      "pll_locked": false,
+      "rdata_valid": false,
+      "read_target_issued": true,
+      "read_target_seen": false,
+      "sys_rstn": true,
+      "timeout_seen": true,
+      "user_rst": false,
+      "wb_error_seen": false,
+      "wb_timeout_seen": false
+    }
+  },
+  "fields": {
+    "magic": 455418495,
+    "state": 183,
+    "status": 5511,
+    "version": 42
+  },
+  "magic_ok": false,
+  "raw_hex": "0x1587b72a1b25227f",
+  "serial": "210299BF3824"
+}
