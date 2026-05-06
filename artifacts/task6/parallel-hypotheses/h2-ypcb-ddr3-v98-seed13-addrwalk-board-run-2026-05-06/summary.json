@@ -1,0 +1,53 @@
+{
+  "experiment": "h2-ypcb-ddr3-v98-seed13-addrwalk-board-run-2026-05-06",
+  "date": "2026-05-06",
+  "source_commit": "32abc0f task6-ddr3: correct v110 source7/source8 summary signatures",
+  "bitstream": "/nix/store/4y8hw3xsq7b8dsfzyzyhsmr9a97crpc9-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.bit",
+  "sha256": "afacbd3eae327e8ed3fa0c084199aaea9891b2baf56a75dc3a9a9c7f19da6a16",
+  "serial": "210299BF3824",
+  "result": "fail",
+  "classification": "pll_unlocked_init_error_with_dfii_readscan_timeout",
+  "version": 98,
+  "build_notes": {
+    "target": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe",
+    "mode": "DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE",
+    "seed": 13,
+    "seed_target": 13,
+    "read_count_log2": 4
+  },
+  "state": "PROBE_ERROR",
+  "pll_locked": false,
+  "init_error": true,
+  "init_done": true,
+  "init_seq_done": true,
+  "init_seq_error": false,
+  "dfii_seq_state": 76,
+  "dfii_step": 130,
+  "dfii_word_mismatch_mask": 0,
+  "dfii_uniform_mismatch_mask": 84,
+  "dfii_phase_mismatch_mask": 0,
+  "write_command_count": 2048,
+  "response_count": 2048,
+  "mismatch_count": 2048,
+  "sample_valid_count": 0,
+  "lane8_best_mismatch_count": 29,
+  "lane_selected_logical_bytes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "native_debug": {
+    "event_count": 0,
+    "packed_mask_seen": 3072,
+    "packed_mask_seen_hex": "0xc00",
+    "status_byte": 192,
+    "status_byte_hex": "0xc0"
+  },
+  "interpretation": "Seed-13 variant still fails with no native progress: init done is observed, but pll_locked is false and init_error is true, with probe timing out waiting for read target. DFII uniform mismatch mask remains nonzero (84) while word mismatch is zero, and native read/write-side counters indicate zero wrdata events captured. This is consistent with prior late-phase instability (DFII path no longer showing clear data corruption but probe lifecycle failing before valid reads).",
+  "next_action": "Run v99 with explicit DFII-only mode to isolate this state from native-side debug and confirm whether readscan target/timeout is introduced by native stage gating. Keep only one hypothesis active per cycle."
+}

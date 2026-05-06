@@ -1,0 +1,4 @@
+v100: DFII init-only edge-compare variant (target: ...edge-comp-init..., seed-13 family) on Board B.
+Programmed successfully (isc_done=1, init=1, done=1).
+Probe still fails with status timeout: init_done=true, init_error=true, pll_locked=false, dfii_seq_state=DFII_SEQ_IDLE, no read target seen, no response/compare activity.
+Interpretation: persistent failure after removing native stages indicates the fault is now in core init/clock/DFII progression, not native coupling.

@@ -272,6 +272,14 @@ FIELDS = [
     ("native_readscan_first_nonzero_data", 4288, 64),
     ("native_readscan_nonzero_chunk_seen", 4352, 9),
     ("native_readscan_first_nonzero_chunk_mask", 4368, 9),
+    ("dfi_debug_wrdata_event_count", 4224, 4),
+    ("dfi_debug_wrdata_seen", 4256, 4),
+    ("dfi_debug_wrdata_word4_mask", 4260, 8),
+    ("dfi_debug_wrdata_word4_q_0", 4288, 16),
+    ("dfi_debug_wrdata_word4_q_1", 4304, 16),
+    ("dfi_debug_wrdata_word4_q_2", 4320, 16),
+    ("dfi_debug_wrdata_word4_q_3", 4336, 16),
+    ("dfi_debug_wrdata_last_en", 4368, 4),
     ("dfii_half_nonzero_high_masks", 4224, 64),
     ("dfii_half_low_match_high_masks", 4288, 64),
     ("dfii_half_high_match_low_masks", 4352, 256),
@@ -438,6 +446,7 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
         if 49 <= version < 54
         else []
     )
+    native_debug = decode_native_debug(fields)
     dfii_word_mismatch_mask = fields.get("dfii_word_mismatch_mask", 0) & (
         0xFFFFF if version >= 83 else 0xFFFF
     )
@@ -561,6 +570,7 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
                 or extended_status["mismatch_seen"]
                 or dfii_data_failed
             ),
+            "native_debug": native_debug,
         },
     }
 
@@ -1305,6 +1315,74 @@ def decode_dfii_assoc_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
     return decoded
 
 
+def decode_native_debug(fields: dict[str, int]) -> dict[str, object]:
+    event_count = fields.get("dfi_debug_wrdata_event_count", 0) & 0xF
+    seen = fields.get("dfi_debug_wrdata_seen", 0) & 0xF
+    last_en = fields.get("dfi_debug_wrdata_last_en", 0) & 0xF
+    word4_mask = fields.get("dfi_debug_wrdata_word4_mask", 0) & 0xFF
+    phase_data = [
+        fields.get(f"dfi_debug_wrdata_word4_q_{index}", 0) & 0xFFFF
+        for index in range(4)
+    ]
+    packed_mask_seen = (word4_mask << 4) | seen
+    phases = []
+    for phase, value in enumerate(phase_data):
+        if phase == 0:
+            status = {
+                "level": value & 0x3F,
+                "slave_event_count": (value >> 8) & 0xFF,
+            }
+        elif phase == 1:
+            status = {
+                "master_event_count": value & 0xFF,
+                "pop_count": (value >> 8) & 0xFF,
+            }
+        elif phase == 2:
+            status = {
+                "push_count": value & 0xFF,
+            }
+        else:
+            status = {}
+        phase_info = {
+            "phase": phase,
+            "word4": value,
+            "word4_hex": f"0x{value:04x}",
+            "seen": bool((seen >> phase) & 0x1),
+            "last_en": bool((last_en >> phase) & 0x1),
+            "status": status,
+        }
+        phases.append(phase_info)
+
+    return {
+        "event_count": event_count,
+        "packed_mask_seen": packed_mask_seen,
+        "packed_mask_seen_hex": f"0x{packed_mask_seen:03x}",
+        "status_byte": word4_mask,
+        "status_byte_hex": f"0x{word4_mask:02x}",
+        "dfi_debug_wrdata_event_count": event_count,
+        "dfi_debug_wrdata_seen": seen,
+        "dfi_debug_wrdata_last_en": last_en,
+        "dfi_debug_wrdata_word4_mask": word4_mask,
+        "dfi_debug_wrdata_status_byte": word4_mask,
+        "dfi_debug_wrdata_status_byte_hex": f"0x{word4_mask:02x}",
+        "dfi_debug_wrdata_packed_mask_seen": packed_mask_seen,
+        "dfi_debug_wrdata_packed_mask_seen_hex": f"0x{packed_mask_seen:03x}",
+        "dfi_debug_wrdata_status": {
+            "select_native": bool(word4_mask & 0x1),
+            "master_event": bool(word4_mask & 0x2),
+            "slave_event": bool(word4_mask & 0x4),
+            "pop": bool(word4_mask & 0x8),
+            "push": bool(word4_mask & 0x10),
+            "level_nonzero": bool(word4_mask & 0x20),
+            "pop_count_seen": bool(word4_mask & 0x40),
+            "push_count_seen": bool(word4_mask & 0x80),
+            "push_seen": bool(last_en & 0x10),
+            "pop_seen": bool(last_en & 0x08),
+        },
+        "dfi_debug_wrdata_phases": phases,
+    }
+
+
 def decode_dfii_addr_matrix(fields: dict[str, int]) -> list[dict[str, int]]:
     columns = fields.get("dfii_addr_columns", 0)
     mismatch_masks = fields.get("dfii_addr_mismatch_masks", 0)
@@ -1812,6 +1890,48 @@ def print_summary(result: dict[str, object]) -> None:
                             mismatches=fields.get("mismatch_count", 0),
                         )
                     )
+                if decoded.get("native_debug"):
+                    native_debug = decoded["native_debug"]
+                    packed_mask_seen = native_debug.get("dfi_debug_wrdata_packed_mask_seen")
+                    status = native_debug.get("dfi_debug_wrdata_status", {})
+                    print(
+                        "native DFI debug: event_count={event_count} "
+                        "seen=0x{seen:01x} last_en=0x{last_en:01x} "
+                        "status=0x{status:02x} packed_mask_seen=0x{packed:03x} "
+                        "push_seen={push_seen} pop_seen={pop_seen} "
+                        "master_event={master_event} slave_event={slave_event} "
+                        "select_native={select_native}".format(
+                            event_count=native_debug.get(
+                                "dfi_debug_wrdata_event_count", 0
+                            ),
+                            seen=native_debug.get("dfi_debug_wrdata_seen", 0),
+                            last_en=native_debug.get(
+                                "dfi_debug_wrdata_last_en",
+                                0,
+                            ),
+                            status=native_debug.get(
+                                "dfi_debug_wrdata_status_byte",
+                                0,
+                            ),
+                            packed=packed_mask_seen if packed_mask_seen else 0,
+                            push_seen=status.get("push_seen", False),
+                            pop_seen=status.get("pop_seen", False),
+                            master_event=status.get("master_event", False),
+                            slave_event=status.get("slave_event", False),
+                            select_native=status.get("select_native", False),
+                        )
+                    )
+                    for phase in native_debug.get("dfi_debug_wrdata_phases", []):
+                        print(
+                            "  phase {phase}: word4=0x{word4:04x} "
+                            "seen={seen} last_en={last_en} status={status}".format(
+                                phase=phase.get("phase", 0),
+                                word4=phase.get("word4", 0),
+                                seen=phase.get("seen", False),
+                                last_en=phase.get("last_en", False),
+                                status=phase.get("status", {}),
+                            )
+                        )
             elif fields.get("version", 0) >= 84:
                 masks = decoded["dfii_phasecmd_mismatch_masks"]
                 complete = (

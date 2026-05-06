@@ -1,0 +1,4 @@
+Experiment v98 (seed-13) was rebuilt from the known clean addrwalk+native target and programmed to Board B.
+Observed: isc_done/init_done done; config/probe status has init_error=true and pll_locked=false.
+DFII probe showed dfii data/match path drift (uniform mismatch mask 84, mismatch_count 2048) and native-side wrdata event_count=0 with status timeout.
+Conclusion: seed-13 alone does not reproduce a fully passing state for this probe target.

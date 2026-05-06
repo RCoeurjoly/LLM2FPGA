@@ -1,0 +1,4 @@
+v99: DFII-only edge-comp-addrwalk built from the same seed-13 family.
+Programmed Board B successfully (isc_done=1 init=1 done=1).
+Probe still fails: pll_locked=false, init_error=true, status timeout observed, no successful read responses.
+This isolates the remaining failure to DD r init/DFII sequencer path independent of native coupling.
