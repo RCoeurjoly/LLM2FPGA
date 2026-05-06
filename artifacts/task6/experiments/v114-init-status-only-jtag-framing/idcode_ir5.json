@@ -1,0 +1,6 @@
+{
+  "backend": "ftdi-mpsse",
+  "idcode": 254,
+  "idcode_hex": "0x000000fe",
+  "serial": "210299BF3824"
+}
