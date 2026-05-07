@@ -48,6 +48,14 @@ This command builds the TinyStories-1M baseline-float flow, lowers it to
 RTL/Yosys form, wraps it in the TinyStories self-test shell, estimates FPGA
 resource usage, and writes a =result= symlink.
 
+Target name breakdown:
+- =tiny-stories-1m=: the model under test.
+- =baseline-float=: floating-point baseline, not a quantized model.
+- =selftest=: wraps the design in a top-level test shell.
+- =all-memory=: blackboxes all oversized Handshake memory modules found in
+  the model, treating them as external-memory candidates.
+- =utilization=: produces a Yosys-based FPGA resource estimate, not a bitstream.
+
 Expected result files:
 - =result/summary.txt=: human-readable utilization summary
 - =result/summary.json=: machine-readable utilization summary

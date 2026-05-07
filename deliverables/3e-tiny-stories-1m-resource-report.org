@@ -21,6 +21,15 @@ symlink in the repo root.
 The command is expected to finish with a resource report, not a final FPGA
 bitstream. If it succeeds, inspect =result/summary.txt= first.
 
+Target name breakdown:
+- =tiny-stories-1m=: the model under test.
+- =baseline-float=: floating-point baseline, not a quantized model.
+- =selftest=: wraps the design in a top-level test shell.
+- =all-memory=: blackboxes all oversized Handshake memory modules found in
+  the model, treating them as external-memory candidates. In this target,
+  oversized means at least 128 kbits per Handshake memory module. The use of Handshake dialect is one of the biggest burdens in the current pipeline and removing it is a goal of task 6.
+- =utilization=: produces a Yosys-based FPGA resource estimate, not a bitstream.
+
 * What this command does
 
 This builds the TinyStories-1M baseline-float pipeline through RTLIL,
