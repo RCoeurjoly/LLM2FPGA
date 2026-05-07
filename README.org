@@ -4,7 +4,7 @@ LLM2FPGA aims to enable local inference of open-source Large Language Models (LL
 
 * Research context and chosen route
 
-In Task 1, we picked the most promissing path for LLM inference on FPGA based on published papers, and the constraint of only using open source tools. The chosen path was chain of compilers, which consist of lowering a PyTorch model to RTL using tools like torch-mlir, CIRCT and yosys+nextpnr.
+In Task 1, we picked the most promising path for LLM inference on FPGA based on published papers, and the constraint of only using open source tools. The chosen path was a compiler chain, which lowers a PyTorch model to RTL using tools like torch-mlir, CIRCT and yosys+nextpnr.
 
 This route follows two references:
 - HotChips: published the pipeline, but tested on a very small demo model.
@@ -37,17 +37,23 @@ If you only read one thing, read:
 1. [[file:deliverables/1c-selected_route.org]]
 2. [[file:deliverables/3e-tiny-stories-1m-resource-report.org]]
 
-Reproduce the final Task 3 resource report:
+Reproduce the final Task 3 resource report from a checkout of this repo:
 
 #+begin_src bash
 nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
 cat result/summary.txt
 #+end_src
 
+This command builds the TinyStories-1M baseline-float flow, lowers it to
+RTL/Yosys form, wraps it in the TinyStories self-test shell, estimates FPGA
+resource usage, and writes a =result= symlink.
+
 Expected result files:
 - =result/summary.txt=: human-readable utilization summary
 - =result/summary.json=: machine-readable utilization summary
 - =result/stat.json=: Yosys leaf-cell counts
+
+The main number to inspect is =clb_luts= in =result/summary.txt=. It is much larger than the target FPGA budget, so the current result is useful as a bottleneck report, but not ready to be programmed into the FPGA.
 
 * Funding
 

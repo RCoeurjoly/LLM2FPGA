@@ -9,7 +9,17 @@ Definition:
 Gate:
 #+begin_src bash
 nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
+cat result/summary.txt
 #+end_src
+
+* How to reproduce
+
+From a checkout of this repo, run the gate command above. Nix builds the
+toolchain and all needed inputs through the flake, then leaves a =result=
+symlink in the repo root.
+
+The command is expected to finish with a resource report, not a final FPGA
+bitstream. If it succeeds, inspect =result/summary.txt= first.
 
 * What this command does
 
@@ -23,6 +33,11 @@ The command produces a =result= symlink with:
 - =summary.txt=: human-readable resource summary
 - =summary.json=: same summary in JSON form
 - =stat.json=: leaf-cell counts used to produce the summary
+
+The main output is =summary.txt=. The most important line is =clb_luts=,
+because LUTs are the resource that most clearly exceeds the target FPGA.
+=summary.json= is the same data for scripts. =stat.json= is lower-level
+Yosys data used to make the summary.
 
 This is not a nextpnr-xilinx place-and-route utilization report. It is a
 Yosys estimate. nextpnr-xilinx was attempted, but it runs out of
