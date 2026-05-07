@@ -228,6 +228,47 @@ Immediate execution order as of 2026-04-30:
   - next source fix should add BaseJump include paths before changing any
     Ternip RTL or reduced configuration
 
+### Vocab route frontier update (2026-05-07)
+
+Question:
+
+- Determine whether the current int8 L2 residual-add plus output-head design is
+  intrinsically route-blocked below the v10k image, or whether the observed
+  v10k route failure is caused by the final vocab/tile/banking shape.
+
+Commands:
+
+- `nix build .#task6-int8-v4k-l2-residual-add-output-head-selftest-5mhz-fasm --no-link --print-out-paths -L`
+- `nix build .#task6-int8-v6k-l2-residual-add-output-head-selftest-5mhz-fasm --no-link --print-out-paths -L`
+- `nix build .#task6-int8-v8k-l2-residual-add-output-head-selftest-5mhz-fasm --no-link --print-out-paths -L`
+
+Results:
+
+| Lane | `vocab_size` | `TILE_OUT_DIM` | Route status | LUT | FF | BRAM36 | DSP | Router iter1 overused / overuse | Final route iter | Post-route max MHz |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| v4k | 4096 | 64 | PASS | 20,890 | 8,940 | 136 | 14 | 24,668 / 29,388 | 57 | 83.57 |
+| v6k | 6144 | 64 | PASS | 22,088 | 8,942 | 200 | 14 | 33,955 / 41,633 | 28 | 102.57 |
+| v8k | 8192 | 64 | PASS | 23,899 | 8,942 | 264 | 14 | 44,574 / 55,622 | 11 | 107.70 |
+| v10k | 10000 | 80 | PRUNED | 76,198 | 8,958 | 8 plus 756 RAMB18 | 15 | 194,634 / 267,576 | none | n/a |
+
+Interpretation:
+
+- The design is not generally route-blocked. With `TILE_OUT_DIM=64`, route
+  pressure grows gently from v4k through v8k and all three lanes complete route
+  with large timing margin at the 5 MHz smoke-test target.
+- The v10k failure is now a sharper suspect: it changes both vocab size and
+  tile/banking shape (`TILE_OUT_DIM=80`) and also maps mostly to RAMB18 instead
+  of the v4k-v8k RAMB36-dominated shape.
+- The next fastest, highest-information experiment is a near-10k lane divisible
+  by 64, preferably `vocab_size=9984` with `TILE_OUT_DIM=64`. If that routes,
+  the tile80/non-power-of-two banking shape is the bug to fix before board
+  programming. If it fails with v10k-like overuse, the problem is near-10k route
+  fanout/congestion and output-head rebanking is the next move.
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/e1-vocab-route-frontier-5mhz-summary.json`
+
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
 Constraint:

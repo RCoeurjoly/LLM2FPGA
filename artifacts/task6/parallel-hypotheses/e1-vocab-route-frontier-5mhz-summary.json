@@ -1,0 +1,106 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab-route-frontier-5mhz",
+  "date": "2026-05-07",
+  "question": "At what reduced-vocab point does the current int8 L2 residual-add plus output-head design stop routing cleanly on xc7k480tffg1156-1 at a 5 MHz smoke-test target?",
+  "device": "xc7k480tffg1156-1",
+  "target_frequency_mhz": 5,
+  "lanes": [
+    {
+      "label": "v4k",
+      "vocab_size": 4096,
+      "tile_out_dim": 64,
+      "target": ".#task6-int8-v4k-l2-residual-add-output-head-selftest-5mhz-fasm",
+      "status": "PASS",
+      "output": "/nix/store/05989y45byz89h6nfsamj43751my5p5q-task6-int8-v4k-l2-residual-add-output-head-selftest-5mhz.fasm",
+      "yosys_peak_mem_mb": 2641.9,
+      "yosys_cpu_user_s": 168.35,
+      "post_pack_utilization": {
+        "slice_lutx": {"used": 20890, "available": 597200, "percent": 3},
+        "slice_ffx": {"used": 8940, "available": 597200, "percent": 1},
+        "ramb18e1": {"used": 6, "available": 1910, "percent": 0},
+        "ramb36e1": {"used": 136, "available": 955, "percent": 14},
+        "dsp48e1": {"used": 14, "available": 1920, "percent": 0},
+        "selmux2_1": {"used": 4901, "available": 225550, "percent": 2}
+      },
+      "placement_max_frequency_mhz": 84.46,
+      "router_first_iteration": {"iteration": 1, "wires": 670665, "overused": 24668, "overuse": 29388},
+      "router_final_iteration": {"iteration": 57, "wires": 706702, "overused": 0, "overuse": 0, "archfail": 0},
+      "router2_time_s": 437.56,
+      "post_route_max_frequency_mhz": 83.57
+    },
+    {
+      "label": "v6k",
+      "vocab_size": 6144,
+      "tile_out_dim": 64,
+      "target": ".#task6-int8-v6k-l2-residual-add-output-head-selftest-5mhz-fasm",
+      "status": "PASS",
+      "output": "/nix/store/jmrvk1m5j9babjaiysl8ikxz9ychqmp9-task6-int8-v6k-l2-residual-add-output-head-selftest-5mhz.fasm",
+      "yosys_peak_mem_mb": 2668.4,
+      "yosys_cpu_user_s": 188.81,
+      "post_pack_utilization": {
+        "slice_lutx": {"used": 22088, "available": 597200, "percent": 3},
+        "slice_ffx": {"used": 8942, "available": 597200, "percent": 1},
+        "ramb18e1": {"used": 6, "available": 1910, "percent": 0},
+        "ramb36e1": {"used": 200, "available": 955, "percent": 20},
+        "dsp48e1": {"used": 14, "available": 1920, "percent": 0},
+        "selmux2_1": {"used": 5398, "available": 225550, "percent": 2}
+      },
+      "placement_max_frequency_mhz": 95.83,
+      "router_first_iteration": {"iteration": 1, "wires": 757677, "overused": 33955, "overuse": 41633},
+      "router_final_iteration": {"iteration": 28, "wires": 811101, "overused": 0, "overuse": 0, "archfail": 0},
+      "router2_time_s": 338.51,
+      "post_route_max_frequency_mhz": 102.57
+    },
+    {
+      "label": "v8k",
+      "vocab_size": 8192,
+      "tile_out_dim": 64,
+      "target": ".#task6-int8-v8k-l2-residual-add-output-head-selftest-5mhz-fasm",
+      "status": "PASS",
+      "output": "/nix/store/6n9n9yvy0apc1vg7ndq7ya8pq6vr6c6m-task6-int8-v8k-l2-residual-add-output-head-selftest-5mhz.fasm",
+      "yosys_peak_mem_mb": 2783.43,
+      "yosys_cpu_user_s": 226.9,
+      "post_pack_utilization": {
+        "slice_lutx": {"used": 23899, "available": 597200, "percent": 4},
+        "slice_ffx": {"used": 8942, "available": 597200, "percent": 1},
+        "ramb18e1": {"used": 6, "available": 1910, "percent": 0},
+        "ramb36e1": {"used": 264, "available": 955, "percent": 27},
+        "dsp48e1": {"used": 14, "available": 1920, "percent": 0},
+        "selmux2_1": {"used": 6240, "available": 225550, "percent": 2}
+      },
+      "placement_max_frequency_mhz": 85.11,
+      "router_first_iteration": {"iteration": 1, "wires": 875655, "overused": 44574, "overuse": 55622},
+      "router_final_iteration": {"iteration": 11, "wires": 940973, "overused": 0, "overuse": 0, "archfail": 0},
+      "router2_time_s": 392.3,
+      "post_route_max_frequency_mhz": 107.7
+    },
+    {
+      "label": "v10k",
+      "vocab_size": 10000,
+      "tile_out_dim": 80,
+      "target": ".#task6-int8-v10k-l2-residual-add-output-head-selftest-5mhz-bitstream",
+      "status": "PRUNED",
+      "source": "artifacts/task6/parallel-hypotheses/e1-vocab10k-plain-5mhz-route-attempt-summary.json",
+      "placement_max_frequency_mhz": 10.04,
+      "router_first_iteration": {"iteration": 1, "wires": 2247475, "overused": 194634, "overuse": 267576},
+      "post_pack_utilization": {
+        "slice_lutx": {"used": 76198, "available": 597200, "percent": 12},
+        "slice_ffx": {"used": 8958, "available": 597200, "percent": 1},
+        "ramb18e1": {"used": 756, "available": 1910, "percent": 39},
+        "ramb36e1": {"used": 8, "available": 955, "percent": 0},
+        "dsp48e1": {"used": 15, "available": 1920, "percent": 0}
+      }
+    }
+  ],
+  "interpretation": [
+    "The current design is not generally route-blocked: v4k, v6k, and v8k all route cleanly at 5 MHz with large timing slack.",
+    "Route pressure grows gently from v4k to v8k when TILE_OUT_DIM stays at 64, but jumps sharply at v10k where TILE_OUT_DIM changes to 80 and memory packing changes from mostly RAMB36E1 to many RAMB18E1 instances.",
+    "The most promising next isolation experiment is a near-10k lane divisible by 64, such as vocab_size=9984 with TILE_OUT_DIM=64, to separate vocabulary size from the non-power-of-two/tile80 banking shape."
+  ],
+  "decision": {
+    "continue_current_v10k_tile80_route_shape": false,
+    "promote_v8k_as_route_clean_reference": true,
+    "next_gate": "Add and route a near-10k power-of-two-tile lane, preferably v9984/TILE_OUT_DIM=64, before attempting output-head rebanking or board programming."
+  }
+}
