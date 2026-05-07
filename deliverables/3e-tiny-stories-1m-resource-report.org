@@ -16,8 +16,8 @@ nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
 This builds the TinyStories-1M baseline-float pipeline through RTLIL,
 wraps it in the TinyStories self-test shell, externalizes oversized
 Handshake memory modules as external-storage candidates, runs staged
-Yosys/Xilinx mapping, writes mapped JSON, and derives utilization
-numbers from that mapped JSON.
+Yosys/Xilinx mapping, writes JSON, and derives utilization
+numbers from that JSON.
 
 The command produces a =result= symlink with:
 - =summary.txt=: human-readable resource summary
@@ -25,14 +25,14 @@ The command produces a =result= symlink with:
 - =stat.json=: leaf-cell counts used to produce the summary
 
 This is not a nextpnr-xilinx place-and-route utilization report. It is a
-mapped Yosys estimate. nextpnr-xilinx was attempted, but it runs out of
+Yosys estimate. nextpnr-xilinx was attempted, but it runs out of
 memory on this route and does not produce a final PnR result.
 
 Result:
 
 #+begin_export ascii
 top: tiny_stories_selftest_top
-estimated mapped resource usage:
+estimated resource usage:
 - slices_lower_bound: 7312083 / 74650 (9795.15%)
 - clb_luts: 42123250 / 298600 (14106.92%)
 - clb_ffs: 58496658 / 597200 (9795.15%)
