@@ -32,6 +32,11 @@ Hardware details:
   - `lspci` shows Thunderbolt bridge devices, but no obvious FPGA PCIe endpoint currently enumerated.
   - Treat JTAG reconfiguration/reset as available, but do not assume it power-cycles DDR3, PCIe, the Thunderbolt enclosure, or the whole board.
   - Research whether power cycling should be added via smart plug/PDU, controllable USB hub, Thunderbolt/PCIe reset, enclosure control, or a small external relay pressing/toggling a reset/power line.
+  - The board is powered only through the OWC Helios PCIe/Thunderbolt enclosure. The Digilent HS3/JTAG cable is assumed to provide JTAG signals only, not board power.
+  - The user has physical access to SW1/SW2, but strongly prefers automated reset/power-cycle mechanisms.
+  - Research whether full power cycling is actually necessary for the planned experiment loop, or whether JTAG reconfiguration, INIT_B reset, user reset, PCIe/Thunderbolt reset, or DDR controller reset is enough.
+- Board count:
+  - The user has 2 YPCB boards, but the Helios enclosure can fit only one at a time. Assume one board is active/connected unless explicitly told otherwise.
 
 This changes the planning assumptions: prioritize strategies that can exploit fast closed-loop hardware experiments, not only synthesis estimates or simulation.
 
@@ -43,6 +48,9 @@ Important repo/project constraints:
 - Optimize for feedback-loop speed: use the smallest model and cheapest measurement path that preserves relevant operator/structure coverage, then replay promising changes on larger lanes.
 - We may split work across branches/worktrees, but should not delete/reclone the main workspace.
 - The flow is all open source. Do not assume Vivado is available.
+- Fully open-source is a hard constraint because NLNet sponsors only fully open-source work.
+  - Do not propose Vivado, Vitis, Xilinx MIG, closed IP, or proprietary implementation flows as Task 6 solutions.
+  - It is acceptable to use public/vendor/TiferKing documentation or metadata as reference information, but the buildable implementation path must remain fully open-source.
 
 Known local facts:
 
@@ -154,6 +162,8 @@ Known local facts:
      - 3,216,448 MACs
      - 3,417,540 rowwise-int8 top-k stream bytes per token
      - 804,112 minimum cycles at 4 DSP lanes
+   - BRAM reserve:
+     - There is no required BRAM reserve. It is acceptable to use most board BRAM if that helps reach the full TinyStories-1M goal.
 
 9. DDR3 status:
    - All-open-source flow, no Vivado.
@@ -175,6 +185,9 @@ Known local facts:
    - Treat DDR3 as two possibly distinct problems:
      1. real data-integrity/training/packing issue once the controller is alive
      2. reproducibility/control-path issue in later init-status-only probes
+   - DDR capacity/channel target:
+     - The user initially assumed 2 GB DDR3, but TiferKing describes the board as having two 72-bit ECC DDR3 channels and 4 GB DDR3 memory components.
+     - Research and plan around both possibilities: one-channel-first bring-up and eventual dual-channel capacity. Do not assume both channels are already usable in the open flow.
 
 10. Ternip status:
    - Current work is in:
@@ -183,12 +196,32 @@ Known local facts:
 
 11. Success criteria and schedule:
    - Goal is full TinyStories-1M, not only a toy model, although proxy experiments are encouraged for feedback-loop speed.
+   - Model changes are allowed if they are technically justified:
+     - quantization
+     - quantization-aware training
+     - retraining/fine-tuning
+     - distillation
+     - ternary/binary/MatMul-free variants
+     - TinyStories-compatible successor models
+   - Exact `roneneldan/TinyStories-1M` checkpoint equivalence is not mandatory if the alternative is documented and defensible.
+   - Correctness/quality success can be approximate:
+     - close logits, same top-1 on fixed prompts, acceptable normalized error, or plausible TinyStories-like generation may be acceptable depending on the experiment.
+     - Do not require bit-exact float32 equivalence unless the specific experiment claims it.
    - Ideal final result: hardware generates tokens.
+   - Throughput floor is very low: one token eventually is acceptable for a first successful full-model hardware demo.
    - Time budget: about 1 month.
    - Overnight experiments are acceptable.
    - Use ChatGPT/agent tokens aggressively if it improves the chance of convergence.
 
-12. Fresh external implementation lead:
+12. PCIe option:
+   - PCIe is not currently required, but it is allowed if it materially improves feasibility.
+   - Relevant open-source PCIe project to evaluate:
+     https://github.com/regymm/pcie_7x
+   - This is an NLNet-sponsored project by someone the user knows.
+   - Analyze whether PCIe/host-assisted execution, PCIe DMA, or PCIe-based readback/control can be useful within the 1-month Task 6 window.
+   - Keep the hard open-source constraint: no proprietary PCIe IP or vendor-only flow.
+
+13. Fresh external implementation lead:
    - TALOS-V2: https://github.com/Luthiraa/TALOS-V2
    - It is an RTL implementation of Karpathy's microGPT for DE1-SoC / Cyclone V.
    - It includes SystemVerilog/Verilog RTL, generated fixed-point ROM weights, simulation files, Python host/reference utilities, JTAG/MMIO control, and board-level scripts.
@@ -282,6 +315,7 @@ Your tasks:
    - Operator fusion / streaming dataflow
    - Time-multiplexed minimal accelerator
    - Host-assisted or staged execution
+   - PCIe-assisted host/FPGA execution using open-source `pcie_7x`
    - Formal/equivalence-driven verification
    - Agentic/autoresearch optimization loop
    Add any important missing strategy families.
@@ -377,6 +411,7 @@ Your tasks:
    - current quantization assumptions
    - whether the machine can control a smart plug, PDU, USB hub with per-port power switching, Thunderbolt reset, or another safe power-cycle mechanism
    - whether the YPCB SW2 GPIO reset or SW1 INIT_B reset can be safely actuated or emulated without hardware modification
+   - whether full board power cycling is actually required, or if a narrower reset/reconfiguration mechanism is enough
 
 Final output format:
 - Executive summary
