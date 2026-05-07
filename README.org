@@ -17,13 +17,11 @@ That behavior is consistent with the 141x LUT overage reported by the Yosys esti
 Start here:
 - High-level route and risks: [[file:deliverables/1c-selected_route.org]]
 - Task 3 summary: [[file:deliverables/3e-tiny-stories-1m-resource-report.org]]
-- Task 3 deliverable index and per-file reproduction map: [[file:deliverables/README.org]]
 - Project plan: [[file:docs/project-plan_v2.org]]
 
 If you only read one thing, read:
 1. [[file:deliverables/1c-selected_route.org]]
-2. [[file:deliverables/README.org]]
-3. [[file:deliverables/3e-tiny-stories-1m-resource-report.org]]
+2. [[file:deliverables/3e-tiny-stories-1m-resource-report.org]]
 
 Reproduce the final Task 3 resource report:
 
