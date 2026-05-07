@@ -21,8 +21,10 @@ model to RTL using tools like torch-mlir, CIRCT and yosys+nextpnr.
 
 This route follows two references:
 
-- HotChips: published the pipeline, but tested on a very small demo
-  model.
+- [HLS with MLIR and
+  CIRCT](https://capra.cs.cornell.edu/latte22/paper/2.pdf) ([demo
+  repository](https://github.com/mikeurbach/hot-chips-2022-pytorch-circt-hls-demo)):
+  published the pipeline, but tested on a very small demo model.
 - StreamTensor: also uses a torch-mlir-style path for LLM FPGA
   inference, but does not publish the code.
 
@@ -53,6 +55,8 @@ with this being the largest FPGA family target we use.
 
 Start here:
 
+- Survey of related FPGA/LLM work:
+  [file:deliverables/1a-survey.org](deliverables/1a-survey.org)
 - High-level route and risks:
   [file:deliverables/1c-selected_route.org](deliverables/1c-selected_route.org)
 - Task 3 summary:
