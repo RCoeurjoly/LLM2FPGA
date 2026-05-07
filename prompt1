@@ -39,6 +39,7 @@ Hardware details:
   - The user has 2 YPCB boards, but the Helios enclosure can fit only one at a time. Assume one board is active/connected unless explicitly told otherwise.
 - Hardware procurement:
   - The user can buy additional hardware if it is cheap enough and materially improves the Task 6 odds.
+  - Procurement/shipping location: Spain.
   - Approximate costs: YPCB board about 80 EUR; OWC Helios enclosure about 400 EUR.
   - The user can buy power-cycling hardware, more YPCB boards, another enclosure, smart plugs, relays, USB-controlled power devices, etc.
   - But delivery time matters because the Task 6 window is about 1 month.
@@ -60,6 +61,9 @@ Important repo/project constraints:
 - Fully open-source is a hard constraint because NLNet sponsors only fully open-source work.
   - Do not propose Vivado, Vitis, Xilinx MIG, closed IP, or proprietary implementation flows as Task 6 solutions.
   - It is acceptable to use public/vendor/TiferKing documentation or metadata as reference information, but the buildable implementation path must remain fully open-source.
+- Relevant repos are public:
+  - https://github.com/RCoeurjoly/LLM2FPGA
+  - https://github.com/RCoeurjoly/ternip
 
 Known local facts:
 
@@ -205,6 +209,14 @@ Known local facts:
 
 11. Success criteria and schedule:
    - Goal is full TinyStories-1M, not only a toy model, although proxy experiments are encouraged for feedback-loop speed.
+   - The broader project still needs Tasks 6, 4, and 5, but Task 6 is the big hurdle:
+     - Task 6: resource minimization strategies and board fit.
+     - Task 5: sweep; expected to be easier once Task 6 fits.
+     - Task 4: being worked on implicitly through the current board/prototype work.
+   - Reviewer/NLNet deliverable preference order:
+     1. best: video or concrete artifact of hardware inference/token generation
+     2. acceptable: board-fit resource report and reproducible bitstream/prototype evidence
+     3. fallback: bottleneck report with clear evidence and next-step plan
    - Model changes are allowed if they are technically justified:
      - quantization
      - quantization-aware training
@@ -221,8 +233,19 @@ Known local facts:
    - Time budget: about 1 month.
    - Overnight experiments are acceptable.
    - Use ChatGPT/agent tokens aggressively if it improves the chance of convergence.
+   - Autonomous loops may leave the board wedged overnight if necessary, but this reduces loop speed. Prefer a recovery path after failed hardware experiments.
+   - The experiment scheduler must serialize board programming/readback so two jobs do not program the board at the same time.
 
-12. PCIe option:
+12. Dev machine capacity:
+   - CPU: 13th Gen Intel Core i7-1360P
+   - Logical CPUs: 16
+   - RAM: 30 GiB total, about 26 GiB available during inspection
+   - Swap: 8 GiB
+   - Disk free on repo/tmp/nix-store filesystem: about 468 GiB
+   - Parallel builds are allowed and desirable, but must avoid blocking the dev machine or racing for the single connected board.
+   - No thermal, noise, or power limit for overnight experiments.
+
+13. PCIe option:
    - PCIe is not currently required, but it is allowed if it materially improves feasibility.
    - Relevant open-source PCIe project to evaluate:
      https://github.com/regymm/pcie_7x
@@ -230,7 +253,7 @@ Known local facts:
    - Analyze whether PCIe/host-assisted execution, PCIe DMA, or PCIe-based readback/control can be useful within the 1-month Task 6 window.
    - Keep the hard open-source constraint: no proprietary PCIe IP or vendor-only flow.
 
-13. Fresh external implementation lead:
+14. Fresh external implementation lead:
    - TALOS-V2: https://github.com/Luthiraa/TALOS-V2
    - It is an RTL implementation of Karpathy's microGPT for DE1-SoC / Cyclone V.
    - It includes SystemVerilog/Verilog RTL, generated fixed-point ROM weights, simulation files, Python host/reference utilities, JTAG/MMIO control, and board-level scripts.
