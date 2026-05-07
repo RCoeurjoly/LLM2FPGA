@@ -245,6 +245,7 @@
         tinyStories1mBaselineFloatIl =
           modelRegistry."tiny-stories-1m-baseline-float".pipeline.il;
         tinyStoriesSelftestTop = ./rtl/tiny_stories_selftest_top.sv;
+        # https://docs.amd.com/v/u/en-US/7-series-product-selection-guide, search XC7K480T
         fpgaCapacities = {
           slices = 74650;
           clb_luts = 298600;
