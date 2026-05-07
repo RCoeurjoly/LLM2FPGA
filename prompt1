@@ -14,10 +14,24 @@ Hardware details:
 - Board: YPCB-00338-1P1
 - External memory: 2 GB DDR3 RAM
 - Vendor summary for XC7K480T: 477,760 logic cells, 1,920 DSP slices, 34,380 Kb block memory, 32 GTX transceivers, 400 I/O pins. Source: https://www.amd.com/en/products/adaptive-socs-and-fpgas/fpga/kintex-7.html
+- Board reverse-engineering reference: https://www.tiferking.cn/index.php/2024/12/19/650/
+  - TiferKing reports the board as an XC7K480T-2FFG1156I PCIe x8 accelerator card.
+  - The board has 18 Micron MT41K256M8DA-125:K DDR3-1600 chips, organized as two 72-bit ECC memory channels.
+  - It has a 512 Mb Micron MT28GU512AAA1EGC BPI NOR flash.
+  - It has two 200 MHz differential active oscillators for DDR controller reference clocks.
+  - SW2 is connected to GPIO and can be used as an in-design reset.
+  - SW1 is connected to FPGA INIT_B and resets the whole FPGA when pressed.
+  - Board has three GPIO LEDs, JTAG, PCIe x8, and a temperature sensor.
 - The board is currently connected to the development computer.
 - It can be programmed over JTAG.
 - Results can also be read back over JTAG.
 - Therefore, FPGA experiments can be run autonomously without manual board interaction or human approval for each programming/readback cycle.
+- Full board power cycling is not currently automated.
+  - Local checks did not find `uhubctl`, `ipmitool`, or `vivado` in PATH.
+  - `lsusb` shows the OWC Helios device as `1e91:de86 Other World Computing Helios 5S`.
+  - `lspci` shows Thunderbolt bridge devices, but no obvious FPGA PCIe endpoint currently enumerated.
+  - Treat JTAG reconfiguration/reset as available, but do not assume it power-cycles DDR3, PCIe, the Thunderbolt enclosure, or the whole board.
+  - Research whether power cycling should be added via smart plug/PDU, controllable USB hub, Thunderbolt/PCIe reset, enclosure control, or a small external relay pressing/toggling a reset/power line.
 
 This changes the planning assumptions: prioritize strategies that can exploit fast closed-loop hardware experiments, not only synthesis estimates or simulation.
 
@@ -90,24 +104,102 @@ Known local facts:
    - Example command:
      openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/wxmy0chrhz9kbb4dx0yjfhmf4sn5535q-task6-led-map.bit
    - The .bit file path changes for each experiment.
+   - `openFPGALoader` is available locally at `/usr/local/bin/openFPGALoader`.
+   - For some SRAM-programming board runs, prior artifacts used:
+     openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 --skip-load-bridge --write-sram <bitstream.bit>
 
-6. DDR3 status:
+6. JTAG readback:
+   - Generic Task 6 XVC readback script:
+     scripts/task6/read_jtag_debug_xvc.py
+   - Direct FTDI/MPSSE LiteDRAM probe readback script:
+     scripts/task6/read_litedram_probe_jtag_ftdi.py
+   - LiteDRAM XVC decoder:
+     scripts/task6/read_litedram_probe_jtag_xvc.py
+   - Current LiteDRAM probe payload default width: 4672 bits.
+   - Common LiteDRAM probe settings: serial `210299BF3824`, USER IR `0x02`, IR length `6`.
+   - A v4k selftest debug top exists with `ENABLE_JTAG_DEBUG=1`; its RTL payload is 768 bits with magic `0x54364a44` and version `13`.
+   - v4k JTAG-debug synthesis target is defined in `flake.nix` around `task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugJson`.
+
+7. Known-good hardware and non-DDR evidence:
+   - Matmul board self-test passed in `deliverables/2d-fpga-bitstream.org`.
+   - v1k bounded int8 L2 MLP/residual-add board anchor:
+     `artifacts/task6/parallel-hypotheses/h2-int8-l2-selftest-board-comparison.json`
+     - simulation PASS
+     - JTAG hardware self-test SELFTEST_PASS
+     - regular bitstream programmed and FPGA DONE observed
+     - 10,733 LUT, 6,530 FF, 10 DSP, 11.0 BRAM36-equivalent
+     - 120.18 MHz regular post-route Fmax against 50 MHz target
+   - v4k bounded MLP/residual plus streamed tied-vocab output-head:
+     `artifacts/task6/parallel-hypotheses/h2-v4k-scale-up-summary.json`
+     - SV simulation PASS at cycle 265719
+     - no DDR3
+     - routed bitstream exists
+     - 13,629 LUT, 8,845 FF, 14 DSP, 132.0 BRAM36-equivalent
+     - 77.99 MHz post-route Fmax against 50 MHz target
+     - caveat: v4k bitstream has not yet been observed passing on the physical board
+
+8. Full-vocab memory surface:
+   - Source artifact:
+     `artifacts/task6/parallel-hypotheses/h2-vocab-memory-surface-score.json`
+   - Full TinyStories tied token+position f32 storage:
+     - 13,390,080 bytes
+     - 2,906 BRAM36 ceiling
+     - does not fit on chip
+   - Full TinyStories rowwise-int8 tied token+position storage:
+     - 3,556,740 bytes
+     - 772 BRAM36 ceiling
+     - about 80.84% of board BRAM before the rest of the design
+   - Full output-head exact top-k:
+     - 50,257 rows
+     - 3,216,448 MACs
+     - 3,417,540 rowwise-int8 top-k stream bytes per token
+     - 804,112 minimum cycles at 4 DSP lanes
+
+9. DDR3 status:
    - All-open-source flow, no Vivado.
    - Current DDR3/StreamTensor work status is in:
      https://github.com/RCoeurjoly/LLM2FPGA/tree/task6-ddr3-v83-resurrection
    - We do not yet have a DDR3 path that preserves data integrity.
+   - Local copied artifacts show the open LiteDRAM/LiteX path can build, route, program, and expose autonomous JTAG payloads.
+   - Earlier successful-control DDR probes:
+     - JEDEC init reached INIT_DONE.
+     - native writes and reads completed.
+     - data integrity failed, often with 65,536 / 65,536 mismatches.
+     - lower 32 readback bits were repeatedly zero or wrong while upper bits varied.
+     - direct DFII write/read also mismatched.
+     - LiteX-style read-leveling scanned all 2,048 candidates but found no zero-error read window.
+   - Later v101/v114 init-status-only runs show a separate no-progress/control/JTAG-framing symptom:
+     - no `magic_ok`
+     - no PLL lock
+     - state stayed around PROBE_RESET
+   - Treat DDR3 as two possibly distinct problems:
+     1. real data-integrity/training/packing issue once the controller is alive
+     2. reproducibility/control-path issue in later init-status-only probes
 
-7. Ternip status:
+10. Ternip status:
    - Current work is in:
      https://github.com/RCoeurjoly/ternip
    - Pay particular attention to the last 17 commits.
 
-8. Success criteria and schedule:
+11. Success criteria and schedule:
    - Goal is full TinyStories-1M, not only a toy model, although proxy experiments are encouraged for feedback-loop speed.
    - Ideal final result: hardware generates tokens.
    - Time budget: about 1 month.
    - Overnight experiments are acceptable.
    - Use ChatGPT/agent tokens aggressively if it improves the chance of convergence.
+
+12. Fresh external implementation lead:
+   - TALOS-V2: https://github.com/Luthiraa/TALOS-V2
+   - It is an RTL implementation of Karpathy's microGPT for DE1-SoC / Cyclone V.
+   - It includes SystemVerilog/Verilog RTL, generated fixed-point ROM weights, simulation files, Python host/reference utilities, JTAG/MMIO control, and board-level scripts.
+   - It claims hardware transformer inference and JTAG-driven inference workflow.
+   - It targets Intel Quartus / Cyclone V and is not directly portable to the current openXC7/XC7K480T flow, but it should be analyzed as a concrete reference architecture for:
+     - fixed-point model representation
+     - ROM/BRAM weight layout
+     - RTL sampler
+     - JTAG host protocol
+     - deterministic RTL-vs-reference validation
+     - full token generation control loop
 
 Current work so far:
 
@@ -263,6 +355,8 @@ Your tasks:
    - how to minimize turnaround time
    - how to decide when a bitstream experiment is worth running
    - how to keep experiments reproducible
+   - how to distinguish FPGA reconfiguration/reset from true board/DDR power cycling
+   - whether automated power cycling is worth adding, and the safest path to add it
 
 8. Be very explicit about uncertainty.
    For every major recommendation, give:
@@ -281,6 +375,8 @@ Your tasks:
    - current DDR3 test artifacts and failure modes
    - current TinyStories-1M graph/operator breakdown
    - current quantization assumptions
+   - whether the machine can control a smart plug, PDU, USB hub with per-port power switching, Thunderbolt reset, or another safe power-cycle mechanism
+   - whether the YPCB SW2 GPIO reset or SW1 INIT_B reset can be safely actuated or emulated without hardware modification
 
 Final output format:
 - Executive summary
@@ -308,3 +404,4 @@ Important style requirements:
 - If a strategy can make progress without DDR3, highlight that.
 - Separate strategies into simulation-only first, synthesis/resource-report first, hardware-in-the-loop first, and DDR3-dependent hardware experiments where appropriate.
 - Include a board safety envelope: clocks, resets, DDR3 pins, JTAG-only experiments, timeout policy, and any assumptions needed to avoid damaging or misconfiguring the board.
+- Analyze TALOS-V2 as a fresh concrete RTL transformer implementation, but explicitly separate ideas that transfer to XC7K/openXC7 from ideas tied to Intel Quartus/Cyclone V/JTAG-to-Avalon.
