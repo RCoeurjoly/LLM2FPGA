@@ -13,6 +13,7 @@ Hardware details:
 - FPGA: Xilinx Kintex-7 XC7K480TFFG1156
 - Board: YPCB-00338-1P1
 - External memory: 2 GB DDR3 RAM
+- Vendor summary for XC7K480T: 477,760 logic cells, 1,920 DSP slices, 34,380 Kb block memory, 32 GTX transceivers, 400 I/O pins. Source: https://www.amd.com/en/products/adaptive-socs-and-fpgas/fpga/kintex-7.html
 - The board is currently connected to the development computer.
 - It can be programmed over JTAG.
 - Results can also be read back over JTAG.
@@ -27,6 +28,86 @@ Important repo/project constraints:
 - Planning details should go in docs/task6-resource-usage-reduction-notes.md, not in reviewer-controlled project-plan docs.
 - Optimize for feedback-loop speed: use the smallest model and cheapest measurement path that preserves relevant operator/structure coverage, then replay promising changes on larger lanes.
 - We may split work across branches/worktrees, but should not delete/reclone the main workspace.
+- The flow is all open source. Do not assume Vivado is available.
+
+Known local facts:
+
+1. Baseline top and estimated resource usage:
+   - top module: tiny_stories_selftest_top
+   - slices_lower_bound: 7,312,083 / 74,650 (9,795.15%)
+   - clb_luts: 42,123,250 / 298,600 (14,106.92%)
+   - clb_ffs: 58,496,658 / 597,200 (9,795.15%)
+   - dsp: 0 / 1,920 (0.00%)
+   - bram36: 0 / 955 (0.00%)
+   - bram36_equiv: 0 / 955 (0.00%)
+   - bram_kb: 0 / 34,380 (0.00%)
+   - largest leaf cell types:
+     - FDRE: 58,495,912
+     - LUT3: 20,249,302
+     - LUT6: 16,692,052
+     - LUT2: 2,655,313
+     - LUT4: 1,469,411
+     - MUXF7: 1,279,439
+     - LUT5: 662,724
+     - LUT1: 394,448
+     - MUXF8: 381,564
+     - CARRY4: 344,999
+     - INV: 223,849
+     - FDSE: 675
+
+   Interpretation to consider: the baseline appears to explode into LUT/FF fabric while using 0 DSP and 0 BRAM, which may indicate massive unrolled/combinational/register-heavy lowering rather than a realistic time-multiplexed accelerator.
+
+2. TinyStories-1M model:
+   - Hugging Face model: https://huggingface.co/roneneldan/TinyStories-1M/tree/main
+   - base architecture in config: GPTNeoForCausalLM
+   - _name_or_path: EleutherAI/gpt-neo-125M
+   - model_type: gpt_neo
+   - activation_function: gelu_new
+   - hidden_size: 64
+   - num_layers: 8
+   - num_heads: 16
+   - attention_layers: global, local alternating over 8 layers
+   - attention_types: [[["global", "local"], 4]]
+   - window_size: 256
+   - max_position_embeddings: 2048
+   - vocab_size: 50257
+   - torch_dtype: float32
+   - use_cache: true
+   - attention_dropout: 0
+   - embed_dropout: 0
+   - resid_dropout: 0
+   - layer_norm_epsilon: 1e-05
+   - transformers_version: 4.28.0
+
+3. Current compiler/toolchain path:
+   - PyTorch -> torch-mlir -> MLIR -> CIRCT -> Yosys -> nextpnr-xilinx
+   - No Vivado dependency should be assumed.
+
+4. Correctness harness:
+   - There is prior PyTorch-vs-RTL comparison work in the LLM2FPGA repo from Task 2. Inspect the repo before proposing a new correctness harness from scratch.
+
+5. JTAG programming:
+   - Example command:
+     openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/wxmy0chrhz9kbb4dx0yjfhmf4sn5535q-task6-led-map.bit
+   - The .bit file path changes for each experiment.
+
+6. DDR3 status:
+   - All-open-source flow, no Vivado.
+   - Current DDR3/StreamTensor work status is in:
+     https://github.com/RCoeurjoly/LLM2FPGA/tree/task6-ddr3-v83-resurrection
+   - We do not yet have a DDR3 path that preserves data integrity.
+
+7. Ternip status:
+   - Current work is in:
+     https://github.com/RCoeurjoly/ternip
+   - Pay particular attention to the last 17 commits.
+
+8. Success criteria and schedule:
+   - Goal is full TinyStories-1M, not only a toy model, although proxy experiments are encouraged for feedback-loop speed.
+   - Ideal final result: hardware generates tokens.
+   - Time budget: about 1 month.
+   - Overnight experiments are acceptable.
+   - Use ChatGPT/agent tokens aggressively if it improves the chance of convergence.
 
 Current work so far:
 
