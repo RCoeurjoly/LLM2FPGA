@@ -1,0 +1,229 @@
+I want you to act as a senior FPGA/ML compiler researcher and technical program planner. Use Deep Research mode. Be candid, technical, and skeptical. Do not optimize for sounding encouraging; optimize for giving me a plan that can actually reduce uncertainty quickly.
+
+Context:
+
+I am working on "Task 6" of an LLM-to-FPGA project. The target is to make TinyStories-1M fit and run on a small FPGA board using FPGA fabric plus available external RAM.
+
+The result of Task 3 is that the current generated design does not fit: it uses about 141x the resources of the target FPGA. So the current baseline is dramatically too large.
+
+Task 6 goal:
+Make TinyStories-1M fit on the target board, considering FPGA resources plus 2 GB DDR3 RAM, while preserving correctness against the PyTorch model or an accepted quantized/reference equivalent.
+
+Hardware details:
+- FPGA: Xilinx Kintex-7 XC7K480TFFG1156
+- Board: YPCB-00338-1P1
+- External memory: 2 GB DDR3 RAM
+- The board is currently connected to the development computer.
+- It can be programmed over JTAG.
+- Results can also be read back over JTAG.
+- Therefore, FPGA experiments can be run autonomously without manual board interaction or human approval for each programming/readback cycle.
+
+This changes the planning assumptions: prioritize strategies that can exploit fast closed-loop hardware experiments, not only synthesis estimates or simulation.
+
+Important repo/project constraints:
+- Task 6 strategy evaluations must compare against the copied baseline bundle at:
+  artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization
+  Do not assume a Nix store path is stable.
+- Planning details should go in docs/task6-resource-usage-reduction-notes.md, not in reviewer-controlled project-plan docs.
+- Optimize for feedback-loop speed: use the smallest model and cheapest measurement path that preserves relevant operator/structure coverage, then replay promising changes on larger lanes.
+- We may split work across branches/worktrees, but should not delete/reclone the main workspace.
+
+Current work so far:
+
+1. StreamTensor Lite:
+   We have been trying to reverse-engineer something like StreamTensor: roughly the same compiler-chain/pipeline idea, but with a design proven to fit an FPGA for an LLM. The problem is that the original authors did not publish code, so we are reverse-engineering.
+   Key idea: StreamTensor externalizes weights to external memory.
+
+2. DDR3:
+   Our board has 2 GB DDR3 RAM. We have spent a lot of effort trying to get DDR3 working because externalized weights seem important. However, we still do not have a DDR3 driver/path that preserves data integrity. This worries me. We have spent many tokens and effort here without success, suggesting that our workflow or search strategy may be poor.
+
+3. Ternip:
+   We have also worked on Ternip / ternary LLM-related ideas. Ternip was released recently, so the research landscape may have changed since our last survey.
+
+Relevant repos:
+- Ternip work: https://github.com/RCoeurjoly/ternip
+- StreamTensor/DDR3 work branch: https://github.com/RCoeurjoly/LLM2FPGA/tree/task6-ddr3-v83-resurrection
+
+Research motivation:
+
+There is currently high uncertainty. On one hand, the goal is very clear: make TinyStories-1M fit on the board using FPGA + RAM. On the other hand, any viable strategy is acceptable.
+
+I want a new survey and execution plan. The plan should identify promising strategies, rank them, design fast experiments, and propose a better workflow. I am especially interested in approaches inspired by "autoresearch" or autonomous research loops: AI agents performing FPGA optimization experiments automatically. This seems suitable because we have:
+- A correctness criterion: RTL behavior should match PyTorch or another accepted reference.
+- Optimization objectives: FPGA resources, RAM usage, throughput/latency, and implementation feasibility.
+- A connected FPGA board that can be programmed and read back autonomously over JTAG.
+
+References for the autoresearch idea:
+- https://github.com/karpathy/autoresearch
+- https://www.reddit.com/r/FPGA/comments/1sy8smo/auto_researcher_loop_for_fpga/
+
+Your tasks:
+
+1. Re-survey the current research landscape.
+   Search for recent work, especially from the last 6-12 months, on:
+   - LLM inference on FPGA
+   - tiny LLM FPGA
+   - transformer FPGA accelerator
+   - FPGA weight streaming
+   - external memory FPGA LLM
+   - quantized LLM FPGA
+   - ternary/binary LLM FPGA
+   - Ternip
+   - StreamTensor
+   - HLS transformer inference
+   - MLIR/CIRCT/AIE/FPGA LLM compiler flows
+   - resource reduction for transformer inference
+   - weight-only quantization on FPGA
+   - bit-serial / bit-sliced neural inference
+   - neural network compression for FPGA
+   Add better search keywords if you find them.
+
+2. Produce strategy tables.
+   For each candidate strategy, create a table with:
+   - Strategy name
+   - Core idea
+   - Provenance: paper, repo, blog, benchmark, etc.
+   - Code availability
+   - Hardware assumptions
+   - Whether it requires working DDR3
+   - Estimated resource impact
+   - Estimated RAM impact
+   - Correctness risk
+   - Integration risk
+   - Expected time to first useful experiment
+   - Experiment design
+   - Kill criteria
+   - Priority
+   - Notes
+
+3. Explicitly compare strategies.
+   I want at least these families considered:
+   - Continue StreamTensor Lite reverse-engineering
+   - Fix DDR3 and continue external weight streaming
+   - Avoid DDR3 initially and shrink model/compute enough to fit internal memory or smaller staged memories
+   - Ternary/BitNet/Ternip-style quantization
+   - Weight-only quantization
+   - Activation quantization
+   - Structured sparsity
+   - Low-rank / matrix factorization
+   - Operator fusion / streaming dataflow
+   - Time-multiplexed minimal accelerator
+   - Host-assisted or staged execution
+   - Formal/equivalence-driven verification
+   - Agentic/autoresearch optimization loop
+   Add any important missing strategy families.
+
+4. Design fast experiments.
+   For the top strategies, design experiments that can run in a tight loop using simulation, synthesis/resource reports, and actual FPGA execution over JTAG.
+
+   Each experiment should include:
+   - Minimal model or subgraph to test
+   - Whether it runs in simulation only, synthesis only, FPGA hardware, or all three
+   - Toolchain path
+   - Bitstream or RTL artifact
+   - JTAG programming/readback method
+   - Input artifact
+   - Output artifact
+   - Correctness check against PyTorch/reference
+   - Resource metric
+   - Hardware observability method
+   - Expected runtime
+   - What result would make the strategy promising
+   - What result would make us stop
+
+   Assume the FPGA board can be programmed and read back autonomously over JTAG. Prefer experiments that can be fully automated.
+
+5. Propose a better workflow for DDR3 work.
+   We have spent a lot of effort without getting a data-integrity-preserving DDR3 path. Diagnose likely reasons this kind of work fails with LLM agents. Propose a workflow that is more likely to converge, including:
+   - smallest possible hardware tests
+   - deterministic test patterns
+   - simulation vs board bring-up split
+   - instrumentation
+   - logging
+   - when to stop
+   - whether to use existing memory controllers/IP
+   - whether to postpone DDR3 entirely
+
+6. Propose an "autoresearch for FPGA optimization" loop.
+   Design a practical agentic loop for this project that uses the connected FPGA board as part of the evaluation loop.
+
+   Include:
+   - hypothesis generation
+   - patch generation
+   - simulation correctness check
+   - synthesis/resource measurement
+   - bitstream generation when appropriate
+   - JTAG programming
+   - JTAG readback / hardware result capture
+   - comparison against PyTorch or known-good reference
+   - result table update
+   - rollback/branching policy
+   - experiment queue
+   - stopping criteria
+   - safeguards against wasting compute/tokens
+   - safeguards against damaging or misconfiguring the board
+   - how to avoid agents making unreviewable changes
+   - how to use small models/proxies before full TinyStories-1M
+   - when to trust simulation, when to require hardware, and when to skip hardware
+
+   The workflow should exploit the board connection: experiments should be runnable autonomously, with logs, artifacts, correctness results, resource usage, and hardware readback results captured into tables.
+
+7. Hardware-in-the-loop planning.
+   Because the FPGA board is connected and can be programmed/read over JTAG, propose a hardware-in-the-loop experiment framework.
+
+   Include:
+   - directory layout for experiments
+   - naming convention for runs
+   - metadata schema for each run
+   - what to log from synthesis, implementation, timing, programming, and readback
+   - how to store expected vs actual outputs
+   - how to detect flaky hardware behavior
+   - how to distinguish RTL bugs from timing/CDC/memory-interface bugs
+   - how to minimize turnaround time
+   - how to decide when a bitstream experiment is worth running
+   - how to keep experiments reproducible
+
+8. Be very explicit about uncertainty.
+   For every major recommendation, give:
+   - confidence level
+   - key assumptions
+   - what evidence would change your mind
+   - fastest way to get that evidence
+
+9. Identify missing local facts.
+   List the most important facts I should extract from the local repo before finalizing the plan, especially:
+   - exact Task 3 utilization breakdown: LUT, FF, BRAM, DSP, timing, memory assumptions
+   - available toolchain commands
+   - Vivado version or alternative synthesis/implementation flow
+   - JTAG programming/readback scripts
+   - known-good non-DDR3 hardware smoke tests
+   - current DDR3 test artifacts and failure modes
+   - current TinyStories-1M graph/operator breakdown
+   - current quantization assumptions
+
+Final output format:
+- Executive summary
+- Current situation diagnosis
+- Research survey with citations/links
+- Strategy comparison tables
+- Ranked experiment backlog
+- DDR3-specific recovery or de-prioritization plan
+- Hardware-in-the-loop experiment framework
+- Autoresearch/agentic optimization workflow
+- Recommended 1-week plan
+- Recommended 1-month plan
+- Open questions I need to answer locally
+- A concise "first 5 commands / first 5 actions" checklist
+
+Important style requirements:
+- Use tables heavily.
+- Be technical and dense.
+- Assume the reader is an experienced engineer/researcher.
+- Do not give generic FPGA advice.
+- Prefer plans that reduce uncertainty quickly.
+- Prefer experiments with clear kill criteria.
+- Clearly distinguish "promising but speculative" from "boring but likely to work."
+- If a strategy depends on DDR3 integrity, say so explicitly.
+- If a strategy can make progress without DDR3, highlight that.
+- Separate strategies into simulation-only first, synthesis/resource-report first, hardware-in-the-loop first, and DDR3-dependent hardware experiments where appropriate.
+- Include a board safety envelope: clocks, resets, DDR3 pins, JTAG-only experiments, timeout policy, and any assumptions needed to avoid damaging or misconfiguring the board.
