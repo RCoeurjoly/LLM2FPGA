@@ -1,0 +1,61 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab9984-tile64-route",
+  "date": "2026-05-07",
+  "question": "Can a near-10k vocab lane route when it keeps the v4k-v8k TILE_OUT_DIM=64 banking shape instead of the v10k TILE_OUT_DIM=80 shape?",
+  "device": "xc7k480tffg1156-1",
+  "target_frequency_mhz": 5,
+  "target": ".#task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-fasm",
+  "status": "PASS",
+  "output": "/nix/store/gqh45ij302d2mdpp2m9l4j153jvdrd84-task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz.fasm",
+  "vocab_size": 9984,
+  "tile_out_dim": 64,
+  "tile_count": 156,
+  "comparison_point": {
+    "vocab_size_delta_vs_10000": -16,
+    "relative_vocab_delta_vs_10000": -0.0016,
+    "purpose": "Keep the successful tile64 shape while making vocab size effectively equal to v10k."
+  },
+  "yosys_peak_mem_mb": 2729.21,
+  "yosys_cpu_user_s": 240.69,
+  "post_pack_utilization": {
+    "slice_lutx": {"used": 23517, "available": 597200, "percent": 3},
+    "slice_ffx": {"used": 8944, "available": 597200, "percent": 1},
+    "ramb18e1": {"used": 6, "available": 1910, "percent": 0},
+    "ramb36e1": {"used": 320, "available": 955, "percent": 33},
+    "dsp48e1": {"used": 14, "available": 1920, "percent": 0},
+    "selmux2_1": {"used": 5422, "available": 225550, "percent": 2}
+  },
+  "placement_max_frequency_mhz": 90.62,
+  "router_first_iteration": {
+    "iteration": 1,
+    "wires": 950378,
+    "overused": 50365,
+    "overuse": 66120
+  },
+  "router_final_iteration": {
+    "iteration": 32,
+    "wires": 1038248,
+    "overused": 0,
+    "overuse": 0,
+    "archfail": 0
+  },
+  "router2_time_s": 1164.33,
+  "post_route_max_frequency_mhz": 110.24,
+  "comparison_to_v10k_tile80": {
+    "v10k_source": "artifacts/task6/parallel-hypotheses/e1-vocab10k-plain-5mhz-route-attempt-summary.json",
+    "v10k_status": "PRUNED",
+    "v10k_tile_out_dim": 80,
+    "v10k_router_first_iteration": {
+      "wires": 2247475,
+      "overused": 194634,
+      "overuse": 267576
+    },
+    "interpretation": "v9984/tile64 routes, while v10k/tile80 does not. The 16-token vocab delta is too small to explain the routing cliff; the next suspect is the tile80/non-divisible banking and memory packing shape."
+  },
+  "decision": {
+    "near_10k_vocab_size_is_routeable": true,
+    "continue_current_v10k_tile80_shape": false,
+    "next_gate": "Replace the v10k tile80 shape with a tile64-compatible full-10k strategy, such as padding the vocab to a tile64 multiple or supporting partial final tiles without changing TILE_OUT_DIM."
+  }
+}

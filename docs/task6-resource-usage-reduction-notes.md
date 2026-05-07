@@ -269,6 +269,56 @@ Artifact:
 
 - `artifacts/task6/parallel-hypotheses/e1-vocab-route-frontier-5mhz-summary.json`
 
+### v9984 tile64 isolation route update (2026-05-07)
+
+Question:
+
+- Is the v10k route failure caused by near-10k vocab size itself, or by the
+  current v10k `TILE_OUT_DIM=80` / non-divisible banking shape?
+
+Reason for `vocab_size=9984`:
+
+- `9984 = 156 * 64`, so it keeps the route-clean `TILE_OUT_DIM=64` shape.
+- It is only 16 tokens below 10,000, a 0.16% vocab-size difference, so it is a
+  clean isolation of tile/banking shape rather than a meaningful vocab shrink.
+
+Command:
+
+- `nix build .#task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-fasm --no-link --print-out-paths -L`
+
+Result:
+
+- PASS: generated
+  `/nix/store/gqh45ij302d2mdpp2m9l4j153jvdrd84-task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz.fasm`
+- Utilization:
+  - `SLICE_LUTX`: `23,517 / 597,200` (3%)
+  - `SLICE_FFX`: `8,944 / 597,200` (1%)
+  - `RAMB36E1`: `320 / 955` (33%)
+  - `RAMB18E1`: `6 / 1,910` (0%)
+  - `DSP48E1`: `14 / 1,920` (0%)
+- Placement max frequency: `90.62 MHz` at a `5 MHz` target.
+- Router first iteration: `wires=950,378`, `overused=50,365`,
+  `overuse=66,120`.
+- Final route: iteration 32, `overused=0`, `overuse=0`, `archfail=0`.
+- Router2 time: `1164.33s`.
+- Post-route max frequency: `110.24 MHz`.
+
+Interpretation:
+
+- Near-10k vocab size is routeable in the current architecture when the lane
+  keeps `TILE_OUT_DIM=64`.
+- The previous v10k route failure is therefore not explained by vocab size. The
+  likely cause is the v10k `TILE_OUT_DIM=80` / non-divisible banking and memory
+  packing shape, which produced a much worse first router iteration:
+  `overused=194,634`, `overuse=267,576`.
+- Next gate: replace v10k tile80 with a tile64-compatible full-10k strategy,
+  either by padding to a tile64 multiple or by supporting a partial final tile
+  while preserving the tile64 banking/fanout shape.
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/e1-vocab9984-tile64-route-summary.json`
+
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
 Constraint:
