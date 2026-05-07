@@ -37,6 +37,15 @@ Hardware details:
   - Research whether full power cycling is actually necessary for the planned experiment loop, or whether JTAG reconfiguration, INIT_B reset, user reset, PCIe/Thunderbolt reset, or DDR controller reset is enough.
 - Board count:
   - The user has 2 YPCB boards, but the Helios enclosure can fit only one at a time. Assume one board is active/connected unless explicitly told otherwise.
+- Hardware procurement:
+  - The user can buy additional hardware if it is cheap enough and materially improves the Task 6 odds.
+  - Approximate costs: YPCB board about 80 EUR; OWC Helios enclosure about 400 EUR.
+  - The user can buy power-cycling hardware, more YPCB boards, another enclosure, smart plugs, relays, USB-controlled power devices, etc.
+  - But delivery time matters because the Task 6 window is about 1 month.
+  - Prioritize recommendations by lead time and immediate impact:
+    - use existing hardware/software first
+    - buy cheap/fast-arriving automation hardware if it can unblock overnight autonomous experiments
+    - treat expensive or slow-arriving hardware as parallel risk reduction, not the main critical path
 
 This changes the planning assumptions: prioritize strategies that can exploit fast closed-loop hardware experiments, not only synthesis estimates or simulation.
 
@@ -412,6 +421,7 @@ Your tasks:
    - whether the machine can control a smart plug, PDU, USB hub with per-port power switching, Thunderbolt reset, or another safe power-cycle mechanism
    - whether the YPCB SW2 GPIO reset or SW1 INIT_B reset can be safely actuated or emulated without hardware modification
    - whether full board power cycling is actually required, or if a narrower reset/reconfiguration mechanism is enough
+   - what hardware, if any, should be bought immediately to improve autonomous experiment throughput within a 1-month deadline
 
 Final output format:
 - Executive summary
