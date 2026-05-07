@@ -46,6 +46,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--c-proj-requant-rtl-proof-json", required=True, type=Path)
     parser.add_argument("--residual-add-rtl-proof-json", required=True, type=Path)
     parser.add_argument("--vocab-size", type=int, default=4096)
+    parser.add_argument("--physical-vocab-size", type=int)
     parser.add_argument("--num-layers", type=int, default=1)
     parser.add_argument("--max-position-embeddings", type=int, default=128)
     parser.add_argument("--window-size", type=int, default=64)
@@ -102,6 +103,7 @@ def make_output_head_args(args: argparse.Namespace) -> argparse.Namespace:
         c_proj_output_boundary_json=args.c_proj_output_boundary_json,
         c_proj_requant_rtl_proof_json=args.c_proj_requant_rtl_proof_json,
         vocab_size=args.vocab_size,
+        physical_vocab_size=args.physical_vocab_size,
         num_layers=args.num_layers,
         max_position_embeddings=args.max_position_embeddings,
         window_size=args.window_size,
@@ -184,7 +186,8 @@ def load_embedding_probe(args: argparse.Namespace) -> dict[str, Any]:
     token_embedding = model.transformer.wte.weight.detach().cpu().contiguous()
     position_embedding = model.transformer.wpe.weight.detach().cpu().contiguous()
 
-    if list(token_embedding.shape) != [args.vocab_size, args.hidden_size]:
+    physical_vocab_size = args.physical_vocab_size or args.vocab_size
+    if list(token_embedding.shape) != [physical_vocab_size, args.hidden_size]:
         raise SystemExit(
             "unexpected token embedding shape "
             f"{list(token_embedding.shape)}"
@@ -198,7 +201,9 @@ def load_embedding_probe(args: argparse.Namespace) -> dict[str, Any]:
             f"{list(position_embedding.shape)}"
         )
     if token_id < 0 or token_id >= args.vocab_size:
-        raise SystemExit(f"token id {token_id} outside vocab size {args.vocab_size}")
+        raise SystemExit(
+            f"token id {token_id} outside logical vocab size {args.vocab_size}"
+        )
 
     vocab_weight_f32 = [float(value) for value in token_embedding.flatten().tolist()]
     vocab_weight_q, vocab_weight_scale = quantize_symmetric(vocab_weight_f32, 8)
@@ -251,6 +256,7 @@ def inject_vocab_data(
     contract = output_payload["rtl_contract"]
     top1 = output_payload["top1"]
     vocab_size = int(contract["vocab_size"])
+    valid_vocab_size = int(contract.get("valid_vocab_size", vocab_size))
     in_dim = int(contract["in_dim"])
     lanes = int(contract["lanes"])
     tile_out_dim = int(contract["tile_out_dim"])
@@ -275,6 +281,7 @@ def inject_vocab_data(
     declarations = [
         f"localparam int VOCAB_IN_DIM = {in_dim};",
         f"localparam int VOCAB_SIZE = {vocab_size};",
+        f"localparam int VOCAB_VALID_SIZE = {valid_vocab_size};",
         f"localparam int VOCAB_TILE_OUT_DIM = {tile_out_dim};",
         f"localparam int VOCAB_LANES = {lanes};",
         f"localparam int VOCAB_ACC_WIDTH = {acc_width};",
@@ -473,6 +480,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str, str]:
             "output_head_top_name": "task6_int8_vocab_output_head_top1_kernel",
             "output": "led_pass_after_residual_vector_and_output_head_top1_check",
             "vocab_size": args.vocab_size,
+            "physical_vocab_size": args.physical_vocab_size or args.vocab_size,
             "hidden_size": args.hidden_size,
             "lanes": args.lanes,
             "local_tied_vocab_weight_memory": True,
@@ -503,7 +511,7 @@ def main() -> None:
         write_phase_banked_vocab_mem_files(
             args.out_vocab_mem,
             vocab_mem_text,
-            vocab_size=args.vocab_size,
+            vocab_size=args.physical_vocab_size or args.vocab_size,
             tile_out_dim=args.tile_out_dim,
         )
     if args.out_json is not None:

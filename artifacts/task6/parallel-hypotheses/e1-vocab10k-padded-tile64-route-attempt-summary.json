@@ -1,0 +1,66 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab10k-padded-tile64-route-attempt",
+  "date": "2026-05-07",
+  "question": "Can logical vocab_size=10000 route when stored as a padded physical vocab_size=10048 with TILE_OUT_DIM=64 and a valid-vocab top1 mask?",
+  "device": "xc7k480tffg1156-1",
+  "target_frequency_mhz": 5,
+  "target": ".#task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz-fasm",
+  "status": "TIMEOUT",
+  "timeout_minutes": 75,
+  "logical_vocab_size": 10000,
+  "physical_vocab_size": 10048,
+  "tile_out_dim": 64,
+  "tile_count": 157,
+  "valid_vocab_mask": true,
+  "reason": "The padded tile64 shape passed synthesis and placement and showed a v9984-like first router iteration, but did not finish routing within the 75 minute experiment timeout. Router overuse was still decreasing at timeout.",
+  "yosys_peak_mem_mb": 2657.24,
+  "yosys_cpu_user_s": 238.33,
+  "post_pack_utilization": {
+    "slice_lutx": {"used": 23851, "available": 597200, "percent": 3},
+    "slice_ffx": {"used": 8944, "available": 597200, "percent": 1},
+    "ramb18e1": {"used": 6, "available": 1910, "percent": 0},
+    "ramb36e1": {"used": 322, "available": 955, "percent": 33},
+    "dsp48e1": {"used": 14, "available": 1920, "percent": 0},
+    "selmux2_1": {"used": 5871, "available": 225550, "percent": 2}
+  },
+  "placement_max_frequency_mhz": 84.35,
+  "router_first_iteration": {
+    "iteration": 1,
+    "wires": 966415,
+    "overused": 54484,
+    "overuse": 73315
+  },
+  "router_last_observed_iteration": {
+    "iteration": 10,
+    "wires": 1074174,
+    "overused": 559,
+    "overuse": 559
+  },
+  "comparison_to_v9984_tile64": {
+    "v9984_source": "artifacts/task6/parallel-hypotheses/e1-vocab9984-tile64-route-summary.json",
+    "v9984_status": "PASS",
+    "v9984_router_first_iteration": {
+      "wires": 950378,
+      "overused": 50365,
+      "overuse": 66120
+    },
+    "interpretation": "The padded full-10k first router iteration is close to v9984/tile64, so the tile64 padding strategy preserves the good route shape."
+  },
+  "comparison_to_v10k_tile80": {
+    "v10k_tile80_source": "artifacts/task6/parallel-hypotheses/e1-vocab10k-plain-5mhz-route-attempt-summary.json",
+    "v10k_tile80_status": "PRUNED",
+    "v10k_tile80_router_first_iteration": {
+      "wires": 2247475,
+      "overused": 194634,
+      "overuse": 267576
+    },
+    "interpretation": "The padded tile64 route pressure is far below the old tile80 shape, confirming tile80/non-divisible banking as the main regression."
+  },
+  "decision": {
+    "tile64_padded_shape_is_promising": true,
+    "route_finished": false,
+    "continue_current_v10k_tile80_shape": false,
+    "next_gate": "Rerun padded tile64 with a longer route budget and/or alternate seed. If it still plateaus above zero overuse, try small route-pressure reductions that keep logical vocab 10000 and physical tile64 packing."
+  }
+}

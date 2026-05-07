@@ -3552,6 +3552,69 @@
               > "$out"
           '';
 
+        task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestTbDataSv =
+          pkgs.runCommand "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-tb-data-sv" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./sim
+            }/gen_task6_int8_v4k_l2_residual_add_output_head_selftest_tb_data.py \
+              --artifact-name e1-v10k-padded-tile64-int8-l2-residual-add-output-head-selftest \
+              --model-path ${tinyStories1m.snapshot} \
+              --adapter-path ${./TinyStories/model_adapter_representative_core.py} \
+              --residual-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-residual-add-contract
+              }/manifest.json \
+              --residual-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-residual-add-boundary.json
+              } \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --c-proj-output-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-proj-output-boundary.json
+              } \
+              --c-proj-requant-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --residual-add-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json
+              } \
+              --vocab-size 10000 \
+              --physical-vocab-size 10048 \
+              --num-layers 1 \
+              --max-position-embeddings 128 \
+              --window-size 64 \
+              --hidden-size 64 \
+              --num-heads 16 \
+              --model-label tiny-stories-v10k-padded10048-h64-l1 \
+              --tile-out-dim 64 \
+              --out-sv "$out/tb_data.sv" \
+              --out-vocab-mem "$out/vocab_packed_weights.mem" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestTop =
+          pkgs.runCommand "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-top.sv" { } ''
+            sed \
+              -e 's|"tb_data.sv"|"${task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestTbDataSv}/tb_data.sv"|g' \
+              -e 's|"vocab_packed_weights.mem"|"${task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestTbDataSv}/vocab_packed_weights.mem"|g' \
+              -e 's|"vocab_loader_phase_readmemh_cases.sv"|"${task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestTbDataSv}/vocab_loader_phase_readmemh_cases.sv"|g' \
+              ${./fpga/rtl/task6_int8_v4k_l2_residual_add_output_head_selftest_top.sv} \
+              > "$out"
+          '';
+
         task6FullVocabRowwiseTopkReplay =
           pkgs.runCommand "h2-full-vocab-rowwise-topk-replay.json" { } ''
             ${pythonWithTinyStoriesBin}/bin/python ${
@@ -6215,6 +6278,30 @@
             yosys -s run.ys
           '';
 
+        task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestJson =
+          pkgs.runCommand "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv}
+            read_verilog -sv ${task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestTop}
+            hierarchy -top task6_int8_v4k_l2_residual_add_output_head_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_v4k_l2_residual_add_output_head_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugJson =
           pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.json" {
             buildInputs = [ pkgs.yosys ];
@@ -6515,6 +6602,26 @@
           name = "task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz";
           fasm = task6Int8V9984L2ResidualAddOutputHeadSelftest5MHzFasm;
           framesBase = "task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz";
+        };
+
+        task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestXdc = mkXdc {
+          name = "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest";
+          includeBoardXdc = false;
+          extraConstraints = [ ./fpga/constraints/matmul_selftest.xdc ];
+        };
+
+        task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftest5MHzFasm = mkFasm {
+          name = "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz";
+          xdc = task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestXdc;
+          json = task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestJson;
+          seed = 2;
+          freqMHz = 5;
+        };
+
+        task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftest5MHzBitstream = mkBitstream {
+          name = "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz";
+          fasm = task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftest5MHzFasm;
+          framesBase = "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz";
         };
 
         task6Int8V10kL2ResidualAddOutputHeadSelftestXdc = mkXdc {
@@ -8806,6 +8913,10 @@
             task6Int8V9984L2ResidualAddOutputHeadSelftestTbDataSv;
           task6-int8-v9984-l2-residual-add-output-head-selftest-top =
             task6Int8V9984L2ResidualAddOutputHeadSelftestTop;
+          task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-tb-data-sv =
+            task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestTbDataSv;
+          task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-top =
+            task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestTop;
           task6-int8-v10k-l2-residual-add-output-head-selftest-sim-main =
             task6Int8V10kL2ResidualAddOutputHeadSelftestSimMain;
           task6-int8-v10k-l2-residual-add-output-head-selftest-sv-sim =
@@ -8824,6 +8935,8 @@
             task6Int8V8kL2ResidualAddOutputHeadSelftestJson;
           task6-int8-v9984-l2-residual-add-output-head-selftest-json =
             task6Int8V9984L2ResidualAddOutputHeadSelftestJson;
+          task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-json =
+            task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestJson;
           task6-int8-v4k-l2-residual-add-output-head-selftest-xdc =
             task6Int8V4kL2ResidualAddOutputHeadSelftestXdc;
           task6-int8-v4k-l2-residual-add-output-head-selftest-fasm =
@@ -8854,6 +8967,12 @@
             task6Int8V9984L2ResidualAddOutputHeadSelftest5MHzFasm;
           task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-bitstream =
             task6Int8V9984L2ResidualAddOutputHeadSelftest5MHzBitstream;
+          task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-xdc =
+            task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestXdc;
+          task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz-fasm =
+            task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftest5MHzFasm;
+          task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz-bitstream =
+            task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftest5MHzBitstream;
           task6-int8-v10k-l2-residual-add-output-head-selftest-xdc =
             task6Int8V10kL2ResidualAddOutputHeadSelftestXdc;
           task6-int8-v10k-l2-residual-add-output-head-selftest-fasm =

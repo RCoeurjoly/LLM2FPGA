@@ -319,6 +319,60 @@ Artifact:
 
 - `artifacts/task6/parallel-hypotheses/e1-vocab9984-tile64-route-summary.json`
 
+### v10k padded tile64 route attempt (2026-05-07)
+
+Question:
+
+- Can the logical `vocab_size=10000` target keep the successful tile64 route
+  shape by padding physical storage/compute to `10048 = 157 * 64` and masking
+  padded rows out of the top1 comparison?
+
+Implementation:
+
+- Added an explicit logical/physical vocab split to the output-head data
+  generators:
+  - logical `vocab_size=10000`
+  - physical `vocab_size=10048`
+  - `TILE_OUT_DIM=64`
+- Added `VALID_VOCAB_SIZE` to `task6_int8_vocab_output_head_top1_kernel`; the
+  core still computes padded rows, but top1 ignores `core_out_addr >= 10000`.
+
+Command:
+
+- `timeout 75m nix build .#task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz-fasm --no-link --print-out-paths -L`
+
+Result:
+
+- TIMEOUT: route did not finish within 75 minutes.
+- Synthesis and placement passed.
+- Utilization:
+  - `SLICE_LUTX`: `23,851 / 597,200` (3%)
+  - `SLICE_FFX`: `8,944 / 597,200` (1%)
+  - `RAMB36E1`: `322 / 955` (33%)
+  - `RAMB18E1`: `6 / 1,910` (0%)
+  - `DSP48E1`: `14 / 1,920` (0%)
+- Placement max frequency: `84.35 MHz` at a `5 MHz` target.
+- Router first iteration: `wires=966,415`, `overused=54,484`,
+  `overuse=73,315`.
+- Last observed route iteration before timeout: iteration 10,
+  `wires=1,074,174`, `overused=559`, `overuse=559`.
+
+Interpretation:
+
+- The padded tile64 full-v10k shape preserves the good route family:
+  first-iteration overuse is close to v9984/tile64 and far below old
+  v10k/tile80.
+- The route did not complete inside the first 75 minute budget, so this is not
+  yet a board-image candidate.
+- Next gate: rerun this exact padded target with a longer route budget and/or a
+  different seed. If it still plateaus above zero overuse, keep the tile64
+  logical/physical split and reduce route pressure locally; do not go back to
+  tile80.
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/e1-vocab10k-padded-tile64-route-attempt-summary.json`
+
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
 Constraint:

@@ -36,6 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--adapter-path", type=Path)
     parser.add_argument("--residual-add-rtl-proof-json", required=True, type=Path)
     parser.add_argument("--vocab-size", type=int, required=True)
+    parser.add_argument("--physical-vocab-size", type=int)
     parser.add_argument("--num-layers", type=int, required=True)
     parser.add_argument("--max-position-embeddings", type=int, required=True)
     parser.add_argument("--window-size", type=int, required=True)
@@ -132,7 +133,9 @@ def load_representative_core_builder(adapter_path: Path | None = None) -> Any:
 
 
 def set_representative_core_env(args: argparse.Namespace) -> None:
-    os.environ["TINYSTORIES_CORE_VOCAB_SIZE"] = str(args.vocab_size)
+    os.environ["TINYSTORIES_CORE_VOCAB_SIZE"] = str(
+        args.physical_vocab_size or args.vocab_size
+    )
     os.environ["TINYSTORIES_CORE_NUM_LAYERS"] = str(args.num_layers)
     os.environ["TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS"] = str(
         args.max_position_embeddings
@@ -298,6 +301,18 @@ def first_argmax(values: list[int] | list[float]) -> int:
 
 
 def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
+    physical_vocab_size = args.physical_vocab_size or args.vocab_size
+    if physical_vocab_size < args.vocab_size:
+        raise SystemExit(
+            "physical vocab size must be >= logical vocab size: "
+            f"{physical_vocab_size} < {args.vocab_size}"
+        )
+    if physical_vocab_size % args.tile_out_dim != 0:
+        raise SystemExit(
+            "physical vocab size must be divisible by tile_out_dim: "
+            f"{physical_vocab_size} % {args.tile_out_dim} != 0"
+        )
+
     proof = load_json(args.residual_add_rtl_proof_json)
     hidden_q, hidden_scale, hidden_metadata = build_residual_output_q(args, proof)
     if len(hidden_q) != args.hidden_size:
@@ -310,7 +325,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     model = build_model(str(args.model_path))
     token_embedding = model.transformer.wte.weight.detach().cpu().contiguous()
     lm_head = model.lm_head.weight.detach().cpu().contiguous()
-    if list(token_embedding.shape) != [args.vocab_size, args.hidden_size]:
+    if list(token_embedding.shape) != [physical_vocab_size, args.hidden_size]:
         raise SystemExit(
             "unexpected token embedding shape "
             f"{list(token_embedding.shape)}"
@@ -324,12 +339,12 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     packed_words = pack_weight_words(
         vocab_weight_q,
         args.hidden_size,
-        args.vocab_size,
+        physical_vocab_size,
         args.lanes,
     )
     accumulators = compute_accumulators(
         hidden_q,
-        vocab_weight_q,
+        vocab_weight_q[: args.vocab_size * args.hidden_size],
         args.hidden_size,
         args.vocab_size,
     )
@@ -379,6 +394,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         "model": {
             "model_label": args.model_label,
             "vocab_size": args.vocab_size,
+            "physical_vocab_size": physical_vocab_size,
             "hidden_size": args.hidden_size,
             "num_layers": args.num_layers,
             "max_position_embeddings": args.max_position_embeddings,
@@ -392,7 +408,8 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
             "weight_dtype": "int8-per-tensor-symmetric",
             "output": "top1_accumulator_and_index",
             "in_dim": args.hidden_size,
-            "vocab_size": args.vocab_size,
+            "vocab_size": physical_vocab_size,
+            "valid_vocab_size": args.vocab_size,
             "lanes": args.lanes,
             "tile_out_dim": args.tile_out_dim,
             "packed_weight_words": len(packed_words),
@@ -421,6 +438,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         "byte_budget": {
             "hidden_int8_bytes": len(hidden_q),
             "tied_vocab_weight_int8_bytes": len(vocab_weight_q),
+            "valid_tied_vocab_weight_int8_bytes": args.vocab_size * args.hidden_size,
             "tied_vocab_weight_f32_bytes_replaced": len(vocab_weight_q) * 4,
             "packed_weight_bytes": len(packed_words) * 4,
         },
@@ -435,7 +453,8 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
 
     sv_lines = [
         f"localparam int IN_DIM = {args.hidden_size};",
-        f"localparam int VOCAB_SIZE = {args.vocab_size};",
+        f"localparam int VOCAB_SIZE = {physical_vocab_size};",
+        f"localparam int VALID_VOCAB_SIZE = {args.vocab_size};",
         f"localparam int TILE_OUT_DIM = {args.tile_out_dim};",
         f"localparam int LANES = {args.lanes};",
         "localparam int ACC_WIDTH = 32;",

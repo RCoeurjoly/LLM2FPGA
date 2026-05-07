@@ -757,6 +757,7 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   task6_int8_vocab_output_head_top1_kernel #(
     .IN_DIM(VOCAB_IN_DIM),
     .VOCAB_SIZE(VOCAB_SIZE),
+    .VALID_VOCAB_SIZE(VOCAB_VALID_SIZE),
     .TILE_OUT_DIM(VOCAB_TILE_OUT_DIM),
     .LANES(VOCAB_LANES),
     .ACC_WIDTH(VOCAB_ACC_WIDTH),

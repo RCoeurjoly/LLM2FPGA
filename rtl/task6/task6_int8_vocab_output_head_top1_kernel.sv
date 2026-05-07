@@ -3,6 +3,7 @@
 module task6_int8_vocab_output_head_top1_kernel #(
   parameter int IN_DIM = 64,
   parameter int VOCAB_SIZE = 4096,
+  parameter int VALID_VOCAB_SIZE = VOCAB_SIZE,
   parameter int TILE_OUT_DIM = 64,
   parameter int LANES = 4,
   parameter int ACC_WIDTH = 32,
@@ -42,11 +43,14 @@ module task6_int8_vocab_output_head_top1_kernel #(
   logic core_busy;
   logic core_done;
   logic seen_output_q;
+  logic core_out_valid_vocab;
 
   logic signed [7:0] activation_mem [0:IN_DIM - 1];
 
   assign core_activation_data = activation_mem[core_activation_addr];
   assign busy = core_busy;
+  assign core_out_valid_vocab =
+    core_out_addr < VOCAB_ADDR_WIDTH'(VALID_VOCAB_SIZE);
 
   always_ff @(posedge clock) begin
     if (activation_load_valid)
@@ -66,7 +70,7 @@ module task6_int8_vocab_output_head_top1_kernel #(
         top_acc <= MIN_ACC;
         seen_output_q <= 1'b0;
       end
-      if (core_out_valid) begin
+      if (core_out_valid && core_out_valid_vocab) begin
         if (!seen_output_q || (core_out_data > top_acc)) begin
           top_index <= core_out_addr;
           top_acc <= core_out_data;
