@@ -2,9 +2,52 @@ LLM2FPGA is a work in progress.
 
 LLM2FPGA aims to enable local inference of open-source Large Language Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM inference has been demonstrated on proprietary hardware and software, we are not aware of any widely recognized project running open-source LLMs on FPGAs through a fully open-source EDA (Electronics Design Automation) flow. To fill this gap, the project will produce an HDL implementation of a lightweight open-source LLM, verify it via simulation, and then attempt synthesis and place-and-route on freely supported FPGA devices. By providing a fully open alternative to proprietary and cloud-based LLM inference, LLM2FPGA will offer a transparent, flexible, and privacy-friendly way to run your own LLM on local hardware.
 
+* Current status
+
+The current most relevant result is Task 3, which tests if
+TinyStories-1M can be lowered from PyTorch to RTL/resource estimates
+using the open-source pipeline.
+
+Result: the current baseline-float pipeline does not fit the target FPGA.
+The Yosys estimate reports 42,123,250 CLB LUTs for a device
+capacity of 298,600 CLB LUTs, i.e. about 141x over the LUT budget.
+I tried to use nextpnr-xilinx for resource reporting, which is the right tool for the job. However, every run hit out-of-memory.
+That behavior is consistent with the 141x LUT overage reported by the Yosys estimate and with this being the largest FPGA family target we use.
+
+Start here:
+- High-level route and risks: [[file:deliverables/1c-selected_route.org]]
+- Task 3 summary: [[file:deliverables/3e-tiny-stories-1m-resource-report.org]]
+- Task 3 deliverable index and per-file reproduction map: [[file:deliverables/README.org]]
+- Project plan: [[file:docs/project-plan_v2.org]]
+
+If you only read one thing, read:
+1. [[file:deliverables/1c-selected_route.org]]
+2. [[file:deliverables/README.org]]
+3. [[file:deliverables/3e-tiny-stories-1m-resource-report.org]]
+
+Reproduce the final Task 3 resource report:
+
+#+begin_src bash
+nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
+cat result/summary.txt
+#+end_src
+
+Expected result files:
+- =result/summary.txt=: human-readable utilization summary
+- =result/summary.json=: machine-readable utilization summary
+- =result/stat.json=: Yosys leaf-cell counts
+
 * Funding
 
 This project is funded through [[https://nlnet.nl/commonsfund][NGI0 Commons Fund]], a fund established by [[https://nlnet.nl][NLnet]] with financial support from the European Commission's [[https://ngi.eu][Next Generation Internet]] program. Learn more at the [[https://nlnet.nl/project/LLM2FPGA][NLnet project page]].
+
+* Documentation formats
+
+The canonical sources are =.org= files. Markdown files are generated for readers who do not use Org mode.
+
+#+begin_src bash
+nix run .#docs-md
+#+end_src
 
 [[https://nlnet.nl][https://nlnet.nl/logo/banner.png]]
 [[https://nlnet.nl/commonsfund][https://nlnet.nl/image/logos/NGI0_tag.svg]]
