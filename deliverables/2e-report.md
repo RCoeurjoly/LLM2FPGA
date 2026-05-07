@@ -1,0 +1,55 @@
+# Deliverable 2e: Report and demo of results
+
+Reference:
+
+- docs/project-plan<sub>v2</sub>.org:151
+
+Definition:
+
+- 2e) Write up of results, and video demo if successful
+
+## Summary
+
+- Task 2d flow was executed end-to-end:
+  - bitstream built from flake packages,
+  - bitstream loaded manually with 'openFPGALoader',
+  - board self-test working.
+
+## Repro steps
+
+``` bash
+nix build .#matmul-selftest-bitstream -L
+openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 -m result # maybe execute with sudo
+```
+
+## Evidence
+
+- Demo video: <https://youtu.be/NURqxN0HnFM>
+
+## Possible future work
+
+### Create PRs for upstream projects, where I use my forks
+
+openXC7.url = "github:RCoeurjoly/toolchain-nix"; nextpnrXilinxFork
+ypcbHack
+
+### fasm with antlr
+
+fasm without antlr works, but it's much slower. Support for antlr4
+should be easy.
+
+matmul-selftest.bit\>
+/nix/store/al638jv5h6959a96hk0r67p869m0p0as-python3.12-fasm/lib/python3.12/site-packages/fasm/parser/\_<sub>init</sub>\_\_.py:30:
+RuntimeWarning: Unable to import fast Antlr4 parser implementation.
+matmul-selftest.bit\> ImportError: cannot import name
+'antlr<sub>totuple</sub>' from partially initialized module
+'fasm.parser' (most likely due to a circular import)
+(/nix/store/al638jv5h6959a96hk0r67p869m0p0as-python3.12-fasm/lib/python3.12/site-packages/fasm/parser/\_<sub>init</sub>\_\_.py)
+matmul-selftest.bit\> matmul-selftest.bit\> Falling back to the much
+slower pure Python textX based parser matmul-selftest.bit\>
+implementation. matmul-selftest.bit\> matmul-selftest.bit\> Getting the
+faster antlr parser can normally be done by installing the
+matmul-selftest.bit\> required dependencies and then reinstalling the
+fasm package with: matmul-selftest.bit\> pip uninstall
+matmul-selftest.bit\> pip install -v fasm matmul-selftest.bit\>
+matmul-selftest.bit\> warn(

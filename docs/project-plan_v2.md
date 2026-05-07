@@ -1,0 +1,496 @@
+takentaal-amendment v1.0
+
+# LLM2FPGA \[1/27\]
+
+LLM2FPGA aims to enable local inference of open-source Large Language
+Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM
+inference has been demonstrated on proprietary hardware and software, we
+are not aware of any widely recognized project running open-source LLMs
+on FPGAs through a fully open-source EDA (Electronics Design Automation)
+flow. To fill this gap, the project will produce an HDL implementation
+of a lightweight open-source LLM, verify it via simulation, and then
+attempt synthesis and place-and-route on freely supported FPGA devices.
+By providing a fully open alternative to proprietary and cloud-based LLM
+inference, LLM2FPGA will offer a transparent, flexible, and
+privacy-friendly way to run your own LLM on local hardware.
+
+## <span class="done DONE">DONE</span> 1) Survey & candidate selection
+
+- State "DONE" from \[2026-02-16 Mon 22:17\]
+
+State of the art review. Although some candidate projects have been
+identified, to have the big picture of what has been achieved so far, we
+need to understand 10 to 15 papers/projects, and what can be reused,
+even finding synergies between papers/projects.
+
+We are lucky that the keywords LLM and FPGA usually give highly relevant
+results.
+
+The first subtask is desk research. Survey table of 10+ FPGA-LLM
+papers/repos, answering the following questions:
+
+Openness: Is the code or detailed design public or promised? Open to
+open-source FPGA tools? Uses open LLMs?
+
+Hardware: Avoid if it needs extra hardware. Check FPGA and open
+toolchain support.
+
+Design: Note method (RTL/HLS), model size (\<10M preferred),
+proof-of-concept potential, and proprietary tool dependencies.
+
+Second subtask:
+
+The purpose is to identify issues or blockages, not to get each project
+completely reproduced.
+
+— Can the HDL (SystemVerilog, Verilog) be parsed by Yosys or
+yosys-slang?
+
+— If HLS is used, can the original C/C++ code be compiled with Vericert
+or another FOSS HLS tool?
+
+Issues or blockages such as:
+
+— Uses features of HDL (SystemVerilog, VHDL) that are not supported in
+yosys.
+
+In yosys, Verilog support is more mature than SystemVerilog (with
+yosys-slang) or VHDL (with ghdl-yosys-plugin)
+
+— Same for HLS
+
+The third subtask:
+
+— Chosen kernel + why
+
+— Any major blockers found in other candidates
+
+— Fallback plan in case current kernel becomes unviable
+
+From now on, we call the chosen kernel the **selected route**.
+
+- Publish survey results based on desk research.
+
+- Research compatibility of potential projects with open source tooling:
+  create a script that clones each repo and runs elaboration with Yosys;
+  logs archived (green, blockages etc)
+
+- Write up and publish results of the research and next steps. (chosen
+  kernel and why + fallback)
+
+## WAIT 2) End-to-End semantic equivalence of a PyTorch kernel to synthesizable RTL \[0/5\]
+
+- State "WAIT" from "TODO<sub>NEXT</sub>" \[2026-03-02 Mon 18:33\]
+- State "TODO<sub>NEXT</sub>" from \[2026-02-16 Mon 22:17\]
+
+### Goal:
+
+Demonstrate that the selected pipeline can lower a minimal PyTorch
+kernel to synthesizable RTL, integrate it into a complete FPGA
+top-level, generate a bitstream, and run a fixed test vector on real
+hardware with outputs matching the PyTorch reference.
+
+### Risks and mitigations
+
+PyTorch hard to simulate: it seems well documented
+<https://docs.pytorch.org/executorch/stable/getting-started.html>
+Discrepancy between PyTorch and RTL simulation: simulate each MLIR stage
+with original PyTorch, to isolate the pass that creates discrepancy
+
+### Subtasks
+
+1.  WAIT Subtask a consists of:
+
+    - State "WAIT" from "TODO<sub>NEXT</sub>" \[2026-02-17 Tue 16:16\]
+    - State "TODO<sub>NEXT</sub>" from \[2026-02-16 Mon 22:17\]
+
+    flake.nix with all relevant tooling: torch-MLIR, LLVM MLIR, CIRCT,
+    yosys.
+
+    Nix devshell provides all tools used by the pipeline.
+
+    Cached derivations for each pipeline stage, so reruns do not
+    recompute earlier stages.
+
+    Also, for each upstream tool, support a build with debug symbols.
+    Needed for debugging issues with tooling.
+
+2.  WAIT Subtask b consists of:
+
+    - State "WAIT" from "TODO<sub>NEXT</sub>" \[2026-02-20 Fri 15:50\]
+    - State "TODO<sub>NEXT</sub>" from "TODO" \[2026-02-17 Tue 16:16\]
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    With the same PyTorch module used in 1.c, run a PyTorch simulation
+    with fixed inputs. Run pipeline with that model, simulate resulting
+    SystemVerilog and compare with golden reference.
+
+3.  WAIT Subtask c consists of:
+
+    - State "WAIT" from "TODO<sub>NEXT</sub>" \[2026-02-20 Fri 15:57\]
+    - State "TODO<sub>NEXT</sub>" from "TODO" \[2026-02-20 Fri 15:50\]
+    - State "TODO" from \[2026-02-16 Mon 22:17\] Yosys ingestion + RTLIL
+      netlist gate
+
+    Artifact: matmul.il produced by Yosys from matmul.sv.
+
+    Yosys completes elaboration and emits RTLIL without fatal errors.
+
+4.  WAIT Subtask d consists of:
+
+    - State "WAIT" from "TODO<sub>NEXT</sub>" \[2026-03-02 Mon 18:33\]
+    - State "TODO<sub>NEXT</sub>" from "TODO" \[2026-02-20 Fri 15:57\]
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Glue RTL for interface, Bitstream generation and testing Think of
+    the simplest way to interface with the host computer, generate
+    bitstream of glue RTL + model RTL, test results are equivalent to
+    golden reference.
+
+    Read and reuse previous work with this board:
+    <https://www.cnblogs.com/ruidongwu/p/18564807>
+
+    <https://x.com/enjoy_digital/status/1924910401176719375>
+
+    <https://www.controlpaths.com/2025/05/18/kintex7-accelerator/>
+
+5.  WAIT Subtask e consists of:
+
+    - State "WAIT" from "TODO" \[2026-03-02 Mon 18:33\]
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Report and demo of results
+
+### Deliverables
+
+- 2a) nix flake and matmul.sv from executing it
+
+- 2b) PyTorch simulation trace, systemverilog testbench and their
+  comparison
+
+- 2c) matmul.il and resource usage report with "yosys stat"
+
+- 2d) FPGA integration + bring-up
+
+- 2e) Write up of results, and video demo if succesful
+
+## TODO<sub>NEXT</sub> 3) Lowering of small LLM to RTL \[0/5\]
+
+- State "TODO<sub>NEXT</sub>" from "TODO" \[2026-03-02 Mon 18:33\]
+- State "TODO" from \[2026-02-16 Mon 22:17\]
+
+### Goal:
+
+Test if a small open-source language model (TinyStories-1M) can be
+lowered from PyTorch to synthesizable RTL using a fully open-source
+compilation flow.
+
+In this task we move from small matmul module to smallest available LLM.
+This task establishes existence of a valid lowering path only;
+scalability and hardware execution are out of scope, for later tasks.
+
+The succesful result is an unintegrated RTL netlist of the model (RTLIL
+or Verilog/SystemVerilog) and synthesis resource estimates, without
+stubbing operators.
+
+Otherwise, bottleneck report identifying unsupported operators, failing
+passes, or any other error in the toolchain.
+
+Functional equivalence to PyTorch is not evaluated in this task; only
+structural synthesizability is established. Semantic validation is
+addressed in the subsequent hardware validation task.
+
+### Risks and mitigations
+
+Risks:
+
+Unsupported MLIR operations found during lowering.
+
+Invalid, non-synthesizable, or structurally incorrect RTL emitted by
+CIRCT.
+
+Toolchain pass interactions leading to verifier failures or fatal errors
+at stage boundaries.
+
+Mitigations: Use -verify-each for each MLIR stage.
+
+For failures, isolate minimal reproducing cases using mlir-reduce and
+archive them.
+
+If necessary, adjust pass ordering. Final success must not rely on
+operator stubbing or blackboxes.
+
+MLIR debugging docs: <https://mlir.llvm.org/getting_started/Debugging/>
+
+### Subtasks
+
+1.  TODO<sub>NEXT</sub> Subtask a consists of:
+
+    - State "TODO<sub>NEXT</sub>" from "TODO" \[2026-03-02 Mon 18:33\]
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Frozen TinyStories-1M artifact
+
+2.  <span class="todo TODO">TODO</span> Subtask b consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    tiny<sub>stories1m</sub>.mlir, just before consumption by CIRCT If a
+    blocker exists, a reduced reproducer (mlir-reduce or minimized
+    export input) is committed or archived. The MLIR verifier passes at
+    this boundary (-verify-each clean at this stage).
+
+3.  <span class="todo TODO">TODO</span> Subtask c consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    tiny<sub>stories1m</sub>.sv, generated by CIRCT Generated RTL is
+    structurally sanity-checked (at minimum: parsable by Yosys front-end
+    in the pinned environment). If a blocker exists, a reduced
+    reproducer (mlir-reduce or minimized export input) is committed or
+    archived.
+
+4.  <span class="todo TODO">TODO</span> Subtask d consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\] Artifact:
+      tinystories<sub>1m</sub>.il produced by Yosys from
+      tinystories<sub>1m</sub>.sv. Yosys completes elaboration and emits
+      RTLIL without fatal errors.
+
+5.  <span class="todo TODO">TODO</span> Subtask e consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\] Artifact: resource
+      utilization report (Yosys stat) generated from the .il/design.
+
+    Bottleneck report: unsupported operators encountered, failing
+    passes, required stubs/workarounds, and/or any other error. Includes
+    minimized reproducers.
+
+### Deliverables
+
+- 3a) TinyStories-1M PyTorch model
+- 3b) tiny<sub>stories1m</sub>.mlir, just before consumption by CIRCT
+- 3c) tiny<sub>stories1m</sub>.sv, generated by CIRCT
+- 3d) tiny<sub>stories1m</sub>.il, generated by yosys
+- 3e) synthesis resource report + bottleneck report
+
+## <span class="todo TODO">TODO</span> 4) FPGA integration and hardware validation \[0/5\]
+
+- State "TODO" from \[2026-02-16 Mon 22:17\]
+
+### Goal:
+
+Demonstrate FPGA integration of the lowered TinyStories-1M model RTL on
+the YPCB-00338-1P1 board.
+
+This includes:
+
+- Integrating the generated RTL with minimal glue logic to interface
+  with host computer,
+- Completing full FPGA synthesis and place-and-route,
+- Loading the design on hardware and executing a fixed input,
+- Verifying hardware outputs against the PyTorch reference.
+
+### Risks and mitigations
+
+Risks:
+
+- Auto-generated interfaces may be impractical for real hardware
+  integration.
+- Errors are difficult to localize across lowering, synthesis, and
+  hardware stages.
+
+Mitigations:
+
+- Base the host-facing interface and integration approach on existing,
+  documented FPGA designs for the same board.
+
+  Some references: <https://www.cnblogs.com/ruidongwu/p/18564807>
+
+<https://x.com/enjoy_digital/status/1924910401176719375>
+
+<https://www.controlpaths.com/2025/05/18/kintex7-accelerator/>
+
+<https://github.com/litex-hub/litex-boards/commit/6d58ae6b31d80b255de12c2d3f5bfefda4c38b90>
+
+- Treat the PyTorch model as the single source of truth and validate
+  each stage against it.
+
+### Subtasks
+
+1.  <span class="todo TODO">TODO</span> Subtask a consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Define and freeze the host-facing interface.
+
+    Use previous work extensively:
+    <https://www.cnblogs.com/ruidongwu/p/18564807>
+
+    <https://x.com/enjoy_digital/status/1924910401176719375>
+
+    <https://www.controlpaths.com/2025/05/18/kintex7-accelerator/>
+
+    <https://github.com/litex-hub/litex-boards/commit/6d58ae6b31d80b255de12c2d3f5bfefda4c38b90>
+
+2.  <span class="todo TODO">TODO</span> Subtask b consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Top-level RTL integration (model + glue) Produce a single
+    synthesizable top-level design.
+
+3.  <span class="todo TODO">TODO</span> Subtask c consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    FPGA synthesis and place-and-route, and usage report.
+
+4.  <span class="todo TODO">TODO</span> Subtask d consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Board bring-up and execution
+
+    Demonstrate that the design runs on real hardware.
+
+5.  <span class="todo TODO">TODO</span> Subtask e consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Hardware vs PyTorch equivalence check
+
+    Define fixed TinyStories-1M input.
+
+    Generate PyTorch reference output.
+
+    Compare FPGA output to reference (exact or tolerance-based).
+
+### Deliverables
+
+- 4a) Interface specification document.
+- 4b) Top-level SystemVerilog.
+- 4c) Bitstream or PnR report.
+- 4d) Programming logs.
+- 4e) Reference output, Comparison report, Short demonstration write-up.
+
+## <span class="todo TODO">TODO</span> 5) Scaling and resource usage analysis \[0/3\]
+
+- State "TODO" from \[2026-02-16 Mon 22:17\]
+
+### Goal:
+
+evaluate how resource usage and pipeline robustness change across the
+published TinyStories model family (1M/3M/8M/28M/33M, excluding
+1Layer-21M). <https://huggingface.co/datasets/roneneldan/TinyStories>
+
+No new model architectures are introduced.
+
+Success would be: a reproducible per-model pipeline results matrix
+(stage pass/fail, compile time, resource/timing where available) plus a
+scaling report for the TinyStories family.
+
+### Risks and mitigations
+
+Pipeline does not work for larger models. Mitigation: reduce those cases
+with mlir-reduce
+
+Compile time or memory usage of the toolchain becomes prohibitive.
+Mitigation: record wall-clock time and peak memory usage for each
+pipeline stage. If a stage fails due to resource exhaustion, get the
+smallest failing reproducer.
+
+### Subtasks
+
+1.  <span class="todo TODO">TODO</span> Subtask a consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\] Model inventory and
+      metadata extraction
+
+    For each model: parameter count, layers, heads, embedding, vocab,
+    etc.
+
+2.  <span class="todo TODO">TODO</span> Subtask b consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Create nix derivations for each model.
+
+3.  <span class="todo TODO">TODO</span> Subtask c consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:17\]
+
+    Generate scaling plots of resource usage (LUT/FF/BRAM/DSP), compile
+    time, and (if available) Fmax vs parameter count and selected
+    hyperparameters. Fit simple models (e.g. linear or polynomial in
+    parameter count) and report observed trends.
+
+    Note: these trends would apply only to TinyStories, not to other
+    model families.
+
+### Deliverables
+
+- 5a) Model inventory table (hyperparams + param count).
+- 5b) Create nix derivations at different scaling points.
+- 5c) Per-model pipeline results matrix (stage pass/fail, compile time,
+  peak memory, resource usage, Fmax if available). Scaling plots
+  (resource usage, compile time, Fmax vs parameter count). Bottleneck
+  summary identifying the first failing stage per model and root cause.
+
+## <span class="todo TODO">TODO</span> 6) Resource usage reduction strategies \[0/3\]
+
+- State "TODO" from \[2026-02-16 Mon 22:17\]
+
+### Goal:
+
+Evaluate if mitigation techniques can reduce resource usage if the
+scaling task shows that larger models do not fit the target device.
+Baseline is the largest successfully lowered model from the scaling
+task.
+
+### Risks and mitigations
+
+Some strategy breaks the pipeline. No resource reduction.
+
+Mitigation: testing and comparing several strategies, and documenting
+even negative or neutral results.
+
+### Subtasks
+
+1.  <span class="todo TODO">TODO</span> Subtask a consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:18\]
+
+    Survey 5 to 10 mitigation strategies, at model-level, MLIR, and RTL:
+    quantization at PyTorch level, eqmap at verilog level, mlir
+    optimizations etc
+
+2.  <span class="todo TODO">TODO</span> Subtask b consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:18\]
+
+    Evaluate all strategies, with comparison with baseline.
+
+    For each strategy, record:
+
+    Delta LUT/FF/BRAM/DSP
+
+    Delta max clock frequency
+
+    Delta toolchain runtime + peak memory
+
+    Each strategy must work without blackboxes or stubs.
+
+3.  <span class="todo TODO">TODO</span> Subtask c consists of:
+
+    - State "TODO" from \[2026-02-16 Mon 22:18\]
+
+    Conclusion of strategies: which are more effective, and which are
+    easy to apply.
+
+### Deliverables
+
+- 6a) resource<sub>usagereductionstrategies</sub>.org
+- 6b) For each strategy, scripts for usage, and before and after
+  resource utilization
+- 6c) Strategy comparison table with all deltas and viability status.

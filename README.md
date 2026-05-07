@@ -1,0 +1,117 @@
+LLM2FPGA is a work in progress.
+
+LLM2FPGA aims to enable local inference of open-source Large Language
+Models (LLMs) on FPGAs using a fully open-source toolchain. While LLM
+inference has been demonstrated on proprietary hardware and software, we
+are not aware of any widely recognized project running open-source LLMs
+on FPGAs through a fully open-source EDA (Electronics Design Automation)
+flow. To fill this gap, the project will produce an HDL implementation
+of a lightweight open-source LLM, verify it via simulation, and then
+attempt synthesis and place-and-route on freely supported FPGA devices.
+By providing a fully open alternative to proprietary and cloud-based LLM
+inference, LLM2FPGA will offer a transparent, flexible, and
+privacy-friendly way to run your own LLM on local hardware.
+
+# Research context and chosen route
+
+In Task 1, we picked the most promising path for LLM inference on FPGA
+based on published papers, and the constraint of only using open source
+tools. The chosen path was a compiler chain, which lowers a PyTorch
+model to RTL using tools like torch-mlir, CIRCT and yosys+nextpnr.
+
+This route follows two references:
+
+- HotChips: published the pipeline, but tested on a very small demo
+  model.
+- StreamTensor: also uses a torch-mlir-style path for LLM FPGA
+  inference, but does not publish the code.
+
+Task 2 uses this path on a minimal matmul model to check the pipeline
+works.
+
+Task 3 uses the same path on TinyStories-1M, the smallest LLM we could
+find.
+
+Result: the model can be lowered and synthesized, but it is far too big
+for the target FPGA (about 141x more LUTs than available). We now move
+to Task 6 to cut resource usage (DDR3 memory offload, pipeline changes,
+etc.).
+
+# Current status
+
+The current most relevant result is Task 3, which tests if
+TinyStories-1M can be lowered from PyTorch to RTL/resource estimates
+using the open-source pipeline.
+
+Result: the current baseline-float pipeline does not fit the target
+FPGA. The Yosys estimate reports 42,123,250 CLB LUTs for a device
+capacity of 298,600 CLB LUTs, i.e. about 141x over the LUT budget. I
+tried to use nextpnr-xilinx for resource reporting, which is the right
+tool for the job. However, every run hit out-of-memory. That behavior is
+consistent with the 141x LUT overage reported by the Yosys estimate and
+with this being the largest FPGA family target we use.
+
+Start here:
+
+- High-level route and risks:
+  [file:deliverables/1c-selected_route.org](deliverables/1c-selected_route.org)
+- Task 3 summary:
+  [file:deliverables/3e-tiny-stories-1m-resource-report.org](deliverables/3e-tiny-stories-1m-resource-report.org)
+- Project plan:
+  [file:docs/project-plan_v2.org](docs/project-plan_v2.org)
+
+If you only read one thing, read:
+
+1.  [file:deliverables/1c-selected_route.org](deliverables/1c-selected_route.org)
+2.  [file:deliverables/3e-tiny-stories-1m-resource-report.org](deliverables/3e-tiny-stories-1m-resource-report.org)
+
+Reproduce the final Task 3 resource report from a checkout of this repo:
+
+``` bash
+nix build .#tiny-stories-1m-baseline-float-selftest-all-memory-utilization -L
+cat result/summary.txt
+```
+
+This command builds the TinyStories-1M baseline-float flow, lowers it to
+RTL/Yosys form, wraps it in the TinyStories self-test shell, estimates
+FPGA resource usage, and writes a `result` symlink.
+
+Target name breakdown:
+
+- `tiny-stories-1m`: the model under test.
+- `baseline-float`: floating-point baseline, not a quantized model.
+- `selftest`: wraps the design in a top-level test shell.
+- `all-memory`: blackboxes all oversized Handshake memory modules found
+  in the model, treating them as external-memory candidates.
+- `utilization`: produces a Yosys-based FPGA resource estimate, not a
+  bitstream.
+
+Expected result files:
+
+- `result/summary.txt`: human-readable utilization summary
+- `result/summary.json`: machine-readable utilization summary
+- `result/stat.json`: Yosys leaf-cell counts
+
+The main number to inspect is `clb_luts` in `result/summary.txt`. It is
+much larger than the target FPGA budget, so the current result is useful
+as a bottleneck report, but not ready to be programmed into the FPGA.
+
+# Funding
+
+This project is funded through [NGI0 Commons
+Fund](https://nlnet.nl/commonsfund), a fund established by
+[NLnet](https://nlnet.nl) with financial support from the European
+Commission's [Next Generation Internet](https://ngi.eu) program. Learn
+more at the [NLnet project page](https://nlnet.nl/project/LLM2FPGA).
+
+# Documentation formats
+
+The canonical sources are `.org` files. Markdown files are generated for
+readers who do not use Org mode.
+
+``` bash
+nix run .#docs-md
+```
+
+[![](https://nlnet.nl/logo/banner.png)](https://nlnet.nl)
+[![](https://nlnet.nl/image/logos/NGI0_tag.svg)](https://nlnet.nl/commonsfund)

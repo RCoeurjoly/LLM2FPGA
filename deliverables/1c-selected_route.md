@@ -1,0 +1,77 @@
+# Selected Route and Next Steps
+
+This deliverable summarizes the conclusions from the survey (1a) and the
+compatibility analysis (1b), presents the selected route, and defines
+fallback options.
+
+## Summary of findings from 1a and 1b
+
+The survey (1a) identified 14 relevant papers and public repositories
+related to LLM inference on FPGAs. The main observations are:
+
+- All HLS-based candidates (1, 2, 6, 8, 10, 11 and 12) rely on the
+  proprietary toolchain Vitis HLS.
+- An open-source alternative for HLS (Panda Bambu) exists, but
+  compatibility with existing Vitis HLS code (especially pragmas and
+  headers) is limited and would require substantial manual rework. See
+  Panda bambu section in TMMA analysis in 1b deliverable.
+- Only one work (15) demonstrates a full PyTorch-to-FPGA pipeline for an
+  LLM using MLIR-based tooling. Route 14 demostrated the same approach,
+  but with smaller PyTorch input. However, its reference implementation
+  is no longer publicly available, preventing reuse.
+- Thanks to NLNet publicity, I got contacted by someone who pointed me
+  to the biggest open source FPGA and its cheapest available board:
+  Xilinx XC7K480T and the board is YPCB-00338-1P1. This FPGA is
+  supported by <https://github.com/openXC7/nextpnr-xilinx>, and it has
+  approx 5x more LUTs than what I considered to be the biggest
+  previously: Lattice ECP5-85 has 85K LUTs vs Xilinx XC7K480T which has
+  480k.
+- They started this project:
+  <https://nlnet.nl/project/PCIe-DMA-DDR3-accelerator/> which got
+  accepted for NLNet funding. This project has a lot of synergies with
+  LLM2FPGA, which we discussed in several calls. Their approach is more
+  bottom up (from PCIe interfaces up to AI accelerators), while mine is
+  top down (from LLM to FPGA). They recommended me to use the hard IP
+  block from Xilinx to make PCIe, if I get to that point before they
+  have finished work on the open source PCIe interface.
+
+These results indicate that most existing approaches are either
+proprietary, partially closed, or incompatible with a fully open-source
+FPGA flow.
+
+## Selected route
+
+Based on the survey and compatibility analysis, the selected route for
+LLM2FPGA is:
+
+``` example
+PyTorch -> Torch-MLIR -> CIRCT -> Verilog -> Yosys
+```
+
+This route is chosen because:
+
+- It is fully open-source and does not depend on proprietary HLS.
+- Torch-MLIR provides a maintained and extensible mechanism to lower
+  PyTorch models into MLIR.
+- CIRCT enables lowering from MLIR into synthesizable Verilog using
+  hardware-oriented dialects.
+- The approach has precedent in published work (**HLSfromPyTorch** (14)
+  and **StreamTensor** (15)), demonstrating technical feasibility.
+- The toolchain allows incremental development: unsupported operators
+  can be rewritten, simplified, or decomposed as needed.
+- Torch-MLIR and CIRCT are actively developed (as of December 2025).
+
+## Risks
+
+- Some PyTorch operators are not supported by Torch-MLIR.
+- Lowering an LLM crashes Torch-MLIR or CIRCT.
+- Even the smallest LLM does not fit in our Kintex 480k FPGA
+
+## Next steps
+
+- Lower a small open-source LLM (TinyStories-2.8M) from PyTorch to
+  Torch-MLIR.
+- Identify unsupported operators and document required rewrites.
+- Lower the model through CIRCT to Verilog.
+- Run Yosys synthesis to assess feasibility and resource usage.
+- Document the full pipeline or, if blocked, the failure mode.
