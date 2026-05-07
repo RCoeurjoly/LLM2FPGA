@@ -1,0 +1,64 @@
+{
+  "artifact_name": "e1-vocab10k-output-head-data-summary",
+  "status": "PASS",
+  "date": "2026-05-07",
+  "hypothesis": "The existing v4k residual-add boundary can drive a 10k TinyStories-compatible tied-vocab output-head data cut, and the int8 top1 remains aligned with the f32 reference for the deterministic sample.",
+  "source_artifacts": {
+    "residual_contract_manifest": "artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-residual-add-contract/manifest.json",
+    "residual_boundary_json": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-residual-add-boundary.json",
+    "residual_add_rtl_proof_json": "artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json",
+    "scorecard": "artifacts/task6/parallel-hypotheses/h2-vocab10k-memory-surface-score.json",
+    "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot"
+  },
+  "configuration": {
+    "model_label": "tiny-stories-v10k-h64-l1",
+    "vocab_size": 10000,
+    "hidden_size": 64,
+    "num_layers": 1,
+    "max_position_embeddings": 128,
+    "window_size": 64,
+    "num_heads": 16,
+    "lanes": 4,
+    "tile_out_dim": 80,
+    "packed_weight_words": 160000
+  },
+  "generated_files": {
+    "scratch_dir": "/tmp/task6-v10k-output-head",
+    "tb_data_sv_lines": 9275,
+    "vocab_packed_weights_mem_lines": 160000,
+    "checked_in_large_generated_files": false
+  },
+  "residual_add": {
+    "status": "partial",
+    "final_output_q_sha256": "3940cab9729d5f0b2192509aefcc118680245e3d9f7897cf0743a452e0f57d9c",
+    "expected_final_output_q_sha256": "3940cab9729d5f0b2192509aefcc118680245e3d9f7897cf0743a452e0f57d9c",
+    "normalized_rmse_vs_block_output": 0.011521920099889468,
+    "normalized_rmse_vs_boundary_quantizer": 0.0
+  },
+  "output_head_top1": {
+    "status": "partial",
+    "fixed_int8_top_index": 213,
+    "fixed_int8_top_acc": 54965,
+    "f32_reference_top_index": 213,
+    "int8_top_matches_f32_top": true,
+    "normalized_rmse": 0.013932267694041638
+  },
+  "embedding_lookup_probe": {
+    "token_id": 0,
+    "position_id": 0,
+    "quantization": "shared-scale-int8-for-token-plus-position-add",
+    "token_q_sha256": "27d5110cad739d96b49086a38dd837653e975990b69295065acd72c4a5eb4c4f",
+    "position_q_sha256": "7ca2fe2a76dfc7886998115f029fc6e57edefddc828540a0a269d5234665288e",
+    "combined_q_sha256": "ab9e2791517f659f5bf73bc57376978b38229456f5c7b3c27de8a71b96284bac"
+  },
+  "validation": {
+    "command": "/nix/store/k1w79kdn30mwgjfz7f56rmap5v0kv851-python3-3.11.14-env/bin/python sim/gen_task6_int8_v4k_l2_residual_add_output_head_selftest_tb_data.py ... --vocab-size 10000 --tile-out-dim 80",
+    "generation": "PASS",
+    "simulation": "not_run",
+    "board": "not_run"
+  },
+  "decision": {
+    "verdict": "promote-v10k-selftest-data",
+    "next_gate": "Add a flake-backed v10k selftest top and run SV simulation before route or board programming."
+  }
+}

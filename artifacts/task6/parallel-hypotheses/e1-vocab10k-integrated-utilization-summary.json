@@ -1,0 +1,102 @@
+{
+  "artifact": "e1-vocab10k-integrated-utilization-summary",
+  "date": "2026-05-07",
+  "hypothesis": "The integrated 10k residual-add/output-head selftest remains within XC7K480T mapped resource margins after Yosys synth_xilinx.",
+  "status": "PASS",
+  "nix_target": ".#task6-int8-v10k-l2-residual-add-output-head-selftest-utilization",
+  "result_path": "/nix/store/q94hc22kyhzyaa0ynwwsi0nfdci8kg80-task6-int8-v10k-l2-residual-add-output-head-selftest-utilization",
+  "design_json": "/nix/store/06gc56a2w6fczi44hh6m852g8h6lj4i5-task6-int8-v10k-l2-residual-add-output-head-selftest.json",
+  "top": "task6_int8_v4k_l2_residual_add_output_head_selftest_top",
+  "resources": {
+    "slices_lower_bound": {
+      "used": 5462,
+      "capacity": 74650,
+      "pct": 7.32
+    },
+    "clb_luts": {
+      "used": 43695,
+      "capacity": 298600,
+      "pct": 14.63
+    },
+    "clb_ffs": {
+      "used": 8958,
+      "capacity": 597200,
+      "pct": 1.5
+    },
+    "dsp": {
+      "used": 15,
+      "capacity": 1920,
+      "pct": 0.78
+    },
+    "bram36": {
+      "used": 8,
+      "capacity": 955,
+      "pct": 0.84
+    },
+    "bram18": {
+      "used": 756
+    },
+    "bram36_equiv": {
+      "used": 386.0,
+      "capacity": 955,
+      "pct": 40.42
+    },
+    "bram_kb": {
+      "used": 13896,
+      "capacity": 34380,
+      "pct": 40.42
+    }
+  },
+  "largest_leaf_cell_types": [
+    {
+      "type": "LUT6",
+      "count": 16035
+    },
+    {
+      "type": "LUT2",
+      "count": 10337
+    },
+    {
+      "type": "FDRE",
+      "count": 8727
+    },
+    {
+      "type": "LUT3",
+      "count": 6724
+    },
+    {
+      "type": "MUXF7",
+      "count": 6196
+    },
+    {
+      "type": "LUT5",
+      "count": 5356
+    },
+    {
+      "type": "INV",
+      "count": 4784
+    },
+    {
+      "type": "LUT1",
+      "count": 3793
+    },
+    {
+      "type": "CARRY4",
+      "count": 3150
+    },
+    {
+      "type": "MUXF8",
+      "count": 1660
+    },
+    {
+      "type": "LUT4",
+      "count": 1450
+    },
+    {
+      "type": "RAMB18E1",
+      "count": 756
+    }
+  ],
+  "interpretation": "This is the first integrated Task 6 lane that passes RTL correctness and has mapped resources comfortably below XC7K480T limits. BRAM36-equivalent usage is the limiting visible resource at 40.42%, but still leaves margin for routing and board debug.",
+  "next_gate": "Create a v10k route/bitstream target, then run JTAG-program/readback through scripts/task6/task6_board_run.py with board locking."
+}

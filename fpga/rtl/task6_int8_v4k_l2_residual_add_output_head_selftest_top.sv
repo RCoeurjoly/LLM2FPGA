@@ -221,9 +221,11 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
         [0:VOCAB_PHASES - 1];
 
       assign vocab_loader_phase =
-        vocab_loader_read_addr[VOCAB_PACKED_WEIGHT_ADDR_WIDTH - 1 -: VOCAB_PHASE_WIDTH];
+        VOCAB_PHASE_WIDTH'(vocab_loader_read_addr / VOCAB_TILE_PACKED_WEIGHT_WORDS);
       assign vocab_loader_tile_addr =
-        vocab_loader_read_addr[VOCAB_TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0];
+        VOCAB_TILE_PACKED_WEIGHT_ADDR_WIDTH'(
+          vocab_loader_read_addr % VOCAB_TILE_PACKED_WEIGHT_WORDS
+        );
 
       for (
         genvar weight_phase = 0;

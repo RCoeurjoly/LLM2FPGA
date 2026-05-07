@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 module task6_int8_v4k_l2_residual_add_output_head_selftest_tb;
-  localparam int TIMEOUT_CYCLES = 350000;
+  localparam int TIMEOUT_CYCLES = 1000000;
 
   logic SYS_CLK;
   logic SYS_RSTN;

@@ -1,0 +1,60 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab10k-plain-5mhz-route-attempt",
+  "date": "2026-05-07",
+  "target": ".#task6-int8-v10k-l2-residual-add-output-head-selftest-5mhz-bitstream",
+  "status": "PRUNED",
+  "reason": "The plain 5 MHz image passed placement timing but stalled in nextpnr routing after the first router iteration. This suggests the v10k integrated image is a mapped fit but not yet a route-ready board image in its current placement/routing shape.",
+  "observations": {
+    "device": "xc7k480tffg1156-1",
+    "target_frequency_mhz": 5,
+    "main_clock_max_frequency_mhz": 10.04,
+    "placement_timing_result": "main clock PASS at 5 MHz",
+    "router_first_iteration": {
+      "wires": 2247475,
+      "overused": 194634,
+      "overuse": 267576
+    },
+    "post_pack_utilization": {
+      "slice_lutx": {
+        "used": 76198,
+        "available": 597200,
+        "percent": 12
+      },
+      "slice_ffx": {
+        "used": 8958,
+        "available": 597200,
+        "percent": 1
+      },
+      "carry4": {
+        "used": 3288,
+        "available": 74650,
+        "percent": 4
+      },
+      "ramb18e1": {
+        "used": 756,
+        "available": 1910,
+        "percent": 39
+      },
+      "ramb36e1": {
+        "used": 8,
+        "available": 955,
+        "percent": 0
+      },
+      "dsp48e1": {
+        "used": 15,
+        "available": 1920,
+        "percent": 0
+      },
+      "bscan": {
+        "used": 0,
+        "available": 4,
+        "percent": 0
+      }
+    }
+  },
+  "decision": {
+    "continue_current_v10k_route_shape": false,
+    "next_gate": "Reduce route pressure before the next board-image attempt, preferably by trying a smaller vocab lane or restructuring the output-head/vocab memory banking and placement shape."
+  }
+}

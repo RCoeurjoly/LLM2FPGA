@@ -11,6 +11,8 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel #(
   parameter int PACKED_WEIGHT_WORDS = PHASES * TILE_PACKED_WEIGHT_WORDS,
   parameter int TILE_PACKED_WEIGHT_ADDR_WIDTH =
     (TILE_PACKED_WEIGHT_WORDS <= 1) ? 1 : $clog2(TILE_PACKED_WEIGHT_WORDS),
+  parameter int TILE_OUT_ADDR_WIDTH =
+    (TILE_OUT_DIM <= 1) ? 1 : $clog2(TILE_OUT_DIM),
   parameter int PACKED_WEIGHT_ADDR_WIDTH =
     (PACKED_WEIGHT_WORDS <= 1) ? 1 : $clog2(PACKED_WEIGHT_WORDS),
   parameter int PHASE_WIDTH = (PHASES <= 1) ? 1 : $clog2(PHASES),
@@ -53,7 +55,7 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel #(
   logic [PHASE_WIDTH - 1:0] phase_q;
   logic core_busy;
   logic core_done;
-  logic [5:0] core_out_addr;
+  logic [TILE_OUT_ADDR_WIDTH - 1:0] core_out_addr;
   logic signed [ACC_WIDTH - 1:0] core_out_data;
   logic core_out_valid;
   logic [TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0] core_packed_weight_addr;
@@ -61,18 +63,25 @@ module task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel #(
   logic [LANES * 8 - 1:0] packed_weight_data_q;
   logic [PHASE_WIDTH - 1:0] load_phase;
   logic [TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0] load_tile_addr;
+  logic [OUT_ADDR_WIDTH - 1:0] phase_base_out_addr;
+  logic [PACKED_WEIGHT_ADDR_WIDTH - 1:0] phase_base_weight_addr;
   logic [DEBUG_SAMPLE_COUNT * DEBUG_SAMPLE_WIDTH - 1:0] core_debug_lane_samples;
   logic [3:0] core_debug_lane_sample_count;
   logic signed [ACC_WIDTH - 1:0] core_debug_lane_final_acc;
 
   assign busy = active_q || core_busy || core_start_q;
-  assign out_addr = {phase_q, core_out_addr};
+  assign phase_base_out_addr = OUT_ADDR_WIDTH'(phase_q) * OUT_ADDR_WIDTH'(TILE_OUT_DIM);
+  assign out_addr = phase_base_out_addr + OUT_ADDR_WIDTH'(core_out_addr);
   assign out_data = core_out_data;
   assign out_valid = core_out_valid;
-  assign packed_weight_read_addr = {phase_q, core_packed_weight_addr};
-  assign load_phase = load_addr[PACKED_WEIGHT_ADDR_WIDTH - 1 -: PHASE_WIDTH];
+  assign phase_base_weight_addr =
+    PACKED_WEIGHT_ADDR_WIDTH'(phase_q) *
+    PACKED_WEIGHT_ADDR_WIDTH'(TILE_PACKED_WEIGHT_WORDS);
+  assign packed_weight_read_addr =
+    phase_base_weight_addr + PACKED_WEIGHT_ADDR_WIDTH'(core_packed_weight_addr);
+  assign load_phase = PHASE_WIDTH'(load_addr / TILE_PACKED_WEIGHT_WORDS);
   assign load_tile_addr =
-    load_addr[TILE_PACKED_WEIGHT_ADDR_WIDTH - 1:0];
+    TILE_PACKED_WEIGHT_ADDR_WIDTH'(load_addr % TILE_PACKED_WEIGHT_WORDS);
 
   genvar weight_lane;
   genvar weight_phase;

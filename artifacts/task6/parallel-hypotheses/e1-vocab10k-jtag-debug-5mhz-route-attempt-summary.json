@@ -1,0 +1,61 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab10k-jtag-debug-5mhz-route-attempt",
+  "date": "2026-05-07",
+  "target": ".#task6-int8-v10k-l2-residual-add-output-head-selftest-jtag-debug-5mhz-bitstream",
+  "status": "PRUNED",
+  "reason": "The JTAG-debug image passed placement timing at 5 MHz but stalled in nextpnr routing after the first router iteration. The debug image roughly increases packed LUT pressure versus the non-debug mapped design, so the next gate is a plain 5 MHz route to separate design routability from debug-payload routability.",
+  "observations": {
+    "device": "xc7k480tffg1156-1",
+    "target_frequency_mhz": 5,
+    "main_clock_max_frequency_mhz": 9.25,
+    "jtag_drck_max_frequency_mhz": 257.73,
+    "placement_timing_result": "main clock PASS at 5 MHz; JTAG DRCK PASS at 5 MHz",
+    "router_first_iteration": {
+      "wires": 2243522,
+      "overused": 179975,
+      "overuse": 242671
+    },
+    "post_pack_utilization": {
+      "slice_lutx": {
+        "used": 77747,
+        "available": 597200,
+        "percent": 13
+      },
+      "slice_ffx": {
+        "used": 9910,
+        "available": 597200,
+        "percent": 1
+      },
+      "carry4": {
+        "used": 3305,
+        "available": 74650,
+        "percent": 4
+      },
+      "ramb18e1": {
+        "used": 756,
+        "available": 1910,
+        "percent": 39
+      },
+      "ramb36e1": {
+        "used": 8,
+        "available": 955,
+        "percent": 0
+      },
+      "dsp48e1": {
+        "used": 15,
+        "available": 1920,
+        "percent": 0
+      },
+      "bscan": {
+        "used": 1,
+        "available": 4,
+        "percent": 25
+      }
+    }
+  },
+  "decision": {
+    "continue_jtag_debug_route_before_plain_route": false,
+    "next_gate": "Build the plain 5 MHz bitstream to test route feasibility without the JTAG debug payload."
+  }
+}

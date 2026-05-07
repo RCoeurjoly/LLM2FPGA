@@ -1,0 +1,100 @@
+{
+  "artifact_name": "e1-vocab10k-output-head-utilization-summary",
+  "status": "PASS",
+  "date": "2026-05-07",
+  "hypothesis": "A 10k TinyStories-compatible tied-vocab output-head scan can be implemented as a time-multiplexed local-memory kernel with low LUT/FF/DSP pressure and acceptable BRAM pressure.",
+  "source_artifacts": {
+    "scorecard": "artifacts/task6/parallel-hypotheses/h2-vocab10k-memory-surface-score.json",
+    "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization",
+    "nix_target": ".#task6-int8-vocab10k-output-head-top1-utilization"
+  },
+  "configuration": {
+    "top": "task6_int8_vocab_output_head_top1_kernel",
+    "vocab_size": 10000,
+    "hidden_size": 64,
+    "lanes": 4,
+    "tile_out_dim": 80,
+    "packed_weight_words": 160000,
+    "weight_format": "int8 packed local BRAM",
+    "topk": "top1 accumulator/index"
+  },
+  "mapped_resources": {
+    "slices_lower_bound": {
+      "used": 289,
+      "capacity": 74650,
+      "pct": 0.39
+    },
+    "clb_luts": {
+      "used": 1653,
+      "capacity": 298600,
+      "pct": 0.55
+    },
+    "clb_ffs": {
+      "used": 2305,
+      "capacity": 597200,
+      "pct": 0.39
+    },
+    "dsp": {
+      "used": 4,
+      "capacity": 1920,
+      "pct": 0.21
+    },
+    "bram36": {
+      "used": 160,
+      "capacity": 955,
+      "pct": 16.75
+    },
+    "bram36_equiv": {
+      "used": 160.0,
+      "capacity": 955,
+      "pct": 16.75
+    },
+    "bram_kb": {
+      "used": 5760,
+      "capacity": 34380,
+      "pct": 16.75
+    }
+  },
+  "largest_leaf_cell_types": [
+    {
+      "type": "FDRE",
+      "count": 2304
+    },
+    {
+      "type": "LUT2",
+      "count": 1370
+    },
+    {
+      "type": "LUT6",
+      "count": 193
+    },
+    {
+      "type": "RAMB36E1",
+      "count": 160
+    },
+    {
+      "type": "DSP48E1",
+      "count": 4
+    }
+  ],
+  "comparison_to_task3_baseline": {
+    "baseline_top": "tiny_stories_selftest_top",
+    "baseline_clb_luts": 40416086,
+    "baseline_clb_luts_pct": 13535.19,
+    "baseline_clb_ffs": 58072527,
+    "baseline_clb_ffs_pct": 9724.13,
+    "interpretation": "This E1 cut changes the failure mode from fabric explosion to a bounded BRAM/DSP time-multiplexed primitive."
+  },
+  "validation": {
+    "commands": [
+      "nix build .#task6-int8-vocab10k-output-head-top1-utilization --no-link --print-out-paths -L"
+    ],
+    "synthesis": "PASS",
+    "simulation": "not_run_for_this_cut",
+    "board": "not_run_for_this_cut"
+  },
+  "decision": {
+    "verdict": "promote-v10k-output-head-kernel",
+    "next_gate": "Generate v10k data/top-level selftest or rowwise-Q0.24 replay around the existing residual-add boundary, then run simulation before any board programming."
+  }
+}

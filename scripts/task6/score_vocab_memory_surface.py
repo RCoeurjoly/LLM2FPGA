@@ -330,6 +330,9 @@ def build_csv_rows(lanes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for lane in lanes:
         output = lane["per_token_access"]["output_projection"]
+        f32 = lane["persistent_storage"]["unique_persistent_f32"]
+        int8 = lane["persistent_storage"]["unique_rowwise_int8"]
+        int4 = lane["persistent_storage"]["unique_rowwise_int4"]
         rows.append(
             {
                 "label": lane["label"],
@@ -341,18 +344,30 @@ def build_csv_rows(lanes: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "lm_head_tied": lane["inspection"][
                     "lm_head_tied_to_token_embedding"
                 ],
-                "unique_persistent_f32_bytes": lane["persistent_storage"][
-                    "unique_persistent_f32"
-                ]["bytes"],
-                "unique_persistent_f32_bram36_ceiling": lane["persistent_storage"][
-                    "unique_persistent_f32"
-                ]["bram36_ceiling"],
-                "unique_rowwise_int8_bytes": lane["persistent_storage"][
-                    "unique_rowwise_int8"
-                ]["bytes"],
-                "unique_rowwise_int4_bytes": lane["persistent_storage"][
-                    "unique_rowwise_int4"
-                ]["bytes"],
+                "unique_persistent_f32_bytes": f32["bytes"],
+                "unique_persistent_f32_bram36_ceiling": f32["bram36_ceiling"],
+                "unique_persistent_f32_bram36_pct": f32[
+                    "bram36_capacity_pct_ceiling"
+                ],
+                "unique_persistent_f32_fits_bram": f32[
+                    "fits_bram36_capacity_by_ceiling"
+                ],
+                "unique_rowwise_int8_bytes": int8["bytes"],
+                "unique_rowwise_int8_bram36_ceiling": int8["bram36_ceiling"],
+                "unique_rowwise_int8_bram36_pct": int8[
+                    "bram36_capacity_pct_ceiling"
+                ],
+                "unique_rowwise_int8_fits_bram": int8[
+                    "fits_bram36_capacity_by_ceiling"
+                ],
+                "unique_rowwise_int4_bytes": int4["bytes"],
+                "unique_rowwise_int4_bram36_ceiling": int4["bram36_ceiling"],
+                "unique_rowwise_int4_bram36_pct": int4[
+                    "bram36_capacity_pct_ceiling"
+                ],
+                "unique_rowwise_int4_fits_bram": int4[
+                    "fits_bram36_capacity_by_ceiling"
+                ],
                 "output_projection_macs": output["macs"],
                 "output_projection_min_compute_cycles": output[
                     "min_compute_cycles"
@@ -366,6 +381,40 @@ def build_csv_rows(lanes: list[dict[str, Any]]) -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+def find_lane_by_vocab(
+    lanes: list[dict[str, Any]],
+    vocab_size: int,
+) -> dict[str, Any] | None:
+    return next(
+        (lane for lane in lanes if lane["config"]["vocab_size"] == vocab_size),
+        None,
+    )
+
+
+def storage_gate(lane: dict[str, Any] | None, storage_key: str) -> str | None:
+    if lane is None:
+        return None
+    storage = lane["persistent_storage"][storage_key]
+    return (
+        "fits-on-chip"
+        if storage["fits_bram36_capacity_by_ceiling"]
+        else "requires-external-memory-or-compression"
+    )
+
+
+def lane_ratio(
+    numerator: dict[str, Any] | None,
+    denominator: dict[str, Any] | None,
+    storage_key: str,
+) -> float | None:
+    if numerator is None or denominator is None:
+        return None
+    denominator_bytes = denominator["persistent_storage"][storage_key]["bytes"]
+    if denominator_bytes == 0:
+        return None
+    return numerator["persistent_storage"][storage_key]["bytes"] / denominator_bytes
 
 
 def main() -> None:
@@ -402,36 +451,46 @@ def main() -> None:
             "storage": bram36_summary(bytes_value, args.bram36_capacity),
         }
 
-    v4k_lane = next(
-        (lane for lane in lanes if lane["config"]["vocab_size"] == 4096),
-        None,
-    )
+    v4k_lane = find_lane_by_vocab(lanes, 4096)
+    v10k_lane = find_lane_by_vocab(lanes, 10_000)
     full_lane = lanes[-1]
     decision = {
-        "verdict": "promote-v4k-on-chip-vocab-prototype-and-full-vocab-ddr3-plan",
-        "v4k_storage_gate": None,
-        "full_model_storage_gate": None,
+        "verdict": "promote-reduced-vocab-on-chip-prototypes-and-defer-full-vocab-to-streaming-or-ddr",
+        "v4k_f32_storage_gate": storage_gate(v4k_lane, "unique_persistent_f32"),
+        "v10k_f32_storage_gate": storage_gate(v10k_lane, "unique_persistent_f32"),
+        "v10k_rowwise_int8_storage_gate": storage_gate(
+            v10k_lane,
+            "unique_rowwise_int8",
+        ),
+        "v10k_rowwise_int4_storage_gate": storage_gate(
+            v10k_lane,
+            "unique_rowwise_int4",
+        ),
+        "full_model_f32_storage_gate": storage_gate(
+            full_lane,
+            "unique_persistent_f32",
+        ),
+        "full_model_rowwise_int8_storage_gate": storage_gate(
+            full_lane,
+            "unique_rowwise_int8",
+        ),
+        "v10k_vs_full_rowwise_int8_bytes_ratio": lane_ratio(
+            v10k_lane,
+            full_lane,
+            "unique_rowwise_int8",
+        ),
+        "v10k_vs_full_rowwise_int4_bytes_ratio": lane_ratio(
+            v10k_lane,
+            full_lane,
+            "unique_rowwise_int4",
+        ),
         "next_gate": (
-            "Keep the next board-facing v4k prototype on-chip for tied vocab "
-            "storage, but plan the full TinyStories vocab/output surface as an "
-            "external-memory or streamed-output-head problem."
+            "Regenerate the v10k packed tied-vocab/output-head surface from this "
+            "scorecard before synthesis. Treat full-vocab rowwise int8 as a "
+            "possible raw-BRAM fit only after reserving space for the rest of the "
+            "time-multiplexed model; do not route full-vocab f32 constants."
         ),
     }
-    if v4k_lane is not None:
-        decision["v4k_storage_gate"] = (
-            "fits-on-chip"
-            if v4k_lane["persistent_storage"]["unique_persistent_f32"][
-                "fits_bram36_capacity_by_ceiling"
-            ]
-            else "requires-external-memory"
-        )
-    decision["full_model_storage_gate"] = (
-        "fits-on-chip"
-        if full_lane["persistent_storage"]["unique_persistent_f32"][
-            "fits_bram36_capacity_by_ceiling"
-        ]
-        else "requires-external-memory-or-compression"
-    )
 
     payload = {
         "artifact_name": args.artifact_name,

@@ -74,6 +74,10 @@ earns more work.
 - Treat every recorded Task 6 experiment as a checkpointed unit:
   - once its docs and artifact bundle are written, commit and push the branch
     before starting the next experiment
+- After any experiment produces simulation, synthesis, route, bitstream, or
+  board results, update the status artifacts and commit with a specific,
+  appropriate, result-oriented commit message before starting the next
+  experiment.
 - Fast-prune a lane after 1-2 measured attempts unless it exposes a new,
   narrower bottleneck that is worth isolating.
 
@@ -14458,3 +14462,206 @@ FAIL: data collapses into one logical byte lane or shows non-bijective aliasing.
 Required experiment shape: write one distinctive byte at a time through DFII, with exactly one write phase, beat, byte position, and physical lane candidate active. Then read back through DFII and record the observed phase, beat, logical byte, value, and mask. The output must derive a mapping and make one explicit next decision: apply mapping, fix generator/packing, or falsify the current PHY path.
 
 Do not widen delay sweeps before this matrix exists. The next source experiment should be a DFII byte/phase association probe, not another native BIST variant.
+
+## Deep Research replan checkpoint (2026-05-07)
+
+Source: `~/Downloads/Task_6_Deep_Research_Plan_for_TinyStories_on_XC7K480T.md`.
+
+Strategic decision:
+
+- Make no-DDR, reduced-vocabulary, quantized, time-multiplexed token generation
+  the primary Task 6 path.
+- Keep DDR3 as a bounded parallel recovery lane with strict gates, not as the
+  main milestone.
+- Use StreamTensor as an idea source only; do not spend the month rebuilding
+  an unpublished compiler stack.
+- Keep Ternip/ternary work as a parallel risk-reduction branch, not the main
+  critical path until reduced synthesis and parity gates are stable.
+- Add out-of-band enclosure power recovery if it can arrive quickly in Spain.
+
+Rationale:
+
+- The Task 3 baseline uses enormous LUT/FF fabric and essentially no DSP/BRAM,
+  so the failure is architectural, not a near-fit optimization miss.
+- Existing v1k/v4k Task 6 anchors already prove a better regime: explicit
+  time-multiplexing, DSP use, BRAM use, simulation evidence, and board/JTAG
+  evidence for v1k.
+- The full public TinyStories-1M checkpoint has a 50,257-token vocab, while the
+  TinyStories paper reportedly trained with the top 10k tokens. A
+  TinyStories-compatible 10k-vocab tied-head target is therefore a high-leverage
+  fit strategy if reviewer acceptance does not require exact checkpoint
+  identity.
+
+Primary experiment backlog:
+
+| ID | Experiment | First deliverable | Stop condition |
+| --- | --- | --- | --- |
+| E1 | Packed embedding / tied output-head surface for 50k vs 10k vocab | Synthesis/resource comparison for int8/int4 packed storage | 10k packed storage still leaves no credible room for the rest of the design |
+| E2 | Time-multiplexed hidden-64 transformer block lane | Sim + synthesis comparison against current lowering | One block still explodes in LUT/FF after explicit reuse |
+| E3 | 10k-vocab TinyStories-compatible software model/export | Quantized checkpoint/export plus fixed-prompt quality deltas | Quality collapses or retraining/export takes over the critical path |
+| E4 | No-DDR reduced path to one hardware token | JTAG-readable token/top-k result from hardware | Control loop or route remains unstable after E1/E2 are promising |
+| E5 | v4k board replay with richer debug | Physical-board classification of the current v4k routed/sim-passing bitstream | Still cannot distinguish board failure class after one focused debug pass |
+| E6 | Ternip reduced gate | First scoreboard row for reduced synthesis/parity | Toolchain/parity failures dominate for more than the allotted branch budget |
+| E7 | Host-staged JTAG fallback | One-layer host-fed proof | JTAG protocol/control complexity dominates |
+| E8 | Open PCIe smoke via `regymm/pcie_7x` | Minimal endpoint/MMIO evidence | Link/host integration consumes first-week critical-path time |
+
+DDR3 policy from the replan:
+
+- First prove control-path reproducibility (`magic`, PLL lock, reset exit)
+  before interpreting DDR data results.
+- Then isolate training/MPR/lane identity before any full native-port stress.
+- Stop broad DDR3 work if control-path or training visibility cannot be made
+  reproducible in a focused 2-day window.
+- One-channel-first is the only reasonable open-source DDR3 target; dual-channel
+  capacity is future work until one channel is reliable.
+
+Hardware-in-the-loop rules:
+
+- Create run directories under `artifacts/task6/runs/` with `meta.yaml`,
+  `verdict.json`, logs, bitstreams, readback, and reference artifacts.
+- Serialize board access through a lock or single scheduler queue.
+- Every board bitstream should expose a versioned JTAG magic/status payload.
+- Score lexicographically:
+  1. correctness pass
+  2. route pass
+  3. board pass
+  4. BRAM fit margin
+  5. LUT fit margin
+  6. DSP fit margin
+  7. timing margin
+  8. runtime
+- Prefer recovery order: in-design reset, then JTAG reconfigure, then enclosure
+  power cycle if automated power control is available.
+
+Procurement note:
+
+- Buy a scriptable AC smart plug with local API support for the Helios enclosure
+  if it can arrive quickly in Spain. This is the cheapest out-of-band recovery
+  path for overnight autonomous runs.
+- Defer a USB relay for SW1/SW2 until AC power recovery is working or proven
+  insufficient.
+- Do not prioritize a second YPCB board or second Helios enclosure for the Task
+  6 critical path.
+
+First five actions from the replan:
+
+1. Create the `artifacts/task6/runs/` schema and board lock mechanism.
+2. Add a budget script for current 50k vocab vs 10k tied-head packed storage.
+3. Implement E1: packed embedding/output-head synthesis for 50k and 10k vocab.
+4. Implement E2: reusable one-block lane synthesis/resource comparison.
+5. Buy/script local-control AC power recovery for the Helios enclosure.
+
+Execution checkpoint, 2026-05-07:
+
+- Extended `scripts/task6/score_vocab_memory_surface.py` so the CSV and JSON
+  surface explicitly report 10k gates, rowwise int8/int4 BRAM ceilings, and
+  reduced-vocab vs full-vocab ratios.
+- Exported `python-with-tiny-stories-bin` from `flake.nix` because the existing
+  `python-with-tiny-stories` package realizes source PyTorch on this machine.
+  The binary-Torch environment keeps this loop in seconds instead of hours.
+- Generated
+  `artifacts/task6/parallel-hypotheses/h2-vocab10k-memory-surface-score.json`
+  and `.csv` against the copied baseline bundle at
+  `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization/summary.json`.
+- Result: 10k tied vocab is a credible on-chip prototype target. Unique f32
+  token+position storage is 2,592,768 bytes, 563 BRAM36, 58.95% of the device.
+  Rowwise int8 is 688,704 bytes, 150 BRAM36, 15.71%. Rowwise int4 is 364,608
+  bytes, 80 BRAM36, 8.38%.
+- Full 50,257-token f32 tied storage remains impossible on chip at 13,390,080
+  bytes, 2906 BRAM36, 304.29%. Full rowwise int8 fits raw BRAM at 772 BRAM36,
+  80.84%, but leaves too little margin to treat as the first synthesis path.
+- Next execution gate: generate the v10k packed tied-vocab/output-head artifact
+  from this scorecard, then synthesize it before returning to DDR3.
+- Added `scripts/task6/task6_board_run.py` as the first board-run skeleton:
+  `init` creates a run directory with `meta.yaml`, `verdict.json`, `logs/`,
+  `bitstreams/`, `readback/`, and `references/`; `with-lock` runs a command
+  under `artifacts/task6/board.lock` and records the command result. This is
+  the serialization primitive for autonomous JTAG/programming loops.
+- Added and ran the first E1 synthesis target,
+  `.#task6-int8-vocab10k-output-head-top1-utilization`, with `VOCAB_SIZE=10000`
+  and `TILE_OUT_DIM=80`. Result artifact:
+  `artifacts/task6/parallel-hypotheses/e1-vocab10k-output-head-utilization-summary.json`.
+  The mapped output-head kernel uses 1,653 LUT, 2,305 FF, 4 DSP, and 160 BRAM36.
+  This validates the reduced-vocab time-multiplexed direction for the output
+  projection; the next gate is simulation/data correctness around v10k, not DDR3.
+- Generated the v10k selftest data in `/tmp/task6-v10k-output-head` using the
+  existing residual-add boundary. Result artifact:
+  `artifacts/task6/parallel-hypotheses/e1-vocab10k-output-head-data-summary.json`.
+  The deterministic sample keeps int8 top1 aligned with f32 top1
+  (`top_index=213`, `top_acc=54965`, normalized RMSE `0.01393`). The generated
+  vocabulary memory has 160,000 packed words, matching the 160 BRAM36 synthesis
+  result. Next gate: put this behind a flake-backed v10k selftest and run SV sim.
+- Added flake-backed v10k residual-add/output-head selftest targets:
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-tb-data-sv`,
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-top`,
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-sim-main`, and
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-sv-sim`.
+- The first v10k SV sim exposed two useful failures. First, the shared timeout
+  was too low for the larger vocab lane, so the Verilator selftest timeout moved
+  from 350,000 to 1,000,000 cycles. Second, `TILE_OUT_DIM=80` exposed a real
+  non-power-of-two addressing bug: the previous phase/tile address decode used
+  bit slicing and concatenation, equivalent to `phase * 128 + offset`, instead
+  of `phase * 80 + offset`.
+- Fixed the non-power-of-two tile path in
+  `rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv` and the
+  vocabulary loader path in
+  `fpga/rtl/task6_int8_v4k_l2_residual_add_output_head_selftest_top.sv` by using
+  explicit phase-base arithmetic and division/modulo load decoding.
+- Result: v10k integrated SV sim passes:
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-sv-sim` produced
+  `/nix/store/1bn5kmvmils8lym05di3nyf604hcdqvm-task6-int8-v10k-l2-residual-add-output-head-selftest-sv-sim.json`
+  with `status=PASS`, `cycles=556742`, `top_index=213`, and `top_acc=54965`.
+  The v4k regression also passes:
+  `.#task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim` produced
+  `/nix/store/njfzz1vh9b02ig663jv5qpx4yqhlrgwr-task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim.json`
+  with `cycles=265848`, `top_index=1321`, and `top_acc=52140`.
+- Added `artifacts/task6/STATUS.md` as the table-first Task 6 status surface,
+  following the useful practices from `docs/LLM_genius.org`: tables, explicit
+  assumptions, lens-based promotion gates, and mechanistic failure recording.
+  Next execution gate: mapped utilization for the integrated v10k selftest,
+  then route/bitstream if the utilization margin is credible.
+- Added the integrated v10k mapped-utilization target
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-utilization`.
+  It builds from
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-json` and uses the
+  same top module name as the v4k selftest, with generated v10k includes.
+- Result: the integrated v10k selftest remains a credible fit candidate after
+  Yosys `synth_xilinx`. Result artifact:
+  `artifacts/task6/parallel-hypotheses/e1-vocab10k-integrated-utilization-summary.json`.
+  Nix result:
+  `/nix/store/q94hc22kyhzyaa0ynwwsi0nfdci8kg80-task6-int8-v10k-l2-residual-add-output-head-selftest-utilization`.
+  Mapped resources are 43,695 LUT (14.63%), 8,958 FF (1.50%), 15 DSP (0.78%),
+  and 386 BRAM36-equivalent (40.42%). This is the first integrated Task 6 lane
+  that has both RTL correctness and mapped-resource fit evidence.
+- Next execution gate: add a v10k route/bitstream target and run it on the board
+  through `scripts/task6/task6_board_run.py` so JTAG programming/readback is
+  serialized and leaves a reproducible run directory.
+- Added v10k route/bitstream targets, including JTAG-debug variants:
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-bitstream`,
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-jtag-debug-bitstream`,
+  and
+  `.#task6-int8-v10k-l2-residual-add-output-head-selftest-jtag-debug-5mhz-bitstream`.
+- The first JTAG-debug route attempt at 50 MHz was pruned after placement:
+  nextpnr reported the main design clock at 9.25 MHz max, which fails the 50 MHz
+  target, while the JTAG `drck` path had 257.73 MHz margin. The attempt was
+  cancelled during router iteration 1 rather than burning more time on an image
+  that was not suitable as the first board bring-up candidate. Result artifact:
+  `artifacts/task6/parallel-hypotheses/e1-vocab10k-jtag-debug-50mhz-route-attempt-summary.json`.
+- The 5 MHz JTAG-debug route passed placement timing but then stalled in the
+  same router shape as the 50 MHz attempt: router iteration 1 reported
+  `wires=2243522`, `overused=179975`, and `overuse=242671`, with no later
+  progress after roughly 21 CPU-minutes. Result artifact:
+  `artifacts/task6/parallel-hypotheses/e1-vocab10k-jtag-debug-5mhz-route-attempt-summary.json`.
+- Current route gate: build the plain 5 MHz bitstream, without the JTAG-debug
+  payload, to separate the integrated v10k design's routability from the debug
+  payload's routability. If the plain image routes, the first board smoke test
+  can use LED pass/fail while a smaller readback payload is designed.
+- The plain 5 MHz route also passed placement timing, with main clock max
+  frequency `10.04 MHz`, but stalled after router iteration 1:
+  `wires=2247475`, `overused=194634`, `overuse=267576`. Result artifact:
+  `artifacts/task6/parallel-hypotheses/e1-vocab10k-plain-5mhz-route-attempt-summary.json`.
+- Decision: the v10k integrated selftest is a mapped fit, but it is not yet a
+  route-ready board image in its current shape. Do not keep rerunning nextpnr on
+  this exact design. The next route experiment should reduce route pressure:
+  either a smaller vocab lane to find the routable frontier, or a re-banked /
+  placement-friendlier output-head memory shape before returning to v10k.

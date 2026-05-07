@@ -1,0 +1,43 @@
+{
+  "artifact": "e1-vocab10k-output-head-sv-sim-summary",
+  "date": "2026-05-07",
+  "hypothesis": "A 10k tied-vocabulary int8 output-head lane can be integrated behind the current residual-add boundary and remain cycle-accurate against the generated PyTorch reference.",
+  "status": "PASS",
+  "v10k_selftest": {
+    "nix_target": ".#task6-int8-v10k-l2-residual-add-output-head-selftest-sv-sim",
+    "result_path": "/nix/store/1bn5kmvmils8lym05di3nyf604hcdqvm-task6-int8-v10k-l2-residual-add-output-head-selftest-sv-sim.json",
+    "status": "PASS",
+    "cycles": 556742,
+    "top_index": 213,
+    "top_acc": 54965
+  },
+  "v4k_regression": {
+    "nix_target": ".#task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim",
+    "result_path": "/nix/store/njfzz1vh9b02ig663jv5qpx4yqhlrgwr-task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim.json",
+    "status": "PASS",
+    "cycles": 265848,
+    "top_index": 1321,
+    "top_acc": 52140
+  },
+  "bugs_found_and_fixed": [
+    {
+      "issue": "Non-power-of-two TILE_OUT_DIM values were decoded as bit slices/concatenations, so TILE_OUT_DIM=80 mapped phase offsets as phase * 128 instead of phase * 80.",
+      "fix": "Use division/modulo for load address decoding and explicit phase_base + tile_addr arithmetic for output and packed-weight addresses.",
+      "files": [
+        "rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv",
+        "fpga/rtl/task6_int8_v4k_l2_residual_add_output_head_selftest_top.sv"
+      ]
+    },
+    {
+      "issue": "The v10k selftest needs more cycles than the v4k timeout budget.",
+      "fix": "Raise the shared Verilator selftest timeout from 350000 to 1000000 cycles.",
+      "files": [
+        "sim/task6_int8_v4k_l2_residual_add_output_head_selftest_tb_main.sv"
+      ]
+    }
+  ],
+  "known_warnings": [
+    "Verilator WIDTHEXPAND warnings remain around division/modulo operands in the parameterized phase/tile decode path. They did not block v4k or v10k correctness, but should be cleaned before relying on lint as a strict gate."
+  ],
+  "next_gate": "Run mapped utilization for the integrated v10k selftest, then route/bitstream if it remains within XC7K480T margins."
+}

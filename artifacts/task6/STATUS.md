@@ -1,0 +1,48 @@
+# Task 6 Status
+
+Updated: 2026-05-07
+
+This is the compact status surface for Task 6 execution. Update it after every
+simulation, synthesis, route, bitstream, or board gate. Detailed reasoning stays
+in `docs/task6-resource-usage-reduction-notes.md`; reviewer-controlled project
+plans stay untouched.
+
+## Operating Assumptions
+
+| Assumption | Current Position | Evidence / Source | Status |
+|---|---|---|---|
+| Target device | Kintex-7 XC7K480T on YPCB-00338-1P1 | User-provided board/device; repo target top is `tiny_stories_selftest_top` | Active |
+| Hard tool constraint | Fully open source only; no Vivado | NLNet constraint from user | Active |
+| Baseline comparison | Compare against copied baseline bundle, not Nix store paths | `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization` | Active |
+| Fast loop priority | Smallest representative model first, then replay promising changes on larger lanes | `AGENTS.md`; deep research plan | Active |
+| Board access | JTAG programming/readback can run autonomously, but only one board programming job at a time | User-provided setup; `scripts/task6/task6_board_run.py` lock scaffold | Active |
+| Commit discipline | After any experiment produces simulation, synthesis, route, bitstream, or board results, update the status artifacts and commit with a specific result-oriented message before starting the next experiment. | User request, 2026-05-07 | Active |
+
+## Experiment Table
+
+| Lane / Experiment | Question | Current Result | Evidence | Status | Next Gate | Promote / Stop Criteria |
+|---|---|---|---|---|---|---|
+| Baseline float selftest | How far is the current direct-lowered design from fitting? | Does not fit: LUT/FF lower bound is roughly 98x-141x over XC7K480T fabric. | Copied baseline bundle under `artifacts/task6/baselines/...` | Closed baseline | Use only as denominator for reductions. | Stop treating direct float all-memory lowering as a fit strategy. |
+| H2 vocab memory surface | Is reduced tied vocab plausible on chip? | Yes for 10k: rowwise int8 is 150 BRAM36 / 15.71%; f32 is 563 BRAM36 / 58.95%. Full 50,257 f32 is impossible on chip. | `artifacts/task6/parallel-hypotheses/h2-vocab10k-memory-surface-score.json` | Passed | Replay promising path in RTL/sim. | Promote 10k int8 as first output-head prototype; defer full vocab until fit path is proven. |
+| E1 v10k output-head kernel utilization | Does the packed output-head kernel itself fit? | Yes: 1,653 LUT, 2,305 FF, 4 DSP, 160 BRAM36. | `artifacts/task6/parallel-hypotheses/e1-vocab10k-output-head-utilization-summary.json` | Passed | Integrate behind residual-add boundary. | Promote if integrated sim remains correct. |
+| E1 v10k output-head data | Does quantized v10k data preserve the deterministic top1 reference? | Yes: top index 213, top acc 54965, normalized RMSE 0.01393. | `artifacts/task6/parallel-hypotheses/e1-vocab10k-output-head-data-summary.json` | Passed | Flake-backed SV sim. | Promote if RTL top1 matches reference. |
+| E1 v10k residual + output-head SV sim | Does integrated RTL match the generated reference? | Yes: PASS in 556,742 cycles, top index 213, top acc 54965. Found and fixed non-power-of-two tile addressing. | `artifacts/task6/parallel-hypotheses/e1-vocab10k-output-head-sv-sim-summary.json` | Passed | Mapped utilization for integrated v10k selftest. | Promote to route/bitstream if utilization margin is credible. |
+| E1 v10k integrated mapped utilization | Does the correctness-passing integrated selftest still fit after `synth_xilinx` mapping? | Yes: 43,695 LUT / 14.63%, 8,958 FF / 1.50%, 15 DSP / 0.78%, 386 BRAM36-equivalent / 40.42%. | `artifacts/task6/parallel-hypotheses/e1-vocab10k-integrated-utilization-summary.json` | Passed | Route/bitstream, then JTAG board readback under lock. | Promote if route succeeds and board status payload reports pass. |
+| E1 v10k JTAG-debug 50 MHz route | Can the first JTAG-debug board image route and meet the default 50 MHz target? | No: packed/placed utilization remained plausible, but placement timing reported main clock 9.25 MHz max and FAIL at 50 MHz. Cancelled during router first iteration to avoid burning time on a non-board-bring-up target. | `artifacts/task6/parallel-hypotheses/e1-vocab10k-jtag-debug-50mhz-route-attempt-summary.json` | Pruned | Build 5 MHz JTAG-debug bitstream. | Stop 50 MHz until the critical path is pipelined; promote only low-frequency smoke-test image for first JTAG readback. |
+| E1 v10k JTAG-debug 5 MHz route | Can the same JTAG-debug design route as a timing-clean smoke-test image? | Not yet: placement timing passed at 5 MHz, but routing stalled after the same first-iteration overuse shape as 50 MHz. Pruned to test plain route first. | `artifacts/task6/parallel-hypotheses/e1-vocab10k-jtag-debug-5mhz-route-attempt-summary.json` | Pruned | Build plain 5 MHz bitstream. | Resume JTAG-debug only after plain route succeeds, or after shrinking/debugging the payload. |
+| E1 v10k plain 5 MHz route | Can the integrated v10k image route without the JTAG debug payload? | Not yet: placement timing passed at 10.04 MHz max, but routing stalled after iteration 1 with `overused=194634`, worse than the JTAG-debug attempt. | `artifacts/task6/parallel-hypotheses/e1-vocab10k-plain-5mhz-route-attempt-summary.json` | Pruned | Reduce route pressure before another board-image attempt. | Stop rerunning current v10k shape; promote a smaller vocab lane or a re-banked/pipelined output-head route. |
+| v4k regression | Did the shared address fix preserve the smaller lane? | Yes: PASS in 265,848 cycles, top index 1321, top acc 52140. | `artifacts/task6/parallel-hypotheses/e1-vocab10k-output-head-sv-sim-summary.json` | Passed | Keep as fast regression lane. | Stop changes that break v4k unless a replacement fast lane exists. |
+| Board automation | Can autonomous board runs be serialized and audited? | Scaffold exists: run dirs, metadata, verdict, logs, lock, command-result JSONL. Not exercised on this v10k path yet. | `scripts/task6/task6_board_run.py` | Started | Use lock wrapper for first bitstream programming/readback. | Promote when every board run leaves reproducible artifacts and verdicts. |
+| DDR3 | Should DDR3 remain on the Task 6 critical path? | No for the first fit path. DDR3 remains valuable but is demoted until on-chip reduced-vocab path is exhausted or fails. | Prior DDR3 run artifacts under `artifacts/task6/parallel-hypotheses/h2-ypcb-ddr3-*` | Paused / bounded | Revisit only with a narrow one-channel integrity experiment. | Promote only after deterministic write/read integrity; stop token-heavy undirected probing. |
+| Ternip / TALOS-style alternatives | Is another architecture/tool path more promising than StreamTensor-lite? | Pending. Needs a bounded survey/repro lane, but not before the v10k fit gate. | `https://github.com/RCoeurjoly/ternip`; TALOS-V2 discovered by user | Pending | Create a small independent scorecard if v10k utilization is poor or while another worker can run in parallel. | Promote only if it offers faster path to XC7K480T fit with open-source reproducibility. |
+| Power cycling | Is out-of-band recovery needed for overnight autonomy? | Not yet proven necessary. JTAG reconfiguration works; AC smart plug remains a cheap procurement option in Spain. | User setup notes; replan notes | Pending | Add only if board hangs block unattended loops. | Promote if board failures require manual reset more than once during overnight runs. |
+
+## LLM Genius Checklist
+
+| Practice from `docs/LLM_genius.org` | How Task 6 uses it | Current Gap |
+|---|---|---|
+| Ask for tables | This file is the table-first status surface; per-experiment JSONs remain machine-readable. | Keep it updated after every gate. |
+| Explicit assumptions | Operating assumptions are listed above and can be challenged or invalidated. | Add dates/owners when assumptions change. |
+| Lenses | Use resource, correctness, board-autonomy, and open-source-reviewer lenses before promoting a lane. | Add a reviewer-facing lens before writing final deliverables. |
+| Glossaries / polysemy | Terms like "fits", "correct", "full TinyStories", and "autonomous" must map to measurable gates. | Add a short glossary if ambiguity starts causing wrong work. |
+| Mechanistic self-debugging | Failures are recorded as bugs with root cause and next gate, not just fixed locally. | Make lint warnings actionable or waive them explicitly. |

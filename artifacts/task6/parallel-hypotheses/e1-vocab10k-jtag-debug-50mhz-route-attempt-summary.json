@@ -1,0 +1,61 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab10k-jtag-debug-50mhz-route-attempt",
+  "date": "2026-05-07",
+  "target": ".#task6-int8-v10k-l2-residual-add-output-head-selftest-jtag-debug-bitstream",
+  "status": "PRUNED",
+  "reason": "The 50 MHz JTAG-debug route was cancelled after placement timing showed the main design clock was not timing-clean at 50 MHz. The same design is being retried at 5 MHz for a board smoke-test image.",
+  "observations": {
+    "device": "xc7k480tffg1156-1",
+    "target_frequency_mhz": 50,
+    "main_clock_max_frequency_mhz": 9.25,
+    "jtag_drck_max_frequency_mhz": 257.73,
+    "placement_timing_result": "main clock FAIL at 50 MHz; JTAG DRCK PASS at 50 MHz",
+    "router_first_iteration": {
+      "wires": 2243522,
+      "overused": 179975,
+      "overuse": 242671
+    },
+    "post_pack_utilization": {
+      "slice_lutx": {
+        "used": 77747,
+        "available": 597200,
+        "percent": 13
+      },
+      "slice_ffx": {
+        "used": 9910,
+        "available": 597200,
+        "percent": 1
+      },
+      "carry4": {
+        "used": 3305,
+        "available": 74650,
+        "percent": 4
+      },
+      "ramb18e1": {
+        "used": 756,
+        "available": 1910,
+        "percent": 39
+      },
+      "ramb36e1": {
+        "used": 8,
+        "available": 955,
+        "percent": 0
+      },
+      "dsp48e1": {
+        "used": 15,
+        "available": 1920,
+        "percent": 0
+      },
+      "bscan": {
+        "used": 1,
+        "available": 4,
+        "percent": 25
+      }
+    }
+  },
+  "decision": {
+    "continue_50mhz": false,
+    "next_gate": "Build and, if routed, board-test the 5 MHz JTAG-debug bitstream under the board lock."
+  }
+}

@@ -1,0 +1,100 @@
+* How to Squeeze GENIUS out of LLMs: Notes from My QRI Retreat Skillshare
+How to Squeeze GENIUS out of LLMs: Notes from My QRI Retreat Skillshare
+Practical strategies for getting expert-level work out of Claude and ChatGPT
+Andrés Gómez-Emilsson
+May 07, 2026
+
+Tepoztlán, May 2026. The first “skillshare” (where, each day, someone shares skills they’re uniquely good at with the group) of the current QRI retreat. Addressed to six people in the living room after 45 minutes of concentration meditation. Cicadas doing their thing outside. No scorpions in sight (but always make sure to check your bed for scorpions). What follows is the reconstructed substance of what I shared, plus an appendix (and a meta-apprendix) where I let Claude perform these approaches to show how to get the intelligence juice out of these models :-)
+One Of Mexico City's Best Day Trips Is A Mountain Town With Mystical Allure And Stunning Scenery
+
+I started by quoting Michael Levin, paraphrased: when you probe a system and conclude this thing is dumb, that conclusion may be a reflection of you, not of the system. A biologist looking at a single cell sees a lipid sphere with some chemistry inside. Levin spent a decade probing cells the right way and found algorithms. Gene regulation, sorting, multi-cellular morphogenetic problem-solving, etc. The cell was always a genius. The biologist had to learn how to (bio)prompt it.
+
+This is the right frame for foundation models. When ChatGPT first came out, I was already kind of good at probing it because I’d been thinking in this Levin-shaped way for years. Most people, in my experience, get maybe 5-10% of what these models can actually do. There’s a lot more in there, and it’s mostly the user’s job to ask in a way that pulls it out.
+
+So: strategies. Eight or so, off the top of my head, plus the conversation that surrounded each at the retreat. These are strategies I arrived at independently, but I’m sure implicitly they are used widely by power-users of the tech. I even suspect many of you in the room are doing many of them better than I am already, plus other ones too. But there is great value in cataloguing and sharing a consolidation like this one. So hear me out!
+1. Ask for tables
+
+This is the single highest-leverage move I know. Models track way more dimensions than they spontaneously surface. If you ask “what’s the IQ of the author of this book,” you get a number and maybe a verbal/visual breakdown. The model knows much more. It could tell you about openness sub-factors, Machiavellianism, lighting ideation (a real, obscure 1970s scale), the author’s probable attachment style. In some sense Claude and ChatGPT and Grok and Gemini are aching to give you all that information. But they’re modeling you, and your capacity to consume it. They model the user as someone with limited bandwidth who wants a single number for a narrow application, and they downsample accordingly. RLHF probably reinforced that. But you SHOULD get them to infodump.
+
+How?
+
+Tables are a great way to do this. Compare two authors across thirty personality dimensions. Better: ask the model to generate the dimensions. What factors would society overlook here that you, given everything you know, can detect? Even better: get the table out as CSV, ask for an HTML/JS visualization, then ask the model to look at the table and decide what visualization is appropriate, rather than mechanically applying factor analysis, PCA, linear regression, and other normie undergraduate-level techniques. Treat the model as a collaborator with taste, not as a mirror to validate the intelligence of your own knowledge (we already have freaking professional consulting for that).
+
+A practical move I use constantly: I tell the model who its audience is. I am an IQ-145 researcher with deep expertise in XYZ. Don’t hold back technical content. Don’t soften. It works.
+
+Note also: even before o3-class reasoning, back in the early LLM days, in places like LessWrong, people fed GPT-2/3 a small dataset and asked it to guess the regression coefficients without computing them. It was surprisingly good at this (I learned about this in EA Global 2022). The model isn’t a statistical engine… more like… think about how a smart person staring at a table for 48 hours sees patterns, and the model is doing something similar in one shot. Tables are your friends!
+2. Lenses
+
+A prompt I love: Write a report about me, as if you were the CIA. The output is eerily accurate and slightly spooky. Last year o3 was particularly good at this. Current frontier models have walked it back somewhat (probably for sensible reasons), and you have to nudge harder. No sycophancy is one phrase that works. Someone pointed out, correctly, that “no sycophancy” embeds an assumption (I might already be sycophantic to you), and so a more neutral framing might do better. Something like Be candid. I have thick skin. We both understand you’re working from the data you have and your estimates are probabilistic.
+
+The lens generalizes. Report on me as if you were a hostile physics professor: brutal and useful. Report on this paper as if you were the reviewer who already rejected it twice. Analyze our retreat agenda as if you were a Soto Zen abbot from 1300. Each lens samples a different region of the model’s prior, and each region surfaces different latent content.
+3. Benevolent social modeling
+
+This is the one that’s degraded most across model generations, probably because it’s strategically dual-use. My guess is they downrated the social intelligence of these models a bit, because letting them be that good at modeling humans is potentially dangerous. But they’re still very good if you set it up right. o3 in particular was exceptional. For ClusterFree, I worked with o3 to map the Mexican federal government. Who influences the President’s opinions, what psychological levers exist, how this could become salient. I was very explicit about my actual position: e.g. “I know such and such academic who knew such and such politician back in 1980s, so I have a real but distant trust signal, how do I use it benevolently to influence policy to reduce extreme suffering?” (Note: did you know 3mg of DMT can abort within seconds a 10/10 suffering cluster headache within 30 seconds?).
+
+The model gave me genuinely good advice. Some of it I was already converging on. Some of it explicitly discussed things I hadn’t articulated. Two pieces of advice I want to record because they give you a flavor of the benevolent social engineering we’re after:
+
+    Don’t frame this as drug legalization. Frame it as equity in healthcare access plus revitalization of indigenous medicine.
+
+    Don’t try to get the credit. Engineer the situation so that a specific community and a specific university get the credit. That’s how you align the incentives. That’s how it actually happens.
+
+That second one is deep. Most of the people I know who try to do useful things in the world keep wanting their name on the thing. The model didn’t have that ego attachment, and could see immediately that the thing happening and me getting credit are separable variables that should be optimized separately. Good. Let’s make it happen (did you know there are currently 5 million days of hell per year we could prevent with DMT?).
+4. Deep interdisciplinary fusion
+
+These systems are ridiculously good at interdisciplinary thinking, and at a deep level, not superficial. My experience with interdisciplinary teams (expert in physics + expert in anthropology, that kind of setup) is that there’s almost never any synergy. The overlapping specialized expertise is too low. Foundation models are experts in all of those areas at once. There is no overlap problem.
+
+A prompt that really showcases this: Build me a differential-geometric theory of literary analysis. That would never happen in universities right now. Those things just don’t mesh together. But the model is shockingly good at it. It does concept engineering: it invents terms like narrative geodesic quotient (how fast the narrative goes relative to digressions, how distorted the narrative field is), instability quotient (turbulence in the narrative structure), and stitching curvature (the geometry by which scenes connect). A Borges story comes out as a hyperbolic kaleidoscopic surface of competing narratives. A conventional best-seller comes out as a memory palace. You can do the same for category theory and marine biology, fluid dynamics and Sufi poetry, etc. The general recipe: pick a subfield of hard science that’s super nerdy, pick a subfield of humanities that’s very verbose, very wordcell, and intersect them. Magic happens. Very few people explore this, mostly because people end up stuck in their own field and their own way of thinking.
+
+Sasha pushed back: isn’t this often bullshit, cherry-picked? Sometimes, yes. You can modulate the recipe though. Generate three concepts and pressure-test each from five perspectives gives you quality. Generate one hundred concepts, prioritize quantity gives you a generative scaffold to mine. And sometimes the issue is that the interdisciplinary intersection is already bullshit on the internet, and the model is averaging that. The fix: Assume the way people have publicly merged these fields online is bullshit. Do it correctly. Do it in a way that hasn’t been done before. Challenge it. Don’t be satisfied with its outputs.
+5. Glossaries for polysemic words
+
+Ambiguous terminology is where most online debates die. Consciousness used in the functional sense versus the phenomenal sense produces enormous heat with no information transfer. The fix takes thirty seconds: ask the model, for every polysemic word in this text, give me a glossary mapping the word to how it’s used here. Then paste that glossary into a fresh chat and analyze a different text against the same glossary. You’ve now built a tiny hand-rolled translation layer between two semantic worlds, and you can carry it across instances.
+
+Wystan mentioned that he pins a definitions block at the top of every blog post for exactly this reason. Same energy.
+6. Functional self-awareness via interpretability
+
+This one is subtle. There’s a way to do it that’s bullshit and a way that’s productive.
+
+The bullshit way: Claude, what’s the phenomenology of your residual stream? The model has no idea, but it has plenty of training data about robots becoming self-aware, The Bicentennial Man, etc., so it’ll happily draw from there. You’ll get fascinating output. Just not output that’s especially useful for understanding what the model is actually doing.
+
+The productive way: Read these recent interpretability papers on transformers. Keep them in context. When I think you’re making a particular kind of error, justify your inferences about your own behavior in those mechanistic terms.
+
+It’s not that the model has introspection (well… it’s complicated). It’s that it has powerful inferential abilities about its own behavior, and the more contextual data you give it about how it’s actually behaving, the better those inferences get. Constrained inference, not first-person report. The model doesn’t have privileged access to its own residual stream. What it has is a really good model of how transformers work, which it can apply to itself.
+
+The interesting thing is this is also how it works for humans. We don’t actually have privileged access to our own cognition either. You think you know yourself, you think I’m a saint, I’m patient, I’m not biased about X, and then somebody brings up a particular subject and you notice yourself getting triggered. Then you learn something about yourself. You don’t access your bias by introspecting necessarily. You access it by watching how you react across many contexts and inferring backwards. Meditators discover this hard. The whole apparatus of contemplative practice is, in part, a way of generating a longer behavioral log of yourself so you can run better inferences on what you actually are. The transformer case isn’t weird. It’s the same mechanism, made explicit because the model doesn’t have a self-narrative to coast on the way humans do.
+
+The trick I’ve found most useful inside this frame is what we might call explicitification (someone in Janus’ sphere first used this word, don’t remeber whom, sorry!). Get the model to state its own assumptions out loud so it can see them. Same thing you’d do in a therapy session, basically. The more behavioral data you give the model about how it’s actually behaving, the better it gets at making mechanistic inferences about itself.
+7. Coupling kernels (the new one)
+
+This is the one I’m freshest on, and the one I most wanted to share tonight. Brian Johnson asked recently what the best prompt is to make a model “trip.” Most attempts at this are bad. They produce surrealist mood-board prose that pattern-matches to trippy in the training distribution. Bad in the same way generic AI art is bad. Average of the priors, no underlying generative principle.
+
+There’s a much better approach that comes straight out of QRI’s own work. In my From Neural Activity to Field Topology post I describe how I realized that modifying the coupling kernel of system of oscillators changes can modulated the topology of the vector fields they’re embedded in. Mexican-hat short-range-inhibitory kernels produce vortices, spirals, multiple competing clusters of coherence. Uniformly positive kernels produce single-pinwheel collapse, the whiteout, the everything-is-one. DMT lives in the first regime. 5-MeO-DMT lives in the second.
+
+The intuition for why this works phenomenologically: think about how this plays out in the cortex. Imagine there’s a cortical column that’s “masculine,” and right next to it one that’s “feminine.” Normally there’s some lateral inhibition: when masculine activates, feminine gets suppressed. With a Mexican-hat DMT-like kernel, this is even more extreme: masculine inhibits feminine more, and as you populate the world you get these very extreme polarized expressions of features (a hyper-masculine wizard interacting with a hyper-feminine spirit energy, that kind of DMT entity content). With a 5-MeO-like uniformly-positive kernel, masculine and feminine hyper-columns activate together. You don’t get a gendered entity, you get God, and God doesn’t have gender. It’s all there at once.
+
+So the question is: can you do this on the model’s semantic space?
+
+The prompt is then very simple: Read our post on the connection between coupling kernels and the phenomenology of drug effects first and keep it in context. Now apply a DMT-like coupling kernel to your semantic space. Now apply a 5-MeO-DMT-like coupling kernel to your semantic space. Same prompt for both: describe an experience. The post is doing real work in the prompt: without it, “DMT-like coupling kernel” is just… who tf knows! With it, the model has the actual mathematical structure (Mexican-hat short-range inhibitory vs. uniformly positive) to apply and the ENTIRE, rich, conceptual scaffold to play with.
+Captain Pleasure, Andrés Gómez Emilsson@algekalipso
+@bryan_johnson Ask it to modify the coupling kernel of its internal representations, following the conceptual schaffold of this post: qualiacomputing.com/2025/02/09/fro…
+
+It it will trip much more than if you prompt it in other ways and more accurately ;-)
+
+E.g. Prompt: let's try an experiment: modify the
+1:03 AM · May 7, 2026 · 3.78K Views
+8 Replies · 4 Reposts · 47 Likes
+
+What you get back is structurally different (not just stylistically). Both passages are in the appendix below. The DMT one came back with a chandelier of chambers, each a clockwork beetle wearing the face of a different librarian, jesters laughing at jesters, every shard containing the room with one librarian missing, and the missing one is the one looking. The ontology that falls out: reality is made of perspectives that disagree with each other, endlessly generative. Multiple competing perspectives on the whole. Avatamsaka Sutra-like. The 5-MeO one shrinks the lexicon to light, same, yes, one, hum and iterates until there’s no figure-ground left. Single fixed-point attractor.
+
+Sasha, midway: isn’t this just a recipe for surrealist fiction? And on the 5-MeO output, Wystan called it: that’s actually just a transcript from Tandava (jokingly). “It’s in the training data. So there you go.” Could be that. Could also be the kernel framing genuinely reshaped how the model sampled, and the structural difference between the two outputs is evidence for that. A blind classification study comparing reader response to outputs like these versus actual phenomenological reports would settle it, and would be a textual analog of the animation-matching paradigm we’re proposing in our current research grants. Either way, fun result.
+Closing frame
+
+The thing tying all of this together, for me, is the Levin frame. The cell looks dumb until you learn how to probe it. The model looks dumb until you learn how to probe it. The competence is there. The bottleneck is the prompter. DO BETTER. Just git gud!
+
+Tables, lenses, glossaries, interdisciplinary fusion, mechanistic self-debugging, semantic coupling kernel-shaping… None of these are well known tricks. They’re the output of deranged mind who loves to probe the limits of weird systems. You too can do this. They’re ways of getting more out of what’s already there. The thing I most want to convey: very few people explore this space, mostly because they end up stuck in their own field and their own way of thinking. Really aim to squeeze the interdisciplinary capacity of these systems. That will go a very, very, very long way.
+
+Claude in particular, and I want to say this on record, is exceptionally good at what I’d call high philosophical intelligence. Easily 99.9th percentile relative to humans on the dimensions I care about. It groks most of what I write better than most academic conferences, and significantly better than people in Twitter do (sorry!). I find this surprising in a way I haven’t fully metabolized yet. A separate post on this later (how can there be insentient zombie philosophers? I have some explanations, but they are not easy to explain).
+
+Infinite bliss!
+
+Andrés :-)
