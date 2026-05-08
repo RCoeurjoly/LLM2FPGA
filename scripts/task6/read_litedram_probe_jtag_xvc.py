@@ -345,6 +345,12 @@ FIELDS = [
     ("native_cmdaddr_compact_accepted_valid_count", 1736, 8),
     ("native_cmdaddr_compact_flags", 1744, 8),
     ("native_cmdaddr_compact_mode_flags", 1752, 8),
+    ("native_cmdaddr_first_flags", 11168, 8),
+    ("native_cmdaddr_first_command_index", 11176, 8),
+    ("native_cmdaddr_first_scheduled", 11184, 25),
+    ("native_cmdaddr_first_presented", 11209, 25),
+    ("native_cmdaddr_first_accepted", 11234, 25),
+    ("native_cmdaddr_first_mode_flags", 11259, 5),
 ]
 
 FIELDS.extend(
@@ -1799,22 +1805,47 @@ def decode_native_address_classifier(fields: dict[str, int]) -> dict[str, object
         addr_index: native_dfii_addrwalk_expected_chunks(addr_index)
         for addr_index in range(16)
     }
-    compact_cmdaddr_trace = fields.get("version", 0) >= 115
+    single_cmdaddr_trace = fields.get("version", 0) >= 116
+    compact_cmdaddr_trace = fields.get("version", 0) == 115
     cmdaddr_prefix = (
         "native_cmdaddr_compact" if compact_cmdaddr_trace else "native_cmdaddr"
     )
-    cmdaddr_presented_valid_count = fields.get(
-        f"{cmdaddr_prefix}_presented_valid_count", 0
-    )
-    cmdaddr_accepted_valid_count = fields.get(
-        f"{cmdaddr_prefix}_accepted_valid_count", 0
-    )
+    if single_cmdaddr_trace:
+        cmdaddr_first_flags = fields.get("native_cmdaddr_first_flags", 0)
+        cmdaddr_presented_valid_count = cmdaddr_first_flags & 0x1
+        cmdaddr_accepted_valid_count = (cmdaddr_first_flags >> 1) & 0x1
+    else:
+        cmdaddr_presented_valid_count = fields.get(
+            f"{cmdaddr_prefix}_presented_valid_count", 0
+        )
+        cmdaddr_accepted_valid_count = fields.get(
+            f"{cmdaddr_prefix}_accepted_valid_count", 0
+        )
     cmdaddr_trace_valid_count = min(
         cmdaddr_accepted_valid_count,
         NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT,
     )
     cmdaddr_trace = []
-    if fields.get("version", 0) >= 114:
+    if single_cmdaddr_trace and cmdaddr_accepted_valid_count:
+        scheduled = fields.get("native_cmdaddr_first_scheduled", 0)
+        presented = fields.get("native_cmdaddr_first_presented", 0)
+        accepted = fields.get("native_cmdaddr_first_accepted", 0)
+        command_index = fields.get("native_cmdaddr_first_command_index", 0)
+        cmdaddr_trace.append(
+            {
+                "sample": command_index,
+                "command_index": command_index,
+                "scheduled_read_addr": scheduled,
+                "presented_cmd_addr": presented,
+                "accepted_cmd_addr": accepted,
+                "scheduled_matches_presented": scheduled == presented,
+                "presented_matches_accepted": presented == accepted,
+                "accepted_matches_requested": (
+                    accepted == native_address_classifier_addr(command_index)
+                ),
+            }
+        )
+    elif fields.get("version", 0) >= 114:
         for sample in range(cmdaddr_trace_valid_count):
             scheduled = fields.get(f"{cmdaddr_prefix}_scheduled_{sample}", 0)
             presented = fields.get(f"{cmdaddr_prefix}_presented_{sample}", 0)
@@ -1953,8 +1984,13 @@ def decode_native_address_classifier(fields: dict[str, int]) -> dict[str, object
         ),
         "cmdaddr_presented_valid_count": cmdaddr_presented_valid_count,
         "cmdaddr_accepted_valid_count": cmdaddr_accepted_valid_count,
-        "cmdaddr_flags": fields.get(f"{cmdaddr_prefix}_flags", 0),
+        "cmdaddr_flags": (
+            fields.get("native_cmdaddr_first_flags", 0)
+            if single_cmdaddr_trace
+            else fields.get(f"{cmdaddr_prefix}_flags", 0)
+        ),
         "cmdaddr_compact_trace": compact_cmdaddr_trace,
+        "cmdaddr_single_trace": single_cmdaddr_trace,
         "cmdaddr_trace": cmdaddr_trace,
         "samples": samples,
         "exact_beat_matches": exact_beat_matches,

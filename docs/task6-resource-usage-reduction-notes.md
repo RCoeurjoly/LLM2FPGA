@@ -15939,3 +15939,86 @@ Artifacts:
   `artifacts/task6/runs/2026-05-08T16-19-30+0200-litedram-v115-native-cmdaddr-trace-compact/readback/litedram-probe.json`.
 - v113 health-check decoded readback:
   `artifacts/task6/runs/2026-05-08T16-21-05+0200-litedram-v113-native-address-classifier-healthcheck-after-v115/readback/litedram-probe.json`.
+
+### 2026-05-08 - LiteDRAM v116 single-sample native cmd_addr latch
+
+Goal:
+
+- Replace the invasive 16-sample `cmd_addr` trace with one first-command latch.
+- Preserve the v113 sparse native address classifier behavior and full 576-bit
+  readback samples.
+
+Build and route:
+
+- Target:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe`.
+- JSON build:
+  `/nix/store/3qi7vf9fh18n92d8hz5s5w1gnva5ykjs-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.json`.
+- Bitstream:
+  `/nix/store/4lv9ki1a4y15rb2rn9pg9724h4gnyh31-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.bit`.
+- Utilization:
+  - `SLICE_LUTX`: `32,059 / 597,200` (5%)
+  - `SLICE_FFX`: `28,541 / 597,200` (4%)
+  - `CARRY4`: `782 / 74,650` (1%)
+  - BRAM/DSP: `0`
+- Router result:
+  - iteration 1: `overused=40,890`, `overuse=44,223`
+  - iteration 12: `overused=0`, `overuse=0`, `archfail=0`
+- Post-route timing at `25 MHz` target:
+  - `clk200`: `678.43 MHz`
+  - `user_clk`: `65.92 MHz`
+  - `core.iodelay_clk`: `514.93 MHz`
+  - `jtag_debug_shift.drck`: `383.73 MHz`
+
+Board result:
+
+- Run directory:
+  `artifacts/task6/runs/2026-05-08T16-48-18+0200-litedram-v116-native-cmdaddr-first-sample`.
+- Programming succeeded through `openFPGALoader` with the Digilent HS3 serial
+  `210299BF3824`.
+- JTAG readback used FTDI MPSSE with `--tdo-bit 7 --bits 11264`.
+- Probe payload:
+  - `version=116`
+  - `state=PROBE_DONE`
+  - `init_seq_error=false`
+  - `wb_timeout_seen=false`
+  - `command_count=16`
+  - `response_count=16`
+  - classifier valid samples: `16`
+  - `mismatch_count=16`
+
+Single-sample command-address trace:
+
+| command index | scheduled read addr | presented cmd_addr | accepted cmd_addr | scheduled=presented | presented=accepted | accepted=requested |
+| ---: | ---: | ---: | ---: | --- | --- | --- |
+| 0 | 0 | 0 | 0 | yes | yes | yes |
+
+Classifier result stayed equivalent to v113:
+
+| samples | repeated best same-position DFII addr | same chunks | any chunks | exact chunks |
+| --- | ---: | ---: | ---: | --- |
+| all 16 | 15 | 2 | 3 | only samples 5 and 7 have 2 exact chunks |
+
+Interpretation:
+
+- The single-sample latch is non-invasive: DDR init and native traffic survive.
+- The first sparse native read command is formed correctly at the top-level
+  native port: scheduled, presented, and accepted `cmd_addr` are all `0`.
+- The repeated returned beat is not explained by command 0. The remaining
+  likely questions are whether later commands are being presented/accepted
+  correctly, or whether the issue is downstream of native command acceptance.
+
+Next action:
+
+- Add a parameterized one-command latch index and rerun for command index `1`.
+  If index `1` is correct, rerun for index `5`, where the classifier has the
+  weak exact-chunk match to DFII address index `15`.
+
+Artifacts:
+
+- Result summary:
+  `artifacts/task6/parallel-hypotheses/e1-litedram-v116-native-cmdaddr-first-sample-summary.json`.
+- Full decoded readback:
+  `artifacts/task6/runs/2026-05-08T16-48-18+0200-litedram-v116-native-cmdaddr-first-sample/readback/litedram-probe.json`.
+- Verdict:
+  `artifacts/task6/runs/2026-05-08T16-48-18+0200-litedram-v116-native-cmdaddr-first-sample/verdict.json`.

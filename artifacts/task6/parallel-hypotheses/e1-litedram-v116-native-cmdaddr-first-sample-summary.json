@@ -1,0 +1,77 @@
+{
+  "bitstream": "/nix/store/4lv9ki1a4y15rb2rn9pg9724h4gnyh31-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.bit",
+  "build": {
+    "json": "/nix/store/3qi7vf9fh18n92d8hz5s5w1gnva5ykjs-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.json",
+    "route": {
+      "converged_iteration": 12,
+      "final_archfail": 0,
+      "final_overuse": 0,
+      "final_overused": 0
+    },
+    "timing_mhz": {
+      "clk200": 678.43,
+      "core_iodelay_clk": 514.93,
+      "jtag_debug_shift_drck": 383.73,
+      "target": 25.0,
+      "user_clk": 65.92
+    },
+    "utilization": {
+      "carry4": 782,
+      "dsp48e1": 0,
+      "ramb36e1": 0,
+      "slice_ffx": 28541,
+      "slice_lutx": 32059
+    }
+  },
+  "experiment": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe",
+  "question": "Can a minimally invasive single-sample native cmd_addr latch preserve DDR init and show whether the first sparse native read command address is presented/accepted as scheduled?",
+  "readback": {
+    "cmdaddr_trace": [
+      {
+        "accepted_cmd_addr": 0,
+        "accepted_matches_requested": true,
+        "command_index": 0,
+        "presented_cmd_addr": 0,
+        "presented_matches_accepted": true,
+        "sample": 0,
+        "scheduled_matches_presented": true,
+        "scheduled_read_addr": 0
+      }
+    ],
+    "command_count": 16,
+    "cmdaddr_accepted_valid_count": 1,
+    "cmdaddr_flags": 3,
+    "cmdaddr_presented_valid_count": 1,
+    "failed": true,
+    "init_seq_error": false,
+    "mismatch_count": 16,
+    "readback_json": "artifacts/task6/runs/2026-05-08T16-48-18+0200-litedram-v116-native-cmdaddr-first-sample/readback/litedram-probe.json",
+    "response_count": 16,
+    "run_dir": "artifacts/task6/runs/2026-05-08T16-48-18+0200-litedram-v116-native-cmdaddr-first-sample",
+    "state": "PROBE_DONE",
+    "valid_samples": 16,
+    "version": 116,
+    "wb_timeout_seen": false
+  },
+  "classifier_summary": [
+    {"sample": 0, "native_addr": 0, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 1, "native_addr": 1, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 2, "native_addr": 2, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 3, "native_addr": 3, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 4, "native_addr": 8, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 5, "native_addr": 15, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 2},
+    {"sample": 6, "native_addr": 16, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 7, "native_addr": 31, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 2},
+    {"sample": 8, "native_addr": 64, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 9, "native_addr": 128, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 10, "native_addr": 256, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 11, "native_addr": 512, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 12, "native_addr": 1024, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 13, "native_addr": 2048, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 14, "native_addr": 4096, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0},
+    {"sample": 15, "native_addr": 8192, "best_same_dfii_addr": 15, "same_chunks": 2, "any_chunks": 3, "exact_chunks": 0}
+  ],
+  "result": "partial-success",
+  "interpretation": "The single-sample latch is non-invasive: DDR init completes and native command/response counts reach 16/16. For the first sparse read, scheduled_read_addr, presented_cmd_addr, and accepted_cmd_addr are all 0, matching the requested address. The repeated readback beat remains unexplained because only command index 0 was sampled; the next step is to sample a later command, preferably command index 1 or 5, without reintroducing the 16-sample trace.",
+  "next_action": "Add a parameterized one-command latch index and rerun for command index 1, then index 5 if index 1 is also correct."
+}

@@ -1,0 +1,7 @@
+{
+  "readback_json": "artifacts/task6/runs/2026-05-08T16-48-18+0200-litedram-v116-native-cmdaddr-first-sample/readback/litedram-probe.json",
+  "result": "partial-success",
+  "result_artifact": "artifacts/task6/parallel-hypotheses/e1-litedram-v116-native-cmdaddr-first-sample-summary.json",
+  "summary": "The v116 single-sample cmd_addr latch preserved DDR init and native traffic. Readback reported PROBE_DONE, init_seq_error=false, wb_timeout_seen=false, command_count=response_count=16, and the first sparse read command had scheduled=presented=accepted=0.",
+  "version": 116
+}
