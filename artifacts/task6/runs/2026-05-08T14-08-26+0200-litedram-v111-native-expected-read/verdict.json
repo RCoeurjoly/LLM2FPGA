@@ -1,0 +1,22 @@
+{
+  "board": "programmed-and-read",
+  "bram_margin": null,
+  "correctness": false,
+  "created_at": "2026-05-08T14:08:26.297994+02:00",
+  "dsp_margin": null,
+  "lut_margin": null,
+  "notes": [
+    "Deterministic native expected-read probe completed all reads but failed expected-data integrity: mismatch_count=64/64.",
+    "Bandwidth-shaped useful rowstream rate clears target, but DDR3 native/DFII address or beat packing remains unresolved."
+  ],
+  "route": null,
+  "run_dir": "artifacts/task6/runs/2026-05-08T14-08-26+0200-litedram-v111-native-expected-read",
+  "runtime": {
+    "read_cycle_count": 78,
+    "response_count": 64,
+    "target_read_count": 64
+  },
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE_FAIL",
+  "timing_margin": null
+}

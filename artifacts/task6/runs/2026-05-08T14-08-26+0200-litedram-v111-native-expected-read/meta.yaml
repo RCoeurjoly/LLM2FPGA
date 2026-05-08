@@ -1,0 +1,12 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-08T14:08:26.297994+02:00"
+label: "litedram-v111-native-expected-read"
+experiment: "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-expected-read-init-bandwidth-probe"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/3zznq4lmzypzfphcvdc55avrppqrcdbx-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-expected-read-init-bandwidth-probe.bit"
+reference_artifacts:
+  - "docs/task6-resource-usage-reduction-notes.md"
+notes: "DFII-seeded deterministic expected-data native linear-read probe for INT8 rowstream memory-source gate."

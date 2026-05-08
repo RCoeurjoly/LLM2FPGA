@@ -1,0 +1,58 @@
+{
+  "artifact_name": "task6-litedram-v111-native-expected-read-gate",
+  "bandwidth": {
+    "clears_target_at_rowstream_clock": true,
+    "design_clock_mhz": 25.0,
+    "design_clock_useful_mbps": 1394.871794871795,
+    "rowstream_clock_mhz": 50.0,
+    "rowstream_clock_useful_mbps": 2789.74358974359,
+    "target_mbps": 212.5
+  },
+  "linear_read": {
+    "command_count": 64,
+    "mismatch_count": 64,
+    "native_beat_bytes": 72,
+    "native_readscan_first_nonzero_addr": 0,
+    "native_readscan_first_nonzero_data": 12514570629261339562,
+    "native_readscan_nonzero_chunk_seen": 511,
+    "native_readscan_nonzero_count": 64,
+    "raw_bytes": 4608,
+    "read_cycle_count": 78,
+    "response_count": 64,
+    "rowstream_useful_bytes": 4352,
+    "rowstream_useful_bytes_per_beat": 68,
+    "target_read_count": 64,
+    "write_command_count": 0,
+    "write_data_count": 0
+  },
+  "next_step": "The native read source completes with enough bandwidth but does not match the deterministic DFII-seeded expected data. Next isolate the native/DFII address and 576-bit beat packing before connecting DDR3 to the INT8 rowstream cutout.",
+  "probe": {
+    "complete": false,
+    "failed": true,
+    "init_done": true,
+    "init_error": false,
+    "magic_ok": true,
+    "pll_locked": true,
+    "probe_done": false,
+    "probe_error": true,
+    "probe_timeout": false,
+    "state": "PROBE_ERROR",
+    "version": 111
+  },
+  "schema": "task6-linear-read-gate-v1",
+  "source": {
+    "attempts": 1,
+    "backend": "ftdi-mpsse",
+    "readback_json": "artifacts/task6/runs/2026-05-08T14-08-26+0200-litedram-v111-native-expected-read/readback/litedram-probe.json",
+    "run_dir": "artifacts/task6/runs/2026-05-08T14-08-26+0200-litedram-v111-native-expected-read"
+  },
+  "verdict": {
+    "bandwidth_clears_target": true,
+    "board_read_complete": false,
+    "gate_pass": false,
+    "integrity_basis": "expected-data compare in RTL",
+    "integrity_mode": "expected-data",
+    "integrity_verified": false,
+    "read_count_complete": true
+  }
+}

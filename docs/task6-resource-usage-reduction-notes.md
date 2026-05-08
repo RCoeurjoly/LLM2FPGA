@@ -917,6 +917,90 @@ Updated interpretation:
   HR-bank output-buffer legality; it is the data-integrity problem exposed by
   v30-v32.
 
+### LiteDRAM v111 deterministic native expected-read probe (2026-05-08)
+
+Question:
+
+- Can the native LiteDRAM read source return a deterministic DFII-seeded linear
+  stream with enough useful bandwidth for the INT8 rowstream cutout, without
+  relying on native writes?
+
+Implementation:
+
+- Added `DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ` to the YPCB
+  LiteDRAM probe.
+- The probe first seeds memory through the known DFII addrwalk path, then issues
+  native linear reads and compares each 576-bit native beat against the expected
+  DFII-derived data.
+- This intentionally avoids another bandwidth-only calculation: the RTL now
+  asserts correctness with an expected-data compare.
+- JTAG debug payload version: `111`.
+
+Commands:
+
+- `nix build .#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-expected-read-init-bandwidth-probe-json --no-link --print-out-paths -L`
+- `nix build .#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-expected-read-init-bandwidth-probe-bitstream --no-link --print-out-paths -L`
+- `python3 scripts/task6/task6_board_run.py with-lock --run-dir artifacts/task6/runs/2026-05-08T14-08-26+0200-litedram-v111-native-expected-read --log-name program-openfpgaloader.log -- openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/3zznq4lmzypzfphcvdc55avrppqrcdbx-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-expected-read-init-bandwidth-probe.bit`
+- `python3 scripts/task6/task6_board_run.py with-lock --run-dir artifacts/task6/runs/2026-05-08T14-08-26+0200-litedram-v111-native-expected-read --log-name read-litedram-probe-jtag-ftdi.log -- python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2 --json-only`
+
+Build result:
+
+- JSON synthesis passed:
+  `/nix/store/icajwk7g52109gw2m67bg7z6xnlvvhic-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-expected-read-init-bandwidth-probe.json`
+- Bitstream passed:
+  `/nix/store/3zznq4lmzypzfphcvdc55avrppqrcdbx-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-expected-read-init-bandwidth-probe.bit`
+- nextpnr utilization:
+  - `SLICE_LUTX`: `26694 / 597200` (4%)
+  - `SLICE_FFX`: `14145 / 597200` (2%)
+  - `CARRY4`: `779 / 74650` (1%)
+- Router result:
+  - iteration 1: `overused=33534`, `overuse=36875`
+  - iteration 10: `overused=0`, `overuse=0`, `archfail=0`
+- Post-route timing:
+  - `clk200`: `745.16 MHz`
+  - `user_clk`: `75.06 MHz`
+  - `core.iodelay_clk`: `437.64 MHz`
+  - `jtag_debug_shift.drck`: `296.65 MHz`
+
+Board/JTAG result:
+
+- `magic_ok=true`
+- version: `111`
+- state: `PROBE_ERROR`
+- init completed: `init_done=true`, `init_error=false`
+- target native reads: `64`
+- native commands: `64`
+- native responses: `64`
+- read cycles: `78`
+- native writes: `0` commands, `0` data beats
+- nonzero native responses: `64 / 64`
+- mismatch count: `64 / 64`
+- first mismatch address: `0`
+- first expected low sample: `0x5d5c5f5e59585b5a`
+- first actual low sample: `0xadaeefecafedafaa`
+- useful rowstream-shaped payload: `4352` bytes in `78` cycles
+- bandwidth arithmetic still clears the `212.5 MB/s` useful-rowstream target:
+  `2789.74 MB/s` at a 50 MHz rowstream clock
+
+Interpretation:
+
+- This is no longer a readscan-only result. It is a deterministic expected-data
+  failure on real board hardware.
+- The native read path is alive and fast enough for the intended rowstream
+  source shape: all 64 commands return nonzero responses in 78 cycles.
+- Integrity fails for every response, so the current DFII-to-native expectation
+  is not valid yet. The likely next bug is native/DFII address mapping or
+  576-bit beat packing, not simple bandwidth or command visibility.
+- Do not connect this DDR3 source to the INT8 rowstream cutout yet. The next
+  productive probe is a packing/address classifier that captures enough
+  expected and actual chunks to derive the native beat layout from the
+  DFII-seeded addrwalk data.
+
+Artifacts:
+
+- `artifacts/task6/runs/2026-05-08T14-08-26+0200-litedram-v111-native-expected-read`
+- `artifacts/task6/experiments/2026-05-08T14-08-26+0200-litedram-v111-native-expected-read-gate/result.json`
+
 ### Evidence contract for every lane
 
 Every active lane must leave behind:

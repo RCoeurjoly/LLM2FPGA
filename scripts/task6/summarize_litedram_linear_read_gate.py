@@ -77,6 +77,27 @@ def main() -> None:
             "the deterministic expected row data"
         )
 
+    if args.integrity_mode == "expected-data":
+        if integrity_verified:
+            next_step = (
+                "Promote this as the deterministic DDR3 native-read source "
+                "gate, then connect the read source to the INT8 rowstream "
+                "cutout."
+            )
+        else:
+            next_step = (
+                "The native read source completes with enough bandwidth but "
+                "does not match the deterministic DFII-seeded expected data. "
+                "Next isolate the native/DFII address and 576-bit beat packing "
+                "before connecting DDR3 to the INT8 rowstream cutout."
+            )
+    else:
+        next_step = (
+            "Keep this as a bandwidth-shaped read visibility result, but build "
+            "a deterministic expected-data linear-read probe before connecting "
+            "DDR3 to the INT8 rowstream cutout."
+        )
+
     result = {
         "artifact_name": args.artifact_name,
         "schema": "task6-linear-read-gate-v1",
@@ -143,11 +164,7 @@ def main() -> None:
                 and integrity_verified
             ),
         },
-        "next_step": (
-            "Keep this as a bandwidth-shaped read visibility result, but build "
-            "a deterministic expected-data linear-read probe before connecting "
-            "DDR3 to the INT8 rowstream cutout."
-        ),
+        "next_step": next_step,
     }
 
     args.out.parent.mkdir(parents=True, exist_ok=True)

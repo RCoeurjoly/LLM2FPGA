@@ -23,6 +23,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter bit DFII_EDGE_COMP_ADDRWALK_ONLY = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN = 1'b0,
+  parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ = 1'b0,
   parameter bit DFII_EDGE_COMP_CSR_ONLY = 1'b0,
   parameter bit DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY = 1'b0,
   parameter int DFII_SOURCE_COMMAND_READ_PHASE = 2,
@@ -49,7 +50,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd110;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd111;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -96,6 +97,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v101 keeps the locator logic and fixes only the Nix target construction.
   // v102 folds the lane7 locator payload into the init-clean byte-phase matrix path.
   // v109 tests whether source7's tag survives through spare byte slot 8.
+  // v111 adds a DFII-seeded native expected-data linear-read probe.
   localparam int CAL_BYTE_LANES = 8;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;
@@ -540,6 +542,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   wire dfii_edge_comp_bist_mode;
   wire dfii_edge_comp_addrwalk_mode;
   wire native_readscan_mode;
+  wire native_expected_read_mode;
   wire dfii_edge_lane7_locator_probe_mode;
   wire dfii_bitslip_sweep_mode;
   wire dfii_wide_word_mode;
@@ -1492,6 +1495,23 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     end
   endfunction
 
+  function automatic logic [575:0] native_dfii_addrwalk_expected_rdata(
+    input logic [24:0] addr
+  );
+    logic [3:0] addr_index;
+    begin
+      addr_index = addr[3:0];
+      native_dfii_addrwalk_expected_rdata = 576'd0;
+      for (int word_idx = 0; word_idx < 18; word_idx++) begin
+        native_dfii_addrwalk_expected_rdata[word_idx * 32 +: 32] =
+          dfii_edge_comp_addrwalk_read_index_word(
+            addr_index,
+            word_idx[4:0]
+          );
+      end
+    end
+  endfunction
+
   function automatic logic [7:0] dfii_lane7_locator_tag(
     input logic [4:0] candidate
   );
@@ -1851,12 +1871,16 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       pattern_for_addr(write_data_count_q[24:0]));
   assign wdata_we =
     byte_diag_mask_state ? byte_diag_we_mask(write_data_count_q[2:0]) : {72{1'b1}};
-  assign expected_rdata = pattern_for_addr(compare_addr_q);
+  assign expected_rdata =
+    native_expected_read_mode ?
+    native_dfii_addrwalk_expected_rdata(compare_addr_q) :
+    pattern_for_addr(compare_addr_q);
   assign lane_response_mismatch =
     select_lane_burst(rdata, cal_lane_q) !=
     select_lane_burst(expected_rdata, cal_lane_q);
   assign response_mismatch =
-    read_state && !byte_diag_read_state && !native_readscan_mode &&
+    read_state && !byte_diag_read_state &&
+    !(native_readscan_mode && !native_expected_read_mode) &&
     rdata_valid &&
     (cal_read_state ? lane_response_mismatch : rdata != expected_rdata);
   for (genvar chunk_idx = 0; chunk_idx < 9; chunk_idx++) begin : gen_response_chunk_mismatch
@@ -1908,11 +1932,15 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   assign dfii_edge_comp_bist_mode =
     DFII_EDGE_COMP_BIST_ONLY && dfii_phasecmd_sweep_q;
   assign native_readscan_mode =
-    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN;
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ;
+  assign native_expected_read_mode =
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ;
   assign dfii_edge_comp_addrwalk_mode =
     (DFII_EDGE_COMP_ADDRWALK_ONLY ||
      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
-     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN) &&
+     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ) &&
     dfii_phasecmd_sweep_q;
   assign dfii_edge_lane7_locator_probe_mode =
     DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY && dfii_phasecmd_sweep_q;
@@ -3426,6 +3454,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                               DFII_EDGE_COMP_ADDRWALK_ONLY ||
                               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
                               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                               DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY);
             dfii_phasecmd_sweep_q <=
               DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
@@ -3437,6 +3466,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
               DFII_EDGE_COMP_ADDRWALK_ONLY ||
               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
               DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY;
             dfii_assoc_sweep_q <= 1'b0;
             dfii_addr_sweep_q <= 1'b0;
@@ -3506,6 +3536,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                                 DFII_EDGE_COMP_ADDRWALK_ONLY ||
                                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
                                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                                DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                                 DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY);
               dfii_phasecmd_sweep_q <=
                 DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
@@ -3517,6 +3548,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                 DFII_EDGE_COMP_ADDRWALK_ONLY ||
                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                 DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY;
               dfii_assoc_sweep_q <= 1'b0;
               dfii_addr_sweep_q <= 1'b0;
@@ -3699,17 +3731,20 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
               end else if (DFII_EDGE_COMP_BIST_ONLY ||
                            DFII_EDGE_COMP_ADDRWALK_ONLY ||
                            DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
-                           DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN) begin
+                           DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                           DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ) begin
                 if (dfii_phasecmd_index_q ==
                     ((DFII_EDGE_COMP_ADDRWALK_ONLY ||
                       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
-                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN) ?
+                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ) ?
                      4'd15 : 4'd7)) begin
                   dfii_phasecmd_sweep_q <= 1'b0;
                   dfii_assoc_sweep_q <= 1'b0;
                   dfii_addr_sweep_q <= 1'b0;
                   if (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
-                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN) begin
+                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ) begin
                     if ((mismatch_count_q +
                          dfii_bist_mismatch_word_count) != 32'd0) begin
                       state_q <= PROBE_ERROR;
@@ -3743,7 +3778,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                            sample_idx++)
                         sample_rdata_q[sample_idx] <= 64'd0;
                       state_q <=
-                        DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ?
+                        (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                         DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ) ?
                         PROBE_RUN_READS : PROBE_RUN_WRITES;
                     end
                   end else begin
@@ -3779,6 +3815,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                     DFII_EDGE_COMP_ADDRWALK_ONLY ||
                     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
                     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                     DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY) begin
                   dfii_assoc_sweep_q <= 1'b0;
                   dfii_addr_sweep_q <= 1'b0;
@@ -4595,7 +4632,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       DFII_EDGE_COMP_PROBE_ONLY || DFII_EDGE_COMP_ACTIVE_ONLY ||
       DFII_EDGE_COMP_BIST_ONLY || DFII_EDGE_COMP_ADDRWALK_ONLY ||
       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
-      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN,
+      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ,
       DFII_EDGE_MAP_PROBE_ONLY,
       DFII_RBITSLIP_SWEEP_ONLY,
       DFII_WBITSLIP_SWEEP_ONLY,
@@ -4615,7 +4653,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       DFII_EDGE_COMP_PROBE_ONLY || DFII_EDGE_COMP_ACTIVE_ONLY ||
       DFII_EDGE_COMP_BIST_ONLY || DFII_EDGE_COMP_ADDRWALK_ONLY ||
       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
-      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN,
+      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ,
       DFII_EDGE_MAP_PROBE_ONLY,
       DFII_RBITSLIP_SWEEP_ONLY,
       DFII_WBITSLIP_SWEEP_ONLY,
@@ -4654,7 +4693,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
         {1'b0, dfi_debug_wrdata_word4_mask_q};
       jtag_debug_payload[4368 +: 9] =
         {5'd0, dfi_debug_wrdata_last_en_q};
-    end else if (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN) begin
+    end else if (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
+                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ) begin
       jtag_debug_payload[4224 +: 32] = native_nonzero_count_q;
       jtag_debug_payload[4256 +: 32] = {4'd0, native_first_nonzero_addr_q};
       jtag_debug_payload[4288 +: 64] = native_first_nonzero_data_q;
