@@ -15353,3 +15353,44 @@ Global priority after this result:
    output-head quantization and toward:
    - time-multiplexed INT8 plus external memory/DDR or PCIe streaming, or
    - a smaller-vocab demonstrator with clear token-generation video evidence.
+
+True pretrained TinyStories-1M execution:
+
+- Added `--load-pretrained` support to
+  `scripts/task6/score_output_head_multisample_quantization.py`.
+- Added flake target:
+  `task6-output-head-full-pretrained-multisample-quantization-sweep`.
+- Ran:
+  `nix build .#task6-output-head-full-pretrained-multisample-quantization-sweep --no-link --print-out-paths -L`
+- Durable artifacts:
+  - `artifacts/task6/quantization/output-head-full-pretrained-multisample-sweep.json`
+  - `artifacts/task6/quantization/output-head-full-pretrained-multisample-sweep.md`
+
+Pretrained full-model result:
+
+| strategy | bits/w | scales | zero % | top1 | min top5 | mean top5 | min top10 | max rank | mean RMSE | max RMSE | packed words | promote |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `int8_per_tensor` | 8.000 | 1 | 1.4 | 8/8 | 4 | 4.75 | 9 | 1 | 0.0113 | 0.0176 | n/a | yes |
+| `int4_per_row` | 4.000 | 50257 | 8.2 | 7/8 | 3 | 3.62 | 7 | 2 | 0.0594 | 0.0921 | 402056 | no |
+| `int3_per_row` | 3.000 | 50257 | 18.8 | 6/8 | 2 | 3.25 | 5 | 8 | 0.1424 | 0.2159 | 301542 | no |
+| `int4_per_tensor` | 4.000 | 1 | 33.3 | 5/8 | 2 | 2.62 | 5 | 5 | 0.4037 | 0.5479 | 402056 | no |
+| `ternary_per_row_t0.25_lsq` | 1.585 | 50257 | 9.5 | 2/8 | 1 | 1.88 | 2 | 296 | 0.3650 | 0.6862 | 160823 | no |
+| `int2_per_row` | 2.000 | 50257 | 59.1 | 2/8 | 0 | 1.50 | 1 | 120 | 0.5846 | 0.9520 | 201028 | no |
+
+Interpretation:
+
+- Quantization remains worth pursuing, but only as INT8/INT4, not ternary or
+  INT2.
+- Full pretrained INT4 per-row is close: `7/8` top-1 matches, and the one miss
+  ranks the float top-1 at rank `2` under INT4. This is not good enough to
+  claim fidelity, but it is good enough to justify one more Python-only
+  improvement attempt.
+- The next quantization experiment should not be RTL. It should test a slightly
+  stronger INT4 scoring contract:
+  - rowwise INT4 weights
+  - explicit row scales in a hardware-friendly Q format
+  - optional top-k margin/tie analysis for the failing sample
+  - maybe per-group or activation-aware calibration if the storage cost remains
+    acceptable
+- If that does not pass, the mainline should return to INT8 plus streaming or
+  external memory rather than lower-bit output-head RTL.

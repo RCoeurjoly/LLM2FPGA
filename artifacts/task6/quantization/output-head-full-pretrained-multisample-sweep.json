@@ -1,0 +1,1184 @@
+{
+  "artifact_name": "task6-output-head-multisample-quantization-sweep",
+  "status": "PASS",
+  "model": {
+    "model_label": "tiny-stories-1m-pretrained-full",
+    "vocab_size": 50257,
+    "hidden_size": 64,
+    "sample_count": 8,
+    "samples": [
+      {
+        "sample_id": "single_zero",
+        "token_ids": [
+          0
+        ]
+      },
+      {
+        "sample_id": "single_one",
+        "token_ids": [
+          1
+        ]
+      },
+      {
+        "sample_id": "single_two",
+        "token_ids": [
+          2
+        ]
+      },
+      {
+        "sample_id": "single_eos",
+        "token_ids": [
+          50256
+        ]
+      },
+      {
+        "sample_id": "short_increment",
+        "token_ids": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "sample_id": "short_even",
+        "token_ids": [
+          2,
+          4,
+          6,
+          8
+        ]
+      },
+      {
+        "sample_id": "mixed_low_mid",
+        "token_ids": [
+          42,
+          1024,
+          17,
+          2048
+        ]
+      },
+      {
+        "sample_id": "mixed_high",
+        "token_ids": [
+          50250,
+          128,
+          4096,
+          7
+        ]
+      }
+    ]
+  },
+  "promotion_rule": {
+    "top1_matches_all_samples": true,
+    "min_top5_overlap_at_least": 4,
+    "max_normalized_rmse_at_most": 0.3
+  },
+  "results": [
+    {
+      "name": "int8_per_tensor",
+      "family": "int8",
+      "bits_per_weight_raw": 8.0,
+      "scale_count": 1,
+      "zero_fraction": 0.013644554489921802,
+      "top1_matches": 8,
+      "sample_count": 8,
+      "top1_match_rate": 1.0,
+      "mean_top5_overlap": 4.75,
+      "min_top5_overlap": 4,
+      "mean_top10_overlap": 9.75,
+      "min_top10_overlap": 9,
+      "max_f32_top1_rank": 1,
+      "mean_normalized_rmse": 0.011339523833874154,
+      "max_normalized_rmse": 0.017596962218158842,
+      "packed_words": null,
+      "promote": true,
+      "notes": "per-tensor int8 baseline",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 198,
+          "top1_match": true,
+          "top5_overlap": 4,
+          "top10_overlap": 10,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.0100260453326985
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 40,
+          "top1_match": true,
+          "top5_overlap": 4,
+          "top10_overlap": 10,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.013337115868259948
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 3043,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 10,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.017596962218158842
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 628,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 10,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.009144631400412091
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 387,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 9,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.011106648124567556
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 10,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.007995203308314233
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 9,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.008162094781766634
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 628,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 10,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.013347489636815438
+        }
+      ]
+    },
+    {
+      "name": "int4_per_row",
+      "family": "int4",
+      "bits_per_weight_raw": 4.0,
+      "scale_count": 50257,
+      "zero_fraction": 0.08151289870067852,
+      "top1_matches": 7,
+      "sample_count": 8,
+      "top1_match_rate": 0.875,
+      "mean_top5_overlap": 3.625,
+      "min_top5_overlap": 3,
+      "mean_top10_overlap": 8.375,
+      "min_top10_overlap": 7,
+      "max_f32_top1_rank": 2,
+      "mean_normalized_rmse": 0.059429023055820866,
+      "max_normalized_rmse": 0.09205813522633842,
+      "packed_words": 402056,
+      "promote": false,
+      "notes": "per-row signed symmetric",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 198,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 10,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.05251534129062764
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 40,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 9,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.06983967667449373
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 5657,
+          "top1_match": false,
+          "top5_overlap": 4,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.09205813522633842
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 628,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.047802074975197395
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 387,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.0586276458588069
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 4,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.042002693926652
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 4,
+          "top10_overlap": 9,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.0425859798137922
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 628,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.07000063668065858
+        }
+      ]
+    },
+    {
+      "name": "int3_per_row",
+      "family": "int3",
+      "bits_per_weight_raw": 3.0,
+      "scale_count": 50257,
+      "zero_fraction": 0.18816564110472173,
+      "top1_matches": 6,
+      "sample_count": 8,
+      "top1_match_rate": 0.75,
+      "mean_top5_overlap": 3.25,
+      "min_top5_overlap": 2,
+      "mean_top10_overlap": 6.375,
+      "min_top10_overlap": 5,
+      "max_f32_top1_rank": 8,
+      "mean_normalized_rmse": 0.14239761544735038,
+      "max_normalized_rmse": 0.21594104393988273,
+      "packed_words": 301542,
+      "promote": false,
+      "notes": "per-row signed symmetric",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 198,
+          "top1_match": true,
+          "top5_overlap": 4,
+          "top10_overlap": 9,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.13074004438467404
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 40,
+          "top1_match": true,
+          "top5_overlap": 2,
+          "top10_overlap": 5,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.1687071601820591
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 3043,
+          "top1_match": true,
+          "top5_overlap": 4,
+          "top10_overlap": 6,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.21594104393988273
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 198,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 6,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.11346079638329533
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 387,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 5,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.1368179013615506
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.1066675307171618
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 6,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.10357841250963157
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 198,
+          "top1_match": false,
+          "top5_overlap": 3,
+          "top10_overlap": 6,
+          "f32_top1_rank_in_quant": 8,
+          "normalized_rmse": 0.16326803410054783
+        }
+      ]
+    },
+    {
+      "name": "int4_per_tensor",
+      "family": "int4",
+      "bits_per_weight_raw": 4.0,
+      "scale_count": 1,
+      "zero_fraction": 0.332630280358955,
+      "top1_matches": 5,
+      "sample_count": 8,
+      "top1_match_rate": 0.625,
+      "mean_top5_overlap": 2.625,
+      "min_top5_overlap": 2,
+      "mean_top10_overlap": 6.75,
+      "min_top10_overlap": 5,
+      "max_f32_top1_rank": 5,
+      "mean_normalized_rmse": 0.40365486316721455,
+      "max_normalized_rmse": 0.5479493071910894,
+      "packed_words": 402056,
+      "promote": false,
+      "notes": "per-tensor signed symmetric",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 198,
+          "top1_match": true,
+          "top5_overlap": 2,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.4430079725331283
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 40,
+          "top1_match": true,
+          "top5_overlap": 2,
+          "top10_overlap": 5,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.49259002703714305
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 3043,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.5479493071910894
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 628,
+          "top1_match": true,
+          "top5_overlap": 2,
+          "top10_overlap": 9,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.3218575093528365
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 345,
+          "top1_match": false,
+          "top5_overlap": 4,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.37210832466593047
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.365375377314871
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 531,
+          "top1_match": false,
+          "top5_overlap": 3,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 5,
+          "normalized_rmse": 0.33545833520478213
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 1537,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 5,
+          "f32_top1_rank_in_quant": 3,
+          "normalized_rmse": 0.35089205203793544
+        }
+      ]
+    },
+    {
+      "name": "ternary_per_row_t0.25_lsq",
+      "family": "ternary",
+      "bits_per_weight_raw": 1.584962500721156,
+      "scale_count": 50257,
+      "zero_fraction": 0.09494666165907237,
+      "top1_matches": 2,
+      "sample_count": 8,
+      "top1_match_rate": 0.25,
+      "mean_top5_overlap": 1.875,
+      "min_top5_overlap": 1,
+      "mean_top10_overlap": 3.375,
+      "min_top10_overlap": 2,
+      "max_f32_top1_rank": 296,
+      "mean_normalized_rmse": 0.36501940788102,
+      "max_normalized_rmse": 0.6861596871056933,
+      "packed_words": 160823,
+      "promote": false,
+      "notes": "best single-sample ternary comparator",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 1375,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 6,
+          "f32_top1_rank_in_quant": 6,
+          "normalized_rmse": 0.2614955059125394
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 13300,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 5,
+          "f32_top1_rank_in_quant": 11,
+          "normalized_rmse": 0.3885741768883942
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 538,
+          "top1_match": false,
+          "top5_overlap": 1,
+          "top10_overlap": 3,
+          "f32_top1_rank_in_quant": 296,
+          "normalized_rmse": 0.6861596871056933
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 198,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 4,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.22744314025339182
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 387,
+          "top1_match": true,
+          "top5_overlap": 2,
+          "top10_overlap": 2,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.39715883651615147
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 290,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 3,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.2877592593769367
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 2,
+          "top10_overlap": 2,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.30490631886761754
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 270,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 2,
+          "f32_top1_rank_in_quant": 34,
+          "normalized_rmse": 0.36665833812743565
+        }
+      ]
+    },
+    {
+      "name": "int2_per_row",
+      "family": "int2",
+      "bits_per_weight_raw": 2.0,
+      "scale_count": 50257,
+      "zero_fraction": 0.5909633856975147,
+      "top1_matches": 2,
+      "sample_count": 8,
+      "top1_match_rate": 0.25,
+      "mean_top5_overlap": 1.5,
+      "min_top5_overlap": 0,
+      "mean_top10_overlap": 2.75,
+      "min_top10_overlap": 1,
+      "max_f32_top1_rank": 120,
+      "mean_normalized_rmse": 0.5846428468980531,
+      "max_normalized_rmse": 0.951971079430294,
+      "packed_words": 201028,
+      "promote": false,
+      "notes": "per-row signed symmetric",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 198,
+          "top1_match": true,
+          "top5_overlap": 2,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.556251222100371
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 50,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 3,
+          "f32_top1_rank_in_quant": 3,
+          "normalized_rmse": 0.6774584871096476
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 648,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 2,
+          "f32_top1_rank_in_quant": 70,
+          "normalized_rmse": 0.951971079430294
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 198,
+          "top1_match": false,
+          "top5_overlap": 3,
+          "top10_overlap": 5,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.38891313446977765
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 295,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 1,
+          "f32_top1_rank_in_quant": 120,
+          "normalized_rmse": 0.5635947537371757
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 1,
+          "top10_overlap": 1,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.5049676797294946
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 284,
+          "top1_match": false,
+          "top5_overlap": 1,
+          "top10_overlap": 1,
+          "f32_top1_rank_in_quant": 4,
+          "normalized_rmse": 0.5016886184615985
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 198,
+          "top1_match": false,
+          "top5_overlap": 1,
+          "top10_overlap": 2,
+          "f32_top1_rank_in_quant": 22,
+          "normalized_rmse": 0.5322978001460668
+        }
+      ]
+    },
+    {
+      "name": "int3_per_tensor",
+      "family": "int3",
+      "bits_per_weight_raw": 3.0,
+      "scale_count": 1,
+      "zero_fraction": 0.8670511694888274,
+      "top1_matches": 1,
+      "sample_count": 8,
+      "top1_match_rate": 0.125,
+      "mean_top5_overlap": 1.25,
+      "min_top5_overlap": 0,
+      "mean_top10_overlap": 3.0,
+      "min_top10_overlap": 0,
+      "max_f32_top1_rank": 365,
+      "mean_normalized_rmse": 0.8256203836026491,
+      "max_normalized_rmse": 0.8942781835105319,
+      "packed_words": 301542,
+      "promote": false,
+      "notes": "per-tensor signed symmetric",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 447,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.8136911566228694
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 50,
+          "top1_match": false,
+          "top5_overlap": 2,
+          "top10_overlap": 4,
+          "f32_top1_rank_in_quant": 3,
+          "normalized_rmse": 0.7707851381868837
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 9221,
+          "top1_match": false,
+          "top5_overlap": 1,
+          "top10_overlap": 3,
+          "f32_top1_rank_in_quant": 4,
+          "normalized_rmse": 0.8942781835105319
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 198,
+          "top1_match": false,
+          "top5_overlap": 3,
+          "top10_overlap": 4,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.7906793834781907
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 387,
+          "top1_match": true,
+          "top5_overlap": 1,
+          "top10_overlap": 3,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.869270416582533
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 447,
+          "top1_match": false,
+          "top5_overlap": 1,
+          "top10_overlap": 2,
+          "f32_top1_rank_in_quant": 87,
+          "normalized_rmse": 0.8445746341164742
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 379,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 0,
+          "f32_top1_rank_in_quant": 365,
+          "normalized_rmse": 0.798011420520508
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 25074,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 1,
+          "f32_top1_rank_in_quant": 21,
+          "normalized_rmse": 0.8236727358032023
+        }
+      ]
+    },
+    {
+      "name": "int2_per_tensor",
+      "family": "int2",
+      "bits_per_weight_raw": 2.0,
+      "scale_count": 1,
+      "zero_fraction": 0.9993247209343972,
+      "top1_matches": 0,
+      "sample_count": 8,
+      "top1_match_rate": 0.0,
+      "mean_top5_overlap": 0.125,
+      "min_top5_overlap": 0,
+      "mean_top10_overlap": 0.125,
+      "min_top10_overlap": 0,
+      "max_f32_top1_rank": 1253,
+      "mean_normalized_rmse": 0.9974483404766866,
+      "max_normalized_rmse": 1.0023061992395703,
+      "packed_words": 201028,
+      "promote": false,
+      "notes": "per-tensor signed symmetric",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 7063,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 0,
+          "f32_top1_rank_in_quant": 921,
+          "normalized_rmse": 0.9990227008236358
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 11137,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 0,
+          "f32_top1_rank_in_quant": 563,
+          "normalized_rmse": 0.9850955131511521
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 1144,
+          "top1_match": false,
+          "top5_overlap": 1,
+          "top10_overlap": 1,
+          "f32_top1_rank_in_quant": 3,
+          "normalized_rmse": 1.0023061992395703
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 12135,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 0,
+          "f32_top1_rank_in_quant": 1253,
+          "normalized_rmse": 0.997239071445284
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 1739,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 0,
+          "f32_top1_rank_in_quant": 1181,
+          "normalized_rmse": 1.0016510612462204
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 5143,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 0,
+          "f32_top1_rank_in_quant": 717,
+          "normalized_rmse": 0.9986675076321029
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 1304,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 0,
+          "f32_top1_rank_in_quant": 745,
+          "normalized_rmse": 0.9978724417142513
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 17758,
+          "top1_match": false,
+          "top5_overlap": 0,
+          "top10_overlap": 0,
+          "f32_top1_rank_in_quant": 1252,
+          "normalized_rmse": 0.9977322285612763
+        }
+      ]
+    }
+  ],
+  "markdown_table": "| strategy | bits/w | scales | zero % | top1 | min top5 | mean top5 | min top10 | max rank | mean RMSE | max RMSE | packed words | promote |\n| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |\n| int8_per_tensor | 8.000 | 1 | 1.4 | 8/8 | 4 | 4.75 | 9 | 1 | 0.0113 | 0.0176 |  | yes |\n| int4_per_row | 4.000 | 50257 | 8.2 | 7/8 | 3 | 3.62 | 7 | 2 | 0.0594 | 0.0921 | 402056 | no |\n| int3_per_row | 3.000 | 50257 | 18.8 | 6/8 | 2 | 3.25 | 5 | 8 | 0.1424 | 0.2159 | 301542 | no |\n| int4_per_tensor | 4.000 | 1 | 33.3 | 5/8 | 2 | 2.62 | 5 | 5 | 0.4037 | 0.5479 | 402056 | no |\n| ternary_per_row_t0.25_lsq | 1.585 | 50257 | 9.5 | 2/8 | 1 | 1.88 | 2 | 296 | 0.3650 | 0.6862 | 160823 | no |\n| int2_per_row | 2.000 | 50257 | 59.1 | 2/8 | 0 | 1.50 | 1 | 120 | 0.5846 | 0.9520 | 201028 | no |\n| int3_per_tensor | 3.000 | 1 | 86.7 | 1/8 | 0 | 1.25 | 0 | 365 | 0.8256 | 0.8943 | 301542 | no |\n| int2_per_tensor | 2.000 | 1 | 99.9 | 0/8 | 0 | 0.12 | 0 | 1253 | 0.9974 | 1.0023 | 201028 | no |\n"
+}

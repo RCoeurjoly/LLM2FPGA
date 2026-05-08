@@ -15,18 +15,6 @@ from typing import Any
 import torch
 
 
-DEFAULT_SAMPLES = [
-    ("single_zero", [0]),
-    ("single_one", [1]),
-    ("single_two", [2]),
-    ("single_eos", [9999]),
-    ("short_increment", [0, 1, 2, 3]),
-    ("short_even", [2, 4, 6, 8]),
-    ("mixed_low_mid", [42, 1024, 17, 2048]),
-    ("mixed_high_v10k", [9990, 128, 4096, 7]),
-]
-
-
 @dataclass(frozen=True)
 class Strategy:
     name: str
@@ -42,6 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", required=True, type=Path)
     parser.add_argument("--adapter-path", required=True, type=Path)
+    parser.add_argument("--load-pretrained", action="store_true")
     parser.add_argument("--vocab-size", type=int, default=10000)
     parser.add_argument("--num-layers", type=int, default=1)
     parser.add_argument("--max-position-embeddings", type=int, default=128)
@@ -54,6 +43,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-json", required=True, type=Path)
     parser.add_argument("--out-md", required=True, type=Path)
     return parser.parse_args()
+
+
+def default_samples(vocab_size: int) -> list[tuple[str, list[int]]]:
+    return [
+        ("single_zero", [0]),
+        ("single_one", [1]),
+        ("single_two", [2]),
+        ("single_eos", [vocab_size - 1]),
+        ("short_increment", [0, 1, 2, 3]),
+        ("short_even", [2, 4, 6, 8]),
+        ("mixed_low_mid", [42, min(1024, vocab_size - 1), 17, min(2048, vocab_size - 1)]),
+        ("mixed_high", [max(0, vocab_size - 7), 128, min(4096, vocab_size - 1), 7]),
+    ]
 
 
 def load_adapter_build_model(adapter_path: Path) -> Any:
@@ -272,15 +274,27 @@ def markdown_table(results: list[dict[str, Any]]) -> str:
 
 def main() -> None:
     args = parse_args()
-    set_model_env(args)
-    samples = DEFAULT_SAMPLES[: args.sample_count]
+    if not args.load_pretrained:
+        set_model_env(args)
+    samples = default_samples(args.vocab_size)[: args.sample_count]
+
+    if args.load_pretrained:
+        from transformers import AutoModelForCausalLM
+
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_path,
+            local_files_only=True,
+        ).eval()
+        args.vocab_size = int(model.config.vocab_size)
+        args.hidden_size = int(model.config.hidden_size)
+        samples = default_samples(args.vocab_size)[: args.sample_count]
+    else:
+        build_model = load_adapter_build_model(args.adapter_path)
+        model = build_model(str(args.model_path)).eval()
     for sample_id, token_ids in samples:
         for token_id in token_ids:
             if token_id < 0 or token_id >= args.vocab_size:
                 raise SystemExit(f"{sample_id} token {token_id} outside vocab {args.vocab_size}")
-
-    build_model = load_adapter_build_model(args.adapter_path)
-    model = build_model(str(args.model_path)).eval()
     weight = model.lm_head.weight.detach().cpu().to(torch.float64).contiguous()[
         : args.vocab_size, :
     ]
