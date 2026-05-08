@@ -1,0 +1,11 @@
+{
+  "run": "2026-05-08T17-58-34+0200-litex-boards-ypcb-master-openxc7-ddr3-only-nolutram",
+  "source": "current upstream litex-boards through local toolchain passthrough patch and LiteX -nolutram patch",
+  "command_shape": "nix run .#task6-litex-boards-ypcb-master -- --toolchain=openxc7 --build --load",
+  "result": "failed_during_fasm2frames",
+  "blocker": "LiteX generated PRJXRAY packer commands with part xc7k480t-ffg1156-2, but the PRJXRAY database uses xc7k480tffg1156-2.",
+  "classification": "prjxray_part_name_mismatch",
+  "route_reached": true,
+  "timing_note": "nextpnr routed the design under --timing-allow-fail; crg_clkout_buf0 reached about 107.69 MHz against a 200 MHz target in the following successful rerun.",
+  "next_decision": "Patch only the PRJXRAY packer part spelling by removing the first hyphen for xc7 parts and rerun DDR3-only."
+}

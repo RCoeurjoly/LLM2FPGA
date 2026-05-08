@@ -1,0 +1,1 @@
+{"argv": ["nix", "run", ".#task6-litex-boards-ypcb-master", "--", "--toolchain=openxc7", "--with-pcie", "--build", "--load", "--output-dir", "artifacts/task6/runs/2026-05-08T17-46-57+0200-litex-boards-ypcb-master-openxc7-pcie-patched-toolchain/litex-build"], "finished_at": "2026-05-08T17:47:15.716888+02:00", "log": "litex-boards-master-openxc7-pcie.log", "returncode": 1}

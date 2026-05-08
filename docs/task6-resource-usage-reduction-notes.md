@@ -146,6 +146,10 @@ Measured result:
 | --- | --- | --- | --- | --- |
 | `2026-05-08T17-32-52+0200-litex-boards-ypcb-master-exact-command-writable-cp` | current upstream `litex-boards` | `--uart-name=jtag_uart --with-pcie --build --load` via flake wrapper | YPCB SoC elaborated with DDR3 and PCIe, BIOS built, ROM initialized | Vivado missing / not sourced |
 | `2026-05-08T17-33-52+0200-litex-boards-ypcb-validated-exact-command-writable-cp` | commit `6d58ae6b31d80b255de12c2d3f5bfefda4c38b90` | `--uart-name=jtag_uart --with-pcie --build --load` via flake wrapper | YPCB SoC elaborated with DDR3 and PCIe, BIOS built, ROM initialized | Vivado missing / not sourced |
+| `2026-05-08T17-46-57+0200-litex-boards-ypcb-master-openxc7-pcie-patched-toolchain` | current upstream `litex-boards` plus local target toolchain passthrough | `--toolchain=openxc7 --with-pcie --build --load` | Reached SoC construction with openXC7 selected | LitePCIe S7 PHY expects Vivado-style `pre_placement_commands` |
+| `2026-05-08T17-55-25+0200-litex-boards-ypcb-master-openxc7-ddr3-only-yosys` | current upstream `litex-boards` plus local target/openXC7 environment patches | `--toolchain=openxc7 --build --load` | Reached nextpnr packing | Unsupported inferred `RAM256X1S` LUTRAM primitive |
+| `2026-05-08T17-58-34+0200-litex-boards-ypcb-master-openxc7-ddr3-only-nolutram` | current upstream `litex-boards` plus `synth_xilinx -nolutram` | `--toolchain=openxc7 --build --load` | Reached route and generated FASM/frames path | PRJXRAY part spelling mismatch: `xc7k480t-ffg1156-2` vs `xc7k480tffg1156-2` |
+| `2026-05-08T18-03-19+0200-litex-boards-ypcb-master-openxc7-ddr3-only-prjxray-part` | current upstream `litex-boards` plus local openXC7 patches | `--toolchain=openxc7 --build --load` | Generated `ypcb_00338_1p1.bit` and programmed SRAM successfully | 200 MHz timing not closed; `crg_clkout_buf0` max reported about 107.69 MHz |
 
 Interpretation:
 
@@ -159,16 +163,35 @@ Interpretation:
   the fastest way to validate that the board, constraints, DDR3, PCIe, BIOS,
   and JTAG-UART match Enjoy-Digital's known-good baseline.
 - The required mainline remains fully open source. The next open-source
-  reproduction lane should reuse the same upstream target and run
-  `--toolchain=openxc7` first, then `--toolchain=yosys+nextpnr` if needed.
+  reproduction lane now has a concrete DDR3-only bitstream-generation proof
+  with openXC7.
+- Local patches needed for the current open-source DDR3-only bring-up:
+  - pass the upstream target's `--toolchain` argument into
+    `ypcb_00338_1p1.Platform(toolchain=...)`
+  - provide LiteX/openXC7 with the repo's nextpnr-xilinx, FASM, PRJXRAY,
+    PRJXRAY DB, Python path, and a compatibility `CHIPDB` filename
+    `xc7k480t-ffg1156.bin`
+  - add `synth_xilinx -nolutram` to avoid unsupported `RAM256X1S` LUTRAM
+    packing
+  - use PRJXRAY's part spelling `xc7k480tffg1156-2` for `fasm2frames` and
+    `xc7frames2bit` while keeping nextpnr's chipdb spelling
+    `xc7k480t-ffg1156`
+- OpenXC7 PCIe remains a separate blocker: LitePCIe's Series-7 PHY constraint
+  path assumes a Vivado-style `pre_placement_commands` API that the
+  openXC7/Yosys+nextpnr toolchain object does not expose.
+- The successful DDR3-only openXC7 run used LiteX's `--timing-allow-fail`.
+  It proves an open-source bitstream can be generated and loaded on the board,
+  but it does not prove a timing-clean DDR3 design at 200 MHz. The reported
+  `crg_clkout_buf0` maximum was about 107.69 MHz.
 
 Next action:
 
-- Try current upstream with `--toolchain=openxc7 --with-pcie --build --load`
-  through the same board-runner/logged artifact path.
-- If openXC7 fails before bitstream generation, classify whether the blocker is
-  target support, tool packaging, unsupported primitive/constraint handling, or
-  route/resource failure.
+- Read the LiteX BIOS/JTAG-UART from the just-programmed openXC7 DDR3-only
+  bitstream and capture whether DDR3 init/training reaches the same observable
+  milestones as upstream.
+- If BIOS/JTAG-UART is not immediately usable or DDR3 fails at 200 MHz, rerun
+  the DDR3-only openXC7 target at a lower system clock near the measured timing
+  envelope before spending more time on custom DDR3 probes.
 
 ### Execution doctrine: moonshot plus fast falsification
 

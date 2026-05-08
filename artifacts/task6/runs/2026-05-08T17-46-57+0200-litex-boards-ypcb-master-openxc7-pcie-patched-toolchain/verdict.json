@@ -1,0 +1,9 @@
+{
+  "run": "2026-05-08T17-46-57+0200-litex-boards-ypcb-master-openxc7-pcie-patched-toolchain",
+  "source": "current upstream litex-boards through local toolchain passthrough patch",
+  "command_shape": "nix run .#task6-litex-boards-ypcb-master -- --toolchain=openxc7 --with-pcie --build --load",
+  "result": "failed_before_gateware_build",
+  "blocker": "LitePCIe S7 PHY constraint code expects Vivado-style pre_placement_commands, which XilinxYosysNextpnrToolchain does not expose.",
+  "classification": "openxc7_pcie_constraint_api_gap",
+  "next_decision": "Do not block DDR3 rebaseline on PCIe. Reproduce DDR3-only openXC7 first, then revisit PCIe as a separate LitePCIe/openXC7 compatibility task."
+}

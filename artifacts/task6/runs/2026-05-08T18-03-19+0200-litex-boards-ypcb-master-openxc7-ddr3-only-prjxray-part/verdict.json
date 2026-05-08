@@ -1,0 +1,21 @@
+{
+  "run": "2026-05-08T18-03-19+0200-litex-boards-ypcb-master-openxc7-ddr3-only-prjxray-part",
+  "source": "current upstream litex-boards through local openXC7 patches",
+  "command_shape": "nix run .#task6-litex-boards-ypcb-master -- --toolchain=openxc7 --build --load",
+  "result": "success_bitstream_generated_and_loaded",
+  "bitstream": "litex-build/gateware/ypcb_00338_1p1.bit",
+  "programming": {
+    "tool": "openFPGALoader",
+    "cable_arg": "digilent_hs2",
+    "fpga_part_arg": "xc7k480t",
+    "status": "Done; isc_done=1 init=1 done=1"
+  },
+  "timing": {
+    "target_mhz": 200,
+    "crg_clkout_buf0_max_mhz": 107.69,
+    "timing_closed": false,
+    "note": "Build uses LiteX/openXC7 --timing-allow-fail, so this proves bitstream generation/programming, not a 200 MHz timing-clean design."
+  },
+  "classification": "open_source_litex_ddr3_bitstream_bringup_success",
+  "next_decision": "Read BIOS/JTAG-UART and rerun at a lower sys clock if needed for timing-clean DDR3 validation."
+}

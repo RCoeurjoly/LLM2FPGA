@@ -176,6 +176,16 @@
             pyyaml
             requests
           ];
+          postPatch = ''
+            substituteInPlace litex/build/xilinx/yosys_nextpnr.py \
+              --replace-fail 'self._synth_opts = "-flatten -abc9 -arch xc7 "' 'self._synth_opts = "-flatten -abc9 -arch xc7 -nolutram "'
+            substituteInPlace litex/build/xilinx/yosys_nextpnr.py \
+              --replace-fail '        # pre packer options' '        prjxray_part = self.device.replace("-", "", 1) if self.device.startswith("xc7") else self.device
+
+        # pre packer options' \
+              --replace-fail '            part    = self.device,' '            part    = prjxray_part,' \
+              --replace-fail '            part   = self.device,' '            part   = prjxray_part,'
+          '';
           postFixup = ''
             chmod -R u+w "$out/${pkgs.python311.sitePackages}/litex/soc/software"
           '';
@@ -243,6 +253,22 @@
         litexBoardsPkg = mkLitexBoardsPkg litexBoards;
         litexBoardsValidatedYpcbPkg =
           mkLitexBoardsPkg litexBoardsValidatedYpcb;
+        mkLitexBoardsYpcbToolchainPatchedSource = source:
+          pkgs.runCommand "litex-boards-ypcb-toolchain-patched-source" { } ''
+            cp -r ${source} "$out"
+            chmod -R u+w "$out"
+            target="$out/litex_boards/targets/ypcb_00338_1p1.py"
+            substituteInPlace "$target" \
+              --replace-fail "with_pcie       = False," "with_pcie       = False,
+        toolchain       = \"vivado\"," \
+              --replace-fail "platform = ypcb_00338_1p1.Platform()" "platform = ypcb_00338_1p1.Platform(toolchain=toolchain)" \
+              --replace-fail "with_pcie      = args.with_pcie," "with_pcie      = args.with_pcie,
+        toolchain      = args.toolchain,"
+          '';
+        litexBoardsYpcbToolchainPatchedSource =
+          mkLitexBoardsYpcbToolchainPatchedSource litexBoards;
+        litexBoardsValidatedYpcbToolchainPatchedSource =
+          mkLitexBoardsYpcbToolchainPatchedSource litexBoardsValidatedYpcb;
         liteDramPython = pkgs.python311.withPackages (ps: [
           ps.migen
           ps.packaging
@@ -305,20 +331,28 @@
               pkgs.gnumake
               pkgs.meson
               pkgs.ninja
+              pkgs.yosys
+              openXC7Nextpnr
+              openXC7Fasm
+              openXC7Prjxray
+              prjxrayPythonDeps
             ];
             text = ''
+              export CHIPDB=${litexOpenXC7ChipdbCompat}
+              export PRJXRAY_DB_DIR=${fpgaPrjxrayDb}
+              export PYTHONPATH="${prjxrayPythonPath}''${PYTHONPATH:+:$PYTHONPATH}"
               exec python ${source}/litex_boards/targets/ypcb_00338_1p1.py --uart-name=jtag_uart "$@"
             '';
           };
         task6LitexBoardsYpcbMasterRunner = mkLitexBoardsYpcbRunner {
           name = "task6-litex-boards-ypcb-master";
           pythonEnv = litexBoardsPython;
-          source = litexBoards;
+          source = litexBoardsYpcbToolchainPatchedSource;
         };
         task6LitexBoardsYpcbValidatedRunner = mkLitexBoardsYpcbRunner {
           name = "task6-litex-boards-ypcb-validated";
           pythonEnv = litexBoardsValidatedYpcbPython;
-          source = litexBoardsValidatedYpcb;
+          source = litexBoardsValidatedYpcbToolchainPatchedSource;
         };
         task6LitexBoardsYpcbMasterHelp =
           pkgs.runCommand "task6-litex-boards-ypcb-master-help" { } ''
@@ -423,6 +457,11 @@
           chipdbFootprints = [ "xc7k480tffg1156" ];
           "nextpnr-xilinx" = openXC7Nextpnr;
         };
+        litexOpenXC7ChipdbCompat = pkgs.runCommand "litex-openxc7-chipdb-compat" { } ''
+          mkdir -p "$out"
+          ln -s ${openXC7Chipdb}/xc7k480tffg1156.bin "$out/xc7k480t-ffg1156.bin"
+          ln -s ${openXC7Chipdb}/xc7k480tffg1156.bin "$out/xc7k480tffg1156.bin"
+        '';
         openXC7Prjxray = openXC7Packages.prjxray;
         prjxrayPythonDeps = pkgs.python312.withPackages (ps: [
           ps.pyyaml
@@ -4139,7 +4178,7 @@
         task6YpcbLiteDramRtlElaboration =
           pkgs.runCommand "h2-ypcb-litedram-rtl-elaboration" { } ''
             mkdir -p "$out"
-            export CHIPDB=${openXC7Chipdb}
+              export CHIPDB=${litexOpenXC7ChipdbCompat}
             export PRJXRAY_DB_DIR=${fpgaPrjxrayDb}
             ${liteDramPython}/bin/python ${
               ./scripts/task6

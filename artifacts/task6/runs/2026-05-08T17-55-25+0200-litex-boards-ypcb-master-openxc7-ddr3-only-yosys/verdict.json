@@ -1,0 +1,9 @@
+{
+  "run": "2026-05-08T17-55-25+0200-litex-boards-ypcb-master-openxc7-ddr3-only-yosys",
+  "source": "current upstream litex-boards through local toolchain passthrough patch",
+  "command_shape": "nix run .#task6-litex-boards-ypcb-master -- --toolchain=openxc7 --build --load",
+  "result": "failed_during_nextpnr_pack",
+  "blocker": "Yosys inferred unsupported RAM256X1S LUTRAM primitives; nextpnr-xilinx/openXC7 could not pack them.",
+  "classification": "unsupported_lutram_primitive",
+  "next_decision": "Patch the local LiteX openXC7 synthesis options to add synth_xilinx -nolutram and rerun DDR3-only."
+}

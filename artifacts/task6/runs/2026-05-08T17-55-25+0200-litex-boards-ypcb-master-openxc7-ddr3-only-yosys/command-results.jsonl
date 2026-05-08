@@ -1,0 +1,1 @@
+{"argv": ["nix", "run", ".#task6-litex-boards-ypcb-master", "--", "--toolchain=openxc7", "--build", "--load", "--output-dir", "artifacts/task6/runs/2026-05-08T17-55-25+0200-litex-boards-ypcb-master-openxc7-ddr3-only-yosys/litex-build"], "finished_at": "2026-05-08T17:56:39.830125+02:00", "log": "litex-boards-master-openxc7-ddr3-only.log", "returncode": 1}
