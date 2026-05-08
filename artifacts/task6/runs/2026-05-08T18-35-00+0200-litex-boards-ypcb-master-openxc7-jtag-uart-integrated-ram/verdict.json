@@ -1,0 +1,9 @@
+{
+  "run": "2026-05-08T18-35-00+0200-litex-boards-ypcb-master-openxc7-jtag-uart-integrated-ram",
+  "source": "current upstream litex-boards through local openXC7 patches",
+  "command_shape": "nix run .#task6-litex-boards-ypcb-master -- --toolchain=openxc7 --sys-clk-freq 50000000 --integrated-main-ram-size 65536 --build --load",
+  "result": "failed_during_nextpnr_pack",
+  "blocker": "The upstream CRG always instantiates S7IDELAYCTRL. With SDRAM skipped through integrated main RAM, openXC7 sees IDELAYCTRL but no I/ODELAYs and errors.",
+  "classification": "orphan_idelayctrl_in_non_ddr_minimal_soc",
+  "next_decision": "Use a separate non-DDR JTAG-only patched source that removes IDELAYCTRL only for this proof target."
+}

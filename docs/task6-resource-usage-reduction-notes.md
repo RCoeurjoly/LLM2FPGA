@@ -153,6 +153,11 @@ Measured result:
 | `2026-05-08T18-25-00+0200-litex-boards-ypcb-master-openxc7-ddr3-jtag-uart-pty-send-retry2` | programmed bitstream from `18-03-19` | `litex_term ... --jtag-chain 1 jtag`, sent Enter and `help` | OpenOCD found XC7K480T TAP `0x23751093` and started JTAG stream | No BIOS, prompt, or UART bytes observed |
 | `2026-05-08T18-26-30+0200-litex-boards-ypcb-master-openxc7-ddr3-only-50mhz` | current upstream `litex-boards` plus local openXC7 patches | `--toolchain=openxc7 --sys-clk-freq 50000000 --build --load` | Generated `ypcb_00338_1p1.bit` and programmed SRAM successfully | Still not timing-clean; `crg_clkout_buf0` max reported about 96.68 MHz against emitted 200 MHz checks |
 | `2026-05-08T18-30-30+0200-litex-boards-ypcb-master-openxc7-ddr3-50mhz-jtag-uart` | programmed bitstream from `18-26-30` | `litex_term ... --jtag-chain 1 jtag`, sent Enter and `help` | OpenOCD found XC7K480T TAP `0x23751093`; generated Verilog confirms `BSCANE2.JTAG_CHAIN=1` | No BIOS, prompt, or UART bytes observed |
+| `2026-05-08T18-35-00+0200-litex-boards-ypcb-master-openxc7-jtag-uart-integrated-ram` | current upstream `litex-boards` plus local openXC7 patches | `--toolchain=openxc7 --sys-clk-freq 50000000 --integrated-main-ram-size 65536 --build --load` | Built a tiny non-DDR SoC through Yosys | openXC7 rejected orphan `IDELAYCTRL` with no I/ODELAYs |
+| `2026-05-08T18-45-00+0200-litex-boards-ypcb-openxc7-jtag-only-integrated-ram-no-idelayctrl` | upstream `litex-boards` plus local non-DDR `IDELAYCTRL` removal | `--toolchain=openxc7 --sys-clk-freq 50000000 --integrated-main-ram-size 65536 --build --load` | Generated and programmed a non-DDR LiteX JTAG-UART bitstream | Still not timing-clean; `crg_clkout_buf0` max reported about 113.75 MHz |
+| `2026-05-08T18-46-00+0200-litex-boards-ypcb-openxc7-jtag-only-uart-read` | programmed non-DDR bitstream from `18-45-00` | `litex_term ... --jtag-chain 1 jtag`, sent Enter and `help` | OpenOCD found XC7K480T TAP `0x23751093` and started JTAG stream | No BIOS, prompt, or UART bytes observed |
+| `2026-05-08T18-47-00+0200-litex-boards-ypcb-openxc7-jtag-only-uart-read-1mhz` | programmed non-DDR bitstream from `18-45-00` | same `litex_term` read with copied OpenOCD config at `adapter_khz 1000` | OpenOCD found XC7K480T TAP `0x23751093` at 1 MHz | No BIOS, prompt, or UART bytes observed |
+| `2026-05-08T18-49-00+0200-direct-bscane2-v4k-jtag-debug-proof` | existing direct BSCANE2 v4k JTAG-debug bitstream | `openFPGALoader` then `read_jtag_debug_ftdi_bitbang.py --tdo-bit 7 --bits 768` | Programmed and read valid payload: `magic_ok=True`, `pass=True`, top index/acc/checksums match | none |
 
 Interpretation:
 
@@ -193,14 +198,34 @@ Interpretation:
 - The 50 MHz rebuild did not actually make the emitted openXC7 timing target
   clean; nextpnr still reported 200 MHz checks and `crg_clkout_buf0` only
   reached about 96.68 MHz after routing.
+- The non-DDR LiteX isolation keeps the same symptom:
+  - upstream LiteX `jtag_uart` is silent with DDR removed
+  - lowering OpenOCD JTAG adapter speed from 25 MHz to 1 MHz does not recover
+    any BIOS or prompt bytes
+  - therefore the silence is not just DDR init/training, and not just the fast
+    OpenOCD adapter speed
+- Direct BSCANE2/openXC7 on the same board is proven alive:
+  - programmed direct v4k JTAG-debug bitstream:
+    `/nix/store/lmc8fwrdg7iya8ycpgacs0zlbf8v52rg-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit`
+  - read with `scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse
+    --freq-hz 1000000 --tdo-bit 7 --bits 768`
+  - result: `magic_ok=True`, `status.pass=True`, `status.fail=False`,
+    observed top index `1321` equals expected `1321`, observed top accumulator
+    `52140` equals expected `52140`, and vocab/head checksums match
+- Current narrowed diagnosis:
+  - the Digilent HS3, FTDI/MPSSE read path, openXC7 bitstream generation,
+    BSCANE2 USER chain, and board TDO bit 7 work
+  - the failing layer is upstream LiteX `jtag_uart`/`litex_term` integration
+    under openXC7, or the LiteX CPU/BIOS not reaching the UART path
 
 Next action:
 
-- Do not infer DDR3 init/training status from BIOS yet. The immediate blocker
-  is now observability: determine whether upstream LiteX `jtag_uart` over
-  openXC7/BSCANE2 works on this YPCB board at all.
-- Next isolate with a minimal non-DDR LiteX SoC or a tiny JTAG-UART/heartbeat
-  design before spending more route time on DDR3 variants.
+- Do not spend more DDR3 route time until observability is fixed.
+- Next isolate LiteX specifically:
+  - inspect LiteX `JTAGPHY`/`XilinxJTAG` BSCANE2 chain, TDO wiring, and reset
+    behavior against the known-good direct BSCANE2 pattern
+  - consider a minimal LiteX CSR/heartbeat exposed through direct BSCANE2, or
+    patch LiteX `jtag_uart` to use the known-good TDO bit/chain assumptions
 
 ### Execution doctrine: moonshot plus fast falsification
 

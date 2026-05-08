@@ -1,0 +1,15 @@
+{
+  "run": "2026-05-08T18-46-00+0200-litex-boards-ypcb-openxc7-jtag-only-uart-read",
+  "source_bitstream_run": "2026-05-08T18-45-00+0200-litex-boards-ypcb-openxc7-jtag-only-integrated-ram-no-idelayctrl",
+  "command_shape": "litex_term --jtag-config openocd_xc7_ft232.cfg --jtag-chain 1 jtag",
+  "interaction": "sent carriage return at 4s and help at 8s through a PTY helper",
+  "result": "jtag_tap_visible_but_no_bios_uart_bytes",
+  "evidence": {
+    "tap_idcode": "0x23751093",
+    "bios_text_seen": false,
+    "prompt_seen": false,
+    "timeout_seconds": 35
+  },
+  "classification": "upstream_litex_jtag_uart_silent_even_without_ddr",
+  "next_decision": "Retry with a lower OpenOCD adapter clock, then isolate with a direct BSCANE2 debug path."
+}

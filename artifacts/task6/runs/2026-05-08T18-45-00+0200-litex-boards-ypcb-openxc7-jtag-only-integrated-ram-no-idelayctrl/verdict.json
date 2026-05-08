@@ -1,0 +1,18 @@
+{
+  "run": "2026-05-08T18-45-00+0200-litex-boards-ypcb-openxc7-jtag-only-integrated-ram-no-idelayctrl",
+  "source": "current upstream litex-boards with local toolchain passthrough and non-DDR IDELAYCTRL removal",
+  "command_shape": "nix run .#task6-litex-boards-ypcb-jtag-only -- --toolchain=openxc7 --sys-clk-freq 50000000 --integrated-main-ram-size 65536 --build --load",
+  "result": "success_bitstream_generated_and_loaded",
+  "bitstream": "litex-build/gateware/ypcb_00338_1p1.bit",
+  "programming": {
+    "tool": "openFPGALoader",
+    "status": "Done; isc_done=1 init=1 done=1"
+  },
+  "timing": {
+    "reported_target_mhz": 200,
+    "crg_clkout_buf0_max_mhz": 113.75,
+    "timing_closed": false
+  },
+  "classification": "minimal_non_ddr_litex_jtag_uart_bitstream_programmed",
+  "next_decision": "Read JTAG-UART from this programmed non-DDR bitstream."
+}

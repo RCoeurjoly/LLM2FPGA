@@ -269,6 +269,16 @@
           mkLitexBoardsYpcbToolchainPatchedSource litexBoards;
         litexBoardsValidatedYpcbToolchainPatchedSource =
           mkLitexBoardsYpcbToolchainPatchedSource litexBoardsValidatedYpcb;
+        litexBoardsYpcbJtagOnlyPatchedSource =
+          pkgs.runCommand "litex-boards-ypcb-jtag-only-patched-source" { } ''
+            cp -r ${litexBoardsYpcbToolchainPatchedSource} "$out"
+            chmod -R u+w "$out"
+            target="$out/litex_boards/targets/ypcb_00338_1p1.py"
+            substituteInPlace "$target" \
+              --replace-fail "        self.idelayctrl = S7IDELAYCTRL(self.cd_idelay)" "        # Removed for the non-DDR JTAG-UART proof: openXC7 rejects
+        # an IDELAYCTRL with no associated I/ODELAYs.
+        # self.idelayctrl = S7IDELAYCTRL(self.cd_idelay)"
+          '';
         liteDramPython = pkgs.python311.withPackages (ps: [
           ps.migen
           ps.packaging
@@ -353,6 +363,11 @@
           name = "task6-litex-boards-ypcb-validated";
           pythonEnv = litexBoardsValidatedYpcbPython;
           source = litexBoardsValidatedYpcbToolchainPatchedSource;
+        };
+        task6LitexBoardsYpcbJtagOnlyRunner = mkLitexBoardsYpcbRunner {
+          name = "task6-litex-boards-ypcb-jtag-only";
+          pythonEnv = litexBoardsPython;
+          source = litexBoardsYpcbJtagOnlyPatchedSource;
         };
         task6LitexBoardsYpcbMasterHelp =
           pkgs.runCommand "task6-litex-boards-ypcb-master-help" { } ''
@@ -9427,6 +9442,8 @@
             task6LitexBoardsYpcbMasterRunner;
           task6-litex-boards-ypcb-validated =
             task6LitexBoardsYpcbValidatedRunner;
+          task6-litex-boards-ypcb-jtag-only =
+            task6LitexBoardsYpcbJtagOnlyRunner;
           task6-litex-boards-ypcb-master-help =
             task6LitexBoardsYpcbMasterHelp;
           task6-litex-boards-ypcb-validated-help =

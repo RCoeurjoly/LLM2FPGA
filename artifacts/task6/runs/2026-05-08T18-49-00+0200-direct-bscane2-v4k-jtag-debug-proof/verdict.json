@@ -1,0 +1,29 @@
+{
+  "run": "2026-05-08T18-49-00+0200-direct-bscane2-v4k-jtag-debug-proof",
+  "source": "existing direct BSCANE2 JTAG-debug v4k selftest bitstream",
+  "bitstream": "/nix/store/lmc8fwrdg7iya8ycpgacs0zlbf8v52rg-task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.bit",
+  "programming": {
+    "tool": "openFPGALoader",
+    "cable": "digilent_hs3",
+    "serial": "210299BF3824",
+    "status": "Done; isc_done=1 init=1 done=1"
+  },
+  "readback": {
+    "tool": "scripts/task6/read_jtag_debug_ftdi_bitbang.py",
+    "backend": "mpsse",
+    "freq_hz": 1000000,
+    "tdo_bit": 7,
+    "bits": 768,
+    "magic_ok": true,
+    "status_pass": true,
+    "status_fail": false,
+    "expected_top_index": 1321,
+    "observed_top_index": 1321,
+    "expected_top_acc": 52140,
+    "observed_top_acc": 52140,
+    "vocab_checksum_ok": true,
+    "head_activation_checksum_ok": true
+  },
+  "classification": "direct_bscane2_openxc7_jtag_path_proven_on_board",
+  "conclusion": "The Digilent HS3, FTDI/MPSSE read path, openXC7 bitstream, BSCANE2 USER chain, and TDO bit 7 can carry a valid payload. The remaining silence is specific to the upstream LiteX jtag_uart/litex_term path or to the SoC not reaching BIOS, not to the JTAG primitive/cable path."
+}
