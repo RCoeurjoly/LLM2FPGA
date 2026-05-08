@@ -1,0 +1,16 @@
+{
+  "run": "2026-05-08T18-25-00+0200-litex-boards-ypcb-master-openxc7-ddr3-jtag-uart-pty-send-retry2",
+  "source_bitstream_run": "2026-05-08T18-03-19+0200-litex-boards-ypcb-master-openxc7-ddr3-only-prjxray-part",
+  "command_shape": "litex_term --jtag-config openocd_xc7_ft232.cfg --jtag-chain 1 jtag",
+  "interaction": "sent carriage return at 4s and help at 8s through a PTY helper",
+  "result": "jtag_tap_visible_but_no_bios_uart_bytes",
+  "evidence": {
+    "tap_idcode": "0x23751093",
+    "jtag_chain": 1,
+    "bios_text_seen": false,
+    "prompt_seen": false,
+    "timeout_seconds": 35
+  },
+  "classification": "jtag_uart_unreadable_or_soc_not_running",
+  "next_decision": "Rerun the same upstream DDR3-only design at a lower system clock and retry JTAG-UART."
+}

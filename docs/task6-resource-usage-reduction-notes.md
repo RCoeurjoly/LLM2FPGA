@@ -150,6 +150,9 @@ Measured result:
 | `2026-05-08T17-55-25+0200-litex-boards-ypcb-master-openxc7-ddr3-only-yosys` | current upstream `litex-boards` plus local target/openXC7 environment patches | `--toolchain=openxc7 --build --load` | Reached nextpnr packing | Unsupported inferred `RAM256X1S` LUTRAM primitive |
 | `2026-05-08T17-58-34+0200-litex-boards-ypcb-master-openxc7-ddr3-only-nolutram` | current upstream `litex-boards` plus `synth_xilinx -nolutram` | `--toolchain=openxc7 --build --load` | Reached route and generated FASM/frames path | PRJXRAY part spelling mismatch: `xc7k480t-ffg1156-2` vs `xc7k480tffg1156-2` |
 | `2026-05-08T18-03-19+0200-litex-boards-ypcb-master-openxc7-ddr3-only-prjxray-part` | current upstream `litex-boards` plus local openXC7 patches | `--toolchain=openxc7 --build --load` | Generated `ypcb_00338_1p1.bit` and programmed SRAM successfully | 200 MHz timing not closed; `crg_clkout_buf0` max reported about 107.69 MHz |
+| `2026-05-08T18-25-00+0200-litex-boards-ypcb-master-openxc7-ddr3-jtag-uart-pty-send-retry2` | programmed bitstream from `18-03-19` | `litex_term ... --jtag-chain 1 jtag`, sent Enter and `help` | OpenOCD found XC7K480T TAP `0x23751093` and started JTAG stream | No BIOS, prompt, or UART bytes observed |
+| `2026-05-08T18-26-30+0200-litex-boards-ypcb-master-openxc7-ddr3-only-50mhz` | current upstream `litex-boards` plus local openXC7 patches | `--toolchain=openxc7 --sys-clk-freq 50000000 --build --load` | Generated `ypcb_00338_1p1.bit` and programmed SRAM successfully | Still not timing-clean; `crg_clkout_buf0` max reported about 96.68 MHz against emitted 200 MHz checks |
+| `2026-05-08T18-30-30+0200-litex-boards-ypcb-master-openxc7-ddr3-50mhz-jtag-uart` | programmed bitstream from `18-26-30` | `litex_term ... --jtag-chain 1 jtag`, sent Enter and `help` | OpenOCD found XC7K480T TAP `0x23751093`; generated Verilog confirms `BSCANE2.JTAG_CHAIN=1` | No BIOS, prompt, or UART bytes observed |
 
 Interpretation:
 
@@ -183,15 +186,21 @@ Interpretation:
   It proves an open-source bitstream can be generated and loaded on the board,
   but it does not prove a timing-clean DDR3 design at 200 MHz. The reported
   `crg_clkout_buf0` maximum was about 107.69 MHz.
+- BIOS/JTAG-UART readback is not yet proven. A bounded `litex_term` capture
+  can open the JTAG TAP, but neither the original programmed bitstream nor the
+  `--sys-clk-freq 50000000` rebuild emitted BIOS text or responded to Enter /
+  `help` through the JTAG UART.
+- The 50 MHz rebuild did not actually make the emitted openXC7 timing target
+  clean; nextpnr still reported 200 MHz checks and `crg_clkout_buf0` only
+  reached about 96.68 MHz after routing.
 
 Next action:
 
-- Read the LiteX BIOS/JTAG-UART from the just-programmed openXC7 DDR3-only
-  bitstream and capture whether DDR3 init/training reaches the same observable
-  milestones as upstream.
-- If BIOS/JTAG-UART is not immediately usable or DDR3 fails at 200 MHz, rerun
-  the DDR3-only openXC7 target at a lower system clock near the measured timing
-  envelope before spending more time on custom DDR3 probes.
+- Do not infer DDR3 init/training status from BIOS yet. The immediate blocker
+  is now observability: determine whether upstream LiteX `jtag_uart` over
+  openXC7/BSCANE2 works on this YPCB board at all.
+- Next isolate with a minimal non-DDR LiteX SoC or a tiny JTAG-UART/heartbeat
+  design before spending more route time on DDR3 variants.
 
 ### Execution doctrine: moonshot plus fast falsification
 
