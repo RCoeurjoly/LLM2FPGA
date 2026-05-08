@@ -373,6 +373,47 @@ Artifact:
 
 - `artifacts/task6/parallel-hypotheses/e1-vocab10k-padded-tile64-route-attempt-summary.json`
 
+### v10k padded tile64 longer route rerun (2026-05-08)
+
+Question:
+
+- Does the logical `vocab_size=10000` padded-to-`10048` tile64 route complete
+  if allowed to run beyond the initial 75 minute timeout?
+
+Command:
+
+- `timeout 4h nix build .#task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz-fasm --no-link --print-out-paths -L`
+
+Result:
+
+- PRUNED manually before timeout after the route entered a low-information hard
+  tail.
+- Synthesis and placement repeated the prior result:
+  - `SLICE_LUTX`: `23,851 / 597,200` (3%)
+  - `SLICE_FFX`: `8,944 / 597,200` (1%)
+  - `RAMB36E1`: `322 / 955` (33%)
+  - `DSP48E1`: `14 / 1,920` (0%)
+  - placement max frequency: `84.35 MHz` at a `5 MHz` target
+- Router progress:
+  - iteration 1: `wires=966,415`, `overused=54,484`,
+    `overuse=73,315`
+  - iteration 10: `wires=1,074,174`, `overused=559`, `overuse=559`
+  - iteration 12: `wires=1,075,014`, `overused=466`, `overuse=468`
+
+Interpretation:
+
+- The route was still improving, so padded v10k/tile64 remains plausible.
+- However, v9984/tile64 already proves the high-value point: near-10k vocab
+  routes when the design stays in the tile64 banking family. The extra 16
+  logical tokens between v9984 and v10k are not worth blocking board bring-up.
+- Next gate: program the already-routed v9984/tile64 image and exercise the
+  autonomous board loop. Return to exact padded v10k only after board
+  programming/readback is working, or if exact logical 10k becomes necessary.
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/e1-vocab10k-padded-tile64-route-rerun-pruned-summary.json`
+
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
 Constraint:
