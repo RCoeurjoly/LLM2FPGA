@@ -1,0 +1,56 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "PASS",
+  "created_at": "2026-05-08T12:06:39.529964+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-08T12-06-39+0200-v9984-jtag-debug-program-readback",
+  "correctness": {
+    "status": "PASS",
+    "method": "direct FTDI JTAG payload readback",
+    "magic_ok": true,
+    "state": "SELFTEST_PASS",
+    "fail_reason": "NONE",
+    "observed_top_index": 229,
+    "expected_top_index": 229,
+    "observed_top_acc": 54965,
+    "expected_top_acc": 54965,
+    "checksums_match": true
+  },
+  "route": {
+    "status": "PASS",
+    "reference_artifact": "artifacts/task6/parallel-hypotheses/e1-vocab9984-jtag-debug-5mhz-build-summary.json",
+    "final_overused": 0,
+    "post_route_main_clock_max_mhz": 101.53
+  },
+  "board": {
+    "status": "PASS",
+    "programming_returncode": 0,
+    "idcode_hex": "0x23751093",
+    "openfpgaloader_done": 1,
+    "jtag_backend": "ftdi-mpsse",
+    "tdo_bit": 7
+  },
+  "bram_margin": {
+    "ramb36e1_used": 320,
+    "ramb18e1_used": 6
+  },
+  "lut_margin": {
+    "slice_lutx_used": 25056
+  },
+  "dsp_margin": {
+    "dsp48e1_used": 14
+  },
+  "timing_margin": {
+    "target_mhz": 5,
+    "post_route_main_clock_max_mhz": 101.53,
+    "post_route_jtag_drck_max_mhz": 377.79
+  },
+  "runtime": {
+    "payload_attempts": 1,
+    "cycle_count": 172538
+  },
+  "notes": [
+    "Programmed /nix/store/k52psqh0lv416xbg5xgl3zs5fxlamm0f-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit with openFPGALoader.",
+    "Direct FTDI MPSSE IDCODE readback with --tdo-bit 7 returned 0x23751093.",
+    "JTAG payload readback passed on first poll with SELFTEST_PASS and matching top1/checksum fields."
+  ]
+}

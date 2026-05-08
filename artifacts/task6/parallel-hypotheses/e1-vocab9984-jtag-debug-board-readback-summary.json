@@ -1,0 +1,68 @@
+{
+  "schema": "task6_experiment_summary.v1",
+  "experiment": "e1-vocab9984-jtag-debug-board-readback",
+  "timestamp": "2026-05-08T12:08:00+02:00",
+  "status": "PASS",
+  "question": "Can the v9984 TILE_OUT_DIM=64 JTAG-debug bitstream be programmed and report an autonomous selftest pass payload through direct FTDI JTAG with --tdo-bit 7?",
+  "run_dir": "artifacts/task6/runs/2026-05-08T12-06-39+0200-v9984-jtag-debug-program-readback",
+  "bitstream": "/nix/store/k52psqh0lv416xbg5xgl3zs5fxlamm0f-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit",
+  "programming": {
+    "command": "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/k52psqh0lv416xbg5xgl3zs5fxlamm0f-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit",
+    "returncode": 0,
+    "status": "PASS",
+    "openfpgaloader_status": {
+      "isc_done": 1,
+      "isc_ena": 0,
+      "init": 1,
+      "done": 1
+    }
+  },
+  "idcode_check": {
+    "command": "python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --serial 210299BF3824 --tdo-bit 7 --idcode-only",
+    "returncode": 0,
+    "idcode_hex": "0x23751093",
+    "status": "PASS"
+  },
+  "payload_readback": {
+    "command": "python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --serial 210299BF3824 --tdo-bit 7 --poll --poll-count 100 --poll-interval 0.1",
+    "returncode": 0,
+    "attempts": 1,
+    "backend": "ftdi-mpsse",
+    "serial": "210299BF3824",
+    "magic_ok": true,
+    "state": "SELFTEST_PASS",
+    "status": {
+      "pass": true,
+      "fail": false,
+      "residual_done": false,
+      "output_head_done": false
+    },
+    "fail_reason": "NONE",
+    "cycle_count": 172538,
+    "version": 13,
+    "observed_top_index": 229,
+    "expected_top_index": 229,
+    "observed_top_acc": 54965,
+    "expected_top_acc": 54965,
+    "live_top_index": 229,
+    "live_top_acc_low24": 54965,
+    "vocab_load_checksum_hex": "0x693c603d",
+    "expected_vocab_weight_checksum_hex": "0x693c603d",
+    "vocab_first_word_hex": "0x0bf71408",
+    "expected_vocab_first_word_hex": "0x0bf71408",
+    "vocab_last_word_hex": "0xec05f4fd",
+    "expected_vocab_last_word_hex": "0xec05f4fd",
+    "head_activation_checksum_hex": "0x00001ef9",
+    "expected_head_activation_checksum_hex": "0x00001ef9",
+    "embedding_token_id": 0,
+    "embedding_position_id": 0,
+    "embedding_token_checksum_hex": "0x00001a13",
+    "expected_embedding_token_checksum_hex": "0x00001a13",
+    "embedding_position_checksum_hex": "0x00002161",
+    "expected_embedding_position_checksum_hex": "0x00002161",
+    "embedding_combined_checksum_hex": "0x00001e74",
+    "expected_embedding_combined_checksum_hex": "0x00001e74"
+  },
+  "interpretation": "This is the first near-10k vocab Task 6 board result with fully autonomous JTAG correctness evidence. The programmed FPGA reports SELFTEST_PASS and all exposed data-plane checksums/top1 values match the generated reference.",
+  "decision": "Promote v9984 TILE_OUT_DIM=64 JTAG-debug as the current golden board regression lane before testing ternary weights or larger/full-vocab variants."
+}

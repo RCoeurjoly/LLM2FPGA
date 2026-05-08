@@ -15008,3 +15008,29 @@ Interpretation:
 - Next gate: program this bitstream under `scripts/task6/task6_board_run.py`,
   then read the JTAG debug payload through the direct FTDI path using
   `--tdo-bit 7`.
+
+Board result:
+
+- PASS. Run directory:
+  `artifacts/task6/runs/2026-05-08T12-06-39+0200-v9984-jtag-debug-program-readback`
+- Programming command:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/k52psqh0lv416xbg5xgl3zs5fxlamm0f-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit`
+- openFPGALoader exited 0 and reported `isc_done=1`, `init=1`, `done=1`.
+- Direct FTDI MPSSE IDCODE check with `--tdo-bit 7` returned `0x23751093`.
+- JTAG payload readback with `--tdo-bit 7` passed on the first poll:
+  - `magic_ok=True`
+  - `state=SELFTEST_PASS`
+  - `fail_reason=NONE`
+  - `cycle_count=172538`
+  - observed/expected top index: `229 / 229`
+  - observed/expected top acc: `54965 / 54965`
+  - vocab checksum: `0x693c603d / 0x693c603d`
+  - head activation checksum: `0x00001ef9 / 0x00001ef9`
+  - embedding token/position/combined checksums all matched.
+
+Decision:
+
+- Promote v9984 `TILE_OUT_DIM=64` JTAG-debug as the current golden board
+  regression lane. New ternary, full-vocab, or larger-structure experiments
+  should either preserve this automated readback loop or explicitly replace it
+  with an equally fast correctness gate.
