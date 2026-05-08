@@ -18,6 +18,44 @@ DFII_WORD_COUNT = 20
 DFII_ADDR_SLOT_COUNT = 4
 NATIVE_CHUNK_COUNT = 9
 NATIVE_PACKING_SAMPLE_COUNT = 4
+NATIVE_ADDRESS_CLASSIFIER_BITS = 11264
+NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT = 16
+NATIVE_ADDRESS_CLASSIFIER_ADDRS = [
+    0,
+    1,
+    2,
+    3,
+    8,
+    15,
+    16,
+    31,
+    64,
+    128,
+    256,
+    512,
+    1024,
+    2048,
+    4096,
+    8192,
+]
+DFII_ADDRWALK_COLUMNS = [
+    0x0000_0000,
+    0x0000_0008,
+    0x0000_0010,
+    0x0000_0018,
+    0x0000_0040,
+    0x0000_0048,
+    0x0000_0050,
+    0x0000_0058,
+    0x0000_0100,
+    0x0000_0108,
+    0x0000_0110,
+    0x0000_0118,
+    0x0000_0200,
+    0x0000_0208,
+    0x0000_0210,
+    0x0000_0218,
+]
 PHYSICAL_LANE_COUNT = 9
 NATIVE_PHASE_CANDIDATE_COUNT = 16
 DFII_PATTERN_MODE_NAMES = {
@@ -290,11 +328,31 @@ FIELDS = [
     ("native_packing_flags", 1736, 8),
     ("native_packing_first_mismatch_addr", 1744, 32),
     ("native_packing_first_chunk_mismatch_mask", 1776, 16),
+    ("native_address_classifier_valid_count", 1728, 8),
+    ("native_address_classifier_flags", 1736, 8),
+    ("native_address_classifier_first_mismatch_addr", 1744, 32),
+    ("native_address_classifier_first_chunk_mismatch_mask", 1776, 16),
+    ("native_address_classifier_nonzero_count", 11008, 32),
+    ("native_address_classifier_first_nonzero_addr", 11040, 32),
+    ("native_address_classifier_first_nonzero_data", 11072, 64),
+    ("native_address_classifier_nonzero_chunk_seen", 11136, 9),
+    ("native_address_classifier_first_nonzero_chunk", 11152, 9),
 ]
 
 FIELDS.extend(
     [
         (f"first_expected_chunk_{chunk}", 1792 + chunk * 64, 64)
+        for chunk in range(NATIVE_CHUNK_COUNT)
+    ]
+)
+FIELDS.extend(
+    [
+        (
+            f"native_address_classifier_actual_{sample}_{chunk}",
+            1792 + (sample * NATIVE_CHUNK_COUNT + chunk) * 64,
+            64,
+        )
+        for sample in range(NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT)
         for chunk in range(NATIVE_CHUNK_COUNT)
     ]
 )
@@ -458,6 +516,7 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
         decode_native_phase_sweep(fields) if 52 <= version < 54 else None
     )
     native_packing_classifier = decode_native_packing_classifier(fields)
+    native_address_classifier = decode_native_address_classifier(fields)
     native_first_mismatch_chunks = (
         decode_native_first_mismatch_chunks(fields)
         if 49 <= version < 54
@@ -562,6 +621,7 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
             "dfii_addr_matrix": dfii_addr_matrix,
             "native_phase_sweep": native_phase_sweep,
             "native_packing_classifier": native_packing_classifier,
+            "native_address_classifier": native_address_classifier,
             "native_first_mismatch_chunks": native_first_mismatch_chunks,
             "dfii_pattern_mode": DFII_PATTERN_MODE_NAMES.get(
                 fields.get("dfii_pattern_mode", 0),
@@ -928,6 +988,12 @@ def native_dfii_addrwalk_expected_chunks(addr: int) -> list[int]:
         high = words[chunk * 2 + 1]
         chunks.append(low | (high << 32))
     return chunks
+
+
+def native_address_classifier_addr(sample: int) -> int:
+    return NATIVE_ADDRESS_CLASSIFIER_ADDRS[
+        sample % NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT
+    ]
 
 
 def dfii_csr_echo_word(index: int) -> int:
@@ -1661,6 +1727,139 @@ def decode_native_packing_classifier(fields: dict[str, int]) -> dict[str, object
     }
 
 
+def decode_native_address_classifier(fields: dict[str, int]) -> dict[str, object] | None:
+    if fields.get("version", 0) < 113:
+        return None
+
+    valid_count = min(
+        fields.get("native_address_classifier_valid_count", 0),
+        NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT,
+    )
+    all_expected = {
+        addr_index: native_dfii_addrwalk_expected_chunks(addr_index)
+        for addr_index in range(16)
+    }
+    samples = []
+    exact_beat_matches = []
+    for sample in range(valid_count):
+        requested_addr = native_address_classifier_addr(sample)
+        requested_addr_index = requested_addr & 0xF
+        actual_chunks = [
+            fields.get(f"native_address_classifier_actual_{sample}_{chunk}", 0)
+            for chunk in range(NATIVE_CHUNK_COUNT)
+        ]
+        best_same_chunk_addr = None
+        best_same_chunk_score = -1
+        best_any_chunk_addr = None
+        best_any_chunk_score = -1
+        for addr_index, expected_chunks in all_expected.items():
+            same_chunk_score = sum(
+                1
+                for chunk in range(NATIVE_CHUNK_COUNT)
+                if actual_chunks[chunk] == expected_chunks[chunk]
+            )
+            any_chunk_score = sum(
+                1
+                for actual in actual_chunks
+                if actual in expected_chunks
+            )
+            if same_chunk_score > best_same_chunk_score:
+                best_same_chunk_addr = addr_index
+                best_same_chunk_score = same_chunk_score
+            if any_chunk_score > best_any_chunk_score:
+                best_any_chunk_addr = addr_index
+                best_any_chunk_score = any_chunk_score
+
+        expected_chunks = native_dfii_addrwalk_expected_chunks(requested_addr)
+        chunks = []
+        exact_count = 0
+        for chunk, actual in enumerate(actual_chunks):
+            expected = expected_chunks[chunk]
+            if actual == expected:
+                exact_count += 1
+            matches = []
+            for addr_index, candidate_chunks in all_expected.items():
+                for candidate_chunk, candidate in enumerate(candidate_chunks):
+                    if actual == candidate:
+                        matches.append(
+                            {
+                                "dfii_addr_index": addr_index,
+                                "dfii_column": DFII_ADDRWALK_COLUMNS[addr_index],
+                                "chunk": candidate_chunk,
+                            }
+                        )
+            chunks.append(
+                {
+                    "chunk": chunk,
+                    "expected": expected,
+                    "actual": actual,
+                    "xor": expected ^ actual,
+                    "matches": matches,
+                }
+            )
+        if exact_count:
+            exact_beat_matches.append(
+                {
+                    "sample": sample,
+                    "requested_native_addr": requested_addr,
+                    "exact_chunk_count": exact_count,
+                }
+            )
+        samples.append(
+            {
+                "sample": sample,
+                "requested_native_addr": requested_addr,
+                "requested_addr_index": requested_addr_index,
+                "requested_dfii_column": DFII_ADDRWALK_COLUMNS[
+                    requested_addr_index
+                ],
+                "best_same_chunk_dfii_addr_index": best_same_chunk_addr,
+                "best_same_chunk_dfii_column": DFII_ADDRWALK_COLUMNS[
+                    best_same_chunk_addr
+                ]
+                if best_same_chunk_addr is not None
+                else None,
+                "best_same_chunk_count": best_same_chunk_score,
+                "best_any_chunk_dfii_addr_index": best_any_chunk_addr,
+                "best_any_chunk_dfii_column": DFII_ADDRWALK_COLUMNS[
+                    best_any_chunk_addr
+                ]
+                if best_any_chunk_addr is not None
+                else None,
+                "best_any_chunk_count": best_any_chunk_score,
+                "exact_chunk_count": exact_count,
+                "chunks": chunks,
+            }
+        )
+
+    return {
+        "valid_count": valid_count,
+        "flags": fields.get("native_address_classifier_flags", 0),
+        "first_mismatch_addr": fields.get(
+            "native_address_classifier_first_mismatch_addr", 0
+        ),
+        "first_chunk_mismatch_mask": fields.get(
+            "native_address_classifier_first_chunk_mismatch_mask", 0
+        )
+        & 0x1FF,
+        "nonzero_count": fields.get("native_address_classifier_nonzero_count", 0),
+        "first_nonzero_addr": fields.get(
+            "native_address_classifier_first_nonzero_addr", 0
+        ),
+        "first_nonzero_data": fields.get(
+            "native_address_classifier_first_nonzero_data", 0
+        ),
+        "nonzero_chunk_seen": fields.get(
+            "native_address_classifier_nonzero_chunk_seen", 0
+        ),
+        "first_nonzero_chunk": fields.get(
+            "native_address_classifier_first_nonzero_chunk", 0
+        ),
+        "samples": samples,
+        "exact_beat_matches": exact_beat_matches,
+    }
+
+
 def decode_byte_diag_samples(fields: dict[str, int]) -> list[dict[str, int]]:
     valid_count = min(
         fields.get("byte_diag_valid_count", 0),
@@ -2089,6 +2288,35 @@ def print_summary(result: dict[str, object]) -> None:
                                         **chunk,
                                     )
                                 )
+                    address_classifier = decoded.get("native_address_classifier")
+                    if address_classifier:
+                        print(
+                            "native address classifier: valid={valid} "
+                            "first_mismatch_addr=0x{addr:08x} "
+                            "first_chunk_mask=0x{mask:03x} "
+                            "nonzero={nonzero}".format(
+                                valid=address_classifier["valid_count"],
+                                addr=address_classifier["first_mismatch_addr"],
+                                mask=address_classifier["first_chunk_mismatch_mask"],
+                                nonzero=address_classifier["nonzero_count"],
+                            )
+                        )
+                        print(
+                            "  sample native_addr addr_idx dfii_column "
+                            "best_same_idx same_chunks best_any_idx any_chunks "
+                            "exact_chunks"
+                        )
+                        for sample in address_classifier["samples"]:
+                            print(
+                                "  {sample:>2} {requested_native_addr:>6} "
+                                "{requested_addr_index:>2} "
+                                "0x{requested_dfii_column:08x} "
+                                "{best_same_chunk_dfii_addr_index!s:>4} "
+                                "{best_same_chunk_count:>2} "
+                                "{best_any_chunk_dfii_addr_index!s:>4} "
+                                "{best_any_chunk_count:>2} "
+                                "{exact_chunk_count:>2}".format(**sample)
+                            )
                 elif fields.get("version", 0) >= 86 and decoded["state"] != "PROBE_DFII_DONE":
                     print(
                         "native compact gate after address-walk: "

@@ -1,0 +1,7 @@
+{
+  "next_action": "Instrument accepted native cmd_addr or widen the DFII expected pattern so address-space mapping is unambiguous.",
+  "readback_json": "artifacts/task6/runs/2026-05-08T15-06-04+0200-litedram-v113-native-address-classifier/readback/litedram-probe.json",
+  "result_artifact": "artifacts/task6/parallel-hypotheses/e1-litedram-v113-native-address-classifier-summary.json",
+  "status": "completed_with_failure_signal",
+  "summary": "The sparse native address classifier routed and ran on board. All 16 requested native addresses returned the same 576-bit beat; command_count=response_count=16, so reads progressed but requested native addresses did not select distinct returned beats."
+}

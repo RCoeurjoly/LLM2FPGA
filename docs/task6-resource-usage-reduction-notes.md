@@ -15776,3 +15776,106 @@ Artifacts:
   `artifacts/task6/runs/2026-05-08T14-28-38+0200-litedram-v112-native-packing-classifier/readback/litedram-probe.json`.
 - Verdict:
   `artifacts/task6/runs/2026-05-08T14-28-38+0200-litedram-v112-native-packing-classifier/verdict.json`.
+
+### 2026-05-08 - LiteDRAM v113 native address classifier
+
+Goal:
+
+- Keep the DFII addrwalk write pattern unchanged.
+- Issue sparse native read addresses:
+  `0, 1, 2, 3, 8, 15, 16, 31, 64, 128, 256, 512, 1024, 2048, 4096, 8192`.
+- Capture all nine 64-bit chunks of each 576-bit native read beat.
+- Decode each captured beat against the DFII expected-data dictionary and
+  produce a native-address-to-DFII-address/chunk classifier table.
+
+Build and route:
+
+- Target:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe`.
+- JSON build:
+  `/nix/store/2h2q0iri5vamfn1l2a1jw7y4dl7mxial-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe.json`.
+- Bitstream:
+  `/nix/store/40l6namymkssd24f3khnwbvyfw7hjnam-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe.bit`.
+- Utilization:
+  - `SLICE_LUTX`: `32,065 / 597,200` (5%)
+  - `SLICE_FFX`: `28,456 / 597,200` (4%)
+  - `CARRY4`: `782 / 74,650` (1%)
+  - BRAM/DSP: `0`
+  - DDR PHY fixed resources: `IDELAYE2=72`, `OSERDESE2=107`,
+    `ISERDESE2=72`, `IDELAYCTRL=3`
+- Router result:
+  - iteration 1: `overused=38,055`, `overuse=41,093`
+  - iteration 16: `overused=0`, `overuse=0`, `archfail=0`
+- Post-route timing at `25 MHz` target:
+  - `clk200`: `653.59 MHz`
+  - `user_clk`: `68.53 MHz`
+  - `core.iodelay_clk`: `630.52 MHz`
+  - `jtag_debug_shift.drck`: `375.09 MHz`
+
+Board result:
+
+- Run directory:
+  `artifacts/task6/runs/2026-05-08T15-06-04+0200-litedram-v113-native-address-classifier`.
+- Programming succeeded through `openFPGALoader` with the Digilent HS3 serial
+  `210299BF3824`.
+- JTAG readback used FTDI MPSSE with `--tdo-bit 7 --bits 11264`.
+- Probe payload:
+  - `version=113`
+  - `state=PROBE_DONE`
+  - `command_count=16`
+  - `response_count=16`
+  - `read_cycle_count=72`
+  - `mismatch_count=16`
+  - classifier valid samples: `16`
+  - first mismatch address: `0`
+  - first chunk mismatch mask: `0x1ff`
+
+Classifier result:
+
+| sample | native addr | addr index | requested DFII column | best same-position DFII addr/column | same chunks | best any-position DFII addr/column | any chunks | exact chunks |
+| --- | ---: | ---: | ---: | --- | ---: | --- | ---: | ---: |
+| 0 | 0 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 1 | 1 | 1 | `0x8` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 2 | 2 | 2 | `0x10` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 3 | 3 | 3 | `0x18` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 4 | 8 | 8 | `0x100` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 5 | 15 | 15 | `0x218` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 2 |
+| 6 | 16 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 7 | 31 | 15 | `0x218` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 2 |
+| 8 | 64 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 9 | 128 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 10 | 256 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 11 | 512 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 12 | 1024 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 13 | 2048 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 14 | 4096 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+| 15 | 8192 | 0 | `0x0` | `15 / 0x218` | 2 | `15 / 0x218` | 3 | 0 |
+
+Interpretation:
+
+- All 16 sparse native read requests returned the same 576-bit beat.
+- The native read transaction loop is progressing: `command_count` and
+  `response_count` both reached `16`.
+- No sampled native request produced an exact beat match for the requested
+  DFII address/index.
+- The repeated partial match to DFII address index `15` / column `0x218` is
+  weak: only two same-position chunks and three any-position chunks match.
+- The current blocker is now focused on native address formation, native
+  address-space mapping, or whether the selected native port is ignoring the
+  scheduled read address. This run argues against spending the next loop on a
+  bandwidth-only calculation.
+
+Next action:
+
+- Instrument the native command address actually presented and accepted by
+  LiteDRAM, or make the DFII write pattern distinguish more than the low
+  4-bit address index so repeated returned beats can be mapped unambiguously.
+
+Artifacts:
+
+- Result summary:
+  `artifacts/task6/parallel-hypotheses/e1-litedram-v113-native-address-classifier-summary.json`.
+- Full decoded readback:
+  `artifacts/task6/runs/2026-05-08T15-06-04+0200-litedram-v113-native-address-classifier/readback/litedram-probe.json`.
+- Verdict:
+  `artifacts/task6/runs/2026-05-08T15-06-04+0200-litedram-v113-native-address-classifier/verdict.json`.
