@@ -1,0 +1,24 @@
+{
+  "board": "PASS_READSCAN_ONLY",
+  "bram_margin": null,
+  "correctness": "PARTIAL_NATIVE_READ_VISIBILITY",
+  "created_at": "2026-05-08T13:43:56.433508+02:00",
+  "dsp_margin": null,
+  "lut_margin": null,
+  "notes": [
+    "Programming succeeded with openFPGALoader returncode 0.",
+    "JTAG readback succeeded using FTDI MPSSE and tdo-bit 7.",
+    "v87 readscan issued 64 native reads and received 64 responses with 64 nonzero reads.",
+    "No native writes were issued in this bitstream, so this confirms native read visibility only, not write/read data integrity or bandwidth."
+  ],
+  "route": null,
+  "run_dir": "artifacts/task6/runs/2026-05-08T13-43-56+0200-litedram-v87-native-readscan-rerun",
+  "runtime": {
+    "attempts": 1,
+    "program_returncode": 0,
+    "read_returncode": 0
+  },
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETED",
+  "timing_margin": null
+}

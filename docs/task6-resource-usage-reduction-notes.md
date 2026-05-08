@@ -15500,3 +15500,61 @@ Concrete next experiment:
    - whether it clears the `212.5 MB/s` 4-lane target
 4. Only after that gate passes, connect the memory source to
    `task6_ddr3_rowstream_top1_cutout`.
+
+### 2026-05-08 - LiteDRAM v87 native readscan board rerun
+
+Goal:
+
+- Reuse the existing v87 no-ODELAY LiteDRAM native readscan bitstream as the
+  first post-INT4 memory-source board gate for the INT8 rowstream plan.
+- Confirm whether the board can still be programmed and read through the
+  serialized Task 6 board runner before starting new memory-source RTL edits.
+
+Run:
+
+- Run directory:
+  `artifacts/task6/runs/2026-05-08T13-43-56+0200-litedram-v87-native-readscan-rerun`.
+- Bitstream:
+  `/nix/store/h5p7jgkr5cwzswdd4927k6mkg4s94r0k-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-init-bandwidth-probe.bit`.
+- Programming:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 ...`.
+- Readback:
+  `python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --tdo-bit 7 --poll --poll-count 300 --poll-interval 0.2 --json-only`.
+
+Board result:
+
+- Programming succeeded: `openFPGALoader` returned `0`, with `isc_done=1`,
+  `init=1`, and `done=1`.
+- JTAG readback succeeded in one attempt through FTDI MPSSE with `tdo-bit=7`.
+- Probe result: `magic_ok=true`, `version=87`, `state=PROBE_DONE`,
+  `complete=true`, `failed=false`.
+- Init result: `pll_locked=true`, `init_done=true`, `init_error=false`,
+  `init_seq_done=true`, `init_seq_error=false`.
+- DFII result stayed clean: `dfii_step=63`, `dfii_word_mismatch_mask=0`,
+  `dfii_uniform_mismatch_mask=0`, `dfii_phasecmd_mismatch_masks=0`.
+- Native readscan result: `target_read_count=64`, `command_count=64`,
+  `response_count=64`, `write_command_count=0`, `write_data_count=0`,
+  `native_readscan_nonzero_count=64`,
+  `native_readscan_nonzero_chunk_seen=0x1ff`,
+  `native_readscan_first_nonzero_addr=0`,
+  `native_readscan_first_nonzero_data=0xadacafaea9a8abaa`.
+
+Artifacts:
+
+- Full decoded readback:
+  `artifacts/task6/runs/2026-05-08T13-43-56+0200-litedram-v87-native-readscan-rerun/readback/litedram-probe.json`.
+- Compact summary:
+  `artifacts/task6/runs/2026-05-08T13-43-56+0200-litedram-v87-native-readscan-rerun/readback/summary.json`.
+- Verdict:
+  `artifacts/task6/runs/2026-05-08T13-43-56+0200-litedram-v87-native-readscan-rerun/verdict.json`.
+
+Decision:
+
+- This confirms the board/JTAG flow and ordered native read visibility from
+  DDR3 on the known v87 probe.
+- This does not clear the INT8 rowstream memory-source gate yet, because v87
+  intentionally issues no native writes and does not measure sustained
+  bandwidth.
+- Next productive task: build or reuse a deterministic linear-read source that
+  reports bytes, cycles, mismatch count, and whether it clears the `212.5 MB/s`
+  useful rowstream bandwidth target.
