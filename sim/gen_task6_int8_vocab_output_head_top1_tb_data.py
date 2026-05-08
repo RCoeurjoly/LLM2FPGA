@@ -54,6 +54,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mapped-utilization-summary-json", type=Path)
     parser.add_argument("--lanes", type=int, default=4)
     parser.add_argument("--tile-out-dim", type=int, default=64)
+    parser.add_argument(
+        "--weight-quantization",
+        choices=("int8", "ternary2"),
+        default="int8",
+    )
     parser.add_argument("--residual-add-requant-shift", type=int, default=24)
     parser.add_argument("--c-proj-output-requant-shift", type=int, default=24)
     return parser.parse_args()
@@ -300,6 +305,46 @@ def first_argmax(values: list[int] | list[float]) -> int:
     return best_index
 
 
+def quantize_ternary_symmetric(values: list[float]) -> tuple[list[int], float, float]:
+    mean_abs = sum(abs(value) for value in values) / len(values) if values else 0.0
+    if mean_abs == 0.0:
+        return [0 for _ in values], 1.0, 0.0
+    threshold = 0.5 * mean_abs
+    quantized = [
+        1 if value >= threshold else -1 if value <= -threshold else 0
+        for value in values
+    ]
+    return quantized, mean_abs, threshold
+
+
+def pack_ternary2_weight_words(
+    weight_q: list[int],
+    in_features: int,
+    out_features: int,
+    weights_per_word: int = 16,
+) -> list[int]:
+    if out_features % weights_per_word != 0:
+        raise SystemExit(
+            f"out_features {out_features} is not divisible by {weights_per_word}"
+        )
+    words: list[int] = []
+    for output_group_index in range(out_features // weights_per_word):
+        for in_index in range(in_features):
+            packed_word = 0
+            for lane_index in range(weights_per_word):
+                out_index = output_group_index * weights_per_word + lane_index
+                weight = weight_q[out_index * in_features + in_index]
+                if weight == 1:
+                    code = 0b01
+                elif weight == -1:
+                    code = 0b11
+                else:
+                    code = 0b00
+                packed_word |= code << (lane_index * 2)
+            words.append(packed_word)
+    return words
+
+
 def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     physical_vocab_size = args.physical_vocab_size or args.vocab_size
     if physical_vocab_size < args.vocab_size:
@@ -335,13 +380,28 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         raise SystemExit("expected lm_head.weight to be tied to transformer.wte.weight")
 
     vocab_weight_f32 = [float(value) for value in token_embedding.flatten().tolist()]
-    vocab_weight_q, vocab_weight_scale = quantize_symmetric(vocab_weight_f32, 8)
-    packed_words = pack_weight_words(
-        vocab_weight_q,
-        args.hidden_size,
-        physical_vocab_size,
-        args.lanes,
-    )
+    if args.weight_quantization == "ternary2":
+        vocab_weight_q, vocab_weight_scale, ternary_threshold = (
+            quantize_ternary_symmetric(vocab_weight_f32)
+        )
+        packed_words = pack_ternary2_weight_words(
+            vocab_weight_q,
+            args.hidden_size,
+            physical_vocab_size,
+        )
+        vocab_weight_mode = 1
+        weight_dtype = "ternary2-per-tensor-symmetric"
+    else:
+        vocab_weight_q, vocab_weight_scale = quantize_symmetric(vocab_weight_f32, 8)
+        ternary_threshold = None
+        packed_words = pack_weight_words(
+            vocab_weight_q,
+            args.hidden_size,
+            physical_vocab_size,
+            args.lanes,
+        )
+        vocab_weight_mode = 0
+        weight_dtype = "int8-per-tensor-symmetric"
     accumulators = compute_accumulators(
         hidden_q,
         vocab_weight_q[: args.vocab_size * args.hidden_size],
@@ -405,7 +465,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         "rtl_contract": {
             "top_name": "task6_int8_vocab_output_head_top1_kernel",
             "input_dtype": "int8",
-            "weight_dtype": "int8-per-tensor-symmetric",
+            "weight_dtype": weight_dtype,
             "output": "top1_accumulator_and_index",
             "in_dim": args.hidden_size,
             "vocab_size": physical_vocab_size,
@@ -417,7 +477,10 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         },
         "quantization": {
             **hidden_metadata,
+            "vocab_weight_quantization": args.weight_quantization,
+            "vocab_weight_mode": vocab_weight_mode,
             "vocab_weight_scale": vocab_weight_scale,
+            "vocab_weight_ternary_threshold": ternary_threshold,
             "vocab_weight_q_min": min(vocab_weight_q),
             "vocab_weight_q_max": max(vocab_weight_q),
             "vocab_weight_q_sha256": hashlib.sha256(pack_i8(vocab_weight_q)).hexdigest(),
@@ -462,6 +525,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         f"localparam int PACKED_WEIGHT_ADDR_WIDTH = {addr_width(len(packed_words))};",
         f"localparam int ACTIVATION_ADDR_WIDTH = {addr_width(args.hidden_size)};",
         f"localparam int VOCAB_ADDR_WIDTH = {addr_width(args.vocab_size)};",
+        f"localparam int VOCAB_WEIGHT_MODE = {vocab_weight_mode};",
         f"localparam logic [VOCAB_ADDR_WIDTH - 1:0] EXPECTED_TOP_INDEX = {addr_width(args.vocab_size)}'d{top_index};",
         f"localparam logic signed [ACC_WIDTH - 1:0] EXPECTED_TOP_ACC = 32'sh{signed_hex(top_acc, 32)};",
         "logic signed [7:0] activation_values [0:IN_DIM - 1];",

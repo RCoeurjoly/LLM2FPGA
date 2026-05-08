@@ -15034,3 +15034,91 @@ Decision:
   regression lane. New ternary, full-vocab, or larger-structure experiments
   should either preserve this automated readback loop or explicitly replace it
   with an equally fast correctness gate.
+
+### Experiment runner and fixed-2-bit ternary output-head update (2026-05-08)
+
+Question:
+
+- Can vocab-size and quantization experiments share one durable correctness
+  result format, and does a simple fixed-width ternary output-head variant route
+  on the proven v9984 tile64 JTAG-debug lane?
+
+Runner:
+
+- Added `scripts/task6/task6_experiment_runner.py`.
+- The runner records one JSON result per experiment under
+  `artifacts/task6/experiments/<timestamp>-<label>/result.json`.
+- Parameters recorded:
+  - logical and physical vocab size
+  - `TILE_OUT_DIM`
+  - weight quantization mode
+  - flake target prefix
+  - repo head and dirty state
+- Gate records include command, return code, log path, Nix output path, and
+  compact summaries for generated test data, SV simulation, and route logs when
+  the gate runs uncached.
+- Board programming is supported only through `scripts/task6/task6_board_run.py`
+  so board access remains serialized.
+
+Runner smoke test:
+
+- Command:
+  `scripts/task6/task6_experiment_runner.py --label ternary2-v9984-runner-smoke-v2 --vocab-size 9984 --tile-out-dim 64 --weight-quantization ternary2 --gate tb-data --gate sv-sim`
+- Result JSON:
+  `artifacts/task6/experiments/2026-05-08T12-39-08+0200-ternary2-v9984-runner-smoke-v2/result.json`
+- Result: PASS for the runner gates.
+- Generated test-data summary:
+  - `weight_quantization=ternary2`
+  - `packed_weight_words=39936`
+  - quantized top index/acc: `737 / 1446`
+  - float reference top index: `229`
+  - `int8_top_matches_f32_top=false`
+  - `normalized_rmse=0.647246702830111`
+- SV sim summary:
+  - `status=PASS`
+  - cycles: `194563`
+  - top index/acc: `737 / 1446`
+
+Fixed-2-bit ternary route/bitstream:
+
+- Command:
+  `nix build .#task6-ternary-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz-bitstream --no-link --print-out-paths -L`
+- Result: PASS. Bitstream:
+  `/nix/store/9ziripbivrzlppq86sj8bryds9g311gr-task6-ternary-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit`
+- FASM output:
+  `/nix/store/bymqa5k3ym112vjm4rrlgzm9p5ki35dm-task6-ternary-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.fasm`
+- Cached route/bitstream result JSON:
+  `artifacts/task6/experiments/2026-05-08T12-40-47+0200-ternary2-v9984-route-bitstream-record/result.json`
+- Utilization after packing/placement:
+  - `SLICE_LUTX=29574`
+  - `SLICE_FFX=9741`
+  - `RAMB18E1=318`
+  - `RAMB36E1=8`
+  - `DSP48E1=10`
+  - `SELMUX2_1=6218`
+  - `BSCAN=1`
+- Router convergence:
+  - iteration 1: `overused=49103`
+  - iteration 10: `overused=136`
+  - iteration 20: `overused=46`
+  - iteration 31: `overused=5`
+  - iteration 33: `overused=0`, `overuse=0`, `archfail=0`
+  - router2 time: 834.04 seconds
+- Post-route timing:
+  - main clock max frequency: 77.10 MHz, pass at 5 MHz
+  - JTAG `drck` max frequency: 367.11 MHz, pass at 5 MHz
+  - main-clock to JTAG-domain max delay: 3.12 ns
+
+Interpretation:
+
+- The simple fixed-2-bit ternary output head is RTL-correct against its
+  generated quantized reference and routes with JTAG debug enabled.
+- It is not the intended "1.58-bit" ternary storage experiment. It stores each
+  ternary weight in 2 bits. A true dense ternary storage lane should use base-3
+  packing, for example 20 trits per 32-bit word (`32 / 20 = 1.6` bits/weight),
+  without entropy coding as the first implementation.
+- This fixed-2-bit lane is useful as a routeability and compute-control
+  datapoint, but its current global-threshold quantization badly changes the
+  output-head result (`top_index=737` vs float `229`). Do not promote it as a
+  quality-preserving model lane without improving the ternary quantization
+  scheme.

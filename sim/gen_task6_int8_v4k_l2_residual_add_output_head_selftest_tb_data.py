@@ -55,6 +55,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-label", default="tiny-stories-v4k-h64-l1")
     parser.add_argument("--lanes", type=int, default=4)
     parser.add_argument("--tile-out-dim", type=int, default=64)
+    parser.add_argument(
+        "--weight-quantization",
+        choices=("int8", "ternary2"),
+        default="int8",
+    )
     parser.add_argument("--normalized-rmse-threshold", type=float, default=0.02)
     parser.add_argument("--c-proj-output-requant-shift", type=int, default=24)
     parser.add_argument("--residual-add-requant-shift", type=int, default=24)
@@ -117,6 +122,7 @@ def make_output_head_args(args: argparse.Namespace) -> argparse.Namespace:
         mapped_utilization_summary_json=None,
         lanes=args.lanes,
         tile_out_dim=args.tile_out_dim,
+        weight_quantization=args.weight_quantization,
         c_proj_output_requant_shift=args.c_proj_output_requant_shift,
         residual_add_requant_shift=args.residual_add_requant_shift,
     )
@@ -289,6 +295,7 @@ def inject_vocab_data(
         f"localparam int VOCAB_PACKED_WEIGHT_ADDR_WIDTH = {packed_weight_addr_width};",
         f"localparam int VOCAB_ACTIVATION_ADDR_WIDTH = {activation_addr_width};",
         f"localparam int VOCAB_ADDR_WIDTH = {vocab_addr_width};",
+        f"localparam int VOCAB_WEIGHT_MODE = {int(contract.get('weight_dtype') == 'ternary2-per-tensor-symmetric')};",
         (
             "localparam logic [VOCAB_ADDR_WIDTH - 1:0] "
             f"EXPECTED_TOP_INDEX = {vocab_addr_width}'d{top_index};"
@@ -335,12 +342,19 @@ def inject_vocab_data(
             "localparam logic [31:0] EXPECTED_EMBED_COMBINED_CHECKSUM = "
             f"32'h{embedding_probe['combined_checksum']:08x};"
         ),
+        "logic signed [7:0] token_embedding_q_values [0:EMBED_WORDS - 1];",
         "logic signed [7:0] position_embedding_q_values [0:EMBED_WORDS - 1];",
     ]
-    assignments = [
+    assignments = (
+        [
+            f"  token_embedding_q_values[{index}] = 8'sh{signed_hex(value, 8)};"
+            for index, value in enumerate(embedding_probe["token_q"])
+        ]
+        + [
         f"  position_embedding_q_values[{index}] = 8'sh{signed_hex(value, 8)};"
         for index, value in enumerate(embedding_probe["position_q"])
-    ]
+        ]
+    )
     sv_text = (
         "\n".join(
             lines[:initial_index]
@@ -415,11 +429,19 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str, str]:
     residual_pass = residual_payload.get("status") in {"PASS", "partial"}
     output_pass = output_payload.get("status") in {"PASS", "partial"}
     top1 = output_payload["top1"]
+    output_weight_quantization = output_payload.get("quantization", {}).get(
+        "vocab_weight_quantization", "int8"
+    )
+    top_quality_ok = (
+        top1.get("int8_top_matches_f32_top") is True
+        if output_weight_quantization == "int8"
+        else True
+    )
     status = (
         "partial"
         if residual_pass
         and output_pass
-        and top1.get("int8_top_matches_f32_top") is True
+        and top_quality_ok
         else "FAIL"
     )
 
@@ -451,6 +473,7 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str, str]:
         },
         "output_head_top1": {
             "status": output_payload.get("status"),
+            "weight_quantization": output_weight_quantization,
             "fixed_int8_top_index": top1["fixed_int8_top_index"],
             "fixed_int8_top_acc": top1["fixed_int8_top_acc"],
             "f32_reference_top_index": top1["f32_reference_top_index"],

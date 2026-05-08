@@ -17,7 +17,7 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
     C_PROJ_OUT_ADDR_WIDTH'(C_PROJ_OUT_DIM - 1);
   localparam int VOCAB_PHASES = VOCAB_SIZE / VOCAB_TILE_OUT_DIM;
   localparam int VOCAB_TILE_PACKED_WEIGHT_WORDS =
-    (VOCAB_TILE_OUT_DIM / VOCAB_LANES) * VOCAB_IN_DIM;
+    VOCAB_PACKED_WEIGHT_WORDS / VOCAB_PHASES;
   localparam int VOCAB_TILE_PACKED_WEIGHT_ADDR_WIDTH =
     (VOCAB_TILE_PACKED_WEIGHT_WORDS <= 1) ? 1 :
       $clog2(VOCAB_TILE_PACKED_WEIGHT_WORDS);
@@ -151,7 +151,7 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   assign output_head_start = (state_q == SELFTEST_START_OUTPUT_HEAD);
   assign residual_output_read_addr = activation_index_q;
   assign embedding_token_value_w =
-    vocab_packed_weight_rom_data_q[EMBED_TOKEN_LANE * 8 +: 8];
+    token_embedding_q_values[load_index_q[EMBED_WORD_ADDR_WIDTH - 1:0]];
   assign embedding_position_value_w =
     position_embedding_q_values[load_index_q[EMBED_WORD_ADDR_WIDTH - 1:0]];
   assign embedding_sum_w =
@@ -754,30 +754,57 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
     .debug_c_fc_gemv_final_acc()
   );
 
-  task6_int8_vocab_output_head_top1_kernel #(
-    .IN_DIM(VOCAB_IN_DIM),
-    .VOCAB_SIZE(VOCAB_SIZE),
-    .VALID_VOCAB_SIZE(VOCAB_VALID_SIZE),
-    .TILE_OUT_DIM(VOCAB_TILE_OUT_DIM),
-    .LANES(VOCAB_LANES),
-    .ACC_WIDTH(VOCAB_ACC_WIDTH),
-    .PACKED_WEIGHT_WORDS(VOCAB_PACKED_WEIGHT_WORDS),
-    .PHASE_BANKED_WEIGHT_MEMORY(1)
-  ) output_head_dut (
-    .clock(SYS_CLK),
-    .reset(output_head_reset),
-    .weight_load_valid(vocab_weight_load_valid),
-    .weight_load_addr(vocab_weight_load_addr),
-    .weight_load_data(vocab_weight_load_data),
-    .activation_load_valid(vocab_activation_load_valid),
-    .activation_load_addr(vocab_activation_load_addr),
-    .activation_load_data(vocab_activation_load_data),
-    .start(output_head_start),
-    .busy(output_head_busy),
-    .done(output_head_done),
-    .top_index(top_index),
-    .top_acc(top_acc)
-  );
+  generate
+    if (VOCAB_WEIGHT_MODE == 1) begin : gen_ternary_output_head
+      task6_ternary_vocab_output_head_top1_kernel #(
+        .IN_DIM(VOCAB_IN_DIM),
+        .VOCAB_SIZE(VOCAB_SIZE),
+        .VALID_VOCAB_SIZE(VOCAB_VALID_SIZE),
+        .TILE_OUT_DIM(VOCAB_TILE_OUT_DIM),
+        .ACC_WIDTH(VOCAB_ACC_WIDTH),
+        .PACKED_WEIGHT_WORDS(VOCAB_PACKED_WEIGHT_WORDS)
+      ) output_head_dut (
+        .clock(SYS_CLK),
+        .reset(output_head_reset),
+        .weight_load_valid(vocab_weight_load_valid),
+        .weight_load_addr(vocab_weight_load_addr),
+        .weight_load_data(vocab_weight_load_data),
+        .activation_load_valid(vocab_activation_load_valid),
+        .activation_load_addr(vocab_activation_load_addr),
+        .activation_load_data(vocab_activation_load_data),
+        .start(output_head_start),
+        .busy(output_head_busy),
+        .done(output_head_done),
+        .top_index(top_index),
+        .top_acc(top_acc)
+      );
+    end else begin : gen_int8_output_head
+      task6_int8_vocab_output_head_top1_kernel #(
+        .IN_DIM(VOCAB_IN_DIM),
+        .VOCAB_SIZE(VOCAB_SIZE),
+        .VALID_VOCAB_SIZE(VOCAB_VALID_SIZE),
+        .TILE_OUT_DIM(VOCAB_TILE_OUT_DIM),
+        .LANES(VOCAB_LANES),
+        .ACC_WIDTH(VOCAB_ACC_WIDTH),
+        .PACKED_WEIGHT_WORDS(VOCAB_PACKED_WEIGHT_WORDS),
+        .PHASE_BANKED_WEIGHT_MEMORY(1)
+      ) output_head_dut (
+        .clock(SYS_CLK),
+        .reset(output_head_reset),
+        .weight_load_valid(vocab_weight_load_valid),
+        .weight_load_addr(vocab_weight_load_addr),
+        .weight_load_data(vocab_weight_load_data),
+        .activation_load_valid(vocab_activation_load_valid),
+        .activation_load_addr(vocab_activation_load_addr),
+        .activation_load_data(vocab_activation_load_data),
+        .start(output_head_start),
+        .busy(output_head_busy),
+        .done(output_head_done),
+        .top_index(top_index),
+        .top_acc(top_acc)
+      );
+    end
+  endgenerate
 
   generate
     if (ENABLE_JTAG_DEBUG != 0) begin : gen_jtag_debug
