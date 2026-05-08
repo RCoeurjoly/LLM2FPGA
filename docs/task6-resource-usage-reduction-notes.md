@@ -220,12 +220,18 @@ Interpretation:
 
 Next action:
 
-- Do not spend more DDR3 route time until observability is fixed.
-- Next isolate LiteX specifically:
-  - inspect LiteX `JTAGPHY`/`XilinxJTAG` BSCANE2 chain, TDO wiring, and reset
-    behavior against the known-good direct BSCANE2 pattern
-  - consider a minimal LiteX CSR/heartbeat exposed through direct BSCANE2, or
-    patch LiteX `jtag_uart` to use the known-good TDO bit/chain assumptions
+- Hold DDR3 route work and move to observability-first. The immediate objective is
+  to make LiteX debug path deterministic again.
+- Execute this order for speed:
+  1. Keep `IDELAYCTRL`-free YPCB jtag-only build and capture RTL-level JTAG
+     details (`BSCANE2`, `JTAGPHY`, reset/clock/reset paths).
+  2. Re-program the same `task6-litex-boards-ypcb-jtag-only` bitstream and probe
+     it with FTDI bitbang reads at 1 MHz on candidate `TDO` bits.
+  3. If any deterministic payload appears, add a minimal LiteX UART/CSR variant
+     that emits a heartbeat-style status and repeat readback.
+  4. If no deterministic payload appears, classify this as LiteX `JTAGPHY` path
+     integration failure and patch/replace it before adding DDR3 back.
+- This lane must be answered before adding more variants or DDR3 changes.
 
 ### Execution doctrine: moonshot plus fast falsification
 
