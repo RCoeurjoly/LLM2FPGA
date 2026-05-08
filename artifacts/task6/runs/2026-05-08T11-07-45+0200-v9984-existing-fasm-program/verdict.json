@@ -1,0 +1,20 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "BLOCKED",
+  "created_at": "2026-05-08T11:07:45.135579+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-08T11-07-45+0200-v9984-existing-fasm-program",
+  "correctness": "NOT_RUN",
+  "route": "PASS_FROM_EXISTING_FASM",
+  "board": "JTAG_CABLE_NOT_ENUMERATED",
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Converted existing successful v9984/tile64 FASM to a local .bit artifact.",
+    "Programming did not start because openFPGALoader could not open the Digilent HS3 FTDI device.",
+    "openFPGALoader error: unable to open ftdi device: -3 (device not found).",
+    "lsusb did not show a 0403:6014 Digilent/FTDI device at the time of the attempt."
+  ]
+}

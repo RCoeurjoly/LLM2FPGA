@@ -1,0 +1,1 @@
+{"argv": ["openFPGALoader", "-c", "digilent_hs3", "--ftdi-serial", "210299BF3824", "artifacts/task6/generated-bitstreams/task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-from-existing-fasm.bit"], "finished_at": "2026-05-08T11:08:00.829607+02:00", "log": "program-openfpgaloader.log", "returncode": 1}

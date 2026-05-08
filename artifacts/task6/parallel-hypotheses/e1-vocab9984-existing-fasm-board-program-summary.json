@@ -1,0 +1,33 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab9984-existing-fasm-board-program",
+  "date": "2026-05-08",
+  "question": "Can the already-routed v9984/tile64 output-head image be converted to a bitstream and programmed on the connected YPCB board?",
+  "status": "BLOCKED",
+  "device": "xc7k480tffg1156-1",
+  "board": "YPCB-00338-1P1",
+  "jtag_cable": "digilent_hs3",
+  "ftdi_serial": "210299BF3824",
+  "source_fasm": "/nix/store/gqh45ij302d2mdpp2m9l4j153jvdrd84-task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz.fasm",
+  "source_route_summary": "artifacts/task6/parallel-hypotheses/e1-vocab9984-tile64-route-summary.json",
+  "local_bitstream": "artifacts/task6/generated-bitstreams/task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-from-existing-fasm.bit",
+  "local_bitstream_size_bytes": 18735162,
+  "board_run_dir": "artifacts/task6/runs/2026-05-08T11-07-45+0200-v9984-existing-fasm-program",
+  "program_command": "openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 artifacts/task6/generated-bitstreams/task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-from-existing-fasm.bit",
+  "program_returncode": 1,
+  "failure": {
+    "stage": "jtag_cable_enumeration",
+    "message": "unable to open ftdi device: -3 (device not found)",
+    "programming_started": false,
+    "fpga_configuration_changed": false
+  },
+  "usb_observation": {
+    "lsusb_saw_digilent_ftdi_0403_6014": false,
+    "openfpgaloader_detect_without_serial": "failed with the same FTDI device-not-found error"
+  },
+  "decision": {
+    "route_or_bitstream_blocker": false,
+    "board_access_blocker": true,
+    "next_gate": "Restore HS3 USB enumeration, then rerun the same board-run programming command under the Task 6 board lock."
+  }
+}

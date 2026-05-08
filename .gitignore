@@ -6,3 +6,5 @@ cosim.cfg
 *.log
 *.err
 result*
+artifacts/task6/board.lock
+artifacts/task6/generated-bitstreams/*.bit

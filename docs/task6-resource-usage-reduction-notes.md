@@ -414,6 +414,46 @@ Artifact:
 
 - `artifacts/task6/parallel-hypotheses/e1-vocab10k-padded-tile64-route-rerun-pruned-summary.json`
 
+### v9984 existing-FASM board program attempt (2026-05-08)
+
+Question:
+
+- Can the already-routed v9984/tile64 image be converted to a bitstream and
+  programmed on the connected YPCB board?
+
+Commands:
+
+- Convert existing routed FASM:
+  - source FASM:
+    `/nix/store/gqh45ij302d2mdpp2m9l4j153jvdrd84-task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz.fasm`
+  - local bitstream:
+    `artifacts/task6/generated-bitstreams/task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-from-existing-fasm.bit`
+- Program under board lock:
+  - `python3 scripts/task6/task6_board_run.py with-lock --run-dir artifacts/task6/runs/2026-05-08T11-07-45+0200-v9984-existing-fasm-program --log-name program-openfpgaloader.log -- openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 artifacts/task6/generated-bitstreams/task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-from-existing-fasm.bit`
+
+Result:
+
+- FASM-to-bit conversion succeeded; the local `.bit` is `18,735,162` bytes.
+- Programming did not start. `openFPGALoader` failed while opening the HS3
+  adapter:
+  - `unable to open ftdi device: -3 (device not found)`
+- A detection attempt without the serial filter failed with the same error.
+- `lsusb` did not show the expected Digilent/FTDI `0403:6014` device at the
+  time of the attempt.
+
+Interpretation:
+
+- This is not a route or bitstream blocker. The immediate blocker is physical
+  USB/JTAG enumeration of the Digilent HS3 path.
+- Next gate: restore HS3 enumeration, then rerun the same board-run programming
+  command. Only after programming exits 0 should readback/selftest evidence be
+  collected.
+
+Artifacts:
+
+- `artifacts/task6/parallel-hypotheses/e1-vocab9984-existing-fasm-board-program-summary.json`
+- `artifacts/task6/runs/2026-05-08T11-07-45+0200-v9984-existing-fasm-program`
+
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
 Constraint:
