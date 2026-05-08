@@ -218,6 +218,16 @@ Interpretation:
   - the failing layer is upstream LiteX `jtag_uart`/`litex_term` integration
     under openXC7, or the LiteX CPU/BIOS not reaching the UART path
 
+- New confirmation run: `2026-05-08T19-00-19+0200-litex-boards-ypcb-jtag-only-ir-bruteforce`
+  - command log: programmed the same `ypcb_00338_1p1.bit` at `18-45-00.../litex-build/gateware/ypcb_00338_1p1.bit`
+  - IR sweep (`--user-ir 0..63`, `--tdo-bit 7`, `--bits 768`, poll 1): 64 attempts
+  - result: `magic_ok=0` for all attempts; `state` observed mostly `0` (`SELFTEST_BOOT`) with occasional noise (`state=1`,`15`), and `version` mostly `0` with random garbage (`128`,`130`,`255`)
+  - conclusion: still no valid custom JTAG-drain; behavior strongly suggests LiteX `JTAGPHY`/`jtag_uart` path is not exposing the expected DR payload, not the board/JTAG transport
+- Extended follow-up run: `2026-05-08T19-04-30+0200-litex-boards-ypcb-openxc7-jtag-only-bscane2-bitbang-extended-scan`
+  - reprogrammed the same `ypcb_00338_1p1.bit` and polled longer on both possible TDO channels
+  - `--tdo-bit 0 --poll --poll-count 300 --bits 768`: `magic_ok=False`, `state=SELFTEST_BOOT`, raw payload observed `...7f` LSB-only and no field progression (`magic` stuck at 127, `status.pass=False`)
+  - `--tdo-bit 7 --poll --poll-count 300 --bits 768`: `magic_ok=False`, `state=SELFTEST_BOOT`, all-zero payload
+  - result: still no valid deterministic payload for LiteX/YPCB jtag-only path
 Next action:
 
 - Hold DDR3 route work and move to observability-first. The immediate objective is
