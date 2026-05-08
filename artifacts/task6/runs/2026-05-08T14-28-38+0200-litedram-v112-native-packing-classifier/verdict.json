@@ -1,0 +1,13 @@
+{
+  "decision": "Continue with a native address-stride/address-shift classifier before changing PHY calibration again.",
+  "observations": [
+    "Bitstream routed and programmed successfully.",
+    "JTAG payload version 112 was readable with --tdo-bit 7.",
+    "Native issued and received 64 reads in 78 cycles, but mismatch_count remained 64.",
+    "The first four captured 576-bit native beats were identical.",
+    "Captured chunks partially match the DFII addrwalk dictionary at address 15, not expected addresses 0..3."
+  ],
+  "result": "classifier_passed_capture_but_native_expected_read_still_mismatches",
+  "status": "complete_with_expected_mismatch",
+  "summary_artifact": "artifacts/task6/parallel-hypotheses/e1-litedram-v112-native-packing-classifier-summary.json"
+}

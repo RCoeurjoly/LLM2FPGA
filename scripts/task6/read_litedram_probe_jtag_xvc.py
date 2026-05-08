@@ -17,6 +17,7 @@ BYTE_DIAG_SAMPLE_COUNT = 8
 DFII_WORD_COUNT = 20
 DFII_ADDR_SLOT_COUNT = 4
 NATIVE_CHUNK_COUNT = 9
+NATIVE_PACKING_SAMPLE_COUNT = 4
 PHYSICAL_LANE_COUNT = 9
 NATIVE_PHASE_CANDIDATE_COUNT = 16
 DFII_PATTERN_MODE_NAMES = {
@@ -285,6 +286,10 @@ FIELDS = [
     ("dfii_half_high_match_low_masks", 4352, 256),
     ("dfii_half_high_match_high_masks", 4608, 64),
     ("first_chunk_mismatch_mask", 1728, 16),
+    ("native_packing_valid_count", 1728, 8),
+    ("native_packing_flags", 1736, 8),
+    ("native_packing_first_mismatch_addr", 1744, 32),
+    ("native_packing_first_chunk_mismatch_mask", 1776, 16),
 ]
 
 FIELDS.extend(
@@ -296,6 +301,17 @@ FIELDS.extend(
 FIELDS.extend(
     [
         (f"first_actual_chunk_{chunk}", 2368 + chunk * 64, 64)
+        for chunk in range(NATIVE_CHUNK_COUNT)
+    ]
+)
+FIELDS.extend(
+    [
+        (
+            f"native_packing_actual_{sample}_{chunk}",
+            1792 + (sample * NATIVE_CHUNK_COUNT + chunk) * 64,
+            64,
+        )
+        for sample in range(NATIVE_PACKING_SAMPLE_COUNT)
         for chunk in range(NATIVE_CHUNK_COUNT)
     ]
 )
@@ -441,6 +457,7 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
     native_phase_sweep = (
         decode_native_phase_sweep(fields) if 52 <= version < 54 else None
     )
+    native_packing_classifier = decode_native_packing_classifier(fields)
     native_first_mismatch_chunks = (
         decode_native_first_mismatch_chunks(fields)
         if 49 <= version < 54
@@ -544,6 +561,7 @@ def decode_payload(payload: int, bit_count: int) -> dict[str, object]:
             "dfii_phase_matrix": dfii_phase_matrix,
             "dfii_addr_matrix": dfii_addr_matrix,
             "native_phase_sweep": native_phase_sweep,
+            "native_packing_classifier": native_packing_classifier,
             "native_first_mismatch_chunks": native_first_mismatch_chunks,
             "dfii_pattern_mode": DFII_PATTERN_MODE_NAMES.get(
                 fields.get("dfii_pattern_mode", 0),
@@ -848,6 +866,68 @@ def dfii_lane7_locator_expected_word(word: int) -> int:
     if word % 5 == 4:
         return value & 0xFFFFFF00
     return value
+
+
+def dfii_addrwalk_tag(addr_index: int, lane: int) -> int:
+    return 0x5A ^ (((addr_index & 0xF) << 4) | (lane & 0xF))
+
+
+def dfii_edge_comp_addrwalk_read_word(addr_index: int, word: int) -> int:
+    word %= 5
+    if word == 0:
+        return (
+            dfii_place_byte(dfii_addrwalk_tag(addr_index, 0), 0)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 1), 1)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 2), 2)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 3), 3)
+        )
+    if word == 1:
+        return (
+            dfii_place_byte(dfii_addrwalk_tag(addr_index, 4), 0)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 5), 1)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 6), 2)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 7), 3)
+        )
+    if word == 2:
+        return (
+            dfii_place_byte(dfii_addrwalk_tag(addr_index, 8), 0)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 0), 1)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 1), 2)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 2), 3)
+        )
+    if word == 3:
+        return (
+            dfii_place_byte(dfii_addrwalk_tag(addr_index, 3), 0)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 4), 1)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 5), 2)
+            | dfii_place_byte(dfii_addrwalk_tag(addr_index, 6), 3)
+        )
+    return (
+        dfii_place_byte(dfii_addrwalk_tag(addr_index, 7), 0)
+        | dfii_place_byte(dfii_addrwalk_tag(addr_index, 8), 1)
+    )
+
+
+def dfii_index20_word(index: int) -> int:
+    return index % 5
+
+
+def native_dfii_addrwalk_expected_words(addr: int) -> list[int]:
+    addr_index = addr & 0xF
+    return [
+        dfii_edge_comp_addrwalk_read_word(addr_index, dfii_index20_word(index))
+        for index in range(18)
+    ]
+
+
+def native_dfii_addrwalk_expected_chunks(addr: int) -> list[int]:
+    words = native_dfii_addrwalk_expected_words(addr)
+    chunks = []
+    for chunk in range(NATIVE_CHUNK_COUNT):
+        low = words[chunk * 2]
+        high = words[chunk * 2 + 1]
+        chunks.append(low | (high << 32))
+    return chunks
 
 
 def dfii_csr_echo_word(index: int) -> int:
@@ -1482,6 +1562,105 @@ def decode_native_first_mismatch_chunks(fields: dict[str, int]) -> list[dict[str
     return chunks
 
 
+def decode_native_packing_classifier(fields: dict[str, int]) -> dict[str, object] | None:
+    if fields.get("version", 0) < 112:
+        return None
+
+    valid_count = min(
+        fields.get("native_packing_valid_count", 0),
+        NATIVE_PACKING_SAMPLE_COUNT,
+    )
+    samples = []
+    all_expected = {
+        addr: native_dfii_addrwalk_expected_chunks(addr)
+        for addr in range(16)
+    }
+    chunk_matches = []
+    exact_beat_matches = []
+
+    for sample in range(valid_count):
+        expected_chunks = native_dfii_addrwalk_expected_chunks(sample)
+        actual_chunks = [
+            fields.get(f"native_packing_actual_{sample}_{chunk}", 0)
+            for chunk in range(NATIVE_CHUNK_COUNT)
+        ]
+        chunks = []
+        exact_count = 0
+        best_addr = None
+        best_addr_score = -1
+        for addr, candidate_chunks in all_expected.items():
+            score = sum(
+                1
+                for chunk in range(NATIVE_CHUNK_COUNT)
+                if actual_chunks[chunk] == candidate_chunks[chunk]
+            )
+            if score > best_addr_score:
+                best_addr = addr
+                best_addr_score = score
+        for chunk, actual in enumerate(actual_chunks):
+            expected = expected_chunks[chunk]
+            if actual == expected:
+                exact_count += 1
+            matches = []
+            for addr, candidate_chunks in all_expected.items():
+                for candidate_chunk, candidate in enumerate(candidate_chunks):
+                    if actual == candidate:
+                        matches.append(
+                            {
+                                "addr": addr,
+                                "chunk": candidate_chunk,
+                            }
+                        )
+            if matches:
+                chunk_matches.append(
+                    {
+                        "sample": sample,
+                        "chunk": chunk,
+                        "actual": actual,
+                        "matches": matches,
+                    }
+                )
+            chunks.append(
+                {
+                    "chunk": chunk,
+                    "expected": expected,
+                    "actual": actual,
+                    "xor": expected ^ actual,
+                    "matches": matches,
+                }
+            )
+        if exact_count:
+            exact_beat_matches.append(
+                {
+                    "sample": sample,
+                    "exact_chunk_count": exact_count,
+                }
+            )
+        samples.append(
+            {
+                "sample": sample,
+                "expected_addr": sample,
+                "best_addr_by_same_chunk": best_addr,
+                "best_addr_same_chunk_count": best_addr_score,
+                "exact_chunk_count": exact_count,
+                "chunks": chunks,
+            }
+        )
+
+    return {
+        "valid_count": valid_count,
+        "flags": fields.get("native_packing_flags", 0),
+        "first_mismatch_addr": fields.get("native_packing_first_mismatch_addr", 0),
+        "first_chunk_mismatch_mask": fields.get(
+            "native_packing_first_chunk_mismatch_mask", 0
+        )
+        & 0x1FF,
+        "samples": samples,
+        "chunk_matches": chunk_matches,
+        "exact_beat_matches": exact_beat_matches,
+    }
+
+
 def decode_byte_diag_samples(fields: dict[str, int]) -> list[dict[str, int]]:
     valid_count = min(
         fields.get("byte_diag_valid_count", 0),
@@ -1875,6 +2054,41 @@ def print_summary(result: dict[str, object]) -> None:
                             ),
                         )
                     )
+                    classifier = decoded.get("native_packing_classifier")
+                    if classifier:
+                        print(
+                            "native packing classifier: valid={valid} "
+                            "first_mismatch_addr=0x{addr:08x} "
+                            "first_chunk_mask=0x{mask:03x}".format(
+                                valid=classifier["valid_count"],
+                                addr=classifier["first_mismatch_addr"],
+                                mask=classifier["first_chunk_mismatch_mask"],
+                            )
+                        )
+                        for sample in classifier["samples"]:
+                            print(
+                                "  beat{sample}: expected_addr={expected_addr} "
+                                "best_same_chunk_addr={best_addr_by_same_chunk} "
+                                "same_chunk_matches={best_addr_same_chunk_count} "
+                                "exact_chunks={exact_chunk_count}".format(
+                                    **sample
+                                )
+                            )
+                            for chunk in sample["chunks"]:
+                                match_text = ",".join(
+                                    "a{addr}:c{chunk}".format(**match)
+                                    for match in chunk["matches"][:4]
+                                )
+                                if not match_text:
+                                    match_text = "-"
+                                print(
+                                    "    c{chunk}: exp=0x{expected:016x} "
+                                    "act=0x{actual:016x} xor=0x{xor:016x} "
+                                    "matches={matches}".format(
+                                        matches=match_text,
+                                        **chunk,
+                                    )
+                                )
                 elif fields.get("version", 0) >= 86 and decoded["state"] != "PROBE_DFII_DONE":
                     print(
                         "native compact gate after address-walk: "

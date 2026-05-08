@@ -15694,3 +15694,85 @@ Interpretation:
   It is a deterministic expected-data native linear-read probe, ideally reusing
   the v87/v97 known-good read path while adding a small board-readable compare
   result for the exact stream payload.
+
+### 2026-05-08 - LiteDRAM v112 native packing classifier
+
+Goal:
+
+- Classify the v111 deterministic expected-data failure as either a native
+  address/visibility issue or a 576-bit native beat/chunk packing issue.
+- Keep the DFII addrwalk write pattern fixed, capture the first four full
+  native 576-bit read beats, and decode each 64-bit chunk against the DFII
+  expected-data dictionary.
+
+Build and route:
+
+- Target:
+  `task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-packing-classifier-init-bandwidth-probe`.
+- JSON build:
+  `/nix/store/6va2ccdmwwwzfh1x55xjy348fwqj3w7d-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-packing-classifier-init-bandwidth-probe.json`.
+- Bitstream:
+  `/nix/store/bn3kiww3xzp1g0gk4is5i25l61p19qnf-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-packing-classifier-init-bandwidth-probe.bit`.
+- Utilization:
+  - `SLICE_LUTX`: `28,221 / 597,200` (4%)
+  - `SLICE_FFX`: `14,952 / 597,200` (2%)
+  - `CARRY4`: `782 / 74,650` (1%)
+  - BRAM/DSP: `0`
+  - DDR PHY fixed resources: `IDELAYE2=72`, `OSERDESE2=107`,
+    `ISERDESE2=72`, `IDELAYCTRL=3`
+- Router result:
+  - iteration 1: `overused=33,701`, `overuse=37,275`
+  - iteration 15: `overused=0`, `overuse=0`, `archfail=0`
+- Post-route timing at `25 MHz` target:
+  - `clk200`: `565.61 MHz`
+  - `user_clk`: `72.96 MHz`
+  - `core.iodelay_clk`: `593.12 MHz`
+  - `jtag_debug_shift.drck`: `387.60 MHz`
+
+Board result:
+
+- Run directory:
+  `artifacts/task6/runs/2026-05-08T14-28-38+0200-litedram-v112-native-packing-classifier`.
+- Programming succeeded through `openFPGALoader` with the Digilent HS3 serial
+  `210299BF3824`.
+- JTAG readback used FTDI MPSSE with `--tdo-bit 7`.
+- Probe payload:
+  - `version=112`
+  - `state=PROBE_DONE`
+  - `command_count=64`
+  - `response_count=64`
+  - `read_cycle_count=78`
+  - `mismatch_count=64`
+  - classifier valid samples: `4`
+  - first mismatch address: `0`
+  - first chunk mismatch mask: `0x1ff`
+
+Classifier result:
+
+- The first four captured native 576-bit beats are identical.
+- None of the four samples exactly match the expected native addresses `0..3`.
+- Chunks `0`, `1`, and `5` in every sample match entries in the DFII
+  dictionary for address `15`; no complete beat match was found.
+- This is not random data: DFII-written content is visible through native
+  reads, but the native read stream is not returning the expected address
+  sequence.
+
+Interpretation:
+
+- The current blocker is more likely native address formation, address
+  progression, or native/DFII address-space mapping than PHY read corruption.
+- The next useful experiment is a native address-stride/address-shift
+  classifier: keep the DFII pattern fixed, issue sparse native reads across
+  multiple address encodings, and compare returned beats against a wider DFII
+  address dictionary.
+- Do not spend the next loop on another byte-lane delay or bandwidth-only
+  calculation.
+
+Artifacts:
+
+- Result summary:
+  `artifacts/task6/parallel-hypotheses/e1-litedram-v112-native-packing-classifier-summary.json`.
+- Full decoded readback:
+  `artifacts/task6/runs/2026-05-08T14-28-38+0200-litedram-v112-native-packing-classifier/readback/litedram-probe.json`.
+- Verdict:
+  `artifacts/task6/runs/2026-05-08T14-28-38+0200-litedram-v112-native-packing-classifier/verdict.json`.

@@ -1,0 +1,663 @@
+{
+  "bitstream": "/nix/store/bn3kiww3xzp1g0gk4is5i25l61p19qnf-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-packing-classifier-init-bandwidth-probe.bit",
+  "board": {
+    "command_count": 64,
+    "complete": false,
+    "failed": true,
+    "first_chunk_mismatch_mask": 511,
+    "first_mismatch_addr": 0,
+    "jtag_version": 112,
+    "mismatch_count": 64,
+    "native_first_nonzero_addr": 0,
+    "native_first_nonzero_chunk": null,
+    "native_first_nonzero_data": 12514570629261339562,
+    "native_nonzero_chunk_seen": 511,
+    "native_nonzero_count": 64,
+    "native_packing_flags": 3,
+    "native_packing_valid_count": 4,
+    "program_status": "PASS",
+    "read_cycle_count": 78,
+    "response_count": 64,
+    "state": "PROBE_DONE",
+    "tdo_bit": 7
+  },
+  "build": {
+    "json_path": "/nix/store/6va2ccdmwwwzfh1x55xjy348fwqj3w7d-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-packing-classifier-init-bandwidth-probe.json",
+    "post_route_max_mhz": {
+      "clk200": 565.61,
+      "core.iodelay_clk": 593.12,
+      "jtag_debug_shift.drck": 387.6,
+      "user_clk": 72.96
+    },
+    "route_status": "PASS",
+    "router_final_iteration": 15,
+    "router_final_overused": 0,
+    "utilization": {
+      "BRAM36": 0,
+      "CARRY4": 782,
+      "DSP48E1": 0,
+      "IDELAYCTRL": 3,
+      "IDELAYE2": 72,
+      "ISERDESE2": 72,
+      "OSERDESE2": 107,
+      "SLICE_FFX": 14952,
+      "SLICE_LUTX": 28221
+    }
+  },
+  "classifier": {
+    "chunk_matches": [
+      {
+        "actual": 12514570629261339562,
+        "chunk": 0,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 0
+          },
+          {
+            "addr": 15,
+            "chunk": 5
+          }
+        ],
+        "sample": 0
+      },
+      {
+        "actual": 12443356339150498466,
+        "chunk": 1,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 1
+          },
+          {
+            "addr": 15,
+            "chunk": 6
+          }
+        ],
+        "sample": 0
+      },
+      {
+        "actual": 12153995635064614830,
+        "chunk": 5,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 3
+          },
+          {
+            "addr": 15,
+            "chunk": 8
+          }
+        ],
+        "sample": 0
+      },
+      {
+        "actual": 12514570629261339562,
+        "chunk": 0,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 0
+          },
+          {
+            "addr": 15,
+            "chunk": 5
+          }
+        ],
+        "sample": 1
+      },
+      {
+        "actual": 12443356339150498466,
+        "chunk": 1,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 1
+          },
+          {
+            "addr": 15,
+            "chunk": 6
+          }
+        ],
+        "sample": 1
+      },
+      {
+        "actual": 12153995635064614830,
+        "chunk": 5,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 3
+          },
+          {
+            "addr": 15,
+            "chunk": 8
+          }
+        ],
+        "sample": 1
+      },
+      {
+        "actual": 12514570629261339562,
+        "chunk": 0,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 0
+          },
+          {
+            "addr": 15,
+            "chunk": 5
+          }
+        ],
+        "sample": 2
+      },
+      {
+        "actual": 12443356339150498466,
+        "chunk": 1,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 1
+          },
+          {
+            "addr": 15,
+            "chunk": 6
+          }
+        ],
+        "sample": 2
+      },
+      {
+        "actual": 12153995635064614830,
+        "chunk": 5,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 3
+          },
+          {
+            "addr": 15,
+            "chunk": 8
+          }
+        ],
+        "sample": 2
+      },
+      {
+        "actual": 12514570629261339562,
+        "chunk": 0,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 0
+          },
+          {
+            "addr": 15,
+            "chunk": 5
+          }
+        ],
+        "sample": 3
+      },
+      {
+        "actual": 12443356339150498466,
+        "chunk": 1,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 1
+          },
+          {
+            "addr": 15,
+            "chunk": 6
+          }
+        ],
+        "sample": 3
+      },
+      {
+        "actual": 12153995635064614830,
+        "chunk": 5,
+        "matches": [
+          {
+            "addr": 15,
+            "chunk": 3
+          },
+          {
+            "addr": 15,
+            "chunk": 8
+          }
+        ],
+        "sample": 3
+      }
+    ],
+    "exact_beat_matches": [],
+    "first_chunk_mismatch_mask": 511,
+    "first_mismatch_addr": 0,
+    "flags": 3,
+    "samples": [
+      {
+        "best_addr_by_same_chunk": 15,
+        "best_addr_same_chunk_count": 2,
+        "chunks": [
+          {
+            "actual": 12514570629261339562,
+            "chunk": 0,
+            "expected": 6727356802215205722,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 0
+              },
+              {
+                "addr": 15,
+                "chunk": 5
+              }
+            ],
+            "xor": 17361641481138401520
+          },
+          {
+            "actual": 12443356339150498466,
+            "chunk": 1,
+            "expected": 6656142512104364626,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 1
+              },
+              {
+                "addr": 15,
+                "chunk": 6
+              }
+            ],
+            "xor": 17361641481138401520
+          },
+          {
+            "actual": 12659242144484729517,
+            "chunk": 2,
+            "expected": 6437996109431329373,
+            "matches": [],
+            "xor": 17795678101677207792
+          },
+          {
+            "actual": 12585776088919223724,
+            "chunk": 3,
+            "expected": 6366781808018480990,
+            "matches": [],
+            "xor": 17794552233115710194
+          },
+          {
+            "actual": 12225209937859292335,
+            "chunk": 4,
+            "expected": 90560935190105,
+            "matches": [],
+            "xor": 12225296032026784502
+          },
+          {
+            "actual": 12153995635064614830,
+            "chunk": 5,
+            "expected": 6727356802215205722,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 3
+              },
+              {
+                "addr": 15,
+                "chunk": 8
+              }
+            ],
+            "xor": 17723905325330134260
+          },
+          {
+            "actual": 12369878193336725161,
+            "chunk": 6,
+            "expected": 6656142512104364626,
+            "matches": [],
+            "xor": 17867465225674224891
+          },
+          {
+            "actual": 12295580889868315048,
+            "chunk": 7,
+            "expected": 6437996109431329373,
+            "matches": [],
+            "xor": 17580635634764020725
+          },
+          {
+            "actual": 11722215275664877739,
+            "chunk": 8,
+            "expected": 6366781808018480990,
+            "matches": [],
+            "xor": 18083912924332947445
+          }
+        ],
+        "exact_chunk_count": 0,
+        "expected_addr": 0,
+        "sample": 0
+      },
+      {
+        "best_addr_by_same_chunk": 15,
+        "best_addr_same_chunk_count": 2,
+        "chunks": [
+          {
+            "actual": 12514570629261339562,
+            "chunk": 0,
+            "expected": 5569914036805978954,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 0
+              },
+              {
+                "addr": 15,
+                "chunk": 5
+              }
+            ],
+            "xor": 16204198715729174752
+          },
+          {
+            "actual": 12443356339150498466,
+            "chunk": 1,
+            "expected": 5498699746695137858,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 1
+              },
+              {
+                "addr": 15,
+                "chunk": 6
+              }
+            ],
+            "xor": 16204198715729174752
+          },
+          {
+            "actual": 12659242144484729517,
+            "chunk": 2,
+            "expected": 5280553344291586637,
+            "matches": [],
+            "xor": 16638235336537465056
+          },
+          {
+            "actual": 12585776088919223724,
+            "chunk": 3,
+            "expected": 5209339042609254222,
+            "matches": [],
+            "xor": 16637109467706483426
+          },
+          {
+            "actual": 12225209937859292335,
+            "chunk": 4,
+            "expected": 72899760180809,
+            "matches": [],
+            "xor": 12225278370851775206
+          },
+          {
+            "actual": 12153995635064614830,
+            "chunk": 5,
+            "expected": 5569914036805978954,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 3
+              },
+              {
+                "addr": 15,
+                "chunk": 8
+              }
+            ],
+            "xor": 16566462559920907492
+          },
+          {
+            "actual": 12369878193336725161,
+            "chunk": 6,
+            "expected": 5498699746695137858,
+            "matches": [],
+            "xor": 16710022460264998123
+          },
+          {
+            "actual": 12295580889868315048,
+            "chunk": 7,
+            "expected": 5280553344291586637,
+            "matches": [],
+            "xor": 16423192869624277989
+          },
+          {
+            "actual": 11722215275664877739,
+            "chunk": 8,
+            "expected": 5209339042609254222,
+            "matches": [],
+            "xor": 16926470158923720677
+          }
+        ],
+        "exact_chunk_count": 0,
+        "expected_addr": 1,
+        "sample": 1
+      },
+      {
+        "best_addr_by_same_chunk": 15,
+        "best_addr_same_chunk_count": 2,
+        "chunks": [
+          {
+            "actual": 12514570629261339562,
+            "chunk": 0,
+            "expected": 9042242333033659258,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 0
+              },
+              {
+                "addr": 15,
+                "chunk": 5
+              }
+            ],
+            "xor": 15046755950319947984
+          },
+          {
+            "actual": 12443356339150498466,
+            "chunk": 1,
+            "expected": 8971028042922818162,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 1
+              },
+              {
+                "addr": 15,
+                "chunk": 6
+              }
+            ],
+            "xor": 15046755950319947984
+          },
+          {
+            "actual": 12659242144484729517,
+            "chunk": 2,
+            "expected": 8752881639710814845,
+            "matches": [],
+            "xor": 15480792571397722320
+          },
+          {
+            "actual": 12585776088919223724,
+            "chunk": 3,
+            "expected": 8681667338836934526,
+            "matches": [],
+            "xor": 15479666702297256658
+          },
+          {
+            "actual": 12225209937859292335,
+            "chunk": 4,
+            "expected": 125883285208697,
+            "matches": [],
+            "xor": 12225260709676765910
+          },
+          {
+            "actual": 12153995635064614830,
+            "chunk": 5,
+            "expected": 9042242333033659258,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 3
+              },
+              {
+                "addr": 15,
+                "chunk": 8
+              }
+            ],
+            "xor": 15409019794511680724
+          },
+          {
+            "actual": 12369878193336725161,
+            "chunk": 6,
+            "expected": 8971028042922818162,
+            "matches": [],
+            "xor": 15552579694855771355
+          },
+          {
+            "actual": 12295580889868315048,
+            "chunk": 7,
+            "expected": 8752881639710814845,
+            "matches": [],
+            "xor": 15265750104484535253
+          },
+          {
+            "actual": 11722215275664877739,
+            "chunk": 8,
+            "expected": 8681667338836934526,
+            "matches": [],
+            "xor": 15769027393514493909
+          }
+        ],
+        "exact_chunk_count": 0,
+        "expected_addr": 2,
+        "sample": 2
+      },
+      {
+        "best_addr_by_same_chunk": 15,
+        "best_addr_same_chunk_count": 2,
+        "chunks": [
+          {
+            "actual": 12514570629261339562,
+            "chunk": 0,
+            "expected": 7884799567624432490,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 0
+              },
+              {
+                "addr": 15,
+                "chunk": 5
+              }
+            ],
+            "xor": 13889313184910721216
+          },
+          {
+            "actual": 12443356339150498466,
+            "chunk": 1,
+            "expected": 7813585277513591394,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 1
+              },
+              {
+                "addr": 15,
+                "chunk": 6
+              }
+            ],
+            "xor": 13889313184910721216
+          },
+          {
+            "actual": 12659242144484729517,
+            "chunk": 2,
+            "expected": 7595438874571072109,
+            "matches": [],
+            "xor": 14323349806257979584
+          },
+          {
+            "actual": 12585776088919223724,
+            "chunk": 3,
+            "expected": 7524224573427707758,
+            "matches": [],
+            "xor": 14322223936888029890
+          },
+          {
+            "actual": 12225209937859292335,
+            "chunk": 4,
+            "expected": 108222110199401,
+            "matches": [],
+            "xor": 12225243048501756614
+          },
+          {
+            "actual": 12153995635064614830,
+            "chunk": 5,
+            "expected": 7884799567624432490,
+            "matches": [
+              {
+                "addr": 15,
+                "chunk": 3
+              },
+              {
+                "addr": 15,
+                "chunk": 8
+              }
+            ],
+            "xor": 14251577029102453956
+          },
+          {
+            "actual": 12369878193336725161,
+            "chunk": 6,
+            "expected": 7813585277513591394,
+            "matches": [],
+            "xor": 14395136929446544587
+          },
+          {
+            "actual": 12295580889868315048,
+            "chunk": 7,
+            "expected": 7595438874571072109,
+            "matches": [],
+            "xor": 14108307339344792517
+          },
+          {
+            "actual": 11722215275664877739,
+            "chunk": 8,
+            "expected": 7524224573427707758,
+            "matches": [],
+            "xor": 14611584628105267141
+          }
+        ],
+        "exact_chunk_count": 0,
+        "expected_addr": 3,
+        "sample": 3
+      }
+    ],
+    "valid_count": 4
+  },
+  "date": "2026-05-08",
+  "experiment": "litedram-v112-native-packing-classifier",
+  "interpretation": {
+    "all_captured_samples_identical": true,
+    "best_same_chunk_addr_sequence": [
+      15,
+      15,
+      15,
+      15
+    ],
+    "best_same_chunk_count_sequence": [
+      2,
+      2,
+      2,
+      2
+    ],
+    "exact_beat_matches": [],
+    "exact_chunk_count_sequence": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "next_gate": "Hold write pattern fixed and run a native address-stride/address-shift classifier: issue reads to a sparse set of native addresses and compare returned beats against a wider DFII address dictionary, then adjust native cmd_addr formation before more PHY calibration work.",
+    "verdict": "DFII writes are visible to native reads, but native read address progression or address mapping is wrong; first four native responses repeat the same 576-bit beat and partially match DFII address 15 rather than expected addresses 0..3."
+  },
+  "question": "Classify whether the DFII-seeded native read mismatch is caused by native address mapping or 576-bit beat/chunk packing.",
+  "readback_json": "artifacts/task6/runs/2026-05-08T14-28-38+0200-litedram-v112-native-packing-classifier/readback/litedram-probe.json",
+  "run_dir": "artifacts/task6/runs/2026-05-08T14-28-38+0200-litedram-v112-native-packing-classifier"
+}
