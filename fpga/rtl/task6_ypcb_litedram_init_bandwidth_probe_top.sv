@@ -5,6 +5,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter int CAL_COUNT_LOG2 = 5,
   parameter int TIMEOUT_LOG2 = 28,
   parameter int WB_TIMEOUT_LOG2 = 20,
+  parameter int unsigned NATIVE_CMDADDR_FIRST_COMMAND_INDEX = 0,
   parameter bit DFII_DISABLE_WRITE_COMMAND = 1'b0,
   parameter bit DFII_PHASE_MATRIX_ONLY = 1'b0,
   parameter bit DFII_SOURCE_COMMAND_MATRIX_ONLY = 1'b0,
@@ -107,6 +108,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v115 keeps that trace in the compact payload so the JTAG shifter does not
   // perturb the fragile DDR init placement. v116 reduces the cmd_addr trace to
   // a single first-command latch in otherwise v113-like sparse-read behavior.
+  // v117 adds `NATIVE_CMDADDR_FIRST_COMMAND_INDEX` and latches only that index.
   localparam int CAL_BYTE_LANES = 8;
   localparam int NATIVE_PACKING_SAMPLE_COUNT = 4;
   localparam int NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT = 16;
@@ -4410,7 +4412,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
 
       if (read_state) begin
         if (native_cmdaddr_trace_mode && cmd_valid &&
-            !native_cmdaddr_first_presented_valid_q) begin
+            !native_cmdaddr_first_presented_valid_q &&
+            command_count_q[7:0] == NATIVE_CMDADDR_FIRST_COMMAND_INDEX[7:0]) begin
           native_cmdaddr_first_scheduled_q <= scheduled_read_addr;
           native_cmdaddr_first_presented_q <= cmd_addr;
           native_cmdaddr_first_command_index_q <= command_count_q[7:0];
@@ -4418,7 +4421,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
         end
         if (cmd_valid && cmd_ready) begin
           if (native_cmdaddr_trace_mode &&
-              !native_cmdaddr_first_accepted_valid_q) begin
+              !native_cmdaddr_first_accepted_valid_q &&
+              command_count_q[7:0] == NATIVE_CMDADDR_FIRST_COMMAND_INDEX[7:0]) begin
             native_cmdaddr_first_accepted_q <= cmd_addr;
             native_cmdaddr_first_accepted_valid_q <= 1'b1;
           end
