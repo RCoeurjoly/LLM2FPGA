@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-08T19:36:53.105112+02:00"
+label: "v111-cmdaddr-idx0-board-check"
+experiment: "Trace first native command index 0 mapping"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: null
+reference_artifacts:
+notes: null

@@ -1,0 +1,56 @@
+$ python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --serial 210299BF3824 --tdo-bit 7 --bits 768 --poll --poll-count 12 --poll-interval 0.25 --json-only
+{
+  "attempts": 1,
+  "backend": "ftdi-mpsse",
+  "c_fc_gemv_lane1_samples": [],
+  "c_fc_post_gelu_samples": [],
+  "c_fc_transfer_post_gelu_samples": [],
+  "c_proj_gemv_lane0_samples": [],
+  "decoded": {
+    "c_proj_requant_stage": "N/A",
+    "fail_reason": "NONE",
+    "state": "SELFTEST_PASS",
+    "status": {
+      "fail": false,
+      "output_head_done": false,
+      "pass": true,
+      "residual_done": false
+    }
+  },
+  "fields": {
+    "cycle_count": 172538,
+    "embedding_combined_checksum": 7796,
+    "embedding_position_checksum": 8545,
+    "embedding_position_id": 0,
+    "embedding_token_checksum": 6675,
+    "embedding_token_id": 0,
+    "expected_embedding_combined_checksum": 7796,
+    "expected_embedding_position_checksum": 8545,
+    "expected_embedding_token_checksum": 6675,
+    "expected_head_activation_checksum": 7929,
+    "expected_top_acc": 54965,
+    "expected_top_index": 229,
+    "expected_vocab_first_word": 200741896,
+    "expected_vocab_last_word": 3959813373,
+    "expected_vocab_weight_checksum": 1765564477,
+    "fail_expected_residual": 0,
+    "fail_index": 0,
+    "fail_observed_residual": 0,
+    "fail_observed_top_acc": 54965,
+    "fail_observed_top_index": 229,
+    "fail_reason": 0,
+    "head_activation_checksum": 7929,
+    "live_top_acc_low24": 54965,
+    "live_top_index": 229,
+    "magic": 1412844100,
+    "state": 18,
+    "status": 1,
+    "version": 13,
+    "vocab_first_word": 200741896,
+    "vocab_last_word": 3959813373,
+    "vocab_load_checksum": 1765564477
+  },
+  "magic_ok": true,
+  "raw_hex": "0x000000000000000000001e7400001e74000021610000216100001a1300001a1300001ef900001ef9ec05f4fdec05f4fd0bf714080bf71408693c603d693c603d00d6b500e50000d6b50000d6b500e500e5000000000002a1fa01120d54364a44",
+  "serial": "210299BF3824"
+}

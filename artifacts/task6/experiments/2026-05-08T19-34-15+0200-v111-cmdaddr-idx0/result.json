@@ -1,0 +1,107 @@
+{
+  "created_at": "2026-05-08T19:34:15.613556+02:00",
+  "finished_at": "2026-05-08T19:36:31.015553+02:00",
+  "gates": [
+    {
+      "argv": [
+        "nix",
+        "build",
+        ".#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0-json",
+        "--no-link",
+        "--print-out-paths",
+        "-L"
+      ],
+      "attr": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0-json",
+      "command_index": 0,
+      "finished_at": "2026-05-08T19:34:16.581453+02:00",
+      "log": "artifacts/task6/experiments/2026-05-08T19-34-15+0200-v111-cmdaddr-idx0/logs/json.idx-0.log",
+      "name": "json",
+      "out_paths": [
+        "/nix/store/pq4adr36rdl072m9cn9ckglm7lmwq763-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0.json"
+      ],
+      "returncode": 0,
+      "started_at": "2026-05-08T19:34:15.623162+02:00",
+      "status": "PASS",
+      "summary": {}
+    },
+    {
+      "argv": [
+        "nix",
+        "build",
+        ".#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0-fasm",
+        "--no-link",
+        "--print-out-paths",
+        "-L"
+      ],
+      "attr": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0-fasm",
+      "command_index": 0,
+      "finished_at": "2026-05-08T19:34:57.523013+02:00",
+      "log": "artifacts/task6/experiments/2026-05-08T19-34-15+0200-v111-cmdaddr-idx0/logs/fasm.idx-0.log",
+      "name": "fasm",
+      "out_paths": [
+        "/nix/store/r6m408lqs0iv130c641mgqvxhp4zqk6y-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0.fasm.drv",
+        "/nix/store/i5xc4j06wm993jpj9cdccwck2ghj8xn2-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0.fasm"
+      ],
+      "returncode": 0,
+      "started_at": "2026-05-08T19:34:16.582236+02:00",
+      "status": "PASS",
+      "summary": {
+        "max_frequencies": [],
+        "route": {
+          "iterations": [],
+          "last": null,
+          "routed": false
+        }
+      }
+    },
+    {
+      "argv": [
+        "nix",
+        "build",
+        ".#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0-bitstream",
+        "--no-link",
+        "--print-out-paths",
+        "-L"
+      ],
+      "attr": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0-bitstream",
+      "command_index": 0,
+      "finished_at": "2026-05-08T19:36:31.014526+02:00",
+      "log": "artifacts/task6/experiments/2026-05-08T19-34-15+0200-v111-cmdaddr-idx0/logs/bitstream.idx-0.log",
+      "name": "bitstream",
+      "out_paths": [
+        "/nix/store/3gdv04qy9p9wv2ynva53x4ppn7ag38jq-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0.bit.drv",
+        "/nix/store/39kllxidahgcr11sd47wv0awabqqzzcj-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0.bit"
+      ],
+      "returncode": 0,
+      "started_at": "2026-05-08T19:34:57.523796+02:00",
+      "status": "PASS",
+      "summary": {
+        "max_frequencies": [],
+        "route": {
+          "iterations": [],
+          "last": null,
+          "routed": false
+        }
+      }
+    }
+  ],
+  "label": "v111-cmdaddr-idx0",
+  "parameters": {
+    "flake_prefix": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe",
+    "native_cmdaddr_first_command_indices": [
+      0
+    ],
+    "physical_vocab_size": 9984,
+    "tile_out_dim": 64,
+    "vocab_size": 9984,
+    "weight_quantization": null
+  },
+  "repo": {
+    "git_dirty": true,
+    "git_head": "2bfd0f2e0ea6d7b5eea80b00f0101821962bb7de",
+    "root": "/home/roland/LLM2FPGA_task6_streamtensor_lite"
+  },
+  "run_dir": "artifacts/task6/experiments/2026-05-08T19-34-15+0200-v111-cmdaddr-idx0",
+  "schema": "task6-experiment-result-v1",
+  "status": "PASS"
+}

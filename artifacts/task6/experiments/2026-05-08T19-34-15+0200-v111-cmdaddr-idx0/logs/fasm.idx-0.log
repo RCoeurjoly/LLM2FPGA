@@ -1,0 +1,4 @@
+$ nix build '.#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0-fasm' --no-link --print-out-paths -L
+this derivation will be built:
+  /nix/store/r6m408lqs0iv130c641mgqvxhp4zqk6y-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0.fasm.drv
+/nix/store/i5xc4j06wm993jpj9cdccwck2ghj8xn2-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0.fasm

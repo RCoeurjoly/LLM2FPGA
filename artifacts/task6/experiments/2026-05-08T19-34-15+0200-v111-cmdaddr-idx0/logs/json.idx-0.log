@@ -1,0 +1,2 @@
+$ nix build '.#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0-json' --no-link --print-out-paths -L
+/nix/store/pq4adr36rdl072m9cn9ckglm7lmwq763-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-0.json

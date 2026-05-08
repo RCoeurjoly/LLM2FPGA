@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-08T19:32:49.692448+02:00"
+label: "v9984-jtag-debug-program-readback-explicit-only"
+experiment: "Task6 v9984 tile64 JTAG-debug board proof with explicit serial"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: null
+reference_artifacts:
+notes: null
