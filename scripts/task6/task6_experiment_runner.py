@@ -41,6 +41,17 @@ GATES: dict[str, Gate] = {
 }
 
 DEFAULT_GATE_ORDER = ("tb-data", "sv-sim", "json")
+CMDADDR_TRACE_PREFIX = (
+    "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-"
+    "addrwalk-native-cmdaddr-trace-init-bandwidth-probe"
+)
+CMDADDR_TRACE_INDEX_GATE_SUFFIX = {
+    "tb-data": "tb-data-sv",
+    "sv-sim": "sv-sim",
+    "json": "json",
+    "fasm": "fasm",
+    "bitstream": "bitstream",
+}
 
 
 def iso_timestamp() -> str:
@@ -79,6 +90,15 @@ def derive_prefix(args: argparse.Namespace) -> str:
     if args.flake_prefix:
         return args.flake_prefix
 
+    if args.native_cmdaddr_first_command_index:
+        return CMDADDR_TRACE_PREFIX
+
+    if args.weight_quantization is None:
+        raise SystemExit(
+            "no implicit flake target without --weight-quantization or --flake-prefix "
+            "or --native-cmdaddr-first-command-index"
+        )
+
     if args.weight_quantization == "ternary2":
         if args.vocab_size == 9984 and (args.physical_vocab_size in (None, 9984)):
             return "task6-ternary-v9984-l2-residual-add-output-head-selftest"
@@ -105,6 +125,28 @@ def derive_prefix(args: argparse.Namespace) -> str:
         return "task6-int8-v9984-l2-residual-add-output-head-selftest"
 
     raise SystemExit("no default int8 flake target for this shape; pass --flake-prefix")
+
+
+def parse_command_indices(values: list[int] | None) -> list[int | None]:
+    if not values:
+        return [None]
+    return sorted(set(values))
+
+
+def make_attr_name(prefix: str, gate: Gate, command_index: int | None) -> str:
+    if command_index is None:
+        return f"{prefix}-{gate.attr_suffix}"
+
+    if prefix != CMDADDR_TRACE_PREFIX:
+        raise SystemExit(
+            "command-index sweep is only implemented for cmdaddr-trace prefix: "
+            f"{CMDADDR_TRACE_PREFIX}"
+        )
+
+    return (
+        f"{prefix}-native-cmdaddr-first-command-index-{command_index}-"
+        f"{CMDADDR_TRACE_INDEX_GATE_SUFFIX[gate.name]}"
+    )
 
 
 def parse_nix_out_paths(stdout: str) -> list[str]:
@@ -230,10 +272,15 @@ def run_gate(
     gate: Gate,
     attr: str,
     run_dir: Path,
+    command_index: int | None,
     timeout_s: int | None,
     extra_nix_args: list[str],
 ) -> dict[str, Any]:
-    log_path = run_dir / "logs" / f"{gate.name}.log"
+    if command_index is None:
+        log_name = f"{gate.name}.log"
+    else:
+        log_name = f"{gate.name}.idx-{command_index}.log"
+    log_path = run_dir / "logs" / log_name
     argv = [
         "nix",
         "build",
@@ -356,7 +403,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--weight-quantization",
         choices=("int8", "ternary2", "ternary-base3-20"),
-        required=True,
+        default=None,
+    )
+    parser.add_argument(
+        "--native-cmdaddr-first-command-index",
+        action="append",
+        type=int,
+        default=[],
     )
     parser.add_argument("--flake-prefix")
     parser.add_argument(
@@ -376,6 +429,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     prefix = derive_prefix(args)
+    command_indices = parse_command_indices(args.native_cmdaddr_first_command_index)
     gate_names = tuple(args.gate or DEFAULT_GATE_ORDER)
     run_dir = EXPERIMENT_ROOT / f"{iso_timestamp()}-{sanitize_label(args.label)}"
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -396,6 +450,7 @@ def main() -> int:
             "tile_out_dim": args.tile_out_dim,
             "weight_quantization": args.weight_quantization,
             "flake_prefix": prefix,
+            "native_cmdaddr_first_command_indices": command_indices,
         },
         "gates": [],
         "status": "RUNNING",
@@ -428,23 +483,28 @@ def main() -> int:
     final_status = "PASS"
     bitstream_path: str | None = None
     try:
-        for gate_name in gate_names:
-            gate = GATES[gate_name]
-            attr = f"{prefix}-{gate.attr_suffix}"
-            result = run_gate(
-                gate=gate,
-                attr=attr,
-                run_dir=run_dir,
-                timeout_s=args.timeout_s,
-                extra_nix_args=args.nix_arg,
-            )
-            payload["gates"].append(result)
-            if result["out_paths"] and gate_name == "bitstream":
-                bitstream_path = result["out_paths"][-1]
-            if result["status"] != "PASS":
-                final_status = "FAIL"
+        for command_index in command_indices:
+            for gate_name in gate_names:
+                gate = GATES[gate_name]
+                attr = make_attr_name(prefix, gate, command_index)
+                result = run_gate(
+                    gate=gate,
+                    attr=attr,
+                    command_index=command_index,
+                    run_dir=run_dir,
+                    timeout_s=args.timeout_s,
+                    extra_nix_args=args.nix_arg,
+                )
+                result["command_index"] = command_index
+                payload["gates"].append(result)
+                if result["out_paths"] and gate_name == "bitstream":
+                    bitstream_path = result["out_paths"][-1]
+                if result["status"] != "PASS":
+                    final_status = "FAIL"
+                    break
+                write_json(result_path, {**payload, "status": "RUNNING"})
+            if final_status != "PASS":
                 break
-            write_json(result_path, {**payload, "status": "RUNNING"})
     except subprocess.TimeoutExpired as exc:
         final_status = "TIMEOUT"
         payload["gates"].append(
@@ -457,6 +517,18 @@ def main() -> int:
         )
 
     if final_status == "PASS" and args.program_board:
+        if len(command_indices) > 1:
+            final_status = "FAIL"
+            payload["gates"].append(
+                {
+                    "name": "board-program",
+                    "status": "FAIL",
+                    "error": "--program-board requires a single command index",
+                }
+            )
+            write_json(result_path, {**payload, "status": final_status})
+            print(result_path)
+            return 1
         if bitstream_path is None:
             final_status = "FAIL"
             payload["gates"].append(

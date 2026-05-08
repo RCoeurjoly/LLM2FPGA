@@ -659,6 +659,26 @@ Artifacts:
 - `artifacts/task6/parallel-hypotheses/e1-vocab9984-existing-fasm-board-program-retry-summary.json`
 - `artifacts/task6/runs/2026-05-08T11-15-57+0200-v9984-existing-fasm-program-retry`
 
+### v9984 JTAG-debug explicit-serial-only board proof (2026-05-08)
+
+Question:
+
+- Given flaky JTAG enumeration discovery, can we keep the board proof loop
+  stable by skipping `--detect` and always using explicit `--ftdi-serial`?
+
+Commands:
+
+- `python3 scripts/task6/task6_board_run.py with-lock --run-dir artifacts/task6/runs/2026-05-08T19-32-49+0200-v9984-jtag-debug-program-readback-explicit-only --log-name program-openfpgaloader.log -- openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/k52psqh0lv416xbg5xgl3zs5fxlamm0f-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit`
+- `python3 scripts/task6/task6_board_run.py with-lock --run-dir artifacts/task6/runs/2026-05-08T19-32-49+0200-v9984-jtag-debug-program-readback-explicit-only --log-name read_jtag_debug_ftdi_bitbang.log -- python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --backend mpsse --serial 210299BF3824 --tdo-bit 7 --bits 768 --poll --poll-count 12 --poll-interval 0.25 --json-only`
+
+Result:
+
+- Programming was successful through explicit serial path:
+  - `isc_done=1`, `done=1`
+- JTAG readback was successful with `magic_ok=true`, `state=SELFTEST_PASS`,
+  top index/acc matching expected (`229`, `54965`)
+- No board `--detect` invocation was needed for this loop.
+
 ### v9984 LED observation (2026-05-08)
 
 User visual observation after programming:
