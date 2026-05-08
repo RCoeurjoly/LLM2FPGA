@@ -1,9 +1,9 @@
 {
   "schema": "task6-board-verdict-v1",
-  "status": "PARTIAL_PASS",
+  "status": "PASS_VISUAL",
   "created_at": "2026-05-08T11:15:57.793454+02:00",
   "run_dir": "artifacts/task6/runs/2026-05-08T11-15-57+0200-v9984-existing-fasm-program-retry",
-  "correctness": "NOT_OBSERVED_AUTONOMOUSLY",
+  "correctness": "PASS_VISUAL_LED",
   "route": "PASS_FROM_EXISTING_FASM",
   "board": "PROGRAMMED_DONE_ASSERTED",
   "bram_margin": null,
@@ -16,6 +16,8 @@
     "openFPGALoader programmed the reconstructed v9984 bitstream successfully; status reported isc_done=1 init=1 done=1.",
     "Direct FTDI IDCODE readback required --tdo-bit 7 and then matched 0x23751093.",
     "Selftest JTAG payload readback returned all zeros because the exact routed v9984 top has ENABLE_JTAG_DEBUG=0, so the BSCANE2 debug block is not instantiated.",
-    "Functional pass/fail for this specific image is therefore visible only through led_3bits_tri_o unless a JTAG-debug-enabled v9984 image is built and routed."
+    "Functional pass/fail for this specific image is therefore visible only through led_3bits_tri_o unless a JTAG-debug-enabled v9984 image is built and routed.",
+    "User visual observation after programming: LED0 green on, LED1 red blinking, LED2 on, LED3 off.",
+    "Assuming LED0 green is board power/status and LED1-LED3 correspond to led_3bits_tri_o[0:2], the observed pattern is blink/pass/fail = blinking/on/off, which matches SELFTEST_PASS."
   ]
 }

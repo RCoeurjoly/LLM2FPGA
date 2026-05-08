@@ -1,0 +1,39 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab9984-existing-fasm-led-observation",
+  "date": "2026-05-08",
+  "question": "Does the programmed v9984/tile64 selftest image report pass/fail through the board LEDs?",
+  "status": "PASS_VISUAL",
+  "source_programming_run": "artifacts/task6/runs/2026-05-08T11-15-57+0200-v9984-existing-fasm-program-retry",
+  "rtl_led_semantics": {
+    "led_3bits_tri_o[0]": "blink_count_q[25]",
+    "led_3bits_tri_o[1]": "state_q == SELFTEST_PASS",
+    "led_3bits_tri_o[2]": "state_q == SELFTEST_FAIL"
+  },
+  "constraint_mapping": {
+    "led_3bits_tri_o[0]": "PACKAGE_PIN P30",
+    "led_3bits_tri_o[1]": "PACKAGE_PIN M30",
+    "led_3bits_tri_o[2]": "PACKAGE_PIN N30"
+  },
+  "user_observation": {
+    "LED0": "green on",
+    "LED1": "red blinking",
+    "LED2": "on",
+    "LED3": "off"
+  },
+  "interpretation": {
+    "assumption": "LED0 green is board power/status; LED1, LED2, and LED3 correspond to the three FPGA-driven led_3bits_tri_o outputs in order.",
+    "blink_led": "observed",
+    "pass_led": "observed_on",
+    "fail_led": "observed_off",
+    "verdict": "The visual LED pattern matches SELFTEST_PASS and not SELFTEST_FAIL."
+  },
+  "limitations": {
+    "autonomous_jtag_payload": "not available for this exact image because ENABLE_JTAG_DEBUG=0",
+    "human_visual_observation": true
+  },
+  "decision": {
+    "board_correctness_gate": "PASS_VISUAL",
+    "next_gate": "Build a JTAG-debug-enabled v9984 image if autonomous non-visual correctness evidence is needed."
+  }
+}

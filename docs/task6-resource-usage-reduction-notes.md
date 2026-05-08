@@ -495,6 +495,36 @@ Artifacts:
 - `artifacts/task6/parallel-hypotheses/e1-vocab9984-existing-fasm-board-program-retry-summary.json`
 - `artifacts/task6/runs/2026-05-08T11-15-57+0200-v9984-existing-fasm-program-retry`
 
+### v9984 LED observation (2026-05-08)
+
+User visual observation after programming:
+
+- LED0: green on
+- LED1: red blinking
+- LED2: on
+- LED3: off
+
+RTL LED semantics for this image:
+
+- `led_3bits_tri_o[0] = blink_count_q[25]`
+- `led_3bits_tri_o[1] = state_q == SELFTEST_PASS`
+- `led_3bits_tri_o[2] = state_q == SELFTEST_FAIL`
+
+Interpretation:
+
+- Assuming LED0 green is board power/status and LED1-LED3 are the three
+  FPGA-driven `led_3bits_tri_o` outputs in order, the observed pattern is:
+  - blink LED: blinking
+  - pass LED: on
+  - fail LED: off
+- That matches `SELFTEST_PASS`.
+- This is human visual correctness evidence, not autonomous JTAG payload
+  evidence. The exact routed image still has `ENABLE_JTAG_DEBUG=0`.
+
+Artifact:
+
+- `artifacts/task6/parallel-hypotheses/e1-vocab9984-existing-fasm-led-observation-summary.json`
+
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
 Constraint:
