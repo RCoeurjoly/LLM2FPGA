@@ -3442,6 +3442,26 @@
               --out-md "$out/output-head-v10k-sweep.md"
           '';
 
+        task6OutputHeadV10kMultisampleQuantizationSweep =
+          pkgs.runCommand "task6-output-head-v10k-multisample-quantization-sweep" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./scripts/task6/score_output_head_multisample_quantization.py
+            } \
+              --model-path ${tinyStories1m.snapshot} \
+              --adapter-path ${./TinyStories/model_adapter_representative_core.py} \
+              --vocab-size 10000 \
+              --num-layers 1 \
+              --max-position-embeddings 128 \
+              --window-size 64 \
+              --hidden-size 64 \
+              --num-heads 16 \
+              --model-label tiny-stories-v10k-h64-l1 \
+              --sample-count 8 \
+              --out-json "$out/output-head-v10k-multisample-sweep.json" \
+              --out-md "$out/output-head-v10k-multisample-sweep.md"
+          '';
+
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
             sed \
@@ -9263,6 +9283,8 @@
             task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTbDataSv;
           task6-output-head-v10k-quantization-sweep =
             task6OutputHeadV10kQuantizationSweep;
+          task6-output-head-v10k-multisample-quantization-sweep =
+            task6OutputHeadV10kMultisampleQuantizationSweep;
           task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top =
             task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop;
           task6-int8-v6k-l2-residual-add-output-head-selftest-tb-data-sv =

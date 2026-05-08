@@ -15281,3 +15281,75 @@ Interpretation:
 - INT3 per-row is the next riskier compression target: it preserves top-1 and
   `4/5` top-5 on this sample at `3` bits/weight.
 - INT2 and cheap ternary are too lossy for the immediate model-progress lane.
+
+### Current global priority plan (2026-05-08)
+
+Priority order for the next Task 6 work:
+
+1. Multi-sample INT4/INT3 output-head fidelity sweep.
+   - Reason: single-sample evidence says INT4 per-row is much stronger than
+     ternary and halves INT8 output-head storage.
+   - Promotion bar: all samples preserve top-1, minimum top-5 overlap at least
+     `4/5`, and max normalized RMSE at most `0.30`.
+2. If INT4 passes multi-sample fidelity, implement INT4 packed output-head RTL
+   on the proven JTAG-debug lane.
+   - Keep v9984 INT8 JTAG-debug as the board regression.
+   - Use `TILE_OUT_DIM=64` first unless the packing strongly argues otherwise.
+3. If INT4 fails but INT3/INT4 remains close, improve quantization scoring
+   before RTL:
+   - more samples
+   - per-row scale storage shape
+   - Q-format sidecar scoring
+4. Keep ternary/base3 as hardware-research side lane, not model-progress
+   mainline, until trained ternary weights or a stronger post-training method
+   exists.
+5. Keep DDR/external memory as the fallback for full-vocab/full-model weights,
+   but avoid spending the next short iteration there unless quantization cannot
+   preserve enough fidelity.
+
+Execution result:
+
+- Added `scripts/task6/score_output_head_multisample_quantization.py`.
+- Added flake target:
+  `task6-output-head-v10k-multisample-quantization-sweep`.
+- Ran:
+  `nix build .#task6-output-head-v10k-multisample-quantization-sweep --no-link --print-out-paths -L`
+- Durable artifacts:
+  - `artifacts/task6/quantization/output-head-v10k-multisample-sweep.json`
+  - `artifacts/task6/quantization/output-head-v10k-multisample-sweep.md`
+
+Multi-sample result:
+
+| strategy | bits/w | scales | zero % | top1 | min top5 | mean top5 | min top10 | max rank | mean RMSE | max RMSE | packed words | promote |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `int8_per_tensor` | 8.000 | 1 | 1.5 | 8/8 | 5 | 5.00 | 9 | 1 | 0.0110 | 0.0111 | n/a | yes |
+| `int4_per_row` | 4.000 | 10000 | 14.8 | 6/8 | 3 | 3.88 | 7 | 2 | 0.1075 | 0.1089 | 80000 | no |
+| `int3_per_row` | 3.000 | 10000 | 33.4 | 6/8 | 2 | 3.38 | 6 | 3 | 0.2521 | 0.2560 | 60000 | no |
+| `int4_per_tensor` | 4.000 | 1 | 27.0 | 5/8 | 2 | 3.50 | 7 | 5 | 0.1989 | 0.2011 | 80000 | no |
+| `int3_per_tensor` | 3.000 | 1 | 58.0 | 5/8 | 1 | 2.25 | 3 | 9 | 0.4629 | 0.4660 | 60000 | no |
+| `int2_per_row` | 2.000 | 10000 | 79.7 | 4/8 | 0 | 1.50 | 1 | 31 | 0.7174 | 0.7272 | 40000 | no |
+| `ternary_per_row_t0.25_lsq` | 1.585 | 10000 | 15.7 | 1/8 | 0 | 1.50 | 1 | 142 | 0.5174 | 0.5259 | 32000 | no |
+
+Updated interpretation:
+
+- The single-sample INT4 result was too optimistic.
+- INT4 per-row is still the best low-bit candidate, but it does not pass the
+  current promotion bar on the eight-sample representative-core sweep.
+- INT3 and ternary should not receive RTL work now.
+- The next quantization step, if pursued, should be full TinyStories-1M
+  pretrained-output-head fidelity scoring rather than more representative-core
+  RTL. The current representative-core adapter preserves shape but initializes
+  a reduced model from config, so it is a hardware-structure proxy, not final
+  model-quality evidence.
+
+Global priority after this result:
+
+1. Keep the v9984 INT8 JTAG-debug lane as the current proof of autonomous
+   board-correct execution.
+2. Run true pretrained TinyStories-1M output-head quantization scoring for
+   INT8, INT4 rowwise, and possibly INT3 rowwise across deterministic samples.
+3. If pretrained INT4 rowwise passes, implement INT4 output-head RTL.
+4. If pretrained INT4 rowwise fails, shift priority away from aggressive
+   output-head quantization and toward:
+   - time-multiplexed INT8 plus external memory/DDR or PCIe streaming, or
+   - a smaller-vocab demonstrator with clear token-generation video evidence.
