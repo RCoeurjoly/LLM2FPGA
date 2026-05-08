@@ -4653,6 +4653,26 @@
             ${pkgs.yosys}/bin/yosys -s run.ys
           '';
 
+        task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeJson =
+          pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog ${task6YpcbLiteDramNoOdelayLowrateDfiDebugRtlElaboration}/build/gateware/ypcb_litedram_core.v
+            read_verilog -sv -DTASK6_LITEDRAM_DEBUG_PORTS ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            chparam -set DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE 1 task6_ypcb_litedram_init_bandwidth_probe_top
+            chparam -set READ_COUNT_LOG2 4 task6_ypcb_litedram_init_bandwidth_probe_top
+            hierarchy -top task6_ypcb_litedram_init_bandwidth_probe_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
+            write_json "$out"
+            EOF
+            ${pkgs.yosys}/bin/yosys -s run.ys
+          '';
+
         task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.json" {
             buildInputs = [ pkgs.yosys ];
@@ -4858,6 +4878,15 @@
             topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
             designJson =
               task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeJson;
+          };
+
+        task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_ypcb_litedram_init_bandwidth_probe_top";
+            designJson =
+              task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeJson;
           };
 
         task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeUtilization =
@@ -5078,6 +5107,15 @@
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeXdc = mkXdc {
           name = "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe";
+          includeBoardXdc = false;
+          extraConstraints = [
+            "${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
+            ./fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc
+          ];
+        };
+
+        task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeXdc = mkXdc {
+          name = "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe";
           includeBoardXdc = false;
           extraConstraints = [
             "${task6YpcbLiteDramNoOdelayLowrateRtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
@@ -5342,6 +5380,16 @@
           freqMHz = 25;
         };
 
+        task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeFasm = mkFasm {
+          name = "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe";
+          xdc =
+            task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeXdc;
+          json =
+            task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeJson;
+          seed = 13;
+          freqMHz = 25;
+        };
+
         task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeFasm = mkFasm {
           name = "task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe";
           xdc =
@@ -5586,6 +5634,16 @@
               task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeFasm;
             framesBase =
               "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe";
+          };
+
+        task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeBitstream =
+          mkBitstream {
+            name =
+              "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe";
+            fasm =
+              task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeFasm;
+            framesBase =
+              "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe";
           };
 
         task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeBitstream =
@@ -9239,6 +9297,8 @@
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativePackingClassifierInitBandwidthProbeJson;
           task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe-json =
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeJson;
+          task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-json =
+            task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeJson;
           task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-json =
             task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeJson;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-utilization =
@@ -9283,6 +9343,8 @@
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativePackingClassifierInitBandwidthProbeUtilization;
           task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe-utilization =
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeUtilization;
+          task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-utilization =
+            task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeUtilization;
           task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-utilization =
             task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeUtilization;
           task6-ypcb-litedram-init-bandwidth-probe-xdc =
@@ -9333,6 +9395,8 @@
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativePackingClassifierInitBandwidthProbeXdc;
           task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe-xdc =
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeXdc;
+          task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-xdc =
+            task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeXdc;
           task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-xdc =
             task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeXdc;
           task6-ypcb-litedram-init-bandwidth-probe-fasm =
@@ -9387,6 +9451,8 @@
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativePackingClassifierInitBandwidthProbeFasm;
           task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe-fasm =
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeFasm;
+          task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-fasm =
+            task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeFasm;
           task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-fasm =
             task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeFasm;
           task6-ypcb-litedram-no-odelay-init-bandwidth-probe-bitstream =
@@ -9437,6 +9503,8 @@
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativePackingClassifierInitBandwidthProbeBitstream;
           task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe-bitstream =
             task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeBitstream;
+          task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-bitstream =
+            task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeBitstream;
           task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe-bitstream =
             task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeBitstream;
           task6-ypcb-litedram-init-bandwidth-probe-iopad-json =

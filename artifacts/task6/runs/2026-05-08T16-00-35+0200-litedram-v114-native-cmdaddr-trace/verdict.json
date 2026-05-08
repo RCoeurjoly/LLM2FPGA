@@ -1,0 +1,8 @@
+{
+  "readback_json": "artifacts/task6/runs/2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace/readback/litedram-probe.json",
+  "retry_readback_json": "artifacts/task6/runs/2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace/readback/litedram-probe-retry1.json",
+  "result": "fail",
+  "result_artifact": "artifacts/task6/parallel-hypotheses/e1-litedram-v115-native-cmdaddr-trace-summary.json",
+  "summary": "The v114 wide cmd_addr trace routed but failed before native commands. Both initial and retry readbacks reported PROBE_ERROR with init_seq_error=true, wb_timeout_seen=true, and command_count=response_count=0.",
+  "version": 114
+}

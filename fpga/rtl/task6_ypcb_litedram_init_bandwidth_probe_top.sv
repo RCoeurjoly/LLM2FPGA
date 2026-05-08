@@ -26,6 +26,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER = 1'b0,
+  parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE = 1'b0,
   parameter bit DFII_EDGE_COMP_CSR_ONLY = 1'b0,
   parameter bit DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY = 1'b0,
   parameter int DFII_SOURCE_COMMAND_READ_PHASE = 2,
@@ -52,7 +53,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   output wire          ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd113;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd115;
   // v53 fixed the DFII CSR layout for the 72-bit no-ODELAY PHY. v54 restores a
   // non-overlapping DFII-first JTAG payload so board evidence is not decoded as
   // stale native-chunk fields. v55 keeps that payload stable for low-rate PHY
@@ -102,6 +103,9 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // v111 adds a DFII-seeded native expected-data linear-read probe.
   // v112 adds a native/DFII address and 576-bit beat packing classifier.
   // v113 adds a native address-stride classifier over sparse requested addresses.
+  // v114 records scheduled and accepted native cmd_addr for the sparse reads.
+  // v115 keeps that trace in the compact payload so the JTAG shifter does not
+  // perturb the fragile DDR init placement.
   localparam int CAL_BYTE_LANES = 8;
   localparam int NATIVE_PACKING_SAMPLE_COUNT = 4;
   localparam int NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT = 16;
@@ -329,6 +333,12 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   logic [7:0] native_packing_valid_count_q = 8'd0;
   logic [575:0] native_address_classifier_rdata_q [0:NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT - 1];
   logic [7:0] native_address_classifier_valid_count_q = 8'd0;
+  logic [24:0] native_cmdaddr_scheduled_q [0:NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT - 1];
+  logic [24:0] native_cmdaddr_presented_q [0:NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT - 1];
+  logic [24:0] native_cmdaddr_accepted_q [0:NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT - 1];
+  logic [7:0] native_cmdaddr_command_index_q [0:NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT - 1];
+  logic [7:0] native_cmdaddr_presented_valid_count_q = 8'd0;
+  logic [7:0] native_cmdaddr_accepted_valid_count_q = 8'd0;
   logic [63:0] sample_rdata_q [0:READBACK_SAMPLE_COUNT - 1];
   logic [7:0] sample_valid_count_q = 8'd0;
   logic [63:0] byte_diag_rdata_q [0:BYTE_DIAG_SAMPLE_COUNT - 1];
@@ -555,6 +565,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   wire native_expected_read_mode;
   wire native_packing_classifier_mode;
   wire native_address_classifier_mode;
+  wire native_cmdaddr_trace_mode;
   wire [24:0] scheduled_read_addr;
   wire dfii_edge_lane7_locator_probe_mode;
   wire dfii_bitslip_sweep_mode;
@@ -1981,22 +1992,27 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER;
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE;
   assign native_expected_read_mode =
     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER;
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE;
   assign native_packing_classifier_mode =
     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER;
   assign native_address_classifier_mode =
     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER;
+  assign native_cmdaddr_trace_mode =
+    DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE;
   assign dfii_edge_comp_addrwalk_mode =
     (DFII_EDGE_COMP_ADDRWALK_ONLY ||
      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER) &&
+     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE) &&
     dfii_phasecmd_sweep_q;
   assign dfii_edge_lane7_locator_probe_mode =
     DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY && dfii_phasecmd_sweep_q;
@@ -3410,8 +3426,15 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       native_address_classifier_valid_count_q <= 8'd0;
       for (int address_idx = 0;
            address_idx < NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT;
-           address_idx++)
+           address_idx++) begin
         native_address_classifier_rdata_q[address_idx] <= 576'd0;
+        native_cmdaddr_scheduled_q[address_idx] <= 25'd0;
+        native_cmdaddr_presented_q[address_idx] <= 25'd0;
+        native_cmdaddr_accepted_q[address_idx] <= 25'd0;
+        native_cmdaddr_command_index_q[address_idx] <= 8'd0;
+      end
+      native_cmdaddr_presented_valid_count_q <= 8'd0;
+      native_cmdaddr_accepted_valid_count_q <= 8'd0;
       sample_valid_count_q <= 8'd0;
       for (int sample_idx = 0; sample_idx < READBACK_SAMPLE_COUNT; sample_idx++)
         sample_rdata_q[sample_idx] <= 64'd0;
@@ -3516,8 +3539,15 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             native_address_classifier_valid_count_q <= 8'd0;
             for (int address_idx = 0;
                  address_idx < NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT;
-                 address_idx++)
+                 address_idx++) begin
               native_address_classifier_rdata_q[address_idx] <= 576'd0;
+              native_cmdaddr_scheduled_q[address_idx] <= 25'd0;
+              native_cmdaddr_presented_q[address_idx] <= 25'd0;
+              native_cmdaddr_accepted_q[address_idx] <= 25'd0;
+              native_cmdaddr_command_index_q[address_idx] <= 8'd0;
+            end
+            native_cmdaddr_presented_valid_count_q <= 8'd0;
+            native_cmdaddr_accepted_valid_count_q <= 8'd0;
             dfii_final_q <= !(DFII_DISPLACEMENT_PROBE_ONLY ||
                               DFII_CSR_ECHO_PROBE_ONLY ||
                               DFII_WBITSLIP_SWEEP_ONLY ||
@@ -3533,6 +3563,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
                               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE ||
                               DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY);
             dfii_phasecmd_sweep_q <=
               DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
@@ -3547,6 +3578,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
               DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE ||
               DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY;
             dfii_assoc_sweep_q <= 1'b0;
             dfii_addr_sweep_q <= 1'b0;
@@ -3598,8 +3630,15 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
             native_address_classifier_valid_count_q <= 8'd0;
             for (int address_idx = 0;
                  address_idx < NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT;
-                 address_idx++)
+                 address_idx++) begin
               native_address_classifier_rdata_q[address_idx] <= 576'd0;
+              native_cmdaddr_scheduled_q[address_idx] <= 25'd0;
+              native_cmdaddr_presented_q[address_idx] <= 25'd0;
+              native_cmdaddr_accepted_q[address_idx] <= 25'd0;
+              native_cmdaddr_command_index_q[address_idx] <= 8'd0;
+            end
+            native_cmdaddr_presented_valid_count_q <= 8'd0;
+            native_cmdaddr_accepted_valid_count_q <= 8'd0;
             if (DFII_INIT_STATUS_ONLY) begin
               dfii_final_q <= 1'b1;
               dfii_phasecmd_sweep_q <= 1'b0;
@@ -3629,6 +3668,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
                                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE ||
                                 DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY);
               dfii_phasecmd_sweep_q <=
                 DFII_DISPLACEMENT_PROBE_ONLY || DFII_CSR_ECHO_PROBE_ONLY ||
@@ -3643,6 +3683,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
                 DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE ||
                 DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY;
               dfii_assoc_sweep_q <= 1'b0;
               dfii_addr_sweep_q <= 1'b0;
@@ -3828,14 +3869,16 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                            DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
                            DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                            DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-                           DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER) begin
+                           DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE) begin
                 if (dfii_phasecmd_index_q ==
                     ((DFII_EDGE_COMP_ADDRWALK_ONLY ||
                       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE ||
                       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
                       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER) ?
+                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE) ?
                      4'd15 : 4'd7)) begin
                   dfii_phasecmd_sweep_q <= 1'b0;
                   dfii_assoc_sweep_q <= 1'b0;
@@ -3844,7 +3887,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
                       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER) begin
+                      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE) begin
                     if ((mismatch_count_q +
                          dfii_bist_mismatch_word_count) != 32'd0) begin
                       state_q <= PROBE_ERROR;
@@ -3880,8 +3924,15 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                       native_address_classifier_valid_count_q <= 8'd0;
                       for (int address_idx = 0;
                            address_idx < NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT;
-                           address_idx++)
+                           address_idx++) begin
                         native_address_classifier_rdata_q[address_idx] <= 576'd0;
+                        native_cmdaddr_scheduled_q[address_idx] <= 25'd0;
+                        native_cmdaddr_presented_q[address_idx] <= 25'd0;
+                        native_cmdaddr_accepted_q[address_idx] <= 25'd0;
+                        native_cmdaddr_command_index_q[address_idx] <= 8'd0;
+                      end
+                      native_cmdaddr_presented_valid_count_q <= 8'd0;
+                      native_cmdaddr_accepted_valid_count_q <= 8'd0;
                       sample_valid_count_q <= 8'd0;
                       for (int sample_idx = 0;
                            sample_idx < READBACK_SAMPLE_COUNT;
@@ -3891,7 +3942,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                         (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
                          DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                          DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-                         DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER) ?
+                         DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE) ?
                         PROBE_RUN_READS : PROBE_RUN_WRITES;
                     end
                   end else begin
@@ -3930,6 +3982,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
                     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
                     DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE ||
                     DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY) begin
                   dfii_assoc_sweep_q <= 1'b0;
                   dfii_addr_sweep_q <= 1'b0;
@@ -4358,7 +4411,21 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       end
 
       if (read_state) begin
+        if (native_cmdaddr_trace_mode && cmd_valid &&
+            command_count_q < NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT) begin
+          native_cmdaddr_scheduled_q[command_count_q[3:0]] <=
+            scheduled_read_addr;
+          native_cmdaddr_presented_q[command_count_q[3:0]] <= cmd_addr;
+          native_cmdaddr_presented_valid_count_q <= command_count_q[7:0] + 8'd1;
+        end
         if (cmd_valid && cmd_ready) begin
+          if (native_cmdaddr_trace_mode &&
+              command_count_q < NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT) begin
+            native_cmdaddr_accepted_q[command_count_q[3:0]] <= cmd_addr;
+            native_cmdaddr_command_index_q[command_count_q[3:0]] <=
+              command_count_q[7:0];
+            native_cmdaddr_accepted_valid_count_q <= command_count_q[7:0] + 8'd1;
+          end
           command_count_q <= command_count_q + 32'd1;
           read_addr_q <= read_addr_q + 25'd1;
         end else if (cmd_valid && !cmd_ready) begin
@@ -4762,7 +4829,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER,
+      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE,
       DFII_EDGE_MAP_PROBE_ONLY,
       DFII_RBITSLIP_SWEEP_ONLY,
       DFII_WBITSLIP_SWEEP_ONLY,
@@ -4785,7 +4853,8 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_READSCAN ||
       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_EXPECTED_READ ||
       DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER ||
-      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER,
+      DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER ||
+                              DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE,
       DFII_EDGE_MAP_PROBE_ONLY,
       DFII_RBITSLIP_SWEEP_ONLY,
       DFII_WBITSLIP_SWEEP_ONLY,
@@ -4853,6 +4922,38 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
       jtag_debug_payload[4288 +: 64] = native_first_nonzero_data_q;
       jtag_debug_payload[4352 +: 9] = native_nonzero_chunk_seen_q;
       jtag_debug_payload[4368 +: 9] = native_first_nonzero_chunk_q;
+    end else if (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE) begin
+      jtag_debug_payload[1728 +: 8] =
+        native_cmdaddr_presented_valid_count_q;
+      jtag_debug_payload[1736 +: 8] =
+        native_cmdaddr_accepted_valid_count_q;
+      jtag_debug_payload[1744 +: 8] = {
+        7'd0,
+        native_cmdaddr_trace_mode
+      };
+      jtag_debug_payload[1752 +: 8] = {
+        5'd0,
+        native_expected_read_mode,
+        native_packing_classifier_mode,
+        native_address_classifier_mode
+      };
+      for (int cmdaddr_sample_idx = 0;
+           cmdaddr_sample_idx < NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT;
+           cmdaddr_sample_idx++) begin
+        jtag_debug_payload[1760 + cmdaddr_sample_idx * 96 +: 25] =
+          native_cmdaddr_scheduled_q[cmdaddr_sample_idx];
+        jtag_debug_payload[1785 + cmdaddr_sample_idx * 96 +: 25] =
+          native_cmdaddr_presented_q[cmdaddr_sample_idx];
+        jtag_debug_payload[1810 + cmdaddr_sample_idx * 96 +: 25] =
+          native_cmdaddr_accepted_q[cmdaddr_sample_idx];
+        jtag_debug_payload[1835 + cmdaddr_sample_idx * 96 +: 8] =
+          native_cmdaddr_command_index_q[cmdaddr_sample_idx];
+      end
+      jtag_debug_payload[3296 +: 32] = native_nonzero_count_q;
+      jtag_debug_payload[3328 +: 32] = {4'd0, native_first_nonzero_addr_q};
+      jtag_debug_payload[3360 +: 64] = native_first_nonzero_data_q;
+      jtag_debug_payload[3424 +: 9] = native_nonzero_chunk_seen_q;
+      jtag_debug_payload[3440 +: 9] = native_first_nonzero_chunk_q;
     end else if (DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER) begin
       jtag_debug_payload[1728 +: 8] = native_address_classifier_valid_count_q;
       jtag_debug_payload[1736 +: 8] = {

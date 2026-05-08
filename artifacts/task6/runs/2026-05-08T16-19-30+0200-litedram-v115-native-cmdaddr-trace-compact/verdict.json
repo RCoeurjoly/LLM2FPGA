@@ -1,0 +1,7 @@
+{
+  "readback_json": "artifacts/task6/runs/2026-05-08T16-19-30+0200-litedram-v115-native-cmdaddr-trace-compact/readback/litedram-probe.json",
+  "result": "fail",
+  "result_artifact": "artifacts/task6/parallel-hypotheses/e1-litedram-v115-native-cmdaddr-trace-summary.json",
+  "summary": "The v115 compact cmd_addr trace kept the JTAG payload at 11264 bits and routed with overused=0, but still failed before native commands. Readback reported PROBE_ERROR with init_seq_error=true, wb_timeout_seen=true, and command_count=response_count=0.",
+  "version": 115
+}

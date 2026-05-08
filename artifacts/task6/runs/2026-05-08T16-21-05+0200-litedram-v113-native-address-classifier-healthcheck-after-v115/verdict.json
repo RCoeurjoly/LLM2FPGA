@@ -1,0 +1,7 @@
+{
+  "readback_json": "artifacts/task6/runs/2026-05-08T16-21-05+0200-litedram-v113-native-address-classifier-healthcheck-after-v115/readback/litedram-probe.json",
+  "result": "healthcheck-pass",
+  "result_artifact": "artifacts/task6/parallel-hypotheses/e1-litedram-v115-native-cmdaddr-trace-summary.json",
+  "summary": "The known v113 native address classifier still initializes DDR and completes native read traffic after the v114/v115 failures. Readback reported PROBE_DONE, init_seq_error=false, wb_timeout_seen=false, and command_count=response_count=16.",
+  "version": 113
+}

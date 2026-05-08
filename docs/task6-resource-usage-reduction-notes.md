@@ -15879,3 +15879,63 @@ Artifacts:
   `artifacts/task6/runs/2026-05-08T15-06-04+0200-litedram-v113-native-address-classifier/readback/litedram-probe.json`.
 - Verdict:
   `artifacts/task6/runs/2026-05-08T15-06-04+0200-litedram-v113-native-address-classifier/verdict.json`.
+
+### 2026-05-08 - LiteDRAM v114/v115 native cmd_addr trace
+
+Goal:
+
+- Instrument the native command address actually presented to and accepted by
+  LiteDRAM during the DFII-seeded sparse native read classifier.
+- Keep board access serialized through `scripts/task6/task6_board_run.py`.
+
+Build and route:
+
+| version | payload shape | bitstream | route result |
+| --- | --- | --- | --- |
+| 114 | wide `12800`-bit JTAG payload | `/nix/store/rkm6vh0jcwh00s7llcclpsc86gdivgkc-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.bit` | routed, `overused=0` at iteration 21 |
+| 115 | compact `11264`-bit JTAG payload | `/nix/store/da3231vba5fp8q0dn48ixqakmyw110a5-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.bit` | routed, `overused=0` at iteration 19 |
+
+v115 post-route timing at `25 MHz` target:
+
+- `clk200`: `662.69 MHz`
+- `user_clk`: `66.09 MHz`
+- `core.iodelay_clk`: `570.78 MHz`
+- `jtag_debug_shift.drck`: `362.84 MHz`
+
+Board results:
+
+| run | version | state | init seq error | WB timeout | cmd count | resp count | trace presented | trace accepted |
+| --- | ---: | --- | --- | --- | ---: | ---: | ---: | ---: |
+| `2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace` | 114 | `PROBE_ERROR` | yes | yes | 0 | 0 | 0 | 0 |
+| `2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace` retry 1 | 114 | `PROBE_ERROR` | yes | yes | 0 | 0 | 0 | 0 |
+| `2026-05-08T16-19-30+0200-litedram-v115-native-cmdaddr-trace-compact` | 115 | `PROBE_ERROR` | yes | yes | 0 | 0 | 0 | 0 |
+| `2026-05-08T16-21-05+0200-litedram-v113-native-address-classifier-healthcheck-after-v115` | 113 | `PROBE_DONE` | no | no | 16 | 16 | n/a | n/a |
+
+Interpretation:
+
+- The v114 wide trace and v115 compact trace both route, but both fail before
+  any native command is issued.
+- The immediately-following v113 health check still completes DDR init and
+  native read traffic, so the board, cable, and readback flow are healthy.
+- This localizes the regression to the `cmd_addr` trace instrumentation or the
+  placement/timing perturbation it introduces, not to a stale board state.
+- Widening or rearranging the existing JTAG payload around this datapath is not
+  a productive next loop.
+
+Next action:
+
+- Either infer native address behavior indirectly with less invasive counters,
+  or add a single-sample latched `cmd_addr` probe in an otherwise unchanged v113
+  topology. Do not keep expanding the debug payload until init is stable.
+
+Artifacts:
+
+- Result summary:
+  `artifacts/task6/parallel-hypotheses/e1-litedram-v115-native-cmdaddr-trace-summary.json`.
+- v114 decoded readbacks:
+  `artifacts/task6/runs/2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace/readback/litedram-probe.json`,
+  `artifacts/task6/runs/2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace/readback/litedram-probe-retry1.json`.
+- v115 decoded readback:
+  `artifacts/task6/runs/2026-05-08T16-19-30+0200-litedram-v115-native-cmdaddr-trace-compact/readback/litedram-probe.json`.
+- v113 health-check decoded readback:
+  `artifacts/task6/runs/2026-05-08T16-21-05+0200-litedram-v113-native-address-classifier-healthcheck-after-v115/readback/litedram-probe.json`.

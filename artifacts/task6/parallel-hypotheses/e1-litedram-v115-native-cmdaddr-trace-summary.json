@@ -1,0 +1,65 @@
+{
+  "bitstream": "/nix/store/da3231vba5fp8q0dn48ixqakmyw110a5-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.bit",
+  "build": {
+    "json": "/nix/store/mzk0ax7naphrk91df1vipm58n3fibjbc-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.json",
+    "route": {
+      "final_archfail": 0,
+      "final_overuse": 0,
+      "final_overused": 0,
+      "converged_iteration": 19
+    },
+    "timing_mhz": {
+      "clk200": 662.69,
+      "core_iodelay_clk": 570.78,
+      "jtag_debug_shift_drck": 362.84,
+      "target": 25.0,
+      "user_clk": 66.09
+    }
+  },
+  "experiment": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe",
+  "question": "Can we capture the native cmd_addr values presented to and accepted by LiteDRAM while keeping the DFII-seeded sparse native read classifier behavior?",
+  "result": "negative",
+  "runs": {
+    "v113_healthcheck_after_v115": {
+      "bitstream": "/nix/store/40l6namymkssd24f3khnwbvyfw7hjnam-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe.bit",
+      "command_count": 16,
+      "failed": true,
+      "init_seq_error": false,
+      "readback_json": "artifacts/task6/runs/2026-05-08T16-21-05+0200-litedram-v113-native-address-classifier-healthcheck-after-v115/readback/litedram-probe.json",
+      "response_count": 16,
+      "run_dir": "artifacts/task6/runs/2026-05-08T16-21-05+0200-litedram-v113-native-address-classifier-healthcheck-after-v115",
+      "state": "PROBE_DONE",
+      "version": 113,
+      "wb_timeout_seen": false
+    },
+    "v114_wide_trace": {
+      "bitstream": "/nix/store/rkm6vh0jcwh00s7llcclpsc86gdivgkc-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.bit",
+      "command_count": 0,
+      "init_seq_error": true,
+      "readback_json": "artifacts/task6/runs/2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace/readback/litedram-probe.json",
+      "retry_readback_json": "artifacts/task6/runs/2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace/readback/litedram-probe-retry1.json",
+      "response_count": 0,
+      "run_dir": "artifacts/task6/runs/2026-05-08T16-00-35+0200-litedram-v114-native-cmdaddr-trace",
+      "state": "PROBE_ERROR",
+      "trace_presented_valid_count": 0,
+      "trace_accepted_valid_count": 0,
+      "version": 114,
+      "wb_timeout_seen": true
+    },
+    "v115_compact_trace": {
+      "command_count": 0,
+      "compact_trace": true,
+      "init_seq_error": true,
+      "readback_json": "artifacts/task6/runs/2026-05-08T16-19-30+0200-litedram-v115-native-cmdaddr-trace-compact/readback/litedram-probe.json",
+      "response_count": 0,
+      "run_dir": "artifacts/task6/runs/2026-05-08T16-19-30+0200-litedram-v115-native-cmdaddr-trace-compact",
+      "state": "PROBE_ERROR",
+      "trace_presented_valid_count": 0,
+      "trace_accepted_valid_count": 0,
+      "version": 115,
+      "wb_timeout_seen": true
+    }
+  },
+  "interpretation": "Both cmd_addr trace implementations route but fail before native commands are issued. The v113 health check immediately afterward still initializes DDR and completes 16 native read commands/responses, so the board/JTAG path is healthy. The cmd_addr trace instrumentation is too invasive for the current fragile LiteDRAM init/control path.",
+  "next_action": "Do not keep widening the debug payload around cmd_addr. Either infer address behavior indirectly with less invasive counters, or use a minimal one-sample latched cmd_addr probe in an otherwise unchanged v113 topology."
+}

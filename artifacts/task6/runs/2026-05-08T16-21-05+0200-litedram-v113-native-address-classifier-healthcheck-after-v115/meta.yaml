@@ -1,0 +1,12 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-08T16:21:05.152705+02:00"
+label: "litedram-v113-native-address-classifier-healthcheck-after-v115"
+experiment: "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/40l6namymkssd24f3khnwbvyfw7hjnam-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe.bit"
+reference_artifacts:
+  - "docs/task6-resource-usage-reduction-notes.md"
+notes: "Health check: re-run known v113 native address classifier after v114/v115 cmd_addr trace failures."
