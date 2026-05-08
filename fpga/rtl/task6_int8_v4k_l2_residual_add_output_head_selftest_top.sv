@@ -755,7 +755,30 @@ module task6_int8_v4k_l2_residual_add_output_head_selftest_top #(
   );
 
   generate
-    if (VOCAB_WEIGHT_MODE == 1) begin : gen_ternary_output_head
+    if (VOCAB_WEIGHT_MODE == 2) begin : gen_ternary_base3_output_head
+      task6_ternary_base3_vocab_output_head_top1_kernel #(
+        .IN_DIM(VOCAB_IN_DIM),
+        .VOCAB_SIZE(VOCAB_SIZE),
+        .VALID_VOCAB_SIZE(VOCAB_VALID_SIZE),
+        .TILE_OUT_DIM(VOCAB_TILE_OUT_DIM),
+        .ACC_WIDTH(VOCAB_ACC_WIDTH),
+        .PACKED_WEIGHT_WORDS(VOCAB_PACKED_WEIGHT_WORDS)
+      ) output_head_dut (
+        .clock(SYS_CLK),
+        .reset(output_head_reset),
+        .weight_load_valid(vocab_weight_load_valid),
+        .weight_load_addr(vocab_weight_load_addr),
+        .weight_load_data(vocab_weight_load_data),
+        .activation_load_valid(vocab_activation_load_valid),
+        .activation_load_addr(vocab_activation_load_addr),
+        .activation_load_data(vocab_activation_load_data),
+        .start(output_head_start),
+        .busy(output_head_busy),
+        .done(output_head_done),
+        .top_index(top_index),
+        .top_acc(top_acc)
+      );
+    end else if (VOCAB_WEIGHT_MODE == 1) begin : gen_ternary_output_head
       task6_ternary_vocab_output_head_top1_kernel #(
         .IN_DIM(VOCAB_IN_DIM),
         .VOCAB_SIZE(VOCAB_SIZE),

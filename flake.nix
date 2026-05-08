@@ -3366,6 +3366,69 @@
               > "$out"
           '';
 
+        task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTbDataSv =
+          pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-tb-data-sv" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./sim
+            }/gen_task6_int8_v4k_l2_residual_add_output_head_selftest_tb_data.py \
+              --artifact-name h2-v10k-ternary-base3-20-l2-residual-add-output-head-selftest \
+              --model-path ${tinyStories1m.snapshot} \
+              --adapter-path ${./TinyStories/model_adapter_representative_core.py} \
+              --residual-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-residual-add-contract
+              }/manifest.json \
+              --residual-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-residual-add-boundary.json
+              } \
+              --c-fc-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_fc-contract
+              }/manifest.json \
+              --c-fc-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_fc
+              }/manifest.json \
+              --c-proj-contract-manifest ${
+                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v4k-h64-l1-c_proj-contract
+              }/manifest.json \
+              --c-proj-weight-pack-manifest ${
+                ./artifacts/task6/weights_pack/tiny-stories-v4k-h64-l1/transformer.h.0.mlp.c_proj
+              }/manifest.json \
+              --post-gelu-requant-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+              } \
+              --c-proj-output-boundary-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-c-proj-output-boundary.json
+              } \
+              --c-proj-requant-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --residual-add-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json
+              } \
+              --vocab-size 10000 \
+              --num-layers 1 \
+              --max-position-embeddings 128 \
+              --window-size 64 \
+              --hidden-size 64 \
+              --num-heads 16 \
+              --model-label tiny-stories-v10k-h64-l1 \
+              --tile-out-dim 80 \
+              --weight-quantization ternary-base3-20 \
+              --out-sv "$out/tb_data.sv" \
+              --out-vocab-mem "$out/vocab_packed_weights.mem" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
+          pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
+            sed \
+              -e 's|"tb_data.sv"|"${task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTbDataSv}/tb_data.sv"|g' \
+              -e 's|"vocab_packed_weights.mem"|"${task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTbDataSv}/vocab_packed_weights.mem"|g' \
+              -e 's|"vocab_loader_phase_readmemh_cases.sv"|"${task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTbDataSv}/vocab_loader_phase_readmemh_cases.sv"|g' \
+              ${./fpga/rtl/task6_int8_v4k_l2_residual_add_output_head_selftest_top.sv} \
+              > "$out"
+          '';
+
         task6Int8V6kL2ResidualAddOutputHeadSelftestTbDataSv =
           pkgs.runCommand "task6-int8-v6k-l2-residual-add-output-head-selftest-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -5750,6 +5813,31 @@
               ${./sim/task6_int8_v4k_l2_residual_add_output_head_selftest_tb_main.sv}
           '';
 
+        task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestSimMain =
+          pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTbDataSv} \
+              -top task6_int8_v4k_l2_residual_add_output_head_selftest_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${./rtl/task6/task6_ternary_base3_vocab_output_head_top1_kernel.sv} \
+              ${./rtl/task6/task6_ternary_vocab_output_head_top1_kernel.sv} \
+              ${./rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv} \
+              ${task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop} \
+              ${./sim/task6_int8_v4k_l2_residual_add_output_head_selftest_tb_main.sv}
+          '';
+
         task6Ddr3RowStreamCutoutSimMain =
           pkgs.runCommand "task6-ddr3-row-stream-cutout-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -7795,6 +7883,30 @@
             EOF
           '';
 
+        task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestSvSim =
+          pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 int8 v4k residual output-head selftest led_pass cycles [0-9]+ top_index [0-9]+ top_acc -?[0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            top_index="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            top_acc="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "cycles": $cycles,
+              "top_index": $top_index,
+              "top_acc": $top_acc
+            }
+            EOF
+          '';
+
         task6Ddr3RowStreamCutoutSvSim =
           pkgs.runCommand "h2-ddr3-row-stream-cutout-rtl-proof.json" {
             buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -9095,6 +9207,10 @@
             task6Int8V10kL2ResidualAddOutputHeadSelftestTbDataSv;
           task6-int8-v10k-l2-residual-add-output-head-selftest-top =
             task6Int8V10kL2ResidualAddOutputHeadSelftestTop;
+          task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-tb-data-sv =
+            task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTbDataSv;
+          task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top =
+            task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop;
           task6-int8-v6k-l2-residual-add-output-head-selftest-tb-data-sv =
             task6Int8V6kL2ResidualAddOutputHeadSelftestTbDataSv;
           task6-int8-v6k-l2-residual-add-output-head-selftest-top =
@@ -9123,6 +9239,10 @@
             task6TernaryV9984L2ResidualAddOutputHeadSelftestSimMain;
           task6-ternary-v9984-l2-residual-add-output-head-selftest-sv-sim =
             task6TernaryV9984L2ResidualAddOutputHeadSelftestSvSim;
+          task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-sim-main =
+            task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestSimMain;
+          task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-sv-sim =
+            task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestSvSim;
           task6-int8-v4k-l2-residual-add-output-head-selftest-json =
             task6Int8V4kL2ResidualAddOutputHeadSelftestJson;
           task6-int8-v4k-l2-residual-add-output-head-selftest-utilization =

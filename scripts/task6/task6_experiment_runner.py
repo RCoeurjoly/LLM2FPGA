@@ -86,6 +86,13 @@ def derive_prefix(args: argparse.Namespace) -> str:
             "no default ternary2 flake target for this shape; pass --flake-prefix"
         )
 
+    if args.weight_quantization == "ternary-base3-20":
+        if args.vocab_size == 10000 and (args.physical_vocab_size in (None, 10000)):
+            return "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest"
+        raise SystemExit(
+            "no default ternary-base3-20 flake target for this shape; pass --flake-prefix"
+        )
+
     if args.weight_quantization != "int8":
         raise SystemExit(
             f"no default flake target for quantization {args.weight_quantization!r}; "

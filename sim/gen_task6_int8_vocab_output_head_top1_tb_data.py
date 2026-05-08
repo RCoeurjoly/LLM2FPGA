@@ -56,7 +56,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tile-out-dim", type=int, default=64)
     parser.add_argument(
         "--weight-quantization",
-        choices=("int8", "ternary2"),
+        choices=("int8", "ternary2", "ternary-base3-20"),
         default="int8",
     )
     parser.add_argument("--residual-add-requant-shift", type=int, default=24)
@@ -345,6 +345,36 @@ def pack_ternary2_weight_words(
     return words
 
 
+def pack_ternary_base3_weight_words(
+    weight_q: list[int],
+    in_features: int,
+    out_features: int,
+    weights_per_word: int = 20,
+) -> list[int]:
+    if out_features % weights_per_word != 0:
+        raise SystemExit(
+            f"out_features {out_features} is not divisible by {weights_per_word}"
+        )
+    words: list[int] = []
+    for output_group_index in range(out_features // weights_per_word):
+        for in_index in range(in_features):
+            packed_word = 0
+            power = 1
+            for lane_index in range(weights_per_word):
+                out_index = output_group_index * weights_per_word + lane_index
+                weight = weight_q[out_index * in_features + in_index]
+                if weight == 1:
+                    code = 1
+                elif weight == -1:
+                    code = 2
+                else:
+                    code = 0
+                packed_word += code * power
+                power *= 3
+            words.append(packed_word)
+    return words
+
+
 def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     physical_vocab_size = args.physical_vocab_size or args.vocab_size
     if physical_vocab_size < args.vocab_size:
@@ -380,17 +410,26 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         raise SystemExit("expected lm_head.weight to be tied to transformer.wte.weight")
 
     vocab_weight_f32 = [float(value) for value in token_embedding.flatten().tolist()]
-    if args.weight_quantization == "ternary2":
+    if args.weight_quantization in {"ternary2", "ternary-base3-20"}:
         vocab_weight_q, vocab_weight_scale, ternary_threshold = (
             quantize_ternary_symmetric(vocab_weight_f32)
         )
-        packed_words = pack_ternary2_weight_words(
-            vocab_weight_q,
-            args.hidden_size,
-            physical_vocab_size,
-        )
-        vocab_weight_mode = 1
-        weight_dtype = "ternary2-per-tensor-symmetric"
+        if args.weight_quantization == "ternary-base3-20":
+            packed_words = pack_ternary_base3_weight_words(
+                vocab_weight_q,
+                args.hidden_size,
+                physical_vocab_size,
+            )
+            vocab_weight_mode = 2
+            weight_dtype = "ternary-base3-20-per-tensor-symmetric"
+        else:
+            packed_words = pack_ternary2_weight_words(
+                vocab_weight_q,
+                args.hidden_size,
+                physical_vocab_size,
+            )
+            vocab_weight_mode = 1
+            weight_dtype = "ternary2-per-tensor-symmetric"
     else:
         vocab_weight_q, vocab_weight_scale = quantize_symmetric(vocab_weight_f32, 8)
         ternary_threshold = None

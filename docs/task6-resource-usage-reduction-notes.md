@@ -15122,3 +15122,56 @@ Interpretation:
   output-head result (`top_index=737` vs float `229`). Do not promote it as a
   quality-preserving model lane without improving the ternary quantization
   scheme.
+
+### Base3-20 dense ternary correctness update (2026-05-08)
+
+Question:
+
+- Can we implement true dense ternary storage without entropy coding, using
+  base-3 packing close to the theoretical `log2(3) = 1.585` bits/weight?
+
+Implementation:
+
+- Added `ternary-base3-20` generator mode.
+- Added `task6_ternary_base3_vocab_output_head_top1_kernel`.
+- Encoding:
+  - each 32-bit word stores 20 trits
+  - trit code `0 = 0`, `1 = +1`, `2 = -1`
+  - storage density is `32 / 20 = 1.6` bits/weight
+- First correctness lane uses `vocab_size=10000`, `TILE_OUT_DIM=80` so each
+  tile row has four full groups of 20 trits and does not waste tail bits.
+- This is dense ternary packing, not entropy coding.
+
+Command:
+
+- `scripts/task6/task6_experiment_runner.py --label ternary-base3-v10k-correctness-v3 --vocab-size 10000 --tile-out-dim 80 --weight-quantization ternary-base3-20 --gate tb-data --gate sv-sim`
+
+Result:
+
+- PASS. Result JSON:
+  `artifacts/task6/experiments/2026-05-08T12-51-42+0200-ternary-base3-v10k-correctness-v3/result.json`
+- Generated data:
+  - `weight_quantization=ternary-base3-20`
+  - `packed_weight_words=32000`
+  - logical/physical vocab: `10000 / 10000`
+  - tile out dim: `80`
+  - quantized top index/acc: `721 / 1446`
+  - float reference top index: `213`
+  - `int8_top_matches_f32_top=false`
+  - `normalized_rmse=0.6473674272466682`
+- SV simulation:
+  - `status=PASS`
+  - cycles: `170616`
+  - top index/acc: `721 / 1446`
+
+Interpretation:
+
+- Dense base3-20 ternary decode is RTL-correct against the generated quantized
+  Python reference.
+- The storage result is the desired near-1.58-bit ternary shape:
+  `10000 * 64 / 20 = 32000` 32-bit words.
+- Model fidelity remains poor with the current global-threshold ternary
+  quantizer, so the next quality work should improve ternary quantization
+  separately from storage correctness.
+- Next hardware gate, if we want a routeability datapoint for the true dense
+  storage lane, is Yosys synthesis for the same base3-20 v10k/tile80 design.

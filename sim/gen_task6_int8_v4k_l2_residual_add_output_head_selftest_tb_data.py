@@ -57,7 +57,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tile-out-dim", type=int, default=64)
     parser.add_argument(
         "--weight-quantization",
-        choices=("int8", "ternary2"),
+        choices=("int8", "ternary2", "ternary-base3-20"),
         default="int8",
     )
     parser.add_argument("--normalized-rmse-threshold", type=float, default=0.02)
@@ -134,6 +134,14 @@ VOCAB_WEIGHT_ASSIGNMENT_RE = re.compile(
 RESIDUAL_OUTPUT_ASSIGNMENT_RE = re.compile(
     r"^  expected_residual_add_output_q_values\[(?P<index>\d+)\] = 8'sh(?P<value>[0-9a-fA-F]+);$"
 )
+
+
+def vocab_weight_mode(weight_dtype: Any) -> int:
+    if weight_dtype == "ternary2-per-tensor-symmetric":
+        return 1
+    if weight_dtype == "ternary-base3-20-per-tensor-symmetric":
+        return 2
+    return 0
 
 
 def extract_vocab_weight_values(output_sv: str, expected_words: int) -> list[int]:
@@ -295,7 +303,7 @@ def inject_vocab_data(
         f"localparam int VOCAB_PACKED_WEIGHT_ADDR_WIDTH = {packed_weight_addr_width};",
         f"localparam int VOCAB_ACTIVATION_ADDR_WIDTH = {activation_addr_width};",
         f"localparam int VOCAB_ADDR_WIDTH = {vocab_addr_width};",
-        f"localparam int VOCAB_WEIGHT_MODE = {int(contract.get('weight_dtype') == 'ternary2-per-tensor-symmetric')};",
+        f"localparam int VOCAB_WEIGHT_MODE = {vocab_weight_mode(contract.get('weight_dtype'))};",
         (
             "localparam logic [VOCAB_ADDR_WIDTH - 1:0] "
             f"EXPECTED_TOP_INDEX = {vocab_addr_width}'d{top_index};"
