@@ -16274,3 +16274,56 @@ Interpretation:
   native command acceptance.
 - Next action: run command index `5`, because earlier classifier output had a
   weak exact-chunk match near the repeated DFII address pattern there.
+
+### 2026-05-08 - LiteDRAM v117 native cmd_addr latch index 5
+
+Goal:
+
+- Check command index `5`, the sparse native address that previously produced
+  a weak exact-chunk match against DFII address index `15`.
+
+Build and route:
+
+- Experiment record:
+  `artifacts/task6/experiments/2026-05-08T22-23-20+0200-v117-cmdaddr-idx5/result.json`.
+- Bitstream:
+  `/nix/store/r1w8hfy1p91xn9z34k48kpzmg85xylgm-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-5.bit`.
+- Router result:
+  - iteration 1: `overused=38,986`, `overuse=41,686`
+  - iteration 29: `overused=0`, `overuse=0`
+- Post-route timing at `25 MHz` target:
+  - `user_clk`: `65.47 MHz`
+  - `jtag_debug_shift.drck`: `408.33 MHz`
+
+Board result:
+
+- Run directory:
+  `artifacts/task6/runs/2026-05-08T22-38-19+0200-v117-cmdaddr-idx5-board-check`.
+- Programming succeeded through explicit Digilent HS3 serial
+  `210299BF3824`.
+- Full 11264-bit JTAG payload:
+  - `magic_ok=true`
+  - `version=116`
+  - `state=PROBE_DONE`
+  - `command_count=16`
+  - `response_count=16`
+  - classifier valid samples: `16`
+  - `mismatch_count=16`
+
+Single-sample command-address trace:
+
+| command index | scheduled read addr | presented cmd_addr | accepted cmd_addr | scheduled=presented | presented=accepted | accepted=requested |
+| ---: | ---: | ---: | ---: | --- | --- | --- |
+| 5 | 15 | 15 | 15 | yes | yes | yes |
+
+Updated interpretation:
+
+- Native command address formation and acceptance are correct for checked
+  indices `0`, `1`, and `5`.
+- The specific weak-match address `15` is also being presented and accepted
+  correctly, so the DDR3 failure is not explained by top-level native
+  `cmd_addr` formation.
+- Next gate: stop spending primary effort on command-address latching and
+  classify the returned 576-bit beat layout against the DFII addrwalk data.
+  The likely fault is now in native read data packing, DFII-to-native address
+  mapping below command acceptance, or PHY/data-lane integrity.
