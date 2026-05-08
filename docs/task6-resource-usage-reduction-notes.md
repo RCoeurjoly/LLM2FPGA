@@ -16197,6 +16197,20 @@ Next action:
 - Add a parameterized one-command latch index and rerun for command index `1`.
   If index `1` is correct, rerun for index `5`, where the classifier has the
   weak exact-chunk match to DFII address index `15`.
+- Active execution plan:
+  - keep DDR3 as the top priority until native read correctness is explained
+  - use the direct BSCANE2/JTAG payload path, not LiteX `jtag_uart`
+  - run the single-command `cmd_addr` latch sweep one index at a time under the
+    board lock
+  - record for each index: build status, program status, `magic_ok`, probe
+    state, scheduled/presented/accepted command address, command/response
+    counts, and classifier validity
+  - if all checked indices fail like the old invasive v114/v115 trace, shrink
+    the instrumentation again before any DDR3 integration work
+  - if indices are correct, move from address acceptance to 576-bit beat
+    packing / DFII address-match classification
+  - do not connect DDR3 to the INT8 rowstream path until deterministic expected
+    data readback works
 
 Artifacts:
 
@@ -16206,3 +16220,57 @@ Artifacts:
   `artifacts/task6/runs/2026-05-08T16-48-18+0200-litedram-v116-native-cmdaddr-first-sample/readback/litedram-probe.json`.
 - Verdict:
   `artifacts/task6/runs/2026-05-08T16-48-18+0200-litedram-v116-native-cmdaddr-first-sample/verdict.json`.
+
+### 2026-05-08 - LiteDRAM v117 native cmd_addr latch index 1
+
+Goal:
+
+- Rerun the non-invasive single-command latch for command index `1`.
+
+Build and route:
+
+- Experiment record:
+  `artifacts/task6/experiments/2026-05-08T22-05-51+0200-v117-cmdaddr-idx1/result.json`.
+- Bitstream:
+  `/nix/store/7872xnkz6j108lxr60rz0hxki81c2isr-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit`.
+- Router result:
+  - iteration 1: `overused=39,140`, `overuse=41,929`
+  - iteration 24: `overused=0`, `overuse=0`
+- Post-route timing at `25 MHz` target:
+  - `user_clk`: `70.77 MHz`
+  - `jtag_debug_shift.drck`: `434.97 MHz`
+
+Board result:
+
+- Run directory:
+  `artifacts/task6/runs/2026-05-08T22-20-18+0200-v117-cmdaddr-idx1-board-check`.
+- Programming succeeded through explicit Digilent HS3 serial
+  `210299BF3824`.
+- First readback used the default payload width and did not include the
+  single-command latch fields; the valid readback is
+  `read-litedram-probe-jtag-ftdi-11264.log`.
+- Full JTAG payload:
+  - `magic_ok=true`
+  - `version=116`
+  - `state=PROBE_DONE`
+  - `init_seq_error=false`
+  - `wb_timeout_seen=false`
+  - `command_count=16`
+  - `response_count=16`
+  - classifier valid samples: `16`
+  - `mismatch_count=16`
+
+Single-sample command-address trace:
+
+| command index | scheduled read addr | presented cmd_addr | accepted cmd_addr | scheduled=presented | presented=accepted | accepted=requested |
+| ---: | ---: | ---: | ---: | --- | --- | --- |
+| 1 | 1 | 1 | 1 | yes | yes | yes |
+
+Interpretation:
+
+- Native command address formation and acceptance are correct for index `1`.
+- Since index `0` and `1` are both correct but all returned classifier samples
+  still mismatch, the repeated/wrong native read data is probably downstream of
+  native command acceptance.
+- Next action: run command index `5`, because earlier classifier output had a
+  weak exact-chunk match near the repeated DFII address pattern there.

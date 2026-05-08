@@ -1,0 +1,299 @@
+{
+  "created_at": "2026-05-08T22:05:51.636279+02:00",
+  "finished_at": "2026-05-08T22:19:58.824473+02:00",
+  "gates": [
+    {
+      "argv": [
+        "nix",
+        "build",
+        ".#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1-json",
+        "--no-link",
+        "--print-out-paths",
+        "-L"
+      ],
+      "attr": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1-json",
+      "command_index": 1,
+      "finished_at": "2026-05-08T22:12:39.604164+02:00",
+      "log": "artifacts/task6/experiments/2026-05-08T22-05-51+0200-v117-cmdaddr-idx1/logs/json.idx-1.log",
+      "name": "json",
+      "out_paths": [
+        "/nix/store/0hp76i1wl019ihy0s0zwvf31xra2p6af-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.json.drv",
+        "/nix/store/w0sq6ii9n82514w63gccwwxfzm689xhw-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.json"
+      ],
+      "returncode": 0,
+      "started_at": "2026-05-08T22:05:51.644186+02:00",
+      "status": "PASS",
+      "summary": {}
+    },
+    {
+      "argv": [
+        "nix",
+        "build",
+        ".#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1-fasm",
+        "--no-link",
+        "--print-out-paths",
+        "-L"
+      ],
+      "attr": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1-fasm",
+      "command_index": 1,
+      "finished_at": "2026-05-08T22:18:25.785111+02:00",
+      "log": "artifacts/task6/experiments/2026-05-08T22-05-51+0200-v117-cmdaddr-idx1/logs/fasm.idx-1.log",
+      "name": "fasm",
+      "out_paths": [
+        "/nix/store/xrlfr0d1jsgj9m1v3g0swmzxsvmp29bw-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.fasm.drv",
+        "/nix/store/20am13fqav9zkwkp41c2wy2wz8wk2ck3-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.fasm"
+      ],
+      "returncode": 0,
+      "started_at": "2026-05-08T22:12:39.683253+02:00",
+      "status": "PASS",
+      "summary": {
+        "max_frequencies": [
+          {
+            "clock": "clk200",
+            "mhz": 324.15,
+            "status": "PASS"
+          },
+          {
+            "clock": "user_clk",
+            "mhz": 51.01,
+            "status": "PASS"
+          },
+          {
+            "clock": "core.iodelay_clk",
+            "mhz": 956.94,
+            "status": "PASS"
+          },
+          {
+            "clock": "jtag_debug_shift.drck",
+            "mhz": 332.23,
+            "status": "PASS"
+          },
+          {
+            "clock": "clk200",
+            "mhz": 600.96,
+            "status": "PASS"
+          },
+          {
+            "clock": "user_clk",
+            "mhz": 70.77,
+            "status": "PASS"
+          },
+          {
+            "clock": "core.iodelay_clk",
+            "mhz": 424.63,
+            "status": "PASS"
+          },
+          {
+            "clock": "jtag_debug_shift.drck",
+            "mhz": 434.97,
+            "status": "PASS"
+          }
+        ],
+        "route": {
+          "iterations": [
+            {
+              "iter": 1,
+              "overuse": 41929,
+              "overused": 39140,
+              "wires": 1065174
+            },
+            {
+              "iter": 2,
+              "overuse": 3626,
+              "overused": 3617,
+              "wires": 1104693
+            },
+            {
+              "iter": 3,
+              "overuse": 540,
+              "overused": 540,
+              "wires": 1108596
+            },
+            {
+              "iter": 4,
+              "overuse": 185,
+              "overused": 185,
+              "wires": 1109440
+            },
+            {
+              "iter": 5,
+              "overuse": 99,
+              "overused": 99,
+              "wires": 1109754
+            },
+            {
+              "iter": 6,
+              "overuse": 57,
+              "overused": 57,
+              "wires": 1109847
+            },
+            {
+              "iter": 7,
+              "overuse": 33,
+              "overused": 33,
+              "wires": 1109905
+            },
+            {
+              "iter": 8,
+              "overuse": 26,
+              "overused": 26,
+              "wires": 1109972
+            },
+            {
+              "iter": 9,
+              "overuse": 13,
+              "overused": 13,
+              "wires": 1109999
+            },
+            {
+              "iter": 10,
+              "overuse": 7,
+              "overused": 7,
+              "wires": 1110032
+            },
+            {
+              "iter": 11,
+              "overuse": 6,
+              "overused": 6,
+              "wires": 1110053
+            },
+            {
+              "iter": 12,
+              "overuse": 6,
+              "overused": 6,
+              "wires": 1110043
+            },
+            {
+              "iter": 13,
+              "overuse": 3,
+              "overused": 3,
+              "wires": 1110053
+            },
+            {
+              "iter": 14,
+              "overuse": 4,
+              "overused": 4,
+              "wires": 1110052
+            },
+            {
+              "iter": 15,
+              "overuse": 3,
+              "overused": 3,
+              "wires": 1110065
+            },
+            {
+              "iter": 16,
+              "overuse": 3,
+              "overused": 3,
+              "wires": 1110066
+            },
+            {
+              "iter": 17,
+              "overuse": 3,
+              "overused": 3,
+              "wires": 1110068
+            },
+            {
+              "iter": 18,
+              "overuse": 3,
+              "overused": 3,
+              "wires": 1110068
+            },
+            {
+              "iter": 19,
+              "overuse": 2,
+              "overused": 2,
+              "wires": 1110069
+            },
+            {
+              "iter": 20,
+              "overuse": 3,
+              "overused": 3,
+              "wires": 1110069
+            },
+            {
+              "iter": 21,
+              "overuse": 3,
+              "overused": 3,
+              "wires": 1110079
+            },
+            {
+              "iter": 22,
+              "overuse": 2,
+              "overused": 2,
+              "wires": 1110095
+            },
+            {
+              "iter": 23,
+              "overuse": 2,
+              "overused": 2,
+              "wires": 1110096
+            },
+            {
+              "iter": 24,
+              "overuse": 0,
+              "overused": 0,
+              "wires": 1110095
+            }
+          ],
+          "last": {
+            "iter": 24,
+            "overuse": 0,
+            "overused": 0,
+            "wires": 1110095
+          },
+          "routed": true
+        }
+      }
+    },
+    {
+      "argv": [
+        "nix",
+        "build",
+        ".#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1-bitstream",
+        "--no-link",
+        "--print-out-paths",
+        "-L"
+      ],
+      "attr": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1-bitstream",
+      "command_index": 1,
+      "finished_at": "2026-05-08T22:19:58.823254+02:00",
+      "log": "artifacts/task6/experiments/2026-05-08T22-05-51+0200-v117-cmdaddr-idx1/logs/bitstream.idx-1.log",
+      "name": "bitstream",
+      "out_paths": [
+        "/nix/store/1p1fkp7d2y4y4ld1cdq771hf5wqzi3mi-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit.drv",
+        "/nix/store/7872xnkz6j108lxr60rz0hxki81c2isr-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit"
+      ],
+      "returncode": 0,
+      "started_at": "2026-05-08T22:18:25.787797+02:00",
+      "status": "PASS",
+      "summary": {
+        "max_frequencies": [],
+        "route": {
+          "iterations": [],
+          "last": null,
+          "routed": false
+        }
+      }
+    }
+  ],
+  "label": "v117-cmdaddr-idx1",
+  "parameters": {
+    "flake_prefix": "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe",
+    "native_cmdaddr_first_command_indices": [
+      1
+    ],
+    "physical_vocab_size": 9984,
+    "tile_out_dim": 64,
+    "vocab_size": 9984,
+    "weight_quantization": null
+  },
+  "repo": {
+    "git_dirty": true,
+    "git_head": "dbb0e0ed4e1704b7bea3932a2a8a1a4e6dfa17a9",
+    "root": "/home/roland/LLM2FPGA_task6_streamtensor_lite"
+  },
+  "run_dir": "artifacts/task6/experiments/2026-05-08T22-05-51+0200-v117-cmdaddr-idx1",
+  "schema": "task6-experiment-result-v1",
+  "status": "PASS"
+}

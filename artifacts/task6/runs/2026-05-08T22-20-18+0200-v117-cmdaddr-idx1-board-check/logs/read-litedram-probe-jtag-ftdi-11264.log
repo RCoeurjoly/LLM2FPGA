@@ -1,0 +1,4749 @@
+$ python3 scripts/task6/read_litedram_probe_jtag_ftdi.py --backend mpsse --serial 210299BF3824 --tdo-bit 7 --bits 11264 --poll --poll-count 120 --poll-interval 0.2 --json-only
+{
+  "attempts": 1,
+  "backend": "ftdi-mpsse",
+  "decoded": {
+    "byte_diag_samples": [
+      {
+        "actual": 12369878193336725161,
+        "expected_if_byte_enable_works": 160,
+        "index": 0,
+        "write_enable": 1,
+        "xor": 12369878193336725001
+      },
+      {
+        "actual": 12295580889868315048,
+        "expected_if_byte_enable_works": 41216,
+        "index": 1,
+        "write_enable": 2,
+        "xor": 12295580889868273832
+      },
+      {
+        "actual": 11722215275664877739,
+        "expected_if_byte_enable_works": 10616832,
+        "index": 2,
+        "write_enable": 4,
+        "xor": 11722215275654523051
+      },
+      {
+        "actual": 12514570629261339562,
+        "expected_if_byte_enable_works": 2734686208,
+        "index": 3,
+        "write_enable": 8,
+        "xor": 12514570626593762218
+      },
+      {
+        "actual": 12443356339150498466,
+        "expected_if_byte_enable_works": 704374636544,
+        "index": 4,
+        "write_enable": 16,
+        "xor": 12443355669135600290
+      },
+      {
+        "actual": 12659242144484729517,
+        "expected_if_byte_enable_works": 181419418583040,
+        "index": 5,
+        "write_enable": 32,
+        "xor": 12659069521159168685
+      },
+      {
+        "actual": 12585776088919223724,
+        "expected_if_byte_enable_works": 46724846133968896,
+        "index": 6,
+        "write_enable": 64,
+        "xor": 12542428942505782700
+      },
+      {
+        "actual": 12225209937859292335,
+        "expected_if_byte_enable_works": 12033618204333965312,
+        "index": 7,
+        "write_enable": 128,
+        "xor": 1056282861980462255
+      }
+    ],
+    "cal_config_state": "CAL_CFG_IDLE",
+    "complete": false,
+    "current_lane_best_setting": {
+      "bitslip": 0,
+      "delay": 0
+    },
+    "current_lane_best_write_bitslip": 0,
+    "dfii_addr_matrix": [
+      {
+        "column": 43432,
+        "match_mask": 43682,
+        "mismatch_mask": 43179,
+        "nonzero_mask": 43946,
+        "slot": 0
+      },
+      {
+        "column": 44974,
+        "match_mask": 43179,
+        "mismatch_mask": 44713,
+        "nonzero_mask": 43432,
+        "slot": 1
+      },
+      {
+        "column": 44460,
+        "match_mask": 44713,
+        "mismatch_mask": 44207,
+        "nonzero_mask": 44974,
+        "slot": 2
+      },
+      {
+        "column": 43682,
+        "match_mask": 44207,
+        "mismatch_mask": 41645,
+        "nonzero_mask": 44460,
+        "slot": 3
+      }
+    ],
+    "dfii_assoc_matrix": [
+      {
+        "match_mask": 44974,
+        "nonzero_mask": 43682,
+        "signature": 2695938256,
+        "source": 0
+      },
+      {
+        "match_mask": 44460,
+        "nonzero_mask": 43179,
+        "signature": 2712781265,
+        "source": 1
+      },
+      {
+        "match_mask": 43682,
+        "nonzero_mask": 44713,
+        "signature": 2729624274,
+        "source": 2
+      },
+      {
+        "match_mask": 43179,
+        "nonzero_mask": 44207,
+        "signature": 2746467283,
+        "source": 3
+      },
+      {
+        "match_mask": 44713,
+        "nonzero_mask": 41645,
+        "signature": 2763310292,
+        "source": 4
+      },
+      {
+        "match_mask": 44207,
+        "nonzero_mask": 43946,
+        "signature": 2780153301,
+        "source": 5
+      },
+      {
+        "match_mask": 41645,
+        "nonzero_mask": 43432,
+        "signature": 2796996310,
+        "source": 6
+      },
+      {
+        "match_mask": 43946,
+        "nonzero_mask": 44974,
+        "signature": 2813839319,
+        "source": 7
+      },
+      {
+        "match_mask": 43432,
+        "nonzero_mask": 44460,
+        "signature": 2830682328,
+        "source": 8
+      },
+      {
+        "match_mask": 44974,
+        "nonzero_mask": 43682,
+        "signature": 2847525337,
+        "source": 9
+      },
+      {
+        "match_mask": 44460,
+        "nonzero_mask": 43179,
+        "signature": 2864368346,
+        "source": 10
+      },
+      {
+        "match_mask": 43682,
+        "nonzero_mask": 44713,
+        "signature": 2881211355,
+        "source": 11
+      },
+      {
+        "match_mask": 43179,
+        "nonzero_mask": 44207,
+        "signature": 2898054364,
+        "source": 12
+      },
+      {
+        "match_mask": 44713,
+        "nonzero_mask": 41645,
+        "signature": 2914897373,
+        "source": 13
+      },
+      {
+        "match_mask": 44207,
+        "nonzero_mask": 43946,
+        "signature": 2931740382,
+        "source": 14
+      },
+      {
+        "match_mask": 41645,
+        "nonzero_mask": 43432,
+        "signature": 2948583391,
+        "source": 15
+      }
+    ],
+    "dfii_data_failed": false,
+    "dfii_data_pass": false,
+    "dfii_displacement_observed": [
+      {
+        "byte": 0,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 0,
+        "value": 171,
+        "word": 0
+      },
+      {
+        "byte": 1,
+        "label": "cand_p3_high_lane8",
+        "phase": 0,
+        "value": 168,
+        "word": 0
+      },
+      {
+        "byte": 2,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 0,
+        "value": 169,
+        "word": 0
+      },
+      {
+        "byte": 3,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 0,
+        "value": 174,
+        "word": 0
+      },
+      {
+        "byte": 0,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 0,
+        "value": 175,
+        "word": 1
+      },
+      {
+        "byte": 1,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 0,
+        "value": 172,
+        "word": 1
+      },
+      {
+        "byte": 2,
+        "label": "cand_p0_pad_w4_b3",
+        "phase": 0,
+        "value": 173,
+        "word": 1
+      },
+      {
+        "byte": 3,
+        "label": "cand_p1_high_lane7",
+        "phase": 0,
+        "value": 162,
+        "word": 1
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 0,
+        "value": 170,
+        "word": 2
+      },
+      {
+        "byte": 1,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 0,
+        "value": 171,
+        "word": 2
+      },
+      {
+        "byte": 2,
+        "label": "cand_p3_high_lane8",
+        "phase": 0,
+        "value": 168,
+        "word": 2
+      },
+      {
+        "byte": 3,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 0,
+        "value": 169,
+        "word": 2
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 0,
+        "value": 174,
+        "word": 3
+      },
+      {
+        "byte": 1,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 0,
+        "value": 175,
+        "word": 3
+      },
+      {
+        "byte": 2,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 0,
+        "value": 172,
+        "word": 3
+      },
+      {
+        "byte": 3,
+        "label": "cand_p0_pad_w4_b3",
+        "phase": 0,
+        "value": 173,
+        "word": 3
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_high_lane7",
+        "phase": 0,
+        "value": 162,
+        "word": 4
+      },
+      {
+        "byte": 1,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 0,
+        "value": 170,
+        "word": 4
+      },
+      {
+        "byte": 2,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 0,
+        "value": 171,
+        "word": 4
+      },
+      {
+        "byte": 3,
+        "label": "cand_p3_high_lane8",
+        "phase": 0,
+        "value": 168,
+        "word": 4
+      },
+      {
+        "byte": 0,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 1,
+        "value": 169,
+        "word": 0
+      },
+      {
+        "byte": 1,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 1,
+        "value": 174,
+        "word": 0
+      },
+      {
+        "byte": 2,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 1,
+        "value": 175,
+        "word": 0
+      },
+      {
+        "byte": 3,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 1,
+        "value": 172,
+        "word": 0
+      },
+      {
+        "byte": 0,
+        "label": "cand_p0_pad_w4_b3",
+        "phase": 1,
+        "value": 173,
+        "word": 1
+      },
+      {
+        "byte": 1,
+        "label": "cand_p1_high_lane7",
+        "phase": 1,
+        "value": 162,
+        "word": 1
+      },
+      {
+        "byte": 2,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 1,
+        "value": 170,
+        "word": 1
+      },
+      {
+        "byte": 3,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 1,
+        "value": 171,
+        "word": 1
+      },
+      {
+        "byte": 0,
+        "label": "cand_p3_high_lane8",
+        "phase": 1,
+        "value": 168,
+        "word": 2
+      },
+      {
+        "byte": 1,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 1,
+        "value": 169,
+        "word": 2
+      },
+      {
+        "byte": 2,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 1,
+        "value": 174,
+        "word": 2
+      },
+      {
+        "byte": 3,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 1,
+        "value": 175,
+        "word": 2
+      },
+      {
+        "byte": 0,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 1,
+        "value": 172,
+        "word": 3
+      },
+      {
+        "byte": 1,
+        "label": "cand_p0_pad_w4_b3",
+        "phase": 1,
+        "value": 173,
+        "word": 3
+      },
+      {
+        "byte": 2,
+        "label": "cand_p1_high_lane7",
+        "phase": 1,
+        "value": 162,
+        "word": 3
+      },
+      {
+        "byte": 3,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 1,
+        "value": 170,
+        "word": 3
+      },
+      {
+        "byte": 0,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 1,
+        "value": 171,
+        "word": 4
+      },
+      {
+        "byte": 1,
+        "label": "cand_p3_high_lane8",
+        "phase": 1,
+        "value": 168,
+        "word": 4
+      },
+      {
+        "byte": 2,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 1,
+        "value": 169,
+        "word": 4
+      },
+      {
+        "byte": 3,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 1,
+        "value": 174,
+        "word": 4
+      },
+      {
+        "byte": 0,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 2,
+        "value": 175,
+        "word": 0
+      },
+      {
+        "byte": 1,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 2,
+        "value": 172,
+        "word": 0
+      },
+      {
+        "byte": 2,
+        "label": "cand_p0_pad_w4_b3",
+        "phase": 2,
+        "value": 173,
+        "word": 0
+      },
+      {
+        "byte": 3,
+        "label": "cand_p1_high_lane7",
+        "phase": 2,
+        "value": 162,
+        "word": 0
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 2,
+        "value": 170,
+        "word": 1
+      },
+      {
+        "byte": 1,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 2,
+        "value": 171,
+        "word": 1
+      },
+      {
+        "byte": 2,
+        "label": "cand_p3_high_lane8",
+        "phase": 2,
+        "value": 168,
+        "word": 1
+      },
+      {
+        "byte": 3,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 2,
+        "value": 169,
+        "word": 1
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 2,
+        "value": 174,
+        "word": 2
+      },
+      {
+        "byte": 1,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 2,
+        "value": 175,
+        "word": 2
+      },
+      {
+        "byte": 2,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 2,
+        "value": 172,
+        "word": 2
+      },
+      {
+        "byte": 3,
+        "label": "cand_p0_pad_w4_b3",
+        "phase": 2,
+        "value": 173,
+        "word": 2
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_high_lane7",
+        "phase": 2,
+        "value": 162,
+        "word": 3
+      },
+      {
+        "byte": 1,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 2,
+        "value": 170,
+        "word": 3
+      },
+      {
+        "byte": 2,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 2,
+        "value": 171,
+        "word": 3
+      },
+      {
+        "byte": 3,
+        "label": "cand_p3_high_lane8",
+        "phase": 2,
+        "value": 168,
+        "word": 3
+      },
+      {
+        "byte": 0,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 2,
+        "value": 169,
+        "word": 4
+      },
+      {
+        "byte": 1,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 2,
+        "value": 174,
+        "word": 4
+      },
+      {
+        "byte": 2,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 2,
+        "value": 175,
+        "word": 4
+      },
+      {
+        "byte": 3,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 2,
+        "value": 172,
+        "word": 4
+      },
+      {
+        "byte": 0,
+        "label": "cand_p0_pad_w4_b3",
+        "phase": 3,
+        "value": 173,
+        "word": 0
+      },
+      {
+        "byte": 1,
+        "label": "cand_p1_high_lane7",
+        "phase": 3,
+        "value": 162,
+        "word": 0
+      },
+      {
+        "byte": 2,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 3,
+        "value": 170,
+        "word": 0
+      },
+      {
+        "byte": 3,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 3,
+        "value": 171,
+        "word": 0
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 3,
+        "value": 170,
+        "word": 1
+      },
+      {
+        "byte": 1,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 3,
+        "value": 171,
+        "word": 1
+      },
+      {
+        "byte": 2,
+        "label": "cand_p3_high_lane8",
+        "phase": 3,
+        "value": 168,
+        "word": 1
+      },
+      {
+        "byte": 3,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 3,
+        "value": 169,
+        "word": 1
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 3,
+        "value": 174,
+        "word": 2
+      },
+      {
+        "byte": 1,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 3,
+        "value": 175,
+        "word": 2
+      },
+      {
+        "byte": 2,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 3,
+        "value": 172,
+        "word": 2
+      },
+      {
+        "byte": 3,
+        "label": "cand_p0_pad_w4_b3",
+        "phase": 3,
+        "value": 173,
+        "word": 2
+      },
+      {
+        "byte": 0,
+        "label": "cand_p1_high_lane7",
+        "phase": 3,
+        "value": 162,
+        "word": 3
+      },
+      {
+        "byte": 1,
+        "label": "cand_p1_pad_w4_b2",
+        "phase": 3,
+        "value": 170,
+        "word": 3
+      },
+      {
+        "byte": 2,
+        "label": "cand_p2_pad_w4_b2",
+        "phase": 3,
+        "value": 171,
+        "word": 3
+      },
+      {
+        "byte": 3,
+        "label": "cand_p3_high_lane8",
+        "phase": 3,
+        "value": 168,
+        "word": 3
+      },
+      {
+        "byte": 0,
+        "label": "cand_p0_pad_w4_b2",
+        "phase": 3,
+        "value": 169,
+        "word": 4
+      },
+      {
+        "byte": 1,
+        "label": "cand_p1_pad_w4_b3",
+        "phase": 3,
+        "value": 174,
+        "word": 4
+      },
+      {
+        "byte": 2,
+        "label": "cand_p2_pad_w4_b3",
+        "phase": 3,
+        "value": 175,
+        "word": 4
+      },
+      {
+        "byte": 3,
+        "label": "cand_p3_pad_w4_b2",
+        "phase": 3,
+        "value": 172,
+        "word": 4
+      }
+    ],
+    "dfii_displacement_shift_scores": [
+      {
+        "byte_count": 20,
+        "phase": 0,
+        "top_offsets": [
+          {
+            "compared": 1,
+            "exact": 0,
+            "false_nonzero": 1,
+            "matched_positions": [],
+            "offset": -19,
+            "tagged": 0
+          },
+          {
+            "compared": 1,
+            "exact": 0,
+            "false_nonzero": 1,
+            "matched_positions": [],
+            "offset": 19,
+            "tagged": 0
+          },
+          {
+            "compared": 2,
+            "exact": 0,
+            "false_nonzero": 2,
+            "matched_positions": [],
+            "offset": -18,
+            "tagged": 0
+          },
+          {
+            "compared": 2,
+            "exact": 0,
+            "false_nonzero": 2,
+            "matched_positions": [],
+            "offset": 18,
+            "tagged": 0
+          },
+          {
+            "compared": 3,
+            "exact": 0,
+            "false_nonzero": 3,
+            "matched_positions": [],
+            "offset": -17,
+            "tagged": 0
+          }
+        ]
+      },
+      {
+        "byte_count": 20,
+        "phase": 1,
+        "top_offsets": [
+          {
+            "compared": 1,
+            "exact": 0,
+            "false_nonzero": 1,
+            "matched_positions": [],
+            "offset": -19,
+            "tagged": 0
+          },
+          {
+            "compared": 1,
+            "exact": 0,
+            "false_nonzero": 1,
+            "matched_positions": [],
+            "offset": 19,
+            "tagged": 0
+          },
+          {
+            "compared": 2,
+            "exact": 0,
+            "false_nonzero": 2,
+            "matched_positions": [],
+            "offset": -18,
+            "tagged": 0
+          },
+          {
+            "compared": 2,
+            "exact": 0,
+            "false_nonzero": 2,
+            "matched_positions": [],
+            "offset": 18,
+            "tagged": 0
+          },
+          {
+            "compared": 3,
+            "exact": 0,
+            "false_nonzero": 3,
+            "matched_positions": [],
+            "offset": -17,
+            "tagged": 0
+          }
+        ]
+      },
+      {
+        "byte_count": 20,
+        "phase": 2,
+        "top_offsets": [
+          {
+            "compared": 1,
+            "exact": 0,
+            "false_nonzero": 1,
+            "matched_positions": [],
+            "offset": -19,
+            "tagged": 0
+          },
+          {
+            "compared": 1,
+            "exact": 0,
+            "false_nonzero": 1,
+            "matched_positions": [],
+            "offset": 19,
+            "tagged": 0
+          },
+          {
+            "compared": 2,
+            "exact": 0,
+            "false_nonzero": 2,
+            "matched_positions": [],
+            "offset": -18,
+            "tagged": 0
+          },
+          {
+            "compared": 2,
+            "exact": 0,
+            "false_nonzero": 2,
+            "matched_positions": [],
+            "offset": 18,
+            "tagged": 0
+          },
+          {
+            "compared": 3,
+            "exact": 0,
+            "false_nonzero": 3,
+            "matched_positions": [],
+            "offset": -17,
+            "tagged": 0
+          }
+        ]
+      },
+      {
+        "byte_count": 20,
+        "phase": 3,
+        "top_offsets": [
+          {
+            "compared": 1,
+            "exact": 0,
+            "false_nonzero": 1,
+            "matched_positions": [],
+            "offset": -19,
+            "tagged": 0
+          },
+          {
+            "compared": 1,
+            "exact": 0,
+            "false_nonzero": 1,
+            "matched_positions": [],
+            "offset": 19,
+            "tagged": 0
+          },
+          {
+            "compared": 2,
+            "exact": 0,
+            "false_nonzero": 2,
+            "matched_positions": [],
+            "offset": -18,
+            "tagged": 0
+          },
+          {
+            "compared": 2,
+            "exact": 0,
+            "false_nonzero": 2,
+            "matched_positions": [],
+            "offset": 18,
+            "tagged": 0
+          },
+          {
+            "compared": 3,
+            "exact": 0,
+            "false_nonzero": 3,
+            "matched_positions": [],
+            "offset": -17,
+            "tagged": 0
+          }
+        ]
+      }
+    ],
+    "dfii_lane_error_counts": [
+      36,
+      39,
+      43,
+      36,
+      42,
+      41,
+      39,
+      41
+    ],
+    "dfii_mode_masks": {
+      "byte_ramp": 44460,
+      "phase_constant": 44974,
+      "uniform": 43432
+    },
+    "dfii_pattern_mode": "unknown_162",
+    "dfii_phase_matrix": [
+      {
+        "byte": null,
+        "byte_slot": 0,
+        "high_byte": 1,
+        "high_match_high_mask": 11,
+        "high_match_low_mask": 44207,
+        "high_tag": 160,
+        "high_word": 2,
+        "index": 0,
+        "lane": 0,
+        "low_byte": 0,
+        "low_match_high_mask": 12,
+        "low_tag": 144,
+        "low_word": 0,
+        "match_mask": 44974,
+        "mismatch_mask": 44713,
+        "nonzero_high_mask": 13,
+        "nonzero_mask": 43682,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 1,
+        "high_byte": 2,
+        "high_match_high_mask": 10,
+        "high_match_low_mask": 41645,
+        "high_tag": 161,
+        "high_word": 2,
+        "index": 1,
+        "lane": 1,
+        "low_byte": 1,
+        "low_match_high_mask": 10,
+        "low_tag": 145,
+        "low_word": 0,
+        "match_mask": 44460,
+        "mismatch_mask": 44207,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 43179,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 2,
+        "high_byte": 3,
+        "high_match_high_mask": 8,
+        "high_match_low_mask": 43946,
+        "high_tag": 162,
+        "high_word": 2,
+        "index": 2,
+        "lane": 2,
+        "low_byte": 2,
+        "low_match_high_mask": 13,
+        "low_tag": 146,
+        "low_word": 0,
+        "match_mask": 43682,
+        "mismatch_mask": 41645,
+        "nonzero_high_mask": 2,
+        "nonzero_mask": 44713,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 3,
+        "high_byte": 0,
+        "high_match_high_mask": 10,
+        "high_match_low_mask": 43432,
+        "high_tag": 163,
+        "high_word": 3,
+        "index": 3,
+        "lane": 3,
+        "low_byte": 3,
+        "low_match_high_mask": 10,
+        "low_tag": 147,
+        "low_word": 0,
+        "match_mask": 43179,
+        "mismatch_mask": 43946,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 44207,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 4,
+        "high_byte": 1,
+        "high_match_high_mask": 9,
+        "high_match_low_mask": 44974,
+        "high_tag": 164,
+        "high_word": 3,
+        "index": 4,
+        "lane": 4,
+        "low_byte": 0,
+        "low_match_high_mask": 2,
+        "low_tag": 148,
+        "low_word": 1,
+        "match_mask": 44713,
+        "mismatch_mask": 43432,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 41645,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 5,
+        "high_byte": 2,
+        "high_match_high_mask": 10,
+        "high_match_low_mask": 44460,
+        "high_tag": 165,
+        "high_word": 3,
+        "index": 5,
+        "lane": 5,
+        "low_byte": 1,
+        "low_match_high_mask": 10,
+        "low_tag": 149,
+        "low_word": 1,
+        "match_mask": 44207,
+        "mismatch_mask": 44974,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 43946,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 6,
+        "high_byte": 3,
+        "high_match_high_mask": 14,
+        "high_match_low_mask": 43682,
+        "high_tag": 166,
+        "high_word": 3,
+        "index": 6,
+        "lane": 6,
+        "low_byte": 2,
+        "low_match_high_mask": 10,
+        "low_tag": 150,
+        "low_word": 1,
+        "match_mask": 41645,
+        "mismatch_mask": 44460,
+        "nonzero_high_mask": 11,
+        "nonzero_mask": 43432,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 7,
+        "high_byte": 0,
+        "high_match_high_mask": 10,
+        "high_match_low_mask": 43179,
+        "high_tag": 167,
+        "high_word": 4,
+        "index": 7,
+        "lane": 7,
+        "low_byte": 3,
+        "low_match_high_mask": 10,
+        "low_tag": 151,
+        "low_word": 1,
+        "match_mask": 43946,
+        "mismatch_mask": 43682,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 44974,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 8,
+        "high_byte": 1,
+        "high_match_high_mask": 15,
+        "high_match_low_mask": 44713,
+        "high_tag": 168,
+        "high_word": 4,
+        "index": 8,
+        "lane": 8,
+        "low_byte": 0,
+        "low_match_high_mask": 11,
+        "low_tag": 152,
+        "low_word": 2,
+        "match_mask": 43432,
+        "mismatch_mask": 43179,
+        "nonzero_high_mask": 8,
+        "nonzero_mask": 44460,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 9,
+        "high_byte": 0,
+        "high_match_high_mask": 10,
+        "high_match_low_mask": 44207,
+        "high_tag": 169,
+        "high_word": 4,
+        "index": 9,
+        "lane": 7,
+        "low_byte": 3,
+        "low_match_high_mask": 10,
+        "low_tag": 153,
+        "low_word": 1,
+        "match_mask": 44974,
+        "mismatch_mask": 44713,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 43682,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 10,
+        "high_byte": 0,
+        "high_match_high_mask": 12,
+        "high_match_low_mask": 41645,
+        "high_tag": 170,
+        "high_word": 4,
+        "index": 10,
+        "lane": 7,
+        "low_byte": 3,
+        "low_match_high_mask": 8,
+        "low_tag": 154,
+        "low_word": 1,
+        "match_mask": 44460,
+        "mismatch_mask": 44207,
+        "nonzero_high_mask": 9,
+        "nonzero_mask": 43179,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 11,
+        "high_byte": 1,
+        "high_match_high_mask": 10,
+        "high_match_low_mask": 43946,
+        "high_tag": 171,
+        "high_word": 4,
+        "index": 11,
+        "lane": 8,
+        "low_byte": 0,
+        "low_match_high_mask": 10,
+        "low_tag": 155,
+        "low_word": 2,
+        "match_mask": 43682,
+        "mismatch_mask": 41645,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 44713,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 12,
+        "high_byte": 1,
+        "high_match_high_mask": 13,
+        "high_match_low_mask": 43432,
+        "high_tag": 172,
+        "high_word": 4,
+        "index": 12,
+        "lane": 8,
+        "low_byte": 0,
+        "low_match_high_mask": 9,
+        "low_tag": 156,
+        "low_word": 2,
+        "match_mask": 43179,
+        "mismatch_mask": 43946,
+        "nonzero_high_mask": 14,
+        "nonzero_mask": 44207,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 13,
+        "high_byte": 1,
+        "high_match_high_mask": 10,
+        "high_match_low_mask": 44974,
+        "high_tag": 173,
+        "high_word": 2,
+        "index": 13,
+        "lane": 0,
+        "low_byte": 0,
+        "low_match_high_mask": 10,
+        "low_tag": 157,
+        "low_word": 0,
+        "match_mask": 44713,
+        "mismatch_mask": 43432,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 41645,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 14,
+        "high_byte": 1,
+        "high_match_high_mask": 2,
+        "high_match_low_mask": 44460,
+        "high_tag": 174,
+        "high_word": 2,
+        "index": 14,
+        "lane": 0,
+        "low_byte": 0,
+        "low_match_high_mask": 14,
+        "low_tag": 158,
+        "low_word": 0,
+        "match_mask": 44207,
+        "mismatch_mask": 44974,
+        "nonzero_high_mask": 15,
+        "nonzero_mask": 43946,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      },
+      {
+        "byte": null,
+        "byte_slot": 15,
+        "high_byte": 1,
+        "high_match_high_mask": 10,
+        "high_match_low_mask": 43682,
+        "high_tag": 175,
+        "high_word": 4,
+        "index": 15,
+        "lane": 8,
+        "low_byte": 0,
+        "low_match_high_mask": 10,
+        "low_tag": 159,
+        "low_word": 2,
+        "match_mask": 41645,
+        "mismatch_mask": 44460,
+        "nonzero_high_mask": 10,
+        "nonzero_mask": 43432,
+        "read_phase": 2,
+        "source_phase": 2,
+        "tag": null,
+        "word": null,
+        "write_phase": 0
+      }
+    ],
+    "dfii_phasecmd_mismatch_masks": [
+      {
+        "index": 0,
+        "mismatch_mask": 44713,
+        "read_phase": 0,
+        "write_phase": 0
+      },
+      {
+        "index": 1,
+        "mismatch_mask": 44207,
+        "read_phase": 1,
+        "write_phase": 0
+      },
+      {
+        "index": 2,
+        "mismatch_mask": 41645,
+        "read_phase": 2,
+        "write_phase": 0
+      },
+      {
+        "index": 3,
+        "mismatch_mask": 43946,
+        "read_phase": 3,
+        "write_phase": 0
+      },
+      {
+        "index": 4,
+        "mismatch_mask": 43432,
+        "read_phase": 0,
+        "write_phase": 1
+      },
+      {
+        "index": 5,
+        "mismatch_mask": 44974,
+        "read_phase": 1,
+        "write_phase": 1
+      },
+      {
+        "index": 6,
+        "mismatch_mask": 44460,
+        "read_phase": 2,
+        "write_phase": 1
+      },
+      {
+        "index": 7,
+        "mismatch_mask": 43682,
+        "read_phase": 3,
+        "write_phase": 1
+      },
+      {
+        "index": 8,
+        "mismatch_mask": 43179,
+        "read_phase": 0,
+        "write_phase": 2
+      },
+      {
+        "index": 9,
+        "mismatch_mask": 44713,
+        "read_phase": 1,
+        "write_phase": 2
+      },
+      {
+        "index": 10,
+        "mismatch_mask": 44207,
+        "read_phase": 2,
+        "write_phase": 2
+      },
+      {
+        "index": 11,
+        "mismatch_mask": 41645,
+        "read_phase": 3,
+        "write_phase": 2
+      },
+      {
+        "index": 12,
+        "mismatch_mask": 43946,
+        "read_phase": 0,
+        "write_phase": 3
+      },
+      {
+        "index": 13,
+        "mismatch_mask": 43432,
+        "read_phase": 1,
+        "write_phase": 3
+      },
+      {
+        "index": 14,
+        "mismatch_mask": 44974,
+        "read_phase": 2,
+        "write_phase": 3
+      },
+      {
+        "index": 15,
+        "mismatch_mask": 44460,
+        "read_phase": 3,
+        "write_phase": 3
+      }
+    ],
+    "dfii_seq_state": "UNKNOWN_16",
+    "dfii_words": [
+      {
+        "actual": 2930354347,
+        "expected": 319951120,
+        "index": 0,
+        "mismatch": true,
+        "phase": 0,
+        "word": 0,
+        "xor": 3183196603
+      },
+      {
+        "actual": 2729290927,
+        "expected": 387323156,
+        "index": 1,
+        "mismatch": true,
+        "phase": 0,
+        "word": 1,
+        "xor": 3048978875
+      },
+      {
+        "actual": 2846403498,
+        "expected": 454695192,
+        "index": 2,
+        "mismatch": true,
+        "phase": 0,
+        "word": 2,
+        "xor": 2998055602
+      },
+      {
+        "actual": 2913775534,
+        "expected": 522067228,
+        "index": 3,
+        "mismatch": true,
+        "phase": 0,
+        "word": 3,
+        "xor": 2998055602
+      },
+      {
+        "actual": 2829822626,
+        "expected": 8480,
+        "index": 4,
+        "mismatch": true,
+        "phase": 0,
+        "word": 4,
+        "xor": 2829814658
+      },
+      {
+        "actual": 2897194665,
+        "expected": 858927408,
+        "index": 5,
+        "mismatch": true,
+        "phase": 1,
+        "word": 0,
+        "xor": 2677907353
+      },
+      {
+        "actual": 2880086701,
+        "expected": 926299444,
+        "index": 6,
+        "mismatch": true,
+        "phase": 1,
+        "word": 1,
+        "xor": 2627508121
+      },
+      {
+        "actual": 2947459496,
+        "expected": 993671480,
+        "index": 7,
+        "mismatch": true,
+        "phase": 1,
+        "word": 2,
+        "xor": 2492764304
+      },
+      {
+        "actual": 2862788012,
+        "expected": 1061043516,
+        "index": 8,
+        "mismatch": true,
+        "phase": 1,
+        "word": 3,
+        "xor": 2510065808
+      },
+      {
+        "actual": 2930354347,
+        "expected": 16704,
+        "index": 9,
+        "mismatch": true,
+        "phase": 1,
+        "word": 4,
+        "xor": 2930371051
+      },
+      {
+        "actual": 2729290927,
+        "expected": 1397903696,
+        "index": 10,
+        "mismatch": true,
+        "phase": 2,
+        "word": 0,
+        "xor": 4060085759
+      },
+      {
+        "actual": 2846403498,
+        "expected": 1465275732,
+        "index": 11,
+        "mismatch": true,
+        "phase": 2,
+        "word": 1,
+        "xor": 4278124286
+      },
+      {
+        "actual": 2913775534,
+        "expected": 1532647768,
+        "index": 12,
+        "mismatch": true,
+        "phase": 2,
+        "word": 2,
+        "xor": 4143380214
+      },
+      {
+        "actual": 2829822626,
+        "expected": 1600019804,
+        "index": 13,
+        "mismatch": true,
+        "phase": 2,
+        "word": 3,
+        "xor": 4160092158
+      },
+      {
+        "actual": 2897194665,
+        "expected": 24928,
+        "index": 14,
+        "mismatch": true,
+        "phase": 2,
+        "word": 4,
+        "xor": 2897203145
+      },
+      {
+        "actual": 2880086701,
+        "expected": 1936879984,
+        "index": 15,
+        "mismatch": true,
+        "phase": 3,
+        "word": 0,
+        "xor": 3638088669
+      },
+      {
+        "actual": 2846403498,
+        "expected": 2004252020,
+        "index": 16,
+        "mismatch": true,
+        "phase": 3,
+        "word": 1,
+        "xor": 3739147998
+      },
+      {
+        "actual": 2913775534,
+        "expected": 2071624056,
+        "index": 17,
+        "mismatch": true,
+        "phase": 3,
+        "word": 2,
+        "xor": 3604403926
+      },
+      {
+        "actual": 2829822626,
+        "expected": 2138996092,
+        "index": 18,
+        "mismatch": true,
+        "phase": 3,
+        "word": 3,
+        "xor": 3621115870
+      },
+      {
+        "actual": 2897194665,
+        "expected": 33152,
+        "index": 19,
+        "mismatch": true,
+        "phase": 3,
+        "word": 4,
+        "xor": 2897162025
+      }
+    ],
+    "extended_status": {
+      "cal_candidate_success": true,
+      "cal_config_done": false,
+      "cal_last_candidate": false,
+      "cal_mode": false,
+      "cmd_valid": false,
+      "cmd_we": false,
+      "config_reset_done": true,
+      "core_rst": false,
+      "mismatch_seen": true,
+      "probe_done": true,
+      "probe_error": false,
+      "probe_timeout": false,
+      "read_target_seen": true,
+      "wb_ctrl_ack": false,
+      "wb_ctrl_cyc": false,
+      "wb_ctrl_err": false,
+      "wb_ctrl_stb": false,
+      "wb_ctrl_we": false,
+      "wdata_ready": false,
+      "wdata_valid": false,
+      "write_command_target_seen": false,
+      "write_data_target_seen": false,
+      "write_drain_done": true
+    },
+    "failed": true,
+    "init_state": "INIT_DONE",
+    "lane_best_mismatch_counts": [
+      255,
+      255,
+      255,
+      255,
+      255,
+      255,
+      255,
+      255
+    ],
+    "lane_selected_logical_bytes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "lane_selected_settings": [
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 0
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 1
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 2
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 3
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 4
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 5
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 6
+      },
+      {
+        "bitslip": 0,
+        "delay": 0,
+        "lane": 7
+      }
+    ],
+    "lane_selected_write_bitslips": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "native_address_classifier": {
+      "cmdaddr_accepted_valid_count": 1,
+      "cmdaddr_compact_trace": false,
+      "cmdaddr_flags": 3,
+      "cmdaddr_presented_valid_count": 1,
+      "cmdaddr_single_trace": true,
+      "cmdaddr_trace": [
+        {
+          "accepted_cmd_addr": 1,
+          "accepted_matches_requested": true,
+          "command_index": 1,
+          "presented_cmd_addr": 1,
+          "presented_matches_accepted": true,
+          "sample": 1,
+          "scheduled_matches_presented": true,
+          "scheduled_read_addr": 1
+        }
+      ],
+      "exact_beat_matches": [
+        {
+          "exact_chunk_count": 2,
+          "requested_native_addr": 15,
+          "sample": 5
+        },
+        {
+          "exact_chunk_count": 2,
+          "requested_native_addr": 31,
+          "sample": 7
+        }
+      ],
+      "first_chunk_mismatch_mask": 511,
+      "first_mismatch_addr": 0,
+      "first_nonzero_addr": 0,
+      "first_nonzero_chunk": 511,
+      "first_nonzero_data": 12514570629261339562,
+      "flags": 5,
+      "nonzero_chunk_seen": 511,
+      "nonzero_count": 16,
+      "samples": [
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 0,
+          "sample": 0
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 5569914036805978954,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 16204198715729174752
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 5498699746695137858,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 16204198715729174752
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 5280553344291586637,
+              "matches": [],
+              "xor": 16638235336537465056
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 5209339042609254222,
+              "matches": [],
+              "xor": 16637109467706483426
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 72899760180809,
+              "matches": [],
+              "xor": 12225278370851775206
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 5569914036805978954,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 16566462559920907492
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 5498699746695137858,
+              "matches": [],
+              "xor": 16710022460264998123
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 5280553344291586637,
+              "matches": [],
+              "xor": 16423192869624277989
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 5209339042609254222,
+              "matches": [],
+              "xor": 16926470158923720677
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 1,
+          "requested_dfii_column": 8,
+          "requested_native_addr": 1,
+          "sample": 1
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 9042242333033659258,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 15046755950319947984
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 8971028042922818162,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 15046755950319947984
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 8752881639710814845,
+              "matches": [],
+              "xor": 15480792571397722320
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 8681667338836934526,
+              "matches": [],
+              "xor": 15479666702297256658
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 125883285208697,
+              "matches": [],
+              "xor": 12225260709676765910
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 9042242333033659258,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 15409019794511680724
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 8971028042922818162,
+              "matches": [],
+              "xor": 15552579694855771355
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 8752881639710814845,
+              "matches": [],
+              "xor": 15265750104484535253
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 8681667338836934526,
+              "matches": [],
+              "xor": 15769027393514493909
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 2,
+          "requested_dfii_column": 16,
+          "requested_native_addr": 2,
+          "sample": 2
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 7884799567624432490,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 13889313184910721216
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 7813585277513591394,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 13889313184910721216
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 7595438874571072109,
+              "matches": [],
+              "xor": 14323349806257979584
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 7524224573427707758,
+              "matches": [],
+              "xor": 14322223936888029890
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 108222110199401,
+              "matches": [],
+              "xor": 12225243048501756614
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 7884799567624432490,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 14251577029102453956
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 7813585277513591394,
+              "matches": [],
+              "xor": 14395136929446544587
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 7595438874571072109,
+              "matches": [],
+              "xor": 14108307339344792517
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 7524224573427707758,
+              "matches": [],
+              "xor": 14611584628105267141
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 3,
+          "requested_dfii_column": 24,
+          "requested_native_addr": 3,
+          "sample": 3
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 15986898925489019866,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 8102099357864587376
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 15915684635378178770,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 8102099357864587376
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 15697538230549271261,
+              "matches": [],
+              "xor": 8536135980559265904
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 15626323931292295134,
+              "matches": [],
+              "xor": 8535010109841896050
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 231850335264473,
+              "matches": [],
+              "xor": 12225154742626710134
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 15986898925489019866,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 8464363202056320116
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 15915684635378178770,
+              "matches": [],
+              "xor": 8607923102400410747
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 15697538230549271261,
+              "matches": [],
+              "xor": 8321093513646078837
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 15626323931292295134,
+              "matches": [],
+              "xor": 8824370801059133301
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 8,
+          "requested_dfii_column": 256,
+          "requested_native_addr": 8,
+          "sample": 4
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 12514570629261339562,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 0
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 12443356339150498466,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 0
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 12225209935130043053,
+              "matches": [],
+              "xor": 434036624581066752
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 12153995635064614830,
+              "matches": [],
+              "xor": 432910751977308674
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 178866810236585,
+              "matches": [],
+              "xor": 12225031114401645062
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 12514570629261339562,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 362263844191732740
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 12443356339150498466,
+              "matches": [],
+              "xor": 505823744535823371
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 12225209935130043053,
+              "matches": [],
+              "xor": 218994157667879685
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 12153995635064614830,
+              "matches": [],
+              "xor": 722271443194545925
+            }
+          ],
+          "exact_chunk_count": 2,
+          "requested_addr_index": 15,
+          "requested_dfii_column": 536,
+          "requested_native_addr": 15,
+          "sample": 5
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 16,
+          "sample": 6
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 12514570629261339562,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 0
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 12443356339150498466,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 0
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 12225209935130043053,
+              "matches": [],
+              "xor": 434036624581066752
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 12153995635064614830,
+              "matches": [],
+              "xor": 432910751977308674
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 178866810236585,
+              "matches": [],
+              "xor": 12225031114401645062
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 12514570629261339562,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 362263844191732740
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 12443356339150498466,
+              "matches": [],
+              "xor": 505823744535823371
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 12225209935130043053,
+              "matches": [],
+              "xor": 218994157667879685
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 12153995635064614830,
+              "matches": [],
+              "xor": 722271443194545925
+            }
+          ],
+          "exact_chunk_count": 2,
+          "requested_addr_index": 15,
+          "requested_dfii_column": 536,
+          "requested_native_addr": 31,
+          "sample": 7
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 64,
+          "sample": 8
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 128,
+          "sample": 9
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 256,
+          "sample": 10
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 512,
+          "sample": 11
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 1024,
+          "sample": 12
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 2048,
+          "sample": 13
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 4096,
+          "sample": 14
+        },
+        {
+          "best_any_chunk_count": 3,
+          "best_any_chunk_dfii_addr_index": 15,
+          "best_any_chunk_dfii_column": 536,
+          "best_same_chunk_count": 2,
+          "best_same_chunk_dfii_addr_index": 15,
+          "best_same_chunk_dfii_column": 536,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 0,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 5,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "chunk": 1,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 6,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "chunk": 3,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                },
+                {
+                  "chunk": 8,
+                  "dfii_addr_index": 15,
+                  "dfii_column": 536
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "requested_addr_index": 0,
+          "requested_dfii_column": 0,
+          "requested_native_addr": 8192,
+          "sample": 15
+        }
+      ],
+      "valid_count": 16
+    },
+    "native_debug": {
+      "dfi_debug_wrdata_event_count": 13,
+      "dfi_debug_wrdata_last_en": 13,
+      "dfi_debug_wrdata_packed_mask_seen": 2472,
+      "dfi_debug_wrdata_packed_mask_seen_hex": "0x9a8",
+      "dfi_debug_wrdata_phases": [
+        {
+          "last_en": true,
+          "phase": 0,
+          "seen": false,
+          "status": {
+            "level": 44,
+            "slave_event_count": 173
+          },
+          "word4": 44460,
+          "word4_hex": "0xadac"
+        },
+        {
+          "last_en": false,
+          "phase": 1,
+          "seen": false,
+          "status": {
+            "master_event_count": 162,
+            "pop_count": 170
+          },
+          "word4": 43682,
+          "word4_hex": "0xaaa2"
+        },
+        {
+          "last_en": true,
+          "phase": 2,
+          "seen": false,
+          "status": {
+            "push_count": 171
+          },
+          "word4": 43179,
+          "word4_hex": "0xa8ab"
+        },
+        {
+          "last_en": true,
+          "phase": 3,
+          "seen": true,
+          "status": {},
+          "word4": 44713,
+          "word4_hex": "0xaea9"
+        }
+      ],
+      "dfi_debug_wrdata_seen": 8,
+      "dfi_debug_wrdata_status": {
+        "level_nonzero": false,
+        "master_event": true,
+        "pop": true,
+        "pop_count_seen": false,
+        "pop_seen": true,
+        "push": true,
+        "push_count_seen": true,
+        "push_seen": false,
+        "select_native": false,
+        "slave_event": false
+      },
+      "dfi_debug_wrdata_status_byte": 154,
+      "dfi_debug_wrdata_status_byte_hex": "0x9a",
+      "dfi_debug_wrdata_word4_mask": 154,
+      "event_count": 13,
+      "packed_mask_seen": 2472,
+      "packed_mask_seen_hex": "0x9a8",
+      "status_byte": 154,
+      "status_byte_hex": "0x9a"
+    },
+    "native_first_mismatch_chunks": [],
+    "native_packing_classifier": {
+      "chunk_matches": [
+        {
+          "actual": 12514570629261339562,
+          "chunk": 0,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 0
+            },
+            {
+              "addr": 15,
+              "chunk": 5
+            }
+          ],
+          "sample": 0
+        },
+        {
+          "actual": 12443356339150498466,
+          "chunk": 1,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 1
+            },
+            {
+              "addr": 15,
+              "chunk": 6
+            }
+          ],
+          "sample": 0
+        },
+        {
+          "actual": 12153995635064614830,
+          "chunk": 5,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 3
+            },
+            {
+              "addr": 15,
+              "chunk": 8
+            }
+          ],
+          "sample": 0
+        },
+        {
+          "actual": 12514570629261339562,
+          "chunk": 0,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 0
+            },
+            {
+              "addr": 15,
+              "chunk": 5
+            }
+          ],
+          "sample": 1
+        },
+        {
+          "actual": 12443356339150498466,
+          "chunk": 1,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 1
+            },
+            {
+              "addr": 15,
+              "chunk": 6
+            }
+          ],
+          "sample": 1
+        },
+        {
+          "actual": 12153995635064614830,
+          "chunk": 5,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 3
+            },
+            {
+              "addr": 15,
+              "chunk": 8
+            }
+          ],
+          "sample": 1
+        },
+        {
+          "actual": 12514570629261339562,
+          "chunk": 0,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 0
+            },
+            {
+              "addr": 15,
+              "chunk": 5
+            }
+          ],
+          "sample": 2
+        },
+        {
+          "actual": 12443356339150498466,
+          "chunk": 1,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 1
+            },
+            {
+              "addr": 15,
+              "chunk": 6
+            }
+          ],
+          "sample": 2
+        },
+        {
+          "actual": 12153995635064614830,
+          "chunk": 5,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 3
+            },
+            {
+              "addr": 15,
+              "chunk": 8
+            }
+          ],
+          "sample": 2
+        },
+        {
+          "actual": 12514570629261339562,
+          "chunk": 0,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 0
+            },
+            {
+              "addr": 15,
+              "chunk": 5
+            }
+          ],
+          "sample": 3
+        },
+        {
+          "actual": 12443356339150498466,
+          "chunk": 1,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 1
+            },
+            {
+              "addr": 15,
+              "chunk": 6
+            }
+          ],
+          "sample": 3
+        },
+        {
+          "actual": 12153995635064614830,
+          "chunk": 5,
+          "matches": [
+            {
+              "addr": 15,
+              "chunk": 3
+            },
+            {
+              "addr": 15,
+              "chunk": 8
+            }
+          ],
+          "sample": 3
+        }
+      ],
+      "exact_beat_matches": [],
+      "first_chunk_mismatch_mask": 511,
+      "first_mismatch_addr": 0,
+      "flags": 5,
+      "samples": [
+        {
+          "best_addr_by_same_chunk": 15,
+          "best_addr_same_chunk_count": 2,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 0
+                },
+                {
+                  "addr": 15,
+                  "chunk": 5
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 6656142512104364626,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 1
+                },
+                {
+                  "addr": 15,
+                  "chunk": 6
+                }
+              ],
+              "xor": 17361641481138401520
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17795678101677207792
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 17794552233115710194
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 90560935190105,
+              "matches": [],
+              "xor": 12225296032026784502
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 6727356802215205722,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 3
+                },
+                {
+                  "addr": 15,
+                  "chunk": 8
+                }
+              ],
+              "xor": 17723905325330134260
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 6656142512104364626,
+              "matches": [],
+              "xor": 17867465225674224891
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 6437996109431329373,
+              "matches": [],
+              "xor": 17580635634764020725
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 6366781808018480990,
+              "matches": [],
+              "xor": 18083912924332947445
+            }
+          ],
+          "exact_chunk_count": 0,
+          "expected_addr": 0,
+          "sample": 0
+        },
+        {
+          "best_addr_by_same_chunk": 15,
+          "best_addr_same_chunk_count": 2,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 5569914036805978954,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 0
+                },
+                {
+                  "addr": 15,
+                  "chunk": 5
+                }
+              ],
+              "xor": 16204198715729174752
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 5498699746695137858,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 1
+                },
+                {
+                  "addr": 15,
+                  "chunk": 6
+                }
+              ],
+              "xor": 16204198715729174752
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 5280553344291586637,
+              "matches": [],
+              "xor": 16638235336537465056
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 5209339042609254222,
+              "matches": [],
+              "xor": 16637109467706483426
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 72899760180809,
+              "matches": [],
+              "xor": 12225278370851775206
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 5569914036805978954,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 3
+                },
+                {
+                  "addr": 15,
+                  "chunk": 8
+                }
+              ],
+              "xor": 16566462559920907492
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 5498699746695137858,
+              "matches": [],
+              "xor": 16710022460264998123
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 5280553344291586637,
+              "matches": [],
+              "xor": 16423192869624277989
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 5209339042609254222,
+              "matches": [],
+              "xor": 16926470158923720677
+            }
+          ],
+          "exact_chunk_count": 0,
+          "expected_addr": 1,
+          "sample": 1
+        },
+        {
+          "best_addr_by_same_chunk": 15,
+          "best_addr_same_chunk_count": 2,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 9042242333033659258,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 0
+                },
+                {
+                  "addr": 15,
+                  "chunk": 5
+                }
+              ],
+              "xor": 15046755950319947984
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 8971028042922818162,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 1
+                },
+                {
+                  "addr": 15,
+                  "chunk": 6
+                }
+              ],
+              "xor": 15046755950319947984
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 8752881639710814845,
+              "matches": [],
+              "xor": 15480792571397722320
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 8681667338836934526,
+              "matches": [],
+              "xor": 15479666702297256658
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 125883285208697,
+              "matches": [],
+              "xor": 12225260709676765910
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 9042242333033659258,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 3
+                },
+                {
+                  "addr": 15,
+                  "chunk": 8
+                }
+              ],
+              "xor": 15409019794511680724
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 8971028042922818162,
+              "matches": [],
+              "xor": 15552579694855771355
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 8752881639710814845,
+              "matches": [],
+              "xor": 15265750104484535253
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 8681667338836934526,
+              "matches": [],
+              "xor": 15769027393514493909
+            }
+          ],
+          "exact_chunk_count": 0,
+          "expected_addr": 2,
+          "sample": 2
+        },
+        {
+          "best_addr_by_same_chunk": 15,
+          "best_addr_same_chunk_count": 2,
+          "chunks": [
+            {
+              "actual": 12514570629261339562,
+              "chunk": 0,
+              "expected": 7884799567624432490,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 0
+                },
+                {
+                  "addr": 15,
+                  "chunk": 5
+                }
+              ],
+              "xor": 13889313184910721216
+            },
+            {
+              "actual": 12443356339150498466,
+              "chunk": 1,
+              "expected": 7813585277513591394,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 1
+                },
+                {
+                  "addr": 15,
+                  "chunk": 6
+                }
+              ],
+              "xor": 13889313184910721216
+            },
+            {
+              "actual": 12659242144484729517,
+              "chunk": 2,
+              "expected": 7595438874571072109,
+              "matches": [],
+              "xor": 14323349806257979584
+            },
+            {
+              "actual": 12585776088919223724,
+              "chunk": 3,
+              "expected": 7524224573427707758,
+              "matches": [],
+              "xor": 14322223936888029890
+            },
+            {
+              "actual": 12225209937859292335,
+              "chunk": 4,
+              "expected": 108222110199401,
+              "matches": [],
+              "xor": 12225243048501756614
+            },
+            {
+              "actual": 12153995635064614830,
+              "chunk": 5,
+              "expected": 7884799567624432490,
+              "matches": [
+                {
+                  "addr": 15,
+                  "chunk": 3
+                },
+                {
+                  "addr": 15,
+                  "chunk": 8
+                }
+              ],
+              "xor": 14251577029102453956
+            },
+            {
+              "actual": 12369878193336725161,
+              "chunk": 6,
+              "expected": 7813585277513591394,
+              "matches": [],
+              "xor": 14395136929446544587
+            },
+            {
+              "actual": 12295580889868315048,
+              "chunk": 7,
+              "expected": 7595438874571072109,
+              "matches": [],
+              "xor": 14108307339344792517
+            },
+            {
+              "actual": 11722215275664877739,
+              "chunk": 8,
+              "expected": 7524224573427707758,
+              "matches": [],
+              "xor": 14611584628105267141
+            }
+          ],
+          "exact_chunk_count": 0,
+          "expected_addr": 3,
+          "sample": 3
+        }
+      ],
+      "valid_count": 4
+    },
+    "native_phase_sweep": null,
+    "samples": [
+      {
+        "actual": 12514570629261339562,
+        "expected": 15045981070236873776,
+        "index": 0,
+        "xor": 9034994626650496922
+      },
+      {
+        "actual": 12514570629261339562,
+        "expected": 15045981624287646769,
+        "index": 1,
+        "xor": 9034994081189658523
+      },
+      {
+        "actual": 12514570629261339562,
+        "expected": 15045982178338419762,
+        "index": 2,
+        "xor": 9034993518548918168
+      },
+      {
+        "actual": 12514570629261339562,
+        "expected": 15045982732389192755,
+        "index": 3,
+        "xor": 9034992973088079769
+      },
+      {
+        "actual": 12514570629261339562,
+        "expected": 15045983286440031284,
+        "index": 4,
+        "xor": 9034992410447339422
+      },
+      {
+        "actual": 12514570629261339562,
+        "expected": 15045983840490804277,
+        "index": 5,
+        "xor": 9034991864986501023
+      },
+      {
+        "actual": 12514570629261339562,
+        "expected": 15045984394541577270,
+        "index": 6,
+        "xor": 9034991302345760668
+      },
+      {
+        "actual": 12514570629261339562,
+        "expected": 15045984948592350263,
+        "index": 7,
+        "xor": 9034990756884922269
+      }
+    ],
+    "state": "PROBE_DONE",
+    "status": {
+      "cmd_ready": true,
+      "init_done": true,
+      "init_error": false,
+      "init_seq_done": true,
+      "init_seq_error": false,
+      "init_seq_running": false,
+      "outstanding_full": false,
+      "pll_locked": true,
+      "rdata_valid": false,
+      "read_target_issued": true,
+      "read_target_seen": true,
+      "sys_rstn": true,
+      "timeout_seen": false,
+      "user_rst": false,
+      "wb_error_seen": false,
+      "wb_timeout_seen": false
+    }
+  },
+  "fields": {
+    "best_bitslip": 0,
+    "best_delay": 0,
+    "best_mismatch_count": 4294967295,
+    "byte_diag_rdata_0": 12369878193336725161,
+    "byte_diag_rdata_1": 12295580889868315048,
+    "byte_diag_rdata_2": 11722215275664877739,
+    "byte_diag_rdata_3": 12514570629261339562,
+    "byte_diag_rdata_4": 12443356339150498466,
+    "byte_diag_rdata_5": 12659242144484729517,
+    "byte_diag_rdata_6": 12585776088919223724,
+    "byte_diag_rdata_7": 12225209937859292335,
+    "byte_diag_valid_count": 171,
+    "cal_bitslip": 0,
+    "cal_candidates_tested": 0,
+    "cal_config_state": 0,
+    "cal_config_step": 0,
+    "cal_delay": 0,
+    "cal_lane": 0,
+    "checksum": 0,
+    "command_count": 16,
+    "command_stall_count": 26,
+    "compare_addr": 16,
+    "current_lane_best_logical_byte": 0,
+    "current_lane_best_mismatch_count": 4294967295,
+    "current_lane_best_setting": 0,
+    "dfi_debug_wrdata_event_count": 13,
+    "dfi_debug_wrdata_last_en": 13,
+    "dfi_debug_wrdata_seen": 8,
+    "dfi_debug_wrdata_word4_mask": 154,
+    "dfi_debug_wrdata_word4_q_0": 44460,
+    "dfi_debug_wrdata_word4_q_1": 43682,
+    "dfi_debug_wrdata_word4_q_2": 43179,
+    "dfi_debug_wrdata_word4_q_3": 44713,
+    "dfii_addr_columns": 12295580889868315048,
+    "dfii_addr_flags": 171,
+    "dfii_addr_index": 10,
+    "dfii_addr_match_masks": 12443356339150498466,
+    "dfii_addr_mismatch_masks": 11722215275664877739,
+    "dfii_addr_nonzero_masks": 12514570629261339562,
+    "dfii_assoc_flags": 175,
+    "dfii_assoc_index": 14,
+    "dfii_assoc_match_mask_0": 44974,
+    "dfii_assoc_match_mask_1": 44460,
+    "dfii_assoc_match_mask_10": 44460,
+    "dfii_assoc_match_mask_11": 43682,
+    "dfii_assoc_match_mask_12": 43179,
+    "dfii_assoc_match_mask_13": 44713,
+    "dfii_assoc_match_mask_14": 44207,
+    "dfii_assoc_match_mask_15": 41645,
+    "dfii_assoc_match_mask_2": 43682,
+    "dfii_assoc_match_mask_3": 43179,
+    "dfii_assoc_match_mask_4": 44713,
+    "dfii_assoc_match_mask_5": 44207,
+    "dfii_assoc_match_mask_6": 41645,
+    "dfii_assoc_match_mask_7": 43946,
+    "dfii_assoc_match_mask_8": 43432,
+    "dfii_assoc_match_mask_9": 44974,
+    "dfii_assoc_nonzero_mask_0": 43682,
+    "dfii_assoc_nonzero_mask_1": 43179,
+    "dfii_assoc_nonzero_mask_10": 43179,
+    "dfii_assoc_nonzero_mask_11": 44713,
+    "dfii_assoc_nonzero_mask_12": 44207,
+    "dfii_assoc_nonzero_mask_13": 41645,
+    "dfii_assoc_nonzero_mask_14": 43946,
+    "dfii_assoc_nonzero_mask_15": 43432,
+    "dfii_assoc_nonzero_mask_2": 44713,
+    "dfii_assoc_nonzero_mask_3": 44207,
+    "dfii_assoc_nonzero_mask_4": 41645,
+    "dfii_assoc_nonzero_mask_5": 43946,
+    "dfii_assoc_nonzero_mask_6": 43432,
+    "dfii_assoc_nonzero_mask_7": 44974,
+    "dfii_assoc_nonzero_mask_8": 44460,
+    "dfii_assoc_nonzero_mask_9": 43682,
+    "dfii_csr_echo_probe_only": 1,
+    "dfii_csr_wrdata_mask_controllable": 0,
+    "dfii_disable_write_command": 1,
+    "dfii_displacement_probe_only": 0,
+    "dfii_edge_comp_probe_only": 0,
+    "dfii_edge_lane7_locator_probe_only": 1,
+    "dfii_edge_map_probe_only": 1,
+    "dfii_half_high_match_high_masks": 11722215275664877739,
+    "dfii_half_high_match_low_masks": 77180612141379708923835675202383589310547341184896971053727564889653053861039,
+    "dfii_half_low_match_high_masks": 12585776088919223724,
+    "dfii_half_nonzero_high_masks": 12659242144484729517,
+    "dfii_half_order_matrix_only": 1,
+    "dfii_last_read_data": 2862788012,
+    "dfii_pattern_mode": 162,
+    "dfii_phase_matrix_only": 0,
+    "dfii_phase_mismatch_mask": 44974,
+    "dfii_phasecmd_index": 10,
+    "dfii_phasecmd_mismatch_masks": 78555233014555540067042913905718209491081728896776605503507974641208905412265,
+    "dfii_ramp_mismatch_mask": 44460,
+    "dfii_rbitslip_sweep_only": 0,
+    "dfii_rddata_0": 2930354347,
+    "dfii_rddata_1": 2729290927,
+    "dfii_rddata_10": 2729290927,
+    "dfii_rddata_11": 2846403498,
+    "dfii_rddata_12": 2913775534,
+    "dfii_rddata_13": 2829822626,
+    "dfii_rddata_14": 2897194665,
+    "dfii_rddata_15": 2880086701,
+    "dfii_rddata_16": 2846403498,
+    "dfii_rddata_17": 2913775534,
+    "dfii_rddata_18": 2829822626,
+    "dfii_rddata_19": 2897194665,
+    "dfii_rddata_2": 2846403498,
+    "dfii_rddata_3": 2913775534,
+    "dfii_rddata_4": 2829822626,
+    "dfii_rddata_5": 2897194665,
+    "dfii_rddata_6": 2880086701,
+    "dfii_rddata_7": 2947459496,
+    "dfii_rddata_8": 2862788012,
+    "dfii_rddata_9": 2930354347,
+    "dfii_read_command_phase": 0,
+    "dfii_seq_state": 16,
+    "dfii_source_command_matrix_only": 1,
+    "dfii_source_command_read_phase": 2,
+    "dfii_source_order_matrix_only": 1,
+    "dfii_source_order_read_phase": 2,
+    "dfii_source_order_source_phase": 2,
+    "dfii_source_order_write_phase": 0,
+    "dfii_step": 5,
+    "dfii_uniform_mismatch_mask": 43432,
+    "dfii_wb_ack_count": 0,
+    "dfii_wb_wait_count": 2880045567,
+    "dfii_wbitslip_sweep_only": 1,
+    "dfii_word_mismatch_mask": 2947459496,
+    "dfii_write_command_phase": 2,
+    "extended_status": 2360256,
+    "first_actual": 12514570629261339562,
+    "first_actual_chunk_0": 12514570629261339562,
+    "first_actual_chunk_1": 12443356339150498466,
+    "first_actual_chunk_2": 12659242144484729517,
+    "first_actual_chunk_3": 12585776088919223724,
+    "first_actual_chunk_4": 12225209937859292335,
+    "first_actual_chunk_5": 12153995635064614830,
+    "first_actual_chunk_6": 12369878193336725161,
+    "first_actual_chunk_7": 12295580889868315048,
+    "first_actual_chunk_8": 11722215275664877739,
+    "first_chunk_mismatch_mask": 1296,
+    "first_expected": 6727356802215205722,
+    "first_expected_chunk_0": 12514570629261339562,
+    "first_expected_chunk_1": 12443356339150498466,
+    "first_expected_chunk_2": 12659242144484729517,
+    "first_expected_chunk_3": 12585776088919223724,
+    "first_expected_chunk_4": 12225209937859292335,
+    "first_expected_chunk_5": 12153995635064614830,
+    "first_expected_chunk_6": 12369878193336725161,
+    "first_expected_chunk_7": 12295580889868315048,
+    "first_expected_chunk_8": 11722215275664877739,
+    "first_mismatch_addr": 0,
+    "init_delay_remaining": 0,
+    "init_state": 5,
+    "init_step": 32,
+    "lane8_best_mismatch_count": 0,
+    "lane8_current_best_setting": 0,
+    "lane8_current_best_write_bitslip": 255,
+    "lane8_selected_setting": 0,
+    "lane8_selected_write_bitslip": 0,
+    "lane_best_mismatch_counts": 18446744073709551615,
+    "lane_selected_logical_bytes": 0,
+    "lane_selected_settings": 0,
+    "last_rdata": 12514570629261339562,
+    "last_wb_addr": 0,
+    "last_wb_data": 0,
+    "magic": 1412844100,
+    "mismatch_count": 16,
+    "native_address_classifier_actual_0_0": 12514570629261339562,
+    "native_address_classifier_actual_0_1": 12443356339150498466,
+    "native_address_classifier_actual_0_2": 12659242144484729517,
+    "native_address_classifier_actual_0_3": 12585776088919223724,
+    "native_address_classifier_actual_0_4": 12225209937859292335,
+    "native_address_classifier_actual_0_5": 12153995635064614830,
+    "native_address_classifier_actual_0_6": 12369878193336725161,
+    "native_address_classifier_actual_0_7": 12295580889868315048,
+    "native_address_classifier_actual_0_8": 11722215275664877739,
+    "native_address_classifier_actual_10_0": 12514570629261339562,
+    "native_address_classifier_actual_10_1": 12443356339150498466,
+    "native_address_classifier_actual_10_2": 12659242144484729517,
+    "native_address_classifier_actual_10_3": 12585776088919223724,
+    "native_address_classifier_actual_10_4": 12225209937859292335,
+    "native_address_classifier_actual_10_5": 12153995635064614830,
+    "native_address_classifier_actual_10_6": 12369878193336725161,
+    "native_address_classifier_actual_10_7": 12295580889868315048,
+    "native_address_classifier_actual_10_8": 11722215275664877739,
+    "native_address_classifier_actual_11_0": 12514570629261339562,
+    "native_address_classifier_actual_11_1": 12443356339150498466,
+    "native_address_classifier_actual_11_2": 12659242144484729517,
+    "native_address_classifier_actual_11_3": 12585776088919223724,
+    "native_address_classifier_actual_11_4": 12225209937859292335,
+    "native_address_classifier_actual_11_5": 12153995635064614830,
+    "native_address_classifier_actual_11_6": 12369878193336725161,
+    "native_address_classifier_actual_11_7": 12295580889868315048,
+    "native_address_classifier_actual_11_8": 11722215275664877739,
+    "native_address_classifier_actual_12_0": 12514570629261339562,
+    "native_address_classifier_actual_12_1": 12443356339150498466,
+    "native_address_classifier_actual_12_2": 12659242144484729517,
+    "native_address_classifier_actual_12_3": 12585776088919223724,
+    "native_address_classifier_actual_12_4": 12225209937859292335,
+    "native_address_classifier_actual_12_5": 12153995635064614830,
+    "native_address_classifier_actual_12_6": 12369878193336725161,
+    "native_address_classifier_actual_12_7": 12295580889868315048,
+    "native_address_classifier_actual_12_8": 11722215275664877739,
+    "native_address_classifier_actual_13_0": 12514570629261339562,
+    "native_address_classifier_actual_13_1": 12443356339150498466,
+    "native_address_classifier_actual_13_2": 12659242144484729517,
+    "native_address_classifier_actual_13_3": 12585776088919223724,
+    "native_address_classifier_actual_13_4": 12225209937859292335,
+    "native_address_classifier_actual_13_5": 12153995635064614830,
+    "native_address_classifier_actual_13_6": 12369878193336725161,
+    "native_address_classifier_actual_13_7": 12295580889868315048,
+    "native_address_classifier_actual_13_8": 11722215275664877739,
+    "native_address_classifier_actual_14_0": 12514570629261339562,
+    "native_address_classifier_actual_14_1": 12443356339150498466,
+    "native_address_classifier_actual_14_2": 12659242144484729517,
+    "native_address_classifier_actual_14_3": 12585776088919223724,
+    "native_address_classifier_actual_14_4": 12225209937859292335,
+    "native_address_classifier_actual_14_5": 12153995635064614830,
+    "native_address_classifier_actual_14_6": 12369878193336725161,
+    "native_address_classifier_actual_14_7": 12295580889868315048,
+    "native_address_classifier_actual_14_8": 11722215275664877739,
+    "native_address_classifier_actual_15_0": 12514570629261339562,
+    "native_address_classifier_actual_15_1": 12443356339150498466,
+    "native_address_classifier_actual_15_2": 12659242144484729517,
+    "native_address_classifier_actual_15_3": 12585776088919223724,
+    "native_address_classifier_actual_15_4": 12225209937859292335,
+    "native_address_classifier_actual_15_5": 12153995635064614830,
+    "native_address_classifier_actual_15_6": 12369878193336725161,
+    "native_address_classifier_actual_15_7": 12295580889868315048,
+    "native_address_classifier_actual_15_8": 11722215275664877739,
+    "native_address_classifier_actual_1_0": 12514570629261339562,
+    "native_address_classifier_actual_1_1": 12443356339150498466,
+    "native_address_classifier_actual_1_2": 12659242144484729517,
+    "native_address_classifier_actual_1_3": 12585776088919223724,
+    "native_address_classifier_actual_1_4": 12225209937859292335,
+    "native_address_classifier_actual_1_5": 12153995635064614830,
+    "native_address_classifier_actual_1_6": 12369878193336725161,
+    "native_address_classifier_actual_1_7": 12295580889868315048,
+    "native_address_classifier_actual_1_8": 11722215275664877739,
+    "native_address_classifier_actual_2_0": 12514570629261339562,
+    "native_address_classifier_actual_2_1": 12443356339150498466,
+    "native_address_classifier_actual_2_2": 12659242144484729517,
+    "native_address_classifier_actual_2_3": 12585776088919223724,
+    "native_address_classifier_actual_2_4": 12225209937859292335,
+    "native_address_classifier_actual_2_5": 12153995635064614830,
+    "native_address_classifier_actual_2_6": 12369878193336725161,
+    "native_address_classifier_actual_2_7": 12295580889868315048,
+    "native_address_classifier_actual_2_8": 11722215275664877739,
+    "native_address_classifier_actual_3_0": 12514570629261339562,
+    "native_address_classifier_actual_3_1": 12443356339150498466,
+    "native_address_classifier_actual_3_2": 12659242144484729517,
+    "native_address_classifier_actual_3_3": 12585776088919223724,
+    "native_address_classifier_actual_3_4": 12225209937859292335,
+    "native_address_classifier_actual_3_5": 12153995635064614830,
+    "native_address_classifier_actual_3_6": 12369878193336725161,
+    "native_address_classifier_actual_3_7": 12295580889868315048,
+    "native_address_classifier_actual_3_8": 11722215275664877739,
+    "native_address_classifier_actual_4_0": 12514570629261339562,
+    "native_address_classifier_actual_4_1": 12443356339150498466,
+    "native_address_classifier_actual_4_2": 12659242144484729517,
+    "native_address_classifier_actual_4_3": 12585776088919223724,
+    "native_address_classifier_actual_4_4": 12225209937859292335,
+    "native_address_classifier_actual_4_5": 12153995635064614830,
+    "native_address_classifier_actual_4_6": 12369878193336725161,
+    "native_address_classifier_actual_4_7": 12295580889868315048,
+    "native_address_classifier_actual_4_8": 11722215275664877739,
+    "native_address_classifier_actual_5_0": 12514570629261339562,
+    "native_address_classifier_actual_5_1": 12443356339150498466,
+    "native_address_classifier_actual_5_2": 12659242144484729517,
+    "native_address_classifier_actual_5_3": 12585776088919223724,
+    "native_address_classifier_actual_5_4": 12225209937859292335,
+    "native_address_classifier_actual_5_5": 12153995635064614830,
+    "native_address_classifier_actual_5_6": 12369878193336725161,
+    "native_address_classifier_actual_5_7": 12295580889868315048,
+    "native_address_classifier_actual_5_8": 11722215275664877739,
+    "native_address_classifier_actual_6_0": 12514570629261339562,
+    "native_address_classifier_actual_6_1": 12443356339150498466,
+    "native_address_classifier_actual_6_2": 12659242144484729517,
+    "native_address_classifier_actual_6_3": 12585776088919223724,
+    "native_address_classifier_actual_6_4": 12225209937859292335,
+    "native_address_classifier_actual_6_5": 12153995635064614830,
+    "native_address_classifier_actual_6_6": 12369878193336725161,
+    "native_address_classifier_actual_6_7": 12295580889868315048,
+    "native_address_classifier_actual_6_8": 11722215275664877739,
+    "native_address_classifier_actual_7_0": 12514570629261339562,
+    "native_address_classifier_actual_7_1": 12443356339150498466,
+    "native_address_classifier_actual_7_2": 12659242144484729517,
+    "native_address_classifier_actual_7_3": 12585776088919223724,
+    "native_address_classifier_actual_7_4": 12225209937859292335,
+    "native_address_classifier_actual_7_5": 12153995635064614830,
+    "native_address_classifier_actual_7_6": 12369878193336725161,
+    "native_address_classifier_actual_7_7": 12295580889868315048,
+    "native_address_classifier_actual_7_8": 11722215275664877739,
+    "native_address_classifier_actual_8_0": 12514570629261339562,
+    "native_address_classifier_actual_8_1": 12443356339150498466,
+    "native_address_classifier_actual_8_2": 12659242144484729517,
+    "native_address_classifier_actual_8_3": 12585776088919223724,
+    "native_address_classifier_actual_8_4": 12225209937859292335,
+    "native_address_classifier_actual_8_5": 12153995635064614830,
+    "native_address_classifier_actual_8_6": 12369878193336725161,
+    "native_address_classifier_actual_8_7": 12295580889868315048,
+    "native_address_classifier_actual_8_8": 11722215275664877739,
+    "native_address_classifier_actual_9_0": 12514570629261339562,
+    "native_address_classifier_actual_9_1": 12443356339150498466,
+    "native_address_classifier_actual_9_2": 12659242144484729517,
+    "native_address_classifier_actual_9_3": 12585776088919223724,
+    "native_address_classifier_actual_9_4": 12225209937859292335,
+    "native_address_classifier_actual_9_5": 12153995635064614830,
+    "native_address_classifier_actual_9_6": 12369878193336725161,
+    "native_address_classifier_actual_9_7": 12295580889868315048,
+    "native_address_classifier_actual_9_8": 11722215275664877739,
+    "native_address_classifier_first_chunk_mismatch_mask": 511,
+    "native_address_classifier_first_mismatch_addr": 0,
+    "native_address_classifier_first_nonzero_addr": 0,
+    "native_address_classifier_first_nonzero_chunk": 511,
+    "native_address_classifier_first_nonzero_data": 12514570629261339562,
+    "native_address_classifier_flags": 5,
+    "native_address_classifier_nonzero_chunk_seen": 511,
+    "native_address_classifier_nonzero_count": 16,
+    "native_address_classifier_valid_count": 16,
+    "native_cmdaddr_accepted_valid_count": 1,
+    "native_cmdaddr_compact_accepted_0": 32221802,
+    "native_cmdaddr_compact_accepted_1": 11234091,
+    "native_cmdaddr_compact_accepted_10": 11234091,
+    "native_cmdaddr_compact_accepted_11": 2812584,
+    "native_cmdaddr_compact_accepted_12": 32221802,
+    "native_cmdaddr_compact_accepted_13": 11234091,
+    "native_cmdaddr_compact_accepted_14": 2812584,
+    "native_cmdaddr_compact_accepted_15": 32221802,
+    "native_cmdaddr_compact_accepted_2": 2812584,
+    "native_cmdaddr_compact_accepted_3": 32221802,
+    "native_cmdaddr_compact_accepted_4": 11234091,
+    "native_cmdaddr_compact_accepted_5": 2812584,
+    "native_cmdaddr_compact_accepted_6": 32221802,
+    "native_cmdaddr_compact_accepted_7": 11234091,
+    "native_cmdaddr_compact_accepted_8": 2812584,
+    "native_cmdaddr_compact_accepted_9": 32221802,
+    "native_cmdaddr_compact_accepted_valid_count": 5,
+    "native_cmdaddr_compact_command_index_0": 149,
+    "native_cmdaddr_compact_command_index_1": 84,
+    "native_cmdaddr_compact_command_index_10": 84,
+    "native_cmdaddr_compact_command_index_11": 53,
+    "native_cmdaddr_compact_command_index_12": 149,
+    "native_cmdaddr_compact_command_index_13": 84,
+    "native_cmdaddr_compact_command_index_14": 53,
+    "native_cmdaddr_compact_command_index_15": 149,
+    "native_cmdaddr_compact_command_index_2": 53,
+    "native_cmdaddr_compact_command_index_3": 149,
+    "native_cmdaddr_compact_command_index_4": 84,
+    "native_cmdaddr_compact_command_index_5": 53,
+    "native_cmdaddr_compact_command_index_6": 149,
+    "native_cmdaddr_compact_command_index_7": 84,
+    "native_cmdaddr_compact_command_index_8": 53,
+    "native_cmdaddr_compact_command_index_9": 149,
+    "native_cmdaddr_compact_flags": 0,
+    "native_cmdaddr_compact_mode_flags": 0,
+    "native_cmdaddr_compact_presented_0": 5625088,
+    "native_cmdaddr_compact_presented_1": 30889172,
+    "native_cmdaddr_compact_presented_10": 30889172,
+    "native_cmdaddr_compact_presented_11": 22468183,
+    "native_cmdaddr_compact_presented_12": 5625169,
+    "native_cmdaddr_compact_presented_13": 30889172,
+    "native_cmdaddr_compact_presented_14": 22468183,
+    "native_cmdaddr_compact_presented_15": 5625169,
+    "native_cmdaddr_compact_presented_2": 22468183,
+    "native_cmdaddr_compact_presented_3": 5625169,
+    "native_cmdaddr_compact_presented_4": 30889172,
+    "native_cmdaddr_compact_presented_5": 22468183,
+    "native_cmdaddr_compact_presented_6": 5625169,
+    "native_cmdaddr_compact_presented_7": 30889172,
+    "native_cmdaddr_compact_presented_8": 22468183,
+    "native_cmdaddr_compact_presented_9": 5625169,
+    "native_cmdaddr_compact_presented_valid_count": 16,
+    "native_cmdaddr_compact_scheduled_0": 33488896,
+    "native_cmdaddr_compact_scheduled_1": 11250338,
+    "native_cmdaddr_compact_scheduled_10": 11250338,
+    "native_cmdaddr_compact_scheduled_11": 28223912,
+    "native_cmdaddr_compact_scheduled_12": 11381935,
+    "native_cmdaddr_compact_scheduled_13": 11250338,
+    "native_cmdaddr_compact_scheduled_14": 28223912,
+    "native_cmdaddr_compact_scheduled_15": 11381935,
+    "native_cmdaddr_compact_scheduled_2": 28223912,
+    "native_cmdaddr_compact_scheduled_3": 11381935,
+    "native_cmdaddr_compact_scheduled_4": 11250338,
+    "native_cmdaddr_compact_scheduled_5": 28223912,
+    "native_cmdaddr_compact_scheduled_6": 11381935,
+    "native_cmdaddr_compact_scheduled_7": 11250338,
+    "native_cmdaddr_compact_scheduled_8": 28223912,
+    "native_cmdaddr_compact_scheduled_9": 11381935,
+    "native_cmdaddr_first_accepted": 1,
+    "native_cmdaddr_first_command_index": 1,
+    "native_cmdaddr_first_flags": 3,
+    "native_cmdaddr_first_mode_flags": 7,
+    "native_cmdaddr_first_presented": 1,
+    "native_cmdaddr_first_scheduled": 1,
+    "native_cmdaddr_flags": 1,
+    "native_cmdaddr_presented_0": 512,
+    "native_cmdaddr_presented_valid_count": 3,
+    "native_cmdaddr_scheduled_0": 512,
+    "native_packing_actual_0_0": 12514570629261339562,
+    "native_packing_actual_0_1": 12443356339150498466,
+    "native_packing_actual_0_2": 12659242144484729517,
+    "native_packing_actual_0_3": 12585776088919223724,
+    "native_packing_actual_0_4": 12225209937859292335,
+    "native_packing_actual_0_5": 12153995635064614830,
+    "native_packing_actual_0_6": 12369878193336725161,
+    "native_packing_actual_0_7": 12295580889868315048,
+    "native_packing_actual_0_8": 11722215275664877739,
+    "native_packing_actual_1_0": 12514570629261339562,
+    "native_packing_actual_1_1": 12443356339150498466,
+    "native_packing_actual_1_2": 12659242144484729517,
+    "native_packing_actual_1_3": 12585776088919223724,
+    "native_packing_actual_1_4": 12225209937859292335,
+    "native_packing_actual_1_5": 12153995635064614830,
+    "native_packing_actual_1_6": 12369878193336725161,
+    "native_packing_actual_1_7": 12295580889868315048,
+    "native_packing_actual_1_8": 11722215275664877739,
+    "native_packing_actual_2_0": 12514570629261339562,
+    "native_packing_actual_2_1": 12443356339150498466,
+    "native_packing_actual_2_2": 12659242144484729517,
+    "native_packing_actual_2_3": 12585776088919223724,
+    "native_packing_actual_2_4": 12225209937859292335,
+    "native_packing_actual_2_5": 12153995635064614830,
+    "native_packing_actual_2_6": 12369878193336725161,
+    "native_packing_actual_2_7": 12295580889868315048,
+    "native_packing_actual_2_8": 11722215275664877739,
+    "native_packing_actual_3_0": 12514570629261339562,
+    "native_packing_actual_3_1": 12443356339150498466,
+    "native_packing_actual_3_2": 12659242144484729517,
+    "native_packing_actual_3_3": 12585776088919223724,
+    "native_packing_actual_3_4": 12225209937859292335,
+    "native_packing_actual_3_5": 12153995635064614830,
+    "native_packing_actual_3_6": 12369878193336725161,
+    "native_packing_actual_3_7": 12295580889868315048,
+    "native_packing_actual_3_8": 11722215275664877739,
+    "native_packing_first_chunk_mismatch_mask": 511,
+    "native_packing_first_mismatch_addr": 0,
+    "native_packing_flags": 5,
+    "native_packing_valid_count": 16,
+    "native_phase_mismatch_counts": 233521800006427879590125704396260747938,
+    "native_readscan_first_nonzero_addr": 2947459496,
+    "native_readscan_first_nonzero_chunk_mask": 173,
+    "native_readscan_first_nonzero_data": 12585776088919223724,
+    "native_readscan_nonzero_chunk_seen": 175,
+    "native_readscan_nonzero_count": 2880086701,
+    "next_read_addr": 16,
+    "read_cycle_count": 72,
+    "response_count": 16,
+    "sample_rdata_0": 12514570629261339562,
+    "sample_rdata_1": 12514570629261339562,
+    "sample_rdata_2": 12514570629261339562,
+    "sample_rdata_3": 12514570629261339562,
+    "sample_rdata_4": 12514570629261339562,
+    "sample_rdata_5": 12514570629261339562,
+    "sample_rdata_6": 12514570629261339562,
+    "sample_rdata_7": 12514570629261339562,
+    "sample_valid_count": 8,
+    "selected_bitslip": 0,
+    "selected_delay": 0,
+    "state": 11,
+    "status": 4907,
+    "target_read_count": 16,
+    "version": 116,
+    "wb_ack_count": 86,
+    "wb_wait_count": 258,
+    "write_command_count": 0,
+    "write_data_count": 0
+  },
+  "magic_ok": true,
+  "raw_hex": "0x38000004000002000001010301ff01ffadacafaea9a8abaa0000000000000010a2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaaa2adacafaea9a8abaa01ff000000000510adacafaea9a8abaaadacafaea9a8abaaadacafaea9a8abaaadacafaea9a8abaaadacafaea9a8abaaadacafaea9a8abaaadacafaea9a8abaaadacafaea9a8abaa0000000800000000000000ffffffffffffffff0000000000000000ffffffff0000000000ffffffff0000000000000000002403c0adacafaea9a8abaa5d5c5f5e59585b5a000000000000001000000010000000000000000000000000000000000102000000560000000020050000001000000010adacafaea9a8abaa000000000000001a000000100000001000000048132b0b7454364a44",
+  "serial": "210299BF3824"
+}

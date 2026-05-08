@@ -1,0 +1,6 @@
+$ nix build '.#task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1-bitstream' --no-link --print-out-paths -L
+warning: Git tree '/home/roland/LLM2FPGA_task6_streamtensor_lite' is dirty
+this derivation will be built:
+  /nix/store/1p1fkp7d2y4y4ld1cdq771hf5wqzi3mi-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit.drv
+building '/nix/store/1p1fkp7d2y4y4ld1cdq771hf5wqzi3mi-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit.drv'...
+/nix/store/7872xnkz6j108lxr60rz0hxki81c2isr-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit
