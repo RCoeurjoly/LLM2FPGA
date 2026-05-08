@@ -1,0 +1,1 @@
+{"argv": ["nix", "run", ".#task6-litex-boards-ypcb-validated", "--", "--with-pcie", "--build", "--load", "--output-dir", "artifacts/task6/runs/2026-05-08T17-33-52+0200-litex-boards-ypcb-validated-exact-command-writable-cp/litex-build"], "finished_at": "2026-05-08T17:34:23.535892+02:00", "log": "litex-boards-validated-build-load.log", "returncode": 1}

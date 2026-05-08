@@ -1,0 +1,21 @@
+{
+  "experiment": "litex_boards_ypcb_validated_commit_exact_upstream_command",
+  "source": "litex-hub/litex-boards commit 6d58ae6b31d80b255de12c2d3f5bfefda4c38b90",
+  "command": "nix run .#task6-litex-boards-ypcb-validated -- --with-pcie --build --load --output-dir artifacts/task6/runs/2026-05-08T17-33-52+0200-litex-boards-ypcb-validated-exact-command-writable-cp/litex-build",
+  "returncode": 1,
+  "result": "blocked_after_soc_elaboration_and_bios_build",
+  "observations": {
+    "soc_elaborated": true,
+    "ddr3_present": true,
+    "pcie_present": true,
+    "bios_built": true,
+    "rom_initialized": true,
+    "bitstream_built": false,
+    "board_programmed": false
+  },
+  "blocker": "Vivado is not installed or sourced; LiteX upstream target defaults to the Vivado toolchain for --build.",
+  "next_actions": [
+    "Use Vivado as an optional validation oracle if available.",
+    "Add an open-source reproduction lane with --toolchain=openxc7 or --toolchain=yosys+nextpnr for the required deliverable path."
+  ]
+}

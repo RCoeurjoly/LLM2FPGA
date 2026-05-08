@@ -1,0 +1,15 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "CREATED",
+  "created_at": "2026-05-08T17:23:52.415519+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-08T17-23-52+0200-litex-boards-ypcb-master-exact-command-compiler-rt",
+  "correctness": null,
+  "route": null,
+  "board": null,
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": []
+}

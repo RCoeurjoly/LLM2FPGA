@@ -145,6 +145,22 @@
         "type": "github"
       }
     },
+    "litepcie": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1778164816,
+        "narHash": "sha256-mhoxh2Qfz+6sSH9Qm0JeF7EyO7mqftcg/7JuVihtXnU=",
+        "owner": "enjoy-digital",
+        "repo": "litepcie",
+        "rev": "07531c51edc94e2f25cfba6012fa19d52c936ef0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "enjoy-digital",
+        "repo": "litepcie",
+        "type": "github"
+      }
+    },
     "litex": {
       "flake": false,
       "locked": {
@@ -158,6 +174,39 @@
       "original": {
         "owner": "enjoy-digital",
         "repo": "litex",
+        "type": "github"
+      }
+    },
+    "litexBoards": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1777481793,
+        "narHash": "sha256-LGGAKM0lOBd3UxxgpdR054Dsfs8t1DPAXo3wa/P7lSs=",
+        "owner": "litex-hub",
+        "repo": "litex-boards",
+        "rev": "a323b27a3df0702183608308499c3759188cb41d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "litex-hub",
+        "repo": "litex-boards",
+        "type": "github"
+      }
+    },
+    "litexBoardsValidatedYpcb": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1747814785,
+        "narHash": "sha256-4FIBGxIAAUI47KBaNGck8BzQinM/j0FcPKe8juf+A0E=",
+        "owner": "litex-hub",
+        "repo": "litex-boards",
+        "rev": "6d58ae6b31d80b255de12c2d3f5bfefda4c38b90",
+        "type": "github"
+      },
+      "original": {
+        "owner": "litex-hub",
+        "repo": "litex-boards",
+        "rev": "6d58ae6b31d80b255de12c2d3f5bfefda4c38b90",
         "type": "github"
       }
     },
@@ -329,17 +378,75 @@
         "type": "github"
       }
     },
+    "pythondataCpuVexriscv": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1714046786,
+        "narHash": "sha256-wkdKTODOu83hCsBTcH+5skNlHr6ypuUu04Tyop4PrEc=",
+        "owner": "litex-hub",
+        "repo": "pythondata-cpu-vexriscv",
+        "rev": "1979a644dbe64d8d32dfbdd970dccee6add63723",
+        "type": "github"
+      },
+      "original": {
+        "owner": "litex-hub",
+        "repo": "pythondata-cpu-vexriscv",
+        "type": "github"
+      }
+    },
+    "pythondataSoftwareCompilerRt": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1604528842,
+        "narHash": "sha256-s/tfxhPwYAnu1z1LxEimeYWjX6IHbF2uD/1HjvQn/xo=",
+        "ref": "refs/heads/master",
+        "rev": "fcb03245613ccf3079cc833a701f13d0beaae09d",
+        "revCount": 6160,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/litex-hub/pythondata-software-compiler_rt"
+      },
+      "original": {
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/litex-hub/pythondata-software-compiler_rt"
+      }
+    },
+    "pythondataSoftwarePicolibc": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772810877,
+        "narHash": "sha256-bnEnO0gXQE8HnTrO7fDykurNilvYQYJ6csM2t8NNedM=",
+        "ref": "refs/heads/master",
+        "rev": "4dbc2c3ffb06454a91d3101e27fa625d3a5f2069",
+        "revCount": 203,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/litex-hub/pythondata-software-picolibc"
+      },
+      "original": {
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/litex-hub/pythondata-software-picolibc"
+      }
+    },
     "root": {
       "inputs": {
         "circt-nix": "circt-nix",
         "flake-utils": "flake-utils_2",
         "litedram": "litedram",
+        "litepcie": "litepcie",
         "litex": "litex",
+        "litexBoards": "litexBoards",
+        "litexBoardsValidatedYpcb": "litexBoardsValidatedYpcb",
         "nextpnrXilinxFork": "nextpnrXilinxFork",
         "nix-eda": "nix-eda",
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "openXC7": "openXC7",
+        "pythondataCpuVexriscv": "pythondataCpuVexriscv",
+        "pythondataSoftwareCompilerRt": "pythondataSoftwareCompilerRt",
+        "pythondataSoftwarePicolibc": "pythondataSoftwarePicolibc",
         "yosys": "yosys",
         "yosys-slang": "yosys-slang",
         "ypcbHack": "ypcbHack"

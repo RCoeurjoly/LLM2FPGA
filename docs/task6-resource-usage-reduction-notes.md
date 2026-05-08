@@ -78,8 +78,97 @@ earns more work.
   board results, update the status artifacts and commit with a specific,
   appropriate, result-oriented commit message before starting the next
   experiment.
+
+## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
+
+### 2026-05-08 - Reproduce upstream LiteX-Boards YPCB validation first
+
+Decision:
+
+- Pause deeper custom LiteDRAM probe work long enough to reproduce the upstream
+  `litex-boards` YPCB-00338-1P1 path.
+- The upstream target is the best available proven prior work for this board:
+  it claims validated LiteDRAM DDR3 and LitePCIe on the same YPCB-00338-1P1 /
+  XC7K480T hardware.
+
+Primary source:
+
+- `litex-hub/litex-boards`
+- initial support/validation commit:
+  `6d58ae6b31d80b255de12c2d3f5bfefda4c38b90`
+
+Important upstream details:
+
+- Current upstream target:
+  `litex_boards/targets/ypcb_00338_1p1.py`
+- Current upstream documented command:
+  `./ypcb_00338_1p1.py --uart-name=jtag_uart --with-pcie --build --load`
+- Initial validation commit reports:
+  - Clk/Rst OK
+  - LEDs OK
+  - PCIe Gen2 x8 OK
+  - Dual DDR3 32-bit OK, with full 64-bit + ECC left for later
+- Current upstream code has evolved after that initial commit and should be
+  tried first; if that fails, fall back to the exact validation commit.
+
+Local flake lane:
+
+- Add `litexBoards` input tracking current upstream `litex-hub/litex-boards`.
+- Add `litexBoardsValidatedYpcb` input pinned to
+  `6d58ae6b31d80b255de12c2d3f5bfefda4c38b90`.
+- Add `litepcie` input because the upstream YPCB target imports LitePCIe even
+  when PCIe is not enabled.
+- Expose wrappers:
+  - `.#task6-litex-boards-ypcb-master`
+  - `.#task6-litex-boards-ypcb-validated`
+
+Execution order:
+
+1. Build/import-check the current upstream target help:
+   `nix build .#task6-litex-boards-ypcb-master-help -L`
+2. Try the upstream documented command on current upstream first:
+   `nix run .#task6-litex-boards-ypcb-master -- --with-pcie --build --load`
+3. If current upstream fails, try the exact validation commit:
+   `nix run .#task6-litex-boards-ypcb-validated -- --with-pcie --build --load`
+4. Capture BIOS/JTAG-UART logs and compare against upstream validation:
+   DDR init/read-leveling, `Memtest OK`, memspeed, and PCIe enumeration.
+
+Evidence rule:
+
+- Every build/program/readback attempt in this lane must get a run directory,
+  notes update, and commit before the next attempt.
 - Fast-prune a lane after 1-2 measured attempts unless it exposes a new,
   narrower bottleneck that is worth isolating.
+
+Measured result:
+
+| run | source | command shape | progress | blocker |
+| --- | --- | --- | --- | --- |
+| `2026-05-08T17-32-52+0200-litex-boards-ypcb-master-exact-command-writable-cp` | current upstream `litex-boards` | `--uart-name=jtag_uart --with-pcie --build --load` via flake wrapper | YPCB SoC elaborated with DDR3 and PCIe, BIOS built, ROM initialized | Vivado missing / not sourced |
+| `2026-05-08T17-33-52+0200-litex-boards-ypcb-validated-exact-command-writable-cp` | commit `6d58ae6b31d80b255de12c2d3f5bfefda4c38b90` | `--uart-name=jtag_uart --with-pcie --build --load` via flake wrapper | YPCB SoC elaborated with DDR3 and PCIe, BIOS built, ROM initialized | Vivado missing / not sourced |
+
+Interpretation:
+
+- The dependency/import and LiteX software-build issues are now solved in the
+  flake lane. The local wrappers provide LiteX, LiteDRAM, LitePCIe, pythondata
+  VexRiscv, picolibc, compiler-rt, Meson, Ninja, Make, GCC, and a writable
+  `cp` shim for LiteX's generated BIOS tree.
+- The exact upstream reproduction path is Vivado-bound at the gateware build
+  step because the YPCB LiteX target defaults to `--toolchain=vivado`.
+- It is still valuable to run the Vivado path if available, because it would be
+  the fastest way to validate that the board, constraints, DDR3, PCIe, BIOS,
+  and JTAG-UART match Enjoy-Digital's known-good baseline.
+- The required mainline remains fully open source. The next open-source
+  reproduction lane should reuse the same upstream target and run
+  `--toolchain=openxc7` first, then `--toolchain=yosys+nextpnr` if needed.
+
+Next action:
+
+- Try current upstream with `--toolchain=openxc7 --with-pcie --build --load`
+  through the same board-runner/logged artifact path.
+- If openXC7 fails before bitstream generation, classify whether the blocker is
+  target support, tool packaging, unsupported primitive/constraint handling, or
+  route/resource failure.
 
 ### Execution doctrine: moonshot plus fast falsification
 

@@ -1,0 +1,13 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-08T17:23:52.415519+02:00"
+label: "litex-boards-ypcb-master-exact-command-compiler-rt"
+experiment: "upstream-litex-boards-ypcb-master"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: null
+reference_artifacts:
+  - "litex-hub/litex-boards@a323b27a3df0702183608308499c3759188cb41d"
+  - "litex-hub/pythondata-software-compiler_rt@fcb03245613ccf3079cc833a701f13d0beaae09d"
+notes: "Rerun current upstream LiteX-Boards YPCB command after adding pythondata-software-compiler_rt to the Nix environment."

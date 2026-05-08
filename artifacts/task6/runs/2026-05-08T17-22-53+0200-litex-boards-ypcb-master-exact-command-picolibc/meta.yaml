@@ -1,0 +1,13 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-08T17:22:53.223915+02:00"
+label: "litex-boards-ypcb-master-exact-command-picolibc"
+experiment: "upstream-litex-boards-ypcb-master"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: null
+reference_artifacts:
+  - "litex-hub/litex-boards@a323b27a3df0702183608308499c3759188cb41d"
+  - "litex-hub/pythondata-software-picolibc@4dbc2c3ffb06454a91d3101e27fa625d3a5f2069"
+notes: "Rerun current upstream LiteX-Boards YPCB command after adding pythondata-software-picolibc to the Nix environment."

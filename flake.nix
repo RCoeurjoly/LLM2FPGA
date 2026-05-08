@@ -34,10 +34,39 @@
       url = "github:enjoy-digital/litedram";
       flake = false;
     };
+    litepcie = {
+      url = "github:enjoy-digital/litepcie";
+      flake = false;
+    };
+    litexBoards = {
+      url = "github:litex-hub/litex-boards";
+      flake = false;
+    };
+    litexBoardsValidatedYpcb = {
+      url =
+        "github:litex-hub/litex-boards/6d58ae6b31d80b255de12c2d3f5bfefda4c38b90";
+      flake = false;
+    };
+    pythondataCpuVexriscv = {
+      url = "github:litex-hub/pythondata-cpu-vexriscv";
+      flake = false;
+    };
+    pythondataSoftwarePicolibc = {
+      url =
+        "git+https://github.com/litex-hub/pythondata-software-picolibc?submodules=1";
+      flake = false;
+    };
+    pythondataSoftwareCompilerRt = {
+      url =
+        "git+https://github.com/litex-hub/pythondata-software-compiler_rt?submodules=1";
+      flake = false;
+    };
   };
 
   outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
-    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litex, litedram, ... }:
+    , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litex, litedram
+    , litepcie, litexBoards, litexBoardsValidatedYpcb, pythondataCpuVexriscv
+    , pythondataSoftwarePicolibc, pythondataSoftwareCompilerRt, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -147,6 +176,9 @@
             pyyaml
             requests
           ];
+          postFixup = ''
+            chmod -R u+w "$out/${pkgs.python311.sitePackages}/litex/soc/software"
+          '';
           doCheck = false;
         };
         litedramPkg = pkgs.python311Packages.buildPythonPackage {
@@ -160,13 +192,146 @@
           ]) ++ [ litexPkg ];
           doCheck = false;
         };
+        pythondataCpuVexriscvPkg =
+          pkgs.python311Packages.buildPythonPackage {
+            pname = "pythondata-cpu-vexriscv";
+            version = "flake-input";
+            src = pythondataCpuVexriscv;
+            format = "setuptools";
+            doCheck = false;
+          };
+        pythondataSoftwarePicolibcPkg =
+          pkgs.python311Packages.buildPythonPackage {
+            pname = "pythondata-software-picolibc";
+            version = "flake-input";
+            src = pythondataSoftwarePicolibc;
+            format = "setuptools";
+            doCheck = false;
+          };
+        pythondataSoftwareCompilerRtPkg =
+          pkgs.python311Packages.buildPythonPackage {
+            pname = "pythondata-software-compiler-rt";
+            version = "flake-input";
+            src = pythondataSoftwareCompilerRt;
+            format = "setuptools";
+            doCheck = false;
+          };
+        litepciePkg = pkgs.python311Packages.buildPythonPackage {
+          pname = "litepcie";
+          version = "flake-input";
+          src = litepcie;
+          format = "setuptools";
+          propagatedBuildInputs = (with pkgs.python311Packages; [
+            migen
+            pyyaml
+          ]) ++ [ litexPkg ];
+          doCheck = false;
+        };
+        mkLitexBoardsPkg = src:
+          pkgs.python311Packages.buildPythonPackage {
+            pname = "litex-boards";
+            version = "flake-input";
+            inherit src;
+            format = "setuptools";
+            propagatedBuildInputs = [
+              litexPkg
+              litedramPkg
+              litepciePkg
+            ];
+            doCheck = false;
+          };
+        litexBoardsPkg = mkLitexBoardsPkg litexBoards;
+        litexBoardsValidatedYpcbPkg =
+          mkLitexBoardsPkg litexBoardsValidatedYpcb;
         liteDramPython = pkgs.python311.withPackages (ps: [
           ps.migen
           ps.packaging
           ps.pyyaml
           litexPkg
           litedramPkg
+          pythondataCpuVexriscvPkg
+          pythondataSoftwarePicolibcPkg
+          pythondataSoftwareCompilerRtPkg
         ]);
+        litexBoardsPython = pkgs.python311.withPackages (ps: [
+          ps.migen
+          ps.packaging
+          ps.pyserial
+          ps.pyyaml
+          ps.requests
+          litexPkg
+          litedramPkg
+          litepciePkg
+          litexBoardsPkg
+          pythondataCpuVexriscvPkg
+          pythondataSoftwarePicolibcPkg
+          pythondataSoftwareCompilerRtPkg
+        ]);
+        litexBoardsValidatedYpcbPython = pkgs.python311.withPackages (ps: [
+          ps.migen
+          ps.packaging
+          ps.pyserial
+          ps.pyyaml
+          ps.requests
+          litexPkg
+          litedramPkg
+          litepciePkg
+          litexBoardsValidatedYpcbPkg
+          pythondataCpuVexriscvPkg
+          pythondataSoftwarePicolibcPkg
+          pythondataSoftwareCompilerRtPkg
+        ]);
+        litexWritableCp = pkgs.writeShellScriptBin "cp" ''
+          set +e
+          ${pkgs.coreutils}/bin/cp "$@"
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ] && [ "$#" -ge 1 ]; then
+            dest=
+            for arg in "$@"; do
+              dest="$arg"
+            done
+            chmod -R u+w "$dest" 2>/dev/null || true
+          fi
+          exit "$status"
+        '';
+        mkLitexBoardsYpcbRunner = { name, pythonEnv, source }:
+          pkgs.writeShellApplication {
+            inherit name;
+            runtimeInputs = [
+              litexWritableCp
+              pythonEnv
+              pkgs.gcc
+              pkgs.gnumake
+              pkgs.meson
+              pkgs.ninja
+            ];
+            text = ''
+              exec python ${source}/litex_boards/targets/ypcb_00338_1p1.py --uart-name=jtag_uart "$@"
+            '';
+          };
+        task6LitexBoardsYpcbMasterRunner = mkLitexBoardsYpcbRunner {
+          name = "task6-litex-boards-ypcb-master";
+          pythonEnv = litexBoardsPython;
+          source = litexBoards;
+        };
+        task6LitexBoardsYpcbValidatedRunner = mkLitexBoardsYpcbRunner {
+          name = "task6-litex-boards-ypcb-validated";
+          pythonEnv = litexBoardsValidatedYpcbPython;
+          source = litexBoardsValidatedYpcb;
+        };
+        task6LitexBoardsYpcbMasterHelp =
+          pkgs.runCommand "task6-litex-boards-ypcb-master-help" { } ''
+            mkdir -p "$out"
+            ${task6LitexBoardsYpcbMasterRunner}/bin/task6-litex-boards-ypcb-master \
+              --help > "$out/help.txt"
+          '';
+        task6LitexBoardsYpcbValidatedHelp =
+          pkgs.runCommand "task6-litex-boards-ypcb-validated-help" { } ''
+            mkdir -p "$out"
+            ${task6LitexBoardsYpcbValidatedRunner}/bin/task6-litex-boards-ypcb-validated \
+              --help > "$out/help.txt"
+          '';
         torchao = python.pkgs.buildPythonPackage rec {
           pname = "torchao";
           version = "0.15.0";
@@ -9219,6 +9384,14 @@
             task6Ddr3BoardSupportInventory;
           task6-ypcb-ddr3-lane-report =
             task6YpcbDdr3LaneReport;
+          task6-litex-boards-ypcb-master =
+            task6LitexBoardsYpcbMasterRunner;
+          task6-litex-boards-ypcb-validated =
+            task6LitexBoardsYpcbValidatedRunner;
+          task6-litex-boards-ypcb-master-help =
+            task6LitexBoardsYpcbMasterHelp;
+          task6-litex-boards-ypcb-validated-help =
+            task6LitexBoardsYpcbValidatedHelp;
           task6-litedram-open-controller-probe =
             task6LiteDramOpenControllerProbe;
           task6-ypcb-litedram-config =
