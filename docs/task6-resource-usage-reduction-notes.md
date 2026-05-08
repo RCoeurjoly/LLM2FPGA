@@ -15558,3 +15558,55 @@ Decision:
 - Next productive task: build or reuse a deterministic linear-read source that
   reports bytes, cycles, mismatch count, and whether it clears the `212.5 MB/s`
   useful rowstream bandwidth target.
+
+### 2026-05-08 - LiteDRAM v87 linear-read gate summary
+
+Goal:
+
+- Convert the v87 native readscan board readback into the exact memory-source
+  gate shape needed by the INT8 rowstream plan:
+  bytes, cycles, mismatch count, useful MB/s, and target clearance.
+- Keep the integrity verdict separate from the bandwidth arithmetic so the
+  experiment cannot be overpromoted.
+
+Artifact:
+
+- Summarizer:
+  `scripts/task6/summarize_litedram_linear_read_gate.py`.
+- Result:
+  `artifacts/task6/experiments/2026-05-08T14-10-00+0200-litedram-v87-linear-read-gate/result.json`.
+- Source readback:
+  `artifacts/task6/runs/2026-05-08T13-43-56+0200-litedram-v87-native-readscan-rerun/readback/litedram-probe.json`.
+
+Result:
+
+| Metric | Value |
+| --- | --- |
+| native beat bytes | `72` |
+| rowstream useful bytes per beat | `68` |
+| target reads | `64` |
+| responses | `64` |
+| read cycles | `78` |
+| raw bytes | `4608` |
+| rowstream useful bytes | `4352` |
+| mismatch count | `0` |
+| native readscan nonzero count | `64` |
+| useful MB/s at `25 MHz` | `1394.871794871795` |
+| useful MB/s at `50 MHz` | `2789.74358974359` |
+| `212.5 MB/s` target cleared by bandwidth arithmetic | `true` |
+| integrity verified | `false` |
+| gate pass | `false` |
+
+Interpretation:
+
+- The native read path can return a 64-beat ordered stream fast enough by the
+  arithmetic in this small probe: `4352` useful rowstream bytes in `78` cycles
+  would clear the `212.5 MB/s` 4-lane target even at `25 MHz`.
+- This is still not the deterministic linear-read source we need for promotion,
+  because v87 is `readscan-nonzero-only`: it intentionally issues no native
+  writes and does not compare every native response with deterministic expected
+  row data.
+- The right next RTL experiment is therefore not another bandwidth calculation.
+  It is a deterministic expected-data native linear-read probe, ideally reusing
+  the v87/v97 known-good read path while adding a small board-readable compare
+  result for the exact stream payload.

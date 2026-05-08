@@ -1,0 +1,58 @@
+{
+  "artifact_name": "task6-litedram-v87-linear-read-gate",
+  "bandwidth": {
+    "clears_target_at_rowstream_clock": true,
+    "design_clock_mhz": 25.0,
+    "design_clock_useful_mbps": 1394.871794871795,
+    "rowstream_clock_mhz": 50.0,
+    "rowstream_clock_useful_mbps": 2789.74358974359,
+    "target_mbps": 212.5
+  },
+  "linear_read": {
+    "command_count": 64,
+    "mismatch_count": 0,
+    "native_beat_bytes": 72,
+    "native_readscan_first_nonzero_addr": 0,
+    "native_readscan_first_nonzero_data": 12514570629261339562,
+    "native_readscan_nonzero_chunk_seen": 511,
+    "native_readscan_nonzero_count": 64,
+    "raw_bytes": 4608,
+    "read_cycle_count": 78,
+    "response_count": 64,
+    "rowstream_useful_bytes": 4352,
+    "rowstream_useful_bytes_per_beat": 68,
+    "target_read_count": 64,
+    "write_command_count": 0,
+    "write_data_count": 0
+  },
+  "next_step": "Keep this as a bandwidth-shaped read visibility result, but build a deterministic expected-data linear-read probe before connecting DDR3 to the INT8 rowstream cutout.",
+  "probe": {
+    "complete": true,
+    "failed": false,
+    "init_done": true,
+    "init_error": false,
+    "magic_ok": true,
+    "pll_locked": true,
+    "probe_done": true,
+    "probe_error": false,
+    "probe_timeout": false,
+    "state": "PROBE_DONE",
+    "version": 87
+  },
+  "schema": "task6-linear-read-gate-v1",
+  "source": {
+    "attempts": 1,
+    "backend": "ftdi-mpsse",
+    "readback_json": "artifacts/task6/runs/2026-05-08T13-43-56+0200-litedram-v87-native-readscan-rerun/readback/litedram-probe.json",
+    "run_dir": "artifacts/task6/runs/2026-05-08T13-43-56+0200-litedram-v87-native-readscan-rerun"
+  },
+  "verdict": {
+    "bandwidth_clears_target": true,
+    "board_read_complete": true,
+    "gate_pass": false,
+    "integrity_basis": "nonzero readscan only; RTL did not compare each response against the deterministic expected row data",
+    "integrity_mode": "readscan-nonzero-only",
+    "integrity_verified": false,
+    "read_count_complete": true
+  }
+}
