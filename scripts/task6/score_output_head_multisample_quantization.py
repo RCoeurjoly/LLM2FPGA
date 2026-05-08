@@ -15,6 +15,10 @@ from typing import Any
 import torch
 
 
+Q024_SCALE = 1 << 24
+Q024_MAX = Q024_SCALE - 1
+
+
 @dataclass(frozen=True)
 class Strategy:
     name: str
@@ -242,6 +246,128 @@ def score_strategy(
     }
 
 
+def score_int4_rowwise_q024_hidden_int8(
+    hidden_by_sample: list[tuple[str, list[int], torch.Tensor]],
+    weight_f32: torch.Tensor,
+    top_k: int,
+) -> dict[str, Any]:
+    weight_q, row_scales = quantize_rowwise_symmetric(weight_f32, 4)
+    scale_q024_unclamped = torch.round(row_scales * Q024_SCALE).to(torch.int64)
+    scale_q024 = torch.clamp(scale_q024_unclamped, 0, Q024_MAX)
+    scale_clamped_count = int(torch.sum(scale_q024_unclamped > Q024_MAX).item())
+
+    weight_i64 = weight_q.to(torch.int64)
+    zero_fraction = float(torch.mean((weight_q == 0).to(torch.float64)).item())
+    top1_matches = 0
+    top5_overlaps: list[int] = []
+    top10_overlaps: list[int] = []
+    ranks: list[int] = []
+    errors: list[float] = []
+    sample_results: list[dict[str, Any]] = []
+    margin_analysis: list[dict[str, Any]] = []
+
+    for sample_id, token_ids, hidden in hidden_by_sample:
+        hidden_q, hidden_scale = quantize_symmetric_tensor(hidden, 8)
+        hidden_i64 = hidden_q.to(torch.int64)
+        f32_logits = weight_f32.matmul(hidden)
+        acc_i64 = weight_i64.matmul(hidden_i64)
+        score_i64 = acc_i64 * scale_q024
+        quant_logits = score_i64.to(torch.float64) * float(hidden_scale.item()) / Q024_SCALE
+
+        f32_top10 = deterministic_topk(f32_logits, top_k)
+        quant_top10 = deterministic_topk(score_i64.to(torch.float64), top_k)
+        f32_top5 = f32_top10[:5]
+        quant_top5 = quant_top10[:5]
+        f32_top1 = f32_top10[0]
+        quant_top1 = quant_top10[0]
+        f32_runner_up = f32_top10[1] if len(f32_top10) > 1 else f32_top1
+        quant_runner_up = quant_top10[1] if len(quant_top10) > 1 else quant_top1
+        top1_match = f32_top1 == quant_top1
+        if top1_match:
+            top1_matches += 1
+        top5_overlap = len(set(f32_top5) & set(quant_top5))
+        top10_overlap = len(set(f32_top10) & set(quant_top10))
+        rank = rank_of(f32_top1, score_i64.to(torch.float64))
+        error = score_error(quant_logits, f32_logits)["normalized_rmse"]
+        top5_overlaps.append(top5_overlap)
+        top10_overlaps.append(top10_overlap)
+        ranks.append(rank)
+        errors.append(error)
+
+        sample_margin = {
+            "sample_id": sample_id,
+            "token_ids": token_ids,
+            "top1_match": top1_match,
+            "f32_top1": f32_top1,
+            "f32_runner_up": f32_runner_up,
+            "quant_top1": quant_top1,
+            "quant_runner_up": quant_runner_up,
+            "f32_top1_rank_in_quant": rank,
+            "f32_top1_float_logit": float(f32_logits[f32_top1].item()),
+            "f32_runner_up_float_logit": float(f32_logits[f32_runner_up].item()),
+            "f32_top1_float_margin": float((f32_logits[f32_top1] - f32_logits[f32_runner_up]).item()),
+            "quant_top1_integer_score": int(score_i64[quant_top1].item()),
+            "quant_runner_up_integer_score": int(score_i64[quant_runner_up].item()),
+            "f32_top1_integer_score": int(score_i64[f32_top1].item()),
+            "quant_top1_minus_f32_top1_integer_margin": int(
+                (score_i64[quant_top1] - score_i64[f32_top1]).item()
+            ),
+            "quant_top1_dequant_logit": float(quant_logits[quant_top1].item()),
+            "f32_top1_dequant_logit": float(quant_logits[f32_top1].item()),
+            "hidden_int8_scale": float(hidden_scale.item()),
+            "f32_top10": f32_top10,
+            "quant_top10": quant_top10,
+        }
+        sample_results.append(
+            {
+                "sample_id": sample_id,
+                "token_ids": token_ids,
+                "f32_top1": f32_top1,
+                "quant_top1": quant_top1,
+                "top1_match": top1_match,
+                "top5_overlap": top5_overlap,
+                "top10_overlap": top10_overlap,
+                "f32_top1_rank_in_quant": rank,
+                "normalized_rmse": error,
+                "margin": sample_margin,
+            }
+        )
+        if not top1_match:
+            margin_analysis.append(sample_margin)
+
+    sample_count = len(hidden_by_sample)
+    promote = (
+        top1_matches == sample_count
+        and min(top5_overlaps, default=0) >= 4
+        and max(errors, default=1.0) <= 0.30
+        and scale_clamped_count == 0
+    )
+    return {
+        "name": "int4_per_row_q024_hidden_int8",
+        "family": "int4",
+        "bits_per_weight_raw": 4.0,
+        "scale_count": int(row_scales.numel()),
+        "scale_q_format": "Q0.24 unsigned row scales",
+        "scale_clamped_count": scale_clamped_count,
+        "zero_fraction": zero_fraction,
+        "top1_matches": top1_matches,
+        "sample_count": sample_count,
+        "top1_match_rate": top1_matches / sample_count if sample_count else 0.0,
+        "mean_top5_overlap": sum(top5_overlaps) / sample_count if sample_count else 0.0,
+        "min_top5_overlap": min(top5_overlaps, default=0),
+        "mean_top10_overlap": sum(top10_overlaps) / sample_count if sample_count else 0.0,
+        "min_top10_overlap": min(top10_overlaps, default=0),
+        "max_f32_top1_rank": max(ranks, default=0),
+        "mean_normalized_rmse": sum(errors) / sample_count if sample_count else 0.0,
+        "max_normalized_rmse": max(errors, default=0.0),
+        "packed_words": math.ceil(int(weight_f32.numel()) * 4 / 32),
+        "promote": promote,
+        "notes": "rowwise int4 weights, Q0.24 row scales, per-sample int8 hidden activation",
+        "samples": sample_results,
+        "margin_analysis": margin_analysis,
+    }
+
+
 def markdown_table(results: list[dict[str, Any]]) -> str:
     lines = [
         "| strategy | bits/w | scales | zero % | top1 | min top5 | mean top5 | min top10 | max rank | mean RMSE | max RMSE | packed words | promote |",
@@ -319,6 +445,7 @@ def main() -> None:
     strategies.append(Strategy("ternary_per_row_t0.25_lsq", "ternary", math.log2(3), tq, ts, True, "best single-sample ternary comparator"))
 
     results = [score_strategy(strategy, hidden_by_sample, weight, args.top_k) for strategy in strategies]
+    results.append(score_int4_rowwise_q024_hidden_int8(hidden_by_sample, weight, args.top_k))
     results.sort(
         key=lambda row: (
             not row["promote"],

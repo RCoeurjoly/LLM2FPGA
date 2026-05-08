@@ -352,6 +352,574 @@
       ]
     },
     {
+      "name": "int4_per_row_q024_hidden_int8",
+      "family": "int4",
+      "bits_per_weight_raw": 4.0,
+      "scale_count": 50257,
+      "scale_q_format": "Q0.24 unsigned row scales",
+      "scale_clamped_count": 0,
+      "zero_fraction": 0.08151289870067852,
+      "top1_matches": 7,
+      "sample_count": 8,
+      "top1_match_rate": 0.875,
+      "mean_top5_overlap": 3.625,
+      "min_top5_overlap": 3,
+      "mean_top10_overlap": 8.375,
+      "min_top10_overlap": 7,
+      "max_f32_top1_rank": 2,
+      "mean_normalized_rmse": 0.059553983026030086,
+      "max_normalized_rmse": 0.09237218590765454,
+      "packed_words": 402056,
+      "promote": false,
+      "notes": "rowwise int4 weights, Q0.24 row scales, per-sample int8 hidden activation",
+      "samples": [
+        {
+          "sample_id": "single_zero",
+          "token_ids": [
+            0
+          ],
+          "f32_top1": 198,
+          "quant_top1": 198,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 10,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.05264132377657409,
+          "margin": {
+            "sample_id": "single_zero",
+            "token_ids": [
+              0
+            ],
+            "top1_match": true,
+            "f32_top1": 198,
+            "f32_runner_up": 314,
+            "quant_top1": 198,
+            "quant_runner_up": 447,
+            "f32_top1_rank_in_quant": 1,
+            "f32_top1_float_logit": 11.161223029582434,
+            "f32_runner_up_float_logit": 10.698976739769911,
+            "f32_top1_float_margin": 0.4622462898125228,
+            "quant_top1_integer_score": 3135797994,
+            "quant_runner_up_integer_score": 3017286126,
+            "f32_top1_integer_score": 3135797994,
+            "quant_top1_minus_f32_top1_integer_margin": 0,
+            "quant_top1_dequant_logit": 11.32355569248952,
+            "f32_top1_dequant_logit": 11.32355569248952,
+            "hidden_int8_scale": 0.06058353889645554,
+            "f32_top10": [
+              198,
+              314,
+              1375,
+              447,
+              679,
+              383,
+              632,
+              220,
+              921,
+              1119
+            ],
+            "quant_top10": [
+              198,
+              447,
+              1375,
+              383,
+              220,
+              679,
+              314,
+              632,
+              1119,
+              921
+            ]
+          }
+        },
+        {
+          "sample_id": "single_one",
+          "token_ids": [
+            1
+          ],
+          "f32_top1": 40,
+          "quant_top1": 40,
+          "top1_match": true,
+          "top5_overlap": 5,
+          "top10_overlap": 9,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.06997445909838526,
+          "margin": {
+            "sample_id": "single_one",
+            "token_ids": [
+              1
+            ],
+            "top1_match": true,
+            "f32_top1": 40,
+            "f32_runner_up": 2949,
+            "quant_top1": 40,
+            "quant_runner_up": 2949,
+            "f32_top1_rank_in_quant": 1,
+            "f32_top1_float_logit": 12.310933540008726,
+            "f32_runner_up_float_logit": 11.358579412256312,
+            "f32_top1_float_margin": 0.9523541277524146,
+            "quant_top1_integer_score": 3519695795,
+            "quant_runner_up_integer_score": 3266887176,
+            "f32_top1_integer_score": 3519695795,
+            "quant_top1_minus_f32_top1_integer_margin": 0,
+            "quant_top1_dequant_logit": 12.517542211757014,
+            "f32_top1_dequant_logit": 12.517542211757014,
+            "hidden_int8_scale": 0.059666948994313636,
+            "f32_top10": [
+              40,
+              2949,
+              1026,
+              1639,
+              5756,
+              1135,
+              13787,
+              50,
+              13300,
+              4342
+            ],
+            "quant_top10": [
+              40,
+              2949,
+              1026,
+              5756,
+              1639,
+              4342,
+              13787,
+              50,
+              1212,
+              13300
+            ]
+          }
+        },
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "f32_top1": 3043,
+          "quant_top1": 5657,
+          "top1_match": false,
+          "top5_overlap": 4,
+          "top10_overlap": 7,
+          "f32_top1_rank_in_quant": 2,
+          "normalized_rmse": 0.09237218590765454,
+          "margin": {
+            "sample_id": "single_two",
+            "token_ids": [
+              2
+            ],
+            "top1_match": false,
+            "f32_top1": 3043,
+            "f32_runner_up": 18,
+            "quant_top1": 5657,
+            "quant_runner_up": 3043,
+            "f32_top1_rank_in_quant": 2,
+            "f32_top1_float_logit": 12.62658523166598,
+            "f32_runner_up_float_logit": 11.308755954706593,
+            "f32_top1_float_margin": 1.3178292769593867,
+            "quant_top1_integer_score": 2571373105,
+            "quant_runner_up_integer_score": 2559692603,
+            "f32_top1_integer_score": 2559692603,
+            "quant_top1_minus_f32_top1_integer_margin": 11680502,
+            "quant_top1_dequant_logit": 11.945767754117687,
+            "f32_top1_dequant_logit": 11.891503919798122,
+            "hidden_int8_scale": 0.0779415190689207,
+            "f32_top10": [
+              3043,
+              18,
+              20709,
+              707,
+              5657,
+              17,
+              1350,
+              19002,
+              940,
+              16
+            ],
+            "quant_top10": [
+              5657,
+              3043,
+              18,
+              20709,
+              19002,
+              4262,
+              707,
+              940,
+              48959,
+              1638
+            ]
+          }
+        },
+        {
+          "sample_id": "single_eos",
+          "token_ids": [
+            50256
+          ],
+          "f32_top1": 628,
+          "quant_top1": 628,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.04786419285673429,
+          "margin": {
+            "sample_id": "single_eos",
+            "token_ids": [
+              50256
+            ],
+            "top1_match": true,
+            "f32_top1": 628,
+            "f32_runner_up": 198,
+            "quant_top1": 628,
+            "quant_runner_up": 198,
+            "f32_top1_rank_in_quant": 1,
+            "f32_top1_float_logit": 16.471308439976497,
+            "f32_runner_up_float_logit": 16.242209225502545,
+            "f32_top1_float_margin": 0.2290992144739512,
+            "quant_top1_integer_score": 3554572812,
+            "quant_runner_up_integer_score": 3552995922,
+            "f32_top1_integer_score": 3554572812,
+            "quant_top1_minus_f32_top1_integer_margin": 0,
+            "quant_top1_dequant_logit": 16.708112069710356,
+            "f32_top1_dequant_logit": 16.708112069710356,
+            "hidden_int8_scale": 0.0788605607400729,
+            "f32_top10": [
+              628,
+              198,
+              50256,
+              220,
+              1752,
+              13,
+              383,
+              30,
+              68,
+              373
+            ],
+            "quant_top10": [
+              628,
+              198,
+              220,
+              383,
+              13,
+              50256,
+              30,
+              1752,
+              319,
+              91
+            ]
+          }
+        },
+        {
+          "sample_id": "short_increment",
+          "token_ids": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "f32_top1": 387,
+          "quant_top1": 387,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.058737117100374894,
+          "margin": {
+            "sample_id": "short_increment",
+            "token_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "top1_match": true,
+            "f32_top1": 387,
+            "f32_runner_up": 345,
+            "quant_top1": 387,
+            "quant_runner_up": 345,
+            "f32_top1_rank_in_quant": 1,
+            "f32_top1_float_logit": 11.631409256342538,
+            "f32_runner_up_float_logit": 9.621980484256525,
+            "f32_top1_float_margin": 2.0094287720860127,
+            "quant_top1_integer_score": 3422010498,
+            "quant_runner_up_integer_score": 2857859782,
+            "f32_top1_integer_score": 3422010498,
+            "quant_top1_minus_f32_top1_integer_margin": 0,
+            "quant_top1_dequant_logit": 11.694266641168227,
+            "f32_top1_dequant_logit": 11.694266641168227,
+            "hidden_int8_scale": 0.057333908681794415,
+            "f32_top10": [
+              387,
+              345,
+              1347,
+              11,
+              283,
+              12,
+              7013,
+              6,
+              11693,
+              1600
+            ],
+            "quant_top10": [
+              387,
+              345,
+              1781,
+              11,
+              11693,
+              7013,
+              12,
+              1347,
+              283,
+              2474
+            ]
+          }
+        },
+        {
+          "sample_id": "short_even",
+          "token_ids": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 4,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.042060886727122215,
+          "margin": {
+            "sample_id": "short_even",
+            "token_ids": [
+              2,
+              4,
+              6,
+              8
+            ],
+            "top1_match": true,
+            "f32_top1": 13,
+            "f32_runner_up": 290,
+            "quant_top1": 13,
+            "quant_runner_up": 290,
+            "f32_top1_rank_in_quant": 1,
+            "f32_top1_float_logit": 8.29738886878346,
+            "f32_runner_up_float_logit": 7.918157965653245,
+            "f32_top1_float_margin": 0.3792309031302139,
+            "quant_top1_integer_score": 2157382428,
+            "quant_runner_up_integer_score": 2063947688,
+            "f32_top1_integer_score": 2157382428,
+            "quant_top1_minus_f32_top1_integer_margin": 0,
+            "quant_top1_dequant_logit": 8.172066633704153,
+            "f32_top1_dequant_logit": 8.172066633704153,
+            "hidden_int8_scale": 0.06355133206825557,
+            "f32_top10": [
+              13,
+              290,
+              447,
+              366,
+              705,
+              11,
+              262,
+              564,
+              339,
+              351
+            ],
+            "quant_top10": [
+              13,
+              290,
+              447,
+              366,
+              11,
+              262,
+              1,
+              284,
+              705,
+              351
+            ]
+          }
+        },
+        {
+          "sample_id": "mixed_low_mid",
+          "token_ids": [
+            42,
+            1024,
+            17,
+            2048
+          ],
+          "f32_top1": 13,
+          "quant_top1": 13,
+          "top1_match": true,
+          "top5_overlap": 4,
+          "top10_overlap": 8,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.04263288780087955,
+          "margin": {
+            "sample_id": "mixed_low_mid",
+            "token_ids": [
+              42,
+              1024,
+              17,
+              2048
+            ],
+            "top1_match": true,
+            "f32_top1": 13,
+            "f32_runner_up": 531,
+            "quant_top1": 13,
+            "quant_runner_up": 531,
+            "f32_top1_rank_in_quant": 1,
+            "f32_top1_float_logit": 9.123807411252455,
+            "f32_runner_up_float_logit": 8.119172016733973,
+            "f32_top1_float_margin": 1.0046353945184823,
+            "quant_top1_integer_score": 2293338624,
+            "quant_runner_up_integer_score": 2103275025,
+            "f32_top1_integer_score": 2293338624,
+            "quant_top1_minus_f32_top1_integer_margin": 0,
+            "quant_top1_dequant_logit": 8.8630963498314,
+            "f32_top1_dequant_logit": 8.8630963498314,
+            "hidden_int8_scale": 0.06483913031150038,
+            "f32_top10": [
+              13,
+              531,
+              0,
+              355,
+              1282,
+              11,
+              5025,
+              2067,
+              2048,
+              11687
+            ],
+            "quant_top10": [
+              13,
+              531,
+              355,
+              11,
+              0,
+              1282,
+              11687,
+              17293,
+              5025,
+              467
+            ]
+          }
+        },
+        {
+          "sample_id": "mixed_high",
+          "token_ids": [
+            50250,
+            128,
+            4096,
+            7
+          ],
+          "f32_top1": 628,
+          "quant_top1": 628,
+          "top1_match": true,
+          "top5_overlap": 3,
+          "top10_overlap": 9,
+          "f32_top1_rank_in_quant": 1,
+          "normalized_rmse": 0.07014881094051592,
+          "margin": {
+            "sample_id": "mixed_high",
+            "token_ids": [
+              50250,
+              128,
+              4096,
+              7
+            ],
+            "top1_match": true,
+            "f32_top1": 628,
+            "f32_runner_up": 2164,
+            "quant_top1": 628,
+            "quant_runner_up": 1,
+            "f32_top1_rank_in_quant": 1,
+            "f32_top1_float_logit": 9.85107145733955,
+            "f32_runner_up_float_logit": 9.192191419935458,
+            "f32_top1_float_margin": 0.6588800374040922,
+            "quant_top1_integer_score": 2467355142,
+            "quant_runner_up_integer_score": 2317020626,
+            "f32_top1_integer_score": 2467355142,
+            "quant_top1_minus_f32_top1_integer_margin": 0,
+            "quant_top1_dequant_logit": 9.827209402479024,
+            "f32_top1_dequant_logit": 9.827209402479024,
+            "hidden_int8_scale": 0.06682184174304873,
+            "f32_top10": [
+              628,
+              2164,
+              11011,
+              270,
+              198,
+              6613,
+              3844,
+              464,
+              13013,
+              1
+            ],
+            "quant_top10": [
+              628,
+              1,
+              198,
+              11011,
+              13013,
+              2164,
+              46648,
+              3844,
+              6613,
+              270
+            ]
+          }
+        }
+      ],
+      "margin_analysis": [
+        {
+          "sample_id": "single_two",
+          "token_ids": [
+            2
+          ],
+          "top1_match": false,
+          "f32_top1": 3043,
+          "f32_runner_up": 18,
+          "quant_top1": 5657,
+          "quant_runner_up": 3043,
+          "f32_top1_rank_in_quant": 2,
+          "f32_top1_float_logit": 12.62658523166598,
+          "f32_runner_up_float_logit": 11.308755954706593,
+          "f32_top1_float_margin": 1.3178292769593867,
+          "quant_top1_integer_score": 2571373105,
+          "quant_runner_up_integer_score": 2559692603,
+          "f32_top1_integer_score": 2559692603,
+          "quant_top1_minus_f32_top1_integer_margin": 11680502,
+          "quant_top1_dequant_logit": 11.945767754117687,
+          "f32_top1_dequant_logit": 11.891503919798122,
+          "hidden_int8_scale": 0.0779415190689207,
+          "f32_top10": [
+            3043,
+            18,
+            20709,
+            707,
+            5657,
+            17,
+            1350,
+            19002,
+            940,
+            16
+          ],
+          "quant_top10": [
+            5657,
+            3043,
+            18,
+            20709,
+            19002,
+            4262,
+            707,
+            940,
+            48959,
+            1638
+          ]
+        }
+      ]
+    },
+    {
       "name": "int3_per_row",
       "family": "int3",
       "bits_per_weight_raw": 3.0,
@@ -1180,5 +1748,5 @@
       ]
     }
   ],
-  "markdown_table": "| strategy | bits/w | scales | zero % | top1 | min top5 | mean top5 | min top10 | max rank | mean RMSE | max RMSE | packed words | promote |\n| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |\n| int8_per_tensor | 8.000 | 1 | 1.4 | 8/8 | 4 | 4.75 | 9 | 1 | 0.0113 | 0.0176 |  | yes |\n| int4_per_row | 4.000 | 50257 | 8.2 | 7/8 | 3 | 3.62 | 7 | 2 | 0.0594 | 0.0921 | 402056 | no |\n| int3_per_row | 3.000 | 50257 | 18.8 | 6/8 | 2 | 3.25 | 5 | 8 | 0.1424 | 0.2159 | 301542 | no |\n| int4_per_tensor | 4.000 | 1 | 33.3 | 5/8 | 2 | 2.62 | 5 | 5 | 0.4037 | 0.5479 | 402056 | no |\n| ternary_per_row_t0.25_lsq | 1.585 | 50257 | 9.5 | 2/8 | 1 | 1.88 | 2 | 296 | 0.3650 | 0.6862 | 160823 | no |\n| int2_per_row | 2.000 | 50257 | 59.1 | 2/8 | 0 | 1.50 | 1 | 120 | 0.5846 | 0.9520 | 201028 | no |\n| int3_per_tensor | 3.000 | 1 | 86.7 | 1/8 | 0 | 1.25 | 0 | 365 | 0.8256 | 0.8943 | 301542 | no |\n| int2_per_tensor | 2.000 | 1 | 99.9 | 0/8 | 0 | 0.12 | 0 | 1253 | 0.9974 | 1.0023 | 201028 | no |\n"
+  "markdown_table": "| strategy | bits/w | scales | zero % | top1 | min top5 | mean top5 | min top10 | max rank | mean RMSE | max RMSE | packed words | promote |\n| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |\n| int8_per_tensor | 8.000 | 1 | 1.4 | 8/8 | 4 | 4.75 | 9 | 1 | 0.0113 | 0.0176 |  | yes |\n| int4_per_row | 4.000 | 50257 | 8.2 | 7/8 | 3 | 3.62 | 7 | 2 | 0.0594 | 0.0921 | 402056 | no |\n| int4_per_row_q024_hidden_int8 | 4.000 | 50257 | 8.2 | 7/8 | 3 | 3.62 | 7 | 2 | 0.0596 | 0.0924 | 402056 | no |\n| int3_per_row | 3.000 | 50257 | 18.8 | 6/8 | 2 | 3.25 | 5 | 8 | 0.1424 | 0.2159 | 301542 | no |\n| int4_per_tensor | 4.000 | 1 | 33.3 | 5/8 | 2 | 2.62 | 5 | 5 | 0.4037 | 0.5479 | 402056 | no |\n| ternary_per_row_t0.25_lsq | 1.585 | 50257 | 9.5 | 2/8 | 1 | 1.88 | 2 | 296 | 0.3650 | 0.6862 | 160823 | no |\n| int2_per_row | 2.000 | 50257 | 59.1 | 2/8 | 0 | 1.50 | 1 | 120 | 0.5846 | 0.9520 | 201028 | no |\n| int3_per_tensor | 3.000 | 1 | 86.7 | 1/8 | 0 | 1.25 | 0 | 365 | 0.8256 | 0.8943 | 301542 | no |\n| int2_per_tensor | 2.000 | 1 | 99.9 | 0/8 | 0 | 0.12 | 0 | 1253 | 0.9974 | 1.0023 | 201028 | no |\n"
 }

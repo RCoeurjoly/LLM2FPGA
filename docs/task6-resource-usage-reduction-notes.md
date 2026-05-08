@@ -15394,3 +15394,47 @@ Interpretation:
     acceptable
 - If that does not pass, the mainline should return to INT8 plus streaming or
   external memory rather than lower-bit output-head RTL.
+
+Fixed-point INT4 follow-up:
+
+- Added `int4_per_row_q024_hidden_int8` to
+  `scripts/task6/score_output_head_multisample_quantization.py`.
+- The scoring contract is intentionally closer to hardware:
+  - rowwise signed INT4 weights
+  - unsigned `Q0.24` row scales
+  - per-sample symmetric INT8 hidden activation
+  - integer accumulate and integer-scaled ranking before dequantization
+- Ran:
+  `nix build .#task6-output-head-full-pretrained-multisample-quantization-sweep --no-link --print-out-paths -L`
+- Updated durable artifacts:
+  - `artifacts/task6/quantization/output-head-full-pretrained-multisample-sweep.json`
+  - `artifacts/task6/quantization/output-head-full-pretrained-multisample-sweep.md`
+
+Fixed-point result:
+
+| strategy | bits/w | scales | zero % | top1 | min top5 | mean top5 | min top10 | max rank | mean RMSE | max RMSE | packed words | promote |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `int8_per_tensor` | 8.000 | 1 | 1.4 | 8/8 | 4 | 4.75 | 9 | 1 | 0.0113 | 0.0176 | n/a | yes |
+| `int4_per_row` | 4.000 | 50257 | 8.2 | 7/8 | 3 | 3.62 | 7 | 2 | 0.0594 | 0.0921 | 402056 | no |
+| `int4_per_row_q024_hidden_int8` | 4.000 | 50257 | 8.2 | 7/8 | 3 | 3.62 | 7 | 2 | 0.0596 | 0.0924 | 402056 | no |
+
+Failure margin:
+
+- The fixed-point INT4 miss is still `single_two`.
+- Float top-1 token: `3043`.
+- Fixed-point INT4 top-1 token: `5657`.
+- Float top-1 rank under fixed-point INT4: `2`.
+- Float top-1 logit margin over the float runner-up: `1.3178292769593867`.
+- Fixed-point integer margin of quant top-1 over float top-1:
+  `11680502`.
+- No `Q0.24` row scales clamped.
+
+Decision:
+
+- This was the last planned Python-only INT4 rescue attempt.
+- It did not pass the promotion rule and is slightly worse than float-scale
+  rowwise INT4 once hidden activations are also quantized.
+- Do not spend RTL time on this INT4 output-head lane now.
+- Mainline returns to INT8 plus streaming/external memory, because INT8 is the
+  only current post-training output-head quantization result that preserves
+  all `8/8` top-1 samples.
