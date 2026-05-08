@@ -228,6 +228,7 @@ Interpretation:
   - `--tdo-bit 0 --poll --poll-count 300 --bits 768`: `magic_ok=False`, `state=SELFTEST_BOOT`, raw payload observed `...7f` LSB-only and no field progression (`magic` stuck at 127, `status.pass=False`)
   - `--tdo-bit 7 --poll --poll-count 300 --bits 768`: `magic_ok=False`, `state=SELFTEST_BOOT`, all-zero payload
   - result: still no valid deterministic payload for LiteX/YPCB jtag-only path
+  - additional confirmation: full `--user-ir 0..63` sweep over `--tdo-bit 0` and `--tdo-bit 7` with short polling found no `magic_ok=True` case (`returncode=1` from sweep script by design), so this eliminates IR hypothesis
 Next action:
 
 - Hold DDR3 route work and move to observability-first. The immediate objective is
@@ -242,6 +243,7 @@ Next action:
   4. If no deterministic payload appears, classify this as LiteX `JTAGPHY` path
      integration failure and patch/replace it before adding DDR3 back.
 - This lane must be answered before adding more variants or DDR3 changes.
+- Decision from current evidence: LiteX/YPCB LiteX jtag-only remains non-deterministic under openXC7 with raw JTAG debug reads; prioritize replacing `JTAGPHY` with a tiny custom debug path (BSCANE2-based payload) before adding DDR3 throughput experiments.
 
 ### Execution doctrine: moonshot plus fast falsification
 
