@@ -1,0 +1,42 @@
+{
+  "schema": "task6_experiment_summary_v1",
+  "experiment": "e1-vocab9984-existing-fasm-board-program-retry",
+  "date": "2026-05-08",
+  "question": "After reconnecting the Digilent HS3 cable, can the existing-routed v9984/tile64 bitstream be programmed and tested on the YPCB board?",
+  "status": "PARTIAL_PASS",
+  "device": "xc7k480tffg1156-1",
+  "board": "YPCB-00338-1P1",
+  "jtag_cable": "digilent_hs3",
+  "ftdi_serial": "210299BF3824",
+  "source_fasm": "/nix/store/gqh45ij302d2mdpp2m9l4j153jvdrd84-task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz.fasm",
+  "local_bitstream": "artifacts/task6/generated-bitstreams/task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-from-existing-fasm.bit",
+  "board_run_dir": "artifacts/task6/runs/2026-05-08T11-15-57+0200-v9984-existing-fasm-program-retry",
+  "programming": {
+    "returncode": 0,
+    "jtag_detect_idcode": "0x23751093",
+    "openfpgaloader_status": {
+      "isc_done": 1,
+      "isc_ena": 0,
+      "init": 1,
+      "done": 1
+    }
+  },
+  "readback": {
+    "ftdi_mpsse_idcode_default_tdo_bit": "0xba8849ff",
+    "ftdi_mpsse_idcode_tdo_bit_7": "0x23751093",
+    "selftest_payload_attempted": true,
+    "selftest_payload_magic_ok": false,
+    "selftest_payload_raw": "all_zero",
+    "reason": "The exact routed v9984 top has parameter ENABLE_JTAG_DEBUG=0, so the BSCANE2 debug payload block is not instantiated."
+  },
+  "functional_status": {
+    "autonomous_jtag_pass_fail": "NOT_AVAILABLE_FOR_THIS_IMAGE",
+    "led_pass_fail": "NOT_RECORDED",
+    "expected_visibility": "led_3bits_tri_o[1] is pass, led_3bits_tri_o[2] is fail, led_3bits_tri_o[0] blinks"
+  },
+  "decision": {
+    "programming_gate": "PASS",
+    "autonomous_correctness_gate": "BLOCKED_BY_NON_DEBUG_IMAGE",
+    "next_gate": "Either visually inspect LEDs for this image, or build and route a v9984 JTAG-debug-enabled target so pass/fail and top-index/top-acc can be read autonomously."
+  }
+}

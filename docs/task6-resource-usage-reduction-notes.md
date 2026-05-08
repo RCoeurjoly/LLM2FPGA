@@ -454,6 +454,47 @@ Artifacts:
 - `artifacts/task6/parallel-hypotheses/e1-vocab9984-existing-fasm-board-program-summary.json`
 - `artifacts/task6/runs/2026-05-08T11-07-45+0200-v9984-existing-fasm-program`
 
+### v9984 existing-FASM board program retry (2026-05-08)
+
+Question:
+
+- After reconnecting the Digilent HS3 cable, can the existing-routed
+  v9984/tile64 bitstream be programmed and tested on the YPCB board?
+
+Result:
+
+- JTAG cable enumeration recovered:
+  - `lsusb` showed `0403:6014` FT232H.
+  - `openFPGALoader --detect` reported IDCODE `0x23751093`,
+    `xc7k480t`.
+- Programming succeeded under the Task 6 board lock:
+  - command returned `0`
+  - `openFPGALoader` status: `isc_done=1`, `isc_ena=0`, `init=1`,
+    `done=1`
+- Direct FTDI readback sanity:
+  - default MPSSE TDO bit produced wrong IDCODE `0xba8849ff`
+  - `--tdo-bit 7` produced correct IDCODE `0x23751093`
+- Selftest payload readback did not provide correctness evidence:
+  - payload was all zero
+  - `magic_ok=false`
+  - the exact routed v9984 top has `ENABLE_JTAG_DEBUG=0`, and the BSCANE2
+    debug block is instantiated only when that parameter is nonzero
+
+Interpretation:
+
+- Board programming is proven for the v9984/tile64 image.
+- Autonomous correctness is not proven for this exact image. This is a debug
+  visibility issue, not evidence that the hardware selftest failed.
+- Next gate: either visually inspect `led_3bits_tri_o` for pass/fail on this
+  programmed image, or build and route a v9984 JTAG-debug-enabled target so the
+  pass/fail bit, top index, top accumulator, and checksums can be read
+  autonomously.
+
+Artifacts:
+
+- `artifacts/task6/parallel-hypotheses/e1-vocab9984-existing-fasm-board-program-retry-summary.json`
+- `artifacts/task6/runs/2026-05-08T11-15-57+0200-v9984-existing-fasm-program-retry`
+
 ### Open LiteDRAM/LiteX DDR3 board-probe update (2026-04-30)
 
 Constraint:

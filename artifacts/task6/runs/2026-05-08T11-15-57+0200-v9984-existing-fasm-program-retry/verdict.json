@@ -1,0 +1,21 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "PARTIAL_PASS",
+  "created_at": "2026-05-08T11:15:57.793454+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-08T11-15-57+0200-v9984-existing-fasm-program-retry",
+  "correctness": "NOT_OBSERVED_AUTONOMOUSLY",
+  "route": "PASS_FROM_EXISTING_FASM",
+  "board": "PROGRAMMED_DONE_ASSERTED",
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Digilent HS3 was reconnected and JTAG detect reported xc7k480t IDCODE 0x23751093.",
+    "openFPGALoader programmed the reconstructed v9984 bitstream successfully; status reported isc_done=1 init=1 done=1.",
+    "Direct FTDI IDCODE readback required --tdo-bit 7 and then matched 0x23751093.",
+    "Selftest JTAG payload readback returned all zeros because the exact routed v9984 top has ENABLE_JTAG_DEBUG=0, so the BSCANE2 debug block is not instantiated.",
+    "Functional pass/fail for this specific image is therefore visible only through led_3bits_tri_o unless a JTAG-debug-enabled v9984 image is built and routed."
+  ]
+}
