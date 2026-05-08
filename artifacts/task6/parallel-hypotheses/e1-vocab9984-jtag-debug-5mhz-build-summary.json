@@ -1,0 +1,106 @@
+{
+  "schema": "task6_experiment_summary.v1",
+  "experiment": "e1-vocab9984-jtag-debug-5mhz-build",
+  "timestamp": "2026-05-08T12:03:28+02:00",
+  "status": "PASS",
+  "question": "Can the already proven v9984 TILE_OUT_DIM=64 board image route with ENABLE_JTAG_DEBUG=1 so autonomous JTAG selftest readback is available?",
+  "command": "nix build .#task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz-bitstream --no-link --print-out-paths -L",
+  "top": "task6_int8_v4k_l2_residual_add_output_head_selftest_top",
+  "parameters": {
+    "vocab_size": 9984,
+    "tile_out_dim": 64,
+    "target_frequency_mhz": 5,
+    "enable_jtag_debug": true,
+    "phase_banked_vocab_loader_rom": true,
+    "route_seed": 2
+  },
+  "outputs": {
+    "bitstream": "/nix/store/k52psqh0lv416xbg5xgl3zs5fxlamm0f-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit"
+  },
+  "synthesis": {
+    "yosys_check_problems": 0,
+    "cells_total": 35705,
+    "estimated_lcs": 14593,
+    "notable_cells": {
+      "BSCANE2": 1,
+      "BUFG": 2,
+      "DSP48E1": 14,
+      "FDCE": 1182,
+      "FDRE": 8713,
+      "RAMB18E1": 6,
+      "RAMB36E1": 320
+    },
+    "jtag_debug_shift": {
+      "BSCANE2": 1,
+      "BUFG": 1,
+      "FDCE": 768,
+      "LUT6": 768,
+      "estimated_lcs": 768
+    }
+  },
+  "place": {
+    "main_clock_max_mhz": 70.47,
+    "jtag_drck_max_mhz": 346.02,
+    "target_met": true
+  },
+  "utilization": {
+    "slice_lutx": 25056,
+    "slice_ffx": 9896,
+    "carry4": 608,
+    "ramb18e1": 6,
+    "ramb36e1": 320,
+    "dsp48e1": 14,
+    "pad": 5,
+    "bufgctrl": 2,
+    "bscan": 1
+  },
+  "route": {
+    "status": "PASS",
+    "router2_time_s": 1565.72,
+    "final_iteration": 33,
+    "final_wires": 1114903,
+    "final_overused": 0,
+    "final_overuse": 0,
+    "archfail": 0,
+    "post_route_main_clock_max_mhz": 101.53,
+    "post_route_jtag_drck_max_mhz": 377.79,
+    "post_route_cross_domain_max_delay_ns": 3.44,
+    "iteration_overused": [
+      {"iter": 1, "overused": 52759},
+      {"iter": 2, "overused": 8480},
+      {"iter": 3, "overused": 1383},
+      {"iter": 4, "overused": 439},
+      {"iter": 5, "overused": 255},
+      {"iter": 6, "overused": 172},
+      {"iter": 7, "overused": 124},
+      {"iter": 8, "overused": 106},
+      {"iter": 9, "overused": 63},
+      {"iter": 10, "overused": 29},
+      {"iter": 11, "overused": 25},
+      {"iter": 12, "overused": 26},
+      {"iter": 13, "overused": 17},
+      {"iter": 14, "overused": 16},
+      {"iter": 15, "overused": 13},
+      {"iter": 16, "overused": 15},
+      {"iter": 17, "overused": 10},
+      {"iter": 18, "overused": 7},
+      {"iter": 19, "overused": 7},
+      {"iter": 20, "overused": 6},
+      {"iter": 21, "overused": 5},
+      {"iter": 22, "overused": 5},
+      {"iter": 23, "overused": 5},
+      {"iter": 24, "overused": 4},
+      {"iter": 25, "overused": 2},
+      {"iter": 26, "overused": 2},
+      {"iter": 27, "overused": 1},
+      {"iter": 28, "overused": 2},
+      {"iter": 29, "overused": 1},
+      {"iter": 30, "overused": 1},
+      {"iter": 31, "overused": 1},
+      {"iter": 32, "overused": 1},
+      {"iter": 33, "overused": 0}
+    ]
+  },
+  "interpretation": "Enabling the 768-bit BSCAN-backed JTAG debug payload adds modest LUT/FF pressure but does not break the v9984 TILE_OUT_DIM=64 route. This produces the first near-10k vocab board candidate with automated payload readback available.",
+  "decision": "Promote to board programming and autonomous JTAG payload readback under scripts/task6/task6_board_run.py."
+}

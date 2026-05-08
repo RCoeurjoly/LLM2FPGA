@@ -6278,6 +6278,33 @@
             yosys -s run.ys
           '';
 
+        task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebugJson =
+          pkgs.runCommand "task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_vocab_output_head_top1_kernel.sv}
+            read_verilog -sv ${task6Int8V9984L2ResidualAddOutputHeadSelftestTop}
+            read_verilog -lib +/xilinx/cells_xtra.v
+            chparam -set ENABLE_JTAG_DEBUG 1 task6_int8_v4k_l2_residual_add_output_head_selftest_top
+            chparam -set PHASE_BANKED_VOCAB_LOADER_ROM 1 task6_int8_v4k_l2_residual_add_output_head_selftest_top
+            hierarchy -top task6_int8_v4k_l2_residual_add_output_head_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_v4k_l2_residual_add_output_head_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestJson =
           pkgs.runCommand "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest.json" {
             buildInputs = [ pkgs.yosys ];
@@ -6602,6 +6629,20 @@
           name = "task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz";
           fasm = task6Int8V9984L2ResidualAddOutputHeadSelftest5MHzFasm;
           framesBase = "task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz";
+        };
+
+        task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzFasm = mkFasm {
+          name = "task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz";
+          xdc = task6Int8V9984L2ResidualAddOutputHeadSelftestXdc;
+          json = task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebugJson;
+          seed = 2;
+          freqMHz = 5;
+        };
+
+        task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream = mkBitstream {
+          name = "task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz";
+          fasm = task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzFasm;
+          framesBase = "task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz";
         };
 
         task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestXdc = mkXdc {
@@ -8935,6 +8976,8 @@
             task6Int8V8kL2ResidualAddOutputHeadSelftestJson;
           task6-int8-v9984-l2-residual-add-output-head-selftest-json =
             task6Int8V9984L2ResidualAddOutputHeadSelftestJson;
+          task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-json =
+            task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebugJson;
           task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-json =
             task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestJson;
           task6-int8-v4k-l2-residual-add-output-head-selftest-xdc =
@@ -8967,6 +9010,10 @@
             task6Int8V9984L2ResidualAddOutputHeadSelftest5MHzFasm;
           task6-int8-v9984-l2-residual-add-output-head-selftest-5mhz-bitstream =
             task6Int8V9984L2ResidualAddOutputHeadSelftest5MHzBitstream;
+          task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz-fasm =
+            task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzFasm;
+          task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz-bitstream =
+            task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream;
           task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-xdc =
             task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestXdc;
           task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest-5mhz-fasm =

@@ -14962,3 +14962,49 @@ Execution checkpoint, 2026-05-07:
   this exact design. The next route experiment should reduce route pressure:
   either a smaller vocab lane to find the routable frontier, or a re-banked /
   placement-friendlier output-head memory shape before returning to v10k.
+
+### v9984 JTAG-debug board-candidate build update (2026-05-08)
+
+Question:
+
+- Can the already proven near-10k `vocab_size=9984`, `TILE_OUT_DIM=64` board
+  image route with `ENABLE_JTAG_DEBUG=1`, so correctness can be read back
+  automatically instead of relying on visual LEDs?
+
+Command:
+
+- `nix build .#task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz-bitstream --no-link --print-out-paths -L`
+
+Result:
+
+- PASS. Bitstream:
+  `/nix/store/k52psqh0lv416xbg5xgl3zs5fxlamm0f-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit`
+- Yosys `CHECK` reported 0 problems.
+- JTAG debug is present in the routed design: `BSCAN=1`, with a 768-bit
+  debug-shift payload.
+- Utilization after packing/placement:
+  - `SLICE_LUTX=25056`
+  - `SLICE_FFX=9896`
+  - `RAMB36E1=320`
+  - `RAMB18E1=6`
+  - `DSP48E1=14`
+  - `BUFGCTRL=2`
+- Router convergence:
+  - iteration 1: `overused=52759`
+  - iteration 10: `overused=29`
+  - iteration 20: `overused=6`
+  - iteration 33: `overused=0`, `overuse=0`, `archfail=0`
+  - router2 time: 1565.72 seconds
+- Post-route timing:
+  - main clock max frequency: 101.53 MHz, pass at 5 MHz
+  - JTAG `drck` max frequency: 377.79 MHz, pass at 5 MHz
+  - main-clock to JTAG-domain max delay: 3.44 ns
+
+Interpretation:
+
+- The v9984 tile64 lane remains routeable with the BSCAN-backed JTAG debug
+  payload enabled. This is now the best board candidate because it combines the
+  previous visual selftest pass shape with autonomous readback support.
+- Next gate: program this bitstream under `scripts/task6/task6_board_run.py`,
+  then read the JTAG debug payload through the direct FTDI path using
+  `--tdo-bit 7`.
