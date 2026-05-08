@@ -50,6 +50,74 @@
       "notes": "current simple int8 reference style"
     },
     {
+      "name": "int4_per_row",
+      "family": "int4",
+      "bits_per_weight_raw": 4.0,
+      "scale_count": 10000,
+      "zero_fraction": 0.1478625,
+      "top1": 213,
+      "top1_match": true,
+      "top5_overlap": 5,
+      "top10_overlap": 8,
+      "float_top1_rank": 1,
+      "normalized_rmse": 0.10809708869492222,
+      "packed_words_2bit": null,
+      "packed_words_base3_20": 80000,
+      "promote": true,
+      "notes": "4-bit signed symmetric per-output scale"
+    },
+    {
+      "name": "int4_per_tensor",
+      "family": "int4",
+      "bits_per_weight_raw": 4.0,
+      "scale_count": 1,
+      "zero_fraction": 0.27049375,
+      "top1": 213,
+      "top1_match": true,
+      "top5_overlap": 4,
+      "top10_overlap": 8,
+      "float_top1_rank": 1,
+      "normalized_rmse": 0.1990260628308802,
+      "packed_words_2bit": null,
+      "packed_words_base3_20": 80000,
+      "promote": true,
+      "notes": "4-bit signed symmetric per-tensor scale"
+    },
+    {
+      "name": "int3_per_row",
+      "family": "int3",
+      "bits_per_weight_raw": 3.0,
+      "scale_count": 10000,
+      "zero_fraction": 0.334246875,
+      "top1": 213,
+      "top1_match": true,
+      "top5_overlap": 4,
+      "top10_overlap": 8,
+      "float_top1_rank": 1,
+      "normalized_rmse": 0.2548827722967258,
+      "packed_words_2bit": null,
+      "packed_words_base3_20": 60000,
+      "promote": true,
+      "notes": "3-bit signed symmetric per-output scale"
+    },
+    {
+      "name": "int3_per_tensor",
+      "family": "int3",
+      "bits_per_weight_raw": 3.0,
+      "scale_count": 1,
+      "zero_fraction": 0.5799765625,
+      "top1": 213,
+      "top1_match": true,
+      "top5_overlap": 3,
+      "top10_overlap": 6,
+      "float_top1_rank": 1,
+      "normalized_rmse": 0.4678873140737745,
+      "packed_words_2bit": null,
+      "packed_words_base3_20": 60000,
+      "promote": true,
+      "notes": "3-bit signed symmetric per-tensor scale"
+    },
+    {
       "name": "ternary_per_row_t0.25_least_squares",
       "family": "ternary",
       "bits_per_weight_raw": 1.584962500721156,
@@ -82,6 +150,40 @@
       "packed_words_base3_20": 32000,
       "promote": false,
       "notes": "per-output threshold and scale"
+    },
+    {
+      "name": "int2_per_row",
+      "family": "int2",
+      "bits_per_weight_raw": 2.0,
+      "scale_count": 10000,
+      "zero_fraction": 0.7966140625,
+      "top1": 213,
+      "top1_match": true,
+      "top5_overlap": 2,
+      "top10_overlap": 2,
+      "float_top1_rank": 1,
+      "normalized_rmse": 0.7225099135019944,
+      "packed_words_2bit": null,
+      "packed_words_base3_20": 40000,
+      "promote": false,
+      "notes": "2-bit signed symmetric per-output scale"
+    },
+    {
+      "name": "int2_per_tensor",
+      "family": "int2",
+      "bits_per_weight_raw": 2.0,
+      "scale_count": 1,
+      "zero_fraction": 0.984103125,
+      "top1": 213,
+      "top1_match": true,
+      "top5_overlap": 1,
+      "top10_overlap": 1,
+      "float_top1_rank": 1,
+      "normalized_rmse": 0.9794617811083229,
+      "packed_words_2bit": null,
+      "packed_words_base3_20": 40000,
+      "promote": false,
+      "notes": "2-bit signed symmetric per-tensor scale"
     },
     {
       "name": "ternary_per_row_t1_least_squares",
@@ -407,5 +509,5 @@
       "notes": "global threshold=0"
     }
   ],
-  "markdown_table": "| strategy | family | raw bits/w | scales | zero % | top1 | top1 match | top5 overlap | top10 overlap | float top1 rank | norm RMSE | base3 words | promote |\n| --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |\n| int8_per_tensor | int8 | 8.000 | 1 | 1.5 | 213 | yes | 5 | 10 | 1 | 0.0111 |  | yes |\n| ternary_per_row_t0.25_least_squares | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5240 | 32000 | no |\n| ternary_per_row_t0.25_mean_abs | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5371 | 32000 | no |\n| ternary_per_row_t1_least_squares | ternary | 1.585 | 10000 | 57.4 | 98 | no | 4 | 6 | 8 | 0.4523 | 32000 | no |\n| ternary_per_row_t1_mean_abs | ternary | 1.585 | 10000 | 57.4 | 98 | no | 3 | 5 | 3 | 0.5853 | 32000 | no |\n| ternary_per_row_t0.75_least_squares | ternary | 1.585 | 10000 | 44.9 | 9927 | no | 3 | 5 | 6 | 0.4315 | 32000 | no |\n| ternary_per_row_t0.75_mean_abs | ternary | 1.585 | 10000 | 44.9 | 9927 | no | 3 | 5 | 6 | 0.5306 | 32000 | no |\n| ternary_global_t0.75_least_squares | ternary | 1.585 | 1 | 45.1 | 9927 | no | 3 | 6 | 7 | 0.4414 | 32000 | no |\n| ternary_global_t0.75_mean_abs | ternary | 1.585 | 1 | 45.1 | 9927 | no | 3 | 6 | 7 | 0.5391 | 32000 | no |\n| ternary_per_row_grid_lsq | ternary | 1.585 | 10000 | 45.5 | 9163 | no | 3 | 6 | 9 | 0.4325 | 32000 | no |\n| ternary_global_t0.5_least_squares | ternary | 1.585 | 1 | 31.1 | 721 | no | 2 | 5 | 6 | 0.4656 | 32000 | no |\n| ternary_global_t0.5_mean_abs | ternary | 1.585 | 1 | 31.1 | 721 | no | 2 | 5 | 6 | 0.5148 | 32000 | no |\n| ternary_per_row_t0.5_least_squares | ternary | 1.585 | 10000 | 30.8 | 8365 | no | 2 | 7 | 7 | 0.4595 | 32000 | no |\n| ternary_per_row_t0.5_mean_abs | ternary | 1.585 | 10000 | 30.8 | 9163 | no | 2 | 6 | 8 | 0.5102 | 32000 | no |\n| ternary_global_t1_least_squares | ternary | 1.585 | 1 | 57.5 | 98 | no | 2 | 3 | 11 | 0.4575 | 32000 | no |\n| ternary_global_t1_mean_abs | ternary | 1.585 | 1 | 57.5 | 98 | no | 2 | 3 | 11 | 0.5883 | 32000 | no |\n| ternary_global_t1.25_least_squares | ternary | 1.585 | 1 | 68.1 | 15 | no | 2 | 4 | 21 | 0.5125 | 32000 | no |\n| ternary_global_t1.25_mean_abs | ternary | 1.585 | 1 | 68.1 | 15 | no | 2 | 4 | 21 | 0.6533 | 32000 | no |\n| ternary_global_t0.25_least_squares | ternary | 1.585 | 1 | 15.9 | 2198 | no | 1 | 2 | 15 | 0.5299 | 32000 | no |\n| ternary_global_t0.25_mean_abs | ternary | 1.585 | 1 | 15.9 | 2198 | no | 1 | 2 | 15 | 0.5419 | 32000 | no |\n| ternary_global_t0_mean_abs | ternary | 1.585 | 1 | 0.0 | 8927 | no | 0 | 2 | 31 | 0.6081 | 32000 | no |\n| ternary_global_t0_least_squares | ternary | 1.585 | 1 | 0.0 | 8927 | no | 0 | 2 | 31 | 0.6081 | 32000 | no |\n"
+  "markdown_table": "| strategy | family | raw bits/w | scales | zero % | top1 | top1 match | top5 overlap | top10 overlap | float top1 rank | norm RMSE | base3 words | promote |\n| --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |\n| int8_per_tensor | int8 | 8.000 | 1 | 1.5 | 213 | yes | 5 | 10 | 1 | 0.0111 |  | yes |\n| int4_per_row | int4 | 4.000 | 10000 | 14.8 | 213 | yes | 5 | 8 | 1 | 0.1081 | 80000 | yes |\n| int4_per_tensor | int4 | 4.000 | 1 | 27.0 | 213 | yes | 4 | 8 | 1 | 0.1990 | 80000 | yes |\n| int3_per_row | int3 | 3.000 | 10000 | 33.4 | 213 | yes | 4 | 8 | 1 | 0.2549 | 60000 | yes |\n| int3_per_tensor | int3 | 3.000 | 1 | 58.0 | 213 | yes | 3 | 6 | 1 | 0.4679 | 60000 | yes |\n| ternary_per_row_t0.25_least_squares | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5240 | 32000 | no |\n| ternary_per_row_t0.25_mean_abs | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5371 | 32000 | no |\n| int2_per_row | int2 | 2.000 | 10000 | 79.7 | 213 | yes | 2 | 2 | 1 | 0.7225 | 40000 | no |\n| int2_per_tensor | int2 | 2.000 | 1 | 98.4 | 213 | yes | 1 | 1 | 1 | 0.9795 | 40000 | no |\n| ternary_per_row_t1_least_squares | ternary | 1.585 | 10000 | 57.4 | 98 | no | 4 | 6 | 8 | 0.4523 | 32000 | no |\n| ternary_per_row_t1_mean_abs | ternary | 1.585 | 10000 | 57.4 | 98 | no | 3 | 5 | 3 | 0.5853 | 32000 | no |\n| ternary_per_row_t0.75_least_squares | ternary | 1.585 | 10000 | 44.9 | 9927 | no | 3 | 5 | 6 | 0.4315 | 32000 | no |\n| ternary_per_row_t0.75_mean_abs | ternary | 1.585 | 10000 | 44.9 | 9927 | no | 3 | 5 | 6 | 0.5306 | 32000 | no |\n| ternary_global_t0.75_least_squares | ternary | 1.585 | 1 | 45.1 | 9927 | no | 3 | 6 | 7 | 0.4414 | 32000 | no |\n| ternary_global_t0.75_mean_abs | ternary | 1.585 | 1 | 45.1 | 9927 | no | 3 | 6 | 7 | 0.5391 | 32000 | no |\n| ternary_per_row_grid_lsq | ternary | 1.585 | 10000 | 45.5 | 9163 | no | 3 | 6 | 9 | 0.4325 | 32000 | no |\n| ternary_global_t0.5_least_squares | ternary | 1.585 | 1 | 31.1 | 721 | no | 2 | 5 | 6 | 0.4656 | 32000 | no |\n| ternary_global_t0.5_mean_abs | ternary | 1.585 | 1 | 31.1 | 721 | no | 2 | 5 | 6 | 0.5148 | 32000 | no |\n| ternary_per_row_t0.5_least_squares | ternary | 1.585 | 10000 | 30.8 | 8365 | no | 2 | 7 | 7 | 0.4595 | 32000 | no |\n| ternary_per_row_t0.5_mean_abs | ternary | 1.585 | 10000 | 30.8 | 9163 | no | 2 | 6 | 8 | 0.5102 | 32000 | no |\n| ternary_global_t1_least_squares | ternary | 1.585 | 1 | 57.5 | 98 | no | 2 | 3 | 11 | 0.4575 | 32000 | no |\n| ternary_global_t1_mean_abs | ternary | 1.585 | 1 | 57.5 | 98 | no | 2 | 3 | 11 | 0.5883 | 32000 | no |\n| ternary_global_t1.25_least_squares | ternary | 1.585 | 1 | 68.1 | 15 | no | 2 | 4 | 21 | 0.5125 | 32000 | no |\n| ternary_global_t1.25_mean_abs | ternary | 1.585 | 1 | 68.1 | 15 | no | 2 | 4 | 21 | 0.6533 | 32000 | no |\n| ternary_global_t0.25_least_squares | ternary | 1.585 | 1 | 15.9 | 2198 | no | 1 | 2 | 15 | 0.5299 | 32000 | no |\n| ternary_global_t0.25_mean_abs | ternary | 1.585 | 1 | 15.9 | 2198 | no | 1 | 2 | 15 | 0.5419 | 32000 | no |\n| ternary_global_t0_mean_abs | ternary | 1.585 | 1 | 0.0 | 8927 | no | 0 | 2 | 31 | 0.6081 | 32000 | no |\n| ternary_global_t0_least_squares | ternary | 1.585 | 1 | 0.0 | 8927 | no | 0 | 2 | 31 | 0.6081 | 32000 | no |\n"
 }

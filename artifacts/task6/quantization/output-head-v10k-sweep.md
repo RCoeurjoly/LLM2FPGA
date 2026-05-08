@@ -1,8 +1,14 @@
 | strategy | family | raw bits/w | scales | zero % | top1 | top1 match | top5 overlap | top10 overlap | float top1 rank | norm RMSE | base3 words | promote |
 | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | int8_per_tensor | int8 | 8.000 | 1 | 1.5 | 213 | yes | 5 | 10 | 1 | 0.0111 |  | yes |
+| int4_per_row | int4 | 4.000 | 10000 | 14.8 | 213 | yes | 5 | 8 | 1 | 0.1081 | 80000 | yes |
+| int4_per_tensor | int4 | 4.000 | 1 | 27.0 | 213 | yes | 4 | 8 | 1 | 0.1990 | 80000 | yes |
+| int3_per_row | int3 | 3.000 | 10000 | 33.4 | 213 | yes | 4 | 8 | 1 | 0.2549 | 60000 | yes |
+| int3_per_tensor | int3 | 3.000 | 1 | 58.0 | 213 | yes | 3 | 6 | 1 | 0.4679 | 60000 | yes |
 | ternary_per_row_t0.25_least_squares | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5240 | 32000 | no |
 | ternary_per_row_t0.25_mean_abs | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5371 | 32000 | no |
+| int2_per_row | int2 | 2.000 | 10000 | 79.7 | 213 | yes | 2 | 2 | 1 | 0.7225 | 40000 | no |
+| int2_per_tensor | int2 | 2.000 | 1 | 98.4 | 213 | yes | 1 | 1 | 1 | 0.9795 | 40000 | no |
 | ternary_per_row_t1_least_squares | ternary | 1.585 | 10000 | 57.4 | 98 | no | 4 | 6 | 8 | 0.4523 | 32000 | no |
 | ternary_per_row_t1_mean_abs | ternary | 1.585 | 10000 | 57.4 | 98 | no | 3 | 5 | 3 | 0.5853 | 32000 | no |
 | ternary_per_row_t0.75_least_squares | ternary | 1.585 | 10000 | 44.9 | 9927 | no | 3 | 5 | 6 | 0.4315 | 32000 | no |

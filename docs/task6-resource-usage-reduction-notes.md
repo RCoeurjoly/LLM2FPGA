@@ -15248,3 +15248,36 @@ Interpretation:
   goal is pure hardware research. For model progress, the next productive
   quantization experiment should be either INT4/INT3-like output-head scoring
   or a multi-sample ternary sweep with a stronger promotion bar.
+
+INT4/INT3 extension:
+
+- Extended `scripts/task6/score_output_head_quantization.py` with per-tensor
+  and per-row signed symmetric INT4, INT3, and INT2 strategies.
+- Re-ran:
+  `nix build .#task6-output-head-v10k-quantization-sweep --no-link --print-out-paths -L`
+- Updated durable artifacts:
+  - `artifacts/task6/quantization/output-head-v10k-sweep.json`
+  - `artifacts/task6/quantization/output-head-v10k-sweep.md`
+
+Top rows from the updated table:
+
+| strategy | family | raw bits/w | scales | zero % | top1 | top1 match | top5 overlap | top10 overlap | float top1 rank | norm RMSE | packed words | promote |
+| --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `int8_per_tensor` | int8 | 8.000 | 1 | 1.5 | 213 | yes | 5 | 10 | 1 | 0.0111 | n/a | yes |
+| `int4_per_row` | int4 | 4.000 | 10000 | 14.8 | 213 | yes | 5 | 8 | 1 | 0.1081 | 80000 | yes |
+| `int4_per_tensor` | int4 | 4.000 | 1 | 27.0 | 213 | yes | 4 | 8 | 1 | 0.1990 | 80000 | yes |
+| `int3_per_row` | int3 | 3.000 | 10000 | 33.4 | 213 | yes | 4 | 8 | 1 | 0.2549 | 60000 | yes |
+| `int3_per_tensor` | int3 | 3.000 | 1 | 58.0 | 213 | yes | 3 | 6 | 1 | 0.4679 | 60000 | yes |
+| `ternary_per_row_t0.25_least_squares` | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5240 | 32000 | no |
+| `int2_per_row` | int2 | 2.000 | 10000 | 79.7 | 213 | yes | 2 | 2 | 1 | 0.7225 | 40000 | no |
+
+Interpretation:
+
+- Quantization work is still worth it, but ternary is not the mainline right
+  now.
+- INT4 per-row is the best next quantization target: it preserves top-1 and
+  full top-5 on this sample with much lower error than ternary, while halving
+  the INT8 output-head storage.
+- INT3 per-row is the next riskier compression target: it preserves top-1 and
+  `4/5` top-5 on this sample at `3` bits/weight.
+- INT2 and cheap ternary are too lossy for the immediate model-progress lane.

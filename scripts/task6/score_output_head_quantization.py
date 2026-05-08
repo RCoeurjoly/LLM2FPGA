@@ -207,6 +207,22 @@ def ternary_quantize_per_row_grid(
     return q, scales, chosen_thresholds
 
 
+def quantize_per_row_symmetric(
+    values: list[float],
+    hidden_size: int,
+    vocab_size: int,
+    bits: int,
+) -> tuple[list[int], list[float]]:
+    q: list[int] = []
+    scales: list[float] = []
+    for row_index in range(vocab_size):
+        row = values[row_index * hidden_size : (row_index + 1) * hidden_size]
+        row_q, row_scale = quantize_symmetric(row, bits)
+        q.extend(row_q)
+        scales.append(row_scale)
+    return q, scales
+
+
 def score_strategy(
     *,
     name: str,
@@ -237,6 +253,11 @@ def score_strategy(
     strategy_top10 = set(top_indices(logits, 10))
     metrics = score_error(logits, f32_logits)
     zero_fraction = sum(1 for value in weight_q if value == 0) / len(weight_q)
+    packed_words_lowbit = (
+        math.ceil(len(weight_q) * bits_per_weight_raw / 32)
+        if family.startswith("int") and bits_per_weight_raw < 8.0
+        else None
+    )
     return StrategyResult(
         name=name,
         family=family,
@@ -250,7 +271,9 @@ def score_strategy(
         float_top1_rank=rank_of(f32_top1, logits),
         normalized_rmse=metrics["normalized_rmse"],
         packed_words_2bit=math.ceil(len(weight_q) / 16) if family == "ternary" else None,
-        packed_words_base3_20=math.ceil(len(weight_q) / 20) if family == "ternary" else None,
+        packed_words_base3_20=(
+            math.ceil(len(weight_q) / 20) if family == "ternary" else packed_words_lowbit
+        ),
         promote=top1 == f32_top1 and len(f32_top5 & strategy_top5) >= 3,
         notes=notes,
     )
@@ -347,6 +370,46 @@ def main() -> None:
             notes="current simple int8 reference style",
         )
     )
+
+    for bits in [4, 3, 2]:
+        q, scale = quantize_symmetric(weight, bits)
+        results.append(
+            score_strategy(
+                name=f"int{bits}_per_tensor",
+                family=f"int{bits}",
+                bits_per_weight_raw=float(bits),
+                weight_q=q,
+                scales=[scale],
+                per_row_scale=False,
+                hidden=hidden,
+                f32_logits=f32_logits,
+                hidden_size=args.hidden_size,
+                vocab_size=args.vocab_size,
+                notes=f"{bits}-bit signed symmetric per-tensor scale",
+            )
+        )
+
+        q, scales = quantize_per_row_symmetric(
+            weight,
+            args.hidden_size,
+            args.vocab_size,
+            bits,
+        )
+        results.append(
+            score_strategy(
+                name=f"int{bits}_per_row",
+                family=f"int{bits}",
+                bits_per_weight_raw=float(bits),
+                weight_q=q,
+                scales=scales,
+                per_row_scale=True,
+                hidden=hidden,
+                f32_logits=f32_logits,
+                hidden_size=args.hidden_size,
+                vocab_size=args.vocab_size,
+                notes=f"{bits}-bit signed symmetric per-output scale",
+            )
+        )
 
     mean_abs = sum(abs(value) for value in weight) / len(weight)
     for factor in [0.0, 0.25, 0.5, 0.75, 1.0, 1.25]:
