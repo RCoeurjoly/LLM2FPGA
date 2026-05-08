@@ -15175,3 +15175,27 @@ Interpretation:
   separately from storage correctness.
 - Next hardware gate, if we want a routeability datapoint for the true dense
   storage lane, is Yosys synthesis for the same base3-20 v10k/tile80 design.
+
+Synthesis probe:
+
+- Added a Yosys `jtag-debug-json` target for the same base3-20 lane and started
+  it through the experiment runner:
+  `scripts/task6/task6_experiment_runner.py --label ternary-base3-v10k-synth --vocab-size 10000 --tile-out-dim 80 --weight-quantization ternary-base3-20 --gate json`
+- The run was manually pruned after roughly six minutes in `yosys -s run.ys`
+  with no wrapper output.
+- Result artifact was left as an interrupted runner directory:
+  `artifacts/task6/experiments/2026-05-08T12-53-15+0200-ternary-base3-v10k-synth/result.json`
+
+Interpretation of the pruned synthesis probe:
+
+- This does not mean Yosys cannot support ternary-weight arithmetic. The lane
+  uses binary FPGA hardware with ternary-valued weights encoded as bits/trits,
+  not three-valued logic gates.
+- The likely issue is the naive base3 decoder implementation: each word decode
+  used parallel constant `/` and `%` operations to extract 20 trits. That is a
+  bad synthesis shape.
+- Next implementation should keep the same storage contract but replace the
+  decoder with a synthesis-friendly structure:
+  - sequential base3 unpacker using subtract/compare or a small state machine
+  - pre-decode one 32-bit word into 20 two-bit trit codes over multiple cycles
+  - then reuse the already-proven add/sub/skip ternary accumulator datapath
