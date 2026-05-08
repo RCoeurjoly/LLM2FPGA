@@ -15438,3 +15438,65 @@ Decision:
 - Mainline returns to INT8 plus streaming/external memory, because INT8 is the
   only current post-training output-head quantization result that preserves
   all `8/8` top-1 samples.
+
+### 2026-05-08 - INT8 mainline resume after INT4 rejection
+
+Goal:
+
+- Make the exact INT8 continuation explicit after the final Python-only INT4
+  rescue failed.
+- Avoid repeating quantization work that no longer changes the main decision.
+
+Current INT8 evidence stack:
+
+| Gate | Artifact / target | Status | Meaning |
+| --- | --- | --- | --- |
+| Full-vocab rowwise replay | `task6-full-vocab-rowwise-topk-replay` | pass | rowwise INT8 plus Q0.24 scores preserve f32 top1 on `8/8` deterministic samples |
+| DDR3 row-stream contract | `task6-ddr3-row-stream-interface-contract` | pass | full output-head row format is fixed at `68` bytes per vocab row |
+| Packed rowstream image | `task6-ddr3-row-stream-pack-replay` | pass | concrete `3418496` byte full-vocab image round-trips and replays correctly |
+| DDR-free RTL cutout | `task6-ddr3-row-stream-cutout-sv-sim` | pass | RTL consumes the full rowstream image and returns the expected top1 tokens |
+
+Post-INT4 checkpoint run:
+
+- Ran:
+  `nix build .#task6-ddr3-row-stream-cutout-sv-sim --no-link --print-out-paths -L`
+- Output store path:
+  `/nix/store/w1721rlcsvh1kqfilsb2aya5dgbqkp8y-h2-ddr3-row-stream-cutout-rtl-proof.json`
+- Result: `PASS`.
+- Metrics:
+  - samples: `8`
+  - rows per sample: `50257`
+  - total rows streamed: `402056`
+  - cycles: `402088`
+- The rerun proof is byte-identical to the durable artifact:
+  `artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-cutout-rtl-proof.json`.
+
+Decision:
+
+- The next INT8 task is not a new quantization sweep.
+- The next INT8 task is a measured memory-source gate for the already-passing
+  rowstream contract.
+- First target: prove a board-programmable linear-read source that can deliver
+  the `68`-byte row records, or a narrower beat stream that deterministically
+  reconstructs those records, with measured sustained bandwidth.
+- Initial bandwidth target remains the `4`-lane output-head kernel:
+  `212.5 MB/s` useful rowstream bandwidth at `50 MHz`.
+- Keep the TinyStories rowstream cutout disconnected from DDR3 until the memory
+  source independently passes integrity and bandwidth checks.
+
+Concrete next experiment:
+
+1. Select the smallest existing DDR3/BRAM/PCIe linear-read probe that can emit a
+   deterministic byte stream and be checked over JTAG or simulation.
+2. Measure sustained ordered read bandwidth and data integrity on board if the
+   bitstream is already available; otherwise first run the no-board simulation.
+3. Record one JSON result with:
+   - stream width
+   - clock target
+   - bytes transferred
+   - cycles
+   - measured MB/s
+   - mismatch count
+   - whether it clears the `212.5 MB/s` 4-lane target
+4. Only after that gate passes, connect the memory source to
+   `task6_ddr3_rowstream_top1_cutout`.
