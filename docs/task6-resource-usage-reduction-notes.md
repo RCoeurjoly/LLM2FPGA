@@ -15199,3 +15199,52 @@ Interpretation of the pruned synthesis probe:
   - sequential base3 unpacker using subtract/compare or a small state machine
   - pre-decode one 32-bit word into 20 two-bit trit codes over multiple cycles
   - then reuse the already-proven add/sub/skip ternary accumulator datapath
+
+### Output-head quantization fidelity sweep (2026-05-08)
+
+Question:
+
+- Before spending more RTL work on ternary storage/decode, is any cheap
+  post-training ternary output-head quantization scheme fidelity-preserving
+  enough to deserve promotion?
+
+Implementation:
+
+- Added `scripts/task6/score_output_head_quantization.py`.
+- Added flake target:
+  `task6-output-head-v10k-quantization-sweep`.
+- The sweep is Python-only and uses the current residual-add proof hidden state
+  with the v10k TinyStories representative output head.
+- Durable artifacts:
+  - `artifacts/task6/quantization/output-head-v10k-sweep.json`
+  - `artifacts/task6/quantization/output-head-v10k-sweep.md`
+
+Command:
+
+- `nix build .#task6-output-head-v10k-quantization-sweep --no-link --print-out-paths -L`
+
+Result summary:
+
+| strategy | family | raw bits/w | scales | zero % | top1 | top1 match | top5 overlap | top10 overlap | float top1 rank | norm RMSE | base3 words | promote |
+| --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `int8_per_tensor` | int8 | 8.000 | 1 | 1.5 | 213 | yes | 5 | 10 | 1 | 0.0111 |  | yes |
+| `ternary_per_row_t0.25_least_squares` | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5240 | 32000 | no |
+| `ternary_per_row_t0.25_mean_abs` | ternary | 1.585 | 10000 | 15.7 | 213 | yes | 2 | 4 | 1 | 0.5371 | 32000 | no |
+| `ternary_per_row_t1_least_squares` | ternary | 1.585 | 10000 | 57.4 | 98 | no | 4 | 6 | 8 | 0.4523 | 32000 | no |
+| `ternary_per_row_t0.75_least_squares` | ternary | 1.585 | 10000 | 44.9 | 9927 | no | 3 | 5 | 6 | 0.4315 | 32000 | no |
+| `ternary_per_row_grid_lsq` | ternary | 1.585 | 10000 | 45.5 | 9163 | no | 3 | 6 | 9 | 0.4325 | 32000 | no |
+| `ternary_global_t0.5_least_squares` | ternary | 1.585 | 1 | 31.1 | 721 | no | 2 | 5 | 6 | 0.4656 | 32000 | no |
+
+Interpretation:
+
+- INT8 remains the only clearly fidelity-preserving post-training quantization
+  in this single-hidden-state sweep.
+- A per-row ternary threshold at `0.25 * mean_abs` with least-squares row scales
+  preserves top-1 for this one sample, but its top-5 overlap is only `2/5`,
+  top-10 overlap is `4/10`, and normalized RMSE is still `0.5240`.
+- Current global-threshold ternary is not competitive; it misses top-1 and
+  keeps only `2/5` top-5 overlap.
+- Decision: do not spend the next iteration on a base3 RTL decoder unless the
+  goal is pure hardware research. For model progress, the next productive
+  quantization experiment should be either INT4/INT3-like output-head scoring
+  or a multi-sample ternary sweep with a stronger promotion bar.

@@ -3419,6 +3419,29 @@
               --out-json "$out/summary.json"
           '';
 
+        task6OutputHeadV10kQuantizationSweep =
+          pkgs.runCommand "task6-output-head-v10k-quantization-sweep" { } ''
+            mkdir -p "$out"
+            TASK6_REPO_ROOT=${./.} ${pythonWithTinyStoriesBin}/bin/python ${
+              ./scripts/task6/score_output_head_quantization.py
+            } \
+              --model-path ${tinyStories1m.snapshot} \
+              --adapter-path ${./TinyStories/model_adapter_representative_core.py} \
+              --residual-add-rtl-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-v4k-int8-l2-mlp-chain-residual-add-rtl-proof.json
+              } \
+              --vocab-size 10000 \
+              --physical-vocab-size 10000 \
+              --num-layers 1 \
+              --max-position-embeddings 128 \
+              --window-size 64 \
+              --hidden-size 64 \
+              --num-heads 16 \
+              --model-label tiny-stories-v10k-h64-l1 \
+              --out-json "$out/output-head-v10k-sweep.json" \
+              --out-md "$out/output-head-v10k-sweep.md"
+          '';
+
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
             sed \
@@ -9238,6 +9261,8 @@
             task6Int8V10kL2ResidualAddOutputHeadSelftestTop;
           task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-tb-data-sv =
             task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTbDataSv;
+          task6-output-head-v10k-quantization-sweep =
+            task6OutputHeadV10kQuantizationSweep;
           task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top =
             task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop;
           task6-int8-v6k-l2-residual-add-output-head-selftest-tb-data-sv =
