@@ -22,7 +22,7 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd16;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd17;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -36,7 +36,7 @@ module task6_ypcb_uberddr3_bist_top #(
   localparam logic [3:0] BYTE_LANES_NIBBLE = BYTE_LANES % 16;
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
-  localparam logic [7:0] PROBE_EXPECTED_BYTE = 8'h5a;
+  localparam logic [7:0] PROBE_EXPECTED_BYTE = 8'ha5;
   localparam logic [WB_DATA_BITS - 1:0] PROBE_WRITE_PATTERN = {WB_SEL_BITS{PROBE_EXPECTED_BYTE}};
 
   wire controller_clk;
@@ -139,7 +139,7 @@ module task6_ypcb_uberddr3_bist_top #(
     READ_PROBE_ISSUE_READ = 3'd4,
     READ_PROBE_WAIT_READ_ACK = 3'd5,
     READ_PROBE_DONE = 3'd6,
-    READ_PROBE_ERROR = 3'd7
+    READ_PROBE_CAPTURE_DELAY = 3'd7
   } read_probe_state_t;
 
   read_probe_state_t read_probe_state_q;
@@ -152,6 +152,11 @@ module task6_ypcb_uberddr3_bist_top #(
   logic read_probe_err_seen_q;
   logic read_probe_stall_seen_q;
   logic [7:0] read_probe_data_byte_q;
+  logic [7:0] read_probe_data_byte_d1_q;
+  logic [7:0] read_probe_data_byte_d2_q;
+  logic [7:0] read_probe_data_byte_d3_q;
+  logic [7:0] read_probe_data_byte_d4_q;
+  logic [2:0] read_probe_post_ack_delay_q;
   logic [31:0] read_probe_wait_cycles_q;
 
   assign ddram_clk_p = ddr3_clk_p_w[0];
@@ -185,6 +190,11 @@ module task6_ypcb_uberddr3_bist_top #(
       read_probe_err_seen_q <= 1'b0;
       read_probe_stall_seen_q <= 1'b0;
       read_probe_data_byte_q <= 8'd0;
+      read_probe_data_byte_d1_q <= 8'd0;
+      read_probe_data_byte_d2_q <= 8'd0;
+      read_probe_data_byte_d3_q <= 8'd0;
+      read_probe_data_byte_d4_q <= 8'd0;
+      read_probe_post_ack_delay_q <= 3'd0;
       read_probe_wait_cycles_q <= 32'd0;
     end else begin
       cycle_count_q <= cycle_count_q + 32'd1;
@@ -209,6 +219,7 @@ module task6_ypcb_uberddr3_bist_top #(
           read_probe_read_ack_seen_q <= 1'b0;
           read_probe_err_seen_q <= 1'b0;
           read_probe_stall_seen_q <= 1'b0;
+          read_probe_post_ack_delay_q <= 3'd0;
           read_probe_wait_cycles_q <= 32'd0;
           read_probe_state_q <= READ_PROBE_WAIT_CALIB;
         end
@@ -232,7 +243,9 @@ module task6_ypcb_uberddr3_bist_top #(
           end
           if (wb_err) begin
             read_probe_err_seen_q <= 1'b1;
-            read_probe_state_q <= READ_PROBE_ERROR;
+            read_probe_cyc_q <= 1'b0;
+            read_probe_done_q <= 1'b1;
+            read_probe_state_q <= READ_PROBE_DONE;
           end
           if (wb_ack) begin
             read_probe_write_ack_seen_q <= 1'b1;
@@ -246,7 +259,8 @@ module task6_ypcb_uberddr3_bist_top #(
           if (wb_err) begin
             read_probe_err_seen_q <= 1'b1;
             read_probe_cyc_q <= 1'b0;
-            read_probe_state_q <= READ_PROBE_ERROR;
+            read_probe_done_q <= 1'b1;
+            read_probe_state_q <= READ_PROBE_DONE;
           end else if (wb_ack) begin
             read_probe_write_ack_seen_q <= 1'b1;
             read_probe_stb_q <= 1'b1;
@@ -267,13 +281,17 @@ module task6_ypcb_uberddr3_bist_top #(
           end
           if (wb_err) begin
             read_probe_err_seen_q <= 1'b1;
-            read_probe_state_q <= READ_PROBE_ERROR;
+            read_probe_cyc_q <= 1'b0;
+            read_probe_done_q <= 1'b1;
+            read_probe_state_q <= READ_PROBE_DONE;
           end
           if (wb_ack) begin
             read_probe_read_ack_seen_q <= 1'b1;
-            read_probe_done_q <= 1'b1;
             read_probe_cyc_q <= 1'b0;
+            read_probe_stb_q <= 1'b0;
             read_probe_data_byte_q <= wb_data[7:0];
+            read_probe_post_ack_delay_q <= 3'd0;
+            read_probe_state_q <= READ_PROBE_CAPTURE_DELAY;
           end
         end
 
@@ -282,13 +300,33 @@ module task6_ypcb_uberddr3_bist_top #(
           if (wb_err) begin
             read_probe_err_seen_q <= 1'b1;
             read_probe_cyc_q <= 1'b0;
-            read_probe_state_q <= READ_PROBE_ERROR;
+            read_probe_done_q <= 1'b1;
+            read_probe_state_q <= READ_PROBE_DONE;
           end else if (wb_ack) begin
             read_probe_read_ack_seen_q <= 1'b1;
-            read_probe_done_q <= 1'b1;
             read_probe_cyc_q <= 1'b0;
             read_probe_data_byte_q <= wb_data[7:0];
+            read_probe_post_ack_delay_q <= 3'd0;
+            read_probe_state_q <= READ_PROBE_CAPTURE_DELAY;
+          end
+        end
+
+        READ_PROBE_CAPTURE_DELAY: begin
+          read_probe_cyc_q <= 1'b0;
+          read_probe_stb_q <= 1'b0;
+          read_probe_we_q <= 1'b0;
+          case (read_probe_post_ack_delay_q)
+            3'd0: read_probe_data_byte_d1_q <= wb_data[7:0];
+            3'd1: read_probe_data_byte_d2_q <= wb_data[7:0];
+            3'd2: read_probe_data_byte_d3_q <= wb_data[7:0];
+            3'd3: read_probe_data_byte_d4_q <= wb_data[7:0];
+            default: begin end
+          endcase
+          if (read_probe_post_ack_delay_q == 3'd4) begin
+            read_probe_done_q <= 1'b1;
             read_probe_state_q <= READ_PROBE_DONE;
+          end else begin
+            read_probe_post_ack_delay_q <= read_probe_post_ack_delay_q + 3'd1;
           end
         end
 
@@ -299,14 +337,7 @@ module task6_ypcb_uberddr3_bist_top #(
           read_probe_done_q <= 1'b1;
         end
 
-        READ_PROBE_ERROR: begin
-          read_probe_cyc_q <= 1'b0;
-          read_probe_stb_q <= 1'b0;
-          read_probe_we_q <= 1'b0;
-          read_probe_done_q <= 1'b1;
-        end
-
-        default: read_probe_state_q <= READ_PROBE_ERROR;
+        default: read_probe_state_q <= READ_PROBE_DONE;
       endcase
     end
   end
@@ -334,10 +365,25 @@ module task6_ypcb_uberddr3_bist_top #(
     jtag_debug_payload[144 +: 32] = wb_ack_count_q;
     jtag_debug_payload[176 +: 32] = wb_err_count_q;
     jtag_debug_payload[208 +: 32] = wb_stall_count_q;
-    jtag_debug_payload[240 +: 32] = {24'd0, read_probe_data_byte_q};
-    jtag_debug_payload[272 +: 32] = 32'd0;
+    jtag_debug_payload[240 +: 32] = {
+      read_probe_data_byte_d3_q,
+      read_probe_data_byte_d2_q,
+      read_probe_data_byte_d1_q,
+      read_probe_data_byte_q
+    };
+    jtag_debug_payload[272 +: 32] = {
+      8'd0,
+      read_probe_post_ack_delay_q,
+      5'd0,
+      read_probe_data_byte_d4_q,
+      PROBE_EXPECTED_BYTE
+    };
     jtag_debug_payload[304 +: 32] = {
-      21'd0,
+      17'd0,
+      read_probe_data_byte_d4_q != PROBE_EXPECTED_BYTE,
+      read_probe_data_byte_d3_q != PROBE_EXPECTED_BYTE,
+      read_probe_data_byte_d2_q != PROBE_EXPECTED_BYTE,
+      read_probe_data_byte_d1_q != PROBE_EXPECTED_BYTE,
       read_probe_done_q && (read_probe_data_byte_q != PROBE_EXPECTED_BYTE),
       read_probe_stall_seen_q,
       read_probe_err_seen_q,

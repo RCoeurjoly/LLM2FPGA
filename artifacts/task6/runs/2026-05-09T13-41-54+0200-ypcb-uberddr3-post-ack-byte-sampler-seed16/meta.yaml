@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T13:41:54.429036+02:00"
+label: "ypcb-uberddr3-post-ack-byte-sampler-seed16"
+experiment: "task6-uberddr3-read-data-timing-classifier"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/g6w71gm37q3az3svs6pqyl4rmhjjnq3j-task6-ypcb-uberddr3-bist-seed16.bit"
+reference_artifacts:
+notes: "v17 seed16: restore uniform 0xa5 write/read path and capture low read byte at ACK plus four controller cycles after ACK."

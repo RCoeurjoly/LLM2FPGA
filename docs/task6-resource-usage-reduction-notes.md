@@ -17096,3 +17096,15 @@ UberDDR3 calibration/data-integrity gates:
     gate and add a lower-risk timing classifier, for example two sequential
     reads or delayed capture of the same low byte, rather than changing the
     write data pattern first.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-41-54+0200-ypcb-uberddr3-post-ack-byte-sampler-seed16`
+    restored the `0xa5` write/read pattern and added a post-ACK low-byte
+    sampler: capture at read ACK plus four controller cycles after ACK. The
+    route completed (`overused=0` at router iteration 8, timing pass), but the
+    board again stopped before the timing classifier:
+    `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000006cc`,
+    `ack_count=0`, probe `WAIT_CALIB`.
+  - Updated conclusion: v17 cannot classify the read-data timing. Since this
+    small wrapper perturbation also loses calibration, immediately rerun the
+    previous v15 bitstream to decide whether the board is in a bad state or
+    whether the new debug topology perturbs the calibration image.
