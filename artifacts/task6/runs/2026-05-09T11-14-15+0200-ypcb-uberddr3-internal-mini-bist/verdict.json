@@ -1,0 +1,47 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAILED",
+  "created_at": "2026-05-09T11:14:15.540267+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T11-14-15+0200-ypcb-uberddr3-internal-mini-bist",
+  "correctness": {
+    "status": "failed",
+    "reason": "UberDDR3 did not reach calibration completion; mini-BIST counters did not run."
+  },
+  "route": {
+    "status": "passed",
+    "overused": 0,
+    "router2_zero_overuse_iteration": 7,
+    "timing": "passed"
+  },
+  "board": {
+    "status": "programmed_and_read",
+    "bitstream": "/nix/store/31x92gc0ar40pnk3px1qpax93y72j3d2-task6-ypcb-uberddr3-bist.bit",
+    "magic_ok": true,
+    "raw_hex": "0x0000000000011ab3505e0000000000001009000083af00000000ffffffffffffffff0d59a5780000000000000000000026cc000000000d59a578d00454364a44",
+    "decoded_v4": {
+      "status": "0xd0",
+      "cycle_count": "0x0d59a578",
+      "calib_seen_cycle": "0x00000000",
+      "debug1": "0x000026cc",
+      "state": 12,
+      "state_name": "READ_DATA",
+      "instruction_address": 22,
+      "idelayctrl_ready": 1,
+      "calib_stb": 0,
+      "wb_stall_calib": 0,
+      "wb_ack_uncalibrated": 1,
+      "correct_read_data_low6": 0,
+      "wrong_read_data_low6": 0,
+      "check_test_address_counter_low6": 0
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "This bounded internal BIST changed enough logic/placement to regress the known-good fast-exit calibration gate.",
+    "The known-good fast-exit control bitstream still remains the reference for calibration completion."
+  ]
+}

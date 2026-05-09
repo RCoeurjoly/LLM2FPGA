@@ -16845,3 +16845,64 @@ Current conclusion:
   - Updated conclusion: PLLE2 clears the clock/reset-dead blocker. The current
     blocker is now DDR3 init/calibration not completing under UberDDR3 on the
     YPCB board/openXC7 bitstream.
+
+UberDDR3 calibration/data-integrity gates:
+
+- Calibration progress instrumentation:
+  - Added `debug1` packing for calibration state, instruction address,
+    IDelayCtrl readiness, calibration strobe/stall/ack, and later mini-BIST
+    low counters.
+  - Run
+    `artifacts/task6/runs/2026-05-09T10-11-13+0200-ypcb-uberddr3-bist-calib-debug1`
+    built and routed, but stayed in `BURST_WRITE` with `status=0xd0`.
+- Calibration-only control:
+  - Run
+    `artifacts/task6/runs/2026-05-09T10-22-01+0200-ypcb-uberddr3-bist-calib-only`
+    stayed in `READ_DATA`, so `BIST_MODE=0` is not a shortcut to the known-good
+    calibration state on this board/route.
+- Fast-exit calibration gate:
+  - Run
+    `artifacts/task6/runs/2026-05-09T10-29-37+0200-ypcb-uberddr3-bist-fast-exit`
+    with bitstream
+    `/nix/store/rf3akdsj6rdqikhzvfw50146f71vkxpz-task6-ypcb-uberddr3-bist.bit`
+    passed the first hard gate:
+    `status=0xd3`, `calib_complete=1`, `calib_seen=1`,
+    `calib_seen_cycle=0x000093dd`, and `debug1=0x800386d7`
+    (`state=23`, `DONE_CALIBRATE`, `instruction_address=22`,
+    `idelayctrl_ready=1`).
+  - This proves one open-source-flow UberDDR3 route can complete DDR3
+    calibration on YPCB-00338-1P1, but it does not yet prove user-port data
+    integrity.
+- User-port probe attempts:
+  - Run
+    `artifacts/task6/runs/2026-05-09T10-40-55+0200-ypcb-uberddr3-user-probe`
+    added a full-width wrapper Wishbone write/read probe after calibration.
+    It routed but regressed calibration to `status=0xd0`, `state=12`
+    (`READ_DATA`), with the probe still waiting for calibration.
+  - Run
+    `artifacts/task6/runs/2026-05-09T10-51-27+0200-ypcb-uberddr3-narrow-user-probe`
+    narrowed the probe to low-word compare and idle byte selects. It also
+    routed but stayed in `READ_DATA`.
+  - Control reprogram of the known-good fast-exit bitstream in
+    `artifacts/task6/runs/2026-05-09T10-52-45+0200-ypcb-uberddr3-fast-exit-control-recheck`
+    passed again. This isolates the regression to RTL/place-route changes, not
+    board state, JTAG, or power.
+- Internal mini-BIST attempt:
+  - Run
+    `artifacts/task6/runs/2026-05-09T11-14-15+0200-ypcb-uberddr3-internal-mini-bist`
+    removed the wrapper user-port probe and instead bounded UberDDR3's internal
+    BIST path to four full-width writes followed by four reads.
+  - Build result:
+    `/nix/store/31x92gc0ar40pnk3px1qpax93y72j3d2-task6-ypcb-uberddr3-bist.bit`.
+    nextpnr router2 reached `overused=0` at iteration 7 and timing passed.
+  - Board readback had valid magic/version but failed the calibration gate:
+    `status=0xd0`, `cycle_count=0x0d59a578`, `calib_seen_cycle=0`,
+    `debug1=0x000026cc` (`state=12`, `READ_DATA`,
+    `instruction_address=22`, `idelayctrl_ready=1`,
+    `wb_ack_uncalibrated=1`, mini-BIST correct/wrong/check counters all zero).
+  - Conclusion: any added data-integrity logic tried so far perturbs the
+    calibration-sensitive route enough to lose the known-good calibration
+    result. The next productive gate should preserve the known-good fast-exit
+    behavior as closely as possible and vary placement/route seed or add the
+    smallest possible post-calibration memory operation, with every run
+    committed and compared against the fast-exit control.

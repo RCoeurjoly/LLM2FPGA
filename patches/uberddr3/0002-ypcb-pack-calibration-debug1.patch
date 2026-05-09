@@ -2,7 +2,7 @@ diff --git a/rtl/ddr3_controller.v b/rtl/ddr3_controller.v
 index 1111111..3333333 100644
 --- a/rtl/ddr3_controller.v
 +++ b/rtl/ddr3_controller.v
-@@ -3854,7 +3854,19 @@ module ddr3_controller #(
+@@ -3854,8 +3854,18 @@ module ddr3_controller #(
      endgenerate
  
      // Logic connected to debug port
@@ -13,15 +13,13 @@ index 1111111..3333333 100644
 +    // [4:0]   calibration state
 +    // [9:5]   init/refresh ROM instruction address
 +    // [10]    PHY IDELAYCTRL ready
-+    // [14:11] read-data delay counter
-+    // [17:15] active byte lane
-+    // [22:18] active-lane DQ IDELAY tap
-+    // [27:23] active-lane DQS IDELAY tap
-+    // [28]    calibration request strobe
-+    // [29]    calibration-side Wishbone stall
-+    // [30]    uncalibrated Wishbone ack
-+    // [31]    uncalibrated read data has any nonzero bit
-+    assign o_debug1 = {|o_wb_data_uncalibrated, o_wb_ack_uncalibrated, o_wb_stall_calib, calib_stb, idelay_dqs_cntvaluein[lane], idelay_data_cntvaluein[lane], lane, delay_before_read_data, i_phy_idelayctrl_rdy, instruction_address, state_calibrate[4:0]};
++    // [11]    calibration request strobe
++    // [12]    calibration-side Wishbone stall
++    // [13]    uncalibrated Wishbone ack
++    // [19:14] correct BIST read count, saturated/truncated
++    // [25:20] wrong BIST read count, saturated/truncated
++    // [31:26] BIST check address counter low bits
++    assign o_debug1 = {check_test_address_counter[5:0], wrong_read_data[5:0], correct_read_data[5:0], o_wb_ack_uncalibrated, o_wb_stall_calib, calib_stb, i_phy_idelayctrl_rdy, instruction_address, state_calibrate[4:0]};
  //    assign o_debug2 = {debug_trigger,i_phy_iserdes_data[62:32]};
  //    assign o_debug3 = {debug_trigger,i_phy_iserdes_data[30:0]};
  //    assign debug_trigger = repeat_test /*o_wb_ack_read_q[0][0]*/;

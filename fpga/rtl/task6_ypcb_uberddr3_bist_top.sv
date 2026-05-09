@@ -22,7 +22,7 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd3;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd4;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -30,14 +30,12 @@ module task6_ypcb_uberddr3_bist_top #(
   localparam int WB_ADDR_BITS = ROW_BITS + COL_BITS + BA_BITS - 3;
   localparam int WB_DATA_BITS = 8 * BYTE_LANES * 8;
   localparam int WB_SEL_BITS = WB_DATA_BITS / 8;
-  localparam int WB_DATA_WORDS = WB_DATA_BITS / 32;
   localparam logic [3:0] ROW_BITS_NIBBLE = ROW_BITS % 16;
   localparam logic [3:0] COL_BITS_NIBBLE = COL_BITS % 16;
   localparam logic [3:0] BA_BITS_NIBBLE = BA_BITS % 16;
   localparam logic [3:0] BYTE_LANES_NIBBLE = BYTE_LANES % 16;
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
-  localparam int PROBE_BEATS = 4;
 
   wire controller_clk;
   wire ddr3_clk;
@@ -118,7 +116,6 @@ module task6_ypcb_uberddr3_bist_top #(
   wire wb_err;
   wire [WB_DATA_BITS - 1:0] wb_data;
   wire [3:0] wb_aux;
-  wire [WB_SEL_BITS - 1:0] probe_sel;
   wire wb2_stall;
   wire wb2_ack;
   wire [31:0] wb2_data;
@@ -131,48 +128,6 @@ module task6_ypcb_uberddr3_bist_top #(
   wire calib_complete;
   wire [31:0] debug1;
   wire uart_tx;
-
-  typedef enum logic [3:0] {
-    PROBE_RESET = 4'd0,
-    PROBE_WAIT_CALIB = 4'd1,
-    PROBE_WRITE_ISSUE = 4'd2,
-    PROBE_WRITE_WAIT = 4'd3,
-    PROBE_READ_ISSUE = 4'd4,
-    PROBE_READ_WAIT = 4'd5,
-    PROBE_DONE = 4'd6,
-    PROBE_FAIL = 4'd7
-  } probe_state_t;
-
-  probe_state_t probe_state_q;
-  logic probe_cyc_q;
-  logic probe_stb_q;
-  logic probe_we_q;
-  logic [WB_ADDR_BITS - 1:0] probe_addr_q;
-  logic [WB_DATA_BITS - 1:0] probe_data_q;
-  logic [3:0] probe_index_q;
-  logic [31:0] probe_mismatch_count_q;
-  logic [31:0] probe_first_mismatch_addr_q;
-  logic [31:0] probe_expected_lo_q;
-  logic [31:0] probe_observed_lo_q;
-  logic probe_done_q;
-  logic probe_pass_q;
-  logic probe_fail_q;
-
-  function automatic logic [31:0] probe_pattern_lo(input logic [WB_ADDR_BITS - 1:0] addr);
-    logic [31:0] value;
-    logic [7:0] byte_value;
-    int byte_index;
-    begin
-      value = 32'd0;
-      for (byte_index = 0; byte_index < 4; byte_index = byte_index + 1) begin
-        byte_value = ((byte_index * 8'h25) ^ (addr[7:0] * 8'h5d) ^ 8'ha6) + byte_index;
-        value[8 * byte_index +: 8] = byte_value;
-      end
-      probe_pattern_lo = value;
-    end
-  endfunction
-
-  assign probe_sel = (probe_cyc_q || probe_stb_q) ? {WB_SEL_BITS{1'b1}} : {WB_SEL_BITS{1'b0}};
 
   assign ddram_clk_p = ddr3_clk_p_w[0];
   assign ddram_clk_n = ddr3_clk_n_w[0];
@@ -195,20 +150,6 @@ module task6_ypcb_uberddr3_bist_top #(
       wb_err_count_q <= 32'd0;
       wb_stall_count_q <= 32'd0;
       calib_seen_q <= 1'b0;
-      probe_state_q <= PROBE_RESET;
-      probe_cyc_q <= 1'b0;
-      probe_stb_q <= 1'b0;
-      probe_we_q <= 1'b0;
-      probe_addr_q <= '0;
-      probe_data_q <= '0;
-      probe_index_q <= 4'd0;
-      probe_mismatch_count_q <= 32'd0;
-      probe_first_mismatch_addr_q <= 32'd0;
-      probe_expected_lo_q <= 32'd0;
-      probe_observed_lo_q <= 32'd0;
-      probe_done_q <= 1'b0;
-      probe_pass_q <= 1'b0;
-      probe_fail_q <= 1'b0;
     end else begin
       cycle_count_q <= cycle_count_q + 32'd1;
       if (calib_complete && !calib_seen_q) begin
@@ -221,124 +162,6 @@ module task6_ypcb_uberddr3_bist_top #(
         wb_err_count_q <= wb_err_count_q + 32'd1;
       if (wb_stall)
         wb_stall_count_q <= wb_stall_count_q + 32'd1;
-
-      case (probe_state_q)
-        PROBE_RESET: begin
-          probe_cyc_q <= 1'b0;
-          probe_stb_q <= 1'b0;
-          probe_we_q <= 1'b0;
-          probe_addr_q <= '0;
-          probe_data_q <= '0;
-          probe_index_q <= 4'd0;
-          probe_mismatch_count_q <= 32'd0;
-          probe_first_mismatch_addr_q <= 32'd0;
-          probe_expected_lo_q <= 32'd0;
-          probe_observed_lo_q <= 32'd0;
-          probe_done_q <= 1'b0;
-          probe_pass_q <= 1'b0;
-          probe_fail_q <= 1'b0;
-          probe_state_q <= PROBE_WAIT_CALIB;
-        end
-
-        PROBE_WAIT_CALIB: begin
-          if (calib_complete) begin
-            probe_index_q <= 4'd0;
-            probe_state_q <= PROBE_WRITE_ISSUE;
-          end
-        end
-
-        PROBE_WRITE_ISSUE: begin
-          probe_cyc_q <= 1'b1;
-          probe_stb_q <= 1'b1;
-          probe_we_q <= 1'b1;
-          probe_addr_q <= {{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q};
-          probe_data_q <= {WB_DATA_WORDS{probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q})}};
-          if (!wb_stall) begin
-            probe_stb_q <= 1'b0;
-            probe_state_q <= wb_ack ? ((probe_index_q == PROBE_BEATS - 1) ? PROBE_READ_ISSUE : PROBE_WRITE_ISSUE) : PROBE_WRITE_WAIT;
-            if (wb_ack) begin
-              probe_index_q <= (probe_index_q == PROBE_BEATS - 1) ? 4'd0 : probe_index_q + 4'd1;
-            end
-          end
-        end
-
-        PROBE_WRITE_WAIT: begin
-          probe_cyc_q <= 1'b1;
-          probe_stb_q <= 1'b0;
-          probe_we_q <= 1'b1;
-          if (wb_err) begin
-            probe_fail_q <= 1'b1;
-            probe_done_q <= 1'b1;
-            probe_state_q <= PROBE_FAIL;
-          end else if (wb_ack) begin
-            probe_cyc_q <= 1'b0;
-            probe_index_q <= (probe_index_q == PROBE_BEATS - 1) ? 4'd0 : probe_index_q + 4'd1;
-            probe_state_q <= (probe_index_q == PROBE_BEATS - 1) ? PROBE_READ_ISSUE : PROBE_WRITE_ISSUE;
-          end
-        end
-
-        PROBE_READ_ISSUE: begin
-          probe_cyc_q <= 1'b1;
-          probe_stb_q <= 1'b1;
-          probe_we_q <= 1'b0;
-          probe_addr_q <= {{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q};
-          probe_data_q <= '0;
-          if (!wb_stall) begin
-            probe_stb_q <= 1'b0;
-            probe_state_q <= PROBE_READ_WAIT;
-          end
-        end
-
-        PROBE_READ_WAIT: begin
-          probe_cyc_q <= 1'b1;
-          probe_stb_q <= 1'b0;
-          probe_we_q <= 1'b0;
-          if (wb_err) begin
-            probe_fail_q <= 1'b1;
-            probe_done_q <= 1'b1;
-            probe_state_q <= PROBE_FAIL;
-          end else if (wb_ack) begin
-            probe_cyc_q <= 1'b0;
-            if (wb_data[31:0] != probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q})) begin
-              probe_mismatch_count_q <= probe_mismatch_count_q + 32'd1;
-              if (!probe_fail_q) begin
-                probe_fail_q <= 1'b1;
-                probe_first_mismatch_addr_q <= {{(32 - 4){1'b0}}, probe_index_q};
-                probe_expected_lo_q <= probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q});
-                probe_observed_lo_q <= wb_data[31:0];
-              end
-            end
-            if (probe_index_q == PROBE_BEATS - 1) begin
-              probe_done_q <= 1'b1;
-              probe_pass_q <= !probe_fail_q &&
-                (wb_data[31:0] == probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q}));
-              probe_state_q <= (!probe_fail_q &&
-                (wb_data[31:0] == probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q}))) ?
-                PROBE_DONE : PROBE_FAIL;
-            end else begin
-              probe_index_q <= probe_index_q + 4'd1;
-              probe_state_q <= PROBE_READ_ISSUE;
-            end
-          end
-        end
-
-        PROBE_DONE: begin
-          probe_cyc_q <= 1'b0;
-          probe_stb_q <= 1'b0;
-          probe_we_q <= 1'b0;
-          probe_done_q <= 1'b1;
-          probe_pass_q <= 1'b1;
-        end
-
-        PROBE_FAIL: begin
-          probe_cyc_q <= 1'b0;
-          probe_stb_q <= 1'b0;
-          probe_done_q <= 1'b1;
-          probe_fail_q <= 1'b1;
-        end
-
-        default: probe_state_q <= PROBE_FAIL;
-      endcase
     end
   end
 
@@ -367,17 +190,14 @@ module task6_ypcb_uberddr3_bist_top #(
     jtag_debug_payload[208 +: 32] = wb_stall_count_q;
     jtag_debug_payload[240 +: 32] = wb_data[31:0];
     jtag_debug_payload[272 +: 32] = wb_data[63:32];
-    jtag_debug_payload[304 +: 32] =
-      {16'd0, probe_state_q, probe_index_q, 5'd0, probe_fail_q, probe_pass_q, probe_done_q};
+    jtag_debug_payload[304 +: 32] = wb2_data;
     jtag_debug_payload[336 +: 32] =
       {16'd0, BYTE_LANES_NIBBLE, BA_BITS_NIBBLE, COL_BITS_NIBBLE, ROW_BITS_NIBBLE};
     jtag_debug_payload[368 +: 32] =
       {16'd0, 4'd1, 4'd0, WB_SEL_BITS_NIBBLE, WB_ADDR_BITS_NIBBLE};
-    jtag_debug_payload[400 +: 32] = probe_mismatch_count_q;
-    jtag_debug_payload[432 +: 32] = probe_first_mismatch_addr_q;
-    jtag_debug_payload[464 +: 32] = probe_expected_lo_q;
-    jtag_debug_payload[496 +: 16] = probe_observed_lo_q[15:0];
-    jtag_debug_payload[511] = SYS_RSTN;
+    jtag_debug_payload[400 +: 32] = {28'd0, wb_aux};
+    jtag_debug_payload[432 +: 32] = clk50_count_q;
+    jtag_debug_payload[464] = SYS_RSTN;
   end
 
   ddr3_top #(
@@ -408,13 +228,13 @@ module task6_ypcb_uberddr3_bist_top #(
     .i_ref_clk(ref_clk),
     .i_ddr3_clk_90(ddr3_clk_90),
     .i_rst_n(rst_n),
-    .i_wb_cyc(probe_cyc_q),
-    .i_wb_stb(probe_stb_q),
-    .i_wb_we(probe_we_q),
-    .i_wb_addr(probe_addr_q),
-    .i_wb_data(probe_data_q),
-    .i_wb_sel(probe_sel),
-    .i_aux({3'd0, probe_cyc_q && probe_we_q}),
+    .i_wb_cyc(1'b0),
+    .i_wb_stb(1'b0),
+    .i_wb_we(1'b0),
+    .i_wb_addr('0),
+    .i_wb_data('0),
+    .i_wb_sel({WB_SEL_BITS{1'b0}}),
+    .i_aux(4'd0),
     .o_wb_stall(wb_stall),
     .o_wb_ack(wb_ack),
     .o_wb_err(wb_err),

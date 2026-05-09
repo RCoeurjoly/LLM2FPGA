@@ -2,26 +2,172 @@ diff --git a/rtl/ddr3_controller.v b/rtl/ddr3_controller.v
 index 3333333..4444444 100644
 --- a/rtl/ddr3_controller.v
 +++ b/rtl/ddr3_controller.v
-@@ -3177,6 +3177,14 @@ BITSLIP_DQS_TRAIN_3: if(train_delay == 0) begin //train again the ISERDES to ca
-                      end
-                                    
+@@ -3179,75 +3179,109 @@ BITSLIP_DQS_TRAIN_3: if(train_delay == 0) begin //train again the ISERDES to ca
+                                   
         BURST_WRITE: if(!o_wb_stall_calib) begin // Test 1: Burst write (per byte write to test datamask feature), then burst read
-+                            // YPCB bring-up: preserve the BIST_MODE=1 build path that reaches
-+                            // BURST_WRITE after alignment, but skip the full-address-space BIST.
-+                            // A bounded user-port probe in the wrapper will test data integrity.
+-                            calib_stb <= 1'b1; 
+-                            calib_aux <= 2; // write
+-                            if(TDQS == 0 && ECC_ENABLE == 0) begin //Test datamask by writing 1 byte at a time
+-                                calib_sel <= 1 << write_by_byte_counter;
+-                                calib_we <= 1; 
++                            // YPCB bring-up: keep the proven BIST_MODE=1 calibration path,
++                            // but bound the post-alignment memory test to four full-width
++                            // writes so board experiments complete quickly.
 +                            if(BIST_MODE == 1) begin
-+                                train_delay <= 15;
-+                                state_calibrate <= FINISH_READ;
++                                calib_stb <= 1'b1;
++                                calib_aux <= 2; // write
++                                calib_sel <= {wb_sel_bits{1'b1}};
++                                calib_we <= 1;
+                                 calib_addr <= write_test_address_counter;
+-                                calib_data <= {wb_sel_bits{8'haa}}; // set the rest (masked) to aa
+-                                calib_data[8*write_by_byte_counter +: 8] <= calib_data_randomized[8*write_by_byte_counter +: 8]; 
+-                                if(write_by_byte_counter == {$clog2(wb_sel_bits){1'b1}}) begin
+-                                    write_test_address_counter <= write_test_address_counter + 1;  
++                                calib_data <= calib_data_randomized;
++                                write_test_address_counter <= write_test_address_counter + 1;
++                                if(write_test_address_counter == 3) begin
++                                    read_test_address_counter <= 0;
++                                    state_calibrate <= BURST_READ;
++                                end
 +                            end
 +                            else begin
-                             calib_stb <= 1'b1; 
-                             calib_aux <= 2; // write
-                             if(TDQS == 0 && ECC_ENABLE == 0) begin //Test datamask by writing 1 byte at a time
-@@ -3228,6 +3236,7 @@ BITSLIP_DQS_TRAIN_3: if(train_delay == 0) begin //train again the ISERDES to ca
-                                     `endif
-                                 end 
-                            end
-+                           end
++                                calib_stb <= 1'b1; 
++                                calib_aux <= 2; // write
++                                if(TDQS == 0 && ECC_ENABLE == 0) begin //Test datamask by writing 1 byte at a time
++                                    calib_sel <= 1 << write_by_byte_counter;
++                                    calib_we <= 1; 
++                                    calib_addr <= write_test_address_counter;
++                                    calib_data <= {wb_sel_bits{8'haa}}; // set the rest (masked) to aa
++                                    calib_data[8*write_by_byte_counter +: 8] <= calib_data_randomized[8*write_by_byte_counter +: 8]; 
++                                    if(write_by_byte_counter == {$clog2(wb_sel_bits){1'b1}}) begin
++                                        write_test_address_counter <= write_test_address_counter + 1;  
+                                         /* verilator lint_off WIDTHEXPAND */
+-                                    if( (write_test_address_counter == { {2{BIST_MODE[1]}} , {(wb_addr_bits_sim-2){1'b1}} }) ) begin //MUST END AT ODD NUMBER
++                                        if( (write_test_address_counter == { {2{BIST_MODE[1]}} , {(wb_addr_bits_sim-2){1'b1}} }) ) begin //MUST END AT ODD NUMBER
+                                         /* verilator lint_on WIDTHEXPAND */
+-                                        if(BIST_MODE == 2) begin // mode 2 = burst write-read the WHOLE address space so always set the address counter back to zero
+-                                            write_test_address_counter <= 0;
+-                                        end
+-                                        state_calibrate <= BURST_READ;
+-                                        `ifdef UART_DEBUG_BIST
+-                                            uart_start_send <= 1'b1;
+-                                            uart_text <= {"DONE BURST WRITE (PER BYTE): BIST_MODE=",hex_to_ascii(BIST_MODE),8'h0a};
+-                                            state_calibrate <= WAIT_UART;
+-                                            state_calibrate_next <= BURST_READ;
+-                                        `endif
+-                                    end 
++                                            if(BIST_MODE == 2) begin // mode 2 = burst write-read the WHOLE address space so always set the address counter back to zero
++                                                write_test_address_counter <= 0;
++                                            end
++                                            state_calibrate <= BURST_READ;
++                                            `ifdef UART_DEBUG_BIST
++                                                uart_start_send <= 1'b1;
++                                                uart_text <= {"DONE BURST WRITE (PER BYTE): BIST_MODE=",hex_to_ascii(BIST_MODE),8'h0a};
++                                                state_calibrate <= WAIT_UART;
++                                                state_calibrate_next <= BURST_READ;
++                                            `endif
++                                        end 
++                                    end
++                                    write_by_byte_counter <= write_by_byte_counter + 1;
+                                 end
+-                                write_by_byte_counter <= write_by_byte_counter + 1;
+-                           end
+-                           else begin // Straight burst to all bytes (all datamask on)
+-                                calib_sel <= {wb_sel_bits{1'b1}};
+-                                calib_we <= 1; 
+-                                calib_addr <= write_test_address_counter;
+-                                calib_data <= calib_data_randomized;
+-                                write_test_address_counter <= write_test_address_counter + 1; 
++                                else begin // Straight burst to all bytes (all datamask on)
++                                    calib_sel <= {wb_sel_bits{1'b1}};
++                                    calib_we <= 1; 
++                                    calib_addr <= write_test_address_counter;
++                                    calib_data <= calib_data_randomized;
++                                    write_test_address_counter <= write_test_address_counter + 1; 
+                                     /* verilator lint_off WIDTHEXPAND */
+-                                if( write_test_address_counter == { {2{BIST_MODE[1]}} , {(wb_addr_bits_sim-2){1'b1}} } ) begin //MUST END AT ODD NUMBER
++                                    if( write_test_address_counter == { {2{BIST_MODE[1]}} , {(wb_addr_bits_sim-2){1'b1}} } ) begin //MUST END AT ODD NUMBER
+                                     /* verilator lint_on WIDTHEXPAND */
+-                                    if(BIST_MODE == 2) begin // mode 2 = burst write-read the WHOLE address space so always set the address counter back to zero
+-                                        write_test_address_counter <= 0;
+-                                    end
+-                                    state_calibrate <= BURST_READ;
+-                                    `ifdef UART_DEBUG_BIST
+-                                        uart_start_send <= 1'b1;
+-                                        uart_text <= {"DONE BURST WRITE (ALL BYTES): BIST_MODE=",hex_to_ascii(BIST_MODE),8'h0a};
+-                                        state_calibrate <= WAIT_UART;
+-                                        state_calibrate_next <= BURST_READ;
+-                                    `endif
+-                                end 
+-                           end
++                                        if(BIST_MODE == 2) begin // mode 2 = burst write-read the WHOLE address space so always set the address counter back to zero
++                                            write_test_address_counter <= 0;
++                                        end
++                                        state_calibrate <= BURST_READ;
++                                        `ifdef UART_DEBUG_BIST
++                                            uart_start_send <= 1'b1;
++                                            uart_text <= {"DONE BURST WRITE (ALL BYTES): BIST_MODE=",hex_to_ascii(BIST_MODE),8'h0a};
++                                            state_calibrate <= WAIT_UART;
++                                            state_calibrate_next <= BURST_READ;
++                                        `endif
++                                    end 
++                                end
++                            end
                       end
                     
           BURST_READ: if(!o_wb_stall_calib) begin
+-                            calib_stb <= 1'b1;
+-                            calib_aux <= 3; // read
+-                            calib_we <= 0; 
+-                            calib_addr <= read_test_address_counter;
+-                            read_test_address_counter <=  read_test_address_counter + 1; 
++                            // Matching bounded readback for the four BIST_MODE=1 writes above.
++                            // The existing calibration-test receiver compares o_wb_data against
++                            // correct_data and increments correct_read_data/wrong_read_data.
++                            if(BIST_MODE == 1) begin
++                                calib_stb <= 1'b1;
++                                calib_aux <= 3; // read
++                                calib_we <= 0;
++                                calib_addr <= read_test_address_counter;
++                                read_test_address_counter <= read_test_address_counter + 1;
++                                if(read_test_address_counter == 3) begin
++                                    train_delay <= 15;
++                                    state_calibrate <= FINISH_READ;
++                                end
++                            end
++                            else begin
++                                calib_stb <= 1'b1;
++                                calib_aux <= 3; // read
++                                calib_we <= 0; 
++                                calib_addr <= read_test_address_counter;
++                                read_test_address_counter <=  read_test_address_counter + 1; 
+                                 /* verilator lint_off WIDTHEXPAND */
+-                            if( read_test_address_counter == { {2{BIST_MODE[1]}} , {(wb_addr_bits_sim-2){1'b1}} } ) begin //MUST END AT ODD NUMBER
++                                if( read_test_address_counter == { {2{BIST_MODE[1]}} , {(wb_addr_bits_sim-2){1'b1}} } ) begin //MUST END AT ODD NUMBER
+                                 /* verilator lint_on WIDTHEXPAND */
+-                                if(BIST_MODE == 2) begin  // mode 2 = burst write-read the WHOLE address space so always set the address counter back to zero
+-                                    read_test_address_counter <= 0;
+-                                end
+-                                state_calibrate <= RANDOM_WRITE;
+-                                `ifdef UART_DEBUG_BIST
+-                                    uart_start_send <= 1'b1;
+-                                    uart_text <= {"DONE BURST READ: BIST_MODE=",hex_to_ascii(BIST_MODE),8'h0a};
+-                                    state_calibrate <= WAIT_UART;
+-                                    state_calibrate_next <= RANDOM_WRITE;
+-                                `endif
+-                            end  
++                                    if(BIST_MODE == 2) begin  // mode 2 = burst write-read the WHOLE address space so always set the address counter back to zero
++                                        read_test_address_counter <= 0;
++                                    end
++                                    state_calibrate <= RANDOM_WRITE;
++                                    `ifdef UART_DEBUG_BIST
++                                        uart_start_send <= 1'b1;
++                                        uart_text <= {"DONE BURST READ: BIST_MODE=",hex_to_ascii(BIST_MODE),8'h0a};
++                                        state_calibrate <= WAIT_UART;
++                                        state_calibrate_next <= RANDOM_WRITE;
++                                    `endif
++                                end  
++                            end
+                        end
+                        
+         RANDOM_WRITE: if(!o_wb_stall_calib) begin // Test 2: Random write (increments row address to force precharge-act-r/w) then random read
