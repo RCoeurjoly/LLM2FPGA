@@ -1,0 +1,64 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "PASS",
+  "created_at": "2026-05-09T12:20:16.034786+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T12-20-16+0200-ypcb-uberddr3-write-read-ack-only-seed15",
+  "correctness": {
+    "passed": true,
+    "reason": "DDR3 calibration completed and one write followed by one read both acknowledged without error"
+  },
+  "route": {
+    "passed": true,
+    "bitstream": "/nix/store/0lf6mzlyal5a6qp0ch1v54a712brfkgv-task6-ypcb-uberddr3-bist-seed15.bit",
+    "router": "nextpnr-xilinx router2",
+    "seed": 15,
+    "overused": 0,
+    "overused_iteration": 51,
+    "timing_passed": true,
+    "controller_clk_max_mhz": 76.49,
+    "target_mhz": 25.0
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x0000000000013c2a6f250000001d00001009000083af000002e6000000000000000002884b4a0000000000000002000006d7000093dd1e1534dad30954364a44",
+    "manual_decode": {
+      "magic": "0x54364a44",
+      "version": 9,
+      "status": "0xd3",
+      "cycle": "0x1e1534da",
+      "calib_seen_cycle": "0x000093dd",
+      "debug1": "0x000006d7",
+      "calibration_state": 23,
+      "instruction_address": 22,
+      "idelayctrl_ready": true,
+      "ack_count": 2,
+      "err_count": 0,
+      "stall_count": "0x02884b4a",
+      "probe_status": "0x000002e6",
+      "probe_state": 6,
+      "probe_state_name": "DONE",
+      "write_ack_seen": true,
+      "read_ack_seen": true,
+      "err_seen": false,
+      "stall_seen": true,
+      "wait_cycles": 29
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": {
+    "controller_clk_max_mhz": 76.49,
+    "target_mhz": 25.0
+  },
+  "runtime": {
+    "program_returncode": 0,
+    "jtag_read_returncode": 0
+  },
+  "notes": [
+    "v9 removes read-data capture/export but keeps the same write-then-read control sequence.",
+    "This proves user-port write and read command sequencing can both complete after calibration.",
+    "The v8 failures are therefore tied to read-data observation fanout/capture, not to issuing a read command."
+  ]
+}
