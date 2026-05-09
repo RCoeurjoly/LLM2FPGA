@@ -570,7 +570,16 @@
         ]);
         fpgaPartFamily = "kintex7";
         fpgaPartName = "xc7k480tffg1156-1";
-        fpgaPrjxrayDb = "${openXC7Nextpnr}/share/nextpnr/external/prjxray-db";
+        fpgaPrjxrayDbUnpatched = "${openXC7Nextpnr}/share/nextpnr/external/prjxray-db";
+        fpgaPrjxrayDb = pkgs.runCommand
+          "task6-prjxray-db-kintex7-lioi3-tbytesrc-oclkm-imux31"
+          { nativeBuildInputs = [ pkgs.patch ]; } ''
+          set -euo pipefail
+          cp -r ${fpgaPrjxrayDbUnpatched} "$out"
+          chmod -R u+w "$out"
+          cd "$out"
+          patch -p1 < ${./patches/prjxray-db/0001-kintex7-add-lioi3-tbytesrc-oclkm-imux31.patch}
+        '';
         fpgaPrjxrayFamilyDb = "${fpgaPrjxrayDb}/${fpgaPartFamily}";
         fpgaPartFile = "${fpgaPrjxrayFamilyDb}/${fpgaPartName}/part.yaml";
         fpgaChipdb = "${openXC7Chipdb}/xc7k480tffg1156.bin";
