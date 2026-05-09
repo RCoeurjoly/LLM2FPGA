@@ -10,12 +10,14 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
 BOARD_RUN = ROOT / "scripts" / "task6" / "task6_board_run.py"
 READ_JTAG = ROOT / "scripts" / "task6" / "read_jtag_debug_ftdi_bitbang.py"
+WRITE_JTAG = ROOT / "scripts" / "task6" / "write_jtag_command_ftdi_bitbang.py"
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -109,6 +111,10 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
     probe = (raw >> 304) & 0xFFFFFFFF
     read_byte = (raw >> 240) & 0xFF
     expected = args.expected_byte
+    command_word = (raw >> 272) & 0xFFFFFFFF
+    active_byte = command_word & 0xFF
+    command_count = (command_word >> 8) & 0xFF
+    run_count = (command_word >> 16) & 0xFFFF
     version = (raw >> 32) & 0xFF
     status = (raw >> 40) & 0xFF
     ack_count = (raw >> 144) & 0xFFFFFFFF
@@ -144,6 +150,9 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
         "err_count": err_count,
         "stall_count": f"0x{((raw >> 208) & 0xFFFFFFFF):08x}",
         "read_byte": f"0x{read_byte:02x}",
+        "active_byte": f"0x{active_byte:02x}",
+        "command_count": command_count,
+        "run_count": run_count,
         "probe": f"0x{probe:08x}",
         "probe_state": probe_state,
         "done": done,
@@ -213,6 +222,24 @@ def run_experiment(args: argparse.Namespace) -> Path:
             bitstream,
         ],
     )
+    if args.command_byte is not None:
+        with_lock(
+            run_dir,
+            "write-command.log",
+            [
+                sys.executable,
+                str(WRITE_JTAG),
+                "--serial",
+                args.ftdi_serial,
+                "--tdo-bit",
+                str(args.tdo_bit),
+                "--byte",
+                f"0x{args.command_byte:02x}",
+                "--json-only",
+            ],
+        )
+        if args.post_command_delay > 0:
+            time.sleep(args.post_command_delay)
     with_lock(
         run_dir,
         "readback-tdo7.log",
@@ -242,6 +269,9 @@ def run_experiment(args: argparse.Namespace) -> Path:
             "result": decoded["result"],
             "read_byte": decoded["read_byte"],
             "expected_byte": decoded["expected_byte"],
+            "active_byte": decoded["active_byte"],
+            "command_count": decoded["command_count"],
+            "run_count": decoded["run_count"],
             "ack_count": decoded["ack_count"],
             "err_count": decoded["err_count"],
         },
@@ -260,7 +290,9 @@ def parse_args() -> argparse.Namespace:
         default="task6-ypcb-uberddr3-bist-seed16-bitstream",
     )
     parser.add_argument("--bitstream")
-    parser.add_argument("--expected-byte", type=lambda value: int(value, 0), default=0xA5)
+    parser.add_argument("--expected-byte", type=lambda value: int(value, 0))
+    parser.add_argument("--command-byte", type=lambda value: int(value, 0))
+    parser.add_argument("--post-command-delay", type=float, default=0.1)
     parser.add_argument("--jtag-cable", default="digilent_hs3")
     parser.add_argument("--ftdi-serial", default="210299BF3824")
     parser.add_argument("--tdo-bit", type=int, default=7)
@@ -270,6 +302,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.command_byte is not None and not 0 <= args.command_byte <= 0xFF:
+        raise SystemExit("--command-byte must fit in 8 bits")
+    if args.expected_byte is None:
+        args.expected_byte = args.command_byte if args.command_byte is not None else 0xA5
     run_dir = run_experiment(args)
     print(run_dir)
     return 0

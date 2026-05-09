@@ -3,6 +3,7 @@
 module task6_ypcb_uberddr3_bist_top #(
   parameter int JTAG_DEBUG_WIDTH = 512,
   parameter int JTAG_CHAIN = 1,
+  parameter int JTAG_COMMAND_CHAIN = 2,
   parameter int PROBE_BYTE = 165
 ) (
   input  wire        clk50,
@@ -23,7 +24,7 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd19;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd20;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -38,7 +39,6 @@ module task6_ypcb_uberddr3_bist_top #(
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
   localparam logic [7:0] PROBE_BYTE_VALUE = PROBE_BYTE[7:0];
-  localparam logic [WB_DATA_BITS - 1:0] PROBE_WRITE_PATTERN = {WB_SEL_BITS{PROBE_BYTE_VALUE}};
 
   wire controller_clk;
   wire ddr3_clk;
@@ -153,8 +153,13 @@ module task6_ypcb_uberddr3_bist_top #(
   logic read_probe_err_seen_q;
   logic read_probe_stall_seen_q;
   logic [7:0] read_probe_data_byte_q;
+  logic [7:0] read_probe_expected_byte_q;
   logic [9:0] read_probe_write_drain_q;
   logic [31:0] read_probe_wait_cycles_q;
+  logic [7:0] jtag_command_byte;
+  logic jtag_command_event;
+  logic [15:0] jtag_command_count;
+  logic [15:0] read_probe_run_count_q;
 
   assign ddram_clk_p = ddr3_clk_p_w[0];
   assign ddram_clk_n = ddr3_clk_n_w[0];
@@ -187,8 +192,10 @@ module task6_ypcb_uberddr3_bist_top #(
       read_probe_err_seen_q <= 1'b0;
       read_probe_stall_seen_q <= 1'b0;
       read_probe_data_byte_q <= 8'd0;
+      read_probe_expected_byte_q <= PROBE_BYTE_VALUE;
       read_probe_write_drain_q <= 10'd0;
       read_probe_wait_cycles_q <= 32'd0;
+      read_probe_run_count_q <= 16'd0;
     end else begin
       cycle_count_q <= cycle_count_q + 32'd1;
       if (calib_complete && !calib_seen_q) begin
@@ -202,7 +209,26 @@ module task6_ypcb_uberddr3_bist_top #(
       if (wb_stall)
         wb_stall_count_q <= wb_stall_count_q + 32'd1;
 
-      case (read_probe_state_q)
+      if (jtag_command_event) begin
+        wb_ack_count_q <= 32'd0;
+        wb_err_count_q <= 32'd0;
+        wb_stall_count_q <= 32'd0;
+        read_probe_state_q <= READ_PROBE_RESET;
+        read_probe_cyc_q <= 1'b0;
+        read_probe_stb_q <= 1'b0;
+        read_probe_we_q <= 1'b0;
+        read_probe_done_q <= 1'b0;
+        read_probe_write_ack_seen_q <= 1'b0;
+        read_probe_read_ack_seen_q <= 1'b0;
+        read_probe_err_seen_q <= 1'b0;
+        read_probe_stall_seen_q <= 1'b0;
+        read_probe_data_byte_q <= 8'd0;
+        read_probe_expected_byte_q <= jtag_command_byte;
+        read_probe_write_drain_q <= 10'd0;
+        read_probe_wait_cycles_q <= 32'd0;
+        read_probe_run_count_q <= read_probe_run_count_q + 16'd1;
+      end else begin
+        case (read_probe_state_q)
         READ_PROBE_RESET: begin
           read_probe_cyc_q <= 1'b0;
           read_probe_stb_q <= 1'b0;
@@ -330,7 +356,8 @@ module task6_ypcb_uberddr3_bist_top #(
         end
 
         default: read_probe_state_q <= READ_PROBE_DONE;
-      endcase
+        endcase
+      end
     end
   end
 
@@ -358,11 +385,12 @@ module task6_ypcb_uberddr3_bist_top #(
     jtag_debug_payload[176 +: 32] = wb_err_count_q;
     jtag_debug_payload[208 +: 32] = wb_stall_count_q;
     jtag_debug_payload[240 +: 32] = {24'd0, read_probe_data_byte_q};
-    jtag_debug_payload[272 +: 32] = 32'd0;
+    jtag_debug_payload[272 +: 32] =
+      {read_probe_run_count_q, jtag_command_count[7:0], read_probe_expected_byte_q};
     jtag_debug_payload[304 +: 32] = {
       11'd0,
       read_probe_write_drain_q,
-      read_probe_done_q && (read_probe_data_byte_q != PROBE_BYTE_VALUE),
+      read_probe_done_q && (read_probe_data_byte_q != read_probe_expected_byte_q),
       read_probe_stall_seen_q,
       read_probe_err_seen_q,
       read_probe_read_ack_seen_q,
@@ -413,7 +441,7 @@ module task6_ypcb_uberddr3_bist_top #(
     .i_wb_stb(read_probe_stb_q),
     .i_wb_we(read_probe_we_q),
     .i_wb_addr('0),
-    .i_wb_data(PROBE_WRITE_PATTERN),
+    .i_wb_data({WB_SEL_BITS{read_probe_expected_byte_q}}),
     .i_wb_sel({WB_SEL_BITS{1'b1}}),
     .i_aux(4'd1),
     .o_wb_stall(wb_stall),
@@ -456,6 +484,105 @@ module task6_ypcb_uberddr3_bist_top #(
     .JTAG_CHAIN(JTAG_CHAIN)
   ) jtag_debug_shift (
     .payload_i(jtag_debug_payload)
+  );
+
+  task6_uberddr3_jtag_command_shift #(
+    .WIDTH(16),
+    .JTAG_CHAIN(JTAG_COMMAND_CHAIN),
+    .DEFAULT_BYTE(PROBE_BYTE_VALUE)
+  ) jtag_command_shift (
+    .controller_clk_i(controller_clk),
+    .rst_ni(rst_n),
+    .byte_o(jtag_command_byte),
+    .event_o(jtag_command_event),
+    .command_count_o(jtag_command_count)
+  );
+endmodule
+
+module task6_uberddr3_jtag_command_shift #(
+  parameter int WIDTH = 16,
+  parameter int JTAG_CHAIN = 2,
+  parameter logic [7:0] DEFAULT_BYTE = 8'ha5
+) (
+  input  logic        controller_clk_i,
+  input  logic        rst_ni,
+  output logic  [7:0] byte_o,
+  output logic        event_o,
+  output logic [15:0] command_count_o
+);
+  logic capture;
+  logic drck;
+  logic reset;
+  logic runtest;
+  logic sel;
+  logic shift;
+  logic tck;
+  logic tdi;
+  logic tms;
+  logic update;
+  logic tdo;
+  logic [WIDTH - 1:0] shift_q;
+  logic [7:0] byte_drck_q;
+  logic toggle_drck_q;
+  logic toggle_meta_q;
+  logic toggle_sync_q;
+  logic toggle_seen_q;
+
+  assign tdo = shift_q[0];
+
+  always_ff @(posedge drck or posedge reset) begin
+    if (reset) begin
+      shift_q <= '0;
+      byte_drck_q <= DEFAULT_BYTE;
+      toggle_drck_q <= 1'b0;
+    end else begin
+      if (sel && capture)
+        shift_q <= {4'ha, 3'd0, 1'b1, byte_drck_q};
+      else if (sel && shift)
+        shift_q <= {tdi, shift_q[WIDTH - 1:1]};
+
+      if (sel && update && shift_q[15:12] == 4'ha && shift_q[8]) begin
+        byte_drck_q <= shift_q[7:0];
+        toggle_drck_q <= ~toggle_drck_q;
+      end
+    end
+  end
+
+  always_ff @(posedge controller_clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      toggle_meta_q <= 1'b0;
+      toggle_sync_q <= 1'b0;
+      toggle_seen_q <= 1'b0;
+      byte_o <= DEFAULT_BYTE;
+      event_o <= 1'b0;
+      command_count_o <= 16'd0;
+    end else begin
+      toggle_meta_q <= toggle_drck_q;
+      toggle_sync_q <= toggle_meta_q;
+      event_o <= toggle_sync_q ^ toggle_seen_q;
+      if (toggle_sync_q ^ toggle_seen_q) begin
+        toggle_seen_q <= toggle_sync_q;
+        byte_o <= byte_drck_q;
+        command_count_o <= command_count_o + 16'd1;
+      end
+    end
+  end
+
+  BSCANE2 #(
+    .DISABLE_JTAG("FALSE"),
+    .JTAG_CHAIN(JTAG_CHAIN)
+  ) bscan (
+    .CAPTURE(capture),
+    .DRCK(drck),
+    .RESET(reset),
+    .RUNTEST(runtest),
+    .SEL(sel),
+    .SHIFT(shift),
+    .TCK(tck),
+    .TDI(tdi),
+    .TMS(tms),
+    .UPDATE(update),
+    .TDO(tdo)
   );
 endmodule
 

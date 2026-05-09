@@ -17217,3 +17217,19 @@ UberDDR3 calibration/data-integrity gates:
     reads. Stop treating this specific byte-pattern sweep as a cheap
     classifier until there is a way to preserve the live placement/timing point
     or to run several route seeds per pattern automatically.
+  - Implemented a fixed-bitstream JTAG-controlled pattern path in the
+    UberDDR3 wrapper. USER1 remains the 512-bit readback payload. USER2 is now
+    a 16-bit command register: bits `[7:0]` are the requested uniform probe
+    byte, bit 8 is the start bit, and bits `[15:12]` must be magic nibble
+    `0xa`. On JTAG UPDATE, the byte is synchronized into `controller_clk`, the
+    probe FSM resets, and a new write/drain/read transaction runs without
+    rebuilding or rerouting the FPGA image.
+  - Added `scripts/task6/write_jtag_command_ftdi_bitbang.py` and extended
+    `scripts/task6/task6_ddr3_experiment_runner.py` with `--command-byte`.
+    The readback payload now reports the active byte, command count, and probe
+    run count in payload word `[272 +: 32]`.
+  - Build check for `.#task6-ypcb-uberddr3-bist-seed16-bitstream` produced
+    `/nix/store/m66j83pcdffqx21c3p78qf7pmnxhnsyi-task6-ypcb-uberddr3-bist-seed16.bit`.
+    The route completed with `overused=0` at router iteration 7, timing passed,
+    and nextpnr packed USER2 at `BSCAN_X0Y1/BSCAN` while preserving USER1 at
+    `BSCAN_X0Y0/BSCAN`.
