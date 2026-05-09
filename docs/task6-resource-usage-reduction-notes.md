@@ -17307,3 +17307,8 @@ UberDDR3 calibration/data-integrity gates:
   - Updated conclusion: the edge-guard fix is logically cleaner but perturbs
     the routed DDR3 design enough to lose the fragile calibration point. Treat
     v21, not v22, as the current best fixed-bitstream command image.
+  - Restored the RTL source to the calibration-live v21 command latch shape.
+    The v21 interface is not fully clean (`command_count=2` on the byte00
+    test), but it is the current best working single-bitstream pattern
+    register because the same routed image both calibrates and accepts a USER2
+    command-driven rerun.
