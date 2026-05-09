@@ -61,12 +61,17 @@
         "git+https://github.com/litex-hub/pythondata-software-compiler_rt?submodules=1";
       flake = false;
     };
+    uberDdr3 = {
+      url = "github:AngeloJacobo/UberDDR3";
+      flake = false;
+    };
   };
 
   outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
     , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litex, litedram
     , litepcie, litexBoards, litexBoardsValidatedYpcb, pythondataCpuVexriscv
-    , pythondataSoftwarePicolibc, pythondataSoftwareCompilerRt, ... }:
+    , pythondataSoftwarePicolibc, pythondataSoftwareCompilerRt, uberDdr3
+    , ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -132,6 +137,51 @@
             platforms = pkgs.lib.platforms.all;
           };
         };
+        task6UberDdr3SourceSummary =
+          pkgs.runCommand "task6-uberddr3-source-summary" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            {
+              echo "# UberDDR3 Source Summary"
+              echo
+              echo "Source: ${uberDdr3}"
+              echo
+              echo "## Top-level files"
+              find ${uberDdr3} -maxdepth 2 -type f \
+                | sort \
+                | sed "s#${uberDdr3}/##"
+              echo
+              echo "## RTL modules"
+              find ${uberDdr3}/rtl -maxdepth 2 -type f \
+                | sort \
+                | sed "s#${uberDdr3}/##"
+              echo
+              echo "## Formal files"
+              find ${uberDdr3}/formal -maxdepth 3 -type f \
+                | sort \
+                | sed "s#${uberDdr3}/##"
+            } > "$out/summary.md"
+            ln -s ${uberDdr3} "$out/source"
+          '';
+        task6UberDdr3ControllerYosysJson =
+          pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv \
+              ${uberDdr3}/rtl/ddr3_controller.v \
+              ${uberDdr3}/rtl/ecc/ecc_dec.sv \
+              ${uberDdr3}/rtl/ecc/ecc_enc.sv
+            hierarchy -top ddr3_controller -check
+            proc
+            opt
+            memory
+            opt
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
         llvmPackages = pkgsLlvm21.llvmPackages_21;
         # Keep LLVM for torch-mlir separate and pinned to torch-mlir's
         # submodule revision so source edits in torch-mlir do not rebuild LLVM.
@@ -10523,6 +10573,9 @@
             tinyStories1mBaselineFloatVsRepresentativeCoreCfOpCoverage;
           tiny-stories-1m-baseline-float-vs-representative-core-op-coverage =
             tinyStories1mBaselineFloatVsRepresentativeCoreMlirOpCoverage;
+          task6-uberddr3-source-summary = task6UberDdr3SourceSummary;
+          task6-uberddr3-controller-yosys-json =
+            task6UberDdr3ControllerYosysJson;
         } // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeByCommandIndex.json
           // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeByCommandIndex.fasm
           // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeByCommandIndex.bitstream

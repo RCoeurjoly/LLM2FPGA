@@ -447,6 +447,7 @@
         "pythondataCpuVexriscv": "pythondataCpuVexriscv",
         "pythondataSoftwareCompilerRt": "pythondataSoftwareCompilerRt",
         "pythondataSoftwarePicolibc": "pythondataSoftwarePicolibc",
+        "uberDdr3": "uberDdr3",
         "yosys": "yosys",
         "yosys-slang": "yosys-slang",
         "ypcbHack": "ypcbHack"
@@ -526,6 +527,22 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "uberDdr3": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1768710334,
+        "narHash": "sha256-Vo4nb9p1JdnGHyL7KfBp/mLcLwJFiuc581IOvaIAFjY=",
+        "owner": "AngeloJacobo",
+        "repo": "UberDDR3",
+        "rev": "be6b2a3b8dfdce7f04a0e0dc9b5475cbab069a2d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "AngeloJacobo",
+        "repo": "UberDDR3",
         "type": "github"
       }
     },

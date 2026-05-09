@@ -16499,3 +16499,43 @@ Priority:
   beat-mapping probe. If the next LiteDRAM probe does not produce actionable
   progress, switch DDR3 bring-up effort to an UberDDR3 minimal BIST port rather
   than continuing to patch opaque LiteDRAM behavior indefinitely.
+
+Initial flake integration:
+
+- Added `uberDdr3` flake input pinned by `flake.lock`:
+  `AngeloJacobo/UberDDR3` commit
+  `be6b2a3b8dfdce7f04a0e0dc9b5475cbab069a2d` from 2026-01-18.
+- Added `.#task6-uberddr3-source-summary`.
+- Source summary build result:
+  `/nix/store/yfax26pf0p96qgakd8cb6j9c08rh7zfy-task6-uberddr3-source-summary`.
+- Relevant source layout:
+  - `rtl/ddr3_top.v`
+  - `rtl/ddr3_controller.v`
+  - `rtl/ddr3_phy.v`
+  - `rtl/ecc/ecc_dec.sv`
+  - `rtl/ecc/ecc_enc.sv`
+  - `formal/*.sby`
+  - `testbench/ddr3*.sv`
+
+First Yosys gate:
+
+- Added `.#task6-uberddr3-controller-yosys-json`.
+- Build result:
+  `/nix/store/cq31qmamkg7mrkglmzclxqz0k0w0kmm7-task6-uberddr3-controller-yosys.json`.
+- Result:
+  - `ddr3_controller.v` parses under Yosys with the ECC modules available.
+  - `hierarchy -top ddr3_controller -check`, `proc`, `opt`, `memory`, `opt`,
+    and `write_json` complete.
+  - Peak memory in this quick gate was about `142 MB`.
+  - Warnings are the expected memory-to-register replacement warnings also
+    described by UberDDR3's README.
+
+Immediate next UberDDR3 gate:
+
+- Build a minimal YPCB wrapper around `ddr3_top.v`, not only
+  `ddr3_controller.v`.
+- Start with `BYTE_LANES=8`, `ROW_BITS/COL_BITS/BA_BITS` matching the YPCB DDR3
+  geometry, `ODELAY_SUPPORTED=1` for Kintex-7 HP-bank style DDR3 if compatible
+  with the board constraints, and `BIST_MODE=1`.
+- Export only calibration/BIST/debug status through the existing direct BSCANE2
+  JTAG payload path before attempting a wide row-stream interface.
