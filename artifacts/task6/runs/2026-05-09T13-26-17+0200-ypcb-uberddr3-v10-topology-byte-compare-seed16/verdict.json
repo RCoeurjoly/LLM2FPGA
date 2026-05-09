@@ -1,0 +1,44 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAILED",
+  "created_at": "2026-05-09T13:26:17.031490+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T13-26-17+0200-ypcb-uberddr3-v10-topology-byte-compare-seed16",
+  "correctness": "FAIL",
+  "route": {
+    "seed": 16,
+    "overused_final": 0,
+    "overused_zero_iteration": 20,
+    "timing": "PASS",
+    "controller_clk_max_mhz": 79.92,
+    "jtag_drck_max_mhz": 663.13
+  },
+  "board": {
+    "programmed": true,
+    "program_returncode": 0,
+    "readback_returncode": 0,
+    "magic_ok": true,
+    "version": 15,
+    "status": "0xd3",
+    "calibrated": true,
+    "calib_seen_cycle": "0x000093dd",
+    "ack_count": 2,
+    "err_count": 0,
+    "probe_state": "DONE",
+    "write_ack_seen": true,
+    "read_ack_seen": true,
+    "captured_read_byte": "0x3d",
+    "expected_read_byte": "0xa5",
+    "read_byte_mismatch": true
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v15 seed16 restored the v10 wrapper byte-capture topology and removed the v14 controller byte-debug patches.",
+    "Route completed with overused=0 at iteration 20 and timing passed.",
+    "Board calibration and command liveness passed: status=0xd3, calib_seen_cycle=0x93dd, ack_count=2, write/read ACKs seen, err_count=0.",
+    "Data-integrity gate failed: captured byte was 0x3d while the written uniform payload byte was 0xa5; mismatch flag is set."
+  ]
+}

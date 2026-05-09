@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T13:26:17.031490+02:00"
+label: "ypcb-uberddr3-v10-topology-byte-compare-seed16"
+experiment: "task6-uberddr3-wrapper-byte-compare"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/a2ifhrb88dqbmkgdjck5dg6a4dxnyy0c-task6-ypcb-uberddr3-bist-seed16.bit"
+reference_artifacts:
+notes: "v15 seed16: restore v10 wrapper-level wb_data[7:0] read capture, remove controller debug byte patches, add post-capture mismatch flag only."

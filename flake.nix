@@ -174,8 +174,6 @@
             patch -p1 < ${./patches/uberddr3/0001-ypcb-disable-unpinned-ddr3-dm-outputs.patch}
             patch -p1 < ${./patches/uberddr3/0002-ypcb-pack-calibration-debug1.patch}
             patch -p1 < ${./patches/uberddr3/0003-ypcb-fast-bist-exit.patch}
-            patch -p1 < ${./patches/uberddr3/0004-ypcb-pack-debug1-current-read-byte.patch}
-            patch -p1 < ${./patches/uberddr3/0005-ypcb-latch-debug-read-byte-on-ack.patch}
           '';
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {

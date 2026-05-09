@@ -17066,3 +17066,18 @@ UberDDR3 calibration/data-integrity gates:
     reached post-calibration write/read ACKs, then add a one-bit or low-fanout
     in-controller equality flag for `read_byte == 0xa5` instead of exporting
     wider or differently-timed data.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-26-17+0200-ypcb-uberddr3-v10-topology-byte-compare-seed16`
+    restored the v10 wrapper-level `wb_data[7:0]` read capture, removed the
+    v14 controller read-byte debug patches, and added only a post-capture
+    mismatch bit. The route completed (`overused=0` at router iteration 20,
+    timing pass) and hardware again reached the useful command gate:
+    `status=0xd3`, `calib_seen_cycle=0x000093dd`, `ack_count=2`,
+    write/read ACKs seen, no error. The captured byte was again `0x3d` rather
+    than written `0xa5`, and the mismatch bit was set.
+  - Updated conclusion: this reproduces the v10 seed16 behavior and gives a
+    stable failing integrity gate. The next experiment should classify whether
+    `0x3d` is stale controller/calibration data, a read-latency/off-by-one
+    capture, or a DDR byte-lane/address mapping issue. Keep the same v15
+    topology and vary only the written byte pattern or read timing in a
+    one-variable experiment.
