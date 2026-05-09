@@ -17297,3 +17297,13 @@ UberDDR3 calibration/data-integrity gates:
     `/nix/store/miiih8yyiz0n7916v3103nq0kca9ihyp-task6-ypcb-uberddr3-bist-seed16.bit`.
     The route completed with `overused=0` at router iteration 5 and timing
     passed at 25 MHz.
+  - Control run
+    `artifacts/task6/runs/2026-05-09T19-06-32+0200-ypcb-uberddr3-v22-jtag-pattern-a5-auto`
+    programmed the v22 edge-guarded image without issuing a USER2 command.
+    This image did not reach calibration or the command gate:
+    `version=22`, `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000006cc`,
+    `active_byte=0xa5`, `command_count=0`, `run_count=0`, `ack_count=0`,
+    `err_count=0`, probe `WAIT_CALIB`.
+  - Updated conclusion: the edge-guard fix is logically cleaner but perturbs
+    the routed DDR3 design enough to lose the fragile calibration point. Treat
+    v21, not v22, as the current best fixed-bitstream command image.
