@@ -1,0 +1,15 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "CREATED",
+  "created_at": "2026-05-09T09:20:58.539062+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T09-20-58+0200-uberddr3-bist-clk50-program-readback",
+  "correctness": null,
+  "route": null,
+  "board": null,
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": []
+}

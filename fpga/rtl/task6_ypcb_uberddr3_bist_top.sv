@@ -4,8 +4,7 @@ module task6_ypcb_uberddr3_bist_top #(
   parameter int JTAG_DEBUG_WIDTH = 512,
   parameter int JTAG_CHAIN = 1
 ) (
-  input  wire        clk200_p,
-  input  wire        clk200_n,
+  input  wire        clk50,
   input  wire        SYS_RSTN,
   output wire [14:0] ddram_a,
   output wire  [2:0] ddram_ba,
@@ -42,31 +41,25 @@ module task6_ypcb_uberddr3_bist_top #(
   wire ddr3_clk;
   wire ddr3_clk_90;
   wire ref_clk;
-  wire clk200_ibuf;
   wire clk100_raw;
   wire clk100_90_raw;
   wire clk25_raw;
   wire mmcm_clkfb;
-  wire mmcm_clkfb_buf;
   wire mmcm_locked;
   wire rst_n;
+  logic [31:0] clk50_count_q;
 
-  IBUFDS clk200_ibufds (
-    .I(clk200_p),
-    .IB(clk200_n),
-    .O(clk200_ibuf)
-  );
+  always_ff @(posedge clk50) begin
+    clk50_count_q <= clk50_count_q + 32'd1;
+  end
 
-  BUFG clk200_bufg (
-    .I(clk200_ibuf),
-    .O(ref_clk)
-  );
+  assign ref_clk = clk50;
 
   MMCME2_BASE #(
     .BANDWIDTH("OPTIMIZED"),
-    .CLKFBOUT_MULT_F(5.000),
+    .CLKFBOUT_MULT_F(20.000),
     .CLKFBOUT_PHASE(0.000),
-    .CLKIN1_PERIOD(5.000),
+    .CLKIN1_PERIOD(20.000),
     .CLKOUT0_DIVIDE_F(10.000),
     .CLKOUT0_DUTY_CYCLE(0.500),
     .CLKOUT0_PHASE(0.000),
@@ -94,15 +87,10 @@ module task6_ypcb_uberddr3_bist_top #(
     .CLKOUT5(),
     .CLKOUT6(),
     .LOCKED(mmcm_locked),
-    .CLKFBIN(mmcm_clkfb_buf),
+    .CLKFBIN(mmcm_clkfb),
     .CLKIN1(ref_clk),
     .PWRDWN(1'b0),
-    .RST(!SYS_RSTN)
-  );
-
-  BUFG mmcm_feedback_bufg (
-    .I(mmcm_clkfb),
-    .O(mmcm_clkfb_buf)
+    .RST(1'b0)
   );
 
   BUFG clk100_bufg (
@@ -120,7 +108,7 @@ module task6_ypcb_uberddr3_bist_top #(
     .O(controller_clk)
   );
 
-  assign rst_n = SYS_RSTN && mmcm_locked;
+  assign rst_n = mmcm_locked;
 
   wire wb_stall;
   wire wb_ack;
@@ -207,6 +195,8 @@ module task6_ypcb_uberddr3_bist_top #(
     jtag_debug_payload[368 +: 32] =
       {16'd0, 4'd1, 4'd0, WB_SEL_BITS_NIBBLE, WB_ADDR_BITS_NIBBLE};
     jtag_debug_payload[400 +: 32] = {28'd0, wb_aux};
+    jtag_debug_payload[432 +: 32] = clk50_count_q;
+    jtag_debug_payload[464] = SYS_RSTN;
   end
 
   ddr3_top #(

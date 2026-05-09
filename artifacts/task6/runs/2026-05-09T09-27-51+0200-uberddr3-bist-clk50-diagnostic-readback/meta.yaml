@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T09:27:51.505738+02:00"
+label: "uberddr3-bist-clk50-diagnostic-readback"
+experiment: "task6-ypcb-uberddr3-bist-clk50-diagnostic"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/y410h3njia3ffm355c1ckb805idkxa31-task6-ypcb-uberddr3-bist.bit"
+reference_artifacts:
+notes: "Program UberDDR3 BIST with raw clk50 counter and SYS_RSTN in BSCANE2 payload."

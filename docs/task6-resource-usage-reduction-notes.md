@@ -202,6 +202,9 @@ Measured result:
 | Bitstream conversion | `nix build .#task6-ypcb-uberddr3-bist-bitstream --no-link --print-out-paths -L` | fail | `fasm2frames` lacks `LIOI3_TBYTESRC.IOI_OCLKM_0.IOI_IMUX31_1` for DQS byte-lane clock mux features |
 | After Kintex-7 prjxray DB feature patch | same | pass | bitstream emitted at `/nix/store/8h27r5g39wy4swrf6776wl6zrmszaqj7-task6-ypcb-uberddr3-bist.bit` |
 | Board program/readback | `openFPGALoader ... task6-ypcb-uberddr3-bist.bit`; `read_jtag_debug_ftdi_bitbang.py --tdo-bit 7 --bits 512 --poll` | fail, useful | JTAG payload `magic=0x54364a44`, `version=2`, but `mmcm_locked=0` and `cycle_count=0`; run `artifacts/task6/runs/2026-05-09T09-13-42+0200-uberddr3-bist-program-readback` |
+| `clk50` wrapper board readback | `nix build .#task6-ypcb-uberddr3-bist-bitstream ...`; program/readback | fail, same | bitstream `/nix/store/w6yjkyykghb9d0bh4ymmlsyc5rngy3lp-task6-ypcb-uberddr3-bist.bit`; payload still `mmcm_locked=0`, `cycle_count=0`; run `artifacts/task6/runs/2026-05-09T09-20-58+0200-uberddr3-bist-clk50-program-readback` |
+| `clk50`/reset diagnostic payload | same | fail, informative | bitstream `/nix/store/y410h3njia3ffm355c1ckb805idkxa31-task6-ypcb-uberddr3-bist.bit`; payload `clk50_count=0x182abf14`, `SYS_RSTN=1`, `mmcm_locked=0`; run `artifacts/task6/runs/2026-05-09T09-27-51+0200-uberddr3-bist-clk50-diagnostic-readback` |
+| direct MMCM feedback diagnostic | same | fail, informative | bitstream `/nix/store/hiswd483f123l9c4w2ylxr42l97mnzhh-task6-ypcb-uberddr3-bist.bit`; payload `clk50_count=0x19c19a30`, `SYS_RSTN=1`, `mmcm_locked=0`; run `artifacts/task6/runs/2026-05-09T09-34-59+0200-uberddr3-bist-direct-feedback-readback` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -233,12 +236,20 @@ Interpretation:
 - LiteX-Boards' YPCB target uses the single-ended `clk50` pin `AA28` as the CRG
   input, not the differential `clk200_p/n` pins used by the first UberDDR3
   wrapper attempt.
+- The `clk50` pin itself is alive on hardware: the raw `clk50` counter advanced
+  to nonzero values in two diagnostic bitstreams, and `SYS_RSTN` reads high.
+  The current blocker is specifically MMCM lock/output-clock generation, not
+  JTAG, board programming, reset, or absence of the 50 MHz input clock.
+- Removing `SYS_RSTN` from the MMCM reset and switching the feedback path from a
+  BUFGed loop to direct `CLKFBOUT` -> `CLKFBIN` did not make `mmcm_locked`
+  assert. An explicit `IBUF` instance is not accepted by nextpnr for this
+  top-level input because IO buffer insertion already owns the input buffer.
 
 Next gate:
 
-- Rebuild the UberDDR3 wrapper with `clk50`/`AA28` as the MMCM input and a
-  50 MHz to 100/100+90/25 MHz MMCM configuration, then repeat the same board
-  BIST/JTAG-status run.
+- Build a faster MMCM-only/JTAG diagnostic that sweeps a small set of known-good
+  LiteX-style clocking configurations and exposes lock bits/counters, before
+  rerouting the full UberDDR3 design again.
 - Only investigate the router1 assert with a smaller DQS/OSERDES/ISERDES cutout
   after the wrapper clock is known to lock and tick on hardware.
 

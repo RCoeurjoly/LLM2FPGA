@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T09:34:59.317741+02:00"
+label: "uberddr3-bist-direct-feedback-readback"
+experiment: "task6-ypcb-uberddr3-bist-direct-feedback"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/hiswd483f123l9c4w2ylxr42l97mnzhh-task6-ypcb-uberddr3-bist.bit"
+reference_artifacts:
+notes: "Program UberDDR3 BIST with direct MMCM feedback plus clk50/SYS_RSTN diagnostics."
