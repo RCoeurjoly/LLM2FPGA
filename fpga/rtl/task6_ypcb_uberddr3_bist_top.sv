@@ -22,7 +22,7 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd15;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd16;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -36,7 +36,8 @@ module task6_ypcb_uberddr3_bist_top #(
   localparam logic [3:0] BYTE_LANES_NIBBLE = BYTE_LANES % 16;
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
-  localparam logic [WB_DATA_BITS - 1:0] PROBE_WRITE_PATTERN = {WB_SEL_BITS{8'ha5}};
+  localparam logic [7:0] PROBE_EXPECTED_BYTE = 8'h5a;
+  localparam logic [WB_DATA_BITS - 1:0] PROBE_WRITE_PATTERN = {WB_SEL_BITS{PROBE_EXPECTED_BYTE}};
 
   wire controller_clk;
   wire ddr3_clk;
@@ -337,7 +338,7 @@ module task6_ypcb_uberddr3_bist_top #(
     jtag_debug_payload[272 +: 32] = 32'd0;
     jtag_debug_payload[304 +: 32] = {
       21'd0,
-      read_probe_done_q && (read_probe_data_byte_q != 8'ha5),
+      read_probe_done_q && (read_probe_data_byte_q != PROBE_EXPECTED_BYTE),
       read_probe_stall_seen_q,
       read_probe_err_seen_q,
       read_probe_read_ack_seen_q,

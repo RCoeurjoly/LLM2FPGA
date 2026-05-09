@@ -1,0 +1,20 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE",
+  "created_at": "2026-05-09T13:33:19.644191+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T13-33-19+0200-ypcb-uberddr3-byte-pattern-5a-seed16",
+  "correctness": "not_reached",
+  "route": "pass",
+  "board": "fail_before_byte_compare",
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v16 seed16 changed only the uniform write/expected byte from 0xa5 to 0x5a relative to the v15 wrapper-level byte-capture topology.",
+    "The bitstream routed with overused=0 at router iteration 21 and timing passed.",
+    "Board readback stayed at status=0xd0 with calib_seen_cycle=0 and ack_count=0 on initial read, reread, and after one reprogram retry.",
+    "This run does not classify the 0x3d read-byte mismatch; it instead shows that this small data-pattern/topology perturbation can lose the previously useful calibration gate."
+  ]
+}

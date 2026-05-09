@@ -17081,3 +17081,18 @@ UberDDR3 calibration/data-integrity gates:
     capture, or a DDR byte-lane/address mapping issue. Keep the same v15
     topology and vary only the written byte pattern or read timing in a
     one-variable experiment.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-33-19+0200-ypcb-uberddr3-byte-pattern-5a-seed16`
+    kept the v15 wrapper-level one-byte capture topology and changed only the
+    uniform write/expected byte from `0xa5` to `0x5a`. The route completed
+    (`overused=0` at router iteration 21, timing pass), but the board did not
+    reach the byte comparison gate: initial readback, immediate reread, and
+    one reprogram retry all stayed at `status=0xd0`, `calib_seen_cycle=0`,
+    `debug1=0x000006cc`, `ack_count=0`, probe `WAIT_CALIB`.
+  - Updated conclusion: this run cannot answer whether the previous `0x3d`
+    byte depends on the written data value. It does show that the UberDDR3
+    calibration point is still sensitive to tiny routed-image/topology changes.
+    The next useful step is to return to the known-good v15 `0xa5` command
+    gate and add a lower-risk timing classifier, for example two sequential
+    reads or delayed capture of the same low byte, rather than changing the
+    write data pattern first.
