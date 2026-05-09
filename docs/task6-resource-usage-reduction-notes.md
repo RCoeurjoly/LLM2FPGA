@@ -16425,6 +16425,45 @@ Updated next action:
   returned 576-bit beat into the debug payload. That should avoid perturbing the
   LiteDRAM init path while still answering the response-collapse question.
 
+Safer selected-response check:
+
+- Updated `scripts/task6/analyze_litedram_native_beat_mapping.py` to add an
+  explicit selected-response summary. By default it selects the response sample
+  matching the traced command index, so the known-good 16-read board run can
+  answer the single-read question without changing the RTL or DDR traffic.
+- Reanalyzed
+  `artifacts/task6/runs/2026-05-09T08-10-26+0200-v117-cmdaddr-idx5-board-health-recheck/logs/read-litedram-probe-jtag-ftdi-11264.log`
+  into
+  `artifacts/task6/experiments/2026-05-09T-native-selected-response-idx5/`.
+- Result:
+  - state: `PROBE_DONE`
+  - command/response count: `16 / 16`
+  - selected response index: `5`
+  - accepted command address: `15`
+  - response requested native address: `15`
+  - accepted matches response request: `true`
+  - best same-position DFII addr: `15`
+  - same-position chunks: `2`
+  - best any-position DFII addr: `15`
+  - any-position chunks: `3`
+  - top byte votes: `15:528`
+- Interpretation: preserving the known-good 16-read shape still shows the
+  traced command index and corresponding response index agree on native address
+  `15`, yet the returned 576-bit beat is only a weak/partial addr-15-shaped
+  match and is identical to every other captured sample. This makes
+  outstanding-read ordering less likely as the primary explanation. The
+  remaining LiteDRAM failure modes are now DFII/native mapping, returned-beat
+  packing, PHY/data-lane integrity, or an internal LiteDRAM native-port
+  integration issue.
+
+Next action:
+
+- Stop adding LiteDRAM command-address probes unless they directly test one of
+  the remaining hypotheses above.
+- Start the UberDDR3 minimal BIST lane in parallel or as the mainline next DDR3
+  bring-up path, because it gives us a separate, formally verified,
+  Yosys-friendly controller with an autonomous pass/fail criterion.
+
 ### 2026-05-09 - Candidate fallback: UberDDR3
 
 Source:

@@ -160,7 +160,61 @@ def classify_sample(
     }
 
 
-def analyze(payload: dict[str, Any], source: str, start_index: int) -> dict[str, Any]:
+def selected_response_summary(
+    samples: list[dict[str, Any]],
+    cmdaddr_trace: list[dict[str, Any]],
+    selected_response_index: int | None,
+) -> dict[str, Any] | None:
+    if selected_response_index is None:
+        if not cmdaddr_trace:
+            return None
+        selected_response_index = int(cmdaddr_trace[0]["command_index"])
+    if selected_response_index < 0 or selected_response_index >= len(samples):
+        return {
+            "response_index": selected_response_index,
+            "valid": False,
+            "reason": "response index outside captured sample range",
+        }
+
+    sample = samples[selected_response_index]
+    trace = cmdaddr_trace[0] if cmdaddr_trace else {}
+    accepted_cmd_addr = trace.get("accepted_cmd_addr")
+    return {
+        "response_index": selected_response_index,
+        "valid": True,
+        "accepted_cmd_addr": accepted_cmd_addr,
+        "response_requested_native_addr": sample["requested_native_addr"],
+        "accepted_matches_response_request": (
+            accepted_cmd_addr == sample["requested_native_addr"]
+            if accepted_cmd_addr is not None
+            else None
+        ),
+        "best_same_position_dfii_addr_index": sample[
+            "best_same_position_dfii_addr_index"
+        ],
+        "best_same_position_chunk_count": sample[
+            "best_same_position_chunk_count"
+        ],
+        "best_any_position_dfii_addr_index": sample[
+            "best_any_position_dfii_addr_index"
+        ],
+        "best_any_position_chunk_count": sample[
+            "best_any_position_chunk_count"
+        ],
+        "byte_exact_same_position_count": sample[
+            "byte_exact_same_position_count"
+        ],
+        "top_byte_addr_votes": sample["top_byte_addr_votes"],
+        "actual_chunks_hex": sample["actual_chunks_hex"],
+    }
+
+
+def analyze(
+    payload: dict[str, Any],
+    source: str,
+    start_index: int,
+    selected_response_index: int | None,
+) -> dict[str, Any]:
     fields = payload["fields"]
     decoded = payload.get("decoded", {})
     classifier = decoded.get("native_address_classifier") or {}
@@ -174,6 +228,7 @@ def analyze(payload: dict[str, Any], source: str, start_index: int) -> dict[str,
         classify_sample(fields, sample, start_index, chunk_dict, byte_dict)
         for sample in range(valid_count)
     ]
+    cmdaddr_trace = classifier.get("cmdaddr_trace", [])
     beat_counts = Counter(sample["beat_key"] for sample in samples)
     return {
         "schema": "task6-litedram-native-beat-mapping-analysis-v1",
@@ -186,7 +241,10 @@ def analyze(payload: dict[str, Any], source: str, start_index: int) -> dict[str,
         "mismatch_count": fields.get("mismatch_count"),
         "valid_count": valid_count,
         "start_index": start_index,
-        "cmdaddr_trace": classifier.get("cmdaddr_trace", []),
+        "cmdaddr_trace": cmdaddr_trace,
+        "selected_response": selected_response_summary(
+            samples, cmdaddr_trace, selected_response_index
+        ),
         "unique_beat_count": len(beat_counts),
         "unique_beats": [
             {"beat_key": key, "count": count}
@@ -224,6 +282,33 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
             ),
             "",
         ]
+    if result["selected_response"] is not None:
+        selected = result["selected_response"]
+        lines += [
+            "## Selected Response",
+            "",
+            f"- Response index: `{selected['response_index']}`",
+            f"- Valid: `{selected['valid']}`",
+        ]
+        if selected["valid"]:
+            top_votes = ", ".join(
+                f"{vote['dfii_addr_index']}:{vote['count']}"
+                for vote in selected["top_byte_addr_votes"][:3]
+            )
+            lines += [
+                f"- Accepted command address: `{selected['accepted_cmd_addr']}`",
+                f"- Response requested native address: `{selected['response_requested_native_addr']}`",
+                f"- Accepted matches response request: `{selected['accepted_matches_response_request']}`",
+                f"- Best same-position DFII addr: `{selected['best_same_position_dfii_addr_index']}`",
+                f"- Same-position chunks: `{selected['best_same_position_chunk_count']}`",
+                f"- Best any-position DFII addr: `{selected['best_any_position_dfii_addr_index']}`",
+                f"- Any-position chunks: `{selected['best_any_position_chunk_count']}`",
+                f"- Byte-exact matches: `{selected['byte_exact_same_position_count']}`",
+                f"- Top byte votes: `{top_votes}`",
+            ]
+        else:
+            lines.append(f"- Reason: `{selected['reason']}`")
+        lines.append("")
     lines += [
         "## Sample Summary",
         "",
@@ -263,6 +348,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("log", type=Path)
     parser.add_argument("--start-index", type=int, default=0)
+    parser.add_argument(
+        "--selected-response-index",
+        type=int,
+        default=None,
+        help=(
+            "Response sample to highlight. Defaults to the traced command index "
+            "when the payload contains a cmdaddr trace."
+        ),
+    )
     parser.add_argument("--json-out", type=Path, required=True)
     parser.add_argument("--markdown-out", type=Path, required=True)
     return parser.parse_args()
@@ -271,7 +365,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     payload = load_json_from_log(args.log)
-    result = analyze(payload, str(args.log), args.start_index)
+    result = analyze(
+        payload,
+        str(args.log),
+        args.start_index,
+        args.selected_response_index,
+    )
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
     args.markdown_out.parent.mkdir(parents=True, exist_ok=True)
     args.json_out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
