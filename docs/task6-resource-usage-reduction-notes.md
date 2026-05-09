@@ -17265,3 +17265,13 @@ UberDDR3 calibration/data-integrity gates:
     The route completed with `overused=0` at router iteration 16, timing
     passed at 25 MHz, and nextpnr packed USER2 at `BSCAN_X0Y1/BSCAN` with
     USER1 still at `BSCAN_X0Y0/BSCAN`.
+  - Control run
+    `artifacts/task6/runs/2026-05-09T18-58-36+0200-ypcb-uberddr3-v21-jtag-pattern-a5-auto`
+    programmed the v21 image without issuing a USER2 command. The default
+    `0xa5` auto-run reproduced the live gate: `version=21`, `status=0xd3`,
+    `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`,
+    `active_byte=0xa5`, `command_count=0`, `run_count=0`, `ack_count=2`,
+    `err_count=0`, captured byte `0x3d`, expected byte `0xa5`.
+  - Updated conclusion: the TCK-latched command-path fix did not perturb the
+    known seed16 calibration/command-liveness point. It is valid to test USER2
+    command-driven reruns against the v21 image.
