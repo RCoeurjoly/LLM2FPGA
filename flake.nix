@@ -6022,6 +6022,34 @@
           framesBase = "task6-ypcb-uberddr3-bist-seed16";
         };
 
+        task6YpcbUberDdr3BistSeed17Fasm = mkFasm {
+          name = "task6-ypcb-uberddr3-bist-seed17";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3BistYosysJson;
+          seed = 17;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3BistSeed17Bitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-bist-seed17";
+          fasm = task6YpcbUberDdr3BistSeed17Fasm;
+          framesBase = "task6-ypcb-uberddr3-bist-seed17";
+        };
+
+        task6YpcbUberDdr3BistSeed18Fasm = mkFasm {
+          name = "task6-ypcb-uberddr3-bist-seed18";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3BistYosysJson;
+          seed = 18;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3BistSeed18Bitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-bist-seed18";
+          fasm = task6YpcbUberDdr3BistSeed18Fasm;
+          framesBase = "task6-ypcb-uberddr3-bist-seed18";
+        };
+
         task6YpcbMmcmDiagFasm = mkFasm {
           name = "task6-ypcb-mmcm-diag";
           xdc = task6YpcbMmcmDiagXdc;
@@ -9903,6 +9931,14 @@
             task6YpcbUberDdr3BistSeed16Fasm;
           task6-ypcb-uberddr3-bist-seed16-bitstream =
             task6YpcbUberDdr3BistSeed16Bitstream;
+          task6-ypcb-uberddr3-bist-seed17-fasm =
+            task6YpcbUberDdr3BistSeed17Fasm;
+          task6-ypcb-uberddr3-bist-seed17-bitstream =
+            task6YpcbUberDdr3BistSeed17Bitstream;
+          task6-ypcb-uberddr3-bist-seed18-fasm =
+            task6YpcbUberDdr3BistSeed18Fasm;
+          task6-ypcb-uberddr3-bist-seed18-bitstream =
+            task6YpcbUberDdr3BistSeed18Bitstream;
           task6-ypcb-mmcm-diag-json =
             task6YpcbMmcmDiagJson;
           task6-ypcb-mmcm-diag-xdc =

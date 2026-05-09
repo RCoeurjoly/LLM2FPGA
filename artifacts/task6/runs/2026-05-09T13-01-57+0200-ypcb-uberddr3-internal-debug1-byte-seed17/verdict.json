@@ -1,0 +1,63 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETED_FAIL",
+  "created_at": "2026-05-09T13:01:57.801616+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T13-01-57+0200-ypcb-uberddr3-internal-debug1-byte-seed17",
+  "correctness": {
+    "passed": false,
+    "reason": "Calibration and write/read ACK completed, but debug1[31:24] reported 0xff instead of the written 0xa5 pattern.",
+    "expected_read_byte": "0xa5",
+    "observed_debug_read_byte": "0xff"
+  },
+  "route": {
+    "bitstream": "/nix/store/0dp6gi1d8f6j2m2r6px5pny4vzx50whn-task6-ypcb-uberddr3-bist-seed17.bit",
+    "seed": 17,
+    "router": "nextpnr-xilinx router2",
+    "overused_final": 0,
+    "overused_zero_iteration": 13,
+    "timing": "PASS",
+    "controller_clk_fmax_mhz": 84.39,
+    "target_mhz": 25.0,
+    "packed_lut": 15778,
+    "packed_ff": 7055,
+    "packed_selmux": 1293
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x00000000000132712f6e0000001d00001009000083af000002e60000000000000000021f9b300000000000000002ff0006d7000093dd193894ffd30d54364a44",
+    "decoded": {
+      "magic": "0x54364a44",
+      "version": 13,
+      "status": "0xd3",
+      "cycle": "0x193894ff",
+      "calib_seen_cycle": "0x93dd",
+      "debug1": "0xff0006d7",
+      "calibration_state": 23,
+      "instruction_address": 22,
+      "idelayctrl_ready": true,
+      "debug_read_byte": "0xff",
+      "ack_count": "0x2",
+      "err_count": "0x0",
+      "stall_count": "0x21f9b30",
+      "probe": "0x2e6",
+      "probe_state": 6,
+      "write_ack_seen": true,
+      "read_ack_seen": true,
+      "err_seen": false,
+      "stall_seen": true,
+      "wait_cycles": "0x1d",
+      "sys_rstn": true
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v13 seed17 found a stable route for the internal-debug1 byte design: calibration completed and the post-calibration write/read command sequence finished.",
+    "The observed debug byte was 0xff, not the 0xa5 write pattern, so debug1[31:24] as wired to o_wb_data[7:0] is not yet a valid read-data integrity probe.",
+    "This confirms seed sweeping is useful: the same v13 design failed calibration on seed16 but passed command liveness on seed17."
+  ]
+}

@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T13:01:57.801616+02:00"
+label: "ypcb-uberddr3-internal-debug1-byte-seed17"
+experiment: "task6-uberddr3-internal-debug1-byte-seed-sweep"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/0dp6gi1d8f6j2m2r6px5pny4vzx50whn-task6-ypcb-uberddr3-bist-seed17.bit"
+reference_artifacts:
+notes: "v13 seed17: same internal debug1 read-byte design as seed16, route-seed sweep"

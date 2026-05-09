@@ -17024,3 +17024,17 @@ UberDDR3 calibration/data-integrity gates:
     Current stable user-read evidence is still only v10 seed16: post-calibration
     write/read ACKs complete and one byte can be captured, but that byte was
     `0x3d` rather than the written `0xa5`.
+  - Added seed17/seed18 UberDDR3 bitstream targets so route-seed sweeps do not
+    require hand-editing `flake.nix` for each attempt.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-01-57+0200-ypcb-uberddr3-internal-debug1-byte-seed17`
+    rerouted the same v13 internal-debug-byte design with seed17. The route
+    completed (`overused=0` at router iteration 13, timing pass), and hardware
+    passed command liveness: `status=0xd3`, `calib_seen_cycle=0x000093dd`,
+    `debug1=0xff0006d7`, `ack_count=2`, probe done, write ACK seen, read ACK
+    seen, no error. The debug read byte was `0xff`, not the written `0xa5`.
+  - Updated conclusion: seed sweeping is productive for recovering calibration
+    and command liveness, but `debug1[31:24] = o_wb_data[7:0]` is not a valid
+    data-integrity observation yet. The read-data observation must be aligned to
+    the actual read ACK/data register, not just the current output byte after the
+    transaction has completed.
