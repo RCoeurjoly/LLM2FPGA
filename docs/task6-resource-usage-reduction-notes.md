@@ -17000,3 +17000,16 @@ UberDDR3 calibration/data-integrity gates:
     calibration, so near-term experiments should either sweep seeds for each
     tiny classifier change or preserve the exact v10 topology and vary only
     fields that do not force a broad resynthesis.
+  - Run
+    `artifacts/task6/runs/2026-05-09T12-48-15+0200-ypcb-uberddr3-halfword-capture-seed16`
+    restored the uniform `0xa5` write pattern but widened read capture from 8
+    bits to 16 bits. Packing changed materially (`15925` LUT, `7075` FF,
+    `2312` SELMUX, versus about `15409` LUT, `7067` FF, `1068` SELMUX for the
+    v10 byte capture). The route completed (`overused=0` at router iteration
+    37, timing pass), but hardware again failed calibration: `status=0xd0`,
+    `calib_seen_cycle=0`, `debug1=0x000006cc`, `ack_count=0`.
+  - Updated conclusion: one-byte capture with uniform data on seed16 is the
+    current maximum stable observation point. The next path should avoid wider
+    wrapper fanout and instead either (a) expose read-data information through a
+    tiny in-controller digest/compare near `o_wb_data_q`, or (b) add a seed
+    sweep target so each candidate is tested across several routes quickly.

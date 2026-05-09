@@ -1,0 +1,64 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETED_FAIL",
+  "created_at": "2026-05-09T12:48:15.928687+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T12-48-15+0200-ypcb-uberddr3-halfword-capture-seed16",
+  "correctness": {
+    "passed": false,
+    "reason": "Calibration did not complete, so no 16-bit read-data result is available.",
+    "expected_read_halfword": "0xa5a5",
+    "observed_read_halfword": "0x0000"
+  },
+  "route": {
+    "bitstream": "/nix/store/5zrdg6lyg7nmgb1xdkk4iic0wf44d879-task6-ypcb-uberddr3-bist-seed16.bit",
+    "seed": 16,
+    "router": "nextpnr-xilinx router2",
+    "overused_final": 0,
+    "overused_zero_iteration": 37,
+    "timing": "PASS",
+    "controller_clk_fmax_mhz": 82.73,
+    "target_mhz": 25.0,
+    "packed_lut": 15925,
+    "packed_ff": 7075,
+    "packed_selmux": 2312
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x0000000000011a702ad10000000000001009000083af0000000100000000000000000d3812b20000000000000000000006cc000000000d3812b2d00c54364a44",
+    "decoded": {
+      "magic": "0x54364a44",
+      "version": 12,
+      "status": "0xd0",
+      "cycle": "0xd3812b2",
+      "calib_seen_cycle": "0x0",
+      "debug1": "0x6cc",
+      "calibration_state": 12,
+      "instruction_address": 22,
+      "idelayctrl_ready": true,
+      "ack_count": "0x0",
+      "err_count": "0x0",
+      "stall_count": "0xd3812b2",
+      "read_lo": "0x0",
+      "read_halfword": "0x0000",
+      "probe": "0x1",
+      "probe_state": 1,
+      "write_ack_seen": false,
+      "read_ack_seen": false,
+      "err_seen": false,
+      "stall_seen": false,
+      "wait_cycles": "0x0",
+      "sys_rstn": true
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v12 restored the uniform 0xa5 write pattern but widened the read-data capture from 8 bits to 16 bits.",
+    "Synthesis/packing changed materially compared with v10: 15925 LUTs, 7075 FFs, and 2312 SELMUX cells.",
+    "The route completed with overused=0 and timing pass, but hardware did not reach calibration. The only hardware-proven read-data tap so far remains v10 seed16 with one captured byte."
+  ]
+}
