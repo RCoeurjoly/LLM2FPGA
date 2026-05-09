@@ -17312,3 +17312,20 @@ UberDDR3 calibration/data-integrity gates:
     test), but it is the current best working single-bitstream pattern
     register because the same routed image both calibrates and accepts a USER2
     command-driven rerun.
+  - Added a host-side `--update-mode stop-at-update` option to
+    `scripts/task6/write_jtag_command_ftdi_bitbang.py` and passed it through
+    `scripts/task6/task6_ddr3_experiment_runner.py`. This tests whether the
+    second v21 command event was caused by explicitly clocking from Update-DR
+    back to Run-Test/Idle.
+  - Run
+    `artifacts/task6/runs/2026-05-09T19-50-31+0200-ypcb-uberddr3-v21-jtag-pattern-00-stop-at-update`
+    programmed the known live v21 bitstream and issued USER2 byte `0x00` with
+    `--command-update-mode stop-at-update`. It still reported
+    `command_count=2`, `run_count=2`, final `active_byte=0xa5`, and captured
+    read byte `0x00`.
+  - Updated conclusion: the v21 double event cannot be fixed purely by
+    suppressing the host's explicit clock back to idle. Since any later JTAG
+    read needs another TCK edge, v21's level-sensitive TCK latch can still see
+    a second BSCANE2 `UPDATE`. Use v21 as a useful-but-not-clean pattern
+    classifier, or solve the duplicate in RTL with route-seed search because
+    the first v22 edge-guarded route lost calibration.
