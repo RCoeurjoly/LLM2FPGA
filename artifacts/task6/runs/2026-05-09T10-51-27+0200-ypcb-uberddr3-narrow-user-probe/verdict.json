@@ -1,0 +1,21 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAIL",
+  "created_at": "2026-05-09T10:51:27.128242+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T10-51-27+0200-ypcb-uberddr3-narrow-user-probe",
+  "correctness": "not_reached",
+  "route": "pass: router2 overused=0 at iteration 25; timing pass at 25 MHz",
+  "board": "fail: DDR3 calibration did not complete; payload status=0xd0, debug1=0x808406cc, probe_status=0x1000",
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": "controller_clk max frequency 91.10 MHz, jtag_debug_shift.drck max frequency 605.33 MHz",
+  "runtime": null,
+  "notes": [
+    "Bitstream /nix/store/258ifv1f9ksfg80rcx2kivfngl9lcn1w-task6-ypcb-uberddr3-bist.bit programmed successfully.",
+    "Narrowed the wrapper probe to low-word read comparison and gated byte select while idle.",
+    "Decoded debug1: state 12 READ_DATA, instruction_address 22, IDELAYCTRL ready, lane 0, DQ/DQS taps 1, read_data_nonzero=1.",
+    "Wrapper probe stayed in PROBE_WAIT_CALIB with zero user Wishbone ACKs, so user data integrity was not reached.",
+    "A subsequent known-good fast-exit control bitstream still completed calibration, so this failure is specific to the probe image rather than the board state."
+  ]
+}

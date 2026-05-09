@@ -1,0 +1,19 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "PASS",
+  "created_at": "2026-05-09T10:52:45.978729+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T10-52-45+0200-ypcb-uberddr3-fast-exit-control-recheck",
+  "correctness": "calibration_only_control",
+  "route": "not rebuilt: reused previously passing fast-exit bitstream",
+  "board": "pass: status=0xd3, calib_seen_cycle=0x000093dd, debug1=0x800386d7",
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": "programmed and read once",
+  "notes": [
+    "Reprogrammed /nix/store/rf3akdsj6rdqikhzvfw50146f71vkxpz-task6-ypcb-uberddr3-bist.bit after user-probe calibration failures.",
+    "Payload matched the earlier fast-exit calibration pass: DONE_CALIBRATE state 23 with calibration seen.",
+    "Conclusion: the YPCB board, JTAG path, and fast-exit calibration bitstream are still healthy; user-probe image routing/placement is the likely cause of the calibration regression."
+  ]
+}

@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T10:52:45.978729+02:00"
+label: "ypcb-uberddr3-fast-exit-control-recheck"
+experiment: "task6-ypcb-uberddr3-fast-exit-control-recheck"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/rf3akdsj6rdqikhzvfw50146f71vkxpz-task6-ypcb-uberddr3-bist.bit"
+reference_artifacts:
+notes: "Reprogram previously passing UberDDR3 fast-exit calibration bitstream as control after user-probe failures"

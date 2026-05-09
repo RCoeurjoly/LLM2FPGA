@@ -30,6 +30,7 @@ module task6_ypcb_uberddr3_bist_top #(
   localparam int WB_ADDR_BITS = ROW_BITS + COL_BITS + BA_BITS - 3;
   localparam int WB_DATA_BITS = 8 * BYTE_LANES * 8;
   localparam int WB_SEL_BITS = WB_DATA_BITS / 8;
+  localparam int WB_DATA_WORDS = WB_DATA_BITS / 32;
   localparam logic [3:0] ROW_BITS_NIBBLE = ROW_BITS % 16;
   localparam logic [3:0] COL_BITS_NIBBLE = COL_BITS % 16;
   localparam logic [3:0] BA_BITS_NIBBLE = BA_BITS % 16;
@@ -117,6 +118,7 @@ module task6_ypcb_uberddr3_bist_top #(
   wire wb_err;
   wire [WB_DATA_BITS - 1:0] wb_data;
   wire [3:0] wb_aux;
+  wire [WB_SEL_BITS - 1:0] probe_sel;
   wire wb2_stall;
   wire wb2_ack;
   wire [31:0] wb2_data;
@@ -156,20 +158,6 @@ module task6_ypcb_uberddr3_bist_top #(
   logic probe_pass_q;
   logic probe_fail_q;
 
-  function automatic logic [WB_DATA_BITS - 1:0] probe_pattern(input logic [WB_ADDR_BITS - 1:0] addr);
-    logic [WB_DATA_BITS - 1:0] value;
-    logic [7:0] byte_value;
-    int byte_index;
-    begin
-      value = '0;
-      for (byte_index = 0; byte_index < WB_SEL_BITS; byte_index = byte_index + 1) begin
-        byte_value = ((byte_index * 8'h25) ^ (addr[7:0] * 8'h5d) ^ 8'ha6) + byte_index;
-        value[8 * byte_index +: 8] = byte_value;
-      end
-      probe_pattern = value;
-    end
-  endfunction
-
   function automatic logic [31:0] probe_pattern_lo(input logic [WB_ADDR_BITS - 1:0] addr);
     logic [31:0] value;
     logic [7:0] byte_value;
@@ -183,6 +171,8 @@ module task6_ypcb_uberddr3_bist_top #(
       probe_pattern_lo = value;
     end
   endfunction
+
+  assign probe_sel = (probe_cyc_q || probe_stb_q) ? {WB_SEL_BITS{1'b1}} : {WB_SEL_BITS{1'b0}};
 
   assign ddram_clk_p = ddr3_clk_p_w[0];
   assign ddram_clk_n = ddr3_clk_n_w[0];
@@ -262,7 +252,7 @@ module task6_ypcb_uberddr3_bist_top #(
           probe_stb_q <= 1'b1;
           probe_we_q <= 1'b1;
           probe_addr_q <= {{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q};
-          probe_data_q <= probe_pattern({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q});
+          probe_data_q <= {WB_DATA_WORDS{probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q})}};
           if (!wb_stall) begin
             probe_stb_q <= 1'b0;
             probe_state_q <= wb_ack ? ((probe_index_q == PROBE_BEATS - 1) ? PROBE_READ_ISSUE : PROBE_WRITE_ISSUE) : PROBE_WRITE_WAIT;
@@ -309,7 +299,7 @@ module task6_ypcb_uberddr3_bist_top #(
             probe_state_q <= PROBE_FAIL;
           end else if (wb_ack) begin
             probe_cyc_q <= 1'b0;
-            if (wb_data != probe_pattern({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q})) begin
+            if (wb_data[31:0] != probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q})) begin
               probe_mismatch_count_q <= probe_mismatch_count_q + 32'd1;
               if (!probe_fail_q) begin
                 probe_fail_q <= 1'b1;
@@ -320,8 +310,11 @@ module task6_ypcb_uberddr3_bist_top #(
             end
             if (probe_index_q == PROBE_BEATS - 1) begin
               probe_done_q <= 1'b1;
-              probe_pass_q <= !probe_fail_q && (wb_data == probe_pattern({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q}));
-              probe_state_q <= (!probe_fail_q && (wb_data == probe_pattern({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q}))) ? PROBE_DONE : PROBE_FAIL;
+              probe_pass_q <= !probe_fail_q &&
+                (wb_data[31:0] == probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q}));
+              probe_state_q <= (!probe_fail_q &&
+                (wb_data[31:0] == probe_pattern_lo({{(WB_ADDR_BITS - 4){1'b0}}, probe_index_q}))) ?
+                PROBE_DONE : PROBE_FAIL;
             end else begin
               probe_index_q <= probe_index_q + 4'd1;
               probe_state_q <= PROBE_READ_ISSUE;
@@ -420,8 +413,8 @@ module task6_ypcb_uberddr3_bist_top #(
     .i_wb_we(probe_we_q),
     .i_wb_addr(probe_addr_q),
     .i_wb_data(probe_data_q),
-    .i_wb_sel({WB_SEL_BITS{1'b1}}),
-    .i_aux({3'd0, probe_we_q}),
+    .i_wb_sel(probe_sel),
+    .i_aux({3'd0, probe_cyc_q && probe_we_q}),
     .o_wb_stall(wb_stall),
     .o_wb_ack(wb_ack),
     .o_wb_err(wb_err),
