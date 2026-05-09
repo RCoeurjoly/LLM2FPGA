@@ -15,13 +15,18 @@ from read_jtag_debug_ftdi_bitbang import (
 from read_jtag_debug_xvc import clock_tms, reset_tap, shift_ir
 
 
-def shift_dr_write(client, value: int, bit_count: int) -> None:
+def shift_dr_write(client, value: int, bit_count: int, update_mode: str) -> None:
     clock_tms(client, [1, 0, 0])
     tdi_bits = [(value >> bit) & 1 for bit in range(bit_count)]
     tms_bits = [0] * bit_count
     tms_bits[-1] = 1
     client.shift(tms_bits, tdi_bits)
-    clock_tms(client, [1, 0])
+    if update_mode == "idle":
+        clock_tms(client, [1, 0])
+    elif update_mode == "stop-at-update":
+        clock_tms(client, [1])
+    else:
+        raise ValueError(f"unknown update mode {update_mode!r}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,6 +43,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--byte", dest="byte_value", type=lambda value: int(value, 0), required=True)
     parser.add_argument("--bits", type=int, default=16)
     parser.add_argument("--magic-nibble", type=lambda value: int(value, 0), default=0xA)
+    parser.add_argument(
+        "--update-mode",
+        choices=("idle", "stop-at-update"),
+        default="idle",
+        help=(
+            "TAP transition after Exit1-DR. 'idle' clocks Update-DR then Run-Test/Idle; "
+            "'stop-at-update' clocks only into Update-DR and lets close/reset leave it."
+        ),
+    )
     parser.add_argument("--json-only", action="store_true")
     return parser.parse_args()
 
@@ -69,7 +83,7 @@ def main() -> int:
     try:
         reset_tap(client)
         shift_ir(client, args.user_ir, args.ir_len)
-        shift_dr_write(client, command, args.bits)
+        shift_dr_write(client, command, args.bits, args.update_mode)
     finally:
         client.close()
 
@@ -80,6 +94,7 @@ def main() -> int:
         "bits": args.bits,
         "byte": f"0x{args.byte_value:02x}",
         "command": f"0x{command:04x}",
+        "update_mode": args.update_mode,
     }
     if not args.json_only:
         print(f"Wrote USER JTAG command {result['command']} byte={result['byte']}")

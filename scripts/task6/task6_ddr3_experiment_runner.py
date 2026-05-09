@@ -235,6 +235,8 @@ def run_experiment(args: argparse.Namespace) -> Path:
                 str(args.tdo_bit),
                 "--byte",
                 f"0x{args.command_byte:02x}",
+                "--update-mode",
+                args.command_update_mode,
                 "--json-only",
             ],
         )
@@ -292,6 +294,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bitstream")
     parser.add_argument("--expected-byte", type=lambda value: int(value, 0))
     parser.add_argument("--command-byte", type=lambda value: int(value, 0))
+    parser.add_argument(
+        "--command-update-mode",
+        choices=("idle", "stop-at-update"),
+        default="idle",
+    )
     parser.add_argument("--post-command-delay", type=float, default=0.1)
     parser.add_argument("--jtag-cable", default="digilent_hs3")
     parser.add_argument("--ftdi-serial", default="210299BF3824")
