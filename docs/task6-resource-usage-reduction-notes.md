@@ -16906,3 +16906,20 @@ UberDDR3 calibration/data-integrity gates:
     behavior as closely as possible and vary placement/route seed or add the
     smallest possible post-calibration memory operation, with every run
     committed and compared against the fast-exit control.
+- Current-tree fast-exit control:
+  - Restored immediate fast-exit after `BURST_WRITE` and left the wrapper user
+    port idle.
+  - Run
+    `artifacts/task6/runs/2026-05-09T11-23-04+0200-ypcb-uberddr3-fast-exit-current-control`
+    built
+    `/nix/store/8agn3v2i05f7mw66f4j3x4wdrjc6wcw2-task6-ypcb-uberddr3-bist.bit`.
+    nextpnr router2 reached `overused=0` at iteration 5 and timing passed.
+  - Board readback passed the calibration gate again:
+    `status=0xd3`, `cycle_count=0x0f4d6ed8`,
+    `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`
+    (`state=23`, `DONE_CALIBRATE`, `instruction_address=22`,
+    `idelayctrl_ready=1`).
+  - Updated conclusion: the current wrapper/debug state can reproduce the
+    known-good calibration result. The mini-BIST/user-probe failures are
+    specifically tied to adding data-operation logic or to the placement/routing
+    perturbation caused by that logic.
