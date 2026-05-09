@@ -22,7 +22,7 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd10;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd11;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -36,7 +36,8 @@ module task6_ypcb_uberddr3_bist_top #(
   localparam logic [3:0] BYTE_LANES_NIBBLE = BYTE_LANES % 16;
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
-  localparam logic [WB_DATA_BITS - 1:0] PROBE_WRITE_PATTERN = {WB_SEL_BITS{8'ha5}};
+  localparam logic [WB_DATA_BITS - 1:0] PROBE_WRITE_PATTERN =
+    512'hbfbebdbcbbbab9b8_b7b6b5b4b3b2b1b0_afaeadacabaaa9a8_a7a6a5a4a3a2a1a0_9f9e9d9c9b9a9998_9796959493929190_8f8e8d8c8b8a8988_8786858483828180;
 
   wire controller_clk;
   wire ddr3_clk;

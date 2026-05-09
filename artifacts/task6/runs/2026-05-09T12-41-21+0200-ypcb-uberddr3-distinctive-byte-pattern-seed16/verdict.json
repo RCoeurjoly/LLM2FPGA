@@ -1,0 +1,61 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETED_FAIL",
+  "created_at": "2026-05-09T12:41:21.420235+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T12-41-21+0200-ypcb-uberddr3-distinctive-byte-pattern-seed16",
+  "correctness": {
+    "passed": false,
+    "reason": "Calibration did not complete, so the distinctive byte pattern was not tested by a user write/read transaction.",
+    "expected_read_byte_if_low_byte_maps_directly": "0x80",
+    "observed_read_byte": "0x00"
+  },
+  "route": {
+    "bitstream": "/nix/store/xj4jxgysy0saxjqg4m8lnzi9qx8b0k04-task6-ypcb-uberddr3-bist-seed16.bit",
+    "seed": 16,
+    "router": "nextpnr-xilinx router2",
+    "overused_final": 0,
+    "overused_zero_iteration": 18,
+    "timing": "PASS",
+    "controller_clk_fmax_mhz": 76.70,
+    "target_mhz": 25.0
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x00000000000119318e7a0000000000001009000083af0000000100000000000000000c98c4850000000000000000000016a9000000000c98c485d00b54364a44",
+    "decoded": {
+      "magic": "0x54364a44",
+      "version": 11,
+      "status": "0xd0",
+      "cycle": "0xc98c485",
+      "calib_seen_cycle": "0x0",
+      "debug1": "0x16a9",
+      "calibration_state": 9,
+      "instruction_address": 21,
+      "idelayctrl_ready": true,
+      "ack_count": "0x0",
+      "err_count": "0x0",
+      "stall_count": "0xc98c485",
+      "read_lo": "0x0",
+      "read_byte": "0x00",
+      "probe": "0x1",
+      "probe_state": 1,
+      "write_ack_seen": false,
+      "read_ack_seen": false,
+      "err_seen": false,
+      "stall_seen": false,
+      "wait_cycles": "0x0",
+      "sys_rstn": true
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v11 changed the write payload from uniform 0xa5 bytes to a distinctive 0x80..0xbf byte pattern while keeping the read capture width at one byte.",
+    "The route completed with overused=0 and timing pass, but hardware did not reach the calibration-complete gate.",
+    "This did not classify byte-lane mapping. It shows the currently working DDR3 gate remains sensitive to small constant/data-path changes, so the next classifier should preserve the v10 seed16 payload shape or sweep seeds before widening functionality."
+  ]
+}

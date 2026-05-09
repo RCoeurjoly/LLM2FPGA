@@ -16987,3 +16987,16 @@ UberDDR3 calibration/data-integrity gates:
     and capture a slightly wider returned word so we can distinguish byte-lane
     mapping, stale calibration data, read-latency alignment, and true memory
     corruption.
+  - Run
+    `artifacts/task6/runs/2026-05-09T12-41-21+0200-ypcb-uberddr3-distinctive-byte-pattern-seed16`
+    tried the lower-fanout version of that classifier first: keep one-byte
+    capture, but change the 512-bit write payload from uniform `0xa5` to
+    unique bytes `0x80..0xbf`. The route completed (`overused=0` at router
+    iteration 18, timing pass), but hardware did not reach calibration:
+    `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000016a9`, `ack_count=0`,
+    probe still in `WAIT_CALIB`.
+  - Updated conclusion: the v10 seed16 route is our current best DDR3
+    user-port fixed point. Small constant/data-path changes can still perturb
+    calibration, so near-term experiments should either sweep seeds for each
+    tiny classifier change or preserve the exact v10 topology and vary only
+    fields that do not force a broad resynthesis.
