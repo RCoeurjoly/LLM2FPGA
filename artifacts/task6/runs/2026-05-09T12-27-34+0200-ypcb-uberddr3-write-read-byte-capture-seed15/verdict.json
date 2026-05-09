@@ -1,0 +1,59 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETED_FAIL",
+  "created_at": "2026-05-09T12:27:34.816780+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T12-27-34+0200-ypcb-uberddr3-write-read-byte-capture-seed15",
+  "correctness": {
+    "passed": false,
+    "reason": "Calibration did not complete, so no user write/read transaction ran and no byte integrity result is available.",
+    "expected_read_byte": "0xa5",
+    "observed_read_byte": "0x00"
+  },
+  "route": {
+    "bitstream": "/nix/store/5nbg2pkx6j15l3h9c60b2rfps7p4k5ak-task6-ypcb-uberddr3-bist-seed15.bit",
+    "seed": 15,
+    "router": "nextpnr-xilinx router2",
+    "overused_final": 0,
+    "overused_zero_iteration": 65,
+    "timing": "PASS",
+    "controller_clk_fmax_mhz": 89.09,
+    "target_mhz": 25.0
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x00000000000124c500890000000000001009000083af00000001000000000000000012627d8f0000000000000000000006c90000000012627d8fd00a54364a44",
+    "decoded": {
+      "magic": "0x54364a44",
+      "version": 10,
+      "status": "0xd0",
+      "cycle": "0x12627d8f",
+      "calib_seen_cycle": "0x0",
+      "debug1": "0x6c9",
+      "calibration_state": 9,
+      "instruction_address": 22,
+      "idelayctrl_ready": true,
+      "ack_count": "0x0",
+      "err_count": "0x0",
+      "stall_count": "0x12627d8f",
+      "probe": "0x1",
+      "probe_state": 1,
+      "write_ack_seen": false,
+      "read_ack_seen": false,
+      "err_seen": false,
+      "stall_seen": false,
+      "wait_cycles": "0x0",
+      "sys_rstn": true
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v10 added only an 8-bit latch of wb_data[7:0] on read ACK and exported it in the existing JTAG payload.",
+    "Unlike v9 write-read ACK-only, this route never passed calibration; the probe stayed in WAIT_CALIB.",
+    "Conclusion: direct read-data observation is still calibration-hostile. Next experiments should isolate the read-data tap or expose data through a lower-fanout boundary before adding compares."
+  ]
+}

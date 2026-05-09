@@ -16957,3 +16957,25 @@ UberDDR3 calibration/data-integrity gates:
     known-good calibration result. The mini-BIST/user-probe failures are
     specifically tied to adding data-operation logic or to the placement/routing
     perturbation caused by that logic.
+- User-port write/read gates after the stable control:
+  - Run
+    `artifacts/task6/runs/2026-05-09T11-55-16+0200-ypcb-uberddr3-write-only-seed15`
+    proved the wrapper can issue a post-calibration write without losing the
+    calibration fixed point: `status=0xd3`, probe done, `write_ack_seen=1`,
+    `read_ack_seen=0`, `err_seen=0`.
+  - Run
+    `artifacts/task6/runs/2026-05-09T12-20-16+0200-ypcb-uberddr3-write-read-ack-only-seed15`
+    proved a post-calibration write followed by a read command can complete
+    when read data is not exported: `status=0xd3`, `ack_count=2`,
+    `write_ack_seen=1`, `read_ack_seen=1`, `err_seen=0`.
+  - Run
+    `artifacts/task6/runs/2026-05-09T12-27-34+0200-ypcb-uberddr3-write-read-byte-capture-seed15`
+    changed only the observation path by latching/exporting `wb_data[7:0]` on
+    read ACK. It routed (`overused=0` at router iteration 65, timing pass) but
+    failed the board calibration gate: `status=0xd0`, `calib_seen_cycle=0`,
+    `debug1=0x000006c9`, `ack_count=0`, probe still in `WAIT_CALIB`.
+  - Updated conclusion: the command path is alive, but direct read-data fanout
+    into wrapper/JTAG state is still enough to perturb calibration on the tested
+    seed. The next productive step is not a wider compare; it is isolating the
+    read-data observation path with lower fanout/stronger hierarchy or moving
+    the integrity check closer to the UberDDR3 data boundary.
