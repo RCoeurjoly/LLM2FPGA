@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T13:43:04.150574+02:00"
+label: "ypcb-uberddr3-v15-baseline-rerun-seed16"
+experiment: "task6-uberddr3-board-state-baseline-rerun"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/a2ifhrb88dqbmkgdjck5dg6a4dxnyy0c-task6-ypcb-uberddr3-bist-seed16.bit"
+reference_artifacts:
+notes: "Rerun the previously useful v15 seed16 bitstream after v16/v17 calibration failures to distinguish RTL perturbation from board/DDR state."

@@ -1,0 +1,20 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE",
+  "created_at": "2026-05-09T13:43:04.150574+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T13-43-04+0200-ypcb-uberddr3-v15-baseline-rerun-seed16",
+  "correctness": "fail",
+  "route": "previously_built",
+  "board": "command_gate_reproduced",
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Reran the previously useful v15 seed16 bitstream after v16/v17 calibration failures.",
+    "Board readback reproduced calibration and command liveness: status=0xd3, calib_seen_cycle=0x93dd, ack_count=2, write/read ACKs seen.",
+    "Data integrity still fails in the same way: read_byte=0x3d instead of expected 0xa5.",
+    "This falsifies persistent bad board state as the explanation for v16/v17 failing calibration."
+  ]
+}

@@ -17108,3 +17108,19 @@ UberDDR3 calibration/data-integrity gates:
     small wrapper perturbation also loses calibration, immediately rerun the
     previous v15 bitstream to decide whether the board is in a bad state or
     whether the new debug topology perturbs the calibration image.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-43-04+0200-ypcb-uberddr3-v15-baseline-rerun-seed16`
+    reprogrammed the previous v15 seed16 bitstream
+    `/nix/store/a2ifhrb88dqbmkgdjck5dg6a4dxnyy0c-task6-ypcb-uberddr3-bist-seed16.bit`
+    after the v16/v17 calibration failures. The command gate reproduced:
+    `status=0xd3`, `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`,
+    `ack_count=2`, `err_count=0`, write/read ACKs seen. The data failure also
+    reproduced exactly enough to keep it as the active blocker:
+    captured byte `0x3d`, expected `0xa5`, mismatch set.
+  - Updated conclusion: the board is not persistently wedged. The UberDDR3
+    path has one stable open-source command-liveness image, but small wrapper
+    debug changes can perturb calibration. Next work should avoid adding
+    payload-facing fanout to the live user read path. Prefer either rerouting
+    the exact v15 RTL across seeds to find multiple command-liveness images, or
+    moving the next diagnostic into a separate low-fanout equality/status path
+    that does not export additional `wb_data` bits.
