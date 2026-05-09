@@ -1,0 +1,63 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETED_FAIL",
+  "created_at": "2026-05-09T12:55:23.952928+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T12-55-23+0200-ypcb-uberddr3-internal-debug1-byte-seed16",
+  "correctness": {
+    "passed": false,
+    "reason": "Calibration did not complete, so the internal debug1 read byte did not observe a post-calibration user read.",
+    "expected_read_byte": "0xa5",
+    "observed_debug_read_byte": "0xff"
+  },
+  "route": {
+    "bitstream": "/nix/store/02gq6d2x66b0dq1zbpvmx3mrgvdjkfdl-task6-ypcb-uberddr3-bist-seed16.bit",
+    "seed": 16,
+    "router": "nextpnr-xilinx router2",
+    "overused_final": 0,
+    "overused_zero_iteration": 10,
+    "timing": "PASS",
+    "controller_clk_fmax_mhz": 87.36,
+    "target_mhz": 25.0,
+    "packed_lut": 15778,
+    "packed_ff": 7055,
+    "packed_selmux": 1293
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x00000000000125f014ac0000000000001009000083af00000001000000000000000012f807a00000000000000000ff0006d80000000012f807a0d00d54364a44",
+    "decoded": {
+      "magic": "0x54364a44",
+      "version": 13,
+      "status": "0xd0",
+      "cycle": "0x12f807a0",
+      "calib_seen_cycle": "0x0",
+      "debug1": "0xff0006d8",
+      "calibration_state": 24,
+      "instruction_address": 22,
+      "idelayctrl_ready": true,
+      "debug_read_byte": "0xff",
+      "ack_count": "0x0",
+      "err_count": "0x0",
+      "stall_count": "0x12f807a0",
+      "probe": "0x1",
+      "probe_state": 1,
+      "write_ack_seen": false,
+      "read_ack_seen": false,
+      "err_seen": false,
+      "stall_seen": false,
+      "wait_cycles": "0x0",
+      "sys_rstn": true
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v13 removed wrapper-side wb_data capture and instead packed o_wb_data[7:0] into UberDDR3 debug1[31:24].",
+    "The route was clean, but hardware did not reach calibration; no user write/read ACKs occurred.",
+    "Moving the byte tap into debug1 did not preserve the v10 seed16 fixed point. Current stable point remains v10 seed16 wrapper byte capture."
+  ]
+}

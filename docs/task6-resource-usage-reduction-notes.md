@@ -17013,3 +17013,14 @@ UberDDR3 calibration/data-integrity gates:
     wrapper fanout and instead either (a) expose read-data information through a
     tiny in-controller digest/compare near `o_wb_data_q`, or (b) add a seed
     sweep target so each candidate is tested across several routes quickly.
+  - Run
+    `artifacts/task6/runs/2026-05-09T12-55-23+0200-ypcb-uberddr3-internal-debug1-byte-seed16`
+    tested option (a) in the smallest form: remove wrapper-side `wb_data`
+    capture and pack `o_wb_data[7:0]` into UberDDR3 `debug1[31:24]`. The route
+    completed cleanly (`overused=0` at router iteration 10, timing pass), but
+    hardware did not calibrate: `status=0xd0`, `calib_seen_cycle=0`,
+    `debug1=0xff0006d8`, `ack_count=0`, probe still in `WAIT_CALIB`.
+  - Updated conclusion: moving the byte tap into `debug1` was not enough.
+    Current stable user-read evidence is still only v10 seed16: post-calibration
+    write/read ACKs complete and one byte can be captured, but that byte was
+    `0x3d` rather than the written `0xa5`.
