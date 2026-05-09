@@ -1,0 +1,56 @@
+$ python3 scripts/task6/read_jtag_debug_ftdi_bitbang.py --tdo-bit 7 --bits 512 --poll --poll-count 20 --poll-interval 0.25
+summary: magic_ok=True state=SELFTEST_BOOT status={'pass': True, 'fail': False, 'first_add_seen': True, 'first_c_proj_requant_seen': False} fail_reason=NONE stage=OK_OR_DOWNSTREAM
+c_proj[0]: acc 0 expected 0; scale None expected 0; bias None expected 0; product None expected -8957941133816627200; scaled None expected 269025280; biased None expected 0; output 0 expected 0
+residual_add[0]: residual 0 c_proj 0 output 0 expected 0
+fail: index 0 expected 0 observed 0 expected_c_proj 0
+c_proj_gemv[0]: final_acc None expected 0; samples None
+{
+  "attempts": 1,
+  "backend": "ftdi-mpsse",
+  "c_fc_gemv_lane1_samples": [],
+  "c_fc_post_gelu_samples": [],
+  "c_fc_transfer_post_gelu_samples": [],
+  "c_proj_gemv_lane0_samples": [],
+  "decoded": {
+    "c_proj_requant_stage": "OK_OR_DOWNSTREAM",
+    "fail_reason": "NONE",
+    "state": "SELFTEST_BOOT",
+    "status": {
+      "fail": false,
+      "first_add_seen": true,
+      "first_c_proj_requant_seen": false,
+      "pass": true
+    }
+  },
+  "fields": {
+    "c_proj_requant_stage": 0,
+    "cycle_count": 0,
+    "expected_c_proj_acc0": 0,
+    "expected_c_proj_bias0": 0,
+    "expected_c_proj_biased0": 0,
+    "expected_c_proj_output0": 0,
+    "expected_c_proj_product0": -8957941133816627200,
+    "expected_c_proj_scale0": 0,
+    "expected_c_proj_scaled0": 269025280,
+    "expected_residual_add_output0": 0,
+    "fail_expected": 0,
+    "fail_expected_c_proj": 0,
+    "fail_index": 0,
+    "fail_observed": 0,
+    "fail_reason": 0,
+    "first_add_c_proj": 0,
+    "first_add_output": 0,
+    "first_add_residual": 0,
+    "first_add_seen": 0,
+    "first_c_proj_requant_acc": 0,
+    "first_c_proj_requant_output": 0,
+    "first_c_proj_requant_seen": 0,
+    "magic": 1412844100,
+    "state": 0,
+    "status": 5,
+    "version": 2
+  },
+  "magic_ok": true,
+  "raw_hex": "0x000000000000000000000000000000001009000083af000000000000000000000000000000000000000000000000000000000000000000000000500254364a44",
+  "serial": "210299BF3824"
+}

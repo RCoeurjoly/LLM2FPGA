@@ -1,0 +1,12 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T09:13:42.110627+02:00"
+label: "uberddr3-bist-program-readback"
+experiment: "task6-ypcb-uberddr3-bist"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/8h27r5g39wy4swrf6776wl6zrmszaqj7-task6-ypcb-uberddr3-bist.bit"
+reference_artifacts:
+  - "/nix/store/xkq62n7sxx730in7jnjajhg7ykqgi7rv-task6-ypcb-uberddr3-bist.fasm"
+notes: "Program openXC7 UberDDR3 BIST bitstream and read direct BSCANE2 payload after prjxray DB mux fix."

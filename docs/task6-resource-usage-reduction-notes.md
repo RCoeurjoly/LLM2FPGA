@@ -201,6 +201,7 @@ Measured result:
 | After disabling unpinned DM serializers | same | route reaches `overused=0`; FASM emitted at `/nix/store/xkq62n7sxx730in7jnjajhg7ykqgi7rv-task6-ypcb-uberddr3-bist.fasm` | nextpnr still logs `ERROR: Assert valid_wires_for_net.count(w) failed in common/router1.cc:331` during router1 legality check, but the derivation exits 0 and writes FASM |
 | Bitstream conversion | `nix build .#task6-ypcb-uberddr3-bist-bitstream --no-link --print-out-paths -L` | fail | `fasm2frames` lacks `LIOI3_TBYTESRC.IOI_OCLKM_0.IOI_IMUX31_1` for DQS byte-lane clock mux features |
 | After Kintex-7 prjxray DB feature patch | same | pass | bitstream emitted at `/nix/store/8h27r5g39wy4swrf6776wl6zrmszaqj7-task6-ypcb-uberddr3-bist.bit` |
+| Board program/readback | `openFPGALoader ... task6-ypcb-uberddr3-bist.bit`; `read_jtag_debug_ftdi_bitbang.py --tdo-bit 7 --bits 512 --poll` | fail, useful | JTAG payload `magic=0x54364a44`, `version=2`, but `mmcm_locked=0` and `cycle_count=0`; run `artifacts/task6/runs/2026-05-09T09-13-42+0200-uberddr3-bist-program-readback` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -225,13 +226,21 @@ Interpretation:
   `ERROR: Assert valid_wires_for_net.count(w) failed in common/router1.cc:331`.
   Router2 still converges to `overused=0` and a bitstream is emitted, so the
   next useful discriminator is a board BIST/JTAG-status run.
+- The first board BIST/JTAG-status run proves the direct BSCANE2 payload is
+  readable, but the wrapper clocking is wrong: the payload is static apart from
+  combinational fields because `mmcm_locked=0` and the controller-domain cycle
+  counter remains `0`.
+- LiteX-Boards' YPCB target uses the single-ended `clk50` pin `AA28` as the CRG
+  input, not the differential `clk200_p/n` pins used by the first UberDDR3
+  wrapper attempt.
 
 Next gate:
 
-- Program `/nix/store/8h27r5g39wy4swrf6776wl6zrmszaqj7-task6-ypcb-uberddr3-bist.bit`
-  and read the direct BSCANE2 JTAG payload.
-- If the BIST payload is absent or clearly broken, isolate whether the router1
-  assert is corrupting DDR IO routes with a smaller DQS/OSERDES/ISERDES cutout.
+- Rebuild the UberDDR3 wrapper with `clk50`/`AA28` as the MMCM input and a
+  50 MHz to 100/100+90/25 MHz MMCM configuration, then repeat the same board
+  BIST/JTAG-status run.
+- Only investigate the router1 assert with a smaller DQS/OSERDES/ISERDES cutout
+  after the wrapper clock is known to lock and tick on hardware.
 
 ### 2026-05-08 - Reproduce upstream LiteX-Boards YPCB validation first
 
