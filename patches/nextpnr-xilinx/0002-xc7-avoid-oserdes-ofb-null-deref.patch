@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Sat, 9 May 2026 22:00:00 +0200
+Subject: [PATCH] xilinx: avoid OSERDESE2 OFB null dereference
+
+When an OSERDESE2 uses OQ and the output buffer lookup fails, OFB can be
+unconnected. The existing fallback branch unconditionally dereferenced OFB
+while checking for the OFB-to-ISERDESE2 loopback case, turning an unsupported
+OQ fanout into a segfault during IOLOGIC packing.
+
+Keep the loopback case limited to designs with a connected OFB net. Designs
+with unsupported OQ fanout now report the intended packer error instead of
+crashing.
+---
+ xilinx/pack_io_xc7.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xilinx/pack_io_xc7.cc b/xilinx/pack_io_xc7.cc
+--- a/xilinx/pack_io_xc7.cc
++++ b/xilinx/pack_io_xc7.cc
+@@ -868,7 +868,7 @@ void XC7Packer::pack_iologic()
+                         used_oserdes_bels.insert(ctx->getBelByName(ctx->id(slave_bel_name)));
+                     }
+-                } else if (ofb->users.size() == 1 && ofb->users.at(0).cell->type == ctx->id("ISERDESE2")) {
++                } else if (!ofb_disconnected && ofb->users.size() == 1 && ofb->users.at(0).cell->type == ctx->id("ISERDESE2")) {
+                     unconstrained_oserdes.insert(ci);
+                 } else {
+                     log_error("%s '%s' has illegal fanout on OQ or OFB output. This means that it is not connected to a corresponding OLOGIC BEL.\n", 
+                 auto check_shiftin = [&] (NetInfo *shiftin) {

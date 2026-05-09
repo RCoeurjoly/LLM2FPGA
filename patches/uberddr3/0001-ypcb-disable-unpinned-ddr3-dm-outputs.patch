@@ -1,0 +1,25 @@
+diff --git a/rtl/ddr3_phy.v b/rtl/ddr3_phy.v
+index 1111111..2222222 100644
+--- a/rtl/ddr3_phy.v
++++ b/rtl/ddr3_phy.v
+@@ -153,5 +153,11 @@ module ddr3_phy #(
+     assign o_controller_idelayctrl_rdy = idelayctrl_rdy && dci_locked;
+     
++    // The YPCB-00338-1P1 LiteX board definition does not expose DDR3 DM
++    // pins. Do not instantiate DM OSERDES/OBUF cells for this target; nextpnr
++    // requires every OSERDES data output to terminate at a real OLOGIC BEL.
++    // The memory interface is only used for full-width writes in this build.
++    assign o_ddr3_dm = {LANES{1'b0}};
++
+ `ifdef DEBUG_DQS
+     assign o_ddr3_debug_read_dqs_p = io_ddr3_dqs;
+     assign o_ddr3_debug_read_dqs_n = io_ddr3_dqs_n;
+@@ -797,7 +803,7 @@ module ddr3_phy #(
+         end
+         
+         // data mask: oserdes -> odelay -> obuf
+-        for(gen_index = 0; gen_index < LANES; gen_index = gen_index + 1) begin
++        for(gen_index = 0; gen_index < 0; gen_index = gen_index + 1) begin
+  
+             
+             if(ODELAY_SUPPORTED) begin

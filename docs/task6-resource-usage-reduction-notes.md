@@ -167,6 +167,67 @@ Next gate:
 - Build a routed bitstream and read the BSCANE2 payload before attempting any
   higher-level DDR3 data test.
 
+### 2026-05-09 - UberDDR3 openXC7 DDR IO/SERDES route gate
+
+Decision:
+
+- Stop treating the temporary clock aliases as the blocker; the wrapper now
+  uses LiteX-Boards/YPCB-derived DDR3 constraints and real 25/100/200 MHz MMCM
+  clocks.
+- Focus on the actual openXC7/nextpnr DDR IO/SERDES handling failures.
+
+Implemented:
+
+- Added a local nextpnr-xilinx patch for `XC7Packer::pack_iologic()` so an
+  unconnected `OSERDESE2.OFB` path emits the existing illegal-fanout diagnostic
+  instead of segfaulting.
+- Added a YPCB-specific UberDDR3 source patch in the Nix derivation that does
+  not instantiate DDR3 `DM` OSERDES/OBUF cells. LiteX-Boards' YPCB platform does
+  not expose DDR3 DM pins, so keeping these serializers creates unplaceable
+  OLOGIC connections.
+
+Measured result:
+
+| gate | command | result | notes |
+| --- | --- | --- | --- |
+| Previous routed FASM | `nix build .#task6-ypcb-uberddr3-bist-fasm --no-link --print-out-paths -L` | fail | nextpnr segfaulted in `XC7Packer::pack_iologic()` |
+| After nextpnr null-deref patch | same | fail, better diagnostic | exposed `OSERDESE2_dm` illegal fanout because DM had no top-level DDR3 pins |
+| After disabling unpinned DM serializers | same | route reaches `overused=0`; FASM emitted at `/nix/store/xkq62n7sxx730in7jnjajhg7ykqgi7rv-task6-ypcb-uberddr3-bist.fasm` | nextpnr still logs `ERROR: Assert valid_wires_for_net.count(w) failed in common/router1.cc:331` during router1 legality check, but the derivation exits 0 and writes FASM |
+| Bitstream conversion | `nix build .#task6-ypcb-uberddr3-bist-bitstream --no-link --print-out-paths -L` | fail | `fasm2frames` lacks `LIOI3_TBYTESRC.IOI_OCLKM_0.IOI_IMUX31_1` for DQS byte-lane clock mux features |
+
+Post-patch nextpnr utilization at the route gate:
+
+| metric | value |
+| --- | ---: |
+| `SLICE_LUTX` | 16,006 / 597,200 |
+| `SLICE_FFX` | 7,483 / 597,200 |
+| `OSERDESE2` | 97 / 400 |
+| `ISERDESE2` | 72 / 400 |
+| `IDELAYE2` | 72 / 400 |
+| `IDELAYCTRL` | 3 / 8 |
+| `PAD` | 110 / 946 |
+| router2 final `overused` | 0 |
+
+Interpretation:
+
+- The original nextpnr/OpenXC7 packer blocker is fixed for this design: it no
+  longer crashes, and the unpinned DM serializers are removed from the YPCB
+  build.
+- The next concrete blocker is prjxray/openXC7 database coverage for the DQS
+  byte-lane clock mux features emitted in FASM, plus the router1 legality assert
+  that appears after router2 reaches a legal route.
+- Do not paper over the missing `LIOI3_TBYTESRC` features by blindly deleting
+  FASM lines; they are associated with DQS clocking and may be required for DDR3
+  behavior.
+
+Next gate:
+
+- Build the smallest DQS/OSERDES/ISERDES cutout that emits
+  `LIOI3_TBYTESRC.IOI_OCLKM_0.IOI_IMUX31_1`.
+- Decide whether the right fix is a prjxray database feature addition, a
+  nextpnr FASM emission change, or a wrapper-level primitive/clocking adjustment
+  that avoids unsupported byte-lane mux features while preserving DDR3 timing.
+
 ### 2026-05-08 - Reproduce upstream LiteX-Boards YPCB validation first
 
 Decision:

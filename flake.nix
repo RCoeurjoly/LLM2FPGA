@@ -163,6 +163,16 @@
             } > "$out/summary.md"
             ln -s ${uberDdr3} "$out/source"
           '';
+        task6YpcbUberDdr3Source =
+          pkgs.runCommand "task6-ypcb-uberddr3-source" {
+            nativeBuildInputs = [ pkgs.patch ];
+          } ''
+            set -euo pipefail
+            cp -r ${uberDdr3} "$out"
+            chmod -R u+w "$out"
+            cd "$out"
+            patch -p1 < ${./patches/uberddr3/0001-ypcb-disable-unpinned-ddr3-dm-outputs.patch}
+          '';
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
             buildInputs = [ pkgs.yosys ];
@@ -191,11 +201,11 @@
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
             read_verilog -sv \
-              ${uberDdr3}/rtl/ddr3_top.v \
-              ${uberDdr3}/rtl/ddr3_controller.v \
-              ${uberDdr3}/rtl/ddr3_phy.v \
-              ${uberDdr3}/rtl/ecc/ecc_dec.sv \
-              ${uberDdr3}/rtl/ecc/ecc_enc.sv \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_top.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_controller.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_phy.v \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
               ${./fpga/rtl/task6_ypcb_uberddr3_bist_top.sv}
             hierarchy -top task6_ypcb_uberddr3_bist_top -check
             synth_xilinx -family xc7 -top task6_ypcb_uberddr3_bist_top -noiopad
@@ -538,6 +548,7 @@
             src = nextpnrXilinxFork;
             patches = (old.patches or [ ]) ++ [
               ./patches/nextpnr-xilinx/0001-xc7-allow-odelay-to-hr-output-buffers.patch
+              ./patches/nextpnr-xilinx/0002-xc7-avoid-oserdes-ofb-null-deref.patch
             ];
           });
         openXC7Chipdb = openXC7Packages.nextpnr-xilinx-chipdb.kintex7.override {
