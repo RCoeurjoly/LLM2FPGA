@@ -17340,3 +17340,17 @@ UberDDR3 calibration/data-integrity gates:
     the returned byte is not a clean echo of the commanded byte. The observed
     sequence so far is default `0xa5 -> 0x3d`, command `0x00 -> 0x00`,
     command `0x3d -> 0x30`.
+  - Run
+    `artifacts/task6/runs/2026-05-09T19-52-55+0200-ypcb-uberddr3-v21-jtag-pattern-ff`
+    programmed the known live v21 bitstream and issued USER2 byte `0xff`. It
+    reproduced calibration and the command gate (`status=0xd3`,
+    `calib_seen_cycle=0x000093dd`, `ack_count=2`, `err_count=0`,
+    `command_count=2`, `run_count=2`) and captured read byte `0xff`.
+  - Updated conclusion: v21 is usable for fast same-bitstream pattern
+    classification despite the double-update caveat. The classifier points are
+    now default `0xa5 -> 0x3d`, command `0x00 -> 0x00`,
+    command `0x3d -> 0x30`, command `0xff -> 0xff`. The next productive
+    classifier should capture more than one byte/word from the returned
+    Wishbone data, because single-byte results already show a pattern-sensitive
+    failure but do not distinguish byte-lane corruption from stale/partial
+    writeback.
