@@ -1,0 +1,21 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAIL",
+  "created_at": "2026-05-09T10:40:55.421111+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T10-40-55+0200-ypcb-uberddr3-user-probe",
+  "correctness": "not_reached",
+  "route": "pass: router2 overused=0 at iteration 25; timing pass at 25 MHz",
+  "board": "fail: DDR3 calibration did not complete; payload status=0xd0, debug1=0x800186cc, probe_status=0x1000",
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": "controller_clk max frequency 67.36 MHz, jtag_debug_shift.drck max frequency 432.71 MHz",
+  "runtime": null,
+  "notes": [
+    "Bitstream /nix/store/c57ny7nhaxzsq98jraf9flb363dz3py4-task6-ypcb-uberddr3-bist.bit programmed successfully.",
+    "First and delayed reads, plus reprogram/read, all stayed at calib_complete=0.",
+    "Decoded debug1: state 12 READ_DATA, instruction_address 22, IDELAYCTRL ready, lane 3, read_data_nonzero=1.",
+    "Wrapper probe stayed in PROBE_WAIT_CALIB with zero user Wishbone ACKs, so this does not test user data integrity yet.",
+    "Conclusion: the full-width wrapper probe is a route-sensitive calibration regression; next experiment should reduce user-port fanout and compare only a narrow readback word."
+  ]
+}

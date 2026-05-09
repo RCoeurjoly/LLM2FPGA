@@ -1,0 +1,5 @@
+{"argv": ["openFPGALoader", "-c", "digilent_hs3", "--ftdi-serial", "210299BF3824", "/nix/store/c57ny7nhaxzsq98jraf9flb363dz3py4-task6-ypcb-uberddr3-bist.bit"], "finished_at": "2026-05-09T10:41:38.632160+02:00", "log": "program.log", "returncode": 0}
+{"argv": ["python3", "scripts/task6/read_jtag_debug_ftdi_bitbang.py", "--tdo-bit", "7", "--bits", "512"], "finished_at": "2026-05-09T10:41:52.511849+02:00", "log": "read-jtag-tdo7.log", "returncode": 0}
+{"argv": ["python3", "scripts/task6/read_jtag_debug_ftdi_bitbang.py", "--tdo-bit", "7", "--bits", "512"], "finished_at": "2026-05-09T10:43:20.278290+02:00", "log": "read-jtag-tdo7-second.log", "returncode": 0}
+{"argv": ["openFPGALoader", "-c", "digilent_hs3", "--ftdi-serial", "210299BF3824", "/nix/store/c57ny7nhaxzsq98jraf9flb363dz3py4-task6-ypcb-uberddr3-bist.bit"], "finished_at": "2026-05-09T10:44:25.034789+02:00", "log": "program-second.log", "returncode": 0}
+{"argv": ["python3", "scripts/task6/read_jtag_debug_ftdi_bitbang.py", "--tdo-bit", "7", "--bits", "512"], "finished_at": "2026-05-09T10:44:39.125991+02:00", "log": "read-jtag-tdo7-after-reprogram.log", "returncode": 0}
