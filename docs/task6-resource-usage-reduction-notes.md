@@ -17380,3 +17380,16 @@ UberDDR3 calibration/data-integrity gates:
     `0xa5` in the most significant byte while the lower bytes are patterned,
     so the next classifier runs should compare `0x00` and `0xff` full beats to
     distinguish lane/packing behavior from stale readback.
+  - Run
+    `artifacts/task6/runs/2026-05-09T20-03-10+0200-ypcb-uberddr3-v23-readbeat-00`
+    programmed the same v23 bitstream and issued USER2 byte `0x00`. It
+    reproduced calibration and the command gate: `version=23`, `status=0xd3`,
+    `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`,
+    `command_count=2`, `run_count=2`, `ack_count=2`, `err_count=0`, captured
+    low byte `0x00`.
+  - The returned 512-bit beat words were:
+    `a500c100 a500c100 a5005100 a5005100 0000ad00 0e00ad00 d22bd000 0084d0ff 00008c00 04008c00 802b2900 008429ff 00007700 00007700 00009100 00009100`.
+  - Updated conclusion: command `0x00` zeros several byte positions but not
+    the whole beat. Many byte lanes retain the same structured nonzero values
+    seen in the `0xa5` control, including recurring `0xa5`, `0xc1`, `0x51`,
+    `0xad`, `0x8c`, `0x77`, and `0x91` positions.
