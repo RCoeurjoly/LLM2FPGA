@@ -1,0 +1,52 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAIL",
+  "created_at": "2026-05-09T11:30:50.917519+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T11-30-50+0200-ypcb-uberddr3-single-read-probe",
+  "correctness": {
+    "status": "not_reached",
+    "reason": "DDR3 calibration did not complete, so the post-calibration user read was never issued"
+  },
+  "route": {
+    "status": "pass",
+    "target_mhz": 25.0,
+    "router2_final_overused": 0,
+    "router2_final_iteration": 28,
+    "timing": "pass"
+  },
+  "board": {
+    "status": "fail",
+    "bitstream": "/nix/store/ax1n6b998262p447m3ylf7ycfrv40lwf-task6-ypcb-uberddr3-bist.bit",
+    "jtag_raw_hex": "0x00000000000124a5022c0000000000001009000083af00000001000000000000000012527e610000000000000000000016a90000000012527e61d00554364a44",
+    "manual_decode": {
+      "magic": "0x54364a44",
+      "version": 5,
+      "status": "0xd0",
+      "cycle": "0x12527e61",
+      "calib_seen_cycle": "0x00000000",
+      "debug1": "0x000016a9",
+      "calibration_state": 9,
+      "instruction_address": 21,
+      "idelayctrl_ready": 1,
+      "calibration_stall": 1,
+      "calibration_ack": 0,
+      "read_probe_state": 1,
+      "read_probe_state_name": "WAIT_CALIB",
+      "read_probe_done": 0,
+      "read_probe_ack_seen": 0,
+      "read_probe_err_seen": 0,
+      "read_probe_stall_seen": 0,
+      "read_probe_wait_cycles": 0
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Single post-calibration user Wishbone read FSM routed cleanly but regressed DDR3 calibration.",
+    "Probe remained in WAIT_CALIB because calib_complete never asserted.",
+    "The generic JTAG decoder prints TinyStories field names for this UberDDR3 v5 payload; use the manual decode above."
+  ]
+}

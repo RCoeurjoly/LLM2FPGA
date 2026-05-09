@@ -215,6 +215,9 @@ Measured result:
 | Full-width wrapper Wishbone probe | same | fail, route-sensitive calibration regression | bitstream `/nix/store/c57ny7nhaxzsq98jraf9flb363dz3py4-task6-ypcb-uberddr3-bist.bit`; route `overused=0` at router2 iteration 25 and timing passed, but board payload stayed at `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x800186cc`; decoded debug1 shows state `12` (`READ_DATA`), lane `3`, no calibration strobe/ack, and nonzero read data; probe status remained state `1` (`WAIT_CALIB`) with no user Wishbone ACKs; reprogramming the same image reproduced the failure; run `artifacts/task6/runs/2026-05-09T10-40-55+0200-ypcb-uberddr3-user-probe` |
 | Narrow low-word wrapper Wishbone probe | same | fail, route-sensitive calibration regression | bitstream `/nix/store/258ifv1f9ksfg80rcx2kivfngl9lcn1w-task6-ypcb-uberddr3-bist.bit`; route `overused=0` at router2 iteration 25 and timing passed; payload `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x808406cc`; decoded debug1 shows state `12` (`READ_DATA`), lane `0`, DQ/DQS taps `1`, no calibration strobe/ack, and nonzero read data; probe status remained `WAIT_CALIB` with zero user ACKs; run `artifacts/task6/runs/2026-05-09T10-51-27+0200-ypcb-uberddr3-narrow-user-probe` |
 | Fast-exit control recheck after probe failures | program/readback only | pass, board control | reprogrammed known-good bitstream `/nix/store/rf3akdsj6rdqikhzvfw50146f71vkxpz-task6-ypcb-uberddr3-bist.bit`; payload again reported `status=0xd3`, `calib_seen_cycle=0x000093dd`, and `debug1=0x800386d7` (`DONE_CALIBRATE`); confirms the board/JTAG path was healthy and the probe images were the variable; run `artifacts/task6/runs/2026-05-09T10-52-45+0200-ypcb-uberddr3-fast-exit-control-recheck` |
+| Internal mini-BIST after fast exit | same | fail, route-sensitive calibration regression | bitstream `/nix/store/31x92gc0ar40pnk3px1qpax93y72j3d2-task6-ypcb-uberddr3-bist.bit`; route `overused=0` at router2 iteration 7 and timing passed; payload `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000026cc`; decoded debug1 shows state `12` (`READ_DATA`), instruction `22`, IDELAYCTRL ready, calibration-side ack, and zero mini-BIST correct/wrong/check counters; run `artifacts/task6/runs/2026-05-09T11-14-15+0200-ypcb-uberddr3-internal-mini-bist` |
+| Current-tree fast-exit control | same | pass, calibration control restored | bitstream `/nix/store/8agn3v2i05f7mw66f4j3x4wdrjc6wcw2-task6-ypcb-uberddr3-bist.bit`; route `overused=0` at router2 iteration 5 and timing passed; payload `status=0xd3`, `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`; decoded debug1 shows state `23` (`DONE_CALIBRATE`), instruction `22`, and IDELAYCTRL ready; run `artifacts/task6/runs/2026-05-09T11-23-04+0200-ypcb-uberddr3-fast-exit-current-control` |
+| Single post-calibration user read probe | same | fail, route-sensitive calibration regression | bitstream `/nix/store/ax1n6b998262p447m3ylf7ycfrv40lwf-task6-ypcb-uberddr3-bist.bit`; route `overused=0` at router2 iteration 28 and timing passed; payload `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000016a9`; decoded debug1 shows calibration state `9`, instruction `21`, IDELAYCTRL ready, calibration-side stall and no ack; the wrapper read probe remained in `WAIT_CALIB`, so no user Wishbone read was issued; run `artifacts/task6/runs/2026-05-09T11-30-50+0200-ypcb-uberddr3-single-read-probe` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -285,13 +288,17 @@ Interpretation:
   calibration reaches `DONE_CALIBRATE` and exports `calib_complete=1` over the
   direct BSCANE2 payload. This still does not prove user-port data integrity;
   the wrapper currently ties the user Wishbone request inputs low.
+- The current evidence is strongly route-sensitive: the exact current-tree
+  fast-exit control calibrates, but adding even a small wrapper-side user read
+  FSM or internal mini-BIST perturbation can prevent calibration completion
+  before the user probe ever runs.
 
 Next gate:
 
-- Add a wrapper-side bounded deterministic user-port write/read probe over a
-  few 512-bit beats and export state, mismatch count, ack/error counters, and
-  first mismatch over the direct BSCANE2 payload. This proves the actual path
-  we need for weights in DDR3 without paying for UberDDR3's full-memory BIST.
+- Preserve the known-good fast-exit calibration image shape while narrowing the
+  post-calibration data-path probe. Prefer an internal or seed-controlled probe
+  that changes as little routing around the DDR PHY/calibration logic as
+  possible before reattempting wrapper-side user Wishbone traffic.
 - After the bounded user-port probe passes, add a host-to-DDR loading path
   (initially JTAG write/control if fast enough for small slices, later PCIe for
   full TinyStories weights) and make inference fetch INT8 weights from DDR3.
