@@ -17365,3 +17365,18 @@ UberDDR3 calibration/data-integrity gates:
     The route completed with `overused=0` at router iteration 36 and timing
     passed at 25 MHz. The wider debug chain increased utilization to about
     17,126 `SLICE_LUTX` and 8,170 `SLICE_FFX`.
+  - Control run
+    `artifacts/task6/runs/2026-05-09T20-02-06+0200-ypcb-uberddr3-v23-readbeat-a5-auto`
+    programmed the v23 image without issuing a USER2 command. The wider debug
+    chain preserved the calibration/command gate: `version=23`, `status=0xd3`,
+    `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`,
+    `active_byte=0xa5`, `command_count=0`, `run_count=0`, `ack_count=2`,
+    `err_count=0`, captured low byte `0x3d`, expected byte `0xa5`.
+  - The returned 512-bit beat was not uniform `0xa5`. Its decoded 32-bit
+    words were:
+    `a53dc13d a53dc13d a52c512c a52c512c 0000ad3f 0e80ad00 d265d0a4 000cd07f 00008c0b 04808c80 c0652924 000c297f 00007700 00807700 00009100 00009100`.
+  - Updated conclusion: the failure is wider than a single low-byte issue and
+    has clear structure across the 512-bit beat. The first four words retain
+    `0xa5` in the most significant byte while the lower bytes are patterned,
+    so the next classifier runs should compare `0x00` and `0xff` full beats to
+    distinguish lane/packing behavior from stale readback.
