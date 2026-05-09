@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T13:19:15.540249+02:00"
+label: "ypcb-uberddr3-latched-debug-byte-seed18"
+experiment: "task6-uberddr3-latched-debug-byte"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/3lfhd1qj5v8cxwr81xjbwk7y8fw69hmh-task6-ypcb-uberddr3-bist-seed18.bit"
+reference_artifacts:
+notes: "v14 seed18: route-seed sweep for latched o_wb_data_q_current[7:0] read-byte capture; expect debug1[31:24]=0xa5 if calibration and low-byte readback pass."

@@ -17052,3 +17052,17 @@ UberDDR3 calibration/data-integrity gates:
     calibration-negative route. Use seed18 next, and if seed18 also fails,
     either add seed19/seed20 or return to the v10 seed16 topology and make the
     smallest possible in-controller byte compare.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-19-15+0200-ypcb-uberddr3-latched-debug-byte-seed18`
+    rerouted the same v14 design with seed18. It also routed cleanly
+    (`overused=0` at router iteration 24, timing pass) and programmed
+    successfully, but hardware again failed before calibration:
+    `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000006cc`,
+    `ack_count=0`, probe still in `WAIT_CALIB`.
+  - Updated conclusion: two v14 route seeds failed calibration, so do not spend
+    the next loop blindly sweeping this exact latched-byte design. The more
+    productive path is to return to the known v10 seed16 observation point and
+    change less: preserve the wrapper-level one-byte capture topology that
+    reached post-calibration write/read ACKs, then add a one-bit or low-fanout
+    in-controller equality flag for `read_byte == 0xa5` instead of exporting
+    wider or differently-timed data.
