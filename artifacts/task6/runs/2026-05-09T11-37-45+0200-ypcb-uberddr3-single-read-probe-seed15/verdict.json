@@ -1,0 +1,52 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "PASS",
+  "created_at": "2026-05-09T11:37:45.392825+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T11-37-45+0200-ypcb-uberddr3-single-read-probe-seed15",
+  "correctness": {
+    "status": "partial_pass",
+    "reason": "DDR3 calibration completed and one post-calibration user Wishbone read acknowledged; data integrity not tested because no write was issued"
+  },
+  "route": {
+    "status": "pass",
+    "target_mhz": 25.0,
+    "router2_final_overused": 0,
+    "router2_final_iteration": 4,
+    "timing": "pass"
+  },
+  "board": {
+    "status": "pass",
+    "bitstream": "/nix/store/g6a1755hrcs06dx2zzdmq7xsrk4b1ddw-task6-ypcb-uberddr3-bist-seed15.bit",
+    "jtag_raw_hex": "0x000000000001196fb5cd0000001800001009000083af00000164c1c1c1c1c1c1c1c1011262980000000000000001000006d7000093dd0cb7d82fd30554364a44",
+    "manual_decode": {
+      "magic": "0x54364a44",
+      "version": 5,
+      "status": "0xd3",
+      "cycle": "0x0cb7d82f",
+      "calib_seen_cycle": "0x000093dd",
+      "debug1": "0x000006d7",
+      "calibration_state": 23,
+      "instruction_address": 22,
+      "idelayctrl_ready": 1,
+      "read_data_lo": "0xc1c1c1c1",
+      "read_data_hi": "0xc1c1c1c1",
+      "read_probe_state": 4,
+      "read_probe_state_name": "DONE",
+      "read_probe_done": 1,
+      "read_probe_ack_seen": 1,
+      "read_probe_err_seen": 0,
+      "read_probe_stall_seen": 1,
+      "read_probe_wait_cycles": 24
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Seed-15 reroute of the same single-read probe passed calibration and acknowledged one user Wishbone read.",
+    "The read returned 0xc1c1c1c1c1c1c1c1 without a preceding write, so this proves user-port liveness but not data integrity.",
+    "The generic JTAG decoder prints TinyStories field names for this UberDDR3 v5 payload; use the manual decode above."
+  ]
+}
