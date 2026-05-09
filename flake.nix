@@ -194,11 +194,16 @@
             EOF
             yosys -s run.ys
           '';
-        task6YpcbUberDdr3BistYosysJson =
-          pkgs.runCommand "task6-ypcb-uberddr3-bist-yosys.json" {
+        mkTask6YpcbUberDdr3BistYosysJson =
+          { name ? "task6-ypcb-uberddr3-bist-yosys.json", probeByte ? 165 }:
+          pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
             set -euo pipefail
+            substitute ${./fpga/rtl/task6_ypcb_uberddr3_bist_top.sv} \
+              task6_ypcb_uberddr3_bist_top.sv \
+              --replace-fail "parameter int PROBE_BYTE = 165" \
+                             "parameter int PROBE_BYTE = ${toString probeByte}"
             cat > run.ys <<EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
@@ -208,7 +213,7 @@
               ${task6YpcbUberDdr3Source}/rtl/ddr3_phy.v \
               ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
               ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
-              ${./fpga/rtl/task6_ypcb_uberddr3_bist_top.sv}
+              task6_ypcb_uberddr3_bist_top.sv
             hierarchy -top task6_ypcb_uberddr3_bist_top -check
             synth_xilinx -family xc7 -top task6_ypcb_uberddr3_bist_top -noiopad
             stat -top task6_ypcb_uberddr3_bist_top
@@ -216,6 +221,28 @@
             EOF
             yosys -s run.ys
           '';
+        task6YpcbUberDdr3BistYosysJson =
+          mkTask6YpcbUberDdr3BistYosysJson { };
+        task6YpcbUberDdr3BistByte00YosysJson =
+          mkTask6YpcbUberDdr3BistYosysJson {
+            name = "task6-ypcb-uberddr3-bist-byte00-yosys.json";
+            probeByte = 0;
+          };
+        task6YpcbUberDdr3BistByte5aYosysJson =
+          mkTask6YpcbUberDdr3BistYosysJson {
+            name = "task6-ypcb-uberddr3-bist-byte5a-yosys.json";
+            probeByte = 90;
+          };
+        task6YpcbUberDdr3BistByte3dYosysJson =
+          mkTask6YpcbUberDdr3BistYosysJson {
+            name = "task6-ypcb-uberddr3-bist-byte3d-yosys.json";
+            probeByte = 61;
+          };
+        task6YpcbUberDdr3BistByteffYosysJson =
+          mkTask6YpcbUberDdr3BistYosysJson {
+            name = "task6-ypcb-uberddr3-bist-byteff-yosys.json";
+            probeByte = 255;
+          };
         task6YpcbMmcmDiagJson =
           pkgs.runCommand "task6-ypcb-mmcm-diag.json" {
             buildInputs = [ pkgs.yosys ];
@@ -6021,6 +6048,45 @@
           framesBase = "task6-ypcb-uberddr3-bist-seed16";
         };
 
+        mkTask6YpcbUberDdr3BistSeed16Pattern =
+          { name, json }:
+          let
+            fasm = mkFasm {
+              inherit name json;
+              xdc = task6YpcbUberDdr3BistXdc;
+              seed = 16;
+              freqMHz = 25;
+            };
+            bitstream = mkBitstream {
+              inherit name fasm;
+              framesBase = name;
+            };
+          in
+          {
+            inherit fasm bitstream;
+          };
+
+        task6YpcbUberDdr3BistByte00Seed16 =
+          mkTask6YpcbUberDdr3BistSeed16Pattern {
+            name = "task6-ypcb-uberddr3-bist-byte00-seed16";
+            json = task6YpcbUberDdr3BistByte00YosysJson;
+          };
+        task6YpcbUberDdr3BistByte5aSeed16 =
+          mkTask6YpcbUberDdr3BistSeed16Pattern {
+            name = "task6-ypcb-uberddr3-bist-byte5a-seed16";
+            json = task6YpcbUberDdr3BistByte5aYosysJson;
+          };
+        task6YpcbUberDdr3BistByte3dSeed16 =
+          mkTask6YpcbUberDdr3BistSeed16Pattern {
+            name = "task6-ypcb-uberddr3-bist-byte3d-seed16";
+            json = task6YpcbUberDdr3BistByte3dYosysJson;
+          };
+        task6YpcbUberDdr3BistByteffSeed16 =
+          mkTask6YpcbUberDdr3BistSeed16Pattern {
+            name = "task6-ypcb-uberddr3-bist-byteff-seed16";
+            json = task6YpcbUberDdr3BistByteffYosysJson;
+          };
+
         task6YpcbUberDdr3BistSeed17Fasm = mkFasm {
           name = "task6-ypcb-uberddr3-bist-seed17";
           xdc = task6YpcbUberDdr3BistXdc;
@@ -9930,6 +9996,22 @@
             task6YpcbUberDdr3BistSeed16Fasm;
           task6-ypcb-uberddr3-bist-seed16-bitstream =
             task6YpcbUberDdr3BistSeed16Bitstream;
+          task6-ypcb-uberddr3-bist-byte00-seed16-fasm =
+            task6YpcbUberDdr3BistByte00Seed16.fasm;
+          task6-ypcb-uberddr3-bist-byte00-seed16-bitstream =
+            task6YpcbUberDdr3BistByte00Seed16.bitstream;
+          task6-ypcb-uberddr3-bist-byte5a-seed16-fasm =
+            task6YpcbUberDdr3BistByte5aSeed16.fasm;
+          task6-ypcb-uberddr3-bist-byte5a-seed16-bitstream =
+            task6YpcbUberDdr3BistByte5aSeed16.bitstream;
+          task6-ypcb-uberddr3-bist-byte3d-seed16-fasm =
+            task6YpcbUberDdr3BistByte3dSeed16.fasm;
+          task6-ypcb-uberddr3-bist-byte3d-seed16-bitstream =
+            task6YpcbUberDdr3BistByte3dSeed16.bitstream;
+          task6-ypcb-uberddr3-bist-byteff-seed16-fasm =
+            task6YpcbUberDdr3BistByteffSeed16.fasm;
+          task6-ypcb-uberddr3-bist-byteff-seed16-bitstream =
+            task6YpcbUberDdr3BistByteffSeed16.bitstream;
           task6-ypcb-uberddr3-bist-seed17-fasm =
             task6YpcbUberDdr3BistSeed17Fasm;
           task6-ypcb-uberddr3-bist-seed17-bitstream =

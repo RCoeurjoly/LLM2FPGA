@@ -17156,3 +17156,23 @@ UberDDR3 calibration/data-integrity gates:
     read-after-write visibility hazard. The next DDR3 work should focus on
     controller/PHY data mapping or write/read lane timing, not on adding delay
     between Wishbone transactions.
+  - Added `scripts/task6/task6_ddr3_experiment_runner.py` as the canonical
+    board runner for these DDR3 probes. It builds or accepts a bitstream,
+    creates a run directory, programs the board under the board lock, reads
+    the BSCANE2 payload on TDO bit 7, writes decoded JSON, updates
+    `verdict.json`, and appends one aggregate row to
+    `artifacts/task6/ddr3-run-results.jsonl`.
+  - Baseline reproducibility runs through the runner:
+    `artifacts/task6/runs/2026-05-09T16-01-27+0200-ypcb-uberddr3-baseline-repro-1`,
+    `artifacts/task6/runs/2026-05-09T16-02-46+0200-ypcb-uberddr3-baseline-repro-2`,
+    and
+    `artifacts/task6/runs/2026-05-09T16-03-49+0200-ypcb-uberddr3-baseline-repro-3`
+    all used the seed16 v18 bitstream and produced the same functional
+    result: calibration pass, command gate pass, integrity fail. The stable
+    values were `status=0xd3`, `calib_seen_cycle=0x000093dd`,
+    `ack_count=2`, `err_count=0`, captured byte `0x3d`, expected byte `0xa5`.
+  - Updated conclusion: the failure is deterministic across reprograms with
+    the current seed16 image. Proceed with a pattern classifier that varies
+    only the uniform write/expected byte while preserving the same runner and
+    seed16 route target, then compare whether the returned byte is fixed,
+    pattern-dependent, inverted, or tied to a specific lane/packing artifact.
