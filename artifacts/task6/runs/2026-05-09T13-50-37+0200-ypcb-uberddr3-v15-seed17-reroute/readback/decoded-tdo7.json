@@ -1,0 +1,33 @@
+{
+  "schema": "task6-uberddr3-jtag-payload-v1",
+  "experiment": "task6-uberddr3-v15-route-seed-sweep",
+  "variant": "v15-seed17",
+  "bitstream": "/nix/store/b0jl6zgywrjwax20c9sd4xnbbxrm32h5-task6-ypcb-uberddr3-bist-seed17.bit",
+  "expected_byte": "0xa5",
+  "raw_hex": "0x000000000001188704420000000000001009000083af0000000100000000000000000c437f6c0000000000000000000006cc000000000c437f6cd00f54364a44",
+  "magic": "0x54364a44",
+  "version": 15,
+  "status": "0xd0",
+  "cycle": "0x0c437f6c",
+  "calib_seen_cycle": "0x00000000",
+  "debug1": "0x000006cc",
+  "state": 12,
+  "instruction": 22,
+  "idelay_ready": true,
+  "ack_count": 0,
+  "err_count": 0,
+  "stall_count": "0x0c437f6c",
+  "read_byte": "0x00",
+  "probe": "0x00000001",
+  "probe_state": "WAIT_CALIB",
+  "write_ack_seen": false,
+  "read_ack_seen": false,
+  "mismatch": false,
+  "sys_rstn": true,
+  "result": {
+    "route": "pass",
+    "board": "fail_before_command_gate",
+    "calibration": "fail",
+    "interpretation": "The exact v15 topology with route seed17 does not reproduce seed16's calibration/command gate. Seed16 remains the only live UberDDR3 image observed so far."
+  }
+}

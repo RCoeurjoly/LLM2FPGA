@@ -17131,3 +17131,15 @@ UberDDR3 calibration/data-integrity gates:
     `/nix/store/a2ifhrb88dqbmkgdjck5dg6a4dxnyy0c-task6-ypcb-uberddr3-bist-seed16.bit`.
     This makes the current source tree match the last known live board gate
     before continuing DDR3 diagnostics.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-50-37+0200-ypcb-uberddr3-v15-seed17-reroute`
+    built and programmed the exact v15 topology with route seed17. The route
+    completed (`overused=0` at router iteration 28, timing pass), but board
+    readback stayed before calibration: `status=0xd0`,
+    `calib_seen_cycle=0`, `debug1=0x000006cc`, `ack_count=0`, probe
+    `WAIT_CALIB`.
+  - Updated conclusion: route seed16 remains the only observed UberDDR3 image
+    that reaches calibration and Wishbone write/read ACKs. This is strong
+    placement/route sensitivity. Do not invest much more in arbitrary route
+    seeds; either freeze seed16 for higher-level loader work, or change the
+    controller/PHY bring-up knobs that affect DDR timing more directly.

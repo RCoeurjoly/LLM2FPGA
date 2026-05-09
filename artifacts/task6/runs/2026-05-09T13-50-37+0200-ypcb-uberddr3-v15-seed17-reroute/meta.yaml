@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T13:50:37.887347+02:00"
+label: "ypcb-uberddr3-v15-seed17-reroute"
+experiment: "task6-uberddr3-v15-route-seed-sweep"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/b0jl6zgywrjwax20c9sd4xnbbxrm32h5-task6-ypcb-uberddr3-bist-seed17.bit"
+reference_artifacts:
+notes: "Restored exact v15 command-liveness topology, route seed17. Tests whether command gate and 0x3d mismatch reproduce on another clean route seed."
