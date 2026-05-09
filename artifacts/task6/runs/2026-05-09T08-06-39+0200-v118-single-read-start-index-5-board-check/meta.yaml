@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T08:06:39.827662+02:00"
+label: "v118-single-read-start-index-5-board-check"
+experiment: "Single native read at sparse address index 5"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/3f6nhxfypg0ijmjjzhv4lmqmavg1v086-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-single-read-init-bandwidth-probe-start-index-5.bit"
+reference_artifacts:
+notes: null

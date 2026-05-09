@@ -1,0 +1,16 @@
+{
+  "cmdaddr_trace": [],
+  "command_count": 0,
+  "magic_ok": true,
+  "mismatch_count": 0,
+  "response_count": 0,
+  "samples": [],
+  "schema": "task6-litedram-native-beat-mapping-analysis-v1",
+  "source": "/home/roland/LLM2FPGA_task6_streamtensor_lite/artifacts/task6/runs/2026-05-09T08-06-39+0200-v118-single-read-start-index-5-board-check/logs/read-litedram-probe-jtag-ftdi-11264.log",
+  "start_index": 5,
+  "state": "PROBE_ERROR",
+  "unique_beat_count": 0,
+  "unique_beats": [],
+  "valid_count": 0,
+  "version": 116
+}

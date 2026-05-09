@@ -16327,3 +16327,71 @@ Updated interpretation:
   classify the returned 576-bit beat layout against the DFII addrwalk data.
   The likely fault is now in native read data packing, DFII-to-native address
   mapping below command acceptance, or PHY/data-lane integrity.
+
+### 2026-05-09 - Native 576-bit beat mapping classifier
+
+Goal:
+
+- Compare the returned 576-bit native read beats against the DFII addrwalk
+  expected data, instead of adding more command-address latch probes.
+- Decide whether the native read data is merely packed differently, shifted to
+  a different DFII address/chunk, or collapsing to one repeated beat.
+
+Host-side classifier:
+
+- Added `scripts/task6/analyze_litedram_native_beat_mapping.py`.
+- The classifier reads the existing JTAG JSON logs, reconstructs each captured
+  576-bit native beat, compares all 64-bit chunks and byte positions against a
+  DFII addrwalk expected dictionary, and writes JSON plus Markdown summaries.
+
+Valid v117 board evidence:
+
+| source run | state | command/response | valid samples | unique returned beats | best DFII match |
+| --- | --- | ---: | ---: | ---: | --- |
+| `2026-05-08T22-16-02+0200-v116-cmdaddr-idx1-board-check` | `PROBE_DONE` | `16 / 16` | `16` | `1` | addr index `15` |
+| `2026-05-08T22-38-19+0200-v117-cmdaddr-idx5-board-check` | `PROBE_DONE` | `16 / 16` | `16` | `1` | addr index `15` |
+| `2026-05-09T08-10-26+0200-v117-cmdaddr-idx5-board-health-recheck` | `PROBE_DONE` | `16 / 16` | `16` | `1` | addr index `15` |
+
+Key result:
+
+- The accepted command address changes correctly in the checked runs, but all
+  16 captured native samples return the same 576-bit beat.
+- That repeated beat has its strongest DFII dictionary match at addr index
+  `15`: same-position chunk score `2`, any-position chunk score `3`, and top
+  byte-vote score `15:528`.
+- Therefore the current failure is not top-level native `cmd_addr` generation.
+  It is below native command acceptance: native returned-beat packing,
+  DFII/native address mapping, response sequencing, or data-lane/PHY integrity.
+
+Single-read attempt:
+
+- Added a generated bitstream family for
+  `NATIVE_ADDRESS_CLASSIFIER_START_INDEX` with `READ_COUNT_LOG2=0`, intended to
+  issue exactly one native read at a sparse classifier address.
+- Built and routed start index `5` successfully:
+  `/nix/store/3f6nhxfypg0ijmjjzhv4lmqmavg1v086-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-single-read-init-bandwidth-probe-start-index-5.bit`.
+- Board runs
+  `2026-05-09T08-06-39+0200-v118-single-read-start-index-5-board-check` and
+  `2026-05-09T08-08-22+0200-v118-single-read-start-index-5-board-check-retry`
+  both produced valid JTAG payloads but stopped at `PROBE_ERROR` before the
+  native read phase:
+  - `wb_ack_count=0`
+  - `wb_wait_count=524289`
+  - `write_command_count=0`
+  - `response_count=0`
+  - `target_read_count=1`
+- Reprogramming the known v117 index-5 bitstream immediately afterward reached
+  `PROBE_DONE`, so the board/JTAG path was not globally wedged.
+
+Interpretation:
+
+- The host-side 576-bit beat classifier is now useful and should be the main
+  analysis tool for the next DDR3 probes.
+- The first single-read routed variant is not a valid mapping data point,
+  because it fails during LiteDRAM init before issuing native commands.
+- Next productive action: reroute or narrow the single-read variant until it
+  reaches `PROBE_DONE`, then compare its lone returned 576-bit beat against the
+  current repeated addr-index-15 signature. If single-read still returns the
+  addr-index-15-shaped beat, focus on DFII/native mapping or PHY/data-lane
+  integrity. If single-read differs, focus on native response sequencing or
+  outstanding read handling.

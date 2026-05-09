@@ -6,6 +6,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter int TIMEOUT_LOG2 = 28,
   parameter int WB_TIMEOUT_LOG2 = 20,
   parameter int unsigned NATIVE_CMDADDR_FIRST_COMMAND_INDEX = 0,
+  parameter int unsigned NATIVE_ADDRESS_CLASSIFIER_START_INDEX = 0,
   parameter bit DFII_DISABLE_WRITE_COMMAND = 1'b0,
   parameter bit DFII_PHASE_MATRIX_ONLY = 1'b0,
   parameter bit DFII_SOURCE_COMMAND_MATRIX_ONLY = 1'b0,
@@ -3894,8 +3895,12 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
                          dfii_bist_mismatch_word_count) != 32'd0) begin
                       state_q <= PROBE_ERROR;
                     end else begin
-                      read_addr_q <= 25'd0;
-                      compare_addr_q <= 25'd0;
+                      read_addr_q <=
+                        native_address_classifier_mode ?
+                        NATIVE_ADDRESS_CLASSIFIER_START_INDEX[24:0] : 25'd0;
+                      compare_addr_q <=
+                        native_address_classifier_mode ?
+                        NATIVE_ADDRESS_CLASSIFIER_START_INDEX[24:0] : 25'd0;
                       command_count_q <= 32'd0;
                       response_count_q <= 32'd0;
                       write_command_count_q <= 32'd0;

@@ -4972,6 +4972,87 @@
               commandIndexRange);
           };
 
+        task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrSingleReadInitBandwidthProbeByStartIndex =
+          let
+            baseName =
+              "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-single-read-init-bandwidth-probe";
+            startIndexRange = builtins.genList (index: index) 16;
+            buildForIndex = { index }: let
+              indexStr = toString index;
+              artifactName =
+                "${baseName}-start-index-${indexStr}";
+              json =
+                pkgs.runCommand "${artifactName}.json" {
+                  buildInputs = [ pkgs.yosys ];
+                } ''
+                  set -euo pipefail
+                  cat > run.ys <<EOF
+                  read_verilog ${task6YpcbLiteDramNoOdelayLowrateDfiDebugRtlElaboration}/build/gateware/ypcb_litedram_core.v
+                  read_verilog -sv -DTASK6_LITEDRAM_DEBUG_PORTS ${./fpga/rtl/task6_ypcb_litedram_init_bandwidth_probe_top.sv}
+                  read_verilog -lib +/xilinx/cells_sim.v
+                  read_verilog -lib +/xilinx/cells_xtra.v
+                  chparam -set DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE 1 task6_ypcb_litedram_init_bandwidth_probe_top
+                  chparam -set NATIVE_CMDADDR_FIRST_COMMAND_INDEX 0 task6_ypcb_litedram_init_bandwidth_probe_top
+                  chparam -set NATIVE_ADDRESS_CLASSIFIER_START_INDEX ${indexStr} task6_ypcb_litedram_init_bandwidth_probe_top
+                  chparam -set READ_COUNT_LOG2 0 task6_ypcb_litedram_init_bandwidth_probe_top
+                  hierarchy -top task6_ypcb_litedram_init_bandwidth_probe_top -check
+                  proc
+                  synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
+                  write_json "$out"
+                  EOF
+                  ${pkgs.yosys}/bin/yosys -s run.ys
+                '';
+              fasm = mkFasm {
+                name = artifactName;
+                xdc =
+                  task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeXdc;
+                json = json;
+                seed = 13;
+                freqMHz = 25;
+              };
+              bitstream = mkBitstream {
+                name = artifactName;
+                fasm = fasm;
+                framesBase = artifactName;
+              };
+            in {
+              json = json;
+              fasm = fasm;
+              bitstream = bitstream;
+            };
+
+            indexedArtifacts = builtins.listToAttrs (map
+              (index: {
+                name = toString index;
+                value = buildForIndex { index = index; };
+              })
+              startIndexRange);
+          in {
+            json = builtins.listToAttrs (map
+              (index: {
+                name =
+                  "${baseName}-start-index-${toString index}-json";
+                value = indexedArtifacts.${toString index}.json;
+              })
+              startIndexRange);
+
+            fasm = builtins.listToAttrs (map
+              (index: {
+                name =
+                  "${baseName}-start-index-${toString index}-fasm";
+                value = indexedArtifacts.${toString index}.fasm;
+              })
+              startIndexRange);
+
+            bitstream = builtins.listToAttrs (map
+              (index: {
+                name =
+                  "${baseName}-start-index-${toString index}-bitstream";
+                value = indexedArtifacts.${toString index}.bitstream;
+              })
+              startIndexRange);
+          };
+
         task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.json" {
             buildInputs = [ pkgs.yosys ];
@@ -10445,6 +10526,9 @@
         } // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeByCommandIndex.json
           // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeByCommandIndex.fasm
           // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeByCommandIndex.bitstream
+          // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrSingleReadInitBandwidthProbeByStartIndex.json
+          // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrSingleReadInitBandwidthProbeByStartIndex.fasm
+          // task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrSingleReadInitBandwidthProbeByStartIndex.bitstream
           // representativeCoreSweepPackages // pipelineStagePackages
           // pipelineMetadataPackages;
 

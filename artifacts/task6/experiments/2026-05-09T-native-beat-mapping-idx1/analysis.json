@@ -1,0 +1,1318 @@
+{
+  "cmdaddr_trace": [
+    {
+      "accepted_cmd_addr": 1,
+      "accepted_matches_requested": true,
+      "command_index": 1,
+      "presented_cmd_addr": 1,
+      "presented_matches_accepted": true,
+      "sample": 1,
+      "scheduled_matches_presented": true,
+      "scheduled_read_addr": 1
+    }
+  ],
+  "command_count": 16,
+  "magic_ok": true,
+  "mismatch_count": 16,
+  "response_count": 16,
+  "samples": [
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 0,
+      "sample": 0,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 1,
+      "requested_dfii_column": 8,
+      "requested_native_addr": 1,
+      "sample": 1,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 2,
+      "requested_dfii_column": 16,
+      "requested_native_addr": 2,
+      "sample": 2,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 3,
+      "requested_dfii_column": 24,
+      "requested_native_addr": 3,
+      "sample": 3,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 8,
+      "requested_dfii_column": 256,
+      "requested_native_addr": 8,
+      "sample": 4,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 18,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 2,
+      "exact_same_position_chunks": [
+        0,
+        1
+      ],
+      "requested_dfii_addr_index": 15,
+      "requested_dfii_column": 536,
+      "requested_native_addr": 15,
+      "sample": 5,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 16,
+      "sample": 6,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 18,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 2,
+      "exact_same_position_chunks": [
+        0,
+        1
+      ],
+      "requested_dfii_addr_index": 15,
+      "requested_dfii_column": 536,
+      "requested_native_addr": 31,
+      "sample": 7,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 64,
+      "sample": 8,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 128,
+      "sample": 9,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 256,
+      "sample": 10,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 512,
+      "sample": 11,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 1024,
+      "sample": 12,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 2048,
+      "sample": 13,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 4096,
+      "sample": 14,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    },
+    {
+      "actual_chunks_hex": [
+        "0xadacafaea9a8abaa",
+        "0xacafaea9a8abaaa2",
+        "0xafaea9a8abaaa2ad",
+        "0xaea9a8abaaa2adac",
+        "0xa9a8abaaa2adacaf",
+        "0xa8abaaa2adacafae",
+        "0xabaaa2adacafaea9",
+        "0xaaa2adacafaea9a8",
+        "0xa2adacafaea9a8ab"
+      ],
+      "any_position_chunk_match_count": 3,
+      "any_position_chunk_matches": [
+        {
+          "actual_chunk": 0,
+          "matches": [
+            {
+              "chunk": 0,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 5,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 1,
+          "matches": [
+            {
+              "chunk": 1,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 6,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        },
+        {
+          "actual_chunk": 5,
+          "matches": [
+            {
+              "chunk": 3,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            },
+            {
+              "chunk": 8,
+              "dfii_addr_index": 15,
+              "dfii_column": 536
+            }
+          ]
+        }
+      ],
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "best_any_position_chunk_count": 3,
+      "best_any_position_dfii_addr_index": 15,
+      "best_same_position_chunk_count": 2,
+      "best_same_position_dfii_addr_index": 15,
+      "byte_exact_same_position_count": 0,
+      "byte_known_count": 72,
+      "exact_same_position_chunk_count": 0,
+      "exact_same_position_chunks": [],
+      "requested_dfii_addr_index": 0,
+      "requested_dfii_column": 0,
+      "requested_native_addr": 8192,
+      "sample": 15,
+      "top_byte_addr_votes": [
+        {
+          "count": 528,
+          "dfii_addr_index": 15
+        }
+      ]
+    }
+  ],
+  "schema": "task6-litedram-native-beat-mapping-analysis-v1",
+  "source": "artifacts/task6/runs/2026-05-08T22-20-18+0200-v117-cmdaddr-idx1-board-check/logs/read-litedram-probe-jtag-ftdi-11264.log",
+  "state": "PROBE_DONE",
+  "unique_beat_count": 1,
+  "unique_beats": [
+    {
+      "beat_key": "adacafaea9a8abaa acafaea9a8abaaa2 afaea9a8abaaa2ad aea9a8abaaa2adac a9a8abaaa2adacaf a8abaaa2adacafae abaaa2adacafaea9 aaa2adacafaea9a8 a2adacafaea9a8ab",
+      "count": 16
+    }
+  ],
+  "valid_count": 16,
+  "version": 116
+}
