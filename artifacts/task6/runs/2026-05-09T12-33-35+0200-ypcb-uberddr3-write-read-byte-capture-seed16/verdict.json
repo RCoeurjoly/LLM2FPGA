@@ -1,0 +1,61 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETED_FAIL",
+  "created_at": "2026-05-09T12:33:35.078234+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T12-33-35+0200-ypcb-uberddr3-write-read-byte-capture-seed16",
+  "correctness": {
+    "passed": false,
+    "reason": "Calibration and write/read ACK completed, but the first captured read byte did not match the written 0xa5 pattern.",
+    "expected_read_byte": "0xa5",
+    "observed_read_byte": "0x3d"
+  },
+  "route": {
+    "bitstream": "/nix/store/c3pi9b08rlb7m8k7j9gxpl5k2wy8fk5b-task6-ypcb-uberddr3-bist-seed16.bit",
+    "seed": 16,
+    "router": "nextpnr-xilinx router2",
+    "overused_final": 0,
+    "overused_zero_iteration": 15,
+    "timing": "PASS",
+    "controller_clk_fmax_mhz": 84.51,
+    "target_mhz": 25.0
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x000000000001229782a90000001d00001009000083af000002e6000000000000003d0174f4c40000000000000002000006d7000093dd114bbe9dd30a54364a44",
+    "decoded": {
+      "magic": "0x54364a44",
+      "version": 10,
+      "status": "0xd3",
+      "cycle": "0x114bbe9d",
+      "calib_seen_cycle": "0x93dd",
+      "debug1": "0x6d7",
+      "calibration_state": 23,
+      "instruction_address": 22,
+      "idelayctrl_ready": true,
+      "ack_count": "0x2",
+      "err_count": "0x0",
+      "stall_count": "0x174f4c4",
+      "read_lo": "0x3d",
+      "read_byte": "0x3d",
+      "probe": "0x2e6",
+      "probe_state": 6,
+      "write_ack_seen": true,
+      "read_ack_seen": true,
+      "err_seen": false,
+      "stall_seen": true,
+      "wait_cycles": "0x1d",
+      "sys_rstn": true
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Same v10 RTL as the seed15 byte-capture experiment, but routed with seed16.",
+    "Unlike seed15, calibration reached DONE_CALIBRATE and both post-calibration write/read ACKs completed.",
+    "The observed byte was 0x3d rather than the written 0xa5 pattern, so the next gate is byte-lane/address/read-latency mapping or data integrity, not command liveness."
+  ]
+}

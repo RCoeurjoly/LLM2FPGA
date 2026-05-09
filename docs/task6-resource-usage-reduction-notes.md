@@ -16974,8 +16974,16 @@ UberDDR3 calibration/data-integrity gates:
     read ACK. It routed (`overused=0` at router iteration 65, timing pass) but
     failed the board calibration gate: `status=0xd0`, `calib_seen_cycle=0`,
     `debug1=0x000006c9`, `ack_count=0`, probe still in `WAIT_CALIB`.
-  - Updated conclusion: the command path is alive, but direct read-data fanout
-    into wrapper/JTAG state is still enough to perturb calibration on the tested
-    seed. The next productive step is not a wider compare; it is isolating the
-    read-data observation path with lower fanout/stronger hierarchy or moving
-    the integrity check closer to the UberDDR3 data boundary.
+  - Run
+    `artifacts/task6/runs/2026-05-09T12-33-35+0200-ypcb-uberddr3-write-read-byte-capture-seed16`
+    rerouted the same v10 RTL with seed16. It routed much more cleanly
+    (`overused=0` at router iteration 15, timing pass) and passed the command
+    liveness gate on hardware: `status=0xd3`, `calib_seen_cycle=0x000093dd`,
+    `debug1=0x000006d7`, `ack_count=2`, probe done, write ACK seen, read ACK
+    seen, no error. The captured read byte was `0x3d`, not the written `0xa5`.
+  - Updated conclusion: the command path is alive and a read-data tap can work
+    with at least one route seed. The next productive step is a small data
+    mapping/integrity classifier: write a distinctive per-byte/per-lane pattern
+    and capture a slightly wider returned word so we can distinguish byte-lane
+    mapping, stale calibration data, read-latency alignment, and true memory
+    corruption.
