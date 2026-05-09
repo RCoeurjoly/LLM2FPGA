@@ -16759,7 +16759,26 @@ Current conclusion:
 
 - The real LiteX-derived YPCB pin constraints and proper 25/100/200 MHz wrapper
   clocking are in place and synthesize.
-- UberDDR3's raw 7-series PHY now has an openXC7-generated YPCB bitstream ready
-  for board testing. The next gate is to program it and read the direct BSCANE2
-  JTAG BIST payload, while treating the router1 assert as a residual route
-  correctness risk until hardware behavior says otherwise.
+- UberDDR3's raw 7-series PHY now has an openXC7-generated YPCB bitstream that
+  programs and returns a valid direct BSCANE2 payload, but its MMCM-derived
+  reset never releases:
+  - `/nix/store/8h27r5g39wy4swrf6776wl6zrmszaqj7-task6-ypcb-uberddr3-bist.bit`
+    returned valid magic/version with `mmcm_locked=0` and `cycle_count=0`.
+  - Switching the wrapper to current LiteX-Boards `clk50` on `AA28` and reset
+    on `R28` still returned `mmcm_locked=0`, `cycle_count=0`.
+  - Diagnostic readback with raw clock/reset counters proved `clk50` is alive
+    and `SYS_RSTN=1`: `clk50_count=0x182abf14`, then `0x19c19a30` on a later
+    direct-feedback build.
+- Added `.#task6-ypcb-mmcm-diag-bitstream`, a minimal clock/JTAG diagnostic
+  that does not touch DDR pins. Board result for
+  `/nix/store/hfb07ccdq2x0q4v4x3mfzzbjvps9pf4l-task6-ypcb-mmcm-diag.bit`:
+  - raw payload magic/version valid: `0x54364d4d`, version `1`
+  - status `0x09`: `SYS_RSTN=1`, `pll_locked=1`, `mmcm_a_locked=0`,
+    `mmcm_b_locked=0`
+  - counters advanced: `raw_count=0x1e73d4ef`,
+    `mmcm_a_count=0x1d1cbd3d`, `mmcm_b_count=0x2c7c1e4b`,
+    `pll_count=0x0f39e9f0`
+- Updated conclusion: the immediate blocker is not board programming, JTAG,
+  reset, absence of the 50 MHz input clock, or small-design routing. The next
+  gate is to switch the UberDDR3 BIST wrapper from MMCM-reset gating to the
+  locking PLLE2 path, then re-run BIST/calibration.

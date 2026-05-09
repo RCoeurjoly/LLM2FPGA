@@ -214,6 +214,22 @@
             EOF
             yosys -s run.ys
           '';
+        task6YpcbMmcmDiagJson =
+          pkgs.runCommand "task6-ypcb-mmcm-diag.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv ${./fpga/rtl/task6_ypcb_mmcm_diag_top.sv}
+            hierarchy -top task6_ypcb_mmcm_diag_top -check
+            synth_xilinx -family xc7 -top task6_ypcb_mmcm_diag_top -noiopad
+            stat -top task6_ypcb_mmcm_diag_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
         llvmPackages = pkgsLlvm21.llvmPackages_21;
         # Keep LLVM for torch-mlir separate and pinned to torch-mlir's
         # submodule revision so source edits in torch-mlir do not rebuild LLVM.
@@ -5482,6 +5498,19 @@
             PY
           '';
 
+        task6YpcbMmcmDiagXdc =
+          pkgs.runCommand "task6-ypcb-mmcm-diag.xdc" { } ''
+            set -euo pipefail
+            cat > "$out" <<'EOF'
+            set_property LOC AA28 [get_ports {clk50}]
+            set_property IOSTANDARD LVCMOS18 [get_ports {clk50}]
+            create_clock -name clk50 -period 20.000 [get_ports clk50]
+
+            set_property LOC R28 [get_ports {SYS_RSTN}]
+            set_property IOSTANDARD LVCMOS18 [get_ports {SYS_RSTN}]
+            EOF
+          '';
+
         task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeXdc = mkXdc {
           name = "task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe";
           includeBoardXdc = false;
@@ -5960,6 +5989,20 @@
           name = "task6-ypcb-uberddr3-bist";
           fasm = task6YpcbUberDdr3BistFasm;
           framesBase = "task6-ypcb-uberddr3-bist";
+        };
+
+        task6YpcbMmcmDiagFasm = mkFasm {
+          name = "task6-ypcb-mmcm-diag";
+          xdc = task6YpcbMmcmDiagXdc;
+          json = task6YpcbMmcmDiagJson;
+          seed = 15;
+          freqMHz = 25;
+        };
+
+        task6YpcbMmcmDiagBitstream = mkBitstream {
+          name = "task6-ypcb-mmcm-diag";
+          fasm = task6YpcbMmcmDiagFasm;
+          framesBase = "task6-ypcb-mmcm-diag";
         };
 
         task6YpcbLiteDramNoOdelayInitBandwidthProbeBitstream =
@@ -9821,6 +9864,14 @@
             task6YpcbUberDdr3BistFasm;
           task6-ypcb-uberddr3-bist-bitstream =
             task6YpcbUberDdr3BistBitstream;
+          task6-ypcb-mmcm-diag-json =
+            task6YpcbMmcmDiagJson;
+          task6-ypcb-mmcm-diag-xdc =
+            task6YpcbMmcmDiagXdc;
+          task6-ypcb-mmcm-diag-fasm =
+            task6YpcbMmcmDiagFasm;
+          task6-ypcb-mmcm-diag-bitstream =
+            task6YpcbMmcmDiagBitstream;
           task6-ypcb-litedram-open-synth-json =
             task6YpcbLiteDramOpenSynthJson;
           task6-ypcb-litedram-open-synth-utilization =
