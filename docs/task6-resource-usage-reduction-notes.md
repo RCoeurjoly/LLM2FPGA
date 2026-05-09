@@ -17275,3 +17275,17 @@ UberDDR3 calibration/data-integrity gates:
   - Updated conclusion: the TCK-latched command-path fix did not perturb the
     known seed16 calibration/command-liveness point. It is valid to test USER2
     command-driven reruns against the v21 image.
+  - Run
+    `artifacts/task6/runs/2026-05-09T18-59-45+0200-ypcb-uberddr3-v21-jtag-pattern-00`
+    programmed the same v21 bitstream, issued USER2 command `0xa100`
+    (`byte=0x00`), and read back the debug payload. Unlike v20, the command
+    path did fire: `version=21`, `status=0xd3`,
+    `calib_seen_cycle=0x000093dd`, `debug1=0x000016b7`,
+    `command_count=2`, `run_count=2`, `ack_count=2`, `err_count=0`,
+    captured byte `0x00`.
+  - Caveat: the final payload command word was `0x000202a5`, so the reported
+    active byte ended at `0xa5` even though the data byte captured by the
+    probe was `0x00`. This means the TCK latch fix made USER2 effective, but
+    the command register is still not a clean one-command/one-rerun interface;
+    there is likely a second UPDATE/captured-echo event around the command or
+    subsequent readback TAP movement.
