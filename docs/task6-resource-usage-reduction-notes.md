@@ -16625,3 +16625,46 @@ Immediate next UberDDR3 gate:
   with the board constraints, and `BIST_MODE=1`.
 - Export only calibration/BIST/debug status through the existing direct BSCANE2
   JTAG payload path before attempting a wide row-stream interface.
+
+Minimal YPCB wrapper with LiteX-derived XDC:
+
+- Added `task6_ypcb_uberddr3_bist_top.sv`, a minimal YPCB wrapper around
+  UberDDR3 `ddr3_top.v` with BIST mode enabled and status exposed through the
+  direct BSCANE2 JTAG payload.
+- Derived `.#task6-ypcb-uberddr3-bist-xdc` from current LiteX-Boards
+  `litex_boards/platforms/ypcb_00338_1p1.py`, channel 0 DDR3 pins:
+  64 DQ bits, 8 DQS pairs, 15 row address bits, 3 bank bits, control pins, and
+  the 200 MHz differential input clock.
+- LiteX-Boards does not expose DDR3 DM pins for this platform, so the wrapper
+  leaves UberDDR3 DM as an internal unused wire instead of inventing board pins.
+- Replaced the first temporary clock aliases with real YPCB clocking:
+  `clk200_p/n` through `IBUFDS` and `BUFG`, then an `MMCME2_BASE` generating
+  100 MHz, 100 MHz + 90 degrees, and 25 MHz clocks. The BIST reset is held
+  until the MMCM locks.
+- XDC result after removing unsupported `get_iobanks`/`INTERNAL_VREF` lines for
+  nextpnr-xilinx's XDC subset:
+  `/nix/store/crd123lr4vcs83pbjq14y38kmwhwk9m5-task6-ypcb-uberddr3-bist.xdc`.
+- Initial `ODELAY_SUPPORTED=1` synthesis passed:
+  `/nix/store/dwjnmbdsz90h8yf50b79qzj685l5j075-task6-ypcb-uberddr3-bist-yosys.json`.
+  It kept one `MMCME2_BASE`, six `BUFG`s, DDR3 IO/SERDES primitives, and Yosys
+  reported zero check problems. nextpnr then failed before placement with:
+  `BEL IOB_X0Y94/IOB33M/OUTBUF is located on a high range bank. High range
+  banks do not have ODELAY`.
+- Switched the wrapper to `ODELAY_SUPPORTED=0`, which uses the 90-degree DDR3
+  clock input and removes `ODELAYE2` cells from the output paths. Synthesis
+  passed:
+  `/nix/store/gy7yhv1xfzl4zs2ipf0hvsjmzh0c9hnz-task6-ypcb-uberddr3-bist-yosys.json`.
+  Yosys reported zero check problems, `25206` cells, `12653` estimated LCs,
+  `72` `IDELAYE2`, `0` `ODELAYE2`, one `MMCME2_BASE`, and six `BUFG`s.
+- The no-ODELAY route got past the previous high-range-bank ODELAY error, but
+  nextpnr-xilinx segfaulted during packing immediately after clock preparation:
+  `/nix/store/c6xxfxdashc5p298spg14q326klzavpi-task6-ypcb-uberddr3-bist.fasm.drv`.
+
+Current conclusion:
+
+- The real LiteX-derived YPCB pin constraints and proper 25/100/200 MHz wrapper
+  clocking are in place and synthesize.
+- UberDDR3's raw 7-series PHY is not yet an openXC7 board bitstream on YPCB:
+  `ODELAY_SUPPORTED=1` is incompatible with the DDR3 high-range bank placement
+  in nextpnr, while `ODELAY_SUPPORTED=0` avoids that specific issue but trips a
+  nextpnr packing segfault on the remaining DDR IO/SERDES design.

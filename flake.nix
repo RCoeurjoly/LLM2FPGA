@@ -5386,6 +5386,84 @@
           ];
         };
 
+        task6YpcbUberDdr3BistXdc =
+          pkgs.runCommand "task6-ypcb-uberddr3-bist.xdc" {
+            nativeBuildInputs = [ pkgs.python3 ];
+          } ''
+            set -euo pipefail
+            python3 - <<'PY' > "$out"
+            import re
+            from pathlib import Path
+
+            platform = Path("${litexBoards}/litex_boards/platforms/ypcb_00338_1p1.py").read_text()
+            channel0 = platform.split("# DDR3 SDRAM", 1)[1].split("# DDR3 SDRAM", 1)[0]
+
+            def pins_for(name):
+                match = re.search(
+                    r'Subsignal\("' + re.escape(name) + r'".*?Pins\((.*?)\)',
+                    channel0,
+                    re.S,
+                )
+                if not match:
+                    raise SystemExit(f"missing LiteX YPCB ddram0.{name} pins")
+                return " ".join(re.findall(r'"([^"]+)"', match.group(1))).split()
+
+            def scalar(name, port, iostandard="SSTL15", slew=True):
+                pin = pins_for(name)[0]
+                print(f"# LiteX-Boards ddram:0.{name}")
+                print(f"set_property LOC {pin} [get_ports {{{port}}}]")
+                if slew:
+                    print(f"set_property SLEW FAST [get_ports {{{port}}}]")
+                print(f"set_property IOSTANDARD {iostandard} [get_ports {{{port}}}]")
+                print()
+
+            def vector(name, port, width, iostandard="SSTL15", in_term=False):
+                pins = pins_for(name)
+                if len(pins) < width:
+                    raise SystemExit(f"ddram0.{name} has {len(pins)} pins, need {width}")
+                for index, pin in enumerate(pins[:width]):
+                    print(f"# LiteX-Boards ddram:0.{name}[{index}]")
+                    print(f"set_property LOC {pin} [get_ports {{{port}[{index}]}}]")
+                    print(f"set_property SLEW FAST [get_ports {{{port}[{index}]}}]")
+                    print(f"set_property IOSTANDARD {iostandard} [get_ports {{{port}[{index}]}}]")
+                    if in_term:
+                        print(f"set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {{{port}[{index}]}}]")
+                    print()
+
+            print("# Generated from litex-hub/litex-boards ypcb_00338_1p1.py.")
+            print("# Channel 0, 64-bit data lane only; YPCB LiteX platform exposes no DM pins.")
+            print("set_property LOC AH27 [get_ports {clk200_p}]")
+            print("set_property IOSTANDARD LVDS_25 [get_ports {clk200_p}]")
+            print("set_property LOC AH28 [get_ports {clk200_n}]")
+            print("set_property IOSTANDARD LVDS_25 [get_ports {clk200_n}]")
+            print("create_clock -name clk200_p -period 5.000 [get_ports clk200_p]")
+            print()
+            print("set_property LOC R28 [get_ports {SYS_RSTN}]")
+            print("set_property IOSTANDARD LVCMOS18 [get_ports {SYS_RSTN}]")
+            print()
+
+            vector("a", "ddram_a", 15)
+            vector("ba", "ddram_ba", 3)
+            scalar("ras_n", "ddram_ras_n")
+            scalar("cas_n", "ddram_cas_n")
+            scalar("we_n", "ddram_we_n")
+            scalar("cs_n", "ddram_cs_n")
+            scalar("cke", "ddram_cke")
+            scalar("odt", "ddram_odt")
+            scalar("reset_n", "ddram_reset_n")
+            vector("dq", "ddram_dq", 64, in_term=True)
+            vector("dqs_p", "ddram_dqs_p", 8, iostandard="DIFF_SSTL15", in_term=True)
+            vector("dqs_n", "ddram_dqs_n", 8, iostandard="DIFF_SSTL15", in_term=True)
+            scalar("clk_p", "ddram_clk_p", iostandard="DIFF_SSTL15")
+            scalar("clk_n", "ddram_clk_n", iostandard="DIFF_SSTL15")
+
+            print("")
+            print("# INTERNAL_VREF 0.750 on DDR3 banks 11..18 is present in the")
+            print("# LiteX/Vivado-style constraints, but nextpnr-xilinx's XDC")
+            print("# frontend only accepts get_ports targets here.")
+            PY
+          '';
+
         task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeXdc = mkXdc {
           name = "task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe";
           includeBoardXdc = false;
@@ -5850,6 +5928,20 @@
             task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeJson;
           seed = 11;
           freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3BistFasm = mkFasm {
+          name = "task6-ypcb-uberddr3-bist";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3BistYosysJson;
+          seed = 14;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3BistBitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-bist";
+          fasm = task6YpcbUberDdr3BistFasm;
+          framesBase = "task6-ypcb-uberddr3-bist";
         };
 
         task6YpcbLiteDramNoOdelayInitBandwidthProbeBitstream =
@@ -9705,6 +9797,12 @@
             task6YpcbLiteDramNoOdelayLowrateDqs0RtlCheck;
           task6-ypcb-uberddr3-bist-yosys-json =
             task6YpcbUberDdr3BistYosysJson;
+          task6-ypcb-uberddr3-bist-xdc =
+            task6YpcbUberDdr3BistXdc;
+          task6-ypcb-uberddr3-bist-fasm =
+            task6YpcbUberDdr3BistFasm;
+          task6-ypcb-uberddr3-bist-bitstream =
+            task6YpcbUberDdr3BistBitstream;
           task6-ypcb-litedram-open-synth-json =
             task6YpcbLiteDramOpenSynthJson;
           task6-ypcb-litedram-open-synth-utilization =

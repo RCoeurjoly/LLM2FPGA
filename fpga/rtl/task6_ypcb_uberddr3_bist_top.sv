@@ -14,7 +14,6 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_clk_n,
   output wire        ddram_clk_p,
   output wire        ddram_cs_n,
-  output wire  [7:0] ddram_dm,
   inout  wire [63:0] ddram_dq,
   inout  wire  [7:0] ddram_dqs_n,
   inout  wire  [7:0] ddram_dqs_p,
@@ -24,7 +23,7 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd1;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd2;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -43,20 +42,85 @@ module task6_ypcb_uberddr3_bist_top #(
   wire ddr3_clk;
   wire ddr3_clk_90;
   wire ref_clk;
+  wire clk200_ibuf;
+  wire clk100_raw;
+  wire clk100_90_raw;
+  wire clk25_raw;
+  wire mmcm_clkfb;
+  wire mmcm_clkfb_buf;
+  wire mmcm_locked;
   wire rst_n;
 
   IBUFDS clk200_ibufds (
     .I(clk200_p),
     .IB(clk200_n),
+    .O(clk200_ibuf)
+  );
+
+  BUFG clk200_bufg (
+    .I(clk200_ibuf),
     .O(ref_clk)
   );
 
-  // First gate: keep the wrapper structurally minimal. A later bitstream gate
-  // should replace these aliases with the real 25/100/200 MHz clocking.
-  assign controller_clk = ref_clk;
-  assign ddr3_clk = ref_clk;
-  assign ddr3_clk_90 = ref_clk;
-  assign rst_n = SYS_RSTN;
+  MMCME2_BASE #(
+    .BANDWIDTH("OPTIMIZED"),
+    .CLKFBOUT_MULT_F(5.000),
+    .CLKFBOUT_PHASE(0.000),
+    .CLKIN1_PERIOD(5.000),
+    .CLKOUT0_DIVIDE_F(10.000),
+    .CLKOUT0_DUTY_CYCLE(0.500),
+    .CLKOUT0_PHASE(0.000),
+    .CLKOUT1_DIVIDE(10),
+    .CLKOUT1_DUTY_CYCLE(0.500),
+    .CLKOUT1_PHASE(90.000),
+    .CLKOUT2_DIVIDE(40),
+    .CLKOUT2_DUTY_CYCLE(0.500),
+    .CLKOUT2_PHASE(0.000),
+    .DIVCLK_DIVIDE(1),
+    .REF_JITTER1(0.010),
+    .STARTUP_WAIT("FALSE")
+  ) clock_mmcm (
+    .CLKFBOUT(mmcm_clkfb),
+    .CLKFBOUTB(),
+    .CLKOUT0(clk100_raw),
+    .CLKOUT0B(),
+    .CLKOUT1(clk100_90_raw),
+    .CLKOUT1B(),
+    .CLKOUT2(clk25_raw),
+    .CLKOUT2B(),
+    .CLKOUT3(),
+    .CLKOUT3B(),
+    .CLKOUT4(),
+    .CLKOUT5(),
+    .CLKOUT6(),
+    .LOCKED(mmcm_locked),
+    .CLKFBIN(mmcm_clkfb_buf),
+    .CLKIN1(ref_clk),
+    .PWRDWN(1'b0),
+    .RST(!SYS_RSTN)
+  );
+
+  BUFG mmcm_feedback_bufg (
+    .I(mmcm_clkfb),
+    .O(mmcm_clkfb_buf)
+  );
+
+  BUFG clk100_bufg (
+    .I(clk100_raw),
+    .O(ddr3_clk)
+  );
+
+  BUFG clk100_90_bufg (
+    .I(clk100_90_raw),
+    .O(ddr3_clk_90)
+  );
+
+  BUFG clk25_bufg (
+    .I(clk25_raw),
+    .O(controller_clk)
+  );
+
+  assign rst_n = SYS_RSTN && mmcm_locked;
 
   wire wb_stall;
   wire wb_ack;
@@ -71,6 +135,7 @@ module task6_ypcb_uberddr3_bist_top #(
   wire [0:0] ddr3_cke_w;
   wire [0:0] ddr3_cs_n_w;
   wire [0:0] ddr3_odt_w;
+  wire [BYTE_LANES - 1:0] ddr3_dm_w;
   wire calib_complete;
   wire [31:0] debug1;
   wire uart_tx;
@@ -127,6 +192,7 @@ module task6_ypcb_uberddr3_bist_top #(
       calib_seen_q,
       calib_complete
     };
+    jtag_debug_payload[47] = mmcm_locked;
     jtag_debug_payload[48 +: 32] = cycle_count_q;
     jtag_debug_payload[80 +: 32] = calib_seen_cycle_q;
     jtag_debug_payload[112 +: 32] = debug1;
@@ -159,7 +225,7 @@ module task6_ypcb_uberddr3_bist_top #(
     .TRCD(13_750),
     .TRP(13_750),
     .TRAS(35_000),
-    .ODELAY_SUPPORTED(1),
+    .ODELAY_SUPPORTED(0),
     .SECOND_WISHBONE(0),
     .DLL_OFF(1),
     .WB_ERROR(0),
@@ -205,7 +271,7 @@ module task6_ypcb_uberddr3_bist_top #(
     .io_ddr3_dq(ddram_dq),
     .io_ddr3_dqs(ddram_dqs_p),
     .io_ddr3_dqs_n(ddram_dqs_n),
-    .o_ddr3_dm(ddram_dm),
+    .o_ddr3_dm(ddr3_dm_w),
     .o_ddr3_odt(ddr3_odt_w),
     .o_calib_complete(calib_complete),
     .o_debug1(debug1),
