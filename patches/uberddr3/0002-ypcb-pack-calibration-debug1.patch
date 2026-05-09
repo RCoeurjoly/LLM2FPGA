@@ -1,0 +1,27 @@
+diff --git a/rtl/ddr3_controller.v b/rtl/ddr3_controller.v
+index 1111111..3333333 100644
+--- a/rtl/ddr3_controller.v
++++ b/rtl/ddr3_controller.v
+@@ -3854,7 +3854,19 @@ module ddr3_controller #(
+     endgenerate
+ 
+     // Logic connected to debug port
+-//    wire debug_trigger;
+-    assign o_debug1 = {27'd0, state_calibrate[4:0]};
++//    wire debug_trigger;
++    // YPCB bring-up debug packing:
++    // [4:0]   calibration state
++    // [9:5]   init/refresh ROM instruction address
++    // [10]    PHY IDELAYCTRL ready
++    // [14:11] read-data delay counter
++    // [17:15] active byte lane
++    // [22:18] active-lane DQ IDELAY tap
++    // [27:23] active-lane DQS IDELAY tap
++    // [28]    calibration request strobe
++    // [29]    calibration-side Wishbone stall
++    // [30]    uncalibrated Wishbone ack
++    // [31]    uncalibrated read data has any nonzero bit
++    assign o_debug1 = {|o_wb_data_uncalibrated, o_wb_ack_uncalibrated, o_wb_stall_calib, calib_stb, idelay_dqs_cntvaluein[lane], idelay_data_cntvaluein[lane], lane, delay_before_read_data, i_phy_idelayctrl_rdy, instruction_address, state_calibrate[4:0]};
+ //    assign o_debug2 = {debug_trigger,i_phy_iserdes_data[62:32]};
+ //    assign o_debug3 = {debug_trigger,i_phy_iserdes_data[30:0]};
+ //    assign debug_trigger = repeat_test /*o_wb_ack_read_q[0][0]*/;

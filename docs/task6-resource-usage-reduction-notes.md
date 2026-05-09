@@ -209,6 +209,7 @@ Measured result:
 | PLLE2-clocked UberDDR3 BIST | `nix build .#task6-ypcb-uberddr3-bist-bitstream ...`; program/readback | fail, useful | bitstream `/nix/store/jy55imbnnm31k2zwm530rwkbhdlqmn4j-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x0df5fc1b`, `debug1=0`; calibration still stuck at UberDDR3 calibration `IDLE`; run `artifacts/task6/runs/2026-05-09T09-48-17+0200-ypcb-uberddr3-bist-pll-readback` |
 | 200 MHz IDELAY refclk, invalid wiring | same | invalid, informative | bitstream `/nix/store/1kds6b8fxfaanasvshhfbh6x9z2ypvws-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0x50`, `pll_locked=0`, `cycle_count=0`; invalid because `ref_clk` was accidentally used as both PLLE2 input and PLL-derived output; run `artifacts/task6/runs/2026-05-09T09-56-59+0200-ypcb-uberddr3-bist-200mhz-refclk` |
 | Fixed 200 MHz IDELAY refclk | same | fail, forward progress | bitstream `/nix/store/2j3fmwg6al2z8v4akcj0y066g71841y2-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x1efd6d85`, `debug1=0x0000000c`, `wb_stall_count=0x1efd6d85`; calibration advances from state 0 to state 12 but does not complete; run `artifacts/task6/runs/2026-05-09T10-03-00+0200-ypcb-uberddr3-bist-200mhz-refclk-fixed` |
+| Packed calibration debug1 | same | pass, useful discriminator | bitstream `/nix/store/hr6m6xancsa09gybbcapjpyrafni7rbn-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x151b74ec`, `debug1=0xd00386d1`; decoded debug1 shows state `17` (`BURST_WRITE`), `instruction_address=22`, IDELAYCTRL ready, lane `7`, `calib_stb=1`, calibration-side Wishbone ack, and nonzero uncalibrated read data; run `artifacts/task6/runs/2026-05-09T10-11-13+0200-ypcb-uberddr3-bist-calib-debug1` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -260,21 +261,28 @@ Interpretation:
   Xilinx IDELAYCTRL expects the high-speed reference domain. Adding a PLLE2
   200 MHz output for `i_ref_clk` moves calibration to state `12`, so the
   IDELAYCTRL/read-calibration entry hypothesis was productive.
-- The current blocker is now inside UberDDR3 calibration state `12`, not board
-  programming, JTAG readback, raw clock/reset, PLLE2 lock, or the calibration
-  state-machine entry condition.
+- The packed debug1 readback changes the diagnosis materially: the controller
+  is not stuck in state `12`. It has reached state `17` (`BURST_WRITE`) with
+  IDELAYCTRL ready, an active calibration strobe, calibration-side Wishbone
+  ack, and nonzero uncalibrated read data.
+- With `BIST_MODE=1`, UberDDR3's built-in BIST runs through the full address
+  space once before `DONE_CALIBRATE`. Given the YPCB geometry
+  (`ROW_BITS=15`, `COL_BITS=10`, `BA_BITS=3`), a persistent state `17` shortly
+  after programming is likely the full-memory BIST being too large for a fast
+  bring-up loop, not an early DDR3 initialization failure.
 
 Next gate:
 
-- Patch the UberDDR3 source copy to expose a richer calibration debug vector
-  around state `12`: state, lane, `instruction_address`, `i_phy_idelayctrl_rdy`,
-  delay counters, read-data delay, bitslip/reference slices, and the relevant
-  captured read/MPR data summaries.
-- Rebuild/program/read once with that instrumentation. If state `12` is
-  waiting on data pattern recognition, decide between slowing the DDR3 clock,
-  adjusting read delay/phase, or comparing against LiteX/MIG calibration
-  sequencing. If it is just progressing slowly, extend the readback window or
-  add sticky maximum-state tracking.
+- Switch the YPCB UberDDR3 wrapper to `BIST_MODE=0` for calibration-only
+  bring-up and rebuild/program/read once. Expected pass condition:
+  `calib_complete=1` with the debug state reaching `DONE_CALIBRATE` quickly.
+- If calibration-only completes, add a wrapper-side bounded deterministic
+  user-port write/read probe over a few 512-bit beats and export mismatch
+  counters through the direct BSCANE2 payload. This proves the actual path we
+  need for weights in DDR3 without paying for UberDDR3's full-memory BIST.
+- After the bounded user-port probe passes, add a host-to-DDR loading path
+  (initially JTAG write/control if fast enough for small slices, later PCIe for
+  full TinyStories weights) and make inference fetch INT8 weights from DDR3.
 - Keep the router1 assert as a secondary openXC7 quality issue; router2 reaches
   `overused=0` and the board can execute the bitstreams, so calibration
   observability is the faster path to DDR3 data integrity.

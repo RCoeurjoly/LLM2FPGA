@@ -1,0 +1,2 @@
+{"argv": ["openFPGALoader", "-c", "digilent_hs3", "--ftdi-serial", "210299BF3824", "/nix/store/hr6m6xancsa09gybbcapjpyrafni7rbn-task6-ypcb-uberddr3-bist.bit"], "finished_at": "2026-05-09T10:11:50.404197+02:00", "log": "program.log", "returncode": 0}
+{"argv": ["python3", "scripts/task6/read_jtag_debug_ftdi_bitbang.py", "--tdo-bit", "7", "--bits", "512"], "finished_at": "2026-05-09T10:12:04.576261+02:00", "log": "read-jtag-tdo7.log", "returncode": 0}

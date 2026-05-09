@@ -1,0 +1,50 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "PASS_USEFUL",
+  "created_at": "2026-05-09T10:11:13.534254+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T10-11-13+0200-ypcb-uberddr3-bist-calib-debug1",
+  "correctness": {
+    "passed": false,
+    "reason": "DDR3 calibration did not assert calib_complete in this run; this experiment was an observability gate, not a user-port data-integrity test."
+  },
+  "route": {
+    "passed": true,
+    "overused": 0,
+    "timing": "pass at the 25 MHz openXC7 route target"
+  },
+  "board": {
+    "programmed": true,
+    "jtag_payload_read": true,
+    "payload": {
+      "magic": "0x54364a44",
+      "version": 2,
+      "status": "0xd0",
+      "pll_locked": true,
+      "cycle_count": "0x151b74ec",
+      "debug1": "0xd00386d1",
+      "decoded_debug1": {
+        "state": 17,
+        "state_name": "BURST_WRITE",
+        "instruction_address": 22,
+        "idelayctrl_rdy": true,
+        "delay_before_read_data": 0,
+        "lane": 7,
+        "idelay_data_tap": 0,
+        "idelay_dqs_tap": 0,
+        "calib_stb": true,
+        "wb_stall_calib": false,
+        "wb_ack_uncalibrated": true,
+        "read_data_nonzero": true
+      }
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Packed debug1 proves UberDDR3 is no longer stuck at READ_DATA/state 12; it reaches BURST_WRITE/state 17.",
+    "With BIST_MODE=1, BURST_WRITE is part of a full-address-space built-in BIST, so this result points to using calibration-only or bounded BIST for fast DDR3 bring-up."
+  ]
+}

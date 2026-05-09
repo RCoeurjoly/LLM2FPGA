@@ -172,6 +172,7 @@
             chmod -R u+w "$out"
             cd "$out"
             patch -p1 < ${./patches/uberddr3/0001-ypcb-disable-unpinned-ddr3-dm-outputs.patch}
+            patch -p1 < ${./patches/uberddr3/0002-ypcb-pack-calibration-debug1.patch}
           '';
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
