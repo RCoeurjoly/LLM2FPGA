@@ -17329,3 +17329,14 @@ UberDDR3 calibration/data-integrity gates:
     a second BSCANE2 `UPDATE`. Use v21 as a useful-but-not-clean pattern
     classifier, or solve the duplicate in RTL with route-seed search because
     the first v22 edge-guarded route lost calibration.
+  - Run
+    `artifacts/task6/runs/2026-05-09T19-51-52+0200-ypcb-uberddr3-v21-jtag-pattern-3d`
+    programmed the known live v21 bitstream and issued USER2 byte `0x3d` with
+    the default command update path. It reproduced calibration and the command
+    gate (`status=0xd3`, `calib_seen_cycle=0x000093dd`, `ack_count=2`,
+    `err_count=0`, `command_count=2`, `run_count=2`) but captured read byte
+    `0x30`, not `0x3d`.
+  - Updated conclusion: the v21 pattern command affects the returned data, but
+    the returned byte is not a clean echo of the commanded byte. The observed
+    sequence so far is default `0xa5 -> 0x3d`, command `0x00 -> 0x00`,
+    command `0x3d -> 0x30`.
