@@ -1,0 +1,53 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAIL",
+  "created_at": "2026-05-09T11:47:04.213391+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T11-47-04+0200-ypcb-uberddr3-single-write-read-seed15",
+  "correctness": {
+    "status": "not_reached",
+    "reason": "DDR3 calibration did not complete, so the post-calibration write/read compare was never issued"
+  },
+  "route": {
+    "status": "pass",
+    "target_mhz": 25.0,
+    "router2_final_overused": 0,
+    "router2_final_iteration": 31,
+    "timing": "pass"
+  },
+  "board": {
+    "status": "fail",
+    "bitstream": "/nix/store/m5njfxrp61n1h3p383ayrmm59yb2c3xf-task6-ypcb-uberddr3-bist-seed15.bit",
+    "jtag_raw_hex": "0x0000000000011dac088f0000000000001009000083af0000000100000000000000000ed601920000000000000000000006cc000000000ed60192d00654364a44",
+    "manual_decode": {
+      "magic": "0x54364a44",
+      "version": 6,
+      "status": "0xd0",
+      "cycle": "0x0ed60192",
+      "calib_seen_cycle": "0x00000000",
+      "debug1": "0x000006cc",
+      "calibration_state": 12,
+      "instruction_address": 22,
+      "idelayctrl_ready": 1,
+      "read_probe_state": 1,
+      "read_probe_state_name": "WAIT_CALIB",
+      "read_probe_done": 0,
+      "read_probe_write_ack_seen": 0,
+      "read_probe_read_ack_seen": 0,
+      "read_probe_err_seen": 0,
+      "read_probe_stall_seen": 0,
+      "read_probe_mismatch": 0,
+      "read_probe_wait_cycles": 0
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Seed-15 full-width 0xa5 write/read compare routed cleanly but regressed DDR3 calibration.",
+    "Probe remained in WAIT_CALIB because calib_complete never asserted, so this result does not test write data integrity.",
+    "Compared with the passing seed-15 read-only probe, the likely perturbation is the write-enable/full-pattern/full-compare logic, not the seed package itself.",
+    "The generic JTAG decoder prints TinyStories field names for this UberDDR3 v6 payload; use the manual decode above."
+  ]
+}

@@ -219,6 +219,7 @@ Measured result:
 | Current-tree fast-exit control | same | pass, calibration control restored | bitstream `/nix/store/8agn3v2i05f7mw66f4j3x4wdrjc6wcw2-task6-ypcb-uberddr3-bist.bit`; route `overused=0` at router2 iteration 5 and timing passed; payload `status=0xd3`, `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`; decoded debug1 shows state `23` (`DONE_CALIBRATE`), instruction `22`, and IDELAYCTRL ready; run `artifacts/task6/runs/2026-05-09T11-23-04+0200-ypcb-uberddr3-fast-exit-current-control` |
 | Single post-calibration user read probe | same | fail, route-sensitive calibration regression | bitstream `/nix/store/ax1n6b998262p447m3ylf7ycfrv40lwf-task6-ypcb-uberddr3-bist.bit`; route `overused=0` at router2 iteration 28 and timing passed; payload `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000016a9`; decoded debug1 shows calibration state `9`, instruction `21`, IDELAYCTRL ready, calibration-side stall and no ack; the wrapper read probe remained in `WAIT_CALIB`, so no user Wishbone read was issued; run `artifacts/task6/runs/2026-05-09T11-30-50+0200-ypcb-uberddr3-single-read-probe` |
 | Single post-calibration user read probe, seed 15 | same, `.#task6-ypcb-uberddr3-bist-seed15-bitstream` | pass, user-port liveness | bitstream `/nix/store/g6a1755hrcs06dx2zzdmq7xsrk4b1ddw-task6-ypcb-uberddr3-bist-seed15.bit`; route `overused=0` at router2 iteration 4 and timing passed; payload `status=0xd3`, `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`; decoded debug1 shows state `23` (`DONE_CALIBRATE`), instruction `22`, IDELAYCTRL ready; read-probe status `0x164` decodes to state `4` (`DONE`), `ack_seen=1`, `err_seen=0`, `stall_seen=1`, wait cycles `24`; read data was `0xc1c1c1c1c1c1c1c1` with no preceding write, so this proves user-port liveness but not data integrity; run `artifacts/task6/runs/2026-05-09T11-37-45+0200-ypcb-uberddr3-single-read-probe-seed15` |
+| Single full-width write/read compare, seed 15 | same, `.#task6-ypcb-uberddr3-bist-seed15-bitstream` | fail, route-sensitive calibration regression | bitstream `/nix/store/m5njfxrp61n1h3p383ayrmm59yb2c3xf-task6-ypcb-uberddr3-bist-seed15.bit`; route `overused=0` at router2 iteration 31 and timing passed; payload `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000006cc`; decoded debug1 shows calibration state `12` (`READ_DATA`), instruction `22`, IDELAYCTRL ready; write/read probe remained in `WAIT_CALIB`, so neither the write nor readback compare ran; run `artifacts/task6/runs/2026-05-09T11-47-04+0200-ypcb-uberddr3-single-write-read-seed15` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -297,13 +298,17 @@ Interpretation:
   one post-calibration Wishbone read. That makes placement/route sensitivity a
   confirmed variable, and gives a concrete route seed to use for the next
   data-integrity probe.
+- A full-width write/read compare at seed 15 routes but regresses calibration
+  back to state `12` before the write is issued. The next probe should isolate
+  the smallest write-side perturbation instead of combining write-enable,
+  full-width write data, byte-selects, and full-width compare in one step.
 
 Next gate:
 
-- Keep seed 15 for the next UberDDR3 user-port data-integrity gate. Add a
-  single post-calibration full-width write followed by a readback compare at
-  address 0, export ack/error/stall state and the first mismatch over the direct
-  BSCANE2 payload, then only scale to multiple beats after that passes.
+- Keep seed 15 but isolate the write-side perturbation. First add a write-only
+  post-calibration probe with no readback compare, export write ack/error/stall
+  state over BSCANE2, and only add the readback compare after calibration still
+  completes with `i_wb_we` and nonzero `i_wb_sel` present.
 - After the bounded user-port probe passes, add a host-to-DDR loading path
   (initially JTAG write/control if fast enough for small slices, later PCIe for
   full TinyStories weights) and make inference fetch INT8 weights from DDR3.
