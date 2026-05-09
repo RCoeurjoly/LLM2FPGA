@@ -17143,3 +17143,16 @@ UberDDR3 calibration/data-integrity gates:
     placement/route sensitivity. Do not invest much more in arbitrary route
     seeds; either freeze seed16 for higher-level loader work, or change the
     controller/PHY bring-up knobs that affect DDR timing more directly.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-57-03+0200-ypcb-uberddr3-write-drain-seed16`
+    added a low-fanout 1024-controller-cycle gap between write ACK and issuing
+    the read, without exporting additional `wb_data` bits. The route completed
+    (`overused=0` at router iteration 17, timing pass), and board readback
+    reproduced the command-liveness gate: `status=0xd3`,
+    `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`, `ack_count=2`,
+    `err_count=0`, write/read ACKs seen. The data failure did not move:
+    captured byte `0x3d`, expected `0xa5`, mismatch set.
+  - Updated conclusion: the `0x3d` failure is not a simple immediate
+    read-after-write visibility hazard. The next DDR3 work should focus on
+    controller/PHY data mapping or write/read lane timing, not on adding delay
+    between Wishbone transactions.

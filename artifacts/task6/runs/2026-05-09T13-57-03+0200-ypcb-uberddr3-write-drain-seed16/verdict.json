@@ -1,0 +1,21 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE",
+  "created_at": "2026-05-09T13:57:03.640969+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T13-57-03+0200-ypcb-uberddr3-write-drain-seed16",
+  "correctness": "fail",
+  "route": "pass",
+  "board": "command_gate_reproduced",
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v18 adds a 1024-controller-cycle gap between write ACK and issuing the read.",
+    "Route completed with overused=0 at router iteration 17 and timing passed.",
+    "Board readback reproduced calibration and write/read ACKs: status=0xd3, calib_seen_cycle=0x93dd, ack_count=2.",
+    "Data integrity still fails: read_byte=0x3d instead of expected 0xa5.",
+    "This rules out a simple immediate read-after-write visibility hazard."
+  ]
+}
