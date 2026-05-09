@@ -1,0 +1,67 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAIL_USEFUL",
+  "created_at": "2026-05-09T12:04:58.916960+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T12-04-58+0200-ypcb-uberddr3-write-read-no-compare-seed15",
+  "correctness": {
+    "passed": false,
+    "reason": "DDR3 calibration did not complete before the write-then-read probe could issue"
+  },
+  "route": {
+    "passed": true,
+    "bitstream": "/nix/store/q501y0m82g4r3bi965sakrmqshwg5cw1-task6-ypcb-uberddr3-bist-seed15.bit",
+    "router": "nextpnr-xilinx router2",
+    "seed": 15,
+    "overused": 0,
+    "overused_iteration": 27,
+    "timing_passed": true,
+    "controller_clk_max_mhz": 80.68,
+    "target_mhz": 25.0
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x00000000000128737c2b0000000000001009000083af0000000100000000000000001439bb5d000000000000000000000eca000000001439bb5dd00854364a44",
+    "manual_decode": {
+      "magic": "0x54364a44",
+      "version": 8,
+      "status": "0xd0",
+      "cycle": "0x1439bb5d",
+      "calib_seen_cycle": "0x00000000",
+      "debug1": "0x00000eca",
+      "calibration_state": 10,
+      "instruction_address": 22,
+      "idelayctrl_ready": true,
+      "calib_stb": true,
+      "calib_ack": false,
+      "ack_count": 0,
+      "err_count": 0,
+      "stall_count": "0x1439bb5d",
+      "read_lo": "0x00000000",
+      "read_hi": "0x00000000",
+      "probe_status": "0x00000001",
+      "probe_state": 1,
+      "probe_state_name": "WAIT_CALIB",
+      "write_ack_seen": false,
+      "read_ack_seen": false,
+      "err_seen": false,
+      "stall_seen": false
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": {
+    "controller_clk_max_mhz": 80.68,
+    "target_mhz": 25.0
+  },
+  "runtime": {
+    "program_returncode": 0,
+    "jtag_read_returncode": 0
+  },
+  "notes": [
+    "v8 adds one full-width write followed by one read, captures returned low/high data, and deliberately removes RTL comparison.",
+    "The image routes and programs, but calibration regresses before the probe can issue any user-port transaction.",
+    "Compared with the passing v7 write-only image, adding the readback path alone is enough to lose calibration for this seed/place-route."
+  ]
+}

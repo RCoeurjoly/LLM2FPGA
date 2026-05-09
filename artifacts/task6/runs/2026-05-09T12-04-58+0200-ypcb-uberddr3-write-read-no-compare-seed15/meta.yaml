@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T12:04:58.916960+02:00"
+label: "ypcb-uberddr3-write-read-no-compare-seed15"
+experiment: "task6-uberddr3-write-read-no-compare"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/q501y0m82g4r3bi965sakrmqshwg5cw1-task6-ypcb-uberddr3-bist-seed15.bit"
+reference_artifacts:
+notes: "v8 seed15: one full-width write followed by one read, capture data only, no RTL compare"

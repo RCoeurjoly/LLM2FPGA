@@ -221,6 +221,7 @@ Measured result:
 | Single post-calibration user read probe, seed 15 | same, `.#task6-ypcb-uberddr3-bist-seed15-bitstream` | pass, user-port liveness | bitstream `/nix/store/g6a1755hrcs06dx2zzdmq7xsrk4b1ddw-task6-ypcb-uberddr3-bist-seed15.bit`; route `overused=0` at router2 iteration 4 and timing passed; payload `status=0xd3`, `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`; decoded debug1 shows state `23` (`DONE_CALIBRATE`), instruction `22`, IDELAYCTRL ready; read-probe status `0x164` decodes to state `4` (`DONE`), `ack_seen=1`, `err_seen=0`, `stall_seen=1`, wait cycles `24`; read data was `0xc1c1c1c1c1c1c1c1` with no preceding write, so this proves user-port liveness but not data integrity; run `artifacts/task6/runs/2026-05-09T11-37-45+0200-ypcb-uberddr3-single-read-probe-seed15` |
 | Single full-width write/read compare, seed 15 | same, `.#task6-ypcb-uberddr3-bist-seed15-bitstream` | fail, route-sensitive calibration regression | bitstream `/nix/store/m5njfxrp61n1h3p383ayrmm59yb2c3xf-task6-ypcb-uberddr3-bist-seed15.bit`; route `overused=0` at router2 iteration 31 and timing passed; payload `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000006cc`; decoded debug1 shows calibration state `12` (`READ_DATA`), instruction `22`, IDELAYCTRL ready; write/read probe remained in `WAIT_CALIB`, so neither the write nor readback compare ran; run `artifacts/task6/runs/2026-05-09T11-47-04+0200-ypcb-uberddr3-single-write-read-seed15` |
 | Single full-width write-only probe, seed 15 | same, `.#task6-ypcb-uberddr3-bist-seed15-bitstream` | pass, write-side liveness | bitstream `/nix/store/2l25q0qlijcm30z78hhncscy8l39fnw8-task6-ypcb-uberddr3-bist-seed15.bit`; route `overused=0` at router2 iteration 37 and timing passed; payload `status=0xd3`, `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`; decoded debug1 shows state `23` (`DONE_CALIBRATE`), instruction `22`, IDELAYCTRL ready; write-probe status `0x266` decodes to state `6` (`DONE`), `write_ack=1`, `read_ack=0`, `err_seen=0`, `stall_seen=1`, wait cycles `19`; proves `i_wb_we`, full-width `0xa5` write data, and all byte-selects can coexist with calibration; run `artifacts/task6/runs/2026-05-09T11-55-16+0200-ypcb-uberddr3-write-only-seed15` |
+| Single full-width write then read, no compare, seed 15 | same, `.#task6-ypcb-uberddr3-bist-seed15-bitstream` | fail, readback-path calibration regression | bitstream `/nix/store/q501y0m82g4r3bi965sakrmqshwg5cw1-task6-ypcb-uberddr3-bist-seed15.bit`; route `overused=0` at router2 iteration 27 and timing passed; payload `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x00000eca`; decoded debug1 shows calibration state `10`, instruction `22`, IDELAYCTRL ready, calibration strobe active, no calibration ack; probe status `0x1` remained in `WAIT_CALIB`, so neither the write nor the read issued; run `artifacts/task6/runs/2026-05-09T12-04-58+0200-ypcb-uberddr3-write-read-no-compare-seed15` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -307,14 +308,18 @@ Interpretation:
   failed full write/read compare is more likely from the added readback/compare
   logic or its placement perturbation than from merely asserting `i_wb_we`,
   nonzero write data, or all byte-selects.
+- The write-then-read/no-compare seed-15 probe regresses calibration before the
+  user probe runs. The comparison logic is not the trigger; a live readback
+  path, or the placement perturbation from registering read data, is enough to
+  lose the known calibration result.
 
 Next gate:
 
-- Keep seed 15 and add readback in the smallest possible increment: remove
-  unreachable read/compare logic from the write-only baseline, then issue one
-  read after the acknowledged write and export only read ack/error/stall plus
-  the captured low/high data words. Do not compare in RTL until write-then-read
-  calibration and read acknowledgment are both stable.
+- Preserve the passing write-only baseline and change only the readback
+  observation path. First try seed variation for the v8 no-compare readback
+  probe. If no seed calibrates quickly, split readback into a separate
+  read-only probe with a fixed address after an external or BIST write source,
+  or export fewer read-data bits to reduce route perturbation.
 - After the bounded user-port probe passes, add a host-to-DDR loading path
   (initially JTAG write/control if fast enough for small slices, later PCIe for
   full TinyStories weights) and make inference fetch INT8 weights from DDR3.
