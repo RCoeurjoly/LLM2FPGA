@@ -1,0 +1,67 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAIL_USEFUL",
+  "created_at": "2026-05-09T12:11:32.556428+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T12-11-32+0200-ypcb-uberddr3-write-read-no-compare-seed16",
+  "correctness": {
+    "passed": false,
+    "reason": "DDR3 calibration did not complete before the write-then-read probe could issue"
+  },
+  "route": {
+    "passed": true,
+    "bitstream": "/nix/store/iqia0m1lsxvd1ajaibrzw255aajv000s-task6-ypcb-uberddr3-bist-seed16.bit",
+    "router": "nextpnr-xilinx router2",
+    "seed": 16,
+    "overused": 0,
+    "overused_iteration": 44,
+    "timing_passed": true,
+    "controller_clk_max_mhz": 93.18,
+    "target_mhz": 25.0
+  },
+  "board": {
+    "programmed": true,
+    "jtag_read": true,
+    "raw_hex": "0x000000000001201e41910000000000001009000083af000000010000000000000000100f1e130000000000000000000006cc00000000100f1e13d00854364a44",
+    "manual_decode": {
+      "magic": "0x54364a44",
+      "version": 8,
+      "status": "0xd0",
+      "cycle": "0x100f1e13",
+      "calib_seen_cycle": "0x00000000",
+      "debug1": "0x000006cc",
+      "calibration_state": 12,
+      "instruction_address": 22,
+      "idelayctrl_ready": true,
+      "calib_stb": false,
+      "calib_ack": false,
+      "ack_count": 0,
+      "err_count": 0,
+      "stall_count": "0x100f1e13",
+      "read_lo": "0x00000000",
+      "read_hi": "0x00000000",
+      "probe_status": "0x00000001",
+      "probe_state": 1,
+      "probe_state_name": "WAIT_CALIB",
+      "write_ack_seen": false,
+      "read_ack_seen": false,
+      "err_seen": false,
+      "stall_seen": false
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": {
+    "controller_clk_max_mhz": 93.18,
+    "target_mhz": 25.0
+  },
+  "runtime": {
+    "program_returncode": 0,
+    "jtag_read_returncode": 0
+  },
+  "notes": [
+    "Seed16 is a route-only variation of the v8 write-then-read/no-compare probe.",
+    "The image routes and programs, but calibration still regresses before the user probe can issue.",
+    "Together with seed15 v8, this suggests the readback observation path is the next design problem, not only a single bad seed."
+  ]
+}
