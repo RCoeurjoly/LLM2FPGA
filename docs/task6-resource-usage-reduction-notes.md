@@ -17289,3 +17289,11 @@ UberDDR3 calibration/data-integrity gates:
     the command register is still not a clean one-command/one-rerun interface;
     there is likely a second UPDATE/captured-echo event around the command or
     subsequent readback TAP movement.
+  - Implemented v22 of the command path by adding a TCK-domain rising-edge
+    guard for USER2 `UPDATE`. This should make the command register fire once
+    per UPDATE pulse instead of potentially toggling for every TCK edge while
+    `UPDATE` remains high.
+  - Build check for `.#task6-ypcb-uberddr3-bist-seed16-bitstream` produced
+    `/nix/store/miiih8yyiz0n7916v3103nq0kca9ihyp-task6-ypcb-uberddr3-bist-seed16.bit`.
+    The route completed with `overused=0` at router iteration 5 and timing
+    passed at 25 MHz.
