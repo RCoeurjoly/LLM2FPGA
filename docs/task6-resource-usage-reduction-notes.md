@@ -211,6 +211,7 @@ Measured result:
 | Fixed 200 MHz IDELAY refclk | same | fail, forward progress | bitstream `/nix/store/2j3fmwg6al2z8v4akcj0y066g71841y2-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x1efd6d85`, `debug1=0x0000000c`, `wb_stall_count=0x1efd6d85`; calibration advances from state 0 to state 12 but does not complete; run `artifacts/task6/runs/2026-05-09T10-03-00+0200-ypcb-uberddr3-bist-200mhz-refclk-fixed` |
 | Packed calibration debug1 | same | pass, useful discriminator | bitstream `/nix/store/hr6m6xancsa09gybbcapjpyrafni7rbn-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x151b74ec`, `debug1=0xd00386d1`; decoded debug1 shows state `17` (`BURST_WRITE`), `instruction_address=22`, IDELAYCTRL ready, lane `7`, `calib_stb=1`, calibration-side Wishbone ack, and nonzero uncalibrated read data; run `artifacts/task6/runs/2026-05-09T10-11-13+0200-ypcb-uberddr3-bist-calib-debug1` |
 | Calibration-only `BIST_MODE=0` | same | fail, useful negative | bitstream `/nix/store/143g3jjxxisny5csxygb5d4n3n4drksc-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; first payload `debug1=0x808406cc`; delayed second payload unchanged at `debug1=0x808406cc` while `cycle_count` advanced to `0x4ec85d95`; decoded debug1 shows state `12` (`READ_DATA`), `instruction_address=22`, IDELAYCTRL ready, lane `0`, DQ/DQS IDELAY tap `1`, no calibration strobe/ack, and nonzero uncalibrated read data; run `artifacts/task6/runs/2026-05-09T10-22-01+0200-ypcb-uberddr3-bist-calib-only` |
+| Fast BIST exit at `BURST_WRITE` | same | pass, calibration complete | bitstream `/nix/store/rf3akdsj6rdqikhzvfw50146f71vkxpz-task6-ypcb-uberddr3-bist.bit`; route `overused=0` at router2 iteration 8; payload `status=0xd3`, `calib_seen_cycle=0x000093dd`, `debug1=0x800386d7`, `wb_stall_count=0x01575f7a`; decoded debug1 shows state `23` (`DONE_CALIBRATE`), `instruction_address=22`, IDELAYCTRL ready, lane `7`, no calibration strobe/ack, and read data nonzero; run `artifacts/task6/runs/2026-05-09T10-29-37+0200-ypcb-uberddr3-bist-fast-exit` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -277,17 +278,17 @@ Interpretation:
   calibration-path sensitivity, so the faster path is to preserve the
   `BIST_MODE=1` build shape that reached `BURST_WRITE` and patch a bounded or
   immediate BIST exit there.
+- The fast-BIST-exit patch proves the immediate DDR3 bring-up gate:
+  calibration reaches `DONE_CALIBRATE` and exports `calib_complete=1` over the
+  direct BSCANE2 payload. This still does not prove user-port data integrity;
+  the wrapper currently ties the user Wishbone request inputs low.
 
 Next gate:
 
-- Restore the YPCB UberDDR3 wrapper to `BIST_MODE=1` and patch the copied
-  UberDDR3 source for a YPCB fast-BIST exit: once calibration reaches
-  `BURST_WRITE`, skip the full-address-space built-in BIST and transition to
-  `FINISH_READ`/`DONE_CALIBRATE`.
-- If calibration-only completes, add a wrapper-side bounded deterministic
-  user-port write/read probe over a few 512-bit beats and export mismatch
-  counters through the direct BSCANE2 payload. This proves the actual path we
-  need for weights in DDR3 without paying for UberDDR3's full-memory BIST.
+- Add a wrapper-side bounded deterministic user-port write/read probe over a
+  few 512-bit beats and export state, mismatch count, ack/error counters, and
+  first mismatch over the direct BSCANE2 payload. This proves the actual path
+  we need for weights in DDR3 without paying for UberDDR3's full-memory BIST.
 - After the bounded user-port probe passes, add a host-to-DDR loading path
   (initially JTAG write/control if fast enough for small slices, later PCIe for
   full TinyStories weights) and make inference fetch INT8 weights from DDR3.

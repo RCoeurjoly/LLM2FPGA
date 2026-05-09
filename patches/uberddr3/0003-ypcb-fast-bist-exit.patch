@@ -1,0 +1,27 @@
+diff --git a/rtl/ddr3_controller.v b/rtl/ddr3_controller.v
+index 3333333..4444444 100644
+--- a/rtl/ddr3_controller.v
++++ b/rtl/ddr3_controller.v
+@@ -3177,6 +3177,14 @@ BITSLIP_DQS_TRAIN_3: if(train_delay == 0) begin //train again the ISERDES to ca
+                      end
+                                    
+        BURST_WRITE: if(!o_wb_stall_calib) begin // Test 1: Burst write (per byte write to test datamask feature), then burst read
++                            // YPCB bring-up: preserve the BIST_MODE=1 build path that reaches
++                            // BURST_WRITE after alignment, but skip the full-address-space BIST.
++                            // A bounded user-port probe in the wrapper will test data integrity.
++                            if(BIST_MODE == 1) begin
++                                train_delay <= 15;
++                                state_calibrate <= FINISH_READ;
++                            end
++                            else begin
+                             calib_stb <= 1'b1; 
+                             calib_aux <= 2; // write
+                             if(TDQS == 0 && ECC_ENABLE == 0) begin //Test datamask by writing 1 byte at a time
+@@ -3228,6 +3236,7 @@ BITSLIP_DQS_TRAIN_3: if(train_delay == 0) begin //train again the ISERDES to ca
+                                     `endif
+                                 end 
+                            end
++                           end
+                      end
+                    
+          BURST_READ: if(!o_wb_stall_calib) begin
