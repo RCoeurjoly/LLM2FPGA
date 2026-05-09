@@ -17354,3 +17354,14 @@ UberDDR3 calibration/data-integrity gates:
     Wishbone data, because single-byte results already show a pattern-sensitive
     failure but do not distinguish byte-lane corruption from stale/partial
     writeback.
+  - Implemented v23 of the UberDDR3 debug payload. The probe now latches the
+    full 512-bit Wishbone read beat on read ACK instead of only `wb_data[7:0]`.
+    The JTAG payload width is 1024 bits, payload `[240 +: 32]` reports the low
+    read word, and payload `[480 +: 512]` reports the full returned beat. The
+    experiment runner now reads 1024 bits by default and decodes the beat into
+    64 bytes and 16 little-endian 32-bit words.
+  - Build check for `.#task6-ypcb-uberddr3-bist-seed16-bitstream` produced
+    `/nix/store/a0sgzksi3i3wbgmw4iwp18k4q265d6lq-task6-ypcb-uberddr3-bist-seed16.bit`.
+    The route completed with `overused=0` at router iteration 36 and timing
+    passed at 25 MHz. The wider debug chain increased utilization to about
+    17,126 `SLICE_LUTX` and 8,170 `SLICE_FFX`.

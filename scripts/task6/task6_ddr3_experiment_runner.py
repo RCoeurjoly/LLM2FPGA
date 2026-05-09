@@ -104,12 +104,19 @@ def bit(raw: int, offset: int) -> int:
     return (raw >> offset) & 1
 
 
+def hex_words(raw: int, offset: int, word_bits: int, count: int) -> list[str]:
+    mask = (1 << word_bits) - 1
+    return [f"0x{((raw >> (offset + index * word_bits)) & mask):0{word_bits // 4}x}" for index in range(count)]
+
+
 def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     raw_hex = readback["raw_hex"]
     raw = int(raw_hex, 16)
     debug1 = (raw >> 112) & 0xFFFFFFFF
     probe = (raw >> 304) & 0xFFFFFFFF
     read_byte = (raw >> 240) & 0xFF
+    read_word = (raw >> 240) & 0xFFFFFFFF
+    read_beat = (raw >> 480) & ((1 << 512) - 1) if args.bits >= 992 else None
     expected = args.expected_byte
     command_word = (raw >> 272) & 0xFFFFFFFF
     active_byte = command_word & 0xFF
@@ -150,6 +157,10 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
         "err_count": err_count,
         "stall_count": f"0x{((raw >> 208) & 0xFFFFFFFF):08x}",
         "read_byte": f"0x{read_byte:02x}",
+        "read_word": f"0x{read_word:08x}",
+        "read_beat_hex": f"0x{read_beat:0128x}" if read_beat is not None else None,
+        "read_beat_bytes": hex_words(raw, 480, 8, 64) if read_beat is not None else [],
+        "read_beat_words32": hex_words(raw, 480, 32, 16) if read_beat is not None else [],
         "active_byte": f"0x{active_byte:02x}",
         "command_count": command_count,
         "run_count": run_count,
@@ -270,6 +281,7 @@ def run_experiment(args: argparse.Namespace) -> Path:
             "bitstream": bitstream,
             "result": decoded["result"],
             "read_byte": decoded["read_byte"],
+            "read_word": decoded["read_word"],
             "expected_byte": decoded["expected_byte"],
             "active_byte": decoded["active_byte"],
             "command_count": decoded["command_count"],
@@ -303,7 +315,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--jtag-cable", default="digilent_hs3")
     parser.add_argument("--ftdi-serial", default="210299BF3824")
     parser.add_argument("--tdo-bit", type=int, default=7)
-    parser.add_argument("--bits", type=int, default=512)
+    parser.add_argument("--bits", type=int, default=1024)
     return parser.parse_args()
 
 
