@@ -1,0 +1,40 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAILED",
+  "created_at": "2026-05-09T13:13:01.706360+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T13-13-01+0200-ypcb-uberddr3-latched-debug-byte-seed17",
+  "correctness": "NOT_REACHED",
+  "route": {
+    "seed": 17,
+    "overused_final": 0,
+    "overused_zero_iteration": 21,
+    "timing": "PASS",
+    "controller_clk_max_mhz": 91.41,
+    "jtag_drck_max_mhz": 739.64
+  },
+  "board": {
+    "programmed": true,
+    "program_returncode": 0,
+    "readback_returncode": 0,
+    "magic_ok": true,
+    "version": 14,
+    "status": "0xd0",
+    "calibrated": false,
+    "calib_seen_cycle": "0x00000000",
+    "ack_count": 0,
+    "err_count": 0,
+    "probe_state": "WAIT_CALIB",
+    "debug_read_byte": "0x00",
+    "expected_debug_read_byte": "0xa5"
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "v14 seed17 routed cleanly and programmed successfully, but did not calibrate on the board.",
+    "Decoded payload: status=0xd0, calib_seen_cycle=0, ack_count=0, probe state WAIT_CALIB, debug1=0x000006cc.",
+    "This run does not test read-data integrity because the controller never reached the post-calibration write/read probe."
+  ]
+}

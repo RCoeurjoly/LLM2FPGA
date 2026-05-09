@@ -1,0 +1,39 @@
+diff --git a/rtl/ddr3_controller.v b/rtl/ddr3_controller.v
+index 46f0ef7..7c8a0f1 100644
+--- a/rtl/ddr3_controller.v
++++ b/rtl/ddr3_controller.v
+@@ -605,6 +605,7 @@ module ddr3_controller #(
+     reg[5:0] start_index_check = 0;
+     reg[63:0] read_lane_data = 0;
+     reg[31:0] read_lane_data_shifted = 0;
++    reg[7:0] ypcb_debug_read_byte = 0;
+     reg odelay_cntvalue_halfway = 0;
+     reg initial_calibration_done = 0;
+     reg final_calibration_done = 0;
+@@ -2164,6 +2165,7 @@ generate
+             for(index = 0; index < MAX_ADDED_READ_ACK_DELAY ; index = index + 1) begin
+                 o_wb_ack_read_q[index] <= 0;
+             end
++            ypcb_debug_read_byte <= 0;
+         end
+         else begin
+             if(ODELAY_SUPPORTED || DLL_OFF) begin
+@@ -2274,6 +2276,9 @@ generate
+             
+             if(ECC_ENABLE != 3) begin
+                 if(o_wb_ack_read_q[0][0]) begin 
++                    if(final_calibration_done && i_wb_cyc) begin
++                        ypcb_debug_read_byte <= o_wb_data_q_current[7:0];
++                    end
+                     index_wb_data <= !index_wb_data; //alternatingly uses the o_wb_data_q (either 0 or 1)
+                 end
+             end
+@@ -3873,7 +3878,7 @@ generate
+     // [19:14] correct BIST read count, saturated/truncated
+     // [23:20] wrong BIST read count, truncated
+     // [31:24] current low read-data byte on the Wishbone output register
+-    assign o_debug1 = {o_wb_data[7:0], wrong_read_data[3:0], correct_read_data[5:0], o_wb_ack_uncalibrated, o_wb_stall_calib, calib_stb, i_phy_idelayctrl_rdy, instruction_address, state_calibrate[4:0]};
++    assign o_debug1 = {ypcb_debug_read_byte, wrong_read_data[3:0], correct_read_data[5:0], o_wb_ack_uncalibrated, o_wb_stall_calib, calib_stb, i_phy_idelayctrl_rdy, instruction_address, state_calibrate[4:0]};
+ //    assign o_debug2 = {debug_trigger,i_phy_iserdes_data[62:32]};
+ //    assign o_debug3 = {debug_trigger,i_phy_iserdes_data[30:0]};
+ //    assign debug_trigger = repeat_test /*o_wb_ack_read_q[0][0]*/;

@@ -17038,3 +17038,17 @@ UberDDR3 calibration/data-integrity gates:
     data-integrity observation yet. The read-data observation must be aligned to
     the actual read ACK/data register, not just the current output byte after the
     transaction has completed.
+  - Run
+    `artifacts/task6/runs/2026-05-09T13-13-01+0200-ypcb-uberddr3-latched-debug-byte-seed17`
+    implemented that alignment attempt by latching `o_wb_data_q_current[7:0]`
+    inside UberDDR3 exactly when `o_wb_ack_read_q[0][0]` fires, then exporting
+    the latched byte through `debug1[31:24]`. The route completed cleanly
+    (`overused=0` at router iteration 21, timing pass) and programming
+    succeeded, but this seed did not calibrate in hardware for v14:
+    `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000006cc`,
+    `ack_count=0`, probe still in `WAIT_CALIB`.
+  - Updated conclusion: v14 needs a seed sweep before we can judge the latched
+    read-byte idea. The result is not data-integrity evidence; it is another
+    calibration-negative route. Use seed18 next, and if seed18 also fails,
+    either add seed19/seed20 or return to the v10 seed16 topology and make the
+    smallest possible in-controller byte compare.
