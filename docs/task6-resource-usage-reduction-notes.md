@@ -16782,3 +16782,20 @@ Current conclusion:
   reset, absence of the 50 MHz input clock, or small-design routing. The next
   gate is to switch the UberDDR3 BIST wrapper from MMCM-reset gating to the
   locking PLLE2 path, then re-run BIST/calibration.
+- PLLE2 UberDDR3 BIST result:
+  - Switched the wrapper clock source to `PLLE2_BASE` while keeping the same
+    intended clocks: 100 MHz DDR3, 100 MHz + 90 degrees, and 25 MHz controller.
+  - Build result:
+    `/nix/store/jy55imbnnm31k2zwm530rwkbhdlqmn4j-task6-ypcb-uberddr3-bist.bit`.
+  - nextpnr result: `PLLE2_ADV: 1`, `MMCME2_ADV: 0`, router2 reached
+    `overused=0` at iteration 5, and fasm2frames/bitgen completed.
+  - Board readback:
+    - magic/version valid: `0x54364a44`, version `2`
+    - `status=0xd0`: wrapper lock bit high, `uart_tx=1`, `wb2_stall=1`,
+      `calib_complete=0`, `calib_seen=0`
+    - `cycle_count=0x0df5fc1b`, `clk50_count=0x1bebfda1`, `SYS_RSTN=1`
+    - `calib_seen_cycle=0`, `debug1=0`, `wb_ack_count=0`,
+      `wb_err_count=0`, `wb_stall_count=0x0df5fc1b`
+  - Updated conclusion: PLLE2 clears the clock/reset-dead blocker. The current
+    blocker is now DDR3 init/calibration not completing under UberDDR3 on the
+    YPCB board/openXC7 bitstream.

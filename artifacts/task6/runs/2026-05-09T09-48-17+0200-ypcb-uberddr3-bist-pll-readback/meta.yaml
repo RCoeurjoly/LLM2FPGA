@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T09:48:17.764697+02:00"
+label: "ypcb-uberddr3-bist-pll-readback"
+experiment: "task6-ypcb-uberddr3-bist-pll"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/jy55imbnnm31k2zwm530rwkbhdlqmn4j-task6-ypcb-uberddr3-bist.bit"
+reference_artifacts:
+notes: null

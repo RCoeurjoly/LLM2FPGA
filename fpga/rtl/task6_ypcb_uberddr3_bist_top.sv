@@ -44,7 +44,7 @@ module task6_ypcb_uberddr3_bist_top #(
   wire clk100_raw;
   wire clk100_90_raw;
   wire clk25_raw;
-  wire mmcm_clkfb;
+  wire pll_clkfb;
   wire mmcm_locked;
   wire rst_n;
   logic [31:0] clk50_count_q;
@@ -55,12 +55,12 @@ module task6_ypcb_uberddr3_bist_top #(
 
   assign ref_clk = clk50;
 
-  MMCME2_BASE #(
+  PLLE2_BASE #(
     .BANDWIDTH("OPTIMIZED"),
-    .CLKFBOUT_MULT_F(20.000),
+    .CLKFBOUT_MULT(20),
     .CLKFBOUT_PHASE(0.000),
     .CLKIN1_PERIOD(20.000),
-    .CLKOUT0_DIVIDE_F(10.000),
+    .CLKOUT0_DIVIDE(10),
     .CLKOUT0_DUTY_CYCLE(0.500),
     .CLKOUT0_PHASE(0.000),
     .CLKOUT1_DIVIDE(10),
@@ -72,22 +72,16 @@ module task6_ypcb_uberddr3_bist_top #(
     .DIVCLK_DIVIDE(1),
     .REF_JITTER1(0.010),
     .STARTUP_WAIT("FALSE")
-  ) clock_mmcm (
-    .CLKFBOUT(mmcm_clkfb),
-    .CLKFBOUTB(),
+  ) clock_pll (
+    .CLKFBOUT(pll_clkfb),
     .CLKOUT0(clk100_raw),
-    .CLKOUT0B(),
     .CLKOUT1(clk100_90_raw),
-    .CLKOUT1B(),
     .CLKOUT2(clk25_raw),
-    .CLKOUT2B(),
     .CLKOUT3(),
-    .CLKOUT3B(),
     .CLKOUT4(),
     .CLKOUT5(),
-    .CLKOUT6(),
     .LOCKED(mmcm_locked),
-    .CLKFBIN(mmcm_clkfb),
+    .CLKFBIN(pll_clkfb),
     .CLKIN1(ref_clk),
     .PWRDWN(1'b0),
     .RST(1'b0)
