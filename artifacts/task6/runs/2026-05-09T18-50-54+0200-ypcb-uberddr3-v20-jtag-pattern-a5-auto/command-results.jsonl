@@ -1,0 +1,2 @@
+{"argv": ["openFPGALoader", "-c", "digilent_hs3", "--ftdi-serial", "210299BF3824", "/nix/store/m66j83pcdffqx21c3p78qf7pmnxhnsyi-task6-ypcb-uberddr3-bist-seed16.bit"], "finished_at": "2026-05-09T18:51:20.031232+02:00", "log": "program.log", "returncode": 0}
+{"argv": ["/usr/bin/python3", "/home/roland/LLM2FPGA_task6_streamtensor_lite/scripts/task6/read_jtag_debug_ftdi_bitbang.py", "--tdo-bit", "7", "--bits", "512", "--json-only"], "finished_at": "2026-05-09T18:51:20.135939+02:00", "log": "readback-tdo7.log", "returncode": 0}
