@@ -17243,3 +17243,15 @@ UberDDR3 calibration/data-integrity gates:
   - Updated conclusion: adding the USER2 command chain did not destroy the
     known seed16 calibration/command-liveness point. It is now valid to test
     command-driven pattern reruns against this same programmed image.
+  - Run
+    `artifacts/task6/runs/2026-05-09T18-51-59+0200-ypcb-uberddr3-v20-jtag-pattern-00`
+    programmed the same v20 bitstream and issued USER2 command `0xa100`
+    (`byte=0x00`). The command write script completed, but readback showed the
+    command was not latched by the FPGA: `active_byte=0xa5`,
+    `command_count=0`, `run_count=0`. The default probe still reproduced the
+    command gate (`status=0xd3`, `ack_count=2`, read byte `0x3d`).
+  - Updated conclusion: USER2 shifting from the host side is at least
+    executable, but the RTL command latch is wrong. Likely cause: the command
+    module latched BSCANE2 `UPDATE` on `DRCK`; `UPDATE` occurs after shifting
+    when `DRCK` is no longer clocking. Move the update latch to BSCANE2 `TCK`
+    and rerun the same `0x00` command test.

@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T18:51:59.971728+02:00"
+label: "ypcb-uberddr3-v20-jtag-pattern-00"
+experiment: "task6-uberddr3-jtag-pattern-command"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/m66j83pcdffqx21c3p78qf7pmnxhnsyi-task6-ypcb-uberddr3-bist-seed16.bit"
+reference_artifacts:
+notes: "v20 fixed-bitstream JTAG pattern command: USER2 command byte 0x00 after programming."
