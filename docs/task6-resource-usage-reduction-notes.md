@@ -17192,3 +17192,14 @@ UberDDR3 calibration/data-integrity gates:
     calibration-live image for a pattern variant, or reduce the classifier
     topology delta further by keeping the exact live v18/v15 image shape and
     moving pattern selection into a lower-fanout path.
+  - Control run
+    `artifacts/task6/runs/2026-05-09T16-19-58+0200-ypcb-uberddr3-v19-a5-control-seed16`
+    rebuilt the parameterized v19 source at the default uniform `0xa5`
+    pattern with seed16. This reproduced the live command gate:
+    `status=0xd3`, `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`,
+    `ack_count=2`, `err_count=0`, write/read ACKs seen, captured byte `0x3d`,
+    expected byte `0xa5`.
+  - Updated conclusion: the parameterized infrastructure and v19 source shape
+    can still reach the stable command-liveness gate for the default `0xa5`
+    pattern. The byte00 failure is therefore a pattern/routing-specific
+    calibration miss, not a general breakage of the runner or wrapper source.
