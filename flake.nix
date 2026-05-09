@@ -182,6 +182,28 @@
             EOF
             yosys -s run.ys
           '';
+        task6YpcbUberDdr3BistYosysJson =
+          pkgs.runCommand "task6-ypcb-uberddr3-bist-yosys.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv \
+              ${uberDdr3}/rtl/ddr3_top.v \
+              ${uberDdr3}/rtl/ddr3_controller.v \
+              ${uberDdr3}/rtl/ddr3_phy.v \
+              ${uberDdr3}/rtl/ecc/ecc_dec.sv \
+              ${uberDdr3}/rtl/ecc/ecc_enc.sv \
+              ${./fpga/rtl/task6_ypcb_uberddr3_bist_top.sv}
+            hierarchy -top task6_ypcb_uberddr3_bist_top -check
+            synth_xilinx -family xc7 -top task6_ypcb_uberddr3_bist_top -noiopad
+            stat -top task6_ypcb_uberddr3_bist_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
         llvmPackages = pkgsLlvm21.llvmPackages_21;
         # Keep LLVM for torch-mlir separate and pinned to torch-mlir's
         # submodule revision so source edits in torch-mlir do not rebuild LLVM.
@@ -9681,6 +9703,8 @@
             task6YpcbLiteDramNoOdelayLowrateRtlCheck;
           task6-ypcb-litedram-no-odelay-lowrate-dqs0-rtl-check =
             task6YpcbLiteDramNoOdelayLowrateDqs0RtlCheck;
+          task6-ypcb-uberddr3-bist-yosys-json =
+            task6YpcbUberDdr3BistYosysJson;
           task6-ypcb-litedram-open-synth-json =
             task6YpcbLiteDramOpenSynthJson;
           task6-ypcb-litedram-open-synth-utilization =

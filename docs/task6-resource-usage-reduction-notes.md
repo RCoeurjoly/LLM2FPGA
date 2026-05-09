@@ -81,6 +81,92 @@ earns more work.
 
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
+### 2026-05-09 - UberDDR3 YPCB fallback gate
+
+Decision:
+
+- Add UberDDR3 as a second DDR3-controller candidate because it is open source,
+  formally verified upstream, and synthesizes with Yosys.
+- Keep LiteDRAM as the primary proven-board-support reference, but use
+  UberDDR3 to test whether a smaller standalone DDR3 controller can be wrapped
+  around the YPCB DDR3 pins and observed through the direct BSCANE2 payload
+  path that already works on this board.
+
+Implemented gate:
+
+- Added `fpga/rtl/task6_ypcb_uberddr3_bist_top.sv`.
+- The wrapper instantiates upstream `ddr3_top.v` with:
+  - `ROW_BITS=15`
+  - `COL_BITS=10`
+  - `BA_BITS=3`
+  - `BYTE_LANES=8`
+  - `BIST_MODE=1`
+  - `ODELAY_SUPPORTED=1`
+  - `DLL_OFF=1`
+- The wrapper exports a 512-bit direct BSCANE2 debug payload containing:
+  - magic/version
+  - `o_calib_complete`
+  - sticky calibration-seen bit and cycle
+  - UberDDR3 `o_debug1`
+  - Wishbone ack/error/stall counters
+  - low readback/status words
+  - geometry/config nibbles
+- Added flake package:
+  `.#task6-ypcb-uberddr3-bist-yosys-json`.
+
+Measured result:
+
+| gate | command | result | notes |
+| --- | --- | --- | --- |
+| UberDDR3 controller-only Yosys parse | `nix build .#task6-uberddr3-controller-yosys-json -L` | pass | `ddr3_controller.v` elaborates through Yosys with ECC modules present |
+| Minimal YPCB UberDDR3 BIST wrapper | `nix build .#task6-ypcb-uberddr3-bist-yosys-json --no-link --print-out-paths -L` | pass | output `/nix/store/awfg0c5r81dvfjjjxx804qvb8cmxn0bm-task6-ypcb-uberddr3-bist-yosys.json`; Yosys `check` reported 0 problems |
+
+Wrapper synthesis stats from Yosys:
+
+| metric | value |
+| --- | ---: |
+| total cells | 25,116 |
+| estimated LCs | 12,723 |
+| `FDRE` | 6,791 |
+| `FDSE` | 47 |
+| `FDCE` | 673 |
+| `LUT6` | 4,425 |
+| `LUT5` | 2,741 |
+| `LUT4` | 1,502 |
+| `LUT3` | 4,055 |
+| `LUT2` | 1,259 |
+| `LUT1` | 378 |
+| `CARRY4` | 136 |
+| `BSCANE2` | 1 |
+| `IDELAYCTRL` | 1 |
+| `IDELAYE2` | 72 |
+| `ODELAYE2` | 81 |
+| `ISERDESE2` | 72 |
+| `OSERDESE2` | 106 |
+| `IOBUF` | 64 |
+| `IOBUFDS` | 8 |
+
+Interpretation:
+
+- UberDDR3 is viable enough for the next open-source gate: the YPCB wrapper
+  and direct BSCANE2 status path synthesize under Yosys.
+- The first failed build exposed a missing Xilinx primitive-library load for
+  `ISERDESE2`; adding `+/xilinx/cells_sim.v` and `+/xilinx/cells_xtra.v`
+  fixed that gate.
+- This does not yet prove correct YPCB physical pinout, clocking, timing, DDR3
+  calibration, or board readback. The wrapper currently aliases the 200 MHz
+  input clock into all UberDDR3 clock domains only to keep the first gate
+  minimal.
+
+Next gate:
+
+- Derive a real XDC from LiteX-Boards/YPCB board support for the 64-bit DDR3
+  data lane, including `ddram_dm`.
+- Replace the temporary clock aliases with a real 25/100/200 MHz clocking plan
+  compatible with UberDDR3's 4:1 controller/PHY ratio.
+- Build a routed bitstream and read the BSCANE2 payload before attempting any
+  higher-level DDR3 data test.
+
 ### 2026-05-08 - Reproduce upstream LiteX-Boards YPCB validation first
 
 Decision:
