@@ -16395,3 +16395,68 @@ Interpretation:
   addr-index-15-shaped beat, focus on DFII/native mapping or PHY/data-lane
   integrity. If single-read differs, focus on native response sequencing or
   outstanding read handling.
+
+Follow-up start-index-0 result:
+
+- Built and routed start index `0` successfully:
+  `/nix/store/qdabv05ins26vijg3ni82lcplkznjpvh-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-single-read-init-bandwidth-probe-start-index-0.bit`.
+- Router reached `overused=0`; post-route `user_clk` was `59.68 MHz` against a
+  `25 MHz` target.
+- Board run
+  `2026-05-09T08-28-19+0200-v119-single-read-start-index-0-board-check`
+  matched the failed start-index-5 behavior:
+  - `magic_ok=true`
+  - `state=PROBE_ERROR`
+  - `wb_ack_count=0`
+  - `wb_wait_count=524289`
+  - `write_command_count=0`
+  - `response_count=0`
+  - `target_read_count=1`
+- This means the failed single-read probes are not caused by sparse address
+  index `5`. The common factor is the `READ_COUNT_LOG2=0` single-read generated
+  family.
+
+Updated next action:
+
+- Do not spend more time on this exact single-read generated family until the
+  LiteDRAM-init timeout is understood.
+- Prefer a safer narrow probe that preserves the known-good `READ_COUNT_LOG2=4`
+  init/routing shape, but records only the first accepted command and first
+  returned 576-bit beat into the debug payload. That should avoid perturbing the
+  LiteDRAM init path while still answering the response-collapse question.
+
+### 2026-05-09 - Candidate fallback: UberDDR3
+
+Source:
+
+- `https://github.com/AngeloJacobo/UberDDR3`
+
+Why it is a prime candidate:
+
+- Open-source DDR3 controller under GPL-3.0.
+- README describes Yosys, Verilator, Icarus Verilog, and SymbiYosys flows.
+- The design is described as formally verified and simulated against the
+  Micron DDR3 model.
+- User interface is Wishbone, which fits the style of the current probes.
+- It includes built-in self-tests for burst, random, and alternating
+  read/write access, which is exactly the kind of autonomous board criterion we
+  need.
+- It supports 7-series-style DDR3 PHY features and configurable byte lanes,
+  timing parameters, and mode registers.
+
+Risks / work needed:
+
+- We need to adapt the YPCB-00338-1P1 pinout, clocking, reset, VREF/DCI-related
+  constraints, and DDR3 geometry.
+- We need to confirm whether the exact YPCB memory topology is one 64-bit
+  interface, dual 32-bit interfaces, or a 64-bit plus ECC topology, and map
+  that to UberDDR3's lane model.
+- We need a minimal openXC7 bitstream target with a built-in test result
+  exported over the existing direct BSCANE2 JTAG debug path.
+
+Priority:
+
+- Add this as a parallel DDR3 fallback lane behind the current LiteDRAM
+  beat-mapping probe. If the next LiteDRAM probe does not produce actionable
+  progress, switch DDR3 bring-up effort to an UberDDR3 minimal BIST port rather
+  than continuing to patch opaque LiteDRAM behavior indefinitely.
