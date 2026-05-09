@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T16:25:09.655053+02:00"
+label: "ypcb-uberddr3-pattern-3d-seed16"
+experiment: "task6-uberddr3-byte-pattern-classifier"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/aqhqfn0zvaxxa1q74rs9fliyynqc21bw-task6-ypcb-uberddr3-bist-byte3d-seed16.bit"
+reference_artifacts:
+notes: "Byte pattern classifier: uniform write/read expected byte 0x3d, seed16."

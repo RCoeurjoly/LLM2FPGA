@@ -17203,3 +17203,17 @@ UberDDR3 calibration/data-integrity gates:
     can still reach the stable command-liveness gate for the default `0xa5`
     pattern. The byte00 failure is therefore a pattern/routing-specific
     calibration miss, not a general breakage of the runner or wrapper source.
+  - Run
+    `artifacts/task6/runs/2026-05-09T16-25-09+0200-ypcb-uberddr3-pattern-3d-seed16`
+    built and programmed the v19 byte-pattern classifier with uniform
+    write/expected byte `0x3d`, seed16, and bitstream
+    `/nix/store/aqhqfn0zvaxxa1q74rs9fliyynqc21bw-task6-ypcb-uberddr3-bist-byte3d-seed16.bit`.
+    It also failed before calibration/command gate: `status=0xd0`,
+    `calib_seen_cycle=0`, `debug1=0x0000166c`, `ack_count=0`, `err_count=0`,
+    probe `WAIT_CALIB`.
+  - Updated conclusion: changing the uniform write byte away from `0xa5`
+    currently changes the routed design enough that calibration is not
+    reliable, even when the expected byte is the value previously observed on
+    reads. Stop treating this specific byte-pattern sweep as a cheap
+    classifier until there is a way to preserve the live placement/timing point
+    or to run several route seeds per pattern automatically.
