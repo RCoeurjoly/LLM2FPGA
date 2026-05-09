@@ -17255,3 +17255,13 @@ UberDDR3 calibration/data-integrity gates:
     module latched BSCANE2 `UPDATE` on `DRCK`; `UPDATE` occurs after shifting
     when `DRCK` is no longer clocking. Move the update latch to BSCANE2 `TCK`
     and rerun the same `0x00` command test.
+  - Implemented v21 of the fixed-bitstream command path by latching the USER2
+    update event in the BSCANE2 `TCK` domain while keeping the shift register
+    on `DRCK`. This targets the v20 failure mode where the host completed the
+    USER2 shift/update sequence but the FPGA still reported
+    `command_count=0`.
+  - Build check for `.#task6-ypcb-uberddr3-bist-seed16-bitstream` produced
+    `/nix/store/jfdb2knp5ghzhw6n1f39g2a1gxak57rc-task6-ypcb-uberddr3-bist-seed16.bit`.
+    The route completed with `overused=0` at router iteration 16, timing
+    passed at 25 MHz, and nextpnr packed USER2 at `BSCAN_X0Y1/BSCAN` with
+    USER1 still at `BSCAN_X0Y0/BSCAN`.

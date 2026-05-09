@@ -24,7 +24,7 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd20;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd21;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -522,8 +522,8 @@ module task6_uberddr3_jtag_command_shift #(
   logic update;
   logic tdo;
   logic [WIDTH - 1:0] shift_q;
-  logic [7:0] byte_drck_q;
-  logic toggle_drck_q;
+  logic [7:0] byte_tck_q;
+  logic toggle_tck_q;
   logic toggle_meta_q;
   logic toggle_sync_q;
   logic toggle_seen_q;
@@ -533,18 +533,21 @@ module task6_uberddr3_jtag_command_shift #(
   always_ff @(posedge drck or posedge reset) begin
     if (reset) begin
       shift_q <= '0;
-      byte_drck_q <= DEFAULT_BYTE;
-      toggle_drck_q <= 1'b0;
     end else begin
       if (sel && capture)
-        shift_q <= {4'ha, 3'd0, 1'b1, byte_drck_q};
+        shift_q <= {4'ha, 3'd0, 1'b1, byte_tck_q};
       else if (sel && shift)
         shift_q <= {tdi, shift_q[WIDTH - 1:1]};
+    end
+  end
 
-      if (sel && update && shift_q[15:12] == 4'ha && shift_q[8]) begin
-        byte_drck_q <= shift_q[7:0];
-        toggle_drck_q <= ~toggle_drck_q;
-      end
+  always_ff @(posedge tck or posedge reset) begin
+    if (reset) begin
+      byte_tck_q <= DEFAULT_BYTE;
+      toggle_tck_q <= 1'b0;
+    end else if (sel && update && shift_q[15:12] == 4'ha && shift_q[8]) begin
+      byte_tck_q <= shift_q[7:0];
+      toggle_tck_q <= ~toggle_tck_q;
     end
   end
 
@@ -557,12 +560,12 @@ module task6_uberddr3_jtag_command_shift #(
       event_o <= 1'b0;
       command_count_o <= 16'd0;
     end else begin
-      toggle_meta_q <= toggle_drck_q;
+      toggle_meta_q <= toggle_tck_q;
       toggle_sync_q <= toggle_meta_q;
       event_o <= toggle_sync_q ^ toggle_seen_q;
       if (toggle_sync_q ^ toggle_seen_q) begin
         toggle_seen_q <= toggle_sync_q;
-        byte_o <= byte_drck_q;
+        byte_o <= byte_tck_q;
         command_count_o <= command_count_o + 16'd1;
       end
     end
