@@ -1,0 +1,31 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "INVALID",
+  "created_at": "2026-05-09T09:56:59.289702+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T09-56-59+0200-ypcb-uberddr3-bist-200mhz-refclk",
+  "correctness": null,
+  "route": {
+    "bitstream": "/nix/store/1kds6b8fxfaanasvshhfbh6x9z2ypvws-task6-ypcb-uberddr3-bist.bit",
+    "router2_overused": 0
+  },
+  "board": {
+    "programmed": true,
+    "jtag_payload_read": true,
+    "magic": "0x54364a44",
+    "version": 2,
+    "status": "0x50",
+    "pll_locked": false,
+    "cycle_count": 0,
+    "debug1": "0x00000000",
+    "calib_complete": false
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Invalid experiment: ref_clk was accidentally used as both PLLE2 input and the PLL-derived 200 MHz IDELAY reference output.",
+    "Direct BSCANE2 payload remained readable, but the PLL did not lock and the controller-domain cycle counter stayed at zero."
+  ]
+}

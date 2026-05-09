@@ -44,6 +44,7 @@ module task6_ypcb_uberddr3_bist_top #(
   wire clk100_raw;
   wire clk100_90_raw;
   wire clk25_raw;
+  wire clk200_raw;
   wire pll_clkfb;
   wire mmcm_locked;
   wire rst_n;
@@ -52,8 +53,6 @@ module task6_ypcb_uberddr3_bist_top #(
   always_ff @(posedge clk50) begin
     clk50_count_q <= clk50_count_q + 32'd1;
   end
-
-  assign ref_clk = clk50;
 
   PLLE2_BASE #(
     .BANDWIDTH("OPTIMIZED"),
@@ -69,6 +68,9 @@ module task6_ypcb_uberddr3_bist_top #(
     .CLKOUT2_DIVIDE(40),
     .CLKOUT2_DUTY_CYCLE(0.500),
     .CLKOUT2_PHASE(0.000),
+    .CLKOUT3_DIVIDE(5),
+    .CLKOUT3_DUTY_CYCLE(0.500),
+    .CLKOUT3_PHASE(0.000),
     .DIVCLK_DIVIDE(1),
     .REF_JITTER1(0.010),
     .STARTUP_WAIT("FALSE")
@@ -77,12 +79,12 @@ module task6_ypcb_uberddr3_bist_top #(
     .CLKOUT0(clk100_raw),
     .CLKOUT1(clk100_90_raw),
     .CLKOUT2(clk25_raw),
-    .CLKOUT3(),
+    .CLKOUT3(clk200_raw),
     .CLKOUT4(),
     .CLKOUT5(),
     .LOCKED(mmcm_locked),
     .CLKFBIN(pll_clkfb),
-    .CLKIN1(ref_clk),
+    .CLKIN1(clk50),
     .PWRDWN(1'b0),
     .RST(1'b0)
   );
@@ -100,6 +102,11 @@ module task6_ypcb_uberddr3_bist_top #(
   BUFG clk25_bufg (
     .I(clk25_raw),
     .O(controller_clk)
+  );
+
+  BUFG clk200_bufg (
+    .I(clk200_raw),
+    .O(ref_clk)
   );
 
   assign rst_n = mmcm_locked;

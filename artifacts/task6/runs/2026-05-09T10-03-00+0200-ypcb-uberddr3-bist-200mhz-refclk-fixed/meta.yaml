@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-09T10:03:00.881122+02:00"
+label: "ypcb-uberddr3-bist-200mhz-refclk-fixed"
+experiment: "task6-ypcb-uberddr3-bist-200mhz-refclk-fixed"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/2j3fmwg6al2z8v4akcj0y066g71841y2-task6-ypcb-uberddr3-bist.bit"
+reference_artifacts:
+notes: "UberDDR3 BIST with PLLE2 200 MHz IDELAY reference clock and 50 MHz PLL input"

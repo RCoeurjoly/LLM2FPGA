@@ -205,6 +205,10 @@ Measured result:
 | `clk50` wrapper board readback | `nix build .#task6-ypcb-uberddr3-bist-bitstream ...`; program/readback | fail, same | bitstream `/nix/store/w6yjkyykghb9d0bh4ymmlsyc5rngy3lp-task6-ypcb-uberddr3-bist.bit`; payload still `mmcm_locked=0`, `cycle_count=0`; run `artifacts/task6/runs/2026-05-09T09-20-58+0200-uberddr3-bist-clk50-program-readback` |
 | `clk50`/reset diagnostic payload | same | fail, informative | bitstream `/nix/store/y410h3njia3ffm355c1ckb805idkxa31-task6-ypcb-uberddr3-bist.bit`; payload `clk50_count=0x182abf14`, `SYS_RSTN=1`, `mmcm_locked=0`; run `artifacts/task6/runs/2026-05-09T09-27-51+0200-uberddr3-bist-clk50-diagnostic-readback` |
 | direct MMCM feedback diagnostic | same | fail, informative | bitstream `/nix/store/hiswd483f123l9c4w2ylxr42l97mnzhh-task6-ypcb-uberddr3-bist.bit`; payload `clk50_count=0x19c19a30`, `SYS_RSTN=1`, `mmcm_locked=0`; run `artifacts/task6/runs/2026-05-09T09-34-59+0200-uberddr3-bist-direct-feedback-readback` |
+| MMCM-only diagnostic | `nix build .#task6-ypcb-mmcm-diag-bitstream ...`; program/readback | fail, informative | bitstream `/nix/store/hfb07ccdq2x0q4v4x3mfzzbjvps9pf4l-task6-ypcb-mmcm-diag.bit`; payload `SYS_RSTN=1`, `pll_locked=1`, `mmcm_a_locked=0`, `mmcm_b_locked=0`; raw/PLL/output counters all advanced; run `artifacts/task6/runs/2026-05-09T09-41-27+0200-ypcb-mmcm-diag-readback` |
+| PLLE2-clocked UberDDR3 BIST | `nix build .#task6-ypcb-uberddr3-bist-bitstream ...`; program/readback | fail, useful | bitstream `/nix/store/jy55imbnnm31k2zwm530rwkbhdlqmn4j-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x0df5fc1b`, `debug1=0`; calibration still stuck at UberDDR3 calibration `IDLE`; run `artifacts/task6/runs/2026-05-09T09-48-17+0200-ypcb-uberddr3-bist-pll-readback` |
+| 200 MHz IDELAY refclk, invalid wiring | same | invalid, informative | bitstream `/nix/store/1kds6b8fxfaanasvshhfbh6x9z2ypvws-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0x50`, `pll_locked=0`, `cycle_count=0`; invalid because `ref_clk` was accidentally used as both PLLE2 input and PLL-derived output; run `artifacts/task6/runs/2026-05-09T09-56-59+0200-ypcb-uberddr3-bist-200mhz-refclk` |
+| Fixed 200 MHz IDELAY refclk | same | fail, forward progress | bitstream `/nix/store/2j3fmwg6al2z8v4akcj0y066g71841y2-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x1efd6d85`, `debug1=0x0000000c`, `wb_stall_count=0x1efd6d85`; calibration advances from state 0 to state 12 but does not complete; run `artifacts/task6/runs/2026-05-09T10-03-00+0200-ypcb-uberddr3-bist-200mhz-refclk-fixed` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -244,14 +248,36 @@ Interpretation:
   BUFGed loop to direct `CLKFBOUT` -> `CLKFBIN` did not make `mmcm_locked`
   assert. An explicit `IBUF` instance is not accepted by nextpnr for this
   top-level input because IO buffer insertion already owns the input buffer.
+- A MMCM-only diagnostic showed that the raw 50 MHz input, reset, PLLE2 lock,
+  and generated output counters work on hardware, but the tested MMCM lock bits
+  do not assert. Therefore the full UberDDR3 wrapper switched from MMCM to
+  PLLE2 clocking.
+- PLLE2 clocking clears the wrapper clock/reset-dead blocker. The initial PLLE2
+  version still left UberDDR3 calibration in state `0` (`IDLE`), which is before
+  the DDR3 calibration state machine can do useful work.
+- Feeding UberDDR3 `i_ref_clk` from the raw 50 MHz input was the likely reason:
+  the controller leaves `IDLE` only after the PHY reports IDELAYCTRL ready, and
+  Xilinx IDELAYCTRL expects the high-speed reference domain. Adding a PLLE2
+  200 MHz output for `i_ref_clk` moves calibration to state `12`, so the
+  IDELAYCTRL/read-calibration entry hypothesis was productive.
+- The current blocker is now inside UberDDR3 calibration state `12`, not board
+  programming, JTAG readback, raw clock/reset, PLLE2 lock, or the calibration
+  state-machine entry condition.
 
 Next gate:
 
-- Build a faster MMCM-only/JTAG diagnostic that sweeps a small set of known-good
-  LiteX-style clocking configurations and exposes lock bits/counters, before
-  rerouting the full UberDDR3 design again.
-- Only investigate the router1 assert with a smaller DQS/OSERDES/ISERDES cutout
-  after the wrapper clock is known to lock and tick on hardware.
+- Patch the UberDDR3 source copy to expose a richer calibration debug vector
+  around state `12`: state, lane, `instruction_address`, `i_phy_idelayctrl_rdy`,
+  delay counters, read-data delay, bitslip/reference slices, and the relevant
+  captured read/MPR data summaries.
+- Rebuild/program/read once with that instrumentation. If state `12` is
+  waiting on data pattern recognition, decide between slowing the DDR3 clock,
+  adjusting read delay/phase, or comparing against LiteX/MIG calibration
+  sequencing. If it is just progressing slowly, extend the readback window or
+  add sticky maximum-state tracking.
+- Keep the router1 assert as a secondary openXC7 quality issue; router2 reaches
+  `overused=0` and the board can execute the bitstreams, so calibration
+  observability is the faster path to DDR3 data integrity.
 
 ### 2026-05-08 - Reproduce upstream LiteX-Boards YPCB validation first
 

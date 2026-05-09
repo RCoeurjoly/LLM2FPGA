@@ -1,0 +1,37 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAIL_USEFUL",
+  "created_at": "2026-05-09T10:03:00.881122+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T10-03-00+0200-ypcb-uberddr3-bist-200mhz-refclk-fixed",
+  "correctness": null,
+  "route": {
+    "bitstream": "/nix/store/2j3fmwg6al2z8v4akcj0y066g71841y2-task6-ypcb-uberddr3-bist.bit",
+    "router2_overused": 0
+  },
+  "board": {
+    "programmed": true,
+    "jtag_payload_read": true,
+    "magic": "0x54364a44",
+    "version": 2,
+    "status": "0xd0",
+    "pll_locked": true,
+    "cycle_count": 519925125,
+    "debug1": "0x0000000c",
+    "calib_state": 12,
+    "calib_complete": false,
+    "wb_stall_count": 519925125,
+    "wb_aux": "0x1",
+    "clk50_count": 1039851643,
+    "sys_rstn": true
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "Corrected experiment: PLLE2 input is the board 50 MHz clock; UberDDR3 i_ref_clk is a PLL-derived 200 MHz clock.",
+    "This clears the previous clock/reset-dead blocker: PLL locked, controller clock runs, and calibration advanced from state 0 to state 12.",
+    "DDR3 calibration still does not complete. Next debug gate should expose controller calibration substate/read-data signals around state 12."
+  ]
+}
