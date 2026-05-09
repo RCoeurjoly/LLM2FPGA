@@ -1,0 +1,57 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "FAIL_USEFUL",
+  "created_at": "2026-05-09T10:22:01+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-09T10-22-01+0200-ypcb-uberddr3-bist-calib-only",
+  "correctness": {
+    "passed": false,
+    "reason": "BIST_MODE=0 did not assert calib_complete and stayed in READ_DATA/state 12 across two delayed JTAG payload reads."
+  },
+  "route": {
+    "passed": true,
+    "overused": 0,
+    "timing": "pass at the 25 MHz openXC7 route target"
+  },
+  "board": {
+    "programmed": true,
+    "jtag_payload_read": true,
+    "bitstream": "/nix/store/143g3jjxxisny5csxygb5d4n3n4drksc-task6-ypcb-uberddr3-bist.bit",
+    "payloads": [
+      {
+        "raw_hex": "0x00000000000120f5715f0000000000001009000083af00000000ffffffffffffffff107ab5fa0000000000000000808406cc00000000107ab5fad00254364a44",
+        "status": "0xd0",
+        "cycle_count": "0x107ab5fa",
+        "debug1": "0x808406cc"
+      },
+      {
+        "raw_hex": "0x0000000000019d90c0960000000000001009000083af00000000ffffffffffffffff4ec85d950000000000000000808406cc000000004ec85d95d00254364a44",
+        "status": "0xd0",
+        "cycle_count": "0x4ec85d95",
+        "debug1": "0x808406cc"
+      }
+    ],
+    "decoded_debug1": {
+      "state": 12,
+      "state_name": "READ_DATA",
+      "instruction_address": 22,
+      "idelayctrl_rdy": true,
+      "delay_before_read_data": 0,
+      "lane": 0,
+      "idelay_data_tap": 1,
+      "idelay_dqs_tap": 1,
+      "calib_stb": false,
+      "wb_stall_calib": false,
+      "wb_ack_uncalibrated": false,
+      "read_data_nonzero": true
+    }
+  },
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": [
+    "This negative result argues against pure BIST_MODE=0 as the next bring-up path.",
+    "The prior BIST_MODE=1 build reached BURST_WRITE/state 17, so preserve that build shape and add a fast BIST exit at or after BURST_WRITE."
+  ]
+}

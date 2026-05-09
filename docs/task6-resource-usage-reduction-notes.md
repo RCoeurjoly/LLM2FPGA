@@ -210,6 +210,7 @@ Measured result:
 | 200 MHz IDELAY refclk, invalid wiring | same | invalid, informative | bitstream `/nix/store/1kds6b8fxfaanasvshhfbh6x9z2ypvws-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0x50`, `pll_locked=0`, `cycle_count=0`; invalid because `ref_clk` was accidentally used as both PLLE2 input and PLL-derived output; run `artifacts/task6/runs/2026-05-09T09-56-59+0200-ypcb-uberddr3-bist-200mhz-refclk` |
 | Fixed 200 MHz IDELAY refclk | same | fail, forward progress | bitstream `/nix/store/2j3fmwg6al2z8v4akcj0y066g71841y2-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x1efd6d85`, `debug1=0x0000000c`, `wb_stall_count=0x1efd6d85`; calibration advances from state 0 to state 12 but does not complete; run `artifacts/task6/runs/2026-05-09T10-03-00+0200-ypcb-uberddr3-bist-200mhz-refclk-fixed` |
 | Packed calibration debug1 | same | pass, useful discriminator | bitstream `/nix/store/hr6m6xancsa09gybbcapjpyrafni7rbn-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; payload `status=0xd0`, `pll_locked=1`, `cycle_count=0x151b74ec`, `debug1=0xd00386d1`; decoded debug1 shows state `17` (`BURST_WRITE`), `instruction_address=22`, IDELAYCTRL ready, lane `7`, `calib_stb=1`, calibration-side Wishbone ack, and nonzero uncalibrated read data; run `artifacts/task6/runs/2026-05-09T10-11-13+0200-ypcb-uberddr3-bist-calib-debug1` |
+| Calibration-only `BIST_MODE=0` | same | fail, useful negative | bitstream `/nix/store/143g3jjxxisny5csxygb5d4n3n4drksc-task6-ypcb-uberddr3-bist.bit`; route `overused=0`; first payload `debug1=0x808406cc`; delayed second payload unchanged at `debug1=0x808406cc` while `cycle_count` advanced to `0x4ec85d95`; decoded debug1 shows state `12` (`READ_DATA`), `instruction_address=22`, IDELAYCTRL ready, lane `0`, DQ/DQS IDELAY tap `1`, no calibration strobe/ack, and nonzero uncalibrated read data; run `artifacts/task6/runs/2026-05-09T10-22-01+0200-ypcb-uberddr3-bist-calib-only` |
 
 Post-patch nextpnr utilization at the route gate:
 
@@ -270,12 +271,19 @@ Interpretation:
   (`ROW_BITS=15`, `COL_BITS=10`, `BA_BITS=3`), a persistent state `17` shortly
   after programming is likely the full-memory BIST being too large for a fast
   bring-up loop, not an early DDR3 initialization failure.
+- The `BIST_MODE=0` calibration-only build did not reproduce the state `17`
+  progress. It stayed in state `12` (`READ_DATA`) across two reads while the
+  controller cycle counter advanced. That points to a synthesis/routing or
+  calibration-path sensitivity, so the faster path is to preserve the
+  `BIST_MODE=1` build shape that reached `BURST_WRITE` and patch a bounded or
+  immediate BIST exit there.
 
 Next gate:
 
-- Switch the YPCB UberDDR3 wrapper to `BIST_MODE=0` for calibration-only
-  bring-up and rebuild/program/read once. Expected pass condition:
-  `calib_complete=1` with the debug state reaching `DONE_CALIBRATE` quickly.
+- Restore the YPCB UberDDR3 wrapper to `BIST_MODE=1` and patch the copied
+  UberDDR3 source for a YPCB fast-BIST exit: once calibration reaches
+  `BURST_WRITE`, skip the full-address-space built-in BIST and transition to
+  `FINISH_READ`/`DONE_CALIBRATE`.
 - If calibration-only completes, add a wrapper-side bounded deterministic
   user-port write/read probe over a few 512-bit beats and export mismatch
   counters through the direct BSCANE2 payload. This proves the actual path we
