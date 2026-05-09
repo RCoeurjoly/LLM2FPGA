@@ -17176,3 +17176,19 @@ UberDDR3 calibration/data-integrity gates:
     only the uniform write/expected byte while preserving the same runner and
     seed16 route target, then compare whether the returned byte is fixed,
     pattern-dependent, inverted, or tied to a specific lane/packing artifact.
+  - Run
+    `artifacts/task6/runs/2026-05-09T16-14-49+0200-ypcb-uberddr3-pattern-00-seed16`
+    built and programmed the v19 byte-pattern classifier with uniform
+    write/expected byte `0x00`, seed16, and bitstream
+    `/nix/store/b8m3gj4kzdblv7lcil5gjh09vnj2pdkl-task6-ypcb-uberddr3-bist-byte00-seed16.bit`.
+    The route completed (`overused=0` at router iteration 42, timing pass),
+    but the board did not reach calibration or the command gate:
+    `status=0xd0`, `calib_seen_cycle=0`, `debug1=0x000006cc`,
+    `ack_count=0`, `err_count=0`, probe `WAIT_CALIB`.
+  - Updated conclusion: the byte00 classifier does not answer the data
+    pattern question because it lost the fragile calibration point. Treat this
+    as more evidence that tiny topology/routing changes perturb UberDDR3 on
+    this board. The next productive DDR3 step is to either find a second
+    calibration-live image for a pattern variant, or reduce the classifier
+    topology delta further by keeping the exact live v18/v15 image shape and
+    moving pattern selection into a lower-fanout path.

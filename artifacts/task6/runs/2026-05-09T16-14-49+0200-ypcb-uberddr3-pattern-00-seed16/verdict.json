@@ -1,0 +1,21 @@
+{
+  "board": "fail_before_command_gate",
+  "bram_margin": null,
+  "correctness": "fail",
+  "created_at": "2026-05-09T16:14:49.516268+02:00",
+  "dsp_margin": null,
+  "lut_margin": null,
+  "notes": [
+    "calibration=fail",
+    "command_gate=fail",
+    "integrity=fail",
+    "read_byte=0x00 expected=0x00",
+    "ack_count=0 err_count=0"
+  ],
+  "route": null,
+  "run_dir": "artifacts/task6/runs/2026-05-09T16-14-49+0200-ypcb-uberddr3-pattern-00-seed16",
+  "runtime": null,
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE",
+  "timing_margin": null
+}
