@@ -17393,3 +17393,19 @@ UberDDR3 calibration/data-integrity gates:
     the whole beat. Many byte lanes retain the same structured nonzero values
     seen in the `0xa5` control, including recurring `0xa5`, `0xc1`, `0x51`,
     `0xad`, `0x8c`, `0x77`, and `0x91` positions.
+  - Run
+    `artifacts/task6/runs/2026-05-09T20-04-20+0200-ypcb-uberddr3-v23-readbeat-ff`
+    programmed the same v23 bitstream and issued USER2 byte `0xff`. It
+    reproduced calibration and the command gate: `version=23`, `status=0xd3`,
+    `calib_seen_cycle=0x000093dd`, `debug1=0x000006d7`,
+    `command_count=2`, `run_count=2`, `ack_count=2`, `err_count=0`, captured
+    low byte `0xff`.
+  - The returned 512-bit beat words were:
+    `a5ffc1ff a5ffc1ff a5ff51ff a5ff51ff 00ffad00 0cfeadfb d200d000 0010d000 00398c04 04c68c87 80002900 00102900 00007700 00007700 00009100 00009100`.
+  - Updated conclusion: the readbeat classifier now strongly suggests
+    structured byte-lane/packing/selective-byte behavior, not random
+    corruption. Across commands `0x00` and `0xff`, byte positions 0 and 2 of
+    the first four words follow the commanded byte, byte 3 stays `0xa5`, and
+    byte 1 stays lane-specific (`0xc1` or `0x51`). Later words show other fixed
+    lane values (`0xad`, `0xd0`, `0x8c`, `0x29`, `0x77`, `0x91`) mixed with
+    command-sensitive bytes.
