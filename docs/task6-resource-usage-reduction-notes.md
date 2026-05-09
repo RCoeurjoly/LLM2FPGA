@@ -17124,3 +17124,10 @@ UberDDR3 calibration/data-integrity gates:
     the exact v15 RTL across seeds to find multiple command-liveness images, or
     moving the next diagnostic into a separate low-fanout equality/status path
     that does not export additional `wb_data` bits.
+  - Restored the checked-in UberDDR3 wrapper source to the exact v15
+    command-liveness topology from commit `c4515a0`. Rebuilding
+    `.#task6-ypcb-uberddr3-bist-seed16-bitstream` resolves to the same durable
+    bitstream path:
+    `/nix/store/a2ifhrb88dqbmkgdjck5dg6a4dxnyy0c-task6-ypcb-uberddr3-bist-seed16.bit`.
+    This makes the current source tree match the last known live board gate
+    before continuing DDR3 diagnostics.
