@@ -1,0 +1,10 @@
+{
+  "beat0_prefix_hex": "00c1",
+  "count": 2,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count2/dense-diagnostic.json",
+  "expected_prefix_hex": "0001",
+  "mismatch_count": 1,
+  "run_dir": "artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count2",
+  "status": "FAIL",
+  "verdict": "dense-byte-contract-fails"
+}

@@ -19080,3 +19080,39 @@ UberDDR3 calibration/data-integrity gates:
     hardware timing/PHY interaction that the abstract memory model cannot see.
   - Next gate: use the upstream UberDDR3 controller semantics/formal facts to
     build a targeted read-data timing experiment, then validate on board.
+
+## 2026-05-11 - dense-byte lane hardware discriminator
+
+- Goal:
+  - determine whether the v54 dense-fill readback failure means all dense
+    writes are invisible, or whether the failure is lane/write-mask specific.
+- Bitstream:
+  - `/nix/store/pw6v3y4xyzvnq7p6zmpk8j4na7czn06m-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+- Hardware runs:
+
+| run | result | observed prefix | expected prefix |
+| --- | --- | --- | --- |
+| `artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count1` | FAIL, 1 mismatch | `a8` | `00` |
+| `artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count2` | FAIL, 1 mismatch | `00c1` | `0001` |
+| `artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count4` | FAIL, 1 mismatch | `00c10203` | `00010203` |
+| `artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count8` | FAIL, 5 mismatches | `00c1000000c10607` | `0001020304050607` |
+| `artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count16` | FAIL, 13 mismatches | `00c1000000c100000051000000510e0f` | `000102030405060708090a0b0c0d0e0f` |
+| `artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count16-followup-readbeat0` | PASS boot/read-only gate | `00c1000000c100000051000000510e0f` | n/a |
+
+- Interpretation:
+  - Calibration and boot remained clean in these runs, so the byte observations
+    are valid hardware data points.
+  - Dense writes are partially visible. This is not the same stale-prefix
+    failure as the full-beat fill readback.
+  - The failure now points at byte-select/data-mask behavior, lane mapping, or
+    write-data timing across the 64-byte Wishbone beat. The repeated `0xc1` and
+    `0x51` bytes are consistent with old BIST/read pattern residue in selected
+    byte positions.
+- Next concrete gate:
+  - stop using only prefixes. Add a board-side or host-side lane-characterizer
+    that writes one lane at a time with nonzero sentinel values and reads the
+    full lower-128-bit window after each write, preserving calibration/boot as
+    the first gate.
+  - Use the resulting lane table to decide whether to invert/remap `i_wb_sel`,
+    change dense data layout, or abandon per-byte dense writes in favor of
+    controller-native full-beat row chunks.

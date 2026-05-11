@@ -1,0 +1,7 @@
+{
+  "beat_addr": 0,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count16-followup-readbeat0/readbeat-diagnostic.json",
+  "lower128_hex": "00c1000000c100000051000000510e0f",
+  "run_dir": "artifacts/task6/runs/2026-05-11-densebyte-v54-seed18/count16-followup-readbeat0",
+  "status": "PASS"
+}
