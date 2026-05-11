@@ -18997,3 +18997,57 @@ UberDDR3 calibration/data-integrity gates:
     then reads it back with the same internal sequencing and reports mismatch
     count. Only after that passes should TinyStories int8 rowstream loading use
     DDR3.
+
+## 2026-05-11 - dense-fill write/readback gate
+
+- Goal:
+  - take the v51 board-side microsequence result and move one step closer to a
+    DDR3 weight-loader primitive: one command writes a full selected 512-bit
+    beat with a repeated byte and the diagnostic reads back the lower 128 bits.
+- v52/v53 negative calibration checks:
+  - v52 added a larger unique-lane dense-burst readback command and timed out
+    before calibration; no byte result was interpreted.
+  - v53 reduced the logic to repeated-byte fill plus lower-128-bit compare and
+    still timed out before calibration.
+  - decision: logic fanout around readback can perturb the DDR3 build enough
+    that calibration itself is the first gate.
+- v54 write-only dense-fill gate:
+  - change: add `LOADER_OP_WRITE_DENSE_FILL` (`0x08`) through the proven
+    loader issue/wait/write-drain path, with `i_wb_addr=0`, full
+    `i_wb_sel`, and repeated `0x5a` data.
+  - bitstream:
+    `/nix/store/pw6v3y4xyzvnq7p6zmpk8j4na7czn06m-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - write-only validation:
+    `artifacts/task6/runs/2026-05-11-densefill-v54-seed18/beat0-value5a-rerun`
+  - result: `PASS`; calibration completed, boot stayed clean,
+    `boot_mismatch=false`, `wb_err_count=0`, and the loader write ACK was
+    observed.
+- v54 readback diagnostic:
+  - validation:
+    `artifacts/task6/runs/2026-05-11-densefill-v54-seed18/beat0-value5a-readback2`
+  - result: `FAIL`; calibration completed and boot stayed clean, but two
+    consecutive lower-128-bit reads returned the same stale prefix
+    `3dc13db53dc13da52c512ca52c512ca5` instead of
+    `5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a`.
+- v55 aux-polarity experiment:
+  - hypothesis: the stale readback might be due to the wrapper using the
+    opposite `i_aux` polarity from the upstream UberDDR3 top-level template.
+  - bitstream:
+    `/nix/store/hghbb25pgfvyrdbb22mgl9nxl11w1gg5-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - validation:
+    `artifacts/task6/runs/2026-05-11-densefill-v55-seed18/beat0-value5a-readback2`
+  - result: `FAIL`; calibration completed and boot stayed clean, but the lower
+    128-bit prefix was still stale:
+    `3dc13da53dc13da52c512ca52c512ca5`.
+  - decision: do not keep the v55 aux-polarity RTL as the maintained path; it
+    did not fix data visibility. Keep v54 as the current hardware-stable
+    dense-fill write gate and keep the readback diagnostic as the failing
+    next gate.
+- Next concrete engineering gate:
+  - simulate or instrument one level downstream from the loader contract: the
+    UberDDR3 Wishbone write acceptance, write-data buffering, address mapping,
+    and byte-select semantics for a full-width selected write followed by a
+    read of the same beat.
+  - Hardware success remains the golden result: calibration complete,
+    `boot_mismatch=false`, `wb_err_count=0`, write ACK observed, read ACK
+    observed, and lower-128-bit readback equals the written pattern.

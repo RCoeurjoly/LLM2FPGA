@@ -1,0 +1,14 @@
+{
+  "beat_addr": 0,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-densefill-v54-seed18/beat0-value5a-readback2/denseburst-diagnostic.json",
+  "expected_prefix_hex": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "mismatch_count": 1,
+  "observed_prefix_hex": "3dc13db53dc13da52c512ca52c512ca5",
+  "run_dir": "artifacts/task6/runs/2026-05-11-densefill-v54-seed18/beat0-value5a-readback2",
+  "status": "FAIL",
+  "value": 90,
+  "verdict": "board-side-densefill-readback-fails",
+  "wb_ack_count": 12
+}

@@ -1,0 +1,14 @@
+{
+  "beat_addr": 0,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-densefill-v54-seed18/beat0-value5a-rerun/denseburst-diagnostic.json",
+  "expected_prefix_hex": null,
+  "mismatch_count": null,
+  "observed_prefix_hex": null,
+  "run_dir": "artifacts/task6/runs/2026-05-11-densefill-v54-seed18/beat0-value5a-rerun",
+  "status": "PASS",
+  "value": 90,
+  "verdict": "board-side-densefill-write-passes",
+  "wb_ack_count": 10
+}

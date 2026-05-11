@@ -24,7 +24,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd51;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd54;
   localparam int JTAG_COMMAND_WIDTH = 192;
   localparam logic [31:0] LOADER_COMMAND_MAGIC = 32'h33445244;
   localparam logic [7:0] LOADER_OP_WRITE_LOWBYTE = 8'h03;
@@ -32,6 +32,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam logic [7:0] LOADER_OP_WRITE_DENSE_BYTE = 8'h05;
   localparam logic [7:0] LOADER_OP_READ_DENSE_BEAT = 8'h06;
   localparam logic [7:0] LOADER_OP_RUN_AUTOPROBE = 8'h07;
+  localparam logic [7:0] LOADER_OP_WRITE_DENSE_FILL = 8'h08;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -396,6 +397,19 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           read_probe_stb_q <= 1'b1;
           read_probe_we_q <= 1'b1;
           read_probe_state_q <= READ_PROBE_ISSUE_WRITE;
+        end else if (jtag_command_opcode == LOADER_OP_WRITE_DENSE_FILL) begin
+          loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
+          loader_write_data_q <= {WB_SEL_BITS{jtag_command_data_byte}};
+          loader_sel_q <= {WB_SEL_BITS{1'b1}};
+          loader_dense_write_seen_q <= 1'b1;
+          loader_dense_write_addr_q <= jtag_command_addr[15:0];
+          loader_dense_write_lane_q <= 6'd0;
+          loader_dense_write_data_q <= jtag_command_data_byte;
+          loader_dense_write_sel_low_q <= 16'hffff;
+          read_probe_cyc_q <= 1'b1;
+          read_probe_stb_q <= 1'b1;
+          read_probe_we_q <= 1'b1;
+          read_probe_state_q <= LOADER_ISSUE;
         end else begin
           loader_error_q <= 1'b1;
           read_probe_state_q <= LOADER_ERROR;
