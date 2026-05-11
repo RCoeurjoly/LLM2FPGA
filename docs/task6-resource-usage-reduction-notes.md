@@ -494,6 +494,58 @@ Run artifacts for this gate:
 - `artifacts/task6/runs/2026-05-11-physgate-seed18-clock-only-dense8`
 - `artifacts/task6/runs/2026-05-11-physgate-seed18-clock-and-phy-dense8`
 
+### 2026-05-11 - Small pass: seed-transfer using one known-good v40 lock set
+
+Goal:
+
+- validate whether a “known-good” physical lock set taken from v40/v44 can be reused
+  across seeds with deterministic on-board behavior.
+
+Execution (small pass):
+
+- Build seed15/17/18 constrained by `known-good-packed-bel-locks.json` (clock+PHY scope):
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed15-clocked-locked-clock-and-phy-bitstream`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed17-clocked-locked-clock-and-phy-bitstream`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy-bitstream`
+- Physical-stability compare (FASM) for each seed against
+  `artifacts/task6/baselines/uberddr3-rowstream-loader-v40-physical-stability/critical.fasm`.
+- Board `--boot-only` loop for each seed at the resulting bitstream.
+
+Experimental evidence:
+
+| seed | fasm compare | hard-fail iob | clock-route delta | board boot status | calib_seen | boot_done | boot_mismatch |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 15 | `WARN` | 0/0 | `clock_route`: 3083 / 2971 | `PASS` | `true` | `true` | `false` |
+| 17 | `FAIL` | 4/4 | `clock_route`: 3366 / 3355 | `PASS` | `true` | `true` | `false` |
+| 18 | `FAIL` | 4/4 | `clock_route`: 3215 / 3021 | `PASS` | `true` | `true` | `false` |
+
+Artifacts:
+
+- `artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/seed15-physical-stability-v40.json`
+- `artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/seed17-physical-stability-v40.json`
+- `artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/seed18-physical-stability-v40.json`
+- `artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/hw-boot/seed15/`
+- `artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/hw-boot/seed17/`
+- `artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/hw-boot/seed18/`
+
+Interpretation / metamorphic properties:
+
+- Stable across seeds with this constraint set:
+  - `boot_done=true`, `boot_mismatch=false`, `calib_seen=true`, `wb_err_count=0`,
+    and `command_count=18` at boot.
+  - same debug `version` class (`45`) and same `loader_state` behavior.
+- Variable across seeds:
+  - seed15 vs seed17/seed18 differ on IOB/clocking FASM deltas despite passing
+    board calibration.
+- Practical conclusion:
+  - this is a first small pass: FASM strictness is **not** equivalent to the
+    boot gate.
+  - `seed18` is not uniquely better than the others for boot-clean behavior in
+    this constrained family, so we should not gate future gate exploration only on
+    a single compare metric.
+  - next gate remains deterministic byte contracts (read-only beat + dense write
+    select) with calibration lock-in first.
+
 ### 2026-05-09 - Boring DDR3 bring-up operating contract
 
 Decision:

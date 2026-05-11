@@ -1,0 +1,234 @@
+{
+  "baseline_fasm": "artifacts/task6/baselines/uberddr3-rowstream-loader-v40-physical-stability/critical.fasm",
+  "candidate_fasm": "/nix/store/8ah196mfwqpjf9c93mx72xb8pbcjlky4-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.fasm",
+  "critical_classes": {
+    "bscan_jtag": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 18,
+      "candidate_feature_count": 18,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "clock_route": {
+      "added_count": 3215,
+      "added_examples": [
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y13.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y13.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y13.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y13.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL10_I0.CLK_BUFG_IMUX30_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL13_I0.CLK_BUFG_IMUX25_3",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_CK_GCLK10.CLK_BUFG_BUFGCTRL10_O",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_CK_GCLK13.CLK_BUFG_BUFGCTRL13_O",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL10_CE0.CLK_BUFG_IMUX22_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL10_CE1.CLK_BUFG_IMUX18_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL10_IGNORE0.CLK_BUFG_IMUX14_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL10_IGNORE1.CLK_BUFG_IMUX10_2"
+      ],
+      "baseline_feature_count": 10079,
+      "candidate_feature_count": 10273,
+      "changed_tile_count": 2506,
+      "changed_tiles": {
+        "HCLK_L_X11Y130": {
+          "baseline": 2,
+          "candidate": 0
+        },
+        "HCLK_L_X11Y78": {
+          "baseline": 2,
+          "candidate": 0
+        },
+        "HCLK_L_X15Y78": {
+          "baseline": 3,
+          "candidate": 0
+        },
+        "HCLK_L_X25Y78": {
+          "baseline": 2,
+          "candidate": 0
+        },
+        "HCLK_L_X31Y78": {
+          "baseline": 2,
+          "candidate": 0
+        },
+        "HCLK_L_X35Y78": {
+          "baseline": 2,
+          "candidate": 0
+        },
+        "HCLK_L_X41Y182": {
+          "baseline": 4,
+          "candidate": 0
+        },
+        "HCLK_L_X41Y78": {
+          "baseline": 2,
+          "candidate": 0
+        },
+        "HCLK_L_X45Y182": {
+          "baseline": 6,
+          "candidate": 0
+        },
+        "HCLK_L_X45Y78": {
+          "baseline": 2,
+          "candidate": 0
+        },
+        "HCLK_L_X51Y130": {
+          "baseline": 0,
+          "candidate": 3
+        },
+        "HCLK_L_X51Y78": {
+          "baseline": 3,
+          "candidate": 0
+        },
+        "HCLK_L_X55Y130": {
+          "baseline": 2,
+          "candidate": 6
+        },
+        "HCLK_L_X55Y78": {
+          "baseline": 3,
+          "candidate": 0
+        },
+        "HCLK_L_X59Y78": {
+          "baseline": 3,
+          "candidate": 0
+        },
+        "HCLK_L_X64Y78": {
+          "baseline": 3,
+          "candidate": 2
+        }
+      },
+      "removed_count": 3021,
+      "removed_examples": [
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL11_I0.CLK_BUFG_IMUX27_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL3_I0.CLK_BUFG_IMUX31_0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_CK_GCLK11.CLK_BUFG_BUFGCTRL11_O",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_CK_GCLK3.CLK_BUFG_BUFGCTRL3_O",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL11_CE0.CLK_BUFG_IMUX23_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL11_CE1.CLK_BUFG_IMUX19_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL11_IGNORE0.CLK_BUFG_IMUX15_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL11_IGNORE1.CLK_BUFG_IMUX11_2"
+      ]
+    },
+    "idelay": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 442,
+      "candidate_feature_count": 442,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "iob": {
+      "added_count": 4,
+      "added_examples": [
+        "HCLK_IOI3_X1Y130.HCLK_IOI_CK_IGCLK2.HCLK_IOI_CK_BUFHCLK2",
+        "HCLK_IOI3_X1Y130.HCLK_IOI_LEAF_GCLK_BOT2.HCLK_IOI_CK_IGCLK2",
+        "HCLK_IOI3_X1Y130.HCLK_IOI_LEAF_GCLK_BOT3.HCLK_IOI_CK_IGCLK10",
+        "HCLK_IOI3_X1Y130.HCLK_IOI_LEAF_GCLK_TOP2.HCLK_IOI_CK_IGCLK2"
+      ],
+      "baseline_feature_count": 8159,
+      "candidate_feature_count": 8159,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 4,
+      "removed_examples": [
+        "HCLK_IOI3_X1Y130.HCLK_IOI_CK_IGCLK11.HCLK_IOI_CK_BUFHCLK11",
+        "HCLK_IOI3_X1Y130.HCLK_IOI_LEAF_GCLK_BOT2.HCLK_IOI_CK_IGCLK10",
+        "HCLK_IOI3_X1Y130.HCLK_IOI_LEAF_GCLK_BOT3.HCLK_IOI_CK_IGCLK11",
+        "HCLK_IOI3_X1Y130.HCLK_IOI_LEAF_GCLK_TOP2.HCLK_IOI_CK_IGCLK10"
+      ]
+    },
+    "iserdes_oserdes": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 943,
+      "candidate_feature_count": 943,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "pll_mmcm_site": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 35,
+      "candidate_feature_count": 35,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    }
+  },
+  "label": "seed18_locked_clock_and_phy",
+  "reasons": [
+    "DDR3 PHY/JTAG site-level FASM features changed relative to the baseline"
+  ],
+  "status": "FAIL",
+  "summary": {
+    "baseline_feature_count": 17849,
+    "candidate_feature_count": 457912,
+    "common_feature_count": 14828,
+    "critical_added_count": 3219,
+    "critical_changed_tile_count": 2506,
+    "critical_removed_count": 3025,
+    "hard_fail_added_count": 4,
+    "hard_fail_changed_tile_count": 0,
+    "hard_fail_removed_count": 4,
+    "ignored_tile_count": 2,
+    "ignored_tiles": [
+      "LIOB33_X0Y225",
+      "LIOI3_X0Y225"
+    ],
+    "total_added_count": 443084,
+    "total_removed_count": 3021
+  },
+  "total_added_examples": [
+    "BRKH_INT_X10Y99.BRKH_INT_NL1BEG1_SLOW.BRKH_INT_NL1BEG1",
+    "BRKH_INT_X11Y149.BRKH_INT_NL1BEG2_SLOW.BRKH_INT_NL1BEG2",
+    "BRKH_INT_X11Y149.BRKH_INT_NR1BEG2_SLOW.BRKH_INT_NR1BEG2",
+    "BRKH_INT_X11Y149.BRKH_INT_NR1BEG3_SLOW.BRKH_INT_NR1BEG3",
+    "BRKH_INT_X11Y149.BRKH_INT_SL1END3.BRKH_INT_SL1END3_SLOW",
+    "BRKH_INT_X11Y99.BRKH_INT_NL1BEG1_SLOW.BRKH_INT_NL1BEG1",
+    "BRKH_INT_X12Y149.BRKH_INT_NL1BEG1_SLOW.BRKH_INT_NL1BEG1",
+    "BRKH_INT_X12Y49.BRKH_INT_SR1END2.BRKH_INT_SR1END2_SLOW",
+    "BRKH_INT_X12Y99.BRKH_INT_NL1BEG0_SLOW.BRKH_INT_NL1BEG0",
+    "BRKH_INT_X12Y99.BRKH_INT_NR1BEG2_SLOW.BRKH_INT_NR1BEG2",
+    "BRKH_INT_X13Y149.BRKH_INT_NL1BEG1_SLOW.BRKH_INT_NL1BEG1",
+    "BRKH_INT_X13Y149.BRKH_INT_NL1BEG2_SLOW.BRKH_INT_NL1BEG2",
+    "BRKH_INT_X13Y99.BRKH_INT_NR1BEG3_SLOW.BRKH_INT_NR1BEG3",
+    "BRKH_INT_X13Y99.BRKH_INT_SL1END2.BRKH_INT_SL1END2_SLOW",
+    "BRKH_INT_X13Y99.BRKH_INT_SL1END3.BRKH_INT_SL1END3_SLOW",
+    "BRKH_INT_X13Y99.BRKH_INT_SR1END3.BRKH_INT_SR1END3_SLOW"
+  ],
+  "total_removed_examples": [
+    "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.IN_USE",
+    "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.IS_IGNORE1_INVERTED",
+    "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.ZINV_CE0",
+    "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.ZINV_S0",
+    "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.IN_USE",
+    "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.IS_IGNORE1_INVERTED",
+    "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.ZINV_CE0",
+    "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.ZINV_S0",
+    "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL11_I0.CLK_BUFG_IMUX27_2",
+    "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL3_I0.CLK_BUFG_IMUX31_0",
+    "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_CK_GCLK11.CLK_BUFG_BUFGCTRL11_O",
+    "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_CK_GCLK3.CLK_BUFG_BUFGCTRL3_O",
+    "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL11_CE0.CLK_BUFG_IMUX23_2",
+    "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL11_CE1.CLK_BUFG_IMUX19_2",
+    "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL11_IGNORE0.CLK_BUFG_IMUX15_2",
+    "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_R_BUFGCTRL11_IGNORE1.CLK_BUFG_IMUX11_2"
+  ]
+}

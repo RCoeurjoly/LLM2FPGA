@@ -1,0 +1,102 @@
+{
+  "experiment": "small-pass-seed-transfer",
+  "date": "2026-05-11",
+  "baseline_fasm": "artifacts/task6/baselines/uberddr3-rowstream-loader-v40-physical-stability/critical.fasm",
+  "scope": "clock+phy constraints from known-good v40/v44 seed",
+  "seeds": [
+    {
+      "seed": 15,
+      "bitstream_fasm": "/nix/store/zk774ndnr4mnn1xmi5b8xl2ldv90janw-task6-ypcb-uberddr3-rowstream-loader-seed15-clocked-locked-clock-and-phy.fasm",
+      "compare_status": "WARN",
+      "critical": {
+        "clock_route": {
+          "added_count": 3083,
+          "removed_count": 2971
+        },
+        "iob": {
+          "added_count": 0,
+          "removed_count": 0
+        },
+        "hard_fail_added_count": 0,
+        "hard_fail_removed_count": 0
+      },
+      "boot_only": {
+        "status": "PASS",
+        "boot_done": true,
+        "boot_error": false,
+        "boot_mismatch": false,
+        "calib_seen": true,
+        "calib_seen_cycle": 37853
+      },
+      "debug_sample": "artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/hw-boot/seed15/boot-diagnostic.json"
+    },
+    {
+      "seed": 17,
+      "bitstream_fasm": "/nix/store/rf72gblix73sgsqh8wb7fp41ldmhmi80-task6-ypcb-uberddr3-rowstream-loader-seed17-clocked-locked-clock-and-phy.fasm",
+      "compare_status": "FAIL",
+      "critical": {
+        "clock_route": {
+          "added_count": 3366,
+          "removed_count": 3355
+        },
+        "iob": {
+          "added_count": 4,
+          "removed_count": 4
+        },
+        "hard_fail_added_count": 4,
+        "hard_fail_removed_count": 4
+      },
+      "boot_only": {
+        "status": "PASS",
+        "boot_done": true,
+        "boot_error": false,
+        "boot_mismatch": false,
+        "calib_seen": true,
+        "calib_seen_cycle": 37853
+      },
+      "debug_sample": "artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/hw-boot/seed17/boot-diagnostic.json"
+    },
+    {
+      "seed": 18,
+      "bitstream_fasm": "/nix/store/8ah196mfwqpjf9c93mx72xb8pbcjlky4-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.fasm",
+      "compare_status": "FAIL",
+      "critical": {
+        "clock_route": {
+          "added_count": 3215,
+          "removed_count": 3021
+        },
+        "iob": {
+          "added_count": 4,
+          "removed_count": 4
+        },
+        "hard_fail_added_count": 4,
+        "hard_fail_removed_count": 4
+      },
+      "boot_only": {
+        "status": "PASS",
+        "boot_done": true,
+        "boot_error": false,
+        "boot_mismatch": false,
+        "calib_seen": true,
+        "calib_seen_cycle": 37853
+      },
+      "debug_sample": "artifacts/task6/runs/2026-05-11-small-pass-seed-transfer/hw-boot/seed18/boot-diagnostic.json"
+    }
+  ],
+  "metamorphic_invariants": {
+    "constant": [
+      "boot_done=true",
+      "boot_error=false",
+      "boot_mismatch=false",
+      "calib_seen=true",
+      "command_count=18",
+      "wb_err_count=0",
+      "loader_state stable at 1 at diagnostic point"
+    ],
+    "variable": [
+      "clock_route deltas by seed",
+      "iob hard-fail delta presence (0/0 vs 4/4)",
+      "strict compare status (WARN vs FAIL)"
+      ]
+  }
+}
