@@ -51,7 +51,7 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 45
+DEBUG_VERSION = 47
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
@@ -153,6 +153,16 @@ def parse_args() -> argparse.Namespace:
             "before rowstream loading, read one 512-bit beat address through the "
             "read-only diagnostic command, capture the lower 16 bytes, emit a "
             "diagnostic JSON, and exit"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-fillbeat-value",
+        type=lambda value: int(value, 0),
+        default=None,
+        help=(
+            "before rowstream loading, write one full 512-bit beat with a repeated "
+            "byte through the v35 lowbyte/full-width write path, read dense beat 0, "
+            "emit a diagnostic JSON, and exit"
         ),
     )
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
@@ -325,13 +335,10 @@ def decode_debug(raw: int) -> dict[str, Any]:
         "boot_error": bool(loader_word & (1 << 14)),
         "boot_stall_seen": bool(loader_word & (1 << 15)),
         "boot_mismatch": bool(loader_word & (1 << 16)),
-        "loader_wait_cycles": (raw >> 464) & 0xFFFF_FFFF,
-        "last_addr_low15": (raw >> 496) & 0x7FFF,
-        "dense_write_seen": bool((raw >> 464) & 0x1),
-        "dense_write_wb_addr_low16": (raw >> 465) & 0xFFFF,
-        "dense_write_lane": (raw >> 481) & 0x3F,
-        "dense_write_data": (raw >> 487) & 0xFF,
-        "dense_write_sel_low16": (raw >> 496) & 0xFFFF,
+        "ack_we": bool((raw >> 464) & 0x1),
+        "ack_addr_low15": (raw >> 465) & 0x7FFF,
+        "ack_sel_low16": (raw >> 480) & 0xFFFF,
+        "ack_data_low16": (raw >> 496) & 0xFFFF,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
     }
@@ -679,6 +686,83 @@ def run_readbeat_diagnostic(
     return payload
 
 
+def run_fillbeat_diagnostic(
+    loader: RowstreamLoader, value: int, run_dir: Path, initial_debug: dict[str, Any]
+) -> dict[str, Any]:
+    if value < 0 or value > 0xFF:
+        raise ValueError("fillbeat diagnostic value must fit in one byte")
+    if (
+        not bool(initial_debug["boot_done"])
+        or bool(initial_debug["boot_error"])
+        or bool(initial_debug["boot_mismatch"])
+    ):
+        final_debug = loader.read_debug()
+        payload = {
+            "artifact_name": "task6-ypcb-uberddr3-fillbeat-board-diagnostic",
+            "status": "FAIL",
+            "value": value,
+            "mismatch_count": None,
+            "initial_debug": json_debug(initial_debug),
+            "final_debug": json_debug(final_debug),
+            "decision": {
+                "verdict": "fillbeat-diagnostic-blocked-by-unclean-boot",
+                "next_gate": (
+                    "Do not interpret write/read diagnostics until the "
+                    "BIST-derived boot gate is clean."
+                ),
+            },
+        }
+        write_json(run_dir / "fillbeat-diagnostic.json", payload)
+        return payload
+
+    write_debug = loader.write_lowbyte(0, value)
+    lowbyte_value, lowbyte_read_debug = loader.read_lowbyte(0)
+    beat, read_debug = loader.read_dense_beat(0)
+    expected = bytes([value & 0xFF]) * BEAT_BYTES
+    readback = [
+        {
+            "lane": lane,
+            "expected": expected[lane],
+            "observed": beat[lane],
+            "match": beat[lane] == expected[lane],
+        }
+        for lane in range(BEAT_BYTES)
+    ]
+    mismatch_count = sum(1 for row in readback if not row["match"])
+    final_debug = loader.read_debug()
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-fillbeat-board-diagnostic",
+        "status": "PASS" if mismatch_count == 0 else "FAIL",
+        "value": value,
+        "mismatch_count": mismatch_count,
+        "initial_debug": json_debug(initial_debug),
+        "write_debug": json_debug(write_debug),
+        "lowbyte_read_debug": json_debug(lowbyte_read_debug),
+        "lowbyte_observed": lowbyte_value,
+        "lowbyte_match": lowbyte_value == (value & 0xFF),
+        "read_debug": json_debug(read_debug),
+        "final_debug": json_debug(final_debug),
+        "beat0_hex": beat.hex(),
+        "beat0_prefix_hex": beat[:16].hex(),
+        "expected_prefix_hex": expected[:16].hex(),
+        "readback": readback,
+        "decision": {
+            "verdict": (
+                "fillbeat-write-read-passes"
+                if mismatch_count == 0
+                else "fillbeat-write-read-fails"
+            ),
+            "next_gate": (
+                "If this passes while dense byte writes fail, debug byte-select "
+                "masking/lane mapping; if this fails too, debug write-data or "
+                "read-capture before byte-select logic."
+            ),
+        },
+    }
+    write_json(run_dir / "fillbeat-diagnostic.json", payload)
+    return payload
+
+
 def read_row(loader: RowstreamLoader, token: int, contract: dict[str, Any]) -> bytes:
     row_bytes = contract["row_format"]["row_bytes"]
     start = row_offset(token, contract)
@@ -834,6 +918,39 @@ def main() -> int:
                     f"{diagnostic['status']} beat={diagnostic['beat_addr']} "
                     f"lower128={diagnostic['lower128_hex']}"
                 )
+            return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_fillbeat_value is not None:
+            diagnostic = run_fillbeat_diagnostic(
+                loader, args.diagnostic_fillbeat_value, run_dir, initial_debug
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "fillbeat-diagnostic.json"),
+                    "value": diagnostic["value"],
+                    "mismatch_count": diagnostic["mismatch_count"],
+                    "beat0_prefix_hex": diagnostic.get("beat0_prefix_hex"),
+                    "expected_prefix_hex": diagnostic.get("expected_prefix_hex"),
+                    "verdict": diagnostic["decision"]["verdict"],
+                },
+            )
+            if not args.json_only:
+                if diagnostic["mismatch_count"] is None:
+                    print(
+                        "fillbeat diagnostic "
+                        f"{diagnostic['status']} verdict="
+                        f"{diagnostic['decision']['verdict']}"
+                    )
+                else:
+                    print(
+                        "fillbeat diagnostic "
+                        f"{diagnostic['status']} mismatches "
+                        f"{diagnostic['mismatch_count']}/{BEAT_BYTES} "
+                        f"observed={diagnostic['beat0_prefix_hex']} "
+                        f"expected={diagnostic['expected_prefix_hex']}"
+                    )
             return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_dense_count:
             diagnostic = run_dense_diagnostic(

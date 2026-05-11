@@ -1,0 +1,14 @@
+{
+  "artifact_name": "task6-ypcb-uberddr3-loader-ack-fields-v47-board-summary",
+  "bitstream": "/nix/store/b88l8llc19gwhmwlb6vir0agxcq87803-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit",
+  "run_dir": "artifacts/task6/runs/2026-05-11-loader-ack-fields-v47-seed18/fill5a",
+  "status": "FAIL",
+  "verdict": "calibration-timeout",
+  "diagnostic": "fillbeat-0x5a",
+  "calib_seen": false,
+  "debug_summary": "magic_ok=True version=47 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x000006cc",
+  "decision": {
+    "next_gate": "Do not interpret ack-field data from v47; the debug fanout perturbed calibration. Return to a boot-clean build and use less intrusive RTL/debug, or move this check into simulation/formal before rebuilding hardware.",
+    "verdict": "debug-instrumentation-regressed-calibration"
+  }
+}

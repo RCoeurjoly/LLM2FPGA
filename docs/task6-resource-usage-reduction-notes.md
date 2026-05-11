@@ -18848,3 +18848,56 @@ UberDDR3 calibration/data-integrity gates:
   - Board boot/dense diagnostics were intentionally not run for this locked
     build because the physical-stability gate still failed in the same hard
     class as the non-locking v45 build.
+
+## 2026-05-11 - dense write/read RTL debug gate
+
+- Goal: stop seed sweeping and debug the dense write-data/read-capture behavior
+  on the boot-clean seed18 locked build.
+- v45 fillbeat discriminator:
+  - bitstream:
+    `/nix/store/rfbv4y9wmhyq202340lb4rasjp7dfhxn-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - run:
+    `artifacts/task6/runs/2026-05-11-fillbeat-seed18-debug/fill5a-lowbyte-check`
+  - result: `FAIL`
+  - boot was clean: `calib_seen=true`, `boot_done=true`,
+    `boot_mismatch=false`
+  - write and read commands were acknowledged with no Wishbone errors.
+  - lowbyte read after a `0x5a` write returned `0x3d`.
+  - dense beat read returned the boot pattern prefix
+    `3dc13da53dc13da52c512ca52c512ca5`, not `5a...`.
+  - conclusion: the failure is not only dense byte-select generation; a normal
+    post-boot write is acknowledged but not read-visible.
+- v46 RTL experiment:
+  - change: after loader write ACK, wait through the same 1024-cycle write-drain
+    interval used by the boot BIST path before reporting loader completion.
+  - bitstream:
+    `/nix/store/2b7vcdl7mgm0im64cr0yg1263ymwfaxv-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - run:
+    `artifacts/task6/runs/2026-05-11-loader-write-drain-v46-seed18/fill5a`
+  - result: `FAIL`
+  - boot remained clean: `calib_seen=true`, `boot_done=true`,
+    `boot_mismatch=false`
+  - lowbyte still returned `0x3d`; dense still returned the boot pattern prefix.
+  - conclusion: host-side read-after-write timing alone is not the bug.
+- v47 debug experiment:
+  - change: replace the top debug tail with acknowledged loader transaction
+    fields: `ack_we`, `ack_addr_low15`, `ack_sel_low16`, `ack_data_low16`.
+  - script decode version bumped to `47`.
+  - build:
+    `/nix/store/b88l8llc19gwhmwlb6vir0agxcq87803-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - board result:
+    `artifacts/task6/runs/2026-05-11-loader-ack-fields-v47-seed18/fill5a/summary.json`
+  - result: `FAIL`, calibration timeout before fillbeat interpretation.
+  - final debug summary:
+    `magic_ok=True version=47 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x000006cc`
+- Decision:
+  - Do not interpret v47 transaction fields because the debug fanout regressed
+    calibration.
+  - Keep v46/v45 as the current hardware evidence: boot-clean DDR3 can read the
+    BIST pattern, but post-boot user writes are acknowledged and not
+    read-visible.
+  - The next concrete gate should be less intrusive RTL/model debug of the
+    loader-to-UberDDR3 write contract, preferably in simulation/formal first:
+    prove or trace that a `WRITE_LOWBYTE` command drives `i_wb_we=1`,
+    `i_wb_addr=0`, `i_wb_sel=ffff`, and repeated `0x5a` data until ACK, and
+    compare that against the boot BIST write path.
