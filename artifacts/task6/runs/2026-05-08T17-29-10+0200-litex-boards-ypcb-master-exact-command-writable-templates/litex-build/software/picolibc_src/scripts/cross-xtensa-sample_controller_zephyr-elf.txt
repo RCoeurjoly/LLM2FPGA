@@ -1,0 +1,15 @@
+[binaries]
+c = ['xtensa-sample_controller_zephyr-elf-gcc', '-nostdlib']
+ar = 'xtensa-sample_controller_zephyr-elf-ar'
+as = 'xtensa-sample_controller_zephyr-elf-as'
+nm = 'xtensa-sample_controller_zephyr-elf-nm'
+strip = 'xtensa-sample_controller_zephyr-elf-strip'
+
+[host_machine]
+system = 'zephyr'
+cpu_family = 'xtensa'
+cpu = 'xtensa'
+endian = 'little'
+
+[properties]
+skip_sanity_check = true

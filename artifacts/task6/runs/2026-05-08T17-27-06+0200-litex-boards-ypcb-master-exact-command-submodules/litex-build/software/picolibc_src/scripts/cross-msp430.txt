@@ -1,0 +1,18 @@
+[binaries]
+c = ['msp430-elf-gcc', '-nostdlib']
+cpp = ['msp430-elf-g++', '-nostdlib']
+ar = 'msp430-elf-ar'
+as = 'msp430-elf-as'
+nm = 'msp430-elf-nm'
+strip = 'msp430-elf-strip'
+
+[host_machine]
+system = 'zephyr'
+cpu_family = 'msp430'
+cpu = 'msp430'
+endian = 'little'
+
+[properties]
+skip_sanity_check = true
+librt = ['-lmul_none', '-lgcc']
+default_alignment = 2

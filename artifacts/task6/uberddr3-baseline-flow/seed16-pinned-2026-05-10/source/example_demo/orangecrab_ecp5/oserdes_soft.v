@@ -1,0 +1,1 @@
+../../rtl/ecp5_phy/oserdes_soft.v

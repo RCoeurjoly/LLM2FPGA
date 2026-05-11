@@ -1,0 +1,15 @@
+[binaries]
+c = ['xtensa-espressif_esp32s2_zephyr-elf-gcc', '-nostdlib']
+ar = 'xtensa-espressif_esp32s2_zephyr-elf-ar'
+as = 'xtensa-espressif_esp32s2_zephyr-elf-as'
+nm = 'xtensa-espressif_esp32s2_zephyr-elf-nm'
+strip = 'xtensa-espressif_esp32s2_zephyr-elf-strip'
+
+[host_machine]
+system = 'zephyr'
+cpu_family = 'xtensa'
+cpu = 'xtensa'
+endian = 'little'
+
+[properties]
+skip_sanity_check = true

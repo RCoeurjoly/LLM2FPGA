@@ -1,0 +1,27 @@
+{
+  "bitstream": "/nix/store/7872xnkz6j108lxr60rz0hxki81c2isr-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit",
+  "expected": {
+    "magic_ok": true,
+    "state": "PROBE_DONE"
+  },
+  "name": "ddr3-v117-native-cmdaddr-idx1-canonical",
+  "programmer": [
+    "openFPGALoader",
+    "-c",
+    "digilent_hs3",
+    "--ftdi-serial",
+    "210299BF3824",
+    "/nix/store/7872xnkz6j108lxr60rz0hxki81c2isr-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit"
+  ],
+  "reader": {
+    "backend": "mpsse",
+    "bits": 11264,
+    "freq_hz": 6000000,
+    "ir_len": 6,
+    "poll_count": 10,
+    "poll_interval": 0.2,
+    "tdo_bit": 7,
+    "user_ir": "0x02"
+  },
+  "schema": "task6-ddr3-canonical-repro-manifest-v1"
+}

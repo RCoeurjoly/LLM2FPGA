@@ -1,0 +1,19 @@
+[binaries]
+c = ['mips-linux-gnu-gcc', '-nostdlib', '-Wl,--build-id=none']
+cpp = ['mips-linux-gnu-g++', '-nostdlib', '-Wl,--build-id=none']
+ar = 'mips-linux-gnu-ar'
+as = 'mips-linux-gnu-as'
+ld = 'mips-linux-gnu-ld'
+nm = 'mips-linux-gnu-nm'
+strip = 'mips-linux-gnu-strip'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'mips'
+cpu = 'mips'
+endian = 'big'
+
+[properties]
+skip_sanity_check = true
+link_spec = '--build-id=none'
+specs_extra = ['*libgcc:', '-lgcc']

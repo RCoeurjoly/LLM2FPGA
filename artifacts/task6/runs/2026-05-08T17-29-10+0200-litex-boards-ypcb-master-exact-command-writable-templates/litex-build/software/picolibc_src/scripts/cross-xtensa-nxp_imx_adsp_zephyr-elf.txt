@@ -1,0 +1,15 @@
+[binaries]
+c = ['xtensa-nxp_imx_adsp_zephyr-elf-gcc', '-nostdlib']
+ar = 'xtensa-nxp_imx_adsp_zephyr-elf-ar'
+as = 'xtensa-nxp_imx_adsp_zephyr-elf-as'
+nm = 'xtensa-nxp_imx_adsp_zephyr-elf-nm'
+strip = 'xtensa-nxp_imx_adsp_zephyr-elf-strip'
+
+[host_machine]
+system = 'zephyr'
+cpu_family = 'xtensa'
+cpu = 'xtensa'
+endian = 'little'
+
+[properties]
+skip_sanity_check = true

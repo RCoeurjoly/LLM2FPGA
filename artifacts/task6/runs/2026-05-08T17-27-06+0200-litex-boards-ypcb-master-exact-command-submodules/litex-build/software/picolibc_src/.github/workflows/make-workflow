@@ -1,0 +1,32 @@
+#!/bin/bash
+
+cat head
+
+for build in cmake; do
+    for arch in linux; do
+	echo "  $build-$arch:"
+	cat variants-$build
+        cat <<EOF
+        test: [
+          "./.github/do-cmake-linux -DCMAKE_BUILD_TYPE=RelWithDebInfo",
+          "./.github/do-cmake-linux -DCMAKE_BUILD_TYPE=MinSizeRel",
+        ]
+EOF
+	cat steps-head
+	cat steps-$build
+    done
+done
+
+for build in minsize release; do
+    for arch in linux-arm linux-riscv linux-misc; do
+	echo "  $build-$arch:"
+	cat variants
+        cat <<EOF
+        test: [
+          "./.github/do-$arch",
+        ]
+EOF
+	cat steps-head
+	cat steps-$build
+    done
+done

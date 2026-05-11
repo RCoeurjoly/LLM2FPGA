@@ -1,0 +1,23 @@
+{
+  "board": "command_gate_reproduced",
+  "bram_margin": null,
+  "correctness": "fail",
+  "created_at": "2026-05-10T21:52:15.652596+02:00",
+  "dsp_margin": null,
+  "lut_margin": null,
+  "notes": [
+    "calibration=pass",
+    "command_gate=pass",
+    "integrity=fail",
+    "read_byte=0x5d expected=0x5a",
+    "stream_bytes=['0x5d', '0xa5', '0xa6', '0xa7'] expected=['0x5a', '0x5b', '0x5c', '0x5d']",
+    "stream_valid=0xf mismatch=0xf",
+    "ack_count=8 err_count=0"
+  ],
+  "route": null,
+  "run_dir": "artifacts/task6/runs/2026-05-10T21-52-15+0200-ypcb-ddr3-stream4-seed15-cmd5a",
+  "runtime": null,
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE",
+  "timing_margin": null
+}

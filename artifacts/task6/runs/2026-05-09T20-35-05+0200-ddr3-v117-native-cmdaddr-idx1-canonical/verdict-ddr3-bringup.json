@@ -1,0 +1,161 @@
+{
+  "highest_gate_with_evidence": "G4",
+  "readback_count": 3,
+  "readbacks": [
+    {
+      "attempts": 1,
+      "command_count": 16,
+      "highest_gate_with_evidence": "G4",
+      "magic_ok": true,
+      "mismatch_count": 16,
+      "native": {
+        "best_any_indices": [
+          15
+        ],
+        "best_same_indices": [
+          15
+        ],
+        "cmdaddr_accepted_valid_count": 1,
+        "cmdaddr_presented_valid_count": 1,
+        "cmdaddr_trace": [
+          {
+            "accepted_cmd_addr": 1,
+            "accepted_matches_requested": true,
+            "command_index": 1,
+            "presented_cmd_addr": 1,
+            "presented_matches_accepted": true,
+            "sample": 1,
+            "scheduled_matches_presented": true,
+            "scheduled_read_addr": 1
+          }
+        ],
+        "first_chunk_mismatch_mask": 511,
+        "first_mismatch_addr": 0,
+        "nonzero_count": 16,
+        "total_exact_chunks": 4,
+        "unique_native_beats": 1,
+        "valid_count": 16
+      },
+      "path": "/home/roland/LLM2FPGA_task6_streamtensor_lite/artifacts/task6/runs/2026-05-09T20-35-05+0200-ddr3-v117-native-cmdaddr-idx1-canonical/readback/read-1.json",
+      "response_count": 16,
+      "state": "PROBE_DONE",
+      "status": {
+        "init_done": true,
+        "init_error": false,
+        "pll_locked": true,
+        "probe_done": true,
+        "probe_error": false,
+        "probe_timeout": false,
+        "user_rst": false,
+        "wb_error_seen": false,
+        "wb_timeout_seen": false
+      },
+      "stop_reason": "native_read_data_collapsed_to_one_beat",
+      "version": 116
+    },
+    {
+      "attempts": 1,
+      "command_count": 16,
+      "highest_gate_with_evidence": "G4",
+      "magic_ok": true,
+      "mismatch_count": 16,
+      "native": {
+        "best_any_indices": [
+          15
+        ],
+        "best_same_indices": [
+          15
+        ],
+        "cmdaddr_accepted_valid_count": 1,
+        "cmdaddr_presented_valid_count": 1,
+        "cmdaddr_trace": [
+          {
+            "accepted_cmd_addr": 1,
+            "accepted_matches_requested": true,
+            "command_index": 1,
+            "presented_cmd_addr": 1,
+            "presented_matches_accepted": true,
+            "sample": 1,
+            "scheduled_matches_presented": true,
+            "scheduled_read_addr": 1
+          }
+        ],
+        "first_chunk_mismatch_mask": 511,
+        "first_mismatch_addr": 0,
+        "nonzero_count": 16,
+        "total_exact_chunks": 4,
+        "unique_native_beats": 1,
+        "valid_count": 16
+      },
+      "path": "/home/roland/LLM2FPGA_task6_streamtensor_lite/artifacts/task6/runs/2026-05-09T20-35-05+0200-ddr3-v117-native-cmdaddr-idx1-canonical/readback/read-2.json",
+      "response_count": 16,
+      "state": "PROBE_DONE",
+      "status": {
+        "init_done": true,
+        "init_error": false,
+        "pll_locked": true,
+        "probe_done": true,
+        "probe_error": false,
+        "probe_timeout": false,
+        "user_rst": false,
+        "wb_error_seen": false,
+        "wb_timeout_seen": false
+      },
+      "stop_reason": "native_read_data_collapsed_to_one_beat",
+      "version": 116
+    },
+    {
+      "attempts": 1,
+      "command_count": 16,
+      "highest_gate_with_evidence": "G4",
+      "magic_ok": true,
+      "mismatch_count": 16,
+      "native": {
+        "best_any_indices": [
+          15
+        ],
+        "best_same_indices": [
+          15
+        ],
+        "cmdaddr_accepted_valid_count": 1,
+        "cmdaddr_presented_valid_count": 1,
+        "cmdaddr_trace": [
+          {
+            "accepted_cmd_addr": 1,
+            "accepted_matches_requested": true,
+            "command_index": 1,
+            "presented_cmd_addr": 1,
+            "presented_matches_accepted": true,
+            "sample": 1,
+            "scheduled_matches_presented": true,
+            "scheduled_read_addr": 1
+          }
+        ],
+        "first_chunk_mismatch_mask": 511,
+        "first_mismatch_addr": 0,
+        "nonzero_count": 16,
+        "total_exact_chunks": 4,
+        "unique_native_beats": 1,
+        "valid_count": 16
+      },
+      "path": "/home/roland/LLM2FPGA_task6_streamtensor_lite/artifacts/task6/runs/2026-05-09T20-35-05+0200-ddr3-v117-native-cmdaddr-idx1-canonical/readback/read-3.json",
+      "response_count": 16,
+      "state": "PROBE_DONE",
+      "status": {
+        "init_done": true,
+        "init_error": false,
+        "pll_locked": true,
+        "probe_done": true,
+        "probe_error": false,
+        "probe_timeout": false,
+        "user_rst": false,
+        "wb_error_seen": false,
+        "wb_timeout_seen": false
+      },
+      "stop_reason": "native_read_data_collapsed_to_one_beat",
+      "version": 116
+    }
+  ],
+  "schema": "task6-litedram-ddr3-bringup-summary-v1",
+  "stable_signature": true
+}

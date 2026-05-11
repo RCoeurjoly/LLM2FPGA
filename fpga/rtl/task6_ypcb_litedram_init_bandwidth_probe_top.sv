@@ -29,6 +29,7 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_PACKING_CLASSIFIER = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_ADDRESS_CLASSIFIER = 1'b0,
   parameter bit DFII_EDGE_COMP_ADDRWALK_THEN_NATIVE_CMDADDR_TRACE = 1'b0,
+  parameter bit NATIVE_CMDADDR_STRICT_TRACE = 1'b0,
   parameter bit DFII_EDGE_COMP_CSR_ONLY = 1'b0,
   parameter bit DFII_EDGE_LANE7_LOCATOR_PROBE_ONLY = 1'b0,
   parameter int DFII_SOURCE_COMMAND_READ_PHASE = 2,
@@ -110,9 +111,11 @@ module task6_ypcb_litedram_init_bandwidth_probe_top #(
   // perturb the fragile DDR init placement. v116 reduces the cmd_addr trace to
   // a single first-command latch in otherwise v113-like sparse-read behavior.
   // v117 adds `NATIVE_CMDADDR_FIRST_COMMAND_INDEX` and latches only that index.
+  // v118 captures strict native command-response mappings for all 16 commands.
   localparam int CAL_BYTE_LANES = 8;
   localparam int NATIVE_PACKING_SAMPLE_COUNT = 4;
   localparam int NATIVE_ADDRESS_CLASSIFIER_SAMPLE_COUNT = 16;
+  localparam int NATIVE_CMDADDR_STRICT_SAMPLE_COUNT = 16;
   localparam int PHASE_CANDIDATES = 16;
   localparam int DFII_ADDR_SLOTS = 4;
   localparam int DFII_CSR_WORDS_PER_PHASE = 5;

@@ -1,0 +1,15 @@
+[binaries]
+c = ['clang', '-target', 'msp430', '-nostdlib']
+ar = 'msp430-unknown-elf-ar'
+as = 'msp430-unknown-elf-as'
+nm = 'msp430-unknown-elf-nm'
+strip = 'strip'
+
+[host_machine]
+system = 'zephyr'
+cpu_family = 'msp430'
+cpu = 'msp430'
+endian = 'little'
+
+[properties]
+skip_sanity_check = true

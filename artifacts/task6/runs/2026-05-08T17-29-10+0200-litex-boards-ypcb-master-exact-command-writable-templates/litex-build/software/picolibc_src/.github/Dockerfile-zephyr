@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1
+FROM debian:sid
+
+COPY .github/zephyr-packages.txt /
+
+COPY .github/zephyr-files.txt /
+
+COPY .github/zephyr-setup /
+
+RUN (apt-get update || apt-get update || apt-get update) && \
+    (apt-get upgrade -y || apt-get upgrade -y || apt-get upgrade -y) && \
+    (xargs -a zephyr-packages.txt apt-get install -y --no-install-recommends || \
+     xargs -a zephyr-packages.txt apt-get install -y --no-install-recommends || \
+     xargs -a zephyr-packages.txt apt-get install -y --no-install-recommends || \
+     xargs -a zephyr-packages.txt apt-get install -y --no-install-recommends) && \
+    apt-get clean && \
+    mkdir -p /opt && \
+    (cd /opt && \
+     for file in `cat /zephyr-files.txt`; do \
+	echo "Fetching $file"; \
+	wget -nv "$file" || exit 1; \
+	echo "Unpacking $file"; \
+	tar xf `basename "$file"`; \
+	echo "Removing $file"; \
+	rm `basename "$file"`; \
+     done) && \
+    if [ -f /opt/zephyr-sdk-*-hosttools*.sh ]; then \
+	echo "Unpacking host tools"; \
+	/opt/zephyr-sdk-*-hosttools*.sh -y -d /opt/zephyr-sdk-hosttools; \
+	rm /opt/zephyr-sdk-*-hosttools*.sh; \
+    else \
+	echo "No host tools found"; \
+    fi && \
+    rm -rf /var/lib/apt/lists/*

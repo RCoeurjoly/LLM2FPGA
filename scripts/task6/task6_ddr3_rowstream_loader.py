@@ -1,0 +1,525 @@
+#!/usr/bin/env python3
+"""Load and verify the Task 6 rowstream image through the DDR3 JTAG loader."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+from typing import Any
+
+from read_jtag_debug_ftdi_bitbang import (
+    FTDI_FT232H_PRODUCT,
+    FTDI_VENDOR,
+    FtdiBitbangJtag,
+    FtdiMpsseJtag,
+)
+from read_jtag_debug_xvc import reset_tap, shift_dr_read, shift_ir
+from write_jtag_command_ftdi_bitbang import shift_dr_write
+
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_ROWSTREAM = (
+    ROOT
+    / "artifacts"
+    / "task6"
+    / "parallel-hypotheses"
+    / "h2-ddr3-row-stream-pack-replay"
+    / "rowstream.bin"
+)
+DEFAULT_CONTRACT = (
+    ROOT
+    / "artifacts"
+    / "task6"
+    / "parallel-hypotheses"
+    / "h2-ddr3-row-stream-interface-contract.json"
+)
+DEFAULT_REPLAY = (
+    ROOT
+    / "artifacts"
+    / "task6"
+    / "parallel-hypotheses"
+    / "h2-full-vocab-rowwise-topk-replay.json"
+)
+DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
+
+DEBUG_BITS = 512
+DEBUG_MAGIC = 0x54364A44
+DEBUG_VERSION = 28
+COMMAND_BITS = 192
+COMMAND_MAGIC = 0x33445244
+OP_WRITE_CHUNK = 0x01
+OP_READ_BEAT = 0x02
+BEAT_BYTES = 64
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--bitstream", type=Path)
+    parser.add_argument("--rowstream-bin", type=Path, default=DEFAULT_ROWSTREAM)
+    parser.add_argument("--contract-json", type=Path, default=DEFAULT_CONTRACT)
+    parser.add_argument("--replay-json", type=Path, default=DEFAULT_REPLAY)
+    parser.add_argument("--run-dir", type=Path)
+    parser.add_argument("--program", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--jtag-cable", default="digilent_hs3")
+    parser.add_argument("--serial", default="210299BF3824")
+    parser.add_argument("--vid", type=lambda value: int(value, 0), default=FTDI_VENDOR)
+    parser.add_argument("--pid", type=lambda value: int(value, 0), default=FTDI_FT232H_PRODUCT)
+    parser.add_argument("--backend", choices=("mpsse", "bitbang"), default="mpsse")
+    parser.add_argument("--freq-hz", type=int, default=1_000_000)
+    parser.add_argument("--tdo-bit", type=int, choices=(0, 7), default=7)
+    parser.add_argument("--bit-delay-us", type=float, default=0.0)
+    parser.add_argument("--ir-len", type=int, default=6)
+    parser.add_argument("--debug-ir", type=lambda value: int(value, 0), default=0x02)
+    parser.add_argument("--command-ir", type=lambda value: int(value, 0), default=0x03)
+    parser.add_argument("--command-delay", type=float, default=0.001)
+    parser.add_argument("--poll-timeout", type=float, default=5.0)
+    parser.add_argument("--calib-timeout", type=float, default=20.0)
+    parser.add_argument("--max-beats", type=int, help="debug limit; default loads the full image")
+    parser.add_argument("--progress-beats", type=int, default=1024)
+    parser.add_argument("--boundary-tokens", default="0,1,31,32,50256")
+    parser.add_argument("--full-readback", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--model-path", type=Path)
+    parser.add_argument("--adapter-path", type=Path)
+    parser.add_argument("--sample-count", type=int, default=8)
+    parser.add_argument("--json-only", action="store_true")
+    return parser.parse_args()
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def json_debug(debug: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in debug.items() if not isinstance(value, bytes)}
+
+
+def row_offset(token: int, contract: dict[str, Any]) -> int:
+    image = contract["ddr3_linear_image"]
+    row_bytes = contract["row_format"]["row_bytes"]
+    rows_per_group = image["rows_per_group"]
+    return (token // rows_per_group) * image["group_bytes"] + (token % rows_per_group) * row_bytes
+
+
+def byte_to_signed(value: int) -> int:
+    return value - 256 if value >= 128 else value
+
+
+def load_helper_module() -> Any:
+    helper_path = ROOT / "scripts" / "task6" / "check_full_vocab_rowwise_topk_contract.py"
+    spec = importlib.util.spec_from_file_location("task6_topk_helper", helper_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"unable to load helper from {helper_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def scan_rowstream_top1(
+    image: bytes, contract: dict[str, Any], hidden_q: list[int]
+) -> tuple[int, int, int]:
+    vocab_size = contract["model"]["vocab_size"]
+    hidden_size = contract["model"]["hidden_size"]
+    row_bytes = contract["row_format"]["row_bytes"]
+    best_token = 0xFFFF
+    best_score = -(1 << 45)
+    reserved_nonzero_count = 0
+
+    for token in range(vocab_size):
+        offset = row_offset(token, contract)
+        row = image[offset : offset + row_bytes]
+        acc = 0
+        for index in range(hidden_size):
+            acc += byte_to_signed(row[index]) * hidden_q[index]
+        scale_q024 = int.from_bytes(row[hidden_size : hidden_size + 3], "little")
+        if row[hidden_size + 3] != 0:
+            reserved_nonzero_count += 1
+        score = acc * scale_q024
+        if score > best_score or (score == best_score and token < best_token):
+            best_score = score
+            best_token = token
+    return best_token, best_score, reserved_nonzero_count
+
+
+def compute_top1_from_image(
+    image: bytes,
+    contract: dict[str, Any],
+    replay: dict[str, Any],
+    model_path: Path,
+    adapter_path: Path,
+    sample_count: int,
+) -> dict[str, Any]:
+    helper = load_helper_module()
+    import torch
+
+    build_model = helper.load_adapter_build_model(adapter_path)
+    model = build_model(str(model_path)).eval()
+    replay_by_sample = {entry["sample_id"]: entry for entry in replay["samples"]}
+    samples = helper.DEFAULT_SAMPLES[:sample_count]
+    sample_payloads = []
+    mismatch_count = 0
+    reserved_nonzero_count = 0
+
+    with torch.no_grad():
+        for sample_id, token_ids in samples:
+            input_ids = torch.tensor([token_ids], dtype=torch.long)
+            transformer_out = model.transformer(input_ids=input_ids, use_cache=False)
+            hidden = transformer_out.last_hidden_state[0, -1].detach().cpu().to(torch.float64)
+            hidden_q_tensor, _hidden_scale = helper.quantize_symmetric_tensor(hidden)
+            hidden_q = [int(value) for value in hidden_q_tensor.cpu().tolist()]
+            token, score, sample_reserved = scan_rowstream_top1(image, contract, hidden_q)
+            expected = replay_by_sample[sample_id]["rowwise_q024_top5"][0]
+            mismatch = token != expected
+            mismatch_count += int(mismatch)
+            reserved_nonzero_count += sample_reserved
+            sample_payloads.append(
+                {
+                    "sample_id": sample_id,
+                    "token_ids": token_ids,
+                    "ddr3_readback_top1_token": token,
+                    "ddr3_readback_top1_score_q024": score,
+                    "expected_rowstream_top1_token": expected,
+                    "matches_expected": not mismatch,
+                }
+            )
+
+    return {
+        "sample_count": len(samples),
+        "mismatch_count": mismatch_count,
+        "reserved_nonzero_count": reserved_nonzero_count,
+        "samples": sample_payloads,
+        "status": "PASS" if mismatch_count == 0 and reserved_nonzero_count == 0 else "FAIL",
+    }
+
+
+def make_command(opcode: int, chunk: int, addr: int, data: bytes = b"") -> int:
+    if len(data) > 16:
+        raise ValueError("command chunk data must fit in 16 bytes")
+    payload = COMMAND_MAGIC
+    payload |= (opcode & 0xFF) << 32
+    payload |= (chunk & 0x3) << 40
+    payload |= (addr & 0xFFFF_FFFF) << 48
+    payload |= int.from_bytes(data.ljust(16, b"\x00"), "little") << 64
+    return payload
+
+
+def decode_debug(raw: int) -> dict[str, Any]:
+    status = (raw >> 40) & 0xFF
+    command_word = (raw >> 272) & 0xFFFF_FFFF
+    loader_word = (raw >> 304) & 0xFFFF_FFFF
+    read_data_int = (raw >> 336) & ((1 << 128) - 1)
+    return {
+        "raw_hex": f"0x{raw:0{DEBUG_BITS // 4}x}",
+        "magic": raw & 0xFFFF_FFFF,
+        "magic_ok": (raw & 0xFFFF_FFFF) == DEBUG_MAGIC,
+        "version": (raw >> 32) & 0xFF,
+        "status": status,
+        "calib_complete": bool(status & 0x1),
+        "calib_seen": bool(status & 0x2),
+        "cycle": (raw >> 48) & 0xFFFF_FFFF,
+        "calib_seen_cycle": (raw >> 80) & 0xFFFF_FFFF,
+        "debug1": (raw >> 112) & 0xFFFF_FFFF,
+        "wb_ack_count": (raw >> 144) & 0xFFFF_FFFF,
+        "wb_err_count": (raw >> 176) & 0xFFFF_FFFF,
+        "wb_stall_count": (raw >> 208) & 0xFFFF_FFFF,
+        "command_count": (command_word >> 18) & 0xFF,
+        "last_opcode": (command_word >> 10) & 0xFF,
+        "last_chunk": (command_word >> 2) & 0x3,
+        "last_magic_ok": bool(command_word & 0x2),
+        "last_accepted": bool(command_word & 0x1),
+        "loader_state": loader_word & 0xF,
+        "loader_stb": bool(loader_word & (1 << 4)),
+        "loader_cyc": bool(loader_word & (1 << 5)),
+        "loader_done": bool(loader_word & (1 << 6)),
+        "loader_write_ack_seen": bool(loader_word & (1 << 7)),
+        "loader_read_ack_seen": bool(loader_word & (1 << 8)),
+        "loader_error": bool(loader_word & (1 << 9)),
+        "loader_stall_seen": bool(loader_word & (1 << 10)),
+        "loader_wait_cycles": (raw >> 464) & 0xFFFF_FFFF,
+        "last_addr_low15": (raw >> 496) & 0x7FFF,
+        "read_data_chunk": read_data_int.to_bytes(16, "little"),
+    }
+
+
+class RowstreamLoader:
+    def __init__(self, args: argparse.Namespace):
+        self.args = args
+        if args.backend == "mpsse":
+            self.client = FtdiMpsseJtag(
+                serial=args.serial,
+                vid=args.vid,
+                pid=args.pid,
+                freq_hz=args.freq_hz,
+                tdo_bit=args.tdo_bit,
+            )
+        else:
+            self.client = FtdiBitbangJtag(
+                serial=args.serial,
+                vid=args.vid,
+                pid=args.pid,
+                delay_s=args.bit_delay_us / 1_000_000.0,
+            )
+        reset_tap(self.client)
+
+    def close(self) -> None:
+        self.client.close()
+
+    def read_debug(self) -> dict[str, Any]:
+        shift_ir(self.client, self.args.debug_ir, self.args.ir_len)
+        return decode_debug(shift_dr_read(self.client, DEBUG_BITS))
+
+    def send_command(self, opcode: int, chunk: int, addr: int, data: bytes = b"") -> None:
+        shift_ir(self.client, self.args.command_ir, self.args.ir_len)
+        shift_dr_write(
+            self.client,
+            make_command(opcode, chunk, addr, data),
+            COMMAND_BITS,
+            "idle",
+        )
+        if self.args.command_delay > 0:
+            time.sleep(self.args.command_delay)
+
+    def wait_ready(self, min_ack_count: int | None = None) -> dict[str, Any]:
+        deadline = time.monotonic() + self.args.poll_timeout
+        last = self.read_debug()
+        while time.monotonic() < deadline:
+            if (
+                last["magic_ok"]
+                and last["version"] == DEBUG_VERSION
+                and not last["loader_error"]
+                and last["loader_state"] == 1
+                and (min_ack_count is None or last["wb_ack_count"] >= min_ack_count)
+            ):
+                return last
+            time.sleep(0.01)
+            last = self.read_debug()
+        raise TimeoutError(f"loader did not become ready: {summarize_debug(last)}")
+
+    def wait_calibration(self) -> dict[str, Any]:
+        deadline = time.monotonic() + self.args.calib_timeout
+        last = self.read_debug()
+        while time.monotonic() < deadline:
+            if last["magic_ok"] and last["version"] == DEBUG_VERSION and last["calib_seen"]:
+                return self.wait_ready()
+            time.sleep(0.1)
+            last = self.read_debug()
+        raise TimeoutError(f"DDR3 calibration did not complete: {summarize_debug(last)}")
+
+    def write_beat(self, beat_addr: int, data: bytes) -> dict[str, Any]:
+        if len(data) != BEAT_BYTES:
+            raise ValueError("write_beat requires exactly 64 bytes")
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        for chunk in range(4):
+            self.send_command(
+                OP_WRITE_CHUNK,
+                chunk,
+                beat_addr,
+                data[chunk * 16 : (chunk + 1) * 16],
+            )
+        return self.wait_ready(min_ack_count=min_ack)
+
+    def read_beat(self, beat_addr: int) -> tuple[bytes, dict[str, Any]]:
+        chunks = []
+        debug = self.read_debug()
+        for chunk in range(4):
+            before = self.read_debug()
+            min_ack = before["wb_ack_count"] + 1
+            self.send_command(OP_READ_BEAT, chunk, beat_addr)
+            debug = self.wait_ready(min_ack_count=min_ack)
+            chunks.append(debug["read_data_chunk"])
+        return b"".join(chunks), debug
+
+
+def summarize_debug(debug: dict[str, Any]) -> str:
+    return (
+        f"magic_ok={debug.get('magic_ok')} version={debug.get('version')} "
+        f"calib_seen={debug.get('calib_seen')} state={debug.get('loader_state')} "
+        f"ack={debug.get('wb_ack_count')} err={debug.get('wb_err_count')} "
+        f"loader_error={debug.get('loader_error')} debug1=0x{debug.get('debug1', 0):08x}"
+    )
+
+
+def make_run_dir(base: Path | None) -> Path:
+    if base is not None:
+        base.mkdir(parents=True, exist_ok=True)
+        return base
+    stamp = dt.datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S%z")
+    run_dir = DEFAULT_RUN_ROOT / f"{stamp}-ypcb-ddr3-rowstream-loader-seed15"
+    run_dir.mkdir(parents=True, exist_ok=False)
+    return run_dir
+
+
+def program_bitstream(args: argparse.Namespace, run_dir: Path) -> None:
+    if not args.program:
+        return
+    if args.bitstream is None:
+        raise SystemExit("--bitstream is required when --program is enabled")
+    log_path = run_dir / "program.log"
+    command = [
+        "openFPGALoader",
+        "-c",
+        args.jtag_cable,
+        "--ftdi-serial",
+        args.serial,
+        str(args.bitstream),
+    ]
+    with log_path.open("w", encoding="utf-8") as log:
+        subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
+
+
+def read_row(loader: RowstreamLoader, token: int, contract: dict[str, Any]) -> bytes:
+    row_bytes = contract["row_format"]["row_bytes"]
+    start = row_offset(token, contract)
+    end = start + row_bytes
+    first_beat = start // BEAT_BYTES
+    last_beat = (end - 1) // BEAT_BYTES
+    data = bytearray()
+    for beat in range(first_beat, last_beat + 1):
+        beat_data, _debug = loader.read_beat(beat)
+        data.extend(beat_data)
+    rel = start - first_beat * BEAT_BYTES
+    return bytes(data[rel : rel + row_bytes])
+
+
+def main() -> int:
+    args = parse_args()
+    run_dir = make_run_dir(args.run_dir)
+    contract = read_json(args.contract_json)
+    replay = read_json(args.replay_json)
+    image = args.rowstream_bin.read_bytes()
+    expected_size = contract["ddr3_linear_image"]["padded_stream_bytes"]
+    if len(image) != expected_size:
+        raise SystemExit(f"rowstream image has {len(image)} bytes, expected {expected_size}")
+    if len(image) % BEAT_BYTES != 0:
+        raise SystemExit("rowstream image must be 64-byte aligned")
+    total_beats = len(image) // BEAT_BYTES
+    beats_to_load = min(total_beats, args.max_beats) if args.max_beats else total_beats
+
+    program_bitstream(args, run_dir)
+    loader = RowstreamLoader(args)
+    try:
+        initial_debug = loader.wait_calibration()
+        load_start = time.monotonic()
+        for beat in range(beats_to_load):
+            offset = beat * BEAT_BYTES
+            loader.write_beat(beat, image[offset : offset + BEAT_BYTES])
+            if not args.json_only and args.progress_beats and (beat + 1) % args.progress_beats == 0:
+                elapsed = time.monotonic() - load_start
+                print(f"loaded {beat + 1}/{beats_to_load} beats in {elapsed:.1f}s", flush=True)
+        load_elapsed = time.monotonic() - load_start
+
+        boundary_results = []
+        for token_text in args.boundary_tokens.split(","):
+            token = int(token_text, 0)
+            row_start = row_offset(token, contract)
+            row_end = row_start + contract["row_format"]["row_bytes"]
+            if row_end > beats_to_load * BEAT_BYTES:
+                boundary_results.append(
+                    {
+                        "token": token,
+                        "checked": False,
+                        "reason": "outside loaded beat range",
+                    }
+                )
+                continue
+            observed = read_row(loader, token, contract)
+            expected = image[row_start:row_end]
+            boundary_results.append(
+                {
+                    "token": token,
+                    "checked": True,
+                    "offset": row_start,
+                    "matches": observed == expected,
+                    "observed_sha256": hashlib.sha256(observed).hexdigest(),
+                    "expected_sha256": hashlib.sha256(expected).hexdigest(),
+                }
+            )
+
+        readback_sha = None
+        top1 = None
+        full_match = None
+        if args.full_readback and beats_to_load == total_beats:
+            readback = bytearray()
+            read_start = time.monotonic()
+            for beat in range(total_beats):
+                beat_data, _debug = loader.read_beat(beat)
+                readback.extend(beat_data)
+                if not args.json_only and args.progress_beats and (beat + 1) % args.progress_beats == 0:
+                    elapsed = time.monotonic() - read_start
+                    print(f"read {beat + 1}/{total_beats} beats in {elapsed:.1f}s", flush=True)
+            readback_bytes = bytes(readback)
+            (run_dir / "rowstream-ddr3-readback.bin").write_bytes(readback_bytes)
+            readback_sha = hashlib.sha256(readback_bytes).hexdigest()
+            full_match = readback_bytes == image
+            if args.top1_from_model:
+                if args.model_path is None or args.adapter_path is None:
+                    raise SystemExit("--model-path and --adapter-path are required for --top1-from-model")
+                top1 = compute_top1_from_image(
+                    readback_bytes,
+                    contract,
+                    replay,
+                    args.model_path,
+                    args.adapter_path,
+                    args.sample_count,
+                )
+
+        final_debug = loader.read_debug()
+    finally:
+        loader.close()
+
+    boundary_pass = all(
+        item.get("matches", False) for item in boundary_results if item.get("checked")
+    )
+    full_status = (
+        beats_to_load == total_beats
+        and boundary_pass
+        and (full_match is not False)
+        and (top1 is None or top1["status"] == "PASS")
+    )
+    payload = {
+        "artifact_name": "task6-ddr3-rowstream-loader-hardware-run",
+        "status": "PASS" if full_status else "PARTIAL" if boundary_pass else "FAIL",
+        "date": dt.date.today().isoformat(),
+        "run_dir": str(run_dir),
+        "bitstream": str(args.bitstream) if args.bitstream else None,
+        "rowstream": {
+            "path": str(args.rowstream_bin),
+            "bytes": len(image),
+            "sha256": hashlib.sha256(image).hexdigest(),
+            "total_beats": total_beats,
+            "loaded_beats": beats_to_load,
+            "load_elapsed_s": load_elapsed,
+        },
+        "initial_debug": json_debug(initial_debug),
+        "final_debug": json_debug(final_debug),
+        "boundary_rows": boundary_results,
+        "full_readback": {
+            "enabled": args.full_readback,
+            "sha256": readback_sha,
+            "matches_rowstream": full_match,
+        },
+        "top1": top1,
+    }
+    write_json(run_dir / "summary.json", payload)
+    if args.json_only:
+        print(json.dumps(payload, sort_keys=True))
+    else:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0 if payload["status"] == "PASS" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

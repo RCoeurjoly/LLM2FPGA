@@ -1,0 +1,188 @@
+#!/bin/sh
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Copyright © 2019 Keith Packard
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer in the documentation and/or other materials provided
+#    with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+# OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+qemu="qemu-system-riscv32"
+
+# select the program
+elf="$1"
+shift
+
+done=0
+while [ $# -gt 0 -a $done -eq 0 ]; do
+  case "$1" in
+    --stdin)
+      if [ $# -lt 2 ]; then
+        echo "Error: --stdin requires a quoted string"
+        exit 1
+      fi
+      stdin="$2"
+      shift 2
+      ;;
+    --args)
+      if [ $# -lt 2 ]; then
+        echo "Error: --args requires a quoted string"
+        exit 1
+      fi
+      args="$2"
+      shift 2
+      ;;
+    *)
+      done=1
+      ;;
+  esac
+done
+
+archstring=""
+# If readelf is installed, we can use the .riscv.attributes section
+# in the file to determine required extensions that we need in QEMU.
+# This will give us a string such as "rv64i2p0_m2p0_a2p0_f2p0_d2p0_c2p0"
+if command -v readelf >/dev/null 2>/dev/null; then
+    # LLVM-based toolchains readelf produces different output from GNU, so
+    # check --version output first.
+    if readelf --version | grep LLVM >/dev/null; then
+        archstring=$(readelf --arch-specific "$elf" | grep "Value: rv" | cut -d: -f2)
+    else
+        archstring=$(readelf --arch-specific "$elf" | grep Tag_RISCV_arch | cut -d: -f2 | tr -d '"')
+    fi
+fi
+if [ -z "$archstring" ]; then
+    echo "Could not determine architecture for $elf, is readelf installed?" >&2
+    exit 1
+fi
+if [ "${archstring#*rv64}" != "$archstring" ]; then
+    qemu="qemu-system-riscv64"
+    cpu="rv64"
+elif [ "${archstring#*rv32}" != "$archstring" ]; then
+    qemu="qemu-system-riscv32"
+    cpu="rv32"
+else
+    echo "Unknown architecture for $elf: $archstring" >&2
+    exit 1
+fi
+options="$(echo "$archstring" | sed 's/rv[36][24]//' | sed 's/_/ /g' | sed 's/[0-9]p[0-9]\>//g')"
+
+qemu_version="$("$qemu" --version | grep version | sed 's/.*version \([0-9][0-9.]*\).*/\1/')"
+
+cpu="$cpu,mmu=false,pmp=false"
+
+if [ -z "$options" ]; then
+    options="$(echo "$elf" | sed 's/.*rv[36][24]\([a-z]*\)_.*$/\1/' | sed 's/\(.\)/\1 /g')"
+fi
+
+for o in $options; do
+    # Old versions of qemu don't have new extension subsets
+    case "$qemu_version" in
+        8*|7*)
+            case "$o" in
+                zmmul)
+                    o=m
+                    ;;
+                zaamo|zalrsc|zawrs)
+                    o=a
+                    ;;
+            esac
+            ;;
+    esac
+    case "$o" in
+        zvl*)
+            # qemu doesn't list zvl extensions
+            ;;
+        *)
+            cpu="$cpu,$o=true"
+            ;;
+    esac
+done
+
+# qemu enables some options by defualt; we need to explicitly
+# disable them when not selected
+enabled_options="i h e g m a f d c s u v zifencei zihintpause"
+
+# Add default enabled options for newer qemu versions
+case "$qemu_version" in
+    8.[01]*|7*)
+        ;;
+    *)
+        enabled_options="$enabled_options zawrs zfa zihintntl"
+        ;;
+esac
+
+for enabled in $enabled_options; do
+    if echo "$options" | grep -q -w $enabled; then
+        :
+    else
+        cpu="$cpu,$enabled=false"
+    fi
+done
+
+# Map lower case options to upper case for qemu version 8.1 and earlier
+case "$qemu_version" in
+    8.[01]*|7*)
+        cpu="$(echo "$cpu" | sed 's/\<z/Z/g')"
+        ;;
+esac
+
+# Set the target machine
+machine=virt,accel=tcg
+
+# Map stdio to a multiplexed character device so we can use it
+# for the monitor and semihosting output
+
+chardev=stdio,mux=on,id=stdio0
+
+# Point the semihosting driver at our new chardev
+
+semi=enable=on,chardev=stdio0,arg="program-name $args"
+
+# Disable monitor
+
+mon=none
+
+# Disable serial
+
+serial=none
+
+echo $stdin | \
+  "$qemu" \
+    -chardev $chardev \
+    -semihosting-config "$semi" \
+    -monitor "$mon" \
+    -serial "$serial" \
+    -machine "$machine" \
+    -cpu "$cpu" \
+    -kernel "$elf" \
+    -nographic \
+    -bios none \
+    -m 2G

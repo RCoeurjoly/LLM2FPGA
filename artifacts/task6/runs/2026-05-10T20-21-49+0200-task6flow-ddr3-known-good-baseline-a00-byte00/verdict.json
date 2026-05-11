@@ -1,0 +1,21 @@
+{
+  "board": "integrity_pass",
+  "bram_margin": null,
+  "correctness": "pass",
+  "created_at": "2026-05-10T20:21:49.884923+02:00",
+  "dsp_margin": null,
+  "lut_margin": null,
+  "notes": [
+    "calibration=pass",
+    "command_gate=pass",
+    "integrity=pass",
+    "read_byte=0x00 expected=0x00",
+    "ack_count=2 err_count=0"
+  ],
+  "route": null,
+  "run_dir": "artifacts/task6/runs/2026-05-10T20-21-49+0200-task6flow-ddr3-known-good-baseline-a00-byte00",
+  "runtime": null,
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE",
+  "timing_margin": null
+}

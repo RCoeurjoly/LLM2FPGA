@@ -1,0 +1,1 @@
+/* This is either handled by the memmove stub or by memcpy */

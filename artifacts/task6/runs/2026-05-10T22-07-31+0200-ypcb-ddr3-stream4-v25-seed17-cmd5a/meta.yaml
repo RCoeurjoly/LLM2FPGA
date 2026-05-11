@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-10T22:07:31.001954+02:00"
+label: "ypcb-ddr3-stream4-v25-seed17-cmd5a"
+experiment: "task6-uberddr3-systematic-ddr3"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/qgfri3zlhch54555ljbscya414485jg8-task6-ypcb-uberddr3-bist-seed17.bit"
+reference_artifacts:
+notes: "created by task6_ddr3_experiment_runner.py"

@@ -1,0 +1,22 @@
+[options]
+mode prove
+depth 7 # minimum for 100MHz controller clk
+#mode cover
+#depth 50
+
+[engines]
+smtbmc
+
+[script]
+read -formal ddr3_controller.v
+read -formal fwb_slave.v
+read -formal ecc_dec.sv
+read -formal ecc_enc.sv
+prep -top ddr3_controller
+
+
+[files]
+./rtl/ddr3_controller.v
+./formal/fwb_slave.v
+./rtl/ecc/ecc_dec.sv
+./rtl/ecc/ecc_enc.sv

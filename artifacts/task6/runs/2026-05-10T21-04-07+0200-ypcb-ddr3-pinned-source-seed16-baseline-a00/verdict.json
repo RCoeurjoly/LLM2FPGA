@@ -1,0 +1,21 @@
+{
+  "board": "integrity_pass",
+  "bram_margin": null,
+  "correctness": "pass",
+  "created_at": "2026-05-10T21:04:07.768917+02:00",
+  "dsp_margin": null,
+  "lut_margin": null,
+  "notes": [
+    "calibration=pass",
+    "command_gate=pass",
+    "integrity=pass",
+    "read_byte=0x5a expected=0x5a",
+    "ack_count=2 err_count=0"
+  ],
+  "route": null,
+  "run_dir": "artifacts/task6/runs/2026-05-10T21-04-07+0200-ypcb-ddr3-pinned-source-seed16-baseline-a00",
+  "runtime": null,
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE",
+  "timing_margin": null
+}

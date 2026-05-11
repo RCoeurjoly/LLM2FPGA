@@ -1,0 +1,70 @@
+{
+  "schema": "task6-ddr3-g0-bscan-sentinel-verdict-v1",
+  "status": "PASS",
+  "bitstream": "/nix/store/apn1kncq61zac0yz4qvcizv65hmbvphj-task6-ypcb-bscan-sentinel.bit",
+  "idcode_hex": "0x23751093",
+  "reader": {
+    "backend": "mpsse",
+    "freq_hz": 6000000,
+    "tdo_bit": 7,
+    "ir_len": 6,
+    "user_ir": "0x02"
+  },
+  "readbacks": [
+    {
+      "log": "read-64.log",
+      "bits": 64,
+      "magic": "0x54364a44",
+      "magic_ok": true,
+      "version": 1,
+      "sys_rstn": true,
+      "tck_count": 0,
+      "capture_count": 0,
+      "update_count": 0
+    },
+    {
+      "log": "read-1024-a.log",
+      "bits": 1024,
+      "magic": "0x54364a44",
+      "magic_ok": true,
+      "version": 1,
+      "sys_rstn": true,
+      "tck_count": 14987,
+      "capture_count": 2,
+      "update_count": 1,
+      "fixed_word_0": "0x11111111",
+      "fixed_word_1": "0x22222222"
+    },
+    {
+      "log": "read-1024-b.log",
+      "bits": 1024,
+      "magic": "0x54364a44",
+      "magic_ok": true,
+      "version": 1,
+      "sys_rstn": true,
+      "tck_count": 16036,
+      "capture_count": 3,
+      "update_count": 2,
+      "fixed_word_0": "0x11111111",
+      "fixed_word_1": "0x22222222"
+    },
+    {
+      "log": "read-11264.log",
+      "bits": 11264,
+      "magic": "0x54364a44",
+      "magic_ok": true,
+      "version": 1,
+      "sys_rstn": true,
+      "tck_count": 17085,
+      "capture_count": 4,
+      "update_count": 3,
+      "fixed_word_0": "0x11111111",
+      "fixed_word_1": "0x22222222"
+    }
+  ],
+  "promotion": {
+    "gate": "G0",
+    "result": "pass",
+    "reason": "IDCODE, magic/version, SYS_RSTN, fixed words, and monotonically changing TCK/capture/update counters were observed with explicit TDO bit 7."
+  }
+}

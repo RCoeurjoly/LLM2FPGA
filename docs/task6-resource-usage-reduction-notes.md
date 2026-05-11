@@ -81,6 +81,249 @@ earns more work.
 
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
+### 2026-05-10 - Imported stable UberDDR3 baseline from `~/UberDDR3`
+
+Decision:
+
+- Continue Task 6 DDR3 work in this workspace.
+- Import only the stable UberDDR3 pieces:
+  - pinned seed16 baseline source/flake/bitstream bundle
+  - direct USER1/USER2 JTAG read/write scripts
+  - experiment runner support for command-byte and optional command-address
+    probes
+  - compact run artifacts proving calibration plus controlled low-byte
+    write/read
+- Keep the incomplete sequential/address-probe streamer path experimental.
+  Do not make it the default DDR3 flow and do not connect it to model weights
+  yet.
+
+Imported evidence:
+
+| artifact | role |
+| --- | --- |
+| `artifacts/task6/uberddr3-baseline-flow/seed16-pinned-2026-05-10/` | copied pinned source, standalone flake/lock, and passing seed16 bitstream |
+| `artifacts/task6/ddr3-run-results-uberddr3-2026-05-10.jsonl` | copied May 10 UberDDR3 run log, including pass controls and failed streamer probes |
+| `artifacts/task6/runs/2026-05-10T18-51-28+0200-ypcb-ddr3-nodm-lowbyte-selftest-pass` | first low-byte command `0x5a` integrity pass on the no-DM diagnostic baseline |
+| `artifacts/task6/runs/2026-05-10T20-21-49+0200-task6flow-ddr3-known-good-baseline-a00-byte00` | command byte `0x00` pass on known-good baseline |
+| `artifacts/task6/runs/2026-05-10T20-22-25+0200-task6flow-ddr3-known-good-baseline-a00-byteff` | command byte `0xff` pass on known-good baseline |
+| `artifacts/task6/runs/2026-05-10T21-04-07+0200-ypcb-ddr3-pinned-source-seed16-baseline-a00` | copied pinned-source seed16 baseline pass; `read_byte=0x5a`, `ack_count=2`, `err_count=0` |
+
+Current DDR3 claim:
+
+- Proven enough to continue productively:
+  - YPCB DDR3 can calibrate in the pinned seed16 UberDDR3 baseline.
+  - Direct JTAG command/read infrastructure works through USER2/USER1 with
+    `--tdo-bit 7`.
+  - Controlled low-byte write/read values `0x00`, `0x5a`, and `0xff` can be
+    observed through the debug payload with write/read ACKs and no reported
+    Wishbone error.
+- Not yet proven enough for LLM weights:
+  - no sustained sequential read streamer
+  - no multi-address deterministic row scan
+  - no measured burst bandwidth
+  - no connection to the INT8/top1 weight fetch path
+
+Next milestone:
+
+1. Start from the copied passing seed16/pinned baseline bundle.
+2. Add the smallest sequential read streamer that minimally perturbs DDR PHY
+   placement and the known-good low-byte path.
+3. Verify over JTAG that reads across multiple addresses are deterministic.
+4. Measure burst read bandwidth.
+5. Only after that, connect DDR3 to the LLM weight fetch/rowstream path.
+
+Stop rule:
+
+- If a streamer or address-probe variant loses calibration or command ACKs,
+  classify it as experimental evidence and return to the copied seed16
+  baseline before adding more logic.
+
+### 2026-05-11 - DDR3 sequential low-byte probe direction
+
+Decision:
+
+- Do not use variable 512-bit byte selection as the proof mechanism.
+- Keep the v33 user-port probe experimental: it removed variable byte selection,
+  but seed15 and seed16 both decoded JTAG correctly and failed to leave
+  `WAIT_CALIB`.
+- Promote the calibrated BIST-derived low-byte-per-address path as the active
+  instrumentation baseline.
+- Use command count, not USER2 payload byte value, to advance the stream window
+  until USER2 payload capture has its own readback proof.
+
+Evidence:
+
+| bitstream | result |
+| --- | --- |
+| `/nix/store/5lmj01wnpan3sxffmbmiqdckv421w4db-task6-ypcb-uberddr3-user-port-probe-seed15.bit` | v33 user-port probe, JTAG magic/version valid, stuck in `WAIT_CALIB` |
+| `/nix/store/hnnxaisdj553jpyqvkm19ql4jfigqx48-task6-ypcb-uberddr3-user-port-probe-seed16.bit` | v33 user-port probe, JTAG magic/version valid, stuck in `WAIT_CALIB` |
+| `/nix/store/1y2wjcgkp8y9dzwjv6picrczgq8zzhj6-task6-ypcb-uberddr3-bist.bit` | BIST-derived probe, `calib=1`, `state=9`, `done=1`; observed low-byte stream `[0xa5, 0xa6, 0xa7, 0xa8]` with valid mask `0xf` and mismatch mask `0x0` |
+
+Next execution target:
+
+- Build a BIST-derived stream probe that keeps the calibrated transaction
+  sequence and advances one 4-byte low-byte/address window per USER2 command
+  event by command count.
+- Passing bar for the next hardware run:
+  - 16 command-count windows pass after calibration.
+  - The 64 observed low-byte positions match `PROBE_BYTE + index`.
+  - `valid=0xf`, `mismatch=0`, `err=0`, and write/read ACKs are observed for
+    each 4-byte window.
+- Only after this passes, connect rowstream loading; do not connect TinyStories
+  weights yet.
+
+Implementation note:
+
+- v28 built and calibrated, and every observed 4-byte window byte-matched, but
+  one USER2 write advanced `run_count` by 2. Root cause: the command shifter
+  treated the BSCANE2 `UPDATE` level as an event and could toggle more than
+  once while `UPDATE` was high. v29 edge-detects `UPDATE` in the TCK domain so
+  the controller sees one command event per USER2 update. v29 still advanced by
+  2, which indicates an update can arrive before a fresh USER2 DR shift while
+  the previous command remains in `shift_q`; v30 adds a `shift_seen` guard so
+  only updates following a selected DR shift can emit a command event. v30 still
+  exposed two raw command events per USER2 write; v31 keeps the shifter
+  instrumentation but adds a top-level consumer guard so duplicate raw command
+  events are ignored while a DDR3 probe run is already active. v31 showed the
+  duplicate can arrive after the very short 4-byte run completes; v32 therefore
+  accepts only every other raw USER2 event at the consumer, matching the
+  measured transport behavior while preserving the raw command counter for
+  traceability.
+
+Hardware result:
+
+- v32 bitstream:
+  `/nix/store/fma5qxp6k91gmgmj4pbh863bn5hsf0ds-task6-ypcb-uberddr3-bist.bit`
+- Validator:
+  `scripts/task6/validate_uberddr3_lowbyte_stream.py`
+- Evidence JSON:
+  `artifacts/task6/uberddr3-lowbyte-stream-v32-validation.json`
+- Result: pass. Initial window plus 15 USER2-driven windows covered stream
+  bases `0, 4, 8, ..., 60`; every 4-byte sample matched
+  `PROBE_BYTE + stream_base + byte_index`, with `valid=0xf`, `mismatch=0`,
+  `err=0`, and write/read ACKs set. Raw `command_count` still advances by 2 per
+  validator command and is retained as transport instrumentation; consumed
+  `run_count` advances by 1 per command.
+
+### 2026-05-09 - Boring DDR3 bring-up operating contract
+
+Decision:
+
+- Make DDR3 the active full-vocab scaling dependency because the v9984
+  extrapolation does not leave enough BRAM for the full ~50k-vocab output head.
+- Keep DDR3 work boring and gate-driven. Do not attach DDR3 to rowstream/top1
+  until deterministic native write/read integrity exists.
+- Keep the v9984/on-chip path as the correctness control while DDR3 is brought
+  up.
+
+Promotion ladder:
+
+| gate | required result | stop condition |
+| --- | --- | --- |
+| G0: JTAG/debug trust | valid magic/version, stable payload length, expected IDCODE, explicit `--tdo-bit 7` | missing magic, stale version, all-zero payload, inconsistent decode |
+| G1: init-only | PLL locked, init done, init error clear, no Wishbone timeout/error | seed-sensitive or payload-size-sensitive init |
+| G2: DFII one-beat | one 576-bit beat writes and reads back exactly, all 72 bytes | any byte/phase/lane mismatch |
+| G3: DFII address walk | 16 DFII addresses return unique expected data | reads collapse to one address |
+| G4: native read from DFII seeds | native responses match DFII-seeded data for accepted native addresses | commands accepted but data stale/collapsed |
+| G5: native write/read | 16 native writes and reads pass exactly | write/read handshake or ordering ambiguity |
+| G6: rowstream | first 8 DDR rows byte-match the `.mem` row source | row packing/stride mismatch |
+| G7: top1 | DDR rowstream top1 equals BRAM/`$readmemh` top1 | rowstream not proven |
+
+Current lane:
+
+- Active DDR3 path for the deterministic ladder is **LiteDRAM only**. UberDDR3 is kept as a parallel fallback only and is not used in G1..G5.
+
+Implementation status:
+
+- Added `fpga/rtl/task6_ypcb_bscan_sentinel_top.sv` as a tiny G0 sentinel
+  image source using only direct `BSCANE2`, magic/version, TCK/capture/update
+  counters, fixed words, and sampled `SYS_RSTN`.
+- Added flake targets `.#task6-ypcb-bscan-sentinel-{json,xdc,fasm,bitstream}`
+  so the G0 sentinel can be built and programmed like the existing YPCB
+  diagnostic images.
+- Added `scripts/task6/summarize_litedram_bringup_gate.py` to classify decoded
+  LiteDRAM readbacks against the gate ladder and detect the current G4 collapse
+  signature (`valid_count=16`, `unique_native_beats=1`).
+- Added `scripts/task6/run_litedram_canonical_repro.py` to run the canonical
+  native-classifier repro with explicit board settings, save a manifest, perform
+  read/read/program/read/read, and emit `verdict-ddr3-bringup.json`.
+
+Measured canonical repro:
+
+| run | bitstream | result | interpretation |
+| --- | --- | --- | --- |
+| `artifacts/task6/runs/2026-05-09T20-35-05+0200-ddr3-v117-native-cmdaddr-idx1-canonical` | `/nix/store/7872xnkz6j108lxr60rz0hxki81c2isr-task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe-native-cmdaddr-first-command-index-1.bit` | 3/3 legacy canonical run | `magic_ok=true`, version `116`, `PROBE_DONE`, command/response counts `16/16`, accepted cmd address `1`, `unique_native_beats=1`, best DFII index `15`, mismatch count `16` |
+| `artifacts/task6/runs/2026-05-09T20-42-01+0200-ddr3-g0-bscan-sentinel-counter` | `/nix/store/apn1kncq61zac0yz4qvcizv65hmbvphj-task6-ypcb-bscan-sentinel.bit` | G0 pass | IDCODE `0x23751093`; `magic_ok=true`, version `1`, `SYS_RSTN=1` at 64/1024/11264 bits; fixed words `0x11111111`/`0x22222222`; counters advanced across reads (`tck_count` `14987 -> 16036 -> 17085`) |
+
+Conclusion:
+
+- The legacy 3/3 canonical run was already reproducible, and the updated script
+  now captures 4 reads (`read/read/program/read/read`) with explicit `--tdo-bit 7`.
+- The direct BSCANE2 debug transport is independently validated at G0 with the
+  tiny sentinel image, including long payload reads at the LiteDRAM classifier
+  bit count.
+- This validates the next stop point: do not modify rowstream/top1. Continue
+  with the smallest G1/G2 LiteDRAM init/DFII BIST images.
+
+Canonical LiteDRAM repro settings (now 4 reads: read, read, reprogram/read, reprogram/read):
+
+```bash
+python3 scripts/task6/run_litedram_canonical_repro.py \
+  --bitstream /path/to/task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.bit \
+  --serial 210299BF3824 \
+  --freq-hz 6000000 \
+  --tdo-bit 7 \
+  --bits 11264 \
+  --ir-len 6 \
+  --user-ir 0x02
+```
+
+Deterministic LiteDRAM ladder (G1..G5) on the same reader settings.
+G1..G5 must each be explicit bitstreams to avoid mode mixing:
+
+```bash
+python3 scripts/task6/run_litedram_canonical_repro.py \
+  --bitstream /path/to/g0-or-common-probe.bit \
+  --run-ladder \
+  --label ddr3-v116-ladder \
+  --serial 210299BF3824 \
+  --freq-hz 6000000 \
+  --tdo-bit 7 \
+  --bits 11264 \
+  --ir-len 6 \
+  --user-ir 0x02 \
+  --poll-count 10 \
+  --poll-interval 0.2 \
+  --expected-version 116 \
+  --expected-state PROBE_DONE \
+  --expected-bits 11264 \
+  --g1-bitstream /path/to/g1-init-only.bit \
+  --g2-bitstream /path/to/g2-dfii-one-beat.bit \
+  --g3-bitstream /path/to/g3-dfii-addrwalk.bit \
+  --g4-bitstream /path/to/g4-native-read.bit \
+  --g5-bitstream /path/to/g5-native-write-read.bit
+```
+
+The script now emits:
+
+- `verdict-ddr3-bringup.json` (raw per-read summaries)
+- `verdict-ddr3-ladder.json` (adds `ladder_steps` and `ladder_all_pass`)
+- `references/canonical-repro-manifest.json` (reader/JTAG contract and expected state)
+
+For ladder mode, the process exits non-zero on first-stop failures unless
+`--continue-on-gate-fail` is set.
+
+Evidence rule:
+
+- Any DDR3 run without valid magic/version is discarded as debug-transport
+  evidence, not DDR3 evidence.
+- `rtl/task6/task6_ddr3_rowstream_mem_source.sv` remains a golden local row
+  source, not live DDR3 evidence.
+- `rtl/task6/task6_ddr3_rowstream_top1_cutout.sv` remains downstream logic that
+  assumes rows are already correct.
+- `docs/project-plan*` remain reviewer-controlled and must not be edited for
+  this bring-up ladder.
+
 ### 2026-05-09 - UberDDR3 YPCB fallback gate
 
 Decision:

@@ -1,0 +1,19 @@
+#!/bin/sh
+HERE=`dirname "$0"`
+TARGET=$1
+shift
+
+ANALYZER="-Danalyzer=true"
+
+# Disable analyzer on m68k because the compiler gets very confused
+# about complex values
+
+case "$TARGET" in
+    *m68k*)
+	ANALYZER=""
+	;;
+esac
+
+OPTIONS="$ANALYZER"
+
+"$HERE"/do-run "$TARGET" $OPTIONS "$@"

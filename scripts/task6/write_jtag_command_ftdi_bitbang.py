@@ -41,6 +41,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--user-ir", type=lambda value: int(value, 0), default=0x03)
     parser.add_argument("--bit-delay-us", type=float, default=0.0)
     parser.add_argument("--byte", dest="byte_value", type=lambda value: int(value, 0), required=True)
+    parser.add_argument("--addr", dest="addr_value", type=lambda value: int(value, 0), default=0)
     parser.add_argument("--bits", type=int, default=16)
     parser.add_argument("--magic-nibble", type=lambda value: int(value, 0), default=0xA)
     parser.add_argument(
@@ -60,10 +61,15 @@ def main() -> int:
     args = parse_args()
     if args.byte_value < 0 or args.byte_value > 0xFF:
         raise SystemExit("--byte must fit in 8 bits")
+    if args.addr_value < 0 or args.addr_value > 0xFF:
+        raise SystemExit("--addr must fit in 8 bits")
     if args.magic_nibble < 0 or args.magic_nibble > 0xF:
         raise SystemExit("--magic-nibble must fit in 4 bits")
 
-    command = (args.magic_nibble << 12) | (1 << 8) | args.byte_value
+    if args.bits == 16:
+        command = (args.magic_nibble << 12) | (1 << 8) | args.byte_value
+    else:
+        command = (args.magic_nibble << 20) | (1 << 16) | (args.addr_value << 8) | args.byte_value
     if args.backend == "mpsse":
         client = FtdiMpsseJtag(
             serial=args.serial,
@@ -92,12 +98,16 @@ def main() -> int:
         "serial": args.serial,
         "user_ir": f"0x{args.user_ir:02x}",
         "bits": args.bits,
+        "addr": f"0x{args.addr_value:02x}",
         "byte": f"0x{args.byte_value:02x}",
-        "command": f"0x{command:04x}",
+        "command": f"0x{command:0{args.bits // 4}x}",
         "update_mode": args.update_mode,
     }
     if not args.json_only:
-        print(f"Wrote USER JTAG command {result['command']} byte={result['byte']}")
+        print(
+            f"Wrote USER JTAG command {result['command']} "
+            f"addr={result['addr']} byte={result['byte']}"
+        )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 

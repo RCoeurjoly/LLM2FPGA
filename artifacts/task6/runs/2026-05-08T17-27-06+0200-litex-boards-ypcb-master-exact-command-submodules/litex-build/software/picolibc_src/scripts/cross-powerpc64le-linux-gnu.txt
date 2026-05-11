@@ -1,0 +1,16 @@
+[binaries]
+c = ['powerpc64le-linux-gnu-gcc', '-fno-pic', '-static']
+cpp = ['powerpc64le-linux-gnu-g++', '-fno-pic', '-static']
+ar = 'powerpc64le-linux-gnu-ar'
+as = 'powerpc64le-linux-gnu-as'
+nm = 'powerpc64le-linux-gnu-nm'
+strip = 'powerpc64le-linux-gnu-strip'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'ppc64'
+cpu = 'ppc64'
+endian = 'little'
+
+[properties]
+skip_sanity_check = true

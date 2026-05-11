@@ -223,6 +223,50 @@
           '';
         task6YpcbUberDdr3BistYosysJson =
           mkTask6YpcbUberDdr3BistYosysJson { };
+        task6YpcbUberDdr3RowstreamLoaderYosysJson =
+          pkgs.runCommand "task6-ypcb-uberddr3-rowstream-loader-yosys.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_top.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_controller.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_phy.v \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
+              ${./fpga/rtl/task6_ypcb_uberddr3_rowstream_loader_top.sv}
+            hierarchy -top task6_ypcb_uberddr3_rowstream_loader_top -check
+            synth_xilinx -family xc7 -top task6_ypcb_uberddr3_rowstream_loader_top -noiopad
+            stat -top task6_ypcb_uberddr3_rowstream_loader_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+        task6YpcbUberDdr3UserPortProbeYosysJson =
+          pkgs.runCommand "task6-ypcb-uberddr3-user-port-probe-yosys.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_top.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_controller.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_phy.v \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
+              ${./fpga/rtl/task6_ypcb_uberddr3_user_port_probe_top.sv}
+            hierarchy -top task6_ypcb_uberddr3_user_port_probe_top -check
+            synth_xilinx -family xc7 -top task6_ypcb_uberddr3_user_port_probe_top -noiopad
+            stat -top task6_ypcb_uberddr3_user_port_probe_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
         task6YpcbUberDdr3BistByte00YosysJson =
           mkTask6YpcbUberDdr3BistYosysJson {
             name = "task6-ypcb-uberddr3-bist-byte00-yosys.json";
@@ -255,6 +299,22 @@
             hierarchy -top task6_ypcb_mmcm_diag_top -check
             synth_xilinx -family xc7 -top task6_ypcb_mmcm_diag_top -noiopad
             stat -top task6_ypcb_mmcm_diag_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+        task6YpcbBscanSentinelJson =
+          pkgs.runCommand "task6-ypcb-bscan-sentinel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv ${./fpga/rtl/task6_ypcb_bscan_sentinel_top.sv}
+            hierarchy -top task6_ypcb_bscan_sentinel_top -check
+            synth_xilinx -family xc7 -top task6_ypcb_bscan_sentinel_top -noiopad
+            stat -top task6_ypcb_bscan_sentinel_top
             write_json "$out"
             EOF
             yosys -s run.ys
@@ -5540,6 +5600,15 @@
             EOF
           '';
 
+        task6YpcbBscanSentinelXdc =
+          pkgs.runCommand "task6-ypcb-bscan-sentinel.xdc" { } ''
+            set -euo pipefail
+            cat > "$out" <<'EOF'
+            set_property LOC R28 [get_ports {SYS_RSTN}]
+            set_property IOSTANDARD LVCMOS18 [get_ports {SYS_RSTN}]
+            EOF
+          '';
+
         task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeXdc = mkXdc {
           name = "task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe";
           includeBoardXdc = false;
@@ -6034,6 +6103,62 @@
           framesBase = "task6-ypcb-uberddr3-bist-seed15";
         };
 
+        task6YpcbUberDdr3RowstreamLoaderSeed15Fasm = mkFasm {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed15";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          seed = 15;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed15Bitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed15";
+          fasm = task6YpcbUberDdr3RowstreamLoaderSeed15Fasm;
+          framesBase = "task6-ypcb-uberddr3-rowstream-loader-seed15";
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16Fasm = mkFasm {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          seed = 16;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16Bitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16";
+          fasm = task6YpcbUberDdr3RowstreamLoaderSeed16Fasm;
+          framesBase = "task6-ypcb-uberddr3-rowstream-loader-seed16";
+        };
+
+        task6YpcbUberDdr3UserPortProbeSeed15Fasm = mkFasm {
+          name = "task6-ypcb-uberddr3-user-port-probe-seed15";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3UserPortProbeYosysJson;
+          seed = 15;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3UserPortProbeSeed15Bitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-user-port-probe-seed15";
+          fasm = task6YpcbUberDdr3UserPortProbeSeed15Fasm;
+          framesBase = "task6-ypcb-uberddr3-user-port-probe-seed15";
+        };
+
+        task6YpcbUberDdr3UserPortProbeSeed16Fasm = mkFasm {
+          name = "task6-ypcb-uberddr3-user-port-probe-seed16";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3UserPortProbeYosysJson;
+          seed = 16;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3UserPortProbeSeed16Bitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-user-port-probe-seed16";
+          fasm = task6YpcbUberDdr3UserPortProbeSeed16Fasm;
+          framesBase = "task6-ypcb-uberddr3-user-port-probe-seed16";
+        };
+
         task6YpcbUberDdr3BistSeed16Fasm = mkFasm {
           name = "task6-ypcb-uberddr3-bist-seed16";
           xdc = task6YpcbUberDdr3BistXdc;
@@ -6127,6 +6252,20 @@
           name = "task6-ypcb-mmcm-diag";
           fasm = task6YpcbMmcmDiagFasm;
           framesBase = "task6-ypcb-mmcm-diag";
+        };
+
+        task6YpcbBscanSentinelFasm = mkFasm {
+          name = "task6-ypcb-bscan-sentinel";
+          xdc = task6YpcbBscanSentinelXdc;
+          json = task6YpcbBscanSentinelJson;
+          seed = 15;
+          freqMHz = 25;
+        };
+
+        task6YpcbBscanSentinelBitstream = mkBitstream {
+          name = "task6-ypcb-bscan-sentinel";
+          fasm = task6YpcbBscanSentinelFasm;
+          framesBase = "task6-ypcb-bscan-sentinel";
         };
 
         task6YpcbLiteDramNoOdelayInitBandwidthProbeBitstream =
@@ -9982,6 +10121,10 @@
             task6YpcbLiteDramNoOdelayLowrateDqs0RtlCheck;
           task6-ypcb-uberddr3-bist-yosys-json =
             task6YpcbUberDdr3BistYosysJson;
+          task6-ypcb-uberddr3-rowstream-loader-yosys-json =
+            task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          task6-ypcb-uberddr3-user-port-probe-yosys-json =
+            task6YpcbUberDdr3UserPortProbeYosysJson;
           task6-ypcb-uberddr3-bist-xdc =
             task6YpcbUberDdr3BistXdc;
           task6-ypcb-uberddr3-bist-fasm =
@@ -9992,6 +10135,22 @@
             task6YpcbUberDdr3BistSeed15Fasm;
           task6-ypcb-uberddr3-bist-seed15-bitstream =
             task6YpcbUberDdr3BistSeed15Bitstream;
+          task6-ypcb-uberddr3-rowstream-loader-seed15-fasm =
+            task6YpcbUberDdr3RowstreamLoaderSeed15Fasm;
+          task6-ypcb-uberddr3-rowstream-loader-seed15-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed15Bitstream;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-fasm =
+            task6YpcbUberDdr3RowstreamLoaderSeed16Fasm;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed16Bitstream;
+          task6-ypcb-uberddr3-user-port-probe-seed15-fasm =
+            task6YpcbUberDdr3UserPortProbeSeed15Fasm;
+          task6-ypcb-uberddr3-user-port-probe-seed15-bitstream =
+            task6YpcbUberDdr3UserPortProbeSeed15Bitstream;
+          task6-ypcb-uberddr3-user-port-probe-seed16-fasm =
+            task6YpcbUberDdr3UserPortProbeSeed16Fasm;
+          task6-ypcb-uberddr3-user-port-probe-seed16-bitstream =
+            task6YpcbUberDdr3UserPortProbeSeed16Bitstream;
           task6-ypcb-uberddr3-bist-seed16-fasm =
             task6YpcbUberDdr3BistSeed16Fasm;
           task6-ypcb-uberddr3-bist-seed16-bitstream =
@@ -10028,6 +10187,14 @@
             task6YpcbMmcmDiagFasm;
           task6-ypcb-mmcm-diag-bitstream =
             task6YpcbMmcmDiagBitstream;
+          task6-ypcb-bscan-sentinel-json =
+            task6YpcbBscanSentinelJson;
+          task6-ypcb-bscan-sentinel-xdc =
+            task6YpcbBscanSentinelXdc;
+          task6-ypcb-bscan-sentinel-fasm =
+            task6YpcbBscanSentinelFasm;
+          task6-ypcb-bscan-sentinel-bitstream =
+            task6YpcbBscanSentinelBitstream;
           task6-ypcb-litedram-open-synth-json =
             task6YpcbLiteDramOpenSynthJson;
           task6-ypcb-litedram-open-synth-utilization =
