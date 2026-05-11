@@ -1,0 +1,10 @@
+{
+  "beat_addr": 0,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-12-fullbeat-v56-seed18/beat0-ramp-rerun/fullbeat-diagnostic.json",
+  "expected_hex": null,
+  "mismatch_count": null,
+  "observed_hex": null,
+  "run_dir": "artifacts/task6/runs/2026-05-12-fullbeat-v56-seed18/beat0-ramp-rerun",
+  "status": "FAIL",
+  "verdict": "fullbeat-diagnostic-blocked-by-unclean-boot"
+}

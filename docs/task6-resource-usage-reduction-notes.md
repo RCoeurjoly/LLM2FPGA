@@ -291,6 +291,72 @@ Promotion rule:
 - Do not connect TinyStories weights to the model path from the standalone
   rowstream-loader top; replace it with a BIST-derived loader first.
 
+### 2026-05-12 - DDR3 full-beat write direction
+
+Finding:
+
+- The YPCB DDR3 collateral does not expose byte-mask pins for the active flow:
+  - `~/ypcb_00338_1p1_hack/constraints/MEMORY_CH0.ucf` and
+    `MEMORY_CH1.ucf` enumerate DQ, DQS, address, bank, clock, and control
+    pins, but no `ddr3_dm`, `dm`, `dqm`, or equivalent mask pins.
+  - The MIG project files in
+    `~/ypcb_00338_1p1_hack/ypcb003381p1/1.0/` use
+    `<DataWidth>72</DataWidth>` with `<DataMask>0</DataMask>`.
+  - The pinout spreadsheet strings contain DQ/DQS/DQSN naming, but no obvious
+    DM/DQM pin naming.
+
+Conclusion:
+
+- Treat the board as a no-data-mask DDR3 target for Task 6.
+- `i_wb_sel`/byte-select behavior is not the right primitive for model weight
+  loading on this board. It may be useful inside a simulation contract, but it
+  should not be the hardware data-integrity proof.
+- The Task 6 DDR3 loader should assemble complete controller words and commit
+  full beats:
+  - 64 bytes for the current 512-bit UberDDR3 Wishbone path.
+  - 72 bytes only if a later 72-bit/ECC-lane-visible controller interface is
+    explicitly exposed.
+
+Execution gate:
+
+- Preserve the boot-clean BIST-derived datapath.
+- Add only a full-beat host command path:
+  - four 128-bit JTAG `WRITE_CHUNK` commands stage one 512-bit beat;
+  - chunk 3 commits the full beat with all data bytes valid;
+  - `READ_BEAT` returns any 128-bit quarter for readback.
+- Passing bar before rowstream loading:
+  - boot gate remains clean: `boot_done=true`, `boot_error=false`,
+    `boot_mismatch=false`;
+  - a 64-byte ramp written through the full-beat path reads back exactly across
+    all four 128-bit chunks;
+  - repeat at multiple beat addresses and byte patterns before loading model
+    weights.
+
+Hardware result:
+
+| variant | bitstream | result |
+| --- | --- | --- |
+| v56 seed18 clock+PHY locked | `/nix/store/qy9gb3rlva10dbsvsi6rzil8gdq7ia54-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit` | route passed; DDR3 calibrated twice but boot BIST was unclean both times: `boot_done=true`, `boot_error=false`, `boot_mismatch=true`; full-beat data was not interpreted |
+| v57 seed18 clock+PHY locked | `/nix/store/z26h164qalhkr59w0ffsgzzhskyi96cg-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit` | route passed after replacing variable chunk selects with explicit cases, but hardware timed out before calibration: `calib_seen=false`, `debug1=0x000006cc` |
+
+Evidence:
+
+- `artifacts/task6/runs/2026-05-12-fullbeat-v56-seed18/beat0-ramp/`
+- `artifacts/task6/runs/2026-05-12-fullbeat-v56-seed18/beat0-ramp-rerun/`
+- `artifacts/task6/runs/2026-05-12-fullbeat-v57-seed18/beat0-ramp/`
+
+Interpretation:
+
+- Full-beat writes remain the right Task 6 direction because the YPCB flow has
+  no exposed DDR3 DM/DQM pins, but adding a host-staged 512-bit datapath
+  directly to the fragile BIST-derived top is too intrusive for the current
+  physical-stability envelope.
+- The next concrete gate should be a boot-clean board-side full-beat generator:
+  write a complete 64-byte ramp or repeated-pattern beat from internal RTL, read
+  it back, and only then reintroduce host-provided beat data.
+- Do not run more seed sweeps on the host-staged full-beat variant until the
+  internally generated full-beat write/read gate is boot-clean.
+
 ### 2026-05-11 - Rowstream loader calibration rebase v31
 
 Decision:

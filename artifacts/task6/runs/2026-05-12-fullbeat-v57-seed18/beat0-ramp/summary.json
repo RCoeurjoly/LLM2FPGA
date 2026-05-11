@@ -1,0 +1,8 @@
+{
+  "bitstream": "/nix/store/z26h164qalhkr59w0ffsgzzhskyi96cg-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit",
+  "diagnostic": "fullbeat-ramp-beat0",
+  "error": "DDR3 calibration did not complete: magic_ok=True version=57 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x000006cc",
+  "run_dir": "artifacts/task6/runs/2026-05-12-fullbeat-v57-seed18/beat0-ramp",
+  "status": "FAIL",
+  "verdict": "v57-host-staged-fullbeat-calibration-timeout"
+}

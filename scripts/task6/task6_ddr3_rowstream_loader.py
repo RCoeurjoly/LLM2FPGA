@@ -51,7 +51,7 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 54
+DEBUG_VERSION = 57
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
@@ -182,6 +182,16 @@ def parse_args() -> argparse.Namespace:
         type=lambda value: int(value, 0),
         default=0,
         help="beat address for --diagnostic-fillbeat-value; default: 0",
+    )
+    parser.add_argument(
+        "--diagnostic-fullbeat-addr",
+        type=lambda value: int(value, 0),
+        default=None,
+        help=(
+            "before rowstream loading, write one 64-byte ramp through the "
+            "full-beat chunk protocol, read all four chunks back, emit a "
+            "diagnostic JSON, and exit"
+        ),
     )
     parser.add_argument(
         "--diagnostic-autoprobe-value",
@@ -339,8 +349,8 @@ def make_command(opcode: int, chunk: int, addr: int, data: bytes = b"") -> int:
     payload |= (opcode & 0xFF) << 32
     payload |= (chunk & 0x3) << 40
     payload |= (addr & 0xFFFF_FFFF) << 48
-    if data:
-        payload |= data[0] << 64
+    for index, byte in enumerate(data):
+        payload |= (byte & 0xFF) << (64 + index * 8)
     return payload
 
 
@@ -922,6 +932,80 @@ def run_fillbeat_diagnostic(
     return payload
 
 
+def run_fullbeat_diagnostic(
+    loader: RowstreamLoader,
+    beat_addr: int,
+    run_dir: Path,
+    initial_debug: dict[str, Any],
+) -> dict[str, Any]:
+    if beat_addr < 0:
+        raise ValueError("fullbeat diagnostic address must be non-negative")
+    if (
+        not bool(initial_debug["boot_done"])
+        or bool(initial_debug["boot_error"])
+        or bool(initial_debug["boot_mismatch"])
+    ):
+        final_debug = loader.read_debug()
+        payload = {
+            "artifact_name": "task6-ypcb-uberddr3-fullbeat-board-diagnostic",
+            "status": "FAIL",
+            "beat_addr": beat_addr,
+            "mismatch_count": None,
+            "initial_debug": json_debug(initial_debug),
+            "final_debug": json_debug(final_debug),
+            "decision": {
+                "verdict": "fullbeat-diagnostic-blocked-by-unclean-boot",
+                "next_gate": (
+                    "Do not interpret full-beat write/read diagnostics until "
+                    "the BIST-derived boot gate is clean."
+                ),
+            },
+        }
+        write_json(run_dir / "fullbeat-diagnostic.json", payload)
+        return payload
+
+    expected = bytes(range(BEAT_BYTES))
+    write_debug = loader.write_beat(beat_addr, expected)
+    observed, read_debug = loader.read_beat(beat_addr)
+    readback = [
+        {
+            "lane": lane,
+            "expected": expected[lane],
+            "observed": observed[lane],
+            "match": observed[lane] == expected[lane],
+        }
+        for lane in range(BEAT_BYTES)
+    ]
+    mismatch_count = sum(1 for row in readback if not row["match"])
+    final_debug = loader.read_debug()
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-fullbeat-board-diagnostic",
+        "status": "PASS" if mismatch_count == 0 else "FAIL",
+        "beat_addr": beat_addr,
+        "mismatch_count": mismatch_count,
+        "expected_hex": expected.hex(),
+        "observed_hex": observed.hex(),
+        "initial_debug": json_debug(initial_debug),
+        "write_debug": json_debug(write_debug),
+        "read_debug": json_debug(read_debug),
+        "final_debug": json_debug(final_debug),
+        "readback": readback,
+        "decision": {
+            "verdict": (
+                "fullbeat-write-read-passes"
+                if mismatch_count == 0
+                else "fullbeat-write-read-fails"
+            ),
+            "next_gate": (
+                "If this passes at several beat addresses and patterns, switch "
+                "Task 6 rowstream loading to full-beat packed writes."
+            ),
+        },
+    }
+    write_json(run_dir / "fullbeat-diagnostic.json", payload)
+    return payload
+
+
 def run_autoprobe_diagnostic(
     loader: RowstreamLoader,
     value: int,
@@ -1263,6 +1347,41 @@ def main() -> int:
                         f"beat={diagnostic['beat_addr']} "
                         f"observed={diagnostic['beat0_prefix_hex']} "
                         f"expected={diagnostic['expected_prefix_hex']}"
+                    )
+            return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_fullbeat_addr is not None:
+            diagnostic = run_fullbeat_diagnostic(
+                loader,
+                args.diagnostic_fullbeat_addr,
+                run_dir,
+                initial_debug,
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "fullbeat-diagnostic.json"),
+                    "beat_addr": diagnostic["beat_addr"],
+                    "mismatch_count": diagnostic["mismatch_count"],
+                    "observed_hex": diagnostic.get("observed_hex"),
+                    "expected_hex": diagnostic.get("expected_hex"),
+                    "verdict": diagnostic["decision"]["verdict"],
+                },
+            )
+            if not args.json_only:
+                if diagnostic["mismatch_count"] is None:
+                    print(
+                        "fullbeat diagnostic "
+                        f"{diagnostic['status']} verdict="
+                        f"{diagnostic['decision']['verdict']}"
+                    )
+                else:
+                    print(
+                        "fullbeat diagnostic "
+                        f"{diagnostic['status']} mismatches "
+                        f"{diagnostic['mismatch_count']}/{BEAT_BYTES} "
+                        f"beat={diagnostic['beat_addr']}"
                     )
             return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_autoprobe_value is not None:
