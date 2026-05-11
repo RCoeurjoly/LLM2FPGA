@@ -8,7 +8,9 @@ module task6_uberddr3_rowstream_loader_contract #(
   parameter int WB_SEL_BITS = WB_DATA_BITS / 8,
   parameter logic [31:0] LOADER_COMMAND_MAGIC = 32'h33445244,
   parameter logic [7:0] LOADER_OP_WRITE_LOWBYTE = 8'h03,
-  parameter logic [7:0] LOADER_OP_READ_LOWBYTE = 8'h04
+  parameter logic [7:0] LOADER_OP_READ_LOWBYTE = 8'h04,
+  parameter logic [7:0] LOADER_OP_WRITE_DENSE_BYTE = 8'h05,
+  parameter logic [7:0] LOADER_OP_READ_DENSE_BEAT = 8'h06
 ) (
   input  logic                            clk_i,
   input  logic                            rst_ni,
@@ -57,6 +59,16 @@ module task6_uberddr3_rowstream_loader_contract #(
   wire command_magic_ok = command_magic == LOADER_COMMAND_MAGIC;
   wire command_accepted =
     command_event_i && !command_accept_phase_q && boot_done_i && command_magic_ok;
+  wire [WB_ADDR_BITS - 1:0] command_dense_addr =
+    {{(WB_ADDR_BITS - 10){1'b0}}, command_addr[15:6]};
+  wire [WB_SEL_BITS - 1:0] command_dense_sel =
+    {{(WB_SEL_BITS - 1){1'b0}}, 1'b1} << command_addr[5:0];
+  logic [WB_DATA_BITS - 1:0] command_dense_data;
+
+  always_comb begin
+    command_dense_data = '0;
+    command_dense_data[command_addr[5:0] * 8 +: 8] = command_data[7:0];
+  end
 
   assign loader_state_o =
     state_q == LOADER_IDLE ? 4'd1 :
@@ -115,6 +127,22 @@ module task6_uberddr3_rowstream_loader_contract #(
           wb_addr_o <= command_addr[WB_ADDR_BITS - 1:0];
           wb_data_o <= '0;
           wb_sel_o <= {{(WB_SEL_BITS - 1){1'b0}}, 1'b1};
+          wb_we_o <= 1'b0;
+          wb_cyc_o <= 1'b1;
+          wb_stb_o <= 1'b1;
+          state_q <= LOADER_ISSUE;
+        end else if (command_opcode == LOADER_OP_WRITE_DENSE_BYTE) begin
+          wb_addr_o <= command_dense_addr;
+          wb_data_o <= command_dense_data;
+          wb_sel_o <= command_dense_sel;
+          wb_we_o <= 1'b1;
+          wb_cyc_o <= 1'b1;
+          wb_stb_o <= 1'b1;
+          state_q <= LOADER_ISSUE;
+        end else if (command_opcode == LOADER_OP_READ_DENSE_BEAT) begin
+          wb_addr_o <= command_addr[WB_ADDR_BITS - 1:0];
+          wb_data_o <= '0;
+          wb_sel_o <= {WB_SEL_BITS{1'b1}};
           wb_we_o <= 1'b0;
           wb_cyc_o <= 1'b1;
           wb_stb_o <= 1'b1;

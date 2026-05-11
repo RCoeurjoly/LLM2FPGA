@@ -1,0 +1,7 @@
+{
+  "beat_addr": 0,
+  "diagnostic_json": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T18-19-28+0200-ypcb-ddr3-rowstream-loader-b35gwhkhrm772b0wlbw4nal38rx1f77z-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked/readbeat-diagnostic.json",
+  "lower128_hex": "00c1000000c100000051000000510e0f",
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T18-19-28+0200-ypcb-ddr3-rowstream-loader-b35gwhkhrm772b0wlbw4nal38rx1f77z-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked",
+  "status": "PASS"
+}

@@ -18375,3 +18375,207 @@ UberDDR3 calibration/data-integrity gates:
     site-level movement or nextpnr placement output can map the moved site back
     to a specific RTL cell.
   - Do not add guessed constraints from data-path symptoms alone.
+
+## 2026-05-11 - nextpnr absolute BEL constraint probe
+
+- Goal: test whether the openXC7/nextpnr absolute-placement mechanism can lock
+  known-good DDR3 resources from a placed design, instead of relying on seed
+  sweeps.
+- Added a placed checkpoint target:
+  `.#task6-ypcb-uberddr3-rowstream-loader-seed16-placed-json`.
+  It runs nextpnr with `--write` and produced:
+  `/nix/store/5sw34wrv6380sazisz6s4ygy1iinvksg-task6-ypcb-uberddr3-rowstream-loader-seed16.placed.json`.
+- Added extraction/application helpers:
+  - `scripts/task6/extract_nextpnr_ddr3_bel_locks.py`
+  - `scripts/task6/apply_nextpnr_bel_locks.py`
+- Passing artifacts:
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed16-bel-locks-json`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed16-locked-yosys-json`
+- Observed nextpnr JSON convention:
+  - placed output records physical sites in `NEXTPNR_BEL`;
+  - input constraints are consumed from `BEL`.
+- Attempted lock scopes and results:
+  - 428 locks for PHY, board-pin, and clock hard cells could be extracted, but
+    post-packer cells do not all exist in the source Yosys JSON.
+  - 246 source-visible PHY/clock locks could be applied with zero missing
+    cells, but nextpnr failed during I/O packing with
+    `Unexpected IOBUF BEL BUFGCTRL_X0Y0/BUFGCTRL`.
+  - 241 source-visible PHY-only locks could be applied with zero missing cells,
+    but nextpnr failed during I/O packing with
+    `Unexpected IOBUF BEL OLOGIC_X0Y75/OSERDESE2`.
+  - 72 IDELAYE2-only locks could be applied with zero missing cells, but
+    nextpnr failed during I/O packing with
+    `Unexpected IOBUF BEL IDELAY_X0Y13/IDELAYE2`.
+- Conclusion: direct pre-pack `BEL` attributes are not currently a safe way to
+  lock UberDDR3 YPCB I/O primitives in this flow. The packer sees BELs on
+  source-level DDR3 I/O primitives before it has split them into its internal
+  nextpnr cells.
+- Constraint policy update:
+  - keep the FASM physical-stability comparator as the active regression gate;
+  - do not use seed sweeps as the main strategy;
+  - do not add RTL-level `BEL` locks for UberDDR3 I/O primitives unless we first
+    add a post-pack/resume flow or verify a nextpnr-supported constraint form
+    for packed I/O cells;
+  - XDC pin LOC constraints remain valid for board pins, but they are not enough
+    to freeze IDELAY/ISERDES/OSERDES placement.
+
+## 2026-05-11 - nextpnr clock-constraint gate
+
+- Local nextpnr-xilinx source confirms the right levels:
+  - `--pre-pack` runs after JSON read and before packing. Use this for
+    `ctx.addClock`.
+  - `--pre-place` runs after packing and before placement. This is the first
+    plausible level for absolute `BEL` constraints on packed DDR3 I/O cells.
+  - `common/placer_heap.cc` consumes `BEL` attributes during placement, but
+    `xilinx/pack_io_xc7.cc` also inspects pre-pack `BEL` attributes while
+    expanding I/O buffers. That is why source-level DDR3 `BEL` locks fail
+    before placement.
+- Added `scripts/task6/nextpnr_ypcb_uberddr3_clock_constraints.py`.
+- Added clock-constrained rowstream-loader targets:
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-fasm`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-bitstream`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-clocked-physical-stability-v40-json`
+- Build result:
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-fasm --no-link --print-out-paths -L`
+  - output:
+    `/nix/store/bwr84n13wv33z61kww0ngpya5khmzl5x-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked.fasm`
+  - nextpnr accepted all eight explicit clock constraints:
+    `controller_clk=25 MHz`, `clk25_raw=25 MHz`, `clk100_raw=100 MHz`,
+    `clk100_90_raw=100 MHz`, `ddr3_clk=100 MHz`, `ddr3_clk_90=100 MHz`,
+    `clk200_raw=200 MHz`, `ref_clk=200 MHz`.
+- Physical-stability result:
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-clocked-physical-stability-v40-json --no-link --print-out-paths -L`
+  - output:
+    `/nix/store/jmqjng0gzls8an19y9ql8zhwsa097kcv-task6-ypcb-uberddr3-rowstream-loader-clocked-physical-stability-v40.json`
+  - status: `WARN`
+  - hard-fail delta: `hard_fail_added_count=0`,
+    `hard_fail_removed_count=0`, `hard_fail_changed_tile_count=0`
+  - interpretation: DDR3 IDELAY/IOB/SERDES/PLL/JTAG sites match v40; only
+    clock/routing FASM differs, same class of risk as the previous boot-clean
+    WARN candidate.
+- Board boot-only gate:
+  - bitstream:
+    `/nix/store/b35gwhkhrm772b0wlbw4nal38rx1f77z-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked.bit`
+  - command:
+    `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/b35gwhkhrm772b0wlbw4nal38rx1f77z-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked.bit --boot-only --no-full-readback`
+  - result:
+    `artifacts/task6/runs/2026-05-11T18-14-38+0200-ypcb-ddr3-rowstream-loader-b35gwhkhrm772b0wlbw4nal38rx1f77z-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked`
+  - status `PASS`: `calib_seen=true`, `boot_done=true`,
+    `boot_mismatch=false`
+- Current constraint policy:
+  - Use `--pre-pack` clock constraints on all DDR3 builds.
+  - Keep FASM physical-stability comparison against v40 as the gate before
+    board data-path interpretation.
+  - Do not use source-level absolute `BEL` attributes for DDR3 I/O primitives.
+    If absolute placement becomes necessary, implement it at `--pre-place` on
+    packed nextpnr cells.
+
+## 2026-05-11 - v45 dense-command contract and physical gate
+
+- Goal: execute the next Task 6 DDR3 gate after v44 booted cleanly but dense
+  and lowbyte diagnostics read back stale-looking data.
+- RTL change:
+  - bumped rowstream-loader debug version to `45`;
+  - replaced the dense write data construction with a single combinational
+    512-bit packed value, instead of clearing `loader_write_data_q` and then
+    assigning a dynamic byte part-select to the same register in the same
+    clocked block.
+- Simulation/model gate:
+  - extended `fpga/rtl/task6_uberddr3_rowstream_loader_contract.sv` and
+    `sim/task6_uberddr3_rowstream_loader_contract_tb.sv` to cover:
+    `WRITE_DENSE_BYTE` for lanes 0..15, byte-select generation, byte-lane data
+    packing, and `READ_DENSE_BEAT`.
+  - command:
+    `nix build .#task6-uberddr3-rowstream-loader-contract-sv-sim -L`
+  - result: `PASS`
+  - PASS line:
+    `PASS: task6 rowstream loader contract writes 17 reads 2 state 1 wait_cycles 1`
+- Hardware build:
+  - command:
+    `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-bitstream -L`
+  - bitstream:
+    `/nix/store/67lvf9c9d663zicsinsvkqaarzprlydx-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked.bit`
+- Physical-stability gate against v40:
+  - command:
+    `nix build .#task6-ypcb-uberddr3-rowstream-loader-clocked-physical-stability-v40-json -L`
+  - report:
+    `/nix/store/nplg5y0wx0z5fvx6q2ppdmzrks69sphi-task6-ypcb-uberddr3-rowstream-loader-clocked-physical-stability-v40.json`
+  - status: `FAIL`
+  - hard-fail delta: `hard_fail_added_count=4`,
+    `hard_fail_removed_count=4`, `hard_fail_changed_tile_count=0`
+  - the non-matching hard-fail features are in `HCLK_IOI3_X1Y130` clocking
+    paths; IDELAY and ISERDES/OSERDES feature counts still match v40 with no
+    changed tiles.
+- Board boot-only gate:
+  - command:
+    `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/67lvf9c9d663zicsinsvkqaarzprlydx-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked.bit --boot-only --no-full-readback`
+  - result: timeout before writing `boot-diagnostic.json`
+  - final debug summary:
+    `magic_ok=True version=45 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x00000eca`
+  - run directory created before timeout:
+    `artifacts/task6/runs/2026-05-11T18-31-58+0200-ypcb-ddr3-rowstream-loader-67lvf9c9d663zicsinsvkqaarzprlydx-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked`
+- Decision:
+  - The new simulation gate is useful and should remain.
+  - Do not interpret dense bytes from this v45 build; it did not calibrate.
+  - The immediate next gate is physical, not algorithmic: restore the v44/v40
+    boot-clean physical DDR3 placement for this RTL delta, preferably by adding
+    a `--pre-place` packed-cell BEL lock pass for the small set of moved
+    IOB/clock features or by reducing the debug/payload perturbation and
+    rebuilding until the physical-stability hard-fail delta returns to zero.
+
+## 2026-05-11 - pre-place packed-cell BEL lock experiment
+
+- Goal: stop applying absolute placement at source JSON/pre-pack time and
+  instead lock known-good packed cells after nextpnr packing and before
+  placement.
+- Added a checked known-good lock manifest:
+  `artifacts/task6/baselines/uberddr3-rowstream-loader-v40-physical-stability/known-good-packed-bel-locks.json`
+  - source placed JSON used to generate it:
+    `/nix/store/5sw34wrv6380sazisz6s4ygy1iinvksg-task6-ypcb-uberddr3-rowstream-loader-seed16.placed.json`
+  - lock count: `437`
+  - scope counts: `uberddr3_phy=407`, `ddr3_board_pins=25`,
+    `ddr3_clocks=5`
+  - type coverage includes `IDELAYE2`, `IDELAYCTRL`, `ISERDESE2`,
+    `OSERDESE2`, DDR3 IOB input/output cells, DQS inverters, `BUFGCTRL`,
+    and `PLLE2_ADV`.
+- Added `scripts/task6/generate_nextpnr_pre_place_bel_locks.py`.
+  It generates a nextpnr Python hook consumed by `--pre-place`, where packed
+  I/O cells exist and source-level IOBUF packing has already completed.
+- Added locked clocked build targets:
+  - `.#task6-ypcb-uberddr3-known-good-pre-place-bel-locks`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-fasm`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-bitstream`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-clocked-locked-physical-stability-v40-json`
+- Validation:
+  - script compile:
+    `python3 -m py_compile scripts/task6/extract_nextpnr_ddr3_bel_locks.py scripts/task6/generate_nextpnr_pre_place_bel_locks.py scripts/task6/nextpnr_ypcb_uberddr3_clock_constraints.py`
+  - target eval:
+    `nix eval .#packages.x86_64-linux.task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-bitstream.name`
+  - generated hook build:
+    `nix build .#task6-ypcb-uberddr3-known-good-pre-place-bel-locks -L`
+  - locked FASM build:
+    `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-fasm -L`
+  - nextpnr hook log:
+    `Task 6 pre-place BEL locks: applied=437 missing=0`
+  - locked FASM:
+    `/nix/store/6d9i49cbzmzkl254npfc2jbgz7bwv2hg-task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked.fasm`
+- Physical-stability result:
+  - command:
+    `nix build .#task6-ypcb-uberddr3-rowstream-loader-clocked-locked-physical-stability-v40-json -L`
+  - report:
+    `/nix/store/81qw422lxv5hqpqf9ww2v1sbi5jdsyh9-task6-ypcb-uberddr3-rowstream-loader-clocked-locked-physical-stability-v40.json`
+  - status: `FAIL`
+  - hard-fail delta remains `hard_fail_added_count=4`,
+    `hard_fail_removed_count=4`, `hard_fail_changed_tile_count=0`
+  - IDELAY, ISERDES/OSERDES, BSCAN/JTAG, and PLL/MMCM site classes still have
+    zero hard deltas.
+- Decision:
+  - The pre-place lock mechanism is valid and reproducible, but it does not fix
+    this v45 calibration regression by itself.
+  - The remaining hard-fail delta is in `HCLK_IOI3_X1Y130` clocking/routing
+    features, so the next experiment should lock or constrain clock route/global
+    clock selection, or reduce clock/debug routing pressure, before board
+    validation.
+  - Board boot/dense diagnostics were intentionally not run for this locked
+    build because the physical-stability gate still failed in the same hard
+    class as the non-locking v45 build.

@@ -3,12 +3,14 @@
 
 module task6_uberddr3_rowstream_loader_contract_tb;
   localparam int COMMAND_WIDTH = 192;
-  localparam int WB_ADDR_BITS = 8;
+  localparam int WB_ADDR_BITS = 10;
   localparam int WB_DATA_BITS = 512;
   localparam int WB_SEL_BITS = WB_DATA_BITS / 8;
   localparam logic [31:0] COMMAND_MAGIC = 32'h33445244;
   localparam logic [7:0] OP_WRITE_LOWBYTE = 8'h03;
   localparam logic [7:0] OP_READ_LOWBYTE = 8'h04;
+  localparam logic [7:0] OP_WRITE_DENSE_BYTE = 8'h05;
+  localparam logic [7:0] OP_READ_DENSE_BEAT = 8'h06;
 
   logic clk;
   logic rst_n;
@@ -39,7 +41,7 @@ module task6_uberddr3_rowstream_loader_contract_tb;
   wire loader_last_accepted;
   wire [3:0] loader_state;
 
-  logic [WB_DATA_BITS - 1:0] mem [0:255];
+  logic [WB_DATA_BITS - 1:0] mem [0:1023];
   int write_count;
   int read_count;
   int errors;
@@ -51,7 +53,9 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     .WB_SEL_BITS(WB_SEL_BITS),
     .LOADER_COMMAND_MAGIC(COMMAND_MAGIC),
     .LOADER_OP_WRITE_LOWBYTE(OP_WRITE_LOWBYTE),
-    .LOADER_OP_READ_LOWBYTE(OP_READ_LOWBYTE)
+    .LOADER_OP_READ_LOWBYTE(OP_READ_LOWBYTE),
+    .LOADER_OP_WRITE_DENSE_BYTE(OP_WRITE_DENSE_BYTE),
+    .LOADER_OP_READ_DENSE_BEAT(OP_READ_DENSE_BEAT)
   ) dut (
     .clk_i(clk),
     .rst_ni(rst_n),
@@ -129,6 +133,20 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     end
   endtask
 
+  task automatic pulse_command_pair_and_wait(
+    input logic [COMMAND_WIDTH - 1:0] payload,
+    input string label
+  );
+    begin
+      pulse_command(payload);
+      repeat (4) @(negedge clk);
+      if (!loader_done && !loader_error) begin
+        pulse_command(payload);
+        wait_done(label);
+      end
+    end
+  endtask
+
   task automatic check_cond(input bit condition, input string message);
     begin
       if (!condition) begin
@@ -149,7 +167,10 @@ module task6_uberddr3_rowstream_loader_contract_tb;
       wb_data_r <= mem[wb_addr];
       if (wb_cyc && wb_stb && !wb_stall) begin
         if (wb_we) begin
-          mem[wb_addr] <= wb_data_w;
+          for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1) begin
+            if (wb_sel[lane])
+              mem[wb_addr][lane * 8 +: 8] <= wb_data_w[lane * 8 +: 8];
+          end
           write_count <= write_count + 1;
         end else begin
           read_count <= read_count + 1;
@@ -161,6 +182,8 @@ module task6_uberddr3_rowstream_loader_contract_tb;
   initial begin : init_control
     logic [COMMAND_WIDTH - 1:0] write_cmd;
     logic [COMMAND_WIDTH - 1:0] read_cmd;
+    logic [COMMAND_WIDTH - 1:0] dense_cmd;
+    logic [COMMAND_WIDTH - 1:0] dense_read_cmd;
     int i;
 
     clk = 1'b0;
@@ -171,7 +194,7 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     wb_stall = 1'b0;
     wb_err = 1'b0;
     errors = 0;
-    for (i = 0; i < 256; i = i + 1)
+    for (i = 0; i < 1024; i = i + 1)
       mem[i] = '0;
 
     repeat (4) @(negedge clk);
@@ -189,7 +212,7 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     wait_done("write-lowbyte");
     check_cond(loader_error == 1'b0, "write-lowbyte must not raise loader_error");
     check_cond(write_count == 1, "first accepted write must issue one Wishbone write");
-    check_cond(wb_addr == 8'd3, "write-lowbyte must present the command address");
+    check_cond(wb_addr == 10'd3, "write-lowbyte must present the command address");
     check_cond(wb_sel == {WB_SEL_BITS{1'b1}}, "write-lowbyte must assert all byte selects");
     check_cond(mem[3][7:0] == 8'h5a, "write-lowbyte must store the payload byte in lane 0");
     check_cond(mem[3][511:504] == 8'h5a, "write-lowbyte v35 must replicate across the full beat");
@@ -210,9 +233,25 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     check_cond(wb_sel == {{(WB_SEL_BITS - 1){1'b0}}, 1'b1}, "read-lowbyte must select lane 0");
     check_cond(loader_read_data[7:0] == 8'h5a, "read-lowbyte must capture the stored lane-0 byte");
 
+    for (i = 0; i < 16; i = i + 1) begin
+      dense_cmd = make_command(COMMAND_MAGIC, OP_WRITE_DENSE_BYTE, 2'd0, i[31:0], i[7:0]);
+      pulse_command_pair_and_wait(dense_cmd, "write-dense-byte");
+      check_cond(loader_error == 1'b0, "write-dense-byte must not raise loader_error");
+      check_cond(wb_addr == 10'd0, "write-dense-byte addresses 0..15 must target beat 0");
+      check_cond(wb_sel == (64'd1 << i), "write-dense-byte must select exactly the byte lane");
+      check_cond(mem[0][i * 8 +: 8] == i[7:0], "write-dense-byte must store the payload byte in its lane");
+    end
+
+    dense_read_cmd = make_command(COMMAND_MAGIC, OP_READ_DENSE_BEAT, 2'd0, 32'd0, 8'h00);
+    pulse_command_pair_and_wait(dense_read_cmd, "read-dense-beat");
+    check_cond(loader_error == 1'b0, "read-dense-beat must not raise loader_error");
+    check_cond(wb_sel == {WB_SEL_BITS{1'b1}}, "read-dense-beat must select the full beat");
+    for (i = 0; i < 16; i = i + 1)
+      check_cond(loader_read_data[i * 8 +: 8] == i[7:0], "read-dense-beat must capture dense byte lanes 0..15");
+
     pulse_command(make_command(32'h0, OP_WRITE_LOWBYTE, 2'd0, 32'd7, 8'ha5));
     repeat (8) @(negedge clk);
-    check_cond(write_count == 1, "bad magic must not issue Wishbone writes");
+    check_cond(write_count == 17, "bad magic must not issue Wishbone writes");
 
     if (errors == 0) begin
       $display(

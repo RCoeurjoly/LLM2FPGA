@@ -1,0 +1,2650 @@
+{
+  "format": "task6.nextpnr-ddr3-bel-locks.v1",
+  "lock_count": 437,
+  "locks": [
+    {
+      "bel": "BUFGCTRL_X0Y0/BUFGCTRL",
+      "cell": "clk100_90_bufg",
+      "scope": "ddr3_clocks",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y5/BUFGCTRL",
+      "cell": "clk100_bufg",
+      "scope": "ddr3_clocks",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y6/BUFGCTRL",
+      "cell": "clk200_bufg",
+      "scope": "ddr3_clocks",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y7/BUFGCTRL",
+      "cell": "clk25_bufg",
+      "scope": "ddr3_clocks",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "PLLE2_ADV_X0Y3/PLLE2_ADV",
+      "cell": "clock_pll",
+      "scope": "ddr3_clocks",
+      "type": "PLLE2_ADV_PLLE2_ADV"
+    },
+    {
+      "bel": "IOB_X0Y75/IOB33/OUTBUF",
+      "cell": "ddram_a[0]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y79/IOB33/OUTBUF",
+      "cell": "ddram_a[10]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y78/IOB33/OUTBUF",
+      "cell": "ddram_a[11]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y86/IOB33/OUTBUF",
+      "cell": "ddram_a[12]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y82/IOB33/OUTBUF",
+      "cell": "ddram_a[13]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y88/IOB33/OUTBUF",
+      "cell": "ddram_a[14]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y97/IOB33/OUTBUF",
+      "cell": "ddram_a[1]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y81/IOB33/OUTBUF",
+      "cell": "ddram_a[2]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y76/IOB33/OUTBUF",
+      "cell": "ddram_a[3]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y68/IOB33/OUTBUF",
+      "cell": "ddram_a[4]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y70/IOB33/OUTBUF",
+      "cell": "ddram_a[5]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y77/IOB33/OUTBUF",
+      "cell": "ddram_a[6]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y67/IOB33/OUTBUF",
+      "cell": "ddram_a[7]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y69/IOB33/OUTBUF",
+      "cell": "ddram_a[8]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y98/IOB33/OUTBUF",
+      "cell": "ddram_a[9]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y85/IOB33/OUTBUF",
+      "cell": "ddram_ba[0]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y95/IOB33/OUTBUF",
+      "cell": "ddram_ba[1]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y89/IOB33/OUTBUF",
+      "cell": "ddram_ba[2]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y92/IOB33/OUTBUF",
+      "cell": "ddram_cas_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y91/IOB33/OUTBUF",
+      "cell": "ddram_cke$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y80/IOB33/OUTBUF",
+      "cell": "ddram_cs_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y83/IOB33/OUTBUF",
+      "cell": "ddram_odt$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y84/IOB33/OUTBUF",
+      "cell": "ddram_ras_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y138/IOB33/OUTBUF",
+      "cell": "ddram_reset_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y90/IOB33/OUTBUF",
+      "cell": "ddram_we_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IDELAYCTRL_X0Y0/IDELAYCTRL",
+      "cell": "uberddr3.ddr3_phy_inst.IDELAYCTRL_inst$intcell$CTRL_DUP_0",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYCTRL_IDELAYCTRL"
+    },
+    {
+      "bel": "IDELAYCTRL_X0Y1/IDELAYCTRL",
+      "cell": "uberddr3.ddr3_phy_inst.IDELAYCTRL_inst$intcell$CTRL_DUP_1",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYCTRL_IDELAYCTRL"
+    },
+    {
+      "bel": "IDELAYCTRL_X0Y2/IDELAYCTRL",
+      "cell": "uberddr3.ddr3_phy_inst.IDELAYCTRL_inst$intcell$CTRL_DUP_2",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYCTRL_IDELAYCTRL"
+    },
+    {
+      "bel": "OLOGIC_X0Y75/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[0].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y79/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[10].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y78/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[11].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y86/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[12].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y82/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[13].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y88/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[14].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y85/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[15].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y95/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[16].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y89/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[17].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y138/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[18].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y91/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[19].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y97/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[1].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y83/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[20].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y90/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[21].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y92/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[22].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y84/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[23].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y80/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[24].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y81/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[2].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y76/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[3].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y68/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[4].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y70/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[5].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y77/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[6].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y67/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[7].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y69/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[8].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y98/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk1[9].OSERDESE2_cmd",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y93/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk4.genblk1.OBUFDS_inst$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y93/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk4.genblk1.OBUFDS_inst$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y94/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk4.genblk1.OBUFDS_inst$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "IDELAY_X0Y13/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[0].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y13/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[0].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y13/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[0].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y13/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[0].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y13/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[0].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y25/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[10].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y25/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[10].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y25/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[10].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y25/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[10].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y25/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[10].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y29/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[11].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y29/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[11].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y29/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[11].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y29/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[11].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y29/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[11].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y26/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[12].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y26/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[12].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y26/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[12].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y26/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[12].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y26/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[12].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y30/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[13].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y30/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[13].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y30/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[13].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y30/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[13].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y30/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[13].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y27/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[14].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y27/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[14].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y27/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[14].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y27/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[14].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y27/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[14].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y35/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[15].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y35/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[15].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y35/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[15].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y35/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[15].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y35/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[15].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y47/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[16].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y47/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[16].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y47/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[16].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y47/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[16].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y47/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[16].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y42/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[17].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y42/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[17].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y42/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[17].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y42/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[17].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y42/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[17].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y48/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[18].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y48/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[18].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y48/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[18].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y48/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[18].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y48/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[18].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y39/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[19].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y39/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[19].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y39/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[19].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y39/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[19].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y39/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[19].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y14/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[1].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y14/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[1].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y14/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[1].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y14/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[1].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y14/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[1].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y45/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[20].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y45/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[20].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y45/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[20].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y45/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[20].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y45/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[20].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y40/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[21].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y40/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[21].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y40/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[21].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y40/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[21].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y40/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[21].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y46/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[22].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y46/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[22].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y46/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[22].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y46/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[22].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y46/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[22].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y41/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[23].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y41/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[23].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y41/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[23].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y41/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[23].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y41/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[23].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y10/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[24].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y10/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[24].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y10/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[24].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y10/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[24].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y10/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[24].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y3/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[25].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y3/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[25].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y3/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[25].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y3/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[25].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y3/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[25].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y9/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[26].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y9/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[26].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y9/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[26].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y9/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[26].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y9/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[26].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y5/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[27].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y5/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[27].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y5/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[27].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y5/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[27].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y5/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[27].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y4/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[28].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y4/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[28].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y4/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[28].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y4/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[28].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y4/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[28].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y6/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[29].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y6/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[29].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y6/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[29].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y6/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[29].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y6/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[29].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y16/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[2].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y16/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[2].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y16/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[2].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y16/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[2].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y16/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[2].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y1/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[30].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y1/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[30].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y1/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[30].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y1/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[30].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y1/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[30].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y2/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[31].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y2/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[31].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y2/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[31].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y2/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[31].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y2/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[31].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y122/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[32].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y122/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[32].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y122/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[32].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y122/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[32].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y122/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[32].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y121/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[33].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y121/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[33].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y121/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[33].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y121/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[33].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y121/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[33].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y123/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[34].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y123/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[34].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y123/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[34].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y123/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[34].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y123/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[34].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y116/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[35].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y116/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[35].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y116/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[35].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y116/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[35].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y116/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[35].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y117/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[36].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y117/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[36].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y117/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[36].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y117/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[36].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y117/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[36].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y115/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[37].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y115/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[37].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y115/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[37].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y115/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[37].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y115/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[37].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y118/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[38].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y118/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[38].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y118/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[38].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y118/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[38].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y118/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[38].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y114/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[39].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y114/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[39].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y114/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[39].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y114/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[39].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y114/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[39].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y21/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[3].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y21/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[3].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y21/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[3].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y21/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[3].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y21/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[3].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y135/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[40].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y135/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[40].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y135/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[40].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y135/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[40].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y135/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[40].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y127/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[41].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y127/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[41].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y127/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[41].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y127/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[41].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y127/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[41].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y129/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[42].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y129/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[42].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y129/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[42].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y129/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[42].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y129/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[42].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y136/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[43].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y136/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[43].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y136/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[43].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y136/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[43].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y136/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[43].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y126/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[44].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y126/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[44].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y126/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[44].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y126/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[44].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y126/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[44].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y133/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[45].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y133/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[45].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y133/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[45].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y133/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[45].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y133/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[45].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y125/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[46].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y125/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[46].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y125/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[46].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y125/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[46].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y125/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[46].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y134/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[47].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y134/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[47].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y134/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[47].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y134/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[47].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y134/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[47].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y139/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[48].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y139/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[48].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y139/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[48].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y139/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[48].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y139/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[48].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y147/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[49].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y147/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[49].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y147/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[49].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y147/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[49].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y147/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[49].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y15/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[4].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y15/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[4].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y15/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[4].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y15/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[4].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y15/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[4].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y141/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[50].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y141/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[50].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y141/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[50].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y141/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[50].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y141/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[50].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y148/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[51].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y148/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[51].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y148/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[51].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y148/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[51].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y148/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[51].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y145/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[52].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y145/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[52].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y145/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[52].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y145/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[52].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y145/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[52].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y146/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[53].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y146/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[53].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y146/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[53].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y146/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[53].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y146/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[53].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y142/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[54].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y142/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[54].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y142/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[54].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y142/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[54].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y142/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[54].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y140/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[55].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y140/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[55].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y140/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[55].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y140/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[55].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y140/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[55].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y56/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[56].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y56/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[56].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y56/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[56].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y56/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[56].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y56/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[56].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y59/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[57].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y59/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[57].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y59/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[57].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y59/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[57].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y59/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[57].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y54/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[58].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y54/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[58].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y54/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[58].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y54/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[58].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y54/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[58].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y60/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[59].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y60/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[59].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y60/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[59].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y60/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[59].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y60/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[59].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y22/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[5].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y22/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[5].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y22/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[5].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y22/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[5].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y22/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[5].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y53/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[60].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y53/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[60].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y53/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[60].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y53/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[60].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y53/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[60].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y51/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[61].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y51/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[61].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y51/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[61].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y51/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[61].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y51/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[61].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y55/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[62].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y55/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[62].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y55/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[62].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y55/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[62].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y55/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[62].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y52/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[63].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y52/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[63].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y52/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[63].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y52/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[63].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y52/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[63].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y18/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[6].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y18/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[6].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y18/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[6].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y18/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[6].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y18/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[6].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y17/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[7].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y17/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[7].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y17/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[7].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y17/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[7].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y17/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[7].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y28/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[8].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y28/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[8].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y28/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[8].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y28/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[8].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y28/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[8].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y36/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[9].IDELAYE2_data",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y36/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[9].ISERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y36/IOB33/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[9].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y36/IOB33/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[9].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "uberddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y36/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk5[9].genblk1.OSERDESE2_data",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y20/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[0].IDELAYE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y20/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[0].ISERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y20/IOB33M/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[0].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y19/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[0].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y19/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[0].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y20/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[0].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y20/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[0].genblk1.OSERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y32/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[1].IDELAYE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y32/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[1].ISERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y32/IOB33M/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[1].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y31/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[1].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y31/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[1].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y32/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[1].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y32/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[1].genblk1.OSERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y44/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[2].IDELAYE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y44/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[2].ISERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y44/IOB33M/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[2].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y43/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[2].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y43/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[2].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y44/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[2].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y44/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[2].genblk1.OSERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y8/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[3].IDELAYE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y8/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[3].ISERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y8/IOB33M/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[3].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y7/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[3].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y7/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[3].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y8/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[3].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y8/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[3].genblk1.OSERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y120/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[4].IDELAYE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y120/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[4].ISERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y120/IOB33M/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[4].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y119/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[4].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y119/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[4].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y120/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[4].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y120/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[4].genblk1.OSERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y132/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[5].IDELAYE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y132/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[5].ISERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y132/IOB33M/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[5].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y131/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[5].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y131/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[5].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y132/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[5].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y132/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[5].genblk1.OSERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y144/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[6].IDELAYE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y144/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[6].ISERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y144/IOB33M/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[6].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y143/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[6].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y143/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[6].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y144/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[6].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y144/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[6].genblk1.OSERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y58/IDELAYE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[7].IDELAYE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y58/ISERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[7].ISERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y58/IOB33M/INBUF_EN",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[7].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y57/IOB33S/O_ININV",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[7].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "uberddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y57/IOB33S/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[7].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "uberddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y58/IOB33M/OUTBUF",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[7].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "uberddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y58/OSERDESE2",
+      "cell": "uberddr3.ddr3_phy_inst.genblk7[7].genblk1.OSERDESE2_dqs",
+      "scope": "uberddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    }
+  ],
+  "scope_counts": {
+    "ddr3_board_pins": 25,
+    "ddr3_clocks": 5,
+    "uberddr3_phy": 407
+  },
+  "skipped_missing_bel": [],
+  "skipped_missing_bel_count": 0,
+  "source_placed_json": "/nix/store/5sw34wrv6380sazisz6s4ygy1iinvksg-task6-ypcb-uberddr3-rowstream-loader-seed16.placed.json",
+  "type_counts": {
+    "BUFGCTRL": 4,
+    "IDELAYCTRL_IDELAYCTRL": 3,
+    "IDELAYE2_IDELAYE2": 72,
+    "INVERTER": 9,
+    "IOB33M_INBUF_EN": 8,
+    "IOB33M_OUTBUF": 9,
+    "IOB33S_OUTBUF": 9,
+    "IOB33_INBUF_EN": 64,
+    "IOB33_OUTBUF": 89,
+    "ISERDESE2_ISERDESE2": 72,
+    "OSERDESE2_OSERDESE2": 97,
+    "PLLE2_ADV_PLLE2_ADV": 1
+  }
+}

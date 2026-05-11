@@ -2940,13 +2940,17 @@
             cat $constraintFiles > "$out"
           '';
 
-        mkFasm = { name, xdc, json, freqMHz ? null, seed ? null }:
+        mkFasm = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ] }:
           let
             outputArgs =
               if freqMHz == null then "--fasm \"$out\""
               else "--freq ${toString freqMHz} --fasm \"$out\"";
             seedArg =
               pkgs.lib.optionalString (seed != null) "--seed ${toString seed} ";
+            prePackArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-pack ${script}") prePackScripts;
+            prePlaceArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-place ${script}") prePlaceScripts;
           in
           pkgs.runCommand "${name}.fasm" { } ''
             if [ ! -f "${fpgaChipdb}" ]; then
@@ -2958,7 +2962,35 @@
               --chipdb "${fpgaChipdb}" \
               --xdc ${xdc} \
               --json ${json} \
+              ${prePackArgs} \
+              ${prePlaceArgs} \
               ${seedArg}${outputArgs}
+          '';
+
+        mkPlacedJson = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ] }:
+          let
+            freqArg =
+              pkgs.lib.optionalString (freqMHz != null) "--freq ${toString freqMHz} ";
+            seedArg =
+              pkgs.lib.optionalString (seed != null) "--seed ${toString seed} ";
+            prePackArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-pack ${script}") prePackScripts;
+            prePlaceArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-place ${script}") prePlaceScripts;
+          in
+          pkgs.runCommand "${name}.placed.json" { } ''
+            if [ ! -f "${fpgaChipdb}" ]; then
+              echo "chipdb file missing: ${fpgaChipdb}" >&2
+              exit 1
+            fi
+
+            ${openXC7Nextpnr}/bin/nextpnr-xilinx \
+              --chipdb "${fpgaChipdb}" \
+              --xdc ${xdc} \
+              --json ${json} \
+              ${prePackArgs} \
+              ${prePlaceArgs} \
+              ${seedArg}${freqArg}--write "$out"
           '';
 
         mkBitstream = { name, fasm, framesBase }:
@@ -6125,6 +6157,82 @@
           freqMHz = 25;
         };
 
+        task6YpcbUberDdr3ClockConstraints =
+          ./scripts/task6/nextpnr_ypcb_uberddr3_clock_constraints.py;
+
+        task6YpcbUberDdr3KnownGoodPackedBelLocks =
+          ./artifacts/task6/baselines/uberddr3-rowstream-loader-v40-physical-stability/known-good-packed-bel-locks.json;
+
+        task6YpcbUberDdr3KnownGoodPrePlaceBelLocks =
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-known-good-pre-place-bel-locks.py"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/generate_nextpnr_pre_place_bel_locks.py} \
+                --locks-json ${task6YpcbUberDdr3KnownGoodPackedBelLocks} \
+                --out-py "$out"
+            '';
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16ClockedFasm = mkFasm {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          seed = 16;
+          freqMHz = 25;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedFasm = mkFasm {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          seed = 16;
+          freqMHz = 25;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          prePlaceScripts = [ task6YpcbUberDdr3KnownGoodPrePlaceBelLocks ];
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16ClockedBitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked";
+          fasm = task6YpcbUberDdr3RowstreamLoaderSeed16ClockedFasm;
+          framesBase = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked";
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedBitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked";
+          fasm = task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedFasm;
+          framesBase = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked";
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16PlacedJson = mkPlacedJson {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          seed = 16;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16BelLocksJson =
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-rowstream-loader-seed16-bel-locks.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/extract_nextpnr_ddr3_bel_locks.py} \
+                --placed-json ${task6YpcbUberDdr3RowstreamLoaderSeed16PlacedJson} \
+                --out-json "$out"
+            '';
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16LockedYosysJson =
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-rowstream-loader-seed16-locked.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/apply_nextpnr_bel_locks.py} \
+                --yosys-json ${task6YpcbUberDdr3RowstreamLoaderYosysJson} \
+                --locks-json ${task6YpcbUberDdr3RowstreamLoaderSeed16BelLocksJson} \
+                --out-json "$out"
+            '';
+
         task6YpcbUberDdr3RowstreamLoaderSeed16Bitstream = mkBitstream {
           name = "task6-ypcb-uberddr3-rowstream-loader-seed16";
           fasm = task6YpcbUberDdr3RowstreamLoaderSeed16Fasm;
@@ -6143,6 +6251,36 @@
                 --baseline-fasm ${task6YpcbUberDdr3RowstreamLoaderV40KnownGoodFasm} \
                 --candidate-fasm ${task6YpcbUberDdr3RowstreamLoaderSeed16Fasm} \
                 --label task6-ypcb-uberddr3-rowstream-loader-v40-vs-current-seed16 \
+                --ignore-tile LIOB33_X0Y225 \
+                --ignore-tile LIOI3_X0Y225 \
+                --out-json "$out" \
+                --no-fail-on-change
+            '';
+
+        task6YpcbUberDdr3RowstreamLoaderClockedPhysicalStabilityV40Json =
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-rowstream-loader-clocked-physical-stability-v40.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/compare_nextpnr_fasm_physical_stability.py} \
+                --baseline-fasm ${task6YpcbUberDdr3RowstreamLoaderV40KnownGoodFasm} \
+                --candidate-fasm ${task6YpcbUberDdr3RowstreamLoaderSeed16ClockedFasm} \
+                --label task6-ypcb-uberddr3-rowstream-loader-v40-vs-current-seed16-clocked \
+                --ignore-tile LIOB33_X0Y225 \
+                --ignore-tile LIOI3_X0Y225 \
+                --out-json "$out" \
+                --no-fail-on-change
+            '';
+
+        task6YpcbUberDdr3RowstreamLoaderClockedLockedPhysicalStabilityV40Json =
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-rowstream-loader-clocked-locked-physical-stability-v40.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/compare_nextpnr_fasm_physical_stability.py} \
+                --baseline-fasm ${task6YpcbUberDdr3RowstreamLoaderV40KnownGoodFasm} \
+                --candidate-fasm ${task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedFasm} \
+                --label task6-ypcb-uberddr3-rowstream-loader-v40-vs-current-seed16-clocked-locked \
                 --ignore-tile LIOB33_X0Y225 \
                 --ignore-tile LIOI3_X0Y225 \
                 --out-json "$out" \
@@ -10240,10 +10378,30 @@
             task6YpcbUberDdr3RowstreamLoaderSeed15Bitstream;
           task6-ypcb-uberddr3-rowstream-loader-seed16-fasm =
             task6YpcbUberDdr3RowstreamLoaderSeed16Fasm;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-fasm =
+            task6YpcbUberDdr3RowstreamLoaderSeed16ClockedFasm;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed16ClockedBitstream;
+          task6-ypcb-uberddr3-known-good-pre-place-bel-locks =
+            task6YpcbUberDdr3KnownGoodPrePlaceBelLocks;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-fasm =
+            task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedFasm;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-placed-json =
+            task6YpcbUberDdr3RowstreamLoaderSeed16PlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-bel-locks-json =
+            task6YpcbUberDdr3RowstreamLoaderSeed16BelLocksJson;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-locked-yosys-json =
+            task6YpcbUberDdr3RowstreamLoaderSeed16LockedYosysJson;
           task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream =
             task6YpcbUberDdr3RowstreamLoaderSeed16Bitstream;
           task6-ypcb-uberddr3-rowstream-loader-physical-stability-v40-json =
             task6YpcbUberDdr3RowstreamLoaderPhysicalStabilityV40Json;
+          task6-ypcb-uberddr3-rowstream-loader-clocked-physical-stability-v40-json =
+            task6YpcbUberDdr3RowstreamLoaderClockedPhysicalStabilityV40Json;
+          task6-ypcb-uberddr3-rowstream-loader-clocked-locked-physical-stability-v40-json =
+            task6YpcbUberDdr3RowstreamLoaderClockedLockedPhysicalStabilityV40Json;
           task6-ypcb-uberddr3-user-port-probe-seed15-fasm =
             task6YpcbUberDdr3UserPortProbeSeed15Fasm;
           task6-ypcb-uberddr3-user-port-probe-seed15-bitstream =
