@@ -237,10 +237,10 @@
               ${task6YpcbUberDdr3Source}/rtl/ddr3_phy.v \
               ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
               ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
-              ${./fpga/rtl/task6_ypcb_uberddr3_rowstream_loader_top.sv}
-            hierarchy -top task6_ypcb_uberddr3_rowstream_loader_top -check
-            synth_xilinx -family xc7 -top task6_ypcb_uberddr3_rowstream_loader_top -noiopad
-            stat -top task6_ypcb_uberddr3_rowstream_loader_top
+              ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv}
+            hierarchy -top task6_ypcb_uberddr3_bist_rowstream_loader_top -check
+            synth_xilinx -family xc7 -top task6_ypcb_uberddr3_bist_rowstream_loader_top -noiopad
+            stat -top task6_ypcb_uberddr3_bist_rowstream_loader_top
             write_json "$out"
             EOF
             yosys -s run.ys
@@ -6131,6 +6131,24 @@
           framesBase = "task6-ypcb-uberddr3-rowstream-loader-seed16";
         };
 
+        task6YpcbUberDdr3RowstreamLoaderV40KnownGoodFasm =
+          ./artifacts/task6/baselines/uberddr3-rowstream-loader-v40-physical-stability/critical.fasm;
+
+        task6YpcbUberDdr3RowstreamLoaderPhysicalStabilityV40Json =
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-rowstream-loader-physical-stability-v40.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/compare_nextpnr_fasm_physical_stability.py} \
+                --baseline-fasm ${task6YpcbUberDdr3RowstreamLoaderV40KnownGoodFasm} \
+                --candidate-fasm ${task6YpcbUberDdr3RowstreamLoaderSeed16Fasm} \
+                --label task6-ypcb-uberddr3-rowstream-loader-v40-vs-current-seed16 \
+                --ignore-tile LIOB33_X0Y225 \
+                --ignore-tile LIOI3_X0Y225 \
+                --out-json "$out" \
+                --no-fail-on-change
+            '';
+
         task6YpcbUberDdr3UserPortProbeSeed15Fasm = mkFasm {
           name = "task6-ypcb-uberddr3-user-port-probe-seed15";
           xdc = task6YpcbUberDdr3BistXdc;
@@ -7011,6 +7029,19 @@
               ${./rtl/task6/task6_ddr3_rowstream_mem_source.sv} \
               ${./rtl/task6/task6_ddr3_rowstream_top1_cutout.sv} \
               ${./sim/task6_ddr3_rowstream_top1_cutout_tb.sv}
+          '';
+
+        task6UberDdr3RowstreamLoaderContractSimMain =
+          pkgs.runCommand "task6-uberddr3-rowstream-loader-contract-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_uberddr3_rowstream_loader_contract_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_uberddr3_rowstream_loader_contract.sv} \
+              ${./sim/task6_uberddr3_rowstream_loader_contract_tb.sv}
           '';
 
         task6CProjRequantArithSelftestSimMain =
@@ -9143,6 +9174,66 @@
             EOF
           '';
 
+        task6UberDdr3RowstreamLoaderContractSvSim =
+          pkgs.runCommand "task6-uberddr3-rowstream-loader-contract-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6UberDdr3RowstreamLoaderContractSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 rowstream loader contract writes [0-9]+ reads [0-9]+ state [0-9]+ wait_cycles [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6 UberDDR3 rowstream loader contract SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            writes="$(${pkgs.gawk}/bin/awk '{print $7}' <<<"$pass_line")"
+            reads="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            state="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            wait_cycles="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "artifact_name": "task6-uberddr3-rowstream-loader-contract-sv-sim",
+              "status": "PASS",
+              "date": "2026-05-11",
+              "hypothesis": "The rowstream JTAG loader command contract issues deterministic low-byte Wishbone writes and reads before hardware DDR3 validation.",
+              "metrics": {
+                "writes": $writes,
+                "reads": $reads,
+                "final_loader_state": $state,
+                "wait_cycles": $wait_cycles
+              },
+              "validation": {
+                "simulation_run": true,
+                "hardware_run": false,
+                "validation_kind": "loader-command-to-wishbone-contract"
+              },
+              "decision": {
+                "verdict": "promote-to-uberddr3-address-lane-sim",
+                "next_gate": "Model or simulate UberDDR3 Wishbone address and byte-select semantics, then replay the same 0..15 byte diagnostic on board."
+              }
+            }
+            EOF
+          '';
+
+        task6UberDdr3AddressLaneModel =
+          pkgs.runCommand "task6-uberddr3-address-lane-model.json" {
+            buildInputs = [ pkgs.python3 ];
+          } ''
+            set -euo pipefail
+            python ${./scripts/task6/model_uberddr3_address_lane.py} \
+              --byte-count 16 \
+              --out-json "$out"
+          '';
+
+        task6UberDdr3JtagCommandPackingModel =
+          pkgs.runCommand "task6-uberddr3-jtag-command-packing-model.json" {
+            buildInputs = [ pkgs.python3 ];
+          } ''
+            set -euo pipefail
+            python ${./scripts/task6/model_jtag_command_packing.py} \
+              --byte-count 16 \
+              --out-json "$out"
+          '';
+
         task6CProjRequantArithSelftestSvSim =
           pkgs.runCommand "task6-c-proj-requant-arith-selftest-sv-sim.json" {
             buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -10083,6 +10174,14 @@
             task6Ddr3RowStreamCutoutSimMain;
           task6-ddr3-row-stream-cutout-sv-sim =
             task6Ddr3RowStreamCutoutSvSim;
+          task6-uberddr3-rowstream-loader-contract-sim-main =
+            task6UberDdr3RowstreamLoaderContractSimMain;
+          task6-uberddr3-rowstream-loader-contract-sv-sim =
+            task6UberDdr3RowstreamLoaderContractSvSim;
+          task6-uberddr3-address-lane-model =
+            task6UberDdr3AddressLaneModel;
+          task6-uberddr3-jtag-command-packing-model =
+            task6UberDdr3JtagCommandPackingModel;
           task6-ddr3-board-support-inventory =
             task6Ddr3BoardSupportInventory;
           task6-ypcb-ddr3-lane-report =
@@ -10143,6 +10242,8 @@
             task6YpcbUberDdr3RowstreamLoaderSeed16Fasm;
           task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream =
             task6YpcbUberDdr3RowstreamLoaderSeed16Bitstream;
+          task6-ypcb-uberddr3-rowstream-loader-physical-stability-v40-json =
+            task6YpcbUberDdr3RowstreamLoaderPhysicalStabilityV40Json;
           task6-ypcb-uberddr3-user-port-probe-seed15-fasm =
             task6YpcbUberDdr3UserPortProbeSeed15Fasm;
           task6-ypcb-uberddr3-user-port-probe-seed15-bitstream =

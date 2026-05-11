@@ -24,7 +24,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd30;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd31;
   localparam int JTAG_COMMAND_WIDTH = 192;
   localparam logic [31:0] LOADER_COMMAND_MAGIC = 32'h33445244;
   localparam logic [7:0] LOADER_OP_WRITE_CHUNK = 8'h01;
@@ -143,7 +143,14 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
     LOADER_IDLE = 4'd1,
     LOADER_ISSUE = 4'd2,
     LOADER_WAIT_ACK = 4'd3,
-    LOADER_ERROR = 4'd4
+    LOADER_ERROR = 4'd4,
+    LOADER_BOOT_ISSUE_WRITE = 4'd5,
+    LOADER_BOOT_WAIT_WRITE_ACK = 4'd6,
+    LOADER_BOOT_WAIT_WRITE_DRAIN = 4'd7,
+    LOADER_BOOT_NEXT_WRITE = 4'd8,
+    LOADER_BOOT_ISSUE_READ = 4'd9,
+    LOADER_BOOT_WAIT_READ_ACK = 4'd10,
+    LOADER_BOOT_NEXT_READ = 4'd11
   } loader_state_t;
 
   loader_state_t loader_state_q;
@@ -168,6 +175,20 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
   logic [1:0] loader_read_chunk_q;
   logic loader_last_magic_ok_q;
   logic loader_last_accepted_q;
+  logic loader_boot_done_q;
+  logic loader_boot_write_ack_seen_q;
+  logic loader_boot_read_ack_seen_q;
+  logic loader_boot_err_seen_q;
+  logic loader_boot_stall_seen_q;
+  logic [9:0] loader_boot_write_drain_q;
+  logic [1:0] loader_boot_write_index_q;
+  logic [2:0] loader_boot_read_index_q;
+  logic [31:0] loader_boot_stream_bytes_q;
+  logic [3:0] loader_boot_stream_valid_q;
+  logic [3:0] loader_boot_stream_mismatch_q;
+  logic [7:0] loader_boot_write_byte;
+  logic [1:0] loader_boot_capture_index;
+  logic [7:0] loader_boot_capture_byte;
   logic [JTAG_COMMAND_WIDTH - 1:0] jtag_command_payload;
   logic jtag_command_event;
   logic [15:0] jtag_command_count;
@@ -196,6 +217,13 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
     loader_stage_data_next = loader_stage_data_q;
     loader_stage_data_next[jtag_command_chunk * 128 +: 128] = jtag_command_data;
   end
+
+  assign loader_boot_write_byte =
+    PROBE_BYTE_VALUE + {6'd0, loader_boot_write_index_q};
+  assign loader_boot_capture_index =
+    loader_boot_read_index_q[1:0] - 2'd1;
+  assign loader_boot_capture_byte =
+    loader_boot_capture_index == 2'd3 ? wb_data[31:24] : wb_data[7:0];
 
   always_ff @(posedge controller_clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -226,6 +254,17 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
       loader_read_chunk_q <= 2'd0;
       loader_last_magic_ok_q <= 1'b0;
       loader_last_accepted_q <= 1'b0;
+      loader_boot_done_q <= 1'b0;
+      loader_boot_write_ack_seen_q <= 1'b0;
+      loader_boot_read_ack_seen_q <= 1'b0;
+      loader_boot_err_seen_q <= 1'b0;
+      loader_boot_stall_seen_q <= 1'b0;
+      loader_boot_write_drain_q <= 10'd0;
+      loader_boot_write_index_q <= 2'd0;
+      loader_boot_read_index_q <= 3'd0;
+      loader_boot_stream_bytes_q <= 32'd0;
+      loader_boot_stream_valid_q <= 4'd0;
+      loader_boot_stream_mismatch_q <= 4'd0;
     end else begin
       cycle_count_q <= cycle_count_q + 32'd1;
       if (calib_complete && !calib_seen_q) begin
@@ -308,8 +347,26 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
           loader_stb_q <= 1'b0;
           loader_we_q <= 1'b0;
           loader_sel_q <= '0;
-          if (calib_complete)
-            loader_state_q <= LOADER_IDLE;
+          loader_boot_done_q <= 1'b0;
+          loader_boot_write_ack_seen_q <= 1'b0;
+          loader_boot_read_ack_seen_q <= 1'b0;
+          loader_boot_err_seen_q <= 1'b0;
+          loader_boot_stall_seen_q <= 1'b0;
+          loader_boot_write_drain_q <= 10'd0;
+          loader_boot_write_index_q <= 2'd0;
+          loader_boot_read_index_q <= 3'd0;
+          loader_boot_stream_bytes_q <= 32'd0;
+          loader_boot_stream_valid_q <= 4'd0;
+          loader_boot_stream_mismatch_q <= 4'd0;
+          if (calib_complete) begin
+            loader_addr_q <= '0;
+            loader_write_data_q <= {WB_SEL_BITS{PROBE_BYTE_VALUE}};
+            loader_sel_q <= {WB_SEL_BITS{1'b1}};
+            loader_we_q <= 1'b1;
+            loader_cyc_q <= 1'b1;
+            loader_stb_q <= 1'b1;
+            loader_state_q <= LOADER_BOOT_ISSUE_WRITE;
+          end
         end
 
         LOADER_IDLE: begin
@@ -317,6 +374,166 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
           loader_stb_q <= 1'b0;
           loader_we_q <= 1'b0;
           loader_sel_q <= '0;
+        end
+
+        LOADER_BOOT_ISSUE_WRITE: begin
+          if (wb_stall) begin
+            loader_boot_stall_seen_q <= 1'b1;
+            loader_wait_cycles_q <= loader_wait_cycles_q + 32'd1;
+          end else begin
+            loader_stb_q <= 1'b0;
+            loader_state_q <= wb_ack ? LOADER_BOOT_WAIT_WRITE_DRAIN
+                                     : LOADER_BOOT_WAIT_WRITE_ACK;
+          end
+          if (wb_err) begin
+            loader_boot_err_seen_q <= 1'b1;
+            loader_error_q <= 1'b1;
+            loader_cyc_q <= 1'b0;
+            loader_stb_q <= 1'b0;
+            loader_state_q <= LOADER_ERROR;
+          end
+          if (wb_ack) begin
+            loader_boot_write_ack_seen_q <= 1'b1;
+            loader_cyc_q <= 1'b0;
+            loader_stb_q <= 1'b0;
+            loader_we_q <= 1'b0;
+            loader_boot_write_drain_q <= 10'd0;
+            loader_state_q <= LOADER_BOOT_WAIT_WRITE_DRAIN;
+          end
+        end
+
+        LOADER_BOOT_WAIT_WRITE_ACK: begin
+          loader_wait_cycles_q <= loader_wait_cycles_q + 32'd1;
+          if (wb_err) begin
+            loader_boot_err_seen_q <= 1'b1;
+            loader_error_q <= 1'b1;
+            loader_cyc_q <= 1'b0;
+            loader_stb_q <= 1'b0;
+            loader_state_q <= LOADER_ERROR;
+          end else if (wb_ack) begin
+            loader_boot_write_ack_seen_q <= 1'b1;
+            loader_cyc_q <= 1'b0;
+            loader_stb_q <= 1'b0;
+            loader_we_q <= 1'b0;
+            loader_boot_write_drain_q <= 10'd0;
+            loader_state_q <= LOADER_BOOT_WAIT_WRITE_DRAIN;
+          end
+        end
+
+        LOADER_BOOT_WAIT_WRITE_DRAIN: begin
+          loader_cyc_q <= 1'b0;
+          loader_stb_q <= 1'b0;
+          loader_we_q <= 1'b0;
+          loader_wait_cycles_q <= loader_wait_cycles_q + 32'd1;
+          if (loader_boot_write_drain_q == 10'h3ff) begin
+            loader_state_q <= LOADER_BOOT_NEXT_WRITE;
+          end else begin
+            loader_boot_write_drain_q <= loader_boot_write_drain_q + 10'd1;
+          end
+        end
+
+        LOADER_BOOT_NEXT_WRITE: begin
+          loader_cyc_q <= 1'b0;
+          loader_stb_q <= 1'b0;
+          loader_we_q <= 1'b0;
+          if (loader_boot_write_index_q == 2'd3) begin
+            loader_boot_read_index_q <= 3'd0;
+            loader_addr_q <= '0;
+            loader_sel_q <= {WB_SEL_BITS{1'b1}};
+            loader_cyc_q <= 1'b1;
+            loader_stb_q <= 1'b1;
+            loader_we_q <= 1'b0;
+            loader_state_q <= LOADER_BOOT_ISSUE_READ;
+          end else begin
+            loader_boot_write_index_q <= loader_boot_write_index_q + 2'd1;
+            loader_addr_q <= {{(WB_ADDR_BITS - 2) {1'b0}},
+                              loader_boot_write_index_q + 2'd1};
+            loader_write_data_q <= {WB_SEL_BITS{
+              PROBE_BYTE_VALUE + {6'd0, (loader_boot_write_index_q + 2'd1)}
+            }};
+            loader_sel_q <= {WB_SEL_BITS{1'b1}};
+            loader_cyc_q <= 1'b1;
+            loader_stb_q <= 1'b1;
+            loader_we_q <= 1'b1;
+            loader_state_q <= LOADER_BOOT_ISSUE_WRITE;
+          end
+        end
+
+        LOADER_BOOT_ISSUE_READ: begin
+          loader_we_q <= 1'b0;
+          loader_stb_q <= 1'b1;
+          if (wb_stall) begin
+            loader_boot_stall_seen_q <= 1'b1;
+            loader_wait_cycles_q <= loader_wait_cycles_q + 32'd1;
+          end else begin
+            loader_stb_q <= 1'b0;
+            loader_state_q <= wb_ack ? LOADER_BOOT_NEXT_READ
+                                     : LOADER_BOOT_WAIT_READ_ACK;
+          end
+          if (wb_err) begin
+            loader_boot_err_seen_q <= 1'b1;
+            loader_error_q <= 1'b1;
+            loader_cyc_q <= 1'b0;
+            loader_stb_q <= 1'b0;
+            loader_state_q <= LOADER_ERROR;
+          end
+          if (wb_ack) begin
+            loader_boot_read_ack_seen_q <= 1'b1;
+            loader_cyc_q <= 1'b0;
+            loader_read_data_q <= wb_data;
+            if (loader_boot_read_index_q != 3'd0) begin
+              loader_boot_stream_bytes_q[loader_boot_capture_index * 8 +: 8] <=
+                loader_boot_capture_byte;
+              loader_boot_stream_valid_q[loader_boot_capture_index] <= 1'b1;
+              loader_boot_stream_mismatch_q[loader_boot_capture_index] <=
+                loader_boot_capture_byte !=
+                (PROBE_BYTE_VALUE + {6'd0, loader_boot_capture_index});
+            end
+            loader_state_q <= LOADER_BOOT_NEXT_READ;
+          end
+        end
+
+        LOADER_BOOT_WAIT_READ_ACK: begin
+          loader_wait_cycles_q <= loader_wait_cycles_q + 32'd1;
+          if (wb_err) begin
+            loader_boot_err_seen_q <= 1'b1;
+            loader_error_q <= 1'b1;
+            loader_cyc_q <= 1'b0;
+            loader_stb_q <= 1'b0;
+            loader_state_q <= LOADER_ERROR;
+          end else if (wb_ack) begin
+            loader_boot_read_ack_seen_q <= 1'b1;
+            loader_cyc_q <= 1'b0;
+            loader_read_data_q <= wb_data;
+            if (loader_boot_read_index_q != 3'd0) begin
+              loader_boot_stream_bytes_q[loader_boot_capture_index * 8 +: 8] <=
+                loader_boot_capture_byte;
+              loader_boot_stream_valid_q[loader_boot_capture_index] <= 1'b1;
+              loader_boot_stream_mismatch_q[loader_boot_capture_index] <=
+                loader_boot_capture_byte !=
+                (PROBE_BYTE_VALUE + {6'd0, loader_boot_capture_index});
+            end
+            loader_state_q <= LOADER_BOOT_NEXT_READ;
+          end
+        end
+
+        LOADER_BOOT_NEXT_READ: begin
+          loader_cyc_q <= 1'b0;
+          loader_stb_q <= 1'b0;
+          loader_we_q <= 1'b0;
+          if (loader_boot_read_index_q == 3'd4) begin
+            loader_boot_done_q <= 1'b1;
+            loader_state_q <= LOADER_IDLE;
+          end else begin
+            loader_boot_read_index_q <= loader_boot_read_index_q + 3'd1;
+            loader_addr_q <= {{(WB_ADDR_BITS - 2) {1'b0}},
+                              loader_boot_read_index_q[1:0]};
+            loader_sel_q <= {WB_SEL_BITS{1'b1}};
+            loader_cyc_q <= 1'b1;
+            loader_stb_q <= 1'b1;
+            loader_we_q <= 1'b0;
+            loader_state_q <= LOADER_BOOT_ISSUE_READ;
+          end
         end
 
         LOADER_ISSUE: begin
@@ -408,7 +625,13 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
       {jtag_command_count[7:0], loader_last_opcode_q,
        6'd0, loader_last_chunk_q, loader_last_magic_ok_q, loader_last_accepted_q};
     jtag_debug_payload[304 +: 32] = {
-      17'd0,
+      10'd0,
+      loader_boot_stream_mismatch_q != 4'd0,
+      loader_boot_stall_seen_q,
+      loader_boot_err_seen_q,
+      loader_boot_read_ack_seen_q,
+      loader_boot_write_ack_seen_q,
+      loader_boot_done_q,
       loader_stall_seen_q,
       loader_error_q,
       loader_read_ack_seen_q,
@@ -423,6 +646,8 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
     jtag_debug_payload[464 +: 32] = loader_wait_cycles_q;
     jtag_debug_payload[496 +: 15] = loader_command_payload_addr_q[14:0];
     jtag_debug_payload[511] = SYS_RSTN;
+    if (!loader_boot_done_q)
+      jtag_debug_payload[240 +: 32] = loader_boot_stream_bytes_q;
   end
 
   ddr3_top #(
@@ -459,7 +684,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
     .i_wb_addr(loader_addr_q),
     .i_wb_data(loader_write_data_q),
     .i_wb_sel(loader_sel_q),
-    .i_aux({3'd0, !loader_we_q}),
+    .i_aux(4'd1),
     .o_wb_stall(wb_stall),
     .o_wb_ack(wb_ack),
     .o_wb_err(wb_err),

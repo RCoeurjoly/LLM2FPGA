@@ -1,0 +1,7 @@
+{
+  "count": 16,
+  "diagnostic_json": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T13-59-51+0200-ypcb-ddr3-rowstream-loader-khm63m9d842zlzjjjqx0515ygkqgvkhs-task6-ypcb-uberddr3-rowstream-loader-seed16/lowbyte-diagnostic.json",
+  "mismatch_count": 16,
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T13-59-51+0200-ypcb-ddr3-rowstream-loader-khm63m9d842zlzjjjqx0515ygkqgvkhs-task6-ypcb-uberddr3-rowstream-loader-seed16",
+  "status": "FAIL"
+}

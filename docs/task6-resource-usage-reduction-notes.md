@@ -291,6 +291,130 @@ Promotion rule:
 - Do not connect TinyStories weights to the model path from the standalone
   rowstream-loader top; replace it with a BIST-derived loader first.
 
+### 2026-05-11 - Rowstream loader calibration rebase v31
+
+Decision:
+
+- Keep the rowstream loader as the next DDR3 gate, but make it behave like the
+  known-good BIST wrapper before accepting host rowstream commands.
+- Add an internal boot transaction sequence: four full-width writes followed by
+  four low-byte read checks. The host loader reaches `LOADER_IDLE` only after
+  this self-check finishes.
+- Keep `i_aux` constant at `4'd1`, matching the calibrated BIST top, instead
+  of coupling it to the loader write-enable signal.
+
+Implementation:
+
+- `fpga/rtl/task6_ypcb_uberddr3_rowstream_loader_top.sv` debug payload version
+  is now `31`.
+- The loader now reports boot status bits in debug word 304 while preserving
+  the existing lower loader-status bits used by the host script.
+- `scripts/task6/task6_ddr3_rowstream_loader.py` now decodes the v31 boot
+  status bits and still waits for `loader_state == 1`, which now means
+  calibration plus boot self-check completed.
+
+Build evidence:
+
+| target | result |
+| --- | --- |
+| `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py scripts/task6/validate_uberddr3_lowbyte_stream.py scripts/task6/task6_ddr3_experiment_runner.py` | pass |
+| `.#task6-ypcb-uberddr3-rowstream-loader-yosys-json` | pass; Yosys check found 0 problems, estimated 16,627 LCs |
+| `.#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream` | pass; route converged at iteration 41, timing passed at 25 MHz |
+
+Bitstream:
+
+- `/nix/store/l6qvm68vyp7c6jhfc9igjzyjk9azvn9d-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`
+
+Next board gate:
+
+```sh
+python3 scripts/task6/task6_ddr3_rowstream_loader.py \
+  --bitstream /nix/store/l6qvm68vyp7c6jhfc9igjzyjk9azvn9d-task6-ypcb-uberddr3-rowstream-loader-seed16.bit \
+  --storage-mode lowbyte \
+  --load-boundary-rows-only \
+  --boundary-tokens 0,1,31,32,50256 \
+  --no-full-readback
+```
+
+Passing bar:
+
+- JTAG magic/version must report v31.
+- DDR3 calibration and the internal boot self-check must complete, so
+  `loader_state == 1` and `boot_done == true`.
+- No boot mismatch, boot error, loader error, or Wishbone error is accepted.
+- Boundary rows should byte-match under the low-byte-per-address contract.
+
+Board result:
+
+| run | result |
+| --- | --- |
+| `artifacts/task6/runs/2026-05-11T13-10-08+0200-ypcb-ddr3-rowstream-loader-l6qvm68vyp7c6jhfc9igjzyjk9azvn9d-task6-ypcb-uberddr3-rowstream-loader-seed16` | fail before loader commands; programming completed and JTAG debug decoded, but DDR3 calibration timed out with `magic_ok=True`, `version=31`, `calib_seen=False`, `state=0`, `ack=0`, `err=0`, `loader_error=False`, `debug1=0x000006cc` |
+
+Interpretation:
+
+- v31 did not restore calibration for the standalone rowstream-loader wrapper.
+- Since the same board/session still has a known-good BIST-derived control in
+  this note, the next implementation should stop modifying the standalone
+  wrapper and instead move the loader command path into
+  `task6_ypcb_uberddr3_bist_top.sv`'s calibrated shape.
+
+### 2026-05-11 - BIST-derived rowstream loader v33-v35
+
+Decision:
+
+- Replace the standalone rowstream-loader build input with a new
+  BIST-derived top:
+  `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv`.
+- Keep the initial BIST-style four-address write/read self-check as the
+  hardware boot gate.
+- Keep the old v32 every-other USER2 consumer behavior for loader commands and
+  compensate in the host script with `--command-repeats 2`, because removing
+  the consumer filter perturbed placement enough to lose calibration.
+
+Implementation:
+
+- `.#task6-ypcb-uberddr3-rowstream-loader-*` now synthesizes the BIST-derived
+  top instead of `task6_ypcb_uberddr3_rowstream_loader_top.sv`.
+- `scripts/task6/task6_ddr3_rowstream_loader.py` defaults to repeated loader
+  commands and expects the latest hardware debug version.
+- v35 changed `WRITE_LOWBYTE` to write the command byte across the full
+  512-bit beat with all byte enables asserted, matching the passing BIST write
+  style, while still treating the Wishbone address as one logical stream byte.
+
+Build evidence:
+
+| variant | bitstream | build result |
+| --- | --- | --- |
+| v33 BIST-derived loader | `/nix/store/g3s69qsxfjwrf4alkxy8b8xvs1qbk7gk-task6-ypcb-uberddr3-rowstream-loader-seed16.bit` | route and timing pass |
+| v34 accept every loader command | `/nix/store/1akk0pjm30cdcy2ah69cmmks6q2j88m9-task6-ypcb-uberddr3-rowstream-loader-seed16.bit` | route and timing pass |
+| v35 full-width low-byte write | `/nix/store/khm63m9d842zlzjjjqx0515ygkqgvkhs-task6-ypcb-uberddr3-rowstream-loader-seed16.bit` | route and timing pass |
+
+Board evidence:
+
+| run | result |
+| --- | --- |
+| `artifacts/task6/runs/2026-05-11T13-28-20+0200-ypcb-ddr3-rowstream-loader-g3s69qsxfjwrf4alkxy8b8xvs1qbk7gk-task6-ypcb-uberddr3-rowstream-loader-seed16` | v33 calibrated and completed the boundary-row load/readback with `boot_done=true`, `boot_mismatch=false`, `wb_ack_count=689`, `wb_err_count=0`; all checked rows mismatched |
+| `artifacts/task6/runs/2026-05-11T13-35-10+0200-ypcb-ddr3-rowstream-loader-khm63m9d842zlzjjjqx0515ygkqgvkhs-task6-ypcb-uberddr3-rowstream-loader-seed16` | v35 calibrated and completed the boundary-row load/readback with `boot_done=true`, `boot_mismatch=false`, `wb_ack_count=689`, `wb_err_count=0`; all checked rows mismatched |
+
+Negative control:
+
+- v34 removed the every-other command acceptance filter. It built and routed,
+  but on board it regressed to calibration timeout:
+  `magic_ok=True`, `version=34`, `calib_seen=False`, `state=1`, `ack=0`,
+  `err=0`, `debug1=0x0000166c`.
+
+Current interpretation:
+
+- Moving the loader into the calibrated BIST-derived top fixed the major DDR3
+  reliability blocker: calibration and the boot self-check now pass.
+- The remaining failure is the rowstream address/lane contract. The loader can
+  issue writes and reads without Wishbone errors, but the observed row bytes do
+  not match `rowstream.bin`.
+- The next gate should be a tiny deterministic byte/address diagnostic using
+  the v35 top, independent of `rowstream.bin`: write a short pattern to
+  addresses `0..15`, read it back, and record the observed permutation or
+  collapse before trying boundary rows again.
+
 ### 2026-05-09 - Boring DDR3 bring-up operating contract
 
 Decision:
@@ -17738,3 +17862,516 @@ UberDDR3 calibration/data-integrity gates:
     byte 1 stays lane-specific (`0xc1` or `0x51`). Later words show other fixed
     lane values (`0xad`, `0xd0`, `0x8c`, `0x29`, `0x77`, `0x91`) mixed with
     command-sensitive bytes.
+
+## 2026-05-11 - Simulation-first gate for the rowstream loader contract
+
+- Decision: stop using full route/program/board cycles as the first debug
+  loop for the v35 rowstream loader mismatch. The current board evidence says
+  the BIST-derived top calibrates, passes the boot self-check, and completes
+  loader Wishbone transactions without `wb_err`; the remaining unknown is the
+  rowstream address/lane contract. Use simulation to isolate the loader
+  command-to-Wishbone behavior before returning to hardware.
+- Implemented a small standalone loader-contract RTL module and Verilator
+  testbench:
+  - `fpga/rtl/task6_uberddr3_rowstream_loader_contract.sv`
+  - `sim/task6_uberddr3_rowstream_loader_contract_tb.sv`
+  - Nix gates:
+    `.#task6-uberddr3-rowstream-loader-contract-sim-main` and
+    `.#task6-uberddr3-rowstream-loader-contract-sv-sim`
+- Validation command:
+  `nix build .#task6-uberddr3-rowstream-loader-contract-sv-sim -L`
+- Result artifact:
+  `/nix/store/xjn0hfrqdjm80n5fsnjc4lsc0q73589x-task6-uberddr3-rowstream-loader-contract-sv-sim.json`
+- Result summary:
+  - `status=PASS`
+  - one low-byte write and one low-byte read completed
+  - write contract asserted all 64 byte selects and replicated the payload byte
+    across the 512-bit beat, matching v35's current full-width low-byte write
+    style
+  - read contract selected lane 0 and captured the stored low byte
+  - final loader state was idle (`state=1`) with `wait_cycles=1`
+- Edge found while building the test: the current every-other command filter is
+  phase-sensitive to any USER2 event, even before `boot_done`. A single
+  pre-boot event can make the first post-boot command land on the ignored
+  phase. The host currently sends repeated commands after calibration, so this
+  is not the known v35 board mismatch, but it is a fragility to remove when the
+  loader is factored back into the board top.
+- Current interpretation: this simulation reduces the likely fault set. The
+  plain loader command FSM can issue the intended Wishbone read/write
+  transactions against a simple Wishbone RAM. The v35 board mismatch is
+  therefore more likely in UberDDR3 Wishbone address/byte-select semantics, the
+  host's linear rowstream address assumption, or the interaction between
+  full-width writes and DDR3 readback packing.
+- Plan to finish Task 6 from here:
+  1. Add an UberDDR3-address/lane simulation or model using the same
+     deterministic `0..15` byte pattern. The required output is a mapping table:
+     host stream address -> Wishbone address/select -> returned byte lane.
+  2. Replay the same `0..15` diagnostic on the BIST-derived board top before
+     loading `rowstream.bin`.
+  3. Fix either the loader address/select policy or the host packing policy so
+     the hardware diagnostic matches the simulation/model.
+  4. Promote the fixed path back to the rowstream boundary-token loader check.
+  5. If boundary rows pass, run the DDR3-backed top1 cutout. If they do not,
+     close Task 6 with the documented strategy evidence: int8/v9984 on-chip
+     route success, external-memory contract, calibrated DDR3 BIST-derived
+     loader progress, and the remaining address/lane blocker compared against
+     `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`.
+
+## 2026-05-11 - UberDDR3 address/lane model and 0..15 board diagnostic
+
+- Source fact from UberDDR3 RTL:
+  - `i_wb_addr` is documented and implemented as burst-addressable
+    `{row,bank,column}`.
+  - For the YPCB parameters (`COL_BITS=10`, `serdes_ratio=4`), the controller
+    takes `i_wb_addr[6:0]` as the high column-burst address and appends three
+    zero low column bits. One Wishbone address therefore names one 64-byte
+    512-bit burst beat, not one byte.
+  - `i_wb_sel` is the 64-bit byte strobe for that 512-bit beat.
+- Added `scripts/task6/model_uberddr3_address_lane.py` and Nix target
+  `.#task6-uberddr3-address-lane-model`.
+- Validation command:
+  `nix build .#task6-uberddr3-address-lane-model -L`
+- Result artifact:
+  `/nix/store/5sv92bd31p7i12axndhzfzsrwciapp87-task6-uberddr3-address-lane-model.json`
+- Model result for stream bytes `0..15`:
+  - Dense byte policy writes all 16 bytes to Wishbone beat `0`, lanes `0..15`,
+    with selects `1 << lane`; dense reader returns `0..15`.
+  - Current v35 sparse-lowbyte-fullwidth policy writes stream byte `N` to
+    Wishbone beat `N`, all lanes selected and filled with `N`; sparse low-byte
+    reader returns `0..15`, but dense beat-0 reader returns sixteen zeroes.
+  - Interpretation: v35 is incompatible with a dense DDR3 rowstream source even
+    if its own sparse low-byte readback were reliable. The scalable loader
+    policy must be dense: `wb_addr = stream_addr / 64`,
+    `lane = stream_addr % 64`, `sel = 1 << lane`, and write data in that lane.
+- Added `--diagnostic-lowbyte-count` to
+  `scripts/task6/task6_ddr3_rowstream_loader.py`. The diagnostic programs the
+  board, waits for calibration, writes values `0..N-1` to sparse low-byte
+  addresses `0..N-1`, reads the same sparse low bytes back, writes
+  `lowbyte-diagnostic.json`, and exits before rowstream loading.
+- Board validation command:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/khm63m9d842zlzjjjqx0515ygkqgvkhs-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --diagnostic-lowbyte-count 16 --no-full-readback`
+- Board result:
+  `artifacts/task6/runs/2026-05-11T13-59-51+0200-ypcb-ddr3-rowstream-loader-khm63m9d842zlzjjjqx0515ygkqgvkhs-task6-ypcb-uberddr3-rowstream-loader-seed16/lowbyte-diagnostic.json`
+- Board summary:
+  - calibration passed (`calib_seen=true`, `calib_seen_cycle=37853`)
+  - boot self-check passed (`boot_done=true`, `boot_mismatch=false`)
+  - 16 writes and 16 reads were acknowledged, with `wb_err_count=0` and
+    `loader_error=false`
+  - sparse low-byte diagnostic failed all positions: `mismatch_count=16`
+  - observed bytes for addresses `0..15` were
+    `a8 a5 a6 a7 38 39 3a 3b 34 35 36 37 30 31 32 33`, not
+    `00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f`
+- Updated interpretation: the v35 board failure is deeper than just choosing
+  dense versus sparse rowstream storage. The current sparse-lowbyte path is not
+  self-consistent on hardware even though it passes the loader FSM simulation.
+  Because ACKs occur without Wishbone errors and the returned sequence is
+  structured, the likely fault is either the wrapper's read-data capture
+  contract, the command/write-data lane contract at the UberDDR3 boundary, or
+  an address/lane packing mismatch inside the BIST-derived integration.
+- Next gate: do not load `rowstream.bin` again until the 0..15 diagnostic
+  passes. Implement dense byte-lane write/read commands in the BIST-derived top
+  and expose a full 512-bit readback for beat `0`; then compare hardware beat-0
+  lanes directly against the model. If full-beat readback shows the expected
+  bytes in any lane permutation, fix the host/RTL lane mapping. If it still
+  shows the structured stale pattern, debug capture timing near
+  `loader_read_data_q`/`o_wb_data`.
+
+## 2026-05-11 - Dense byte-lane board gate v36-v37
+
+- Implemented dense byte-lane command opcodes in
+  `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv`:
+  - `WRITE_DENSE_BYTE`: `wb_addr = stream_addr / 64`,
+    `sel = 1 << (stream_addr % 64)`, and data placed in the selected byte lane.
+  - `READ_DENSE_BEAT`: read one 512-bit Wishbone beat by beat address.
+- Added `--diagnostic-dense-count` to
+  `scripts/task6/task6_ddr3_rowstream_loader.py`. The diagnostic writes
+  `0..N-1` through dense byte-lane commands, reads beat 0, compares the lower
+  lanes, writes `dense-diagnostic.json`, and exits before loading
+  `rowstream.bin`.
+- v36 exposed the full 512-bit read beat through a 1024-bit JTAG debug shift.
+  Build evidence:
+  - `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py scripts/task6/model_uberddr3_address_lane.py`: pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-yosys-json -L`: pass;
+    Yosys check found 0 problems.
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream -L`:
+    pass; bitstream
+    `/nix/store/hl5m38i3d9mivdfdannb020zddwnbijl-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`.
+- v36 board result: failed before the dense diagnostic because DDR3
+  calibration did not complete on two attempts:
+  - `artifacts/task6/runs/2026-05-11T14-12-09+0200-ypcb-ddr3-rowstream-loader-hl5m38i3d9mivdfdannb020zddwnbijl-task6-ypcb-uberddr3-rowstream-loader-seed16`:
+    `magic_ok=True`, `version=36`, `calib_seen=False`, `state=1`,
+    `ack=0`, `err=0`, `loader_error=False`, `debug1=0x000016a9`.
+  - `artifacts/task6/runs/2026-05-11T14-13-15+0200-ypcb-ddr3-rowstream-loader-hl5m38i3d9mivdfdannb020zddwnbijl-task6-ypcb-uberddr3-rowstream-loader-seed16`:
+    `magic_ok=True`, `version=36`, `calib_seen=False`, `state=1`,
+    `ack=0`, `err=0`, `loader_error=False`, `debug1=0x00000ecc`.
+- v37 reduced the diagnostic back to the 512-bit debug path and compared only
+  the lower 16 readback lanes. Build evidence:
+  - `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py scripts/task6/model_uberddr3_address_lane.py`: pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-yosys-json -L`: pass;
+    Yosys check found 0 problems, estimated 13,650 LCs.
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream -L`:
+    pass; route converged at iteration 11, controller clock max frequency
+    84.83 MHz at the 25 MHz target, bitstream
+    `/nix/store/dy2iw86nhsihkd3j24n7yign9wzpl6yc-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`.
+- v37 board validation command:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/dy2iw86nhsihkd3j24n7yign9wzpl6yc-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --diagnostic-dense-count 16 --no-full-readback`
+- v37 board result:
+  `artifacts/task6/runs/2026-05-11T14-20-34+0200-ypcb-ddr3-rowstream-loader-dy2iw86nhsihkd3j24n7yign9wzpl6yc-task6-ypcb-uberddr3-rowstream-loader-seed16/dense-diagnostic.json`
+- v37 summary:
+  - calibration completed (`calib_seen=true`, `calib_seen_cycle=37853`)
+  - the boot gate was not clean: `boot_done=true` but
+    `boot_mismatch=true` already in `initial_debug`
+  - 16 dense byte writes and one dense beat read were acknowledged,
+    `wb_ack_count` advanced from 9 to 26, and `wb_err_count=0`
+  - dense readback failed all 16 compared lanes:
+    observed `a8 c1 a8 a8 a8 c1 a8 00 a8 51 a8 a8 a8 51 a8 00`,
+    expected `00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f`
+- Updated interpretation:
+  - The v36 full-beat debug path was too perturbing for the calibration gate.
+  - The v37 reduced debug path restores calibration, but adding dense command
+    logic still loses the BIST-derived boot data-integrity check. Because the
+    diagnostic starts from `boot_mismatch=true`, this is not yet a valid
+    dense-lane mapping result.
+  - Do not promote dense rowstream loading yet. The next gate should preserve
+    the exact known-good v35 BIST/boot datapath and add only one isolated
+    variable at a time: first add a read-only lower-128-bit beat capture with no
+    new write opcode, then add dense write select generation after boot remains
+    clean.
+
+## 2026-05-11 - Read-only lower-128 beat capture gate v38
+
+- Decision: preserve the v35 BIST/boot write datapath and remove the dense
+  write-select opcode from hardware. Keep only a read-only beat command that
+  captures `loader_read_data_q[127:0]` through the existing 512-bit debug
+  payload.
+- Implementation:
+  - `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv` debug version
+    is now v38.
+  - Hardware keeps `READ_DENSE_BEAT` (`0x06`) as a read-only diagnostic command
+    and removes `WRITE_DENSE_BYTE` from the top.
+  - `scripts/task6/task6_ddr3_rowstream_loader.py` adds
+    `--diagnostic-readbeat-addr`, which waits for calibration/boot, reads one
+    beat, records the lower 16 bytes, and exits before rowstream loading.
+- Build evidence:
+  - `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py scripts/task6/model_uberddr3_address_lane.py`:
+    pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-yosys-json -L`: pass;
+    Yosys check found 0 problems, estimated 12,546 LCs
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream -L`:
+    pass; route converged at iteration 28, controller clock max frequency
+    73.20 MHz at the 25 MHz target, bitstream
+    `/nix/store/8higyshcx41rbqj2lvlzp2j1n8alybzf-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`
+- Board validation command:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/8higyshcx41rbqj2lvlzp2j1n8alybzf-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --diagnostic-readbeat-addr 0 --no-full-readback`
+- Board result:
+  `artifacts/task6/runs/2026-05-11T14-35-59+0200-ypcb-ddr3-rowstream-loader-8higyshcx41rbqj2lvlzp2j1n8alybzf-task6-ypcb-uberddr3-rowstream-loader-seed16/readbeat-diagnostic.json`
+- Board summary:
+  - status `PASS`
+  - calibration completed (`calib_seen=true`, `calib_seen_cycle=37853`)
+  - boot self-check stayed clean before and after the diagnostic:
+    `boot_done=true`, `boot_error=false`, `boot_mismatch=false`
+  - read-only beat command was acknowledged: `wb_ack_count` advanced from 9 to
+    10 with `wb_err_count=0` and `loader_error=false`
+  - captured beat 0 lower 128 bits:
+    `3dc13da53dc13da52c512ca52c512ca5`
+- Updated interpretation:
+  - The read-only lower-128 capture is safe enough to keep. It does not break
+    calibration or the BIST-derived boot data-integrity gate.
+  - The v37 failure was introduced by the dense write-select generation, not by
+    the lower-128 read capture alone.
+  - Next gate: add dense write-select generation in isolation while keeping the
+    v38 read-only capture and require `boot_mismatch=false` before accepting
+    any dense byte diagnostic result.
+
+## 2026-05-11 - Dense write-select isolated gate v39
+
+- Decision: add dense write-select generation back as the only new hardware
+  variable after the passing v38 read-only gate. The diagnostic must refuse to
+  interpret dense byte readback unless the initial BIST-derived boot gate is
+  clean: `boot_done=true`, `boot_error=false`, and `boot_mismatch=false`.
+- Implementation:
+  - `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv` debug version
+    is now v39.
+  - Hardware adds `WRITE_DENSE_BYTE` (`0x05`) while preserving the v38
+    lower-128-bit `READ_DENSE_BEAT` (`0x06`) debug path:
+    `wb_addr = stream_addr / 64`, `sel = 1 << (stream_addr % 64)`, and
+    write data in the selected byte lane.
+  - `scripts/task6/task6_ddr3_rowstream_loader.py` now gates
+    `--diagnostic-dense-count` on a clean initial boot status. If boot is
+    unclean, it writes a blocked diagnostic instead of reporting dense byte
+    contents as meaningful data.
+- Build evidence:
+  - `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py scripts/task6/model_uberddr3_address_lane.py`:
+    pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-yosys-json -L`: pass;
+    Yosys check found 0 problems, estimated 13,650 LCs
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream -L`:
+    pass; route converged at iteration 13, controller clock max frequency
+    94.52 MHz at the 25 MHz target, bitstream
+    `/nix/store/5l49zjk0za17ffvmd6jh76kc9bxfxzl9-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`
+- Board validation command:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/5l49zjk0za17ffvmd6jh76kc9bxfxzl9-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --diagnostic-dense-count 16 --no-full-readback`
+- Board result:
+  `artifacts/task6/runs/2026-05-11T14-45-06+0200-ypcb-ddr3-rowstream-loader-5l49zjk0za17ffvmd6jh76kc9bxfxzl9-task6-ypcb-uberddr3-rowstream-loader-seed16/dense-diagnostic.json`
+- Board summary:
+  - status `FAIL`, verdict `dense-byte-contract-fails`
+  - calibration completed (`calib_seen=true`, `calib_seen_cycle=37853`)
+  - initial boot gate was clean and therefore dense byte interpretation was
+    allowed: `boot_done=true`, `boot_error=false`, `boot_mismatch=false`
+  - final boot status stayed clean: `boot_done=true`, `boot_error=false`,
+    `boot_mismatch=false`
+  - 16 dense byte writes and one dense beat read were acknowledged:
+    `wb_ack_count` advanced from 9 to 26, `wb_err_count=0`, and
+    `loader_error=false`
+  - lower 16 bytes of beat 0 were
+    `a8 c1 a8 00 a8 c1 a8 00 a8 51 a8 00 a8 51 a8 00`, not
+    `00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f`
+- Updated interpretation:
+  - Dense write-select generation no longer corrupts the BIST-derived boot
+    self-check when added after the v38 read-only capture.
+  - The dense byte contract still fails after clean boot and acknowledged
+    Wishbone transactions, so this is now a valid data-path failure rather than
+    a calibration or boot-gate failure.
+  - The repeated pattern strongly suggests the write-data/select operation is
+    not landing in the intended DDR3 byte lanes or the read capture is still
+    returning structured stale/controller data.
+  - Next gate: keep v39's clean boot guard and add an isolated write-side
+    observability check, such as echoing the last accepted dense write
+    `wb_addr`, `sel` low bits, and selected data byte in debug, before changing
+    rowstream loading.
+
+## 2026-05-11 - Dense write-side observability gate v40
+
+- Decision: keep the v39 dense write/read hardware behavior and add only
+  write-side observability in the existing 512-bit debug payload. Do not widen
+  the debug path.
+- Implementation:
+  - `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv` debug version
+    was bumped to v40 for this gate.
+  - The tail of the 512-bit debug payload records the last accepted dense write:
+    `dense_write_seen`, low 16 bits of dense Wishbone beat address,
+    byte lane, data byte, and low 16 select bits.
+  - `scripts/task6/task6_ddr3_rowstream_loader.py` decodes these fields into
+    every debug snapshot in `dense-diagnostic.json`.
+- Build evidence:
+  - `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py scripts/task6/model_uberddr3_address_lane.py`:
+    pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-yosys-json -L`: pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream -L`:
+    pass; route converged at iteration 13, controller clock max frequency
+    93.45 MHz at the 25 MHz target, bitstream
+    `/nix/store/8y34w17yh49z8yk3h7lcwvafh98gvfcv-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`
+- Board validation command:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/8y34w17yh49z8yk3h7lcwvafh98gvfcv-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --diagnostic-dense-count 16 --no-full-readback`
+- Board result:
+  `artifacts/task6/runs/2026-05-11T14-54-58+0200-ypcb-ddr3-rowstream-loader-8y34w17yh49z8yk3h7lcwvafh98gvfcv-task6-ypcb-uberddr3-rowstream-loader-seed16/dense-diagnostic.json`
+- Board summary:
+  - status `FAIL`, verdict `dense-byte-contract-fails`
+  - calibration completed (`calib_seen=true`, `calib_seen_cycle=37853`)
+  - boot stayed clean before and after the diagnostic:
+    `boot_done=true`, `boot_error=false`, `boot_mismatch=false`
+  - dense write/read transactions were acknowledged:
+    `wb_ack_count` advanced from 9 to 26, `wb_err_count=0`, and
+    `loader_error=false`
+  - dense readback repeated the v39 failure:
+    observed `a8 c1 a8 00 a8 c1 a8 00 a8 51 a8 00 a8 51 a8 00`, not
+    `00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f`
+  - write-side observability reported the last dense write as
+    `lane=15`, `data=15`, `sel_low16=0x8000`, but
+    `dense_write_wb_addr_low16=0x3c00` instead of `0x0000`.
+- Updated interpretation:
+  - The v40 board-valid observability gate isolates a command packing bug:
+    the 192-bit command format placed a 32-bit address at bits `48..79` and
+    write data at bit `64`, so the first write-data byte overwrote address bits
+    `16..23`.
+  - This explains the dense writes going to the wrong beat address even though
+    lane, data, select, ACKs, and the boot gate looked valid.
+  - Earlier simulation/modeling helped narrow the fault, but it did not model
+    the exact JTAG command bit packing. Add a command-packing unit/model check
+    before trusting future host/RTL command format changes.
+
+## 2026-05-11 - Non-overlapping command-byte layout attempt v41
+
+- Decision: fix the command-packing overlap found by v40 by moving the
+  byte-write payload to bit 80 and reading only an 8-bit command data byte in
+  the BIST-derived top. This preserves the existing 192-bit command width.
+- Implementation:
+  - `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv` debug version
+    is now v41.
+  - The RTL reads `jtag_command_data_byte` from `jtag_command_payload[80 +: 8]`
+    for lowbyte and dense byte writes.
+  - The host command packer writes only `data[0]` at bit 80, avoiding overlap
+    with the 32-bit address field.
+- Build evidence:
+  - `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py scripts/task6/model_uberddr3_address_lane.py`:
+    pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-yosys-json -L`: pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream -L`:
+    pass; route converged at iteration 13, controller clock max frequency
+    97.90 MHz at the 25 MHz target, bitstream
+    `/nix/store/w9mzv81775h5nx5afyjsd17cmx6fwmd7-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`
+- Board validation command:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/w9mzv81775h5nx5afyjsd17cmx6fwmd7-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --diagnostic-dense-count 16 --no-full-readback`
+- Board result:
+  `artifacts/task6/runs/2026-05-11T15-02-12+0200-ypcb-ddr3-rowstream-loader-w9mzv81775h5nx5afyjsd17cmx6fwmd7-task6-ypcb-uberddr3-rowstream-loader-seed16`
+- Board summary:
+  - failed before the dense diagnostic because DDR3 calibration did not
+    complete: `magic_ok=True`, `version=41`, `calib_seen=False`, `state=1`,
+    `ack=0`, `err=0`, `loader_error=False`, `debug1=0x00000eca`
+  - the run produced only `program.log`; no diagnostic JSON was written because
+    the host timed out in `wait_calibration()`.
+- Updated interpretation:
+  - The command-layout fix is logically necessary, but this routed v41 seed is
+    not a board-valid gate because it regressed calibration.
+  - Do not interpret v41 dense data yet. The next gate should either search a
+    seed for the v41 fix that preserves calibration or reduce the observability
+    payload after v40 has served its purpose, then rerun the guarded dense
+    diagnostic.
+
+## 2026-05-11 - Command-packing model and reduced-debug v42 gate
+
+- Decision: add a cheap command-packing model before further board iterations,
+  then try the reduced-debug path instead of keeping the v40/v41 write-side
+  observability payload. The v40 debug fields already identified the overlap
+  bug, so the next useful hardware variant should keep the non-overlapping
+  command layout while shrinking the debug perturbation.
+- Added `scripts/task6/model_jtag_command_packing.py` and Nix target
+  `.#task6-uberddr3-jtag-command-packing-model`.
+- Command-packing model result:
+  `/nix/store/snsxh355ssn2mq5kidnmdzsbm98llk1j-task6-uberddr3-jtag-command-packing-model.json`
+  - status `PASS`
+  - current layout has address bits `48..79` and byte data bits `80..87`, with
+    no overlap
+  - dense write cases `0..15` decode to beat address `0`, lanes `0..15`, and
+    the expected data bytes
+  - negative control records that the legacy bit-64 byte payload overlaps the
+    address field and corrupts the decoded stream address
+- v42 implementation:
+  - `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv` debug version
+    is now v42.
+  - The RTL keeps the v41 command byte at `jtag_command_payload[80 +: 8]`.
+  - The dense write observability registers and debug payload fields added for
+    v40 are removed.
+  - The debug tail returns to `loader_wait_cycles_q` and
+    `loader_command_payload_addr_q[14:0]`, reducing the hardware delta while
+    keeping the command-layout fix.
+- Build evidence:
+  - `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py scripts/task6/model_uberddr3_address_lane.py scripts/task6/model_jtag_command_packing.py`:
+    pass
+  - `nix build .#task6-uberddr3-jtag-command-packing-model -L`: pass
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-yosys-json -L`: pass;
+    Yosys check found 0 problems, hierarchy cell count 28,064
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream -L`:
+    pass; route converged at iteration 10, controller clock max frequency
+    92.85 MHz at the 25 MHz target, bitstream
+    `/nix/store/kpnpryjvhpv2pibckxh1vlz6ygq5jzbw-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`
+  - `nix build .#task6-ypcb-uberddr3-rowstream-loader-seed15-bitstream -L`:
+    pass; route converged at iteration 16, controller clock max frequency
+    85.75 MHz at the 25 MHz target, bitstream
+    `/nix/store/4m9yzy905x3ahyv6q7k3z1nyd7bni8zb-task6-ypcb-uberddr3-rowstream-loader-seed15.bit`
+- Board validation commands:
+  - `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/kpnpryjvhpv2pibckxh1vlz6ygq5jzbw-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --diagnostic-dense-count 16 --no-full-readback`
+  - `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/4m9yzy905x3ahyv6q7k3z1nyd7bni8zb-task6-ypcb-uberddr3-rowstream-loader-seed15.bit --diagnostic-dense-count 16 --no-full-readback`
+- Board results:
+  - seed16:
+    `artifacts/task6/runs/2026-05-11T15-15-11+0200-ypcb-ddr3-rowstream-loader-kpnpryjvhpv2pibckxh1vlz6ygq5jzbw-task6-ypcb-uberddr3-rowstream-loader-seed16`
+  - seed15:
+    `artifacts/task6/runs/2026-05-11T15-20-37+0200-ypcb-ddr3-rowstream-loader-4m9yzy905x3ahyv6q7k3z1nyd7bni8zb-task6-ypcb-uberddr3-rowstream-loader-seed15`
+- Board summaries:
+  - seed16 failed before dense interpretation because DDR3 calibration did not
+    complete: `magic_ok=True`, `version=42`, `calib_seen=False`, `state=1`,
+    `ack=0`, `err=0`, `loader_error=False`, `debug1=0x000006cc`
+  - seed15 failed before dense interpretation because DDR3 calibration did not
+    complete: `magic_ok=True`, `version=42`, `calib_seen=False`, `state=1`,
+    `ack=0`, `err=0`, `loader_error=False`, `debug1=0x00000eca`
+  - both failed runs produced only `program.log`; no diagnostic JSON was
+    written because the host timed out in `wait_calibration()`.
+- Updated interpretation:
+  - The command-packing model closes the specific host/RTL overlap bug found by
+    v40.
+  - The non-overlapping command layout remains too placement-sensitive for the
+    current seed15/seed16 board gates, even after removing the v40 observability
+    registers.
+  - Since v39/v40 calibrated and v41/v42 do not, the next hardware step should
+    be a bounded seed search on v42 or a smaller command-layout change that
+    keeps the old bit-64 data field but narrows the address field used by byte
+    write commands so data no longer changes the beat address.
+
+## 2026-05-11 - DDR3 physical-stability gate
+
+- Decision: stop treating seed sweep as the primary DDR3 recovery strategy.
+  Before programming another command/data-path variant, compare routed FASM
+  against the boot-clean v40 rowstream-loader baseline and classify physical
+  movement.
+- Added `scripts/task6/compare_nextpnr_fasm_physical_stability.py`.
+- Added Nix report target:
+  `.#task6-ypcb-uberddr3-rowstream-loader-physical-stability-v40-json`.
+- Current baseline for this gate:
+  `artifacts/task6/baselines/uberddr3-rowstream-loader-v40-physical-stability/critical.fasm`,
+  generated from
+  `/nix/store/bsl17n6hm1yxzpvckm2bq637q49lnv1b-task6-ypcb-uberddr3-rowstream-loader-seed16.fasm`,
+  recovered from the known boot-clean v40 bitstream derivation
+  `/nix/store/vy3xagy95ycxlgggs6fjrv13c3fl6vpg-task6-ypcb-uberddr3-rowstream-loader-seed16.bit.drv`.
+- Gate semantics:
+  - `FAIL`: IDELAY, IOB/IOI, ISERDES/OSERDES, PLLE2/MMCM site, or BSCAN/JTAG
+    FASM features changed; do not interpret DDR3 board behavior as a data-path
+    result until placement/constraints are fixed.
+  - `WARN`: PHY/JTAG sites match but clock/routing FASM changed; run only the
+    boot/calibration guard first, then decide whether the change is acceptable.
+  - `PASS`: critical DDR3/clock/JTAG FASM footprint matches the baseline.
+- Validation:
+  - `python3 -m py_compile scripts/task6/compare_nextpnr_fasm_physical_stability.py`:
+    pass
+  - v39-vs-v40 comparator self-check reports `WARN`: IDELAY, IOB, SERDES,
+    PLLE2 site, and BSCAN/JTAG features match, while clock routing changes.
+    This matches board evidence: both v39 and v40 were boot-clean, but the
+    route is not bit-identical.
+- Current candidate report:
+  - command:
+    `nix build .#task6-ypcb-uberddr3-rowstream-loader-physical-stability-v40-json --no-link --print-out-paths -L`
+  - output:
+    `/nix/store/f2nbjahw8bx86m92lw9b28pcrn8glf3i-task6-ypcb-uberddr3-rowstream-loader-physical-stability-v40.json`
+  - status: `WARN`
+  - hard-fail delta: `hard_fail_removed_count=0`,
+    `hard_fail_changed_tile_count=0`
+  - traced false-positive:
+    - the earlier `LIOI3_X0Y225` hard-fail was `SYS_RSTN` at site
+      `IOB_X0Y226`, not DDR3 DQ/DQS/clock PHY.
+    - the gate now ignores `LIOB33_X0Y225` and `LIOI3_X0Y225` for this DDR3
+      physical comparison.
+  - remaining delta: clock-route FASM changed relative to v40, so board work
+    must start with a boot/calibration-only gate.
+- Boot-only board gate:
+  - added `--boot-only` to `scripts/task6/task6_ddr3_rowstream_loader.py` so a
+    WARN physical report can be tested without issuing loader writes.
+  - bitstream:
+    `/nix/store/s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16.bit`
+  - command:
+    `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --boot-only --no-full-readback`
+  - result:
+    `artifacts/task6/runs/2026-05-11T16-42-55+0200-ypcb-ddr3-rowstream-loader-s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16/boot-diagnostic.json`
+  - status `PASS`: `calib_seen=true`, `boot_done=true`,
+    `boot_mismatch=false`, `wb_err_count=0`
+- Guarded dense-byte board gate after boot-clean:
+  - command:
+    `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16.bit --no-program --diagnostic-dense-count 16 --no-full-readback`
+  - result:
+    `artifacts/task6/runs/2026-05-11T16-43-58+0200-ypcb-ddr3-rowstream-loader-s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16/dense-diagnostic.json`
+  - status `FAIL`: `mismatch_count=13/16`
+  - observed lower 16 bytes:
+    `00 c1 00 00 00 c1 00 00 00 51 00 00 00 51 0e 0f`
+  - expected:
+    `00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f`
+  - final debug stayed boot-clean and write-side observability was sane:
+    `boot_mismatch=false`, `wb_ack_count=26`, `wb_err_count=0`,
+    `dense_write_wb_addr_low16=0`, `dense_write_lane=15`,
+    `dense_write_data=15`, `dense_write_sel_low16=0x8000`
+  - interpretation: this is now a valid dense data-path failure, not a
+    calibration or physical-site failure. The next gate should inspect whether
+    readback is stale/structured controller data or whether byte lanes 1, 5, 9,
+    and 13 are being selected/packed differently than intended.
+- Constraint policy:
+  - Add LOC/region constraints only when the FASM gate shows a repeatable
+    site-level movement or nextpnr placement output can map the moved site back
+    to a specific RTL cell.
+  - Do not add guessed constraints from data-path symptoms alone.

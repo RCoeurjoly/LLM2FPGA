@@ -1,0 +1,233 @@
+`timescale 1ns/1ps
+`default_nettype none
+
+module task6_uberddr3_rowstream_loader_contract_tb;
+  localparam int COMMAND_WIDTH = 192;
+  localparam int WB_ADDR_BITS = 8;
+  localparam int WB_DATA_BITS = 512;
+  localparam int WB_SEL_BITS = WB_DATA_BITS / 8;
+  localparam logic [31:0] COMMAND_MAGIC = 32'h33445244;
+  localparam logic [7:0] OP_WRITE_LOWBYTE = 8'h03;
+  localparam logic [7:0] OP_READ_LOWBYTE = 8'h04;
+
+  logic clk;
+  logic rst_n;
+  logic boot_done;
+  logic [COMMAND_WIDTH - 1:0] command_payload;
+  logic command_event;
+  wire wb_cyc;
+  wire wb_stb;
+  wire wb_we;
+  wire [WB_ADDR_BITS - 1:0] wb_addr;
+  wire [WB_DATA_BITS - 1:0] wb_data_w;
+  wire [WB_SEL_BITS - 1:0] wb_sel;
+  logic wb_stall;
+  logic wb_ack;
+  logic wb_err;
+  logic [WB_DATA_BITS - 1:0] wb_data_r;
+  wire loader_done;
+  wire loader_error;
+  wire loader_write_ack_seen;
+  wire loader_read_ack_seen;
+  wire loader_stall_seen;
+  wire [WB_DATA_BITS - 1:0] loader_read_data;
+  wire [31:0] loader_wait_cycles;
+  wire [31:0] loader_command_payload_addr;
+  wire [7:0] loader_last_opcode;
+  wire [1:0] loader_last_chunk;
+  wire loader_last_magic_ok;
+  wire loader_last_accepted;
+  wire [3:0] loader_state;
+
+  logic [WB_DATA_BITS - 1:0] mem [0:255];
+  int write_count;
+  int read_count;
+  int errors;
+
+  task6_uberddr3_rowstream_loader_contract #(
+    .JTAG_COMMAND_WIDTH(COMMAND_WIDTH),
+    .WB_ADDR_BITS(WB_ADDR_BITS),
+    .WB_DATA_BITS(WB_DATA_BITS),
+    .WB_SEL_BITS(WB_SEL_BITS),
+    .LOADER_COMMAND_MAGIC(COMMAND_MAGIC),
+    .LOADER_OP_WRITE_LOWBYTE(OP_WRITE_LOWBYTE),
+    .LOADER_OP_READ_LOWBYTE(OP_READ_LOWBYTE)
+  ) dut (
+    .clk_i(clk),
+    .rst_ni(rst_n),
+    .boot_done_i(boot_done),
+    .command_payload_i(command_payload),
+    .command_event_i(command_event),
+    .wb_cyc_o(wb_cyc),
+    .wb_stb_o(wb_stb),
+    .wb_we_o(wb_we),
+    .wb_addr_o(wb_addr),
+    .wb_data_o(wb_data_w),
+    .wb_sel_o(wb_sel),
+    .wb_stall_i(wb_stall),
+    .wb_ack_i(wb_ack),
+    .wb_err_i(wb_err),
+    .wb_data_i(wb_data_r),
+    .loader_done_o(loader_done),
+    .loader_error_o(loader_error),
+    .loader_write_ack_seen_o(loader_write_ack_seen),
+    .loader_read_ack_seen_o(loader_read_ack_seen),
+    .loader_stall_seen_o(loader_stall_seen),
+    .loader_read_data_o(loader_read_data),
+    .loader_wait_cycles_o(loader_wait_cycles),
+    .loader_command_payload_addr_o(loader_command_payload_addr),
+    .loader_last_opcode_o(loader_last_opcode),
+    .loader_last_chunk_o(loader_last_chunk),
+    .loader_last_magic_ok_o(loader_last_magic_ok),
+    .loader_last_accepted_o(loader_last_accepted),
+    .loader_state_o(loader_state)
+  );
+
+  always #5 clk = ~clk;
+
+  function automatic logic [COMMAND_WIDTH - 1:0] make_command(
+    input logic [31:0] magic,
+    input logic [7:0] opcode,
+    input logic [1:0] chunk,
+    input logic [31:0] addr,
+    input logic [7:0] data_byte
+  );
+    logic [COMMAND_WIDTH - 1:0] payload;
+    begin
+      payload = '0;
+      payload[0 +: 32] = magic;
+      payload[32 +: 8] = opcode;
+      payload[40 +: 2] = chunk;
+      payload[48 +: 32] = addr;
+      payload[64 +: 8] = data_byte;
+      make_command = payload;
+    end
+  endfunction
+
+  task automatic pulse_command(input logic [COMMAND_WIDTH - 1:0] payload);
+    begin
+      @(negedge clk);
+      command_payload = payload;
+      command_event = 1'b1;
+      @(negedge clk);
+      command_event = 1'b0;
+    end
+  endtask
+
+  task automatic wait_done(input string label);
+    int timeout;
+    begin
+      timeout = 0;
+      while (!loader_done && !loader_error && timeout < 64) begin
+        @(negedge clk);
+        timeout = timeout + 1;
+      end
+      if (timeout == 64) begin
+        $display("FAIL: %s timed out", label);
+        errors = errors + 1;
+      end
+    end
+  endtask
+
+  task automatic check_cond(input bit condition, input string message);
+    begin
+      if (!condition) begin
+        $display("FAIL: %s", message);
+        errors = errors + 1;
+      end
+    end
+  endtask
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      wb_ack <= 1'b0;
+      wb_data_r <= '0;
+      write_count <= 0;
+      read_count <= 0;
+    end else begin
+      wb_ack <= wb_cyc && wb_stb && !wb_stall;
+      wb_data_r <= mem[wb_addr];
+      if (wb_cyc && wb_stb && !wb_stall) begin
+        if (wb_we) begin
+          mem[wb_addr] <= wb_data_w;
+          write_count <= write_count + 1;
+        end else begin
+          read_count <= read_count + 1;
+        end
+      end
+    end
+  end
+
+  initial begin : init_control
+    logic [COMMAND_WIDTH - 1:0] write_cmd;
+    logic [COMMAND_WIDTH - 1:0] read_cmd;
+    int i;
+
+    clk = 1'b0;
+    rst_n = 1'b0;
+    boot_done = 1'b0;
+    command_payload = '0;
+    command_event = 1'b0;
+    wb_stall = 1'b0;
+    wb_err = 1'b0;
+    errors = 0;
+    for (i = 0; i < 256; i = i + 1)
+      mem[i] = '0;
+
+    repeat (4) @(negedge clk);
+    rst_n = 1'b1;
+    repeat (2) @(negedge clk);
+
+    write_cmd = make_command(COMMAND_MAGIC, OP_WRITE_LOWBYTE, 2'd0, 32'd3, 8'h5a);
+    pulse_command(write_cmd);
+    pulse_command(write_cmd);
+    repeat (6) @(negedge clk);
+    check_cond(write_count == 0, "commands before boot_done must not write");
+
+    boot_done = 1'b1;
+    pulse_command(write_cmd);
+    wait_done("write-lowbyte");
+    check_cond(loader_error == 1'b0, "write-lowbyte must not raise loader_error");
+    check_cond(write_count == 1, "first accepted write must issue one Wishbone write");
+    check_cond(wb_addr == 8'd3, "write-lowbyte must present the command address");
+    check_cond(wb_sel == {WB_SEL_BITS{1'b1}}, "write-lowbyte must assert all byte selects");
+    check_cond(mem[3][7:0] == 8'h5a, "write-lowbyte must store the payload byte in lane 0");
+    check_cond(mem[3][511:504] == 8'h5a, "write-lowbyte v35 must replicate across the full beat");
+
+    pulse_command(write_cmd);
+    repeat (8) @(negedge clk);
+    check_cond(write_count == 1, "duplicate command event must be ignored by every-other filter");
+
+    read_cmd = make_command(COMMAND_MAGIC, OP_READ_LOWBYTE, 2'd0, 32'd3, 8'h00);
+    pulse_command(read_cmd);
+    wait_done("read-lowbyte first duplicate phase");
+    if (!loader_done) begin
+      pulse_command(read_cmd);
+      wait_done("read-lowbyte");
+    end
+    check_cond(loader_error == 1'b0, "read-lowbyte must not raise loader_error");
+    check_cond(read_count == 1, "read-lowbyte must issue one Wishbone read");
+    check_cond(wb_sel == {{(WB_SEL_BITS - 1){1'b0}}, 1'b1}, "read-lowbyte must select lane 0");
+    check_cond(loader_read_data[7:0] == 8'h5a, "read-lowbyte must capture the stored lane-0 byte");
+
+    pulse_command(make_command(32'h0, OP_WRITE_LOWBYTE, 2'd0, 32'd7, 8'ha5));
+    repeat (8) @(negedge clk);
+    check_cond(write_count == 1, "bad magic must not issue Wishbone writes");
+
+    if (errors == 0) begin
+      $display(
+        "PASS: task6 rowstream loader contract writes %0d reads %0d state %0d wait_cycles %0d",
+        write_count,
+        read_count,
+        loader_state,
+        loader_wait_cycles
+      );
+      $finish;
+    end else begin
+      $display("FAIL: task6 rowstream loader contract errors %0d", errors);
+      $fatal(1);
+    end
+  end
+endmodule
+
+`default_nettype wire

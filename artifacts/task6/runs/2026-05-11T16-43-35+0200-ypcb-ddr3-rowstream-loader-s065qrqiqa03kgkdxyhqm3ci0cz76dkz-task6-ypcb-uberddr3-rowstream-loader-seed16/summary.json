@@ -1,0 +1,10 @@
+{
+  "boot_done": true,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "calib_seen": true,
+  "diagnostic_json": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T16-43-35+0200-ypcb-ddr3-rowstream-loader-s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16/boot-diagnostic.json",
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T16-43-35+0200-ypcb-ddr3-rowstream-loader-s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16",
+  "status": "PASS",
+  "verdict": "boot-clean"
+}

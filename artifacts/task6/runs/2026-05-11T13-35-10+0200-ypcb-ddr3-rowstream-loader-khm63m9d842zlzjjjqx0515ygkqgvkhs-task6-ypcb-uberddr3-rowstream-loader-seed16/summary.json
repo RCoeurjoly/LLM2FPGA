@@ -1,0 +1,153 @@
+{
+  "artifact_name": "task6-ddr3-rowstream-loader-hardware-run",
+  "bitstream": "/nix/store/khm63m9d842zlzjjjqx0515ygkqgvkhs-task6-ypcb-uberddr3-rowstream-loader-seed16.bit",
+  "boundary_rows": [
+    {
+      "checked": true,
+      "expected_sha256": "40196a4f9533cf46f1c8d6014d60ae6ee8e85fa68b551e0d3fd7191b0994b4f7",
+      "matches": false,
+      "observed_sha256": "46c8f0d859af33b9a156bd0abc621975661518461a48ea96271bb4ffe66d7404",
+      "offset": 0,
+      "token": 0
+    },
+    {
+      "checked": true,
+      "expected_sha256": "6a6dd1097e6cc943e72b9ac08c020016c9b7b9c4600388e8bb8cab1d20ede027",
+      "matches": false,
+      "observed_sha256": "525896713a74d16a2fe25c3ce02ec30fefa84f259f093acb589d777a56772b14",
+      "offset": 68,
+      "token": 1
+    },
+    {
+      "checked": true,
+      "expected_sha256": "991bdadff584e8dbe31b86e97a4072f80718cfeef8824eccc8363b837cae18bb",
+      "matches": false,
+      "observed_sha256": "039189f3ad167c13d87cdeb83c4e638e96c586e037e6928dc3e01e710fb010fe",
+      "offset": 2108,
+      "token": 31
+    },
+    {
+      "checked": true,
+      "expected_sha256": "1b231c342fb1f1b880e9f5c83003112f919082b96c0736ab5ad538a0d81d94a3",
+      "matches": false,
+      "observed_sha256": "0af65a79ee331bc6d019c8630d41da50e9f1660d1be66f18b68f8d3b8f9c24e1",
+      "offset": 2176,
+      "token": 32
+    },
+    {
+      "checked": true,
+      "expected_sha256": "d41da3b3554069720ad98c096087744d9ba7e0f38b385e92e45358dcca988093",
+      "matches": false,
+      "observed_sha256": "662fddc3b0467baad30f8342440718333fdae3d9c6ca91035cde422d228641cf",
+      "offset": 3417408,
+      "token": 50256
+    }
+  ],
+  "date": "2026-05-11",
+  "final_debug": {
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "boot_read_ack_seen": true,
+    "boot_stall_seen": true,
+    "boot_write_ack_seen": true,
+    "calib_complete": true,
+    "calib_seen": true,
+    "calib_seen_cycle": 37853,
+    "command_count": 80,
+    "cycle": 1500561101,
+    "debug1": 1751,
+    "last_accepted": false,
+    "last_addr_low15": 9603,
+    "last_chunk": 0,
+    "last_magic_ok": true,
+    "last_opcode": 4,
+    "loader_cyc": false,
+    "loader_done": false,
+    "loader_error": false,
+    "loader_read_ack_seen": true,
+    "loader_stall_seen": false,
+    "loader_state": 1,
+    "loader_stb": false,
+    "loader_wait_cycles": 10,
+    "loader_write_ack_seen": true,
+    "magic": 1412844100,
+    "magic_ok": true,
+    "raw_hex": "0xa5830000000a34345134343451343434c1343434c1340000b981014010023434c13407866c7200000000000002b1000006d7000093dd5970becdd32354364a44",
+    "status": 211,
+    "version": 35,
+    "wb_ack_count": 689,
+    "wb_err_count": 0,
+    "wb_stall_count": 126250098
+  },
+  "full_readback": {
+    "enabled": false,
+    "matches_rowstream": null,
+    "sha256": null
+  },
+  "initial_debug": {
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "boot_read_ack_seen": true,
+    "boot_stall_seen": true,
+    "boot_write_ack_seen": true,
+    "calib_complete": true,
+    "calib_seen": true,
+    "calib_seen_cycle": 37853,
+    "command_count": 0,
+    "cycle": 875044,
+    "debug1": 1751,
+    "last_accepted": false,
+    "last_addr_low15": 0,
+    "last_chunk": 0,
+    "last_magic_ok": false,
+    "last_opcode": 0,
+    "loader_cyc": false,
+    "loader_done": false,
+    "loader_error": false,
+    "loader_read_ack_seen": false,
+    "loader_stall_seen": false,
+    "loader_state": 1,
+    "loader_stb": false,
+    "loader_wait_cycles": 0,
+    "loader_write_ack_seen": false,
+    "magic": 1412844100,
+    "magic_ok": true,
+    "raw_hex": "0x800000000000000000000000000000000000000000000000b80100000000000000000001a6fc0000000000000009000006d7000093dd000d5a24d32354364a44",
+    "status": 211,
+    "version": 35,
+    "wb_ack_count": 9,
+    "wb_err_count": 0,
+    "wb_stall_count": 108284
+  },
+  "rowstream": {
+    "bytes": 3418496,
+    "load_boundary_rows_only": true,
+    "load_elapsed_s": 30.122687364986632,
+    "load_ranges": [
+      {
+        "end": 136,
+        "start": 0
+      },
+      {
+        "end": 2244,
+        "start": 2108
+      },
+      {
+        "end": 3417476,
+        "start": 3417408
+      }
+    ],
+    "loaded_beats": 0,
+    "loaded_byte_count": 340,
+    "loaded_bytes": 3418496,
+    "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin",
+    "sha256": "2b30755a9a351538999cdc51cf9e7c6238672b2a0499bfb92b3f1dbf177b43b2",
+    "storage_mode": "lowbyte",
+    "total_beats": 53414
+  },
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T13-35-10+0200-ypcb-ddr3-rowstream-loader-khm63m9d842zlzjjjqx0515ygkqgvkhs-task6-ypcb-uberddr3-rowstream-loader-seed16",
+  "status": "FAIL",
+  "top1": null
+}

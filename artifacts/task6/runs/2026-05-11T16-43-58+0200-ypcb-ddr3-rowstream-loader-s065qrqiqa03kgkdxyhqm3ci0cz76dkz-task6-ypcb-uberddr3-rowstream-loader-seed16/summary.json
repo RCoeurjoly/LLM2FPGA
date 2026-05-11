@@ -1,0 +1,10 @@
+{
+  "beat0_prefix_hex": "00c1000000c100000051000000510e0f",
+  "count": 16,
+  "diagnostic_json": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T16-43-58+0200-ypcb-ddr3-rowstream-loader-s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16/dense-diagnostic.json",
+  "expected_prefix_hex": "000102030405060708090a0b0c0d0e0f",
+  "mismatch_count": 13,
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-11T16-43-58+0200-ypcb-ddr3-rowstream-loader-s065qrqiqa03kgkdxyhqm3ci0cz76dkz-task6-ypcb-uberddr3-rowstream-loader-seed16",
+  "status": "FAIL",
+  "verdict": "dense-byte-contract-fails"
+}
