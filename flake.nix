@@ -6212,6 +6212,25 @@
           freqMHz = 25;
         };
 
+        task6YpcbUberDdr3RowstreamLoaderSeed16ClockedPlacedJson = mkPlacedJson {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          seed = 16;
+          freqMHz = 25;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+        };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedPlacedJson = mkPlacedJson {
+          name = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          seed = 16;
+          freqMHz = 25;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          prePlaceScripts = [ task6YpcbUberDdr3KnownGoodPrePlaceBelLocks ];
+        };
+
         task6YpcbUberDdr3RowstreamLoaderSeed16BelLocksJson =
           pkgs.runCommand
             "task6-ypcb-uberddr3-rowstream-loader-seed16-bel-locks.json"
@@ -6272,6 +6291,19 @@
                 --no-fail-on-change
             '';
 
+        task6YpcbUberDdr3RowstreamLoaderClockedPlacementStabilityV40Json =
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-rowstream-loader-clocked-placement-stability-v40.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/compare_nextpnr_placement_stability.py} \
+                --baseline-bel-locks ${task6YpcbUberDdr3KnownGoodPackedBelLocks} \
+                --candidate-placed-json ${task6YpcbUberDdr3RowstreamLoaderSeed16ClockedPlacedJson} \
+                --label task6-ypcb-uberddr3-rowstream-loader-v40-vs-current-seed16-clocked \
+                --out-json "$out" \
+                --no-fail-on-change
+            '';
+
         task6YpcbUberDdr3RowstreamLoaderClockedLockedPhysicalStabilityV40Json =
           pkgs.runCommand
             "task6-ypcb-uberddr3-rowstream-loader-clocked-locked-physical-stability-v40.json"
@@ -6283,6 +6315,19 @@
                 --label task6-ypcb-uberddr3-rowstream-loader-v40-vs-current-seed16-clocked-locked \
                 --ignore-tile LIOB33_X0Y225 \
                 --ignore-tile LIOI3_X0Y225 \
+                --out-json "$out" \
+                --no-fail-on-change
+            '';
+
+        task6YpcbUberDdr3RowstreamLoaderClockedLockedPlacementStabilityV40Json =
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-rowstream-loader-clocked-locked-placement-stability-v40.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/compare_nextpnr_placement_stability.py} \
+                --baseline-bel-locks ${task6YpcbUberDdr3KnownGoodPackedBelLocks} \
+                --candidate-placed-json ${task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedPlacedJson} \
+                --label task6-ypcb-uberddr3-rowstream-loader-v40-vs-current-seed16-clocked-locked \
                 --out-json "$out" \
                 --no-fail-on-change
             '';
@@ -10390,6 +10435,10 @@
             task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedBitstream;
           task6-ypcb-uberddr3-rowstream-loader-seed16-placed-json =
             task6YpcbUberDdr3RowstreamLoaderSeed16PlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-placed-json =
+            task6YpcbUberDdr3RowstreamLoaderSeed16ClockedPlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-placed-json =
+            task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedPlacedJson;
           task6-ypcb-uberddr3-rowstream-loader-seed16-bel-locks-json =
             task6YpcbUberDdr3RowstreamLoaderSeed16BelLocksJson;
           task6-ypcb-uberddr3-rowstream-loader-seed16-locked-yosys-json =
@@ -10402,6 +10451,10 @@
             task6YpcbUberDdr3RowstreamLoaderClockedPhysicalStabilityV40Json;
           task6-ypcb-uberddr3-rowstream-loader-clocked-locked-physical-stability-v40-json =
             task6YpcbUberDdr3RowstreamLoaderClockedLockedPhysicalStabilityV40Json;
+          task6-ypcb-uberddr3-rowstream-loader-clocked-placement-stability-v40-json =
+            task6YpcbUberDdr3RowstreamLoaderClockedPlacementStabilityV40Json;
+          task6-ypcb-uberddr3-rowstream-loader-clocked-locked-placement-stability-v40-json =
+            task6YpcbUberDdr3RowstreamLoaderClockedLockedPlacementStabilityV40Json;
           task6-ypcb-uberddr3-user-port-probe-seed15-fasm =
             task6YpcbUberDdr3UserPortProbeSeed15Fasm;
           task6-ypcb-uberddr3-user-port-probe-seed15-bitstream =
