@@ -51,7 +51,7 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 47
+DEBUG_VERSION = 46
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
@@ -335,10 +335,13 @@ def decode_debug(raw: int) -> dict[str, Any]:
         "boot_error": bool(loader_word & (1 << 14)),
         "boot_stall_seen": bool(loader_word & (1 << 15)),
         "boot_mismatch": bool(loader_word & (1 << 16)),
-        "ack_we": bool((raw >> 464) & 0x1),
-        "ack_addr_low15": (raw >> 465) & 0x7FFF,
-        "ack_sel_low16": (raw >> 480) & 0xFFFF,
-        "ack_data_low16": (raw >> 496) & 0xFFFF,
+        "loader_wait_cycles": (raw >> 464) & 0xFFFF_FFFF,
+        "last_addr_low15": (raw >> 496) & 0x7FFF,
+        "dense_write_seen": bool((raw >> 464) & 0x1),
+        "dense_write_wb_addr_low16": (raw >> 465) & 0xFFFF,
+        "dense_write_lane": (raw >> 481) & 0x3F,
+        "dense_write_data": (raw >> 487) & 0xFF,
+        "dense_write_sel_low16": (raw >> 496) & 0xFFFF,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
     }
