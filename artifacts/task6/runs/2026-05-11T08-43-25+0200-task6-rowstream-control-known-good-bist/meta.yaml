@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-11T08:43:25.587306+02:00"
+label: "task6-rowstream-control-known-good-bist"
+experiment: "task6-uberddr3-systematic-ddr3"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/i7adl8g88v0wcj6j40s07wsvc60bzh2n-task6-ypcb-uberddr3-bist-seed16.bit"
+reference_artifacts:
+notes: "rowstream-loader-calibration-control"

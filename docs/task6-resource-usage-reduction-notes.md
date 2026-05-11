@@ -205,6 +205,92 @@ Hardware result:
   validator command and is retained as transport instrumentation; consumed
   `run_count` advances by 1 per command.
 
+### 2026-05-11 - DDR3 rowstream low-byte loader gate
+
+Decision:
+
+- Start TinyStories weight externalization with the deliberately wasteful
+  low-byte-per-address mapping before relying on 512-bit DDR3 lane packing.
+- The first hardware gate is rowstream byte integrity, not model integration:
+  byte `N` of `rowstream.bin` is written to DDR3 Wishbone address `N`, byte
+  lane 0, and read back from the same address/lane.
+- Keep the dense 64-byte beat loader path available for later bandwidth work,
+  but make the host loader default to `--storage-mode lowbyte` for the next
+  deterministic proof.
+
+Implementation:
+
+- `fpga/rtl/task6_ypcb_uberddr3_rowstream_loader_top.sv` debug payload version
+  is now `30`.
+- Added loader opcodes:
+  - `0x03`: write one low byte with `i_wb_sel[0]` asserted.
+  - `0x04`: read one low byte from `o_wb_data[7:0]`.
+- v30 also tried `BIST_MODE=1`, matching the known-good calibration topology.
+  This did not restore calibration for the standalone rowstream-loader wrapper.
+- `scripts/task6/task6_ddr3_rowstream_loader.py` now supports:
+  - `--storage-mode lowbyte` for the Task 6 weight rowstream proof.
+  - `--storage-mode beat` for the previous dense 64-byte path.
+  - `--max-bytes` and `--progress-bytes` for cheap partial low-byte runs.
+  - `--load-boundary-rows-only` to write only the token rows named by
+    `--boundary-tokens`, making first/boundary row proof fast enough for the
+    next board check.
+  - run directories now include the bitstream stem instead of a hard-coded
+    `seed15` suffix.
+
+Validation already run:
+
+- `python3 -m py_compile scripts/task6/task6_ddr3_rowstream_loader.py`: pass.
+
+Hardware commands used:
+
+```sh
+nix build .#task6-ypcb-uberddr3-rowstream-loader-seed16-bitstream --no-link --print-out-paths -L
+python3 scripts/task6/task6_ddr3_rowstream_loader.py \
+  --bitstream /nix/store/vq59i7v0kfm8r13qz0aiv4vfip9ii9h5-task6-ypcb-uberddr3-rowstream-loader-seed16.bit \
+  --storage-mode lowbyte \
+  --load-boundary-rows-only \
+  --boundary-tokens 0,1,31,32,50256 \
+  --no-full-readback
+```
+
+Results:
+
+| variant | bitstream | result |
+| --- | --- | --- |
+| v29 seed16, `BIST_MODE=0` | `/nix/store/f7cm0m0zqw7z8c5h0l80zqlscs7b4bc1-task6-ypcb-uberddr3-rowstream-loader-seed16.bit` | JTAG magic/version valid, DDR3 calibration timeout: `version=29`, `calib_seen=false`, `debug1=0x00000ecc` |
+| v29 seed15, `BIST_MODE=0` | `/nix/store/8jyx0wl8xfr7j94hii5vx1i86wpjqc57-task6-ypcb-uberddr3-rowstream-loader-seed15.bit` | JTAG magic/version valid, DDR3 calibration timeout: `version=29`, `calib_seen=false`, `debug1=0x000006cc` |
+| v30 seed16, `BIST_MODE=1` | `/nix/store/vq59i7v0kfm8r13qz0aiv4vfip9ii9h5-task6-ypcb-uberddr3-rowstream-loader-seed16.bit` | route converged and timing passed, JTAG magic/version valid, DDR3 calibration timeout: `version=30`, `calib_seen=false`, `debug1=0x000026cc` |
+| known-good BIST control | `.#task6-ypcb-uberddr3-bist-seed16-bitstream` | pass; run `artifacts/task6/runs/2026-05-11T08-43-25+0200-task6-rowstream-control-known-good-bist`, `calibration=pass`, `integrity=pass`, `ack_count=9`, `err_count=0`, stream bytes `0xa5,0xa6,0xa7,0xa8` |
+
+Interpretation:
+
+- The board, JTAG transport, and known-good BIST-derived low-byte stream are
+  still healthy.
+- The standalone rowstream-loader wrapper is not the right base for the next
+  proof: even with `BIST_MODE=1`, it exposes valid debug payloads but prevents
+  DDR3 calibration.
+- The next implementation should preserve `task6_ypcb_uberddr3_bist_top.sv`'s
+  calibrated wrapper shape and add only a minimal rowstream/window loader on top
+  of that proven transaction sequence.
+
+Passing bar for the replacement BIST-derived rowstream loader:
+
+- DDR3 calibrates with valid JTAG magic/version for the new build.
+- The selected `rowstream.bin` row ranges are written in low-byte mode. A full
+  image load remains a later throughput/time-budget run.
+- Token rows `0,1,31,32,50256` byte-match when their row offsets are inside
+  the loaded byte range.
+- No Wishbone error, loader error, or stale JTAG decode is accepted.
+
+Promotion rule:
+
+- If the low-byte row checks pass for first and boundary rows, add the smallest
+  DDR3-backed top1 cutout that reads this same low-byte address contract.
+- Do not switch to dense 64-byte beat rowstream loading until the low-byte
+  contract passes and lane mapping is no longer the debugging variable.
+- Do not connect TinyStories weights to the model path from the standalone
+  rowstream-loader top; replace it with a BIST-derived loader first.
+
 ### 2026-05-09 - Boring DDR3 bring-up operating contract
 
 Decision:

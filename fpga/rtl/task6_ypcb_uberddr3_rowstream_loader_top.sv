@@ -24,11 +24,13 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd28;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd30;
   localparam int JTAG_COMMAND_WIDTH = 192;
   localparam logic [31:0] LOADER_COMMAND_MAGIC = 32'h33445244;
   localparam logic [7:0] LOADER_OP_WRITE_CHUNK = 8'h01;
   localparam logic [7:0] LOADER_OP_READ_BEAT = 8'h02;
+  localparam logic [7:0] LOADER_OP_WRITE_LOWBYTE = 8'h03;
+  localparam logic [7:0] LOADER_OP_READ_LOWBYTE = 8'h04;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -148,6 +150,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
   logic loader_cyc_q;
   logic loader_stb_q;
   logic loader_we_q;
+  logic [WB_SEL_BITS - 1:0] loader_sel_q;
   logic loader_done_q;
   logic loader_error_q;
   logic loader_stall_seen_q;
@@ -206,6 +209,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
       loader_cyc_q <= 1'b0;
       loader_stb_q <= 1'b0;
       loader_we_q <= 1'b0;
+      loader_sel_q <= '0;
       loader_done_q <= 1'b0;
       loader_error_q <= 1'b0;
       loader_stall_seen_q <= 1'b0;
@@ -260,6 +264,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
             if (jtag_command_chunk == 2'd3) begin
               loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
               loader_write_data_q <= loader_stage_data_next;
+              loader_sel_q <= {WB_SEL_BITS{1'b1}};
               loader_we_q <= 1'b1;
               loader_cyc_q <= 1'b1;
               loader_stb_q <= 1'b1;
@@ -270,6 +275,23 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
           end else if (jtag_command_opcode == LOADER_OP_READ_BEAT) begin
             loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
             loader_read_chunk_q <= jtag_command_chunk;
+            loader_sel_q <= {WB_SEL_BITS{1'b1}};
+            loader_we_q <= 1'b0;
+            loader_cyc_q <= 1'b1;
+            loader_stb_q <= 1'b1;
+            loader_state_q <= LOADER_ISSUE;
+          end else if (jtag_command_opcode == LOADER_OP_WRITE_LOWBYTE) begin
+            loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
+            loader_write_data_q <= {{(WB_DATA_BITS - 8){1'b0}}, jtag_command_data[7:0]};
+            loader_sel_q <= {{(WB_SEL_BITS - 1){1'b0}}, 1'b1};
+            loader_we_q <= 1'b1;
+            loader_cyc_q <= 1'b1;
+            loader_stb_q <= 1'b1;
+            loader_state_q <= LOADER_ISSUE;
+          end else if (jtag_command_opcode == LOADER_OP_READ_LOWBYTE) begin
+            loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
+            loader_read_chunk_q <= 2'd0;
+            loader_sel_q <= {{(WB_SEL_BITS - 1){1'b0}}, 1'b1};
             loader_we_q <= 1'b0;
             loader_cyc_q <= 1'b1;
             loader_stb_q <= 1'b1;
@@ -285,6 +307,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
           loader_cyc_q <= 1'b0;
           loader_stb_q <= 1'b0;
           loader_we_q <= 1'b0;
+          loader_sel_q <= '0;
           if (calib_complete)
             loader_state_q <= LOADER_IDLE;
         end
@@ -293,6 +316,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
           loader_cyc_q <= 1'b0;
           loader_stb_q <= 1'b0;
           loader_we_q <= 1'b0;
+          loader_sel_q <= '0;
         end
 
         LOADER_ISSUE: begin
@@ -347,6 +371,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
           loader_cyc_q <= 1'b0;
           loader_stb_q <= 1'b0;
           loader_we_q <= 1'b0;
+          loader_sel_q <= '0;
         end
 
         default: loader_state_q <= LOADER_ERROR;
@@ -420,7 +445,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
     .SECOND_WISHBONE(0),
     .DLL_OFF(1),
     .WB_ERROR(0),
-    .BIST_MODE(0),
+    .BIST_MODE(1),
     .ECC_ENABLE(0)
   ) uberddr3 (
     .i_controller_clk(controller_clk),
@@ -433,7 +458,7 @@ module task6_ypcb_uberddr3_rowstream_loader_top #(
     .i_wb_we(loader_we_q),
     .i_wb_addr(loader_addr_q),
     .i_wb_data(loader_write_data_q),
-    .i_wb_sel({WB_SEL_BITS{1'b1}}),
+    .i_wb_sel(loader_sel_q),
     .i_aux({3'd0, !loader_we_q}),
     .o_wb_stall(wb_stall),
     .o_wb_ack(wb_ack),

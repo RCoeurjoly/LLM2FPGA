@@ -51,11 +51,13 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 28
+DEBUG_VERSION = 30
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
 OP_READ_BEAT = 0x02
+OP_WRITE_LOWBYTE = 0x03
+OP_READ_LOWBYTE = 0x04
 BEAT_BYTES = 64
 
 
@@ -81,9 +83,33 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--command-delay", type=float, default=0.001)
     parser.add_argument("--poll-timeout", type=float, default=5.0)
     parser.add_argument("--calib-timeout", type=float, default=20.0)
+    parser.add_argument(
+        "--storage-mode",
+        choices=("lowbyte", "beat"),
+        default="lowbyte",
+        help=(
+            "lowbyte stores one rowstream byte in DDR3 byte lane 0 at one "
+            "Wishbone address per stream byte; beat uses dense 64-byte beats"
+        ),
+    )
     parser.add_argument("--max-beats", type=int, help="debug limit; default loads the full image")
+    parser.add_argument(
+        "--max-bytes",
+        type=int,
+        help="debug limit for --storage-mode lowbyte; default loads the full image",
+    )
     parser.add_argument("--progress-beats", type=int, default=1024)
+    parser.add_argument("--progress-bytes", type=int, default=65536)
     parser.add_argument("--boundary-tokens", default="0,1,31,32,50256")
+    parser.add_argument(
+        "--load-boundary-rows-only",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "in lowbyte mode, write only the row byte ranges named by "
+            "--boundary-tokens for a fast first/boundary row proof"
+        ),
+    )
     parser.add_argument("--full-readback", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--model-path", type=Path)
@@ -342,6 +368,19 @@ class RowstreamLoader:
             chunks.append(debug["read_data_chunk"])
         return b"".join(chunks), debug
 
+    def write_lowbyte(self, stream_addr: int, value: int) -> dict[str, Any]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        self.send_command(OP_WRITE_LOWBYTE, 0, stream_addr, bytes([value & 0xFF]))
+        return self.wait_ready(min_ack_count=min_ack)
+
+    def read_lowbyte(self, stream_addr: int) -> tuple[int, dict[str, Any]]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        self.send_command(OP_READ_LOWBYTE, 0, stream_addr)
+        debug = self.wait_ready(min_ack_count=min_ack)
+        return debug["read_data_chunk"][0], debug
+
 
 def summarize_debug(debug: dict[str, Any]) -> str:
     return (
@@ -352,12 +391,13 @@ def summarize_debug(debug: dict[str, Any]) -> str:
     )
 
 
-def make_run_dir(base: Path | None) -> Path:
+def make_run_dir(base: Path | None, label: str) -> Path:
     if base is not None:
         base.mkdir(parents=True, exist_ok=True)
         return base
     stamp = dt.datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S%z")
-    run_dir = DEFAULT_RUN_ROOT / f"{stamp}-ypcb-ddr3-rowstream-loader-seed15"
+    safe_label = "".join(char if char.isalnum() or char in "-_" else "-" for char in label)
+    run_dir = DEFAULT_RUN_ROOT / f"{stamp}-ypcb-ddr3-rowstream-loader-{safe_label}"
     run_dir.mkdir(parents=True, exist_ok=False)
     return run_dir
 
@@ -394,9 +434,31 @@ def read_row(loader: RowstreamLoader, token: int, contract: dict[str, Any]) -> b
     return bytes(data[rel : rel + row_bytes])
 
 
+def read_row_lowbyte(loader: RowstreamLoader, token: int, contract: dict[str, Any]) -> bytes:
+    row_bytes = contract["row_format"]["row_bytes"]
+    start = row_offset(token, contract)
+    return bytes(loader.read_lowbyte(start + index)[0] for index in range(row_bytes))
+
+
+def merge_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted(ranges):
+        if start >= end:
+            continue
+        if not merged or start > merged[-1][1]:
+            merged.append((start, end))
+        else:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+    return merged
+
+
+def range_covered(start: int, end: int, ranges: list[tuple[int, int]]) -> bool:
+    return any(start >= range_start and end <= range_end for range_start, range_end in ranges)
+
+
 def main() -> int:
     args = parse_args()
-    run_dir = make_run_dir(args.run_dir)
+    run_dir = make_run_dir(args.run_dir, args.bitstream.stem)
     contract = read_json(args.contract_json)
     replay = read_json(args.replay_json)
     image = args.rowstream_bin.read_bytes()
@@ -406,36 +468,70 @@ def main() -> int:
     if len(image) % BEAT_BYTES != 0:
         raise SystemExit("rowstream image must be 64-byte aligned")
     total_beats = len(image) // BEAT_BYTES
-    beats_to_load = min(total_beats, args.max_beats) if args.max_beats else total_beats
+    boundary_tokens = [int(token_text, 0) for token_text in args.boundary_tokens.split(",")]
+    if args.storage_mode == "beat":
+        beats_to_load = min(total_beats, args.max_beats) if args.max_beats else total_beats
+        bytes_to_load = beats_to_load * BEAT_BYTES
+        load_ranges = [(0, bytes_to_load)]
+    else:
+        bytes_to_load = min(len(image), args.max_bytes) if args.max_bytes else len(image)
+        beats_to_load = 0
+        if args.load_boundary_rows_only:
+            row_bytes = contract["row_format"]["row_bytes"]
+            load_ranges = merge_ranges(
+                [
+                    (row_offset(token, contract), row_offset(token, contract) + row_bytes)
+                    for token in boundary_tokens
+                ]
+            )
+        else:
+            load_ranges = [(0, bytes_to_load)]
+    loaded_byte_count = sum(end - start for start, end in load_ranges)
 
     program_bitstream(args, run_dir)
     loader = RowstreamLoader(args)
     try:
         initial_debug = loader.wait_calibration()
         load_start = time.monotonic()
-        for beat in range(beats_to_load):
-            offset = beat * BEAT_BYTES
-            loader.write_beat(beat, image[offset : offset + BEAT_BYTES])
-            if not args.json_only and args.progress_beats and (beat + 1) % args.progress_beats == 0:
-                elapsed = time.monotonic() - load_start
-                print(f"loaded {beat + 1}/{beats_to_load} beats in {elapsed:.1f}s", flush=True)
+        if args.storage_mode == "beat":
+            for beat in range(beats_to_load):
+                offset = beat * BEAT_BYTES
+                loader.write_beat(beat, image[offset : offset + BEAT_BYTES])
+                if not args.json_only and args.progress_beats and (beat + 1) % args.progress_beats == 0:
+                    elapsed = time.monotonic() - load_start
+                    print(f"loaded {beat + 1}/{beats_to_load} beats in {elapsed:.1f}s", flush=True)
+        else:
+            loaded = 0
+            for start, end in load_ranges:
+                for stream_addr in range(start, end):
+                    loader.write_lowbyte(stream_addr, image[stream_addr])
+                    loaded += 1
+                    if not args.json_only and args.progress_bytes and loaded % args.progress_bytes == 0:
+                        elapsed = time.monotonic() - load_start
+                        print(
+                            f"loaded {loaded}/{loaded_byte_count} low-byte addresses in {elapsed:.1f}s",
+                            flush=True,
+                        )
         load_elapsed = time.monotonic() - load_start
 
         boundary_results = []
-        for token_text in args.boundary_tokens.split(","):
-            token = int(token_text, 0)
+        for token in boundary_tokens:
             row_start = row_offset(token, contract)
             row_end = row_start + contract["row_format"]["row_bytes"]
-            if row_end > beats_to_load * BEAT_BYTES:
+            if not range_covered(row_start, row_end, load_ranges):
                 boundary_results.append(
                     {
                         "token": token,
                         "checked": False,
-                        "reason": "outside loaded beat range",
+                        "reason": "outside loaded byte ranges",
                     }
                 )
                 continue
-            observed = read_row(loader, token, contract)
+            observed = (
+                read_row(loader, token, contract)
+                if args.storage_mode == "beat"
+                else read_row_lowbyte(loader, token, contract)
+            )
             expected = image[row_start:row_end]
             boundary_results.append(
                 {
@@ -451,15 +547,25 @@ def main() -> int:
         readback_sha = None
         top1 = None
         full_match = None
-        if args.full_readback and beats_to_load == total_beats:
+        full_image_loaded = load_ranges == [(0, len(image))]
+        if args.full_readback and full_image_loaded:
             readback = bytearray()
             read_start = time.monotonic()
-            for beat in range(total_beats):
-                beat_data, _debug = loader.read_beat(beat)
-                readback.extend(beat_data)
-                if not args.json_only and args.progress_beats and (beat + 1) % args.progress_beats == 0:
-                    elapsed = time.monotonic() - read_start
-                    print(f"read {beat + 1}/{total_beats} beats in {elapsed:.1f}s", flush=True)
+            if args.storage_mode == "beat":
+                for beat in range(total_beats):
+                    beat_data, _debug = loader.read_beat(beat)
+                    readback.extend(beat_data)
+                    if not args.json_only and args.progress_beats and (beat + 1) % args.progress_beats == 0:
+                        elapsed = time.monotonic() - read_start
+                        print(f"read {beat + 1}/{total_beats} beats in {elapsed:.1f}s", flush=True)
+            else:
+                for stream_addr in range(len(image)):
+                    value, _debug = loader.read_lowbyte(stream_addr)
+                    readback.append(value)
+                    read_count = stream_addr + 1
+                    if not args.json_only and args.progress_bytes and read_count % args.progress_bytes == 0:
+                        elapsed = time.monotonic() - read_start
+                        print(f"read {read_count}/{len(image)} low-byte addresses in {elapsed:.1f}s", flush=True)
             readback_bytes = bytes(readback)
             (run_dir / "rowstream-ddr3-readback.bin").write_bytes(readback_bytes)
             readback_sha = hashlib.sha256(readback_bytes).hexdigest()
@@ -484,7 +590,7 @@ def main() -> int:
         item.get("matches", False) for item in boundary_results if item.get("checked")
     )
     full_status = (
-        beats_to_load == total_beats
+        load_ranges == [(0, len(image))]
         and boundary_pass
         and (full_match is not False)
         and (top1 is None or top1["status"] == "PASS")
@@ -499,8 +605,13 @@ def main() -> int:
             "path": str(args.rowstream_bin),
             "bytes": len(image),
             "sha256": hashlib.sha256(image).hexdigest(),
+            "storage_mode": args.storage_mode,
             "total_beats": total_beats,
             "loaded_beats": beats_to_load,
+            "loaded_bytes": bytes_to_load,
+            "loaded_byte_count": loaded_byte_count,
+            "load_boundary_rows_only": args.load_boundary_rows_only,
+            "load_ranges": [{"start": start, "end": end} for start, end in load_ranges],
             "load_elapsed_s": load_elapsed,
         },
         "initial_debug": json_debug(initial_debug),
