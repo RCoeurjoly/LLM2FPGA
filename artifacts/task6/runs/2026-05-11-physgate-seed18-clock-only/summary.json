@@ -1,0 +1,10 @@
+{
+  "boot_done": true,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "calib_seen": true,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-physgate-seed18-clock-only/boot-diagnostic.json",
+  "run_dir": "artifacts/task6/runs/2026-05-11-physgate-seed18-clock-only",
+  "status": "PASS",
+  "verdict": "boot-clean"
+}

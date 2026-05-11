@@ -1,0 +1,10 @@
+{
+  "beat0_prefix_hex": "00c1000000c10607",
+  "count": 8,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-physgate-seed18-clock-only-dense8/dense-diagnostic.json",
+  "expected_prefix_hex": "0001020304050607",
+  "mismatch_count": 5,
+  "run_dir": "artifacts/task6/runs/2026-05-11-physgate-seed18-clock-only-dense8",
+  "status": "FAIL",
+  "verdict": "dense-byte-contract-fails"
+}

@@ -415,6 +415,85 @@ Current interpretation:
   addresses `0..15`, read it back, and record the observed permutation or
   collapse before trying boundary rows again.
 
+### 2026-05-11 - Pre-place stability gate from known-good v40/v44 locks
+
+Decision:
+
+- Keep v40/v44 as the baseline calibration reference and stop seed-tuning by
+  hand. Use constrained lock experiments to see what physical features matter.
+- Keep two lock groups for this experiment:
+  - `clock-only`: `ddr3_clocks` scope only
+  - `clock-and-phy`: `ddr3_clocks + uberddr3_phy + ddr3_board_pins`
+- Keep the physical-stability gate in both placement/route dimensions:
+  - `compare_nextpnr_placement_stability.py` (critical scoped cell placement)
+  - `compare_nextpnr_fasm_physical_stability.py` (FASM footprint deltas)
+
+Implementation changes in this experiment:
+
+- `flake.nix` now builds a reusable constrained generator and the concrete
+  clock-only / clock+phy lock sets:
+  - `task6YpcbUberDdr3KnownGoodClockPrePlaceBelLocks`
+  - `task6YpcbUberDdr3KnownGoodClockAndPhyPrePlaceBelLocks`
+- `scripts/task6/generate_nextpnr_pre_place_bel_locks.py` now supports
+  `--scope` and `--type` filters so we can generate those lock subsets from
+  `known-good-packed-bel-locks.json` directly.
+- Built and tracked constrained variants for seeds 15, 16, 17, and 18:
+  - `seed{N}-clocked-locked-clock-only`
+  - `seed{N}-clocked-locked-clock-and-phy`
+
+Hardware gate outcomes (`boot-only`, exact RTL `version=45`):
+
+| seed | lock scope | boot-only | calib status | debug summary |
+| --- | --- | --- | --- | --- |
+| 15 | clock-only | FAIL | `calib_seen=False`, `boot_mismatch=False` | `state=1`, `ack=0`, `debug1=0x000006cc` |
+| 15 | clock+phy | FAIL | `calib_seen=False`, `boot_mismatch=False` | `state=1`, `ack=0`, `debug1=0x000006cc` |
+| 16 | clock-only | FAIL | `calib_seen=False`, `boot_mismatch=False` | `state=1`, `ack=0`, `debug1=0x000006cc` |
+| 16 | clock+phy | FAIL | `calib_seen=False`, `boot_mismatch=False` | `state=1`, `ack=0`, `debug1=0x000016a9` |
+| 17 | clock-only | FAIL | `calib_seen=False`, `boot_mismatch=False` | `state=1`, `ack=0`, `debug1=0x000026cc` |
+| 17 | clock+phy | FAIL | `calib_seen=False`, `boot_mismatch=False` | `state=1`, `ack=0`, `debug1=0x000006cc` |
+| 18 | clock-only | PASS | `calib_seen=True`, `boot_mismatch=False` | `boot_done=True`, `version=45`, `wb_ack_count=9` |
+| 18 | clock+phy | PASS | `calib_seen=True`, `boot_mismatch=False` | `boot_done=True`, `version=45`, `wb_ack_count=9` |
+
+Stability-gate outcomes for the same artifacts:
+
+| seed | lock scope | placement gate | physical gate | note |
+| --- | --- | --- | --- | --- |
+| 15 | clock-only | PASS | WARN | Clock-routing moved but critical I/O/PHY sites unchanged. |
+| 15 | clock+phy | PASS | WARN | Same as above. |
+| 16 | clock-only | PASS | FAIL | Site-level DDR3/clock-site FASM class deltas. |
+| 16 | clock+phy | PASS | FAIL | Same as above. |
+| 17 | clock-only | PASS | FAIL | Same as above. |
+| 17 | clock+phy | PASS | FAIL | Same as above. |
+| 18 | clock-only | PASS | FAIL | Same as above. |
+| 18 | clock+phy | PASS | FAIL | Same as above. |
+
+Interpretation:
+
+- Placement is stable across all constrained variants, so this gate is not
+  discriminating the current calibration failures.
+- The physical FASM gate is too strict for the known-clean seed18 passes; it
+  flags large clock-route/iob swaps that still produced `boot_clean` and no
+  DDR3 errors on that seed.
+- Seed18 is therefore the best anchor for the next phase because it is the only
+  constrained set that still meets the stricter boot contract.
+
+Next concrete gate (`seed18` only):
+
+- `--diagnostic-dense-count 8` was executed on both constrained seed18 variants.
+- Result: both failed with `mismatch_count=5` on lane readback; observed pattern
+  indicates lane permutation/stale bytes in the 64-byte beat path (lanes 1,2,3,4,5
+  mismatching).
+- So deterministic dense-byte rowstreaming is **not** yet proven, and the row
+  streaming path still cannot be connected to TinyStories without a lane-mapping
+  fix.
+
+Run artifacts for this gate:
+
+- `artifacts/task6/runs/2026-05-11-physgate-seed18-clock-only`
+- `artifacts/task6/runs/2026-05-11-physgate-seed18-clock-and-phy`
+- `artifacts/task6/runs/2026-05-11-physgate-seed18-clock-only-dense8`
+- `artifacts/task6/runs/2026-05-11-physgate-seed18-clock-and-phy-dense8`
+
 ### 2026-05-09 - Boring DDR3 bring-up operating contract
 
 Decision:
