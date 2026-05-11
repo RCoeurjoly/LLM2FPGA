@@ -12,6 +12,7 @@ module task6_uberddr3_rowstream_loader_contract_tb;
   localparam logic [7:0] OP_WRITE_DENSE_BYTE = 8'h05;
   localparam logic [7:0] OP_READ_DENSE_BEAT = 8'h06;
   localparam logic [7:0] OP_WRITE_DENSE_FILL = 8'h08;
+  localparam logic [7:0] OP_RUN_FULLBEAT = 8'h09;
 
   logic clk;
   logic rst_n;
@@ -40,6 +41,10 @@ module task6_uberddr3_rowstream_loader_contract_tb;
   wire [1:0] loader_last_chunk;
   wire loader_last_magic_ok;
   wire loader_last_accepted;
+  wire loader_fullbeat_done;
+  wire [6:0] loader_fullbeat_mismatch_count;
+  wire [WB_ADDR_BITS - 1:0] loader_fullbeat_addr;
+  wire [7:0] loader_fullbeat_expected_base;
   wire [3:0] loader_state;
 
   logic [WB_DATA_BITS - 1:0] mem [0:1023];
@@ -60,7 +65,8 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     .LOADER_OP_READ_LOWBYTE(OP_READ_LOWBYTE),
     .LOADER_OP_WRITE_DENSE_BYTE(OP_WRITE_DENSE_BYTE),
     .LOADER_OP_READ_DENSE_BEAT(OP_READ_DENSE_BEAT),
-    .LOADER_OP_WRITE_DENSE_FILL(OP_WRITE_DENSE_FILL)
+    .LOADER_OP_WRITE_DENSE_FILL(OP_WRITE_DENSE_FILL),
+    .LOADER_OP_RUN_FULLBEAT(OP_RUN_FULLBEAT)
   ) dut (
     .clk_i(clk),
     .rst_ni(rst_n),
@@ -89,6 +95,10 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     .loader_last_chunk_o(loader_last_chunk),
     .loader_last_magic_ok_o(loader_last_magic_ok),
     .loader_last_accepted_o(loader_last_accepted),
+    .loader_fullbeat_done_o(loader_fullbeat_done),
+    .loader_fullbeat_mismatch_count_o(loader_fullbeat_mismatch_count),
+    .loader_fullbeat_addr_o(loader_fullbeat_addr),
+    .loader_fullbeat_expected_base_o(loader_fullbeat_expected_base),
     .loader_state_o(loader_state)
   );
 
@@ -127,11 +137,11 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     int timeout;
     begin
       timeout = 0;
-      while (!loader_done && !loader_error && timeout < 64) begin
+      while (!loader_done && !loader_error && timeout < 1200) begin
         @(negedge clk);
         timeout = timeout + 1;
       end
-      if (timeout == 64) begin
+      if (timeout == 1200) begin
         $display("FAIL: %s timed out", label);
         errors = errors + 1;
       end
@@ -263,6 +273,7 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     logic [COMMAND_WIDTH - 1:0] dense_read_cmd;
     logic [COMMAND_WIDTH - 1:0] dense_fill_cmd;
     logic [COMMAND_WIDTH - 1:0] dense_fill_read_cmd;
+    logic [COMMAND_WIDTH - 1:0] fullbeat_cmd;
     int i;
 
     clk = 1'b0;
@@ -341,9 +352,19 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     for (i = 0; i < 16; i = i + 1)
       check_cond(loader_read_data[i * 8 +: 8] == 8'h5a, "read-dense-fill must capture repeated byte lanes 0..15");
 
+    fullbeat_cmd = make_command(COMMAND_MAGIC, OP_RUN_FULLBEAT, 2'd0, 32'd3, 8'h20);
+    pulse_command_pair_and_wait(fullbeat_cmd, "run-fullbeat");
+    check_cond(loader_error == 1'b0, "run-fullbeat must not raise loader_error");
+    check_cond(loader_fullbeat_done == 1'b1, "run-fullbeat must set fullbeat_done after readback");
+    check_cond(loader_fullbeat_mismatch_count == 7'd0, "run-fullbeat must compare all generated lanes");
+    check_cond(loader_fullbeat_addr == 10'd3, "run-fullbeat must record the beat address");
+    check_cond(loader_fullbeat_expected_base == 8'h20, "run-fullbeat must record the generated base byte");
+    check_cond(mem[3][7:0] == 8'h20, "run-fullbeat must write generated lane 0");
+    check_cond(mem[3][511:504] == 8'h5f, "run-fullbeat must write generated lane 63");
+
     pulse_command(make_command(32'h0, OP_WRITE_LOWBYTE, 2'd0, 32'd7, 8'ha5));
     repeat (8) @(negedge clk);
-    check_cond(write_count == 18, "bad magic must not issue Wishbone writes");
+    check_cond(write_count == 19, "bad magic must not issue Wishbone writes");
 
     if (errors == 0) begin
       $display(

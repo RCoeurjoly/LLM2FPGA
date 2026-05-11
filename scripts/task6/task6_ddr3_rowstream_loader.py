@@ -51,7 +51,7 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 57
+DEBUG_VERSION = 58
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
@@ -62,6 +62,7 @@ OP_WRITE_DENSE_BYTE = 0x05
 OP_READ_DENSE_BEAT = 0x06
 OP_RUN_AUTOPROBE = 0x07
 OP_WRITE_DENSE_FILL = 0x08
+OP_RUN_FULLBEAT = 0x09
 BEAT_BYTES = 64
 
 
@@ -222,6 +223,21 @@ def parse_args() -> argparse.Namespace:
         type=lambda value: int(value, 0),
         default=0,
         help="Wishbone beat address for --diagnostic-denseburst-value; default: 0",
+    )
+    parser.add_argument(
+        "--diagnostic-rtl-fullbeat-base",
+        type=lambda value: int(value, 0),
+        default=None,
+        help=(
+            "launch one board-side generated 64-byte ramp write/read/compare "
+            "from a single RTL command, emit a diagnostic JSON, and exit"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-rtl-fullbeat-addr",
+        type=lambda value: int(value, 0),
+        default=0,
+        help="Wishbone beat address for --diagnostic-rtl-fullbeat-base; default: 0",
     )
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--model-path", type=Path)
@@ -536,6 +552,12 @@ class RowstreamLoader:
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
         self.send_command(OP_WRITE_DENSE_FILL, 0, beat_addr, bytes([value & 0xFF]))
+        return self.wait_ready(min_ack_count=min_ack)
+
+    def run_rtl_fullbeat(self, beat_addr: int, base: int) -> dict[str, Any]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 2
+        self.send_command(OP_RUN_FULLBEAT, 0, beat_addr, bytes([base & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
 
 
@@ -1154,6 +1176,82 @@ def run_denseburst_diagnostic(
     return payload
 
 
+def run_rtl_fullbeat_diagnostic(
+    loader: RowstreamLoader,
+    base: int,
+    beat_addr: int,
+    run_dir: Path,
+    initial_debug: dict[str, Any],
+) -> dict[str, Any]:
+    if base < 0 or base > 0xFF:
+        raise ValueError("RTL fullbeat base must fit in one byte")
+    if beat_addr < 0:
+        raise ValueError("RTL fullbeat address must be non-negative")
+    if (
+        not bool(initial_debug["boot_done"])
+        or bool(initial_debug["boot_error"])
+        or bool(initial_debug["boot_mismatch"])
+    ):
+        final_debug = loader.read_debug()
+        payload = {
+            "artifact_name": "task6-ypcb-uberddr3-rtl-fullbeat-board-diagnostic",
+            "status": "FAIL",
+            "base": base,
+            "beat_addr": beat_addr,
+            "mismatch_count": None,
+            "initial_debug": json_debug(initial_debug),
+            "final_debug": json_debug(final_debug),
+            "decision": {
+                "verdict": "rtl-fullbeat-blocked-by-unclean-boot",
+                "next_gate": (
+                    "Do not interpret full-beat data integrity until the "
+                    "BIST-derived boot gate is clean."
+                ),
+            },
+        }
+        write_json(run_dir / "rtl-fullbeat-diagnostic.json", payload)
+        return payload
+
+    debug = loader.run_rtl_fullbeat(beat_addr, base)
+    expected_prefix = bytes(((base + lane) & 0xFF) for lane in range(16))
+    pass_status = (
+        bool(debug["boot_done"])
+        and not bool(debug["boot_error"])
+        and not bool(debug["boot_mismatch"])
+        and not bool(debug["loader_error"])
+        and bool(debug["loader_write_ack_seen"])
+        and bool(debug["loader_read_ack_seen"])
+        and bool(debug["dense_burst_active"])
+        and debug["dense_burst_mismatch_count"] == 0
+        and debug["dense_burst_expected_base"] == (base & 0xFF)
+    )
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-rtl-fullbeat-board-diagnostic",
+        "status": "PASS" if pass_status else "FAIL",
+        "base": base,
+        "beat_addr": beat_addr,
+        "mismatch_count": debug["dense_burst_mismatch_count"],
+        "expected_prefix_hex": expected_prefix.hex(),
+        "observed_prefix_hex": debug["read_data_chunk"].hex(),
+        "initial_debug": json_debug(initial_debug),
+        "final_debug": json_debug(debug),
+        "decision": {
+            "verdict": (
+                "rtl-generated-fullbeat-readback-passes"
+                if pass_status
+                else "rtl-generated-fullbeat-readback-fails"
+            ),
+            "next_gate": (
+                "If this passes across several addresses and bases, replace "
+                "host-provided write chunks with a buffered board-side "
+                "full-beat rowstream commit path."
+            ),
+        },
+    }
+    write_json(run_dir / "rtl-fullbeat-diagnostic.json", payload)
+    return payload
+
+
 def read_row(loader: RowstreamLoader, token: int, contract: dict[str, Any]) -> bytes:
     row_bytes = contract["row_format"]["row_bytes"]
     start = row_offset(token, contract)
@@ -1446,6 +1544,41 @@ def main() -> int:
                     f"{diagnostic['decision']['verdict']} "
                     f"beat={diagnostic['beat_addr']} "
                     f"value=0x{diagnostic['value']:02x} "
+                    f"mismatches={diagnostic['mismatch_count']}"
+                )
+            return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_rtl_fullbeat_base is not None:
+            diagnostic = run_rtl_fullbeat_diagnostic(
+                loader,
+                args.diagnostic_rtl_fullbeat_base,
+                args.diagnostic_rtl_fullbeat_addr,
+                run_dir,
+                initial_debug,
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "rtl-fullbeat-diagnostic.json"),
+                    "base": diagnostic["base"],
+                    "beat_addr": diagnostic["beat_addr"],
+                    "mismatch_count": diagnostic["mismatch_count"],
+                    "observed_prefix_hex": diagnostic.get("observed_prefix_hex"),
+                    "expected_prefix_hex": diagnostic.get("expected_prefix_hex"),
+                    "verdict": diagnostic["decision"]["verdict"],
+                    "boot_mismatch": diagnostic["final_debug"]["boot_mismatch"],
+                    "boot_error": diagnostic["final_debug"]["boot_error"],
+                    "wb_ack_count": diagnostic["final_debug"]["wb_ack_count"],
+                },
+            )
+            if not args.json_only:
+                print(
+                    "rtl-fullbeat diagnostic "
+                    f"{diagnostic['status']} verdict="
+                    f"{diagnostic['decision']['verdict']} "
+                    f"beat={diagnostic['beat_addr']} "
+                    f"base=0x{diagnostic['base']:02x} "
                     f"mismatches={diagnostic['mismatch_count']}"
                 )
             return 0 if diagnostic["status"] == "PASS" else 1

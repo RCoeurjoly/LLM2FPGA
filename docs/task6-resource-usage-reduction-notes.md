@@ -19226,3 +19226,50 @@ UberDDR3 calibration/data-integrity gates:
   - Validate first in the loader contract simulation, then build one locked
     seed-18 bitstream and run a board diagnostic that writes a 64-byte sentinel
     beat and reads back the lower 128 bits.
+
+## 2026-05-12 - board-side generated full-beat gate
+
+- Goal:
+  - remove the intrusive host-staged 512-bit write path and test the smallest
+    board-side full-beat writer: one command generates a 64-byte ramp, writes a
+    full Wishbone beat, drains, reads the same beat, and records a mismatch
+    count.
+- Implementation:
+  - v58 removes the v57 `WRITE_CHUNK`/`READ_BEAT` host-staged path from the
+    active BIST-derived top.
+  - added opcode `0x09` (`RUN_FULLBEAT`) to generate `base + lane` for all 64
+    lanes, write with full `i_wb_sel`, read back, and expose done/mismatch/base
+    fields through the debug payload.
+  - added `--diagnostic-rtl-fullbeat-base` and
+    `--diagnostic-rtl-fullbeat-addr` to the board validation script.
+- Simulation gate:
+  - command:
+    `nix build .#task6-uberddr3-rowstream-loader-contract-sv-sim -L --no-link --print-out-paths`
+  - result: PASS. The contract simulation issues 19 writes and 4 reads overall;
+    the new full-beat command performs one write, a 1024-cycle drain, one read,
+    and reports zero simulated mismatch.
+- Hardware gate:
+  - bitstream:
+    `/nix/store/7w6s33kvg0zqwwbrq5s6ccxmd9kqf3pg-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - run:
+    `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v58-seed18/beat0-base20`
+  - result: FAIL for data integrity, but PASS for the boot prerequisite:
+    `boot_done=true`, `boot_error=false`, `boot_mismatch=false`,
+    `wb_err_count=0`.
+  - expected lower-128 prefix:
+    `202122232425262728292a2b2c2d2e2f`
+  - observed lower-128 prefix:
+    `a8c1a823a8c1a827a851a82ba851a82f`
+  - reported full-beat mismatch count: `64`.
+- Interpretation:
+  - The new gate is useful because it did not regress DDR3 calibration or the
+    boot BIST datapath.
+  - Data integrity is still failing even with a complete generated full-beat,
+    so the next debug target is not host packing. It is the active
+    loader-to-UberDDR3 write/read path in hardware: write-data presentation,
+    address timing, read-capture timing, or the controller's no-DM full-beat
+    write semantics.
+- Next concrete engineering gate:
+  - add a hardware-visible write-data echo/checkpoint for the generated beat
+    before it enters UberDDR3, and compare readback against both generated data
+    and the BIST write pattern. Keep the v58 boot-clean prerequisite unchanged.

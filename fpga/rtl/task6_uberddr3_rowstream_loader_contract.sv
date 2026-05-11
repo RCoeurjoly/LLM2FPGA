@@ -11,7 +11,8 @@ module task6_uberddr3_rowstream_loader_contract #(
   parameter logic [7:0] LOADER_OP_READ_LOWBYTE = 8'h04,
   parameter logic [7:0] LOADER_OP_WRITE_DENSE_BYTE = 8'h05,
   parameter logic [7:0] LOADER_OP_READ_DENSE_BEAT = 8'h06,
-  parameter logic [7:0] LOADER_OP_WRITE_DENSE_FILL = 8'h08
+  parameter logic [7:0] LOADER_OP_WRITE_DENSE_FILL = 8'h08,
+  parameter logic [7:0] LOADER_OP_RUN_FULLBEAT = 8'h09
 ) (
   input  logic                            clk_i,
   input  logic                            rst_ni,
@@ -40,17 +41,25 @@ module task6_uberddr3_rowstream_loader_contract #(
   output logic [1:0]                      loader_last_chunk_o,
   output logic                            loader_last_magic_ok_o,
   output logic                            loader_last_accepted_o,
+  output logic                            loader_fullbeat_done_o,
+  output logic [6:0]                      loader_fullbeat_mismatch_count_o,
+  output logic [WB_ADDR_BITS - 1:0]       loader_fullbeat_addr_o,
+  output logic [7:0]                      loader_fullbeat_expected_base_o,
   output logic [3:0]                      loader_state_o
 );
-  typedef enum logic [1:0] {
-    LOADER_IDLE = 2'd0,
-    LOADER_ISSUE = 2'd1,
-    LOADER_WAIT_ACK = 2'd2,
-    LOADER_ERROR = 2'd3
+  typedef enum logic [2:0] {
+    LOADER_IDLE = 3'd0,
+    LOADER_ISSUE = 3'd1,
+    LOADER_WAIT_ACK = 3'd2,
+    LOADER_WRITE_DRAIN = 3'd3,
+    LOADER_ERROR = 3'd4
   } loader_state_t;
 
   loader_state_t state_q;
   logic command_accept_phase_q;
+  logic fullbeat_read_after_write_q;
+  logic fullbeat_compare_active_q;
+  logic [9:0] write_drain_q;
 
   wire [31:0] command_magic = command_payload_i[0 +: 32];
   wire [7:0] command_opcode = command_payload_i[32 +: 8];
@@ -65,16 +74,41 @@ module task6_uberddr3_rowstream_loader_contract #(
   wire [WB_SEL_BITS - 1:0] command_dense_sel =
     {{(WB_SEL_BITS - 1){1'b0}}, 1'b1} << command_addr[5:0];
   logic [WB_DATA_BITS - 1:0] command_dense_data;
+  logic [WB_DATA_BITS - 1:0] command_fullbeat_data;
+  logic [WB_DATA_BITS - 1:0] fullbeat_expected_data;
+  logic [6:0] fullbeat_mismatch_count;
 
   always_comb begin
     command_dense_data = '0;
     command_dense_data[command_addr[5:0] * 8 +: 8] = command_data[7:0];
   end
 
+  always_comb begin
+    fullbeat_expected_data = '0;
+    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
+      fullbeat_expected_data[lane * 8 +: 8] =
+        loader_fullbeat_expected_base_o + lane[7:0];
+  end
+
+  always_comb begin
+    command_fullbeat_data = '0;
+    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
+      command_fullbeat_data[lane * 8 +: 8] = command_data[7:0] + lane[7:0];
+  end
+
+  always_comb begin
+    fullbeat_mismatch_count = 7'd0;
+    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1) begin
+      if (wb_data_i[lane * 8 +: 8] != fullbeat_expected_data[lane * 8 +: 8])
+        fullbeat_mismatch_count = fullbeat_mismatch_count + 7'd1;
+    end
+  end
+
   assign loader_state_o =
     state_q == LOADER_IDLE ? 4'd1 :
     state_q == LOADER_ISSUE ? 4'd2 :
     state_q == LOADER_WAIT_ACK ? 4'd3 :
+    state_q == LOADER_WRITE_DRAIN ? 4'd5 :
     4'd4;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -99,6 +133,13 @@ module task6_uberddr3_rowstream_loader_contract #(
       loader_last_chunk_o <= 2'd0;
       loader_last_magic_ok_o <= 1'b0;
       loader_last_accepted_o <= 1'b0;
+      loader_fullbeat_done_o <= 1'b0;
+      loader_fullbeat_mismatch_count_o <= 7'd0;
+      loader_fullbeat_addr_o <= '0;
+      loader_fullbeat_expected_base_o <= 8'd0;
+      fullbeat_read_after_write_q <= 1'b0;
+      fullbeat_compare_active_q <= 1'b0;
+      write_drain_q <= 10'd0;
     end else begin
       if (command_event_i)
         command_accept_phase_q <= ~command_accept_phase_q;
@@ -115,6 +156,8 @@ module task6_uberddr3_rowstream_loader_contract #(
         loader_error_o <= 1'b0;
         loader_stall_seen_o <= 1'b0;
         loader_wait_cycles_o <= 32'd0;
+        fullbeat_read_after_write_q <= 1'b0;
+        fullbeat_compare_active_q <= 1'b0;
 
         if (command_opcode == LOADER_OP_WRITE_LOWBYTE) begin
           wb_addr_o <= command_addr[WB_ADDR_BITS - 1:0];
@@ -156,6 +199,19 @@ module task6_uberddr3_rowstream_loader_contract #(
           wb_cyc_o <= 1'b1;
           wb_stb_o <= 1'b1;
           state_q <= LOADER_ISSUE;
+        end else if (command_opcode == LOADER_OP_RUN_FULLBEAT) begin
+          loader_fullbeat_done_o <= 1'b0;
+          loader_fullbeat_mismatch_count_o <= 7'd0;
+          loader_fullbeat_addr_o <= command_addr[WB_ADDR_BITS - 1:0];
+          loader_fullbeat_expected_base_o <= command_data[7:0];
+          fullbeat_read_after_write_q <= 1'b1;
+          wb_addr_o <= command_addr[WB_ADDR_BITS - 1:0];
+          wb_data_o <= command_fullbeat_data;
+          wb_sel_o <= {WB_SEL_BITS{1'b1}};
+          wb_we_o <= 1'b1;
+          wb_cyc_o <= 1'b1;
+          wb_stb_o <= 1'b1;
+          state_q <= LOADER_ISSUE;
         end else begin
           loader_error_o <= 1'b1;
           state_q <= LOADER_ERROR;
@@ -179,7 +235,8 @@ module task6_uberddr3_rowstream_loader_contract #(
             loader_wait_cycles_o <= loader_wait_cycles_o + 32'd1;
           end else begin
             wb_stb_o <= 1'b0;
-            state_q <= wb_ack_i ? LOADER_IDLE : LOADER_WAIT_ACK;
+            state_q <= wb_ack_i && wb_we_o && fullbeat_read_after_write_q ?
+              LOADER_WRITE_DRAIN : wb_ack_i ? LOADER_IDLE : LOADER_WAIT_ACK;
           end
           if (wb_err_i) begin
             loader_error_o <= 1'b1;
@@ -193,11 +250,22 @@ module task6_uberddr3_rowstream_loader_contract #(
             wb_stb_o <= 1'b0;
             if (wb_we_o) begin
               loader_write_ack_seen_o <= 1'b1;
+              if (fullbeat_read_after_write_q)
+                write_drain_q <= 10'd0;
             end else begin
               loader_read_ack_seen_o <= 1'b1;
               loader_read_data_o <= wb_data_i;
+              if (fullbeat_compare_active_q) begin
+                loader_fullbeat_done_o <= 1'b1;
+                loader_fullbeat_mismatch_count_o <= fullbeat_mismatch_count;
+                fullbeat_compare_active_q <= 1'b0;
+              end
             end
-            loader_done_o <= 1'b1;
+            if (wb_we_o && fullbeat_read_after_write_q) begin
+              loader_done_o <= 1'b0;
+            end else begin
+              loader_done_o <= 1'b1;
+            end
           end
         end
 
@@ -213,12 +281,44 @@ module task6_uberddr3_rowstream_loader_contract #(
             wb_cyc_o <= 1'b0;
             if (wb_we_o) begin
               loader_write_ack_seen_o <= 1'b1;
+              if (fullbeat_read_after_write_q) begin
+                write_drain_q <= 10'd0;
+                state_q <= LOADER_WRITE_DRAIN;
+              end else begin
+                loader_done_o <= 1'b1;
+                state_q <= LOADER_IDLE;
+              end
             end else begin
               loader_read_ack_seen_o <= 1'b1;
               loader_read_data_o <= wb_data_i;
+              if (fullbeat_compare_active_q) begin
+                loader_fullbeat_done_o <= 1'b1;
+                loader_fullbeat_mismatch_count_o <= fullbeat_mismatch_count;
+                fullbeat_compare_active_q <= 1'b0;
+              end
+              loader_done_o <= 1'b1;
+              state_q <= LOADER_IDLE;
             end
-            loader_done_o <= 1'b1;
-            state_q <= LOADER_IDLE;
+          end
+        end
+
+        LOADER_WRITE_DRAIN: begin
+          wb_cyc_o <= 1'b0;
+          wb_stb_o <= 1'b0;
+          wb_we_o <= 1'b0;
+          loader_wait_cycles_o <= loader_wait_cycles_o + 32'd1;
+          if (write_drain_q == 10'h3ff) begin
+            fullbeat_read_after_write_q <= 1'b0;
+            fullbeat_compare_active_q <= 1'b1;
+            wb_addr_o <= loader_fullbeat_addr_o;
+            wb_data_o <= '0;
+            wb_sel_o <= {WB_SEL_BITS{1'b1}};
+            wb_we_o <= 1'b0;
+            wb_cyc_o <= 1'b1;
+            wb_stb_o <= 1'b1;
+            state_q <= LOADER_ISSUE;
+          end else begin
+            write_drain_q <= write_drain_q + 10'd1;
           end
         end
 
