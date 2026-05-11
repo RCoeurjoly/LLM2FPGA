@@ -51,7 +51,7 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 46
+DEBUG_VERSION = 51
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
@@ -60,6 +60,7 @@ OP_WRITE_LOWBYTE = 0x03
 OP_READ_LOWBYTE = 0x04
 OP_WRITE_DENSE_BYTE = 0x05
 OP_READ_DENSE_BEAT = 0x06
+OP_RUN_AUTOPROBE = 0x07
 BEAT_BYTES = 64
 
 
@@ -161,9 +162,30 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "before rowstream loading, write one full 512-bit beat with a repeated "
-            "byte through the v35 lowbyte/full-width write path, read dense beat 0, "
-            "emit a diagnostic JSON, and exit"
+            "byte through the v35 lowbyte/full-width write path, read the same dense "
+            "beat address, emit a diagnostic JSON, and exit"
         ),
+    )
+    parser.add_argument(
+        "--diagnostic-fillbeat-addr",
+        type=lambda value: int(value, 0),
+        default=0,
+        help="beat address for --diagnostic-fillbeat-value; default: 0",
+    )
+    parser.add_argument(
+        "--diagnostic-autoprobe-value",
+        type=lambda value: int(value, 0),
+        default=None,
+        help=(
+            "launch one board-side UberDDR3 write/read probe from a single JTAG "
+            "command, emit a diagnostic JSON, and exit"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-autoprobe-addr",
+        type=lambda value: int(value, 0),
+        default=0,
+        help="stream base address for --diagnostic-autoprobe-value; default: 0",
     )
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--model-path", type=Path)
@@ -464,6 +486,12 @@ class RowstreamLoader:
         debug = self.wait_ready(min_ack_count=min_ack)
         return debug["read_data_beat"], debug
 
+    def run_autoprobe(self, stream_base: int, value: int) -> dict[str, Any]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        self.send_command(OP_RUN_AUTOPROBE, 0, stream_base, bytes([value & 0xFF]))
+        return self.wait_ready(min_ack_count=min_ack)
+
 
 def summarize_debug(debug: dict[str, Any]) -> str:
     return (
@@ -690,10 +718,16 @@ def run_readbeat_diagnostic(
 
 
 def run_fillbeat_diagnostic(
-    loader: RowstreamLoader, value: int, run_dir: Path, initial_debug: dict[str, Any]
+    loader: RowstreamLoader,
+    value: int,
+    beat_addr: int,
+    run_dir: Path,
+    initial_debug: dict[str, Any],
 ) -> dict[str, Any]:
     if value < 0 or value > 0xFF:
         raise ValueError("fillbeat diagnostic value must fit in one byte")
+    if beat_addr < 0:
+        raise ValueError("fillbeat diagnostic address must be non-negative")
     if (
         not bool(initial_debug["boot_done"])
         or bool(initial_debug["boot_error"])
@@ -704,6 +738,7 @@ def run_fillbeat_diagnostic(
             "artifact_name": "task6-ypcb-uberddr3-fillbeat-board-diagnostic",
             "status": "FAIL",
             "value": value,
+            "beat_addr": beat_addr,
             "mismatch_count": None,
             "initial_debug": json_debug(initial_debug),
             "final_debug": json_debug(final_debug),
@@ -718,9 +753,9 @@ def run_fillbeat_diagnostic(
         write_json(run_dir / "fillbeat-diagnostic.json", payload)
         return payload
 
-    write_debug = loader.write_lowbyte(0, value)
-    lowbyte_value, lowbyte_read_debug = loader.read_lowbyte(0)
-    beat, read_debug = loader.read_dense_beat(0)
+    write_debug = loader.write_lowbyte(beat_addr, value)
+    lowbyte_value, lowbyte_read_debug = loader.read_lowbyte(beat_addr)
+    beat, read_debug = loader.read_dense_beat(beat_addr)
     expected = bytes([value & 0xFF]) * BEAT_BYTES
     readback = [
         {
@@ -737,6 +772,7 @@ def run_fillbeat_diagnostic(
         "artifact_name": "task6-ypcb-uberddr3-fillbeat-board-diagnostic",
         "status": "PASS" if mismatch_count == 0 else "FAIL",
         "value": value,
+        "beat_addr": beat_addr,
         "mismatch_count": mismatch_count,
         "initial_debug": json_debug(initial_debug),
         "write_debug": json_debug(write_debug),
@@ -763,6 +799,73 @@ def run_fillbeat_diagnostic(
         },
     }
     write_json(run_dir / "fillbeat-diagnostic.json", payload)
+    return payload
+
+
+def run_autoprobe_diagnostic(
+    loader: RowstreamLoader,
+    value: int,
+    stream_base: int,
+    run_dir: Path,
+    initial_debug: dict[str, Any],
+) -> dict[str, Any]:
+    if value < 0 or value > 0xFF:
+        raise ValueError("autoprobe diagnostic value must fit in one byte")
+    if stream_base < 0:
+        raise ValueError("autoprobe diagnostic address must be non-negative")
+    if (
+        not bool(initial_debug["boot_done"])
+        or bool(initial_debug["boot_error"])
+        or bool(initial_debug["boot_mismatch"])
+    ):
+        final_debug = loader.read_debug()
+        payload = {
+            "artifact_name": "task6-ypcb-uberddr3-autoprobe-board-diagnostic",
+            "status": "FAIL",
+            "value": value,
+            "stream_base": stream_base,
+            "initial_debug": json_debug(initial_debug),
+            "final_debug": json_debug(final_debug),
+            "decision": {
+                "verdict": "autoprobe-blocked-by-unclean-boot",
+                "next_gate": (
+                    "Do not interpret board-side probe diagnostics until the "
+                    "BIST-derived boot gate is clean."
+                ),
+            },
+        }
+        write_json(run_dir / "autoprobe-diagnostic.json", payload)
+        return payload
+
+    debug = loader.run_autoprobe(stream_base, value)
+    pass_status = (
+        bool(debug["boot_done"])
+        and bool(debug["boot_write_ack_seen"])
+        and bool(debug["boot_read_ack_seen"])
+        and not bool(debug["boot_error"])
+        and not bool(debug["boot_mismatch"])
+    )
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-autoprobe-board-diagnostic",
+        "status": "PASS" if pass_status else "FAIL",
+        "value": value,
+        "stream_base": stream_base,
+        "initial_debug": json_debug(initial_debug),
+        "final_debug": json_debug(debug),
+        "decision": {
+            "verdict": (
+                "board-side-autoprobe-passes"
+                if pass_status
+                else "board-side-autoprobe-fails"
+            ),
+            "next_gate": (
+                "If this passes while host-decomposed writes fail, move Task 6 "
+                "toward a board-side DDR3 burst loader instead of individual "
+                "host-issued Wishbone transactions."
+            ),
+        },
+    }
+    write_json(run_dir / "autoprobe-diagnostic.json", payload)
     return payload
 
 
@@ -924,7 +1027,11 @@ def main() -> int:
             return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_fillbeat_value is not None:
             diagnostic = run_fillbeat_diagnostic(
-                loader, args.diagnostic_fillbeat_value, run_dir, initial_debug
+                loader,
+                args.diagnostic_fillbeat_value,
+                args.diagnostic_fillbeat_addr,
+                run_dir,
+                initial_debug,
             )
             write_json(
                 run_dir / "summary.json",
@@ -933,8 +1040,9 @@ def main() -> int:
                     "run_dir": str(run_dir),
                     "diagnostic_json": str(run_dir / "fillbeat-diagnostic.json"),
                     "value": diagnostic["value"],
+                    "beat_addr": diagnostic["beat_addr"],
                     "mismatch_count": diagnostic["mismatch_count"],
-                    "beat0_prefix_hex": diagnostic.get("beat0_prefix_hex"),
+                    "beat_prefix_hex": diagnostic.get("beat0_prefix_hex"),
                     "expected_prefix_hex": diagnostic.get("expected_prefix_hex"),
                     "verdict": diagnostic["decision"]["verdict"],
                 },
@@ -951,9 +1059,40 @@ def main() -> int:
                         "fillbeat diagnostic "
                         f"{diagnostic['status']} mismatches "
                         f"{diagnostic['mismatch_count']}/{BEAT_BYTES} "
+                        f"beat={diagnostic['beat_addr']} "
                         f"observed={diagnostic['beat0_prefix_hex']} "
                         f"expected={diagnostic['expected_prefix_hex']}"
                     )
+            return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_autoprobe_value is not None:
+            diagnostic = run_autoprobe_diagnostic(
+                loader,
+                args.diagnostic_autoprobe_value,
+                args.diagnostic_autoprobe_addr,
+                run_dir,
+                initial_debug,
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "autoprobe-diagnostic.json"),
+                    "value": diagnostic["value"],
+                    "stream_base": diagnostic["stream_base"],
+                    "verdict": diagnostic["decision"]["verdict"],
+                    "boot_mismatch": diagnostic["final_debug"]["boot_mismatch"],
+                    "boot_error": diagnostic["final_debug"]["boot_error"],
+                    "wb_ack_count": diagnostic["final_debug"]["wb_ack_count"],
+                },
+            )
+            if not args.json_only:
+                print(
+                    "autoprobe diagnostic "
+                    f"{diagnostic['status']} verdict="
+                    f"{diagnostic['decision']['verdict']} "
+                    f"base={diagnostic['stream_base']} value=0x{diagnostic['value']:02x}"
+                )
             return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_dense_count:
             diagnostic = run_dense_diagnostic(

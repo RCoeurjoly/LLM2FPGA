@@ -1,0 +1,11 @@
+{
+  "beat_addr": 4,
+  "beat_prefix_hex": "387ac7003daaaaaa5e001ea12caaaaaa",
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-fillbeat-address-v46-seed18/beat4/fillbeat-diagnostic.json",
+  "expected_prefix_hex": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "mismatch_count": 64,
+  "run_dir": "artifacts/task6/runs/2026-05-11-fillbeat-address-v46-seed18/beat4",
+  "status": "FAIL",
+  "value": 90,
+  "verdict": "fillbeat-write-read-fails"
+}

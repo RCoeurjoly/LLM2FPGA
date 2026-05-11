@@ -18932,3 +18932,68 @@ UberDDR3 calibration/data-integrity gates:
     UberDDR3 Wishbone write acceptance/address/byte-select semantics, especially
     how a full-width selected write maps to the controller's internal write
     command and write-data buffering.
+
+## 2026-05-11 - board-side DDR3 microsequence discriminator
+
+- Moonshot framing:
+  - Task 6 monkey: not seed selection, but reliable DDR3 data integrity for a
+    loader architecture that can externalize TinyStories weights.
+  - Tested assumption: "host/JTAG can safely decompose every write/read into
+    separate Wishbone transactions."
+  - Alternative architecture: one host command launches a board-side DDR3
+    microsequence, so FPGA logic owns the timing-sensitive burst.
+- v46 address discriminator:
+  - bitstream:
+    `/nix/store/2b7vcdl7mgm0im64cr0yg1263ymwfaxv-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - runs:
+    `artifacts/task6/runs/2026-05-11-fillbeat-address-v46-seed18/beat0`
+    and `artifacts/task6/runs/2026-05-11-fillbeat-address-v46-seed18/beat4`
+  - result: both failed with boot clean, proving the stale readback is not
+    address 0 specific.
+- v47 aux-tag fix:
+  - change: drive UberDDR3 `i_aux=0` for writes and `i_aux=1` for reads, matching
+    the controller formal invariant `!we == aux[0]`.
+  - bitstream:
+    `/nix/store/9raj347jng7r62wfiryhlgwg4yiqqzvl-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - run:
+    `artifacts/task6/runs/2026-05-11-aux-tag-v47-seed18/beat0`
+  - result: boot remained clean, but fillbeat still failed with stale prefix
+    `3dc13da53dc13da52c512ca52c512ca5`.
+- v48/v49 `cyc` experiments:
+  - v48 held `cyc` during both boot and loader write drain; calibration
+    completed but boot mismatched, so no fillbeat interpretation.
+  - v49 restored the known-good boot drain and held `cyc` only in loader write
+    drain; boot was clean but fillbeat still failed with the same stale prefix.
+  - conclusion: simple post-ACK `cyc` lifetime is not the primary fix.
+- v50 continuous-loader-`cyc` experiment:
+  - change: attempt to hold `cyc` across a host-decomposed write/read pair.
+  - result: calibration timeout before data interpretation:
+    `magic_ok=True version=50 calib_seen=False state=1 ack=0 err=0
+    loader_error=False debug1=0x000016a9`
+  - decision: treat as a negative physical/RTL perturbation, not a loader path.
+- v51 board-side autoprobe:
+  - change: added `LOADER_OP_RUN_AUTOPROBE` (`0x07`), a single JTAG command
+    that launches the existing board-side DDR3 write/read microsequence with a
+    command-provided base/value.
+  - bitstream:
+    `/nix/store/xjy6hfnjr7mmv0xhxgcsnaicwfrigm0f-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - validation:
+    `artifacts/task6/runs/2026-05-11-autoprobe-v51-seed18/base0-value5a`
+  - result: `PASS`, boot clean, `boot_mismatch=false`, `wb_err_count=0`,
+    `wb_ack_count=18`, final opcode `7`.
+  - fresh comparison fillbeat on the same v51 bitstream:
+    `artifacts/task6/runs/2026-05-11-autoprobe-v51-seed18/fresh-fillbeat0-value5a`
+  - result: `FAIL`, boot clean, stale prefix
+    `3dc13da53dc13da52c512ca52c512ca5`.
+- Decision:
+  - Strong discriminator: DDR3 calibration and board-side write/read sequencing
+    can be made deterministic on hardware; host-decomposed individual
+    write/read commands remain unreliable for data visibility.
+  - Next Task 6 direction: promote the board-side microsequence into a burst
+    DDR3 loader for quantized weight rows. The host should launch larger
+    FPGA-owned bursts/chunks, not individual Wishbone writes.
+  - Next concrete gate: implement a board-side dense-burst loader command that
+    writes a small byte pattern or row fragment across consecutive DDR3 beats,
+    then reads it back with the same internal sequencing and reports mismatch
+    count. Only after that passes should TinyStories int8 rowstream loading use
+    DDR3.

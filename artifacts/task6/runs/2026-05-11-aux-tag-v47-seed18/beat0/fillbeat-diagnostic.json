@@ -1,0 +1,607 @@
+{
+  "artifact_name": "task6-ypcb-uberddr3-fillbeat-board-diagnostic",
+  "beat0_hex": "3dc13da53dc13da52c512ca52c512ca5000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  "beat0_prefix_hex": "3dc13da53dc13da52c512ca52c512ca5",
+  "beat_addr": 0,
+  "decision": {
+    "next_gate": "If this passes while dense byte writes fail, debug byte-select masking/lane mapping; if this fails too, debug write-data or read-capture before byte-select logic.",
+    "verdict": "fillbeat-write-read-fails"
+  },
+  "expected_prefix_hex": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "final_debug": {
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "boot_read_ack_seen": true,
+    "boot_stall_seen": true,
+    "boot_write_ack_seen": true,
+    "calib_complete": true,
+    "calib_seen": true,
+    "calib_seen_cycle": 37853,
+    "command_count": 6,
+    "cycle": 10331445,
+    "debug1": 1751,
+    "dense_write_data": 0,
+    "dense_write_lane": 0,
+    "dense_write_seen": false,
+    "dense_write_sel_low16": 0,
+    "dense_write_wb_addr_low16": 0,
+    "last_accepted": false,
+    "last_addr_low15": 0,
+    "last_chunk": 0,
+    "last_magic_ok": true,
+    "last_opcode": 6,
+    "loader_cyc": false,
+    "loader_done": false,
+    "loader_error": false,
+    "loader_read_ack_seen": true,
+    "loader_stall_seen": false,
+    "loader_state": 1,
+    "loader_stb": false,
+    "loader_wait_cycles": 0,
+    "loader_write_ack_seen": true,
+    "magic": 1412844100,
+    "magic_ok": true,
+    "raw_hex": "0x000000000000a52c512ca52c512ca53dc13da53dc13d0000b98100181802a53dc13d000dc9f4000000000000000c000006d7000093dd009da535d32f54364a44",
+    "status": 211,
+    "version": 47,
+    "wb_ack_count": 12,
+    "wb_err_count": 0,
+    "wb_stall_count": 903668
+  },
+  "initial_debug": {
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "boot_read_ack_seen": true,
+    "boot_stall_seen": true,
+    "boot_write_ack_seen": true,
+    "calib_complete": true,
+    "calib_seen": true,
+    "calib_seen_cycle": 37853,
+    "command_count": 0,
+    "cycle": 1922505,
+    "debug1": 1751,
+    "dense_write_data": 0,
+    "dense_write_lane": 0,
+    "dense_write_seen": false,
+    "dense_write_sel_low16": 0,
+    "dense_write_wb_addr_low16": 0,
+    "last_accepted": false,
+    "last_addr_low15": 0,
+    "last_chunk": 0,
+    "last_magic_ok": false,
+    "last_opcode": 0,
+    "loader_cyc": false,
+    "loader_done": false,
+    "loader_error": false,
+    "loader_read_ack_seen": false,
+    "loader_stall_seen": false,
+    "loader_state": 1,
+    "loader_stb": false,
+    "loader_wait_cycles": 0,
+    "loader_write_ack_seen": false,
+    "magic": 1412844100,
+    "magic_ok": true,
+    "raw_hex": "0x000000000000000000000000000000000000000000000000b80100000000000000000002ff180000000000000009000006d7000093dd001d55c9d32f54364a44",
+    "status": 211,
+    "version": 47,
+    "wb_ack_count": 9,
+    "wb_err_count": 0,
+    "wb_stall_count": 196376
+  },
+  "lowbyte_match": false,
+  "lowbyte_observed": 61,
+  "lowbyte_read_debug": {
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "boot_read_ack_seen": true,
+    "boot_stall_seen": true,
+    "boot_write_ack_seen": true,
+    "calib_complete": true,
+    "calib_seen": true,
+    "calib_seen_cycle": 37853,
+    "command_count": 4,
+    "cycle": 6478825,
+    "debug1": 5751,
+    "dense_write_data": 0,
+    "dense_write_lane": 0,
+    "dense_write_seen": false,
+    "dense_write_sel_low16": 0,
+    "dense_write_wb_addr_low16": 0,
+    "last_accepted": false,
+    "last_addr_low15": 0,
+    "last_chunk": 0,
+    "last_magic_ok": true,
+    "last_opcode": 4,
+    "loader_cyc": false,
+    "loader_done": false,
+    "loader_error": false,
+    "loader_read_ack_seen": true,
+    "loader_stall_seen": false,
+    "loader_state": 1,
+    "loader_stb": false,
+    "loader_wait_cycles": 0,
+    "loader_write_ack_seen": true,
+    "magic": 1412844100,
+    "magic_ok": true,
+    "raw_hex": "0x000000000000a52c512ca52c512ca53dc13da53dc13d0000b98100101002a53dc13d0008d821000000000000000b00001677000093dd0062dbe9d32f54364a44",
+    "status": 211,
+    "version": 47,
+    "wb_ack_count": 11,
+    "wb_err_count": 0,
+    "wb_stall_count": 579617
+  },
+  "mismatch_count": 64,
+  "read_debug": {
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "boot_read_ack_seen": true,
+    "boot_stall_seen": true,
+    "boot_write_ack_seen": true,
+    "calib_complete": true,
+    "calib_seen": true,
+    "calib_seen_cycle": 37853,
+    "command_count": 6,
+    "cycle": 9452144,
+    "debug1": 5783,
+    "dense_write_data": 0,
+    "dense_write_lane": 0,
+    "dense_write_seen": false,
+    "dense_write_sel_low16": 0,
+    "dense_write_wb_addr_low16": 0,
+    "last_accepted": false,
+    "last_addr_low15": 0,
+    "last_chunk": 0,
+    "last_magic_ok": true,
+    "last_opcode": 6,
+    "loader_cyc": false,
+    "loader_done": false,
+    "loader_error": false,
+    "loader_read_ack_seen": true,
+    "loader_stall_seen": false,
+    "loader_state": 1,
+    "loader_stb": false,
+    "loader_wait_cycles": 0,
+    "loader_write_ack_seen": true,
+    "magic": 1412844100,
+    "magic_ok": true,
+    "raw_hex": "0x000000000000a52c512ca52c512ca53dc13da53dc13d0000b98100181802a53dc13d000ca910000000000000000c00001697000093dd00903a70d32f54364a44",
+    "status": 211,
+    "version": 47,
+    "wb_ack_count": 12,
+    "wb_err_count": 0,
+    "wb_stall_count": 829712
+  },
+  "readback": [
+    {
+      "expected": 90,
+      "lane": 0,
+      "match": false,
+      "observed": 61
+    },
+    {
+      "expected": 90,
+      "lane": 1,
+      "match": false,
+      "observed": 193
+    },
+    {
+      "expected": 90,
+      "lane": 2,
+      "match": false,
+      "observed": 61
+    },
+    {
+      "expected": 90,
+      "lane": 3,
+      "match": false,
+      "observed": 165
+    },
+    {
+      "expected": 90,
+      "lane": 4,
+      "match": false,
+      "observed": 61
+    },
+    {
+      "expected": 90,
+      "lane": 5,
+      "match": false,
+      "observed": 193
+    },
+    {
+      "expected": 90,
+      "lane": 6,
+      "match": false,
+      "observed": 61
+    },
+    {
+      "expected": 90,
+      "lane": 7,
+      "match": false,
+      "observed": 165
+    },
+    {
+      "expected": 90,
+      "lane": 8,
+      "match": false,
+      "observed": 44
+    },
+    {
+      "expected": 90,
+      "lane": 9,
+      "match": false,
+      "observed": 81
+    },
+    {
+      "expected": 90,
+      "lane": 10,
+      "match": false,
+      "observed": 44
+    },
+    {
+      "expected": 90,
+      "lane": 11,
+      "match": false,
+      "observed": 165
+    },
+    {
+      "expected": 90,
+      "lane": 12,
+      "match": false,
+      "observed": 44
+    },
+    {
+      "expected": 90,
+      "lane": 13,
+      "match": false,
+      "observed": 81
+    },
+    {
+      "expected": 90,
+      "lane": 14,
+      "match": false,
+      "observed": 44
+    },
+    {
+      "expected": 90,
+      "lane": 15,
+      "match": false,
+      "observed": 165
+    },
+    {
+      "expected": 90,
+      "lane": 16,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 17,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 18,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 19,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 20,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 21,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 22,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 23,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 24,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 25,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 26,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 27,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 28,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 29,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 30,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 31,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 32,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 33,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 34,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 35,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 36,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 37,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 38,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 39,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 40,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 41,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 42,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 43,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 44,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 45,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 46,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 47,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 48,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 49,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 50,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 51,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 52,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 53,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 54,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 55,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 56,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 57,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 58,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 59,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 60,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 61,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 62,
+      "match": false,
+      "observed": 0
+    },
+    {
+      "expected": 90,
+      "lane": 63,
+      "match": false,
+      "observed": 0
+    }
+  ],
+  "status": "FAIL",
+  "value": 90,
+  "write_debug": {
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "boot_read_ack_seen": true,
+    "boot_stall_seen": true,
+    "boot_write_ack_seen": true,
+    "calib_complete": true,
+    "calib_seen": true,
+    "calib_seen_cycle": 37853,
+    "command_count": 2,
+    "cycle": 4079146,
+    "debug1": 1751,
+    "dense_write_data": 0,
+    "dense_write_lane": 0,
+    "dense_write_seen": false,
+    "dense_write_sel_low16": 0,
+    "dense_write_wb_addr_low16": 0,
+    "last_accepted": false,
+    "last_addr_low15": 0,
+    "last_chunk": 0,
+    "last_magic_ok": true,
+    "last_opcode": 3,
+    "loader_cyc": false,
+    "loader_done": false,
+    "loader_error": false,
+    "loader_read_ack_seen": false,
+    "loader_stall_seen": false,
+    "loader_state": 1,
+    "loader_stb": false,
+    "loader_wait_cycles": 0,
+    "loader_write_ack_seen": true,
+    "magic": 1412844100,
+    "magic_ok": true,
+    "raw_hex": "0x000000000000000000000000000000000000000000000000b88100080c02000000000005c3b4000000000000000a000006d7000093dd003e3e2ad32f54364a44",
+    "status": 211,
+    "version": 47,
+    "wb_ack_count": 10,
+    "wb_err_count": 0,
+    "wb_stall_count": 377780
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "beat_addr": 0,
+  "beat_prefix_hex": null,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-cyc-drain-v48-seed18/beat0/fillbeat-diagnostic.json",
+  "expected_prefix_hex": null,
+  "mismatch_count": null,
+  "run_dir": "artifacts/task6/runs/2026-05-11-cyc-drain-v48-seed18/beat0",
+  "status": "FAIL",
+  "value": 90,
+  "verdict": "fillbeat-diagnostic-blocked-by-unclean-boot"
+}

@@ -1,0 +1,11 @@
+{
+  "boot_error": false,
+  "boot_mismatch": false,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-autoprobe-v51-seed18/base0-value5a/autoprobe-diagnostic.json",
+  "run_dir": "artifacts/task6/runs/2026-05-11-autoprobe-v51-seed18/base0-value5a",
+  "status": "PASS",
+  "stream_base": 0,
+  "value": 90,
+  "verdict": "board-side-autoprobe-passes",
+  "wb_ack_count": 18
+}
