@@ -18901,3 +18901,34 @@ UberDDR3 calibration/data-integrity gates:
     prove or trace that a `WRITE_LOWBYTE` command drives `i_wb_we=1`,
     `i_wb_addr=0`, `i_wb_sel=ffff`, and repeated `0x5a` data until ACK, and
     compare that against the boot BIST write path.
+
+## 2026-05-11 - WRITE_LOWBYTE bus-shape simulation gate
+
+- Goal: execute the non-board gate from the v45/v46 hardware result: prove or
+  trace the loader-to-Wishbone transaction shape before adding more hardware
+  instrumentation.
+- Simulation change:
+  - extended `sim/task6_uberddr3_rowstream_loader_contract_tb.sv` with a
+    stalled `WRITE_LOWBYTE addr=0 value=0x5a` transaction.
+  - checks while stalled and at the ACK boundary:
+    `wb_cyc=1`, `wb_we=1`, `wb_addr=0`, `wb_sel=ffff_ffff_ffff_ffff`, and
+    every byte lane of `wb_data` equals `0x5a`.
+  - added a boot BIST write reference vector for the same byte and checked that
+    the loader write address, select, and data exactly match the boot write
+    vector.
+- Validation:
+  - command:
+    `nix build .#task6-uberddr3-rowstream-loader-contract-sv-sim -L`
+  - result:
+    `/nix/store/r20c1ibq3g2v2cqh536y12x1indgx1b6-task6-uberddr3-rowstream-loader-contract-sv-sim.json`
+  - status: `PASS`
+  - PASS line:
+    `PASS: task6 rowstream loader contract writes 17 reads 2 state 1 wait_cycles 1`
+- Decision:
+  - The abstract JTAG loader command contract is not the current suspect for
+    the `0x5a` write-read failure: it presents the same bus-level write vector
+    as the boot BIST path for address 0.
+  - The next gate should move one level downstream: model or instrument the
+    UberDDR3 Wishbone write acceptance/address/byte-select semantics, especially
+    how a full-width selected write maps to the controller's internal write
+    command and write-data buffering.

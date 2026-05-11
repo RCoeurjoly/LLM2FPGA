@@ -45,6 +45,9 @@ module task6_uberddr3_rowstream_loader_contract_tb;
   int write_count;
   int read_count;
   int errors;
+  logic [WB_ADDR_BITS - 1:0] boot_write_addr_ref;
+  logic [WB_DATA_BITS - 1:0] boot_write_data_ref;
+  logic [WB_SEL_BITS - 1:0] boot_write_sel_ref;
 
   task6_uberddr3_rowstream_loader_contract #(
     .JTAG_COMMAND_WIDTH(COMMAND_WIDTH),
@@ -156,6 +159,78 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     end
   endtask
 
+  task automatic make_boot_write_reference(
+    input logic [5:0] stream_base,
+    input logic [1:0] write_index,
+    input logic [7:0] expected_byte
+  );
+    logic [5:0] boot_addr;
+    logic [7:0] boot_byte;
+    begin
+      boot_addr = stream_base + {4'd0, write_index};
+      boot_byte = expected_byte + {2'd0, stream_base} + {6'd0, write_index};
+      boot_write_addr_ref = {{(WB_ADDR_BITS - 6){1'b0}}, boot_addr};
+      boot_write_data_ref = {WB_SEL_BITS{boot_byte}};
+      boot_write_sel_ref = {WB_SEL_BITS{1'b1}};
+    end
+  endtask
+
+  task automatic check_write_lowbyte_bus_shape(
+    input logic [31:0] stream_addr,
+    input logic [7:0] value,
+    input bit require_stb,
+    input string phase
+  );
+    begin
+      check_cond(wb_cyc == 1'b1, {phase, ": wb_cyc must stay asserted"});
+      if (require_stb)
+        check_cond(wb_stb == 1'b1, {phase, ": wb_stb must stay asserted"});
+      check_cond(wb_we == 1'b1, {phase, ": wb_we must be write"});
+      check_cond(wb_addr == stream_addr[WB_ADDR_BITS - 1:0], {phase, ": wb_addr must match command address"});
+      check_cond(wb_sel == {WB_SEL_BITS{1'b1}}, {phase, ": wb_sel must select all byte lanes"});
+      check_cond(wb_data_w == {WB_SEL_BITS{value}}, {phase, ": wb_data must repeat the payload byte"});
+    end
+  endtask
+
+  task automatic check_write_lowbyte_matches_boot_write(
+    input logic [31:0] stream_addr,
+    input logic [7:0] value,
+    input string phase
+  );
+    begin
+      make_boot_write_reference(stream_addr[5:0], 2'd0, value);
+      check_cond(wb_addr == boot_write_addr_ref, {phase, ": loader write address must match boot BIST write address"});
+      check_cond(wb_sel == boot_write_sel_ref, {phase, ": loader write select must match boot BIST write select"});
+      check_cond(wb_data_w == boot_write_data_ref, {phase, ": loader write data must match boot BIST write data"});
+    end
+  endtask
+
+  task automatic pulse_lowbyte_and_check_bus_through_ack(
+    input logic [31:0] stream_addr,
+    input logic [7:0] value
+  );
+    begin
+      wb_stall = 1'b1;
+      pulse_command(make_command(COMMAND_MAGIC, OP_WRITE_LOWBYTE, 2'd0, stream_addr, value));
+      repeat (2) @(negedge clk);
+      check_write_lowbyte_bus_shape(stream_addr, value, 1'b1, "write-lowbyte stalled issue");
+      check_write_lowbyte_matches_boot_write(stream_addr, value, "write-lowbyte stalled issue");
+
+      repeat (3) begin
+        @(negedge clk);
+        check_write_lowbyte_bus_shape(stream_addr, value, 1'b1, "write-lowbyte held under stall");
+        check_write_lowbyte_matches_boot_write(stream_addr, value, "write-lowbyte held under stall");
+      end
+
+      wb_stall = 1'b0;
+      @(negedge clk);
+      check_write_lowbyte_bus_shape(stream_addr, value, 1'b0, "write-lowbyte ack boundary");
+      check_write_lowbyte_matches_boot_write(stream_addr, value, "write-lowbyte ack request cycle");
+      wait_done("write-lowbyte stalled bus-shape");
+      check_cond(loader_error == 1'b0, "write-lowbyte stalled bus-shape must not raise loader_error");
+    end
+  endtask
+
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       wb_ack <= 1'b0;
@@ -201,27 +276,26 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     rst_n = 1'b1;
     repeat (2) @(negedge clk);
 
-    write_cmd = make_command(COMMAND_MAGIC, OP_WRITE_LOWBYTE, 2'd0, 32'd3, 8'h5a);
+    write_cmd = make_command(COMMAND_MAGIC, OP_WRITE_LOWBYTE, 2'd0, 32'd0, 8'h5a);
     pulse_command(write_cmd);
     pulse_command(write_cmd);
     repeat (6) @(negedge clk);
     check_cond(write_count == 0, "commands before boot_done must not write");
 
     boot_done = 1'b1;
-    pulse_command(write_cmd);
-    wait_done("write-lowbyte");
+    pulse_lowbyte_and_check_bus_through_ack(32'd0, 8'h5a);
     check_cond(loader_error == 1'b0, "write-lowbyte must not raise loader_error");
     check_cond(write_count == 1, "first accepted write must issue one Wishbone write");
-    check_cond(wb_addr == 10'd3, "write-lowbyte must present the command address");
+    check_cond(wb_addr == 10'd0, "write-lowbyte must present the command address");
     check_cond(wb_sel == {WB_SEL_BITS{1'b1}}, "write-lowbyte must assert all byte selects");
-    check_cond(mem[3][7:0] == 8'h5a, "write-lowbyte must store the payload byte in lane 0");
-    check_cond(mem[3][511:504] == 8'h5a, "write-lowbyte v35 must replicate across the full beat");
+    check_cond(mem[0][7:0] == 8'h5a, "write-lowbyte must store the payload byte in lane 0");
+    check_cond(mem[0][511:504] == 8'h5a, "write-lowbyte v35 must replicate across the full beat");
 
     pulse_command(write_cmd);
     repeat (8) @(negedge clk);
     check_cond(write_count == 1, "duplicate command event must be ignored by every-other filter");
 
-    read_cmd = make_command(COMMAND_MAGIC, OP_READ_LOWBYTE, 2'd0, 32'd3, 8'h00);
+    read_cmd = make_command(COMMAND_MAGIC, OP_READ_LOWBYTE, 2'd0, 32'd0, 8'h00);
     pulse_command(read_cmd);
     wait_done("read-lowbyte first duplicate phase");
     if (!loader_done) begin
