@@ -1,0 +1,19 @@
+{
+  "artifact_name": "task6-ypcb-uberddr3-readbeat-seed-transfer-calibration-failure",
+  "seed": 15,
+  "status": "FAIL",
+  "stage": "wait_calibration",
+  "bitstream": "/nix/store/s3acsx48kgyh9l8x5vblx1a588b7qp8p-task6-ypcb-uberddr3-rowstream-loader-seed15-clocked-locked-clock-and-phy.bit",
+  "error": "DDR3 calibration did not complete",
+  "debug_summary": {
+    "magic_ok": true,
+    "version": 45,
+    "calib_seen": false,
+    "loader_state": 1,
+    "wb_ack_count": 0,
+    "wb_err_count": 0,
+    "loader_error": false,
+    "debug1": "0x000006cc"
+  },
+  "interpretation": "Read-only beat capture was not attempted because the hardware boot/calibration gate did not pass."
+}

@@ -1,0 +1,30 @@
+{
+  "experiment": "dense-seed18-after-readbeat",
+  "date": "2026-05-11",
+  "gate": "D2 dense byte write/read on the seed18 clock+PHY locked bitstream",
+  "status": "FAIL",
+  "bitstream": "/nix/store/rfbv4y9wmhyq202340lb4rasjp7dfhxn-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit",
+  "run": "artifacts/task6/runs/2026-05-11-dense-seed18-after-readbeat/dense16",
+  "boot_gate": {
+    "calib_seen": true,
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "wb_err_count": 0
+  },
+  "dense_contract": {
+    "count": 16,
+    "expected_prefix_hex": "000102030405060708090a0b0c0d0e0f",
+    "observed_prefix_hex": "00c1000000c100000051000000510e0f",
+    "mismatch_count": 13
+  },
+  "write_observability": {
+    "last_dense_write_wb_addr_low16": 0,
+    "last_dense_write_lane": 15,
+    "last_dense_write_data": 15,
+    "last_dense_write_sel_low16": "0x8000",
+    "write_ack_count_after_16_writes": 25,
+    "read_ack_count": 26
+  },
+  "interpretation": "The boot/read command path is alive and the write command decoder reports the expected final beat/lane/select, but DDR3 readback still does not preserve the dense byte lane contents. Do not connect rowstream or TinyStories weights until this contract passes."
+}

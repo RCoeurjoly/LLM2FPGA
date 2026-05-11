@@ -546,6 +546,144 @@ Interpretation / metamorphic properties:
   - next gate remains deterministic byte contracts (read-only beat + dense write
     select) with calibration lock-in first.
 
+### 2026-05-11 - Current plan from DDR3 bring-up to weights in DDR3
+
+Purpose:
+
+- keep Task 6 execution pointed at memory externalization, not only DDR3
+  calibration debugging.
+- define the shortest path from the current UberDDR3 state to TinyStories
+  weight rows stored in board DDR3.
+
+Current DDR3 base:
+
+- Use the v40/v44-derived clock+PHY pre-place lock flow as the active hardware
+  base.
+- Treat hardware boot/calibration as the non-negotiable gate before interpreting
+  any data-path result:
+  - `calib_seen=true`
+  - `boot_done=true`
+  - `boot_error=false`
+  - `boot_mismatch=false`
+  - `wb_err_count=0`
+
+Execution ladder:
+
+| gate | purpose | pass condition | stop condition |
+| --- | --- | --- | --- |
+| D0: boot-clean locked base | prove the candidate bitstream is usable before data tests | boot gate above passes on board | any calibration/boot failure |
+| D1: read-only beat capture | prove a read command can return a stable captured beat without disturbing boot | repeated beat-0 lower-128 reads match, no loader/WB error | unstable readback or boot regression |
+| D2: dense byte write/read | prove `stream_addr -> beat, lane` mapping | write bytes `0..15`, read beat 0, observe `00..0f` in lanes `0..15` | lane permutation, stale capture, wrong beat address, or command overlap |
+| D3: small rowstream slice | prove real TinyStories row bytes survive DDR3 storage | rows for tokens `0,1,31,32` byte-match `rowstream.bin` | any row byte mismatch or WB error |
+| D4: full rowstream load/readback | prove the full externalized weight image is viable | sampled/full readback hashes match and bandwidth is recorded | mismatch or impractical load/read time |
+| D5: DDR3-backed top1 cutout | prove inference can fetch weights from DDR3 | FPGA top1 matches software replay for selected samples | top1 mismatch after rowstream integrity passed |
+| D6: Task 6 resource comparison | prove this helps the original resource problem | utilization/resources compared against copied Task 3 baseline bundle | weights reappear as RTL constants or BRAM pressure remains dominant |
+
+Task 6 promotion rule:
+
+- Do not connect DDR3 to TinyStories inference until D2 passes. A boot-clean DDR3
+  build is not sufficient; deterministic byte storage is the missing contract.
+- Once D2 passes, prioritize a tiny rowstream slice over more placement study.
+- Once D5 passes, update the Task 6 deliverable around externalized INT8
+  output-head or MLP rows and compare against:
+  `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`.
+
+### 2026-05-11 - Read-only beat capture seed-transfer gate
+
+Goal:
+
+- execute D1 on the same seed-transfer constrained family before trying dense
+  writes again.
+
+Commands:
+
+- seed15:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/s3acsx48kgyh9l8x5vblx1a588b7qp8p-task6-ypcb-uberddr3-rowstream-loader-seed15-clocked-locked-clock-and-phy.bit --run-dir artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed15 --diagnostic-readbeat-addr 0 --json-only`
+- seed17:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/nda5df4bkab7r8m99abbn38bqnr1p4nc-task6-ypcb-uberddr3-rowstream-loader-seed17-clocked-locked-clock-and-phy.bit --run-dir artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed17 --diagnostic-readbeat-addr 0 --json-only`
+- seed18:
+  `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/rfbv4y9wmhyq202340lb4rasjp7dfhxn-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit --run-dir artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed18 --diagnostic-readbeat-addr 0 --json-only`
+
+Result:
+
+| seed | result | stage | detail |
+| --- | --- | --- | --- |
+| 15 | `FAIL` | calibration | `calib_seen=false`, `debug1=0x000006cc`; readbeat not attempted |
+| 15 retry | `FAIL` | calibration | 60s timeout still failed, `debug1=0x000026cc` |
+| 17 | `FAIL` | calibration | `calib_seen=false`, `debug1=0x000006c9`; readbeat not attempted |
+| 18 | `PASS` | readbeat | lower128 `3dc13da53dc13da52c512ca52c512ca5`, `wb_err_count=0` |
+
+Seed18 repeated-read stability:
+
+| run | programming | lower128 |
+| --- | --- | --- |
+| `seed18` | program | `3dc13da53dc13da52c512ca52c512ca5` |
+| `seed18-repeat1` | program | `3dc13da53dc13da52c512ca52c512ca5` |
+| `seed18-repeat2-no-program` | no program | `3dc13da53dc13da52c512ca52c512ca5` |
+
+Artifacts:
+
+- `artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/readbeat-seed-transfer-summary.json`
+- `artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed15/`
+- `artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed15-boot-retry-timeout60/`
+- `artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed17/`
+- `artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed18/`
+- `artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed18-repeat1/`
+- `artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed18-repeat2-no-program/`
+
+Interpretation:
+
+- The read-only beat datapath is stable on seed18.
+- The constrained seed-transfer family is not yet robust enough across seeds to
+  promote dense writes as a multi-seed contract.
+- Next concrete gate should keep seed18 as the active data-path seed and run D2
+  dense byte write/read there, while separately investigating why seed15/17
+  regressed from prior boot-clean evidence to calibration timeout.
+
+### 2026-05-11 - Dense byte gate on seed18 after readbeat stability
+
+Goal:
+
+- execute D2 on the only seed that passed D1 in this pass.
+
+Command:
+
+```sh
+python3 scripts/task6/task6_ddr3_rowstream_loader.py \
+  --bitstream /nix/store/rfbv4y9wmhyq202340lb4rasjp7dfhxn-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit \
+  --run-dir artifacts/task6/runs/2026-05-11-dense-seed18-after-readbeat/dense16 \
+  --diagnostic-dense-count 16 \
+  --json-only
+```
+
+Result:
+
+| field | value |
+| --- | --- |
+| boot gate | clean: `calib_seen=true`, `boot_done=true`, `boot_mismatch=false`, `wb_err_count=0` |
+| status | `FAIL` |
+| expected prefix | `000102030405060708090a0b0c0d0e0f` |
+| observed prefix | `00c1000000c100000051000000510e0f` |
+| mismatch count | `13/16` |
+| final write observability | `dense_write_wb_addr_low16=0`, `dense_write_lane=15`, `dense_write_data=15`, `dense_write_sel_low16=0x8000` |
+| ACK/error state | writes and read acknowledged; `wb_err_count=0`, `loader_error=false` |
+
+Artifacts:
+
+- `artifacts/task6/runs/2026-05-11-dense-seed18-after-readbeat/dense-seed18-summary.json`
+- `artifacts/task6/runs/2026-05-11-dense-seed18-after-readbeat/dense16/dense-diagnostic.json`
+- `artifacts/task6/runs/2026-05-11-dense-seed18-after-readbeat/dense16/summary.json`
+
+Interpretation:
+
+- This is now a real dense data-contract failure after clean boot, not a
+  calibration failure.
+- The command decoder and write-select observability look correct for the final
+  write, so the next RTL/debug step should inspect the write-data path and
+  read-after-write/capture path rather than returning to seed sweeps.
+- Do not connect `rowstream.bin` or TinyStories weights to DDR3 until this D2
+  contract reads back `00..0f` from beat 0.
+
 ### 2026-05-09 - Boring DDR3 bring-up operating contract
 
 Decision:

@@ -1,0 +1,50 @@
+{
+  "experiment": "readbeat-seed-transfer",
+  "date": "2026-05-11",
+  "gate": "boot-clean plus read-only lower-128-bit dense beat capture at beat address 0",
+  "seeds": [
+    {
+      "seed": 15,
+      "status": "FAIL",
+      "stage": "calibration",
+      "calib_seen": false,
+      "boot_done": null,
+      "readbeat_attempted": false,
+      "diagnostic": "artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed15/calibration-failure.json"
+    },
+    {
+      "seed": 17,
+      "status": "FAIL",
+      "stage": "calibration",
+      "calib_seen": false,
+      "boot_done": null,
+      "readbeat_attempted": false,
+      "diagnostic": "artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed17/calibration-failure.json"
+    },
+    {
+      "seed": 18,
+      "status": "PASS",
+      "stage": "readbeat",
+      "calib_seen": true,
+      "boot_done": true,
+      "boot_mismatch": false,
+      "readbeat_attempted": true,
+      "lower128_hex": "3dc13da53dc13da52c512ca52c512ca5",
+      "diagnostic": "artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed18/readbeat-diagnostic.json"
+    }
+  ],
+  "seed18_repeated_read_stability": {
+    "status": "PASS",
+    "observed_lower128_hex": [
+      "3dc13da53dc13da52c512ca52c512ca5",
+      "3dc13da53dc13da52c512ca52c512ca5",
+      "3dc13da53dc13da52c512ca52c512ca5"
+    ],
+    "runs": [
+      "artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed18",
+      "artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed18-repeat1",
+      "artifacts/task6/runs/2026-05-11-readbeat-seed-transfer/seed18-repeat2-no-program"
+    ]
+  },
+  "interpretation": "The read-only beat datapath is stable on seed18, but the seed-transfer family is not yet calibration-stable enough to promote to dense writes across seeds."
+}
