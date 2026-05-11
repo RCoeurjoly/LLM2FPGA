@@ -148,6 +148,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--diagnostic-dense-lane-map-count",
+        type=int,
+        default=0,
+        help=(
+            "before rowstream loading, write one nonzero sentinel per dense byte "
+            "lane up to N, read beat 0 after each write, emit a lane-map JSON, "
+            "and exit"
+        ),
+    )
+    parser.add_argument(
         "--diagnostic-readbeat-addr",
         type=int,
         default=None,
@@ -704,6 +714,90 @@ def run_dense_diagnostic(
         },
     }
     write_json(run_dir / "dense-diagnostic.json", payload)
+    return payload
+
+
+def run_dense_lane_map_diagnostic(
+    loader: RowstreamLoader, count: int, run_dir: Path, initial_debug: dict[str, Any]
+) -> dict[str, Any]:
+    if count <= 0 or count > 16:
+        raise ValueError("dense lane-map count must be in 1..16 for the 512-bit debug build")
+    if (
+        not bool(initial_debug["boot_done"])
+        or bool(initial_debug["boot_error"])
+        or bool(initial_debug["boot_mismatch"])
+    ):
+        final_debug = loader.read_debug()
+        payload = {
+            "artifact_name": "task6-ypcb-uberddr3-dense-byte-lane-map-board-diagnostic",
+            "status": "FAIL",
+            "count": count,
+            "initial_debug": json_debug(initial_debug),
+            "final_debug": json_debug(final_debug),
+            "samples": [],
+            "decision": {
+                "verdict": "dense-lane-map-blocked-by-unclean-boot",
+                "next_gate": "Do not interpret lane data until boot_mismatch=false.",
+            },
+        }
+        write_json(run_dir / "dense-lane-map-diagnostic.json", payload)
+        return payload
+
+    samples = []
+    pass_status = True
+    for lane in range(count):
+        value = (0x80 + lane) & 0xFF
+        write_debug = loader.write_dense_byte(lane, value)
+        beat, read_debug = loader.read_dense_beat(0)
+        lower128 = beat[:16]
+        sample_ok = (
+            not bool(write_debug["loader_error"])
+            and not bool(read_debug["loader_error"])
+            and write_debug["wb_err_count"] == initial_debug["wb_err_count"]
+            and read_debug["wb_err_count"] == initial_debug["wb_err_count"]
+            and bool(write_debug["loader_write_ack_seen"])
+            and bool(read_debug["loader_read_ack_seen"])
+        )
+        pass_status = pass_status and sample_ok
+        samples.append(
+            {
+                "lane": lane,
+                "value": value,
+                "lower128_hex": lower128.hex(),
+                "observed_at_lane": lower128[lane],
+                "target_lane_match": lower128[lane] == value,
+                "matching_lanes": [
+                    index for index, observed in enumerate(lower128) if observed == value
+                ],
+                "write_ack_count": write_debug["wb_ack_count"],
+                "read_ack_count": read_debug["wb_ack_count"],
+                "write_loader_error": write_debug["loader_error"],
+                "read_loader_error": read_debug["loader_error"],
+            }
+        )
+
+    final_debug = loader.read_debug()
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-dense-byte-lane-map-board-diagnostic",
+        "status": "PASS" if pass_status else "FAIL",
+        "count": count,
+        "initial_debug": json_debug(initial_debug),
+        "final_debug": json_debug(final_debug),
+        "samples": samples,
+        "decision": {
+            "verdict": (
+                "dense-lane-map-captured"
+                if pass_status
+                else "dense-lane-map-transport-failed"
+            ),
+            "next_gate": (
+                "Use matching_lanes and lower128_hex to determine whether the "
+                "dense path needs byte-select remapping, data remapping, or a "
+                "controller-native full-beat writer."
+            ),
+        },
+    }
+    write_json(run_dir / "dense-lane-map-diagnostic.json", payload)
     return payload
 
 
@@ -1268,6 +1362,34 @@ def main() -> int:
                         f"observed={diagnostic['beat0_prefix_hex']} "
                         f"expected={diagnostic['expected_prefix_hex']}"
                     )
+            return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_dense_lane_map_count:
+            diagnostic = run_dense_lane_map_diagnostic(
+                loader, args.diagnostic_dense_lane_map_count, run_dir, initial_debug
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "dense-lane-map-diagnostic.json"),
+                    "count": diagnostic["count"],
+                    "verdict": diagnostic["decision"]["verdict"],
+                    "target_lane_matches": [
+                        sample["target_lane_match"] for sample in diagnostic["samples"]
+                    ],
+                    "lower128_hex_by_lane": [
+                        sample["lower128_hex"] for sample in diagnostic["samples"]
+                    ],
+                },
+            )
+            if not args.json_only:
+                print(
+                    "dense lane-map diagnostic "
+                    f"{diagnostic['status']} verdict="
+                    f"{diagnostic['decision']['verdict']} "
+                    f"count={diagnostic['count']}"
+                )
             return 0 if diagnostic["status"] == "PASS" else 1
         load_start = time.monotonic()
         if args.storage_mode == "beat":

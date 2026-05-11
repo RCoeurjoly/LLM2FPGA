@@ -1,0 +1,43 @@
+{
+  "count": 16,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-11-dense-lane-map-v54-seed18/count16/dense-lane-map-diagnostic.json",
+  "lower128_hex_by_lane": [
+    "a8c1a800a8c1a800a851a800a851a800",
+    "80c1000000c100000051000000510000",
+    "00c1000000c100000051000000510000",
+    "00c1828300c100000051000000510000",
+    "00c1000000c100000051000000510000",
+    "00c1000084c100000051000000510000",
+    "00c1000000c100000051000000510000",
+    "00c1000000c186870051000000510000",
+    "00c1000000c100000051000000510000",
+    "00c1000000c100008851000000510000",
+    "00c1000000c100000051000000510000",
+    "00c1000000c1000000518a8b00510000",
+    "00c1000000c100000051000000510000",
+    "00c1000000c10000005100008c510000",
+    "00c1000000c100000051000000510000",
+    "00c1000000c100000051000000518e8f"
+  ],
+  "run_dir": "artifacts/task6/runs/2026-05-11-dense-lane-map-v54-seed18/count16",
+  "status": "PASS",
+  "target_lane_matches": [
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    true
+  ],
+  "verdict": "dense-lane-map-captured"
+}

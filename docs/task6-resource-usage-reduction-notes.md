@@ -19116,3 +19116,47 @@ UberDDR3 calibration/data-integrity gates:
   - Use the resulting lane table to decide whether to invert/remap `i_wb_sel`,
     change dense data layout, or abandon per-byte dense writes in favor of
     controller-native full-beat row chunks.
+
+## 2026-05-11 - dense lane-map hardware result
+
+- Goal:
+  - characterize dense byte-lane writes without changing the v54 bitstream or
+    disturbing placement.
+- Implementation:
+  - added `--diagnostic-dense-lane-map-count` to
+    `scripts/task6/task6_ddr3_rowstream_loader.py`.
+  - for each lower lane, the script writes one nonzero sentinel value with the
+    existing dense-byte command, then reads beat 0 and records the lower 128
+    bits.
+- Validation:
+  - command:
+    `python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream /nix/store/pw6v3y4xyzvnq7p6zmpk8j4na7czn06m-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit --run-dir artifacts/task6/runs/2026-05-11-dense-lane-map-v54-seed18/count16 --diagnostic-dense-lane-map-count 16 --json-only`
+  - result:
+    `artifacts/task6/runs/2026-05-11-dense-lane-map-v54-seed18/count16`
+  - status: `PASS` as a transport/capture diagnostic; calibration and boot were
+    clean and all samples were captured.
+- Key observations:
+  - lane-map samples showed current sentinels reliably visible at lanes
+    `3`, `7`, `11`, and `15`, with adjacent even-lane sentinels often becoming
+    visible only after the following odd-lane write.
+  - many other byte positions stayed at old BIST-pattern residue such as
+    `0xc1` and `0x51`, or were zeroed by later writes.
+- Interpretation:
+  - This is now mostly explained by the known YPCB no-DM constraint, not by a
+    mysterious JTAG packing failure. The YPCB LiteX metadata does not expose
+    DDR3 DM pins, and the UberDDR3 YPCB patch disables unpinned DM outputs by
+    tying data mask inactive.
+  - Therefore `i_wb_sel` cannot be used as a reliable byte-write primitive on
+    this board flow. A "single-byte dense write" actually risks writing the
+    whole 64-byte beat with zeros in unselected lanes because the physical DM
+    pins are absent from the design.
+  - For Task 6 weight externalization, the viable path is no-DM full-beat
+    commits: assemble a complete 64-byte row/chunk in FPGA-side buffer
+    registers, then issue one full-width write with all data lanes valid.
+- Next concrete engineering gate:
+  - implement the already-assumed chunked full-beat loader contract in RTL:
+    accept four 16-byte JTAG chunks into a 64-byte buffer, then commit one
+    whole DDR3 beat with full `i_wb_sel`.
+  - Validate first in the loader contract simulation, then build one locked
+    seed-18 bitstream and run a board diagnostic that writes a 64-byte sentinel
+    beat and reads back the lower 128 bits.
