@@ -9554,7 +9554,7 @@
               "artifact_name": "task6-uberddr3-rowstream-loader-contract-sv-sim",
               "status": "PASS",
               "date": "2026-05-11",
-              "hypothesis": "The rowstream JTAG loader command contract issues deterministic low-byte Wishbone writes and reads before hardware DDR3 validation.",
+              "hypothesis": "The rowstream JTAG loader command contract issues deterministic low-byte, dense-byte, and dense-fill Wishbone writes and reads before hardware DDR3 validation.",
               "metrics": {
                 "writes": $writes,
                 "reads": $reads,
@@ -9568,7 +9568,7 @@
               },
               "decision": {
                 "verdict": "promote-to-uberddr3-address-lane-sim",
-                "next_gate": "Model or simulate UberDDR3 Wishbone address and byte-select semantics, then replay the same 0..15 byte diagnostic on board."
+                "next_gate": "Model or simulate UberDDR3 Wishbone write acceptance and read-data timing, then replay the dense-fill readback diagnostic on board."
               }
             }
             EOF

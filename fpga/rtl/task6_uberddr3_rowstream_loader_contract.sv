@@ -10,7 +10,8 @@ module task6_uberddr3_rowstream_loader_contract #(
   parameter logic [7:0] LOADER_OP_WRITE_LOWBYTE = 8'h03,
   parameter logic [7:0] LOADER_OP_READ_LOWBYTE = 8'h04,
   parameter logic [7:0] LOADER_OP_WRITE_DENSE_BYTE = 8'h05,
-  parameter logic [7:0] LOADER_OP_READ_DENSE_BEAT = 8'h06
+  parameter logic [7:0] LOADER_OP_READ_DENSE_BEAT = 8'h06,
+  parameter logic [7:0] LOADER_OP_WRITE_DENSE_FILL = 8'h08
 ) (
   input  logic                            clk_i,
   input  logic                            rst_ni,
@@ -144,6 +145,14 @@ module task6_uberddr3_rowstream_loader_contract #(
           wb_data_o <= '0;
           wb_sel_o <= {WB_SEL_BITS{1'b1}};
           wb_we_o <= 1'b0;
+          wb_cyc_o <= 1'b1;
+          wb_stb_o <= 1'b1;
+          state_q <= LOADER_ISSUE;
+        end else if (command_opcode == LOADER_OP_WRITE_DENSE_FILL) begin
+          wb_addr_o <= command_addr[WB_ADDR_BITS - 1:0];
+          wb_data_o <= {WB_SEL_BITS{command_data[7:0]}};
+          wb_sel_o <= {WB_SEL_BITS{1'b1}};
+          wb_we_o <= 1'b1;
           wb_cyc_o <= 1'b1;
           wb_stb_o <= 1'b1;
           state_q <= LOADER_ISSUE;

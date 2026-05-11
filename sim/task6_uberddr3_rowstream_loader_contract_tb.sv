@@ -11,6 +11,7 @@ module task6_uberddr3_rowstream_loader_contract_tb;
   localparam logic [7:0] OP_READ_LOWBYTE = 8'h04;
   localparam logic [7:0] OP_WRITE_DENSE_BYTE = 8'h05;
   localparam logic [7:0] OP_READ_DENSE_BEAT = 8'h06;
+  localparam logic [7:0] OP_WRITE_DENSE_FILL = 8'h08;
 
   logic clk;
   logic rst_n;
@@ -58,7 +59,8 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     .LOADER_OP_WRITE_LOWBYTE(OP_WRITE_LOWBYTE),
     .LOADER_OP_READ_LOWBYTE(OP_READ_LOWBYTE),
     .LOADER_OP_WRITE_DENSE_BYTE(OP_WRITE_DENSE_BYTE),
-    .LOADER_OP_READ_DENSE_BEAT(OP_READ_DENSE_BEAT)
+    .LOADER_OP_READ_DENSE_BEAT(OP_READ_DENSE_BEAT),
+    .LOADER_OP_WRITE_DENSE_FILL(OP_WRITE_DENSE_FILL)
   ) dut (
     .clk_i(clk),
     .rst_ni(rst_n),
@@ -259,6 +261,8 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     logic [COMMAND_WIDTH - 1:0] read_cmd;
     logic [COMMAND_WIDTH - 1:0] dense_cmd;
     logic [COMMAND_WIDTH - 1:0] dense_read_cmd;
+    logic [COMMAND_WIDTH - 1:0] dense_fill_cmd;
+    logic [COMMAND_WIDTH - 1:0] dense_fill_read_cmd;
     int i;
 
     clk = 1'b0;
@@ -323,9 +327,23 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     for (i = 0; i < 16; i = i + 1)
       check_cond(loader_read_data[i * 8 +: 8] == i[7:0], "read-dense-beat must capture dense byte lanes 0..15");
 
+    dense_fill_cmd = make_command(COMMAND_MAGIC, OP_WRITE_DENSE_FILL, 2'd0, 32'd2, 8'h5a);
+    pulse_command_pair_and_wait(dense_fill_cmd, "write-dense-fill");
+    check_cond(loader_error == 1'b0, "write-dense-fill must not raise loader_error");
+    check_cond(wb_addr == 10'd2, "write-dense-fill must present the command beat address");
+    check_cond(wb_sel == {WB_SEL_BITS{1'b1}}, "write-dense-fill must select the full beat");
+    for (i = 0; i < 64; i = i + 1)
+      check_cond(mem[2][i * 8 +: 8] == 8'h5a, "write-dense-fill must store the payload byte in every lane");
+
+    dense_fill_read_cmd = make_command(COMMAND_MAGIC, OP_READ_DENSE_BEAT, 2'd0, 32'd2, 8'h00);
+    pulse_command_pair_and_wait(dense_fill_read_cmd, "read-dense-fill");
+    check_cond(loader_error == 1'b0, "read-dense-fill must not raise loader_error");
+    for (i = 0; i < 16; i = i + 1)
+      check_cond(loader_read_data[i * 8 +: 8] == 8'h5a, "read-dense-fill must capture repeated byte lanes 0..15");
+
     pulse_command(make_command(32'h0, OP_WRITE_LOWBYTE, 2'd0, 32'd7, 8'ha5));
     repeat (8) @(negedge clk);
-    check_cond(write_count == 17, "bad magic must not issue Wishbone writes");
+    check_cond(write_count == 18, "bad magic must not issue Wishbone writes");
 
     if (errors == 0) begin
       $display(

@@ -19051,3 +19051,32 @@ UberDDR3 calibration/data-integrity gates:
   - Hardware success remains the golden result: calibration complete,
     `boot_mismatch=false`, `wb_err_count=0`, write ACK observed, read ACK
     observed, and lower-128-bit readback equals the written pattern.
+
+## 2026-05-11 - dense-fill loader contract simulation
+
+- Goal:
+  - close the gap between the v54 hardware failure and the existing abstract
+    loader simulation by adding the same `LOADER_OP_WRITE_DENSE_FILL` opcode to
+    the contract model.
+- Change:
+  - `fpga/rtl/task6_uberddr3_rowstream_loader_contract.sv` now models
+    `LOADER_OP_WRITE_DENSE_FILL` (`0x08`) as a full-beat write:
+    command beat address, repeated payload byte across all 64 lanes, and all
+    64 byte-select bits asserted.
+  - `sim/task6_uberddr3_rowstream_loader_contract_tb.sv` writes beat 2 with
+    `0x5a`, checks all 64 stored byte lanes, then reads beat 2 and checks the
+    lower 16 lanes.
+- Validation:
+  - command:
+    `nix build .#task6-uberddr3-rowstream-loader-contract-sv-sim -L --no-link --print-out-paths`
+  - result:
+    `/nix/store/hhywg9ajz6z7qf7ysg6lfzyy3l8g5rm4-task6-uberddr3-rowstream-loader-contract-sv-sim.json`
+  - PASS line:
+    `PASS: task6 rowstream loader contract writes 18 reads 3 state 1 wait_cycles 1`
+- Decision:
+  - The dense-fill loader opcode is bus-correct in the abstract contract. The
+    current board failure is downstream of the JTAG loader opcode shape: likely
+    in UberDDR3 write acceptance, read-data timing, byte-lane mapping, or a
+    hardware timing/PHY interaction that the abstract memory model cannot see.
+  - Next gate: use the upstream UberDDR3 controller semantics/formal facts to
+    build a targeted read-data timing experiment, then validate on board.
