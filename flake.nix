@@ -7404,6 +7404,18 @@
               ${./sim/task6_uberddr3_rowstream_loader_contract_tb.sv}
           '';
 
+        task6UberDdr3ControllerLaneOrderSimMain =
+          pkgs.runCommand "task6-uberddr3-controller-lane-order-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_uberddr3_controller_lane_order_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./sim/task6_uberddr3_controller_lane_order_tb.sv}
+          '';
+
         task6CProjRequantArithSelftestSimMain =
           pkgs.runCommand "task6-c-proj-requant-arith-selftest-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -9574,6 +9586,42 @@
             EOF
           '';
 
+        task6UberDdr3ControllerLaneOrderSvSim =
+          pkgs.runCommand "task6-uberddr3-controller-lane-order-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6UberDdr3ControllerLaneOrderSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 UberDDR3 controller lane-order sim checks [0-9]+ matched_lanes 3,7 matched_bursts 0,1' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6 UberDDR3 controller lane-order simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            checks="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "artifact_name": "task6-uberddr3-controller-lane-order-sv-sim",
+              "status": "PASS",
+              "date": "2026-05-12",
+              "hypothesis": "UberDDR3 controller byte order is burst*8+lane; full 64-byte writes preserve a ramp when all lanes update, while the v63 hardware signature corresponds to lanes 3 and 7 updating across lower bursts.",
+              "metrics": {
+                "checks": $checks,
+                "matched_lanes": [3, 7],
+                "matched_bursts": [0, 1]
+              },
+              "validation": {
+                "simulation_run": true,
+                "hardware_run": false,
+                "validation_kind": "controller-local-byte-order-cutout"
+              },
+              "decision": {
+                "verdict": "controller-byte-order-sim-passes",
+                "next_gate": "Simulate or instrument the real write-stage timing around data_start_index and stage2_update before changing the board RTL."
+              }
+            }
+            EOF
+          '';
+
         task6UberDdr3AddressLaneModel =
           pkgs.runCommand "task6-uberddr3-address-lane-model.json" {
             buildInputs = [ pkgs.python3 ];
@@ -10549,6 +10597,10 @@
             task6UberDdr3RowstreamLoaderContractSimMain;
           task6-uberddr3-rowstream-loader-contract-sv-sim =
             task6UberDdr3RowstreamLoaderContractSvSim;
+          task6-uberddr3-controller-lane-order-sim-main =
+            task6UberDdr3ControllerLaneOrderSimMain;
+          task6-uberddr3-controller-lane-order-sv-sim =
+            task6UberDdr3ControllerLaneOrderSvSim;
           task6-uberddr3-address-lane-model =
             task6UberDdr3AddressLaneModel;
           task6-uberddr3-controller-lane-order-model =

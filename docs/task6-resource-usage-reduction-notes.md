@@ -19565,3 +19565,34 @@ UberDDR3 calibration/data-integrity gates:
     `stage1_data_d`, `stage2_data_unaligned`, `stage2_data`, `i_wb_sel`,
     `data_start_index`, and `o_wb_data_q` before making another board RTL
     change.
+
+## 2026-05-12 - UberDDR3 controller lane-order cutout simulation
+
+- Goal:
+  - show the controller byte-coordinate assumptions in simulation before any
+    new board RTL change.
+- Implementation:
+  - added `sim/task6_uberddr3_controller_lane_order_tb.sv`.
+  - added Nix targets:
+    - `task6-uberddr3-controller-lane-order-sim-main`
+    - `task6-uberddr3-controller-lane-order-sv-sim`
+  - the cutout sim encodes the byte staging assignments used by
+    `ddr3_controller.v`:
+    `stage1_data_d = i_wb_data`,
+    `stage2_data[burst*64 + lane*8 +: 8]`, and
+    `o_wb_data_q[burst*64 + lane*8 +: 8]`.
+- Validation:
+  - simulation artifact:
+    `/nix/store/3liil1853jwcg96fsvnh0jw5znhd113y-task6-uberddr3-controller-lane-order-sv-sim.json`
+    PASS.
+  - checks: `134`.
+  - result: full 64-byte ramp writes preserve every byte when all lanes update;
+    the restored v63 hardware signature maps to matched lanes `[3, 7]` and
+    matched bursts `[0, 1]`.
+- Interpretation:
+  - the basic controller byte layout is now shown in simulation.
+  - this does not yet simulate the full UberDDR3 controller, PHY, or DDR3
+    memory timing.
+  - the next simulation target should be narrower but closer to the real bug:
+    `data_start_index`, `late_dq`, `stage2_update`, and write/read pipeline
+    timing around the existing stage2 alignment logic.
