@@ -7416,6 +7416,18 @@
               ${./sim/task6_uberddr3_controller_lane_order_tb.sv}
           '';
 
+        task6UberDdr3Stage2TimingSimMain =
+          pkgs.runCommand "task6-uberddr3-stage2-timing-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_uberddr3_stage2_timing_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./sim/task6_uberddr3_stage2_timing_tb.sv}
+          '';
+
         task6CProjRequantArithSelftestSimMain =
           pkgs.runCommand "task6-c-proj-requant-arith-selftest-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -9622,6 +9634,46 @@
             EOF
           '';
 
+        task6UberDdr3Stage2TimingSvSim =
+          pkgs.runCommand "task6-uberddr3-stage2-timing-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6UberDdr3Stage2TimingSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 UberDDR3 stage2 timing sim checks [0-9]+ updates [0-9]+ holds [0-9]+ read_pipe_updates [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6 UberDDR3 stage2 timing simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            checks="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+            updates="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            holds="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            read_pipe_updates="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "artifact_name": "task6-uberddr3-stage2-timing-sv-sim",
+              "status": "PASS",
+              "date": "2026-05-12",
+              "hypothesis": "UberDDR3 stage2 timing depends on stage2_update, data_start_index, late_dq forwarding, unaligned_data carryover, and read-pipe lane taps; these mechanisms can produce stale or shifted lane signatures without host packing errors.",
+              "metrics": {
+                "checks": $checks,
+                "stage2_updates": $updates,
+                "stage2_holds": $holds,
+                "read_pipe_updates": $read_pipe_updates
+              },
+              "validation": {
+                "simulation_run": true,
+                "hardware_run": false,
+                "validation_kind": "controller-local-stage2-timing-cutout"
+              },
+              "decision": {
+                "verdict": "stage2-timing-cutout-sim-passes",
+                "next_gate": "Use this cutout to test concrete hypotheses for the restored v63 hardware signature before modifying board RTL."
+              }
+            }
+            EOF
+          '';
+
         task6UberDdr3AddressLaneModel =
           pkgs.runCommand "task6-uberddr3-address-lane-model.json" {
             buildInputs = [ pkgs.python3 ];
@@ -10601,6 +10653,10 @@
             task6UberDdr3ControllerLaneOrderSimMain;
           task6-uberddr3-controller-lane-order-sv-sim =
             task6UberDdr3ControllerLaneOrderSvSim;
+          task6-uberddr3-stage2-timing-sim-main =
+            task6UberDdr3Stage2TimingSimMain;
+          task6-uberddr3-stage2-timing-sv-sim =
+            task6UberDdr3Stage2TimingSvSim;
           task6-uberddr3-address-lane-model =
             task6UberDdr3AddressLaneModel;
           task6-uberddr3-controller-lane-order-model =

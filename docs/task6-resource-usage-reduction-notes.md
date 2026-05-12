@@ -19596,3 +19596,38 @@ UberDDR3 calibration/data-integrity gates:
   - the next simulation target should be narrower but closer to the real bug:
     `data_start_index`, `late_dq`, `stage2_update`, and write/read pipeline
     timing around the existing stage2 alignment logic.
+
+## 2026-05-12 - UberDDR3 stage2 timing cutout simulation
+
+- Goal:
+  - simulate the timing-sensitive controller mechanisms that can explain stale
+    or shifted lane readback without changing board RTL.
+- Implementation:
+  - added `sim/task6_uberddr3_stage2_timing_tb.sv`.
+  - added Nix targets:
+    - `task6-uberddr3-stage2-timing-sim-main`
+    - `task6-uberddr3-stage2-timing-sv-sim`
+  - the cutout exercises the RTL-equivalent transformations around
+    `stage2_update`, `stage2_data_unaligned`, `stage2_data`,
+    `data_start_index`, `late_dq`, `unaligned_data`, read-pipe lane taps, and
+    `index_wb_data`.
+- Validation:
+  - simulation artifact:
+    `/nix/store/g64cns30pm7d4za67gkhqpp1c6s2l2w6-task6-uberddr3-stage2-timing-sv-sim.json`
+    PASS.
+  - checks: `300`.
+  - exercised cases:
+    - `stage2_update=1` accepts new write data;
+    - `stage2_update=0` holds the previous stage2 data;
+    - `data_start_index=8` shifts a lane by one burst and carries burst 7
+      through `unaligned_data`;
+    - `late_dq=1` forwards a lane into `stage2_data[1]` rather than
+      `stage2_data[0]`;
+    - read-pipe lane taps update early and delayed lanes in separate cycles.
+- Interpretation:
+  - the mechanisms that can produce stale/shifted lane signatures are now
+    covered by simulation.
+  - the next useful gate is to encode the restored v63 hardware signature as a
+    hypothesis in this cutout: determine which combination of lane update mask,
+    read-pipe timing, or `data_start_index` values yields bytes `3`, `7`,
+    `11`, and `15` matching while the neighboring lanes retain residue.
