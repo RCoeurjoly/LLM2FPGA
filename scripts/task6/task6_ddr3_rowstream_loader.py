@@ -520,13 +520,13 @@ class RowstreamLoader:
     def write_lowbyte(self, stream_addr: int, value: int) -> dict[str, Any]:
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
-        self.send_command(OP_WRITE_LOWBYTE, 0, stream_addr, bytes([value & 0xFF]))
+        self.send_command(OP_WRITE_LOWBYTE, 0, stream_addr + 1, bytes([value & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
 
     def read_lowbyte(self, stream_addr: int) -> tuple[int, dict[str, Any]]:
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
-        self.send_command(OP_READ_LOWBYTE, 0, stream_addr)
+        self.send_command(OP_READ_LOWBYTE, 0, stream_addr + 1)
         debug = self.wait_ready(min_ack_count=min_ack)
         return debug["read_data_chunk"][0], debug
 
