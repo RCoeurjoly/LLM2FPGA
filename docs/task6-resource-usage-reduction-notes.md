@@ -19273,3 +19273,74 @@ UberDDR3 calibration/data-integrity gates:
   - add a hardware-visible write-data echo/checkpoint for the generated beat
     before it enters UberDDR3, and compare readback against both generated data
     and the BIST write pattern. Keep the v58 boot-clean prerequisite unchanged.
+
+## 2026-05-12 - full-beat write/read isolation
+
+- Goal:
+  - stop debugging host JTAG packing and isolate the board-side
+    loader-to-UberDDR3 write/read path.
+  - keep the boot BIST gate mandatory before interpreting any generated
+    full-beat readback.
+- v60 result:
+  - bitstream:
+    `/nix/store/rdbwvmgkp9qnrfc3nfddd4hgk7snh9g1-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+  - run:
+    `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v60-seed18/beat0-base20`
+  - result: blocked. DDR3 calibration was seen, but the added actual-port echo
+    wiring perturbed the known-good boot path:
+    `boot_mismatch=true`, `command_count=0`, verdict
+    `rtl-fullbeat-blocked-by-unclean-boot`.
+  - interpretation: extracting and observing the live UberDDR3 Wishbone port is
+    too intrusive for this fragile build. Do not use v60 data as a full-beat
+    integrity result.
+- v61 result:
+  - implementation:
+    - restored the v58-style direct UberDDR3 port mux.
+    - changed the echo to latch the generated lower 32 write-data bits when
+      the `RUN_FULLBEAT` command is accepted, before the write/read
+      microsequence starts.
+  - simulation:
+    - `nix build .#task6-uberddr3-rowstream-loader-contract-sv-sim -L --no-link --print-out-paths`
+    - output:
+      `/nix/store/wbjd78hh52glrlykxflxz3v2c38f66ss-task6-uberddr3-rowstream-loader-contract-sv-sim.json`
+    - result: PASS.
+  - synthesis / route:
+    - Yosys output:
+      `/nix/store/nr5calxrvwi3dapi5hs37gly0p25i88w-task6-ypcb-uberddr3-rowstream-loader-yosys.json`
+    - bitstream:
+      `/nix/store/rkd9mxk29ysc46nlhqj3462han9dq7zn-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+    - pre-place locks reported `applied=437 missing=0`.
+    - routed controller clock timing passed at 25 MHz; reported max frequency
+      was 40.88 MHz.
+  - hardware:
+    - run:
+      `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v61-seed18/beat0-base20`
+    - boot prerequisite: PASS:
+      `boot_done=true`, `boot_error=false`, `boot_mismatch=false`,
+      `wb_err_count=0`.
+    - generated write echo: PASS:
+      `write_echo32=0x23222120`, matching the expected lower 32 bits for
+      base `0x20`.
+    - readback: FAIL:
+      expected lower-128 prefix
+      `202122232425262728292a2b2c2d2e2f`; observed lower-128 prefix
+      `a8c1a823a8c1a827a851a82ba851a82f`; mismatch count `64`.
+- Interpretation:
+  - host JTAG packing is no longer the active failure hypothesis for this gate.
+  - the generated write data is correct at loader command acceptance, and the
+    boot BIST path remains clean in v61.
+  - the failure is downstream of generated data formation: UberDDR3 write-data
+    launch, beat/byte mapping, read-capture timing, or full-beat no-DM
+    semantics.
+  - the observed pattern has every fourth byte matching the expected ramp
+    (`23`, `27`, `2b`, `2f`) while adjacent bytes look like stale/residue
+    values. That is a data-lane/beat-timing clue, not a host-packing clue.
+- Next concrete engineering gate:
+  - keep full-beat writes only; do not return to byte-select dense writes as a
+    correctness mechanism on this no-DM board flow.
+  - add board-side full-beat pattern probes that distinguish lane permutation
+    from stale read-capture and write-launch timing:
+    all-zero, all-`ff`, repeated 32-bit word, per-byte-position sentinel, and
+    ramp.
+  - every pattern probe must require `boot_mismatch=false` before interpreting
+    readback bytes.

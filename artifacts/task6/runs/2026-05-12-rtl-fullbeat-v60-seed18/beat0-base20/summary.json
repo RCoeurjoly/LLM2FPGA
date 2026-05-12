@@ -1,0 +1,17 @@
+{
+  "base": 32,
+  "beat_addr": 0,
+  "boot_error": false,
+  "boot_mismatch": true,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-12-rtl-fullbeat-v60-seed18/beat0-base20/rtl-fullbeat-diagnostic.json",
+  "expected_echo32": null,
+  "expected_prefix_hex": null,
+  "mismatch_count": null,
+  "observed_prefix_hex": null,
+  "run_dir": "artifacts/task6/runs/2026-05-12-rtl-fullbeat-v60-seed18/beat0-base20",
+  "status": "FAIL",
+  "verdict": "rtl-fullbeat-blocked-by-unclean-boot",
+  "wb_ack_count": 9,
+  "write_echo32": null,
+  "write_echo32_match": null
+}

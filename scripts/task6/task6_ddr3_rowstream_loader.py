@@ -51,7 +51,7 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 58
+DEBUG_VERSION = 61
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
@@ -390,6 +390,7 @@ def decode_debug(raw: int) -> dict[str, Any]:
         "wb_ack_count": (raw >> 144) & 0xFFFF_FFFF,
         "wb_err_count": (raw >> 176) & 0xFFFF_FFFF,
         "wb_stall_count": (raw >> 208) & 0xFFFF_FFFF,
+        "rtl_fullbeat_write_echo32": (raw >> 240) & 0xFFFF_FFFF,
         "command_count": (command_word >> 18) & 0xFF,
         "last_opcode": (command_word >> 10) & 0xFF,
         "last_chunk": (command_word >> 2) & 0x3,
@@ -1214,6 +1215,9 @@ def run_rtl_fullbeat_diagnostic(
 
     debug = loader.run_rtl_fullbeat(beat_addr, base)
     expected_prefix = bytes(((base + lane) & 0xFF) for lane in range(16))
+    observed_prefix = debug["read_data_chunk"]
+    expected_echo32 = int.from_bytes(expected_prefix[:4], "little")
+    write_echo32_match = debug["rtl_fullbeat_write_echo32"] == expected_echo32
     pass_status = (
         bool(debug["boot_done"])
         and not bool(debug["boot_error"])
@@ -1231,8 +1235,11 @@ def run_rtl_fullbeat_diagnostic(
         "base": base,
         "beat_addr": beat_addr,
         "mismatch_count": debug["dense_burst_mismatch_count"],
+        "write_echo32": debug["rtl_fullbeat_write_echo32"],
+        "expected_echo32": expected_echo32,
+        "write_echo32_match": write_echo32_match,
         "expected_prefix_hex": expected_prefix.hex(),
-        "observed_prefix_hex": debug["read_data_chunk"].hex(),
+        "observed_prefix_hex": observed_prefix.hex(),
         "initial_debug": json_debug(initial_debug),
         "final_debug": json_debug(debug),
         "decision": {
@@ -1564,6 +1571,9 @@ def main() -> int:
                     "base": diagnostic["base"],
                     "beat_addr": diagnostic["beat_addr"],
                     "mismatch_count": diagnostic["mismatch_count"],
+                    "write_echo32": diagnostic.get("write_echo32"),
+                    "expected_echo32": diagnostic.get("expected_echo32"),
+                    "write_echo32_match": diagnostic.get("write_echo32_match"),
                     "observed_prefix_hex": diagnostic.get("observed_prefix_hex"),
                     "expected_prefix_hex": diagnostic.get("expected_prefix_hex"),
                     "verdict": diagnostic["decision"]["verdict"],
