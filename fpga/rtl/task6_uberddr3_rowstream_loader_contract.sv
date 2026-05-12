@@ -12,7 +12,8 @@ module task6_uberddr3_rowstream_loader_contract #(
   parameter logic [7:0] LOADER_OP_WRITE_DENSE_BYTE = 8'h05,
   parameter logic [7:0] LOADER_OP_READ_DENSE_BEAT = 8'h06,
   parameter logic [7:0] LOADER_OP_WRITE_DENSE_FILL = 8'h08,
-  parameter logic [7:0] LOADER_OP_RUN_FULLBEAT = 8'h09
+  parameter logic [7:0] LOADER_OP_RUN_FULLBEAT = 8'h09,
+  parameter int FULLBEAT_LANE_PROBE_SOURCE = -1
 ) (
   input  logic                            clk_i,
   input  logic                            rst_ni,
@@ -85,15 +86,25 @@ module task6_uberddr3_rowstream_loader_contract #(
 
   always_comb begin
     fullbeat_expected_data = '0;
-    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
-      fullbeat_expected_data[lane * 8 +: 8] =
-        loader_fullbeat_expected_base_o + lane[7:0];
+    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1) begin
+      if (FULLBEAT_LANE_PROBE_SOURCE >= 0)
+        fullbeat_expected_data[lane * 8 +: 8] =
+          lane == FULLBEAT_LANE_PROBE_SOURCE ? loader_fullbeat_expected_base_o : 8'd0;
+      else
+        fullbeat_expected_data[lane * 8 +: 8] =
+          loader_fullbeat_expected_base_o + lane[7:0];
+    end
   end
 
   always_comb begin
     command_fullbeat_data = '0;
-    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
-      command_fullbeat_data[lane * 8 +: 8] = command_data[7:0] + lane[7:0];
+    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1) begin
+      if (FULLBEAT_LANE_PROBE_SOURCE >= 0)
+        command_fullbeat_data[lane * 8 +: 8] =
+          lane == FULLBEAT_LANE_PROBE_SOURCE ? command_data[7:0] : 8'd0;
+      else
+        command_fullbeat_data[lane * 8 +: 8] = command_data[7:0] + lane[7:0];
+    end
   end
 
   always_comb begin

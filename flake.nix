@@ -223,8 +223,11 @@
           '';
         task6YpcbUberDdr3BistYosysJson =
           mkTask6YpcbUberDdr3BistYosysJson { };
-        task6YpcbUberDdr3RowstreamLoaderYosysJson =
-          pkgs.runCommand "task6-ypcb-uberddr3-rowstream-loader-yosys.json" {
+        mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
+          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json"
+          , fullbeatLaneProbeSource ? -1
+          }:
+          pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
             set -euo pipefail
@@ -238,6 +241,8 @@
               ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
               ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
               ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv}
+            ${pkgs.lib.optionalString (fullbeatLaneProbeSource != -1)
+              "chparam -set FULLBEAT_LANE_PROBE_SOURCE ${toString fullbeatLaneProbeSource} task6_ypcb_uberddr3_bist_rowstream_loader_top"}
             hierarchy -top task6_ypcb_uberddr3_bist_rowstream_loader_top -check
             synth_xilinx -family xc7 -top task6_ypcb_uberddr3_bist_rowstream_loader_top -noiopad
             stat -top task6_ypcb_uberddr3_bist_rowstream_loader_top
@@ -245,6 +250,18 @@
             EOF
             yosys -s run.ys
           '';
+        task6YpcbUberDdr3RowstreamLoaderYosysJson =
+          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson { };
+        task6YpcbUberDdr3RowstreamLoaderLaneProbe0YosysJson =
+          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
+            name = "task6-ypcb-uberddr3-rowstream-loader-laneprobe0-yosys.json";
+            fullbeatLaneProbeSource = 0;
+          };
+        task6YpcbUberDdr3RowstreamLoaderLaneProbe3YosysJson =
+          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
+            name = "task6-ypcb-uberddr3-rowstream-loader-laneprobe3-yosys.json";
+            fullbeatLaneProbeSource = 3;
+          };
         task6YpcbUberDdr3UserPortProbeYosysJson =
           pkgs.runCommand "task6-ypcb-uberddr3-user-port-probe-yosys.json" {
             buildInputs = [ pkgs.yosys ];
@@ -6236,7 +6253,11 @@
           };
 
         task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace =
-          { seed, prePlaceLocks, suffix }:
+          { seed
+          , prePlaceLocks
+          , suffix
+          , json ? task6YpcbUberDdr3RowstreamLoaderYosysJson
+          }:
           let
             seedStr = toString seed;
             tag = suffix;
@@ -6244,7 +6265,7 @@
             fasm = mkFasm {
               inherit name;
               xdc = task6YpcbUberDdr3BistXdc;
-              json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+              json = json;
               seed = seed;
               freqMHz = 25;
               prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
@@ -6258,7 +6279,7 @@
             placedJson = mkPlacedJson {
               inherit name;
               xdc = task6YpcbUberDdr3BistXdc;
-              json = task6YpcbUberDdr3RowstreamLoaderYosysJson;
+              json = json;
               seed = seed;
               freqMHz = 25;
               prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
@@ -6420,6 +6441,22 @@
             prePlaceLocks = task6YpcbUberDdr3KnownGoodClockAndPhyPrePlaceBelLocks;
           };
 
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyLaneProbe0Artifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace {
+            seed = 18;
+            suffix = "clocked-locked-clock-and-phy-laneprobe0";
+            prePlaceLocks = task6YpcbUberDdr3KnownGoodClockAndPhyPrePlaceBelLocks;
+            json = task6YpcbUberDdr3RowstreamLoaderLaneProbe0YosysJson;
+          };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyLaneProbe3Artifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace {
+            seed = 18;
+            suffix = "clocked-locked-clock-and-phy-laneprobe3";
+            prePlaceLocks = task6YpcbUberDdr3KnownGoodClockAndPhyPrePlaceBelLocks;
+            json = task6YpcbUberDdr3RowstreamLoaderLaneProbe3YosysJson;
+          };
+
         task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyFasm =
           task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyArtifacts.fasm;
 
@@ -6428,6 +6465,12 @@
 
         task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyPlacedJson =
           task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyArtifacts.placedJson;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyLaneProbe0Bitstream =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyLaneProbe0Artifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyLaneProbe3Bitstream =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyLaneProbe3Artifacts.bitstream;
 
         task6YpcbUberDdr3RowstreamLoaderSeed17ClockedFasm =
           task6YpcbUberDdr3RowstreamLoaderSeed17ClockedArtifacts.fasm;
@@ -10582,6 +10625,10 @@
             task6YpcbUberDdr3BistYosysJson;
           task6-ypcb-uberddr3-rowstream-loader-yosys-json =
             task6YpcbUberDdr3RowstreamLoaderYosysJson;
+          task6-ypcb-uberddr3-rowstream-loader-laneprobe0-yosys-json =
+            task6YpcbUberDdr3RowstreamLoaderLaneProbe0YosysJson;
+          task6-ypcb-uberddr3-rowstream-loader-laneprobe3-yosys-json =
+            task6YpcbUberDdr3RowstreamLoaderLaneProbe3YosysJson;
           task6-ypcb-uberddr3-user-port-probe-yosys-json =
             task6YpcbUberDdr3UserPortProbeYosysJson;
           task6-ypcb-uberddr3-bist-xdc =
@@ -10662,6 +10709,10 @@
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyFasm;
           task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy-bitstream =
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy-laneprobe0-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyLaneProbe0Bitstream;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy-laneprobe3-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyLaneProbe3Bitstream;
           task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy-placed-json =
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyPlacedJson;
           task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-fasm =

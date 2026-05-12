@@ -19442,3 +19442,44 @@ UberDDR3 calibration/data-integrity gates:
   - Keep the hardware probe calibration-safe: no broad 64-lane pattern mux in
     the top-level timing path. Prefer a few compile-time-selected lane-source
     variants or controller-local assertions/traces before another bitstream.
+
+## 2026-05-12 - v64 compile-time full-beat lane-source probe
+
+- Goal:
+  - answer whether one selected write input byte lane can be observed in the
+    readback lower-128 window without reintroducing the v62 runtime pattern mux.
+- Implementation:
+  - added `FULLBEAT_LANE_PROBE_SOURCE`, defaulting to normal v63 ramp behavior.
+  - added lane-probe Nix variants for source lane 0 and source lane 3.
+  - echoed the selected source lane in the debug payload as version v64.
+- Validation before board:
+  - Python compile: PASS.
+  - default contract simulation:
+    `/nix/store/l0d7r3xaqy4b6zv6vkf6m5dv1fnaci93-task6-uberddr3-rowstream-loader-contract-sv-sim.json`
+    PASS.
+  - laneprobe0 Yosys:
+    `/nix/store/hyn10b6by20wfg24gb6hqggycdrbnkfk-task6-ypcb-uberddr3-rowstream-loader-laneprobe0-yosys.json`
+    PASS.
+  - laneprobe0 bitstream:
+    `/nix/store/fmhhs308irq0bs42l8fqvx721ywlichq-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy-laneprobe0.bit`
+    built with pre-place locks `applied=437 missing=0`; routed controller
+    clock timing passed at 25 MHz, reported max frequency `42.70 MHz`.
+- Hardware:
+  - runs:
+    - `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v64-laneprobe0-seed18/base5a-addr0`
+    - `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v64-laneprobe0-seed18/base5a-addr0-retry1`
+  - both attempts decoded debug magic/version correctly, but timed out waiting
+    for DDR3 calibration:
+    `magic_ok=True version=64 calib_seen=False state=1 ack=0 err=0
+    loader_error=False debug1=0x000006cc`.
+- Interpretation:
+  - laneprobe0 is blocked before the boot/data gate, so it cannot be used to
+    infer write/read byte-lane mapping.
+  - Constant-folding the generated full-beat data down to one active lane still
+    perturbs the hardware enough to lose calibration on this fragile build.
+  - This falsifies the assumption that compile-time-selected single-lane
+    hardware probes are automatically calibration-safe.
+  - The next gate should either verify the default v64 ramp build still
+    calibrates, isolating the source-lane parameter from the debug-version
+    change, or avoid new top-level data-path perturbations and inspect the
+    UberDDR3 write/read lane ordering in simulation/formal first.

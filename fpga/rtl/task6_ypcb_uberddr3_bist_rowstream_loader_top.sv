@@ -4,7 +4,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter int JTAG_DEBUG_WIDTH = 512,
   parameter int JTAG_CHAIN = 1,
   parameter int JTAG_COMMAND_CHAIN = 2,
-  parameter int PROBE_BYTE = 165
+  parameter int PROBE_BYTE = 165,
+  parameter int FULLBEAT_LANE_PROBE_SOURCE = -1
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -24,7 +25,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd63;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd64;
   localparam int JTAG_COMMAND_WIDTH = 192;
   localparam logic [31:0] LOADER_COMMAND_MAGIC = 32'h33445244;
   localparam logic [7:0] LOADER_OP_WRITE_LOWBYTE = 8'h03;
@@ -48,6 +49,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
   localparam logic [7:0] PROBE_BYTE_VALUE = PROBE_BYTE[7:0];
+  localparam logic [6:0] FULLBEAT_LANE_PROBE_SOURCE_DEBUG =
+    FULLBEAT_LANE_PROBE_SOURCE < 0 ? 7'h7f : FULLBEAT_LANE_PROBE_SOURCE;
 
   wire controller_clk;
   wire ddr3_clk;
@@ -240,15 +243,25 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 
   always_comb begin
     jtag_command_fullbeat_data = '0;
-    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
-      jtag_command_fullbeat_data[lane * 8 +: 8] = jtag_command_data_byte + lane[7:0];
+    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1) begin
+      if (FULLBEAT_LANE_PROBE_SOURCE >= 0)
+        jtag_command_fullbeat_data[lane * 8 +: 8] =
+          lane == FULLBEAT_LANE_PROBE_SOURCE ? jtag_command_data_byte : 8'd0;
+      else
+        jtag_command_fullbeat_data[lane * 8 +: 8] = jtag_command_data_byte + lane[7:0];
+    end
   end
 
   always_comb begin
     loader_fullbeat_expected_data = '0;
-    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
-      loader_fullbeat_expected_data[lane * 8 +: 8] =
-        loader_fullbeat_expected_base_q + lane[7:0];
+    for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1) begin
+      if (FULLBEAT_LANE_PROBE_SOURCE >= 0)
+        loader_fullbeat_expected_data[lane * 8 +: 8] =
+          lane == FULLBEAT_LANE_PROBE_SOURCE ? loader_fullbeat_expected_base_q : 8'd0;
+      else
+        loader_fullbeat_expected_data[lane * 8 +: 8] =
+          loader_fullbeat_expected_base_q + lane[7:0];
+    end
   end
 
   always_comb begin
@@ -844,6 +857,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     jtag_debug_payload[465 +: 7] = loader_fullbeat_mismatch_count_q;
     jtag_debug_payload[472 +: 24] = loader_fullbeat_addr_q[23:0];
     jtag_debug_payload[496 +: 8] = loader_fullbeat_expected_base_q;
+    jtag_debug_payload[504 +: 7] = FULLBEAT_LANE_PROBE_SOURCE_DEBUG;
     if (!read_probe_done_q)
       jtag_debug_payload[240 +: 32] = read_probe_stream_bytes_q;
   end
