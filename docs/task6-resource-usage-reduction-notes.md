@@ -19479,7 +19479,36 @@ UberDDR3 calibration/data-integrity gates:
     perturbs the hardware enough to lose calibration on this fragile build.
   - This falsifies the assumption that compile-time-selected single-lane
     hardware probes are automatically calibration-safe.
-  - The next gate should either verify the default v64 ramp build still
-    calibrates, isolating the source-lane parameter from the debug-version
-    change, or avoid new top-level data-path perturbations and inspect the
-    UberDDR3 write/read lane ordering in simulation/formal first.
+  - The next gate should verify the default v64 ramp build still calibrates,
+    isolating the source-lane parameter from the debug-version change.
+
+## 2026-05-12 - v64 default-ramp calibration isolation
+
+- Goal:
+  - test the default v64 ramp build with `FULLBEAT_LANE_PROBE_SOURCE=-1` to
+    isolate whether v64 calibration failure is caused by the laneprobe
+    parameter or by the v64 source/instrumentation change itself.
+- Validation before board:
+  - default v64 bitstream:
+    `/nix/store/inacnz43kqnc8q1kjqm8f602hkbk52la-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+    built with pre-place locks `applied=437 missing=0`; routed controller
+    clock timing passed at 25 MHz, reported max frequency `38.96 MHz`.
+- Hardware:
+  - runs:
+    - `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v64-default-seed18/base20-addr0`
+    - `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v64-default-seed18/base20-addr0-retry1`
+  - both attempts decoded debug magic/version correctly, but timed out waiting
+    for DDR3 calibration:
+    `magic_ok=True version=64 calib_seen=False state=1 ack=0 err=0
+    loader_error=False debug1=0x000006cc`.
+- Interpretation:
+  - the v64 default ramp also fails before the boot/data gate, so the
+    laneprobe chparam is not the only issue.
+  - Compared with boot-clean v63, v64 changed the top-level parameterization and
+    added a debug-payload source-lane echo. Even without selecting a laneprobe,
+    that source/build perturbation is enough to lose calibration with the
+    current physical locks.
+  - The next data-integrity gate should revert the v64 top-level RTL back to
+    the exact v63 hardware shape and move lane-order investigation into
+    controller-local simulation/formal, or add debug in a way that does not
+    perturb the boot-clean top-level DDR3 build.
