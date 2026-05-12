@@ -19344,3 +19344,41 @@ UberDDR3 calibration/data-integrity gates:
     ramp.
   - every pattern probe must require `boot_mismatch=false` before interpreting
     readback bytes.
+
+## 2026-05-12 - full-beat pattern-probe calibration regression
+
+- Goal:
+  - add board-side pattern-selectable full-beat probes while keeping the v61
+    boot-clean gate mandatory.
+- v62 implementation:
+  - extended `RUN_FULLBEAT` so command `chunk` selects the generated pattern:
+    ramp, constant, repeated 32-bit word, or byte-position sentinel.
+  - added pattern/argument echo bits in the debug payload.
+  - extended the loader contract simulation to cover all four patterns.
+- Validation before board:
+  - contract simulation:
+    `/nix/store/9d738z5rk2yjd2vidwx7v16vhv6131kv-task6-uberddr3-rowstream-loader-contract-sv-sim.json`
+    passed with 22 writes and 7 reads.
+  - Yosys:
+    `/nix/store/m0rc162zl24qxwh8ljldhr4n71vvajrg-task6-ypcb-uberddr3-rowstream-loader-yosys.json`
+    passed `check` with 0 problems.
+  - bitstream:
+    `/nix/store/92wfkqrm9vxmn16riqavm0ia08zjfl0h-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+    built with pre-place locks `applied=437 missing=0` and routed controller
+    clock timing passing at 25 MHz.
+- Hardware:
+  - runs:
+    - `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v62-seed18/ramp-base20`
+    - `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v62-seed18/ramp-base20-retry1`
+  - both attempts decoded debug magic/version correctly, but timed out waiting
+    for DDR3 calibration:
+    `magic_ok=True version=62 calib_seen=False state=1 ack=0 err=0
+    loader_error=False debug1=0x000006cc`.
+- Interpretation:
+  - v62 is blocked before the boot/data gate, so it cannot be used to infer
+    full-beat data integrity.
+  - The pattern mux is likely too physically intrusive for this fragile DDR3
+    build, even though the logical contract and synthesis pass.
+  - The next gate should return to the v61 RTL shape and vary only the existing
+    base/address fields first, because v61 already proves calibration, boot
+    cleanliness, and generated write-data echo.
