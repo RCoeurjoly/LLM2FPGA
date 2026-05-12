@@ -51,7 +51,7 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 64
+DEBUG_VERSION = 63
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
@@ -239,15 +239,6 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Wishbone beat address for --diagnostic-rtl-fullbeat-base; default: 0",
     )
-    parser.add_argument(
-        "--diagnostic-rtl-fullbeat-source-lane",
-        type=lambda value: int(value, 0),
-        default=None,
-        help=(
-            "Expected compile-time single-lane fullbeat probe source. "
-            "Omit for the normal generated ramp bitstream."
-        ),
-    )
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--model-path", type=Path)
     parser.add_argument("--adapter-path", type=Path)
@@ -430,7 +421,6 @@ def decode_debug(raw: int) -> dict[str, Any]:
         "dense_burst_mismatch_count": (raw >> 465) & 0x7F,
         "dense_burst_addr_low24": (raw >> 472) & 0xFF_FFFF,
         "dense_burst_expected_base": (raw >> 496) & 0xFF,
-        "rtl_fullbeat_source_lane": (raw >> 504) & 0x7F,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
     }
@@ -1191,7 +1181,6 @@ def run_rtl_fullbeat_diagnostic(
     loader: RowstreamLoader,
     base: int,
     beat_addr: int,
-    source_lane: int | None,
     run_dir: Path,
     initial_debug: dict[str, Any],
 ) -> dict[str, Any]:
@@ -1199,8 +1188,6 @@ def run_rtl_fullbeat_diagnostic(
         raise ValueError("RTL fullbeat base must fit in one byte")
     if beat_addr < 0:
         raise ValueError("RTL fullbeat address must be non-negative")
-    if source_lane is not None and (source_lane < 0 or source_lane >= BEAT_BYTES):
-        raise ValueError("RTL fullbeat source lane must be in 0..63")
     if (
         not bool(initial_debug["boot_done"])
         or bool(initial_debug["boot_error"])
@@ -1212,7 +1199,6 @@ def run_rtl_fullbeat_diagnostic(
             "status": "FAIL",
             "base": base,
             "beat_addr": beat_addr,
-            "source_lane": source_lane,
             "mismatch_count": None,
             "initial_debug": json_debug(initial_debug),
             "final_debug": json_debug(final_debug),
@@ -1228,14 +1214,7 @@ def run_rtl_fullbeat_diagnostic(
         return payload
 
     debug = loader.run_rtl_fullbeat(beat_addr, base)
-    if source_lane is None:
-        expected_prefix = bytes(((base + lane) & 0xFF) for lane in range(16))
-        expected_source_lane_debug = 0x7F
-    else:
-        expected_prefix = bytes(
-            (base & 0xFF) if lane == source_lane else 0 for lane in range(16)
-        )
-        expected_source_lane_debug = source_lane
+    expected_prefix = bytes(((base + lane) & 0xFF) for lane in range(16))
     observed_prefix = debug["read_data_chunk"]
     expected_echo32 = int.from_bytes(expected_prefix[:4], "little")
     write_echo32_match = debug["rtl_fullbeat_write_echo32"] == expected_echo32
@@ -1249,15 +1228,12 @@ def run_rtl_fullbeat_diagnostic(
         and bool(debug["dense_burst_active"])
         and debug["dense_burst_mismatch_count"] == 0
         and debug["dense_burst_expected_base"] == (base & 0xFF)
-        and debug["rtl_fullbeat_source_lane"] == expected_source_lane_debug
     )
     payload = {
         "artifact_name": "task6-ypcb-uberddr3-rtl-fullbeat-board-diagnostic",
         "status": "PASS" if pass_status else "FAIL",
         "base": base,
         "beat_addr": beat_addr,
-        "source_lane": source_lane,
-        "source_lane_debug": debug["rtl_fullbeat_source_lane"],
         "mismatch_count": debug["dense_burst_mismatch_count"],
         "write_echo32": debug["rtl_fullbeat_write_echo32"],
         "expected_echo32": expected_echo32,
@@ -1583,7 +1559,6 @@ def main() -> int:
                 loader,
                 args.diagnostic_rtl_fullbeat_base,
                 args.diagnostic_rtl_fullbeat_addr,
-                args.diagnostic_rtl_fullbeat_source_lane,
                 run_dir,
                 initial_debug,
             )
@@ -1595,8 +1570,6 @@ def main() -> int:
                     "diagnostic_json": str(run_dir / "rtl-fullbeat-diagnostic.json"),
                     "base": diagnostic["base"],
                     "beat_addr": diagnostic["beat_addr"],
-                    "source_lane": diagnostic["source_lane"],
-                    "source_lane_debug": diagnostic.get("source_lane_debug"),
                     "mismatch_count": diagnostic["mismatch_count"],
                     "write_echo32": diagnostic.get("write_echo32"),
                     "expected_echo32": diagnostic.get("expected_echo32"),

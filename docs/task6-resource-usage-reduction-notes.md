@@ -19512,3 +19512,56 @@ UberDDR3 calibration/data-integrity gates:
     the exact v63 hardware shape and move lane-order investigation into
     controller-local simulation/formal, or add debug in a way that does not
     perturb the boot-clean top-level DDR3 build.
+
+## 2026-05-12 - restored v63 board shape plus controller lane-order model
+
+- Goal:
+  - recover the boot-clean v63 rowstream board build after v64 showed that even
+    small top-level/debug perturbations can break DDR3 calibration.
+  - move lane-order investigation out of the fragile board top-level and into a
+    controller-local model/check.
+- Implementation:
+  - removed the v64 compile-time laneprobe parameter, source-lane debug echo,
+    host source-lane option, and laneprobe Nix bitstream variants.
+  - restored the rowstream top, rowstream contract, and host script to the v63
+    hardware/debug shape.
+  - added `scripts/task6/model_uberddr3_controller_lane_order.py`, which maps
+    observed full-beat readback bytes into UberDDR3's documented
+    `burst*64 + lane*8` byte coordinates.
+- Validation:
+  - Python compile: PASS.
+  - board-facing diff against boot-clean commit `7c48d13`: no differences for
+    `task6_ypcb_uberddr3_bist_rowstream_loader_top.sv`,
+    `task6_uberddr3_rowstream_loader_contract.sv`, and
+    `task6_ddr3_rowstream_loader.py`.
+  - rowstream loader contract simulation:
+    `/nix/store/wbjd78hh52glrlykxflxz3v2c38f66ss-task6-uberddr3-rowstream-loader-contract-sv-sim.json`
+    PASS.
+  - controller lane-order model:
+    `/nix/store/mivhiv10a9mz2gibficmcmmwi95g02jd-task6-uberddr3-controller-lane-order-model.json`
+    PASS, matching bytes map to lanes `[3, 7]` in bursts `[0, 1]` for the
+    restored v63 lower-prefix observation.
+  - restored bitstream:
+    `/nix/store/g0i6bm60sb7s2dgxzs8wmgr64dh56par-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+    reuses the known v63 seed18 clock/PHY-locked build.
+- Hardware:
+  - run:
+    `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v63-restored-seed18/base20-addr0`
+  - result:
+    `calib_seen=true`, `boot_done=true`, `boot_error=false`,
+    `boot_mismatch=false`, `wb_err_count=0`.
+  - full-beat diagnostic still fails data integrity, as expected:
+    write echo PASS `0x23222120`; expected lower-128 prefix
+    `202122232425262728292a2b2c2d2e2f`; observed lower-128 prefix
+    `a8c1a823a8c1a827a851a82ba851a82f`; mismatch count `64`.
+- Interpretation:
+  - calibration regression is resolved by returning to exact v63 board shape.
+  - the active bug remains downstream write/read data integrity, not host
+    command packing or generated full-beat data formation.
+  - the observed byte matches are now represented in controller coordinates:
+    lower-prefix positions `3`, `7`, `11`, and `15` correspond to lanes `3`
+    and `7` across bursts `0` and `1`.
+  - next gate: do controller-local simulation/formal around
+    `stage1_data_d`, `stage2_data_unaligned`, `stage2_data`, `i_wb_sel`,
+    `data_start_index`, and `o_wb_data_q` before making another board RTL
+    change.
