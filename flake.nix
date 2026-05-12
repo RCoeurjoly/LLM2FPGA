@@ -4349,6 +4349,19 @@
               --out-dir "$out"
           '';
 
+        task6YpcbUberDdr3ClockDisciplineReport =
+          pkgs.runCommand "task6-ypcb-uberddr3-clock-discipline-report.json" { } ''
+            ${pkgs.python3}/bin/python ${
+              ./scripts/task6
+            }/report_ypcb_uberddr3_clock_discipline.py \
+              --top ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv} \
+              --clock-constraints ${
+                ./scripts/task6/nextpnr_ypcb_uberddr3_clock_constraints.py
+              } \
+              --date 2026-05-12 \
+              --out "$out"
+          '';
+
         task6LiteDramOpenControllerProbe =
           pkgs.runCommand "h2-litedram-open-controller-probe.json" { } ''
             ${liteDramPython}/bin/python ${
@@ -7428,6 +7441,18 @@
               ${./sim/task6_uberddr3_stage2_timing_tb.sv}
           '';
 
+        task6UberDdr3SignatureHypothesisSimMain =
+          pkgs.runCommand "task6-uberddr3-signature-hypothesis-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_uberddr3_signature_hypothesis_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./sim/task6_uberddr3_signature_hypothesis_tb.sv}
+          '';
+
         task6CProjRequantArithSelftestSimMain =
           pkgs.runCommand "task6-c-proj-requant-arith-selftest-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -9674,6 +9699,44 @@
             EOF
           '';
 
+        task6UberDdr3SignatureHypothesisSvSim =
+          pkgs.runCommand "task6-uberddr3-signature-hypothesis-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6UberDdr3SignatureHypothesisSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 UberDDR3 signature hypothesis sim checks [0-9]+ dense_solutions [0-9]+ v63_solutions [0-9]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6 UberDDR3 signature hypothesis simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            checks="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+            dense_solutions="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            v63_solutions="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "artifact_name": "task6-uberddr3-signature-hypothesis-sv-sim",
+              "status": "PASS",
+              "date": "2026-05-12",
+              "hypothesis": "The observed dense/v63 DDR3 readback signatures are not produced by clean controller byte ordering; they require stale byte/lane capture or write-lane update masking, so the next RTL target is the hardware loader-to-UberDDR3 write/read path rather than host packing.",
+              "metrics": {
+                "checks": $checks,
+                "dense_signature_solutions": $dense_solutions,
+                "v63_signature_solutions": $v63_solutions
+              },
+              "validation": {
+                "simulation_run": true,
+                "hardware_run": false,
+                "validation_kind": "controller-local-signature-hypothesis-cutout"
+              },
+              "decision": {
+                "verdict": "signature-hypothesis-cutout-sim-passes",
+                "next_gate": "Instrument or fix full-beat write-data presentation/read-capture timing in the BIST-derived top, then run the internal full-beat generator on hardware."
+              }
+            }
+            EOF
+          '';
+
         task6UberDdr3AddressLaneModel =
           pkgs.runCommand "task6-uberddr3-address-lane-model.json" {
             buildInputs = [ pkgs.python3 ];
@@ -10657,6 +10720,10 @@
             task6UberDdr3Stage2TimingSimMain;
           task6-uberddr3-stage2-timing-sv-sim =
             task6UberDdr3Stage2TimingSvSim;
+          task6-uberddr3-signature-hypothesis-sim-main =
+            task6UberDdr3SignatureHypothesisSimMain;
+          task6-uberddr3-signature-hypothesis-sv-sim =
+            task6UberDdr3SignatureHypothesisSvSim;
           task6-uberddr3-address-lane-model =
             task6UberDdr3AddressLaneModel;
           task6-uberddr3-controller-lane-order-model =
@@ -10667,6 +10734,8 @@
             task6Ddr3BoardSupportInventory;
           task6-ypcb-ddr3-lane-report =
             task6YpcbDdr3LaneReport;
+          task6-ypcb-uberddr3-clock-discipline-report =
+            task6YpcbUberDdr3ClockDisciplineReport;
           task6-litex-boards-ypcb-master =
             task6LitexBoardsYpcbMasterRunner;
           task6-litex-boards-ypcb-validated =

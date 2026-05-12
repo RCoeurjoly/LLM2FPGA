@@ -19631,3 +19631,60 @@ UberDDR3 calibration/data-integrity gates:
     hypothesis in this cutout: determine which combination of lane update mask,
     read-pipe timing, or `data_start_index` values yields bytes `3`, `7`,
     `11`, and `15` matching while the neighboring lanes retain residue.
+
+## 2026-05-12 - DDR3 clock discipline and signature hypothesis gate
+
+- Goal:
+  - implement the simulation-first/clock-discipline slice of the DDR3 plan
+    before making another board RTL change.
+  - keep hardware calibration as the board oracle, but add static evidence that
+    the active UberDDR3 build follows the single-root-clock discipline
+    recommended by upstream UberDDR3.
+- Implementation:
+  - added `scripts/task6/report_ypcb_uberddr3_clock_discipline.py`.
+  - added `sim/task6_uberddr3_signature_hypothesis_tb.sv`.
+  - added Nix targets:
+    - `task6-ypcb-uberddr3-clock-discipline-report`;
+    - `task6-uberddr3-signature-hypothesis-sim-main`;
+    - `task6-uberddr3-signature-hypothesis-sv-sim`.
+- Static clock result:
+  - artifact:
+    `/nix/store/cmj9lv8sz7lv118i16glr1sb75k635vd-task6-ypcb-uberddr3-clock-discipline-report.json`
+    PASS.
+  - active top: `task6_ypcb_uberddr3_bist_rowstream_loader_top.sv`.
+  - root clock: `clk50` with `CLKIN1_PERIOD=20.000`.
+  - one `PLLE2_BASE` produces:
+    - `clk25_raw -> controller_clk`;
+    - `clk100_raw -> ddr3_clk`;
+    - `clk100_90_raw -> ddr3_clk_90`;
+    - `clk200_raw -> ref_clk`.
+  - no independent BUFG roots were found for the required DDR3 clocks.
+- Simulation result:
+  - artifact:
+    `/nix/store/yh661z84cfaaz6b9kpzd23dwzgw5ld0a-task6-uberddr3-signature-hypothesis-sv-sim.json`
+    PASS.
+  - checks: `20`.
+  - dense signature solutions: `2`.
+  - restored-v63 signature solutions: `2`.
+  - clean controller byte ordering alone does not reproduce either observed
+    board failure signature; stale byte/lane capture or write-lane update
+    masking is required.
+- Re-run controls:
+  - controller lane-order sim:
+    `/nix/store/3liil1853jwcg96fsvnh0jw5znhd113y-task6-uberddr3-controller-lane-order-sv-sim.json`
+    PASS.
+  - stage2 timing sim:
+    `/nix/store/g64cns30pm7d4za67gkhqpp1c6s2l2w6-task6-uberddr3-stage2-timing-sv-sim.json`
+    PASS.
+  - board metadata artifacts also still build:
+    - `/nix/store/00rk2pdvqxn00gfj0lar3k1p56f15k7i-h2-ddr3-board-support-inventory.json`;
+    - `/nix/store/1vyykxc84cb2srx820papwi6mjvks6yh-h2-ypcb-ddr3-lane-report`.
+- Interpretation:
+  - the active DDR3 clocking shape matches the single-root-clock discipline at
+    the RTL/static-report level.
+  - the next board-facing work should not be another seed sweep or host-packing
+    change.
+  - next concrete engineering gate: add the smallest internal full-beat
+    write/read generator or instrumentation inside the BIST-derived top to test
+    write-data presentation and read-capture timing on hardware, with the boot
+    gate still required before interpreting any data bytes.
