@@ -123,22 +123,6 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     end
   endfunction
 
-  function automatic logic [COMMAND_WIDTH - 1:0] make_command_arg(
-    input logic [31:0] magic,
-    input logic [7:0] opcode,
-    input logic [1:0] chunk,
-    input logic [31:0] addr,
-    input logic [7:0] data_byte,
-    input logic [7:0] data_arg
-  );
-    logic [COMMAND_WIDTH - 1:0] payload;
-    begin
-      payload = make_command(magic, opcode, chunk, addr, data_byte);
-      payload[72 +: 8] = data_arg;
-      make_command_arg = payload;
-    end
-  endfunction
-
   task automatic pulse_command(input logic [COMMAND_WIDTH - 1:0] payload);
     begin
       @(negedge clk);
@@ -378,35 +362,9 @@ module task6_uberddr3_rowstream_loader_contract_tb;
     check_cond(mem[3][7:0] == 8'h20, "run-fullbeat must write generated lane 0");
     check_cond(mem[3][511:504] == 8'h5f, "run-fullbeat must write generated lane 63");
 
-    fullbeat_cmd = make_command(COMMAND_MAGIC, OP_RUN_FULLBEAT, 2'd1, 32'd4, 8'ha5);
-    pulse_command_pair_and_wait(fullbeat_cmd, "run-fullbeat-constant");
-    check_cond(loader_error == 1'b0, "run-fullbeat constant must not raise loader_error");
-    check_cond(loader_fullbeat_mismatch_count == 7'd0, "run-fullbeat constant must compare all generated lanes");
-    check_cond(mem[4][7:0] == 8'ha5, "run-fullbeat constant must write lane 0");
-    check_cond(mem[4][511:504] == 8'ha5, "run-fullbeat constant must write lane 63");
-
-    fullbeat_cmd = make_command(COMMAND_MAGIC, OP_RUN_FULLBEAT, 2'd2, 32'd5, 8'h30);
-    pulse_command_pair_and_wait(fullbeat_cmd, "run-fullbeat-word");
-    check_cond(loader_error == 1'b0, "run-fullbeat word pattern must not raise loader_error");
-    check_cond(loader_fullbeat_mismatch_count == 7'd0, "run-fullbeat word pattern must compare all generated lanes");
-    check_cond(mem[5][7:0] == 8'h30, "run-fullbeat word pattern lane 0");
-    check_cond(mem[5][15:8] == 8'h31, "run-fullbeat word pattern lane 1");
-    check_cond(mem[5][31:24] == 8'h33, "run-fullbeat word pattern lane 3");
-    check_cond(mem[5][39:32] == 8'h30, "run-fullbeat word pattern repeats at lane 4");
-
-    fullbeat_cmd = make_command_arg(COMMAND_MAGIC, OP_RUN_FULLBEAT, 2'd3, 32'd6, 8'hc3, 8'd2);
-    pulse_command_pair_and_wait(fullbeat_cmd, "run-fullbeat-bytepos");
-    check_cond(loader_error == 1'b0, "run-fullbeat byte-position pattern must not raise loader_error");
-    check_cond(loader_fullbeat_mismatch_count == 7'd0, "run-fullbeat byte-position pattern must compare all generated lanes");
-    check_cond(mem[6][7:0] == 8'h00, "run-fullbeat byte-position lane 0 must be zero");
-    check_cond(mem[6][15:8] == 8'h00, "run-fullbeat byte-position lane 1 must be zero");
-    check_cond(mem[6][23:16] == 8'hc3, "run-fullbeat byte-position lane 2 must carry sentinel");
-    check_cond(mem[6][31:24] == 8'h00, "run-fullbeat byte-position lane 3 must be zero");
-    check_cond(mem[6][55:48] == 8'hc3, "run-fullbeat byte-position repeats at lane 6");
-
     pulse_command(make_command(32'h0, OP_WRITE_LOWBYTE, 2'd0, 32'd7, 8'ha5));
     repeat (8) @(negedge clk);
-    check_cond(write_count == 22, "bad magic must not issue Wishbone writes");
+    check_cond(write_count == 19, "bad magic must not issue Wishbone writes");
 
     if (errors == 0) begin
       $display(

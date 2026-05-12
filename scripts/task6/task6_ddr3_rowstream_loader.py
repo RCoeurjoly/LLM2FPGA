@@ -51,7 +51,7 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
 DEBUG_MAGIC = 0x54364A44
-DEBUG_VERSION = 62
+DEBUG_VERSION = 63
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
 OP_WRITE_CHUNK = 0x01
@@ -63,12 +63,6 @@ OP_READ_DENSE_BEAT = 0x06
 OP_RUN_AUTOPROBE = 0x07
 OP_WRITE_DENSE_FILL = 0x08
 OP_RUN_FULLBEAT = 0x09
-FULLBEAT_PATTERNS = {
-    "ramp": 0,
-    "constant": 1,
-    "word": 2,
-    "bytepos": 3,
-}
 BEAT_BYTES = 64
 
 
@@ -244,18 +238,6 @@ def parse_args() -> argparse.Namespace:
         type=lambda value: int(value, 0),
         default=0,
         help="Wishbone beat address for --diagnostic-rtl-fullbeat-base; default: 0",
-    )
-    parser.add_argument(
-        "--diagnostic-rtl-fullbeat-pattern",
-        choices=tuple(FULLBEAT_PATTERNS),
-        default="ramp",
-        help="board-side full-beat pattern for --diagnostic-rtl-fullbeat-base",
-    )
-    parser.add_argument(
-        "--diagnostic-rtl-fullbeat-arg",
-        type=lambda value: int(value, 0),
-        default=0,
-        help="small pattern argument; bytepos uses low two bits as byte position",
     )
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--model-path", type=Path)
@@ -439,8 +421,6 @@ def decode_debug(raw: int) -> dict[str, Any]:
         "dense_burst_mismatch_count": (raw >> 465) & 0x7F,
         "dense_burst_addr_low24": (raw >> 472) & 0xFF_FFFF,
         "dense_burst_expected_base": (raw >> 496) & 0xFF,
-        "rtl_fullbeat_pattern": (raw >> 504) & 0x3,
-        "rtl_fullbeat_arg": (raw >> 506) & 0x3,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
     }
@@ -575,21 +555,10 @@ class RowstreamLoader:
         self.send_command(OP_WRITE_DENSE_FILL, 0, beat_addr, bytes([value & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
 
-    def run_rtl_fullbeat(
-        self,
-        beat_addr: int,
-        base: int,
-        pattern_id: int = 0,
-        pattern_arg: int = 0,
-    ) -> dict[str, Any]:
+    def run_rtl_fullbeat(self, beat_addr: int, base: int) -> dict[str, Any]:
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 2
-        self.send_command(
-            OP_RUN_FULLBEAT,
-            pattern_id & 0x3,
-            beat_addr,
-            bytes([base & 0xFF, pattern_arg & 0xFF]),
-        )
+        self.send_command(OP_RUN_FULLBEAT, 0, beat_addr, bytes([base & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
 
 
@@ -1208,25 +1177,10 @@ def run_denseburst_diagnostic(
     return payload
 
 
-def fullbeat_pattern_bytes(pattern: str, base: int, pattern_arg: int, count: int) -> bytes:
-    if pattern == "ramp":
-        return bytes(((base + lane) & 0xFF) for lane in range(count))
-    if pattern == "constant":
-        return bytes([base & 0xFF] * count)
-    if pattern == "word":
-        return bytes(((base + (lane & 0x3)) & 0xFF) for lane in range(count))
-    if pattern == "bytepos":
-        position = pattern_arg & 0x3
-        return bytes((base & 0xFF) if (lane & 0x3) == position else 0 for lane in range(count))
-    raise ValueError(f"unknown fullbeat pattern: {pattern}")
-
-
 def run_rtl_fullbeat_diagnostic(
     loader: RowstreamLoader,
     base: int,
     beat_addr: int,
-    pattern: str,
-    pattern_arg: int,
     run_dir: Path,
     initial_debug: dict[str, Any],
 ) -> dict[str, Any]:
@@ -1234,10 +1188,6 @@ def run_rtl_fullbeat_diagnostic(
         raise ValueError("RTL fullbeat base must fit in one byte")
     if beat_addr < 0:
         raise ValueError("RTL fullbeat address must be non-negative")
-    if pattern not in FULLBEAT_PATTERNS:
-        raise ValueError(f"unknown RTL fullbeat pattern: {pattern}")
-    if pattern_arg < 0 or pattern_arg > 0xFF:
-        raise ValueError("RTL fullbeat pattern argument must fit in one byte")
     if (
         not bool(initial_debug["boot_done"])
         or bool(initial_debug["boot_error"])
@@ -1249,9 +1199,6 @@ def run_rtl_fullbeat_diagnostic(
             "status": "FAIL",
             "base": base,
             "beat_addr": beat_addr,
-            "pattern": pattern,
-            "pattern_id": FULLBEAT_PATTERNS[pattern],
-            "pattern_arg": pattern_arg,
             "mismatch_count": None,
             "initial_debug": json_debug(initial_debug),
             "final_debug": json_debug(final_debug),
@@ -1266,9 +1213,8 @@ def run_rtl_fullbeat_diagnostic(
         write_json(run_dir / "rtl-fullbeat-diagnostic.json", payload)
         return payload
 
-    pattern_id = FULLBEAT_PATTERNS[pattern]
-    debug = loader.run_rtl_fullbeat(beat_addr, base, pattern_id, pattern_arg)
-    expected_prefix = fullbeat_pattern_bytes(pattern, base, pattern_arg, 16)
+    debug = loader.run_rtl_fullbeat(beat_addr, base)
+    expected_prefix = bytes(((base + lane) & 0xFF) for lane in range(16))
     observed_prefix = debug["read_data_chunk"]
     expected_echo32 = int.from_bytes(expected_prefix[:4], "little")
     write_echo32_match = debug["rtl_fullbeat_write_echo32"] == expected_echo32
@@ -1282,17 +1228,12 @@ def run_rtl_fullbeat_diagnostic(
         and bool(debug["dense_burst_active"])
         and debug["dense_burst_mismatch_count"] == 0
         and debug["dense_burst_expected_base"] == (base & 0xFF)
-        and debug["rtl_fullbeat_pattern"] == pattern_id
-        and debug["rtl_fullbeat_arg"] == (pattern_arg & 0x3)
     )
     payload = {
         "artifact_name": "task6-ypcb-uberddr3-rtl-fullbeat-board-diagnostic",
         "status": "PASS" if pass_status else "FAIL",
         "base": base,
         "beat_addr": beat_addr,
-        "pattern": pattern,
-        "pattern_id": pattern_id,
-        "pattern_arg": pattern_arg,
         "mismatch_count": debug["dense_burst_mismatch_count"],
         "write_echo32": debug["rtl_fullbeat_write_echo32"],
         "expected_echo32": expected_echo32,
@@ -1618,8 +1559,6 @@ def main() -> int:
                 loader,
                 args.diagnostic_rtl_fullbeat_base,
                 args.diagnostic_rtl_fullbeat_addr,
-                args.diagnostic_rtl_fullbeat_pattern,
-                args.diagnostic_rtl_fullbeat_arg,
                 run_dir,
                 initial_debug,
             )
@@ -1631,9 +1570,6 @@ def main() -> int:
                     "diagnostic_json": str(run_dir / "rtl-fullbeat-diagnostic.json"),
                     "base": diagnostic["base"],
                     "beat_addr": diagnostic["beat_addr"],
-                    "pattern": diagnostic["pattern"],
-                    "pattern_id": diagnostic["pattern_id"],
-                    "pattern_arg": diagnostic["pattern_arg"],
                     "mismatch_count": diagnostic["mismatch_count"],
                     "write_echo32": diagnostic.get("write_echo32"),
                     "expected_echo32": diagnostic.get("expected_echo32"),
@@ -1652,7 +1588,6 @@ def main() -> int:
                     f"{diagnostic['status']} verdict="
                     f"{diagnostic['decision']['verdict']} "
                     f"beat={diagnostic['beat_addr']} "
-                    f"pattern={diagnostic['pattern']} "
                     f"base=0x{diagnostic['base']:02x} "
                     f"mismatches={diagnostic['mismatch_count']}"
                 )

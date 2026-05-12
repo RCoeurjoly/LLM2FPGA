@@ -60,8 +60,6 @@ module task6_uberddr3_rowstream_loader_contract #(
   logic fullbeat_read_after_write_q;
   logic fullbeat_compare_active_q;
   logic [9:0] write_drain_q;
-  logic [1:0] fullbeat_pattern_q;
-  logic [1:0] fullbeat_arg_q;
 
   wire [31:0] command_magic = command_payload_i[0 +: 32];
   wire [7:0] command_opcode = command_payload_i[32 +: 8];
@@ -80,21 +78,6 @@ module task6_uberddr3_rowstream_loader_contract #(
   logic [WB_DATA_BITS - 1:0] fullbeat_expected_data;
   logic [6:0] fullbeat_mismatch_count;
 
-  function automatic logic [7:0] fullbeat_pattern_byte(
-    input logic [1:0] pattern,
-    input logic [7:0] base,
-    input logic [1:0] arg,
-    input int lane
-  );
-    case (pattern)
-      2'd0: fullbeat_pattern_byte = base + lane[7:0];
-      2'd1: fullbeat_pattern_byte = base;
-      2'd2: fullbeat_pattern_byte = base + {6'd0, lane[1:0]};
-      2'd3: fullbeat_pattern_byte = lane[1:0] == arg ? base : 8'd0;
-      default: fullbeat_pattern_byte = 8'd0;
-    endcase
-  endfunction
-
   always_comb begin
     command_dense_data = '0;
     command_dense_data[command_addr[5:0] * 8 +: 8] = command_data[7:0];
@@ -104,24 +87,13 @@ module task6_uberddr3_rowstream_loader_contract #(
     fullbeat_expected_data = '0;
     for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
       fullbeat_expected_data[lane * 8 +: 8] =
-        fullbeat_pattern_byte(
-          fullbeat_pattern_q,
-          loader_fullbeat_expected_base_o,
-          fullbeat_arg_q,
-          lane
-        );
+        loader_fullbeat_expected_base_o + lane[7:0];
   end
 
   always_comb begin
     command_fullbeat_data = '0;
     for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
-      command_fullbeat_data[lane * 8 +: 8] =
-        fullbeat_pattern_byte(
-          command_chunk,
-          command_data[7:0],
-          command_data[9:8],
-          lane
-        );
+      command_fullbeat_data[lane * 8 +: 8] = command_data[7:0] + lane[7:0];
   end
 
   always_comb begin
@@ -167,8 +139,6 @@ module task6_uberddr3_rowstream_loader_contract #(
       loader_fullbeat_expected_base_o <= 8'd0;
       fullbeat_read_after_write_q <= 1'b0;
       fullbeat_compare_active_q <= 1'b0;
-      fullbeat_pattern_q <= 2'd0;
-      fullbeat_arg_q <= 2'd0;
       write_drain_q <= 10'd0;
     end else begin
       if (command_event_i)
@@ -234,8 +204,6 @@ module task6_uberddr3_rowstream_loader_contract #(
           loader_fullbeat_mismatch_count_o <= 7'd0;
           loader_fullbeat_addr_o <= command_addr[WB_ADDR_BITS - 1:0];
           loader_fullbeat_expected_base_o <= command_data[7:0];
-          fullbeat_pattern_q <= command_chunk;
-          fullbeat_arg_q <= command_data[9:8];
           fullbeat_read_after_write_q <= 1'b1;
           wb_addr_o <= command_addr[WB_ADDR_BITS - 1:0];
           wb_data_o <= command_fullbeat_data;

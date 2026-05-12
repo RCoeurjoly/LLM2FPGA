@@ -19382,3 +19382,63 @@ UberDDR3 calibration/data-integrity gates:
   - The next gate should return to the v61 RTL shape and vary only the existing
     base/address fields first, because v61 already proves calibration, boot
     cleanliness, and generated write-data echo.
+
+## 2026-05-12 - v63 full-beat base/address discriminator
+
+- Goal:
+  - continue debugging the hardware loader-to-UberDDR3 write/read path without
+    reintroducing the v62 pattern mux that regressed calibration.
+  - use only existing `RUN_FULLBEAT` base/address fields plus the existing
+    dense-fill diagnostic.
+- Implementation:
+  - removed the v62 pattern-select logic and returned the top-level full-beat
+    data path to the v61-style generated ramp.
+  - bumped the debug payload version to v63 so board artifacts cannot be
+    confused with v61/v62.
+- Validation before board:
+  - Python compile: PASS.
+  - contract simulation:
+    `/nix/store/wbjd78hh52glrlykxflxz3v2c38f66ss-task6-uberddr3-rowstream-loader-contract-sv-sim.json`
+    PASS.
+  - Yosys:
+    `/nix/store/xr6ni502ijrx4g4dqqfq64sdssfwy6cg-task6-ypcb-uberddr3-rowstream-loader-yosys.json`
+    PASS.
+  - bitstream:
+    `/nix/store/g0i6bm60sb7s2dgxzs8wmgr64dh56par-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+    built with pre-place locks `applied=437 missing=0`; routed controller
+    clock timing passed at 25 MHz, reported max frequency `40.88 MHz`.
+- Hardware:
+  - all v63 runs below passed calibration and the boot prerequisite:
+    `boot_done=true`, `boot_error=false`, `boot_mismatch=false`,
+    `wb_err_count=0`.
+
+| run | write echo | expected lower-128 prefix | observed lower-128 prefix | result |
+| --- | --- | --- | --- | --- |
+| `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v63-seed18/base20-addr0` | PASS `0x23222120` | `202122232425262728292a2b2c2d2e2f` | `a8c1aa23a8c1a827a851aa2ba851a82f` | FAIL, mismatch `64` |
+| `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v63-seed18/base40-addr0` | PASS `0x43424140` | `404142434445464748494a4b4c4d4e4f` | `a8c1a843a8c1a847a851a84ba851a84f` | FAIL, mismatch `64` |
+| `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v63-seed18/base80-addr0` | PASS `0x83828180` | `808182838485868788898a8b8c8d8e8f` | `a8c1a883a8c1a887a851a88ba851a88f` | FAIL, mismatch `64` |
+| `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v63-seed18/base20-addr1` | PASS `0x23222120` | `202122232425262728292a2b2c2d2e2f` | `a8c1a823a8c1a827a851a82ba851a82f` | FAIL, mismatch `64` |
+| `artifacts/task6/runs/2026-05-12-rtl-fullbeat-v63-seed18/densefill-55-addr0` | n/a | `55555555555555555555555555555555` | `3dc13da53dc13da52c512ca52c512ca5` | FAIL |
+
+- Interpretation:
+  - v63 restores the calibration/boot behavior lost in v62, so the current
+    problem is again data-path integrity rather than calibration.
+  - The generated write echo tracks the requested base exactly, so host JTAG
+    packing and loader-side data generation are not the active failure.
+  - In the ramp probes, lower-128 readback bytes at positions `3`, `7`, `11`,
+    and `15` track `base+lane`, while neighboring bytes remain residue-like.
+    This is a strong lane/update-position signature in the UberDDR3 write/read
+    path.
+  - The dense-fill probe also fails, so the next useful experiment is not a
+    wider host command or a new seed sweep. It should directly inspect or
+    change the controller-facing lane mapping/selection around
+    `i_wb_data`, `i_wb_sel`, the controller's burst/lane ordering, and the
+    readback capture of `o_wb_data`.
+- Next concrete engineering gate:
+  - add a small simulation/model check around the UberDDR3 controller
+    Wishbone write/read contract using the real burst/lane ordering comments in
+    `ddr3_controller.v`, then build the smallest hardware probe that can answer
+    whether write input byte lane `N` can land in readback byte lane `M`.
+  - Keep the hardware probe calibration-safe: no broad 64-lane pattern mux in
+    the top-level timing path. Prefer a few compile-time-selected lane-source
+    variants or controller-local assertions/traces before another bitstream.

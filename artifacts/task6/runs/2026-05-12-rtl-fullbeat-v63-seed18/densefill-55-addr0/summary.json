@@ -1,0 +1,14 @@
+{
+  "beat_addr": 0,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-12-rtl-fullbeat-v63-seed18/densefill-55-addr0/denseburst-diagnostic.json",
+  "expected_prefix_hex": "55555555555555555555555555555555",
+  "mismatch_count": 1,
+  "observed_prefix_hex": "3dc13da53dc13da52c512ca52c512ca5",
+  "run_dir": "artifacts/task6/runs/2026-05-12-rtl-fullbeat-v63-seed18/densefill-55-addr0",
+  "status": "FAIL",
+  "value": 85,
+  "verdict": "board-side-densefill-readback-fails",
+  "wb_ack_count": 12
+}

@@ -24,7 +24,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd62;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd63;
   localparam int JTAG_COMMAND_WIDTH = 192;
   localparam logic [31:0] LOADER_COMMAND_MAGIC = 32'h33445244;
   localparam logic [7:0] LOADER_OP_WRITE_LOWBYTE = 8'h03;
@@ -215,8 +215,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [WB_ADDR_BITS - 1:0] loader_fullbeat_addr_q;
   logic [7:0] loader_fullbeat_expected_base_q;
   logic [31:0] loader_fullbeat_write_echo_q;
-  logic [1:0] loader_fullbeat_pattern_q;
-  logic [1:0] loader_fullbeat_arg_q;
   logic [3:0] loader_debug_state;
 
   wire [31:0] jtag_command_magic = jtag_command_payload[0 +: 32];
@@ -224,7 +222,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   wire [1:0] jtag_command_chunk = jtag_command_payload[40 +: 2];
   wire [31:0] jtag_command_addr = jtag_command_payload[48 +: 32];
   wire [7:0] jtag_command_data_byte = jtag_command_payload[64 +: 8];
-  wire [7:0] jtag_command_data_arg = jtag_command_payload[72 +: 8];
   wire jtag_command_magic_ok = jtag_command_magic == LOADER_COMMAND_MAGIC;
   wire [WB_ADDR_BITS - 1:0] jtag_command_dense_addr =
     {{(WB_ADDR_BITS - 10){1'b0}}, jtag_command_addr[15:6]};
@@ -235,21 +232,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [WB_DATA_BITS - 1:0] loader_fullbeat_expected_data;
   logic [6:0] loader_fullbeat_mismatch_count;
 
-  function automatic logic [7:0] fullbeat_pattern_byte(
-    input logic [1:0] pattern,
-    input logic [7:0] base,
-    input logic [1:0] arg,
-    input int lane
-  );
-    case (pattern)
-      2'd0: fullbeat_pattern_byte = base + lane[7:0];
-      2'd1: fullbeat_pattern_byte = base;
-      2'd2: fullbeat_pattern_byte = base + {6'd0, lane[1:0]};
-      2'd3: fullbeat_pattern_byte = lane[1:0] == arg ? base : 8'd0;
-      default: fullbeat_pattern_byte = 8'd0;
-    endcase
-  endfunction
-
   always_comb begin
     jtag_command_dense_data = '0;
     jtag_command_dense_data[jtag_command_addr[5:0] * 8 +: 8] =
@@ -259,25 +241,14 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   always_comb begin
     jtag_command_fullbeat_data = '0;
     for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
-      jtag_command_fullbeat_data[lane * 8 +: 8] =
-        fullbeat_pattern_byte(
-          jtag_command_chunk,
-          jtag_command_data_byte,
-          jtag_command_data_arg[1:0],
-          lane
-        );
+      jtag_command_fullbeat_data[lane * 8 +: 8] = jtag_command_data_byte + lane[7:0];
   end
 
   always_comb begin
     loader_fullbeat_expected_data = '0;
     for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1)
       loader_fullbeat_expected_data[lane * 8 +: 8] =
-        fullbeat_pattern_byte(
-          loader_fullbeat_pattern_q,
-          loader_fullbeat_expected_base_q,
-          loader_fullbeat_arg_q,
-          lane
-        );
+        loader_fullbeat_expected_base_q + lane[7:0];
   end
 
   always_comb begin
@@ -382,8 +353,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       loader_fullbeat_addr_q <= '0;
       loader_fullbeat_expected_base_q <= 8'd0;
       loader_fullbeat_write_echo_q <= 32'd0;
-      loader_fullbeat_pattern_q <= 2'd0;
-      loader_fullbeat_arg_q <= 2'd0;
     end else begin
       cycle_count_q <= cycle_count_q + 32'd1;
       if (calib_complete && !calib_seen_q) begin
@@ -497,8 +466,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_fullbeat_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
           loader_fullbeat_expected_base_q <= jtag_command_data_byte;
           loader_fullbeat_write_echo_q <= jtag_command_fullbeat_data[0 +: 32];
-          loader_fullbeat_pattern_q <= jtag_command_chunk;
-          loader_fullbeat_arg_q <= jtag_command_data_arg[1:0];
           read_probe_cyc_q <= 1'b1;
           read_probe_stb_q <= 1'b1;
           read_probe_we_q <= 1'b1;
@@ -877,7 +844,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     jtag_debug_payload[465 +: 7] = loader_fullbeat_mismatch_count_q;
     jtag_debug_payload[472 +: 24] = loader_fullbeat_addr_q[23:0];
     jtag_debug_payload[496 +: 8] = loader_fullbeat_expected_base_q;
-    jtag_debug_payload[504 +: 4] = {loader_fullbeat_arg_q, loader_fullbeat_pattern_q};
     if (!read_probe_done_q)
       jtag_debug_payload[240 +: 32] = read_probe_stream_bytes_q;
   end
