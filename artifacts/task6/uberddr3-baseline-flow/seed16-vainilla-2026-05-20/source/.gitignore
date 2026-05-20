@@ -1,0 +1,27 @@
+formal/ddr3_multiconfig*prf*
+formal/ddr3_multiconfig_default/
+formal/ddr3_multiconfig_ecc/
+formal/ecc/
+formal/ddr3_singleconfig/
+example_demo/nexys_video/build/
+testbench/xsim/xsim*
+testbench/xsim/*backup*
+testbench/xsim/*.log
+testbench/xsim/*.pb
+testbench/xsim/*.wdb
+example_demo/*/build/*
+example_demo/build_logs*
+*.fasm
+*.frames
+*.bin
+*.json
+*.bba
+*toolchain-nix*
+testbench/ddr3_dimm_micron_sim_behav.wcfg
+testbench/icarus_sim/*.log
+testbench/icarus_sim/uberddr3_sim
+*jobid
+.caas*
+
+# But do not ignore testbench/xsim/test_*.log
+!testbench/xsim/test_*.log

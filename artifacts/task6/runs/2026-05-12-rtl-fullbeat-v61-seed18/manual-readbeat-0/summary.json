@@ -1,0 +1,7 @@
+{
+  "beat_addr": 0,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-12-rtl-fullbeat-v61-seed18/manual-readbeat-0/readbeat-diagnostic.json",
+  "lower128_hex": "20c1220324c1260728512a0b2c512e0f",
+  "run_dir": "artifacts/task6/runs/2026-05-12-rtl-fullbeat-v61-seed18/manual-readbeat-0",
+  "status": "PASS"
+}

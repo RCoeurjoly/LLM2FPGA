@@ -1,0 +1,17 @@
+{
+  "artifact_name": "task6-ypcb-ddr3-inference-gate",
+  "bitstream": "/home/roland/LLM2FPGA/artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit",
+  "run_root": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-20T18-09-44+0200-task6-ypcb-ddr3-inference-gate",
+  "status": "FAIL",
+  "steps": [
+    {
+      "name": "boot-only",
+      "payload": {
+        "raw_output": "Traceback (most recent call last):\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_ddr3_rowstream_loader.py\", line 1820, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_ddr3_rowstream_loader.py\", line 1339, in main\n    initial_debug = loader.wait_calibration()\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_ddr3_rowstream_loader.py\", line 496, in wait_calibration\n    raise TimeoutError(f\"DDR3 calibration did not complete: {summarize_debug(last)}\")\nTimeoutError: DDR3 calibration did not complete: magic_ok=False version=255 calib_seen=False state=15 ack=0 err=9502720 loader_error=True debug1=0x00ffb2a8",
+        "status": "FAIL"
+      },
+      "return_code": 1,
+      "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-20T18-09-44+0200-task6-ypcb-ddr3-inference-gate/boot-only"
+    }
+  ]
+}

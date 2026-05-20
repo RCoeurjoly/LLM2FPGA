@@ -1,0 +1,17 @@
+{
+  "base": 32,
+  "beat_addr": 0,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "diagnostic_json": "artifacts/task6/runs/2026-05-12-rtl-fullbeat-v61-seed18/manual-base-20/rtl-fullbeat-diagnostic.json",
+  "expected_echo32": 589439264,
+  "expected_prefix_hex": "202122232425262728292a2b2c2d2e2f",
+  "mismatch_count": 63,
+  "observed_prefix_hex": "10c1122314c1162718511a2b1c511e2f",
+  "run_dir": "artifacts/task6/runs/2026-05-12-rtl-fullbeat-v61-seed18/manual-base-20",
+  "status": "FAIL",
+  "verdict": "rtl-generated-fullbeat-readback-fails",
+  "wb_ack_count": 25295,
+  "write_echo32": 589439264,
+  "write_echo32_match": true
+}

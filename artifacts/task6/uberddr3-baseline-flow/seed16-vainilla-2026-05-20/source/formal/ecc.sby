@@ -1,0 +1,20 @@
+[options]
+mode prove
+depth 1 
+#mode cover
+#depth 50
+
+[engines]
+smtbmc
+
+[script]
+read -formal ecc_formal.v
+read -formal ecc_dec.sv
+read -formal ecc_enc.sv
+prep -top ecc_formal
+
+
+[files]
+./formal/ecc_formal.v
+./rtl/ecc/ecc_dec.sv
+./rtl/ecc/ecc_enc.sv
