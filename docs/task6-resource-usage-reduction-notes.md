@@ -81,6 +81,60 @@ earns more work.
 
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
+### 2026-05-20 - Active one-lane full-bank baseline consumed from `~/UberDDR3_vainilla`
+
+Decision:
+
+- Replace the pending Task 6 active hardware anchor with the confirmed 2026-05-20 one-lane openXC7 success from `~/UberDDR3_vainilla`.
+- Keep the existing 2026-05-10 pinned seed16 baseline in context, but treat it as historical reference.
+- Continue through the same BIST-derived, minimal-contract gate hierarchy in this branch; do not change placement strategy yet.
+
+Implementation and evidence imported:
+
+- `artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/` now contains the copied source + updated flake lock and the active one-lane bitstream: `ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit`.
+- `~/UberDDR3_vainilla/example_demo/ypcb_00338_1p1/ypcb_status_and_plan.org` documents the confirmed hardware proof:
+
+  | target | summary |
+  | --- | --- |
+  | `openxc7_bist_1lane_full` | route PASS at 83.333 MHz and 600-sample steady-state success |
+  | `openxc7_bist_1lane_full` result | `calib_complete=1` in 585/600, `state=23` in 585/600, `final_done=1` in 585/600, `wrong_low=0x00` in 600/600, `short:0` in 600/600 |
+  | write/read coverage | `write_addr=0x1ffffff`, `read_addr=0x1800000`, `calib_addr=0x1ffffff` |
+
+Current DDR3 claim:
+
+- Usable minimum anchor confirmed for this phase:
+  - one-lane x8 path is calibrated and passes full one-lane BIST traffic.
+  - board-side DM subtest remains disabled and low-byte style writes/reads are stable under this minimal shape.
+- Not yet solved: deterministic lane-to-lane/beat mapping for dense rowstreaming toward TinyStories rows.
+
+Next execution gate:
+
+1. Use `seed16-vainilla-2026-05-20` as the active baseline for all DDR3-driven Task 6 hardware checks.
+2. Run D0 boot/diagnostic checks on the imported one-lane full-bank bitstream before any new RTL data-contract experiments.
+3. Keep the contract sequence to compact D1 readback and D2 lane/beat deterministic checks from the current plan notes; do not connect full-weight path until they pass.
+
+
+### 2026-05-21 - TinyStories-1M inference gate on YPCB
+
+Decision:
+
+- Run the current one-lane seed16-vainilla-2026-05-20 bitstream through an explicit TinyStories-1M inference check before any lane-width expansion or contract-path change.
+- Keep board-safe gates in order: boot-only clean gate, deterministic RTL fullbeat sanity, then full rowstream load/readback and top1 replay comparison.
+
+Execution gate (now):
+
+1. boot-only on artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit with a 120s calibration timeout.
+2. run `--diagnostic-rtl-fullbeat` on a small fixed ramp (for example base 0x20, beat 0) and require clean fullbeat deltas and zero mismatch.
+3. run a complete low-byte board load from h2-ddr3-row-stream-pack-replay/rowstream.bin with --full-readback and --storage-mode lowbyte and --top1-from-model against h2-full-vocab-rowwise-topk-replay.json; validate boundary rows 0,1,31,32,50256.
+4. record board output in artifacts/task6/runs and treat PASS only when boot, boundary rows, full-readback, and top1 are all green.
+
+Pass criteria:
+
+- boot gate clean: calib_seen, boot_done, no boot_error, no boot_mismatch
+- boundary rows pass for 0,1,31,32,50256
+- full readback SHA-256 matches source rowstream hash
+- top1 payload status is PASS and top1 mismatch count is 0
+
 ### 2026-05-10 - Imported stable UberDDR3 baseline from `~/UberDDR3`
 
 Decision:
@@ -19688,3 +19742,68 @@ UberDDR3 calibration/data-integrity gates:
     write/read generator or instrumentation inside the BIST-derived top to test
     write-data presentation and read-capture timing on hardware, with the boot
     gate still required before interpreting any data bytes.
+
+### Canonical execution contract for this task (content-agnostic)
+
+Use this contract as the single source of truth for planning and status updates.
+
+- State of affairs:
+  - `docs/task6-resource-usage-reduction-notes.md` remains the single
+    reviewer-facing decision file for Task 6 strategy, blocker state, and
+    baseline comparisons.
+  - `docs/task6-current-plan.md` is the short-term queue for the immediate lane
+    and run order.
+  - `AUTONIGHT_STATUS.md` is the per-session handoff snapshot for no-board /
+    blocked-command phases.
+  - `artifacts/task6/runs/<timestamp>-<slug>/` is the canonical execution log
+    location for all Task 6 experiments.
+- Experiment hygiene:
+  - Create one run directory per experiment using:
+    `artifacts/task6/runs/YYYYMMDDTHHMMSS-task6-<lane>-<slug>/`.
+  - Write `commands.txt` before execution and treat it as immutable input.
+  - Write `summary.json` at the end with:
+    - lane name and hypothesis,
+    - input model / script / bitstream hashes,
+    - gate outcomes (boot, fullbeat, boundary rows, top1, resource), and
+    - explicit verdict (`PASS`, `BLOCK`, `ABORT`, `INCONCLUSIVE`).
+  - Keep generated rowstreams, logs, and manifests inside that run folder only.
+- Promotion gates:
+  - No hardware-related experiment can be promoted without this sequence:
+    `boot-only → diagnostic-rtl-fullbeat → deterministic memory checks → TinyStories
+    inference gate`.
+  - For inference, do not merge or scale width/lanes until:
+    - boundary rows 0,1,31,32,50256 all match,
+    - full readback digest matches source,
+    - top1 mismatch count is zero,
+    - and all board transport fields are healthy (no ACK/Wishbone regressions).
+- Documentation cadence:
+  - Each experiment update appends a short dated checkpoint in this file with:
+    status, command set, key artifacts, gate verdict, and next action.
+  - Avoid adding new strategy fragments outside this file unless explicitly asked.
+- Commit discipline:
+  - one experiment = one commit,
+  - one commit = one hypothesis,
+  - push before opening the next hypothesis unless it is only planning text.
+
+### Standard gate ordering for all runs
+
+1. **Boot gate**: board clean calibration with expected timeout.
+2. **D0/D1 sanity**: compact deterministic checks and `--diagnostic-rtl-fullbeat`.
+3. **D2 memory contract**: deterministic lane-beat replay + boundary-row checks.
+4. **D3 TinyStories gate**: full rowstream load/readback + top1 replay.
+5. **D4 resource gate** (if applicable): mapped resource deltas versus baseline
+   and memory growth checks.
+
+### Where to put experiment records
+
+- Current board evidence and handoff snapshots: `artifacts/task6/runs`.
+- Long-lived strategy decisions and blocker list: this file.
+- Per-session handoff logs: `AUTONIGHT_STATUS.md`.
+- Active hardware anchor + command recipes: branch-local notes in this file's DDR3
+  section and the script-facing docs in `scripts/task6/`.
+
+- Operational convenience:
+  - initialize a run with `scripts/task6/task6_new_experiment.sh <lane> <slug>`
+    before executing commands.
+  - the script creates `commands.txt` and `summary.json` with the required
+    schema used by the gate contract above.
