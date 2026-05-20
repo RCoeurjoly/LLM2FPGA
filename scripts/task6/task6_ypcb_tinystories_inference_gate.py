@@ -14,20 +14,29 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_BITSTREAM = (
+DEFAULT_BASELINE_DIR = (
     ROOT
     / "artifacts"
     / "task6"
     / "uberddr3-baseline-flow"
     / "seed16-vainilla-2026-05-20"
-    / "ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit"
 )
+DEFAULT_BITSTREAMS = {
+    1: "ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit",
+    2: "ypcb-00338-1p1-ddr3-bist-2lanes-full-openxc7.bit",
+}
 DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 LOADER_SCRIPT = ROOT / "scripts" / "task6" / "task6_ddr3_rowstream_loader.py"
 DEFAULT_ADAPTER = ROOT / "TinyStories" / "model_adapter_representative_core.py"
 DEFAULT_BOUNDARIES = "0,1,31,32,50256"
 DEFAULT_PLAN_ID = "plan-unknown"
 DEFAULT_HYPOTHESIS_ID = "hypothesis-unknown"
+
+
+def default_bitstream(byte_lanes: int) -> Path:
+    if byte_lanes not in DEFAULT_BITSTREAMS:
+        raise ValueError(f"unsupported byte-lanes: {byte_lanes}")
+    return DEFAULT_BASELINE_DIR / DEFAULT_BITSTREAMS[byte_lanes]
 
 
 @dataclass
@@ -40,16 +49,17 @@ class StepResult:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--byte-lanes", type=int, choices=(1, 2), default=2)
     parser.add_argument(
         "--bitstream",
         type=Path,
-        default=DEFAULT_BITSTREAM,
+        default=None,
         help="Path to the DDR3 anchor bitstream.",
     )
     parser.add_argument(
         "--model-path",
-        required=True,
         type=Path,
+        default=None,
         help="TinyStories-1M model snapshot for top1 replay.",
     )
     parser.add_argument(
@@ -57,6 +67,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_ADAPTER,
         help="Adapter path used to replay top1.",
+    )
+    parser.add_argument(
+        "--storage-mode",
+        choices=("lowbyte", "beat"),
+        default="lowbyte",
+        help="Storage mode used for rowstream load/replay.",
     )
     parser.add_argument(
         "--run-root",
@@ -91,6 +107,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-inference",
         action="store_true",
         help="Skip inference load/readback/top1 stage.",
+    )
+    parser.add_argument(
+        "--skip-top1",
+        action="store_true",
+        help="Skip top1 replay in inference stage.",
     )
     parser.add_argument(
         "--json-only",
@@ -140,6 +161,10 @@ def run_loader_step(
         str(args.command_repeats),
         "--calib-timeout",
         str(args.calib_timeout),
+        "--storage-mode",
+        args.storage_mode,
+        "--byte-lanes",
+        str(args.byte_lanes),
         "--no-program" if not program else "--program",
     ]
     command.extend(extra_args)
@@ -189,7 +214,6 @@ def build_gates(steps: list[StepResult]) -> dict[str, str | None]:
                 gates["top1_gate"] = step.payload.get("top1", "PENDING")
         elif step.name == "tinystories-inference":
             if step.payload:
-                # Loader returns summary payload for top1/dataset checks in this stage.
                 gates["boundary_rows_gate"] = step.payload.get("boundary_rows", gates["boundary_rows_gate"])
                 gates["full_readback_gate"] = step.payload.get("full_readback", gates["full_readback_gate"])
                 gates["top1_gate"] = step.payload.get("top1", gates["top1_gate"])
@@ -199,7 +223,6 @@ def build_gates(steps: list[StepResult]) -> dict[str, str | None]:
             continue
         if isinstance(value, str) and value.upper() in {"PASS", "FAIL"}:
             continue
-        # Normalize non-string structured payloads to PASS/FAIL when available.
         if isinstance(value, dict):
             gates[key] = "PASS" if value.get("status", "") == "PASS" else "FAIL"
         elif isinstance(value, bool):
@@ -210,6 +233,9 @@ def build_gates(steps: list[StepResult]) -> dict[str, str | None]:
 
 def main() -> int:
     args = parse_args()
+    args.bitstream = args.bitstream or default_bitstream(args.byte_lanes)
+    if not args.bitstream.exists():
+        raise SystemExit(f"bitstream does not exist: {args.bitstream}")
 
     run_root = args.run_root
     if run_root is None:
@@ -248,24 +274,36 @@ def main() -> int:
         overall_ok = overall_ok and step_passed(fullbeat)
 
     if overall_ok and not args.skip_inference:
+        if not args.skip_top1 and args.model_path is None:
+            raise SystemExit("--model-path is required unless --skip-top1 is set")
+        if not args.skip_top1 and args.adapter_path is None:
+            raise SystemExit("--adapter-path is required unless --skip-top1 is set")
+
+        inference_args: list[str] = [
+            "--run-inference",
+            "--boundary-tokens",
+            args.boundary_tokens,
+            "--sample-count",
+            str(args.sample_count),
+        ]
+        if args.skip_top1:
+            inference_args.append("--no-top1-from-model")
+        else:
+            inference_args.extend(
+                [
+                    "--top1-from-model",
+                    "--model-path",
+                    str(args.model_path),
+                    "--adapter-path",
+                    str(args.adapter_path),
+                ]
+            )
+
         inference = run_loader_step(
             "tinystories-inference",
             run_root / "tinystories-inference",
             args,
-            extra_args=[
-                "--storage-mode",
-                "lowbyte",
-                "--run-inference",
-                "--top1-from-model",
-                "--model-path",
-                str(args.model_path),
-                "--adapter-path",
-                str(args.adapter_path),
-                "--sample-count",
-                str(args.sample_count),
-                "--boundary-tokens",
-                args.boundary_tokens,
-            ],
+            extra_args=inference_args,
             program=False,
         )
         steps.append(inference)
@@ -278,6 +316,8 @@ def main() -> int:
         "hypothesis_id": args.hypothesis_id,
         "status": "PASS" if overall_ok else "FAIL",
         "lane": "ddr3",
+        "byte_lanes": args.byte_lanes,
+        "storage_mode": args.storage_mode,
         "run_root": str(run_root),
         "bitstream": str(args.bitstream),
         "gates": gates,

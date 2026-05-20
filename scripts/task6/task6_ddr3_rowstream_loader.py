@@ -103,6 +103,13 @@ def parse_args() -> argparse.Namespace:
             "Wishbone address per stream byte; beat uses dense 64-byte beats"
         ),
     )
+    parser.add_argument(
+        "--byte-lanes",
+        type=int,
+        choices=(1, 2),
+        default=1,
+        help="Number of DDR3 byte lanes used by the bitstream (1 or 2).",
+    )
     parser.add_argument("--max-beats", type=int, help="debug limit; default loads the full image")
     parser.add_argument(
         "--max-bytes",
@@ -1390,10 +1397,8 @@ def main() -> int:
                 raise SystemExit("--run-inference requires --storage-mode lowbyte")
             if args.max_bytes is not None or args.max_beats is not None:
                 raise SystemExit("--run-inference requires full-image load and does not support --max-bytes or --max-beats")
-            if args.model_path is not None and args.adapter_path is not None:
-                args.top1_from_model = True
-            else:
-                raise SystemExit("--run-inference requires --model-path and --adapter-path")
+            if args.top1_from_model and (args.model_path is None or args.adapter_path is None):
+                raise SystemExit("--run-inference requires --model-path and --adapter-path when --top1-from-model is set")
             args.full_readback = True
             args.load_boundary_rows_only = False
         if args.diagnostic_lowbyte_count:
@@ -1793,6 +1798,7 @@ def main() -> int:
             "total_beats": total_beats,
             "loaded_beats": beats_to_load,
             "loaded_bytes": bytes_to_load,
+            "byte_lanes": args.byte_lanes,
             "loaded_byte_count": loaded_byte_count,
             "load_boundary_rows_only": args.load_boundary_rows_only,
             "load_ranges": [{"start": start, "end": end} for start, end in load_ranges],
