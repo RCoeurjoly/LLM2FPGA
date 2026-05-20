@@ -5,21 +5,30 @@
   "slug": "anchor-repro",
   "timestamp": "2026-05-20T19:43:57+02:00",
   "notes": "",
-  "status": "IN_PROGRESS",
+  "status": "FAIL",
   "commands": {
-    "boot_only": null,
+    "boot_only": {
+      "status": "FAIL",
+      "command": "/usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit --run-dir artifacts/task6/runs/20260520T194357-task6-ddr3-anchor-repro/boot-only --program --boot-only --serial 210299BF3824 --jtag-cable digilent_hs3 --calib-timeout 240 --json-only",
+      "attempts": 2,
+      "return_code": 1,
+      "summary_file": "boot-only/boot-only-calibration-fail.json"
+    },
     "diagnostic_fullbeat": null,
     "memory_contract": null,
     "tinystories_inference": null,
     "resource_check": null
   },
   "gates": {
-    "boot_gate": null,
+    "boot_gate": "FAIL",
     "fullbeat_gate": null,
     "boundary_rows_gate": null,
     "full_readback_gate": null,
     "top1_gate": null,
     "resource_gate": null
   },
-  "artifacts": []
+  "artifacts": [
+    "boot-only/program.log",
+    "boot-only/boot-only-calibration-fail.json"
+  ]
 }

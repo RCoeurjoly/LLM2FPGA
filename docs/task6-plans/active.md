@@ -28,6 +28,7 @@
 - Next action:
   1. Initialize run with `scripts/task6/task6_new_experiment.sh --plan-id plan-2026-05-21-ddr3-tinystories-anchor --hypothesis anchor-baseline ddr3 anchor-repro`
   2. Run boot-only using the anchored bitstream.
+   - Result: timed out twice on calibration (magic_ok=false, calib_seen=false). Pause and power-cycle the board before retrying.
   3. Run deterministic fullbeat sanity if boot passes.
 
 ### Lane L1: Mapping contract / rowstream deterministic checks (Priority 1)

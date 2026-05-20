@@ -5,3 +5,6 @@
 # plan_id: plan-2026-05-21-ddr3-tinystories-anchor
 # hypothesis_id: anchor-baseline
 
+# 2026-05-20 lane ddr3 anchor-repro run
+# /usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit --run-dir artifacts/task6/runs/20260520T194357-task6-ddr3-anchor-repro/boot-only --program --boot-only --calib-timeout 120 --json-only
+# /usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit --run-dir artifacts/task6/runs/20260520T194357-task6-ddr3-anchor-repro/rtl-fullbeat --diagnostic-rtl-fullbeat-base 0x20 --diagnostic-rtl-fullbeat-addr 0 --json-only

@@ -6,7 +6,7 @@ the historical index and leave older rows intact.
 | date (Europe/Madrid) | lane | hypothesis_id | plan_id | run_root | status | next |
 |---|---|---|---|---|---|---|
 | 2026-05-20 | ddr3 | anchor-baseline | plan-2026-05-21-ddr3-tinystories-anchor | artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ | PASS | DDR3 baseline consumed from UberDDR3 and treated as active anchor |
-| 2026-05-21 | ddr3 | anchor-baseline | plan-2026-05-21-ddr3-tinystories-anchor | artifacts/task6/runs/20260520T194357-task6-ddr3-anchor-repro | IN_PROGRESS | Boot-only gate and diagnostic-rtl-fullbeat. Next: TinyStories inference gate if clean. |
+| 2026-05-21 | ddr3 | anchor-baseline | plan-2026-05-21-ddr3-tinystories-anchor | artifacts/task6/runs/20260520T194357-task6-ddr3-anchor-repro | FAIL | Board reachable via openFPGALoader, but DDR3 calibration timed out twice. Power-cycle board and rerun this run path. |
 
 ## Ledger policy
 

@@ -1,0 +1,20 @@
+{
+  "run_root": "artifacts/task6/runs/20260520T194357-task6-ddr3-anchor-repro/boot-only",
+  "bitstream": "artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit",
+  "attempts": [
+    {
+      "command": "/usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit --run-dir artifacts/task6/runs/20260520T194357-task6-ddr3-anchor-repro/boot-only --program --boot-only --calib-timeout 120 --json-only",
+      "calib_timeout": 120,
+      "status": "FAIL",
+      "return_code": 1,
+      "error": "TimeoutError: DDR3 calibration did not complete: magic_ok=False version=255 calib_seen=False state=15 ack=0 err=9502720 loader_error=True debug1=0x00ffb2a8"
+    },
+    {
+      "command": "/usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit --run-dir artifacts/task6/runs/20260520T194357-task6-ddr3-anchor-repro/boot-only --program --boot-only --serial 210299BF3824 --jtag-cable digilent_hs3 --calib-timeout 240 --json-only",
+      "calib_timeout": 240,
+      "status": "FAIL",
+      "return_code": 1,
+      "error": "TimeoutError: DDR3 calibration did not complete: magic_ok=False version=255 calib_seen=False state=15 ack=0 err=9502720 loader_error=True debug1=0x00ffe2a8"
+    }
+  ]
+}
