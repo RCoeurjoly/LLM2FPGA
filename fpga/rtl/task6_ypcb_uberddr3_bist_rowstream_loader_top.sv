@@ -158,6 +158,12 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     LOADER_WRITE_DRAIN = 4'd13
   } read_probe_state_t;
 
+  typedef enum logic [1:0] {
+    FULLBEAT_PHASE_NONE = 2'd0,
+    FULLBEAT_PHASE_WRITE = 2'd1,
+    FULLBEAT_PHASE_READ = 2'd2
+  } fullbeat_phase_t;
+
   read_probe_state_t read_probe_state_q;
   logic read_probe_cyc_q;
   logic read_probe_stb_q;
@@ -216,6 +222,15 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [7:0] loader_fullbeat_expected_base_q;
   logic [31:0] loader_fullbeat_write_echo_q;
   logic [3:0] loader_debug_state;
+  logic [31:0] loader_fullbeat_issue_cycle_q;
+  logic [3:0] loader_fullbeat_last_write_ack_delta_q;
+  logic [3:0] loader_fullbeat_last_read_ack_delta_q;
+  fullbeat_phase_t loader_fullbeat_issue_phase_q;
+  logic [127:0] loader_fullbeat_last_issue_data_q;
+  logic read_probe_is_loader_beat;
+  logic [WB_ADDR_BITS - 1:0] wb_addr_to_controller;
+  logic [WB_DATA_BITS - 1:0] wb_data_to_controller;
+  logic [WB_SEL_BITS - 1:0] wb_sel_to_controller;
 
   wire [31:0] jtag_command_magic = jtag_command_payload[0 +: 32];
   wire [7:0] jtag_command_opcode = jtag_command_payload[32 +: 8];
@@ -231,6 +246,17 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [WB_DATA_BITS - 1:0] jtag_command_fullbeat_data;
   logic [WB_DATA_BITS - 1:0] loader_fullbeat_expected_data;
   logic [6:0] loader_fullbeat_mismatch_count;
+
+  function automatic [3:0] clamp_delta4(
+    input logic [31:0] issue_cycle,
+    input logic [31:0] ack_cycle
+  );
+    logic [31:0] delta;
+    begin
+      delta = ack_cycle - issue_cycle;
+      clamp_delta4 = delta > 32'd15 ? 4'hf : delta[3:0];
+    end
+  endfunction
 
   always_comb begin
     jtag_command_dense_data = '0;
@@ -288,6 +314,14 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     read_probe_read_index_q[1:0] - 2'd1;
   assign read_probe_capture_byte =
     read_probe_capture_index == 2'd3 ? wb_data[31:24] : wb_data[7:0];
+  assign read_probe_is_loader_beat =
+    read_probe_state_q == LOADER_ISSUE || read_probe_state_q == LOADER_WAIT_ACK;
+  assign wb_addr_to_controller =
+    read_probe_is_loader_beat ? loader_addr_q : read_probe_addr;
+  assign wb_data_to_controller =
+    read_probe_is_loader_beat ? loader_write_data_q : {WB_SEL_BITS{read_probe_write_byte}};
+  assign wb_sel_to_controller =
+    read_probe_is_loader_beat ? loader_sel_q : {WB_SEL_BITS{1'b1}};
   assign loader_debug_state =
     read_probe_state_q == LOADER_ISSUE ? 4'd2 :
     read_probe_state_q == LOADER_WAIT_ACK ? 4'd3 :
@@ -353,6 +387,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       loader_fullbeat_addr_q <= '0;
       loader_fullbeat_expected_base_q <= 8'd0;
       loader_fullbeat_write_echo_q <= 32'd0;
+      loader_fullbeat_issue_cycle_q <= 32'd0;
+      loader_fullbeat_last_write_ack_delta_q <= 4'd0;
+      loader_fullbeat_last_read_ack_delta_q <= 4'd0;
+      loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
+      loader_fullbeat_last_issue_data_q <= '0;
     end else begin
       cycle_count_q <= cycle_count_q + 32'd1;
       if (calib_complete && !calib_seen_q) begin
@@ -387,6 +426,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         loader_wait_cycles_q <= 32'd0;
         loader_fullbeat_read_after_write_q <= 1'b0;
         loader_fullbeat_compare_active_q <= 1'b0;
+        loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
         if (jtag_command_opcode == LOADER_OP_WRITE_LOWBYTE) begin
           loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
           loader_write_data_q <= {WB_SEL_BITS{jtag_command_data_byte}};
@@ -466,6 +506,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_fullbeat_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
           loader_fullbeat_expected_base_q <= jtag_command_data_byte;
           loader_fullbeat_write_echo_q <= jtag_command_fullbeat_data[0 +: 32];
+          loader_fullbeat_issue_cycle_q <= 32'd0;
+          loader_fullbeat_last_write_ack_delta_q <= 4'd0;
+          loader_fullbeat_last_read_ack_delta_q <= 4'd0;
+          loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
+          loader_fullbeat_last_issue_data_q <= '0;
           read_probe_cyc_q <= 1'b1;
           read_probe_stb_q <= 1'b1;
           read_probe_we_q <= 1'b1;
@@ -687,6 +732,17 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         end
 
         LOADER_ISSUE: begin
+          if (
+            read_probe_is_loader_beat &&
+            !wb_stall &&
+            loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_NONE &&
+            (loader_fullbeat_read_after_write_q || loader_fullbeat_compare_active_q)
+          ) begin
+            loader_fullbeat_issue_phase_q <=
+              loader_fullbeat_read_after_write_q ? FULLBEAT_PHASE_WRITE : FULLBEAT_PHASE_READ;
+            loader_fullbeat_issue_cycle_q <= cycle_count_q;
+            loader_fullbeat_last_issue_data_q <= wb_data_to_controller[127:0];
+          end
           if (wb_stall) begin
             loader_stall_seen_q <= 1'b1;
             loader_wait_cycles_q <= loader_wait_cycles_q + 32'd1;
@@ -701,17 +757,28 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             read_probe_we_q <= 1'b0;
             read_probe_done_q <= 1'b1;
             read_probe_state_q <= LOADER_ERROR;
+            loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
           end
           if (wb_ack) begin
             read_probe_cyc_q <= 1'b0;
             read_probe_stb_q <= 1'b0;
             if (read_probe_we_q) begin
               loader_write_ack_seen_q <= 1'b1;
+              if (loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_WRITE) begin
+                loader_fullbeat_last_write_ack_delta_q <=
+                  clamp_delta4(loader_fullbeat_issue_cycle_q, cycle_count_q);
+                loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
+              end
               read_probe_write_drain_q <= 10'd0;
               read_probe_state_q <= LOADER_WRITE_DRAIN;
             end else begin
               loader_read_ack_seen_q <= 1'b1;
               loader_read_data_q <= wb_data;
+              if (loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_READ) begin
+                loader_fullbeat_last_read_ack_delta_q <=
+                  clamp_delta4(loader_fullbeat_issue_cycle_q, cycle_count_q);
+                loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
+              end
               if (loader_fullbeat_compare_active_q) begin
                 loader_fullbeat_done_q <= 1'b1;
                 loader_fullbeat_mismatch_count_q <= loader_fullbeat_mismatch_count;
@@ -733,15 +800,26 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             read_probe_we_q <= 1'b0;
             read_probe_done_q <= 1'b1;
             read_probe_state_q <= LOADER_ERROR;
+            loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
           end else if (wb_ack) begin
             read_probe_cyc_q <= 1'b0;
             if (read_probe_we_q) begin
               loader_write_ack_seen_q <= 1'b1;
+              if (loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_WRITE) begin
+                loader_fullbeat_last_write_ack_delta_q <=
+                  clamp_delta4(loader_fullbeat_issue_cycle_q, cycle_count_q);
+                loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
+              end
               read_probe_write_drain_q <= 10'd0;
               read_probe_state_q <= LOADER_WRITE_DRAIN;
             end else begin
               loader_read_ack_seen_q <= 1'b1;
               loader_read_data_q <= wb_data;
+              if (loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_READ) begin
+                loader_fullbeat_last_read_ack_delta_q <=
+                  clamp_delta4(loader_fullbeat_issue_cycle_q, cycle_count_q);
+                loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
+              end
               if (loader_fullbeat_compare_active_q) begin
                 loader_fullbeat_done_q <= 1'b1;
                 loader_fullbeat_mismatch_count_q <= loader_fullbeat_mismatch_count;
@@ -844,6 +922,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     jtag_debug_payload[465 +: 7] = loader_fullbeat_mismatch_count_q;
     jtag_debug_payload[472 +: 24] = loader_fullbeat_addr_q[23:0];
     jtag_debug_payload[496 +: 8] = loader_fullbeat_expected_base_q;
+    jtag_debug_payload[504 +: 4] = loader_fullbeat_last_write_ack_delta_q;
+    jtag_debug_payload[508 +: 4] = loader_fullbeat_last_read_ack_delta_q;
     if (!read_probe_done_q)
       jtag_debug_payload[240 +: 32] = read_probe_stream_bytes_q;
   end
@@ -879,19 +959,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .i_wb_cyc(read_probe_cyc_q),
     .i_wb_stb(read_probe_stb_q),
     .i_wb_we(read_probe_we_q),
-    .i_wb_addr(
-      read_probe_state_q == LOADER_ISSUE ||
-      read_probe_state_q == LOADER_WAIT_ACK ? loader_addr_q : read_probe_addr
-    ),
-    .i_wb_data(
-      read_probe_state_q == LOADER_ISSUE ||
-      read_probe_state_q == LOADER_WAIT_ACK ? loader_write_data_q :
-      {WB_SEL_BITS{read_probe_write_byte}}
-    ),
-    .i_wb_sel(
-      read_probe_state_q == LOADER_ISSUE ||
-      read_probe_state_q == LOADER_WAIT_ACK ? loader_sel_q : {WB_SEL_BITS{1'b1}}
-    ),
+    .i_wb_addr(wb_addr_to_controller),
+    .i_wb_data(wb_data_to_controller),
+    .i_wb_sel(wb_sel_to_controller),
     .i_aux(read_probe_we_q ? 4'd0 : 4'd1),
     .o_wb_stall(wb_stall),
     .o_wb_ack(wb_ack),

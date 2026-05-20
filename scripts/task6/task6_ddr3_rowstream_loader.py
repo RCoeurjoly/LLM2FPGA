@@ -240,6 +240,7 @@ def parse_args() -> argparse.Namespace:
         help="Wishbone beat address for --diagnostic-rtl-fullbeat-base; default: 0",
     )
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--run-inference", action=argparse.BooleanOptionalAction, default=False, help=("Run a full tiny-stories inference gate: require a full lowbyte load, full readback, and top1 comparison") )
     parser.add_argument("--model-path", type=Path)
     parser.add_argument("--adapter-path", type=Path)
     parser.add_argument("--sample-count", type=int, default=8)
@@ -421,6 +422,8 @@ def decode_debug(raw: int) -> dict[str, Any]:
         "dense_burst_mismatch_count": (raw >> 465) & 0x7F,
         "dense_burst_addr_low24": (raw >> 472) & 0xFF_FFFF,
         "dense_burst_expected_base": (raw >> 496) & 0xFF,
+        "fullbeat_write_ack_delta": (raw >> 504) & 0xF,
+        "fullbeat_read_ack_delta": (raw >> 508) & 0xF,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
     }
@@ -1237,6 +1240,8 @@ def run_rtl_fullbeat_diagnostic(
         "mismatch_count": debug["dense_burst_mismatch_count"],
         "write_echo32": debug["rtl_fullbeat_write_echo32"],
         "expected_echo32": expected_echo32,
+        "fullbeat_write_ack_delta": debug["fullbeat_write_ack_delta"],
+        "fullbeat_read_ack_delta": debug["fullbeat_read_ack_delta"],
         "write_echo32_match": write_echo32_match,
         "expected_prefix_hex": expected_prefix.hex(),
         "observed_prefix_hex": observed_prefix.hex(),
@@ -1297,7 +1302,8 @@ def range_covered(start: int, end: int, ranges: list[tuple[int, int]]) -> bool:
 
 def main() -> int:
     args = parse_args()
-    run_dir = make_run_dir(args.run_dir, args.bitstream.stem)
+    run_label = args.bitstream.stem if args.bitstream is not None else "ypcb-ddr3-rowstream-loader"
+    run_dir = make_run_dir(args.run_dir, run_label)
     contract = read_json(args.contract_json)
     replay = read_json(args.replay_json)
     image = args.rowstream_bin.read_bytes()
@@ -1373,6 +1379,23 @@ def main() -> int:
                     f"boot_mismatch={initial_debug['boot_mismatch']}"
                 )
             return 0 if diagnostic["status"] == "PASS" else 1
+        if args.run_inference:
+            if not (
+                bool(initial_debug["boot_done"])
+                and not bool(initial_debug["boot_error"])
+                and not bool(initial_debug["boot_mismatch"])
+            ):
+                raise SystemExit("--run-inference requires a clean boot")
+            if args.storage_mode != "lowbyte":
+                raise SystemExit("--run-inference requires --storage-mode lowbyte")
+            if args.max_bytes is not None or args.max_beats is not None:
+                raise SystemExit("--run-inference requires full-image load and does not support --max-bytes or --max-beats")
+            if args.model_path is not None and args.adapter_path is not None:
+                args.top1_from_model = True
+            else:
+                raise SystemExit("--run-inference requires --model-path and --adapter-path")
+            args.full_readback = True
+            args.load_boundary_rows_only = False
         if args.diagnostic_lowbyte_count:
             diagnostic = run_lowbyte_diagnostic(
                 loader, args.diagnostic_lowbyte_count, run_dir, initial_debug

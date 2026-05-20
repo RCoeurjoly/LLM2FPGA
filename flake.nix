@@ -62,7 +62,7 @@
       flake = false;
     };
     uberDdr3 = {
-      url = "github:AngeloJacobo/UberDDR3";
+      url = "github:RCoeurjoly/UberDDR3/ypcb";
       flake = false;
     };
   };
@@ -78,7 +78,9 @@
         pkgsLlvm21 = import nixpkgs-llvm21 {
           inherit system;
           config.allowUnfreePredicate = pkg:
-            builtins.elem (nixpkgs.lib.getName pkg) [ "torch" ];
+            builtins.elem (nixpkgs.lib.getName pkg) [
+            #  "torch"
+            ];
         };
         circtPkgs = circt-nix.packages.${system};
         circt = (circtPkgs.circt.override { enableSlang = false; }).overrideAttrs
@@ -172,7 +174,6 @@
             chmod -R u+w "$out"
             cd "$out"
             patch -p1 < ${./patches/uberddr3/0001-ypcb-disable-unpinned-ddr3-dm-outputs.patch}
-            patch -p1 < ${./patches/uberddr3/0002-ypcb-pack-calibration-debug1.patch}
             patch -p1 < ${./patches/uberddr3/0003-ypcb-fast-bist-exit.patch}
           '';
         task6UberDdr3ControllerYosysJson =
@@ -568,6 +569,7 @@
             ${task6LitexBoardsYpcbValidatedRunner}/bin/task6-litex-boards-ypcb-validated \
               --help > "$out/help.txt"
           '';
+        
         torchao = python.pkgs.buildPythonPackage rec {
           pname = "torchao";
           version = "0.15.0";
@@ -582,11 +584,14 @@
           doCheck = false;
           pythonImportsCheck = [ "torchao" ];
         };
+        
         pythonWithTorch = python.withPackages (ps: [ ps.torch ps.packaging ]);
         pythonWithTorchAO =
           python.withPackages (ps: [ ps.torch ps.packaging torchao ]);
         pythonWithTinyStories =
-          python.withPackages (ps: [ ps.torch ps.packaging ps.transformers ]);
+          python.withPackages (ps: [
+            #ps.torch
+            ps.packaging ps.transformers ]);
         torchCpu = python.pkgs.torch-bin.overridePythonAttrs (_old: {
           version = "2.9.1+cpu";
           src = pkgs.fetchurl {
@@ -10514,14 +10519,14 @@
             mlir
             circt
             yosysPkg
-            torchMlir
-            torchMlirPatched
+            # torchMlir
+            # torchMlirPatched
             llvmPackages.clang
             llvmPackages.llvm
-            pythonWithTorch
-            pythonWithTorchAO
+            # pythonWithTorch
+            # pythonWithTorchAO
             pythonWithTinyStories
-            pythonWithTinyStoriesTorchAO
+            # pythonWithTinyStoriesTorchAO
             yosysSlang
             openXC7Nextpnr
             openXC7Prjxray
