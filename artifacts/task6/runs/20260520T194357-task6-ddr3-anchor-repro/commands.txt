@@ -1,0 +1,7 @@
+# Canonical command log for this run (append actual commands in order).
+# Replace this file with the exact commands used once they are executed.
+
+# lane: ddr3
+# plan_id: plan-2026-05-21-ddr3-tinystories-anchor
+# hypothesis_id: anchor-baseline
+
