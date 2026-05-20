@@ -26,6 +26,8 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 LOADER_SCRIPT = ROOT / "scripts" / "task6" / "task6_ddr3_rowstream_loader.py"
 DEFAULT_ADAPTER = ROOT / "TinyStories" / "model_adapter_representative_core.py"
 DEFAULT_BOUNDARIES = "0,1,31,32,50256"
+DEFAULT_PLAN_ID = "plan-unknown"
+DEFAULT_HYPOTHESIS_ID = "hypothesis-unknown"
 
 
 @dataclass
@@ -62,6 +64,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Directory that stores all three step sub-runs.",
     )
+    parser.add_argument("--plan-id", default=DEFAULT_PLAN_ID, help="Plan identifier used for this run.")
+    parser.add_argument(
+        "--hypothesis-id",
+        default=DEFAULT_HYPOTHESIS_ID,
+        help="Hypothesis identifier for this run.",
+    )
     parser.add_argument("--calib-timeout", type=float, default=120.0)
     parser.add_argument("--fullbeat-base", type=lambda value: int(value, 0), default=0x20)
     parser.add_argument("--fullbeat-addr", type=lambda value: int(value, 0), default=0)
@@ -84,8 +92,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip inference load/readback/top1 stage.",
     )
-    parser.add_argument("--json-only", action="store_true", help="Only print final gate summary JSON.")
+    parser.add_argument(
+        "--json-only",
+        action="store_true",
+        help="Only print final gate summary JSON.",
+    )
     return parser.parse_args()
+
+
+# Optional metadata keys used to drive future reporting dashboards.
+KNOWN_GATE_KEYS = [
+    "boot_gate",
+    "fullbeat_gate",
+    "boundary_rows_gate",
+    "full_readback_gate",
+    "top1_gate",
+]
 
 
 def run_loader_step(
@@ -154,6 +176,38 @@ def step_passed(step: StepResult) -> bool:
     return str(step.payload.get("status", "")).upper() == "PASS"
 
 
+def build_gates(steps: list[StepResult]) -> dict[str, str | None]:
+    gates = {key: "PENDING" for key in KNOWN_GATE_KEYS}
+    for step in steps:
+        if step.name == "boot-only":
+            gates["boot_gate"] = "PASS" if step_passed(step) else "FAIL"
+        elif step.name == "rtl-fullbeat":
+            gates["fullbeat_gate"] = "PASS" if step_passed(step) else "FAIL"
+            if step.payload:
+                gates["boundary_rows_gate"] = step.payload.get("boundary_rows", "PENDING")
+                gates["full_readback_gate"] = step.payload.get("full_readback", "PENDING")
+                gates["top1_gate"] = step.payload.get("top1", "PENDING")
+        elif step.name == "tinystories-inference":
+            if step.payload:
+                # Loader returns summary payload for top1/dataset checks in this stage.
+                gates["boundary_rows_gate"] = step.payload.get("boundary_rows", gates["boundary_rows_gate"])
+                gates["full_readback_gate"] = step.payload.get("full_readback", gates["full_readback_gate"])
+                gates["top1_gate"] = step.payload.get("top1", gates["top1_gate"])
+
+    for key, value in list(gates.items()):
+        if value == "PENDING":
+            continue
+        if isinstance(value, str) and value.upper() in {"PASS", "FAIL"}:
+            continue
+        # Normalize non-string structured payloads to PASS/FAIL when available.
+        if isinstance(value, dict):
+            gates[key] = "PASS" if value.get("status", "") == "PASS" else "FAIL"
+        elif isinstance(value, bool):
+            gates[key] = "PASS" if value else "FAIL"
+
+    return gates
+
+
 def main() -> int:
     args = parse_args()
 
@@ -217,11 +271,16 @@ def main() -> int:
         steps.append(inference)
         overall_ok = overall_ok and step_passed(inference)
 
+    gates = build_gates(steps)
     summary = {
         "artifact_name": "task6-ypcb-ddr3-inference-gate",
+        "plan_id": args.plan_id,
+        "hypothesis_id": args.hypothesis_id,
         "status": "PASS" if overall_ok else "FAIL",
+        "lane": "ddr3",
         "run_root": str(run_root),
         "bitstream": str(args.bitstream),
+        "gates": gates,
         "steps": [
             {
                 "name": step.name,

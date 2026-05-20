@@ -4,6 +4,12 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## Canonical task-status control
+- Canonical live plan: `docs/task6-plans/active.md`
+- Experimental ledger: `docs/task6-plans/ledger.md`
+- Active experiment run metadata lives in `artifacts/task6/runs/<timestamp>-task6-<lane>-<slug>/summary.json`
+- Initialize run folders with `scripts/task6/task6_new_experiment.sh --plan-id <PLAN_ID> --hypothesis <HYPOTHESIS_ID> <lane> <slug>`
+
 ## Current workspace snapshot
 
 - Current branch: `task6`
