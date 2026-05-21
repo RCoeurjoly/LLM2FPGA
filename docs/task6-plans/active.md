@@ -10,7 +10,7 @@
 - Branch is stable at the active anchor copied from RCoeurjoly/UberDDR3 (`seed16-vainilla-2026-05-20`).
 - Active anchor bitstreams:
   - `2-lane`: `artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-2lanes-full-openxc7.bit`
-  - `1-lane clocked candidate`: `/nix/store/c9sn6zp8530sn5m3bxnxbq4b97yy2kiz-task6-ypcb-uberddr3-rowstream-loader-1lane-seed16-clocked.bit`
+  - `1-lane clocked candidate`: `./result`
 - Latest 1-lane run root:
   - `artifacts/task6/runs/20260521T000000-ddr3-333fix` (program loaded, FTDI open-device claim currently failing; no gate summary yet)
 - Active gate sequence:
@@ -30,7 +30,7 @@
   - deterministic `diagnostic-rtl-fullbeat` at base `0x20`, beat `0`
 - Next action:
   1. Retry board run with current 1-lane clocked bitstream as soon as FTDI becomes available:
-     - `python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --byte-lanes 1 --bitstream /nix/store/c9sn6zp8530sn5m3bxnxbq4b97yy2kiz-task6-ypcb-uberddr3-rowstream-loader-1lane-seed16-clocked.bit --serial 210299BF3824 --jtag-cable digilent_hs3 --calib-timeout 240 --run-root artifacts/task6/runs/<new-run> --plan-id plan-2026-05-21-ddr3-tinystories-anchor --hypothesis-id ddr3-1lane-clocked-333mhz`
+     - `python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --byte-lanes 1 --bitstream ./result --serial 210299BF3824 --jtag-cable digilent_hs3 --calib-timeout 240 --run-root artifacts/task6/runs/<new-run> --plan-id plan-2026-05-21-ddr3-tinystories-anchor --hypothesis-id ddr3-1lane-clocked-333mhz`
 
 ### Lane L1: DDR3 2-lane anchor reproducibility (Priority 1)
 
@@ -91,7 +91,7 @@
 - Boot-only:
   - `/usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-2lanes-full-openxc7.bit --byte-lanes 2 --program --boot-only --calib-timeout 120 --json-only`
 - 1-lane clocked boot-only candidate:
-  - `/usr/bin/python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --byte-lanes 1 --bitstream /nix/store/c9sn6zp8530sn5m3bxnxbq4b97yy2kiz-task6-ypcb-uberddr3-rowstream-loader-1lane-seed16-clocked.bit --serial 210299BF3824 --jtag-cable digilent_hs3 --calib-timeout 240 --run-root artifacts/task6/runs/<run> --plan-id plan-2026-05-21-ddr3-tinystories-anchor --hypothesis-id ddr3-1lane-clocked-333mhz --skip-fullbeat --skip-inference`
+  - `/usr/bin/python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --byte-lanes 1 --bitstream ./result --serial 210299BF3824 --jtag-cable digilent_hs3 --calib-timeout 240 --run-root artifacts/task6/runs/<run> --plan-id plan-2026-05-21-ddr3-tinystories-anchor --hypothesis-id ddr3-1lane-clocked-333mhz --skip-fullbeat --skip-inference`
 - fullbeat gate:
   - `/usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream .../ypcb-00338-1p1-ddr3-bist-2lanes-full-openxc7.bit --byte-lanes 2 --run-dir artifacts/task6/runs/<run>/diagnostic-fullbeat --diagnostic-rtl-fullbeat-base 0x20 --diagnostic-rtl-fullbeat-addr 0 --json-only`
 - TinyStories gate:
