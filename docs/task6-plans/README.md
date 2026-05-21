@@ -1,23 +1,8 @@
-# Task 6 Plan System
+# Task 6 Plan Archive
 
-This folder is the canonical in-repo control plane for Task 6 work.
+`docs/task6-current-plan.md` is the **live** Task 6 plan.
 
-## Files
+This folder now contains historical and audit-oriented records only:
 
-- `active.md` is the single source of truth for the current plan.
-- `ledger.md` is the append-only experimental ledger.
-
-## How to use
-
-1. Edit `active.md` when switching direction or after each lane decision.
-2. Record every executed/observed experiment in `ledger.md`.
-3. Use `scripts/task6/task6_new_experiment.sh` for every new run directory so each run
-   captures:
-   - lane
-   - hypothesis id
-   - plan id
-   - command log pointer
-   - gate-by-gate status placeholders
-4. Prefer keeping `active.md` and `ledger.md` up to date before the next hardware or
-   synthesis action, and never the opposite.
-
+- `ledger.md` is append-only experiment evidence history.
+- Use `docs/task6-current-plan.md` for current scope, next steps, and stop-on-fail order.

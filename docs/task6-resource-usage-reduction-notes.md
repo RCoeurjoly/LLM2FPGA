@@ -5,10 +5,10 @@ right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
 ## Canonical task-status control
-- Canonical live plan: `docs/task6-plans/active.md`
-- Experimental ledger: `docs/task6-plans/ledger.md`
-- Active experiment run metadata lives in `artifacts/task6/runs/<timestamp>-task6-<lane>-<slug>/summary.json`
-- Initialize run folders with `scripts/task6/task6_new_experiment.sh --plan-id <PLAN_ID> --hypothesis <HYPOTHESIS_ID> <lane> <slug>`
+- Canonical live plan: `docs/task6-current-plan.md`
+- Experiment history: `docs/task6-plans/ledger.md`
+- Active run metadata lives in each run folder `artifacts/task6/runs/<timestamp>-.../commands.txt`, `summary.json`
+- Keep run root creation simple (`run_<date>_ts1m_boot`, etc.); use `scripts/task6/task6_new_experiment.sh --simple <slug>` for quick local folders if needed
 
 ## Current workspace snapshot
 

@@ -1,5 +1,7 @@
 # Task 6 Experiment Ledger (append-only)
 
+Current live plan is in `docs/task6-current-plan.md`. This file is historical, append-only evidence only.
+
 Each experiment entry should be added when evidence is produced. Keep this file as
 the historical index and leave older rows intact.
 
