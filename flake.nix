@@ -10610,7 +10610,8 @@
         formatter = pkgs.nixfmt-classic;
 
         packages = {
-          default = matmulSv;
+          # Keep default at the latest non-DDR3 task6 inference-oriented target.
+          default = tinyStories1mRepresentativeCoreSelftestAllMemory.utilizationReport;
           inherit torchao;
           torch-mlir = torchMlir;
           torch-mlir-patched = torchMlirPatched;
