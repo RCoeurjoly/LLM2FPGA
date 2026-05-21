@@ -50,7 +50,9 @@ DEFAULT_REPLAY = (
 DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
+DEBUG_BITS_UBER = 960
 DEBUG_MAGIC = 0x54364A44
+DEBUG_MAGIC_UBER = 0xD3B5
 DEBUG_VERSION = 63
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
@@ -378,14 +380,17 @@ def make_command(opcode: int, chunk: int, addr: int, data: bytes = b"") -> int:
     return payload
 
 
-def decode_debug(raw: int) -> dict[str, Any]:
+def decode_debug_legacy(raw: int) -> dict[str, Any]:
     status = (raw >> 40) & 0xFF
     command_word = (raw >> 272) & 0xFFFF_FFFF
     loader_word = (raw >> 304) & 0xFFFF_FFFF
     read_data_int = (raw >> 336) & ((1 << 128) - 1)
     read_data_chunk = read_data_int.to_bytes(16, "little")
     return {
+        "raw_bits": DEBUG_BITS,
         "raw_hex": f"0x{raw:0{DEBUG_BITS // 4}x}",
+        "schema": "legacy-512",
+        "_ack_supported": True,
         "magic": raw & 0xFFFF_FFFF,
         "magic_ok": (raw & 0xFFFF_FFFF) == DEBUG_MAGIC,
         "version": (raw >> 32) & 0xFF,
@@ -433,7 +438,136 @@ def decode_debug(raw: int) -> dict[str, Any]:
         "fullbeat_read_ack_delta": (raw >> 508) & 0xF,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
+        "sys_rstn": None,
+        "pll_locked": None,
+        "user1_selected": None,
+        "seen_bits": None,
+        "bist_state_done_seen": None,
+        "bist_state_finish_seen": None,
+        "bist_state_analyze_low_seen": None,
+        "bist_state_read_data_seen": None,
+        "bist_state_issue_read_seen": None,
+        "bist_state_issue_write2_seen": None,
+        "bist_state_issue_write1_seen": None,
+        "bist_state_burst_write_seen": None,
+        "bist_state_burst_read_seen": None,
+        "bist_state_random_write_seen": None,
+        "bist_state_random_read_seen": None,
+        "bist_state_alternate_seen": None,
+        "selected_dqs_page": None,
     }
+
+
+def decode_debug_uber(raw: int) -> dict[str, Any]:
+    magic = (raw >> 48) & 0xFFFF
+    status_flags = (raw >> 44) & 0xF
+    seen_bits = (raw >> 32) & 0x0FFF
+    debug1 = raw & 0xFFFF_FFFF
+
+    sys_rstn = bool((magic >> 3) & 1)
+    pll_locked = bool((magic >> 2) & 1)
+    calib_complete = bool((magic >> 1) & 1)
+    user1_selected = bool(magic & 1)
+
+    bist_done_seen = bool((seen_bits >> 11) & 1)
+    bist_finish_seen = bool((seen_bits >> 10) & 1)
+    bist_analyze_low_seen = bool((seen_bits >> 9) & 1)
+    bist_read_data_seen = bool((seen_bits >> 8) & 1)
+    bist_issue_read_seen = bool((seen_bits >> 7) & 1)
+    bist_issue_write2_seen = bool((seen_bits >> 6) & 1)
+    bist_issue_write1_seen = bool((seen_bits >> 5) & 1)
+    bist_burst_write_seen = bool((seen_bits >> 4) & 1)
+    bist_burst_read_seen = bool((seen_bits >> 3) & 1)
+    bist_random_write_seen = bool((seen_bits >> 2) & 1)
+    bist_random_read_seen = bool((seen_bits >> 1) & 1)
+    bist_alternate_seen = bool((seen_bits >> 0) & 1)
+
+    loader_state = debug1 & 0x1F
+    loader_stb = bool((debug1 >> 5) & 1)
+    loader_cyc = bool((debug1 >> 6) & 1)
+    loader_done = bool((debug1 >> 7) & 1)
+
+    return {
+        "raw_bits": DEBUG_BITS_UBER,
+        "raw_hex": f"0x{raw:0{DEBUG_BITS_UBER // 4}x}",
+        "schema": "uber-960",
+        "_ack_supported": False,
+        "magic": magic,
+        "magic_ok": magic == DEBUG_MAGIC_UBER,
+        "version": 0,
+        "status": status_flags,
+        "calib_complete": calib_complete,
+        "calib_seen": bist_done_seen or calib_complete,
+        "cycle": 0,
+        "calib_seen_cycle": 0,
+        "debug1": debug1,
+        "wb_ack_count": 0,
+        "wb_err_count": 0,
+        "wb_stall_count": 0,
+        "rtl_fullbeat_write_echo32": 0,
+        "command_count": 0,
+        "last_opcode": 0,
+        "last_chunk": 0,
+        "last_magic_ok": False,
+        "last_accepted": False,
+        "loader_state": loader_state,
+        "loader_stb": loader_stb,
+        "loader_cyc": loader_cyc,
+        "loader_done": loader_done,
+        "loader_write_ack_seen": loader_stb,
+        "loader_read_ack_seen": loader_cyc,
+        "loader_error": False,
+        "loader_stall_seen": loader_cyc,
+        "boot_done": bool((debug1 >> 22) & 1) or bool((debug1 >> 23) & 1),
+        "boot_write_ack_seen": bool((debug1 >> 22) & 1),
+        "boot_read_ack_seen": bool((debug1 >> 23) & 1),
+        "boot_error": False,
+        "boot_stall_seen": bool(loader_cyc),
+        "boot_mismatch": False,
+        "loader_wait_cycles": 0,
+        "last_addr_low15": 0,
+        "dense_write_seen": False,
+        "dense_write_wb_addr_low16": 0,
+        "dense_write_lane": (debug1 >> 8) & 0x3F,
+        "dense_write_data": (debug1 >> 16) & 0xFF,
+        "dense_write_sel_low16": 0,
+        "dense_burst_active": False,
+        "dense_burst_mismatch_count": 0,
+        "dense_burst_addr_low24": 0,
+        "dense_burst_expected_base": 0,
+        "fullbeat_write_ack_delta": 0,
+        "fullbeat_read_ack_delta": 0,
+        "read_data_chunk": bytes(16),
+        "read_data_beat": bytes(BEAT_BYTES),
+        "sys_rstn": sys_rstn,
+        "pll_locked": pll_locked,
+        "user1_selected": user1_selected,
+        "seen_bits": seen_bits,
+        "bist_state_done_seen": bist_done_seen,
+        "bist_state_finish_seen": bist_finish_seen,
+        "bist_state_analyze_low_seen": bist_analyze_low_seen,
+        "bist_state_read_data_seen": bist_read_data_seen,
+        "bist_state_issue_read_seen": bist_issue_read_seen,
+        "bist_state_issue_write2_seen": bist_issue_write2_seen,
+        "bist_state_issue_write1_seen": bist_issue_write1_seen,
+        "bist_state_burst_write_seen": bist_burst_write_seen,
+        "bist_state_burst_read_seen": bist_burst_read_seen,
+        "bist_state_random_write_seen": bist_random_write_seen,
+        "bist_state_random_read_seen": bist_random_read_seen,
+        "bist_state_alternate_seen": bist_alternate_seen,
+        "selected_dqs_page": (raw >> 144) & 0xFFFF_FFFF_FFFF,
+    }
+
+
+def decode_debug(raw: int) -> dict[str, Any]:
+    raw_uber = (raw >> 48) & 0xFFFF
+    raw_version = (raw >> 32) & 0xFF
+    raw_magic = raw & 0xFFFF_FFFF
+    if raw_magic == DEBUG_MAGIC and raw_version == DEBUG_VERSION:
+        return decode_debug_legacy(raw)
+    if raw_uber == DEBUG_MAGIC_UBER:
+        return decode_debug_uber(raw)
+    return decode_debug_legacy(raw)
 
 
 class RowstreamLoader:
@@ -461,7 +595,7 @@ class RowstreamLoader:
 
     def read_debug(self) -> dict[str, Any]:
         shift_ir(self.client, self.args.debug_ir, self.args.ir_len)
-        return decode_debug(shift_dr_read(self.client, DEBUG_BITS))
+        return decode_debug(shift_dr_read(self.client, DEBUG_BITS_UBER))
 
     def send_command(self, opcode: int, chunk: int, addr: int, data: bytes = b"") -> None:
         shift_ir(self.client, self.args.command_ir, self.args.ir_len)
@@ -480,14 +614,22 @@ class RowstreamLoader:
         deadline = time.monotonic() + self.args.poll_timeout
         last = self.read_debug()
         while time.monotonic() < deadline:
-            if (
-                last["magic_ok"]
-                and last["version"] == DEBUG_VERSION
-                and not last["loader_error"]
-                and last["loader_state"] == 1
-                and (min_ack_count is None or last["wb_ack_count"] >= min_ack_count)
-            ):
-                return last
+            if not last["magic_ok"] or last["loader_error"]:
+                time.sleep(0.01)
+                last = self.read_debug()
+                continue
+
+            ack_supported = bool(last.get("_ack_supported", True))
+            ready_state = bool(last["loader_state"] in (1, 0, 17, 18, 19, 20, 21, 22, 23))
+            if ack_supported:
+                if last["loader_state"] == 1 and (min_ack_count is None or last["wb_ack_count"] >= min_ack_count):
+                    return last
+            elif last.get("schema") == "uber-960":
+                if ready_state and min_ack_count is not None:
+                    return last
+                if min_ack_count is None and last.get("calib_seen", False):
+                    return last
+
             time.sleep(0.01)
             last = self.read_debug()
         raise TimeoutError(f"loader did not become ready: {summarize_debug(last)}")
@@ -496,7 +638,7 @@ class RowstreamLoader:
         deadline = time.monotonic() + self.args.calib_timeout
         last = self.read_debug()
         while time.monotonic() < deadline:
-            if last["magic_ok"] and last["version"] == DEBUG_VERSION and last["calib_seen"]:
+            if last["magic_ok"] and last.get("calib_seen", False):
                 return self.wait_ready()
             time.sleep(0.1)
             last = self.read_debug()
