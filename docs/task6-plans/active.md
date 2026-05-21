@@ -3,13 +3,16 @@
 **Plan ID:** `plan-2026-05-21-ddr3-tinystories-anchor`
 **Status:** in_progress
 **Branch:** `task6`
-**Current focus:** move from 1-lane DDR3 anchor reproduction to explicit 2-lane anchor replication, then complete TinyStories-1M gate execution on that same anchor.
+**Current focus:** finalize the 1-lane DDR3 clock-domain alignment variant and then validate board reproducibility, with 2-lane anchor as fallback.
 
 ## 1) Canonical state
 
 - Branch is stable at the active anchor copied from RCoeurjoly/UberDDR3 (`seed16-vainilla-2026-05-20`).
-- Active anchor bitstream:
-  - `artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-2lanes-full-openxc7.bit`
+- Active anchor bitstreams:
+  - `2-lane`: `artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-2lanes-full-openxc7.bit`
+  - `1-lane clocked candidate`: `/nix/store/c9sn6zp8530sn5m3bxnxbq4b97yy2kiz-task6-ypcb-uberddr3-rowstream-loader-1lane-seed16-clocked.bit`
+- Latest 1-lane run root:
+  - `artifacts/task6/runs/20260521T000000-ddr3-333fix` (program loaded, FTDI open-device claim currently failing; no gate summary yet)
 - Active gate sequence:
   1. `boot-only` clean calibration
   2. `diagnostic-rtl-fullbeat` stability
@@ -19,9 +22,19 @@
 
 ## 2) Current lane plan
 
-### Lane L0: DDR3 2-lane anchor reproducibility (Priority 0)
+### Lane L0: DDR3 1-lane clock-domain alignment (Priority 0)
 
-- Goal: reproduce the working upstream 2-lane anchor in this repo and confirm board reproducibility.
+- Goal: produce a reproducible 1-lane DDR3 anchor with explicit 333 MHz DDR3 clocking behavior and confirm board boot stability.
+- Pass criteria:
+  - `boot-only` on the 1-lane clocked bitstream has clean calibration (`calib_seen=true`, `boot_done=true`, no errors)
+  - deterministic `diagnostic-rtl-fullbeat` at base `0x20`, beat `0`
+- Next action:
+  1. Retry board run with current 1-lane clocked bitstream as soon as FTDI becomes available:
+     - `python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --byte-lanes 1 --bitstream /nix/store/c9sn6zp8530sn5m3bxnxbq4b97yy2kiz-task6-ypcb-uberddr3-rowstream-loader-1lane-seed16-clocked.bit --serial 210299BF3824 --jtag-cable digilent_hs3 --calib-timeout 240 --run-root artifacts/task6/runs/<new-run> --plan-id plan-2026-05-21-ddr3-tinystories-anchor --hypothesis-id ddr3-1lane-clocked-333mhz`
+
+### Lane L1: DDR3 2-lane anchor reproducibility (Priority 1)
+
+- Goal: keep the working upstream 2-lane baseline reproducible in this repo and confirm board state.
 - Pass criteria:
   - `boot-only` on the active 2-lane anchor has clean calibration (`calib_seen=true`, `boot_done=true`, no errors)
   - deterministic `diagnostic-rtl-fullbeat` at base `0x20`, beat `0`
@@ -30,7 +43,7 @@
   2. Run boot-only using the 2-lane anchored bitstream.
   3. Run deterministic fullbeat sanity once boot passes.
 
-### Lane L1: Mapping contract / rowstream deterministic checks (Priority 1)
+### Lane L2: Mapping contract / rowstream deterministic checks (Priority 2)
 
 - Goal: close deterministic lane/beat contract before attaching inference path.
 - Pass criteria:
@@ -39,7 +52,7 @@
 - Next action:
   - Continue deterministic checks with same run metadata and record results in run summary.
 
-### Lane L2: TinyStories inference gate (Priority 2)
+### Lane L3: TinyStories inference gate (Priority 3)
 
 - Goal: complete explicit end-to-end on-board gate.
 - Pass criteria:
@@ -52,9 +65,9 @@
   - add `--skip-top1` first if model snapshot is not available for that run.
   - save gate summary in the run root and update `ledger.md`.
 
-### Lane L3: Resource reduction (Priority 3)
+### Lane L4: Resource reduction (Priority 4)
 
-- Only after Lane L2 produces PASS.
+- Only after Lane L3 produces PASS.
 - Keep changes incremental: lane width experiments, constrained cuts, then throughput optimizations.
 - Every candidate must preserve:
   - DDR3 anchor cleanliness
@@ -77,6 +90,8 @@
 
 - Boot-only:
   - `/usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-2lanes-full-openxc7.bit --byte-lanes 2 --program --boot-only --calib-timeout 120 --json-only`
+- 1-lane clocked boot-only candidate:
+  - `/usr/bin/python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --byte-lanes 1 --bitstream /nix/store/c9sn6zp8530sn5m3bxnxbq4b97yy2kiz-task6-ypcb-uberddr3-rowstream-loader-1lane-seed16-clocked.bit --serial 210299BF3824 --jtag-cable digilent_hs3 --calib-timeout 240 --run-root artifacts/task6/runs/<run> --plan-id plan-2026-05-21-ddr3-tinystories-anchor --hypothesis-id ddr3-1lane-clocked-333mhz --skip-fullbeat --skip-inference`
 - fullbeat gate:
   - `/usr/bin/python3 scripts/task6/task6_ddr3_rowstream_loader.py --bitstream .../ypcb-00338-1p1-ddr3-bist-2lanes-full-openxc7.bit --byte-lanes 2 --run-dir artifacts/task6/runs/<run>/diagnostic-fullbeat --diagnostic-rtl-fullbeat-base 0x20 --diagnostic-rtl-fullbeat-addr 0 --json-only`
 - TinyStories gate:

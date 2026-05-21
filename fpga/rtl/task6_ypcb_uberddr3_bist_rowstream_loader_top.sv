@@ -4,7 +4,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter int JTAG_DEBUG_WIDTH = 512,
   parameter int JTAG_CHAIN = 1,
   parameter int JTAG_COMMAND_CHAIN = 2,
-  parameter int PROBE_BYTE = 165
+  parameter int PROBE_BYTE = 165,
+  parameter int BYTE_LANES = 8
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -37,7 +38,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
-  localparam int BYTE_LANES = 8;
   localparam int WB_ADDR_BITS = ROW_BITS + COL_BITS + BA_BITS - 3;
   localparam int WB_DATA_BITS = 8 * BYTE_LANES * 8;
   localparam int WB_SEL_BITS = WB_DATA_BITS / 8;
@@ -48,6 +48,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
   localparam logic [7:0] PROBE_BYTE_VALUE = PROBE_BYTE[7:0];
+  localparam bit DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1);
 
   wire controller_clk;
   wire ddr3_clk;
@@ -71,13 +72,13 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .CLKFBOUT_MULT(20),
     .CLKFBOUT_PHASE(0.000),
     .CLKIN1_PERIOD(20.000),
-    .CLKOUT0_DIVIDE(10),
+    .CLKOUT0_DIVIDE(3),
     .CLKOUT0_DUTY_CYCLE(0.500),
     .CLKOUT0_PHASE(0.000),
-    .CLKOUT1_DIVIDE(10),
+    .CLKOUT1_DIVIDE(3),
     .CLKOUT1_DUTY_CYCLE(0.500),
     .CLKOUT1_PHASE(90.000),
-    .CLKOUT2_DIVIDE(40),
+    .CLKOUT2_DIVIDE(12),
     .CLKOUT2_DUTY_CYCLE(0.500),
     .CLKOUT2_PHASE(0.000),
     .CLKOUT3_DIVIDE(5),
@@ -297,6 +298,18 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [31:0] wb_err_count_q;
   logic [31:0] wb_stall_count_q;
   logic calib_seen_q;
+
+  initial begin
+    if (
+      BYTE_LANES != 1 &&
+      BYTE_LANES != 2 &&
+      BYTE_LANES != 4 &&
+      BYTE_LANES != 8
+    ) begin
+      $error("BYTE_LANES must be 1, 2, 4, or 8");
+      $finish;
+    end
+  end
   logic jtag_command_accept_phase_q;
 
   assign read_probe_read_addr =
@@ -929,8 +942,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   end
 
   ddr3_top #(
-    .CONTROLLER_CLK_PERIOD(40_000),
-    .DDR3_CLK_PERIOD(10_000),
+    .CONTROLLER_CLK_PERIOD(12_000),
+    .DDR3_CLK_PERIOD(3_000),
     .ROW_BITS(ROW_BITS),
     .COL_BITS(COL_BITS),
     .BA_BITS(BA_BITS),
@@ -987,9 +1000,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .o_ddr3_we_n(ddram_we_n),
     .o_ddr3_addr(ddram_a),
     .o_ddr3_ba_addr(ddram_ba),
-    .io_ddr3_dq(ddram_dq),
-    .io_ddr3_dqs(ddram_dqs_p),
-    .io_ddr3_dqs_n(ddram_dqs_n),
+    .io_ddr3_dq(ddram_dq[BYTE_LANES * 8 - 1:0]),
+    .io_ddr3_dqs(ddram_dqs_p[BYTE_LANES - 1:0]),
+    .io_ddr3_dqs_n(ddram_dqs_n[BYTE_LANES - 1:0]),
     .o_ddr3_dm(ddr3_dm_w),
     .o_ddr3_odt(ddr3_odt_w),
     .o_calib_complete(calib_complete),
@@ -998,12 +1011,17 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .uart_tx(uart_tx)
   );
 
-  task6_uberddr3_jtag_debug_shift #(
-    .WIDTH(JTAG_DEBUG_WIDTH),
-    .JTAG_CHAIN(JTAG_CHAIN)
-  ) jtag_debug_shift (
-    .payload_i(jtag_debug_payload)
-  );
+  generate
+    if (!DISABLE_JTAG_DEBUG_SHIFT) begin : g_debug_shift_enabled
+      task6_uberddr3_jtag_debug_shift #(
+        .WIDTH(JTAG_DEBUG_WIDTH),
+        .JTAG_CHAIN(JTAG_CHAIN),
+        .DISABLE_JTAG(DISABLE_JTAG_DEBUG_SHIFT)
+      ) jtag_debug_shift (
+        .payload_i(jtag_debug_payload)
+      );
+    end
+  endgenerate
 
   task6_uberddr3_loader_jtag_command_shift #(
     .WIDTH(JTAG_COMMAND_WIDTH),
@@ -1114,7 +1132,8 @@ endmodule
 
 module task6_uberddr3_jtag_debug_shift #(
   parameter int WIDTH = 512,
-  parameter int JTAG_CHAIN = 1
+  parameter int JTAG_CHAIN = 1,
+  parameter bit DISABLE_JTAG = 0
 ) (
   input logic [WIDTH - 1:0] payload_i
 );
@@ -1142,22 +1161,43 @@ module task6_uberddr3_jtag_debug_shift #(
       shift_q <= {tdi, shift_q[WIDTH - 1:1]};
   end
 
-  BSCANE2 #(
-    .DISABLE_JTAG("FALSE"),
-    .JTAG_CHAIN(JTAG_CHAIN)
-  ) bscan (
-    .CAPTURE(capture),
-    .DRCK(drck),
-    .RESET(reset),
-    .RUNTEST(runtest),
-    .SEL(sel),
-    .SHIFT(shift),
-    .TCK(tck),
-    .TDI(tdi),
-    .TMS(tms),
-    .UPDATE(update),
-    .TDO(tdo)
-  );
+  generate
+    if (DISABLE_JTAG) begin : g_jtag_debug_shift_disabled
+      BSCANE2 #(
+        .DISABLE_JTAG("TRUE"),
+        .JTAG_CHAIN(JTAG_CHAIN)
+      ) bscan (
+        .CAPTURE(capture),
+        .DRCK(drck),
+        .RESET(reset),
+        .RUNTEST(runtest),
+        .SEL(sel),
+        .SHIFT(shift),
+        .TCK(tck),
+        .TDI(tdi),
+        .TMS(tms),
+        .UPDATE(update),
+        .TDO(tdo)
+      );
+    end else begin : g_jtag_debug_shift_enabled
+      BSCANE2 #(
+        .DISABLE_JTAG("FALSE"),
+        .JTAG_CHAIN(JTAG_CHAIN)
+      ) bscan (
+        .CAPTURE(capture),
+        .DRCK(drck),
+        .RESET(reset),
+        .RUNTEST(runtest),
+        .SEL(sel),
+        .SHIFT(shift),
+        .TCK(tck),
+        .TDI(tdi),
+        .TMS(tms),
+        .UPDATE(update),
+        .TDO(tdo)
+      );
+    end
+  endgenerate
 endmodule
 
 `default_nettype wire
