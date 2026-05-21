@@ -5,6 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     nixpkgs-llvm21.url =
       "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d";
+    nixpkgs-nix-eda.url = "github:NixOS/nixpkgs/nixos-24.11";
     flake-utils.url = "github:numtide/flake-utils";
     # Clone with submodules
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
@@ -15,7 +16,10 @@
     circt-nix = {
       url = "git+https://github.com/dtzSiFive/circt-nix?ref=main";
     };
-    nix-eda.url = "github:fossi-foundation/nix-eda";
+    nix-eda = {
+      url = "github:fossi-foundation/nix-eda";
+      inputs.nixpkgs.follows = "nixpkgs-nix-eda";
+    };
     openXC7.url = "github:RCoeurjoly/toolchain-nix";
     nextpnrXilinxFork = {
       url =
@@ -67,7 +71,7 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, nixpkgs-llvm21, flake-utils, yosys, circt-nix
+  outputs = inputs@{ nixpkgs, nixpkgs-llvm21, nixpkgs-nix-eda, flake-utils, yosys, circt-nix
     , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litex, litedram
     , litepcie, litexBoards, litexBoardsValidatedYpcb, pythondataCpuVexriscv
     , pythondataSoftwarePicolibc, pythondataSoftwareCompilerRt, uberDdr3
@@ -79,7 +83,7 @@
           inherit system;
           config.allowUnfreePredicate = pkg:
             builtins.elem (nixpkgs.lib.getName pkg) [
-            #  "torch"
+            "torch"
             ];
         };
         circtPkgs = circt-nix.packages.${system};
@@ -93,10 +97,38 @@
               ./patches/circt-upstream-task3-recovery/0012-update-buffer-lowering-test-for-constant-order.patch
             ];
           });
-        yosysPkg = nix-eda.packages.${system}.yosysFull.overrideAttrs (_: {
-          src = yosys.outPath;
-          version = "unstable-${builtins.substring 0 8 yosys.sourceInfo.rev}";
-        });
+        nixEdaPkgs = nix-eda.packages.${system};
+        yosysPkgBase = nixEdaPkgs.yosys;
+        yosysPkgPlugins = with nixEdaPkgs;
+          [ yosys-sby yosys-eqy yosys-slang ]
+          ++ pkgs.lib.optionals
+            (pkgs.lib.lists.any (el: el == system) yosys-ghdl.meta.platforms)
+            [ yosys-ghdl ];
+        yosysPkgPluginPaths = pkgs.lib.closePropagation yosysPkgPlugins;
+        yosysPkgPluginDylibs =
+          pkgs.lib.lists.flatten (map (plugin: plugin.dylibs or [ ]) yosysPkgPlugins);
+        yosysPkg = pkgs.symlinkJoin {
+          name = "${yosysPkgBase.pname}-with-plugins-${yosysPkgBase.version}";
+          paths = yosysPkgPluginPaths ++ [ yosysPkgBase ];
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+          postBuild = ''
+            cat <<SCRIPT > $out/bin/with_yosys_plugin_env
+            #!${pkgs.bash}/bin/bash
+            export YOSYS_PLUGIN_PATH='$out/share/yosys/plugins'
+            exec "\$@"
+            SCRIPT
+            chmod +x $out/bin/with_yosys_plugin_env
+            cp $out/bin/yosys $out/bin/yosys_with_plugins
+            wrapProgram $out/bin/yosys \
+              --suffix YOSYS_PLUGIN_PATH : $out/share/yosys/plugins
+            wrapProgram $out/bin/yosys_with_plugins \
+              --suffix YOSYS_PLUGIN_PATH : $out/share/yosys/plugins \
+              ${builtins.concatStringsSep " "
+                (map (so: "--add-flags -m --add-flags ${so}") yosysPkgPluginDylibs)}
+          '';
+          passthru = yosysPkgBase.passthru;
+          meta.mainProgram = "yosys_with_plugins";
+        };
         yosysPkgWithPythonEnv = if yosysPkg ? python3-env then
           yosysPkg
         else
@@ -10611,7 +10643,7 @@
 
         packages = {
           # Keep default at the latest non-DDR3 task6 inference-oriented target.
-          default = tinyStories1mRepresentativeCoreSelftestAllMemory.utilizationReport;
+          default = task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream;
           inherit torchao;
           torch-mlir = torchMlir;
           torch-mlir-patched = torchMlirPatched;
