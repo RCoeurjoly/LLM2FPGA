@@ -86,6 +86,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bit-delay-us", type=float, default=0.0)
     parser.add_argument("--ir-len", type=int, default=6)
     parser.add_argument("--debug-ir", type=lambda value: int(value, 0), default=0x02)
+    parser.add_argument("--debug-bits", choices=("auto", "512", "960"), default="auto", help=(
+        "JTAG debug DR width to sample; auto detects by magic, use 512 or 960 to force."
+    ))
     parser.add_argument("--command-ir", type=lambda value: int(value, 0), default=0x03)
     parser.add_argument("--command-delay", type=float, default=0.001)
     parser.add_argument(
@@ -559,10 +562,16 @@ def decode_debug_uber(raw: int) -> dict[str, Any]:
     }
 
 
-def decode_debug(raw: int) -> dict[str, Any]:
+def decode_debug(raw: int, mode: str = "auto") -> dict[str, Any]:
     raw_uber = (raw >> 48) & 0xFFFF
     raw_version = (raw >> 32) & 0xFF
     raw_magic = raw & 0xFFFF_FFFF
+
+    if mode == "960":
+        return decode_debug_uber(raw)
+    if mode == "512":
+        return decode_debug_legacy(raw)
+
     if raw_magic == DEBUG_MAGIC and raw_version == DEBUG_VERSION:
         return decode_debug_legacy(raw)
     if raw_uber == DEBUG_MAGIC_UBER:
@@ -594,8 +603,15 @@ class RowstreamLoader:
         self.client.close()
 
     def read_debug(self) -> dict[str, Any]:
+        if self.args.debug_bits == "auto":
+            shift_bits = DEBUG_BITS_UBER
+        elif self.args.debug_bits == "960":
+            shift_bits = DEBUG_BITS_UBER
+        else:
+            shift_bits = DEBUG_BITS
+
         shift_ir(self.client, self.args.debug_ir, self.args.ir_len)
-        return decode_debug(shift_dr_read(self.client, DEBUG_BITS_UBER))
+        return decode_debug(shift_dr_read(self.client, shift_bits), self.args.debug_bits)
 
     def send_command(self, opcode: int, chunk: int, addr: int, data: bytes = b"") -> None:
         shift_ir(self.client, self.args.command_ir, self.args.ir_len)
