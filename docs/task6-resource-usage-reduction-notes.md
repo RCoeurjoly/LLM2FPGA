@@ -20060,3 +20060,26 @@ Expected risk profile:
 - Less perturbation than clock/PHY/pins alone for controller write/read timing cones.
 - Much less overconstraint than full-placement, which locked `38,363` general cells and failed DDR3 calibration on board.
 - Same gate order: build lock bundle, build bitstream, then boot-only calibration before any DDR3 data-path or rowstream command.
+
+## 2026-05-22 execution result: controller-placement lock gate
+
+Whole-controller middle lane:
+
+- Built `.#task6-ypcb-uberddr3-seed18-clock-and-phy-controller-placed-bel-locks` successfully.
+- Extracted `23,989` total locks:
+  - `23,552` `uberddr3_controller`
+  - `407` `uberddr3_phy`
+  - `25` `ddr3_board_pins`
+  - `5` `ddr3_clocks`
+- Building `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-placement-bitstream` failed before bitstream generation.
+- nextpnr applied `23,989` locks, placed `24,102` constrained cells, then aborted with `std::out_of_range: unordered_map::at`.
+- No hardware programming or boot-only gate was run for this failed build.
+
+Narrower fallback implemented:
+
+- Added a controller-FF placement lane using the same extracted controller bundle, but the pre-place script filters controller locks to `SLICE_FFX` plus the known DDR3 clock/PHY/pin primitive types.
+- New targets:
+  - `.#task6-ypcb-uberddr3-seed18-clock-and-phy-controller-ff-placed-pre-place-bel-locks`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-fasm`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-bitstream`
+  - `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-placed-json`
