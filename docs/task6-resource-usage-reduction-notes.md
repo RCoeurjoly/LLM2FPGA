@@ -20873,3 +20873,24 @@ Interpretation:
 - Host observed byte remains `0x03`, which is a separate read-data/debug extraction symptom, but the decisive result is that RTL-visible readback is already wrong before host extraction.
 
 Next safe debug step: inspect the controller lowbyte address-to-Wishbone mapping and byte-select behavior for 1-lane physical addresses 1..3. The current evidence points at readback/address/byte-lane mapping rather than calibration or the JTAG command packer.
+
+### 2026-05-22 - Lowbyte command byte-address mapping fix
+
+Upstream UberDDR3 review showed that the primary Wishbone port is burst/beat-addressed, not byte-addressed:
+
+- `wb_data_bits = DQ_BITS * BYTE_LANES * serdes_ratio * 2`
+- `wb_sel_bits = wb_data_bits / 8`
+- `i_wb_addr` is documented as burst-addressable `{row, bank, col}`.
+- For `BYTE_LANES=1`, one Wishbone address covers 8 bytes.
+
+The previous `LOADER_OP_WRITE_LOWBYTE` and `LOADER_OP_READ_LOWBYTE` treated the incoming physical byte address as a Wishbone beat address and always used/read the low byte. That made phys2/phys3 diagnostics misleading: they were accessing separate beats, not byte offsets 2/3 inside one beat.
+
+Implemented the physical-byte mapping in `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv`:
+
+- `beat_addr = physical_byte_addr / WB_SEL_BITS`
+- `byte_index = physical_byte_addr % WB_SEL_BITS`
+- lowbyte write now drives only `wb_data[byte_index*8 +: 8]` and `wb_sel = 1 << byte_index`
+- lowbyte read now captures `wb_data[byte_index*8 +: 8]` on the actual read ACK
+- loader command acceptance is gated by both `calib_complete` and upstream-style BIST completion `debug1[4:0] == 5'd23` while this target keeps `BIST_MODE=1`.
+
+Next gate: rebuild the BIST-clocked 1-lane rowstream-loader bitstream and rerun phys1/phys2/phys3 lowbyte single-command probes. Expected result after the mapping fix is that physical byte addresses 1, 2, and 3 write/read independent byte lanes within beat 0 instead of acting as separate Wishbone beat addresses.
