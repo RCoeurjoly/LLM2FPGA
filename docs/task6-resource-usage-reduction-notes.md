@@ -20411,3 +20411,19 @@ Decision:
 - `boot_mismatch=True` still appears in debug, but it did not prevent a successful sparse lowbyte write/read contract.
 - Interpretation: the BIST-clocked 1-lane loader has a working minimal sparse write/read path. The old `boot_mismatch` bit is no longer sufficient by itself to block loader-only diagnostics.
 - Next safe step: repeat the lowbyte diagnostic with a nonzero value/count pattern, then expand to a small dense/lane-map diagnostic before any TinyStories rowstream load.
+
+### 2026-05-22 - Planned expanded pre-rowstream DDR3 diagnostics
+
+- Next gate before TinyStories rowstream load: expand from the single zero-byte sparse lowbyte PASS to nonzero and multi-byte coverage, then probe dense lane behavior.
+- Order:
+  - run a nonzero/multi-byte sparse lowbyte diagnostic on the BIST-clocked, 1-byte-lane rowstream-loader
+  - only if that passes, run a small dense/lane-map diagnostic
+  - do not attempt TinyStories rowstream load until both gates are understood
+- Purpose:
+  - lowbyte multi-byte coverage checks that writes are not only accepting `0x00` and that multiple sparse addresses can round-trip
+  - dense/lane-map coverage checks whether packed byte writes/readback behave predictably enough for rowstream loading
+- Success condition:
+  - calibration remains complete
+  - write/read commands ACK without Wishbone errors
+  - nonzero sparse lowbyte values read back correctly
+  - dense lane-map observations identify a usable byte lane or expose a specific lane/select issue
