@@ -344,6 +344,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     {{(WB_ADDR_BITS - 6) {1'b0}},
      read_probe_we_q ? read_probe_write_addr : read_probe_read_addr};
   assign read_probe_write_byte =
+    read_probe_single_q ? read_probe_expected_byte_q :
     read_probe_expected_byte_q + read_probe_stream_base_q +
     {6'd0, read_probe_write_index_q};
   assign read_probe_capture_index =
@@ -988,8 +989,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       read_probe_done_q && loader_last_opcode_q == LOADER_OP_RUN_FULLBEAT ?
       loader_fullbeat_write_echo_q :
       read_probe_done_q && loader_last_opcode_q == LOADER_OP_RUN_HARDCODED_SINGLEBYTE ?
-      {16'd0, read_probe_stream_mismatch_q, read_probe_stream_valid_q,
-       read_probe_stream_bytes_q[7:0]} :
+      {8'd0, read_probe_expected_byte_q, read_probe_stream_mismatch_q,
+       read_probe_stream_valid_q, read_probe_stream_bytes_q[7:0]} :
       read_probe_done_q ? loader_read_data_q[31:0] : read_probe_data_q[31:0];
     jtag_debug_payload[272 +: 32] =
       {jtag_command_count[7:0], loader_last_opcode_q,

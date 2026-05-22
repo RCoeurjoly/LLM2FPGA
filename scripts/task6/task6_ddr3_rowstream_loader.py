@@ -1573,6 +1573,7 @@ def run_hardcoded_singlebyte_diagnostic(
     observed = observed_word & 0xFF
     valid = (observed_word >> 8) & 0xF
     mismatch_bits = (observed_word >> 12) & 0xF
+    write_byte = (observed_word >> 16) & 0xFF
     expected = expected_table[value_index]
     pass_status = (
         bool(debug["boot_done"])
@@ -1583,6 +1584,7 @@ def run_hardcoded_singlebyte_diagnostic(
         and debug["wb_err_count"] == initial_debug["wb_err_count"]
         and valid == 0x1
         and mismatch_bits == 0x0
+        and write_byte == expected
         and observed == expected
     )
     payload = {
@@ -1592,6 +1594,7 @@ def run_hardcoded_singlebyte_diagnostic(
         "value_index": value_index,
         "command_addr": command_addr,
         "expected": expected,
+        "write_byte": write_byte,
         "observed": observed,
         "valid_bits": valid,
         "mismatch_bits": mismatch_bits,
@@ -2128,6 +2131,7 @@ def main() -> int:
                     "value_index": diagnostic["value_index"],
                     "command_addr": diagnostic["command_addr"],
                     "expected": diagnostic["expected"],
+                    "write_byte": diagnostic["write_byte"],
                     "observed": diagnostic["observed"],
                     "valid_bits": diagnostic["valid_bits"],
                     "mismatch_bits": diagnostic["mismatch_bits"],
