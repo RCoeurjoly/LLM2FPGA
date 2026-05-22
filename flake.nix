@@ -6281,6 +6281,18 @@
                 --out-json "$out"
             '';
 
+        task6YpcbUberDdr3GenerateControllerPlacedBelLocks =
+          { name, placedJson }:
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-${name}-controller-placed-bel-locks.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/extract_nextpnr_ddr3_bel_locks.py} \
+                --placed-json ${placedJson} \
+                --include-cell-prefix uberddr3_controller=uberddr3.ddr3_controller_inst. \
+                --out-json "$out"
+            '';
+
         task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedBelLocks =
           task6YpcbUberDdr3GenerateFullPlacedBelLocks {
             name = "seed18-clock-and-phy";
@@ -6292,6 +6304,24 @@
             name = "seed18-clock-and-phy-full-placed";
             locksJson = task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedBelLocks;
             scopes = [ "all_placed_cells" ];
+          };
+
+        task6YpcbUberDdr3Seed18ClockAndPhyControllerPlacedBelLocks =
+          task6YpcbUberDdr3GenerateControllerPlacedBelLocks {
+            name = "seed18-clock-and-phy";
+            placedJson = task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyPlacedJson;
+          };
+
+        task6YpcbUberDdr3Seed18ClockAndPhyControllerPlacedPrePlaceBelLocks =
+          task6YpcbUberDdr3GeneratePrePlaceBelLocks {
+            name = "seed18-clock-and-phy-controller-placed";
+            locksJson = task6YpcbUberDdr3Seed18ClockAndPhyControllerPlacedBelLocks;
+            scopes = [
+              "ddr3_clocks"
+              "uberddr3_phy"
+              "ddr3_board_pins"
+              "uberddr3_controller"
+            ];
           };
 
         task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson =
@@ -6584,6 +6614,22 @@
 
         task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementPlacedJson =
           task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementArtifacts.placedJson;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace {
+            seed = 18;
+            suffix = "clocked-locked-controller-placement";
+            prePlaceLocks = task6YpcbUberDdr3Seed18ClockAndPhyControllerPlacedPrePlaceBelLocks;
+          };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementFasm =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementBitstream =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementPlacedJson =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementArtifacts.placedJson;
 
         task6YpcbUberDdr3RowstreamLoaderSeed17ClockedFasm =
           task6YpcbUberDdr3RowstreamLoaderSeed17ClockedArtifacts.fasm;
@@ -11016,6 +11062,16 @@
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementBitstream;
           task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement-placed-json =
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementPlacedJson;
+          task6-ypcb-uberddr3-seed18-clock-and-phy-controller-placed-bel-locks =
+            task6YpcbUberDdr3Seed18ClockAndPhyControllerPlacedBelLocks;
+          task6-ypcb-uberddr3-seed18-clock-and-phy-controller-placed-pre-place-bel-locks =
+            task6YpcbUberDdr3Seed18ClockAndPhyControllerPlacedPrePlaceBelLocks;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-placement-fasm =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementFasm;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-placement-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-placement-placed-json =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementPlacedJson;
           task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-fasm =
             task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedFasm;
           task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-bitstream =
