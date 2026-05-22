@@ -21003,3 +21003,5 @@ Updated the fullbeat diagnostic gate in `scripts/task6/task6_ddr3_rowstream_load
 - pass/fail is based on the fullbeat command's write ACK, read ACK, no loader error, fullbeat active/done flag, and zero fullbeat mismatch count
 
 This keeps the no-DM direction explicit: byte/lowbyte diagnostics are no longer the gate; packed full-beat writes are.
+
+Correction: the first host-side gate edit changed an earlier fullbeat diagnostic occurrence but left `run_rtl_fullbeat_diagnostic` still requiring `boot_mismatch == false`. The RTL-fullbeat diagnostic now explicitly uses the intended BIST-done gate in that function as well.
