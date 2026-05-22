@@ -20894,3 +20894,39 @@ Implemented the physical-byte mapping in `fpga/rtl/task6_ypcb_uberddr3_bist_rows
 - loader command acceptance is gated by both `calib_complete` and upstream-style BIST completion `debug1[4:0] == 5'd23` while this target keeps `BIST_MODE=1`.
 
 Next gate: rebuild the BIST-clocked 1-lane rowstream-loader bitstream and rerun phys1/phys2/phys3 lowbyte single-command probes. Expected result after the mapping fix is that physical byte addresses 1, 2, and 3 write/read independent byte lanes within beat 0 instead of acting as separate Wishbone beat addresses.
+
+### 2026-05-22 - Byte-address lowbyte mapping gate result
+
+Rebuilt and tested the BIST-clocked 1-lane rowstream-loader after mapping `LOADER_OP_WRITE_LOWBYTE`/`LOADER_OP_READ_LOWBYTE` physical byte addresses into UberDDR3 Wishbone beat address plus byte index.
+
+Build:
+
+- `.#task6-ypcb-uberddr3-rowstream-loader-bist-clock-seed18-clocked-bitstream`
+- Bitstream: `/nix/store/i3d8z9nx96xfwvp2m9vziyxnxmaj9lj9-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+- Routed timing: `controller_clk` max frequency 128.02 MHz, PASS at 25 MHz.
+
+Focused diagnostic:
+
+- Run root: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-byteaddr-mapping-single-a5-phys1-3-1lane-rowstream-bist-clock-seed18-boot336`
+- Command: one `LOADER_OP_WRITE_LOWBYTE` followed by one `LOADER_OP_READ_LOWBYTE`
+- Byte lanes: 1
+- Expected byte: `0xa5`
+- BIST gate passed for each read: `debug1[4:0] == 23`
+- Wishbone errors: 0 for all probes
+
+Results:
+
+| Physical byte address | Status | Host observed | RTL write capture | RTL read-ACK capture | WB ACK count after read |
+| --- | --- | --- | --- | --- | --- |
+| 1 | FAIL | `0x03` | addr `1`, write `0xa5`, write seen | addr `1`, read `0x2c`, read seen | 11 |
+| 2 | FAIL | `0x03` | addr `2`, write `0xa5`, write seen | addr `2`, read `0x00`, read seen | 13 |
+| 3 | FAIL | `0x03` | addr `3`, write `0xa5`, write seen | addr `3`, read `0x3f`, read seen | 15 |
+
+Interpretation:
+
+- The upstream addressing-contract bug is fixed in the loader: lowbyte commands now address byte offsets within a Wishbone beat instead of treating physical byte addresses as independent beats.
+- The new BIST completion gate is active and passing, so commands are not racing calibration/BIST startup.
+- Selected-byte write/read through `i_wb_sel` is still not reliable: the actual read-ACK bytes are not `0xa5`.
+- Since BIST passes and upstream BIST can optionally include datamask tests, the next useful distinction is whether this board/target passes UberDDR3's own per-byte datamask BIST at `BYTE_LANES=1`, or whether our single-byte user-port sequence needs full-beat read/modify/write instead of relying on byte strobes.
+
+Next safe debug step: build a 1-lane BIST-only target with `BIST_TEST_DATAMASK=1` and gate on BIST completion. If that passes, compare its selected-byte write pattern to our lowbyte user-port transaction. If it fails, avoid byte-strobe writes and implement loader lowbyte as full-beat read/modify/write.
