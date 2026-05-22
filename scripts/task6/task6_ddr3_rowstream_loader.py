@@ -67,6 +67,7 @@ OP_READ_DENSE_BEAT = 0x06
 OP_RUN_AUTOPROBE = 0x07
 OP_WRITE_DENSE_FILL = 0x08
 OP_RUN_FULLBEAT = 0x09
+OP_RUN_HARDCODED_AUTOPROBE = 0x0A
 BEAT_BYTES = 64
 
 
@@ -233,6 +234,15 @@ def parse_args() -> argparse.Namespace:
         type=lambda value: int(value, 0),
         default=0,
         help="stream base address for --diagnostic-autoprobe-value; default: 0",
+    )
+    parser.add_argument(
+        "--diagnostic-hardcoded-autoprobe-addr",
+        type=lambda value: int(value, 0),
+        default=None,
+        help=(
+            "launch one board-side write/read probe using the RTL hardcoded "
+            "PROBE_BYTE value, so the JTAG command does not carry the data byte"
+        ),
     )
     parser.add_argument(
         "--diagnostic-denseburst-value",
@@ -855,6 +865,12 @@ class RowstreamLoader:
         self.send_command(OP_RUN_AUTOPROBE, 0, stream_base, bytes([value & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
 
+    def run_hardcoded_autoprobe(self, stream_base: int) -> dict[str, Any]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        self.send_command(OP_RUN_HARDCODED_AUTOPROBE, 0, stream_base)
+        return self.wait_ready(min_ack_count=min_ack)
+
     def run_dense_fill_write(self, beat_addr: int, value: int) -> dict[str, Any]:
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
@@ -1472,6 +1488,49 @@ def run_autoprobe_diagnostic(
     return payload
 
 
+def run_hardcoded_autoprobe_diagnostic(
+    loader: RowstreamLoader,
+    stream_base: int,
+    run_dir: Path,
+    initial_debug: dict[str, Any],
+) -> dict[str, Any]:
+    if stream_base < 0:
+        raise ValueError("hardcoded autoprobe address must be non-negative")
+
+    debug = loader.run_hardcoded_autoprobe(stream_base)
+    pass_status = (
+        bool(debug["boot_done"])
+        and bool(debug["boot_write_ack_seen"])
+        and bool(debug["boot_read_ack_seen"])
+        and not bool(debug["boot_error"])
+        and not bool(debug["boot_mismatch"])
+        and not bool(debug["loader_error"])
+        and debug["wb_err_count"] == initial_debug["wb_err_count"]
+    )
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-hardcoded-autoprobe-board-diagnostic",
+        "status": "PASS" if pass_status else "FAIL",
+        "stream_base": stream_base,
+        "expected_base_value": 0xA5,
+        "initial_debug": json_debug(initial_debug),
+        "final_debug": json_debug(debug),
+        "decision": {
+            "verdict": (
+                "hardcoded-board-side-autoprobe-passes"
+                if pass_status
+                else "hardcoded-board-side-autoprobe-fails"
+            ),
+            "next_gate": (
+                "If this passes while host-provided lowbyte writes fail, debug "
+                "JTAG command payload/data capture. If this fails, debug the "
+                "board-side DDR3 write/read data path."
+            ),
+        },
+    }
+    write_json(run_dir / "hardcoded-autoprobe-diagnostic.json", payload)
+    return payload
+
+
 def run_denseburst_diagnostic(
     loader: RowstreamLoader,
     value: int,
@@ -1935,6 +1994,36 @@ def main() -> int:
                     f"{diagnostic['status']} verdict="
                     f"{diagnostic['decision']['verdict']} "
                     f"base={diagnostic['stream_base']} value=0x{diagnostic['value']:02x}"
+                )
+            return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_hardcoded_autoprobe_addr is not None:
+            diagnostic = run_hardcoded_autoprobe_diagnostic(
+                loader,
+                args.diagnostic_hardcoded_autoprobe_addr,
+                run_dir,
+                initial_debug,
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "hardcoded-autoprobe-diagnostic.json"),
+                    "stream_base": diagnostic["stream_base"],
+                    "expected_base_value": diagnostic["expected_base_value"],
+                    "verdict": diagnostic["decision"]["verdict"],
+                    "boot_mismatch": diagnostic["final_debug"]["boot_mismatch"],
+                    "boot_error": diagnostic["final_debug"]["boot_error"],
+                    "wb_ack_count": diagnostic["final_debug"]["wb_ack_count"],
+                    "wb_err_count": diagnostic["final_debug"]["wb_err_count"],
+                },
+            )
+            if not args.json_only:
+                print(
+                    "hardcoded autoprobe diagnostic "
+                    f"{diagnostic['status']} verdict="
+                    f"{diagnostic['decision']['verdict']} "
+                    f"base={diagnostic['stream_base']}"
                 )
             return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_denseburst_value is not None:
