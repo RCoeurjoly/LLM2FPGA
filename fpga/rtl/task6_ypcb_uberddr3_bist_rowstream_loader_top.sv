@@ -7,7 +7,12 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter int PROBE_BYTE = 165,
   parameter int BYTE_LANES = 8,
   parameter int DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1),
-  parameter int BOOT_ISOLATE_UNTIL_CALIB = 0
+  parameter int BOOT_ISOLATE_UNTIL_CALIB = 0,
+  parameter int PLL_CLKOUT0_DIVIDE = 3,
+  parameter int PLL_CLKOUT1_DIVIDE = 3,
+  parameter int PLL_CLKOUT2_DIVIDE = 12,
+  parameter int CONTROLLER_CLK_PERIOD_PS = 12_000,
+  parameter int DDR3_CLK_PERIOD_PS = 3_000
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -73,13 +78,13 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .CLKFBOUT_MULT(20),
     .CLKFBOUT_PHASE(0.000),
     .CLKIN1_PERIOD(20.000),
-    .CLKOUT0_DIVIDE(3),
+    .CLKOUT0_DIVIDE(PLL_CLKOUT0_DIVIDE),
     .CLKOUT0_DUTY_CYCLE(0.500),
     .CLKOUT0_PHASE(0.000),
-    .CLKOUT1_DIVIDE(3),
+    .CLKOUT1_DIVIDE(PLL_CLKOUT1_DIVIDE),
     .CLKOUT1_DUTY_CYCLE(0.500),
     .CLKOUT1_PHASE(90.000),
-    .CLKOUT2_DIVIDE(12),
+    .CLKOUT2_DIVIDE(PLL_CLKOUT2_DIVIDE),
     .CLKOUT2_DUTY_CYCLE(0.500),
     .CLKOUT2_PHASE(0.000),
     .CLKOUT3_DIVIDE(5),
@@ -955,8 +960,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   end
 
   ddr3_top #(
-    .CONTROLLER_CLK_PERIOD(12_000),
-    .DDR3_CLK_PERIOD(3_000),
+    .CONTROLLER_CLK_PERIOD(CONTROLLER_CLK_PERIOD_PS),
+    .DDR3_CLK_PERIOD(DDR3_CLK_PERIOD_PS),
     .ROW_BITS(ROW_BITS),
     .COL_BITS(COL_BITS),
     .BA_BITS(BA_BITS),
