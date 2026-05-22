@@ -20930,3 +20930,24 @@ Interpretation:
 - Since BIST passes and upstream BIST can optionally include datamask tests, the next useful distinction is whether this board/target passes UberDDR3's own per-byte datamask BIST at `BYTE_LANES=1`, or whether our single-byte user-port sequence needs full-beat read/modify/write instead of relying on byte strobes.
 
 Next safe debug step: build a 1-lane BIST-only target with `BIST_TEST_DATAMASK=1` and gate on BIST completion. If that passes, compare its selected-byte write pattern to our lowbyte user-port transaction. If it fails, avoid byte-strobe writes and implement loader lowbyte as full-beat read/modify/write.
+
+### 2026-05-22 - YPCB DDR3 has no data-mask pins
+
+The YPCB board support files confirm that DDR3 data mask is disabled/not routed:
+
+- `/home/roland/ypcb_00338_1p1_hack/ypcb003381p1/1.0/mig_0.prj`: `<DataMask>0</DataMask>`
+- `/home/roland/ypcb_00338_1p1_hack/ypcb003381p1/1.0/mig_1.prj`: `<DataMask>0</DataMask>`
+- `/home/roland/ypcb_00338_1p1_hack/ypcb003381p1/1.0/mig_01.prj`: `<DataMask>0</DataMask>`
+- The memory constraint files enumerate DQ/DQS/address/control pins but no `ddr3_dm`/`dqm` pins.
+
+Implication: this board cannot reliably perform selected-byte DDR3 writes using `i_wb_sel != all ones`, because UberDDR3 maps byte strobes to DM/data-mask behavior. BIST/calibration can pass while user-port byte-select writes fail.
+
+Execution decision:
+
+- Stop using partial `wb_sel` writes on this board.
+- Keep physical byte address mapping for reads and diagnostics.
+- Change the lowbyte diagnostic write to a full-beat write with all byte lanes driven to the requested byte value and `wb_sel = all ones`.
+- This makes the lowbyte diagnostic a safe full-beat-write/selected-byte-read check, not a true byte-update check.
+- For TinyStories rowstream loading, prefer host-side packing into full UberDDR3 beats and full-beat writes only. If true byte updates are later needed, implement read/modify/write in RTL or host scheduling, but avoid DDR3 DM-dependent writes.
+
+Next gate: rebuild the BIST-clocked 1-lane rowstream-loader and rerun phys1/phys2/phys3 lowbyte probes. Expected result is selected-byte readback of `0xa5` after a full-beat fill write.
