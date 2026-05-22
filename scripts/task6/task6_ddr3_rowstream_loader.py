@@ -1209,11 +1209,8 @@ def run_dense_diagnostic(
 ) -> dict[str, Any]:
     if count <= 0 or count > 16:
         raise ValueError("dense diagnostic count must be in 1..16 for the 512-bit debug build")
-    if (
-        not bool(initial_debug["boot_done"])
-        or bool(initial_debug["boot_error"])
-        or bool(initial_debug["boot_mismatch"])
-    ):
+    initial_bist_done = (initial_debug.get("debug1", 0) & 0x1F) == 23
+    if not initial_bist_done or bool(initial_debug["boot_error"]):
         final_debug = loader.read_debug()
         payload = {
             "artifact_name": "task6-ypcb-uberddr3-dense-byte-0n-board-diagnostic",
@@ -1926,8 +1923,10 @@ def run_rtl_fullbeat_diagnostic(
             "decision": {
                 "verdict": "rtl-fullbeat-blocked-by-unclean-boot",
                 "next_gate": (
-                    "Do not interpret full-beat data integrity until the "
-                    "BIST-derived boot gate is clean."
+                    "Do not interpret full-beat data integrity until calibration "
+                    "and upstream BIST completion are clean. Legacy boot_mismatch "
+                    "is ignored here because address-0/lowbyte probing is not a "
+                    "valid gate on the no-DM YPCB board."
                 ),
             },
         }
@@ -1939,10 +1938,10 @@ def run_rtl_fullbeat_diagnostic(
     observed_prefix = debug["read_data_chunk"]
     expected_echo32 = int.from_bytes(expected_prefix[:4], "little")
     write_echo32_match = debug["rtl_fullbeat_write_echo32"] == expected_echo32
+    final_bist_done = (debug.get("debug1", 0) & 0x1F) == 23
     pass_status = (
-        bool(debug["boot_done"])
+        final_bist_done
         and not bool(debug["boot_error"])
-        and not bool(debug["boot_mismatch"])
         and not bool(debug["loader_error"])
         and bool(debug["loader_write_ack_seen"])
         and bool(debug["loader_read_ack_seen"])

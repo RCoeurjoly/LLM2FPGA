@@ -20990,3 +20990,16 @@ Interpretation:
 - Do not use this lowbyte diagnostic as the next gate for TinyStories loading. The safer route is to use or extend the fullbeat path directly, because that matches the board constraint: packed full-beat writes only, no DDR3 byte masks.
 
 Next safe debug step: run a dedicated fullbeat write/read diagnostic at beat address 0 with a full 64-bit pattern for `BYTE_LANES=1`, then use that fullbeat path as the rowstream loader primitive if it passes.
+
+### 2026-05-22 - Fullbeat diagnostic gate ignores legacy lowbyte boot mismatch
+
+The first direct `LOADER_OP_RUN_FULLBEAT` attempt at beat address 0 was blocked before issuing the command because `run_rtl_fullbeat_diagnostic` still required `boot_mismatch == false`. That legacy mismatch is produced by the old boot/lowbyte probe path and is not a valid integrity gate on this no-DM YPCB board.
+
+Updated the fullbeat diagnostic gate in `scripts/task6/task6_ddr3_rowstream_loader.py`:
+
+- require upstream BIST completion via `debug1[4:0] == 23`
+- require `boot_error == false`
+- ignore legacy `boot_mismatch` for this fullbeat gate
+- pass/fail is based on the fullbeat command's write ACK, read ACK, no loader error, fullbeat active/done flag, and zero fullbeat mismatch count
+
+This keeps the no-DM direction explicit: byte/lowbyte diagnostics are no longer the gate; packed full-beat writes are.
