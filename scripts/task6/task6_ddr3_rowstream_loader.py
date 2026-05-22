@@ -68,6 +68,7 @@ OP_RUN_AUTOPROBE = 0x07
 OP_WRITE_DENSE_FILL = 0x08
 OP_RUN_FULLBEAT = 0x09
 OP_RUN_HARDCODED_AUTOPROBE = 0x0A
+OP_RUN_HARDCODED_SINGLEBYTE = 0x0B
 BEAT_BYTES = 64
 
 
@@ -242,6 +243,15 @@ def parse_args() -> argparse.Namespace:
         help=(
             "launch one board-side write/read probe using the RTL hardcoded "
             "PROBE_BYTE value, so the JTAG command does not carry the data byte"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-hardcoded-singlebyte-addr",
+        type=lambda value: int(value, 0),
+        default=None,
+        help=(
+            "launch one board-side single-address write/read probe using the "
+            "RTL hardcoded PROBE_BYTE value"
         ),
     )
     parser.add_argument(
@@ -869,6 +879,12 @@ class RowstreamLoader:
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
         self.send_command(OP_RUN_HARDCODED_AUTOPROBE, 0, stream_base)
+        return self.wait_ready(min_ack_count=min_ack)
+
+    def run_hardcoded_singlebyte(self, stream_base: int) -> dict[str, Any]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        self.send_command(OP_RUN_HARDCODED_SINGLEBYTE, 0, stream_base)
         return self.wait_ready(min_ack_count=min_ack)
 
     def run_dense_fill_write(self, beat_addr: int, value: int) -> dict[str, Any]:
@@ -1531,6 +1547,60 @@ def run_hardcoded_autoprobe_diagnostic(
     return payload
 
 
+def run_hardcoded_singlebyte_diagnostic(
+    loader: RowstreamLoader,
+    stream_base: int,
+    run_dir: Path,
+    initial_debug: dict[str, Any],
+) -> dict[str, Any]:
+    if stream_base < 0:
+        raise ValueError("hardcoded singlebyte address must be non-negative")
+
+    debug = loader.run_hardcoded_singlebyte(stream_base)
+    observed_word = debug["rtl_fullbeat_write_echo32"]
+    observed = observed_word & 0xFF
+    valid = (observed_word >> 8) & 0xF
+    mismatch_bits = (observed_word >> 12) & 0xF
+    expected = 0xA5
+    pass_status = (
+        bool(debug["boot_done"])
+        and bool(debug["boot_write_ack_seen"])
+        and bool(debug["boot_read_ack_seen"])
+        and not bool(debug["boot_error"])
+        and not bool(debug["loader_error"])
+        and debug["wb_err_count"] == initial_debug["wb_err_count"]
+        and valid == 0x1
+        and mismatch_bits == 0x0
+        and observed == expected
+    )
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-hardcoded-singlebyte-board-diagnostic",
+        "status": "PASS" if pass_status else "FAIL",
+        "stream_base": stream_base,
+        "expected": expected,
+        "observed": observed,
+        "valid_bits": valid,
+        "mismatch_bits": mismatch_bits,
+        "observed_word": observed_word,
+        "initial_debug": json_debug(initial_debug),
+        "final_debug": json_debug(debug),
+        "decision": {
+            "verdict": (
+                "hardcoded-singlebyte-passes"
+                if pass_status
+                else "hardcoded-singlebyte-fails"
+            ),
+            "next_gate": (
+                "If this passes, debug the multi-byte autoprobe sequencing. "
+                "If this fails with ACKs and no Wishbone errors, debug DDR3 "
+                "write data, byte select/lane behavior, address mapping, or readback."
+            ),
+        },
+    }
+    write_json(run_dir / "hardcoded-singlebyte-diagnostic.json", payload)
+    return payload
+
+
 def run_denseburst_diagnostic(
     loader: RowstreamLoader,
     value: int,
@@ -2024,6 +2094,40 @@ def main() -> int:
                     f"{diagnostic['status']} verdict="
                     f"{diagnostic['decision']['verdict']} "
                     f"base={diagnostic['stream_base']}"
+                )
+            return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_hardcoded_singlebyte_addr is not None:
+            diagnostic = run_hardcoded_singlebyte_diagnostic(
+                loader,
+                args.diagnostic_hardcoded_singlebyte_addr,
+                run_dir,
+                initial_debug,
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "hardcoded-singlebyte-diagnostic.json"),
+                    "stream_base": diagnostic["stream_base"],
+                    "expected": diagnostic["expected"],
+                    "observed": diagnostic["observed"],
+                    "valid_bits": diagnostic["valid_bits"],
+                    "mismatch_bits": diagnostic["mismatch_bits"],
+                    "verdict": diagnostic["decision"]["verdict"],
+                    "boot_mismatch": diagnostic["final_debug"]["boot_mismatch"],
+                    "boot_error": diagnostic["final_debug"]["boot_error"],
+                    "wb_ack_count": diagnostic["final_debug"]["wb_ack_count"],
+                    "wb_err_count": diagnostic["final_debug"]["wb_err_count"],
+                },
+            )
+            if not args.json_only:
+                print(
+                    "hardcoded singlebyte diagnostic "
+                    f"{diagnostic['status']} verdict="
+                    f"{diagnostic['decision']['verdict']} "
+                    f"base={diagnostic['stream_base']} "
+                    f"observed=0x{diagnostic['observed']:02x}"
                 )
             return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_denseburst_value is not None:
