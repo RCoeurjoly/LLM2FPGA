@@ -6,7 +6,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter int JTAG_COMMAND_CHAIN = 2,
   parameter int PROBE_BYTE = 165,
   parameter int BYTE_LANES = 8,
-  parameter int DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1)
+  parameter int DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1),
+  parameter int BOOT_ISOLATE_UNTIL_CALIB = 0
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -585,10 +586,18 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 
         READ_PROBE_WAIT_CALIB: begin
           if (calib_complete) begin
-            read_probe_cyc_q <= 1'b1;
-            read_probe_stb_q <= 1'b1;
-            read_probe_we_q <= 1'b1;
-            read_probe_state_q <= READ_PROBE_ISSUE_WRITE;
+            if (BOOT_ISOLATE_UNTIL_CALIB != 0) begin
+              read_probe_cyc_q <= 1'b0;
+              read_probe_stb_q <= 1'b0;
+              read_probe_we_q <= 1'b0;
+              read_probe_done_q <= 1'b1;
+              read_probe_state_q <= READ_PROBE_DONE;
+            end else begin
+              read_probe_cyc_q <= 1'b1;
+              read_probe_stb_q <= 1'b1;
+              read_probe_we_q <= 1'b1;
+              read_probe_state_q <= READ_PROBE_ISSUE_WRITE;
+            end
           end
         end
 

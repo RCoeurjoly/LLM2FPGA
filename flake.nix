@@ -257,7 +257,7 @@
         task6YpcbUberDdr3BistYosysJson =
           mkTask6YpcbUberDdr3BistYosysJson { };
         mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
-          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1 }:
+          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
@@ -268,8 +268,10 @@
                              "parameter int BYTE_LANES = ${toString byteLanes}," \
               --replace-fail "parameter int JTAG_CHAIN = 1" \
                              "parameter int JTAG_CHAIN = ${toString jtagChain}" \
-              --replace-fail "parameter int DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1)" \
-                             "parameter int DISABLE_JTAG_DEBUG_SHIFT = ${if disableJtagDebugShift then "1" else "0"}"
+              --replace-fail "parameter int DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1)," \
+                             "parameter int DISABLE_JTAG_DEBUG_SHIFT = ${if disableJtagDebugShift then "1" else "0"}," \
+              --replace-fail "parameter int BOOT_ISOLATE_UNTIL_CALIB = 0" \
+                             "parameter int BOOT_ISOLATE_UNTIL_CALIB = ${if bootIsolateUntilCalib then "1" else "0"}"
             cat > run.ys <<EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
@@ -295,6 +297,12 @@
           mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
             name = "task6-ypcb-uberddr3-rowstream-loader-1lane-yosys.json";
             byteLanes = 1;
+          };
+        task6YpcbUberDdr3RowstreamLoaderBootIsolatedYosysJson =
+          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
+            name = "task6-ypcb-uberddr3-rowstream-loader-boot-isolated-yosys.json";
+            byteLanes = 1;
+            bootIsolateUntilCalib = true;
           };
         task6YpcbUberDdr3UserPortProbeYosysJson =
           pkgs.runCommand "task6-ypcb-uberddr3-user-port-probe-yosys.json" {
@@ -6443,6 +6451,12 @@
         task6YpcbUberDdr3RowstreamLoaderSeed18ClockedArtifacts =
           task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeed 18;
 
+        task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson {
+            seed = 18;
+            json = task6YpcbUberDdr3RowstreamLoaderBootIsolatedYosysJson;
+          };
+
         task6YpcbUberDdr3RowstreamLoader1LaneSeed16ClockedArtifacts =
           let
             seedStr = toString 16;
@@ -6695,6 +6709,15 @@
 
         task6YpcbUberDdr3RowstreamLoaderSeed18ClockedBitstream =
           task6YpcbUberDdr3RowstreamLoaderSeed18ClockedArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedFasm =
+          task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedPlacedJson =
+          task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedArtifacts.placedJson;
+
+        task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedBitstream =
+          task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedArtifacts.bitstream;
 
         task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedFasm = mkFasm {
           name = "task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked";
@@ -11011,6 +11034,8 @@
             task6YpcbUberDdr3RowstreamLoaderYosysJson;
           task6-ypcb-uberddr3-rowstream-loader-1lane-yosys-json =
             task6YpcbUberDdr3RowstreamLoader1LaneYosysJson;
+          task6-ypcb-uberddr3-rowstream-loader-boot-isolated-yosys-json =
+            task6YpcbUberDdr3RowstreamLoaderBootIsolatedYosysJson;
           task6-ypcb-uberddr3-user-port-probe-yosys-json =
             task6YpcbUberDdr3UserPortProbeYosysJson;
           task6-ypcb-uberddr3-bist-xdc =
@@ -11155,6 +11180,12 @@
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedBitstream;
           task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-placed-json =
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedPlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-boot-isolated-seed18-clocked-fasm =
+            task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedFasm;
+          task6-ypcb-uberddr3-rowstream-loader-boot-isolated-seed18-clocked-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-boot-isolated-seed18-clocked-placed-json =
+            task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedPlacedJson;
           task6-ypcb-uberddr3-user-port-probe-seed15-fasm =
             task6YpcbUberDdr3UserPortProbeSeed15Fasm;
           task6-ypcb-uberddr3-user-port-probe-seed15-bitstream =
