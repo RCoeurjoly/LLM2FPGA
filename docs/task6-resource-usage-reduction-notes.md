@@ -20037,3 +20037,26 @@ Conclusion:
 - Full placed-cell locking is too tight for this flow as-is: it builds and routes, but does not preserve the analog/DDR3 calibration behavior on board.
 - The viable preservation window is likely between the prior clock/PHY/pin lock bundle (`437` applied locks, boot-clean known-good) and the all-cell lock bundle (`38,363` general locks, boot-failing).
 - Next route should derive narrower lock bundles around DDR3 controller/write-read timing cones, not every placed cell.
+
+## 2026-05-22 implementation: middle controller-placement lock bundle
+
+Implemented a narrower placement-preservation lane between the known boot-clean clock/PHY/pin lock bundle and the boot-failing all-cell lock bundle.
+
+New extraction behavior:
+
+- `scripts/task6/extract_nextpnr_ddr3_bel_locks.py` now accepts repeatable `--include-cell-prefix SCOPE=PREFIX` arguments.
+- The new Task 6 lane extracts cells whose packed/placed names start with `uberddr3.ddr3_controller_inst.` and tags them as `uberddr3_controller`.
+
+New Nix package targets:
+
+- `.#task6-ypcb-uberddr3-seed18-clock-and-phy-controller-placed-bel-locks`
+- `.#task6-ypcb-uberddr3-seed18-clock-and-phy-controller-placed-pre-place-bel-locks`
+- `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-placement-fasm`
+- `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-placement-bitstream`
+- `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-placement-placed-json`
+
+Expected risk profile:
+
+- Less perturbation than clock/PHY/pins alone for controller write/read timing cones.
+- Much less overconstraint than full-placement, which locked `38,363` general cells and failed DDR3 calibration on board.
+- Same gate order: build lock bundle, build bitstream, then boot-only calibration before any DDR3 data-path or rowstream command.
