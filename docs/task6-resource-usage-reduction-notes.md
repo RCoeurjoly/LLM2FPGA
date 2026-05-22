@@ -19978,3 +19978,33 @@ Interpretation:
 
 - Existing v63 full-beat/fill write opcodes are not enough for rowstream loading, even though their command path acknowledges and the generated write payload can be correct.
 - The remaining promising route is to preserve the routed v63 DDR3 placement more tightly than the current clock/PHY/pin lock bundle, then introduce the smallest possible upper-address rowstream write/read RTL change and gate each candidate by boot-only calibration before any rowstream test.
+
+## 2026-05-22 implementation: tighter routed-v63 placement preservation
+
+Implemented a stricter placement-preservation path for the next DDR3 candidate:
+
+- Extended `scripts/task6/extract_nextpnr_ddr3_bel_locks.py` with `--include-all-placed-cells`.
+- Added a Nix derivation that extracts every cell with `NEXTPNR_BEL` from the seed18 clock-and-phy placed JSON, not only DDR3 clocks/PHY/pins.
+- Added a generated pre-place script from that full placed-cell lock bundle.
+- Added a new seed18 target that applies the full-placement pre-place script before placement.
+
+New Nix package targets:
+
+- `.#task6-ypcb-uberddr3-seed18-clock-and-phy-full-placed-bel-locks`
+- `.#task6-ypcb-uberddr3-seed18-clock-and-phy-full-placed-pre-place-bel-locks`
+- `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement-fasm`
+- `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement-bitstream`
+- `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement-placed-json`
+
+Purpose:
+
+- The previous `clock-and-phy` lock path preserved only the known DDR3 clock, PHY, and board-pin BELs.
+- The new `full-placement` path is intentionally much tighter: it attempts to replay the routed seed18 clock-and-phy placement across all cells that had a packed/placed BEL in the source placed JSON.
+- This is the next safe base for a minimal upper-address or write/read RTL change, because boot-only calibration remains the first gate before any rowstream test.
+
+Next execution gate:
+
+- Build the full-placement lock bundle first.
+- Build the full-placement bitstream only if the lock bundle is generated cleanly.
+- Program only after build success.
+- Run boot-only calibration before any rowstream or DDR3 data-path diagnostic.
