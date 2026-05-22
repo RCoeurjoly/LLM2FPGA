@@ -20583,3 +20583,29 @@ Decision:
 - Rerun scope after rebuild: a smaller address matrix using one nonzero value across addresses `0`, `1`, `2`, and `3`.
 - Success condition: all addresses read back the selected expected byte with valid capture and no Wishbone errors.
 - Failure condition: if address-dependent failures remain when the write byte is address-independent, focus on address mapping, read alignment, stale readback, or byte-lane/select behavior rather than diagnostic value generation.
+
+### 2026-05-22 - Address-independent single-probe matrix result
+
+- Changed single-probe mode so the write byte is exactly the RTL-selected expected value and no longer includes address/base/index arithmetic.
+- Exposed both write byte and observed byte in the diagnostic summary.
+- Rebuilt the BIST-clocked, 1-byte-lane rowstream-loader bitstream:
+  - bitstream: `/nix/store/jav2p83p6iwg704b4qlklpfcg1czcn4r-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - routed `controller_clk` max frequency: 111.32 MHz, PASS at 25 MHz
+- Ran the smaller address matrix:
+  - run root: `artifacts/task6/runs/final-ts1m-inference/ddr3-singleprobe-a5-address-independent-1lane-rowstream-bist-clock-seed18-boot336`
+  - value index: 2 (`0xa5`)
+  - addresses: `0`, `1`, `2`, `3`
+- Results:
+  - addr0: write `0xa5`, expected `0xa5`, observed `0xa8`, FAIL
+  - addr1: write `0xa5`, expected `0xa5`, observed `0xa5`, PASS
+  - addr2: write `0xa5`, expected `0xa5`, observed `0xa5`, PASS
+  - addr3: write `0xa5`, expected `0xa5`, observed `0xa5`, PASS
+- All points had valid capture and no Wishbone errors:
+  - `valid_bits=0x1`
+  - `wb_err_count=0`
+- Interpretation:
+  - The prior failures at addresses 2 and 3 were caused by the diagnostic write-byte formula, not by DDR3 data corruption at those addresses.
+  - With address-independent write data, addresses 1..3 pass for a nonzero byte.
+  - Address 0 remains special: it consistently returns `0xa8` despite writing `0xa5`, with valid capture and no Wishbone error.
+- Decision: avoid using DDR3 address 0 as a proof point. The useful loader path should start from address 1 or higher while address 0 is debugged separately.
+- Next safe step: rerun sparse lowbyte diagnostics with a base offset away from address 0, or change the lowbyte loader to reserve/skip address 0 and prove a short nonzero sequence at addresses 1..N before any dense/lane-map or TinyStories rowstream load.

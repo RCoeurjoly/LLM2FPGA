@@ -1,0 +1,4 @@
+addr=0 exit=1
+addr=1 exit=0
+addr=2 exit=0
+addr=3 exit=0
