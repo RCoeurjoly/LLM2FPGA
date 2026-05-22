@@ -20609,3 +20609,14 @@ Decision:
   - Address 0 remains special: it consistently returns `0xa8` despite writing `0xa5`, with valid capture and no Wishbone error.
 - Decision: avoid using DDR3 address 0 as a proof point. The useful loader path should start from address 1 or higher while address 0 is debugged separately.
 - Next safe step: rerun sparse lowbyte diagnostics with a base offset away from address 0, or change the lowbyte loader to reserve/skip address 0 and prove a short nonzero sequence at addresses 1..N before any dense/lane-map or TinyStories rowstream load.
+
+### 2026-05-22 - Planned sparse lowbyte retry with DDR3 address 0 reserved
+
+- Next gate: reserve/skip DDR3 address 0 and rerun the sparse lowbyte diagnostic on a short nonzero sequence.
+- Rationale: the address-independent single-probe matrix showed that addresses 1..3 can round-trip `0xa5`, while address 0 still reads back `0xa8` after writing `0xa5`.
+- Scope:
+  - use the BIST-clocked, 1-byte-lane rowstream-loader
+  - keep `boot336` debug
+  - run sparse lowbyte writes/reads against physical DDR3 addresses starting at 1
+  - do not proceed to dense/lane-map or TinyStories rowstream load unless this short sparse gate passes or the failure is clearly diagnostic-only
+- Note: the existing sparse lowbyte helper already maps stream address `N` to physical address `N + 1`; this step makes that reserved-address behavior explicit in the diagnostic output.
