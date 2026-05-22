@@ -20427,3 +20427,24 @@ Decision:
   - write/read commands ACK without Wishbone errors
   - nonzero sparse lowbyte values read back correctly
   - dense lane-map observations identify a usable byte lane or expose a specific lane/select issue
+
+### 2026-05-22 - BIST-clocked lowbyte16 diagnostic result
+
+- Ran the expanded sparse lowbyte diagnostic on the BIST-clocked, 1-byte-lane rowstream-loader:
+  - bitstream: `/nix/store/wa5lfg0wgklz4bnbhh1j1xn75agg4mp6-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte16-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-lowbyte-count 16 --debug-bits boot336`
+- Result: FAIL.
+- Calibration remained good: `calib_complete=True`, `calib_seen=True`, `calib_seen_cycle=20240`.
+- Command transport remained alive:
+  - write ACKs advanced through the 16 writes
+  - read ACKs advanced through the 16 reads
+  - `wb_err_count=0`
+  - `loader_error=False`
+- Readback result:
+  - stream address 0 matched: expected `0x00`, observed `0x00`
+  - stream addresses 1..15 failed: expected `0x01..0x0f`, observed `0x00`
+  - mismatch count: 15/16
+- Interpretation: the single-byte zero PASS was not sufficient evidence of nonzero data persistence. The current BIST-clocked sparse lowbyte path accepts commands and gets Wishbone ACKs, but nonzero sparse writes are not observable on readback.
+- Decision: do not run dense/lane-map or TinyStories rowstream load yet. First debug whether the issue is host command encoding, loader lowbyte write-data capture, byte-select/lane mapping, or readback extraction.
+- Next safe step: run a one-address nonzero diagnostic or add a hardcoded board-side nonzero write/read probe so the data byte cannot be lost in the host command packing path.
