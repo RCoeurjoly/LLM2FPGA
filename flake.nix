@@ -290,7 +290,6 @@
         task6YpcbUberDdr3RowstreamLoaderYosysJson =
           mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
             byteLanes = 1;
-            disableJtagDebugShift = false;
           };
         task6YpcbUberDdr3RowstreamLoader1LaneYosysJson =
           mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
