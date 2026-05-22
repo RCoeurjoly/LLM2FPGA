@@ -20235,3 +20235,11 @@ Interpretation:
 - Known calibration envelope for the current YPCB/UberDDR3 Task 6 path: 1-byte-lane and 2-byte-lane configurations have been shown to calibrate.
 - 4-byte-lane and 8-byte-lane configurations do not calibrate on this path, so Task 6 DDR3 work should stay constrained to 1 or 2 lanes unless a separate PHY rebaseline changes this fact.
 - Current debug direction: use a narrow 336-bit boot/status USER1 readout for the 1-lane build instead of re-enabling the full 512-bit debug shift chain. This preserves the boot gate fields while reducing placement/routing perturbation.
+
+### 2026-05-22 - One-lane boot336 status gate result
+
+- Built `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-bitstream` with the narrow 336-bit boot/status USER1 readout enabled for the 1-byte-lane configuration.
+- Build result: PASS. The routed design reports `controller_clk` max frequency 112.12 MHz and includes the narrow chain as `g_debug_boot_status_enabled.jtag_debug_shift`.
+- Hardware boot-only command used `--debug-bits boot336` against `artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-seed18-boot336`.
+- Hardware gate result: FAIL to calibrate within 120s, but the narrow readout is observable: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
+- Interpretation: boot336 solves the 1-lane observability problem without the 512-bit debug chain, but this specific rowstream-loader bitstream still stalls before calibration. Continue with boot-only calibration gating before any rowstream test.
