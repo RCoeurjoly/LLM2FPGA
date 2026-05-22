@@ -6230,21 +6230,22 @@
           ./artifacts/task6/baselines/uberddr3-rowstream-loader-v40-physical-stability/known-good-packed-bel-locks.json;
 
         task6YpcbUberDdr3GeneratePrePlaceBelLocks =
-          { name, scopes ? [ ], types ? [ ] }:
+          { name, locksJson ? task6YpcbUberDdr3KnownGoodPackedBelLocks, scopes ? [ ], types ? [ ], allowMissing ? false }:
           let
             scopeArgs = pkgs.lib.concatMapStringsSep " " (scope: "--scope ${pkgs.lib.escapeShellArg scope}") scopes;
             typeArgs = pkgs.lib.concatMapStringsSep " " (type: "--type ${pkgs.lib.escapeShellArg type}") types;
+            allowMissingArg = if allowMissing then " --allow-missing" else "";
             extraArgs =
-              if scopeArgs == "" && typeArgs == ""
+              if scopeArgs == "" && typeArgs == "" && allowMissingArg == ""
               then ""
-              else " " + scopeArgs + typeArgs;
+              else " " + scopeArgs + typeArgs + allowMissingArg;
           in
           pkgs.runCommand
             "task6-ypcb-uberddr3-${name}-pre-place-bel-locks.py"
             { buildInputs = [ pkgs.python3 ]; } ''
               set -euo pipefail
               python3 ${./scripts/task6/generate_nextpnr_pre_place_bel_locks.py} \
-                --locks-json ${task6YpcbUberDdr3KnownGoodPackedBelLocks} \
+                --locks-json  \
                 ${builtins.toString extraArgs} \
                 --out-py "$out"
             '';
@@ -6266,6 +6267,31 @@
               "uberddr3_phy"
               "ddr3_board_pins"
             ];
+          };
+
+        task6YpcbUberDdr3GenerateFullPlacedBelLocks =
+          { name, placedJson }:
+          pkgs.runCommand
+            "task6-ypcb-uberddr3-${name}-full-placed-bel-locks.json"
+            { buildInputs = [ pkgs.python3 ]; } ''
+              set -euo pipefail
+              python3 ${./scripts/task6/extract_nextpnr_ddr3_bel_locks.py} \
+                --placed-json ${placedJson} \
+                --include-all-placed-cells \
+                --out-json "$out"
+            '';
+
+        task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedBelLocks =
+          task6YpcbUberDdr3GenerateFullPlacedBelLocks {
+            name = "seed18-clock-and-phy";
+            placedJson = task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyPlacedJson;
+          };
+
+        task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedPrePlaceBelLocks =
+          task6YpcbUberDdr3GeneratePrePlaceBelLocks {
+            name = "seed18-clock-and-phy-full-placed";
+            locksJson = task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedBelLocks;
+            scopes = [ "all_placed_cells" ];
           };
 
         task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson =
@@ -6542,6 +6568,22 @@
 
         task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyPlacedJson =
           task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyArtifacts.placedJson;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace {
+            seed = 18;
+            suffix = "clocked-locked-full-placement";
+            prePlaceLocks = task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedPrePlaceBelLocks;
+          };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementFasm =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementBitstream =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementPlacedJson =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementArtifacts.placedJson;
 
         task6YpcbUberDdr3RowstreamLoaderSeed17ClockedFasm =
           task6YpcbUberDdr3RowstreamLoaderSeed17ClockedArtifacts.fasm;
@@ -10964,6 +11006,16 @@
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyBitstream;
           task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy-placed-json =
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedClockAndPhyPlacedJson;
+          task6-ypcb-uberddr3-seed18-clock-and-phy-full-placed-bel-locks =
+            task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedBelLocks;
+          task6-ypcb-uberddr3-seed18-clock-and-phy-full-placed-pre-place-bel-locks =
+            task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedPrePlaceBelLocks;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement-fasm =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementFasm;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement-placed-json =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedFullPlacementPlacedJson;
           task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-fasm =
             task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedFasm;
           task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-bitstream =
