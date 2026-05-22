@@ -19964,3 +19964,17 @@ Conclusion:
 - `lowbyte64` is not a viable upper-address rowstream route on the exact v63 bitstream as tested.
 - The important positive result is that boot-only calibration is still stable when using the exact v63 bitstream; the failure is data-path semantics after calibration, not DDR3 initialization.
 - The next route should preserve v63 placement but avoid relying on lowbyte semantics. The current best option is a small RTL loader change that writes full 512-bit beats or a board-side buffered burst from a compact JTAG payload, with boot-only calibration as the first gate for every candidate before rowstream tests.
+
+## 2026-05-22 follow-up gates: existing v63 full-beat write opcodes rejected
+
+Additional boot-gated diagnostics on the same known-good v63 bitstream:
+
+- RTL-generated fullbeat: `artifacts/task6/runs/final-ts1m-inference/ddr3-rtl-fullbeat-v63`
+- Result: FAIL. Boot stayed clean, `write_echo32_match=true`, expected prefix `202122232425262728292a2b2c2d2e2f`, observed prefix `a8c1a823a8c1a827a851a82ba851a82f`, mismatch count `64`.
+- Dense-fill write/read: `artifacts/task6/runs/final-ts1m-inference/ddr3-densefill-v63`
+- Result: FAIL. Boot stayed clean, expected prefix `5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a`, observed prefix `00c1000000c1000000510000005100a3`.
+
+Interpretation:
+
+- Existing v63 full-beat/fill write opcodes are not enough for rowstream loading, even though their command path acknowledges and the generated write payload can be correct.
+- The remaining promising route is to preserve the routed v63 DDR3 placement more tightly than the current clock/PHY/pin lock bundle, then introduce the smallest possible upper-address rowstream write/read RTL change and gate each candidate by boot-only calibration before any rowstream test.
