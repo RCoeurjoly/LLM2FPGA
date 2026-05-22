@@ -19813,3 +19813,122 @@ Use this contract as the single source of truth for planning and status updates.
     before executing commands.
   - the script creates `commands.txt` and `summary.json` with the required
     schema used by the gate contract above.
+
+### 2026-05-21 Task 6 continuous execution: DDR3 gate results and lane-sparse route
+
+Current working baseline:
+- default non-DDR Task 6 package remains the on-chip INT8 v9984 target:
+  `task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream`.
+- Built default bitstream path:
+  `/nix/store/zls1b0i8918qxg834zv0g6min3wzprh2-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit`.
+- Board selftest passed through JTAG:
+  `SELFTEST_PASS`, expected/observed top index `229`, expected/observed top accumulator `54965`.
+- Artifact:
+  `artifacts/task6/runs/final-ts1m-inference/v9984-regression/summary.json`.
+
+DDR3 boot gates:
+- Copied 1-lane artifact boot-clean:
+  `artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit`.
+- Boot artifact:
+  `artifacts/task6/runs/final-ts1m-inference/ddr3-boot/summary.json`.
+- Result: `PASS`, `boot_done=true`, `boot_error=false`, `boot_mismatch=false`, `calib_seen=true`.
+- 2-lane copied artifact did not calibrate with wrapper-debug path.
+- Locally rebuilt command-status 1-lane experiment built but did not calibrate; do not use that route as the board baseline.
+
+Usable rowstream-loader bitstreams found in the Nix store:
+- v54 boot-clean:
+  `/nix/store/pw6v3y4xyzvnq7p6zmpk8j4na7czn06m-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`.
+- v63 boot-clean:
+  `/nix/store/g0i6bm60sb7s2dgxzs8wmgr64dh56par-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`.
+- v64 candidate:
+  `/nix/store/inacnz43kqnc8q1kjqm8f602hkbk52la-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit` did not calibrate in this run.
+
+v54 dense lane-map result:
+- Artifact:
+  `artifacts/task6/runs/final-ts1m-inference/ddr3-dense-lane-map-seed18-pw6v3y4/dense-lane-map-diagnostic.json`.
+- Transport is clean: write/read commands ack, `loader_error=false`, `wb_err_count=0`.
+- Target lane matches only lanes `3, 7, 11, 15` in the lower 128-bit window.
+
+v63 RTL fullbeat result:
+- Artifacts:
+  `artifacts/task6/runs/final-ts1m-inference/ddr3-fullbeat-seed18-g0i6bm/summary.json` and
+  `artifacts/task6/runs/final-ts1m-inference/ddr3-fullbeat-seed18-g0i6bm-addr1-base40/summary.json`.
+- Both fullbeat commands were accepted: command count advanced, write echo matched the generated ramp, write/read acks occurred, and `wb_err_count=0`.
+- Both fullbeat readbacks failed full 64-byte comparison, but the stable pattern repeated across address/base:
+  lanes `3, 7, 11, 15, ...` preserve the intended bytes; other lanes return stale/signature bytes such as `a8`, `c1`, and `51`.
+- Example at beat `0`, base `0x20`:
+  expected prefix `202122232425262728292a2b2c2d2e2f`, observed prefix `a8c1a823a8c1a827a851a82ba851a82f`.
+- Example at beat `1`, base `0x40`:
+  expected prefix `404142434445464748494a4b4c4d4e4f`, observed prefix `a8c1a843a8c1a847a851a84ba851a84f`.
+
+Decision:
+- Stop treating the immediate blocker as JTAG command transport. Transport and write echo are proven on v63.
+- Stop spending time trying to make every byte lane correct before TinyStories inference.
+- Next promising route is lane-sparse rowstream storage: store useful rowstream bytes only in stable DDR3 byte lanes where `lane % 4 == 3`, accepting a 4x capacity expansion.
+- Capacity trade is acceptable for TinyStories-1M rowstream: roughly `vocab * row_bytes ~= 54k * 68 ~= 3.7 MB`; 4x expansion is about `15 MB`, still well within DDR3.
+- Next implementation gate should be a lane-sparse boundary-row proof, not full dense-rowstream readback.
+
+Immediate next gates:
+1. Add a host-side lane-sparse pack/readback mode mapping logical byte `i` to physical byte `4*i + 3`.
+2. Run boundary rows only for tokens `0,1,31,32,50256` on the v63 boot-clean bitstream.
+3. If boundary rows pass, add a board-side 16-byte command that expands one 16-byte payload into the stable lanes of one 64-byte DDR beat.
+4. Use that board-side stable-lane writer for full rowstream load and top1 replay.
+
+## 2026-05-21 execution update: DDR3 sparse-rowstream path
+
+Current green baseline:
+- `task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream` builds and passes the board JTAG selftest.
+- Observed top index/accumulator matched expected values on hardware.
+- This remains the best on-chip INT8 proof for Task 6 resource reduction.
+
+DDR3 observations from the seed18 v63 rowstream-loader bitstream:
+- The old seed18 v63 DDR3 loader bitstream boots/calibrates cleanly.
+- Full-beat generated write/read diagnostics show Wishbone transport is accepted with `wb_err_count=0`, but dense byte correctness is not full-width.
+- Host dense byte lane-map shows only lanes `3, 7, 11, 15` survive when testing one lane at a time.
+- When multiple sparse byte writes target the same 64-byte DDR3 beat, only lane `15` remains reliable. Earlier selected lanes in the same beat are effectively lost/overwritten.
+- Therefore the currently reliable sparse storage contract is one logical rowstream byte per 64-byte physical DDR3 beat, at byte lane 15. This is a 64x expansion: about 3.42 MB logical rowstream becomes about 219 MB physical DDR3 footprint, still plausible for the board DDR3 capacity.
+
+Important bug found:
+- The old dense-byte write RTL only used `jtag_command_addr[15:6]` for the write beat address.
+- This means high TinyStories rowstream offsets alias into low DDR3 addresses when using the 64x sparse mapping.
+- Evidence: 16-byte and 80-byte low-window sparse diagnostics pass, but representative boundary rows fail after including the high token range because high writes alias/corrupt lower rows.
+
+RTL experiments attempted:
+- Direct full-address dense write path: `jtag_command_addr[WB_ADDR_BITS + 5:6]`.
+- Reduced 22-bit dense write path, enough for the 64x TinyStories rowstream footprint.
+- Paged dense write path preserving low 16-bit write commands plus a page register for upper address bits.
+
+Result of those RTL experiments:
+- All three rebuilt/routed/timed seed18 variants failed DDR3 calibration on hardware (`calib_seen=false`, `loader_state=1`, `debug1=0x0100000b/0x0100000c`).
+- A seed17 direct full-address variant also built/timed but failed calibration.
+- Conclusion: the logical address fix is understood, but even small RTL changes perturb the fragile DDR3 placement/calibration. Do not spend more time on random seeds without improving PHY/placement stability or isolating the loader changes more aggressively.
+
+Most promising next route:
+1. Preserve the exact known-good v63 DDR3 PHY/loader placement as much as possible.
+2. Move high-address handling out of the timing/placement-sensitive DDR3 write datapath if possible, or add stronger placement constraints for the new page/address registers near the existing loader logic.
+3. Use the 64x lane-15 sparse contract as the correctness target, not dense 64-byte storage.
+4. Re-test in this order: boot-only calibration, 16-byte sparse diagnostic, 80-byte sparse diagnostic, representative boundary rows including token 50256.
+5. Only after boundary rows pass, consider full rowstream loading or a batched board-side sparse writer; full host-per-byte loading remains too slow for routine iteration.
+
+## 2026-05-22 execution protocol: preserve v63 DDR3 placement before rowstream tests
+
+Goal:
+- Add upper-address support for the 64x lane-15 sparse rowstream contract without disturbing the known-good v63 DDR3 calibration placement more than necessary.
+
+Execution rules:
+- Make one logical change at a time and commit it before moving to the next change.
+- First gate every candidate with boot-only DDR3 calibration.
+- Do not run boundary-row or rowstream tests until boot-only calibration passes.
+- Treat the old v63 seed18 bitstream as the calibration reference.
+- Prefer placement preservation over feature scope: keep the DDR3 PHY, controller, clocks, and existing loader datapath as close as possible to the v63 routed design.
+
+Candidate sequence:
+1. Document the protocol and commit it.
+2. Add stronger placement preservation for the small upper-address/page logic while keeping the low 16-bit dense-byte datapath shape.
+3. Build one seed18 candidate with one job/one core.
+4. Run boot-only calibration.
+5. Only if boot-only passes, run `--diagnostic-lane3-count 16`, then `80`, then representative boundary rows `0,1,31,32,50256`.
+
+Abort criteria:
+- If boot-only fails, do not run rowstream diagnostics on that candidate.
+- If multiple candidates fail calibration after placement-preservation changes, stop and revisit the strategy rather than trying random seeds blindly.
