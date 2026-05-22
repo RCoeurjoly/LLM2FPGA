@@ -20386,3 +20386,28 @@ Decision:
 - Purpose: distinguish a harmless/over-strict `boot_mismatch` predicate from a real DDR3 write/read data-path failure.
 - Success condition: calibration remains complete, the write command is accepted without Wishbone error, the read command is accepted without Wishbone error, and the readback low byte matches the written value.
 - Failure handling: do not attempt TinyStories rowstream load until this one-address write/read gate is understood.
+
+### 2026-05-22 - BIST-clocked lowbyte write/read diagnostic result
+
+- Ran the minimal 1-byte write/read diagnostic on the BIST-clocked, 1-byte-lane rowstream-loader:
+  - bitstream: `/nix/store/wa5lfg0wgklz4bnbhh1j1xn75agg4mp6-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-lowbyte-count 1 --debug-bits boot336`
+- Result: PASS.
+- Calibration remained good: `calib_complete=True`, `calib_seen=True`, `calib_seen_cycle=20240`.
+- Write path accepted the command:
+  - write `ack_count=10`
+  - `loader_error=False`
+  - `err_count=0`
+- Read path accepted the command:
+  - read `ack_count=11`
+  - `loader_error=False`
+  - `err_count=0`
+- Readback matched:
+  - stream address: 0
+  - expected: `0x00`
+  - observed: `0x00`
+  - mismatch count: 0
+- `boot_mismatch=True` still appears in debug, but it did not prevent a successful sparse lowbyte write/read contract.
+- Interpretation: the BIST-clocked 1-lane loader has a working minimal sparse write/read path. The old `boot_mismatch` bit is no longer sufficient by itself to block loader-only diagnostics.
+- Next safe step: repeat the lowbyte diagnostic with a nonzero value/count pattern, then expand to a small dense/lane-map diagnostic before any TinyStories rowstream load.
