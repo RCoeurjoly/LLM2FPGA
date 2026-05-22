@@ -20662,3 +20662,28 @@ Decision:
   - expose write byte, observed byte, ACK/error counters, and debug state
 - Purpose: distinguish a bug in the lowbyte command path or sparse multi-command sequencing from the already-proven hardcoded single-probe DDR3 primitive.
 - Initial target: physical address 1, value `0xa5`, because the hardcoded single-probe path passed for that address/value.
+
+### 2026-05-22 - Lowbyte single-command diagnostic result
+
+- Added a lowbyte single-command diagnostic that writes one selected value to one selected physical DDR3 address through `LOADER_OP_WRITE_LOWBYTE`, then immediately reads the same physical address through `LOADER_OP_READ_LOWBYTE`.
+- Ran the diagnostic against the existing address-independent BIST-clocked bitstream:
+  - bitstream: `/nix/store/jav2p83p6iwg704b4qlklpfcg1czcn4r-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-single-a5-phys1-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-lowbyte-single-physical-addr 1 --diagnostic-lowbyte-single-value 0xa5 --debug-bits boot336`
+- Result: PASS.
+- Direct data result:
+  - physical address: 1
+  - write byte: `0xa5`
+  - observed byte: `0xa5`
+  - match: true
+- Command/debug evidence:
+  - write ACK count: 10
+  - read ACK count: 11
+  - `wb_err_count=0`
+  - `loader_error=False`
+  - write opcode observed: 3 (`LOADER_OP_WRITE_LOWBYTE`)
+  - read opcode observed: 4 (`LOADER_OP_READ_LOWBYTE`)
+- Interpretation:
+  - The lowbyte opcode path is viable for a single nonzero write/read at physical address 1.
+  - The sparse lowbyte16 failure is therefore more likely due to multi-command sequencing, address/value ramp behavior, or insufficient isolation between consecutive writes/reads, not a fundamental inability of `LOADER_OP_WRITE_LOWBYTE`/`READ_LOWBYTE` to write/read DDR3.
+- Decision: do not proceed to TinyStories yet. Next safe gate is a tiny lowbyte single-command matrix over physical addresses 1..3 and values `0x00`, `0x01`, `0xa5`, or an interleaved write-read sequence per address/value instead of write-all/read-all.
