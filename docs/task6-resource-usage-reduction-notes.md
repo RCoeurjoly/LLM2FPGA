@@ -20243,3 +20243,20 @@ Interpretation:
 - Hardware boot-only command used `--debug-bits boot336` against `artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-seed18-boot336`.
 - Hardware gate result: FAIL to calibrate within 120s, but the narrow readout is observable: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
 - Interpretation: boot336 solves the 1-lane observability problem without the 512-bit debug chain, but this specific rowstream-loader bitstream still stalls before calibration. Continue with boot-only calibration gating before any rowstream test.
+
+### 2026-05-22 - Immediate DDR3 recovery plan after boot336 observability
+
+Plan:
+
+1. Add a pure boot-isolation rowstream-loader build: keep the loader RTL present, but after `calib_complete` do not auto-launch the built-in write/read probe. Mark the loader idle/done and keep Wishbone idle.
+2. Build the isolated 1-byte-lane seed18 bitstream with the existing `boot336` debug readout.
+3. Run only the boot calibration gate. Do not run rowstream or diagnostics unless calibration passes.
+4. If the isolated build calibrates, the current failure is caused by post-calibration loader/probe activation or its timing/placement side effects; then re-enable pieces one at a time.
+5. If the isolated build still does not calibrate, pivot to a repo-local known-good BIST-equivalent target with `boot336`, then compare settings/placement against the failing rowstream-loader build before trying pre-place constraints.
+6. Use pre-place constraints only after a calibration-positive repo-local reference exists. Start with a narrow clock/PHY/pin bundle, not full placement locks.
+
+Rationale:
+
+- The current `boot336` path proves debug observability works.
+- The current failure signature remains the early calibration stall: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
+- Therefore the next safe gate is a boot-only isolation test, not rowstream traffic.
