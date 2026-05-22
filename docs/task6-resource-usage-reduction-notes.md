@@ -20281,3 +20281,37 @@ Next move to execute now:
 Guardrail:
 
 - If the repo-local 1-byte-lane BIST-equivalent does not calibrate, do not add rowstream logic or placement locks yet; first reconcile it against the imported known-good 1-lane UberDDR3 baseline.
+
+### 2026-05-22 - Repo-local one-lane BIST-equivalent result and comparison
+
+Implementation:
+
+- Added `.#task6-ypcb-uberddr3-bist-1lane-seed18-bitstream` as a repo-local one-byte-lane BIST-equivalent calibration reference.
+- Built bitstream: `/nix/store/2pwxy8s7n8ahf2qz8k2kpp409np4wql6-task6-ypcb-uberddr3-bist-1lane-seed18.bit`.
+- Build result: PASS. Routed `controller_clk` max frequency is 115.39 MHz.
+- Hardware boot-only command used `--debug-bits boot336` against `artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-bist-equivalent-seed18-boot336`.
+
+Calibration result:
+
+- Calibration is confirmed in the repo-local 1-lane BIST-equivalent: `calib_complete=True`, `calib_seen=True`, `calib_seen_cycle=20240`.
+- The generic rowstream boot-clean diagnostic reports FAIL/`boot-unclean` because it interprets BIST probe status bits as rowstream boot error/mismatch fields. For the intended gate here, the important result is calibration-positive.
+
+Comparison against failing rowstream-loader targets:
+
+- BIST-equivalent clocking/DDR3 parameters:
+  - PLL `CLKOUT0_DIVIDE=10`, `CLKOUT1_DIVIDE=10`, `CLKOUT2_DIVIDE=40`
+  - `CONTROLLER_CLK_PERIOD=40_000`
+  - `DDR3_CLK_PERIOD=10_000`
+  - `BYTE_LANES=1` in this target
+- Rowstream-loader clocking/DDR3 parameters:
+  - PLL `CLKOUT0_DIVIDE=3`, `CLKOUT1_DIVIDE=3`, `CLKOUT2_DIVIDE=12`
+  - `CONTROLLER_CLK_PERIOD=12_000`
+  - `DDR3_CLK_PERIOD=3_000`
+  - `BYTE_LANES=1` in the tested target
+- Shared relevant DDR3 settings: `ODELAY_SUPPORTED=0`, `DLL_OFF=1`, `BIST_MODE=1`.
+
+Decision:
+
+- Do not apply pre-place constraints yet. The comparison found a functional clock/period mismatch between the calibration-positive BIST-equivalent and the failing rowstream-loader path.
+- Next safe execution step is to build a rowstream-loader target using BIST-equivalent DDR3/controller clock periods and PLL divides, then run the same boot-only `boot336` gate.
+- If the BIST-clocked rowstream-loader still fails calibration, then extract narrow pre-place locks from the calibration-positive BIST-equivalent, starting with clock/PHY/pins only, not full placement.
