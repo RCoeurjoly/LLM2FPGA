@@ -6235,10 +6235,11 @@
             scopeArgs = pkgs.lib.concatMapStringsSep " " (scope: "--scope ${pkgs.lib.escapeShellArg scope}") scopes;
             typeArgs = pkgs.lib.concatMapStringsSep " " (type: "--type ${pkgs.lib.escapeShellArg type}") types;
             allowMissingArg = if allowMissing then " --allow-missing" else "";
+            filterArgs = pkgs.lib.filter (arg: arg != "") [ scopeArgs typeArgs allowMissingArg ];
             extraArgs =
-              if scopeArgs == "" && typeArgs == "" && allowMissingArg == ""
+              if filterArgs == []
               then ""
-              else " " + scopeArgs + typeArgs + allowMissingArg;
+              else " " + pkgs.lib.concatStringsSep " " filterArgs;
           in
           pkgs.runCommand
             "task6-ypcb-uberddr3-${name}-pre-place-bel-locks.py"
