@@ -50,6 +50,7 @@ DEFAULT_REPLAY = (
 DEFAULT_RUN_ROOT = ROOT / "artifacts" / "task6" / "runs"
 
 DEBUG_BITS = 512
+DEBUG_BITS_BOOT = 336
 DEBUG_BITS_UBER = 960
 DEBUG_MAGIC = 0x54364A44
 DEBUG_MAGIC_UBER = 0xD3B5
@@ -87,8 +88,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bit-delay-us", type=float, default=0.0)
     parser.add_argument("--ir-len", type=int, default=6)
     parser.add_argument("--debug-ir", type=lambda value: int(value, 0), default=0x02)
-    parser.add_argument("--debug-bits", choices=("auto", "512", "960", "command"), default="auto", help=(
-        "JTAG debug DR width to sample; auto detects by magic, use 512 or 960 to force; command reads the USER2 status mailbox."
+    parser.add_argument("--debug-bits", choices=("auto", "512", "960", "boot336", "command"), default="auto", help=(
+        "JTAG debug DR width to sample; auto detects by magic, use 512, 960, or boot336 to force; command reads the USER2 status mailbox."
     ))
     parser.add_argument("--command-ir", type=lambda value: int(value, 0), default=0x03)
     parser.add_argument("--command-delay", type=float, default=0.001)
@@ -675,6 +676,16 @@ def decode_debug_uber(raw: int) -> dict[str, Any]:
     }
 
 
+def decode_debug_boot(raw: int) -> dict[str, Any]:
+    debug = decode_debug_legacy(raw)
+    debug["raw_bits"] = DEBUG_BITS_BOOT
+    debug["raw_hex"] = f"0x{raw:0{DEBUG_BITS_BOOT // 4}x}"
+    debug["schema"] = "boot-336"
+    debug["read_data_chunk"] = bytes(16)
+    debug["read_data_beat"] = bytes(BEAT_BYTES)
+    return debug
+
+
 def decode_debug(raw: int, mode: str = "auto") -> dict[str, Any]:
     raw_uber = (raw >> 48) & 0xFFFF
     raw_version = (raw >> 32) & 0xFF
@@ -684,6 +695,8 @@ def decode_debug(raw: int, mode: str = "auto") -> dict[str, Any]:
         return decode_debug_uber(raw)
     if mode == "512":
         return decode_debug_legacy(raw)
+    if mode == "boot336":
+        return decode_debug_boot(raw)
 
     if raw_magic == DEBUG_MAGIC and raw_version == DEBUG_VERSION:
         return decode_debug_legacy(raw)
@@ -729,6 +742,8 @@ class RowstreamLoader:
             shift_bits = DEBUG_BITS_UBER
         elif self.args.debug_bits == "960":
             shift_bits = DEBUG_BITS_UBER
+        elif self.args.debug_bits == "boot336":
+            shift_bits = DEBUG_BITS_BOOT
         else:
             shift_bits = DEBUG_BITS
 

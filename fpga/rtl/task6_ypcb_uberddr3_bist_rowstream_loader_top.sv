@@ -884,6 +884,10 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   end
 
   logic [JTAG_DEBUG_WIDTH - 1:0] jtag_debug_payload;
+  localparam int JTAG_BOOT_DEBUG_WIDTH = 336;
+  logic [JTAG_BOOT_DEBUG_WIDTH - 1:0] jtag_boot_debug_payload;
+
+  assign jtag_boot_debug_payload = jtag_debug_payload[JTAG_BOOT_DEBUG_WIDTH - 1:0];
 
   always_comb begin
     jtag_debug_payload = '0;
@@ -1019,6 +1023,14 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         .DISABLE_JTAG(DISABLE_JTAG_DEBUG_SHIFT)
       ) jtag_debug_shift (
         .payload_i(jtag_debug_payload)
+      );
+    end else begin : g_debug_boot_status_enabled
+      task6_uberddr3_jtag_debug_shift #(
+        .WIDTH(JTAG_BOOT_DEBUG_WIDTH),
+        .JTAG_CHAIN(JTAG_CHAIN),
+        .DISABLE_JTAG(1'b0)
+      ) jtag_debug_shift (
+        .payload_i(jtag_boot_debug_payload)
       );
     end
   endgenerate
