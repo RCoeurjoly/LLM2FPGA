@@ -20354,3 +20354,22 @@ Decision:
 - Do not apply pre-place constraints now. The primary calibration blocker was clock/period mismatch, not placement.
 - Next safe step is a post-calibration diagnostic on the BIST-clocked rowstream-loader, starting with the smallest deterministic check that does not load TinyStories rows: likely `--diagnostic-rtl-fullbeat-base` or an even smaller low-byte/readbeat check.
 - Keep rowstream load blocked until boot/probe mismatch is understood or bypassed with a deliberately scoped loader-only gate.
+
+### 2026-05-22 - BIST-clocked rowstream readbeat diagnostic
+
+- Ran the smallest read-only post-calibration diagnostic on the BIST-clocked rowstream-loader:
+  - bitstream: `/nix/store/wa5lfg0wgklz4bnbhh1j1xn75agg4mp6-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-readbeat-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-readbeat-addr 0 --debug-bits boot336`
+- Result: diagnostic status FAIL because the generic boot-clean predicate still sees `boot_mismatch=True`.
+- Calibration remains good: `calib_complete=True`, `calib_seen=True`, `calib_seen_cycle=20240`.
+- The read-only command path is alive:
+  - `last_magic_ok=True`
+  - `last_opcode=6` (`LOADER_OP_READ_DENSE_BEAT`)
+  - `command_count=2`
+  - `loader_read_ack_seen=True`
+  - `wb_ack_count` advanced from 9 to 10
+  - `wb_err_count=0`, `loader_error=False`
+- Read result for beat 0 lower 128 bits: `00000000000000000000000000000000`.
+- Interpretation: the BIST-clocked rowstream-loader has moved past the old calibration failure. The remaining blocker is the pre-existing boot/probe mismatch bit, not read-command acceptance or Wishbone error.
+- Next safe step: either bypass/relax the generic boot-clean predicate for loader-only diagnostics once calibration and no-error conditions hold, or run a minimal lowbyte write/read diagnostic to determine whether writes preserve data at the BIST clocks.
