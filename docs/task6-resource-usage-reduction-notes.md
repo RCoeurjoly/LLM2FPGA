@@ -20260,3 +20260,11 @@ Rationale:
 - The current `boot336` path proves debug observability works.
 - The current failure signature remains the early calibration stall: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
 - Therefore the next safe gate is a boot-only isolation test, not rowstream traffic.
+
+### 2026-05-22 - Boot-isolated rowstream-loader gate result
+
+- Built `.#task6-ypcb-uberddr3-rowstream-loader-boot-isolated-seed18-clocked-bitstream`.
+- Build result: PASS. Routed `controller_clk` max frequency is 117.55 MHz. The narrow `boot336` USER1 readout remains present as `g_debug_boot_status_enabled.jtag_debug_shift`.
+- Hardware boot-only command used `--debug-bits boot336` against `artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-seed18-boot-isolated-boot336`.
+- Hardware gate result: FAIL to calibrate within 120s with the same signature as the non-isolated rowstream-loader build: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
+- Interpretation: the built-in post-calibration probe is not the cause, because the design never reaches calibration. Continue with a repo-local known-good BIST-equivalent plus `boot336`, then compare settings/placement against rowstream-loader before applying pre-place constraints. If constraints are needed, start with a narrow clock/PHY/pin bundle from a calibration-positive build.
