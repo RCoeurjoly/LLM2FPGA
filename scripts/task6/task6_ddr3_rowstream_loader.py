@@ -250,9 +250,16 @@ def parse_args() -> argparse.Namespace:
         type=lambda value: int(value, 0),
         default=None,
         help=(
-            "launch one board-side single-address write/read probe using the "
-            "RTL hardcoded PROBE_BYTE value"
+            "launch one board-side single-address write/read probe using an "
+            "RTL hardcoded value table; this is the DDR3 address"
         ),
+    )
+    parser.add_argument(
+        "--diagnostic-hardcoded-singlebyte-value-index",
+        type=lambda value: int(value, 0),
+        choices=(0, 1, 2, 3),
+        default=2,
+        help="RTL hardcoded value table index: 0=0x00, 1=0xff, 2=0xa5, 3=0x5a",
     )
     parser.add_argument(
         "--diagnostic-denseburst-value",
@@ -1550,18 +1557,23 @@ def run_hardcoded_autoprobe_diagnostic(
 def run_hardcoded_singlebyte_diagnostic(
     loader: RowstreamLoader,
     stream_base: int,
+    value_index: int,
     run_dir: Path,
     initial_debug: dict[str, Any],
 ) -> dict[str, Any]:
     if stream_base < 0:
         raise ValueError("hardcoded singlebyte address must be non-negative")
+    if value_index < 0 or value_index > 3:
+        raise ValueError("hardcoded singlebyte value index must be in 0..3")
 
-    debug = loader.run_hardcoded_singlebyte(stream_base)
+    expected_table = [0x00, 0xFF, 0xA5, 0x5A]
+    command_addr = stream_base | ((value_index & 0x3) << 8)
+    debug = loader.run_hardcoded_singlebyte(command_addr)
     observed_word = debug["rtl_fullbeat_write_echo32"]
     observed = observed_word & 0xFF
     valid = (observed_word >> 8) & 0xF
     mismatch_bits = (observed_word >> 12) & 0xF
-    expected = 0xA5
+    expected = expected_table[value_index]
     pass_status = (
         bool(debug["boot_done"])
         and bool(debug["boot_write_ack_seen"])
@@ -1577,6 +1589,8 @@ def run_hardcoded_singlebyte_diagnostic(
         "artifact_name": "task6-ypcb-uberddr3-hardcoded-singlebyte-board-diagnostic",
         "status": "PASS" if pass_status else "FAIL",
         "stream_base": stream_base,
+        "value_index": value_index,
+        "command_addr": command_addr,
         "expected": expected,
         "observed": observed,
         "valid_bits": valid,
@@ -2100,6 +2114,7 @@ def main() -> int:
             diagnostic = run_hardcoded_singlebyte_diagnostic(
                 loader,
                 args.diagnostic_hardcoded_singlebyte_addr,
+                args.diagnostic_hardcoded_singlebyte_value_index,
                 run_dir,
                 initial_debug,
             )
@@ -2110,6 +2125,8 @@ def main() -> int:
                     "run_dir": str(run_dir),
                     "diagnostic_json": str(run_dir / "hardcoded-singlebyte-diagnostic.json"),
                     "stream_base": diagnostic["stream_base"],
+                    "value_index": diagnostic["value_index"],
+                    "command_addr": diagnostic["command_addr"],
                     "expected": diagnostic["expected"],
                     "observed": diagnostic["observed"],
                     "valid_bits": diagnostic["valid_bits"],

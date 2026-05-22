@@ -58,6 +58,19 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
   localparam logic [7:0] PROBE_BYTE_VALUE = PROBE_BYTE[7:0];
 
+  function automatic logic [7:0] hardcoded_probe_value(
+    input logic [1:0] selector
+  );
+    begin
+      case (selector)
+        2'd0: hardcoded_probe_value = 8'h00;
+        2'd1: hardcoded_probe_value = 8'hff;
+        2'd2: hardcoded_probe_value = 8'ha5;
+        default: hardcoded_probe_value = 8'h5a;
+      endcase
+    end
+  endfunction
+
   wire controller_clk;
   wire ddr3_clk;
   wire ddr3_clk_90;
@@ -527,7 +540,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           read_probe_state_q <= READ_PROBE_ISSUE_WRITE;
         end else if (jtag_command_opcode == LOADER_OP_RUN_HARDCODED_SINGLEBYTE) begin
           read_probe_single_q <= 1'b1;
-          read_probe_expected_byte_q <= PROBE_BYTE_VALUE;
+          read_probe_expected_byte_q <= hardcoded_probe_value(jtag_command_addr[9:8]);
           read_probe_stream_base_q <= jtag_command_addr[5:0];
           read_probe_write_drain_q <= 10'd0;
           read_probe_wait_cycles_q <= 32'd0;
