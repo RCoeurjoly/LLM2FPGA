@@ -20328,3 +20328,29 @@ Next execution step:
 - Run only the boot-only `boot336` calibration gate.
 - If this calibrates, proceed to rowstream diagnostics from this slower, proven DDR3 clock baseline.
 - If this still fails, extract narrow pre-place locks from the calibration-positive one-lane BIST-equivalent, starting with clock/PHY/pins only.
+
+### 2026-05-22 - BIST-clocked rowstream-loader boot gate result
+
+Implementation:
+
+- Added `.#task6-ypcb-uberddr3-rowstream-loader-bist-clock-seed18-clocked-bitstream`.
+- This target keeps rowstream-loader logic and the `boot336` readout, but uses the calibration-positive BIST-equivalent clock configuration:
+  - PLL divides `CLKOUT0_DIVIDE=10`, `CLKOUT1_DIVIDE=10`, `CLKOUT2_DIVIDE=40`
+  - `CONTROLLER_CLK_PERIOD=40_000`
+  - `DDR3_CLK_PERIOD=10_000`
+  - `BYTE_LANES=1`
+- Built bitstream: `/nix/store/wa5lfg0wgklz4bnbhh1j1xn75agg4mp6-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`.
+- Build result: PASS. Routed `controller_clk` max frequency is 122.90 MHz.
+
+Hardware boot-only result:
+
+- Run directory: `artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-rowstream-bist-clock-seed18-boot336`.
+- Calibration now succeeds: `calib_complete=True`, `calib_seen=True`, `calib_seen_cycle=20240`.
+- Generic boot-clean diagnostic still reports FAIL/`boot-unclean` because `boot_mismatch=True`, while `boot_error=False`, `loader_error=False`, `wb_err_count=0`.
+- This changes the failure class: the previous rowstream-loader targets stalled before calibration (`calib_seen=False`, `debug1=0x0100000c`), but the BIST-clocked rowstream-loader reaches calibration and exposes a post-calibration data/probe mismatch.
+
+Decision:
+
+- Do not apply pre-place constraints now. The primary calibration blocker was clock/period mismatch, not placement.
+- Next safe step is a post-calibration diagnostic on the BIST-clocked rowstream-loader, starting with the smallest deterministic check that does not load TinyStories rows: likely `--diagnostic-rtl-fullbeat-base` or an even smaller low-byte/readbeat check.
+- Keep rowstream load blocked until boot/probe mismatch is understood or bypassed with a deliberately scoped loader-only gate.
