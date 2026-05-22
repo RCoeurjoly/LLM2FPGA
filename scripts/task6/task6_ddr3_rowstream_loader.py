@@ -181,6 +181,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--diagnostic-lowbyte-interleaved-value",
+        type=lambda value: int(value, 0),
+        default=None,
+        help=(
+            "optional constant byte value for --diagnostic-lowbyte-interleaved-count; "
+            "when omitted, the diagnostic writes the index ramp i & 0xff"
+        ),
+    )
+    parser.add_argument(
         "--diagnostic-dense-count",
         type=int,
         default=0,
@@ -1024,6 +1033,7 @@ def run_lowbyte_diagnostic(
         "artifact_name": "task6-ypcb-uberddr3-lowbyte-0n-board-diagnostic",
         "status": "PASS" if mismatch_count == 0 else "FAIL",
         "count": count,
+        "constant_value": constant_value,
         "mismatch_count": mismatch_count,
         "initial_debug": json_debug(initial_debug),
         "final_debug": json_debug(final_debug),
@@ -1098,15 +1108,18 @@ def run_lowbyte_interleaved_diagnostic(
     count: int,
     run_dir: Path,
     initial_debug: dict[str, Any],
+    constant_value: int | None = None,
 ) -> dict[str, Any]:
     if count <= 0:
         raise ValueError("interleaved lowbyte count must be positive")
+    if constant_value is not None and (constant_value < 0 or constant_value > 0xFF):
+        raise ValueError("interleaved lowbyte constant value must fit in one byte")
 
     samples = []
     mismatch_count = 0
     for index in range(count):
         physical_addr = index + 1
-        expected = index & 0xFF
+        expected = (constant_value if constant_value is not None else index) & 0xFF
         write_debug = loader.write_lowbyte_physical(physical_addr, expected)
         observed, read_debug = loader.read_lowbyte_physical(physical_addr)
         match = observed == expected
@@ -2130,6 +2143,7 @@ def main() -> int:
                 args.diagnostic_lowbyte_interleaved_count,
                 run_dir,
                 initial_debug,
+                args.diagnostic_lowbyte_interleaved_value,
             )
             write_json(
                 run_dir / "summary.json",
@@ -2138,6 +2152,7 @@ def main() -> int:
                     "run_dir": str(run_dir),
                     "diagnostic_json": str(run_dir / "lowbyte-interleaved-diagnostic.json"),
                     "count": diagnostic["count"],
+                    "constant_value": diagnostic["constant_value"],
                     "mismatch_count": diagnostic["mismatch_count"],
                     "verdict": diagnostic["decision"]["verdict"],
                     "wb_ack_count": diagnostic["final_debug"]["wb_ack_count"],
