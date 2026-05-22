@@ -20839,3 +20839,37 @@ Decision:
 - Interpretation rule:
   - capture `0xa5`: host debug extraction/read-data plumbing is wrong
   - capture `0x01` or other mismatch: DDR3/controller readback or address mapping is wrong
+
+### 2026-05-22 - Lowbyte read-ACK capture for phys2/phys3
+
+Implemented the lowbyte read capture fix in `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv`: the RTL now records `wb_data[7:0]` when `LOADER_OP_READ_LOWBYTE` receives the actual Wishbone ACK in the loader issue/wait states.
+
+Build:
+
+- `.#task6-ypcb-uberddr3-rowstream-loader-bist-clock-seed18-clocked-bitstream`
+- Bitstream: `/nix/store/yi28ncsvmys1qvkl6dvdpcgrp8y4wy3h-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+- Timing remained positive: `controller_clk` max frequency reported as 96.64 MHz, PASS at 25 MHz.
+
+Focused diagnostic:
+
+- Run root: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-readack-capture-single-a5-phys2-3-1lane-rowstream-bist-clock-seed18-boot336`
+- Command: `LOADER_OP_WRITE_LOWBYTE` followed by `LOADER_OP_READ_LOWBYTE`
+- Byte lanes: 1
+- Debug width: boot336
+- Expected low byte: `0xa5`
+
+Results:
+
+| Physical address | Status | Host observed | RTL write capture | RTL read-ACK capture | WB errors |
+| --- | --- | --- | --- | --- | --- |
+| 2 | FAIL | `0x03` | addr `2`, write `0xa5`, write seen | addr `2`, read `0xa6`, read seen | 0 |
+| 3 | FAIL | `0x03` | addr `3`, write `0xa5`, write seen | addr `3`, read `0xa7`, read seen | 0 |
+
+Interpretation:
+
+- The RTL read capture is now firing on the actual lowbyte read ACK.
+- Because the read-ACK capture is not `0xa5`, this is not merely host-side debug extraction losing the byte.
+- The controller/DDR3 path is returning address-correlated bytes (`0xa6` at phys2, `0xa7` at phys3) while the write capture still shows the requested write byte `0xa5`.
+- Host observed byte remains `0x03`, which is a separate read-data/debug extraction symptom, but the decisive result is that RTL-visible readback is already wrong before host extraction.
+
+Next safe debug step: inspect the controller lowbyte address-to-Wishbone mapping and byte-select behavior for 1-lane physical addresses 1..3. The current evidence points at readback/address/byte-lane mapping rather than calibration or the JTAG command packer.

@@ -1,0 +1,48 @@
+[
+  {
+    "addr": 2,
+    "err": 0,
+    "observed": 3,
+    "read_ack": 11,
+    "read_capture": {
+      "addr": 2,
+      "read_data": 166,
+      "read_seen": true,
+      "write_data": 165,
+      "write_seen": true
+    },
+    "status": "FAIL",
+    "write_ack": 10,
+    "write_byte": 165,
+    "write_capture": {
+      "addr": 2,
+      "read_data": 0,
+      "read_seen": false,
+      "write_data": 165,
+      "write_seen": true
+    }
+  },
+  {
+    "addr": 3,
+    "err": 0,
+    "observed": 3,
+    "read_ack": 13,
+    "read_capture": {
+      "addr": 3,
+      "read_data": 167,
+      "read_seen": true,
+      "write_data": 165,
+      "write_seen": true
+    },
+    "status": "FAIL",
+    "write_ack": 12,
+    "write_byte": 165,
+    "write_capture": {
+      "addr": 3,
+      "read_data": 166,
+      "read_seen": true,
+      "write_data": 165,
+      "write_seen": true
+    }
+  }
+]
