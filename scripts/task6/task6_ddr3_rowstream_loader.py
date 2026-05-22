@@ -1150,6 +1150,7 @@ def run_lowbyte_interleaved_diagnostic(
         "artifact_name": "task6-ypcb-uberddr3-lowbyte-interleaved-board-diagnostic",
         "status": "PASS" if pass_status else "FAIL",
         "count": count,
+        "constant_value": constant_value,
         "mismatch_count": mismatch_count,
         "initial_debug": json_debug(initial_debug),
         "final_debug": json_debug(final_debug),
