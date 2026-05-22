@@ -21059,3 +21059,43 @@ Interpretation:
 - Do not enable packed full-beat rowstream loading yet. The primitive needed for safe TinyStories DDR3 loading is still failing at beat address 0.
 
 Next safe debug step: run the same fullbeat diagnostic at several nonzero beat addresses and bases. If all fail with similar corruption, inspect UberDDR3 write/read timing or the BIST/user-port coexistence. If some addresses pass, reserve bad low addresses and use a nonzero base offset for rowstream loading.
+
+### 2026-05-22 - Fullbeat nonzero address/base matrix
+
+Ran the compact `boot336` fullbeat diagnostic matrix on the current 1-lane BIST-clocked rowstream-loader bitstream:
+
+- Bitstream: `/nix/store/bkg0bkkvdkgr3f6yirjj8905g9390azn-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+- Run root: `artifacts/task6/runs/final-ts1m-inference/ddr3-fullbeat-matrix-nonzero-1lane-rowstream-bist-clock-seed18-boot336-compact-status`
+- Beat addresses: 1, 2, 4, 8
+- Base bytes: `0x00`, `0x20`, `0x80`, `0xa0`
+
+All 16 combinations failed.
+
+Common properties across all runs:
+
+- BIST gate passed: `debug1[4:0] == 23`
+- `LOADER_OP_RUN_FULLBEAT` completed: fullbeat done true
+- write ACK seen
+- read ACK seen
+- Wishbone error count stayed 0
+- fullbeat mismatch count was 8
+- low32 readback did not match expected low32
+
+Representative results:
+
+| Beat addr | Base | Expected low32 | Observed low32 bytes | Status |
+| --- | --- | --- | --- | --- |
+| 1 | `0x00` | `00 01 02 03` | `a8 a8 00 06` | FAIL |
+| 1 | `0xa0` | `a0 a1 a2 a3` | `80 81 12 28` | FAIL |
+| 2 | `0x20` | `20 21 22 23` | `00 01 12 28` | FAIL |
+| 4 | `0x80` | `80 81 82 83` | `20 21 12 00` | FAIL |
+| 8 | `0xa0` | `a0 a1 a2 a3` | `80 81 12 28` | FAIL |
+
+Interpretation:
+
+- This is not address-0-specific.
+- This is not solved by changing the base pattern.
+- The user-port fullbeat write/read primitive is generally failing despite calibration/BIST completion and clean Wishbone ACK/error behavior.
+- Packed rowstream writes remain the right architectural direction for the no-DM board, but the user-port path must be made BIST-equivalent before TinyStories loading.
+
+Most promising next route: compare the upstream BIST write/read sequence against `LOADER_OP_RUN_FULLBEAT`, especially user-port timing after BIST completion. A likely next experiment is a BIST-equivalent user-port fullbeat probe that writes the same simple pattern/address cadence BIST uses, or a target with `BIST_MODE=0` after calibration so the user port is not competing with/comparing against residual BIST state.

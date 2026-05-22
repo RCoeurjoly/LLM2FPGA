@@ -1,0 +1,16 @@
+addr=1 base=0x00 exit=1
+addr=1 base=0x20 exit=1
+addr=1 base=0x80 exit=1
+addr=1 base=0xa0 exit=1
+addr=2 base=0x00 exit=1
+addr=2 base=0x20 exit=1
+addr=2 base=0x80 exit=1
+addr=2 base=0xa0 exit=1
+addr=4 base=0x00 exit=1
+addr=4 base=0x20 exit=1
+addr=4 base=0x80 exit=1
+addr=4 base=0xa0 exit=1
+addr=8 base=0x00 exit=1
+addr=8 base=0x20 exit=1
+addr=8 base=0x80 exit=1
+addr=8 base=0xa0 exit=1
