@@ -236,6 +236,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [5:0] loader_dense_write_lane_q;
   logic [7:0] loader_dense_write_data_q;
   logic [15:0] loader_dense_write_sel_low_q;
+  logic [7:0] loader_lowbyte_write_data_q;
+  logic [7:0] loader_lowbyte_read_data_q;
+  logic [7:0] loader_lowbyte_addr_q;
+  logic loader_lowbyte_read_seen_q;
+  logic loader_lowbyte_write_seen_q;
   logic loader_fullbeat_read_after_write_q;
   logic loader_fullbeat_compare_active_q;
   logic loader_fullbeat_done_q;
@@ -418,6 +423,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       loader_dense_write_lane_q <= 6'd0;
       loader_dense_write_data_q <= 8'd0;
       loader_dense_write_sel_low_q <= 16'd0;
+      loader_lowbyte_write_data_q <= 8'd0;
+      loader_lowbyte_read_data_q <= 8'd0;
+      loader_lowbyte_addr_q <= 8'd0;
+      loader_lowbyte_read_seen_q <= 1'b0;
+      loader_lowbyte_write_seen_q <= 1'b0;
       loader_fullbeat_read_after_write_q <= 1'b0;
       loader_fullbeat_compare_active_q <= 1'b0;
       loader_fullbeat_done_q <= 1'b0;
@@ -470,12 +480,16 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
           loader_write_data_q <= {WB_SEL_BITS{jtag_command_data_byte}};
           loader_sel_q <= {WB_SEL_BITS{1'b1}};
+          loader_lowbyte_addr_q <= jtag_command_addr[7:0];
+          loader_lowbyte_write_data_q <= jtag_command_data_byte;
+          loader_lowbyte_write_seen_q <= 1'b1;
           read_probe_cyc_q <= 1'b1;
           read_probe_stb_q <= 1'b1;
           read_probe_we_q <= 1'b1;
           read_probe_state_q <= LOADER_ISSUE;
         end else if (jtag_command_opcode == LOADER_OP_READ_LOWBYTE) begin
           loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
+          loader_lowbyte_addr_q <= jtag_command_addr[7:0];
           loader_read_chunk_q <= 2'd0;
           loader_sel_q <= {{(WB_SEL_BITS - 1){1'b0}}, 1'b1};
           read_probe_cyc_q <= 1'b1;
@@ -991,6 +1005,12 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       read_probe_done_q && loader_last_opcode_q == LOADER_OP_RUN_HARDCODED_SINGLEBYTE ?
       {8'd0, read_probe_expected_byte_q, read_probe_stream_mismatch_q,
        read_probe_stream_valid_q, read_probe_stream_bytes_q[7:0]} :
+      read_probe_done_q &&
+      (loader_last_opcode_q == LOADER_OP_WRITE_LOWBYTE ||
+       loader_last_opcode_q == LOADER_OP_READ_LOWBYTE) ?
+      {loader_lowbyte_addr_q, loader_lowbyte_write_data_q,
+       loader_lowbyte_read_data_q, 6'd0, loader_lowbyte_read_seen_q,
+       loader_lowbyte_write_seen_q} :
       read_probe_done_q ? loader_read_data_q[31:0] : read_probe_data_q[31:0];
     jtag_debug_payload[272 +: 32] =
       {jtag_command_count[7:0], loader_last_opcode_q,
