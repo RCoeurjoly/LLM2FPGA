@@ -20268,3 +20268,16 @@ Rationale:
 - Hardware boot-only command used `--debug-bits boot336` against `artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-seed18-boot-isolated-boot336`.
 - Hardware gate result: FAIL to calibrate within 120s with the same signature as the non-isolated rowstream-loader build: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
 - Interpretation: the built-in post-calibration probe is not the cause, because the design never reaches calibration. Continue with a repo-local known-good BIST-equivalent plus `boot336`, then compare settings/placement against rowstream-loader before applying pre-place constraints. If constraints are needed, start with a narrow clock/PHY/pin bundle from a calibration-positive build.
+
+### 2026-05-22 - Repo-local known-good BIST-equivalent execution step
+
+Next move to execute now:
+
+1. Build a repo-local known-good BIST-equivalent with `boot336` observability, constrained to the calibration-proven 1-byte-lane envelope.
+2. Confirm boot-only calibration on hardware before any rowstream or diagnostic traffic.
+3. Compare the calibration-positive BIST-equivalent against the failing rowstream-loader builds.
+4. Only after that comparison, apply narrow pre-place constraints from the calibration-positive build: clock/PHY/pins first, not full placement.
+
+Guardrail:
+
+- If the repo-local 1-byte-lane BIST-equivalent does not calibrate, do not add rowstream logic or placement locks yet; first reconcile it against the imported known-good 1-lane UberDDR3 baseline.
