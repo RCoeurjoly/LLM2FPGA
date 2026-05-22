@@ -619,8 +619,8 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "dense_write_lane": (raw >> 481) & 0x3F,
         "dense_write_data": (raw >> 487) & 0xFF,
         "dense_write_sel_low16": (raw >> 496) & 0xFFFF,
-        "dense_burst_active": bool((raw >> 464) & 0x1),
-        "dense_burst_mismatch_count": (raw >> 465) & 0x7F,
+        "dense_burst_active": bool((loader_word >> 17) & 0x1) or bool((raw >> 464) & 0x1),
+        "dense_burst_mismatch_count": ((loader_word >> 18) & 0x7F) or ((raw >> 465) & 0x7F),
         "dense_burst_addr_low24": (raw >> 472) & 0xFF_FFFF,
         "dense_burst_expected_base": (raw >> 496) & 0xFF,
         "fullbeat_write_ack_delta": (raw >> 504) & 0xF,
@@ -761,6 +761,9 @@ def decode_debug_boot(raw: int) -> dict[str, Any]:
     debug["schema"] = "boot-336"
     debug["_ack_supported"] = True
     read_data_chunk = debug["rtl_fullbeat_write_echo32"].to_bytes(4, "little") + bytes(12)
+    loader_word = (raw >> 304) & 0xFFFF_FFFF
+    debug["dense_burst_active"] = bool((loader_word >> 17) & 0x1)
+    debug["dense_burst_mismatch_count"] = (loader_word >> 18) & 0x7F
     debug["read_data_chunk"] = read_data_chunk
     debug["read_data_beat"] = read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk))
     return debug

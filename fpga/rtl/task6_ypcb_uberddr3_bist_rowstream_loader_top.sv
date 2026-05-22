@@ -1026,7 +1026,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     jtag_debug_payload[208 +: 32] = wb_stall_count_q;
     jtag_debug_payload[240 +: 32] =
       read_probe_done_q && loader_last_opcode_q == LOADER_OP_RUN_FULLBEAT ?
-      loader_fullbeat_write_echo_q :
+      loader_read_data_q[31:0] :
       read_probe_done_q && loader_last_opcode_q == LOADER_OP_RUN_HARDCODED_SINGLEBYTE ?
       {8'd0, read_probe_expected_byte_q, read_probe_stream_mismatch_q,
        read_probe_stream_valid_q, read_probe_stream_bytes_q[7:0]} :
@@ -1041,7 +1041,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       {jtag_command_count[7:0], loader_last_opcode_q,
        6'd0, loader_last_chunk_q, loader_last_magic_ok_q, loader_last_accepted_q};
     jtag_debug_payload[304 +: 32] = {
-      15'd0,
+      7'd0,
+      loader_fullbeat_mismatch_count_q,
+      loader_fullbeat_done_q,
       read_probe_done_q && (read_probe_stream_mismatch_q != 4'd0),
       read_probe_stall_seen_q,
       read_probe_err_seen_q,

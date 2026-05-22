@@ -21007,3 +21007,16 @@ This keeps the no-DM direction explicit: byte/lowbyte diagnostics are no longer 
 Correction: the first host-side gate edit changed an earlier fullbeat diagnostic occurrence but left `run_rtl_fullbeat_diagnostic` still requiring `boot_mismatch == false`. The RTL-fullbeat diagnostic now explicitly uses the intended BIST-done gate in that function as well.
 
 Applied the actual RTL-fullbeat initial gate replacement: `run_rtl_fullbeat_diagnostic` now checks `debug1[4:0] == 23` and `boot_error == false` before issuing `LOADER_OP_RUN_FULLBEAT`.
+
+### 2026-05-22 - Compact fullbeat status in boot336 debug
+
+The direct fullbeat diagnostic could issue the command with BIST done and no Wishbone errors, but the reliable `boot336` debug path did not expose fullbeat done/mismatch status. The 512-bit debug path remained unsuitable for this 1-lane target.
+
+Implemented compact fullbeat observability inside the existing 336-bit debug window:
+
+- for `LOADER_OP_RUN_FULLBEAT`, `jtag_debug_payload[240 +: 32]` now reports `loader_read_data_q[31:0]` instead of the write echo
+- `jtag_debug_payload[304]` bit 17 now reports `loader_fullbeat_done_q`
+- `jtag_debug_payload[304 + 18 +: 7]` now reports `loader_fullbeat_mismatch_count_q`
+- host decode maps those compact fields back into the existing fullbeat diagnostic fields for `boot336`
+
+Next gate: rebuild the BIST-clocked 1-lane rowstream-loader and rerun the direct fullbeat diagnostic at beat address 0/base `0xa0` using `--debug-bits boot336`.
