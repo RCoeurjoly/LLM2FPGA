@@ -288,7 +288,9 @@
             yosys -s run.ys
           '';
         task6YpcbUberDdr3RowstreamLoaderYosysJson =
-          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson { };
+          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
+            byteLanes = 2;
+          };
         task6YpcbUberDdr3RowstreamLoader1LaneYosysJson =
           mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
             name = "task6-ypcb-uberddr3-rowstream-loader-1lane-yosys.json";
