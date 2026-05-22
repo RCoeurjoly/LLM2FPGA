@@ -1,0 +1,11 @@
+{
+  "count": 16,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-interleaved16-phys1-1lane-rowstream-bist-clock-seed18-boot336/lowbyte-interleaved-diagnostic.json",
+  "loader_error": false,
+  "mismatch_count": 16,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-interleaved16-phys1-1lane-rowstream-bist-clock-seed18-boot336",
+  "status": "FAIL",
+  "verdict": "lowbyte-interleaved-fails",
+  "wb_ack_count": 41,
+  "wb_err_count": 0
+}

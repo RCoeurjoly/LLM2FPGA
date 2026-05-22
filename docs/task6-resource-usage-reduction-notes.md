@@ -20697,3 +20697,31 @@ Decision:
   - use physical addresses starting at 1 so DDR3 address 0 remains reserved
 - Purpose: distinguish a write-all/read-all sequencing issue from a true multi-address lowbyte problem.
 - Initial scope: 16 pairs, physical addresses 1..16, values 0..15.
+
+### 2026-05-22 - Interleaved lowbyte sequence result
+
+- Added and ran an interleaved sparse lowbyte diagnostic:
+  - for each index, write one byte to physical address `index + 1`
+  - immediately read the same physical address before moving to the next index
+  - physical address 0 remains reserved
+- Run details:
+  - bitstream: `/nix/store/jav2p83p6iwg704b4qlklpfcg1czcn4r-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-interleaved16-phys1-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-lowbyte-interleaved-count 16 --debug-bits boot336`
+- Result: FAIL.
+- Command transport remained good:
+  - write/read ACKs advanced through all 16 pairs
+  - `wb_err_count=0`
+  - `loader_error=False`
+- Readback pattern:
+  - phys1 write `0x00`, observed `0xa8`
+  - phys2 write `0x01`, observed `0xa6`
+  - phys3 write `0x02`, observed `0xa7`
+  - phys4..16 write `0x03..0x0f`, observed mostly `0x00`
+  - mismatch count: 16/16
+- Interpretation:
+  - The sparse failure is not caused only by write-all/read-all ordering; it also fails with immediate write/read pairs.
+  - The passing lowbyte single-command test used constant value `0xa5` at physical address 1, while this interleaved ramp uses low values `0x00..0x0f`.
+  - The next distinction is constant nonzero multi-address behavior versus ramp-value behavior.
+- Decision: do not proceed to dense/lane-map or TinyStories rowstream load yet.
+- Next safe step: run an interleaved constant-value lowbyte diagnostic, e.g. write/read `0xa5` at physical addresses 1..3 or 1..16, to test whether the issue is value/ramp-specific or multi-address-specific.
