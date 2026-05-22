@@ -257,15 +257,19 @@
         task6YpcbUberDdr3BistYosysJson =
           mkTask6YpcbUberDdr3BistYosysJson { };
         mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
-          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8 }:
+          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1 }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
             set -euo pipefail
             substitute ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv} \
               task6_ypcb_uberddr3_bist_rowstream_loader_top.sv \
-              --replace-fail "parameter int BYTE_LANES = 8" \
-                             "parameter int BYTE_LANES = ${toString byteLanes}"
+              --replace-fail "parameter int BYTE_LANES = 8," \
+                             "parameter int BYTE_LANES = ${toString byteLanes}," \
+              --replace-fail "parameter int JTAG_CHAIN = 1" \
+                             "parameter int JTAG_CHAIN = ${toString jtagChain}" \
+              --replace-fail "parameter int DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1)" \
+                             "parameter int DISABLE_JTAG_DEBUG_SHIFT = ${if disableJtagDebugShift then "1" else "0"}"
             cat > run.ys <<EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v

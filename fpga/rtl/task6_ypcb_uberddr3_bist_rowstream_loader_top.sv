@@ -5,7 +5,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter int JTAG_CHAIN = 1,
   parameter int JTAG_COMMAND_CHAIN = 2,
   parameter int PROBE_BYTE = 165,
-  parameter int BYTE_LANES = 8
+  parameter int BYTE_LANES = 8,
+  parameter int DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1)
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -35,12 +36,15 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam logic [7:0] LOADER_OP_RUN_AUTOPROBE = 8'h07;
   localparam logic [7:0] LOADER_OP_WRITE_DENSE_FILL = 8'h08;
   localparam logic [7:0] LOADER_OP_RUN_FULLBEAT = 8'h09;
+  localparam logic [7:0] LOADER_OP_SET_DENSE_PAGE = 8'h0a;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
   localparam int WB_ADDR_BITS = ROW_BITS + COL_BITS + BA_BITS - 3;
   localparam int WB_DATA_BITS = 8 * BYTE_LANES * 8;
   localparam int WB_SEL_BITS = WB_DATA_BITS / 8;
+  localparam int ROWSTREAM_DENSE_ADDR_BITS = 22;
+  localparam int ROWSTREAM_DENSE_PAGE_BITS = ROWSTREAM_DENSE_ADDR_BITS - 10;
   localparam logic [3:0] ROW_BITS_NIBBLE = ROW_BITS % 16;
   localparam logic [3:0] COL_BITS_NIBBLE = COL_BITS % 16;
   localparam logic [3:0] BA_BITS_NIBBLE = BA_BITS % 16;
@@ -48,7 +52,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
   localparam logic [7:0] PROBE_BYTE_VALUE = PROBE_BYTE[7:0];
-  localparam bit DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1);
 
   wire controller_clk;
   wire ddr3_clk;
@@ -215,6 +218,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [5:0] loader_dense_write_lane_q;
   logic [7:0] loader_dense_write_data_q;
   logic [15:0] loader_dense_write_sel_low_q;
+  logic [ROWSTREAM_DENSE_PAGE_BITS - 1:0] loader_dense_page_q;
   logic loader_fullbeat_read_after_write_q;
   logic loader_fullbeat_compare_active_q;
   logic loader_fullbeat_done_q;
@@ -240,7 +244,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   wire [7:0] jtag_command_data_byte = jtag_command_payload[64 +: 8];
   wire jtag_command_magic_ok = jtag_command_magic == LOADER_COMMAND_MAGIC;
   wire [WB_ADDR_BITS - 1:0] jtag_command_dense_addr =
-    {{(WB_ADDR_BITS - 10){1'b0}}, jtag_command_addr[15:6]};
+    {{(WB_ADDR_BITS - ROWSTREAM_DENSE_ADDR_BITS){1'b0}},
+     loader_dense_page_q, jtag_command_addr[15:6]};
   wire [WB_SEL_BITS - 1:0] jtag_command_dense_sel =
     {{(WB_SEL_BITS - 1){1'b0}}, 1'b1} << jtag_command_addr[5:0];
   logic [WB_DATA_BITS - 1:0] jtag_command_dense_data;
@@ -393,6 +398,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       loader_dense_write_lane_q <= 6'd0;
       loader_dense_write_data_q <= 8'd0;
       loader_dense_write_sel_low_q <= 16'd0;
+      loader_dense_page_q <= '0;
       loader_fullbeat_read_after_write_q <= 1'b0;
       loader_fullbeat_compare_active_q <= 1'b0;
       loader_fullbeat_done_q <= 1'b0;
@@ -440,7 +446,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         loader_fullbeat_read_after_write_q <= 1'b0;
         loader_fullbeat_compare_active_q <= 1'b0;
         loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
-        if (jtag_command_opcode == LOADER_OP_WRITE_LOWBYTE) begin
+        if (jtag_command_opcode == LOADER_OP_SET_DENSE_PAGE) begin
+          loader_dense_page_q <= jtag_command_addr[ROWSTREAM_DENSE_PAGE_BITS - 1:0];
+        end else if (jtag_command_opcode == LOADER_OP_WRITE_LOWBYTE) begin
           loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
           loader_write_data_q <= {WB_SEL_BITS{jtag_command_data_byte}};
           loader_sel_q <= {WB_SEL_BITS{1'b1}};

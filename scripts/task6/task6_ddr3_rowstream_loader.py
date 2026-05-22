@@ -20,7 +20,7 @@ from read_jtag_debug_ftdi_bitbang import (
     FtdiBitbangJtag,
     FtdiMpsseJtag,
 )
-from read_jtag_debug_xvc import reset_tap, shift_dr_read, shift_ir
+from read_jtag_debug_xvc import clock_tms, reset_tap, shift_dr_read, shift_ir
 from write_jtag_command_ftdi_bitbang import shift_dr_write
 
 
@@ -56,6 +56,7 @@ DEBUG_MAGIC_UBER = 0xD3B5
 DEBUG_VERSION = 63
 COMMAND_BITS = 192
 COMMAND_MAGIC = 0x33445244
+OP_STATUS = 0x00
 OP_WRITE_CHUNK = 0x01
 OP_READ_BEAT = 0x02
 OP_WRITE_LOWBYTE = 0x03
@@ -65,6 +66,7 @@ OP_READ_DENSE_BEAT = 0x06
 OP_RUN_AUTOPROBE = 0x07
 OP_WRITE_DENSE_FILL = 0x08
 OP_RUN_FULLBEAT = 0x09
+OP_SET_DENSE_PAGE = 0x0A
 BEAT_BYTES = 64
 
 
@@ -86,8 +88,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bit-delay-us", type=float, default=0.0)
     parser.add_argument("--ir-len", type=int, default=6)
     parser.add_argument("--debug-ir", type=lambda value: int(value, 0), default=0x02)
-    parser.add_argument("--debug-bits", choices=("auto", "512", "960"), default="auto", help=(
-        "JTAG debug DR width to sample; auto detects by magic, use 512 or 960 to force."
+    parser.add_argument("--debug-bits", choices=("auto", "512", "960", "command"), default="auto", help=(
+        "JTAG debug DR width to sample; auto detects by magic, use 512 or 960 to force; command reads the USER2 status mailbox."
     ))
     parser.add_argument("--command-ir", type=lambda value: int(value, 0), default=0x03)
     parser.add_argument("--command-delay", type=float, default=0.001)
@@ -101,11 +103,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--calib-timeout", type=float, default=20.0)
     parser.add_argument(
         "--storage-mode",
-        choices=("lowbyte", "beat"),
+        choices=("lowbyte", "beat", "lane3"),
         default="lowbyte",
         help=(
             "lowbyte stores one rowstream byte in DDR3 byte lane 0 at one "
-            "Wishbone address per stream byte; beat uses dense 64-byte beats"
+            "Wishbone address per stream byte; beat uses dense 64-byte beats; "
+            "lane3 maps logical byte i to one stable physical DDR3 lane per beat"
         ),
     )
     parser.add_argument(
@@ -168,6 +171,16 @@ def parse_args() -> argparse.Namespace:
             "before rowstream loading, write one nonzero sentinel per dense byte "
             "lane up to N, read beat 0 after each write, emit a lane-map JSON, "
             "and exit"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-lane3-count",
+        type=int,
+        default=0,
+        help=(
+            "before rowstream loading, write values 0..N-1 through the lane3 "
+            "logical-to-physical mapping, read them back, emit a diagnostic "
+            "JSON, and exit"
         ),
     )
     parser.add_argument(
@@ -381,6 +394,107 @@ def make_command(opcode: int, chunk: int, addr: int, data: bytes = b"") -> int:
     for index, byte in enumerate(data):
         payload |= (byte & 0xFF) << (64 + index * 8)
     return payload
+
+
+def bits_to_int_lsb_first(bits: list[int]) -> int:
+    value = 0
+    for index, bit in enumerate(bits):
+        value |= (bit & 1) << index
+    return value
+
+
+def shift_dr_write_read(client: Any, value: int, bit_count: int, update_mode: str) -> int:
+    clock_tms(client, [1, 0, 0])
+    tdi_bits = [(value >> bit) & 1 for bit in range(bit_count)]
+    tms_bits = [0] * bit_count
+    tms_bits[-1] = 1
+    tdo_bits = client.shift(tms_bits, tdi_bits)
+    if update_mode == "idle":
+        clock_tms(client, [1, 0])
+    elif update_mode == "stop-at-update":
+        clock_tms(client, [1])
+    else:
+        raise ValueError(f"unknown update mode {update_mode!r}")
+    return bits_to_int_lsb_first(tdo_bits)
+
+
+def decode_debug_command_status(raw: int) -> dict[str, Any]:
+    status = (raw >> 40) & 0xFF
+    command_word = (raw >> 48) & 0xFFFF_FFFF
+    loader_word = (raw >> 80) & 0xFFFF_FFFF
+    data32 = (raw >> 112) & 0xFFFF_FFFF
+    fullbeat_word = (raw >> 144) & 0xFFFF_FFFF
+    read_data_chunk = data32.to_bytes(4, "little") + bytes(12)
+    return {
+        "raw_bits": COMMAND_BITS,
+        "raw_hex": f"0x{raw:0{COMMAND_BITS // 4}x}",
+        "schema": "command-192",
+        "_ack_supported": True,
+        "magic": raw & 0xFFFF_FFFF,
+        "magic_ok": (raw & 0xFFFF_FFFF) == DEBUG_MAGIC,
+        "version": (raw >> 32) & 0xFF,
+        "status": status,
+        "calib_complete": bool(status & 0x1),
+        "calib_seen": bool(status & 0x2),
+        "cycle": 0,
+        "calib_seen_cycle": 0,
+        "debug1": 0,
+        "wb_ack_count": 0,
+        "wb_err_count": 0,
+        "wb_stall_count": 0,
+        "rtl_fullbeat_write_echo32": data32,
+        "command_count": (command_word >> 18) & 0xFF,
+        "last_opcode": (command_word >> 10) & 0xFF,
+        "last_chunk": (command_word >> 2) & 0x3,
+        "last_magic_ok": bool(command_word & 0x2),
+        "last_accepted": bool(command_word & 0x1),
+        "loader_state": loader_word & 0xF,
+        "loader_stb": bool(loader_word & (1 << 4)),
+        "loader_cyc": bool(loader_word & (1 << 5)),
+        "loader_done": bool(loader_word & (1 << 6)),
+        "loader_write_ack_seen": bool(loader_word & (1 << 7)),
+        "loader_read_ack_seen": bool(loader_word & (1 << 8)),
+        "loader_error": bool(loader_word & (1 << 9)),
+        "loader_stall_seen": bool(loader_word & (1 << 10)),
+        "boot_done": bool(loader_word & (1 << 11)),
+        "boot_write_ack_seen": bool(loader_word & (1 << 12)),
+        "boot_read_ack_seen": bool(loader_word & (1 << 13)),
+        "boot_error": bool(loader_word & (1 << 14)),
+        "boot_stall_seen": bool(loader_word & (1 << 15)),
+        "boot_mismatch": bool(loader_word & (1 << 16)),
+        "loader_wait_cycles": 0,
+        "last_addr_low15": 0,
+        "dense_write_seen": False,
+        "dense_write_wb_addr_low16": 0,
+        "dense_write_lane": 0,
+        "dense_write_data": 0,
+        "dense_write_sel_low16": 0,
+        "dense_burst_active": False,
+        "dense_burst_mismatch_count": 0,
+        "dense_burst_addr_low24": 0,
+        "dense_burst_expected_base": 0,
+        "fullbeat_write_ack_delta": (fullbeat_word >> 16) & 0xF,
+        "fullbeat_read_ack_delta": (fullbeat_word >> 20) & 0xF,
+        "read_data_chunk": read_data_chunk,
+        "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
+        "sys_rstn": None,
+        "pll_locked": None,
+        "user1_selected": None,
+        "seen_bits": None,
+        "bist_state_done_seen": None,
+        "bist_state_finish_seen": None,
+        "bist_state_analyze_low_seen": None,
+        "bist_state_read_data_seen": None,
+        "bist_state_issue_read_seen": None,
+        "bist_state_issue_write2_seen": None,
+        "bist_state_issue_write1_seen": None,
+        "bist_state_burst_write_seen": None,
+        "bist_state_burst_read_seen": None,
+        "bist_state_random_write_seen": None,
+        "bist_state_random_read_seen": None,
+        "bist_state_alternate_seen": None,
+        "selected_dqs_page": None,
+    }
 
 
 def decode_debug_legacy(raw: int) -> dict[str, Any]:
@@ -598,11 +712,21 @@ class RowstreamLoader:
                 delay_s=args.bit_delay_us / 1_000_000.0,
             )
         reset_tap(self.client)
+        self._dense_write_page: int | None = None
 
     def close(self) -> None:
         self.client.close()
 
     def read_debug(self) -> dict[str, Any]:
+        if self.args.debug_bits == "command":
+            shift_ir(self.client, self.args.command_ir, self.args.ir_len)
+            status_raw = shift_dr_write_read(
+                self.client,
+                make_command(OP_STATUS, 0, 0),
+                COMMAND_BITS,
+                "idle",
+            )
+            return decode_debug_command_status(status_raw)
         if self.args.debug_bits == "auto":
             shift_bits = DEBUG_BITS_UBER
         elif self.args.debug_bits == "960":
@@ -699,9 +823,14 @@ class RowstreamLoader:
         return debug["read_data_chunk"][0], debug
 
     def write_dense_byte(self, stream_addr: int, value: int) -> dict[str, Any]:
+        page = stream_addr >> 16
+        low_addr = stream_addr & 0xFFFF
+        if self._dense_write_page != page:
+            self.send_command(OP_SET_DENSE_PAGE, 0, page)
+            self._dense_write_page = page
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
-        self.send_command(OP_WRITE_DENSE_BYTE, 0, stream_addr, bytes([value & 0xFF]))
+        self.send_command(OP_WRITE_DENSE_BYTE, 0, low_addr, bytes([value & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
 
     def read_dense_beat(self, beat_addr: int) -> tuple[bytes, dict[str, Any]]:
@@ -999,6 +1128,76 @@ def run_dense_lane_map_diagnostic(
         },
     }
     write_json(run_dir / "dense-lane-map-diagnostic.json", payload)
+    return payload
+
+
+def run_lane3_diagnostic(
+    loader: RowstreamLoader, count: int, run_dir: Path, initial_debug: dict[str, Any]
+) -> dict[str, Any]:
+    if count <= 0:
+        raise ValueError("lane3 diagnostic count must be positive")
+    writes = []
+    for logical_addr in range(count):
+        value = logical_addr & 0xFF
+        physical_addr = lane3_physical_addr(logical_addr)
+        debug = write_lane3_byte(loader, logical_addr, value)
+        writes.append(
+            {
+                "logical_addr": logical_addr,
+                "physical_addr": physical_addr,
+                "beat_addr": physical_addr // BEAT_BYTES,
+                "lane": physical_addr % BEAT_BYTES,
+                "value": value,
+                "ack_count": debug["wb_ack_count"],
+                "err_count": debug["wb_err_count"],
+                "loader_error": debug["loader_error"],
+            }
+        )
+
+    readback = []
+    for logical_addr in range(count):
+        expected = logical_addr & 0xFF
+        physical_addr = lane3_physical_addr(logical_addr)
+        value, debug = read_lane3_byte(loader, logical_addr)
+        readback.append(
+            {
+                "logical_addr": logical_addr,
+                "physical_addr": physical_addr,
+                "beat_addr": physical_addr // BEAT_BYTES,
+                "lane": physical_addr % BEAT_BYTES,
+                "expected": expected,
+                "observed": value,
+                "match": value == expected,
+                "ack_count": debug["wb_ack_count"],
+                "err_count": debug["wb_err_count"],
+                "loader_error": debug["loader_error"],
+            }
+        )
+    mismatch_count = sum(1 for row in readback if not row["match"])
+    final_debug = loader.read_debug()
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-lane3-logical-board-diagnostic",
+        "status": "PASS" if mismatch_count == 0 else "FAIL",
+        "count": count,
+        "mismatch_count": mismatch_count,
+        "initial_debug": json_debug(initial_debug),
+        "final_debug": json_debug(final_debug),
+        "writes": writes,
+        "readback": readback,
+        "decision": {
+            "verdict": (
+                "lane3-logical-contract-passes"
+                if mismatch_count == 0
+                else "lane3-logical-contract-fails"
+            ),
+            "next_gate": (
+                "If this passes, use lane3 for sparse boundary rows; if it "
+                "fails, inspect the physical beat/lane readback rows to adjust "
+                "the mapping."
+            ),
+        },
+    }
+    write_json(run_dir / "lane3-diagnostic.json", payload)
     return payload
 
 
@@ -1449,6 +1648,30 @@ def read_row_lowbyte(loader: RowstreamLoader, token: int, contract: dict[str, An
     return bytes(loader.read_lowbyte(start + index)[0] for index in range(row_bytes))
 
 
+def lane3_physical_addr(logical_addr: int) -> int:
+    # Host dense byte writes do not preserve multiple byte-select writes in the
+    # same DDR3 beat. Lane 15 survives reliably, so store one logical byte per
+    # 64-byte physical beat. The mode name is kept for compatibility with
+    # existing run scripts.
+    return logical_addr * BEAT_BYTES + 15
+
+
+def write_lane3_byte(loader: RowstreamLoader, logical_addr: int, value: int) -> dict[str, Any]:
+    return loader.write_dense_byte(lane3_physical_addr(logical_addr), value)
+
+
+def read_lane3_byte(loader: RowstreamLoader, logical_addr: int) -> tuple[int, dict[str, Any]]:
+    physical_addr = lane3_physical_addr(logical_addr)
+    beat, debug = loader.read_dense_beat(physical_addr // BEAT_BYTES)
+    return beat[physical_addr % BEAT_BYTES], debug
+
+
+def read_row_lane3(loader: RowstreamLoader, token: int, contract: dict[str, Any]) -> bytes:
+    row_bytes = contract["row_format"]["row_bytes"]
+    start = row_offset(token, contract)
+    return bytes(read_lane3_byte(loader, start + index)[0] for index in range(row_bytes))
+
+
 def merge_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
     merged: list[tuple[int, int]] = []
     for start, end in sorted(ranges):
@@ -1551,8 +1774,8 @@ def main() -> int:
                 and not bool(initial_debug["boot_mismatch"])
             ):
                 raise SystemExit("--run-inference requires a clean boot")
-            if args.storage_mode != "lowbyte":
-                raise SystemExit("--run-inference requires --storage-mode lowbyte")
+            if args.storage_mode not in ("lowbyte", "lane3"):
+                raise SystemExit("--run-inference requires --storage-mode lowbyte or lane3")
             if args.max_bytes is not None or args.max_beats is not None:
                 raise SystemExit("--run-inference requires full-image load and does not support --max-bytes or --max-beats")
             if args.top1_from_model and (args.model_path is None or args.adapter_path is None):
@@ -1839,6 +2062,28 @@ def main() -> int:
                     f"count={diagnostic['count']}"
                 )
             return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_lane3_count:
+            diagnostic = run_lane3_diagnostic(
+                loader, args.diagnostic_lane3_count, run_dir, initial_debug
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "lane3-diagnostic.json"),
+                    "mismatch_count": diagnostic["mismatch_count"],
+                    "count": diagnostic["count"],
+                    "verdict": diagnostic["decision"]["verdict"],
+                },
+            )
+            if not args.json_only:
+                print(
+                    "lane3 diagnostic "
+                    f"{diagnostic['status']} mismatches "
+                    f"{diagnostic['mismatch_count']}/{diagnostic['count']}"
+                )
+            return 0 if diagnostic["status"] == "PASS" else 1
         load_start = time.monotonic()
         if args.storage_mode == "beat":
             for beat in range(beats_to_load):
@@ -1851,12 +2096,16 @@ def main() -> int:
             loaded = 0
             for start, end in load_ranges:
                 for stream_addr in range(start, end):
-                    loader.write_lowbyte(stream_addr, image[stream_addr])
+                    if args.storage_mode == "lane3":
+                        write_lane3_byte(loader, stream_addr, image[stream_addr])
+                    else:
+                        loader.write_lowbyte(stream_addr, image[stream_addr])
                     loaded += 1
                     if not args.json_only and args.progress_bytes and loaded % args.progress_bytes == 0:
                         elapsed = time.monotonic() - load_start
+                        label = "lane3 bytes" if args.storage_mode == "lane3" else "low-byte addresses"
                         print(
-                            f"loaded {loaded}/{loaded_byte_count} low-byte addresses in {elapsed:.1f}s",
+                            f"loaded {loaded}/{loaded_byte_count} {label} in {elapsed:.1f}s",
                             flush=True,
                         )
         load_elapsed = time.monotonic() - load_start
@@ -1874,11 +2123,12 @@ def main() -> int:
                     }
                 )
                 continue
-            observed = (
-                read_row(loader, token, contract)
-                if args.storage_mode == "beat"
-                else read_row_lowbyte(loader, token, contract)
-            )
+            if args.storage_mode == "beat":
+                observed = read_row(loader, token, contract)
+            elif args.storage_mode == "lane3":
+                observed = read_row_lane3(loader, token, contract)
+            else:
+                observed = read_row_lowbyte(loader, token, contract)
             expected = image[row_start:row_end]
             boundary_results.append(
                 {
@@ -1907,12 +2157,16 @@ def main() -> int:
                         print(f"read {beat + 1}/{total_beats} beats in {elapsed:.1f}s", flush=True)
             else:
                 for stream_addr in range(len(image)):
-                    value, _debug = loader.read_lowbyte(stream_addr)
+                    if args.storage_mode == "lane3":
+                        value, _debug = read_lane3_byte(loader, stream_addr)
+                    else:
+                        value, _debug = loader.read_lowbyte(stream_addr)
                     readback.append(value)
                     read_count = stream_addr + 1
                     if not args.json_only and args.progress_bytes and read_count % args.progress_bytes == 0:
                         elapsed = time.monotonic() - read_start
-                        print(f"read {read_count}/{len(image)} low-byte addresses in {elapsed:.1f}s", flush=True)
+                        label = "lane3 bytes" if args.storage_mode == "lane3" else "low-byte addresses"
+                        print(f"read {read_count}/{len(image)} {label} in {elapsed:.1f}s", flush=True)
             readback_bytes = bytes(readback)
             (run_dir / "rowstream-ddr3-readback.bin").write_bytes(readback_bytes)
             readback_sha = hashlib.sha256(readback_bytes).hexdigest()
