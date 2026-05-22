@@ -1,0 +1,7 @@
+{
+  "count": 16,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte16-address0-reserved-1lane-rowstream-bist-clock-seed18-boot336/lowbyte-diagnostic.json",
+  "mismatch_count": 16,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte16-address0-reserved-1lane-rowstream-bist-clock-seed18-boot336",
+  "status": "FAIL"
+}

@@ -20620,3 +20620,34 @@ Decision:
   - run sparse lowbyte writes/reads against physical DDR3 addresses starting at 1
   - do not proceed to dense/lane-map or TinyStories rowstream load unless this short sparse gate passes or the failure is clearly diagnostic-only
 - Note: the existing sparse lowbyte helper already maps stream address `N` to physical address `N + 1`; this step makes that reserved-address behavior explicit in the diagnostic output.
+
+### 2026-05-22 - Sparse lowbyte retry with address 0 reserved result
+
+- Fixed the `boot336` script decoder so sparse lowbyte reads use the low 32 bits carried in the boot debug payload instead of forcing `read_data_chunk` to zero.
+- Reran sparse lowbyte diagnostic with DDR3 address 0 reserved:
+  - bitstream: `/nix/store/jav2p83p6iwg704b4qlklpfcg1czcn4r-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte16-address0-reserved-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-lowbyte-count 16 --debug-bits boot336`
+  - physical address mapping: stream address `N` -> DDR3 address `N + 1`
+- Result: FAIL.
+- Calibration remained good:
+  - `calib_complete=True`
+  - `calib_seen=True`
+  - `calib_seen_cycle=20240`
+- Command transport remained good:
+  - writes ACKed through 16 commands
+  - reads ACKed through 16 commands
+  - `wb_err_count=0`
+  - `loader_error=False`
+- Readback pattern:
+  - physical addr1: expected `0x00`, observed `0xa8`
+  - physical addr2: expected `0x01`, observed `0xa6`
+  - physical addr3: expected `0x02`, observed `0xa7`
+  - physical addr4..16: expected `0x03..0x0f`, observed mostly `0x00`
+  - mismatch count: 16/16
+- Interpretation:
+  - The old all-zero sparse result was partly a `boot336` host decode problem, now fixed.
+  - The sparse lowbyte loader path still does not match the single-probe result, where address-independent single writes to addresses 1..3 passed for `0xa5`.
+  - This points to the loader lowbyte command path or sparse multi-command sequencing, not basic calibration and not the single hardcoded write/read primitive.
+- Decision: do not proceed to dense/lane-map or TinyStories rowstream load yet.
+- Next safe step: make sparse lowbyte writes use the same address-independent data expression as the passing single-probe path, or add a lowbyte single-command diagnostic that writes one selected nonzero value to one selected physical address through `LOADER_OP_WRITE_LOWBYTE` and immediately reads it back.
