@@ -20687,3 +20687,13 @@ Decision:
   - The lowbyte opcode path is viable for a single nonzero write/read at physical address 1.
   - The sparse lowbyte16 failure is therefore more likely due to multi-command sequencing, address/value ramp behavior, or insufficient isolation between consecutive writes/reads, not a fundamental inability of `LOADER_OP_WRITE_LOWBYTE`/`READ_LOWBYTE` to write/read DDR3.
 - Decision: do not proceed to TinyStories yet. Next safe gate is a tiny lowbyte single-command matrix over physical addresses 1..3 and values `0x00`, `0x01`, `0xa5`, or an interleaved write-read sequence per address/value instead of write-all/read-all.
+
+### 2026-05-22 - Planned interleaved lowbyte sequence diagnostic
+
+- Next gate: test multi-address lowbyte behavior with isolated write/read pairs.
+- Diagnostic shape:
+  - for each index, write one byte to one physical DDR3 address
+  - immediately read the same physical address before moving to the next index
+  - use physical addresses starting at 1 so DDR3 address 0 remains reserved
+- Purpose: distinguish a write-all/read-all sequencing issue from a true multi-address lowbyte problem.
+- Initial scope: 16 pairs, physical addresses 1..16, values 0..15.
