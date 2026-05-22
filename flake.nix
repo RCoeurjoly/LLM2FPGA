@@ -228,7 +228,7 @@
             yosys -s run.ys
           '';
         mkTask6YpcbUberDdr3BistYosysJson =
-          { name ? "task6-ypcb-uberddr3-bist-yosys.json", probeByte ? 165, byteLanes ? 8, bistMode ? 1, enableReadProbe ? true }:
+          { name ? "task6-ypcb-uberddr3-bist-yosys.json", probeByte ? 165, byteLanes ? 8, bistMode ? 1, enableReadProbe ? true, pllClkout0Divide ? 10, pllClkout1Divide ? 10, pllClkout2Divide ? 40, pllClkout3Divide ? 5, controllerClkPeriodPs ? "40_000", ddr3ClkPeriodPs ? "10_000", dllOff ? true, speedBin ? 0, sdramCapacity ? 5, bistTestDatamask ? true }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
@@ -241,8 +241,28 @@
                              "parameter int BYTE_LANES = ${toString byteLanes}," \
               --replace-fail "parameter int BIST_MODE = 1," \
                              "parameter int BIST_MODE = ${toString bistMode}," \
-              --replace-fail "parameter bit ENABLE_READ_PROBE = 1'b1" \
-                             "parameter bit ENABLE_READ_PROBE = 1'b${if enableReadProbe then "1" else "0"}"
+              --replace-fail "parameter bit ENABLE_READ_PROBE = 1'b1," \
+                             "parameter bit ENABLE_READ_PROBE = 1'b${if enableReadProbe then "1" else "0"}," \
+              --replace-fail "parameter int PLL_CLKOUT0_DIVIDE = 10," \
+                             "parameter int PLL_CLKOUT0_DIVIDE = ${toString pllClkout0Divide}," \
+              --replace-fail "parameter int PLL_CLKOUT1_DIVIDE = 10," \
+                             "parameter int PLL_CLKOUT1_DIVIDE = ${toString pllClkout1Divide}," \
+              --replace-fail "parameter int PLL_CLKOUT2_DIVIDE = 40," \
+                             "parameter int PLL_CLKOUT2_DIVIDE = ${toString pllClkout2Divide}," \
+              --replace-fail "parameter int PLL_CLKOUT3_DIVIDE = 5," \
+                             "parameter int PLL_CLKOUT3_DIVIDE = ${toString pllClkout3Divide}," \
+              --replace-fail "parameter int CONTROLLER_CLK_PERIOD_PS = 40_000," \
+                             "parameter int CONTROLLER_CLK_PERIOD_PS = ${controllerClkPeriodPs}," \
+              --replace-fail "parameter int DDR3_CLK_PERIOD_PS = 10_000," \
+                             "parameter int DDR3_CLK_PERIOD_PS = ${ddr3ClkPeriodPs}," \
+              --replace-fail "parameter bit DLL_OFF_PARAM = 1'b1," \
+                             "parameter bit DLL_OFF_PARAM = 1'b${if dllOff then "1" else "0"}," \
+              --replace-fail "parameter int SPEED_BIN_PARAM = 0," \
+                             "parameter int SPEED_BIN_PARAM = ${toString speedBin}," \
+              --replace-fail "parameter int SDRAM_CAPACITY_PARAM = 5," \
+                             "parameter int SDRAM_CAPACITY_PARAM = ${toString sdramCapacity}," \
+              --replace-fail "parameter bit BIST_TEST_DATAMASK = 1'b1" \
+                             "parameter bit BIST_TEST_DATAMASK = 1'b${if bistTestDatamask then "1" else "0"}"
             cat > run.ys <<EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
@@ -273,6 +293,23 @@
             byteLanes = 1;
             bistMode = 2;
             enableReadProbe = false;
+          };
+        task6YpcbUberDdr3Bist2LaneMode2KnownGoodYosysJson =
+          mkTask6YpcbUberDdr3BistYosysJson {
+            name = "task6-ypcb-uberddr3-bist-2lane-mode2-known-good-yosys.json";
+            byteLanes = 2;
+            bistMode = 2;
+            enableReadProbe = false;
+            pllClkout0Divide = 3;
+            pllClkout1Divide = 3;
+            pllClkout2Divide = 12;
+            pllClkout3Divide = 5;
+            controllerClkPeriodPs = "12_000";
+            ddr3ClkPeriodPs = "3_000";
+            dllOff = false;
+            speedBin = 1;
+            sdramCapacity = 4;
+            bistTestDatamask = false;
           };
         mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
           { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false, pllClkout0Divide ? 3, pllClkout1Divide ? 3, pllClkout2Divide ? 12, controllerClkPeriodPs ? "12_000", ddr3ClkPeriodPs ? "3_000" }:
@@ -6971,6 +7008,20 @@
           framesBase = "task6-ypcb-uberddr3-bist-1lane-mode2-seed18";
         };
 
+        task6YpcbUberDdr3Bist2LaneMode2KnownGoodSeed18Fasm = mkFasm {
+          name = "task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3Bist2LaneMode2KnownGoodYosysJson;
+          seed = 18;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3Bist2LaneMode2KnownGoodSeed18Bitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18";
+          fasm = task6YpcbUberDdr3Bist2LaneMode2KnownGoodSeed18Fasm;
+          framesBase = "task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18";
+        };
+
         task6YpcbMmcmDiagFasm = mkFasm {
           name = "task6-ypcb-mmcm-diag";
           xdc = task6YpcbMmcmDiagXdc;
@@ -11321,6 +11372,10 @@
             task6YpcbUberDdr3Bist1LaneMode2Seed18Fasm;
           task6-ypcb-uberddr3-bist-1lane-mode2-seed18-bitstream =
             task6YpcbUberDdr3Bist1LaneMode2Seed18Bitstream;
+          task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18-fasm =
+            task6YpcbUberDdr3Bist2LaneMode2KnownGoodSeed18Fasm;
+          task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18-bitstream =
+            task6YpcbUberDdr3Bist2LaneMode2KnownGoodSeed18Bitstream;
           task6-ypcb-mmcm-diag-json =
             task6YpcbMmcmDiagJson;
           task6-ypcb-mmcm-diag-xdc =

@@ -21136,3 +21136,29 @@ Result:
 - BIST_MODE=2 is not yet proven on the YPCB one-lane seed18 target.
 - The earlier BIST_MODE=1 one-lane proof remains the current positive DDR3 anchor.
 - Next DDR3 reliability work should treat BIST_MODE=2 as a stronger control gate to debug separately, while not assuming it passes merely because BIST_MODE=1 calibrates and reaches done.
+
+### 2026-05-23 - YPCB two-lane known-good-equivalent BIST_MODE=2 passes under Nix
+
+Target:
+
+- `.#task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18-bitstream`
+- bitstream: `/nix/store/vxfdhyzdfmff9c2apfsyxraqylsclfif-task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18.bit`
+
+Implementation:
+
+- Pinned `uberDdr3` to `RCoeurjoly/UberDDR3` commit `8e6b0bb9ed38a97505b29b28a6d2689746470e7b`.
+- Added a separate known-good-equivalent BIST wrapper target instead of changing the one-lane debug target.
+- Mirrored the upstream YPCB BIST shape: `BYTE_LANES=2`, `BIST_MODE=2`, `BIST_TEST_DATAMASK=0`, `DLL_OFF=0`, `SPEED_BIN=1`, `SDRAM_CAPACITY=4`, controller `12_000 ps`, DDR3 `3_000 ps`.
+
+Evidence:
+
+- Build routed successfully; post-route `controller_clk` was 124.13 MHz, PASS at 25 MHz.
+- Board programming succeeded through Digilent HS3 serial `210299BF3824`.
+- Direct BIST-schema JTAG read showed `debug1=0x00000017`, so `debug1[4:0]=23`, the known BIST done state.
+- Status byte was `0xd3`, consistent with `calib_complete` and `calib_seen` asserted in this wrapper schema.
+
+Result:
+
+- BIST_MODE=2 is now proven in the LLM2FPGA Nix flow for the upstream known-good YPCB-equivalent configuration.
+- The prior one-lane slow-clock BIST_MODE=2 state-17 result should be treated as a non-equivalent target, not as a contradiction of the upstream fix.
+- Next safe step is to move the rowstream-loader/fullbeat diagnostic onto the same two-lane, no-datamask, faster-clock configuration before returning to TinyStories row loading.
