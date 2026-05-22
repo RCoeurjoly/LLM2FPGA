@@ -1,0 +1,16 @@
+value_index=0 addr=0 exit=1
+value_index=0 addr=1 exit=0
+value_index=0 addr=2 exit=1
+value_index=0 addr=3 exit=1
+value_index=1 addr=0 exit=1
+value_index=1 addr=1 exit=0
+value_index=1 addr=2 exit=1
+value_index=1 addr=3 exit=1
+value_index=2 addr=0 exit=1
+value_index=2 addr=1 exit=0
+value_index=2 addr=2 exit=1
+value_index=2 addr=3 exit=1
+value_index=3 addr=0 exit=1
+value_index=3 addr=1 exit=0
+value_index=3 addr=2 exit=1
+value_index=3 addr=3 exit=1

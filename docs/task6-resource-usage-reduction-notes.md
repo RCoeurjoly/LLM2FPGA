@@ -20539,3 +20539,35 @@ Decision:
   - values: `0x00`, `0xff`, `0xa5`, `0x5a`
   - addresses: `0`, `1`, `2`, `3`
 - Purpose: distinguish data-bit corruption, address aliasing, byte-lane/select behavior, and stale/read-alignment behavior before any dense/lane-map or TinyStories rowstream load.
+
+### 2026-05-22 - Single-probe DDR3 value/address matrix result
+
+- Added RTL-selected value support for the single hardcoded probe:
+  - value index 0: `0x00`
+  - value index 1: `0xff`
+  - value index 2: `0xa5`
+  - value index 3: `0x5a`
+  - DDR3 address remains selected by command address low bits
+  - no JTAG command data byte is used for the written value
+- Rebuilt the BIST-clocked, 1-byte-lane rowstream-loader bitstream:
+  - bitstream: `/nix/store/7j9a8vvw8lbhrvpxp11nfki7gmdbr2jp-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - routed `controller_clk` max frequency: 97.78 MHz, PASS at 25 MHz
+- Ran the 4x4 single-probe matrix:
+  - run root: `artifacts/task6/runs/final-ts1m-inference/ddr3-singleprobe-matrix-1lane-rowstream-bist-clock-seed18-boot336`
+  - values: `0x00`, `0xff`, `0xa5`, `0x5a`
+  - addresses: `0`, `1`, `2`, `3`
+- All matrix points had valid capture and no Wishbone errors:
+  - `valid_bits=0x1` for every point
+  - `wb_err_count=0` for every point
+- Results:
+  - value `0x00`: addr0 observed `0xa8` FAIL, addr1 observed `0x00` PASS, addr2 observed `0x01` FAIL, addr3 observed `0x02` FAIL
+  - value `0xff`: addr0 observed `0x03` FAIL, addr1 observed `0xff` PASS, addr2 observed `0x00` FAIL, addr3 observed `0x01` FAIL
+  - value `0xa5`: addr0 observed `0x02` FAIL, addr1 observed `0xa5` PASS, addr2 observed `0xa6` FAIL, addr3 observed `0xa7` FAIL
+  - value `0x5a`: addr0 observed `0xa8` FAIL, addr1 observed `0x5a` PASS, addr2 observed `0x8b` FAIL, addr3 observed `0xdc` FAIL
+- Interpretation:
+  - This is not a pure host data-byte packing problem; values are selected inside RTL.
+  - This is not a simple all-values data-bit corruption problem; address 1 passes for all four values.
+  - The pattern is more consistent with address/read-alignment, byte-lane/select behavior, stale readback, or a remaining issue in the single-probe address/write-byte formula.
+  - Address 0 is especially suspect because it returns stale/nonlocal-looking values across the matrix.
+- Decision: still do not proceed to dense/lane-map or TinyStories rowstream load.
+- Next safe step: make the single probe write exactly the selected expected byte independent of address, and expose both the write byte and observed byte. Then rerun a smaller address matrix to separate a diagnostic write-formula bug from a real DDR3 address/read-alignment problem.
