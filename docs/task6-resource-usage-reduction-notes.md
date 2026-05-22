@@ -20651,3 +20651,14 @@ Decision:
   - This points to the loader lowbyte command path or sparse multi-command sequencing, not basic calibration and not the single hardcoded write/read primitive.
 - Decision: do not proceed to dense/lane-map or TinyStories rowstream load yet.
 - Next safe step: make sparse lowbyte writes use the same address-independent data expression as the passing single-probe path, or add a lowbyte single-command diagnostic that writes one selected nonzero value to one selected physical address through `LOADER_OP_WRITE_LOWBYTE` and immediately reads it back.
+
+### 2026-05-22 - Planned lowbyte single-command diagnostic
+
+- Next gate: compare the loader lowbyte command path directly against the passing hardcoded single-probe path.
+- Diagnostic shape:
+  - write one selected nonzero value through `LOADER_OP_WRITE_LOWBYTE`
+  - target one selected physical DDR3 address directly
+  - immediately read the same physical address through `LOADER_OP_READ_LOWBYTE`
+  - expose write byte, observed byte, ACK/error counters, and debug state
+- Purpose: distinguish a bug in the lowbyte command path or sparse multi-command sequencing from the already-proven hardcoded single-probe DDR3 primitive.
+- Initial target: physical address 1, value `0xa5`, because the hardcoded single-probe path passed for that address/value.
