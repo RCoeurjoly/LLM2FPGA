@@ -20229,3 +20229,9 @@ Interpretation:
 - A 1-lane DDR3 physical build is feasible and timing-clean when the debug shift chain is disabled.
 - The current boot-only loader cannot validate that bitstream because it depends on the debug shift chain for `magic_ok` and calibration status.
 - Enabling that debug shift chain in the 1-lane design currently breaks nextpnr timing analysis before bitstream generation, so the next useful step is either a smaller 1-lane debug/status readout or a boot gate that does not depend on the 512-bit debug shift chain.
+
+### 2026-05-22 - DDR3 byte-lane calibration envelope
+
+- Known calibration envelope for the current YPCB/UberDDR3 Task 6 path: 1-byte-lane and 2-byte-lane configurations have been shown to calibrate.
+- 4-byte-lane and 8-byte-lane configurations do not calibrate on this path, so Task 6 DDR3 work should stay constrained to 1 or 2 lanes unless a separate PHY rebaseline changes this fact.
+- Current debug direction: use a narrow 336-bit boot/status USER1 readout for the 1-lane build instead of re-enabling the full 512-bit debug shift chain. This preserves the boot gate fields while reducing placement/routing perturbation.
