@@ -289,7 +289,7 @@
           '';
         task6YpcbUberDdr3RowstreamLoaderYosysJson =
           mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
-            byteLanes = 2;
+            byteLanes = 1;
           };
         task6YpcbUberDdr3RowstreamLoader1LaneYosysJson =
           mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
