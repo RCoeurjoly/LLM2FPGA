@@ -1906,11 +1906,8 @@ def run_rtl_fullbeat_diagnostic(
         raise ValueError("RTL fullbeat base must fit in one byte")
     if beat_addr < 0:
         raise ValueError("RTL fullbeat address must be non-negative")
-    if (
-        not bool(initial_debug["boot_done"])
-        or bool(initial_debug["boot_error"])
-        or bool(initial_debug["boot_mismatch"])
-    ):
+    initial_bist_done = (initial_debug.get("debug1", 0) & 0x1F) == 23
+    if not initial_bist_done or bool(initial_debug["boot_error"]):
         final_debug = loader.read_debug()
         payload = {
             "artifact_name": "task6-ypcb-uberddr3-rtl-fullbeat-board-diagnostic",

@@ -21005,3 +21005,5 @@ Updated the fullbeat diagnostic gate in `scripts/task6/task6_ddr3_rowstream_load
 This keeps the no-DM direction explicit: byte/lowbyte diagnostics are no longer the gate; packed full-beat writes are.
 
 Correction: the first host-side gate edit changed an earlier fullbeat diagnostic occurrence but left `run_rtl_fullbeat_diagnostic` still requiring `boot_mismatch == false`. The RTL-fullbeat diagnostic now explicitly uses the intended BIST-done gate in that function as well.
+
+Applied the actual RTL-fullbeat initial gate replacement: `run_rtl_fullbeat_diagnostic` now checks `debug1[4:0] == 23` and `boot_error == false` before issuing `LOADER_OP_RUN_FULLBEAT`.
