@@ -20735,3 +20735,27 @@ Decision:
   - value: constant `0xa5`
   - for each address, write then immediately read before advancing
 - Pass condition: all 16 readbacks equal `0xa5`, with `wb_err_count=0` and `loader_error=False`.
+
+### 2026-05-22 - Constant-value interleaved lowbyte result
+
+- Added constant-value support to the interleaved lowbyte diagnostic.
+- Ran the first DDR3 reliability subplan gate:
+  - bitstream: `/nix/store/jav2p83p6iwg704b4qlklpfcg1czcn4r-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-interleaved16-constant-a5-phys1-1lane-rowstream-bist-clock-seed18-boot336-rerun`
+  - command mode: `--diagnostic-lowbyte-interleaved-count 16 --diagnostic-lowbyte-interleaved-value 0xa5 --debug-bits boot336`
+- Result: FAIL.
+- Readback pattern:
+  - phys1 write `0xa5`, observed `0xa5`, PASS
+  - phys2 write `0xa5`, observed `0xa6`, FAIL
+  - phys3 write `0xa5`, observed `0xa7`, FAIL
+  - phys4..16 write `0xa5`, observed mostly `0x00`, FAIL
+  - mismatch count: 15/16
+- Command transport remained nominal:
+  - ACK count advanced through all operations
+  - `wb_err_count=0`
+  - `loader_error=False`
+- Interpretation:
+  - This is not just a low/ramp-value problem; constant `0xa5` also fails across multiple addresses.
+  - The fact that phys1 passes while phys2/phys3 read `0xa6/0xa7` suggests stale or premature readback remains plausible.
+  - Script readiness is suspect: `boot336` does expose `wb_ack_count`, but the current wait path treats it as no-ACK schema and may return on ready state without enforcing the requested ACK count.
+- Next immediate fix: make `boot336` waits honor `wb_ack_count >= min_ack_count` before interpreting read data, then rerun the constant-value gate.
