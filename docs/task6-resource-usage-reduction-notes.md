@@ -20479,3 +20479,14 @@ Decision:
   - `boot_stall_seen=True`
 - Interpretation: host-side data-byte packing is unlikely to be the primary cause of the lowbyte16 failure, because the data byte was generated inside RTL and the board-side probe still mismatched. The next bug is likely in the board-side DDR3 write/read data path, address/lane mapping, byte-select behavior for 1 byte lane, or the probe readback/capture logic.
 - Decision: do not proceed to dense/lane-map or TinyStories rowstream load yet. Next safe debug step is to expose the hardcoded autoprobe observed bytes/mismatch bits in the boot336 debug payload, or reduce the board-side probe to a single hardcoded address/value/readback so the failing byte and address are directly visible.
+
+### 2026-05-22 - Planned single hardcoded DDR3 probe
+
+- Next gate: replace the multi-step hardcoded autoprobe with a single hardcoded address/value/readback probe.
+- Purpose: isolate the core DDR3 data question with minimal control logic:
+  - write one hardcoded nonzero value
+  - read the same address
+  - expose the observed byte/word and mismatch flag directly in `boot336`
+- Rationale: the current hardcoded autoprobe still includes multi-write, multi-read, capture-index, and mismatch aggregation logic. A one-address probe removes that noise and distinguishes a real DDR3 write/read path problem from a probe sequencing/capture bug.
+- Success condition: calibration remains complete, the write/read operation ACKs without Wishbone error, and the observed low byte matches the hardcoded expected value.
+- Failure condition: if the single probe also mismatches, focus on DDR3 write data, byte select/lane behavior, address mapping, or controller readback path before any dense/lane-map or TinyStories rowstream load.
