@@ -20127,3 +20127,57 @@ Interpretation:
 - The narrower controller-FF placement bundle avoids the whole-controller nextpnr crash and produces a timing-clean bitstream.
 - It still perturbs the v63 DDR3 calibration-sensitive behavior enough to reproduce the same early calibration failure seen with full placed-cell preservation.
 - Next narrower candidate should preserve fewer controller FFs, likely only FFs in explicit write/read timing cones near the PHY boundary, rather than every `uberddr3_controller` FF.
+
+### 2026-05-22 2-lane unconstrained UberDDR3 seed18 gate
+
+Changed the default Task 6 UberDDR3 rowstream-loader synthesis to use `BYTE_LANES=2`, because the board path is known to work with 1 or 2 lanes but not 8 lanes.
+
+Additional build-system adjustment:
+
+- The v63 clock/PHY/pin pre-place lock script now allows missing cells, because lane-reduced builds legitimately remove obsolete PHY cells from lanes outside the active 2-lane design.
+
+Constrained controller-FF attempt:
+
+```sh
+nix build .#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-bitstream -L
+```
+
+Result:
+
+- The first attempt failed before routing because stale 8-lane PHY locks referenced cells absent from the 2-lane design.
+- After allowing missing PHY locks, the build progressed into bitstream generation, but it was cancelled by request before completion.
+
+Unconstrained build target:
+
+```sh
+nix build .#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-bitstream -L
+```
+
+Result:
+
+- Build passed.
+- Bitstream: `/nix/store/n9jqg27hzrzx47c27x2qdfc969lkahnr-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+- No pre-place BEL locks were applied.
+- Post-route timing passed; `controller_clk` was reported at about 92.46 MHz against the 25 MHz constraint, which is also above the actual 83.33 MHz PLL-generated controller clock.
+
+Boot-only hardware gate:
+
+```sh
+python3 scripts/task6/task6_ddr3_rowstream_loader.py \
+  --bitstream /nix/store/n9jqg27hzrzx47c27x2qdfc969lkahnr-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit \
+  --run-dir artifacts/task6/runs/final-ts1m-inference/ddr3-boot-2lane-seed18-unconstrained \
+  --program --serial 210299BF3824 --jtag-cable digilent_hs3 \
+  --debug-bits 512 --calib-timeout 120 --command-repeats 2 \
+  --boot-only --json-only
+```
+
+Result:
+
+- Boot-only calibration failed.
+- Failure summary: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
+- No rowstream/data-path test was run.
+
+Interpretation:
+
+- Reducing to 2 active byte lanes and removing pre-place constraints is not sufficient by itself to recover calibration on this seed18 route.
+- The failure signature is still the same early calibration stall seen in prior non-working routes, so the next useful axis is likely lane/clock configuration correctness rather than rowstream payload logic.
