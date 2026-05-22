@@ -20784,3 +20784,17 @@ Decision:
   - The failure is now narrowed to multi-address lowbyte behavior, address handling, or DDR3/loader interaction beyond the first physical address.
 - Decision: stop widening the test. Do not proceed to rowstream loading, dense/lane-map, or TinyStories until multi-address lowbyte is fixed.
 - Next debug step: add/inspect per-command RTL-visible address/data capture for `LOADER_OP_WRITE_LOWBYTE` and `LOADER_OP_READ_LOWBYTE`, especially for physical addresses 2 and 3, to confirm whether the controller receives the intended address and byte.
+
+### 2026-05-22 - Planned lowbyte address/data capture
+
+- Next debug step: expose per-command RTL-visible lowbyte address/data capture.
+- Purpose: confirm whether `LOADER_OP_WRITE_LOWBYTE` and `LOADER_OP_READ_LOWBYTE` are presenting the intended physical address and write byte to the controller for physical addresses 2 and 3.
+- Minimal debug fields to expose through existing `boot336`-visible data word:
+  - last lowbyte physical address low bits
+  - last lowbyte write byte
+  - last lowbyte read observed byte
+  - last lowbyte operation type or opcode context
+- Initial hardware checks after rebuild:
+  - single lowbyte command at phys2/value `0xa5`
+  - single lowbyte command at phys3/value `0xa5`
+  - short interleaved constant sequence across phys1..3/value `0xa5`
