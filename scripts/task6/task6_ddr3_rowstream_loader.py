@@ -741,7 +741,7 @@ def decode_debug_boot(raw: int) -> dict[str, Any]:
     debug["raw_bits"] = DEBUG_BITS_BOOT
     debug["raw_hex"] = f"0x{raw:0{DEBUG_BITS_BOOT // 4}x}"
     debug["schema"] = "boot-336"
-    debug["_ack_supported"] = False
+    debug["_ack_supported"] = True
     read_data_chunk = debug["rtl_fullbeat_write_echo32"].to_bytes(4, "little") + bytes(12)
     debug["read_data_chunk"] = read_data_chunk
     debug["read_data_beat"] = read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk))
