@@ -1,0 +1,17 @@
+{
+  "base": 160,
+  "beat_addr": 0,
+  "boot_error": false,
+  "boot_mismatch": true,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-fullbeat-direct-addr0-basea0-1lane-rowstream-bist-clock-seed18-boot336-compact-status/rtl-fullbeat-diagnostic.json",
+  "expected_echo32": 2745344416,
+  "expected_prefix_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+  "mismatch_count": 8,
+  "observed_prefix_hex": "a8a80006000000000000000000000000",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-fullbeat-direct-addr0-basea0-1lane-rowstream-bist-clock-seed18-boot336-compact-status",
+  "status": "FAIL",
+  "verdict": "rtl-generated-fullbeat-readback-fails",
+  "wb_ack_count": 11,
+  "write_echo32": 100706472,
+  "write_echo32_match": false
+}

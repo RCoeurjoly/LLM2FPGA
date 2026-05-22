@@ -1,0 +1,20 @@
+{
+  "base": 160,
+  "beat_addr": 0,
+  "boot_mismatch_ignored": true,
+  "debug1_low5": 23,
+  "expected_echo32": 2745344416,
+  "expected_prefix_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+  "fullbeat_done": false,
+  "mismatch_count": 0,
+  "observed_prefix_hex": "a0a1a2a3000000000000000000000000",
+  "read_ack": true,
+  "read_ack_delta": 0,
+  "status": "FAIL",
+  "verdict": "rtl-generated-fullbeat-readback-fails",
+  "wb_err_count": 0,
+  "write_ack": true,
+  "write_ack_delta": 0,
+  "write_echo32": 2745344416,
+  "write_echo32_match": true
+}

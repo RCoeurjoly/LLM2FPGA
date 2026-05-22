@@ -21020,3 +21020,42 @@ Implemented compact fullbeat observability inside the existing 336-bit debug win
 - host decode maps those compact fields back into the existing fullbeat diagnostic fields for `boot336`
 
 Next gate: rebuild the BIST-clocked 1-lane rowstream-loader and rerun the direct fullbeat diagnostic at beat address 0/base `0xa0` using `--debug-bits boot336`.
+
+### 2026-05-22 - Direct fullbeat diagnostic with compact boot336 status
+
+Rebuilt the BIST-clocked 1-lane rowstream-loader with compact fullbeat status exposed in the reliable `boot336` debug window.
+
+Build:
+
+- `.#task6-ypcb-uberddr3-rowstream-loader-bist-clock-seed18-clocked-bitstream`
+- Bitstream: `/nix/store/bkg0bkkvdkgr3f6yirjj8905g9390azn-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+- Routed timing: `controller_clk` max frequency 113.75 MHz, PASS at 25 MHz.
+
+Diagnostic:
+
+- Run root: `artifacts/task6/runs/final-ts1m-inference/ddr3-fullbeat-direct-addr0-basea0-1lane-rowstream-bist-clock-seed18-boot336-compact-status`
+- Command: `LOADER_OP_RUN_FULLBEAT`
+- Beat address: 0
+- Base byte: `0xa0`
+- Expected first 16 bytes: `a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af`
+- BIST gate: passed (`debug1[4:0] == 23`)
+- Wishbone errors: 0
+- Write ACK: seen
+- Read ACK: seen
+- Fullbeat done flag: true
+
+Result:
+
+- Status: FAIL
+- Readback low32: `0x0600a8a8` (`a8 a8 00 06` little-endian bytes)
+- Expected low32: `0xa3a2a1a0`
+- Low32 match: false
+- Fullbeat mismatch count: 8
+
+Interpretation:
+
+- The fullbeat command path is now observable through `boot336` and is issuing both write and read transactions.
+- The failure is real DDR3/user-port data integrity, not just the old lowbyte/DM diagnostic issue.
+- Do not enable packed full-beat rowstream loading yet. The primitive needed for safe TinyStories DDR3 loading is still failing at beat address 0.
+
+Next safe debug step: run the same fullbeat diagnostic at several nonzero beat addresses and bases. If all fail with similar corruption, inspect UberDDR3 write/read timing or the BIST/user-port coexistence. If some addresses pass, reserve bad low addresses and use a nonzero base offset for rowstream loading.

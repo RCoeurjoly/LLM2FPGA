@@ -1,0 +1,17 @@
+{
+  "base": 160,
+  "beat_addr": 0,
+  "boot_error": false,
+  "boot_mismatch": true,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-fullbeat-direct-addr0-basea0-1lane-rowstream-bist-clock-seed18-boot336/rtl-fullbeat-diagnostic.json",
+  "expected_echo32": null,
+  "expected_prefix_hex": null,
+  "mismatch_count": null,
+  "observed_prefix_hex": null,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-fullbeat-direct-addr0-basea0-1lane-rowstream-bist-clock-seed18-boot336",
+  "status": "FAIL",
+  "verdict": "rtl-fullbeat-blocked-by-unclean-boot",
+  "wb_ack_count": 9,
+  "write_echo32": null,
+  "write_echo32_match": null
+}
