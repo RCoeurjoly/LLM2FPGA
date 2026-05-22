@@ -21174,3 +21174,13 @@ Result:
 - Ran a small RTL fullbeat matrix without reprogramming: (addr, base) = (0,0x00), (1,0x20), (7,0x80), (31,0xc0). All passed with zero mismatches, matching observed lower-128-bit prefixes and write echoes.
 
 Decision: treat DDR3 calibration and fullbeat user-port operation as proven for the known-good 2-lane, no-DM configuration. Do not return to byte-select/lowbyte writes on YPCB; the safe route is packed fullbeat rowstream loading, preferably with board-side fullbeat commits rather than per-byte host writes.
+
+
+### 2026-05-23 - Packed host beat loader status
+
+- Added 2-lane packed beat support for the rowstream loader path: Python storage-mode=beat now uses byte_lanes * 8 byte controller beats, and RTL accepts OP_WRITE_CHUNK/OP_READ_BEAT for one 16-byte beat on the known-good 2-lane target.
+- Added OP_ECHO_CHUNK as a no-DDR3 command-payload diagnostic. The board echoed 00..0f exactly, proving the USER2 command path can deliver all 16 payload bytes intact.
+- A one-beat packed write completed with one ACK, no Wishbone error, and no loader error.
+- An 8-beat token-0 packed rowstream smoke still failed. Expected prefix began d425fef3..., while observed prefix began 5151adadd0d08c8c... and showed byte pairing/stale-looking data. This means the current blocker is not calibration and not USER2 payload packing; it is the host-data-to-Wishbone/DDR3 write-read path or its sequencing.
+
+Next gate: add a single-command host-data write/read/compare diagnostic in RTL, analogous to the passing generated OP_RUN_FULLBEAT path, so the comparison happens immediately inside the controller clock domain before Python rowstream code is involved.

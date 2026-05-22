@@ -1,0 +1,7 @@
+{
+  "beat_addr": 0,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-packed-beat-read-after-onewrite/readbeat-diagnostic.json",
+  "lower128_hex": "5151adadd0d08c8c2929777791913d3d",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-packed-beat-read-after-onewrite",
+  "status": "PASS"
+}

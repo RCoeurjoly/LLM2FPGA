@@ -69,6 +69,7 @@ OP_WRITE_DENSE_FILL = 0x08
 OP_RUN_FULLBEAT = 0x09
 OP_RUN_HARDCODED_AUTOPROBE = 0x0A
 OP_RUN_HARDCODED_SINGLEBYTE = 0x0B
+OP_ECHO_CHUNK = 0x0C
 BEAT_BYTES = 64
 
 
@@ -324,6 +325,7 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Wishbone beat address for --diagnostic-rtl-fullbeat-base; default: 0",
     )
+    parser.add_argument("--diagnostic-echo-chunk", action="store_true", help="send one no-DDR3 16-byte payload echo command and exit")
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--run-inference", action=argparse.BooleanOptionalAction, default=False, help=("Run a full tiny-stories inference gate: require a full lowbyte load, full readback, and top1 comparison") )
     parser.add_argument("--model-path", type=Path)
@@ -813,6 +815,7 @@ class RowstreamLoader:
                 delay_s=args.bit_delay_us / 1_000_000.0,
             )
         reset_tap(self.client)
+        self.beat_bytes = args.byte_lanes * 8
 
     def close(self) -> None:
         self.client.close()
@@ -887,35 +890,41 @@ class RowstreamLoader:
         raise TimeoutError(f"DDR3 calibration did not complete: {summarize_debug(last)}")
 
     def write_beat(self, beat_addr: int, data: bytes) -> dict[str, Any]:
-        if len(data) != BEAT_BYTES:
-            raise ValueError("write_beat requires exactly 64 bytes")
+        if len(data) != self.beat_bytes:
+            raise ValueError(f"write_beat requires exactly {self.beat_bytes} bytes")
+        if self.beat_bytes > 16:
+            raise ValueError("JTAG write_beat supports at most 16-byte controller beats")
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
-        for chunk in range(4):
-            self.send_command(
-                OP_WRITE_CHUNK,
-                chunk,
-                beat_addr,
-                data[chunk * 16 : (chunk + 1) * 16],
-            )
+        self.send_command(OP_WRITE_CHUNK, 0, beat_addr, data)
         return self.wait_ready(min_ack_count=min_ack)
 
     def read_beat(self, beat_addr: int) -> tuple[bytes, dict[str, Any]]:
-        chunks = []
-        debug = self.read_debug()
-        for chunk in range(4):
-            before = self.read_debug()
-            min_ack = before["wb_ack_count"] + 1
-            self.send_command(OP_READ_BEAT, chunk, beat_addr)
-            debug = self.wait_ready(min_ack_count=min_ack)
-            chunks.append(debug["read_data_chunk"])
-        return b"".join(chunks), debug
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        self.send_command(OP_READ_BEAT, 0, beat_addr)
+        debug = self.wait_ready(min_ack_count=min_ack)
+        return debug["read_data_chunk"][: self.beat_bytes], debug
 
     def run_rtl_fullbeat(self, beat_addr: int, base: int) -> dict[str, Any]:
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 2
         self.send_command(OP_RUN_FULLBEAT, 0, beat_addr, bytes([base & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
+
+    def echo_chunk(self, data: bytes) -> tuple[bytes, dict[str, Any]]:
+        if len(data) != 16:
+            raise ValueError("echo_chunk requires exactly 16 bytes")
+        before = self.read_debug()
+        self.send_command(OP_ECHO_CHUNK, 0, 0, data)
+        deadline = time.monotonic() + self.args.poll_timeout
+        debug = before
+        while time.monotonic() < deadline:
+            debug = self.read_debug()
+            if debug["command_count"] > before["command_count"] and debug["last_opcode"] == OP_ECHO_CHUNK:
+                return debug["read_data_chunk"], debug
+            time.sleep(0.01)
+        raise TimeoutError(f"echo command did not complete: {summarize_debug(debug)}")
 
     def write_lowbyte(self, stream_addr: int, value: int) -> dict[str, Any]:
         before = self.read_debug()
@@ -1986,13 +1995,14 @@ def read_row(loader: RowstreamLoader, token: int, contract: dict[str, Any]) -> b
     row_bytes = contract["row_format"]["row_bytes"]
     start = row_offset(token, contract)
     end = start + row_bytes
-    first_beat = start // BEAT_BYTES
-    last_beat = (end - 1) // BEAT_BYTES
+    beat_bytes = loader.beat_bytes
+    first_beat = start // beat_bytes
+    last_beat = (end - 1) // beat_bytes
     data = bytearray()
     for beat in range(first_beat, last_beat + 1):
         beat_data, _debug = loader.read_beat(beat)
         data.extend(beat_data)
-    rel = start - first_beat * BEAT_BYTES
+    rel = start - first_beat * beat_bytes
     return bytes(data[rel : rel + row_bytes])
 
 
@@ -2052,13 +2062,14 @@ def main() -> int:
     expected_size = contract["ddr3_linear_image"]["padded_stream_bytes"]
     if len(image) != expected_size:
         raise SystemExit(f"rowstream image has {len(image)} bytes, expected {expected_size}")
-    if len(image) % BEAT_BYTES != 0:
-        raise SystemExit("rowstream image must be 64-byte aligned")
-    total_beats = len(image) // BEAT_BYTES
+    beat_bytes = args.byte_lanes * 8 if args.storage_mode == "beat" else BEAT_BYTES
+    if len(image) % beat_bytes != 0:
+        raise SystemExit(f"rowstream image must be {beat_bytes}-byte aligned")
+    total_beats = len(image) // beat_bytes
     boundary_tokens = [int(token_text, 0) for token_text in args.boundary_tokens.split(",")]
     if args.storage_mode == "beat":
         beats_to_load = min(total_beats, args.max_beats) if args.max_beats else total_beats
-        bytes_to_load = beats_to_load * BEAT_BYTES
+        bytes_to_load = beats_to_load * beat_bytes
         load_ranges = [(0, bytes_to_load)]
     else:
         bytes_to_load = min(len(image), args.max_bytes) if args.max_bytes else len(image)
@@ -2136,6 +2147,30 @@ def main() -> int:
                 raise SystemExit("--run-inference requires --model-path and --adapter-path when --top1-from-model is set")
             args.full_readback = True
             args.load_boundary_rows_only = False
+        if args.diagnostic_echo_chunk:
+            expected = bytes(range(16))
+            observed, debug = loader.echo_chunk(expected)
+            diagnostic = {
+                "artifact_name": "task6-ypcb-uberddr3-command-payload-echo",
+                "status": "PASS" if observed == expected else "FAIL",
+                "expected_hex": expected.hex(),
+                "observed_hex": observed.hex(),
+                "final_debug": json_debug(debug),
+                "decision": {
+                    "verdict": "command-payload-echo-passes" if observed == expected else "command-payload-echo-fails",
+                    "next_gate": "If this passes, debug DDR3 write packing. If it fails, debug USER2 command payload transport before rowstream loading.",
+                },
+            }
+            write_json(run_dir / "echo-chunk-diagnostic.json", diagnostic)
+            write_json(run_dir / "summary.json", {
+                "status": diagnostic["status"],
+                "run_dir": str(run_dir),
+                "diagnostic_json": str(run_dir / "echo-chunk-diagnostic.json"),
+                "expected_hex": diagnostic["expected_hex"],
+                "observed_hex": diagnostic["observed_hex"],
+                "verdict": diagnostic["decision"]["verdict"],
+            })
+            return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_lowbyte_single_physical_addr is not None:
             diagnostic = run_lowbyte_single_diagnostic(
                 loader,
@@ -2573,8 +2608,8 @@ def main() -> int:
         load_start = time.monotonic()
         if args.storage_mode == "beat":
             for beat in range(beats_to_load):
-                offset = beat * BEAT_BYTES
-                loader.write_beat(beat, image[offset : offset + BEAT_BYTES])
+                offset = beat * beat_bytes
+                loader.write_beat(beat, image[offset : offset + beat_bytes])
                 if not args.json_only and args.progress_beats and (beat + 1) % args.progress_beats == 0:
                     elapsed = time.monotonic() - load_start
                     print(f"loaded {beat + 1}/{beats_to_load} beats in {elapsed:.1f}s", flush=True)
@@ -2624,6 +2659,8 @@ def main() -> int:
                     "matches": observed == expected,
                     "observed_sha256": hashlib.sha256(observed).hexdigest(),
                     "expected_sha256": hashlib.sha256(expected).hexdigest(),
+                    "observed_prefix_hex": observed[:64].hex(),
+                    "expected_prefix_hex": expected[:64].hex(),
                 }
             )
 
