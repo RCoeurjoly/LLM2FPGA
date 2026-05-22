@@ -20181,3 +20181,51 @@ Interpretation:
 
 - Reducing to 2 active byte lanes and removing pre-place constraints is not sufficient by itself to recover calibration on this seed18 route.
 - The failure signature is still the same early calibration stall seen in prior non-working routes, so the next useful axis is likely lane/clock configuration correctness rather than rowstream payload logic.
+
+### 2026-05-22 1-lane unconstrained UberDDR3 seed18 gate
+
+Changed the default Task 6 UberDDR3 rowstream-loader synthesis from `BYTE_LANES=2` to `BYTE_LANES=1`.
+
+Build target:
+
+```sh
+nix build .#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-bitstream -L
+```
+
+Result with the normal 1-lane configuration:
+
+- Build passed.
+- Bitstream: `/nix/store/klpr3jb23hdziaj1a6sfqdbxh2dqqmvz-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+- The design was much smaller than the 2-lane route: about 6,723 LUT cells, 3,102 FF cells, 9 IDELAYE2 cells, 9 ISERDESE2 cells, and 34 OSERDESE2 cells.
+- Post-route timing passed; `controller_clk` was reported at about 118.08 MHz against the 25 MHz constraint, above the actual 83.33 MHz PLL-generated controller clock.
+
+Boot-only hardware gate for the normal 1-lane configuration:
+
+```sh
+python3 scripts/task6/task6_ddr3_rowstream_loader.py \
+  --bitstream /nix/store/klpr3jb23hdziaj1a6sfqdbxh2dqqmvz-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit \
+  --run-dir artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-seed18-unconstrained \
+  --program --serial 210299BF3824 --jtag-cable digilent_hs3 \
+  --debug-bits 512 --calib-timeout 120 --command-repeats 2 \
+  --boot-only --json-only
+```
+
+Result:
+
+- Boot-only observation failed with `magic_ok=False version=0 calib_seen=False state=0 ack=0 err=0 loader_error=False debug1=0x00000000`.
+- This is not a valid calibration result: the normal 1-lane synthesis disables the JTAG debug shift path, so the loader cannot read the debug magic/status.
+
+Debug-observable 1-lane follow-up:
+
+- Forced `disableJtagDebugShift = false` while keeping `BYTE_LANES=1`, then rebuilt the same seed18 clocked target.
+- Synthesis succeeded and included both BSCAN chains.
+- Place/route failed before bitstream generation with nextpnr timing-analysis legality failure:
+  `ERROR: timing analysis failed due to presence of combinatorial loops, incomplete specification of timing ports, etc.`
+- The reported loop/fanin diagnostics were inside `g_debug_shift_enabled.jtag_debug_shift.*`.
+- The debug-observable override was then removed so the default 1-lane target remains buildable.
+
+Interpretation:
+
+- A 1-lane DDR3 physical build is feasible and timing-clean when the debug shift chain is disabled.
+- The current boot-only loader cannot validate that bitstream because it depends on the debug shift chain for `magic_ok` and calibration status.
+- Enabling that debug shift chain in the 1-lane design currently breaks nextpnr timing analysis before bitstream generation, so the next useful step is either a smaller 1-lane debug/status readout or a boot gate that does not depend on the 512-bit debug shift chain.
