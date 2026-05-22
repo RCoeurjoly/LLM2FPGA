@@ -1,0 +1,12 @@
+{
+  "constant_value": 165,
+  "count": 16,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-interleaved16-constant-a5-ackwait-phys1-1lane-rowstream-bist-clock-seed18-boot336/lowbyte-interleaved-diagnostic.json",
+  "loader_error": false,
+  "mismatch_count": 15,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-interleaved16-constant-a5-ackwait-phys1-1lane-rowstream-bist-clock-seed18-boot336",
+  "status": "FAIL",
+  "verdict": "lowbyte-interleaved-fails",
+  "wb_ack_count": 41,
+  "wb_err_count": 0
+}

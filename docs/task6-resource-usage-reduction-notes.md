@@ -20759,3 +20759,28 @@ Decision:
   - The fact that phys1 passes while phys2/phys3 read `0xa6/0xa7` suggests stale or premature readback remains plausible.
   - Script readiness is suspect: `boot336` does expose `wb_ack_count`, but the current wait path treats it as no-ACK schema and may return on ready state without enforcing the requested ACK count.
 - Next immediate fix: make `boot336` waits honor `wb_ack_count >= min_ack_count` before interpreting read data, then rerun the constant-value gate.
+
+### 2026-05-22 - ACK-aware constant-value interleaved lowbyte result
+
+- Fixed `boot336` readiness so loader waits honor `wb_ack_count >= min_ack_count`.
+- Reran the constant-value interleaved lowbyte gate:
+  - bitstream: `/nix/store/jav2p83p6iwg704b4qlklpfcg1czcn4r-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-interleaved16-constant-a5-ackwait-phys1-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-lowbyte-interleaved-count 16 --diagnostic-lowbyte-interleaved-value 0xa5 --debug-bits boot336`
+- Result: FAIL.
+- Readback pattern remained unchanged after ACK-aware waits:
+  - phys1 write `0xa5`, observed `0xa5`, PASS
+  - phys2 write `0xa5`, observed `0xa6`, FAIL
+  - phys3 write `0xa5`, observed `0xa7`, FAIL
+  - phys4..16 write `0xa5`, observed mostly `0x00`, FAIL
+  - mismatch count: 15/16
+- Command transport remained nominal:
+  - `wb_ack_count=41`
+  - `wb_err_count=0`
+  - `loader_error=False`
+- Interpretation:
+  - Premature host-side ACK waiting is not the primary cause.
+  - Lowbyte single-command at phys1 works, but multi-address lowbyte through the loader fails even with a constant nonzero value.
+  - The failure is now narrowed to multi-address lowbyte behavior, address handling, or DDR3/loader interaction beyond the first physical address.
+- Decision: stop widening the test. Do not proceed to rowstream loading, dense/lane-map, or TinyStories until multi-address lowbyte is fixed.
+- Next debug step: add/inspect per-command RTL-visible address/data capture for `LOADER_OP_WRITE_LOWBYTE` and `LOADER_OP_READ_LOWBYTE`, especially for physical addresses 2 and 3, to confirm whether the controller receives the intended address and byte.
