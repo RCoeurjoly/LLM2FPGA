@@ -20490,3 +20490,39 @@ Decision:
 - Rationale: the current hardcoded autoprobe still includes multi-write, multi-read, capture-index, and mismatch aggregation logic. A one-address probe removes that noise and distinguishes a real DDR3 write/read path problem from a probe sequencing/capture bug.
 - Success condition: calibration remains complete, the write/read operation ACKs without Wishbone error, and the observed low byte matches the hardcoded expected value.
 - Failure condition: if the single probe also mismatches, focus on DDR3 write data, byte select/lane behavior, address mapping, or controller readback path before any dense/lane-map or TinyStories rowstream load.
+
+### 2026-05-22 - Single hardcoded DDR3 probe result
+
+- Added and ran a single-address hardcoded nonzero DDR3 probe:
+  - RTL opcode: `LOADER_OP_RUN_HARDCODED_SINGLEBYTE = 0x0b`
+  - script option: `--diagnostic-hardcoded-singlebyte-addr`
+  - hardcoded expected value: `0xa5`
+  - address: 0
+- Rebuilt the BIST-clocked, 1-byte-lane rowstream-loader bitstream:
+  - bitstream: `/nix/store/jyi6qip72rpm6c8hnil0kdqap6k636vj-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - routed `controller_clk` max frequency: 116.10 MHz, PASS at 25 MHz
+- Ran the single hardcoded probe diagnostic:
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-hardcoded-singlebyte-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-hardcoded-singlebyte-addr 0 --debug-bits boot336`
+- Result: FAIL.
+- Calibration remained good:
+  - `calib_complete=True`
+  - `calib_seen=True`
+  - `calib_seen_cycle=20240`
+- Command/probe transport remained good:
+  - `last_magic_ok=True`
+  - `last_opcode=11`
+  - `command_count=2`
+  - `wb_ack_count` advanced from 9 to 11
+  - `wb_err_count=0`
+  - `boot_write_ack_seen=True`
+  - `boot_read_ack_seen=True`
+  - `boot_error=False`
+  - `boot_stall_seen=False`
+- Direct data result:
+  - expected: `0xa5`
+  - observed: `0xa8`
+  - valid bits: `0x1`
+  - mismatch bits: `0x1`
+- Interpretation: the problem is now isolated to a one-address nonzero write/read mismatch with no Wishbone error and valid read capture. This is not host command data packing and is no longer likely to be multi-step probe sequencing. Focus next on DDR3 write data mapping, byte-select/lane behavior for 1 byte lane, address mapping, or controller readback alignment.
+- Decision: do not proceed to dense/lane-map or TinyStories rowstream load. Next safe step is to run the same single hardcoded probe across a tiny matrix of values and addresses, or force a word/all-lanes pattern, to identify whether the mismatch is data-bit corruption, address aliasing, byte-lane/select behavior, or stale/read-alignment behavior.
