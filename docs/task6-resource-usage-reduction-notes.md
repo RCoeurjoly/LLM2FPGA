@@ -20008,3 +20008,32 @@ Next execution gate:
 - Build the full-placement bitstream only if the lock bundle is generated cleanly.
 - Program only after build success.
 - Run boot-only calibration before any rowstream or DDR3 data-path diagnostic.
+
+## 2026-05-22 execution result: full-placement lock gate
+
+Build and boot-only gate for the tighter routed-v63 placement path:
+
+- Built `.#task6-ypcb-uberddr3-seed18-clock-and-phy-full-placed-bel-locks` successfully.
+- Extracted `38,800` BEL locks from the seed18 clock-and-phy placed JSON:
+  - `38,363` `all_placed_cells`
+  - `407` `uberddr3_phy`
+  - `25` `ddr3_board_pins`
+  - `5` `ddr3_clocks`
+- Built `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement-bitstream` successfully.
+- Full-placement bitstream path: `/nix/store/ms5aqzjj27qkqvzbkipv41awiwgv9qkw-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-full-placement.bit`
+- The full-placement FASM build reported `Task 6 pre-place BEL locks: applied=38363 missing=0` and placed `38800` cells from constraints.
+- Timing passed; `controller_clk` max frequency was reported around `46.86 MHz` at the `25 MHz` target.
+
+Boot-only hardware gate:
+
+- Run directory: `artifacts/task6/runs/final-ts1m-inference/ddr3-boot-full-placement-seed18`
+- Result: FAIL.
+- The debug chain was readable (`magic_ok=True`, `version=63`), but DDR3 calibration did not complete within `120s`.
+- Final timeout summary: `calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
+- No rowstream or DDR3 data-path commands were issued after programming.
+
+Conclusion:
+
+- Full placed-cell locking is too tight for this flow as-is: it builds and routes, but does not preserve the analog/DDR3 calibration behavior on board.
+- The viable preservation window is likely between the prior clock/PHY/pin lock bundle (`437` applied locks, boot-clean known-good) and the all-cell lock bundle (`38,363` general locks, boot-failing).
+- Next route should derive narrower lock bundles around DDR3 controller/write-read timing cones, not every placed cell.
