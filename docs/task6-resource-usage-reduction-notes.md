@@ -20951,3 +20951,42 @@ Execution decision:
 - For TinyStories rowstream loading, prefer host-side packing into full UberDDR3 beats and full-beat writes only. If true byte updates are later needed, implement read/modify/write in RTL or host scheduling, but avoid DDR3 DM-dependent writes.
 
 Next gate: rebuild the BIST-clocked 1-lane rowstream-loader and rerun phys1/phys2/phys3 lowbyte probes. Expected result is selected-byte readback of `0xa5` after a full-beat fill write.
+
+### 2026-05-22 - No-DM full-beat-fill lowbyte gate result
+
+After confirming that the YPCB DDR3 configuration has no data-mask pins, the lowbyte diagnostic write was changed to avoid partial byte strobes:
+
+- physical byte address still maps to UberDDR3 beat address plus byte index
+- write path now writes the entire beat with every byte lane set to the requested byte value
+- `wb_sel` is all ones
+- read path still captures the selected byte lane from the read ACK
+
+Build:
+
+- `.#task6-ypcb-uberddr3-rowstream-loader-bist-clock-seed18-clocked-bitstream`
+- Bitstream: `/nix/store/c9fi7nc7n2gkw4bvqs1jbkyyhf4nmfn7-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+- Routed timing: `controller_clk` max frequency 123.95 MHz, PASS at 25 MHz.
+
+Focused diagnostic:
+
+- Run root: `artifacts/task6/runs/final-ts1m-inference/ddr3-no-dm-fullbeat-fill-single-a5-phys1-3-1lane-rowstream-bist-clock-seed18-boot336`
+- Expected byte: `0xa5`
+- BIST gate passed for each read: `debug1[4:0] == 23`
+- Wishbone errors: 0 for all probes
+
+Results:
+
+| Physical byte address | Status | Host observed | RTL write capture | RTL read-ACK capture | WB ACK count after read |
+| --- | --- | --- | --- | --- | --- |
+| 1 | FAIL | `0x03` | addr `1`, write `0xa5`, write seen | addr `1`, read `0x2c`, read seen | 11 |
+| 2 | FAIL | `0x03` | addr `2`, write `0xa5`, write seen | addr `2`, read `0x00`, read seen | 13 |
+| 3 | FAIL | `0x03` | addr `3`, write `0xa5`, write seen | addr `3`, read `0x3f`, read seen | 15 |
+
+Interpretation:
+
+- No-DM explains why partial `wb_sel` writes were invalid on this board, and rowstream loading must avoid byte-mask-dependent writes.
+- However, replacing the lowbyte write with a full-beat fill did not change the failing readback pattern.
+- Therefore this specific lowbyte command path is still not equivalent to the known-good hardcoded/fullbeat paths. The remaining problem is likely command sequencing, command acceptance/readback state, or a mismatch between the diagnostic's logical physical-byte address and the actual full-beat user-port transaction.
+- Do not use this lowbyte diagnostic as the next gate for TinyStories loading. The safer route is to use or extend the fullbeat path directly, because that matches the board constraint: packed full-beat writes only, no DDR3 byte masks.
+
+Next safe debug step: run a dedicated fullbeat write/read diagnostic at beat address 0 with a full 64-bit pattern for `BYTE_LANES=1`, then use that fullbeat path as the rowstream loader primitive if it passes.
