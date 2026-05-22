@@ -66,7 +66,7 @@
       flake = false;
     };
     uberDdr3 = {
-      url = "github:RCoeurjoly/UberDDR3/ypcb";
+      url = "github:RCoeurjoly/UberDDR3/8e6b0bb9ed38a97505b29b28a6d2689746470e7b";
       flake = false;
     };
   };
