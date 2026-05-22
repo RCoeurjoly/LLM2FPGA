@@ -20828,3 +20828,14 @@ Decision:
   - The host-observed `0x01` with read capture unset points at a read-path/debug-capture timing issue or extraction issue, not write command address/data.
 - Decision: do not proceed to wider reliability gates yet.
 - Next debug step: fix the read capture so it records `wb_data[7:0]` on the actual lowbyte read ACK, then rerun phys2/phys3. If the fixed capture shows `0xa5`, the bug is host debug extraction; if it shows `0x01`, the bug is DDR3/controller readback or address mapping.
+
+### 2026-05-22 - Planned lowbyte read-ACK capture fix
+
+- Next debug step: fix lowbyte read capture so it records `wb_data[7:0]` on the actual lowbyte read ACK.
+- Purpose: distinguish host debug extraction from real DDR3/controller readback/address behavior.
+- Rerun after rebuild:
+  - lowbyte single-command phys2/value `0xa5`
+  - lowbyte single-command phys3/value `0xa5`
+- Interpretation rule:
+  - capture `0xa5`: host debug extraction/read-data plumbing is wrong
+  - capture `0x01` or other mismatch: DDR3/controller readback or address mapping is wrong
