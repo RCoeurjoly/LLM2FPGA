@@ -67,14 +67,36 @@ def load_top_cells(path: Path) -> dict[str, Any]:
     raise KeyError("could not identify top module")
 
 
-def extract_locks(placed_json: Path, include_all_placed_cells: bool = False) -> dict[str, Any]:
+def parse_prefix_scope(values: list[str]) -> list[tuple[str, str]]:
+    parsed: list[tuple[str, str]] = []
+    for value in values:
+        if "=" not in value:
+            raise ValueError("prefix scope must be SCOPE=PREFIX")
+        scope, prefix = value.split("=", 1)
+        if not scope or not prefix:
+            raise ValueError("prefix scope must be SCOPE=PREFIX")
+        parsed.append((scope, prefix))
+    return parsed
+
+
+def extract_locks(
+    placed_json: Path,
+    include_all_placed_cells: bool = False,
+    prefix_scopes: list[tuple[str, str]] | None = None,
+) -> dict[str, Any]:
     cells = load_top_cells(placed_json)
+    prefix_scopes = prefix_scopes or []
     locks: list[dict[str, str]] = []
     skipped_missing_bel: list[dict[str, str]] = []
 
     for name, cell in sorted(cells.items()):
         cell_type = cell.get("type", "")
         scope = cell_scope(name, cell_type)
+        if scope is None:
+            for candidate_scope, prefix in prefix_scopes:
+                if name.startswith(prefix):
+                    scope = candidate_scope
+                    break
         if scope is None and include_all_placed_cells:
             scope = "all_placed_cells"
         if scope is None:
@@ -112,9 +134,23 @@ def main() -> int:
         action="store_true",
         help="Extract every cell with a NEXTPNR_BEL attribute, not only DDR3 cells.",
     )
+    parser.add_argument(
+        "--include-cell-prefix",
+        action="append",
+        default=[],
+        metavar="SCOPE=PREFIX",
+        help=(
+            "Extract placed cells whose names start with PREFIX and tag them "
+            "with SCOPE. Repeatable. Useful for narrower timing-cone lock bundles."
+        ),
+    )
     args = parser.parse_args()
 
-    report = extract_locks(args.placed_json, args.include_all_placed_cells)
+    report = extract_locks(
+        args.placed_json,
+        args.include_all_placed_cells,
+        parse_prefix_scope(args.include_cell_prefix),
+    )
     args.out_json.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
