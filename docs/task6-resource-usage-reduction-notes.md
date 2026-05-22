@@ -20315,3 +20315,16 @@ Decision:
 - Do not apply pre-place constraints yet. The comparison found a functional clock/period mismatch between the calibration-positive BIST-equivalent and the failing rowstream-loader path.
 - Next safe execution step is to build a rowstream-loader target using BIST-equivalent DDR3/controller clock periods and PLL divides, then run the same boot-only `boot336` gate.
 - If the BIST-clocked rowstream-loader still fails calibration, then extract narrow pre-place locks from the calibration-positive BIST-equivalent, starting with clock/PHY/pins only, not full placement.
+
+### 2026-05-22 - Rowstream-loader BIST-clock rebaseline step
+
+Next execution step:
+
+- Build a dedicated rowstream-loader target that keeps the rowstream-loader logic and `boot336` debug readout, but uses the calibration-positive BIST-equivalent clock configuration:
+  - PLL divides `CLKOUT0_DIVIDE=10`, `CLKOUT1_DIVIDE=10`, `CLKOUT2_DIVIDE=40`
+  - `CONTROLLER_CLK_PERIOD=40_000`
+  - `DDR3_CLK_PERIOD=10_000`
+  - `BYTE_LANES=1`
+- Run only the boot-only `boot336` calibration gate.
+- If this calibrates, proceed to rowstream diagnostics from this slower, proven DDR3 clock baseline.
+- If this still fails, extract narrow pre-place locks from the calibration-positive one-lane BIST-equivalent, starting with clock/PHY/pins only.
