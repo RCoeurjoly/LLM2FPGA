@@ -20798,3 +20798,33 @@ Decision:
   - single lowbyte command at phys2/value `0xa5`
   - single lowbyte command at phys3/value `0xa5`
   - short interleaved constant sequence across phys1..3/value `0xa5`
+
+### 2026-05-22 - Lowbyte address/data capture result for phys2/phys3
+
+- Added lowbyte RTL capture fields exposed through the existing `boot336` data word:
+  - lowbyte physical address low 8 bits
+  - lowbyte write byte
+  - lowbyte read byte
+  - lowbyte write/read seen flags
+- Rebuilt the BIST-clocked, 1-byte-lane rowstream-loader bitstream:
+  - bitstream: `/nix/store/w9m60qcailphg42f8zbh563gidrgzdm2-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - routed `controller_clk` max frequency: 121.11 MHz, PASS at 25 MHz
+- Ran focused lowbyte single-command checks:
+  - run root: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-capture-single-a5-phys2-3-1lane-rowstream-bist-clock-seed18-boot336`
+  - value: `0xa5`
+  - physical addresses: 2 and 3
+- Results:
+  - phys2: status FAIL, write byte `0xa5`, host observed `0x01`
+  - phys3: status FAIL, write byte `0xa5`, host observed `0x01`
+- Captured write-side evidence:
+  - phys2 write capture: addr `2`, write data `0xa5`, write seen true
+  - phys3 write capture: addr `3`, write data `0xa5`, write seen true
+- Captured read-side evidence:
+  - read capture did not update for either address: read seen false, read data `0x00`
+  - ACKs still advanced and `wb_err_count=0`
+- Interpretation:
+  - `LOADER_OP_WRITE_LOWBYTE` is presenting the intended physical address and write byte to the controller for phys2/phys3.
+  - The current capture does not prove the controller readback byte because the read capture is not updating as intended.
+  - The host-observed `0x01` with read capture unset points at a read-path/debug-capture timing issue or extraction issue, not write command address/data.
+- Decision: do not proceed to wider reliability gates yet.
+- Next debug step: fix the read capture so it records `wb_data[7:0]` on the actual lowbyte read ACK, then rerun phys2/phys3. If the fixed capture shows `0xa5`, the bug is host debug extraction; if it shows `0x01`, the bug is DDR3/controller readback or address mapping.
