@@ -67,7 +67,7 @@ def load_top_cells(path: Path) -> dict[str, Any]:
     raise KeyError("could not identify top module")
 
 
-def extract_locks(placed_json: Path) -> dict[str, Any]:
+def extract_locks(placed_json: Path, include_all_placed_cells: bool = False) -> dict[str, Any]:
     cells = load_top_cells(placed_json)
     locks: list[dict[str, str]] = []
     skipped_missing_bel: list[dict[str, str]] = []
@@ -75,6 +75,8 @@ def extract_locks(placed_json: Path) -> dict[str, Any]:
     for name, cell in sorted(cells.items()):
         cell_type = cell.get("type", "")
         scope = cell_scope(name, cell_type)
+        if scope is None and include_all_placed_cells:
+            scope = "all_placed_cells"
         if scope is None:
             continue
         bel = cell.get("attributes", {}).get("NEXTPNR_BEL")
@@ -105,9 +107,14 @@ def main() -> int:
     )
     parser.add_argument("--placed-json", required=True, type=Path)
     parser.add_argument("--out-json", required=True, type=Path)
+    parser.add_argument(
+        "--include-all-placed-cells",
+        action="store_true",
+        help="Extract every cell with a NEXTPNR_BEL attribute, not only DDR3 cells.",
+    )
     args = parser.parse_args()
 
-    report = extract_locks(args.placed_json)
+    report = extract_locks(args.placed_json, args.include_all_placed_cells)
     args.out_json.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
