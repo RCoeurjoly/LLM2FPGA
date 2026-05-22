@@ -157,6 +157,21 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--diagnostic-lowbyte-single-physical-addr",
+        type=lambda value: int(value, 0),
+        default=None,
+        help=(
+            "before rowstream loading, write/read one physical DDR3 address "
+            "through LOADER_OP_WRITE_LOWBYTE/LOADER_OP_READ_LOWBYTE and exit"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-lowbyte-single-value",
+        type=lambda value: int(value, 0),
+        default=0xA5,
+        help="value for --diagnostic-lowbyte-single-physical-addr; default: 0xa5",
+    )
+    parser.add_argument(
         "--diagnostic-dense-count",
         type=int,
         default=0,
@@ -864,6 +879,19 @@ class RowstreamLoader:
         debug = self.wait_ready(min_ack_count=min_ack)
         return debug["read_data_chunk"][0], debug
 
+    def write_lowbyte_physical(self, physical_addr: int, value: int) -> dict[str, Any]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        self.send_command(OP_WRITE_LOWBYTE, 0, physical_addr, bytes([value & 0xFF]))
+        return self.wait_ready(min_ack_count=min_ack)
+
+    def read_lowbyte_physical(self, physical_addr: int) -> tuple[int, dict[str, Any]]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 1
+        self.send_command(OP_READ_LOWBYTE, 0, physical_addr)
+        debug = self.wait_ready(min_ack_count=min_ack)
+        return debug["read_data_chunk"][0], debug
+
     def write_dense_byte(self, stream_addr: int, value: int) -> dict[str, Any]:
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
@@ -1005,6 +1033,54 @@ def run_lowbyte_diagnostic(
         },
     }
     write_json(run_dir / "lowbyte-diagnostic.json", payload)
+    return payload
+
+
+def run_lowbyte_single_diagnostic(
+    loader: RowstreamLoader,
+    physical_addr: int,
+    value: int,
+    run_dir: Path,
+    initial_debug: dict[str, Any],
+) -> dict[str, Any]:
+    if physical_addr < 0:
+        raise ValueError("lowbyte single physical address must be non-negative")
+    if value < 0 or value > 0xFF:
+        raise ValueError("lowbyte single diagnostic value must fit in one byte")
+
+    write_debug = loader.write_lowbyte_physical(physical_addr, value)
+    observed, read_debug = loader.read_lowbyte_physical(physical_addr)
+    pass_status = (
+        observed == (value & 0xFF)
+        and not bool(write_debug["loader_error"])
+        and not bool(read_debug["loader_error"])
+        and write_debug["wb_err_count"] == initial_debug["wb_err_count"]
+        and read_debug["wb_err_count"] == initial_debug["wb_err_count"]
+    )
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-lowbyte-single-board-diagnostic",
+        "status": "PASS" if pass_status else "FAIL",
+        "physical_addr": physical_addr,
+        "write_byte": value & 0xFF,
+        "observed": observed,
+        "match": observed == (value & 0xFF),
+        "initial_debug": json_debug(initial_debug),
+        "write_debug": json_debug(write_debug),
+        "read_debug": json_debug(read_debug),
+        "decision": {
+            "verdict": (
+                "lowbyte-single-command-passes"
+                if pass_status
+                else "lowbyte-single-command-fails"
+            ),
+            "next_gate": (
+                "If this passes where the hardcoded single probe passed, debug "
+                "sparse multi-command sequencing. If this fails, debug "
+                "LOADER_OP_WRITE_LOWBYTE/READ_LOWBYTE data/address handling."
+            ),
+        },
+    }
+    write_json(run_dir / "lowbyte-single-diagnostic.json", payload)
     return payload
 
 
@@ -1940,6 +2016,40 @@ def main() -> int:
                 raise SystemExit("--run-inference requires --model-path and --adapter-path when --top1-from-model is set")
             args.full_readback = True
             args.load_boundary_rows_only = False
+        if args.diagnostic_lowbyte_single_physical_addr is not None:
+            diagnostic = run_lowbyte_single_diagnostic(
+                loader,
+                args.diagnostic_lowbyte_single_physical_addr,
+                args.diagnostic_lowbyte_single_value,
+                run_dir,
+                initial_debug,
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "lowbyte-single-diagnostic.json"),
+                    "physical_addr": diagnostic["physical_addr"],
+                    "write_byte": diagnostic["write_byte"],
+                    "observed": diagnostic["observed"],
+                    "match": diagnostic["match"],
+                    "verdict": diagnostic["decision"]["verdict"],
+                    "write_ack_count": diagnostic["write_debug"]["wb_ack_count"],
+                    "read_ack_count": diagnostic["read_debug"]["wb_ack_count"],
+                    "wb_err_count": diagnostic["read_debug"]["wb_err_count"],
+                    "loader_error": diagnostic["read_debug"]["loader_error"],
+                },
+            )
+            if not args.json_only:
+                print(
+                    "lowbyte single diagnostic "
+                    f"{diagnostic['status']} verdict={diagnostic['decision']['verdict']} "
+                    f"addr={diagnostic['physical_addr']} "
+                    f"write=0x{diagnostic['write_byte']:02x} "
+                    f"observed=0x{diagnostic['observed']:02x}"
+                )
+            return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_lowbyte_count:
             diagnostic = run_lowbyte_diagnostic(
                 loader, args.diagnostic_lowbyte_count, run_dir, initial_debug
