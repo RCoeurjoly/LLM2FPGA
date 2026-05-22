@@ -172,6 +172,15 @@ def parse_args() -> argparse.Namespace:
         help="value for --diagnostic-lowbyte-single-physical-addr; default: 0xa5",
     )
     parser.add_argument(
+        "--diagnostic-lowbyte-interleaved-count",
+        type=int,
+        default=0,
+        help=(
+            "before rowstream loading, for N physical addresses starting at 1, "
+            "write value i then immediately read it back before moving on"
+        ),
+    )
+    parser.add_argument(
         "--diagnostic-dense-count",
         type=int,
         default=0,
@@ -1081,6 +1090,71 @@ def run_lowbyte_single_diagnostic(
         },
     }
     write_json(run_dir / "lowbyte-single-diagnostic.json", payload)
+    return payload
+
+
+def run_lowbyte_interleaved_diagnostic(
+    loader: RowstreamLoader,
+    count: int,
+    run_dir: Path,
+    initial_debug: dict[str, Any],
+) -> dict[str, Any]:
+    if count <= 0:
+        raise ValueError("interleaved lowbyte count must be positive")
+
+    samples = []
+    mismatch_count = 0
+    for index in range(count):
+        physical_addr = index + 1
+        expected = index & 0xFF
+        write_debug = loader.write_lowbyte_physical(physical_addr, expected)
+        observed, read_debug = loader.read_lowbyte_physical(physical_addr)
+        match = observed == expected
+        mismatch_count += int(not match)
+        samples.append(
+            {
+                "index": index,
+                "physical_addr": physical_addr,
+                "write_byte": expected,
+                "observed": observed,
+                "match": match,
+                "write_ack_count": write_debug["wb_ack_count"],
+                "read_ack_count": read_debug["wb_ack_count"],
+                "write_err_count": write_debug["wb_err_count"],
+                "read_err_count": read_debug["wb_err_count"],
+                "write_loader_error": write_debug["loader_error"],
+                "read_loader_error": read_debug["loader_error"],
+            }
+        )
+
+    final_debug = loader.read_debug()
+    pass_status = (
+        mismatch_count == 0
+        and final_debug["wb_err_count"] == initial_debug["wb_err_count"]
+        and not bool(final_debug["loader_error"])
+    )
+    payload = {
+        "artifact_name": "task6-ypcb-uberddr3-lowbyte-interleaved-board-diagnostic",
+        "status": "PASS" if pass_status else "FAIL",
+        "count": count,
+        "mismatch_count": mismatch_count,
+        "initial_debug": json_debug(initial_debug),
+        "final_debug": json_debug(final_debug),
+        "samples": samples,
+        "decision": {
+            "verdict": (
+                "lowbyte-interleaved-passes"
+                if pass_status
+                else "lowbyte-interleaved-fails"
+            ),
+            "next_gate": (
+                "If this passes, the write-all/read-all sparse diagnostic is the "
+                "problem; move rowstream loading toward interleaved or chunked "
+                "verification. If this fails, debug multi-address lowbyte behavior."
+            ),
+        },
+    }
+    write_json(run_dir / "lowbyte-interleaved-diagnostic.json", payload)
     return payload
 
 
@@ -2048,6 +2122,34 @@ def main() -> int:
                     f"addr={diagnostic['physical_addr']} "
                     f"write=0x{diagnostic['write_byte']:02x} "
                     f"observed=0x{diagnostic['observed']:02x}"
+                )
+            return 0 if diagnostic["status"] == "PASS" else 1
+        if args.diagnostic_lowbyte_interleaved_count:
+            diagnostic = run_lowbyte_interleaved_diagnostic(
+                loader,
+                args.diagnostic_lowbyte_interleaved_count,
+                run_dir,
+                initial_debug,
+            )
+            write_json(
+                run_dir / "summary.json",
+                {
+                    "status": diagnostic["status"],
+                    "run_dir": str(run_dir),
+                    "diagnostic_json": str(run_dir / "lowbyte-interleaved-diagnostic.json"),
+                    "count": diagnostic["count"],
+                    "mismatch_count": diagnostic["mismatch_count"],
+                    "verdict": diagnostic["decision"]["verdict"],
+                    "wb_ack_count": diagnostic["final_debug"]["wb_ack_count"],
+                    "wb_err_count": diagnostic["final_debug"]["wb_err_count"],
+                    "loader_error": diagnostic["final_debug"]["loader_error"],
+                },
+            )
+            if not args.json_only:
+                print(
+                    "lowbyte interleaved diagnostic "
+                    f"{diagnostic['status']} mismatches "
+                    f"{diagnostic['mismatch_count']}/{diagnostic['count']}"
                 )
             return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_lowbyte_count:
