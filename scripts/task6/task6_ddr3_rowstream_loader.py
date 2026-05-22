@@ -66,7 +66,6 @@ OP_READ_DENSE_BEAT = 0x06
 OP_RUN_AUTOPROBE = 0x07
 OP_WRITE_DENSE_FILL = 0x08
 OP_RUN_FULLBEAT = 0x09
-OP_SET_DENSE_PAGE = 0x0A
 BEAT_BYTES = 64
 
 
@@ -103,8 +102,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--calib-timeout", type=float, default=20.0)
     parser.add_argument(
         "--storage-mode",
-        choices=("lowbyte", "beat", "lane3"),
-        default="lowbyte",
+        choices=("lowbyte", "lowbyte64", "beat", "lane3"),
+        default="lowbyte64",
         help=(
             "lowbyte stores one rowstream byte in DDR3 byte lane 0 at one "
             "Wishbone address per stream byte; beat uses dense 64-byte beats; "
@@ -712,7 +711,6 @@ class RowstreamLoader:
                 delay_s=args.bit_delay_us / 1_000_000.0,
             )
         reset_tap(self.client)
-        self._dense_write_page: int | None = None
 
     def close(self) -> None:
         self.client.close()
@@ -823,14 +821,9 @@ class RowstreamLoader:
         return debug["read_data_chunk"][0], debug
 
     def write_dense_byte(self, stream_addr: int, value: int) -> dict[str, Any]:
-        page = stream_addr >> 16
-        low_addr = stream_addr & 0xFFFF
-        if self._dense_write_page != page:
-            self.send_command(OP_SET_DENSE_PAGE, 0, page)
-            self._dense_write_page = page
         before = self.read_debug()
         min_ack = before["wb_ack_count"] + 1
-        self.send_command(OP_WRITE_DENSE_BYTE, 0, low_addr, bytes([value & 0xFF]))
+        self.send_command(OP_WRITE_DENSE_BYTE, 0, stream_addr, bytes([value & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
 
     def read_dense_beat(self, beat_addr: int) -> tuple[bytes, dict[str, Any]]:
@@ -1774,8 +1767,8 @@ def main() -> int:
                 and not bool(initial_debug["boot_mismatch"])
             ):
                 raise SystemExit("--run-inference requires a clean boot")
-            if args.storage_mode not in ("lowbyte", "lane3"):
-                raise SystemExit("--run-inference requires --storage-mode lowbyte or lane3")
+            if args.storage_mode not in ("lowbyte", "lowbyte64", "lane3"):
+                raise SystemExit("--run-inference requires --storage-mode lowbyte64, lowbyte, or lane3")
             if args.max_bytes is not None or args.max_beats is not None:
                 raise SystemExit("--run-inference requires full-image load and does not support --max-bytes or --max-beats")
             if args.top1_from_model and (args.model_path is None or args.adapter_path is None):
