@@ -876,6 +876,10 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             end else begin
               loader_read_ack_seen_q <= 1'b1;
               loader_read_data_q <= wb_data;
+              if (loader_last_opcode_q == LOADER_OP_READ_LOWBYTE) begin
+                loader_lowbyte_read_data_q <= wb_data[7:0];
+                loader_lowbyte_read_seen_q <= 1'b1;
+              end
               if (loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_READ) begin
                 loader_fullbeat_last_read_ack_delta_q <=
                   clamp_delta4(loader_fullbeat_issue_cycle_q, cycle_count_q);
@@ -917,6 +921,10 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             end else begin
               loader_read_ack_seen_q <= 1'b1;
               loader_read_data_q <= wb_data;
+              if (loader_last_opcode_q == LOADER_OP_READ_LOWBYTE) begin
+                loader_lowbyte_read_data_q <= wb_data[7:0];
+                loader_lowbyte_read_seen_q <= 1'b1;
+              end
               if (loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_READ) begin
                 loader_fullbeat_last_read_ack_delta_q <=
                   clamp_delta4(loader_fullbeat_issue_cycle_q, cycle_count_q);
