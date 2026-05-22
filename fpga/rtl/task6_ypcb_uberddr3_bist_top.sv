@@ -5,7 +5,8 @@ module task6_ypcb_uberddr3_bist_top #(
   parameter int JTAG_CHAIN = 1,
   parameter int JTAG_COMMAND_CHAIN = 2,
   parameter int PROBE_BYTE = 165,
-  parameter int BYTE_LANES = 8
+  parameter int BYTE_LANES = 8,
+  parameter int BIST_MODE = 1
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -539,7 +540,7 @@ module task6_ypcb_uberddr3_bist_top #(
     .SECOND_WISHBONE(0),
     .DLL_OFF(1),
     .WB_ERROR(0),
-    .BIST_MODE(1),
+    .BIST_MODE(BIST_MODE),
     .ECC_ENABLE(0)
   ) uberddr3 (
     .i_controller_clk(controller_clk),

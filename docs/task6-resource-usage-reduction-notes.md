@@ -21099,3 +21099,13 @@ Interpretation:
 - Packed rowstream writes remain the right architectural direction for the no-DM board, but the user-port path must be made BIST-equivalent before TinyStories loading.
 
 Most promising next route: compare the upstream BIST write/read sequence against `LOADER_OP_RUN_FULLBEAT`, especially user-port timing after BIST completion. A likely next experiment is a BIST-equivalent user-port fullbeat probe that writes the same simple pattern/address cadence BIST uses, or a target with `BIST_MODE=0` after calibration so the user port is not competing with/comparing against residual BIST state.
+
+### 2026-05-22 - Add YPCB 1-lane UberDDR3 BIST_MODE=2 control target
+
+Added a dedicated BIST-only control target to test whether the stronger upstream UberDDR3 BIST mode passes on YPCB:
+
+- `fpga/rtl/task6_ypcb_uberddr3_bist_top.sv` now has a `BIST_MODE` parameter, defaulting to 1 so existing BIST targets remain unchanged.
+- Added `.#task6-ypcb-uberddr3-bist-1lane-mode2-seed18-bitstream`.
+- The mode-2 target keeps the known 1-lane BIST clocking/placement path as close as possible and only changes `.BIST_MODE(2)`.
+
+Purpose: distinguish whether our current confidence should be based only on `BIST_MODE=1`, or whether the board also passes the stronger `BIST_MODE=2` sequence before further user-port loader debugging.
