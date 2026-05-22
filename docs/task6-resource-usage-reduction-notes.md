@@ -20373,3 +20373,16 @@ Decision:
 - Read result for beat 0 lower 128 bits: `00000000000000000000000000000000`.
 - Interpretation: the BIST-clocked rowstream-loader has moved past the old calibration failure. The remaining blocker is the pre-existing boot/probe mismatch bit, not read-command acceptance or Wishbone error.
 - Next safe step: either bypass/relax the generic boot-clean predicate for loader-only diagnostics once calibration and no-error conditions hold, or run a minimal lowbyte write/read diagnostic to determine whether writes preserve data at the BIST clocks.
+
+### 2026-05-22 - Planned minimal BIST-clocked lowbyte write/read diagnostic
+
+- Next gate before TinyStories rowstream load: run a minimal write/read diagnostic on the BIST-clocked, 1-byte-lane rowstream-loader.
+- Scope:
+  - one DDR3 beat address
+  - one narrow lowbyte value
+  - BIST-equivalent clocks
+  - 1 byte lane
+  - boot336 debug path
+- Purpose: distinguish a harmless/over-strict `boot_mismatch` predicate from a real DDR3 write/read data-path failure.
+- Success condition: calibration remains complete, the write command is accepted without Wishbone error, the read command is accepted without Wishbone error, and the readback low byte matches the written value.
+- Failure handling: do not attempt TinyStories rowstream load until this one-address write/read gate is understood.
