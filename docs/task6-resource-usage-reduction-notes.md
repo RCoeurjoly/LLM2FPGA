@@ -20725,3 +20725,13 @@ Decision:
   - The next distinction is constant nonzero multi-address behavior versus ramp-value behavior.
 - Decision: do not proceed to dense/lane-map or TinyStories rowstream load yet.
 - Next safe step: run an interleaved constant-value lowbyte diagnostic, e.g. write/read `0xa5` at physical addresses 1..3 or 1..16, to test whether the issue is value/ramp-specific or multi-address-specific.
+
+### 2026-05-22 - Implementing DDR3 reliability subplan gate 1
+
+- First gate from the DDR3 reliability subplan: add and run an interleaved constant-value lowbyte diagnostic.
+- Diagnostic shape:
+  - use `LOADER_OP_WRITE_LOWBYTE` and `LOADER_OP_READ_LOWBYTE`
+  - physical addresses: `1..16`
+  - value: constant `0xa5`
+  - for each address, write then immediately read before advancing
+- Pass condition: all 16 readbacks equal `0xa5`, with `wb_err_count=0` and `loader_error=False`.
