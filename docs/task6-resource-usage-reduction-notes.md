@@ -20526,3 +20526,16 @@ Decision:
   - mismatch bits: `0x1`
 - Interpretation: the problem is now isolated to a one-address nonzero write/read mismatch with no Wishbone error and valid read capture. This is not host command data packing and is no longer likely to be multi-step probe sequencing. Focus next on DDR3 write data mapping, byte-select/lane behavior for 1 byte lane, address mapping, or controller readback alignment.
 - Decision: do not proceed to dense/lane-map or TinyStories rowstream load. Next safe step is to run the same single hardcoded probe across a tiny matrix of values and addresses, or force a word/all-lanes pattern, to identify whether the mismatch is data-bit corruption, address aliasing, byte-lane/select behavior, or stale/read-alignment behavior.
+
+### 2026-05-22 - Planned single-probe value/address matrix
+
+- Next gate: extend the single hardcoded DDR3 probe into a tiny value/address matrix while still avoiding host-provided data bytes.
+- Method:
+  - use command address low bits for DDR3 address selection
+  - use command address selector bits for an RTL-internal hardcoded value table
+  - do not carry the data byte in the JTAG payload
+  - expose the observed low byte, validity, and mismatch for each run
+- Initial matrix:
+  - values: `0x00`, `0xff`, `0xa5`, `0x5a`
+  - addresses: `0`, `1`, `2`, `3`
+- Purpose: distinguish data-bit corruption, address aliasing, byte-lane/select behavior, and stale/read-alignment behavior before any dense/lane-map or TinyStories rowstream load.
