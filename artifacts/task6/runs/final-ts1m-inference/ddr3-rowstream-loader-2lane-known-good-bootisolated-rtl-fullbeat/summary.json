@@ -1,0 +1,10 @@
+{
+  "beat_addr": 0,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-known-good-bootisolated-rtl-fullbeat/fullbeat-diagnostic.json",
+  "expected_hex": null,
+  "mismatch_count": 0,
+  "observed_hex": null,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-known-good-bootisolated-rtl-fullbeat",
+  "status": "PASS",
+  "verdict": "rtl-fullbeat-write-read-passes"
+}

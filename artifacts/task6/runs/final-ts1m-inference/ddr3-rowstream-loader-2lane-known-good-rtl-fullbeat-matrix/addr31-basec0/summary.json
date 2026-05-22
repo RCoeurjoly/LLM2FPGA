@@ -1,0 +1,17 @@
+{
+  "base": 192,
+  "beat_addr": 31,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-known-good-rtl-fullbeat-matrix/addr31-basec0/rtl-fullbeat-diagnostic.json",
+  "expected_echo32": 3284320704,
+  "expected_prefix_hex": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecf",
+  "mismatch_count": 0,
+  "observed_prefix_hex": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecf",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-known-good-rtl-fullbeat-matrix/addr31-basec0",
+  "status": "PASS",
+  "verdict": "rtl-generated-fullbeat-readback-passes",
+  "wb_ack_count": 10,
+  "write_echo32": 3284320704,
+  "write_echo32_match": true
+}

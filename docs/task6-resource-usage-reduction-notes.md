@@ -21162,3 +21162,15 @@ Result:
 - BIST_MODE=2 is now proven in the LLM2FPGA Nix flow for the upstream known-good YPCB-equivalent configuration.
 - The prior one-lane slow-clock BIST_MODE=2 state-17 result should be treated as a non-equivalent target, not as a contradiction of the upstream fix.
 - Next safe step is to move the rowstream-loader/fullbeat diagnostic onto the same two-lane, no-datamask, faster-clock configuration before returning to TinyStories row loading.
+
+
+### 2026-05-23 - YPCB DDR3 known-good mode2 and fullbeat loader gate
+
+- Pinned uberDdr3 to upstream commit 8e6b0bb9ed38a97505b29b28a6d2689746470e7b, which is the current ~/UberDDR3 commit that makes the YPCB BIST_MODE=2 artifact work.
+- Added a repo-local YPCB-equivalent BIST target using the upstream-known-good DDR3 configuration: 2 byte lanes, BIST_MODE=2, BIST_TEST_DATAMASK=0, DLL_OFF=0, SPEED_BIN=1, SDRAM_CAPACITY=4, 333 MHz DDR3 clock, 83.3 MHz controller clock, and 200 MHz reference clock.
+- Built and programmed task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18-bitstream; JTAG status showed calibration and upstream BIST completion (debug1[4:0] == 23). This is the first repo-local proof that BIST_MODE=2 completes on YPCB in the Nix flow.
+- Added a 2-lane rowstream-loader target using the same known-good DDR3 clocks/timing/capacity and boot isolation after calibration. The first host fullbeat attempt failed because the Python diagnostic used legacy OP_WRITE_CHUNK, which this RTL target does not implement.
+- Corrected --diagnostic-fullbeat-addr to use the implemented board-side LOADER_OP_RUN_FULLBEAT command. The boot-isolated 2-lane rowstream loader then passed one-address RTL fullbeat write/read/compare at beat address 0.
+- Ran a small RTL fullbeat matrix without reprogramming: (addr, base) = (0,0x00), (1,0x20), (7,0x80), (31,0xc0). All passed with zero mismatches, matching observed lower-128-bit prefixes and write echoes.
+
+Decision: treat DDR3 calibration and fullbeat user-port operation as proven for the known-good 2-lane, no-DM configuration. Do not return to byte-select/lowbyte writes on YPCB; the safe route is packed fullbeat rowstream loading, preferably with board-side fullbeat commits rather than per-byte host writes.

@@ -12,7 +12,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter int PLL_CLKOUT1_DIVIDE = 3,
   parameter int PLL_CLKOUT2_DIVIDE = 12,
   parameter int CONTROLLER_CLK_PERIOD_PS = 12_000,
-  parameter int DDR3_CLK_PERIOD_PS = 3_000
+  parameter int DDR3_CLK_PERIOD_PS = 3_000,
+  parameter bit DLL_OFF_PARAM = 1'b1,
+  parameter int SPEED_BIN_PARAM = 0,
+  parameter int SDRAM_CAPACITY_PARAM = 5,
+  parameter bit BIST_TEST_DATAMASK = 1'b1
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -1081,16 +1085,17 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .WB2_ADDR_BITS(7),
     .WB2_DATA_BITS(32),
     .DUAL_RANK_DIMM(0),
-    .SPEED_BIN(0),
-    .SDRAM_CAPACITY(5),
+    .SPEED_BIN(SPEED_BIN_PARAM),
+    .SDRAM_CAPACITY(SDRAM_CAPACITY_PARAM),
     .TRCD(13_750),
     .TRP(13_750),
     .TRAS(35_000),
     .ODELAY_SUPPORTED(0),
     .SECOND_WISHBONE(0),
-    .DLL_OFF(1),
+    .DLL_OFF(DLL_OFF_PARAM),
     .WB_ERROR(0),
     .BIST_MODE(1),
+    .BIST_TEST_DATAMASK(BIST_TEST_DATAMASK),
     .ECC_ENABLE(0)
   ) uberddr3 (
     .i_controller_clk(controller_clk),

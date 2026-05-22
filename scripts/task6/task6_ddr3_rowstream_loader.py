@@ -249,8 +249,8 @@ def parse_args() -> argparse.Namespace:
         type=lambda value: int(value, 0),
         default=None,
         help=(
-            "before rowstream loading, write one 64-byte ramp through the "
-            "full-beat chunk protocol, read all four chunks back, emit a "
+            "before rowstream loading, launch one RTL-side 64-byte ramp "
+            "write/read/compare through LOADER_OP_RUN_FULLBEAT, emit a "
             "diagnostic JSON, and exit"
         ),
     )
@@ -537,6 +537,8 @@ def decode_debug_command_status(raw: int) -> dict[str, Any]:
         "dense_write_sel_low16": 0,
         "dense_burst_active": False,
         "dense_burst_mismatch_count": 0,
+        "rtl_fullbeat_done": False,
+        "rtl_fullbeat_mismatch_count": 0,
         "dense_burst_addr_low24": 0,
         "dense_burst_expected_base": 0,
         "fullbeat_write_ack_delta": (fullbeat_word >> 16) & 0xF,
@@ -621,6 +623,8 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "dense_write_sel_low16": (raw >> 496) & 0xFFFF,
         "dense_burst_active": bool((loader_word >> 17) & 0x1) or bool((raw >> 464) & 0x1),
         "dense_burst_mismatch_count": ((loader_word >> 18) & 0x7F) or ((raw >> 465) & 0x7F),
+        "rtl_fullbeat_done": bool((loader_word >> 17) & 0x1),
+        "rtl_fullbeat_mismatch_count": (loader_word >> 18) & 0x7F,
         "dense_burst_addr_low24": (raw >> 472) & 0xFF_FFFF,
         "dense_burst_expected_base": (raw >> 496) & 0xFF,
         "fullbeat_write_ack_delta": (raw >> 504) & 0xF,
@@ -728,6 +732,8 @@ def decode_debug_uber(raw: int) -> dict[str, Any]:
         "dense_write_sel_low16": 0,
         "dense_burst_active": False,
         "dense_burst_mismatch_count": 0,
+        "rtl_fullbeat_done": False,
+        "rtl_fullbeat_mismatch_count": 0,
         "dense_burst_addr_low24": 0,
         "dense_burst_expected_base": 0,
         "fullbeat_write_ack_delta": 0,
@@ -904,6 +910,12 @@ class RowstreamLoader:
             debug = self.wait_ready(min_ack_count=min_ack)
             chunks.append(debug["read_data_chunk"])
         return b"".join(chunks), debug
+
+    def run_rtl_fullbeat(self, beat_addr: int, base: int) -> dict[str, Any]:
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 2
+        self.send_command(OP_RUN_FULLBEAT, 0, beat_addr, bytes([base & 0xFF]))
+        return self.wait_ready(min_ack_count=min_ack)
 
     def write_lowbyte(self, stream_addr: int, value: int) -> dict[str, Any]:
         before = self.read_debug()
@@ -1601,37 +1613,26 @@ def run_fullbeat_diagnostic(
         write_json(run_dir / "fullbeat-diagnostic.json", payload)
         return payload
 
-    expected = bytes(range(BEAT_BYTES))
-    write_debug = loader.write_beat(beat_addr, expected)
-    observed, read_debug = loader.read_beat(beat_addr)
-    readback = [
-        {
-            "lane": lane,
-            "expected": expected[lane],
-            "observed": observed[lane],
-            "match": observed[lane] == expected[lane],
-        }
-        for lane in range(BEAT_BYTES)
-    ]
-    mismatch_count = sum(1 for row in readback if not row["match"])
+    expected_base = 0
+    command_debug = loader.run_rtl_fullbeat(beat_addr, expected_base)
+    mismatch_count = command_debug["rtl_fullbeat_mismatch_count"]
+    pass_status = bool(command_debug["rtl_fullbeat_done"]) and mismatch_count == 0
     final_debug = loader.read_debug()
     payload = {
         "artifact_name": "task6-ypcb-uberddr3-fullbeat-board-diagnostic",
-        "status": "PASS" if mismatch_count == 0 else "FAIL",
+        "status": "PASS" if pass_status else "FAIL",
         "beat_addr": beat_addr,
+        "expected_base": expected_base,
+        "rtl_fullbeat_done": command_debug["rtl_fullbeat_done"],
         "mismatch_count": mismatch_count,
-        "expected_hex": expected.hex(),
-        "observed_hex": observed.hex(),
         "initial_debug": json_debug(initial_debug),
-        "write_debug": json_debug(write_debug),
-        "read_debug": json_debug(read_debug),
+        "command_debug": json_debug(command_debug),
         "final_debug": json_debug(final_debug),
-        "readback": readback,
         "decision": {
             "verdict": (
-                "fullbeat-write-read-passes"
-                if mismatch_count == 0
-                else "fullbeat-write-read-fails"
+                "rtl-fullbeat-write-read-passes"
+                if pass_status
+                else "rtl-fullbeat-write-read-fails"
             ),
             "next_gate": (
                 "If this passes at several beat addresses and patterns, switch "

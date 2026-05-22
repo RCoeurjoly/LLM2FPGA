@@ -312,7 +312,7 @@
             bistTestDatamask = false;
           };
         mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
-          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false, pllClkout0Divide ? 3, pllClkout1Divide ? 3, pllClkout2Divide ? 12, controllerClkPeriodPs ? "12_000", ddr3ClkPeriodPs ? "3_000" }:
+          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false, pllClkout0Divide ? 3, pllClkout1Divide ? 3, pllClkout2Divide ? 12, controllerClkPeriodPs ? "12_000", ddr3ClkPeriodPs ? "3_000", dllOff ? true, speedBin ? 0, sdramCapacity ? 5, bistTestDatamask ? true }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
@@ -335,8 +335,16 @@
                              "parameter int PLL_CLKOUT2_DIVIDE = ${toString pllClkout2Divide}," \
               --replace-fail "parameter int CONTROLLER_CLK_PERIOD_PS = 12_000," \
                              "parameter int CONTROLLER_CLK_PERIOD_PS = ${controllerClkPeriodPs}," \
-              --replace-fail "parameter int DDR3_CLK_PERIOD_PS = 3_000" \
-                             "parameter int DDR3_CLK_PERIOD_PS = ${ddr3ClkPeriodPs}"
+              --replace-fail "parameter int DDR3_CLK_PERIOD_PS = 3_000," \
+                             "parameter int DDR3_CLK_PERIOD_PS = ${ddr3ClkPeriodPs}," \
+              --replace-fail "parameter bit DLL_OFF_PARAM = 1'b1," \
+                             "parameter bit DLL_OFF_PARAM = 1'b${if dllOff then "1" else "0"}," \
+              --replace-fail "parameter int SPEED_BIN_PARAM = 0," \
+                             "parameter int SPEED_BIN_PARAM = ${toString speedBin}," \
+              --replace-fail "parameter int SDRAM_CAPACITY_PARAM = 5," \
+                             "parameter int SDRAM_CAPACITY_PARAM = ${toString sdramCapacity}," \
+              --replace-fail "parameter bit BIST_TEST_DATAMASK = 1'b1" \
+                             "parameter bit BIST_TEST_DATAMASK = 1'b${if bistTestDatamask then "1" else "0"}"
             cat > run.ys <<EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
@@ -378,6 +386,22 @@
             pllClkout2Divide = 40;
             controllerClkPeriodPs = "40_000";
             ddr3ClkPeriodPs = "10_000";
+          };
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodYosysJson =
+          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
+            name = "task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-yosys.json";
+            byteLanes = 2;
+            disableJtagDebugShift = false;
+            bootIsolateUntilCalib = true;
+            pllClkout0Divide = 3;
+            pllClkout1Divide = 3;
+            pllClkout2Divide = 12;
+            controllerClkPeriodPs = "12_000";
+            ddr3ClkPeriodPs = "3_000";
+            dllOff = false;
+            speedBin = 1;
+            sdramCapacity = 4;
+            bistTestDatamask = false;
           };
         task6YpcbUberDdr3UserPortProbeYosysJson =
           pkgs.runCommand "task6-ypcb-uberddr3-user-port-probe-yosys.json" {
@@ -6538,6 +6562,21 @@
             json = task6YpcbUberDdr3RowstreamLoaderBistClockYosysJson;
           };
 
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson {
+            seed = 18;
+            json = task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodYosysJson;
+          };
+
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedFasm =
+          task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedBitstream =
+          task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedPlacedJson =
+          task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedArtifacts.placedJson;
+
         task6YpcbUberDdr3RowstreamLoader1LaneSeed16ClockedArtifacts =
           let
             seedStr = toString 16;
@@ -11328,6 +11367,12 @@
             task6YpcbUberDdr3RowstreamLoaderBistClockSeed18ClockedBitstream;
           task6-ypcb-uberddr3-rowstream-loader-bist-clock-seed18-clocked-placed-json =
             task6YpcbUberDdr3RowstreamLoaderBistClockSeed18ClockedPlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed18-clocked-fasm =
+            task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedFasm;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed18-clocked-bitstream =
+            task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed18-clocked-placed-json =
+            task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedPlacedJson;
           task6-ypcb-uberddr3-user-port-probe-seed15-fasm =
             task6YpcbUberDdr3UserPortProbeSeed15Fasm;
           task6-ypcb-uberddr3-user-port-probe-seed15-bitstream =
