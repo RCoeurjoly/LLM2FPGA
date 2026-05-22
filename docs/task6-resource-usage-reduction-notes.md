@@ -19932,3 +19932,35 @@ Candidate sequence:
 Abort criteria:
 - If boot-only fails, do not run rowstream diagnostics on that candidate.
 - If multiple candidates fail calibration after placement-preservation changes, stop and revisit the strategy rather than trying random seeds blindly.
+
+## 2026-05-22 execution result: v63 placement-preserving lowbyte64 route rejected
+
+Execution protocol applied:
+
+- Preserve known-good v63 DDR3 placement first.
+- Gate every candidate with boot-only DDR3 calibration before any rowstream write/read.
+- Try upper-address support with minimal placement perturbation by using the existing v63 lowbyte opcode as an explicit `lowbyte64` sparse storage mode before changing RTL placement again.
+
+Commits created for this execution slice:
+
+- `38ee1f5` documents the placement-preservation protocol.
+- `e983409` preserves the earlier sparse DDR3 diagnostics and paged-address candidate as its own change record.
+- `795478f` removes the paged dense-address perturbation and exposes the v63 full-address lowbyte path as `lowbyte64`.
+
+Board gates run on known-good v63 bitstream:
+
+- Bitstream: `/nix/store/g0i6bm60sb7s2dgxzs8wmgr64dh56par-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-clock-and-phy.bit`
+- Boot-only gate: `artifacts/task6/runs/final-ts1m-inference/ddr3-boot-lowbyte64-v63`
+- Result: PASS. Calibration completed and boot remained clean before rowstream commands.
+- Boundary-row gate: `artifacts/task6/runs/final-ts1m-inference/ddr3-boundary-lowbyte64-v63`
+- Result: FAIL. Tokens `0,1,31,32,50256` all mismatched, while boot stayed clean and `wb_err_count` stayed zero.
+- Lowbyte diagnostic: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-diagnostic-v63`
+- Result: FAIL. Sixteen acknowledged lowbyte writes followed by sixteen lowbyte reads produced sixteen mismatches.
+- Immediate fillbeat diagnostic: `artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-fillbeat-v63`
+- Result: FAIL. A single `0x5a` lowbyte/fill write at address `123` read back the old/debug-looking beat prefix `00c1000000c1000000510000005100a3` instead of `5a` bytes.
+
+Conclusion:
+
+- `lowbyte64` is not a viable upper-address rowstream route on the exact v63 bitstream as tested.
+- The important positive result is that boot-only calibration is still stable when using the exact v63 bitstream; the failure is data-path semantics after calibration, not DDR3 initialization.
+- The next route should preserve v63 placement but avoid relying on lowbyte semantics. The current best option is a small RTL loader change that writes full 512-bit beats or a board-side buffered burst from a compact JTAG payload, with boot-only calibration as the first gate for every candidate before rowstream tests.
