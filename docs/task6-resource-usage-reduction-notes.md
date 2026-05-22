@@ -21184,3 +21184,13 @@ Decision: treat DDR3 calibration and fullbeat user-port operation as proven for 
 - An 8-beat token-0 packed rowstream smoke still failed. Expected prefix began d425fef3..., while observed prefix began 5151adadd0d08c8c... and showed byte pairing/stale-looking data. This means the current blocker is not calibration and not USER2 payload packing; it is the host-data-to-Wishbone/DDR3 write-read path or its sequencing.
 
 Next gate: add a single-command host-data write/read/compare diagnostic in RTL, analogous to the passing generated OP_RUN_FULLBEAT path, so the comparison happens immediately inside the controller clock domain before Python rowstream code is involved.
+
+
+### 2026-05-23 - Host fullbeat write/read gate
+
+- Added OP_RUN_HOST_FULLBEAT: one USER2 command carries one 16-byte host payload, writes one controller beat, drains, reads the same beat, and exposes the readback in USER1 debug.
+- The host-fullbeat diagnostic passed for payload 00..0f, proving host-provided 16-byte data can be written to DDR3 and read back correctly when the write/read are sequenced inside the RTL command.
+- Updated Python write_beat() to use OP_RUN_HOST_FULLBEAT and fail immediately if the per-beat readback does not match. The 8-beat rowstream smoke therefore verifies each write as it is issued.
+- The post-load boundary row check still fails because the separate OP_READ_BEAT path returns stale/transformed data after the verified writes. This is now isolated to the standalone readback command/path used by Python diagnostics, not to calibration, USER2 payload transport, or single-command host fullbeat writes.
+
+Next gate: either fix OP_READ_BEAT so post-load Python verification works, or proceed to an FPGA-side row consumer that reads DDR3 in the same controller-clock sequencing style as OP_RUN_HOST_FULLBEAT.

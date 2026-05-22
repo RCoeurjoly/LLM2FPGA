@@ -70,6 +70,7 @@ OP_RUN_FULLBEAT = 0x09
 OP_RUN_HARDCODED_AUTOPROBE = 0x0A
 OP_RUN_HARDCODED_SINGLEBYTE = 0x0B
 OP_ECHO_CHUNK = 0x0C
+OP_RUN_HOST_FULLBEAT = 0x0D
 BEAT_BYTES = 64
 
 
@@ -325,6 +326,7 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Wishbone beat address for --diagnostic-rtl-fullbeat-base; default: 0",
     )
+    parser.add_argument("--diagnostic-host-fullbeat", action="store_true", help="send one host-provided 16-byte write/read command and exit")
     parser.add_argument("--diagnostic-echo-chunk", action="store_true", help="send one no-DDR3 16-byte payload echo command and exit")
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--run-inference", action=argparse.BooleanOptionalAction, default=False, help=("Run a full tiny-stories inference gate: require a full lowbyte load, full readback, and top1 comparison") )
@@ -894,10 +896,14 @@ class RowstreamLoader:
             raise ValueError(f"write_beat requires exactly {self.beat_bytes} bytes")
         if self.beat_bytes > 16:
             raise ValueError("JTAG write_beat supports at most 16-byte controller beats")
-        before = self.read_debug()
-        min_ack = before["wb_ack_count"] + 1
-        self.send_command(OP_WRITE_CHUNK, 0, beat_addr, data)
-        return self.wait_ready(min_ack_count=min_ack)
+        payload = data + bytes(16 - len(data))
+        observed, debug = self.run_host_fullbeat(beat_addr, payload)
+        if observed[: len(data)] != data:
+            raise RuntimeError(
+                "host fullbeat verify mismatch: "
+                f"expected={data.hex()} observed={observed[: len(data)].hex()}"
+            )
+        return debug
 
     def read_beat(self, beat_addr: int) -> tuple[bytes, dict[str, Any]]:
         before = self.read_debug()
@@ -911,6 +917,15 @@ class RowstreamLoader:
         min_ack = before["wb_ack_count"] + 2
         self.send_command(OP_RUN_FULLBEAT, 0, beat_addr, bytes([base & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
+
+    def run_host_fullbeat(self, beat_addr: int, data: bytes) -> tuple[bytes, dict[str, Any]]:
+        if len(data) != 16:
+            raise ValueError("run_host_fullbeat requires exactly 16 bytes")
+        before = self.read_debug()
+        min_ack = before["wb_ack_count"] + 2
+        self.send_command(OP_RUN_HOST_FULLBEAT, 0, beat_addr, data)
+        debug = self.wait_ready(min_ack_count=min_ack)
+        return debug["read_data_chunk"], debug
 
     def echo_chunk(self, data: bytes) -> tuple[bytes, dict[str, Any]]:
         if len(data) != 16:
@@ -2147,6 +2162,30 @@ def main() -> int:
                 raise SystemExit("--run-inference requires --model-path and --adapter-path when --top1-from-model is set")
             args.full_readback = True
             args.load_boundary_rows_only = False
+        if args.diagnostic_host_fullbeat:
+            expected = bytes(range(16))
+            observed, debug = loader.run_host_fullbeat(0, expected)
+            diagnostic = {
+                "artifact_name": "task6-ypcb-uberddr3-host-fullbeat-write-read",
+                "status": "PASS" if observed == expected else "FAIL",
+                "expected_hex": expected.hex(),
+                "observed_hex": observed.hex(),
+                "final_debug": json_debug(debug),
+                "decision": {
+                    "verdict": "host-fullbeat-write-read-passes" if observed == expected else "host-fullbeat-write-read-fails",
+                    "next_gate": "If this passes, use OP_RUN_HOST_FULLBEAT for packed rowstream writes. If it fails, compare host-data write path against generated OP_RUN_FULLBEAT.",
+                },
+            }
+            write_json(run_dir / "host-fullbeat-diagnostic.json", diagnostic)
+            write_json(run_dir / "summary.json", {
+                "status": diagnostic["status"],
+                "run_dir": str(run_dir),
+                "diagnostic_json": str(run_dir / "host-fullbeat-diagnostic.json"),
+                "expected_hex": diagnostic["expected_hex"],
+                "observed_hex": diagnostic["observed_hex"],
+                "verdict": diagnostic["decision"]["verdict"],
+            })
+            return 0 if diagnostic["status"] == "PASS" else 1
         if args.diagnostic_echo_chunk:
             expected = bytes(range(16))
             observed, debug = loader.echo_chunk(expected)

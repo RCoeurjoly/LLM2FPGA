@@ -51,6 +51,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam logic [7:0] LOADER_OP_RUN_HARDCODED_AUTOPROBE = 8'h0a;
   localparam logic [7:0] LOADER_OP_RUN_HARDCODED_SINGLEBYTE = 8'h0b;
   localparam logic [7:0] LOADER_OP_ECHO_CHUNK = 8'h0c;
+  localparam logic [7:0] LOADER_OP_RUN_HOST_FULLBEAT = 8'h0d;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -511,6 +512,26 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           read_probe_stb_q <= 1'b0;
           read_probe_we_q <= 1'b0;
           read_probe_state_q <= READ_PROBE_DONE;
+        end else if (jtag_command_opcode == LOADER_OP_RUN_HOST_FULLBEAT && jtag_command_chunk == 2'd0 && WB_SEL_BITS <= 16) begin
+          loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
+          loader_write_data_q <= jtag_command_chunk_data;
+          loader_sel_q <= {WB_SEL_BITS{1'b1}};
+          loader_fullbeat_read_after_write_q <= 1'b1;
+          loader_fullbeat_compare_active_q <= 1'b0;
+          loader_fullbeat_done_q <= 1'b0;
+          loader_fullbeat_mismatch_count_q <= 7'd0;
+          loader_fullbeat_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
+          loader_fullbeat_expected_base_q <= jtag_command_data_byte;
+          loader_fullbeat_write_echo_q <= jtag_command_chunk_data[0 +: 32];
+          loader_fullbeat_issue_cycle_q <= 32'd0;
+          loader_fullbeat_last_write_ack_delta_q <= 4'd0;
+          loader_fullbeat_last_read_ack_delta_q <= 4'd0;
+          loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
+          loader_fullbeat_last_issue_data_q <= '0;
+          read_probe_cyc_q <= 1'b1;
+          read_probe_stb_q <= 1'b1;
+          read_probe_we_q <= 1'b1;
+          read_probe_state_q <= LOADER_ISSUE;
         end else if (jtag_command_opcode == LOADER_OP_WRITE_CHUNK && jtag_command_chunk == 2'd0 && WB_SEL_BITS <= 16) begin
           loader_addr_q <= jtag_command_addr[WB_ADDR_BITS - 1:0];
           loader_write_data_q <= jtag_command_chunk_data;
