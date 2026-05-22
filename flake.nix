@@ -6324,6 +6324,33 @@
             ];
           };
 
+        task6YpcbUberDdr3Seed18ClockAndPhyControllerFfPlacedPrePlaceBelLocks =
+          task6YpcbUberDdr3GeneratePrePlaceBelLocks {
+            name = "seed18-clock-and-phy-controller-ff-placed";
+            locksJson = task6YpcbUberDdr3Seed18ClockAndPhyControllerPlacedBelLocks;
+            scopes = [
+              "ddr3_clocks"
+              "uberddr3_phy"
+              "ddr3_board_pins"
+              "uberddr3_controller"
+            ];
+            types = [
+              "BUFGCTRL"
+              "PLLE2_ADV_PLLE2_ADV"
+              "IDELAYCTRL_IDELAYCTRL"
+              "IDELAYE2_IDELAYE2"
+              "INVERTER"
+              "IOB33M_INBUF_EN"
+              "IOB33M_OUTBUF"
+              "IOB33S_OUTBUF"
+              "IOB33_INBUF_EN"
+              "IOB33_OUTBUF"
+              "ISERDESE2_ISERDESE2"
+              "OSERDESE2_OSERDESE2"
+              "SLICE_FFX"
+            ];
+          };
+
         task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson =
           { seed, json }:
           let
@@ -6630,6 +6657,22 @@
 
         task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementPlacedJson =
           task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementArtifacts.placedJson;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace {
+            seed = 18;
+            suffix = "clocked-locked-controller-ff-placement";
+            prePlaceLocks = task6YpcbUberDdr3Seed18ClockAndPhyControllerFfPlacedPrePlaceBelLocks;
+          };
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementFasm =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementBitstream =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementPlacedJson =
+          task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementArtifacts.placedJson;
 
         task6YpcbUberDdr3RowstreamLoaderSeed17ClockedFasm =
           task6YpcbUberDdr3RowstreamLoaderSeed17ClockedArtifacts.fasm;
@@ -11072,6 +11115,14 @@
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementBitstream;
           task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-placement-placed-json =
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerPlacementPlacedJson;
+          task6-ypcb-uberddr3-seed18-clock-and-phy-controller-ff-placed-pre-place-bel-locks =
+            task6YpcbUberDdr3Seed18ClockAndPhyControllerFfPlacedPrePlaceBelLocks;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-fasm =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementFasm;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-bitstream =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-placed-json =
+            task6YpcbUberDdr3RowstreamLoaderSeed18ClockedLockedControllerFfPlacementPlacedJson;
           task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-fasm =
             task6YpcbUberDdr3RowstreamLoaderSeed16ClockedLockedFasm;
           task6-ypcb-uberddr3-rowstream-loader-seed16-clocked-locked-bitstream =
