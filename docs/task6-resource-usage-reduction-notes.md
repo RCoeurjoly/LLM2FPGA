@@ -20448,3 +20448,34 @@ Decision:
 - Interpretation: the single-byte zero PASS was not sufficient evidence of nonzero data persistence. The current BIST-clocked sparse lowbyte path accepts commands and gets Wishbone ACKs, but nonzero sparse writes are not observable on readback.
 - Decision: do not run dense/lane-map or TinyStories rowstream load yet. First debug whether the issue is host command encoding, loader lowbyte write-data capture, byte-select/lane mapping, or readback extraction.
 - Next safe step: run a one-address nonzero diagnostic or add a hardcoded board-side nonzero write/read probe so the data byte cannot be lost in the host command packing path.
+
+### 2026-05-22 - Hardcoded nonzero autoprobe result
+
+- Added a hardcoded board-side nonzero autoprobe command so the JTAG command does not carry the data byte:
+  - RTL opcode: `LOADER_OP_RUN_HARDCODED_AUTOPROBE = 0x0a`
+  - hardcoded value source: existing RTL `PROBE_BYTE` parameter, currently `0xa5`
+  - script option: `--diagnostic-hardcoded-autoprobe-addr`
+- Rebuilt the BIST-clocked, 1-byte-lane rowstream-loader bitstream:
+  - bitstream: `/nix/store/lbz7l34yl4idsbd94i4yx6mix9rh0pvc-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+  - routed `controller_clk` max frequency: 126.17 MHz, PASS at 25 MHz
+- Ran the hardcoded autoprobe diagnostic:
+  - run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-hardcoded-autoprobe-1lane-rowstream-bist-clock-seed18-boot336`
+  - command mode: `--diagnostic-hardcoded-autoprobe-addr 0 --debug-bits boot336`
+- Result: FAIL.
+- Calibration remained good:
+  - `calib_complete=True`
+  - `calib_seen=True`
+  - `calib_seen_cycle=20240`
+- Command/probe transport evidence:
+  - `last_magic_ok=True`
+  - `last_opcode=10`
+  - `command_count=2`
+  - `wb_ack_count` advanced from 9 to 18
+  - `wb_err_count=0`
+  - `boot_write_ack_seen=True`
+  - `boot_read_ack_seen=True`
+  - `boot_error=False`
+  - `boot_mismatch=True`
+  - `boot_stall_seen=True`
+- Interpretation: host-side data-byte packing is unlikely to be the primary cause of the lowbyte16 failure, because the data byte was generated inside RTL and the board-side probe still mismatched. The next bug is likely in the board-side DDR3 write/read data path, address/lane mapping, byte-select behavior for 1 byte lane, or the probe readback/capture logic.
+- Decision: do not proceed to dense/lane-map or TinyStories rowstream load yet. Next safe debug step is to expose the hardcoded autoprobe observed bytes/mismatch bits in the boot336 debug payload, or reduce the board-side probe to a single hardcoded address/value/readback so the failing byte and address are directly visible.
