@@ -20571,3 +20571,15 @@ Decision:
   - Address 0 is especially suspect because it returns stale/nonlocal-looking values across the matrix.
 - Decision: still do not proceed to dense/lane-map or TinyStories rowstream load.
 - Next safe step: make the single probe write exactly the selected expected byte independent of address, and expose both the write byte and observed byte. Then rerun a smaller address matrix to separate a diagnostic write-formula bug from a real DDR3 address/read-alignment problem.
+
+### 2026-05-22 - Planned address-independent single-probe write byte
+
+- Next gate: remove the remaining diagnostic ambiguity in the single hardcoded probe by making the write byte independent of the selected DDR3 address.
+- Change:
+  - in single-probe mode, write exactly the RTL-selected expected byte
+  - do not add stream base/address or write index into the write byte
+  - expose both the write byte and observed byte in `boot336`
+- Purpose: separate a bug in the diagnostic write-byte formula from a real DDR3 address/read-alignment, byte-lane/select, or stale-read problem.
+- Rerun scope after rebuild: a smaller address matrix using one nonzero value across addresses `0`, `1`, `2`, and `3`.
+- Success condition: all addresses read back the selected expected byte with valid capture and no Wishbone errors.
+- Failure condition: if address-dependent failures remain when the write byte is address-independent, focus on address mapping, read alignment, stale readback, or byte-lane/select behavior rather than diagnostic value generation.
