@@ -228,15 +228,17 @@
             yosys -s run.ys
           '';
         mkTask6YpcbUberDdr3BistYosysJson =
-          { name ? "task6-ypcb-uberddr3-bist-yosys.json", probeByte ? 165 }:
+          { name ? "task6-ypcb-uberddr3-bist-yosys.json", probeByte ? 165, byteLanes ? 8 }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
             set -euo pipefail
             substitute ${./fpga/rtl/task6_ypcb_uberddr3_bist_top.sv} \
               task6_ypcb_uberddr3_bist_top.sv \
-              --replace-fail "parameter int PROBE_BYTE = 165" \
-                             "parameter int PROBE_BYTE = ${toString probeByte}"
+              --replace-fail "parameter int PROBE_BYTE = 165," \
+                             "parameter int PROBE_BYTE = ${toString probeByte}," \
+              --replace-fail "parameter int BYTE_LANES = 8" \
+                             "parameter int BYTE_LANES = ${toString byteLanes}"
             cat > run.ys <<EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
@@ -256,6 +258,11 @@
           '';
         task6YpcbUberDdr3BistYosysJson =
           mkTask6YpcbUberDdr3BistYosysJson { };
+        task6YpcbUberDdr3Bist1LaneYosysJson =
+          mkTask6YpcbUberDdr3BistYosysJson {
+            name = "task6-ypcb-uberddr3-bist-1lane-yosys.json";
+            byteLanes = 1;
+          };
         mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
           { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false }:
           pkgs.runCommand name {
@@ -6890,6 +6897,20 @@
           framesBase = "task6-ypcb-uberddr3-bist-seed18";
         };
 
+        task6YpcbUberDdr3Bist1LaneSeed18Fasm = mkFasm {
+          name = "task6-ypcb-uberddr3-bist-1lane-seed18";
+          xdc = task6YpcbUberDdr3BistXdc;
+          json = task6YpcbUberDdr3Bist1LaneYosysJson;
+          seed = 18;
+          freqMHz = 25;
+        };
+
+        task6YpcbUberDdr3Bist1LaneSeed18Bitstream = mkBitstream {
+          name = "task6-ypcb-uberddr3-bist-1lane-seed18";
+          fasm = task6YpcbUberDdr3Bist1LaneSeed18Fasm;
+          framesBase = "task6-ypcb-uberddr3-bist-1lane-seed18";
+        };
+
         task6YpcbMmcmDiagFasm = mkFasm {
           name = "task6-ypcb-mmcm-diag";
           xdc = task6YpcbMmcmDiagXdc;
@@ -11030,6 +11051,8 @@
             task6YpcbLiteDramNoOdelayLowrateDqs0RtlCheck;
           task6-ypcb-uberddr3-bist-yosys-json =
             task6YpcbUberDdr3BistYosysJson;
+          task6-ypcb-uberddr3-bist-1lane-yosys-json =
+            task6YpcbUberDdr3Bist1LaneYosysJson;
           task6-ypcb-uberddr3-rowstream-loader-yosys-json =
             task6YpcbUberDdr3RowstreamLoaderYosysJson;
           task6-ypcb-uberddr3-rowstream-loader-1lane-yosys-json =
@@ -11222,6 +11245,10 @@
             task6YpcbUberDdr3BistSeed18Fasm;
           task6-ypcb-uberddr3-bist-seed18-bitstream =
             task6YpcbUberDdr3BistSeed18Bitstream;
+          task6-ypcb-uberddr3-bist-1lane-seed18-fasm =
+            task6YpcbUberDdr3Bist1LaneSeed18Fasm;
+          task6-ypcb-uberddr3-bist-1lane-seed18-bitstream =
+            task6YpcbUberDdr3Bist1LaneSeed18Bitstream;
           task6-ypcb-mmcm-diag-json =
             task6YpcbMmcmDiagJson;
           task6-ypcb-mmcm-diag-xdc =

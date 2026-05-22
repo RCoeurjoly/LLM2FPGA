@@ -681,6 +681,7 @@ def decode_debug_boot(raw: int) -> dict[str, Any]:
     debug["raw_bits"] = DEBUG_BITS_BOOT
     debug["raw_hex"] = f"0x{raw:0{DEBUG_BITS_BOOT // 4}x}"
     debug["schema"] = "boot-336"
+    debug["_ack_supported"] = False
     debug["read_data_chunk"] = bytes(16)
     debug["read_data_beat"] = bytes(BEAT_BYTES)
     return debug
@@ -777,7 +778,7 @@ class RowstreamLoader:
             if ack_supported:
                 if last["loader_state"] == 1 and (min_ack_count is None or last["wb_ack_count"] >= min_ack_count):
                     return last
-            elif last.get("schema") == "uber-960":
+            elif last.get("schema") in ("uber-960", "boot-336"):
                 if ready_state and min_ack_count is not None:
                     return last
                 if min_ack_count is None and last.get("calib_seen", False):

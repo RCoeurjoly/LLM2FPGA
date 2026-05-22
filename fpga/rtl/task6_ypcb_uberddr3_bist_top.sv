@@ -4,7 +4,8 @@ module task6_ypcb_uberddr3_bist_top #(
   parameter int JTAG_DEBUG_WIDTH = 1024,
   parameter int JTAG_CHAIN = 1,
   parameter int JTAG_COMMAND_CHAIN = 2,
-  parameter int PROBE_BYTE = 165
+  parameter int PROBE_BYTE = 165,
+  parameter int BYTE_LANES = 8
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -28,7 +29,6 @@ module task6_ypcb_uberddr3_bist_top #(
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
-  localparam int BYTE_LANES = 8;
   localparam int WB_ADDR_BITS = ROW_BITS + COL_BITS + BA_BITS - 3;
   localparam int WB_DATA_BITS = 8 * BYTE_LANES * 8;
   localparam int WB_SEL_BITS = WB_DATA_BITS / 8;
