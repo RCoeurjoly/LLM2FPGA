@@ -20083,3 +20083,47 @@ Narrower fallback implemented:
   - `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-fasm`
   - `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-bitstream`
   - `.#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-placed-json`
+
+### 2026-05-22 controller-FF placement lock gate
+
+Implemented and tested the narrower DDR3 preservation bundle between clock/PHY/pins and all placed cells by keeping:
+
+- DDR3 clock/PHY/pin BEL locks from the v63 route.
+- Controller sequential placement locks only (`SLICE_FFX`) instead of the full controller placement.
+
+Build target:
+
+```sh
+nix build .#task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement-bitstream -L
+```
+
+Result:
+
+- Build passed.
+- Bitstream: `/nix/store/2agqcx7kdsvjkak16kg021pz0pmbjab4-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement.bit`
+- Pre-place lock filtering applied 8,274 locks with `missing=0`.
+- nextpnr placed 8,387 constrained cells.
+- Post-route timing passed, with `controller_clk` reported at about 39.57 MHz against the 25 MHz target.
+
+Boot-only hardware gate:
+
+```sh
+python3 scripts/task6/task6_ddr3_rowstream_loader.py \
+  --bitstream /nix/store/2agqcx7kdsvjkak16kg021pz0pmbjab4-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-locked-controller-ff-placement.bit \
+  --run-dir artifacts/task6/runs/final-ts1m-inference/ddr3-boot-controller-ff-placement-seed18 \
+  --program --serial 210299BF3824 --jtag-cable digilent_hs3 \
+  --debug-bits 512 --calib-timeout 120 --command-repeats 2 \
+  --boot-only --json-only
+```
+
+Result:
+
+- Boot-only calibration failed.
+- Failure summary: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0100000c`.
+- No rowstream/data-path test was run.
+
+Interpretation:
+
+- The narrower controller-FF placement bundle avoids the whole-controller nextpnr crash and produces a timing-clean bitstream.
+- It still perturbs the v63 DDR3 calibration-sensitive behavior enough to reproduce the same early calibration failure seen with full placed-cell preservation.
+- Next narrower candidate should preserve fewer controller FFs, likely only FFs in explicit write/read timing cones near the PHY boundary, rather than every `uberddr3_controller` FF.
