@@ -6245,7 +6245,7 @@
             { buildInputs = [ pkgs.python3 ]; } ''
               set -euo pipefail
               python3 ${./scripts/task6/generate_nextpnr_pre_place_bel_locks.py} \
-                --locks-json  \
+                --locks-json ${locksJson} \
                 ${builtins.toString extraArgs} \
                 --out-py "$out"
             '';
