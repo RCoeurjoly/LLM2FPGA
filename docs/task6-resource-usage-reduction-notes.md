@@ -21109,3 +21109,30 @@ Added a dedicated BIST-only control target to test whether the stronger upstream
 - The mode-2 target keeps the known 1-lane BIST clocking/placement path as close as possible and only changes `.BIST_MODE(2)`.
 
 Purpose: distinguish whether our current confidence should be based only on `BIST_MODE=1`, or whether the board also passes the stronger `BIST_MODE=2` sequence before further user-port loader debugging.
+
+### 2026-05-22 - YPCB one-lane BIST_MODE=2 gate
+
+Target:
+
+- `.#task6-ypcb-uberddr3-bist-1lane-mode2-seed18-bitstream`
+- bitstream: `/nix/store/f7ffi8czaxs1lal4bscvl1i1bjd5mznf-task6-ypcb-uberddr3-bist-1lane-mode2-seed18.bit`
+
+Implementation detail:
+
+- Added an explicit `BIST_MODE` parameter to the repo-local YPCB BIST wrapper.
+- Added `ENABLE_READ_PROBE`; the BIST_MODE=2 target disables the repo-local Wishbone probe so the upstream BIST path runs without user-port interference.
+- Normal probe-enabled BIST wrapper operation now waits for upstream BIST done (`debug1[4:0] == 23`) instead of only `calib_complete`.
+
+Evidence:
+
+- Build routed successfully; post-route `controller_clk` was 122.38 MHz, PASS at 25 MHz.
+- Board programming succeeded through Digilent HS3 serial `210299BF3824`.
+- Direct BIST-schema JTAG read around 11 seconds after programming showed `debug1[4:0]=17`.
+- Direct BIST-schema JTAG read after an additional 300 seconds still showed `debug1[4:0]=17`.
+- The clean BIST_MODE=2 target kept repo-local probe counters at zero, so this result is not caused by our read/write diagnostic colliding with BIST.
+
+Result:
+
+- BIST_MODE=2 is not yet proven on the YPCB one-lane seed18 target.
+- The earlier BIST_MODE=1 one-lane proof remains the current positive DDR3 anchor.
+- Next DDR3 reliability work should treat BIST_MODE=2 as a stronger control gate to debug separately, while not assuming it passes merely because BIST_MODE=1 calibrates and reaches done.

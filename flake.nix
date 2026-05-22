@@ -228,7 +228,7 @@
             yosys -s run.ys
           '';
         mkTask6YpcbUberDdr3BistYosysJson =
-          { name ? "task6-ypcb-uberddr3-bist-yosys.json", probeByte ? 165, byteLanes ? 8, bistMode ? 1 }:
+          { name ? "task6-ypcb-uberddr3-bist-yosys.json", probeByte ? 165, byteLanes ? 8, bistMode ? 1, enableReadProbe ? true }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
@@ -239,8 +239,10 @@
                              "parameter int PROBE_BYTE = ${toString probeByte}," \
               --replace-fail "parameter int BYTE_LANES = 8," \
                              "parameter int BYTE_LANES = ${toString byteLanes}," \
-              --replace-fail "parameter int BIST_MODE = 1" \
-                             "parameter int BIST_MODE = ${toString bistMode}"
+              --replace-fail "parameter int BIST_MODE = 1," \
+                             "parameter int BIST_MODE = ${toString bistMode}," \
+              --replace-fail "parameter bit ENABLE_READ_PROBE = 1'b1" \
+                             "parameter bit ENABLE_READ_PROBE = 1'b${if enableReadProbe then "1" else "0"}"
             cat > run.ys <<EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
@@ -270,6 +272,7 @@
             name = "task6-ypcb-uberddr3-bist-1lane-mode2-yosys.json";
             byteLanes = 1;
             bistMode = 2;
+            enableReadProbe = false;
           };
         mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
           { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false, pllClkout0Divide ? 3, pllClkout1Divide ? 3, pllClkout2Divide ? 12, controllerClkPeriodPs ? "12_000", ddr3ClkPeriodPs ? "3_000" }:

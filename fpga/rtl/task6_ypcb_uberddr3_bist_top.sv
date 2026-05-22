@@ -6,7 +6,8 @@ module task6_ypcb_uberddr3_bist_top #(
   parameter int JTAG_COMMAND_CHAIN = 2,
   parameter int PROBE_BYTE = 165,
   parameter int BYTE_LANES = 8,
-  parameter int BIST_MODE = 1
+  parameter int BIST_MODE = 1,
+  parameter bit ENABLE_READ_PROBE = 1'b1
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -132,6 +133,9 @@ module task6_ypcb_uberddr3_bist_top #(
   wire calib_complete;
   wire [31:0] debug1;
   wire uart_tx;
+  wire bist_done;
+
+  assign bist_done = calib_complete && debug1[4:0] == 5'd23;
 
   typedef enum logic [3:0] {
     READ_PROBE_RESET = 3'd0,
@@ -293,11 +297,11 @@ module task6_ypcb_uberddr3_bist_top #(
           read_probe_stream_bytes_q <= '0;
           read_probe_stream_valid_q <= 4'd0;
           read_probe_stream_mismatch_q <= 4'd0;
-          read_probe_state_q <= READ_PROBE_WAIT_CALIB;
+          read_probe_state_q <= ENABLE_READ_PROBE ? READ_PROBE_WAIT_CALIB : READ_PROBE_DONE;
         end
 
         READ_PROBE_WAIT_CALIB: begin
-          if (calib_complete) begin
+          if (bist_done) begin
             read_probe_cyc_q <= 1'b1;
             read_probe_stb_q <= 1'b1;
             read_probe_we_q <= 1'b1;
