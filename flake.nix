@@ -6270,6 +6270,7 @@
               "uberddr3_phy"
               "ddr3_board_pins"
             ];
+            allowMissing = true;
           };
 
         task6YpcbUberDdr3GenerateFullPlacedBelLocks =
