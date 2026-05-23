@@ -21846,3 +21846,26 @@ Validated on the same locked 2-lane seed18 bitstream:
 Interpretation: repeated RTL-owned DDR3 sequencing scales at least to 256 KiB with no retries and no observed mismatches for generated contiguous data. Sparse post-load repeated reads also remained stable. This is not yet full TinyStories rowstream proof because the payload is generated in RTL rather than host-provided weights, but it is strong evidence that the board/DDR3 path is usable when host/JTAG command pressure is removed from the per-beat loop.
 
 Next implementation gate: add a packetized host upload path for rowstream data, where host transfers many beats per packet/FIFO fill and RTL performs the same paced write/read/verify loop used by the passing generated-data diagnostic.
+
+## 2026-05-23 - Host-provided packetized DDR3 upload gate
+
+Implemented the first host-provided packetized upload path. The host now loads up to four 16-byte beats into RTL packet registers with `LOADER_OP_LOAD_PACKET_BEAT`; a separate `LOADER_OP_RUN_HOST_PACKET` command makes RTL write and immediately read/verify those beats with the same paced DDR3 FSM used by the passing generated-data burst diagnostic.
+
+This is intentionally small: it proves host-provided data can cross JTAG into RTL and then be written/read/verified by DDR3 without one DDR3 transaction per host command. It is not yet full rowstream loading, but it is the required bridge between generated RTL patterns and real host rowstream bytes.
+
+Validated bitstream:
+
+- `/nix/store/kvmx2n7kbbhb97af5f1b3vpvmbzpq15i-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Final route reported controller max frequency 77.17 MHz, below the desired 83.3 MHz target, but boot-only calibration still passed.
+- Boot-only calibration: PASS (`calib_seen=True`, `boot_done=True`, `boot_mismatch=False`).
+- 4 host-provided beats: PASS, 1 packet, `mismatch_count=0`.
+- 1 KiB host-provided deterministic data: PASS, 64 beats, 16 packets, `mismatch_count=0`.
+- 16 KiB host-provided deterministic data: PASS, 1024 beats, 256 packets, `mismatch_count=0`.
+- Post-load sparse read-only repeat over beats 0, 90, 255, 512, and 1023: PASS, 0 mismatches over 100 reads per sampled beat.
+
+Bring-up notes:
+
+- The first 16 KiB packet run exposed a host-side completion bug: the loader used the low debug command counter to detect packet-load completion, but long packet runs can wrap that counter. The script now treats packet-load completion as opcode-visible and relies on the subsequent RTL DDR3 packet verify to catch stale or missed packet contents.
+- Address-qualified load acknowledgement was also too strict because the current command payload format has overlapping address/data fields. This reinforces that the long-term command format should be made non-overlapping before full TinyStories rowstream load.
+
+Next implementation gate: replace deterministic packet data with actual rowstream bytes, then run the same packetized path at 1 KiB, 16 KiB, 256 KiB, and full rowstream size. In parallel, improve or narrow the packet RTL so the final route gets back above the 83.3 MHz controller target with calibration margin.

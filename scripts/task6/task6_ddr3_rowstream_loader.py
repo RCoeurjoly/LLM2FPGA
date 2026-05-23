@@ -72,6 +72,8 @@ OP_RUN_HARDCODED_SINGLEBYTE = 0x0B
 OP_ECHO_CHUNK = 0x0C
 OP_RUN_HOST_FULLBEAT = 0x0D
 OP_RUN_RTL_BURST = 0x0E
+OP_LOAD_PACKET_BEAT = 0x0F
+OP_RUN_HOST_PACKET = 0x10
 BEAT_BYTES = 64
 
 
@@ -193,6 +195,21 @@ def parse_args() -> argparse.Namespace:
         type=lambda value: int(value, 0),
         default=0,
         help="start beat address for --diagnostic-rtl-burst-beats; default: 0",
+    )
+    parser.add_argument(
+        "--diagnostic-host-packet-beats",
+        type=int,
+        default=0,
+        help=(
+            "before rowstream loading, upload deterministic host-provided data "
+            "as 4-beat packets, then let RTL write/read/verify each packet"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-host-packet-start",
+        type=lambda value: int(value, 0),
+        default=0,
+        help="start beat address for --diagnostic-host-packet-beats; default: 0",
     )
     parser.add_argument(
         "--diagnostic-lowbyte-count",
@@ -1105,6 +1122,28 @@ class RowstreamLoader:
             raise ValueError("RTL burst beat count must be in 1..255")
         self.send_command(OP_RUN_RTL_BURST, 0, start_beat, bytes([beats & 0xFF]))
         return self.wait_ready(min_ack_count=2)
+
+    def load_packet_beat(self, slot: int, data: bytes, tag_addr: int | None = None) -> dict[str, Any]:
+        if slot < 0 or slot > 3:
+            raise ValueError("packet slot must be in 0..3")
+        if len(data) != 16:
+            raise ValueError("packet beat requires exactly 16 bytes")
+        addr = slot if tag_addr is None else tag_addr
+        self.send_command(OP_LOAD_PACKET_BEAT, 0, addr, data)
+        deadline = time.monotonic() + self.args.poll_timeout
+        debug = self.read_debug()
+        while time.monotonic() < deadline:
+            debug = self.read_debug()
+            if debug["last_opcode"] == OP_LOAD_PACKET_BEAT:
+                return debug
+            time.sleep(0.01)
+        raise TimeoutError(f"packet beat load did not complete: {summarize_debug(debug)}")
+
+    def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
+        if beats < 1 or beats > 4:
+            raise ValueError("host packet beat count must be in 1..4")
+        self.send_command(OP_RUN_HOST_PACKET, 0, start_beat, bytes([beats & 0xFF]))
+        return self.wait_ready(min_ack_count=beats * 2)
 
 
 def summarize_debug(debug: dict[str, Any]) -> str:
@@ -2388,6 +2427,86 @@ def main() -> int:
                 "mismatch_counts": {str(item["beat_addr"]): item["mismatch_count"] for item in diagnostics},
             })
             return 0 if overall_status == "PASS" else 1
+        if args.diagnostic_host_packet_beats:
+            total_beats = args.diagnostic_host_packet_beats
+            completed = 0
+            packets = []
+            total_mismatches = 0
+            first_mismatch = None
+            status = "PASS"
+            final_debug = None
+            while completed < total_beats:
+                packet_beats = min(4, total_beats - completed)
+                packet_start = args.diagnostic_host_packet_start + completed
+                expected_packet = []
+                for slot in range(packet_beats):
+                    beat_addr = packet_start + slot
+                    data = bytes(((beat_addr + lane) & 0xFF) for lane in range(16))
+                    expected_packet.append(data.hex())
+                    loader.load_packet_beat(slot, data, beat_addr)
+                debug = loader.run_host_packet(packet_start, packet_beats)
+                final_debug = debug
+                mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
+                packet_first_mismatch = int(debug.get("rtl_burst_first_mismatch", 0xFF))
+                final_index = packet_beats - 1
+                packet_status = (
+                    "PASS"
+                    if mismatch_count == 0
+                    and int(debug.get("rtl_burst_index", -1)) == final_index
+                    and int(debug.get("rtl_burst_count", -1)) == final_index
+                    else "FAIL"
+                )
+                packets.append({
+                    "status": packet_status,
+                    "start_beat": packet_start,
+                    "beats": packet_beats,
+                    "expected_hex": expected_packet,
+                    "final_index": final_index,
+                    "mismatch_count": mismatch_count,
+                    "first_mismatch": packet_first_mismatch,
+                    "wb_ack_count": int(debug.get("wb_ack_count", 0)),
+                    "wb_err_count": int(debug.get("wb_err_count", 0)),
+                })
+                total_mismatches += mismatch_count
+                if mismatch_count and first_mismatch is None:
+                    first_mismatch = completed + packet_first_mismatch
+                completed += packet_beats
+                if packet_status != "PASS":
+                    status = "FAIL"
+                    break
+            if first_mismatch is None:
+                first_mismatch = 0xFF
+            diagnostic = {
+                "artifact_name": "task6-ypcb-uberddr3-host-packet-write-read",
+                "status": status,
+                "start_beat": args.diagnostic_host_packet_start,
+                "beats": total_beats,
+                "completed_beats": completed,
+                "packet_count": len(packets),
+                "packet_max_beats": 4,
+                "packets": packets,
+                "mismatch_count": total_mismatches,
+                "first_mismatch": first_mismatch,
+                "final_debug": json_debug(final_debug or {}),
+                "decision": {
+                    "verdict": "host-packet-passes" if status == "PASS" else "host-packet-fails",
+                    "next_gate": "If this passes at 1 KiB and 16 KiB, replace deterministic packet data with rowstream bytes.",
+                },
+            }
+            write_json(run_dir / "host-packet-diagnostic.json", diagnostic)
+            write_json(run_dir / "summary.json", {
+                "status": status,
+                "run_dir": str(run_dir),
+                "diagnostic_json": str(run_dir / "host-packet-diagnostic.json"),
+                "start_beat": args.diagnostic_host_packet_start,
+                "beats": total_beats,
+                "completed_beats": completed,
+                "packet_count": len(packets),
+                "mismatch_count": total_mismatches,
+                "first_mismatch": first_mismatch,
+                "verdict": diagnostic["decision"]["verdict"],
+            })
+            return 0 if status == "PASS" else 1
         if args.diagnostic_rtl_burst_beats:
             total_beats = args.diagnostic_rtl_burst_beats
             completed = 0
