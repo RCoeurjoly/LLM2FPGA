@@ -755,12 +755,6 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "rtl_burst_first_mismatch": (raw >> 264) & 0xFF,
         "rtl_burst_status_first_mismatch": (raw >> 472) & 0xFF,
         "rtl_burst_status_mismatch_count": (raw >> 480) & 0xFF,
-        "packet_postread_first_mismatch": (raw >> 472) & 0xFF,
-        "packet_postread_mismatch_count": (raw >> 480) & 0xFF,
-        "packet_postread_mismatch_bitmap": (raw >> 488) & 0xF,
-        "packet_last_slot": (raw >> 240) & 0x3,
-        "packet_valid_bits": (raw >> 248) & 0xF,
-        "packet_load_seq": (raw >> 264) & 0xFF,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
         "sys_rstn": None,
@@ -1151,28 +1145,11 @@ class RowstreamLoader:
             raise ValueError("packet slot must be in 0..3")
         if len(data) != 16:
             raise ValueError("packet beat requires exactly 16 bytes")
-        before = self.read_debug()
-        before_seq = int(before.get("packet_load_seq", 0))
         addr = slot if tag_addr is None else tag_addr
         self.send_command(OP_LOAD_PACKET_BEAT, 0, addr, data)
-        deadline = time.monotonic() + self.args.poll_timeout
-        debug = before
-        while time.monotonic() < deadline:
-            if self.args.diagnostic_host_packet_load_delay > 0:
-                time.sleep(self.args.diagnostic_host_packet_load_delay)
-            debug = self.read_debug()
-            seq = int(debug.get("packet_load_seq", 0))
-            seq_changed = ((seq - before_seq) & 0xFF) != 0
-            slot_seen = int(debug.get("packet_last_slot", -1)) == slot
-            valid_seen = bool(int(debug.get("packet_valid_bits", 0)) & (1 << slot))
-            if debug.get("last_opcode") == OP_LOAD_PACKET_BEAT and seq_changed and slot_seen and valid_seen:
-                return debug
-            time.sleep(0.001)
-        raise TimeoutError(
-            f"packet slot {slot} load was not acknowledged: {summarize_debug(debug)} "
-            f"seq_before={before_seq} seq_after={debug.get('packet_load_seq')} "
-            f"last_slot={debug.get('packet_last_slot')} valid=0x{debug.get('packet_valid_bits', 0):x}"
-        )
+        if self.args.diagnostic_host_packet_load_delay > 0:
+            time.sleep(self.args.diagnostic_host_packet_load_delay)
+        return self.read_debug()
 
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
         if beats < 1 or beats > 4:
@@ -2468,7 +2445,9 @@ def main() -> int:
             completed = 0
             packets = []
             total_mismatches = 0
+            total_standalone_mismatches = 0
             first_mismatch = None
+            first_standalone_mismatch = None
             status = "PASS"
             final_debug = None
             while completed < total_beats:
@@ -2496,14 +2475,31 @@ def main() -> int:
                 mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
                 packet_first_mismatch = int(debug.get("rtl_burst_first_mismatch", 0xFF))
                 final_index = packet_beats - 1
-                postread_mismatch_count = int(debug.get("packet_postread_mismatch_count", 0))
-                postread_mismatch_bitmap = int(debug.get("packet_postread_mismatch_bitmap", 0))
-                postread_first_mismatch = int(debug.get("packet_postread_first_mismatch", 0xFF))
+                standalone_reads = []
+                standalone_mismatch_count = 0
+                standalone_first_mismatch = 0xFF
+                for slot, expected_hex in enumerate(expected_packet):
+                    beat_addr = packet_start + slot
+                    expected = bytes.fromhex(expected_hex)
+                    observed, read_debug = loader.read_beat(beat_addr)
+                    observed = observed[: len(expected)]
+                    standalone_match = observed == expected
+                    if not standalone_match:
+                        standalone_mismatch_count += 1
+                        if standalone_first_mismatch == 0xFF:
+                            standalone_first_mismatch = slot
+                    standalone_reads.append({
+                        "slot": slot,
+                        "beat_addr": beat_addr,
+                        "status": "PASS" if standalone_match else "FAIL",
+                        "expected_hex": expected.hex(),
+                        "observed_hex": observed.hex(),
+                        "debug": json_debug(read_debug),
+                    })
                 packet_status = (
                     "PASS"
                     if mismatch_count == 0
-                    and postread_mismatch_count == 0
-                    and postread_mismatch_bitmap == 0
+                    and standalone_mismatch_count == 0
                     and int(debug.get("rtl_burst_index", -1)) == final_index
                     and int(debug.get("rtl_burst_count", -1)) == final_index
                     else "FAIL"
@@ -2516,15 +2512,18 @@ def main() -> int:
                     "final_index": final_index,
                     "mismatch_count": mismatch_count,
                     "first_mismatch": packet_first_mismatch,
-                    "postread_mismatch_count": postread_mismatch_count,
-                    "postread_first_mismatch": postread_first_mismatch,
-                    "postread_mismatch_bitmap": postread_mismatch_bitmap,
+                    "standalone_mismatch_count": standalone_mismatch_count,
+                    "standalone_first_mismatch": standalone_first_mismatch,
+                    "standalone_reads": standalone_reads,
                     "wb_ack_count": int(debug.get("wb_ack_count", 0)),
                     "wb_err_count": int(debug.get("wb_err_count", 0)),
                 })
                 total_mismatches += mismatch_count
+                total_standalone_mismatches += standalone_mismatch_count
                 if mismatch_count and first_mismatch is None:
                     first_mismatch = completed + packet_first_mismatch
+                if standalone_mismatch_count and first_standalone_mismatch is None:
+                    first_standalone_mismatch = completed + standalone_first_mismatch
                 completed += packet_beats
                 if packet_status != "PASS":
                     status = "FAIL"
@@ -2544,10 +2543,12 @@ def main() -> int:
                 "packets": packets,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
+                "standalone_mismatch_count": total_standalone_mismatches,
+                "first_standalone_mismatch": first_standalone_mismatch,
                 "final_debug": json_debug(final_debug or {}),
                 "decision": {
                     "verdict": "host-packet-passes" if status == "PASS" else "host-packet-fails",
-                    "next_gate": "Scale only after immediate verify and RTL post-packet readback both pass.",
+                    "next_gate": "Scale only after packet immediate verify and standalone post-packet readback both pass.",
                 },
             }
             write_json(run_dir / "host-packet-diagnostic.json", diagnostic)
@@ -2563,6 +2564,8 @@ def main() -> int:
                 "packet_load_delay": args.diagnostic_host_packet_load_delay,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
+                "standalone_mismatch_count": total_standalone_mismatches,
+                "first_standalone_mismatch": first_standalone_mismatch,
                 "verdict": diagnostic["decision"]["verdict"],
             })
             return 0 if status == "PASS" else 1

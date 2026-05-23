@@ -22027,3 +22027,54 @@ Interpretation:
 - This bitstream must not be used for rowstream or inference testing.
 - The beat 0/1 problem still cannot be ignored for inference, because inference reads weights later without rewriting them first.
 - The next practical fix should keep the previously calibration-positive/timing-clean 4-beat packet behavior and move the post-packet readback check out of the timing-critical packet path, or run the same comparison through existing standalone read commands while reducing debug fanout/placement perturbation.
+
+### 2026-05-23 - Restore timing-clean packet path and use host-side postread gate
+
+Decision:
+
+- Return RTL and the base host packet path to the last calibration-positive, timing-clean 4-beat packet implementation from `b176cf5`.
+- Avoid adding more packet FSM state near the DDR3 controller.
+- Add the post-packet readback gate in the host script using existing `READ_BEAT` commands instead of new RTL state.
+- Do not scale rowstream until both packet immediate verify and post-packet standalone reads are clean.
+
+Implementation:
+
+- Restored the timing-clean packet RTL/script base that produced bitstream `/nix/store/bvjxminsk0g91665a0vlaskhv63nq4cl-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`.
+- The packet diagnostic now, for each packet:
+  - loads packet slots,
+  - runs `RUN_HOST_PACKET`,
+  - checks immediate RTL packet write/read mismatch count,
+  - then reads each packet beat back using standalone `READ_BEAT`,
+  - fails the packet unless standalone post-packet readback also matches.
+
+Build and hardware evidence:
+
+| gate | result |
+| --- | --- |
+| host script syntax check | PASS |
+| bitstream build | PASS, reused timing-clean packet bitstream `/nix/store/bvjxminsk0g91665a0vlaskhv63nq4cl-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit` |
+| boot-only calibration | PASS, `boot-clean`, `calib_seen=true`, `boot_done=true` |
+| 4-beat actual rowstream packet plus same-process standalone postread | PASS: immediate mismatch count 0, standalone mismatch count 0 for beats 0..3 |
+| separate no-preload read-repeat after the packet process exits | FAIL: beat 0 mismatches 10/10, beat 1 mismatches 10/10, beats 2 and 3 pass 10/10 |
+
+Run artifacts:
+
+| artifact | role |
+| --- | --- |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-standalone-postread-boot/summary.json` | restored timing-clean boot evidence |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-standalone-postread-rowstream-4beats/summary.json` | same-process packet plus standalone postread evidence |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-standalone-postread-read0-3/summary.json` | later no-preload read-repeat evidence |
+
+Interpretation:
+
+- The previous RTL postread implementation was too disruptive; restoring the timing-clean packet path recovers calibration.
+- The immediate host-side standalone readback proves that `READ_BEAT` can read packet-loaded beats 0 and 1 correctly immediately after `RUN_HOST_PACKET`.
+- The later separate no-preload read-repeat still fails beats 0 and 1, while beats 2 and 3 remain stable.
+- This narrows the issue from simple packet-slot corruption to an early-beat persistence/timing/window problem: packet-loaded beats 0 and 1 are readable immediately, but not robustly later.
+- This is still blocking for inference, because inference-time reads happen after preload rather than immediately inside the preload sequence.
+
+Next gate:
+
+- Add a controlled delay before the host-side standalone postread inside the same packet diagnostic, for example 0 ms, 100 ms, 1 s, and 5 s.
+- If delayed same-process postread fails only after time, focus on DDR3 retention/refresh/open-row or command-idle behavior for early beats.
+- If delayed same-process postread stays clean but a new process fails, focus on host/JTAG command initialization or script startup effects before standalone reads.
