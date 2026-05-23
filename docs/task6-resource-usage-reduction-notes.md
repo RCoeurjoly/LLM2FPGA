@@ -22306,3 +22306,32 @@ Conclusion:
 
 - The remaining code bug was real and fixed, but the debug bitstream with stale controller-FF pre-place locks is not a usable board candidate.
 - Next route should test the same RTL fix with less placement perturbation: no stale controller-FF lock bundle, or only clock/PHY/pin preservation, then rerun the `131064..131075` boundary packet diagnostic.
+
+### 2026-05-23 - High-address packet boundary passes with less-locked timing-clean build
+
+Built and tested the same packet command/address fixes without the stale controller-FF pre-place lock bundle:
+
+- Package: `task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed18-clocked-bitstream`
+- Bitstream: `/nix/store/r5nq9hq5srg9xiwf43lbbk08c4avgngd-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`
+- Routed `controller_clk`: 89.37 MHz, above the 83.3 MHz DDR3 target.
+- Run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-boundary-131071-packet-burst-base-fix-less-locked`
+
+Focused boundary diagnostic:
+
+- Window: rowstream beats `131064..131075`
+- Completed beats: 12/12
+- Packet count: 3
+- Packet immediate mismatch count: 0
+- Standalone sampled postread mismatch count: 0
+- Verdict: PASS / `host-packet-passes`
+- Final packet write ACK address low24: `131075`, matching the final beat in the loaded window.
+
+Conclusion:
+
+- The failure at the full rowstream boundary was not evidence of a high-address DDR3 storage failure.
+- It was caused by packet command/address handling bugs plus the stale controller-FF lock bundle.
+- The fixed packet path can write/read the previously failing high-address window when built with the less-locked timing-clean placement.
+
+Next gate:
+
+- Use this less-locked 89.37 MHz bitstream path, or an equivalent stripped-debug production rebuild, for the full rowstream packet load with sampled same-process postread and fresh-process no-preload sampled read-repeat.
