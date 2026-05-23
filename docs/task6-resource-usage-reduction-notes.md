@@ -21617,3 +21617,35 @@ Observed standalone data examples:
 Interpretation: this no longer looks like a host address/opcode decode issue. The standalone command reaches the intended address and records the expected opcode at the actual read ACK, but the captured 128-bit `wb_data` is structurally wrong. The corruption pattern is organized (duplicated byte pairs / repeated half-beat patterns), so the next debug should compare the standalone read controller signals against the immediate fullbeat read state, especially any width/beat packing, data ordering, and read-data-valid assumptions.
 
 A single-command repeat experiment with `--command-repeats 1` timed out in host wait accounting while the loader was idle/calibrated (`debug1=0x17`, state 1, ack 2). That points to the single-repeat diagnostic path needing host ACK accounting cleanup; it does not change the main finding from the repeat-2 diagnostic.
+
+### 2026-05-23 - Standalone READ_BEAT sequencing comparison
+
+Compared the immediate fullbeat path against standalone `LOADER_OP_READ_BEAT`.
+
+Key RTL difference:
+
+- `LOADER_OP_RUN_HOST_FULLBEAT` writes a full beat, waits for the write ACK, enters the existing write-drain interval, then issues the read and captures `wb_data` on the read ACK.
+- `LOADER_OP_READ_BEAT` issues a naked read immediately and captures `wb_data` on the read ACK.
+
+Experiment: reuse the existing `LOADER_WRITE_DRAIN` interval as a pre-read idle drain for standalone `LOADER_OP_READ_BEAT`, while keeping the fullbeat write/read path unchanged.
+
+Built bitstream:
+
+- `/nix/store/2khqc234nnajyzfrvvrc66wdvcy9zyy6-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+
+Build result:
+
+- Final routed controller max frequency: 78.86 MHz, below the intended 83.33 MHz controller clock.
+
+Board result:
+
+- Calibration failed before read diagnostics could run.
+- Final debug: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x00000004`.
+
+Conclusion: the pre-read-drain sequencing experiment is not a valid positive/negative test of standalone read correctness because it produced a timing/placement-contaminated bitstream that failed calibration. The RTL experiment was removed rather than kept as the active loader behavior.
+
+Current best interpretation remains:
+
+- Immediate fullbeat write/read can pass on the matched-lock bitstream.
+- Standalone `READ_BEAT` reaches the correct address/opcode/ACK but captures structurally wrong data.
+- The next safer debug should avoid adding new state/control near the controller. Prefer host/RTL instrumentation that compares immediate-read and standalone-read controller-visible signals using the calibration-positive bitstream shape, or add a minimal standalone read variant that reuses exactly the fullbeat read issue path without adding delay/state.
