@@ -55,9 +55,8 @@ DEBUG_BITS_UBER = 960
 DEBUG_MAGIC = 0x54364A44
 DEBUG_MAGIC_UBER = 0xD3B5
 DEBUG_VERSION = 63
-COMMAND_BITS = 240
+COMMAND_BITS = 208
 COMMAND_MAGIC = 0x33445244
-COMMAND_GUARD_MAGIC = 0x6D5AC3B4
 OP_STATUS = 0x00
 OP_WRITE_CHUNK = 0x01
 OP_READ_BEAT = 0x02
@@ -585,21 +584,6 @@ def make_command(opcode: int, chunk: int, addr: int, data: bytes = b"") -> int:
     payload |= (addr & 0xFFFF_FFFF) << 48
     for index, byte in enumerate(data):
         payload |= (byte & 0xFF) << (80 + index * 8)
-    guard = (
-        COMMAND_GUARD_MAGIC
-        ^ COMMAND_MAGIC
-        ^ (opcode & 0xFF)
-        ^ (chunk & 0x3)
-        ^ (addr & 0xFFFF_FFFF)
-    )
-    for offset in range(0, 16, 4):
-        word = 0
-        for index in range(4):
-            data_index = offset + index
-            if data_index < len(data):
-                word |= (data[data_index] & 0xFF) << (8 * index)
-        guard ^= word
-    payload |= (guard & 0xFFFF_FFFF) << 208
     return payload
 
 
@@ -635,7 +619,7 @@ def decode_debug_command_status(raw: int) -> dict[str, Any]:
     return {
         "raw_bits": COMMAND_BITS,
         "raw_hex": f"0x{raw:0{COMMAND_BITS // 4}x}",
-        "schema": "command-240-guarded",
+        "schema": "command-208",
         "_ack_supported": True,
         "magic": raw & 0xFFFF_FFFF,
         "magic_ok": (raw & 0xFFFF_FFFF) == DEBUG_MAGIC,
@@ -1210,13 +1194,27 @@ class RowstreamLoader:
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
         if beats < 1 or beats > 4:
             raise ValueError("host packet beat count must be in 1..4")
-        # OP_RUN_HOST_PACKET must not use command data bytes: command data starts at bit 80 in the widened non-overlapping
-        # JTAG payload, so keep the physical beat address in the low address
-        # bits consumed by RTL and encode the small packet count in unused
-        # address bits 29..31.
+        # OP_RUN_HOST_PACKET must not use command data bytes: command data starts
+        # at bit 80 in the widened non-overlapping JTAG payload, so keep the
+        # physical beat address in the low address bits consumed by RTL and
+        # encode the small packet count in unused address bits 29..31.
         command_addr = (start_beat & 0x1FF_FFFF) | ((beats & 0x7) << 29)
-        self.send_command(OP_RUN_HOST_PACKET, 0, command_addr)
-        return self.wait_ready(min_ack_count=beats * 2)
+        attempts = max(1, self.args.write_verify_retries + 1)
+        last_error: TimeoutError | None = None
+        for attempt in range(attempts):
+            before = self.read_debug()
+            min_ack_count = int(before.get("wb_ack_count", 0)) + beats * 2
+            self.send_command(OP_RUN_HOST_PACKET, 0, command_addr)
+            try:
+                return self.wait_ready(min_ack_count=min_ack_count)
+            except TimeoutError as exc:
+                last_error = exc
+                debug = self.read_debug()
+                if debug.get("loader_error", False):
+                    raise
+                time.sleep(0.01 * (attempt + 1))
+        assert last_error is not None
+        raise last_error
 
 
 def summarize_debug(debug: dict[str, Any]) -> str:

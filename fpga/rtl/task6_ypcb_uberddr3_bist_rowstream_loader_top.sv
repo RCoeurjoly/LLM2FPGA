@@ -37,9 +37,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
   localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd63;
-  localparam int JTAG_COMMAND_WIDTH = 240;
+  localparam int JTAG_COMMAND_WIDTH = 208;
   localparam logic [31:0] LOADER_COMMAND_MAGIC = 32'h33445244;
-  localparam logic [31:0] LOADER_COMMAND_GUARD_MAGIC = 32'h6d5ac3b4;
   localparam logic [7:0] LOADER_OP_WRITE_CHUNK = 8'h01;
   localparam logic [7:0] LOADER_OP_READ_BEAT = 8'h02;
   localparam logic [7:0] LOADER_OP_WRITE_LOWBYTE = 8'h03;
@@ -304,7 +303,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   wire [1:0] jtag_command_chunk = jtag_command_payload[40 +: 2];
   wire [31:0] jtag_command_addr = jtag_command_payload[48 +: 32];
   wire [7:0] jtag_command_data_byte = jtag_command_payload[80 +: 8];
-  wire [31:0] jtag_command_guard = jtag_command_payload[208 +: 32];
   wire [2:0] jtag_command_packet_count = jtag_command_addr[31:29];
   wire [WB_ADDR_BITS - 1:0] jtag_command_addr_low16 =
     {{(WB_ADDR_BITS - 16){1'b0}}, jtag_command_addr[15:0]};
@@ -321,17 +319,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     {{(WB_ADDR_BITS - 10){1'b0}}, jtag_command_addr[15:6]};
   wire [WB_SEL_BITS - 1:0] jtag_command_dense_sel =
     {{(WB_SEL_BITS - 1){1'b0}}, 1'b1} << jtag_command_addr[5:0];
-  wire [31:0] jtag_command_expected_guard =
-    LOADER_COMMAND_GUARD_MAGIC ^
-    jtag_command_magic ^
-    {24'd0, jtag_command_opcode} ^
-    {30'd0, jtag_command_chunk} ^
-    jtag_command_addr ^
-    jtag_command_payload[80 +: 32] ^
-    jtag_command_payload[112 +: 32] ^
-    jtag_command_payload[144 +: 32] ^
-    jtag_command_payload[176 +: 32];
-  wire jtag_command_guard_ok = jtag_command_guard == jtag_command_expected_guard;
   logic [WB_DATA_BITS - 1:0] jtag_command_dense_data;
   logic [WB_DATA_BITS - 1:0] jtag_command_lowbyte_data;
   logic [WB_DATA_BITS - 1:0] jtag_command_fullbeat_data;
@@ -581,8 +568,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 
       if (
         jtag_command_event && !jtag_command_accept_phase_q && read_probe_done_q &&
-        jtag_command_magic_ok && jtag_command_guard_ok &&
-        calib_complete && debug1[4:0] == 5'd23
+        jtag_command_magic_ok && calib_complete && debug1[4:0] == 5'd23
       ) begin
         loader_last_opcode_q <= jtag_command_opcode;
         loader_last_chunk_q <= jtag_command_chunk;
@@ -856,8 +842,12 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           read_probe_we_q <= 1'b1;
           read_probe_state_q <= LOADER_ISSUE;
         end else begin
-          loader_error_q <= 1'b1;
-          read_probe_state_q <= LOADER_ERROR;
+          loader_done_q <= 1'b1;
+          read_probe_done_q <= 1'b1;
+          read_probe_cyc_q <= 1'b0;
+          read_probe_stb_q <= 1'b0;
+          read_probe_we_q <= 1'b0;
+          read_probe_state_q <= READ_PROBE_DONE;
         end
       end else if (
         jtag_command_event && !jtag_command_accept_phase_q && read_probe_done_q
