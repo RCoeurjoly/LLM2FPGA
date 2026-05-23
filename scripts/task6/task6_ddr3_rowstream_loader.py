@@ -184,8 +184,8 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=0,
         help=(
-            "before rowstream loading, issue one RTL-generated multi-beat "
-            "fullbeat write/read/verify burst and exit"
+            "before rowstream loading, issue RTL-generated fullbeat write/read/verify "
+            "bursts and exit; values above 255 run as repeated RTL-paced chunks"
         ),
     )
     parser.add_argument(
@@ -2389,32 +2389,63 @@ def main() -> int:
             })
             return 0 if overall_status == "PASS" else 1
         if args.diagnostic_rtl_burst_beats:
-            debug = loader.run_rtl_burst(
-                args.diagnostic_rtl_burst_start,
-                args.diagnostic_rtl_burst_beats,
-            )
-            mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
-            first_mismatch = int(debug.get("rtl_burst_first_mismatch", 0xFF))
-            final_index = args.diagnostic_rtl_burst_beats - 1
-            status = (
-                "PASS"
-                if mismatch_count == 0
-                and int(debug.get("rtl_burst_index", -1)) == final_index
-                and int(debug.get("rtl_burst_count", -1)) == final_index
-                else "FAIL"
-            )
+            total_beats = args.diagnostic_rtl_burst_beats
+            completed = 0
+            chunks = []
+            total_mismatches = 0
+            first_mismatch = None
+            status = "PASS"
+            final_debug = None
+            while completed < total_beats:
+                chunk_beats = min(255, total_beats - completed)
+                chunk_start = args.diagnostic_rtl_burst_start + completed
+                debug = loader.run_rtl_burst(chunk_start, chunk_beats)
+                final_debug = debug
+                mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
+                chunk_first_mismatch = int(debug.get("rtl_burst_first_mismatch", 0xFF))
+                final_index = chunk_beats - 1
+                chunk_status = (
+                    "PASS"
+                    if mismatch_count == 0
+                    and int(debug.get("rtl_burst_index", -1)) == final_index
+                    and int(debug.get("rtl_burst_count", -1)) == final_index
+                    else "FAIL"
+                )
+                chunks.append({
+                    "status": chunk_status,
+                    "start_beat": chunk_start,
+                    "beats": chunk_beats,
+                    "final_index": final_index,
+                    "mismatch_count": mismatch_count,
+                    "first_mismatch": chunk_first_mismatch,
+                    "wb_ack_count": int(debug.get("wb_ack_count", 0)),
+                    "wb_err_count": int(debug.get("wb_err_count", 0)),
+                })
+                total_mismatches += mismatch_count
+                if mismatch_count and first_mismatch is None:
+                    first_mismatch = completed + chunk_first_mismatch
+                if chunk_status != "PASS":
+                    status = "FAIL"
+                    completed += chunk_beats
+                    break
+                completed += chunk_beats
+            if first_mismatch is None:
+                first_mismatch = 0xFF
             diagnostic = {
                 "artifact_name": "task6-ypcb-uberddr3-rtl-multibeat-burst",
                 "status": status,
                 "start_beat": args.diagnostic_rtl_burst_start,
-                "beats": args.diagnostic_rtl_burst_beats,
-                "final_index": final_index,
-                "mismatch_count": mismatch_count,
+                "beats": total_beats,
+                "completed_beats": completed,
+                "chunk_count": len(chunks),
+                "chunk_max_beats": 255,
+                "chunks": chunks,
+                "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
-                "final_debug": json_debug(debug),
+                "final_debug": json_debug(final_debug or {}),
                 "decision": {
                     "verdict": "rtl-burst-passes" if status == "PASS" else "rtl-burst-fails",
-                    "next_gate": "If this passes at 256 beats, try 1024-equivalent repeated bursts or packetized rowstream loading.",
+                    "next_gate": "If repeated RTL bursts pass at 16 KiB and 256 KiB, move to packetized host-provided rowstream loading.",
                 },
             }
             write_json(run_dir / "rtl-burst-diagnostic.json", diagnostic)
@@ -2423,8 +2454,10 @@ def main() -> int:
                 "run_dir": str(run_dir),
                 "diagnostic_json": str(run_dir / "rtl-burst-diagnostic.json"),
                 "start_beat": args.diagnostic_rtl_burst_start,
-                "beats": args.diagnostic_rtl_burst_beats,
-                "mismatch_count": mismatch_count,
+                "beats": total_beats,
+                "completed_beats": completed,
+                "chunk_count": len(chunks),
+                "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
                 "verdict": diagnostic["decision"]["verdict"],
             })

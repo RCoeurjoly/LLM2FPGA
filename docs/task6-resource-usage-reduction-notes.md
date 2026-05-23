@@ -21819,3 +21819,30 @@ Validated bitstream:
 - RTL burst 255 beats: PASS, `mismatch_count=0`, `first_mismatch=255`, final index 254, `wb_ack_count=510`, `wb_err_count=0`.
 
 Interpretation: raw DDR3 write/read can pass when sequencing and spacing are controlled inside RTL. This strengthens the hypothesis that the earlier no-retry host rowstream failures were dominated by host/JTAG command interaction or command pacing, not by unstable post-write readback. Next step is to replace the diagnostic pattern generator with an RTL-side packetized rowstream loader: one host command should enqueue many beats or a compact packet, while RTL owns DDR3 write/read/verify pacing and reports retry/error statistics.
+
+## 2026-05-23 - Next no-retry whole-memory gates
+
+Closest gates from the passing RTL-paced 255-beat diagnostic:
+
+1. Extend coverage beyond the current 255-beat command limit by running repeated RTL-paced bursts. This keeps host/JTAG traffic at one command per burst chunk rather than one command per beat.
+2. Add a packetized host upload path: host sends compact multi-beat packets/FIFO entries, while RTL owns DDR3 write/read/verify pacing and reports mismatch/retry/error statistics.
+3. Run no-retry packetized rowstream chunks in increasing size: 1 KiB, 16 KiB, 256 KiB, then full TinyStories rowstream.
+4. Add a read-only sweep after load: repeatedly read loaded regions without rewrite or retry, proving inference-time read stability over actual loaded data.
+
+Execution rule: do not use retry counts as success evidence for inference memory integrity. For each gate, record total beats, mismatch count, first mismatch, WB error count, and whether the test used generated RTL data or host-provided rowstream data.
+
+## 2026-05-23 - Repeated RTL-burst no-retry gates
+
+Extended the host diagnostic so `--diagnostic-rtl-burst-beats` can exceed the RTL command's 255-beat payload limit by issuing repeated RTL-paced burst chunks. This keeps command pressure at one JTAG command per chunk instead of one JTAG command per beat, while RTL still owns DDR3 write/read/verify timing for every beat.
+
+Validated on the same locked 2-lane seed18 bitstream:
+
+- Bitstream: `/nix/store/46am4aqc5mibm3sakbrpcq5xc5f9m77y-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- 1 KiB generated-data gate: 64 beats, 1 RTL chunk, PASS, `mismatch_count=0`.
+- 16 KiB generated-data gate: 1024 beats, 5 RTL chunks, PASS, `mismatch_count=0`.
+- 256 KiB generated-data gate: 16384 beats, 65 RTL chunks, PASS, `mismatch_count=0`.
+- Post-load sparse read-only repeat gate over beats 0, 90, 1023, 4096, 8192, and 16383: PASS, 0 mismatches over 100 reads per sampled beat.
+
+Interpretation: repeated RTL-owned DDR3 sequencing scales at least to 256 KiB with no retries and no observed mismatches for generated contiguous data. Sparse post-load repeated reads also remained stable. This is not yet full TinyStories rowstream proof because the payload is generated in RTL rather than host-provided weights, but it is strong evidence that the board/DDR3 path is usable when host/JTAG command pressure is removed from the per-beat loop.
+
+Next implementation gate: add a packetized host upload path for rowstream data, where host transfers many beats per packet/FIFO fill and RTL performs the same paced write/read/verify loop used by the passing generated-data diagnostic.
