@@ -229,6 +229,12 @@ def parse_args() -> argparse.Namespace:
         help="settle delay after each packet beat load command; default: 0.01 seconds",
     )
     parser.add_argument(
+        "--diagnostic-host-packet-postread-delay",
+        type=float,
+        default=0.0,
+        help="delay after RUN_HOST_PACKET before same-process standalone READ_BEAT postread; default: 0 seconds",
+    )
+    parser.add_argument(
         "--diagnostic-lowbyte-count",
         type=int,
         default=0,
@@ -2475,6 +2481,8 @@ def main() -> int:
                 mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
                 packet_first_mismatch = int(debug.get("rtl_burst_first_mismatch", 0xFF))
                 final_index = packet_beats - 1
+                if args.diagnostic_host_packet_postread_delay > 0:
+                    time.sleep(args.diagnostic_host_packet_postread_delay)
                 standalone_reads = []
                 standalone_mismatch_count = 0
                 standalone_first_mismatch = 0xFF
@@ -2515,6 +2523,7 @@ def main() -> int:
                     "standalone_mismatch_count": standalone_mismatch_count,
                     "standalone_first_mismatch": standalone_first_mismatch,
                     "standalone_reads": standalone_reads,
+                    "postread_delay": args.diagnostic_host_packet_postread_delay,
                     "wb_ack_count": int(debug.get("wb_ack_count", 0)),
                     "wb_err_count": int(debug.get("wb_err_count", 0)),
                 })
@@ -2540,6 +2549,7 @@ def main() -> int:
                 "packet_count": len(packets),
                 "packet_max_beats": 4,
                 "packet_load_delay": args.diagnostic_host_packet_load_delay,
+                "packet_postread_delay": args.diagnostic_host_packet_postread_delay,
                 "packets": packets,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
@@ -2562,6 +2572,7 @@ def main() -> int:
                 "packet_count": len(packets),
                 "source": args.diagnostic_host_packet_source,
                 "packet_load_delay": args.diagnostic_host_packet_load_delay,
+                "packet_postread_delay": args.diagnostic_host_packet_postread_delay,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
                 "standalone_mismatch_count": total_standalone_mismatches,

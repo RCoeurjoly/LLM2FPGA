@@ -22078,3 +22078,46 @@ Next gate:
 - Add a controlled delay before the host-side standalone postread inside the same packet diagnostic, for example 0 ms, 100 ms, 1 s, and 5 s.
 - If delayed same-process postread fails only after time, focus on DDR3 retention/refresh/open-row or command-idle behavior for early beats.
 - If delayed same-process postread stays clean but a new process fails, focus on host/JTAG command initialization or script startup effects before standalone reads.
+
+### 2026-05-23 - Same-process delayed post-packet readback matrix
+
+Decision:
+
+- Keep the timing-clean 4-beat packet bitstream and test delay inside the same host process before standalone `READ_BEAT` postread.
+- This separates short idle-time DDR3 instability from effects introduced by a new host process/JTAG command startup.
+
+Implementation:
+
+- Added `--diagnostic-host-packet-postread-delay` to the packet diagnostic.
+- The host now waits the requested delay after `RUN_HOST_PACKET`, then reads the just-loaded packet beats back with existing standalone `READ_BEAT` commands.
+- RTL is unchanged from the timing-clean packet path.
+
+Hardware matrix on `/nix/store/bvjxminsk0g91665a0vlaskhv63nq4cl-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`:
+
+| same-process postread delay | result | mismatch count | standalone mismatch count |
+| --- | --- | --- | --- |
+| 0 ms | PASS | 0 | 0 |
+| 100 ms | PASS | 0 | 0 |
+| 1 s | PASS | 0 | 0 |
+| 5 s | PASS | 0 | 0 |
+
+Run artifacts:
+
+| artifact | role |
+| --- | --- |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-postread-delay-0ms/summary.json` | 0 ms delayed postread |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-postread-delay-100ms/summary.json` | 100 ms delayed postread |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-postread-delay-1s/summary.json` | 1 s delayed postread |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-postread-delay-5s/summary.json` | 5 s delayed postread |
+
+Interpretation:
+
+- Packet-loaded beats 0..3 remain readable through standalone `READ_BEAT` for at least 5 seconds inside the same host process.
+- This argues against a simple short-idle DDR3 retention/refresh failure for beats 0 and 1.
+- The prior separate no-preload process failure for beats 0 and 1 is now more likely a new-process/JTAG startup/read-command initialization effect, or a difference in how the no-preload read-repeat path initializes and sequences reads.
+- This is materially better for inference: the DDR3 contents can survive a multi-second delay after packet preload in the same control session, but we still need a robust inference-session contract before claiming full inference readiness.
+
+Next gate:
+
+- Run the same same-process packet-postread diagnostic at a larger packet/window scale, starting with 16 KiB using sampled postread or selected beats, not a separate no-preload process.
+- In parallel, debug why a fresh no-preload read-repeat process sees stale/wrong beats 0 and 1: compare startup sequence, first command after connect, and whether a dummy read/boot-status read before `READ_BEAT` changes the result.
