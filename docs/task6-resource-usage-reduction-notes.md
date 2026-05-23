@@ -22283,3 +22283,26 @@ Next gate:
 - Rebuild the debug packet ACK bitstream.
 - Rerun the same `131064..131075` boundary diagnostic.
 - Require packet ACK addresses and standalone reads to pass before stripping debug fanout and returning to the timing-clean production rowstream build.
+
+### 2026-05-23 - Packet burst-base fix build calibrated poorly under stale locked placement
+
+After fixing `LOADER_OP_RUN_HOST_PACKET` to seed `loader_fullbeat_addr_q` and `loader_burst_base_addr_q` from `jtag_command_addr_full`, rebuilt:
+
+- Package: `task6-ypcb-uberddr3-rowstream-loader-2lane-paced-locked-controller-ff-placement-seed18-bitstream`
+- Bitstream: `/nix/store/y3sm5vd2qiz0i2vvqvrnps1fz5p0cmjm-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+
+Build observations:
+
+- The unlocked intermediate route reported `controller_clk` at 89.37 MHz.
+- The final stale controller-FF locked route reported `controller_clk` at 80.75 MHz, below the 83.3 MHz DDR3 controller target.
+
+Board result:
+
+- Run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-boundary-131071-packet-burst-base-fix`
+- Result: calibration timeout before packet test.
+- Debug summary: `magic_ok=True`, `version=63`, `calib_seen=False`, `state=1`, no WB ACK/error activity.
+
+Conclusion:
+
+- The remaining code bug was real and fixed, but the debug bitstream with stale controller-FF pre-place locks is not a usable board candidate.
+- Next route should test the same RTL fix with less placement perturbation: no stale controller-FF lock bundle, or only clock/PHY/pin preservation, then rerun the `131064..131075` boundary packet diagnostic.
