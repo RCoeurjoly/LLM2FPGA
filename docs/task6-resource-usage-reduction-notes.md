@@ -21940,3 +21940,54 @@ Cases:
 5. Generated RTL burst starting at beat 0 for 4 beats: PASS, `mismatch_count=0`, `first_mismatch=255`.
 
 Interpretation: physical DDR3 beat 0 is not inherently bad because the generated RTL burst writes/verifies beat 0 correctly. The failure is specific to the host packet upload path and appears concentrated in the earliest packet slot(s), especially slot 0. Reserving physical beat 0 is not a sufficient explanation or clean fix. The next fix should make packet slot loading deterministic rather than fire-and-forget: add an RTL-visible packet-slot valid/sequence handshake, or execute only after the loader has acknowledged all packet slots. A short-term workaround is to avoid using packet slot 0 as a data-bearing first slot, but that wastes bandwidth and still needs proof.
+
+### 2026-05-23 - DDR3 packet-slot acknowledgement gate
+
+Decision:
+
+- Add deterministic packet-slot loading before `RUN_HOST_PACKET`.
+- The host now waits for RTL-visible slot acceptance before executing a packet.
+- This is intended to separate host-to-RTL packet-slot loss from DDR3 write/read persistence problems.
+
+Implementation:
+
+- RTL tracks host packet slot acceptance with slot valid bits, the last accepted slot, and an 8-bit load sequence counter.
+- `RUN_HOST_PACKET` now rejects execution unless all slots required by the requested packet beat count have been loaded.
+- The host packet loader polls debug state after each `LOAD_PACKET_BEAT` and requires:
+  - load sequence changed,
+  - last slot matches the requested slot,
+  - the requested slot valid bit is set,
+  - last opcode is `LOAD_PACKET_BEAT`.
+
+Build and timing evidence:
+
+| target | result |
+| --- | --- |
+| `task6-ypcb-uberddr3-rowstream-loader-2lane-paced-locked-controller-ff-placement-seed18-bitstream` | build PASS |
+| bitstream | `/nix/store/6bmfrkb4mg7xnhcjjcz6diwhzlni85kz-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit` |
+| controller route | 79.07 MHz, below the 83.3 MHz target |
+
+Hardware gates:
+
+| gate | result |
+| --- | --- |
+| boot-only calibration | PASS, `boot-clean`, `calib_seen=true`, `boot_done=true`, no mismatch |
+| 4-beat actual rowstream packet write/verify from beat 0 | PASS, 0 mismatches |
+| no-preload read repeat after packet load, beats 0..3, 10 reads each | FAIL: beat 0 mismatches 10/10, beat 1 mismatches 10/10, beats 2 and 3 pass 10/10 |
+
+Run artifacts:
+
+| artifact | role |
+| --- | --- |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-packet-slot-ack-boot/summary.json` | boot-only calibration evidence |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-packet-slot-ack-rowstream-4beats/summary.json` | actual rowstream packet write/verify evidence |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-packet-slot-ack-read0-3/summary.json` | no-preload readback evidence |
+
+Interpretation:
+
+- Packet-slot acknowledgement proves the host can load RTL packet slots deterministically before packet execution.
+- It does not fix the early beat persistence/readback issue: packet write/verify can pass while later no-preload reads of beats 0 and 1 fail.
+- The failing no-preload readback means this is still not acceptable as inference-time DDR3 evidence.
+- Because the added acknowledgement/debug logic also drops routed controller timing below target, the next fix should not add more debug fanout near the DDR3 path. It should either:
+  - move packet-slot acknowledgement into a lower-fanout status path, or
+  - bypass packet slots for the first beats using a simpler RTL-side FIFO/stream command, then re-check no-preload reads.

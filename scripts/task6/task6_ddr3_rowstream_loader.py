@@ -755,6 +755,9 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "rtl_burst_first_mismatch": (raw >> 264) & 0xFF,
         "rtl_burst_status_first_mismatch": (raw >> 472) & 0xFF,
         "rtl_burst_status_mismatch_count": (raw >> 480) & 0xFF,
+        "packet_last_slot": (raw >> 240) & 0x3,
+        "packet_valid_bits": (raw >> 248) & 0xF,
+        "packet_load_seq": (raw >> 264) & 0xFF,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
         "sys_rstn": None,
@@ -1145,11 +1148,28 @@ class RowstreamLoader:
             raise ValueError("packet slot must be in 0..3")
         if len(data) != 16:
             raise ValueError("packet beat requires exactly 16 bytes")
+        before = self.read_debug()
+        before_seq = int(before.get("packet_load_seq", 0))
         addr = slot if tag_addr is None else tag_addr
         self.send_command(OP_LOAD_PACKET_BEAT, 0, addr, data)
-        if self.args.diagnostic_host_packet_load_delay > 0:
-            time.sleep(self.args.diagnostic_host_packet_load_delay)
-        return self.read_debug()
+        deadline = time.monotonic() + self.args.poll_timeout
+        debug = before
+        while time.monotonic() < deadline:
+            if self.args.diagnostic_host_packet_load_delay > 0:
+                time.sleep(self.args.diagnostic_host_packet_load_delay)
+            debug = self.read_debug()
+            seq = int(debug.get("packet_load_seq", 0))
+            seq_changed = ((seq - before_seq) & 0xFF) != 0
+            slot_seen = int(debug.get("packet_last_slot", -1)) == slot
+            valid_seen = bool(int(debug.get("packet_valid_bits", 0)) & (1 << slot))
+            if debug.get("last_opcode") == OP_LOAD_PACKET_BEAT and seq_changed and slot_seen and valid_seen:
+                return debug
+            time.sleep(0.001)
+        raise TimeoutError(
+            f"packet slot {slot} load was not acknowledged: {summarize_debug(debug)} "
+            f"seq_before={before_seq} seq_after={debug.get('packet_load_seq')} "
+            f"last_slot={debug.get('packet_last_slot')} valid=0x{debug.get('packet_valid_bits', 0):x}"
+        )
 
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
         if beats < 1 or beats > 4:
