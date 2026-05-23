@@ -55,8 +55,9 @@ DEBUG_BITS_UBER = 960
 DEBUG_MAGIC = 0x54364A44
 DEBUG_MAGIC_UBER = 0xD3B5
 DEBUG_VERSION = 63
-COMMAND_BITS = 208
+COMMAND_BITS = 240
 COMMAND_MAGIC = 0x33445244
+COMMAND_GUARD_MAGIC = 0x6D5AC3B4
 OP_STATUS = 0x00
 OP_WRITE_CHUNK = 0x01
 OP_READ_BEAT = 0x02
@@ -584,6 +585,21 @@ def make_command(opcode: int, chunk: int, addr: int, data: bytes = b"") -> int:
     payload |= (addr & 0xFFFF_FFFF) << 48
     for index, byte in enumerate(data):
         payload |= (byte & 0xFF) << (80 + index * 8)
+    guard = (
+        COMMAND_GUARD_MAGIC
+        ^ COMMAND_MAGIC
+        ^ (opcode & 0xFF)
+        ^ (chunk & 0x3)
+        ^ (addr & 0xFFFF_FFFF)
+    )
+    for offset in range(0, 16, 4):
+        word = 0
+        for index in range(4):
+            data_index = offset + index
+            if data_index < len(data):
+                word |= (data[data_index] & 0xFF) << (8 * index)
+        guard ^= word
+    payload |= (guard & 0xFFFF_FFFF) << 208
     return payload
 
 
@@ -619,7 +635,7 @@ def decode_debug_command_status(raw: int) -> dict[str, Any]:
     return {
         "raw_bits": COMMAND_BITS,
         "raw_hex": f"0x{raw:0{COMMAND_BITS // 4}x}",
-        "schema": "command-208",
+        "schema": "command-240-guarded",
         "_ack_supported": True,
         "magic": raw & 0xFFFF_FFFF,
         "magic_ok": (raw & 0xFFFF_FFFF) == DEBUG_MAGIC,
