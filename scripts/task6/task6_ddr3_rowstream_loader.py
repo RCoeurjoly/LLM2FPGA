@@ -2513,7 +2513,59 @@ def main() -> int:
                         data = bytes(((beat_addr + lane) & 0xFF) for lane in range(16))
                     expected_packet.append(data.hex())
                     loader.load_packet_beat(slot, data)
-                debug = loader.run_host_packet(packet_start, packet_beats)
+                try:
+                    debug = loader.run_host_packet(packet_start, packet_beats)
+                except Exception as exc:
+                    final_debug = loader.read_debug()
+                    diagnostic = {
+                        "artifact_name": "task6-ypcb-uberddr3-host-packet-write-read",
+                        "status": "FAIL",
+                        "source": args.diagnostic_host_packet_source,
+                        "start_beat": args.diagnostic_host_packet_start,
+                        "beats": total_beats,
+                        "completed_beats": completed,
+                        "failed_packet_start": packet_start,
+                        "failed_packet_beats": packet_beats,
+                        "packet_count": len(packets),
+                        "packet_max_beats": 4,
+                        "packet_load_delay": args.diagnostic_host_packet_load_delay,
+                        "packet_postread_delay": args.diagnostic_host_packet_postread_delay,
+                        "packet_postread_sample_beats": sorted(postread_sample_beats) if postread_sample_beats is not None else None,
+                        "packets": packets,
+                        "mismatch_count": total_mismatches,
+                        "first_mismatch": first_mismatch if first_mismatch is not None else 0xFF,
+                        "standalone_mismatch_count": total_standalone_mismatches,
+                        "first_standalone_mismatch": first_standalone_mismatch,
+                        "exception": repr(exc),
+                        "final_debug": json_debug(final_debug),
+                        "decision": {
+                            "verdict": "host-packet-timeout",
+                            "next_gate": "Debug packet FSM timeout before scaling rowstream size.",
+                        },
+                    }
+                    write_json(run_dir / "host-packet-diagnostic.json", diagnostic)
+                    write_json(run_dir / "summary.json", {
+                        "status": "FAIL",
+                        "run_dir": str(run_dir),
+                        "diagnostic_json": str(run_dir / "host-packet-diagnostic.json"),
+                        "start_beat": args.diagnostic_host_packet_start,
+                        "beats": total_beats,
+                        "completed_beats": completed,
+                        "failed_packet_start": packet_start,
+                        "failed_packet_beats": packet_beats,
+                        "packet_count": len(packets),
+                        "source": args.diagnostic_host_packet_source,
+                        "packet_load_delay": args.diagnostic_host_packet_load_delay,
+                        "packet_postread_delay": args.diagnostic_host_packet_postread_delay,
+                        "packet_postread_sample_beats": sorted(postread_sample_beats) if postread_sample_beats is not None else None,
+                        "mismatch_count": total_mismatches,
+                        "first_mismatch": first_mismatch if first_mismatch is not None else 0xFF,
+                        "standalone_mismatch_count": total_standalone_mismatches,
+                        "first_standalone_mismatch": first_standalone_mismatch,
+                        "exception": repr(exc),
+                        "verdict": diagnostic["decision"]["verdict"],
+                    })
+                    raise
                 final_debug = debug
                 mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
                 packet_first_mismatch = int(debug.get("rtl_burst_first_mismatch", 0xFF))
