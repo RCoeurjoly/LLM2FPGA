@@ -22225,3 +22225,28 @@ Fix under test:
 - Keep the short-term low-16 behavior for older fullbeat/diagnostic paths.
 - Change `RUN_HOST_PACKET` so packet write/verify starts from the full decoded command address, matching standalone `READ_BEAT`.
 - Retest the 131,064..131,075 boundary window before scaling rowstream again.
+
+### 2026-05-23 - High-address packet full-base retest
+
+Change tested:
+
+- Rebuilt the 2-lane paced/locked controller-FF placement bitstream after changing `RUN_HOST_PACKET` to use the full decoded JTAG command address instead of the low-16 address alias.
+- Build succeeded and the routed controller clock reported 85.03 MHz, above the 83.3 MHz DDR3 target.
+
+Boundary retest:
+
+- Bitstream: `/nix/store/6bh8vhy3h0qpv13ml93h8ryyj0i496zg-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Run: `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-boundary-131071-window-fulladdr-packet`
+- Window: beats 131,064..131,075 from `rowstream.bin`
+- Result: FAIL
+- Boot/calibration: PASS (`calib_complete=true`, `boot_done=true`, no boot error/mismatch)
+- Packet immediate mismatch count: 0
+- Standalone postread mismatch count: 4 on the first packet
+- First standalone mismatch: slot 0 / beat 131,064
+
+Interpretation:
+
+- The failure persists after using a full packet base address.
+- The observed standalone reads still look like deterministic low-window/pattern data, not TinyStories rowstream bytes.
+- Therefore the current packet immediate-verify pass is not sufficient evidence that host-provided rowstream bytes were written to the true high DDR3 address.
+- Next debug should compare the packet FSM's actual write data/address/select at ACK against the standalone read ACK for this high-address window, or simplify the packet status so it proves host-slot data specifically rather than an internal/generated expected pattern.
