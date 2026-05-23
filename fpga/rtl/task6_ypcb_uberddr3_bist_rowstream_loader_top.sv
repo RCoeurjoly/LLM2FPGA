@@ -37,7 +37,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
   localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd63;
-  localparam int JTAG_COMMAND_WIDTH = 192;
+  localparam int JTAG_COMMAND_WIDTH = 208;
   localparam logic [31:0] LOADER_COMMAND_MAGIC = 32'h33445244;
   localparam logic [7:0] LOADER_OP_WRITE_CHUNK = 8'h01;
   localparam logic [7:0] LOADER_OP_READ_BEAT = 8'h02;
@@ -302,7 +302,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   wire [7:0] jtag_command_opcode = jtag_command_payload[32 +: 8];
   wire [1:0] jtag_command_chunk = jtag_command_payload[40 +: 2];
   wire [31:0] jtag_command_addr = jtag_command_payload[48 +: 32];
-  wire [7:0] jtag_command_data_byte = jtag_command_payload[64 +: 8];
+  wire [7:0] jtag_command_data_byte = jtag_command_payload[80 +: 8];
   wire [2:0] jtag_command_packet_count = jtag_command_addr[31:29];
   wire [WB_ADDR_BITS - 1:0] jtag_command_addr_low16 =
     {{(WB_ADDR_BITS - 16){1'b0}}, jtag_command_addr[15:0]};
@@ -362,7 +362,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   end
 
   always_comb begin
-    jtag_command_chunk_data = jtag_command_payload[64 +: WB_DATA_BITS];
+    jtag_command_chunk_data = jtag_command_payload[80 +: WB_DATA_BITS];
   end
 
   always_comb begin

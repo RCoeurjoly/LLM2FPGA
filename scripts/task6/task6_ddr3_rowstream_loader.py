@@ -55,7 +55,7 @@ DEBUG_BITS_UBER = 960
 DEBUG_MAGIC = 0x54364A44
 DEBUG_MAGIC_UBER = 0xD3B5
 DEBUG_VERSION = 63
-COMMAND_BITS = 192
+COMMAND_BITS = 208
 COMMAND_MAGIC = 0x33445244
 OP_STATUS = 0x00
 OP_WRITE_CHUNK = 0x01
@@ -583,7 +583,7 @@ def make_command(opcode: int, chunk: int, addr: int, data: bytes = b"") -> int:
     payload |= (chunk & 0x3) << 40
     payload |= (addr & 0xFFFF_FFFF) << 48
     for index, byte in enumerate(data):
-        payload |= (byte & 0xFF) << (64 + index * 8)
+        payload |= (byte & 0xFF) << (80 + index * 8)
     return payload
 
 
@@ -619,7 +619,7 @@ def decode_debug_command_status(raw: int) -> dict[str, Any]:
     return {
         "raw_bits": COMMAND_BITS,
         "raw_hex": f"0x{raw:0{COMMAND_BITS // 4}x}",
-        "schema": "command-192",
+        "schema": "command-208",
         "_ack_supported": True,
         "magic": raw & 0xFFFF_FFFF,
         "magic_ok": (raw & 0xFFFF_FFFF) == DEBUG_MAGIC,
@@ -1194,11 +1194,10 @@ class RowstreamLoader:
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
         if beats < 1 or beats > 4:
             raise ValueError("host packet beat count must be in 1..4")
-        # OP_RUN_HOST_PACKET must not use command data bytes: command data starts
-        # at bit 64 and overlaps address bits 16..31 in the legacy JTAG payload.
-        # WB_ADDR_BITS is 25 for this DDR3 target, so encode the small packet
-        # count in address bits 29..31 and keep the physical beat address in
-        # the low address bits consumed by RTL.
+        # OP_RUN_HOST_PACKET must not use command data bytes: command data starts at bit 80 in the widened non-overlapping
+        # JTAG payload, so keep the physical beat address in the low address
+        # bits consumed by RTL and encode the small packet count in unused
+        # address bits 29..31.
         command_addr = (start_beat & 0x1FF_FFFF) | ((beats & 0x7) << 29)
         self.send_command(OP_RUN_HOST_PACKET, 0, command_addr)
         return self.wait_ready(min_ack_count=beats * 2)
