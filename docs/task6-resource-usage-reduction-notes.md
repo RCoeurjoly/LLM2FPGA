@@ -22335,3 +22335,14 @@ Conclusion:
 Next gate:
 
 - Use this less-locked 89.37 MHz bitstream path, or an equivalent stripped-debug production rebuild, for the full rowstream packet load with sampled same-process postread and fresh-process no-preload sampled read-repeat.
+
+### DDR3 packet rowstream command integrity update
+
+- Timing-clean 2-lane less-locked bitstream: `/nix/store/8psg1hyh5r1jxw0zrgn8hrdnyikp55la-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`, routed controller clock 90.32 MHz.
+- 64-beat packetized rowstream gate with command208 passed: 64/64 completed, packet verify mismatches 0, sampled same-process standalone postread mismatches 0.
+- 1024-beat packetized rowstream gate with command208 failed with valid magic but invalid opcode 17 (`0x11`), meaning command capture/transport is still corrupting USER2 commands under sustained packet load.
+- Host ACK checking was tightened to require ACK count to advance from the pre-command value. With that fix on the same timing-clean bitstream, failure surfaced earlier at 56 completed beats, confirming the previous absolute ACK threshold could mask ignored/skipped packet-run commands.
+- Two RTL-side command hardening attempts were rejected before board test because they missed the DDR3 timing gate:
+  - 240-bit guarded command payload: placement controller clock 58.93 MHz.
+  - command CDC settle delay: placement controller clock 63.15 MHz.
+- Current source keeps the host ACK-advance fix but restores the RTL to the known timing-clean command208 structure. Next safe route is to fix command reliability without perturbing the DDR3 controller route, preferably by isolating command-chain placement/timing or moving bulk packet execution behind fewer host commands rather than adding controller-clock fanout near the DDR3 loader FSM.
