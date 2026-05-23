@@ -21231,3 +21231,38 @@ Result:
   The safer next route is to keep the known-good clocking and reduce repeated
   command pressure in the loader/host protocol, or preserve the known-good
   placement more narrowly before changing clocks again.
+
+### 2026-05-23 - Return to known-good DDR3 clocks and reduce command pressure
+
+The divide-16 and divide-14 slow-controller variants both built, but both failed
+before rowstream loading because DDR3 calibration did not complete. That makes
+controller-clock changes a bad next lever for this rowstream-loader shape.
+
+Decision:
+
+- Return the rowstream-loader clocking to the known-good 2-lane DDR3 settings:
+  PHY clocks unchanged and controller divide 12 / 12 ns controller period.
+- Reduce repeated host-command pressure first, using verified packed full-beat
+  writes with a larger inter-command delay.
+- Gate order remains 256 verified beats first, then 1024 only if 256 reaches
+  calibration and completes without an immediate per-beat mismatch.
+- If command-pressure reduction is still unstable, prefer narrow preservation of
+  known-good placement around the DDR3 controller/PHY/pins before changing DDR3
+  clocks again.
+
+Result:
+
+- The known-clock rowstream-loader rebuilt successfully with controller divide
+  12 / 12 ns controller period:
+  `/nix/store/r0bf5dykcq21srj6qri5lyjzhq9xi450-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`.
+- The delayed 256-beat verified packed-load gate used `--command-delay 0.05`
+  and reached the immediate verified write loop, so calibration was restored.
+- The run failed at beat 42:
+  expected `48c7e5f5a67e00003ce581f0c608fe3c`, observed
+  `4d4fe5f7a67600603ce581f086c8fe5c`.
+- The 1024-beat gate was skipped because the 256-beat prerequisite failed.
+- Interpretation: reducing command pressure by host-side delay improves the
+  failure distance compared with earlier beat-3/beat-9 failures, but does not
+  make the user-port rowstream path reliable. The next higher-probability step
+  is narrow known-good placement preservation around DDR3 controller/PHY/pins or
+  an RTL-side command pacing/idle gate, not another DDR3 clock change.

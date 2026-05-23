@@ -411,8 +411,8 @@
             bootIsolateUntilCalib = true;
             pllClkout0Divide = 3;
             pllClkout1Divide = 3;
-            pllClkout2Divide = 14;
-            controllerClkPeriodPs = "14_000";
+            pllClkout2Divide = 12;
+            controllerClkPeriodPs = "12_000";
             ddr3ClkPeriodPs = "3_000";
             dllOff = false;
             speedBin = 1;
