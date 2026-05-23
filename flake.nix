@@ -6621,6 +6621,21 @@
         task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedPlacedJson =
           task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedArtifacts.placedJson;
 
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson {
+            seed = 19;
+            json = task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodYosysJson;
+          };
+
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedFasm =
+          task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedBitstream =
+          task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedPlacedJson =
+          task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedArtifacts.placedJson;
+
         task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedArtifacts =
           task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson {
             seed = 18;
@@ -6636,12 +6651,46 @@
         task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedPlacedJson =
           task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedArtifacts.placedJson;
 
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodControllerPlacedBelLocks =
+          task6YpcbUberDdr3GenerateControllerPlacedBelLocks {
+            name = "2lane-known-good-seed18";
+            placedJson = task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedPlacedJson;
+          };
+
+        task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodControllerFfPrePlaceBelLocks =
+          task6YpcbUberDdr3GeneratePrePlaceBelLocks {
+            name = "2lane-known-good-controller-ff";
+            locksJson = task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodControllerPlacedBelLocks;
+            allowMissing = true;
+            scopes = [
+              "ddr3_clocks"
+              "uberddr3_phy"
+              "ddr3_board_pins"
+              "uberddr3_controller"
+            ];
+            types = [
+              "BUFGCTRL"
+              "PLLE2_ADV_PLLE2_ADV"
+              "IDELAYCTRL_IDELAYCTRL"
+              "IDELAYE2_IDELAYE2"
+              "INVERTER"
+              "IOB33M_INBUF_EN"
+              "IOB33M_OUTBUF"
+              "IOB33S_OUTBUF"
+              "IOB33_INBUF_EN"
+              "IOB33_OUTBUF"
+              "ISERDESE2_ISERDESE2"
+              "OSERDESE2_OSERDESE2"
+              "SLICE_FFX"
+            ];
+          };
+
         task6YpcbUberDdr3RowstreamLoader2LanePacedControllerFfPlacementSeed18Artifacts =
           task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace {
             seed = 18;
             suffix = "2lane-paced-locked-controller-ff-placement";
             json = task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerYosysJson;
-            prePlaceLocks = task6YpcbUberDdr3Seed18ClockAndPhyControllerFfPlacedPrePlaceBelLocksAllowMissing;
+            prePlaceLocks = task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodControllerFfPrePlaceBelLocks;
           };
 
         task6YpcbUberDdr3RowstreamLoader2LanePacedControllerFfPlacementSeed18Bitstream =
@@ -11449,6 +11498,12 @@
             task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedBitstream;
           task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed18-clocked-placed-json =
             task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedPlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed19-clocked-fasm =
+            task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedFasm;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed19-clocked-bitstream =
+            task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed19-clocked-placed-json =
+            task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedPlacedJson;
           task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed18-clocked-fasm =
             task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedFasm;
           task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed18-clocked-bitstream =

@@ -98,6 +98,7 @@ def parse_args() -> argparse.Namespace:
     ))
     parser.add_argument("--command-ir", type=lambda value: int(value, 0), default=0x03)
     parser.add_argument("--command-delay", type=float, default=0.001)
+    parser.add_argument("--inter-beat-delay", type=float, default=0.0)
     parser.add_argument(
         "--write-verify-retries",
         type=int,
@@ -1001,25 +1002,19 @@ class RowstreamLoader:
         )
 
     def read_beat(self, beat_addr: int) -> tuple[bytes, dict[str, Any]]:
-        before = self.read_debug()
-        min_ack = before["wb_ack_count"] + 1
         self.send_command(OP_READ_BEAT, 0, beat_addr)
-        debug = self.wait_ready(min_ack_count=min_ack)
+        debug = self.wait_ready(min_ack_count=1)
         return debug["read_data_chunk"][: self.beat_bytes], debug
 
     def run_rtl_fullbeat(self, beat_addr: int, base: int) -> dict[str, Any]:
-        before = self.read_debug()
-        min_ack = before["wb_ack_count"] + 2
         self.send_command(OP_RUN_FULLBEAT, 0, beat_addr, bytes([base & 0xFF]))
-        return self.wait_ready(min_ack_count=min_ack)
+        return self.wait_ready(min_ack_count=2)
 
     def run_host_fullbeat(self, beat_addr: int, data: bytes) -> tuple[bytes, dict[str, Any]]:
         if len(data) != 16:
             raise ValueError("run_host_fullbeat requires exactly 16 bytes")
-        before = self.read_debug()
-        min_ack = before["wb_ack_count"] + 2
         self.send_command(OP_RUN_HOST_FULLBEAT, 0, beat_addr, data)
-        debug = self.wait_ready(min_ack_count=min_ack)
+        debug = self.wait_ready(min_ack_count=2)
         return debug["read_data_chunk"], debug
 
     def echo_chunk(self, data: bytes) -> tuple[bytes, dict[str, Any]]:
@@ -1104,6 +1099,12 @@ class RowstreamLoader:
         min_ack = before["wb_ack_count"] + 2
         self.send_command(OP_RUN_FULLBEAT, 0, beat_addr, bytes([base & 0xFF]))
         return self.wait_ready(min_ack_count=min_ack)
+
+    def run_rtl_burst(self, start_beat: int, beats: int) -> dict[str, Any]:
+        if beats < 1 or beats > 255:
+            raise ValueError("RTL burst beat count must be in 1..255")
+        self.send_command(OP_RUN_RTL_BURST, 0, start_beat, bytes([beats & 0xFF]))
+        return self.wait_ready(min_ack_count=2)
 
 
 def summarize_debug(debug: dict[str, Any]) -> str:

@@ -21757,3 +21757,48 @@ Next technical focus:
 
 - Write path / command pacing: add RTL-side paced multi-beat write/verify or host-side longer inter-command idle for no-retry loading.
 - Placement: rebuild the stripped low-16 netlist with a fresh seed or narrower clock/PHY-only locks before judging timing/stability.
+
+### 2026-05-23 - Write-path pacing and fresh-placement plan
+
+After fixing the JTAG command address/data overlap and proving beat-90 repeated reads are stable after a verified write, the remaining no-retry failure is treated as a write path / command pacing / write-read interaction issue.
+
+Execution order:
+
+1. Run host-side no-retry load with larger inter-command idle on the current low-16 mask bitstream to check whether command pressure is causing beat-90-style failures.
+2. Rebuild the stripped low-16 loader with a fresh seed or narrower refreshed locks instead of reusing the stale seed18 controller-FF lock bundle that got stuck routing.
+3. If host pacing or fresh placement is not enough, add a smaller RTL-side paced multi-beat write/verify path so one JTAG command drives multiple DDR3 beats with RTL-controlled spacing.
+
+Acceptance gates:
+
+- 256 beats no retry passes.
+- 1024 beats no retry passes.
+- read-repeat remains zero-mismatch after verified writes.
+
+### 2026-05-23 - Host pacing and fresh seed19 placement results
+
+Host-side pacing tests on the current low-16 mask bitstream:
+
+- `--command-delay 0.05`, no retries, 256-beat gate: failed at beat 49.
+- `--command-repeats 1`: exposed a host ACK accounting issue and then, after fixing ACK accounting, failed at beat 1 by reading back beat 0. Conclusion: a single JTAG shift is not reliable enough for this command CDC path; keep `--command-repeats 2`.
+- Added `--inter-beat-delay` to test idle time after successful beat writes.
+- `--inter-beat-delay 0.05`, no retries, 256-beat gate: failed at beat 118.
+- `--inter-beat-delay 0.2`, no retries, 256-beat gate: failed at beat 18.
+
+Interpretation: host-side sleep/pacing is not a reliable fix. The failure point moves, but no-retry loading remains unstable.
+
+Existing RTL burst diagnostic:
+
+- Ran 16-beat RTL burst on the current low-16 mask bitstream.
+- Result: FAIL, first mismatch 1, mismatch count 16/16.
+- This existing burst path is not yet a usable write-stability fix; it likely has its own sequencing/address/compare assumptions and should not be promoted as the paced loader implementation.
+
+Fresh seed placement:
+
+- Added seed19 2-lane known-good rowstream-loader target.
+- Built bitstream: `/nix/store/a26205hm7d8x2kl1miinqcvhiql0aalr-task6-ypcb-uberddr3-rowstream-loader-seed19-clocked.bit`
+- Controller max frequency: 93.76 MHz, better than the low-16 seed18 locked candidate and above the 83.33 MHz requirement.
+- Boot/calibration: PASS.
+- Beat-90 read-repeat after verified write: PASS, 0/1000 mismatches.
+- 256-beat no-retry load: FAIL at beat 6 with single-byte corruption.
+
+Conclusion: better placement margin and read stability are not enough. The remaining problem is specifically the host-driven fullbeat write/verify path. Next useful implementation is a new minimal RTL-side paced write/verify command that writes a small deterministic contiguous range using the corrected low-16 addresses, spaces writes/reads internally, and reports first mismatch/count. Do not reuse the old large RTL burst path as evidence until it is simplified or fixed.
