@@ -755,6 +755,9 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "rtl_burst_first_mismatch": (raw >> 264) & 0xFF,
         "rtl_burst_status_first_mismatch": (raw >> 472) & 0xFF,
         "rtl_burst_status_mismatch_count": (raw >> 480) & 0xFF,
+        "packet_postread_first_mismatch": (raw >> 472) & 0xFF,
+        "packet_postread_mismatch_count": (raw >> 480) & 0xFF,
+        "packet_postread_mismatch_bitmap": (raw >> 488) & 0xF,
         "packet_last_slot": (raw >> 240) & 0x3,
         "packet_valid_bits": (raw >> 248) & 0xF,
         "packet_load_seq": (raw >> 264) & 0xFF,
@@ -2493,9 +2496,14 @@ def main() -> int:
                 mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
                 packet_first_mismatch = int(debug.get("rtl_burst_first_mismatch", 0xFF))
                 final_index = packet_beats - 1
+                postread_mismatch_count = int(debug.get("packet_postread_mismatch_count", 0))
+                postread_mismatch_bitmap = int(debug.get("packet_postread_mismatch_bitmap", 0))
+                postread_first_mismatch = int(debug.get("packet_postread_first_mismatch", 0xFF))
                 packet_status = (
                     "PASS"
                     if mismatch_count == 0
+                    and postread_mismatch_count == 0
+                    and postread_mismatch_bitmap == 0
                     and int(debug.get("rtl_burst_index", -1)) == final_index
                     and int(debug.get("rtl_burst_count", -1)) == final_index
                     else "FAIL"
@@ -2508,6 +2516,9 @@ def main() -> int:
                     "final_index": final_index,
                     "mismatch_count": mismatch_count,
                     "first_mismatch": packet_first_mismatch,
+                    "postread_mismatch_count": postread_mismatch_count,
+                    "postread_first_mismatch": postread_first_mismatch,
+                    "postread_mismatch_bitmap": postread_mismatch_bitmap,
                     "wb_ack_count": int(debug.get("wb_ack_count", 0)),
                     "wb_err_count": int(debug.get("wb_err_count", 0)),
                 })
@@ -2536,7 +2547,7 @@ def main() -> int:
                 "final_debug": json_debug(final_debug or {}),
                 "decision": {
                     "verdict": "host-packet-passes" if status == "PASS" else "host-packet-fails",
-                    "next_gate": "If this passes at 1 KiB and 16 KiB, replace deterministic packet data with rowstream bytes.",
+                    "next_gate": "Scale only after immediate verify and RTL post-packet readback both pass.",
                 },
             }
             write_json(run_dir / "host-packet-diagnostic.json", diagnostic)

@@ -21991,3 +21991,39 @@ Interpretation:
 - Because the added acknowledgement/debug logic also drops routed controller timing below target, the next fix should not add more debug fanout near the DDR3 path. It should either:
   - move packet-slot acknowledgement into a lower-fanout status path, or
   - bypass packet slots for the first beats using a simpler RTL-side FIFO/stream command, then re-check no-preload reads.
+
+### 2026-05-23 - Low-fanout post-packet readback selfcheck attempt
+
+Decision:
+
+- Stop rowstream scaling until no-preload/post-packet reads pass.
+- Add a minimal RTL-side post-packet readback selfcheck for the 4-beat packet path.
+- Keep the packet size at 4 beats and require both checks before scaling:
+  - packet write/immediate-read compare,
+  - RTL post-packet read-only compare over the same beats.
+
+Implementation:
+
+- After `RUN_HOST_PACKET` finishes the normal write/immediate-read pass, RTL now performs a read-only pass over the same packet beats using the same controller path.
+- The post-packet readback exposes only summary evidence:
+  - mismatch count,
+  - first mismatch slot,
+  - 4-bit mismatch bitmap.
+- Host packet diagnostics now treat post-packet readback mismatch as a packet failure.
+- Packet slot loading no longer needs to echo the full 128-bit packet data into `loader_read_data_q`; this was intended to reduce debug fanout.
+
+Build and hardware evidence:
+
+| target | result |
+| --- | --- |
+| `task6-ypcb-uberddr3-rowstream-loader-2lane-paced-locked-controller-ff-placement-seed18-bitstream` | build PASS after RTL syntax fix |
+| bitstream | `/nix/store/695gbxasssgb7q961scp0lnk2vs45qks-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit` |
+| controller route | 78.40 MHz, below the 83.3 MHz target |
+| boot-only calibration | FAIL: calibration timed out, `calib_seen=false`, `debug1=0x00000000`, no ACK/error traffic |
+
+Interpretation:
+
+- The post-packet readback selfcheck is the right diagnostic shape, but this implementation perturbs the DDR3 build enough that the board does not calibrate.
+- This bitstream must not be used for rowstream or inference testing.
+- The beat 0/1 problem still cannot be ignored for inference, because inference reads weights later without rewriting them first.
+- The next practical fix should keep the previously calibration-positive/timing-clean 4-beat packet behavior and move the post-packet readback check out of the timing-critical packet path, or run the same comparison through existing standalone read commands while reducing debug fanout/placement perturbation.
