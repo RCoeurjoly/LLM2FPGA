@@ -21869,3 +21869,19 @@ Bring-up notes:
 - Address-qualified load acknowledgement was also too strict because the current command payload format has overlapping address/data fields. This reinforces that the long-term command format should be made non-overlapping before full TinyStories rowstream load.
 
 Next implementation gate: replace deterministic packet data with actual rowstream bytes, then run the same packetized path at 1 KiB, 16 KiB, 256 KiB, and full rowstream size. In parallel, improve or narrow the packet RTL so the final route gets back above the 83.3 MHz controller target with calibration margin.
+
+## 2026-05-23 - Actual rowstream packetized DDR3 gates
+
+Added `--diagnostic-host-packet-source rowstream` so the packetized upload path uses bytes from the real `rowstream.bin` instead of deterministic generated data. With the current 2-lane packet diagnostic, each DDR3 beat is 16 bytes, so the full rowstream size is 3,418,496 bytes = 213,656 beats.
+
+Validated on packet bitstream `/nix/store/kvmx2n7kbbhb97af5f1b3vpvmbzpq15i-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`:
+
+- 1 KiB actual rowstream: PASS, 64 beats, 16 packets, `mismatch_count=0`.
+- 4 KiB actual rowstream: PASS, 256 beats, 64 packets, `mismatch_count=0`.
+- 8 KiB actual rowstream: PASS, 512 beats, 128 packets, `mismatch_count=0`.
+- 12 KiB actual rowstream: FAIL during packet execute wait, `loader_error=True`, `wb_err_count=0`, `ack=176`.
+- 16 KiB actual rowstream: FAIL during packet/load or packet execute wait in multiple attempts. One failure had `ack=656`; a rerun failed packet-load completion with `ack=153`; fire-and-forget packet loads reached packet execute failure with `ack=1376`; adding 5 ms host command delay still failed with `ack=1704`.
+
+Interpretation: actual rowstream bytes work through the packetized path up to at least 8 KiB with no data mismatches. The larger failures are not clean DDR3 compare mismatches; they present as loader/status error or command-completion failures while calibration remains true and `wb_err_count` remains zero. This is consistent with the current packet bitstream being marginal: its final controller route was only 77.17 MHz, below the desired 83.3 MHz target, and the packet/debug logic added command/status pressure.
+
+Next safe fix before 256 KiB/full rowstream: recover timing/CDC margin for the packet path. Options are to reduce packet/debug fanout, remove unnecessary packet debug visibility, use a narrower packet buffer, or rebuild the packet path with refreshed/narrower locks until the route is back above 83.3 MHz. After that, rerun 16 KiB as the gate before attempting 256 KiB or full rowstream.

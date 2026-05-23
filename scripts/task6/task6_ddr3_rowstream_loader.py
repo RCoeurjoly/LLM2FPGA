@@ -201,9 +201,15 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=0,
         help=(
-            "before rowstream loading, upload deterministic host-provided data "
-            "as 4-beat packets, then let RTL write/read/verify each packet"
+            "before rowstream loading, upload host-provided data as 4-beat "
+            "packets, then let RTL write/read/verify each packet"
         ),
+    )
+    parser.add_argument(
+        "--diagnostic-host-packet-source",
+        choices=("deterministic", "rowstream"),
+        default="deterministic",
+        help="data source for --diagnostic-host-packet-beats; default: deterministic",
     )
     parser.add_argument(
         "--diagnostic-host-packet-start",
@@ -1130,14 +1136,7 @@ class RowstreamLoader:
             raise ValueError("packet beat requires exactly 16 bytes")
         addr = slot if tag_addr is None else tag_addr
         self.send_command(OP_LOAD_PACKET_BEAT, 0, addr, data)
-        deadline = time.monotonic() + self.args.poll_timeout
-        debug = self.read_debug()
-        while time.monotonic() < deadline:
-            debug = self.read_debug()
-            if debug["last_opcode"] == OP_LOAD_PACKET_BEAT:
-                return debug
-            time.sleep(0.01)
-        raise TimeoutError(f"packet beat load did not complete: {summarize_debug(debug)}")
+        return self.read_debug()
 
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
         if beats < 1 or beats > 4:
@@ -2441,7 +2440,18 @@ def main() -> int:
                 expected_packet = []
                 for slot in range(packet_beats):
                     beat_addr = packet_start + slot
-                    data = bytes(((beat_addr + lane) & 0xFF) for lane in range(16))
+                    if args.diagnostic_host_packet_source == "rowstream":
+                        offset = beat_addr * loader.beat_bytes
+                        data = image[offset : offset + loader.beat_bytes]
+                        if len(data) != loader.beat_bytes:
+                            raise SystemExit(f"beat {beat_addr} outside rowstream image")
+                        if len(data) != 16:
+                            raise SystemExit(
+                                "host packet rowstream diagnostic currently requires "
+                                "16-byte DDR3 beats; use --byte-lanes 2"
+                            )
+                    else:
+                        data = bytes(((beat_addr + lane) & 0xFF) for lane in range(16))
                     expected_packet.append(data.hex())
                     loader.load_packet_beat(slot, data, beat_addr)
                 debug = loader.run_host_packet(packet_start, packet_beats)
@@ -2479,6 +2489,7 @@ def main() -> int:
             diagnostic = {
                 "artifact_name": "task6-ypcb-uberddr3-host-packet-write-read",
                 "status": status,
+                "source": args.diagnostic_host_packet_source,
                 "start_beat": args.diagnostic_host_packet_start,
                 "beats": total_beats,
                 "completed_beats": completed,
@@ -2502,6 +2513,7 @@ def main() -> int:
                 "beats": total_beats,
                 "completed_beats": completed,
                 "packet_count": len(packets),
+                "source": args.diagnostic_host_packet_source,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
                 "verdict": diagnostic["decision"]["verdict"],
