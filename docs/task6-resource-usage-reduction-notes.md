@@ -22121,3 +22121,47 @@ Next gate:
 
 - Run the same same-process packet-postread diagnostic at a larger packet/window scale, starting with 16 KiB using sampled postread or selected beats, not a separate no-preload process.
 - In parallel, debug why a fresh no-preload read-repeat process sees stale/wrong beats 0 and 1: compare startup sequence, first command after connect, and whether a dummy read/boot-status read before `READ_BEAT` changes the result.
+
+### 2026-05-23 - 16 KiB sampled packet postread and fresh-process read-repeat check
+
+Decision:
+
+- Scale the same-process packet/postread gate to 16 KiB before returning to larger rowstream loads.
+- Add sampled postread support so larger packet windows can verify selected inference-relevant beats without adding RTL state or excessive JTAG traffic.
+- Add read-repeat warmup support to debug fresh-process/JTAG startup effects.
+
+Implementation:
+
+- Added `--diagnostic-host-packet-postread-sample-beats`.
+- Added `--diagnostic-read-repeat-warmup-beats`.
+- RTL remains the timing-clean packet path; all new checks are host-side.
+
+Hardware evidence on `/nix/store/bvjxminsk0g91665a0vlaskhv63nq4cl-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`:
+
+| gate | result |
+| --- | --- |
+| 16 KiB actual rowstream packet load, 1024 beats, 256 packets | PASS |
+| sampled same-process standalone postread beats `0,1,2,3,90,255,512,1023` | PASS, standalone mismatch count 0 |
+| fresh-process no-preload read-repeat beats `0,1,2,3`, 10 reads each, no warmup | PASS, mismatch counts all 0 |
+| fresh-process no-preload read-repeat beats `0,1,2,3`, 10 reads each, warmup beat `2` | PASS, mismatch counts all 0 |
+
+Run artifacts:
+
+| artifact | role |
+| --- | --- |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-postread-sampled-16kib/summary.json` | 16 KiB sampled same-process postread gate |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-fresh-readrepeat-warmup-none-v2/summary.json` | fresh-process no-preload read-repeat without warmup |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-fresh-readrepeat-warmup-2/summary.json` | fresh-process no-preload read-repeat with one warmup read |
+
+Interpretation:
+
+- The 16 KiB packetized rowstream load now passes both immediate packet verify and sampled standalone postread, including beats 0 and 1.
+- After the 16 KiB load, fresh-process no-preload read-repeat also passes for beats 0..3; the earlier beat 0/1 failure did not reproduce in this sequence.
+- This is a meaningful improvement for the inference path: data loaded through the packet path remains readable by standalone `READ_BEAT` both in the same process and in a fresh process, at least for the sampled 16 KiB region.
+- Remaining risk: this is sampled evidence, not full rowstream evidence. It also does not yet prove the eventual inference datapath read timing, only the JTAG/loader read path.
+
+Next gate:
+
+- Scale to 256 KiB with sampled same-process postread over boundary and historical-risk beats.
+- If 256 KiB passes, run a fresh-process no-preload sampled read-repeat on the same sample set.
+- Only after that attempt full rowstream packet load with sampled postread and then connect the inference read path.

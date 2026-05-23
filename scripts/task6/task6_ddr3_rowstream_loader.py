@@ -187,6 +187,11 @@ def parse_args() -> argparse.Namespace:
         help="for read-repeat diagnostics, do not preload sampled beats before reading",
     )
     parser.add_argument(
+        "--diagnostic-read-repeat-warmup-beats",
+        default="",
+        help="comma-separated beat addresses to read once before read-repeat measurement; used to debug fresh-process/JTAG startup effects",
+    )
+    parser.add_argument(
         "--diagnostic-rtl-burst-beats",
         type=int,
         default=0,
@@ -233,6 +238,11 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.0,
         help="delay after RUN_HOST_PACKET before same-process standalone READ_BEAT postread; default: 0 seconds",
+    )
+    parser.add_argument(
+        "--diagnostic-host-packet-postread-sample-beats",
+        default="",
+        help="comma-separated absolute beat addresses to postread during host-packet diagnostics; default reads every packet beat",
     )
     parser.add_argument(
         "--diagnostic-lowbyte-count",
@@ -2319,6 +2329,15 @@ def main() -> int:
             beat_addrs = parse_int_list(args.diagnostic_read_compare_beats)
             diagnostics = []
             overall_status = "PASS"
+            warmup_reads = []
+            if args.diagnostic_read_repeat_warmup_beats:
+                for warmup_beat in parse_int_list(args.diagnostic_read_repeat_warmup_beats):
+                    observed, warmup_debug = loader.read_beat(warmup_beat)
+                    warmup_reads.append({
+                        "beat_addr": warmup_beat,
+                        "observed_hex": observed.hex(),
+                        "debug": json_debug(warmup_debug),
+                    })
             for beat_addr in beat_addrs:
                 offset = beat_addr * loader.beat_bytes
                 expected = image[offset : offset + loader.beat_bytes]
@@ -2368,6 +2387,7 @@ def main() -> int:
                 "status": overall_status,
                 "beats": beat_addrs,
                 "diagnostics": diagnostics,
+                "warmup_reads": warmup_reads,
             }
             write_json(run_dir / "read-compare-diagnostic.json", diagnostic)
             write_json(run_dir / "summary.json", {
@@ -2444,6 +2464,7 @@ def main() -> int:
                 "read_count": args.diagnostic_read_repeat_count,
                 "preload": not args.diagnostic_read_repeat_no_preload,
                 "mismatch_counts": {str(item["beat_addr"]): item["mismatch_count"] for item in diagnostics},
+                "warmup_beats": parse_int_list(args.diagnostic_read_repeat_warmup_beats) if args.diagnostic_read_repeat_warmup_beats else [],
             })
             return 0 if overall_status == "PASS" else 1
         if args.diagnostic_host_packet_beats:
@@ -2456,6 +2477,10 @@ def main() -> int:
             first_standalone_mismatch = None
             status = "PASS"
             final_debug = None
+            postread_sample_beats = (
+                set(parse_int_list(args.diagnostic_host_packet_postread_sample_beats))
+                if args.diagnostic_host_packet_postread_sample_beats else None
+            )
             while completed < total_beats:
                 packet_beats = min(4, total_beats - completed)
                 packet_start = args.diagnostic_host_packet_start + completed
@@ -2488,6 +2513,8 @@ def main() -> int:
                 standalone_first_mismatch = 0xFF
                 for slot, expected_hex in enumerate(expected_packet):
                     beat_addr = packet_start + slot
+                    if postread_sample_beats is not None and beat_addr not in postread_sample_beats:
+                        continue
                     expected = bytes.fromhex(expected_hex)
                     observed, read_debug = loader.read_beat(beat_addr)
                     observed = observed[: len(expected)]
@@ -2524,6 +2551,7 @@ def main() -> int:
                     "standalone_first_mismatch": standalone_first_mismatch,
                     "standalone_reads": standalone_reads,
                     "postread_delay": args.diagnostic_host_packet_postread_delay,
+                    "postread_sampled": postread_sample_beats is not None,
                     "wb_ack_count": int(debug.get("wb_ack_count", 0)),
                     "wb_err_count": int(debug.get("wb_err_count", 0)),
                 })
@@ -2550,6 +2578,7 @@ def main() -> int:
                 "packet_max_beats": 4,
                 "packet_load_delay": args.diagnostic_host_packet_load_delay,
                 "packet_postread_delay": args.diagnostic_host_packet_postread_delay,
+                "packet_postread_sample_beats": sorted(postread_sample_beats) if postread_sample_beats is not None else None,
                 "packets": packets,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
@@ -2573,6 +2602,7 @@ def main() -> int:
                 "source": args.diagnostic_host_packet_source,
                 "packet_load_delay": args.diagnostic_host_packet_load_delay,
                 "packet_postread_delay": args.diagnostic_host_packet_postread_delay,
+                "packet_postread_sample_beats": sorted(postread_sample_beats) if postread_sample_beats is not None else None,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
                 "standalone_mismatch_count": total_standalone_mismatches,
