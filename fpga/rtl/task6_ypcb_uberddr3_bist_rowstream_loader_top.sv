@@ -303,6 +303,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   wire [1:0] jtag_command_chunk = jtag_command_payload[40 +: 2];
   wire [31:0] jtag_command_addr = jtag_command_payload[48 +: 32];
   wire [7:0] jtag_command_data_byte = jtag_command_payload[64 +: 8];
+  wire [2:0] jtag_command_packet_count = jtag_command_addr[31:29];
   wire [WB_ADDR_BITS - 1:0] jtag_command_addr_low16 =
     {{(WB_ADDR_BITS - 16){1'b0}}, jtag_command_addr[15:0]};
   wire [WB_ADDR_BITS - 1:0] jtag_command_addr_full =
@@ -642,7 +643,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_burst_active_q <= 1'b1;
           loader_burst_packet_mode_q <= 1'b1;
           loader_burst_read_phase_q <= 1'b0;
-          loader_burst_count_q <= jtag_command_data_byte == 8'd0 ? 8'd0 : (jtag_command_data_byte > 8'd4 ? 8'd3 : jtag_command_data_byte - 8'd1);
+          loader_burst_count_q <= jtag_command_packet_count == 3'd0 ? 8'd0 :
+            (jtag_command_packet_count > 3'd4 ? 8'd3 : {5'd0, jtag_command_packet_count} - 8'd1);
           loader_burst_index_q <= 8'd0;
           loader_burst_mismatch_count_q <= 8'd0;
           loader_burst_first_mismatch_q <= 8'hff;

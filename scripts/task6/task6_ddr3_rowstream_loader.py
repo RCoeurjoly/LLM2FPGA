@@ -1176,7 +1176,13 @@ class RowstreamLoader:
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
         if beats < 1 or beats > 4:
             raise ValueError("host packet beat count must be in 1..4")
-        self.send_command(OP_RUN_HOST_PACKET, 0, start_beat, bytes([beats & 0xFF]))
+        # OP_RUN_HOST_PACKET must not use command data bytes: command data starts
+        # at bit 64 and overlaps address bits 16..31 in the legacy JTAG payload.
+        # WB_ADDR_BITS is 25 for this DDR3 target, so encode the small packet
+        # count in address bits 29..31 and keep the physical beat address in
+        # the low address bits consumed by RTL.
+        command_addr = (start_beat & 0x1FF_FFFF) | ((beats & 0x7) << 29)
+        self.send_command(OP_RUN_HOST_PACKET, 0, command_addr)
         return self.wait_ready(min_ack_count=beats * 2)
 
 
