@@ -21298,3 +21298,44 @@ Result:
   trust rowstream loading. The next route should be narrow known-good placement
   preservation around the DDR3 controller/PHY/pins, with the cooldown kept only
   if it does not harm calibration/placement.
+
+### 2026-05-23 - Narrow controller-FF placement preservation gate
+
+The RTL command cooldown did not pass the 256-beat gate. The next gate uses the
+existing narrow BEL-lock infrastructure instead of full placement locking:
+
+- Generalize the rowstream pre-place artifact helper so it can target the
+  current 2-lane packed/fullbeat loader JSON.
+- Build a 2-lane known-clock paced-loader target using the existing seed18
+  clock/PHY/pins/controller-FF pre-place lock bundle.
+- Gate the locked target with 256 verified packed beats first, then 1024 only if
+  256 passes.
+
+Build result:
+
+- The first 2-lane controller-FF placement-lock build failed before bitstream
+  generation because the strict lock script referenced controller FF cell names
+  that are absent after synthesis of the current paced 2-lane netlist.
+- Adjustment: use the same narrow lock scope, but allow missing lock cells so the
+  build preserves clock/PHY/pins and any controller FF cells that still match,
+  rather than falling back to no placement preservation.
+
+Result:
+
+- The relaxed controller-FF placement-lock target built successfully:
+  `/nix/store/zgqr91mb05pb98j0ly287i8njd6gl7v7-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`.
+- nextpnr explicitly constrained DDR3-related clocks to 333.33 MHz DDR/DDR90,
+  200 MHz ref, and the post-route `controller_clk` max frequency was reported
+  at 110.02 MHz, giving margin over the intended 83.3 MHz controller clock.
+- The 256-beat verified packed-load gate calibrated and ran much farther than
+  previous variants, but failed at beat 193:
+  expected `5aeac4d1bf7f78d8378c9028fda42110`, observed
+  `5aeac4d1bf7f79d8378c9028fda42110`.
+- The 1024-beat gate was skipped because the 256-beat prerequisite failed.
+- Interpretation: narrow placement preservation plus RTL cooldown is the best
+  route so far, improving the failure point from beat 42/52 to beat 193. The
+  remaining failures are sparse single-byte/bit corruptions under sustained
+  writes, not calibration failure. Next safe refinements are either a stronger
+  matched lock bundle for the current 2-lane netlist or a lower-level burst
+  write/read transaction that amortizes JTAG command handling across multiple
+  beats inside RTL.
