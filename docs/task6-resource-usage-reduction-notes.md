@@ -21381,3 +21381,239 @@ Retry support:
   declaring the beat failed. This is not a substitute for a stable PHY, but it is
   the right safety net for sparse one-bit failures while DDR3 margin work
   continues.
+
+### 2026-05-23 - Retry-first rowstream gate on best calibrating bitstream
+
+Decision:
+
+- Use the previous best calibrating placement-locked/cooldown bitstream, before
+  the large RTL burst FSM perturbation:
+  `/nix/store/zgqr91mb05pb98j0ly287i8njd6gl7v7-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`.
+- Do not rebuild the larger burst-capable RTL for this gate, because that
+  version failed calibration.
+- Run verified packed rowstream loading with `--write-verify-retries 3`.
+- Gate order: 256 beats first, then 1024 only if 256 passes.
+
+Result:
+
+- The retry-first gate used the previous best calibrating placement-locked/cooldown bitstream:
+  `/nix/store/zgqr91mb05pb98j0ly287i8njd6gl7v7-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`.
+- 256 verified packed beats with `--write-verify-retries 3` completed all writes.
+  The script returned `PARTIAL` only because boundary token 50256 was outside the
+  intentionally partial 4096-byte load.
+- 1024 verified packed beats with `--write-verify-retries 3` completed all writes.
+  The script returned `PARTIAL` only because boundary token 50256 was outside the
+  intentionally partial 16384-byte load.
+- This is the first evidence that retry-on-mismatch can carry the best
+  calibrating bitstream past the prior beat-193 failure point.
+- Next gate: full rowstream load with per-beat immediate verify/retry, initially
+  without full readback to keep the board feedback loop bounded.
+
+### 2026-05-23 - Matched-lock retry gate
+
+The long full-rowstream load on the earlier relaxed-lock bitstream was stopped
+so the stronger matched-lock candidate could fail fast first:
+`/nix/store/cvndd2bbjq41dz7y7qm84164kasdaq08-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`.
+
+Results:
+
+- Boot-only calibration passed.
+- 256 verified packed beats with `--write-verify-retries 3` completed all writes.
+  The script returned `PARTIAL` only because token 50256 was outside the small
+  4096-byte loaded range.
+- 1024 verified packed beats with `--write-verify-retries 3` completed all
+  writes. The script returned `PARTIAL` only because token 50256 was outside the
+  small 16384-byte loaded range.
+- This matched-lock bitstream is now the preferred candidate for the long full
+  rowstream load because it combines boot calibration, exact matched locks, and
+  the retry-enabled 256/1024 gates.
+
+### 2026-05-23 - No-retry progress-gated DDR3 stability check
+
+The retry-enabled path proved that the rowstream image can be loaded with
+immediate correction, but that is not strong evidence for inference-time DDR3
+read stability. A final DDR3 claim must separate preload recoverability from raw
+read/write robustness.
+
+Decision:
+
+- Stop the long retry-enabled full-rowstream run before waiting hours for a weak
+  evidence result.
+- Run no-retry gates on the stronger matched-lock bitstream with visible
+  progress enabled.
+- Gate sequence: 256 beats first, then 1024 only if 256 passes, then a larger
+  8192-beat gate only if 1024 passes.
+- Do not use `--json-only` for these gates; progress output is part of the
+  feedback loop.
+- Treat any no-retry mismatch as evidence of remaining DDR3 marginality rather
+  than masking it with retries.
+
+Result:
+
+- The first no-retry 256-beat run was invalidated because the board was
+  reprogrammed externally while it was running, so it was stopped and discarded.
+- After reprogramming the matched-lock bitstream, the no-retry 256-beat gate
+  failed early at beat 21:
+  expected `237a0000c8d481ae8936e87d681b493b`, observed
+  `237a0000c8d481be8936e87d681b493b`.
+- This is a small bit/byte-level corruption, but it occurred with no retries,
+  so it confirms the DDR3 path is still marginal for raw inference-time reads.
+- Do not promote retry-enabled rowstream preload success as inference-read
+  stability evidence. The next useful run should either collect retry telemetry
+  during preload or improve PHY/placement/read stability before claiming board
+  inference readiness.
+
+### 2026-05-23 - One-byte-lane raw stability check
+
+The 2-lane matched-lock bitstream still fails raw no-retry verification, so the
+next stability hypothesis is that the 1-byte-lane DDR3 path may have better DQ/DQS
+margin. The goal is raw inference-time read/write stability, not retry-enabled
+preload recoverability.
+
+Gate sequence:
+
+- Build a 1-byte-lane rowstream-loader bitstream.
+- Program and run boot-only calibration.
+- Run 256 packed beats with no write-verify retries and visible progress.
+- If 256 passes, run 1024 packed beats with no retries.
+
+Result:
+
+- Built 1-byte-lane rowstream-loader bitstream:
+  `/nix/store/dg3cf3haavrn7njc3dc700d9rkqfclkd-task6-ypcb-uberddr3-rowstream-loader-1lane-seed16-clocked.bit`.
+- Post-route `controller_clk` max frequency was reported at 121.23 MHz.
+- Boot-only calibration failed before any rowstream write/read test:
+  `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x0000000c`.
+- No 256/1024 no-retry gates were run because calibration did not complete.
+- Interpretation: this specific 1-lane rowstream-loader build is not a viable
+  raw-stability candidate. The earlier proven 1-lane BIST baseline should not be
+  conflated with this larger rowstream-loader shape; a useful 1-lane comparison
+  needs either the BIST-equivalent clock/placement recipe or a matched-lock
+  1-lane rowstream-loader candidate generated from a boot-positive 1-lane placed
+  netlist.
+
+### 2026-05-23 - Read-only stability diagnostic
+
+The 1-lane rowstream-loader candidate failed boot-only calibration, so the next
+best diagnostic returns to the current best 2-lane matched-lock bitstream. The
+question is no longer whether retry-enabled preload can eventually write data;
+it is whether inference-time reads are stable after data has been written.
+
+Plan:
+
+- Use the best 2-lane matched-lock bitstream.
+- For selected beat addresses, write the expected 16-byte rowstream beat with
+  retries so the initial stored value is likely correct.
+- Then repeatedly read the same beat without rewriting.
+- Count mismatches, first mismatch iteration, first mismatch byte/bit, and a
+  simple byte mismatch histogram.
+- Test beats 0, 21, 193, and 255 first.
+
+Interpretation:
+
+- Stable repeated reads after verified preload point toward write-side or
+  write/read-turnaround marginality rather than inference-read instability.
+- Unstable repeated reads mean the DDR3 path is not yet safe for inference-time
+  weight fetches without an explicit integrity/retry strategy.
+
+Result:
+
+- Added a host-side read-repeat diagnostic: write one selected beat with retries,
+  then read that same beat repeatedly without rewriting.
+- Ran the diagnostic on the 2-lane matched-lock bitstream for beats 0, 21, 193,
+  and 255, with 1000 standalone reads per beat.
+- Result: all tested beats failed every repeated read:
+  - beat 0: 1000/1000 mismatches
+  - beat 21: 1000/1000 mismatches
+  - beat 193: 1000/1000 mismatches
+  - beat 255: 1000/1000 mismatches
+- Interpretation: the current standalone `OP_READ_BEAT`/debug extraction path is
+  not valid as inference-read evidence. Because immediate `OP_RUN_HOST_FULLBEAT`
+  write/read verification can pass with retries, while later standalone reads
+  fail systematically, the next debug should distinguish stale/debug readout or
+  read-command sequencing bugs from true DDR3 read instability.
+- Do not claim inference-time DDR3 read stability from the current loader path.
+
+### 2026-05-23 - Standalone OP_READ_BEAT validation
+
+The read-repeat diagnostic failed 1000/1000 reads for every tested beat after a
+verified preload. That failure is too systematic to treat immediately as random
+DDR3 PHY marginality. The next hypothesis is that standalone `OP_READ_BEAT` or
+its debug extraction is stale, misaddressed, or otherwise not equivalent to the
+readback path inside `OP_RUN_HOST_FULLBEAT`.
+
+Plan:
+
+- Add a focused host diagnostic that, for selected beat addresses:
+  - writes and immediately verifies with `OP_RUN_HOST_FULLBEAT`,
+  - then issues standalone `OP_READ_BEAT` for the same beat,
+  - compares expected, immediate readback, and standalone readback,
+  - records debug payloads and ACK counts for both operations.
+- Test beats 0, 1, 21, and 193 first.
+- Only if standalone `OP_READ_BEAT` is proven correct should failed repeated
+  reads be interpreted as DDR3 inference-read instability.
+
+Result:
+
+- Added and ran `--diagnostic-read-compare-beats 0,1,21,193` on the 2-lane
+  matched-lock bitstream.
+- For every tested beat:
+  - `OP_RUN_HOST_FULLBEAT` immediate readback matched the expected rowstream beat.
+  - standalone `OP_READ_BEAT` did not match the expected rowstream beat.
+  - immediate readback and standalone readback did not match each other.
+- Result summary:
+  - beat 0: immediate PASS, standalone FAIL
+  - beat 1: immediate PASS, standalone FAIL
+  - beat 21: immediate PASS, standalone FAIL
+  - beat 193: immediate PASS, standalone FAIL
+- Interpretation: the 1000/1000 read-repeat failures are not valid evidence of
+  DDR3 PHY read instability yet. They first prove that standalone `OP_READ_BEAT`
+  or its debug capture/extraction path is not equivalent to the immediate
+  fullbeat readback path. Next step: instrument/fix RTL standalone read capture
+  on the actual read ACK, including requested address, captured data, and ACK
+  phase, before using read-repeat as an inference-read stability gate.
+
+### 2026-05-23 - Standalone read ACK instrumentation
+
+Added RTL instrumentation for standalone `OP_READ_BEAT` read ACKs:
+
+- requested read address captured from the command payload,
+- actual `loader_addr_q` captured on read ACK,
+- opcode observed on read ACK,
+- standalone read ACK delta,
+- existing `loader_read_data_q[127:0]` remains exposed in the 512-bit debug payload.
+
+The goal is to distinguish wrong address, stale debug capture, and actual DDR3
+readback mismatch before using repeated standalone reads as inference-read
+stability evidence.
+
+### 2026-05-23 - Standalone READ_BEAT ACK capture result
+
+Implemented RTL/host instrumentation for standalone `LOADER_OP_READ_BEAT` so the debug payload exposes the requested address, the `loader_addr_q` value observed at ACK, captured `wb_data[127:0]`, ACK delta, and last opcode.
+
+Built instrumented 2-lane matched-lock bitstream:
+
+- `/nix/store/q2dchz54pwnyba443gsgxys67d641vax-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Pre-place locks applied: 2294, missing: 0.
+- Post-route controller max frequency: 89.17 MHz, above the 83.33 MHz controller clock.
+
+Short read-compare diagnostic on beats 0, 1, and 21:
+
+- Immediate `LOADER_OP_RUN_HOST_FULLBEAT` write/read path: PASS for each tested beat.
+- Standalone `LOADER_OP_READ_BEAT`: FAIL for each tested beat.
+- Standalone ACK capture was internally coherent:
+  - `standalone_ack_seen=True`
+  - request address low bits matched the tested beat address.
+  - ACK address low bits matched the tested beat address.
+  - captured ACK opcode was `0x02` (`LOADER_OP_READ_BEAT`).
+  - ACK delta was 9 controller cycles.
+
+Observed standalone data examples:
+
+- beat 0: `5151adadd0d08c8c2929777791913d3d`
+- beat 1: `2c2cf1f17575d2d2cfcfdbdb80803d3d`
+- beat 21: `296bd7014f111fb0296bd7014f111fb0`
+
+Interpretation: this no longer looks like a host address/opcode decode issue. The standalone command reaches the intended address and records the expected opcode at the actual read ACK, but the captured 128-bit `wb_data` is structurally wrong. The corruption pattern is organized (duplicated byte pairs / repeated half-beat patterns), so the next debug should compare the standalone read controller signals against the immediate fullbeat read state, especially any width/beat packing, data ordering, and read-data-valid assumptions.
+
+A single-command repeat experiment with `--command-repeats 1` timed out in host wait accounting while the loader was idle/calibrated (`debug1=0x17`, state 1, ack 2). That points to the single-repeat diagnostic path needing host ACK accounting cleanup; it does not change the main finding from the repeat-2 diagnostic.

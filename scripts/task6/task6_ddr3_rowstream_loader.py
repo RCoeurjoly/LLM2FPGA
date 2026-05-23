@@ -99,6 +99,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--command-ir", type=lambda value: int(value, 0), default=0x03)
     parser.add_argument("--command-delay", type=float, default=0.001)
     parser.add_argument(
+        "--write-verify-retries",
+        type=int,
+        default=0,
+        help=(
+            "retry OP_RUN_HOST_FULLBEAT writes when immediate readback mismatches; "
+            "default: 0"
+        ),
+    )
+    parser.add_argument(
         "--command-repeats",
         type=int,
         default=2,
@@ -149,6 +158,25 @@ def parse_args() -> argparse.Namespace:
             "program the bitstream, wait for DDR3 calibration, record the "
             "BIST-derived boot status, and exit before any loader commands"
         ),
+    )
+    parser.add_argument(
+        "--diagnostic-read-compare-beats",
+        default="",
+        help=(
+            "comma-separated beat addresses: compare OP_RUN_HOST_FULLBEAT "
+            "immediate readback against standalone OP_READ_BEAT"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-read-repeat-beats",
+        default="",
+        help="comma-separated beat addresses for read-only repeat stability diagnostic",
+    )
+    parser.add_argument(
+        "--diagnostic-read-repeat-count",
+        type=int,
+        default=1000,
+        help="number of read-only repetitions per beat; default: 1000",
     )
     parser.add_argument(
         "--diagnostic-rtl-burst-beats",
@@ -367,6 +395,35 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def json_debug(debug: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in debug.items() if not isinstance(value, bytes)}
+
+
+def parse_int_list(value: str) -> list[int]:
+    if not value.strip():
+        return []
+    return [int(part.strip(), 0) for part in value.split(",") if part.strip()]
+
+
+def first_byte_bit_mismatch(expected: bytes, observed: bytes) -> dict[str, Any] | None:
+    for index, (want, got) in enumerate(zip(expected, observed)):
+        diff = want ^ got
+        if diff:
+            bit = (diff & -diff).bit_length() - 1
+            return {
+                "byte_index": index,
+                "expected": want,
+                "observed": got,
+                "xor": diff,
+                "first_bit": bit,
+            }
+    if len(expected) != len(observed):
+        return {
+            "byte_index": min(len(expected), len(observed)),
+            "expected": None,
+            "observed": None,
+            "xor": None,
+            "first_bit": None,
+        }
+    return None
 
 
 def row_offset(token: int, contract: dict[str, Any]) -> int:
@@ -652,6 +709,11 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "dense_burst_expected_base": (raw >> 496) & 0xFF,
         "fullbeat_write_ack_delta": (raw >> 504) & 0xF,
         "fullbeat_read_ack_delta": (raw >> 508) & 0xF,
+        "standalone_read_ack_seen_capture": bool((raw >> 464) & 0x1),
+        "standalone_read_ack_opcode_capture": (raw >> 465) & 0x7F,
+        "standalone_read_ack_addr_low24": (raw >> 472) & 0xFF_FFFF,
+        "standalone_read_request_addr_low8": (raw >> 496) & 0xFF,
+        "standalone_read_ack_delta": (raw >> 504) & 0xF,
         "rtl_burst_index": (raw >> 240) & 0xFF,
         "rtl_burst_count": (raw >> 248) & 0xFF,
         "rtl_burst_mismatch_count": (raw >> 256) & 0xFF,
@@ -2195,6 +2257,136 @@ def main() -> int:
                 raise SystemExit("--run-inference requires --model-path and --adapter-path when --top1-from-model is set")
             args.full_readback = True
             args.load_boundary_rows_only = False
+        if args.diagnostic_read_compare_beats:
+            beat_addrs = parse_int_list(args.diagnostic_read_compare_beats)
+            diagnostics = []
+            overall_status = "PASS"
+            for beat_addr in beat_addrs:
+                offset = beat_addr * loader.beat_bytes
+                expected = image[offset : offset + loader.beat_bytes]
+                if len(expected) != loader.beat_bytes:
+                    raise SystemExit(f"beat {beat_addr} outside rowstream image")
+                immediate_observed, immediate_debug = loader.run_host_fullbeat(
+                    beat_addr, expected + bytes(16 - len(expected))
+                )
+                standalone_observed, standalone_debug = loader.read_beat(beat_addr)
+                immediate_match = immediate_observed[: len(expected)] == expected
+                standalone_match = standalone_observed[: len(expected)] == expected
+                immediate_vs_standalone = (
+                    immediate_observed[: len(expected)] == standalone_observed[: len(expected)]
+                )
+                status = "PASS" if immediate_match and standalone_match else "FAIL"
+                if status != "PASS":
+                    overall_status = "FAIL"
+                diagnostics.append({
+                    "beat_addr": beat_addr,
+                    "status": status,
+                    "expected_hex": expected.hex(),
+                    "immediate_observed_hex": immediate_observed[: len(expected)].hex(),
+                    "standalone_observed_hex": standalone_observed[: len(expected)].hex(),
+                    "immediate_match": immediate_match,
+                    "standalone_match": standalone_match,
+                    "immediate_vs_standalone_match": immediate_vs_standalone,
+                    "standalone_first_mismatch": first_byte_bit_mismatch(
+                        expected, standalone_observed[: len(expected)]
+                    ),
+                    "immediate_debug": json_debug(immediate_debug),
+                    "standalone_debug": json_debug(standalone_debug),
+                })
+                print(
+                    f"read-compare beat={beat_addr} status={status} "
+                    f"immediate={immediate_match} standalone={standalone_match} "
+                    f"same={immediate_vs_standalone} "
+                    f"standalone_ack_seen={standalone_debug.get('standalone_read_ack_seen_capture')} "
+                    f"standalone_req_low8=0x{standalone_debug.get('standalone_read_request_addr_low8', 0):02x} "
+                    f"standalone_ack_addr_low24=0x{standalone_debug.get('standalone_read_ack_addr_low24', 0):06x} "
+                    f"standalone_ack_opcode=0x{standalone_debug.get('standalone_read_ack_opcode_capture', 0):02x} "
+                    f"standalone_ack_delta={standalone_debug.get('standalone_read_ack_delta')} "
+                    f"standalone_data={standalone_observed[: len(expected)].hex()}",
+                    flush=True,
+                )
+            diagnostic = {
+                "artifact_name": "task6-ypcb-uberddr3-read-beat-compare",
+                "status": overall_status,
+                "beats": beat_addrs,
+                "diagnostics": diagnostics,
+            }
+            write_json(run_dir / "read-compare-diagnostic.json", diagnostic)
+            write_json(run_dir / "summary.json", {
+                "status": overall_status,
+                "run_dir": str(run_dir),
+                "diagnostic_json": str(run_dir / "read-compare-diagnostic.json"),
+                "beats": beat_addrs,
+                "statuses": {str(item["beat_addr"]): item["status"] for item in diagnostics},
+            })
+            return 0 if overall_status == "PASS" else 1
+        if args.diagnostic_read_repeat_beats:
+            beat_addrs = parse_int_list(args.diagnostic_read_repeat_beats)
+            diagnostics = []
+            overall_status = "PASS"
+            for beat_addr in beat_addrs:
+                offset = beat_addr * loader.beat_bytes
+                expected = image[offset : offset + loader.beat_bytes]
+                if len(expected) != loader.beat_bytes:
+                    raise SystemExit(f"beat {beat_addr} outside rowstream image")
+                preload_debug = loader.write_beat(beat_addr, expected)
+                mismatch_count = 0
+                first_mismatch = None
+                byte_hist: dict[str, int] = {}
+                last_observed = b""
+                last_debug = preload_debug
+                for iteration in range(args.diagnostic_read_repeat_count):
+                    observed, read_debug = loader.read_beat(beat_addr)
+                    last_observed = observed
+                    last_debug = read_debug
+                    mismatch = first_byte_bit_mismatch(expected, observed)
+                    if mismatch is not None:
+                        mismatch_count += 1
+                        byte_key = str(mismatch["byte_index"])
+                        byte_hist[byte_key] = byte_hist.get(byte_key, 0) + 1
+                        if first_mismatch is None:
+                            first_mismatch = {
+                                "iteration": iteration,
+                                **mismatch,
+                                "observed_hex": observed.hex(),
+                            }
+                status = "PASS" if mismatch_count == 0 else "FAIL"
+                if status != "PASS":
+                    overall_status = "FAIL"
+                diagnostics.append({
+                    "beat_addr": beat_addr,
+                    "status": status,
+                    "expected_hex": expected.hex(),
+                    "last_observed_hex": last_observed.hex(),
+                    "read_count": args.diagnostic_read_repeat_count,
+                    "mismatch_count": mismatch_count,
+                    "first_mismatch": first_mismatch,
+                    "byte_mismatch_histogram": byte_hist,
+                    "preload_debug": json_debug(preload_debug),
+                    "final_debug": json_debug(last_debug),
+                })
+                print(
+                    f"read-repeat beat={beat_addr} status={status} "
+                    f"mismatches={mismatch_count}/{args.diagnostic_read_repeat_count}",
+                    flush=True,
+                )
+            diagnostic = {
+                "artifact_name": "task6-ypcb-uberddr3-read-repeat-stability",
+                "status": overall_status,
+                "beats": beat_addrs,
+                "read_count": args.diagnostic_read_repeat_count,
+                "diagnostics": diagnostics,
+            }
+            write_json(run_dir / "read-repeat-diagnostic.json", diagnostic)
+            write_json(run_dir / "summary.json", {
+                "status": overall_status,
+                "run_dir": str(run_dir),
+                "diagnostic_json": str(run_dir / "read-repeat-diagnostic.json"),
+                "beats": beat_addrs,
+                "read_count": args.diagnostic_read_repeat_count,
+                "mismatch_counts": {str(item["beat_addr"]): item["mismatch_count"] for item in diagnostics},
+            })
+            return 0 if overall_status == "PASS" else 1
         if args.diagnostic_rtl_burst_beats:
             debug = loader.run_rtl_burst(
                 args.diagnostic_rtl_burst_start,
