@@ -71,6 +71,7 @@ OP_RUN_HARDCODED_AUTOPROBE = 0x0A
 OP_RUN_HARDCODED_SINGLEBYTE = 0x0B
 OP_ECHO_CHUNK = 0x0C
 OP_RUN_HOST_FULLBEAT = 0x0D
+OP_RUN_RTL_BURST = 0x0E
 BEAT_BYTES = 64
 
 
@@ -148,6 +149,21 @@ def parse_args() -> argparse.Namespace:
             "program the bitstream, wait for DDR3 calibration, record the "
             "BIST-derived boot status, and exit before any loader commands"
         ),
+    )
+    parser.add_argument(
+        "--diagnostic-rtl-burst-beats",
+        type=int,
+        default=0,
+        help=(
+            "before rowstream loading, issue one RTL-generated multi-beat "
+            "fullbeat write/read/verify burst and exit"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-rtl-burst-start",
+        type=lambda value: int(value, 0),
+        default=0,
+        help="start beat address for --diagnostic-rtl-burst-beats; default: 0",
     )
     parser.add_argument(
         "--diagnostic-lowbyte-count",
@@ -327,6 +343,9 @@ def parse_args() -> argparse.Namespace:
         help="Wishbone beat address for --diagnostic-rtl-fullbeat-base; default: 0",
     )
     parser.add_argument("--diagnostic-host-fullbeat", action="store_true", help="send one host-provided 16-byte write/read command and exit")
+    parser.add_argument("--diagnostic-host-fullbeat-addr", type=lambda value: int(value, 0), default=0)
+    parser.add_argument("--diagnostic-host-fullbeat-base", type=lambda value: int(value, 0), default=0)
+    parser.add_argument("--diagnostic-host-fullbeat-hex")
     parser.add_argument("--diagnostic-echo-chunk", action="store_true", help="send one no-DDR3 16-byte payload echo command and exit")
     parser.add_argument("--top1-from-model", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--run-inference", action=argparse.BooleanOptionalAction, default=False, help=("Run a full tiny-stories inference gate: require a full lowbyte load, full readback, and top1 comparison") )
@@ -633,6 +652,12 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "dense_burst_expected_base": (raw >> 496) & 0xFF,
         "fullbeat_write_ack_delta": (raw >> 504) & 0xF,
         "fullbeat_read_ack_delta": (raw >> 508) & 0xF,
+        "rtl_burst_index": (raw >> 240) & 0xFF,
+        "rtl_burst_count": (raw >> 248) & 0xFF,
+        "rtl_burst_mismatch_count": (raw >> 256) & 0xFF,
+        "rtl_burst_first_mismatch": (raw >> 264) & 0xFF,
+        "rtl_burst_status_first_mismatch": (raw >> 472) & 0xFF,
+        "rtl_burst_status_mismatch_count": (raw >> 480) & 0xFF,
         "read_data_chunk": read_data_chunk,
         "read_data_beat": read_data_chunk + bytes(BEAT_BYTES - len(read_data_chunk)),
         "sys_rstn": None,
@@ -897,13 +922,21 @@ class RowstreamLoader:
         if self.beat_bytes > 16:
             raise ValueError("JTAG write_beat supports at most 16-byte controller beats")
         payload = data + bytes(16 - len(data))
-        observed, debug = self.run_host_fullbeat(beat_addr, payload)
-        if observed[: len(data)] != data:
-            raise RuntimeError(
-                "host fullbeat verify mismatch: "
-                f"expected={data.hex()} observed={observed[: len(data)].hex()}"
-            )
-        return debug
+        attempts = max(1, self.args.write_verify_retries + 1)
+        last_observed = b""
+        last_debug: dict[str, Any] | None = None
+        for attempt in range(attempts):
+            observed, debug = self.run_host_fullbeat(beat_addr, payload)
+            last_observed = observed[: len(data)]
+            last_debug = debug
+            if last_observed == data:
+                if attempt:
+                    debug["write_verify_retry_count"] = attempt
+                return debug
+        raise RuntimeError(
+            f"host fullbeat verify mismatch at beat {beat_addr} after {attempts} attempt(s): "
+            f"expected={data.hex()} observed={last_observed.hex()}"
+        )
 
     def read_beat(self, beat_addr: int) -> tuple[bytes, dict[str, Any]]:
         before = self.read_debug()
@@ -2162,9 +2195,54 @@ def main() -> int:
                 raise SystemExit("--run-inference requires --model-path and --adapter-path when --top1-from-model is set")
             args.full_readback = True
             args.load_boundary_rows_only = False
+        if args.diagnostic_rtl_burst_beats:
+            debug = loader.run_rtl_burst(
+                args.diagnostic_rtl_burst_start,
+                args.diagnostic_rtl_burst_beats,
+            )
+            mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
+            first_mismatch = int(debug.get("rtl_burst_first_mismatch", 0xFF))
+            final_index = args.diagnostic_rtl_burst_beats - 1
+            status = (
+                "PASS"
+                if mismatch_count == 0
+                and int(debug.get("rtl_burst_index", -1)) == final_index
+                and int(debug.get("rtl_burst_count", -1)) == final_index
+                else "FAIL"
+            )
+            diagnostic = {
+                "artifact_name": "task6-ypcb-uberddr3-rtl-multibeat-burst",
+                "status": status,
+                "start_beat": args.diagnostic_rtl_burst_start,
+                "beats": args.diagnostic_rtl_burst_beats,
+                "final_index": final_index,
+                "mismatch_count": mismatch_count,
+                "first_mismatch": first_mismatch,
+                "final_debug": json_debug(debug),
+                "decision": {
+                    "verdict": "rtl-burst-passes" if status == "PASS" else "rtl-burst-fails",
+                    "next_gate": "If this passes at 256 beats, try 1024-equivalent repeated bursts or packetized rowstream loading.",
+                },
+            }
+            write_json(run_dir / "rtl-burst-diagnostic.json", diagnostic)
+            write_json(run_dir / "summary.json", {
+                "status": status,
+                "run_dir": str(run_dir),
+                "diagnostic_json": str(run_dir / "rtl-burst-diagnostic.json"),
+                "start_beat": args.diagnostic_rtl_burst_start,
+                "beats": args.diagnostic_rtl_burst_beats,
+                "mismatch_count": mismatch_count,
+                "first_mismatch": first_mismatch,
+                "verdict": diagnostic["decision"]["verdict"],
+            })
+            return 0 if status == "PASS" else 1
         if args.diagnostic_host_fullbeat:
-            expected = bytes(range(16))
-            observed, debug = loader.run_host_fullbeat(0, expected)
+            expected = (
+                bytes.fromhex(args.diagnostic_host_fullbeat_hex)
+                if args.diagnostic_host_fullbeat_hex is not None
+                else bytes(((args.diagnostic_host_fullbeat_base + lane) & 0xFF) for lane in range(16))
+            )
+            observed, debug = loader.run_host_fullbeat(args.diagnostic_host_fullbeat_addr, expected)
             diagnostic = {
                 "artifact_name": "task6-ypcb-uberddr3-host-fullbeat-write-read",
                 "status": "PASS" if observed == expected else "FAIL",
@@ -2183,6 +2261,8 @@ def main() -> int:
                 "diagnostic_json": str(run_dir / "host-fullbeat-diagnostic.json"),
                 "expected_hex": diagnostic["expected_hex"],
                 "observed_hex": diagnostic["observed_hex"],
+                "beat_addr": args.diagnostic_host_fullbeat_addr,
+                "base": args.diagnostic_host_fullbeat_base,
                 "verdict": diagnostic["decision"]["verdict"],
             })
             return 0 if diagnostic["status"] == "PASS" else 1

@@ -21339,3 +21339,45 @@ Result:
   matched lock bundle for the current 2-lane netlist or a lower-level burst
   write/read transaction that amortizes JTAG command handling across multiple
   beats inside RTL.
+
+### 2026-05-23 - RTL multi-beat burst diagnostic
+
+The next isolation step is to reduce JTAG interaction further. A new generated
+RTL burst diagnostic starts from one JTAG command and then performs multiple
+fullbeat write/read/verify operations inside the FPGA. This does not yet load
+arbitrary TinyStories rowstream bytes; it tests sustained DDR3 user-port traffic
+with RTL-controlled sequencing and spacing.
+
+Implementation direction:
+
+- Add `LOADER_OP_RUN_RTL_BURST` for a generated fullbeat pattern.
+- Encode the final beat index in the command data byte, so `0xff` requests 256
+  beats.
+- Expose burst index/count/mismatch status through the existing 512-bit debug
+  payload.
+- Gate with 256 generated beats first; only if that passes should arbitrary
+  rowstream loading move toward retry-on-mismatch or RTL-side multi-beat packet
+  loading.
+
+Result:
+
+- The burst-capable placement-locked bitstream built successfully:
+  `/nix/store/77csixgh32wiijgys9zxcn3qvvjf8j35-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`.
+- Post-route `controller_clk` max frequency was reported at 92.13 MHz, still
+  above the intended 83.3 MHz controller clock.
+- Board execution failed before the RTL burst command could run because DDR3
+  calibration did not complete:
+  `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x00000000`.
+- Interpretation: moving the full 256-beat burst sequencer into the existing
+  rowstream-loader perturbed the design enough to lose calibration. This makes a
+  large in-loader burst FSM a poor immediate route unless paired with a matched
+  placement lock bundle generated from the same netlist or split into a smaller
+  boot-positive diagnostic.
+
+Retry support:
+
+- Added host-side `--write-verify-retries` for verified packed rowstream loads.
+- A mismatched `OP_RUN_HOST_FULLBEAT` write can now be retried immediately before
+  declaring the beat failed. This is not a substitute for a stable PHY, but it is
+  the right safety net for sparse one-bit failures while DDR3 margin work
+  continues.
