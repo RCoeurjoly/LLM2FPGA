@@ -21885,3 +21885,19 @@ Validated on packet bitstream `/nix/store/kvmx2n7kbbhb97af5f1b3vpvmbzpq15i-task6
 Interpretation: actual rowstream bytes work through the packetized path up to at least 8 KiB with no data mismatches. The larger failures are not clean DDR3 compare mismatches; they present as loader/status error or command-completion failures while calibration remains true and `wb_err_count` remains zero. This is consistent with the current packet bitstream being marginal: its final controller route was only 77.17 MHz, below the desired 83.3 MHz target, and the packet/debug logic added command/status pressure.
 
 Next safe fix before 256 KiB/full rowstream: recover timing/CDC margin for the packet path. Options are to reduce packet/debug fanout, remove unnecessary packet debug visibility, use a narrower packet buffer, or rebuild the packet path with refreshed/narrower locks until the route is back above 83.3 MHz. After that, rerun 16 KiB as the gate before attempting 256 KiB or full rowstream.
+
+## 2026-05-23 - Packet timing recovery attempt: 2-beat packet buffer
+
+Tried a smaller packet implementation to recover timing margin before larger rowstream gates:
+
+- Reduced packet buffer from 4 beats to 2 beats.
+- Made packet-mode compare use the current `loader_write_data_q` instead of reading the packet array again, reducing packet-data fanout.
+- Updated host packet diagnostic to emit 2-beat packets.
+
+Build result:
+
+- Bitstream: `/nix/store/wsrgsyas8hq0pzy83k0s28slnrjww865-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Final route controller max frequency improved to 84.55 MHz, above the 83.3 MHz target.
+- Boot-only calibration failed: `calib_seen=False`, `debug1=0x00000000`, no loader/WB traffic attempted.
+
+Interpretation: the simplification recovered static timing but perturbed placement/calibration enough that the board did not train DDR3. Do not use this bitstream for rowstream testing. The previous 4-beat packet bitstream calibrates and passes actual rowstream to 8 KiB, but routes at only 77.17 MHz and fails longer runs. The next safe route is not simply smaller packet count; it is preserving calibration-positive placement while reducing packet/debug fanout, or generating a fresh calibration-positive locked packet build.

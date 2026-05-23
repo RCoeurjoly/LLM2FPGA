@@ -267,7 +267,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [7:0] loader_burst_first_mismatch_q;
   logic [WB_ADDR_BITS - 1:0] loader_burst_base_addr_q;
   logic loader_burst_packet_mode_q;
-  logic [WB_DATA_BITS - 1:0] loader_packet_data_q [0:3];
+  logic [WB_DATA_BITS - 1:0] loader_packet_data_q [0:1];
   logic [6:0] loader_fullbeat_mismatch_count_q;
   logic [WB_ADDR_BITS - 1:0] loader_fullbeat_addr_q;
   logic [7:0] loader_fullbeat_expected_base_q;
@@ -362,7 +362,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 
   always_comb begin
     if (loader_burst_active_q && loader_burst_packet_mode_q) begin
-      loader_fullbeat_expected_data = loader_packet_data_q[loader_burst_index_q[1:0]];
+      loader_fullbeat_expected_data = loader_write_data_q;
     end else if (loader_burst_active_q) begin
       loader_fullbeat_expected_data = generated_burst_fullbeat(loader_burst_index_q);
     end else begin
@@ -511,8 +511,6 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       loader_burst_packet_mode_q <= 1'b0;
       loader_packet_data_q[0] <= '0;
       loader_packet_data_q[1] <= '0;
-      loader_packet_data_q[2] <= '0;
-      loader_packet_data_q[3] <= '0;
       loader_fullbeat_mismatch_count_q <= 7'd0;
       loader_fullbeat_addr_q <= '0;
       loader_fullbeat_expected_base_q <= 8'd0;
@@ -596,7 +594,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           read_probe_we_q <= 1'b1;
           read_probe_state_q <= LOADER_ISSUE;
         end else if (jtag_command_opcode == LOADER_OP_LOAD_PACKET_BEAT && jtag_command_chunk == 2'd0 && WB_SEL_BITS <= 16) begin
-          loader_packet_data_q[jtag_command_addr[1:0]] <= jtag_command_chunk_data;
+          loader_packet_data_q[jtag_command_addr[0]] <= jtag_command_chunk_data;
           loader_read_data_q <= jtag_command_chunk_data;
           loader_done_q <= 1'b1;
           read_probe_done_q <= 1'b1;
@@ -624,7 +622,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_burst_active_q <= 1'b1;
           loader_burst_packet_mode_q <= 1'b1;
           loader_burst_read_phase_q <= 1'b0;
-          loader_burst_count_q <= jtag_command_data_byte == 8'd0 ? 8'd0 : (jtag_command_data_byte > 8'd4 ? 8'd3 : jtag_command_data_byte - 8'd1);
+          loader_burst_count_q <= jtag_command_data_byte == 8'd0 ? 8'd0 : (jtag_command_data_byte > 8'd2 ? 8'd1 : jtag_command_data_byte - 8'd1);
           loader_burst_index_q <= 8'd0;
           loader_burst_mismatch_count_q <= 8'd0;
           loader_burst_first_mismatch_q <= 8'hff;
@@ -1224,7 +1222,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             loader_addr_q <= loader_burst_base_addr_q + {{(WB_ADDR_BITS - 8){1'b0}}, loader_burst_index_q + 8'd1};
             loader_fullbeat_addr_q <= loader_burst_base_addr_q + {{(WB_ADDR_BITS - 8){1'b0}}, loader_burst_index_q + 8'd1};
             loader_write_data_q <= loader_burst_packet_mode_q ?
-              loader_packet_data_q[loader_burst_index_q[1:0] + 2'd1] :
+              loader_packet_data_q[loader_burst_index_q[0] + 1'b1] :
               generated_burst_fullbeat(loader_burst_index_q + 8'd1);
             loader_sel_q <= {WB_SEL_BITS{1'b1}};
             loader_fullbeat_expected_base_q <= 8'h40 + loader_burst_index_q + 8'd1;

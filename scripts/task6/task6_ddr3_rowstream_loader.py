@@ -1130,8 +1130,8 @@ class RowstreamLoader:
         return self.wait_ready(min_ack_count=2)
 
     def load_packet_beat(self, slot: int, data: bytes, tag_addr: int | None = None) -> dict[str, Any]:
-        if slot < 0 or slot > 3:
-            raise ValueError("packet slot must be in 0..3")
+        if slot < 0 or slot > 1:
+            raise ValueError("packet slot must be in 0..1")
         if len(data) != 16:
             raise ValueError("packet beat requires exactly 16 bytes")
         addr = slot if tag_addr is None else tag_addr
@@ -1139,8 +1139,8 @@ class RowstreamLoader:
         return self.read_debug()
 
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
-        if beats < 1 or beats > 4:
-            raise ValueError("host packet beat count must be in 1..4")
+        if beats < 1 or beats > 2:
+            raise ValueError("host packet beat count must be in 1..2")
         self.send_command(OP_RUN_HOST_PACKET, 0, start_beat, bytes([beats & 0xFF]))
         return self.wait_ready(min_ack_count=beats * 2)
 
@@ -2435,7 +2435,7 @@ def main() -> int:
             status = "PASS"
             final_debug = None
             while completed < total_beats:
-                packet_beats = min(4, total_beats - completed)
+                packet_beats = min(2, total_beats - completed)
                 packet_start = args.diagnostic_host_packet_start + completed
                 expected_packet = []
                 for slot in range(packet_beats):
@@ -2494,7 +2494,7 @@ def main() -> int:
                 "beats": total_beats,
                 "completed_beats": completed,
                 "packet_count": len(packets),
-                "packet_max_beats": 4,
+                "packet_max_beats": 2,
                 "packets": packets,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
