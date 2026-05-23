@@ -297,6 +297,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   wire [7:0] jtag_command_data_byte = jtag_command_payload[64 +: 8];
   wire [WB_ADDR_BITS - 1:0] jtag_command_addr_low16 =
     {{(WB_ADDR_BITS - 16){1'b0}}, jtag_command_addr[15:0]};
+  wire [WB_ADDR_BITS - 1:0] jtag_command_addr_full =
+    jtag_command_addr[WB_ADDR_BITS - 1:0];
   wire jtag_command_magic_ok = jtag_command_magic == LOADER_COMMAND_MAGIC;
   wire [WB_ADDR_BITS - 1:0] jtag_command_lowbyte_addr =
     jtag_command_addr[WB_ADDR_BITS + $clog2(WB_SEL_BITS) - 1:$clog2(WB_SEL_BITS)];

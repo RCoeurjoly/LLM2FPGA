@@ -22204,3 +22204,24 @@ Next gate:
 - Run full rowstream packet load with sampled same-process postread over the same early/risk/boundary pattern plus final rowstream beat.
 - After full rowstream passes, run fresh-process no-preload sampled read-repeat on the same sample set.
 - Then connect or exercise the inference path against DDR3-backed rows.
+
+### 2026-05-23 - Full rowstream high-address boundary diagnostic
+
+Evidence:
+
+- Full 2-lane host-packet rowstream load failed after 131,072 completed beats.
+- Immediate packet write/read verify reported zero mismatches, but sampled standalone postread reported the first mismatch at beat 131,071.
+- Focused window load at beats 131,064..131,075 failed immediately in standalone postread for the first four beats while immediate packet verify still reported zero mismatches.
+- The observed standalone values looked like deterministic low-window/pattern data instead of TinyStories rowstream bytes.
+
+Interpretation:
+
+- This is stronger evidence for a loader/host address-width bug than for generic DDR3 data-integrity marginality.
+- The packet runner used the low 16 bits of the JTAG command address, while standalone `READ_BEAT` used the full Wishbone beat address.
+- The old 256 KiB gate only sampled low addresses, so it did not exercise the high-address truncation boundary.
+
+Fix under test:
+
+- Keep the short-term low-16 behavior for older fullbeat/diagnostic paths.
+- Change `RUN_HOST_PACKET` so packet write/verify starts from the full decoded command address, matching standalone `READ_BEAT`.
+- Retest the 131,064..131,075 boundary window before scaling rowstream again.
