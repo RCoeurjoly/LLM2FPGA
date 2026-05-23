@@ -1545,9 +1545,6 @@ module task6_uberddr3_loader_jtag_command_shift #(
   logic toggle_meta_q;
   logic toggle_sync_q;
   logic toggle_seen_q;
-  logic event_pending_q;
-  logic toggle_pending_q;
-  logic [2:0] event_settle_q;
 
   assign tdo = shift_q[0];
 
@@ -1577,9 +1574,6 @@ module task6_uberddr3_loader_jtag_command_shift #(
       toggle_meta_q <= 1'b0;
       toggle_sync_q <= 1'b0;
       toggle_seen_q <= 1'b0;
-      event_pending_q <= 1'b0;
-      toggle_pending_q <= 1'b0;
-      event_settle_q <= 3'd0;
       payload_meta_q <= '0;
       payload_sync_q <= '0;
       payload_o <= '0;
@@ -1590,21 +1584,11 @@ module task6_uberddr3_loader_jtag_command_shift #(
       payload_sync_q <= payload_meta_q;
       toggle_meta_q <= toggle_tck_q;
       toggle_sync_q <= toggle_meta_q;
-      event_o <= 1'b0;
-      if (!event_pending_q && (toggle_sync_q ^ toggle_seen_q)) begin
-        event_pending_q <= 1'b1;
-        toggle_pending_q <= toggle_sync_q;
-        event_settle_q <= 3'd4;
-      end else if (event_pending_q) begin
-        if (event_settle_q != 3'd0) begin
-          event_settle_q <= event_settle_q - 3'd1;
-        end else begin
-          event_pending_q <= 1'b0;
-          toggle_seen_q <= toggle_pending_q;
-          payload_o <= payload_sync_q;
-          event_o <= 1'b1;
-          command_count_o <= command_count_o + 16'd1;
-        end
+      event_o <= toggle_sync_q ^ toggle_seen_q;
+      if (toggle_sync_q ^ toggle_seen_q) begin
+        toggle_seen_q <= toggle_sync_q;
+        payload_o <= payload_sync_q;
+        command_count_o <= command_count_o + 16'd1;
       end
     end
   end
