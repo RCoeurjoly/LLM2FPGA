@@ -22346,3 +22346,5 @@ Next gate:
   - 240-bit guarded command payload: placement controller clock 58.93 MHz.
   - command CDC settle delay: placement controller clock 63.15 MHz.
 - Current source keeps the host ACK-advance fix but restores the RTL to the known timing-clean command208 structure. Next safe route is to fix command reliability without perturbing the DDR3 controller route, preferably by isolating command-chain placement/timing or moving bulk packet execution behind fewer host commands rather than adding controller-clock fanout near the DDR3 loader FSM.
+
+- Bitbang JTAG transport was tested as a possible workaround for MPSSE opcode corruption. Both `tdo-bit=7` and `tdo-bit=0` produced invalid all-ones debug readback (`magic_ok=false`, `debug1=0xffffffff`) and timed out before calibration, so bitbang is not currently a usable transport path for the YPCB DDR3 loader.
