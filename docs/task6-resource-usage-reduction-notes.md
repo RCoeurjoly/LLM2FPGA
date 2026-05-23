@@ -21688,3 +21688,31 @@ Next safe fix options:
 1. Short-term: mask fullbeat command addresses to the non-overlapping low 16 bits. This is fast and should make current 0/1/21 diagnostics pass, but only covers 1 MiB at 16 bytes/beat.
 2. Better: widen the JTAG command shift payload so address and 16-byte data do not overlap. This preserves full DDR3 address range but perturbs the JTAG command path and may affect placement.
 3. Alternative: split 16-byte fullbeat writes into smaller chunks with a non-overlapping address field. This preserves address width with less command-width perturbation but costs more host transactions.
+
+### 2026-05-23 - Short-term non-overlap fullbeat command fix
+
+Implemented the fast confirmation fix for the JTAG command address/data overlap: fullbeat-style commands now use only the non-overlapping low 16 address bits in RTL (`jtag_command_addr_low16`) for `RUN_HOST_FULLBEAT`, `RUN_FULLBEAT`, and `RUN_RTL_BURST` address issue/readback paths.
+
+Built bitstream:
+
+- `/nix/store/gwk18cn1lqc5dl3gsdy82w43rx2qpx2d-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Final routed controller max frequency: 85.37 MHz, slightly above the 83.33 MHz controller clock.
+
+Read-compare diagnostics:
+
+- Beats 0 and 1: PASS immediately. Immediate fullbeat and standalone `READ_BEAT` now used identical controller-visible addresses and returned identical data.
+- Beats 2, 3, 4, and 5: PASS.
+- Beat 21 initially failed with stale/generated data, but a repeat beat-21 diagnostic passed with matching immediate/standalone data and controller-visible address `0x000015`.
+
+This confirms the root cause diagnosis: the previous immediate fullbeat verification was self-consistent at a payload-contaminated address, while standalone reads used the intended address. Masking to the low non-overlapping address bits makes immediate and standalone reads converge for low-address tests.
+
+Follow-up no-retry gate:
+
+- Ran 256-beat no-retry load on the low-16 mask bitstream.
+- Failed at beat 90:
+  - expected `19d8b7f11d8f011b201f6be835ba0a0b`
+  - observed `1bc8a7f01dcf013f209f6b883dba098a`
+
+Interpretation: the command-format bug is fixed for the low-address window, but raw no-retry DDR3 write/read integrity remains marginal. This is now a separate stability problem, not the immediate-vs-standalone address mismatch.
+
+Limit of this short-term fix: using only 16 address bits covers 65536 16-byte beats (1 MiB). TinyStories full rowstream needs a real non-overlapping command format before full preload/inference. The durable fix is to widen/restructure the JTAG command payload so full address and 16-byte data do not overlap.
