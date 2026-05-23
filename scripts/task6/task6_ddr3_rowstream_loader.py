@@ -765,6 +765,12 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "standalone_read_ack_addr_low24": (raw >> 472) & 0xFF_FFFF,
         "standalone_read_request_addr_low8": (raw >> 472) & 0xFF,
         "standalone_read_ack_delta": (raw >> 504) & 0xF,
+        "packet_ack_write_seen": bool((raw >> 464) & 0x1),
+        "packet_ack_read_seen": bool((raw >> 465) & 0x1),
+        "packet_ack_write_index": (raw >> 466) & 0x3F,
+        "packet_ack_write_addr_low24": (raw >> 472) & 0xFF_FFFF,
+        "packet_ack_write_sel_low8": (raw >> 496) & 0xFF,
+        "packet_ack_write_data_low32": (raw >> 336) & 0xFFFF_FFFF,
         "rtl_burst_index": (raw >> 240) & 0xFF,
         "rtl_burst_count": (raw >> 248) & 0xFF,
         "rtl_burst_mismatch_count": (raw >> 256) & 0xFF,
@@ -2554,6 +2560,7 @@ def main() -> int:
                     "postread_sampled": postread_sample_beats is not None,
                     "wb_ack_count": int(debug.get("wb_ack_count", 0)),
                     "wb_err_count": int(debug.get("wb_err_count", 0)),
+                    "packet_debug": json_debug(debug),
                 })
                 total_mismatches += mismatch_count
                 total_standalone_mismatches += standalone_mismatch_count

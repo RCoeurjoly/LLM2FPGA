@@ -268,6 +268,14 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [WB_ADDR_BITS - 1:0] loader_burst_base_addr_q;
   logic loader_burst_packet_mode_q;
   logic [WB_DATA_BITS - 1:0] loader_packet_data_q [0:3];
+  logic loader_packet_write_ack_seen_q;
+  logic loader_packet_read_ack_seen_q;
+  logic [7:0] loader_packet_write_ack_index_q;
+  logic [WB_ADDR_BITS - 1:0] loader_packet_write_ack_addr_q;
+  logic [WB_DATA_BITS - 1:0] loader_packet_write_ack_data_q;
+  logic [WB_SEL_BITS - 1:0] loader_packet_write_ack_sel_q;
+  logic [WB_ADDR_BITS - 1:0] loader_packet_read_ack_addr_q;
+  logic [WB_DATA_BITS - 1:0] loader_packet_read_ack_data_q;
   logic [6:0] loader_fullbeat_mismatch_count_q;
   logic [WB_ADDR_BITS - 1:0] loader_fullbeat_addr_q;
   logic [7:0] loader_fullbeat_expected_base_q;
@@ -515,6 +523,14 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       loader_packet_data_q[1] <= '0;
       loader_packet_data_q[2] <= '0;
       loader_packet_data_q[3] <= '0;
+      loader_packet_write_ack_seen_q <= 1'b0;
+      loader_packet_read_ack_seen_q <= 1'b0;
+      loader_packet_write_ack_index_q <= 8'd0;
+      loader_packet_write_ack_addr_q <= '0;
+      loader_packet_write_ack_data_q <= '0;
+      loader_packet_write_ack_sel_q <= '0;
+      loader_packet_read_ack_addr_q <= '0;
+      loader_packet_read_ack_data_q <= '0;
       loader_fullbeat_mismatch_count_q <= 7'd0;
       loader_fullbeat_addr_q <= '0;
       loader_fullbeat_expected_base_q <= 8'd0;
@@ -584,8 +600,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_fullbeat_compare_active_q <= 1'b0;
           loader_fullbeat_done_q <= 1'b0;
           loader_fullbeat_mismatch_count_q <= 7'd0;
-          loader_fullbeat_addr_q <= jtag_command_addr_low16;
-          loader_burst_base_addr_q <= jtag_command_addr_low16;
+          loader_fullbeat_addr_q <= jtag_command_addr_full;
+          loader_burst_base_addr_q <= jtag_command_addr_full;
           loader_fullbeat_expected_base_q <= jtag_command_data_byte;
           loader_fullbeat_write_echo_q <= jtag_command_chunk_data[0 +: 32];
           loader_fullbeat_issue_cycle_q <= 32'd0;
@@ -607,7 +623,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           read_probe_we_q <= 1'b0;
           read_probe_state_q <= READ_PROBE_DONE;
         end else if (jtag_command_opcode == LOADER_OP_RUN_HOST_PACKET && jtag_command_chunk == 2'd0 && WB_SEL_BITS <= 16) begin
-          loader_addr_q <= jtag_command_addr_low16;
+          loader_addr_q <= jtag_command_addr_full;
           loader_write_data_q <= loader_packet_data_q[0];
           loader_sel_q <= {WB_SEL_BITS{1'b1}};
           loader_fullbeat_read_after_write_q <= 1'b1;
@@ -630,6 +646,14 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_burst_index_q <= 8'd0;
           loader_burst_mismatch_count_q <= 8'd0;
           loader_burst_first_mismatch_q <= 8'hff;
+          loader_packet_write_ack_seen_q <= 1'b0;
+          loader_packet_read_ack_seen_q <= 1'b0;
+          loader_packet_write_ack_index_q <= 8'd0;
+          loader_packet_write_ack_addr_q <= '0;
+          loader_packet_write_ack_data_q <= '0;
+          loader_packet_write_ack_sel_q <= '0;
+          loader_packet_read_ack_addr_q <= '0;
+          loader_packet_read_ack_data_q <= '0;
           read_probe_cyc_q <= 1'b1;
           read_probe_stb_q <= 1'b1;
           read_probe_we_q <= 1'b1;
@@ -1078,6 +1102,13 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             read_probe_stb_q <= 1'b0;
             if (read_probe_we_q) begin
               loader_write_ack_seen_q <= 1'b1;
+              if (loader_burst_active_q && loader_burst_packet_mode_q) begin
+                loader_packet_write_ack_seen_q <= 1'b1;
+                loader_packet_write_ack_index_q <= loader_burst_index_q;
+                loader_packet_write_ack_addr_q <= loader_addr_q;
+                loader_packet_write_ack_data_q <= wb_data_to_controller;
+                loader_packet_write_ack_sel_q <= wb_sel_to_controller;
+              end
               if (loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_WRITE) begin
                 loader_fullbeat_last_write_ack_delta_q <=
                   clamp_delta4(loader_fullbeat_issue_cycle_q, cycle_count_q);
@@ -1088,6 +1119,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             end else begin
               loader_read_ack_seen_q <= 1'b1;
               loader_read_data_q <= wb_data;
+              if (loader_burst_active_q && loader_burst_packet_mode_q) begin
+                loader_packet_read_ack_seen_q <= 1'b1;
+                loader_packet_read_ack_addr_q <= loader_addr_q;
+                loader_packet_read_ack_data_q <= wb_data;
+              end
               loader_standalone_read_ack_addr_q <= loader_addr_q;
               loader_standalone_read_ack_opcode_q <= loader_last_opcode_q;
               loader_standalone_read_ack_delta_q <=
@@ -1139,6 +1175,13 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             read_probe_cyc_q <= 1'b0;
             if (read_probe_we_q) begin
               loader_write_ack_seen_q <= 1'b1;
+              if (loader_burst_active_q && loader_burst_packet_mode_q) begin
+                loader_packet_write_ack_seen_q <= 1'b1;
+                loader_packet_write_ack_index_q <= loader_burst_index_q;
+                loader_packet_write_ack_addr_q <= loader_addr_q;
+                loader_packet_write_ack_data_q <= wb_data_to_controller;
+                loader_packet_write_ack_sel_q <= wb_sel_to_controller;
+              end
               if (loader_fullbeat_issue_phase_q == FULLBEAT_PHASE_WRITE) begin
                 loader_fullbeat_last_write_ack_delta_q <=
                   clamp_delta4(loader_fullbeat_issue_cycle_q, cycle_count_q);
@@ -1149,6 +1192,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             end else begin
               loader_read_ack_seen_q <= 1'b1;
               loader_read_data_q <= wb_data;
+              if (loader_burst_active_q && loader_burst_packet_mode_q) begin
+                loader_packet_read_ack_seen_q <= 1'b1;
+                loader_packet_read_ack_addr_q <= loader_addr_q;
+                loader_packet_read_ack_data_q <= wb_data;
+              end
               loader_standalone_read_ack_addr_q <= loader_addr_q;
               loader_standalone_read_ack_opcode_q <= loader_last_opcode_q;
               loader_standalone_read_ack_delta_q <=
@@ -1333,18 +1381,27 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       read_probe_stb_q,
       loader_debug_state
     };
-    jtag_debug_payload[336 +: 128] = loader_read_data_q[0 +: 128];
-    jtag_debug_payload[464] = loader_last_opcode_q == LOADER_OP_READ_BEAT ?
+    jtag_debug_payload[336 +: 128] = loader_last_opcode_q == LOADER_OP_RUN_HOST_PACKET ?
+      loader_packet_write_ack_data_q[0 +: 128] : loader_read_data_q[0 +: 128];
+    jtag_debug_payload[464] = loader_last_opcode_q == LOADER_OP_RUN_HOST_PACKET ?
+      loader_packet_write_ack_seen_q :
+      loader_last_opcode_q == LOADER_OP_READ_BEAT ?
       loader_read_ack_seen_q : loader_fullbeat_done_q;
-    jtag_debug_payload[465 +: 7] = loader_last_opcode_q == LOADER_OP_READ_BEAT ?
+    jtag_debug_payload[465 +: 7] = loader_last_opcode_q == LOADER_OP_RUN_HOST_PACKET ?
+      {loader_packet_write_ack_index_q[5:0], loader_packet_read_ack_seen_q} :
+      loader_last_opcode_q == LOADER_OP_READ_BEAT ?
       loader_standalone_read_ack_opcode_q[6:0] : loader_fullbeat_mismatch_count_q;
     jtag_debug_payload[472 +: 24] = loader_last_opcode_q == LOADER_OP_RUN_RTL_BURST ?
       {8'd0, loader_burst_mismatch_count_q, loader_burst_first_mismatch_q} :
+      loader_last_opcode_q == LOADER_OP_RUN_HOST_PACKET ?
+      loader_packet_write_ack_addr_q[23:0] :
       loader_last_opcode_q == LOADER_OP_READ_BEAT ?
       loader_standalone_read_ack_addr_q[23:0] :
       loader_fullbeat_addr_q[23:0];
     jtag_debug_payload[496 +: 8] = loader_last_opcode_q == LOADER_OP_RUN_RTL_BURST ?
       loader_burst_count_q :
+      loader_last_opcode_q == LOADER_OP_RUN_HOST_PACKET ?
+      loader_packet_write_ack_sel_q[7:0] :
       loader_last_opcode_q == LOADER_OP_READ_BEAT ?
       loader_standalone_read_request_addr_q[7:0] : loader_fullbeat_expected_base_q;
     jtag_debug_payload[504 +: 4] = loader_last_opcode_q == LOADER_OP_READ_BEAT ?
