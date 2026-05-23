@@ -21901,3 +21901,28 @@ Build result:
 - Boot-only calibration failed: `calib_seen=False`, `debug1=0x00000000`, no loader/WB traffic attempted.
 
 Interpretation: the simplification recovered static timing but perturbed placement/calibration enough that the board did not train DDR3. Do not use this bitstream for rowstream testing. The previous 4-beat packet bitstream calibrates and passes actual rowstream to 8 KiB, but routes at only 77.17 MHz and fails longer runs. The next safe route is not simply smaller packet count; it is preserving calibration-positive placement while reducing packet/debug fanout, or generating a fresh calibration-positive locked packet build.
+
+## 2026-05-23 - Reduced-debug 4-beat packet path recovers timing and 16 KiB gate
+
+Implemented the safer timing recovery route for packetized rowstream upload:
+
+- Restored the calibration-positive 4-beat packet behavior after the 2-beat variant failed calibration.
+- Reduced packet/debug fanout by removing duplicated packet-specific status from the high debug fields; the host still reads primary packet status from the existing 32-bit burst status word.
+- Kept packet-mode compare local by comparing readback against the current `loader_write_data_q`.
+- Fixed the host packet upload path so `LOADER_OP_LOAD_PACKET_BEAT` uses packet slot addresses, not rowstream beat addresses. The previous beat-address tag only worked for packet starts aligned to four beats and was not a valid general packet-slot address.
+- Added `--diagnostic-read-repeat-no-preload` so read stability can be tested after a packet load without rewriting sampled beats through the old host-fullbeat path.
+- Added a packet-load settle delay option; the passing gate used 10 ms after each slot load.
+
+Build/result:
+
+- Bitstream: `/nix/store/bvjxminsk0g91665a0vlaskhv63nq4cl-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Final controller route: 87.94 MHz, above the 83.3 MHz target.
+- Boot-only calibration: PASS.
+- 16 KiB actual rowstream packet gate: PASS, 1024 beats, 256 packets, `mismatch_count=0`, `first_mismatch=255`, packet load delay 0.01 s.
+
+Pure post-load readback:
+
+- No-preload read-repeat after the passing 16 KiB packet load: beats 90, 255, 512, and 1023 passed with 0/100 mismatches.
+- Beat 0 failed with 100/100 mismatches and stable stale/wrong data. This appears to be an address-0/first-packet special case, not a broad rowstream-read failure.
+
+Interpretation: the packet path now satisfies the intended timing-plus-calibration gate and loads/verifies 16 KiB of actual rowstream data. Before 256 KiB/full rowstream, reserve or explicitly debug DDR3 beat 0. The practical next gate is a 256 KiB rowstream packet load starting at beat 1 or after a reserved header beat, with pure readback over nonzero sampled addresses.

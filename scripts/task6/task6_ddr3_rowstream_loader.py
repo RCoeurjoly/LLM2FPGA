@@ -182,6 +182,11 @@ def parse_args() -> argparse.Namespace:
         help="number of read-only repetitions per beat; default: 1000",
     )
     parser.add_argument(
+        "--diagnostic-read-repeat-no-preload",
+        action="store_true",
+        help="for read-repeat diagnostics, do not preload sampled beats before reading",
+    )
+    parser.add_argument(
         "--diagnostic-rtl-burst-beats",
         type=int,
         default=0,
@@ -216,6 +221,12 @@ def parse_args() -> argparse.Namespace:
         type=lambda value: int(value, 0),
         default=0,
         help="start beat address for --diagnostic-host-packet-beats; default: 0",
+    )
+    parser.add_argument(
+        "--diagnostic-host-packet-load-delay",
+        type=float,
+        default=0.01,
+        help="settle delay after each packet beat load command; default: 0.01 seconds",
     )
     parser.add_argument(
         "--diagnostic-lowbyte-count",
@@ -1130,17 +1141,19 @@ class RowstreamLoader:
         return self.wait_ready(min_ack_count=2)
 
     def load_packet_beat(self, slot: int, data: bytes, tag_addr: int | None = None) -> dict[str, Any]:
-        if slot < 0 or slot > 1:
-            raise ValueError("packet slot must be in 0..1")
+        if slot < 0 or slot > 3:
+            raise ValueError("packet slot must be in 0..3")
         if len(data) != 16:
             raise ValueError("packet beat requires exactly 16 bytes")
         addr = slot if tag_addr is None else tag_addr
         self.send_command(OP_LOAD_PACKET_BEAT, 0, addr, data)
+        if self.args.diagnostic_host_packet_load_delay > 0:
+            time.sleep(self.args.diagnostic_host_packet_load_delay)
         return self.read_debug()
 
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
-        if beats < 1 or beats > 2:
-            raise ValueError("host packet beat count must be in 1..2")
+        if beats < 1 or beats > 4:
+            raise ValueError("host packet beat count must be in 1..4")
         self.send_command(OP_RUN_HOST_PACKET, 0, start_beat, bytes([beats & 0xFF]))
         return self.wait_ready(min_ack_count=beats * 2)
 
@@ -2368,12 +2381,12 @@ def main() -> int:
                 expected = image[offset : offset + loader.beat_bytes]
                 if len(expected) != loader.beat_bytes:
                     raise SystemExit(f"beat {beat_addr} outside rowstream image")
-                preload_debug = loader.write_beat(beat_addr, expected)
+                preload_debug = None if args.diagnostic_read_repeat_no_preload else loader.write_beat(beat_addr, expected)
                 mismatch_count = 0
                 first_mismatch = None
                 byte_hist: dict[str, int] = {}
                 last_observed = b""
-                last_debug = preload_debug
+                last_debug = preload_debug or {}
                 for iteration in range(args.diagnostic_read_repeat_count):
                     observed, read_debug = loader.read_beat(beat_addr)
                     last_observed = observed
@@ -2401,7 +2414,7 @@ def main() -> int:
                     "mismatch_count": mismatch_count,
                     "first_mismatch": first_mismatch,
                     "byte_mismatch_histogram": byte_hist,
-                    "preload_debug": json_debug(preload_debug),
+                    "preload_debug": json_debug(preload_debug or {}),
                     "final_debug": json_debug(last_debug),
                 })
                 print(
@@ -2423,6 +2436,7 @@ def main() -> int:
                 "diagnostic_json": str(run_dir / "read-repeat-diagnostic.json"),
                 "beats": beat_addrs,
                 "read_count": args.diagnostic_read_repeat_count,
+                "preload": not args.diagnostic_read_repeat_no_preload,
                 "mismatch_counts": {str(item["beat_addr"]): item["mismatch_count"] for item in diagnostics},
             })
             return 0 if overall_status == "PASS" else 1
@@ -2435,7 +2449,7 @@ def main() -> int:
             status = "PASS"
             final_debug = None
             while completed < total_beats:
-                packet_beats = min(2, total_beats - completed)
+                packet_beats = min(4, total_beats - completed)
                 packet_start = args.diagnostic_host_packet_start + completed
                 expected_packet = []
                 for slot in range(packet_beats):
@@ -2453,7 +2467,7 @@ def main() -> int:
                     else:
                         data = bytes(((beat_addr + lane) & 0xFF) for lane in range(16))
                     expected_packet.append(data.hex())
-                    loader.load_packet_beat(slot, data, beat_addr)
+                    loader.load_packet_beat(slot, data)
                 debug = loader.run_host_packet(packet_start, packet_beats)
                 final_debug = debug
                 mismatch_count = int(debug.get("rtl_burst_mismatch_count", 0))
@@ -2494,7 +2508,8 @@ def main() -> int:
                 "beats": total_beats,
                 "completed_beats": completed,
                 "packet_count": len(packets),
-                "packet_max_beats": 2,
+                "packet_max_beats": 4,
+                "packet_load_delay": args.diagnostic_host_packet_load_delay,
                 "packets": packets,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
@@ -2514,6 +2529,7 @@ def main() -> int:
                 "completed_beats": completed,
                 "packet_count": len(packets),
                 "source": args.diagnostic_host_packet_source,
+                "packet_load_delay": args.diagnostic_host_packet_load_delay,
                 "mismatch_count": total_mismatches,
                 "first_mismatch": first_mismatch,
                 "verdict": diagnostic["decision"]["verdict"],
