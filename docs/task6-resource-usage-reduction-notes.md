@@ -21649,3 +21649,42 @@ Current best interpretation remains:
 - Immediate fullbeat write/read can pass on the matched-lock bitstream.
 - Standalone `READ_BEAT` reaches the correct address/opcode/ACK but captures structurally wrong data.
 - The next safer debug should avoid adding new state/control near the controller. Prefer host/RTL instrumentation that compares immediate-read and standalone-read controller-visible signals using the calibration-positive bitstream shape, or add a minimal standalone read variant that reuses exactly the fullbeat read issue path without adding delay/state.
+
+### 2026-05-23 - Controller-visible immediate vs standalone read comparison
+
+Added passive RTL captures for the loader command issued to the UberDDR3 controller and the command state observed at ACK. This did not add new command states or sequencing; it only records controller-visible address/select/control/data summaries.
+
+Built passive-capture bitstream:
+
+- `/nix/store/z1r4arfhl8iy2k3r40x0hsw2h7chf8mw-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Final routed controller max frequency: 95.33 MHz, above the 83.33 MHz controller clock.
+
+Board result on beats 0, 1, and 21:
+
+- DDR3 calibration passed.
+- Immediate `RUN_HOST_FULLBEAT` still read back correctly.
+- Standalone `READ_BEAT` still read back incorrect structured data.
+- Select/control were identical between immediate and standalone reads: `sel=0xff/0xff`, issue control `cyc/stb/we=110`, ACK control `100`.
+- ACK low address matched the requested beat for both paths.
+- Important finding: immediate fullbeat captured issue address high byte was equal to the first payload byte:
+  - beat 0: immediate issue addr `0xd40000`, standalone issue addr `0x000000`
+  - beat 1: immediate issue addr `0xce0001`, standalone issue addr `0x000001`
+  - beat 21: immediate issue addr `0x230015`, standalone issue addr `0x000015`
+
+Interpretation: immediate write/read may be self-consistent because both the write and immediate read use an address polluted by payload bits, while standalone read uses the intended address. This explains how immediate verification can pass while later standalone/inference-style reads fail. Next debug/fix should inspect and correct the JTAG command address/data packing boundary for `RUN_HOST_FULLBEAT` / fullbeat commands so payload data cannot contaminate `jtag_command_addr[WB_ADDR_BITS-1:0]`.
+
+Follow-up command-format inspection confirmed the source of the contamination:
+
+- RTL decodes `jtag_command_addr = jtag_command_payload[48 +: 32]`.
+- RTL decodes `jtag_command_chunk_data = jtag_command_payload[64 +: WB_DATA_BITS]`.
+- Host packs `addr` at bit 48 and chunk data at bit 64.
+
+Therefore fullbeat data overlaps the upper 16 bits of the 32-bit address. For 16-byte fullbeat commands, byte 0 contaminates address bits 16..23 and byte 1 contaminates address bits 24..31. This exactly matches the controller-visible captures above.
+
+This is now the leading root cause for the immediate-vs-standalone mismatch. Immediate fullbeat verification passes because the write and immediate read both use the same contaminated address. Standalone read uses the intended address and therefore reads different data.
+
+Next safe fix options:
+
+1. Short-term: mask fullbeat command addresses to the non-overlapping low 16 bits. This is fast and should make current 0/1/21 diagnostics pass, but only covers 1 MiB at 16 bytes/beat.
+2. Better: widen the JTAG command shift payload so address and 16-byte data do not overlap. This preserves full DDR3 address range but perturbs the JTAG command path and may affect placement.
+3. Alternative: split 16-byte fullbeat writes into smaller chunks with a non-overlapping address field. This preserves address width with less command-width perturbation but costs more host transactions.
