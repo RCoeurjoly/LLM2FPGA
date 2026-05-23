@@ -21194,3 +21194,40 @@ Next gate: add a single-command host-data write/read/compare diagnostic in RTL, 
 - The post-load boundary row check still fails because the separate OP_READ_BEAT path returns stale/transformed data after the verified writes. This is now isolated to the standalone readback command/path used by Python diagnostics, not to calibration, USER2 payload transport, or single-command host fullbeat writes.
 
 Next gate: either fix OP_READ_BEAT so post-load Python verification works, or proceed to an FPGA-side row consumer that reads DDR3 in the same controller-clock sequencing style as OP_RUN_HOST_FULLBEAT.
+
+
+### 2026-05-23 - Slow-controller DDR3 loader plan
+
+Most promising next step:
+
+- Build a slower-controller variant of the rowstream loader while preserving the known-good YPCB DDR3 PHY configuration: 2 byte lanes, DDR3 clock /3, DDR90 /3, ref clock /5, DLL_OFF=0, SPEED_BIN=1, SDRAM_CAPACITY=4, BIST_TEST_DATAMASK=0.
+- Change only the controller clock from PLLE2 CLKOUT2 divide /12 (83.3 MHz, 12 ns period) to /16 (62.5 MHz, 16 ns period) to reduce timing pressure on the USER2 command, loader FSM, and Wishbone user-port path.
+- Gate the variant with verified packed-beat loads: first 256 beats, then 1024 beats. Use per-beat immediate OP_RUN_HOST_FULLBEAT verify rather than the standalone OP_READ_BEAT post-load path.
+- If 256 and 1024 beats stabilize, proceed toward full rowstream loading with per-beat immediate verify and defer standalone readback repair unless needed for a reviewer-facing artifact.
+
+### 2026-05-23 - Slow-controller DDR3 loader divide-14 gate
+
+The first slow-controller rowstream-loader variant kept the known-good 2-lane
+DDR3 PHY clocks but used controller divide 16. It built, but failed before any
+rowstream load because DDR3 calibration timed out:
+`magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x00000004`.
+
+Next safe adjustment: keep the known-good PHY clocks and all known-good DDR3
+parameters, but narrow the controller slowdown to divide 14. Gate this variant
+with verified packed full-beat loads at 256 beats, then 1024 beats if 256 is
+clean.
+
+Result:
+
+- The divide-14 slow-controller bitstream built successfully:
+  `/nix/store/sdhfmmqjf5zxzjl636l7a4cqxc8kdpp3-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`.
+- The 256-beat verified packed-load gate did not start because DDR3 calibration
+  timed out first:
+  `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x00000003`.
+- The 1024-beat gate was intentionally skipped because the 256-beat prerequisite
+  did not reach calibration.
+- Conclusion: changing the controller PLL divide away from the known-good
+  divide-12 setting destabilizes calibration for this rowstream-loader shape.
+  The safer next route is to keep the known-good clocking and reduce repeated
+  command pressure in the loader/host protocol, or preserve the known-good
+  placement more narrowly before changing clocks again.

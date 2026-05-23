@@ -403,6 +403,22 @@
             sdramCapacity = 4;
             bistTestDatamask = false;
           };
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerYosysJson =
+          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
+            name = "task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-yosys.json";
+            byteLanes = 2;
+            disableJtagDebugShift = false;
+            bootIsolateUntilCalib = true;
+            pllClkout0Divide = 3;
+            pllClkout1Divide = 3;
+            pllClkout2Divide = 14;
+            controllerClkPeriodPs = "14_000";
+            ddr3ClkPeriodPs = "3_000";
+            dllOff = false;
+            speedBin = 1;
+            sdramCapacity = 4;
+            bistTestDatamask = false;
+          };
         task6YpcbUberDdr3UserPortProbeYosysJson =
           pkgs.runCommand "task6-ypcb-uberddr3-user-port-probe-yosys.json" {
             buildInputs = [ pkgs.yosys ];
@@ -6577,6 +6593,21 @@
         task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedPlacedJson =
           task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedArtifacts.placedJson;
 
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson {
+            seed = 18;
+            json = task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerYosysJson;
+          };
+
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedFasm =
+          task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedBitstream =
+          task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedPlacedJson =
+          task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedArtifacts.placedJson;
+
         task6YpcbUberDdr3RowstreamLoader1LaneSeed16ClockedArtifacts =
           let
             seedStr = toString 16;
@@ -11373,6 +11404,12 @@
             task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedBitstream;
           task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed18-clocked-placed-json =
             task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed18ClockedPlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed18-clocked-fasm =
+            task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedFasm;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed18-clocked-bitstream =
+            task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed18-clocked-placed-json =
+            task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedPlacedJson;
           task6-ypcb-uberddr3-user-port-probe-seed15-fasm =
             task6YpcbUberDdr3UserPortProbeSeed15Fasm;
           task6-ypcb-uberddr3-user-port-probe-seed15-bitstream =
