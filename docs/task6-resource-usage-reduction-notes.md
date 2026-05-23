@@ -21802,3 +21802,20 @@ Fresh seed placement:
 - 256-beat no-retry load: FAIL at beat 6 with single-byte corruption.
 
 Conclusion: better placement margin and read stability are not enough. The remaining problem is specifically the host-driven fullbeat write/verify path. Next useful implementation is a new minimal RTL-side paced write/verify command that writes a small deterministic contiguous range using the corrected low-16 addresses, spaces writes/reads internally, and reports first mismatch/count. Do not reuse the old large RTL burst path as evidence until it is simplified or fixed.
+
+## 2026-05-23 - RTL-side paced DDR3 write/verify diagnostic
+
+Implemented a minimal RTL-side paced burst command on the rowstream loader path to reduce host/JTAG per-beat command pressure. The command writes deterministic contiguous full beats internally, reads each beat back internally, and reports `first_mismatch` plus `mismatch_count`. It uses the corrected low-16 beat address path.
+
+Key fix during bring-up: the first version advanced the write address but immediate readback still used the stale base `loader_fullbeat_addr_q`, so beat 0 passed and beats 1..N failed. The fixed version stores `loader_burst_base_addr_q` and updates both write and readback addresses for each beat.
+
+Validated bitstream:
+
+- `/nix/store/46am4aqc5mibm3sakbrpcq5xc5f9m77y-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Target: `task6-ypcb-uberddr3-rowstream-loader-2lane-paced-locked-controller-ff-placement-seed18-bitstream`
+- Final locked route controller max frequency: 88.52 MHz, above the 83.3 MHz DDR3 controller target.
+- Boot-only calibration: PASS (`calib_seen=True`, `boot_done=True`, `boot_mismatch=False`).
+- RTL burst 16 beats: PASS, `mismatch_count=0`, `first_mismatch=255`, final index 15.
+- RTL burst 255 beats: PASS, `mismatch_count=0`, `first_mismatch=255`, final index 254, `wb_ack_count=510`, `wb_err_count=0`.
+
+Interpretation: raw DDR3 write/read can pass when sequencing and spacing are controlled inside RTL. This strengthens the hypothesis that the earlier no-retry host rowstream failures were dominated by host/JTAG command interaction or command pacing, not by unstable post-write readback. Next step is to replace the diagnostic pattern generator with an RTL-side packetized rowstream loader: one host command should enqueue many beats or a compact packet, while RTL owns DDR3 write/read/verify pacing and reports retry/error statistics.
