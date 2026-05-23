@@ -1168,10 +1168,28 @@ class RowstreamLoader:
         if len(data) != 16:
             raise ValueError("packet beat requires exactly 16 bytes")
         addr = slot if tag_addr is None else tag_addr
-        self.send_command(OP_LOAD_PACKET_BEAT, 0, addr, data)
-        if self.args.diagnostic_host_packet_load_delay > 0:
-            time.sleep(self.args.diagnostic_host_packet_load_delay)
-        return self.read_debug()
+        last_debug = None
+        for attempt in range(max(1, self.args.write_verify_retries + 1)):
+            self.send_command(OP_LOAD_PACKET_BEAT, 0, addr, data)
+            if self.args.diagnostic_host_packet_load_delay > 0:
+                time.sleep(self.args.diagnostic_host_packet_load_delay)
+            last_debug = self.read_debug()
+            echoed = last_debug.get("read_data_beat", b"")[: len(data)]
+            if (
+                last_debug.get("magic_ok", False)
+                and int(last_debug.get("last_opcode", -1)) == OP_LOAD_PACKET_BEAT
+                and echoed == data
+            ):
+                return last_debug
+            time.sleep(0.01)
+        observed = (last_debug or {}).get("read_data_beat", b"")
+        observed_hex = observed[: len(data)].hex() if isinstance(observed, bytes) else str(observed)
+        raise RuntimeError(
+            "packet slot load was not accepted after "
+            f"{max(1, self.args.write_verify_retries + 1)} attempt(s): "
+            f"slot={slot} expected={data.hex()} observed={observed_hex} "
+            f"debug={summarize_debug(last_debug or {})}"
+        )
 
     def run_host_packet(self, start_beat: int, beats: int) -> dict[str, Any]:
         if beats < 1 or beats > 4:
