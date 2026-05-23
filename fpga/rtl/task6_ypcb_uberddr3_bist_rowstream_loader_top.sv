@@ -65,6 +65,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   localparam logic [3:0] WB_ADDR_BITS_NIBBLE = WB_ADDR_BITS % 16;
   localparam logic [3:0] WB_SEL_BITS_NIBBLE = WB_SEL_BITS % 16;
   localparam logic [7:0] PROBE_BYTE_VALUE = PROBE_BYTE[7:0];
+  localparam logic [15:0] LOADER_HOST_FULLBEAT_COMMAND_COOLDOWN = 16'h3fff;
 
   function automatic logic [7:0] hardcoded_probe_value(
     input logic [1:0] selector
@@ -185,7 +186,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     LOADER_ISSUE = 4'd10,
     LOADER_WAIT_ACK = 4'd11,
     LOADER_ERROR = 4'd12,
-    LOADER_WRITE_DRAIN = 4'd13
+    LOADER_WRITE_DRAIN = 4'd13,
+    LOADER_COMMAND_COOLDOWN = 4'd14
   } read_probe_state_t;
 
   typedef enum logic [1:0] {
@@ -252,6 +254,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic loader_fullbeat_read_after_write_q;
   logic loader_fullbeat_compare_active_q;
   logic loader_fullbeat_done_q;
+  logic [15:0] loader_command_cooldown_q;
   logic [6:0] loader_fullbeat_mismatch_count_q;
   logic [WB_ADDR_BITS - 1:0] loader_fullbeat_addr_q;
   logic [7:0] loader_fullbeat_expected_base_q;
@@ -459,6 +462,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       loader_fullbeat_read_after_write_q <= 1'b0;
       loader_fullbeat_compare_active_q <= 1'b0;
       loader_fullbeat_done_q <= 1'b0;
+      loader_command_cooldown_q <= 16'd0;
       loader_fullbeat_mismatch_count_q <= 7'd0;
       loader_fullbeat_addr_q <= '0;
       loader_fullbeat_expected_base_q <= 8'd0;
@@ -964,9 +968,14 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
                 loader_fullbeat_mismatch_count_q <= loader_fullbeat_mismatch_count;
                 loader_fullbeat_compare_active_q <= 1'b0;
               end
-              loader_done_q <= 1'b1;
-              read_probe_done_q <= 1'b1;
-              read_probe_state_q <= READ_PROBE_DONE;
+              if (loader_last_opcode_q == LOADER_OP_RUN_HOST_FULLBEAT) begin
+                loader_command_cooldown_q <= LOADER_HOST_FULLBEAT_COMMAND_COOLDOWN;
+                read_probe_state_q <= LOADER_COMMAND_COOLDOWN;
+              end else begin
+                loader_done_q <= 1'b1;
+                read_probe_done_q <= 1'b1;
+                read_probe_state_q <= READ_PROBE_DONE;
+              end
             end
           end
         end
@@ -1009,9 +1018,14 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
                 loader_fullbeat_mismatch_count_q <= loader_fullbeat_mismatch_count;
                 loader_fullbeat_compare_active_q <= 1'b0;
               end
-              loader_done_q <= 1'b1;
-              read_probe_done_q <= 1'b1;
-              read_probe_state_q <= READ_PROBE_DONE;
+              if (loader_last_opcode_q == LOADER_OP_RUN_HOST_FULLBEAT) begin
+                loader_command_cooldown_q <= LOADER_HOST_FULLBEAT_COMMAND_COOLDOWN;
+                read_probe_state_q <= LOADER_COMMAND_COOLDOWN;
+              end else begin
+                loader_done_q <= 1'b1;
+                read_probe_done_q <= 1'b1;
+                read_probe_state_q <= READ_PROBE_DONE;
+              end
             end
           end
         end
@@ -1038,6 +1052,20 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             end
           end else begin
             read_probe_write_drain_q <= read_probe_write_drain_q + 10'd1;
+          end
+        end
+
+        LOADER_COMMAND_COOLDOWN: begin
+          read_probe_cyc_q <= 1'b0;
+          read_probe_stb_q <= 1'b0;
+          read_probe_we_q <= 1'b0;
+          loader_wait_cycles_q <= loader_wait_cycles_q + 32'd1;
+          if (loader_command_cooldown_q == 16'd0) begin
+            loader_done_q <= 1'b1;
+            read_probe_done_q <= 1'b1;
+            read_probe_state_q <= READ_PROBE_DONE;
+          end else begin
+            loader_command_cooldown_q <= loader_command_cooldown_q - 16'd1;
           end
         end
 

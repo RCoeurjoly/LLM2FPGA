@@ -21266,3 +21266,35 @@ Result:
   make the user-port rowstream path reliable. The next higher-probability step
   is narrow known-good placement preservation around DDR3 controller/PHY/pins or
   an RTL-side command pacing/idle gate, not another DDR3 clock change.
+
+### 2026-05-23 - RTL-side command pacing gate
+
+Clock-divide experiments were rejected because divide 16 and divide 14 both
+lost DDR3 calibration. The known divide-12 clocking calibrates, but host-side
+command delay only moved the verified packed-beat failure out to beat 42.
+
+Decision:
+
+- Keep known-good divide-12 DDR3 clocks.
+- Add RTL-side pacing after `LOADER_OP_RUN_HOST_FULLBEAT`: after the readback ACK
+  and immediate compare, hold the loader out of `READ_PROBE_DONE` for a fixed
+  16K-controller-cycle cooldown before accepting the next JTAG command.
+- This targets repeated user-port command pressure without changing DDR3 PHY
+  clocks or placement strategy.
+- Gate with 256 verified packed beats first, then 1024 only if 256 passes.
+
+Result:
+
+- RTL-side `LOADER_OP_RUN_HOST_FULLBEAT` command cooldown built successfully:
+  `/nix/store/xzjj93c4d7x5xkr61ir66l70mvkgxy7i-task6-ypcb-uberddr3-rowstream-loader-seed18-clocked.bit`.
+- Post-route `controller_clk` max frequency was reported at 114.18 MHz.
+- The 256-beat verified packed-load gate calibrated and reached the immediate
+  write/read verify loop, but failed at beat 52:
+  expected `1304424703fdcdf796819dfcd51d3625`, observed
+  `5304424703fdcdf796819dfcd51d3625`.
+- The 1024-beat gate was skipped because the 256-beat prerequisite failed.
+- Interpretation: RTL-side post-command cooldown improves failure distance only
+  modestly compared with the host-delay beat-42 result. This is not enough to
+  trust rowstream loading. The next route should be narrow known-good placement
+  preservation around the DDR3 controller/PHY/pins, with the cooldown kept only
+  if it does not harm calibration/placement.
