@@ -22165,3 +22165,42 @@ Next gate:
 - Scale to 256 KiB with sampled same-process postread over boundary and historical-risk beats.
 - If 256 KiB passes, run a fresh-process no-preload sampled read-repeat on the same sample set.
 - Only after that attempt full rowstream packet load with sampled postread and then connect the inference read path.
+
+### 2026-05-23 - 256 KiB sampled packet postread and fresh-process read-repeat gate
+
+Decision:
+
+- Scale the packetized rowstream proof from 16 KiB to 256 KiB before attempting full rowstream.
+- Keep verification sampled but include early beats, historical risk beats, and boundary/midpoint beats.
+
+Hardware evidence on `/nix/store/bvjxminsk0g91665a0vlaskhv63nq4cl-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`:
+
+| gate | result |
+| --- | --- |
+| 256 KiB actual rowstream packet load | PASS |
+| beats | 16,384 |
+| packets | 4,096 |
+| immediate packet mismatch count | 0 |
+| sampled same-process standalone postread beats | `0,1,2,3,90,255,512,1023,4096,8191,8192,16383` |
+| sampled same-process standalone mismatch count | 0 |
+| fresh-process no-preload read-repeat on same sample set, 10 reads each | PASS, all mismatch counts 0 |
+
+Run artifacts:
+
+| artifact | role |
+| --- | --- |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-postread-sampled-256kib/summary.json` | 256 KiB sampled same-process postread gate |
+| `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-fresh-readrepeat-after-256kib-sampled/summary.json` | fresh-process sampled read-repeat after the 256 KiB load |
+
+Interpretation:
+
+- The packetized DDR3 rowstream loader now has clean sampled evidence at 256 KiB.
+- The old beat 0/1 concern is not reproduced at 256 KiB: beats 0 and 1 pass both same-process postread and fresh-process no-preload read-repeat.
+- This is strong enough to move to full rowstream packet load with sampled verification.
+- Remaining limitation: this still proves the JTAG/loader read path, not yet the final inference datapath reads.
+
+Next gate:
+
+- Run full rowstream packet load with sampled same-process postread over the same early/risk/boundary pattern plus final rowstream beat.
+- After full rowstream passes, run fresh-process no-preload sampled read-repeat on the same sample set.
+- Then connect or exercise the inference path against DDR3-backed rows.
