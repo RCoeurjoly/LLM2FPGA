@@ -669,15 +669,6 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "wb_err_count": (raw >> 176) & 0xFFFF_FFFF,
         "wb_stall_count": (raw >> 208) & 0xFFFF_FFFF,
         "rtl_fullbeat_write_echo32": (raw >> 240) & 0xFFFF_FFFF,
-        "controller_issue_sel_low8": (raw >> 240) & 0xFF,
-        "controller_ack_sel_low8": (raw >> 248) & 0xFF,
-        "controller_issue_we": bool((raw >> 256) & 0x1),
-        "controller_issue_stb": bool((raw >> 257) & 0x1),
-        "controller_issue_cyc": bool((raw >> 258) & 0x1),
-        "controller_ack_we": bool((raw >> 259) & 0x1),
-        "controller_ack_stb": bool((raw >> 260) & 0x1),
-        "controller_ack_cyc": bool((raw >> 261) & 0x1),
-        "controller_issue_data_low8": (raw >> 262) & 0xFF,
         "lowbyte_seen_flags": ((raw >> 240) & 0xFFFF_FFFF) & 0xFF,
         "lowbyte_read_seen_capture": bool(((raw >> 240) & 0xFFFF_FFFF) & 0x2),
         "lowbyte_write_seen_capture": bool(((raw >> 240) & 0xFFFF_FFFF) & 0x1),
@@ -722,8 +713,6 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "standalone_read_ack_opcode_capture": (raw >> 465) & 0x7F,
         "standalone_read_ack_addr_low24": (raw >> 472) & 0xFF_FFFF,
         "standalone_read_request_addr_low8": (raw >> 472) & 0xFF,
-        "controller_issue_addr_low24": (raw >> 472) & 0xFF_FFFF,
-        "controller_ack_addr_low8": (raw >> 496) & 0xFF,
         "standalone_read_ack_delta": (raw >> 504) & 0xF,
         "rtl_burst_index": (raw >> 240) & 0xFF,
         "rtl_burst_count": (raw >> 248) & 0xFF,
@@ -2301,18 +2290,6 @@ def main() -> int:
                     "standalone_first_mismatch": first_byte_bit_mismatch(
                         expected, standalone_observed[: len(expected)]
                     ),
-                    "controller_compare": {
-                        "issue_addr_match": immediate_debug.get("controller_issue_addr_low24") == standalone_debug.get("controller_issue_addr_low24"),
-                        "ack_addr_low8_match": immediate_debug.get("controller_ack_addr_low8") == standalone_debug.get("controller_ack_addr_low8"),
-                        "issue_sel_match": immediate_debug.get("controller_issue_sel_low8") == standalone_debug.get("controller_issue_sel_low8"),
-                        "ack_sel_match": immediate_debug.get("controller_ack_sel_low8") == standalone_debug.get("controller_ack_sel_low8"),
-                        "issue_we_match": immediate_debug.get("controller_issue_we") == standalone_debug.get("controller_issue_we"),
-                        "issue_stb_match": immediate_debug.get("controller_issue_stb") == standalone_debug.get("controller_issue_stb"),
-                        "issue_cyc_match": immediate_debug.get("controller_issue_cyc") == standalone_debug.get("controller_issue_cyc"),
-                        "ack_we_match": immediate_debug.get("controller_ack_we") == standalone_debug.get("controller_ack_we"),
-                        "ack_stb_match": immediate_debug.get("controller_ack_stb") == standalone_debug.get("controller_ack_stb"),
-                        "ack_cyc_match": immediate_debug.get("controller_ack_cyc") == standalone_debug.get("controller_ack_cyc"),
-                    },
                     "immediate_debug": json_debug(immediate_debug),
                     "standalone_debug": json_debug(standalone_debug),
                 })
@@ -2325,15 +2302,7 @@ def main() -> int:
                     f"standalone_ack_addr_low24=0x{standalone_debug.get('standalone_read_ack_addr_low24', 0):06x} "
                     f"standalone_ack_opcode=0x{standalone_debug.get('standalone_read_ack_opcode_capture', 0):02x} "
                     f"standalone_ack_delta={standalone_debug.get('standalone_read_ack_delta')} "
-                    f"standalone_data={standalone_observed[: len(expected)].hex()} "
-                    f"imm_issue_addr=0x{immediate_debug.get('controller_issue_addr_low24', 0):06x} "
-                    f"std_issue_addr=0x{standalone_debug.get('controller_issue_addr_low24', 0):06x} "
-                    f"imm_ack_addr8=0x{immediate_debug.get('controller_ack_addr_low8', 0):02x} "
-                    f"std_ack_addr8=0x{standalone_debug.get('controller_ack_addr_low8', 0):02x} "
-                    f"imm_sel=0x{immediate_debug.get('controller_issue_sel_low8', 0):02x}/0x{immediate_debug.get('controller_ack_sel_low8', 0):02x} "
-                    f"std_sel=0x{standalone_debug.get('controller_issue_sel_low8', 0):02x}/0x{standalone_debug.get('controller_ack_sel_low8', 0):02x} "
-                    f"imm_ctrl={int(immediate_debug.get('controller_issue_cyc', False))}{int(immediate_debug.get('controller_issue_stb', False))}{int(immediate_debug.get('controller_issue_we', False))}->{int(immediate_debug.get('controller_ack_cyc', False))}{int(immediate_debug.get('controller_ack_stb', False))}{int(immediate_debug.get('controller_ack_we', False))} "
-                    f"std_ctrl={int(standalone_debug.get('controller_issue_cyc', False))}{int(standalone_debug.get('controller_issue_stb', False))}{int(standalone_debug.get('controller_issue_we', False))}->{int(standalone_debug.get('controller_ack_cyc', False))}{int(standalone_debug.get('controller_ack_stb', False))}{int(standalone_debug.get('controller_ack_we', False))}",
+                    f"standalone_data={standalone_observed[: len(expected)].hex()}",
                     flush=True,
                 )
             diagnostic = {

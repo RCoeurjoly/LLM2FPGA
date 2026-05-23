@@ -21716,3 +21716,44 @@ Follow-up no-retry gate:
 Interpretation: the command-format bug is fixed for the low-address window, but raw no-retry DDR3 write/read integrity remains marginal. This is now a separate stability problem, not the immediate-vs-standalone address mismatch.
 
 Limit of this short-term fix: using only 16 address bits covers 65536 16-byte beats (1 MiB). TinyStories full rowstream needs a real non-overlapping command format before full preload/inference. The durable fix is to widen/restructure the JTAG command payload so full address and 16-byte data do not overlap.
+
+### 2026-05-23 - Plan for no-retry DDR3 stability after command-format fix
+
+The immediate-vs-standalone address mismatch is fixed in the low-address window by masking fullbeat command addresses to the non-overlapping low 16 bits. The remaining 256-beat no-retry failure at beat 90 is now treated as a separate raw DDR3 user-port stability problem.
+
+Execution plan:
+
+1. Run a read-repeat diagnostic around beat 90 on the current low-16 mask bitstream:
+   - write the beat once using verified fullbeat write,
+   - then read the same beat repeatedly without rewriting,
+   - classify whether failures are stable-wrong, drifting, or random.
+2. Strip the extra passive controller-visible debug instrumentation added for root-cause discovery, while keeping the low-16 address mask fix.
+3. Rebuild the low-16 mask bitstream with less debug pressure and better controller timing margin.
+4. Rerun the beat-90 read-repeat and 256-beat no-retry gates.
+
+Interpretation:
+
+- If repeat-read is stable after a verified write, focus next on write path / command pacing.
+- If repeat-read itself is unstable, focus next on read capture / placement / PHY timing.
+
+### 2026-05-23 - Beat-90 read-repeat classification and stripped-debug rebuild attempt
+
+Ran beat-90 read-repeat diagnostic on the low-16 address-mask bitstream:
+
+- Bitstream: `/nix/store/gwk18cn1lqc5dl3gsdy82w43rx2qpx2d-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Diagnostic: write beat 90 with verified fullbeat write, then read beat 90 repeatedly without rewriting.
+- Result: `read-repeat beat=90 status=PASS mismatches=0/1000`.
+
+Interpretation: after a verified write, standalone/inference-style reads are stable at beat 90 for this test. The 256-beat no-retry failure is therefore more likely write path / command pacing / write-read interaction than raw read capture or retention.
+
+Stripped the temporary passive controller-visible debug instrumentation from RTL and host decode while preserving the low-16 fullbeat address mask fix. Rebuild attempts:
+
+- Tight matched controller-FF locked target got stuck in nextpnr routing with persistent `overused=3` after more than 1700 iterations and was stopped.
+- Non-preplaced/known-good seed18 target also reused the same stuck routing shape and got stuck with persistent `overused=3`; it was stopped.
+
+Conclusion: the temporary debug removal is the right direction for margin, but the current seed18/lock route is not a useful rebuild path after the netlist shape changed. Next build attempt should change placement seed and/or use a narrower refreshed lock bundle rather than reusing this stale routing shape.
+
+Next technical focus:
+
+- Write path / command pacing: add RTL-side paced multi-beat write/verify or host-side longer inter-command idle for no-retry loading.
+- Placement: rebuild the stripped low-16 netlist with a fresh seed or narrower clock/PHY-only locks before judging timing/stability.
