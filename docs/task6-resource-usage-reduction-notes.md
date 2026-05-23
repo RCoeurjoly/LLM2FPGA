@@ -21926,3 +21926,17 @@ Pure post-load readback:
 - Beat 0 failed with 100/100 mismatches and stable stale/wrong data. This appears to be an address-0/first-packet special case, not a broad rowstream-read failure.
 
 Interpretation: the packet path now satisfies the intended timing-plus-calibration gate and loads/verifies 16 KiB of actual rowstream data. Before 256 KiB/full rowstream, reserve or explicitly debug DDR3 beat 0. The practical next gate is a 256 KiB rowstream packet load starting at beat 1 or after a reserved header beat, with pure readback over nonzero sampled addresses.
+
+## 2026-05-23 - Beat 0 / first packet-slot diagnosis
+
+Ran the focused beat-0 matrix on the timing-recovered 4-beat packet bitstream `/nix/store/bvjxminsk0g91665a0vlaskhv63nq4cl-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`.
+
+Cases:
+
+1. Packet rowstream load starting at beat 0, then pure read beats 0,1,2,3: beats 0 and 1 failed 10/10; beats 2 and 3 passed 0/10.
+2. Packet rowstream load starting at beat 1, then pure read beats 1,2,3,4: beat 1 failed 10/10; beats 2,3,4 passed 0/10.
+3. Dummy deterministic packet to beat 0, then real rowstream packet to beat 0, then pure read beats 0,1,2,3: beats 0 and 1 failed 10/10; beats 2 and 3 passed 0/10.
+4. Real rowstream packet to beat 0 twice, then pure read beats 0,1,2,3: beats 0 and 1 failed 10/10; beats 2 and 3 passed 0/10.
+5. Generated RTL burst starting at beat 0 for 4 beats: PASS, `mismatch_count=0`, `first_mismatch=255`.
+
+Interpretation: physical DDR3 beat 0 is not inherently bad because the generated RTL burst writes/verifies beat 0 correctly. The failure is specific to the host packet upload path and appears concentrated in the earliest packet slot(s), especially slot 0. Reserving physical beat 0 is not a sufficient explanation or clean fix. The next fix should make packet slot loading deterministic rather than fire-and-forget: add an RTL-visible packet-slot valid/sequence handshake, or execute only after the loader has acknowledged all packet slots. A short-term workaround is to avoid using packet slot 0 as a data-bearing first slot, but that wastes bandwidth and still needs proof.
