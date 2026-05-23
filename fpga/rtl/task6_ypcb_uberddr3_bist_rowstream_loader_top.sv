@@ -631,8 +631,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_fullbeat_compare_active_q <= 1'b0;
           loader_fullbeat_done_q <= 1'b0;
           loader_fullbeat_mismatch_count_q <= 7'd0;
-          loader_fullbeat_addr_q <= jtag_command_addr_low16;
-          loader_burst_base_addr_q <= jtag_command_addr_low16;
+          loader_fullbeat_addr_q <= jtag_command_addr_full;
+          loader_burst_base_addr_q <= jtag_command_addr_full;
           loader_fullbeat_expected_base_q <= 8'h00;
           loader_fullbeat_write_echo_q <= loader_packet_data_q[0][0 +: 32];
           loader_fullbeat_issue_cycle_q <= 32'd0;

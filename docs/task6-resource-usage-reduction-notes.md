@@ -22250,3 +22250,36 @@ Interpretation:
 - The observed standalone reads still look like deterministic low-window/pattern data, not TinyStories rowstream bytes.
 - Therefore the current packet immediate-verify pass is not sufficient evidence that host-provided rowstream bytes were written to the true high DDR3 address.
 - Next debug should compare the packet FSM's actual write data/address/select at ACK against the standalone read ACK for this high-address window, or simplify the packet status so it proves host-slot data specifically rather than an internal/generated expected pattern.
+
+### 2026-05-23 - DDR3 packet high-address ACK proof found remaining low16 packet base bug
+
+Focused boundary run:
+
+- Bitstream: `/nix/store/awvfg460mncw3ab56xqbmxf9hwi92i9i-task6-ypcb-uberddr3-rowstream-loader-seed18-2lane-paced-locked-controller-ff-placement.bit`
+- Run dir: `artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-boundary-131071-packet-command-overlap-fix`
+- Window: rowstream beats `131064..131075`
+- Result: FAIL, but with useful proof.
+
+Observed:
+
+- Boot/calibration passed.
+- Packet immediate mismatch count stayed 0 for the first four-beat packet.
+- Per-read ACK instrumentation showed slot 0 standalone read passed at beat `131064`.
+- Slots 1..3 standalone reads failed, even though their standalone ACK addresses were `131065`, `131066`, and `131067`.
+- Packet ACK instrumentation showed the initial high-address packet write path could reach high beat addresses after removing the command data/address overlap.
+
+Root cause found in RTL setup for `LOADER_OP_RUN_HOST_PACKET`:
+
+- `loader_addr_q` was seeded from the full decoded command address.
+- But `loader_fullbeat_addr_q` and `loader_burst_base_addr_q` were still seeded from `jtag_command_addr_low16`.
+- Therefore packet write/read sequencing could mix a correct first high-address write with low-16 aliased readback and next-beat base sequencing.
+
+Fix applied:
+
+- Seed both `loader_fullbeat_addr_q` and `loader_burst_base_addr_q` from `jtag_command_addr_full` for `LOADER_OP_RUN_HOST_PACKET`.
+
+Next gate:
+
+- Rebuild the debug packet ACK bitstream.
+- Rerun the same `131064..131075` boundary diagnostic.
+- Require packet ACK addresses and standalone reads to pass before stripping debug fanout and returning to the timing-clean production rowstream build.
