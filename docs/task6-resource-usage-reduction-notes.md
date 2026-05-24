@@ -22386,3 +22386,24 @@ Follow-up implementation detail: nextpnr Python iteration over `ctx.cells` yield
 key/value objects rather than plain strings in this build. The generated hook now
 uses `ctx.cells.keys()` when available and keeps a fallback for other nextpnr
 Python bindings.
+
+### 2026-05-25 - Seed 15 robust BIST_MODE=2 bitstream built
+
+Build command:
+
+```sh
+NIXPKGS_ALLOW_UNFREE=1 nix build .#task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed15-bitstream --override-input uberDdr3 path:/home/roland/UberDDR3 --impure -L
+```
+
+Result:
+
+- PASS: bitstream built.
+- Output: `/nix/store/mf0zhw0qlg4ggapakq344wk1mbw5l7wl-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed15.bit`
+- Reset-release pre-place hook applied 4 locks with 0 missing cells.
+- Final routed controller clock: 115.15 MHz, above the 83.3 MHz controller-clock requirement.
+- This seed is now eligible for HIL BIST_MODE=2 testing before any rowstream/user-port target.
+
+Next gate:
+
+- Build the remaining robust BIST_MODE=2 seed matrix: 16, 17, 18, 19, 20.
+- HIL test BIST_MODE=2 targets before promoting any rowstream/user-port flow.
