@@ -60,11 +60,36 @@ ALLOW_MISSING = {allow_missing}
 applied = 0
 missing = []
 conflicts = []
+used_cells = set()
+
+
+def resolve_cell_name(lock):
+    name = lock["cell"]
+    if name in ctx.cells and name not in used_cells:
+        return name
+
+    # Yosys/nextpnr preserve the hierarchical reset-release signal name, but
+    # the synthesized $LUT$ numeric suffix can move between the standalone
+    # UberDDR3 reference and the LLM2FPGA wrapper.  Treat the pre-$LUT$ portion
+    # as the durable identity and assign same-prefix locks in deterministic
+    # cell-name order.  This keeps the four-lock policy strict without baking in
+    # wrapper-specific numeric suffixes.
+    if "$LUT$" not in name:
+        return None
+    prefix = name.split("$LUT$", 1)[0] + "$LUT$"
+    candidates = sorted(
+        cell_name for cell_name in ctx.cells
+        if cell_name.startswith(prefix) and cell_name not in used_cells
+    )
+    if not candidates:
+        return None
+    return candidates[0]
+
 
 for lock in LOCKS:
-    name = lock["cell"]
+    name = resolve_cell_name(lock)
     bel = lock["bel"]
-    if name not in ctx.cells:
+    if name is None:
         missing.append(lock)
         continue
     cell = ctx.cells[name]
@@ -78,6 +103,7 @@ for lock in LOCKS:
         }})
         continue
     cell.setAttr("BEL", bel)
+    used_cells.add(name)
     applied += 1
 
 if conflicts:

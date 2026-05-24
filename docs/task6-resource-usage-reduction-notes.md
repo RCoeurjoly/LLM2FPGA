@@ -22361,3 +22361,23 @@ Ported the current UberDDR3 `ypcb-fixes` robust-flow idea into LLM2FPGA as a BIS
 - HIL gate: build seeds 15..20, then program/test the BIST-mode bitstreams before returning to rowstream or user-port targets.
 
 This keeps the DDR3 stability work separated from rowstream/inference debugging and treats pre-place locks as a minimal reset-release policy, not a broad placement replay.
+
+### 2026-05-25 - Robust reset-release locks made wrapper-name tolerant
+
+Seed-15 robust BIST build with the local UberDDR3 override failed before placement
+because the standalone UberDDR3 `$LUT$1142`-style reset-release cell suffixes did
+not survive unchanged inside the LLM2FPGA wrapper.  This confirms the lock policy
+must not depend on exact synthesized numeric suffixes.
+
+Implementation update:
+
+- Keep the same four upstream reset-release BEL destinations.
+- Resolve each lock by exact cell name when possible.
+- Otherwise resolve by the stable hierarchical prefix before `$LUT$`, assigning
+  same-prefix candidates in deterministic cell-name order.
+- Continue to fail the build if the required reset-release cells are absent;
+  this is not an `--allow-missing` relaxation.
+
+Next gate remains unchanged: rebuild seed 15 first with `--no-tmdriv` and the
+local `/home/roland/UberDDR3` override, then scale seeds 16..20 only after the
+seed-15 BIST bitstream builds.
