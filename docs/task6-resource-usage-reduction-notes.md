@@ -22407,3 +22407,29 @@ Next gate:
 
 - Build the remaining robust BIST_MODE=2 seed matrix: 16, 17, 18, 19, 20.
 - HIL test BIST_MODE=2 targets before promoting any rowstream/user-port flow.
+
+### 2026-05-25 - Robust BIST_MODE=2 seed matrix build complete
+
+Command shape:
+
+```sh
+NIXPKGS_ALLOW_UNFREE=1 nix build .#task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed<seed>-bitstream --override-input uberDdr3 path:/home/roland/UberDDR3 --impure -L
+```
+
+Build matrix result:
+
+| seed | bitstream | final routed controller_clk |
+| --- | --- | --- |
+| 15 | `/nix/store/mf0zhw0qlg4ggapakq344wk1mbw5l7wl-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed15.bit` | 115.15 MHz |
+| 16 | `/nix/store/rdjgmw1ds6qc08hkhx8wmpksnjfa6hbf-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed16.bit` | 108.78 MHz |
+| 17 | `/nix/store/smqyvnlfgczc301qaiyp1kvm99l81ggk-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed17.bit` | 119.01 MHz |
+| 18 | `/nix/store/dkzf0idzxx1kwr7a9na68l3wbjpv3z4g-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed18.bit` | 109.65 MHz |
+| 19 | `/nix/store/9nf8h8mg93h8lryi7cxxl9j2ypmwrqsy-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed19.bit` | 115.13 MHz |
+| 20 | `/nix/store/m0a2vajpnbdm6gidk96viiizamk1x414-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed20.bit` | 110.63 MHz |
+
+Interpretation:
+
+- PASS: all requested seeds 15..20 built with the local `/home/roland/UberDDR3` override.
+- PASS: all builds applied exactly four reset-release pre-place locks with zero missing cells.
+- PASS: all final routed `controller_clk` estimates clear the 83.3 MHz requirement.
+- The next gate is hardware-in-the-loop BIST_MODE=2 testing of these BIST-only bitstreams before any rowstream/user-port work resumes.
