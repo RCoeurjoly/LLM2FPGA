@@ -77,8 +77,19 @@ def resolve_cell_name(lock):
     if "$LUT$" not in name:
         return None
     prefix = name.split("$LUT$", 1)[0] + "$LUT$"
+    try:
+        cell_names = list(ctx.cells.keys())
+    except AttributeError:
+        cell_names = []
+        for item in ctx.cells:
+            for attr in ("key", "first"):
+                if hasattr(item, attr):
+                    cell_names.append(str(getattr(item, attr)))
+                    break
+            else:
+                cell_names.append(str(item[0]))
     candidates = sorted(
-        cell_name for cell_name in ctx.cells
+        cell_name for cell_name in cell_names
         if cell_name.startswith(prefix) and cell_name not in used_cells
     )
     if not candidates:

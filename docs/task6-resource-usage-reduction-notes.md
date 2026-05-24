@@ -22381,3 +22381,8 @@ Implementation update:
 Next gate remains unchanged: rebuild seed 15 first with `--no-tmdriv` and the
 local `/home/roland/UberDDR3` override, then scale seeds 16..20 only after the
 seed-15 BIST bitstream builds.
+
+Follow-up implementation detail: nextpnr Python iteration over `ctx.cells` yields
+key/value objects rather than plain strings in this build. The generated hook now
+uses `ctx.cells.keys()` when available and keeps a fallback for other nextpnr
+Python bindings.
