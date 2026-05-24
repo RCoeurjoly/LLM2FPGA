@@ -171,6 +171,7 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
         stream_mismatch_count = stream_mismatch_mask.bit_count()
     calib_complete = bool(status & 0x01)
     calib_seen = bool(status & 0x02)
+    bist_done = calib_complete and calib_seen and (debug1 & 0x1F) == 23
     command_gate = calib_seen and write_ack_seen and read_ack_seen and ack_count >= 2
     # YPCB CH0 open metadata has no DDR3 DM pins, and the diagnostic wrapper's
     # internal mismatch bit compares against its latched default byte for some
@@ -187,6 +188,8 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
             and stream_mismatch_count == 0
             and err_count == 0
         )
+    if args.bist_only:
+        integrity_pass = bist_done and err_count == 0
 
     return {
         "schema": "task6-uberddr3-jtag-payload-v1",
@@ -202,6 +205,7 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
         "calib_seen_cycle": f"0x{calib_seen_cycle:08x}",
         "debug1": f"0x{debug1:08x}",
         "state": debug1 & 0x1F,
+        "bist_done": bist_done,
         "instruction": (debug1 >> 5) & 0x1F,
         "idelay_ready": bool(bit(debug1, 10)),
         "ack_count": ack_count,
@@ -244,10 +248,13 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
         "sys_rstn": bool(bit(raw, 464)),
         "result": {
             "calibration": "pass" if calib_complete and calib_seen else "fail",
+            "bist": "pass" if bist_done else "fail",
             "command_gate": "pass" if command_gate else "fail",
             "integrity": "pass" if integrity_pass else "fail",
             "board": (
-                "integrity_pass"
+                "bist_pass"
+                if args.bist_only and integrity_pass
+                else "integrity_pass"
                 if integrity_pass
                 else "command_gate_reproduced"
                 if command_gate
@@ -268,6 +275,7 @@ def update_verdict(run_dir: Path, decoded: dict[str, Any]) -> None:
             "board": result["board"],
             "notes": [
                 f"calibration={result['calibration']}",
+                f"bist={result['bist']} state={decoded['state']} debug1={decoded['debug1']}",
                 f"command_gate={result['command_gate']}",
                 f"integrity={result['integrity']}",
                 f"read_byte={decoded['read_byte']} expected={decoded['expected_byte']}",
@@ -325,6 +333,8 @@ def run_experiment(args: argparse.Namespace) -> Path:
         )
         if args.post_command_delay > 0:
             time.sleep(args.post_command_delay)
+    elif args.post_program_delay > 0:
+        time.sleep(args.post_program_delay)
     with_lock(
         run_dir,
         "readback-tdo7.log",
@@ -352,6 +362,8 @@ def run_experiment(args: argparse.Namespace) -> Path:
             "variant": args.variant,
             "bitstream": bitstream,
             "result": decoded["result"],
+            "state": decoded["state"],
+            "bist_done": decoded["bist_done"],
             "read_byte": decoded["read_byte"],
             "read_word": decoded["read_word"],
             "stream_bytes": decoded["stream_bytes"],
@@ -391,6 +403,8 @@ def parse_args() -> argparse.Namespace:
         default="idle",
     )
     parser.add_argument("--post-command-delay", type=float, default=0.1)
+    parser.add_argument("--post-program-delay", type=float, default=0.0)
+    parser.add_argument("--bist-only", action="store_true")
     parser.add_argument("--jtag-cable", default="digilent_hs3")
     parser.add_argument("--ftdi-serial", default="210299BF3824")
     parser.add_argument("--tdo-bit", type=int, default=7)

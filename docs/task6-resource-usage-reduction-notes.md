@@ -22433,3 +22433,53 @@ Interpretation:
 - PASS: all builds applied exactly four reset-release pre-place locks with zero missing cells.
 - PASS: all final routed `controller_clk` estimates clear the 83.3 MHz requirement.
 - The next gate is hardware-in-the-loop BIST_MODE=2 testing of these BIST-only bitstreams before any rowstream/user-port work resumes.
+
+### 2026-05-25 - Robust two-lane BIST_MODE=2 seed matrix with local UberDDR3 override
+
+Decision:
+
+- Treat DDR3 pre-place locks as a narrow stabilization tool, not as the core DDR3 plan.
+- First prove the cleanest YPCB DDR3 target in this repo: two-lane UberDDR3 `BIST_MODE=2`, before any rowstream or user-port loading target.
+- Use the local UberDDR3 branch `ypcb-fixes` at commit `1d2152f` through `--override-input uberDdr3 path:/home/roland/UberDDR3`.
+- Match the upstream robust-flow policy by adding nextpnr `--no-tmdriv` and a four-LUT reset-release BEL lock adapted to the LLM2FPGA wrapper instance `uberddr3.ddr3_phy_inst...`.
+
+Implementation:
+
+- Added robust BIST seed targets for seeds 15..20:
+  - `task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed<N>-bitstream`
+  - `task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed<N>-fasm`
+  - `task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed<N>-placed-json`
+- Added wrapper-tolerant reset-release BEL lock resolution: exact cell names are tried first, then the `$LUT$...` suffix is resolved by deterministic prefix match in the actual nextpnr cell map.
+- Added pure BIST runner support:
+  - `--post-program-delay` waits after programming before the first debug readback.
+  - `--bist-only` treats `calib_complete && calib_seen && state == 23` as the BIST verdict instead of requiring USER2 command ACKs.
+
+Build evidence with local UberDDR3 override and `--no-tmdriv`:
+
+| seed | bitstream | controller route |
+| --- | --- | --- |
+| 15 | `/nix/store/mf0zhw0qlg4ggapakq344wk1mbw5l7wl-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed15.bit` | 115.15 MHz |
+| 16 | `/nix/store/rdjgmw1ds6qc08hkhx8wmpksnjfa6hbf-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed16.bit` | 108.78 MHz |
+| 17 | `/nix/store/smqyvnlfgczc301qaiyp1kvm99l81ggk-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed17.bit` | 119.01 MHz |
+| 18 | `/nix/store/dkzf0idzxx1kwr7a9na68l3wbjpv3z4g-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed18.bit` | 109.65 MHz |
+| 19 | `/nix/store/9nf8h8mg93h8lryi7cxxl9j2ypmwrqsy-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed19.bit` | 115.13 MHz |
+| 20 | `/nix/store/m0a2vajpnbdm6gidk96viiizamk1x414-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed20.bit` | 110.63 MHz |
+
+All six builds applied the four reset-release BEL locks with `applied=4 missing=0`.
+
+HIL interpretation rule:
+
+- UberDDR3 standalone tests show calibration plus BIST can take about 9 seconds on this board.
+- Therefore immediate post-program readback is not a valid failure gate for this target.
+- Use at least a 12-15 second post-program delay for BIST_MODE=2 HIL readback, then decode `state == 23` plus calibration bits.
+
+Initial HIL evidence:
+
+- Seed15 immediate readback after programming showed `state=17`, `status=0xd0`, and calibration fail; this is now classified as an early sample, not a DDR3 failure.
+- Seed15 delayed no-reprogram readback showed `debug1=0x17`, `state=23`, `status=0xd3`, and calibration bits set. This is consistent with BIST completion after the expected delay, but the full seed matrix still needs delayed HIL sampling before rowstream/user-port work resumes.
+
+Next gate:
+
+1. Run delayed `--bist-only --post-program-delay 15` HIL for seeds 15..20.
+2. Require reproducible `state=23`, calibration pass, and no runner-level decode errors.
+3. Only after the BIST-mode matrix passes, return to rowstream/user-port targets.
