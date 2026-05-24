@@ -22519,3 +22519,26 @@ Current conclusion:
 - The local UberDDR3 override plus `--no-tmdriv` plus wrapper-tolerant four-LUT reset-release locks is a real improvement, but it is not seed-invariant inside the LLM2FPGA wrapper.
 - The useful passing seeds are 15, 17, 19, and 20. Seeds 16 and 18 should not be used as anchors for rowstream/user-port work in this wrapper.
 - Because the failures are seed-specific even after repeat HIL, pre-place locks alone should not be treated as the long-term robustness mechanism. The next stable-DDR3 work should focus on making the YPCB DDR3 integration pass BIST_MODE=2 consistently across seeds before reconnecting the rowstream path.
+
+### 2026-05-25 - Task 6 DDR3 operating rule: seed15 plus BIST first
+
+Decision:
+
+- Continue Task 6 with the DDR3 driver as-is instead of blocking on perfect seed-invariant DDR3 placement.
+- Use seed15 as the default Task 6 DDR3 seed because it passes delayed two-lane `BIST_MODE=2` HIL in the LLM2FPGA wrapper.
+- Before every rowstream, user-port, packet loader, or inference-oriented bitstream test, first run the seed15 two-lane `BIST_MODE=2` gate.
+- If the gate fails, do not run the advanced test. Reprogram/retry the BIST gate first; if it still fails, treat the board/seed/build state as invalid for that experiment.
+
+Rationale:
+
+- This turns DDR3 instability into an explicit admission check instead of mixing raw DDR3 failures with rowstream/inference bugs.
+- It accepts bitstream churn, but the churn is bounded and cheaper than debugging advanced features on an unproven DDR3 baseline.
+- The policy does not claim the driver is seed-invariant. It only says seed15 is the current working Task 6 anchor.
+
+Operational helper:
+
+```sh
+scripts/task6/task6_seed15_bist_gate.sh
+```
+
+The helper builds or uses the seed15 robust two-lane `BIST_MODE=2` bitstream with the local UberDDR3 override, waits 15 seconds after programming, and requires the pure BIST verdict to pass before advanced Task 6 testing continues.
