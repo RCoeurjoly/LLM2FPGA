@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-25T00:32:57.221414+02:00"
+label: "robust-bist2-seed17-delayed-hil"
+experiment: "task6-uberddr3-systematic-ddr3"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/smqyvnlfgczc301qaiyp1kvm99l81ggk-task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed17.bit"
+reference_artifacts:
+notes: "Delayed pure BIST_MODE=2 HIL capture for robust 2-lane seed17; no rowstream/user-port command"

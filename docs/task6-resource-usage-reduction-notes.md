@@ -22483,3 +22483,39 @@ Next gate:
 1. Run delayed `--bist-only --post-program-delay 15` HIL for seeds 15..20.
 2. Require reproducible `state=23`, calibration pass, and no runner-level decode errors.
 3. Only after the BIST-mode matrix passes, return to rowstream/user-port targets.
+
+#### Delayed HIL BIST_MODE=2 matrix result
+
+Command shape:
+
+```sh
+python3 scripts/task6/task6_ddr3_experiment_runner.py \
+  --bitstream <seed-bitstream> \
+  --bits 1024 \
+  --bist-only \
+  --post-program-delay 15
+```
+
+Result:
+
+| seed | HIL result | run artifact | note |
+| --- | --- | --- | --- |
+| 15 | PASS | `artifacts/task6/runs/2026-05-25T00-31-12+0200-robust-bist2-seed15-delayed-hil` | `state=23`, `debug1=0x00000017`, `err_count=0` |
+| 16 | FAIL | `artifacts/task6/runs/2026-05-25T00-32-16+0200-robust-bist2-seed16-delayed-hil` | `state=0`, calibration not seen |
+| 17 | PASS | `artifacts/task6/runs/2026-05-25T00-32-57+0200-robust-bist2-seed17-delayed-hil` | `state=23`, `debug1=0x00000017`, `err_count=0` |
+| 18 | FAIL | `artifacts/task6/runs/2026-05-25T00-33-38+0200-robust-bist2-seed18-delayed-hil` | `state=0`, calibration not seen |
+| 19 | PASS | `artifacts/task6/runs/2026-05-25T00-34-19+0200-robust-bist2-seed19-delayed-hil` | `state=23`, `debug1=0x00000017`, `err_count=0` |
+| 20 | PASS | `artifacts/task6/runs/2026-05-25T00-35-00+0200-robust-bist2-seed20-delayed-hil` | `state=23`, `debug1=0x00000017`, `err_count=0` |
+
+Reruns:
+
+| seed | HIL result | run artifact | note |
+| --- | --- | --- | --- |
+| 16 | FAIL | `artifacts/task6/runs/2026-05-25T00-36-15+0200-robust-bist2-seed16-delayed-hil-rerun` | repeat `state=0`, calibration not seen |
+| 18 | FAIL | `artifacts/task6/runs/2026-05-25T00-36-56+0200-robust-bist2-seed18-delayed-hil-rerun` | repeat `state=0`, calibration not seen |
+
+Current conclusion:
+
+- The local UberDDR3 override plus `--no-tmdriv` plus wrapper-tolerant four-LUT reset-release locks is a real improvement, but it is not seed-invariant inside the LLM2FPGA wrapper.
+- The useful passing seeds are 15, 17, 19, and 20. Seeds 16 and 18 should not be used as anchors for rowstream/user-port work in this wrapper.
+- Because the failures are seed-specific even after repeat HIL, pre-place locks alone should not be treated as the long-term robustness mechanism. The next stable-DDR3 work should focus on making the YPCB DDR3 integration pass BIST_MODE=2 consistently across seeds before reconnecting the rowstream path.
