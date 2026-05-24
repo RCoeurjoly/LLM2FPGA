@@ -22348,3 +22348,16 @@ Next gate:
 - Current source keeps the host ACK-advance fix but restores the RTL to the known timing-clean command208 structure. Next safe route is to fix command reliability without perturbing the DDR3 controller route, preferably by isolating command-chain placement/timing or moving bulk packet execution behind fewer host commands rather than adding controller-clock fanout near the DDR3 loader FSM.
 
 - Bitbang JTAG transport was tested as a possible workaround for MPSSE opcode corruption. Both `tdo-bit=7` and `tdo-bit=0` produced invalid all-ones debug readback (`magic_ok=false`, `debug1=0xffffffff`) and timed out before calibration, so bitbang is not currently a usable transport path for the YPCB DDR3 loader.
+
+### 2026-05-25 - YPCB DDR3 robust BIST_MODE=2 matrix port
+
+Ported the current UberDDR3 `ypcb-fixes` robust-flow idea into LLM2FPGA as a BIST-only gate before any rowstream/user-port work:
+
+- Use local override for the current UberDDR3 work: `nix build --override-input uberDdr3 path:/home/roland/UberDDR3 ...`.
+- Target family: `task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed{15..20}-{fasm,bitstream,placed-json}`.
+- Configuration stays on the existing 2-lane BIST_MODE=2 known-good JSON: 2 byte lanes, BIST_MODE=2, no read probe, no data-mask test, 333 MHz DDR3 clocks, 83.3 MHz controller clock, DLL on, SPEED_BIN=1, SDRAM_CAPACITY=4.
+- nextpnr policy adds `--no-tmdriv` for this robust matrix.
+- Pre-place policy uses only the four reset-release LUT locks adapted from UberDDR3 `1d2152f` to the LLM2FPGA wrapper hierarchy (`uberddr3.ddr3_phy_inst...`).
+- HIL gate: build seeds 15..20, then program/test the BIST-mode bitstreams before returning to rowstream or user-port targets.
+
+This keeps the DDR3 stability work separated from rowstream/inference debugging and treats pre-place locks as a minimal reset-release policy, not a broad placement replay.

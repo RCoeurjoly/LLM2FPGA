@@ -3118,7 +3118,7 @@
             cat $constraintFiles > "$out"
           '';
 
-        mkFasm = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ] }:
+        mkFasm = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ], nextpnrExtraArgs ? "" }:
           let
             outputArgs =
               if freqMHz == null then "--fasm \"$out\""
@@ -3142,10 +3142,11 @@
               --json ${json} \
               ${prePackArgs} \
               ${prePlaceArgs} \
+              ${nextpnrExtraArgs} \
               ${seedArg}${outputArgs}
           '';
 
-        mkPlacedJson = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ] }:
+        mkPlacedJson = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ], nextpnrExtraArgs ? "" }:
           let
             freqArg =
               pkgs.lib.optionalString (freqMHz != null) "--freq ${toString freqMHz} ";
@@ -3168,6 +3169,7 @@
               --json ${json} \
               ${prePackArgs} \
               ${prePlaceArgs} \
+              ${nextpnrExtraArgs} \
               ${seedArg}${freqArg}--write "$out"
           '';
 
@@ -7185,6 +7187,88 @@
           fasm = task6YpcbUberDdr3Bist2LaneMode2KnownGoodSeed18Fasm;
           framesBase = "task6-ypcb-uberddr3-bist-2lane-mode2-known-good-seed18";
         };
+
+        task6YpcbUberDdr3Bist2LaneMode2RobustLocksJson =
+          pkgs.writeText "task6-ypcb-uberddr3-bist-2lane-mode2-robust-reset-release-locks.json"
+            (builtins.toJSON {
+              format = "uberddr3.nextpnr-bel-locks.v1";
+              lock_count = 4;
+              notes = "Adapted from UberDDR3 ypcb-fixes commit 1d2152f reset-release locks; top instance ddr3_top_inst is renamed to LLM2FPGA BIST wrapper instance uberddr3.";
+              scope_counts = { reset_release = 4; };
+              skipped_missing_bel = [ ];
+              skipped_missing_bel_count = 0;
+              type_counts = { SLICE_LUTX = 4; };
+              locks = [
+                {
+                  bel = "SLICE_X0Y113/A6LUT";
+                  cell = "uberddr3.ddr3_phy_inst.delay_before_release_reset[0]$LUT$1142";
+                  scope = "reset_release";
+                  type = "SLICE_LUTX";
+                }
+                {
+                  bel = "SLICE_X0Y113/A5LUT";
+                  cell = "uberddr3.ddr3_phy_inst.delay_before_release_reset[0]$LUT$1144";
+                  scope = "reset_release";
+                  type = "SLICE_LUTX";
+                }
+                {
+                  bel = "SLICE_X0Y113/B5LUT";
+                  cell = "uberddr3.ddr3_phy_inst.delay_before_release_reset[1]$LUT$1146";
+                  scope = "reset_release";
+                  type = "SLICE_LUTX";
+                }
+                {
+                  bel = "SLICE_X0Y113/C5LUT";
+                  cell = "uberddr3.ddr3_phy_inst.delay_before_release_reset[2]$LUT$1148";
+                  scope = "reset_release";
+                  type = "SLICE_LUTX";
+                }
+              ];
+            });
+
+        task6YpcbUberDdr3Bist2LaneMode2RobustPrePlaceBelLocks =
+          pkgs.runCommand "task6-ypcb-uberddr3-bist-2lane-mode2-robust-pre-place-bel-locks.py" {
+            nativeBuildInputs = [ pkgs.python3 ];
+          } ''
+            set -euo pipefail
+            python3 ${./scripts/task6/generate_nextpnr_pre_place_bel_locks.py} \
+              --locks-json ${task6YpcbUberDdr3Bist2LaneMode2RobustLocksJson} \
+              --out-py "$out"
+          '';
+
+        task6YpcbUberDdr3Bist2LaneMode2RobustArtifactsForSeed = seed:
+          let
+            seedStr = toString seed;
+            name = "task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed${seedStr}";
+            fasm = mkFasm {
+              inherit name;
+              xdc = task6YpcbUberDdr3BistXdc;
+              json = task6YpcbUberDdr3Bist2LaneMode2KnownGoodYosysJson;
+              seed = seed;
+              freqMHz = 25;
+              prePlaceScripts = [ task6YpcbUberDdr3Bist2LaneMode2RobustPrePlaceBelLocks ];
+              nextpnrExtraArgs = "--no-tmdriv";
+            };
+            bitstream = mkBitstream {
+              inherit name fasm;
+              framesBase = name;
+            };
+            placedJson = mkPlacedJson {
+              inherit name;
+              xdc = task6YpcbUberDdr3BistXdc;
+              json = task6YpcbUberDdr3Bist2LaneMode2KnownGoodYosysJson;
+              seed = seed;
+              freqMHz = 25;
+              prePlaceScripts = [ task6YpcbUberDdr3Bist2LaneMode2RobustPrePlaceBelLocks ];
+              nextpnrExtraArgs = "--no-tmdriv";
+            };
+          in {
+            inherit fasm bitstream placedJson;
+          };
+
+        task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts =
+          pkgs.lib.genAttrs [ "15" "16" "17" "18" "19" "20" ]
+            (seed: task6YpcbUberDdr3Bist2LaneMode2RobustArtifactsForSeed (pkgs.lib.toInt seed));
 
         task6YpcbMmcmDiagFasm = mkFasm {
           name = "task6-ypcb-mmcm-diag";
@@ -11480,6 +11564,46 @@
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedBitstream;
           task6-ypcb-uberddr3-rowstream-loader-seed18-clocked-placed-json =
             task6YpcbUberDdr3RowstreamLoaderSeed18ClockedPlacedJson;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-reset-release-locks-json =
+            task6YpcbUberDdr3Bist2LaneMode2RobustLocksJson;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-pre-place-bel-locks =
+            task6YpcbUberDdr3Bist2LaneMode2RobustPrePlaceBelLocks;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed15-fasm =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."15".fasm;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed15-bitstream =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."15".bitstream;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed15-placed-json =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."15".placedJson;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed16-fasm =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."16".fasm;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed16-bitstream =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."16".bitstream;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed16-placed-json =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."16".placedJson;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed17-fasm =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."17".fasm;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed17-bitstream =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."17".bitstream;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed17-placed-json =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."17".placedJson;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed18-fasm =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."18".fasm;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed18-bitstream =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."18".bitstream;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed18-placed-json =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."18".placedJson;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed19-fasm =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."19".fasm;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed19-bitstream =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."19".bitstream;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed19-placed-json =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."19".placedJson;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed20-fasm =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."20".fasm;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed20-bitstream =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."20".bitstream;
+          task6-ypcb-uberddr3-bist-2lane-mode2-robust-seed20-placed-json =
+            task6YpcbUberDdr3Bist2LaneMode2RobustSeedArtifacts."20".placedJson;
           task6-ypcb-uberddr3-rowstream-loader-boot-isolated-seed18-clocked-fasm =
             task6YpcbUberDdr3RowstreamLoaderBootIsolatedSeed18ClockedFasm;
           task6-ypcb-uberddr3-rowstream-loader-boot-isolated-seed18-clocked-bitstream =
