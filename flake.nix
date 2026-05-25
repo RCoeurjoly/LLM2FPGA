@@ -224,6 +224,8 @@
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
             read_verilog -sv \
               ${pcie7x}/src/xilinx_pcie_mmcm.v \
               ${pcie7x}/src/axil_to_al.v \
@@ -238,7 +240,7 @@
               ${pcie7x}/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v \
               ${pcie7x}/src/aximm-minimal/pcie_7x_top_aximm.v \
               ${axilMinimumSource}
-            hierarchy -top pcie_7x_top_aximm_ypcb_480t -check
+            hierarchy -top pcie_7x_top_aximm_ypcb_480t
             synth_xilinx -flatten -abc9 -arch xc7 -nosrl -top pcie_7x_top_aximm_ypcb_480t
             stat -top pcie_7x_top_aximm_ypcb_480t
             write_json "$out"
@@ -5783,7 +5785,7 @@
           ];
         };
 
-        task6YpcbPcie7xXdc = ${pcie7x}/pcie_7x_ypcb_k480t.xdc;
+        task6YpcbPcie7xXdc = "${pcie7x}/pcie_7x_ypcb_k480t.xdc";
 
         task6YpcbPcie7xSmokeFasm = mkFasm {
           name = "task6-ypcb-pcie7x-smoke";

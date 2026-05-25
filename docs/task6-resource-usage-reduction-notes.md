@@ -22705,3 +22705,13 @@ Current status:
 - Repo-side implementation is staged for build/test.
 - No PCIe build or board programming has been run yet in this checkpoint.
 - Next safe step after the current JTAG rowstream run finishes: build `task6-ypcb-pcie7x-smoke-bitstream`, program it, rescan PCIe, and require BAR read/write success before touching DDR3.
+
+### 2026-05-25 - PCIe 7x repo-local build integration fix
+
+- Kept the active JTAG rowstream load undisturbed; no FPGA programming or PCIe HIL test was run in this step.
+- Validated the repo-side PCIe integration with local upstream override:
+  - `nix build .#task6-ypcb-pcie7x-smoke-yosys-json --override-input pcie7x path:/home/roland/pcie_7x --impure -L`
+  - `nix build .#task6-ypcb-pcie7x-command-bridge-yosys-json --override-input pcie7x path:/home/roland/pcie_7x --impure -L`
+- Fixed the PCIe Yosys helper to load Xilinx primitive libraries before synthesis.
+- Kept only the GTX wrapper source for YPCB and removed strict pre-synthesis hierarchy checking so the unused GTP generate branch does not require the conflicting `pipe_wrapper` source.
+- Build-level status: PCIe smoke JSON and PCIe command-bridge JSON both synthesize successfully. Next PCIe gate, after the board is free, is bitstream build/program and BAR read/write smoke.
