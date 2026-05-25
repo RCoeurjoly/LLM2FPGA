@@ -22785,3 +22785,11 @@ Next gate:
 - Locked `nextpnrXilinxFork` to `32e8b798520d90e1130afe95908f04cf52125cf6` on that hybrid branch.
 - Gate result: `nix build .#task6-ypcb-pcie7x-smoke-bitstream --impure -L` completed route and produced the smoke bitstream. The earlier `GTXE2_CHANNEL.RXRATE[0]` missing-wire failure is resolved by this dependency stack.
 - Next hardware gate: program the smoke bitstream, check `lspci` enumeration, then run a minimal BAR read/write smoke test before attempting PCIe-backed rowstream or DDR3 loading.
+
+### 2026-05-25 - PCIe smoke hardware programming gate
+
+- Programmed `/nix/store/820n8cz85n0wbpq1905w8f6zjbddvzp2-task6-ypcb-pcie7x-smoke.bit` through the local `/home/roland/openFPGALoader/build/openFPGALoader` build, not the older `PATH` loader.
+- Programming completed with `isc_done=1`, `init=1`, and `done=1`.
+- Immediate `lspci -nn` / `lspci -Dnn` after programming did not show a new FPGA PCIe endpoint.
+- Attempted the normal post-programming host-side gate, `echo 1 > /sys/bus/pci/rescan`, but `sudo -n` was blocked because cached credentials were unavailable.
+- Current interpretation: bitstream generation and FPGA programming are proven; PCIe enumeration is not yet proven. The next gate requires either a privileged PCIe rescan or booting/power-cycling with the FPGA already configured so the root complex trains/enumerates the endpoint.
