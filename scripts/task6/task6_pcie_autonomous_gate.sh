@@ -62,6 +62,7 @@ for iter in $(seq 1 "$REPEAT"); do
   printf "%s\n" "$rc" >"$iter_dir/exit-code.txt"
 
   "$ROOT/scripts/task6/read_pcie_jtag_status.py" --json-only >"$iter_dir/pcie-jtag-status.json" 2>"$iter_dir/pcie-jtag-status.err" || true
+  "$ROOT/scripts/task6/read_pcie_app_status.py" --json-only >"$iter_dir/pcie-app-status.json" 2>"$iter_dir/pcie-app-status.err" || true
 
   python3 - "$iter_dir" "$MODE" "$BDF" "$rc" <<'PY'
 import json
@@ -77,6 +78,7 @@ summary = {
 summary["pass"] = summary["returncode"] == 0
 summary["gate_log"] = str(iter_dir / "gate.log")
 summary["jtag_status"] = str(iter_dir / "pcie-jtag-status.json")
+summary["app_status"] = str(iter_dir / "pcie-app-status.json")
 (iter_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
 PY
   if [[ "$rc" -ne 0 ]]; then

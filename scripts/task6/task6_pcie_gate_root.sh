@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ALLOWED_BDF="${TASK6_PCIE_ALLOWED_BDF:-0000:42:00.0}"
+BRIDGE_BDF="${TASK6_PCIE_BRIDGE_BDF:-0000:41:00.0}"
 LIBEXEC_DIR="${TASK6_PCIE_LIBEXEC_DIR:-/usr/local/libexec/task6-pcie}"
 
 usage() {
@@ -32,6 +33,27 @@ fi
 
 command_value() {
   setpci -s "$BDF" COMMAND
+}
+
+hot_reset_bridge() {
+  local before asserted restored
+  echo "hot-resetting downstream bridge $BRIDGE_BDF"
+  before="$(setpci -s "$BRIDGE_BDF" BRIDGE_CONTROL)"
+  asserted="$(printf "%04x" "$((0x$before | 0x0040))")"
+  setpci -s "$BRIDGE_BDF" "BRIDGE_CONTROL=$asserted"
+  sleep 1
+  restored="$(printf "%04x" "$((0x$before & ~0x0040))")"
+  setpci -s "$BRIDGE_BDF" "BRIDGE_CONTROL=$restored"
+  sleep 2
+}
+
+dump_failure_context() {
+  lspci -Dnn -s "$BDF" || true
+  lspci -vv -s "$BDF" || true
+  echo "PCI tree:"
+  lspci -Dtv || true
+  echo "Bridge detail:"
+  lspci -Dnnvvv -s "$BRIDGE_BDF" || true
 }
 
 enable_memory_space() {
@@ -73,9 +95,8 @@ wait_for_endpoint() {
 
   if [[ -z "$endpoint" ]]; then
     echo "FAIL: no valid endpoint at $BDF after remove/rescan"
-    lspci -Dnn -s "$BDF" || true
-    lspci -vv -s "$BDF" || true
-    exit 1
+    dump_failure_context
+    return 1
   fi
   if ! grep -q '\[10ee:0480\]' <<<"$endpoint"; then
     echo "error: endpoint is not the expected Xilinx 10ee:0480 device: $endpoint" >&2
@@ -99,7 +120,12 @@ prepare_endpoint() {
   sleep 1
   echo "rescanning PCI bus"
   echo 1 >/sys/bus/pci/rescan
-  wait_for_endpoint
+  if ! wait_for_endpoint; then
+    hot_reset_bridge
+    echo "rescanning PCI bus after bridge hot reset"
+    echo 1 >/sys/bus/pci/rescan
+    wait_for_endpoint || exit 1
+  fi
   enable_memory_space
 }
 

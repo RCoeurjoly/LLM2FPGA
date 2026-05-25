@@ -279,6 +279,7 @@ EOF
               ${source}/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v \
               ${source}/src/aximm-minimal/pcie_7x_top_aximm.v \
               ${./fpga/rtl/task6_pcie_jtag_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
               ${axilMinimumSource}
             hierarchy -top pcie_7x_top_aximm_ypcb_480t
             synth_xilinx -flatten -abc9 -arch xc7 -nosrl -top pcie_7x_top_aximm_ypcb_480t

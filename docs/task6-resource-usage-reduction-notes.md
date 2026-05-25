@@ -23868,3 +23868,29 @@ Next gate:
 1. Build and program `.#task6-ypcb-pcie7x-command-header-bitstream`.
 2. Run `scripts/task6/task6_pcie_autonomous_gate.sh command-header 0000:42:00.0`.
 3. If header passes, add the echo/doorbell/full RTL rungs one at a time; if it returns all ones, capture post-MMIO JTAG status and compare this exact header RTL against Vivado as the oracle.
+
+### 2026-05-25 - PCIe command-header app-path diagnostics
+
+Evidence from the OpenXC7 command-header rung:
+
+- `task6-ypcb-pcie7x-command-header-bitstream` enumerated as `10ee:0480`, but BAR0 reads returned all ones.
+- USER1 PCIe status after the failing BAR access showed the endpoint was configured and linked: `user_lnk_up=true`, `pl_ltssm_state=22`, `cfg_bus_number=66`, and `cfg_command=0x0002`.
+- A new USER2 app-status scan chain was added around the AXI-lite BAR responder. In the failing command-header run it reported `magic_ok=true`, `rst_n=true`, and all AXI handshake counters at zero: `ar_count=0`, `r_count=0`, `aw_count=0`, `w_count=0`, `b_count=0`.
+
+Interpretation:
+
+- The host and PCIe hard block can enumerate the endpoint, but MMIO reads/writes are not reaching the custom AXI-lite responder in this image.
+- DDR3 and rowstream-over-PCIe remain blocked until a custom BAR responder rung receives AXI transactions and passes BAR smoke.
+
+Control follow-up:
+
+- Rebuilt the upstream-shaped OpenXC7 BAR smoke image as `/nix/store/ndx9l3hsy4wv3cw2p3651qvgcmwkc0zx-task6-ypcb-pcie7x-smoke-vivado-lane0-loc.bit` and programmed SRAM successfully (`done=1`).
+- A remove/rescan against the installed root helper then left no child endpoint under Thunderbolt bridge `0000:41:00.0`; USER1 still reported `user_lnk_up=true` and `pl_ltssm_state=22`, but `cfg_bus_number=0`.
+- The installed helper only removes `0000:42:00.0` and rescans. A repo-side update adds a downstream bridge hot-reset fallback for `0000:41:00.0`, but replacing `/usr/local/sbin/task6-pcie-gate` still requires one root-owned install step.
+
+Next gate:
+
+1. Install the updated `scripts/task6/task6_pcie_gate_root.sh` as `/usr/local/sbin/task6-pcie-gate`.
+2. Rerun the upstream smoke control with `scripts/task6/task6_pcie_autonomous_gate.sh bar 0000:42:00.0`.
+3. If upstream smoke recovers, continue with an exact upstream-copy custom responder before changing Task 6 header constants; if it does not recover, keep the boundary at Thunderbolt bridge reset/enumeration instead of PCIe BAR RTL.
+
