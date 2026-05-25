@@ -24458,3 +24458,26 @@ Added the first control-plane slice for the PCIe+DDR3+rowstream-top1 bitstream. 
 The CDC wrapper now transfers the hidden vector and start/clear pulses from the PCIe clock domain into the rowstream/controller clock domain, and returns top1 status/result counters to the BAR aperture. The combined PCIe+DDR3 loader top currently ties top1 result/status low until the DDR3 rowstream consumer is wired in; this keeps the route-reference loader path intact while making the next integration point explicit.
 
 Local verification: the focused `task6-pcie-rowstream-loader-ingress-sim-main` Verilator model builds and `./result/obj_dir/sim_main` passes. A narrow Verilator lint over `task6_pcie_axil_rowstream_loader_ingress.v` plus `task6_pcie_axil_rowstream_loader_ingress_cdc.v` also passes. While extending that test, fixed stale loader-status bit assertions in the testbench so it checks done/error/magic/accepted against the actual BAR status bits.
+
+
+### 2026-05-25 - DDR3 rowstream top1 consumer wiring
+
+Wired the top1 BAR aperture into a real DDR3-backed rowstream consumer for the combined PCIe+DDR3 loader top.
+
+Implementation notes:
+
+- Added `task6_ddr3_rowstream_wb_top1_reader`, a 128-bit Wishbone DDR3 row reader for packed 68-byte rows: 64 int8 weights plus the 4-byte sidecar containing the Q0.24 scale.
+- Connected the reader to the existing `task6_ddr3_rowstream_top1_cutout`, using the host-written 64-byte hidden vector from the PCIe BAR.
+- Added a DDR3 user-port mux so the top1 reader can own the DDR read path while the loader/read-probe path remains the default owner.
+- Replaced the previous top1 zero tie-offs with real sticky status and result registers: busy, done, error, token, Q0.24 score, rows scanned, and cycle count now return through the BAR regs added in `1628eb8`.
+- Loader command acceptance is blocked while the top1 reader is busy, avoiding concurrent use of the shared DDR user port.
+
+Verification passed:
+
+```bash
+nix build .#task6-ddr3-rowstream-wb-top1-reader-sim-main -L
+./result/obj_dir/sim_main
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-yosys-json -L
+```
+
+The reader simulation covers all four 68-byte row alignment phases on the 16-byte DDR beat interface and reports `PASS: task6 DDR3 rowstream WB top1 reader rows 8`. The combined PCIe+DDR3 Yosys JSON build completed, with the final Yosys `check` reporting 0 problems. This is a synthesis gate only; place/route and a board `rowstream-top1` host gate are still required before claiming the full Task 6 hardware acceptance result.

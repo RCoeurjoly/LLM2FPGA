@@ -53,6 +53,13 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
   wire [511:0] rowstream_top1_hidden_vector;
   wire rowstream_top1_start;
   wire rowstream_top1_status_clear;
+  wire rowstream_top1_busy;
+  wire rowstream_top1_done;
+  wire rowstream_top1_error;
+  wire [31:0] rowstream_top1_token;
+  wire [31:0] rowstream_top1_score_q024;
+  wire [31:0] rowstream_top1_rows_scanned;
+  wire [31:0] rowstream_top1_cycle_count;
 
   wire [3:0] pcie_led;
   assign led[0] = rowstream_boot_done;
@@ -155,13 +162,13 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .rowstream_top1_hidden_vector_o(rowstream_top1_hidden_vector),
     .rowstream_top1_start_o(rowstream_top1_start),
     .rowstream_top1_status_clear_o(rowstream_top1_status_clear),
-    .rowstream_top1_busy_i(1'b0),
-    .rowstream_top1_done_i(1'b0),
-    .rowstream_top1_error_i(1'b0),
-    .rowstream_top1_token_i(32'd0),
-    .rowstream_top1_score_q024_i(32'd0),
-    .rowstream_top1_rows_scanned_i(32'd0),
-    .rowstream_top1_cycle_count_i(32'd0)
+    .rowstream_top1_busy_i(rowstream_top1_busy),
+    .rowstream_top1_done_i(rowstream_top1_done),
+    .rowstream_top1_error_i(rowstream_top1_error),
+    .rowstream_top1_token_i(rowstream_top1_token),
+    .rowstream_top1_score_q024_i(rowstream_top1_score_q024),
+    .rowstream_top1_rows_scanned_i(rowstream_top1_rows_scanned),
+    .rowstream_top1_cycle_count_i(rowstream_top1_cycle_count)
   );
 
   task6_ypcb_uberddr3_bist_rowstream_loader_top #(
@@ -213,7 +220,17 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .pcie_loader_last_chunk_o(rowstream_loader_last_chunk),
     .pcie_loader_command_payload_addr_o(rowstream_loader_command_payload_addr),
     .pcie_loader_wait_cycles_o(rowstream_loader_wait_cycles),
-    .pcie_loader_read_data_o(rowstream_loader_read_data)
+    .pcie_loader_read_data_o(rowstream_loader_read_data),
+    .pcie_top1_hidden_vector_i(rowstream_top1_hidden_vector),
+    .pcie_top1_start_i(rowstream_top1_start),
+    .pcie_top1_status_clear_i(rowstream_top1_status_clear),
+    .pcie_top1_busy_o(rowstream_top1_busy),
+    .pcie_top1_done_o(rowstream_top1_done),
+    .pcie_top1_error_o(rowstream_top1_error),
+    .pcie_top1_token_o(rowstream_top1_token),
+    .pcie_top1_score_q024_o(rowstream_top1_score_q024),
+    .pcie_top1_rows_scanned_o(rowstream_top1_rows_scanned),
+    .pcie_top1_cycle_count_o(rowstream_top1_cycle_count)
   );
 endmodule
 

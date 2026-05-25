@@ -6041,6 +6041,9 @@ EOF
               ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
               ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} \
               ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress_cdc.v} \
+              ${./rtl/task6/task6_q024_topk_score_compare.sv} \
+              ${./rtl/task6/task6_ddr3_rowstream_top1_cutout.sv} \
+              ${./rtl/task6/task6_ddr3_rowstream_wb_top1_reader.sv} \
               ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv} \
               ${./fpga/rtl/task6_ypcb_pcie_uberddr3_rowstream_loader_top.sv}
             hierarchy -top task6_ypcb_pcie_uberddr3_rowstream_loader_top -check
@@ -8398,6 +8401,19 @@ EOF
               ${./rtl/task6/task6_ddr3_rowstream_mem_source.sv} \
               ${./rtl/task6/task6_ddr3_rowstream_top1_cutout.sv} \
               ${./sim/task6_ddr3_rowstream_top1_cutout_tb.sv}
+          '';
+
+        task6Ddr3RowstreamWbTop1ReaderSimMain =
+          pkgs.runCommand "task6-ddr3-rowstream-wb-top1-reader-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_ddr3_rowstream_wb_top1_reader_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_ddr3_rowstream_wb_top1_reader.sv} \
+              ${./sim/task6_ddr3_rowstream_wb_top1_reader_tb.sv}
           '';
 
         task6UberDdr3RowstreamLoaderContractSimMain =
@@ -11727,6 +11743,8 @@ EOF
             task6Ddr3RowStreamCutoutSimMain;
           task6-ddr3-row-stream-cutout-sv-sim =
             task6Ddr3RowStreamCutoutSvSim;
+          task6-ddr3-rowstream-wb-top1-reader-sim-main =
+            task6Ddr3RowstreamWbTop1ReaderSimMain;
           task6-uberddr3-rowstream-loader-contract-sim-main =
             task6UberDdr3RowstreamLoaderContractSimMain;
           task6-pcie-axil-rowstream-loopback-sim-main =
