@@ -23805,3 +23805,40 @@ Next root-only gate:
 ```sh
 sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
 ```
+
+
+### 2026-05-25 - Task 6 PCIe command bridge mem-backed responder revision
+
+Finding after the latched-address command bridge still returned all-ones:
+
+- The plain OpenXC7 smoke image uses upstream `axil_minimum.v`, whose BAR-visible storage is a 256-word distributed memory initialized to `0x12345678`.
+- To reduce the delta from that known-good responder, the Task 6 command bridge was rewritten to keep the upstream AXI-lite handshake/storage shape and place the Task 6 command semantics around it.
+
+Implementation:
+
+- `fpga/rtl/task6_pcie_axil_command_bridge.v` now uses a single-write-port distributed `mem[0:255]` for BAR-visible payload storage.
+- Magic/version/header and payload reads are exposed at the same offsets as before.
+- Doorbell writes copy payload words into small accepted-payload registers and increment an accepted-count register, avoiding multiple writes into the distributed memory in one cycle.
+- First build attempt with a multi-write memory doorbell copy failed in Yosys memory mapping; the committed version keeps only one memory write port and builds successfully.
+
+Build/program evidence:
+
+- Built bitstream:
+  `/nix/store/v1f5blblnfqdvdbnhk6yd3fhsq9srx59-task6-ypcb-pcie7x-command-bridge.bit`
+- Programmed SRAM with `openFPGALoader`; result `isc_done=1`, `init=1`, `done=1`.
+- Post-program USER1 PCIe status before host rescan:
+  - `magic_ok=true`
+  - `sys_rst_n=true`
+  - `pipe_mmcm_lock=true`
+  - `user_reset=false`
+  - `user_lnk_up=true`
+  - `pl_ltssm_state=22`
+  - `last_ltssm_state=22`
+  - `cfg_lstatus=4113`
+  - `cfg_bus_number=0`, `cfg_command=0` before enumeration/rescan
+
+Next root-only gate:
+
+```sh
+sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
+```
