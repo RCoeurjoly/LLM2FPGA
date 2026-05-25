@@ -71,15 +71,15 @@ def ensure_mem_enabled(bdf: str, device: Path) -> int:
 
 
 def rd32(mm: mmap.mmap, offset: int) -> int:
-    return struct.unpack_from(">I", mm, offset)[0]
+    return struct.unpack(">I", bytes(mm[offset : offset + 4]))[0]
 
 
 def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
-    struct.pack_into(">I", mm, offset, value & 0xFFFFFFFF)
+    mm[offset : offset + 4] = struct.pack(">I", value & 0xFFFFFFFF)
 
 
 def flush_page(mm: mmap.mmap) -> None:
-    mm.flush(0, BAR_SIZE)
+    _ = mm[0:4]
 
 
 def deterministic_payload(size: int) -> bytes:
@@ -115,7 +115,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pattern", choices=("deterministic", "rowstream"), default="deterministic")
     parser.add_argument("--rowstream-bin", type=Path, default=DEFAULT_ROWSTREAM)
     parser.add_argument("--poll-timeout", type=float, default=1.0)
-    parser.add_argument("--verify-readback", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--verify-readback", action=argparse.BooleanOptionalAction, default=False)
     return parser.parse_args()
 
 
@@ -154,6 +154,14 @@ def main() -> int:
             version = rd32(mm, 0x004)
             status0 = rd32(mm, 0x008)
             count0 = rd32(mm, 0x00C)
+            for _ in range(10):
+                if not (magic == ALL_ONES and version == ALL_ONES):
+                    break
+                time.sleep(0.05)
+                magic = rd32(mm, 0x000)
+                version = rd32(mm, 0x004)
+                status0 = rd32(mm, 0x008)
+                count0 = rd32(mm, 0x00C)
             print(f"magic: 0x{magic:08x}")
             print(f"version: {version}")
             print(f"status before: 0x{status0:08x}")

@@ -24089,3 +24089,44 @@ scripts/task6/task6_pcie_autonomous_gate.sh rowstream-loopback 0000:42:00.0 --ru
 ```
 
 If that passes, the next implementation rung is PCIe-to-DDR3 command ingress: make PCIe assemble the same rowstream loader commands currently driven through JTAG, so PCIe becomes the fast DDR3 loader while DDR3 remains the primary self-contained weight store.
+
+
+### 2026-05-25 - Rowstream loopback duplicate-write hardening
+
+Hardware follow-up on the rowstream loopback rung:
+
+- The first installed rowstream smoke sometimes read BAR0 as all-ones immediately after remove/rescan, while the simpler BAR header gate passed on the same endpoint state. The smoke now retries transient all-ones header reads and uses explicit byte-slice MMIO accesses.
+- After that change, the gate reached the loopback registers but observed every posted write twice: `written bytes=7680` for a `3840` byte payload, doubled byte-sum, xor cancellation, and `accepted_count=2`.
+- The AXI-lite responder now latches AW/W only on actual valid-ready handshakes and suppresses immediate identical duplicate writes so the BAR path is idempotent for replayed posted MMIO writes.
+- The Verilator testbench now holds AW/W valid for an extra cycle and intentionally duplicates count, checksum, payload, and doorbell writes; expected accepted count remains 1.
+- The userspace smoke no longer defaults to full payload readback from BAR0. Register-level checksum/first/last-word verification is the default because the full 3840-byte BAR readback path can hang userspace after the FPGA has already completed the doorbell.
+
+Verification performed:
+
+```text
+nix build .#task6-pcie-axil-rowstream-loopback-sim-main -L --no-link --print-out-paths
+/nix/store/dag3m7hsj9casam2ckm37h84b97hfh0h-task6-pcie-axil-rowstream-loopback-sim-main/obj_dir/sim_main
+nix build .#task6-ypcb-pcie7x-rowstream-loopback-bitstream -L --no-link --print-out-paths
+/home/roland/openFPGALoader/build/openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/rydcyibvh3h76bd6ygsq154nmic6sp5k-task6-ypcb-pcie7x-rowstream-loopback.bit
+sudo -n /usr/local/sbin/task6-pcie-gate bar 0000:42:00.0
+```
+
+Results:
+
+- Duplicate-write Verilator simulation passed.
+- Duplicate-write-hardened bitstream built: `/nix/store/rydcyibvh3h76bd6ygsq154nmic6sp5k-task6-ypcb-pcie7x-rowstream-loopback.bit`.
+- Programming reported `done=1`.
+- BAR header gate passed after remove/rescan: endpoint `10ee:0480`, BAR0 first word `T6PC`, version `2`.
+- A rowstream gate using the older installed helper reached the smoke process and consumed CPU without producing output, consistent with the old full-payload readback hang. Install the updated helper before rerunning the rowstream gate.
+
+Required install step before the next rowstream hardware gate:
+
+```bash
+sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_rowstream_loopback_smoke.py /usr/local/libexec/task6-pcie/task6_pcie_rowstream_loopback_smoke.py
+```
+
+Then run:
+
+```bash
+scripts/task6/task6_pcie_autonomous_gate.sh rowstream-loopback 0000:42:00.0 --run-dir artifacts/task6/pcie-bringup/2026-05-25-rowstream-loopback-idempotent-no-readback --repeat 1
+```

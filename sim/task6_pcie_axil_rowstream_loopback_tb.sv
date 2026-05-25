@@ -73,6 +73,8 @@ module task6_pcie_axil_rowstream_loopback_tb;
   endtask
 
   task automatic axil_write(input logic [31:0] addr, input logic [31:0] data);
+    bit aw_seen;
+    bit w_seen;
     begin
       @(negedge clk);
       awaddr = addr;
@@ -81,11 +83,16 @@ module task6_pcie_axil_rowstream_loopback_tb;
       awvalid = 1'b1;
       wvalid = 1'b1;
       bready = 1'b1;
-      while (awvalid || wvalid) begin
+      aw_seen = 1'b0;
+      w_seen = 1'b0;
+      while (!aw_seen || !w_seen) begin
         @(negedge clk);
-        if (awready) awvalid = 1'b0;
-        if (wready) wvalid = 1'b0;
+        if (awready) aw_seen = 1'b1;
+        if (wready) w_seen = 1'b1;
       end
+      @(negedge clk);
+      awvalid = 1'b0;
+      wvalid = 1'b0;
       while (!bvalid) @(negedge clk);
       check(bresp == 2'b00, "write response must be OKAY");
       @(negedge clk);
@@ -151,9 +158,14 @@ module task6_pcie_axil_rowstream_loopback_tb;
 
     axil_write(32'h008, 32'h1);
     axil_write(32'h010, payload_bytes[31:0]);
+    axil_write(32'h010, payload_bytes[31:0]);
     axil_write(32'h014, expected_sum);
-    for (int i = 0; i < words; i++)
+    axil_write(32'h014, expected_sum);
+    for (int i = 0; i < words; i++) begin
       axil_write(32'h100 + i * 4, payload_word(i));
+      axil_write(32'h100 + i * 4, payload_word(i));
+    end
+    axil_write(32'h018, 32'h1);
     axil_write(32'h018, 32'h1);
 
     axil_read(32'h008, value);

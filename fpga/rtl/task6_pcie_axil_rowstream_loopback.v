@@ -59,6 +59,10 @@ module axil_minimum(
     reg        done_q;
     reg        busy_q;
     reg        error_q;
+    reg        last_write_valid_q;
+    reg [9:0]  last_write_word_index_q;
+    reg [31:0] last_wdata_q;
+    reg [3:0]  last_wstrb_q;
 
     integer i;
 
@@ -141,13 +145,23 @@ module axil_minimum(
         error_q = 1'b0;
         awaddr_valid_q = 1'b0;
         wdata_valid_q = 1'b0;
+        last_write_valid_q = 1'b0;
+        last_write_word_index_q = 10'd0;
+        last_wdata_q = 32'd0;
+        last_wstrb_q = 4'd0;
     end
 
     wire write_ready = awaddr_valid_q && wdata_valid_q && !s_axi_bvalid;
+    wire aw_fire = s_axi_awready && s_axi_awvalid;
+    wire w_fire = s_axi_wready && s_axi_wvalid;
     wire [9:0] write_word_index = awaddr_q[11:2];
     wire [9:0] read_word_index = s_axi_araddr[11:2];
     wire payload_write = write_word_index >= PAYLOAD_WORD_BASE;
     wire [31:0] payload_byte_offset = {20'd0, write_word_index - PAYLOAD_WORD_BASE, 2'd0};
+    wire duplicate_write = last_write_valid_q &&
+        last_write_word_index_q == write_word_index &&
+        last_wdata_q == wdata_q &&
+        last_wstrb_q == wstrb_q;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -169,15 +183,19 @@ module axil_minimum(
             done_q <= 1'b0;
             busy_q <= 1'b0;
             error_q <= 1'b0;
+            last_write_valid_q <= 1'b0;
+            last_write_word_index_q <= 10'd0;
+            last_wdata_q <= 32'd0;
+            last_wstrb_q <= 4'd0;
         end else begin
-            s_axi_awready <= !awaddr_valid_q;
-            s_axi_wready <= !wdata_valid_q;
+            s_axi_awready <= !awaddr_valid_q && !write_ready && !s_axi_bvalid;
+            s_axi_wready <= !wdata_valid_q && !write_ready && !s_axi_bvalid;
 
-            if (!awaddr_valid_q && s_axi_awvalid) begin
+            if (aw_fire) begin
                 awaddr_q <= s_axi_awaddr;
                 awaddr_valid_q <= 1'b1;
             end
-            if (!wdata_valid_q && s_axi_wvalid) begin
+            if (w_fire) begin
                 wdata_q <= s_axi_wdata;
                 wstrb_q <= s_axi_wstrb;
                 wdata_valid_q <= 1'b1;
@@ -188,8 +206,13 @@ module axil_minimum(
                 wdata_valid_q <= 1'b0;
                 s_axi_bvalid <= 1'b1;
                 s_axi_bresp <= 2'b00;
+                last_write_valid_q <= 1'b1;
+                last_write_word_index_q <= write_word_index;
+                last_wdata_q <= wdata_q;
+                last_wstrb_q <= wstrb_q;
 
-                if (write_word_index == 10'h002) begin
+                if (duplicate_write) begin
+                end else if (write_word_index == 10'h002) begin
                     if (wdata_q[0]) begin
                         done_q <= 1'b0;
                         error_q <= 1'b0;
