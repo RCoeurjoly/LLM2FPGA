@@ -23749,3 +23749,28 @@ Interpretation:
 - This is no longer a byte-order mismatch. All BAR header words reading `0xffffffff` means the MMIO read is not completing to the FPGA BAR at that moment, or the host has a stale endpoint/resource after remove/rescan.
 - Hardened `scripts/task6/task6_pcie_command_bridge_smoke.py` to retry the BAR header briefly after memory-space enable and then report persistent all-ones as a BAR non-response/stale-endpoint condition.
 - Next action is operational, not RTL: rerun the rescan gate once. If all-ones repeats, reprogram the same SRAM bitstream and run the rescan gate again before touching DDR3, rowstream, or command bridge RTL.
+
+
+### 2026-05-25 - Task 6 PCIe command bridge SRAM refresh after all-ones
+
+Action taken after repeated all-ones BAR reads:
+
+- Reprogrammed the same OpenXC7 command bridge SRAM bitstream:
+  `/nix/store/m8i5snbqn3skc0ylwgfxdv81i4y7aj48-task6-ypcb-pcie7x-command-bridge.bit`
+- `openFPGALoader` completed with `isc_done=1`, `init=1`, and `done=1`.
+- Post-program USER1 PCIe status is live:
+  - `magic_ok=true`
+  - `sys_rst_n=true`
+  - `pipe_mmcm_lock=true`
+  - `user_reset=false`
+  - `user_lnk_up=true`
+  - `pl_ltssm_state=22`
+  - `last_ltssm_state=22`
+  - `cfg_lstatus=4113`
+  - `cfg_bus_number=0`, `cfg_command=0` before the required host remove/rescan
+
+Next root-only gate remains:
+
+```sh
+sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
+```
