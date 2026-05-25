@@ -217,33 +217,68 @@
             set -euo pipefail
             cp -r ${pcie7x} "$out"
             chmod -R u+w "$out"
-            perl -0pi -e 's/\.GTREFCLK0\s*\(PIPE_CLK\),\s*\/\/ IBUFDS_GTE2 output/.GTREFCLK0                      (PCIE_PLL_SEL == "QPLL" ? PIPE_CLK : 1\x27b0), \/\/ IBUFDS_GTE2 output/' "$out/src/pipe_wrapper_gtx.v"
-            perl -0pi -e 's/(\.PCIE_GT_DEVICE\s*\( GT_DEVICE \),\n)/$1  .PCIE_PLL_SEL                   ( "QPLL" ),\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/set_property PACKAGE_PIN Y28 \[get_ports \{sys_rst_n\}\]/set_property PACKAGE_PIN Y26 [get_ports {sys_rst_n}]/' "$out/pcie_7x_ypcb_k480t.xdc"
+            perl -0pi -e 's/set_property IOSTANDARD LVCMOS33 \[get_ports \{sys_rst_n\}\]/set_property IOSTANDARD LVCMOS18 [get_ports {sys_rst_n}]/' "$out/pcie_7x_ypcb_k480t.xdc"
+            perl -0pi -e 's/set_property IOSTANDARD LVCMOS33 \[get_ports \{clk_50\}\]/set_property IOSTANDARD LVCMOS18 [get_ports {clk_50}]/' "$out/pcie_7x_ypcb_k480t.xdc"
+            perl -0pi -e 's/IOSTANDARD LVCMOS33 \[get_ports \{led\[/IOSTANDARD LVCMOS18 [get_ports {led[/g' "$out/pcie_7x_ypcb_k480t.xdc"
             perl -0pi -e 's/assign led = {3\x27b111, pipe_mmcm_lock};/assign led = {1\x27b1, ~pl_ltssm_state[5], ~pl_ltssm_state[4], ~pl_ltssm_state[3]};/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.NO_RESET\(1\)/.NO_RESET(0)/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
+            perl -0pi -e 's/\.ENABLE_GEN2\(1\)/.ENABLE_GEN2(0)/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
+            perl -0pi -e 's/(wire\s+\[2:0\]\s+cfg_function_number;\n)/$1  wire [15:0] cfg_status;\n  wire [15:0] cfg_command;\n  wire [15:0] cfg_dstatus;\n  wire [15:0] cfg_dcommand;\n  wire [15:0] cfg_lstatus;\n  wire [15:0] cfg_lcommand;\n  wire [15:0] cfg_dcommand2;\n  wire [2:0] cfg_pcie_link_state;\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.cfg_status\s*\( \),/.cfg_status                                ( cfg_status ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.cfg_command\s*\( \),/.cfg_command                               ( cfg_command ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.cfg_dstatus\s*\( \),/.cfg_dstatus                               ( cfg_dstatus ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.cfg_lstatus\s*\( \),/.cfg_lstatus                               ( cfg_lstatus ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.cfg_pcie_link_state\s*\( \),/.cfg_pcie_link_state                       ( cfg_pcie_link_state ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.cfg_dcommand\s*\( \),/.cfg_dcommand                              ( cfg_dcommand ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.cfg_lcommand\s*\( \),/.cfg_lcommand                              ( cfg_lcommand ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.cfg_dcommand2\s*\( \),/.cfg_dcommand2                             ( cfg_dcommand2 ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/(\.pipe_txoutclk_out\s*\( pipe_txoutclk_out \)\n\);)/$1\n\ntask6_pcie_jtag_status_shift #(.WIDTH(512), .JTAG_CHAIN(1)) task6_pcie_status_i (\n  .user_clk_i(user_clk),\n  .sys_rst_n_i(sys_rst_n_c),\n  .pipe_mmcm_lock_i(pipe_mmcm_lock),\n  .user_reset_i(user_reset_q),\n  .user_lnk_up_i(user_lnk_up_q),\n  .pl_ltssm_state_i(pl_ltssm_state),\n  .gt_reset_fsm_i(gt_reset_fsm),\n  .cfg_bus_number_i(cfg_bus_number),\n  .cfg_device_number_i(cfg_device_number),\n  .cfg_function_number_i(cfg_function_number),\n  .cfg_status_i(cfg_status),\n  .cfg_command_i(cfg_command),\n  .cfg_dstatus_i(cfg_dstatus),\n  .cfg_dcommand_i(cfg_dcommand),\n  .cfg_lstatus_i(cfg_lstatus),\n  .cfg_lcommand_i(cfg_lcommand),\n  .cfg_dcommand2_i(cfg_dcommand2),\n  .cfg_pcie_link_state_i(cfg_pcie_link_state)\n);/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
             perl -0pi -e 's/(\/\/assign led = cnt\[27:25\];\n)/$1wire pcie_led_unused;\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
             perl -0pi -e 's/\.led\(led\)/.led({pcie_led_unused, led})/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
           '';
 
+        task6Pcie7xSourceTxInvert =
+          pkgs.runCommand "task6-pcie7x-source-tx-invert" { nativeBuildInputs = [ pkgs.perl ]; } ''
+            set -euo pipefail
+            cp -r ${task6Pcie7xSource} "$out"
+            chmod -R u+w "$out"
+            perl -0pi -e "s/\\.TXPOLARITY\\s*\\(\\s*1'b0\\s*\\)/.TXPOLARITY                     ( 1'b1)/" "$out/src/pipe_wrapper_gtx.v"
+          '';
 
-        mkTask6YpcbPcie7xYosysJson = { name, axilMinimumSource }:
+        task6Pcie7xSourceVivadoLane0Loc =
+          pkgs.runCommand "task6-pcie7x-source-vivado-lane0-loc" {} ''
+            set -euo pipefail
+            cp -r ${task6Pcie7xSource} "$out"
+            chmod -R u+w "$out"
+            cat >> "$out/pcie_7x_ypcb_k480t.xdc" <<'EOF'
+# YPCB Vivado systest PCIe lane-0 placement reference.
+set_property LOC GTXE2_CHANNEL_X0Y23 [get_cells {pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.gtxe2_channel_i}]
+set_property LOC PCIE_X0Y0 [get_cells {pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.pcie_2_1_block}]
+EOF
+          '';
+
+
+        mkTask6YpcbPcie7xYosysJson = { name, axilMinimumSource, source ? task6Pcie7xSource }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
             read_verilog -sv \
-              ${task6Pcie7xSource}/src/xilinx_pcie_mmcm.v \
-              ${task6Pcie7xSource}/src/axil_to_al.v \
-              ${task6Pcie7xSource}/src/axis_pcie_to_al_us.v \
-              ${task6Pcie7xSource}/src/pcie_7x.v \
-              ${task6Pcie7xSource}/src/pcie_axi_rx.v \
-              ${task6Pcie7xSource}/src/pcie_axi_tx.v \
-              ${task6Pcie7xSource}/src/pcie_block.v \
-              ${task6Pcie7xSource}/src/pcie_brams.v \
-              ${task6Pcie7xSource}/src/pcie_tx_thrtl_ctl.v \
-              ${task6Pcie7xSource}/src/pipe_wrapper_gtx.v \
-              ${task6Pcie7xSource}/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v \
-              ${task6Pcie7xSource}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${source}/src/xilinx_pcie_mmcm.v \
+              ${source}/src/axil_to_al.v \
+              ${source}/src/axis_pcie_to_al_us.v \
+              ${source}/src/pcie_7x.v \
+              ${source}/src/pcie_axi_rx.v \
+              ${source}/src/pcie_axi_tx.v \
+              ${source}/src/pcie_block.v \
+              ${source}/src/pcie_brams.v \
+              ${source}/src/pcie_tx_thrtl_ctl.v \
+              ${source}/src/pipe_wrapper_gtx.v \
+              ${source}/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v \
+              ${source}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${./fpga/rtl/task6_pcie_jtag_status_shift.v} \
               ${axilMinimumSource}
             hierarchy -top pcie_7x_top_aximm_ypcb_480t
             synth_xilinx -flatten -abc9 -arch xc7 -nosrl -top pcie_7x_top_aximm_ypcb_480t
@@ -256,6 +291,18 @@
         task6YpcbPcie7xSmokeYosysJson = mkTask6YpcbPcie7xYosysJson {
           name = "task6-ypcb-pcie7x-smoke-yosys.json";
           axilMinimumSource = "${task6Pcie7xSource}/src/aximm-minimal/axil_minimum.v";
+        };
+
+        task6YpcbPcie7xSmokeTxInvertYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-smoke-tx-invert-yosys.json";
+          source = task6Pcie7xSourceTxInvert;
+          axilMinimumSource = "${task6Pcie7xSourceTxInvert}/src/aximm-minimal/axil_minimum.v";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-yosys.json";
+          source = task6Pcie7xSourceVivadoLane0Loc;
+          axilMinimumSource = "${task6Pcie7xSourceVivadoLane0Loc}/src/aximm-minimal/axil_minimum.v";
         };
 
         task6YpcbPcie7xCommandBridgeYosysJson = mkTask6YpcbPcie7xYosysJson {
@@ -5800,6 +5847,34 @@
           name = "task6-ypcb-pcie7x-smoke";
           fasm = task6YpcbPcie7xSmokeFasm;
           framesBase = "task6-ypcb-pcie7x-smoke";
+        };
+
+        task6YpcbPcie7xSmokeTxInvertFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-smoke-tx-invert";
+          xdc = task6YpcbPcie7xXdc;
+          json = task6YpcbPcie7xSmokeTxInvertYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcie7xSmokeTxInvertBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-smoke-tx-invert";
+          fasm = task6YpcbPcie7xSmokeTxInvertFasm;
+          framesBase = "task6-ypcb-pcie7x-smoke-tx-invert";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc";
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcie7xSmokeVivadoLane0LocYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc";
+          fasm = task6YpcbPcie7xSmokeVivadoLane0LocFasm;
+          framesBase = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc";
         };
 
         task6YpcbPcie7xCommandBridgeFasm = mkFasm {
@@ -11476,10 +11551,22 @@
             task6YpcbUberDdr3ClockDisciplineReport;
           task6-pcie7x-source =
             task6Pcie7xSource;
+          task6-pcie7x-source-tx-invert =
+            task6Pcie7xSourceTxInvert;
+          task6-pcie7x-source-vivado-lane0-loc =
+            task6Pcie7xSourceVivadoLane0Loc;
           task6-ypcb-pcie7x-smoke-yosys-json =
             task6YpcbPcie7xSmokeYosysJson;
           task6-ypcb-pcie7x-smoke-bitstream =
             task6YpcbPcie7xSmokeBitstream;
+          task6-ypcb-pcie7x-smoke-tx-invert-yosys-json =
+            task6YpcbPcie7xSmokeTxInvertYosysJson;
+          task6-ypcb-pcie7x-smoke-tx-invert-bitstream =
+            task6YpcbPcie7xSmokeTxInvertBitstream;
+          task6-ypcb-pcie7x-smoke-vivado-lane0-loc-yosys-json =
+            task6YpcbPcie7xSmokeVivadoLane0LocYosysJson;
+          task6-ypcb-pcie7x-smoke-vivado-lane0-loc-bitstream =
+            task6YpcbPcie7xSmokeVivadoLane0LocBitstream;
           task6-ypcb-pcie7x-command-bridge-yosys-json =
             task6YpcbPcie7xCommandBridgeYosysJson;
           task6-ypcb-pcie7x-command-bridge-bitstream =

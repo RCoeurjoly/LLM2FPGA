@@ -22841,3 +22841,814 @@ Observed flash path:
 - `--verify` reported: `Verification passed for first 32 words`.
 
 Next gate: power-cycle or replug the FPGA/chassis so the FPGA boots the PCIe smoke design from flash before host PCIe enumeration, then run `boltctl` and `lspci -Dnn` to check whether the endpoint appears under the Thunderbolt downstream port.
+
+### 2026-05-25 - PCIe bring-up gate order after BPI flash programming
+
+Current evidence:
+
+- The OWC Helios Thunderbolt chassis enumerates.
+- The FPGA endpoint has not appeared after SRAM programming, BPI flash programming, chassis replug, or laptop reboot.
+- Vivado can build and program the YPCB `pcie_7x` smoke design.
+- OpenXC7 can now build a PCIe smoke bitstream, but endpoint enumeration is not proven.
+
+Decision:
+
+- Do not connect DDR3 or Task 6 rowstream transport to PCIe until plain Vivado endpoint enumeration and BAR0 access pass.
+- Treat Vivado only as an oracle for isolating board/chassis/reset/toolchain behavior; the deliverable path remains OpenXC7.
+- Keep PCIe as a parallel acceleration lane while the Task 6 DDR3/JTAG path continues.
+
+Gate order:
+
+1. Confirm flash boot and PCIe design liveness after chassis/board power-up.
+   - Record YPCB LEDs and DONE state before debugging PCIe further.
+   - If the FPGA did not configure from BPI flash, fix BPI/config-mode first.
+2. Run a minimal Vivado diagnostic matrix with top `pcie_7x_top_aximm_ypcb_480t`, part `xc7k480tffg1156-2`, and XDC `pcie_7x_ypcb_k480t.xdc`.
+   - First: Gen1-only, `NO_RESET=1`, x1, BAR0 4 KiB.
+   - Second: Gen1-only with external `sys_rst_n` instead of `NO_RESET=1`.
+   - Only after Gen1 works: Gen2-enabled.
+   - LEDs should expose active-low `pipe_mmcm_lock`, `user_lnk_up`, `user_reset`, and one stable config/status signal such as nonzero `cfg_bus_number`.
+   - Pass: `lspci -Dnn` shows a Xilinx/FPGA endpoint under the Helios tree.
+3. Capture the Thunderbolt downstream slot state with `scripts/task6/task6_pcie_bringup_probe.sh`.
+   - Default downstream port BDF is `0000:41:00.0`.
+   - The helper records `boltctl`, `lspci -Dnn`, `lspci -tv`, unprivileged `lspci -vvv -s <port>`, and best-effort filtered kernel journal output.
+   - If the port reports `PresDet+` and a trained link but no endpoint, focus on endpoint config-space/TLP/PCIe hard-block behavior.
+   - If the port reports no presence or no link, focus on reset, refclk, lane pins, flash boot state, and chassis behavior.
+4. Validate physical assumptions before more RTL.
+   - Confirm `pcie_7x_ypcb_k480t.xdc` lane pins match actual YPCB slot wiring.
+   - Confirm 100 MHz PCIe refclk reaches `sys_clk_p/n`.
+   - Confirm PERST#/`sys_rst_n` polarity and timing.
+   - Compare against Gu Yimin known-working YPCB setup if available: board revision, chassis/host, reset mode, Gen1/Gen2, and flash/SRAM boot method.
+5. Once Vivado endpoint enumeration passes, prove BAR0 access.
+   - Enable memory space with `sudo setpci -s <BDF> COMMAND=0x02`.
+   - Run `scripts/task6/task6_pcie_bar_smoke.sh <BDF>`.
+   - Minimum pass: BAR0 read/write smoke works; upstream smoke is expected to show a repeated `0x12345678` pattern before write/readback.
+6. Only then return to OpenXC7.
+   - Rebuild `task6-ypcb-pcie7x-smoke-bitstream` with the Vivado-passing RTL shape.
+   - Keep OpenXC7 seed `15` and `--no-tmdriv`.
+   - Pass: OpenXC7 endpoint enumerates and BAR smoke matches Vivado.
+7. Only after smoke passes, build `task6-ypcb-pcie7x-command-bridge-bitstream`.
+   - Prove command BAR echo: magic `0x54365043`, version `1`, payload write, doorbell, accepted-count increment.
+   - Then map PCIe packet upload onto the existing rowstream loader path.
+   - Keep DDR3 acceptance unchanged: BIST_MODE=2 first, packet load, sampled same-process postread, fresh-process no-preload readback, and no retries for inference-time read evidence.
+
+Test gates:
+
+| gate | pass condition |
+| --- | --- |
+| A | FPGA boots the Vivado PCIe smoke design from BPI flash |
+| B | Vivado Gen1-only smoke enumerates after chassis power/replug |
+| C | BAR0 read/write smoke passes |
+| D | OpenXC7 reproduces Vivado enumeration and BAR smoke |
+| E | Task 6 command bridge BAR echo passes |
+| F | PCIe rowstream upload passes the same DDR3 integrity gates as the JTAG path |
+
+### 2026-05-25 - No-sudo PCIe autonomous loop result
+
+Implementation:
+
+- Added `scripts/task6/task6_pcie_autoloop.sh`, an unprivileged feedback loop that captures `boltctl`, `lspci -Dnn`, `lspci -tv`, `lspci -vvv -s <port>`, best-effort kernel journal lines, optional `openFPGALoader --detect`, and diffs against the previous iteration.
+- Updated `scripts/task6/task6_pcie_bringup_probe.sh` to avoid `sudo` entirely.
+- Endpoint detection now requires `Xilinx` or a Xilinx vendor-id style `[10ee:` match to avoid false positives from PCI class code `[0480]`.
+
+Run:
+
+- `artifacts/task6/runs/2026-05-25T10-21-36+0200-pcie-autoloop-nosudo`
+- Command: `scripts/task6/task6_pcie_autoloop.sh --iterations 12 --interval 5 --run-dir artifacts/task6/runs/2026-05-25T10-21-36+0200-pcie-autoloop-nosudo`
+- Sudo/input: none.
+
+Result:
+
+- All 12 iterations reported `no-endpoint`; no Xilinx/`[10ee:` endpoint appeared in `lspci -Dnn`.
+- `boltctl` continued to report the OWC Helios 5S as authorized and connected at USB4 40 Gb/s.
+- The downstream bridge `0000:41:00.0` remained present with secondary bus `42`, but unprivileged `lspci -Dnn` listed no device on bus `42`.
+- Unprivileged `openFPGALoader --detect` still saw the FPGA JTAG chain as `xc7k480t`, IDCODE `0x23751093`, so the board/JTAG path is alive while PCIe endpoint enumeration is absent.
+- No PCI topology or `boltctl` diffs appeared during the loop.
+
+Current interpretation:
+
+- Under the no-sudo constraint, the host/chassis state is stable and the FPGA is reachable over JTAG, but the endpoint still does not enumerate.
+- The autonomous loop is now the default feedback mechanism for PCIe enumeration checks; use `--iterations 0` for an indefinite no-input watch and `--bitstream <path> --program-once` if SRAM reprogramming should be part of the loop.
+
+
+### 2026-05-25 - OpenXC7 Gen1 PCIe JTAG-status diagnostic execution
+
+Implementation:
+
+- Added `fpga/rtl/task6_pcie_jtag_status_shift.v`, a USER1 BSCANE2 status shifter for the PCIe smoke design.
+- Added `scripts/task6/read_pcie_jtag_status.py` to read and decode the PCIe status payload without sudo.
+- Patched the OpenXC7 PCIe smoke source path to force Gen1 (`.ENABLE_GEN2(0)`) and expose PCIe hard-block/config/status signals through the JTAG status payload.
+- Updated `scripts/task6/task6_pcie_autoloop.sh` so each iteration captures the decoded PCIe JTAG status by default.
+
+Build/program:
+
+- Built `.#task6-ypcb-pcie7x-smoke-yosys-json` successfully with one `PCIE_2_1` and one `BSCANE2` instance.
+- Built `.#task6-ypcb-pcie7x-smoke-bitstream` successfully; bitstream path: `/nix/store/q0sv9z5sfwr2jpp9dlfjvp1dcvg2s3s2-task6-ypcb-pcie7x-smoke.bit`.
+- Programmed SRAM with `openFPGALoader`; final status reported `done 1`.
+
+Run:
+
+- `artifacts/task6/runs/2026-05-25T10-45-00+0200-pcie-gen1-jtagdiag-nosudo`
+- Command: `scripts/task6/task6_pcie_autoloop.sh --iterations 12 --interval 5 --run-dir artifacts/task6/runs/2026-05-25T10-45-00+0200-pcie-gen1-jtagdiag-nosudo`
+- Sudo/input: none.
+
+Result:
+
+- All 12 iterations reported `no-endpoint`; `lspci -Dnn` listed the Helios/Barlow Ridge bridge tree but no Xilinx/`[10ee:` endpoint on bus `42`.
+- Final JTAG detect still saw the FPGA as `xc7k480t`, IDCODE `0x23751093`.
+- PCIe JTAG status read succeeded with magic `0x54365049` (`T6PI`) and version `1`, proving the programmed OpenXC7 diagnostic image is alive and readable over USER1 JTAG.
+- Final decoded PCIe status: `sys_rst_n=true`, `pipe_mmcm_lock=true`, `user_reset=false`, `user_lnk_up=false`, `pl_ltssm_state=0`, `cfg_pcie_link_state=0`, `cfg_bus_number=0`, `cfg_command=0x0000`, `cfg_lstatus=0x1000`, `gt_reset_fsm=2`, `link_up_seen_count=0`.
+- `user_clk_count` advanced between reads, so the PCIe user clock domain is running.
+
+Current interpretation:
+
+- This is no longer an FPGA-configuration or JTAG-observability problem for the OpenXC7 diagnostic image.
+- The hard block sees reset released and the PIPE MMCM locked, but it never reports `user_lnk_up`, never sees a nonzero bus number, and records zero link-up samples.
+- Under the no-sudo/no-user-input constraint, the next autonomous loop should stay at the physical/link-training boundary: external reset/PERST# behavior, refclk quality/presence at the FPGA pins, lane polarity/pinout, and whether the Thunderbolt downstream port asserts slot presence/link for this board.
+- Do not proceed to BAR smoke, command bridge, DDR3, or rowstream-over-PCIe until a plain endpoint enumerates.
+
+### 2026-05-25 - Physical/link-training boundary probe
+
+Implementation:
+
+- Added `scripts/task6/task6_pcie_physical_link_probe.py`, a no-sudo probe for the PCIe physical/link-training boundary.
+- The probe records `boltctl`, `lspci -Dnn`, `lspci -tv`, per-port unprivileged `lspci -vvv`, sysfs PCIe link fields, AER counters, the generated `pcie_7x_ypcb_k480t.xdc` pin map, and the FPGA USER1 PCIe JTAG status.
+
+Run:
+
+- `artifacts/task6/runs/2026-05-25T11-05-00+0200-pcie-physical-link-probe`
+- Command: `scripts/task6/task6_pcie_physical_link_probe.py --run-dir artifacts/task6/runs/2026-05-25T11-05-00+0200-pcie-physical-link-probe`
+- Sudo/input: none.
+
+Generated XDC pin audit:
+
+| signal | package pin | notes |
+| --- | --- | --- |
+| `sys_clk_p` | `J8` | 100 MHz PCIe refclk input |
+| `sys_clk_n` | `J7` | 100 MHz PCIe refclk input |
+| `pci_exp_rxp` | `H6` | endpoint RX from slot TX |
+| `pci_exp_rxn` | `H5` | endpoint RX from slot TX |
+| `pci_exp_txp` | `F2` | endpoint TX to slot RX |
+| `pci_exp_txn` | `F1` | endpoint TX to slot RX |
+| `sys_rst_n` | `Y28` | `LVCMOS33`, pullup enabled |
+
+Host/chassis result:
+
+- Thunderbolt/Barlow Ridge bridge tree remained present.
+- `0000:41:00.0` had `secondary_bus_number=66` (`0x42`) and `subordinate_bus_number=66`, matching the empty bus `42` shown by `lspci -tv`.
+- `0000:41:00.0` sysfs reported `current_link_speed=2.5 GT/s PCIe`, `current_link_width=1`, `max_link_speed=16.0 GT/s PCIe`, `max_link_width=4`, `power_state=D0`, and `reset_method=bus`.
+- Sysfs AER counters for the Thunderbolt ports were all zero in this capture: no correctable, nonfatal, or fatal errors were recorded.
+- Unprivileged `lspci -vvv` still cannot read the port capability block (`Capabilities: <access denied>`), so slot presence bits such as `PresDet+` are not available without privilege. Sysfs link fields are the no-sudo substitute.
+
+FPGA-side result:
+
+- USER1 PCIe JTAG status remained readable with magic `0x54365049` and version `1`.
+- FPGA status: `sys_rst_n=true`, `pipe_mmcm_lock=true`, `user_reset=false`, `user_lnk_up=false`, `pl_ltssm_state=0`, `cfg_pcie_link_state=0`, `cfg_bus_number=0`, `cfg_command=0x0000`, `cfg_lstatus=0x1000`, `gt_reset_fsm=2`, `link_up_seen_count=0`.
+- `user_clk_count` advanced, so the diagnostic image and PCIe user clock domain remained live.
+
+Interpretation:
+
+- Refclk presence is strongly supported by `pipe_mmcm_lock=true` and an advancing PCIe user clock counter; this does not prove analog refclk quality, but it rules out a fully missing refclk at the FPGA logic boundary.
+- PERST#/`sys_rst_n` is released at the FPGA input during the capture; this does not prove host reset timing at power-up, but it rules out a currently asserted reset.
+- The host-side downstream port reports a Gen1 x1 link while the FPGA hard block reports no `user_lnk_up`, no LTSSM progress, and no nonzero bus number. That makes the next likely boundary lane mapping/polarity, board/chassis slot wiring, or `pcie_7x` GT-wrapper/hard-block integration rather than BAR/DDR3 logic.
+- Continue to block BAR smoke, command bridge, and rowstream-over-PCIe until a plain endpoint enumerates.
+
+Next no-sudo actions:
+
+1. Keep using `scripts/task6/task6_pcie_physical_link_probe.py` as the physical/link snapshot before and after any chassis/board reset event.
+2. Add an OpenXC7 matrix for lane polarity/pin mapping only if the YPCB schematic or known-working setup cannot confirm the current XDC: current XDC is `RX H6/H5`, `TX F2/F1`, refclk `J8/J7`, reset `Y28`.
+3. If privilege becomes available later, collect `lspci -vvv -s 0000:41:00.0` with capabilities to verify `PresDet`, data-link-layer active, and slot/link status bits directly.
+
+### 2026-05-25 - Lane polarity and pcie_7x GT-wrapper matrix
+
+Implementation:
+
+- Audited the `pcie_7x` GT-wrapper polarity path.
+- `pcie_block.v` drives `PIPERX0POLARITY` from the PCIe hard block, and `pcie_7x.v` passes that into the GTX wrapper as `PIPE_RXPOLARITY`.
+- `pipe_wrapper_gtx.v` connects `.RXPOLARITY(PIPE_RXPOLARITY[0])`, so RX polarity is already delegated to the PCIe hard block.
+- `pipe_wrapper_gtx.v` hard-tied `.TXPOLARITY(1'b0)`, so TX polarity was the one actionable polarity matrix point under OpenXC7.
+- Added separate Nix outputs for a TX-polarity-inverted smoke build without changing the default smoke build:
+  - `.#task6-pcie7x-source-tx-invert`
+  - `.#task6-ypcb-pcie7x-smoke-tx-invert-yosys-json`
+  - `.#task6-ypcb-pcie7x-smoke-tx-invert-bitstream`
+
+Build/program:
+
+- Verified the source variant changes only the GTX wrapper TX polarity: `.TXPOLARITY(1'b1)` while `.RXPOLARITY(PIPE_RXPOLARITY[0])` remains unchanged.
+- Built `.#task6-ypcb-pcie7x-smoke-tx-invert-bitstream` successfully; bitstream path: `/nix/store/w85imdhr422zi1ncd0fimyjhj735wh34-task6-ypcb-pcie7x-smoke-tx-invert.bit`.
+- Programmed SRAM with `openFPGALoader`; final status reported `done 1`.
+
+Runs:
+
+- Physical snapshot: `artifacts/task6/runs/2026-05-25T11-35-00+0200-pcie-tx-invert-physical-link-probe`
+- Enumeration loop: `artifacts/task6/runs/2026-05-25T11-36-00+0200-pcie-tx-invert-autoloop-nosudo`
+- Sudo/input: none.
+
+TX-invert result:
+
+- Physical probe still showed `0000:41:00.0` at `current_link_speed=2.5 GT/s PCIe`, `current_link_width=1`, with AER totals still zero.
+- FPGA PCIe JTAG status remained readable and live: `magic_ok=true`, `sys_rst_n=true`, `pipe_mmcm_lock=true`, `user_reset=false`.
+- FPGA link status did not improve: `user_lnk_up=false`, `pl_ltssm_state=0`, `cfg_pcie_link_state=0`, `cfg_bus_number=0`, `link_up_seen_count=0`.
+- Six autonomous loop iterations all reported `no-endpoint`.
+
+Interpretation:
+
+- A simple TX differential polarity inversion is not the missing piece.
+- A simple RX polarity issue is less likely because the hard block already drives the GTX `RXPOLARITY` input through `PIPERX0POLARITY`.
+- The remaining likely boundary is now narrower: actual YPCB slot lane wiring versus the active XDC (`RX H6/H5`, `TX F2/F1`), or a `pcie_7x` GTX/PCIe hard-block integration mismatch in OpenXC7/Vivado assumptions.
+- Since the host-side downstream port reports Gen1 x1 but the FPGA-side LTSSM remains at 0, do not advance to BAR or PCIe transport work.
+
+Next autonomous step:
+
+- Build a Vivado/OpenXC7 source-shape comparison focused on the GTX wrapper and hard-block parameters, plus a static pin cross-check against the YPCB board files/schematic if available locally. If the known-working YPCB setup confirms a different lane/pin mapping, add only that mapping as the next bitstream matrix point.
+
+
+### 2026-05-25 - YPCB board-file reset correction and corrected-PERST# run
+
+Local board-file audit:
+
+- Board files used: `/home/roland/ypcb_00338_1p1_hack/ypcb003381p1/1.0/part0_pins.xml`, `/home/roland/ypcb_00338_1p1_hack/ypcb003381p1/1.0/board.xml`, and `/home/roland/ypcb_00338_1p1_hack/constraints/ypcb003381p1.xdc`.
+- OWC chassis reference: https://www.owc.com/solutions/mercury-helios-3s . The relevant host-side assumption is that this is a Thunderbolt PCIe expansion chassis with a PCIe slot, so the endpoint must first pass ordinary PCIe link training/enumeration before any Task 6 transport work matters.
+- The YPCB board files agree on PCIe lane 0 and refclk:
+  - `sys_clk_p` / `pcie_mgt_clkp`: `J8`
+  - `sys_clk_n` / `pcie_mgt_clkn`: `J7`
+  - `pci_exp_rxp` / `pcie_rx0_p`: `H6`
+  - `pci_exp_rxn` / `pcie_rx0_n`: `H5`
+  - `pci_exp_txp` / `pcie_tx0_p`: `F2`
+  - `pci_exp_txn` / `pcie_tx0_n`: `F1`
+- The active generated smoke XDC previously used `sys_rst_n=Y28` with `LVCMOS33`, but the YPCB files define PCIe PERST# as `pcie_perstn_rst` / `pcie_perstn` on `Y26` with `LVCMOS18`.
+- Updated the default `task6Pcie7xSource` generation in `flake.nix` to patch the copied `pcie_7x_ypcb_k480t.xdc` to `sys_rst_n=Y26`, `sys_rst_n LVCMOS18`, and matching `LVCMOS18` for `clk_50` and LEDs.
+
+Build/program:
+
+- `nix-instantiate --parse flake.nix` passed after the XDC patch.
+- `nix build .#task6-pcie7x-source --impure --print-out-paths` produced `/nix/store/mw9ph6i9nh6gw939g5bcsqj1h8149xdd-task6-pcie7x-source`; the generated XDC now reports `sys_rst_n` on `Y26`, `LVCMOS18`, with pullup enabled.
+- Built the corrected default smoke bitstream: `/nix/store/7iqa6cirk7i2cw9j2apd9zgp9gfllbn6-task6-ypcb-pcie7x-smoke.bit`.
+- Programmed SRAM with `openFPGALoader`; final status reported `done 1`.
+
+Runs:
+
+- Physical snapshot: `artifacts/task6/runs/2026-05-25T12-05-00+0200-pcie-correct-perst-physical-link-probe`
+- Enumeration loop: `artifacts/task6/runs/2026-05-25T12-06-00+0200-pcie-correct-perst-autoloop-nosudo`
+- Sudo/input: none.
+
+Corrected-PERST# result:
+
+- The physical probe's XDC audit now reports the expected YPCB mapping: refclk `J8/J7`, RX `H6/H5`, TX `F2/F1`, and `sys_rst_n=Y26 LVCMOS18`.
+- FPGA PCIe JTAG status remained readable with magic `0x54365049` and version `1`.
+- FPGA-side status after programming: `sys_rst_n=true`, `pipe_mmcm_lock=true`, `user_reset=false`, `user_lnk_up=false`, `pl_ltssm_state=0`, `cfg_pcie_link_state=0`, `cfg_bus_number=0`, `gt_reset_fsm=2`, `link_up_seen_count=0`; `user_clk_count` advanced.
+- Host-side `0000:41:00.0` still reported `current_link_speed=2.5 GT/s PCIe`, `current_link_width=1`, `max_link_speed=16.0 GT/s PCIe`, `max_link_width=4`, and zero captured AER error totals.
+- Twelve autonomous enumeration-loop iterations all reported `no-endpoint`.
+
+Interpretation:
+
+- The original active XDC reset pin was wrong for the supplied YPCB board files; that has now been fixed in the default smoke build path.
+- Correcting PERST# did not make the endpoint enumerate and did not move the FPGA LTSSM from 0.
+- The current no-sudo evidence now rules out the obvious static XDC mistakes for lane 0 pins, refclk pins, and the reset pin against the local YPCB board files.
+- The remaining boundary is narrower: actual chassis/slot wiring or adapter routing not represented by the board files, an analog/electrical lane/refclk issue, or a `pcie_7x` GTX/PCIe-hard-block integration mismatch. Continue to block BAR smoke, command bridge, and rowstream-over-PCIe until a plain endpoint leaves LTSSM 0 and enumerates.
+
+Next autonomous step:
+
+- Do a source-shape audit of the OpenXC7 `pcie_7x` GTX wrapper and hard-block parameters against the Vivado-generated expectations, then add only a targeted mapping/integration matrix point if the audit finds a concrete mismatch. The already-tested matrix points are default lane polarity, TX polarity inversion, and corrected YPCB PERST#.
+
+
+### 2026-05-25 - YPCB Vivado systest lane-0 placement matrix
+
+Static audit:
+
+- The local YPCB systest project includes a Vivado XDMA reference under `/home/roland/ypcb_00338_1p1_hack/examples/YPCB_00338_1P1_systest`.
+- Its board files still map PCIe lane 0 to TX `F2/F1`, RX `H6/H5`, refclk `J8/J7`, and PERST# `Y26`.
+- The board definition marks PCIe block location `X0Y0` for the `pci_express_x1` interface.
+- The systest top-level PCIe constraint `YPCB_00338_1P1_systest.srcs/constrs_1/new/pcie_port.xdc` constrains the XDMA lane-0 GTX channel to `GTXE2_CHANNEL_X0Y23` while using package pin `F2` for `pci_express_x8_txp[0]`.
+- The generated pcie_7x IP-local XDC also constrains the PCIe hard block to `PCIE_X0Y0`.
+
+Implementation:
+
+- Added a separate OpenXC7 matrix output rather than changing the default smoke build:
+  - `.#task6-pcie7x-source-vivado-lane0-loc`
+  - `.#task6-ypcb-pcie7x-smoke-vivado-lane0-loc-yosys-json`
+  - `.#task6-ypcb-pcie7x-smoke-vivado-lane0-loc-bitstream`
+- The variant appends these placement constraints to the corrected YPCB XDC:
+  - `GTXE2_CHANNEL_X0Y23` for `pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.gtxe2_channel_i`
+  - `PCIE_X0Y0` for `pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.pcie_2_1_block`
+- Verified the synthesized primitive cell names from the Yosys JSON before adding the constraints.
+
+Build/program:
+
+- `nix-instantiate --parse flake.nix` passed.
+- `nix build .#task6-pcie7x-source-vivado-lane0-loc --impure --print-out-paths` produced `/nix/store/g8n1wg1y9l9a8m26ix75iqh27qya4xay-task6-pcie7x-source-vivado-lane0-loc`.
+- Built `.#task6-ypcb-pcie7x-smoke-vivado-lane0-loc-bitstream`; bitstream path: `/nix/store/jlmp9wy3aymkzxhn5h25247wb05ywbnk-task6-ypcb-pcie7x-smoke-vivado-lane0-loc.bit`.
+- Programmed SRAM with `openFPGALoader`; final status reported `done 1`.
+
+Runs:
+
+- Physical snapshot: `artifacts/task6/runs/2026-05-25T12-26-00+0200-pcie-vivado-lane0-loc-physical-link-probe`
+- Enumeration loop: `artifacts/task6/runs/2026-05-25T12-27-00+0200-pcie-vivado-lane0-loc-autoloop-nosudo`
+- Sudo/input: none.
+
+Vivado lane-0 placement result:
+
+- Physical probe still showed the corrected YPCB XDC ports: refclk `J8/J7`, RX `H6/H5`, TX `F2/F1`, `sys_rst_n=Y26 LVCMOS18`.
+- FPGA PCIe JTAG status remained readable and live: `magic_ok=true`, `sys_rst_n=true`, `pipe_mmcm_lock=true`, `user_reset=false`.
+- FPGA link status did not improve: `user_lnk_up=false`, `pl_ltssm_state=0`, `cfg_pcie_link_state=0`, `cfg_bus_number=0`, `link_up_seen_count=0`.
+- Host-side `0000:41:00.0` still reported `current_link_speed=2.5 GT/s PCIe`, `current_link_width=1`.
+- Six autonomous loop iterations all reported `no-endpoint`.
+
+Interpretation:
+
+- Pin mapping, PERST# pin, TX polarity inversion, and the YPCB Vivado lane-0 GTX/PCIE placement reference have now all been tested under OpenXC7 without endpoint enumeration.
+- This makes a pure OpenXC7 placement-lane mismatch less likely for the x1 smoke design, assuming the local Vivado systest constraints are applicable to this board/chassis path.
+- The remaining boundary is now dominated by either chassis/adapter electrical behavior not captured in local files, analog refclk/lane quality, or a deeper `pcie_7x` GTX/hard-block integration mismatch. The next high-value oracle remains a Vivado-built minimal `pcie_7x` endpoint with the corrected `Y26` PERST# and the same lane-0/PCIE placement constraints.
+
+
+### 2026-05-25 - Vivado Y26 PERST# lane-0 oracle enumerates
+
+Implementation:
+
+- Added `scripts/task6/build_vivado_pcie_y26_lane0_oracle.tcl` and wrapper `scripts/task6/build_vivado_pcie_y26_lane0_oracle.sh`.
+- The TCL builds from `/home/roland/pcie_7x` without modifying that checkout by generating an overlay top and XDC under `artifacts/task6/vivado-pcie-y26-lane0-oracle/overlay`.
+- Overlay top settings:
+  - `pcie_7x_top_aximm_ypcb_480t`
+  - `NO_RESET=0`, so external `sys_rst_n` is used
+  - `ENABLE_GEN2=0`, Gen1-only
+  - `GT_DEVICE="GTX"`
+  - `CFG_DEV_ID=16'h0480`
+- Overlay XDC settings:
+  - refclk `J8/J7`
+  - lane 0 RX `H6/H5`, TX `F2/F1`
+  - PERST# / `sys_rst_n` `Y26`, `LVCMOS18`, pullup enabled
+  - LEDs and `clk_50` `LVCMOS18`
+  - lane placement `GTXE2_CHANNEL_X0Y23`
+  - PCIe hard block placement `PCIE_X0Y0`
+
+Build/program:
+
+- Built with Vivado 2025.2.1 from `/home/roland/Vivado/2025.2.1/Vivado/bin/vivado`.
+- Vivado elaboration confirmed `NO_RESET` bound to `0` and `ENABLE_GEN2` bound to `0`.
+- Placement, routing, DRC, and bitstream generation completed successfully.
+- Bitstream: `artifacts/task6/vivado-pcie-y26-lane0-oracle/ypcb_pcie_y26_lane0_oracle.bit`.
+- Programmed SRAM with `/home/roland/openFPGALoader/build/openFPGALoader`; final status reported `isc_done=1`, `init=1`, and `done=1`.
+
+Runs:
+
+- Enumeration loop: `artifacts/task6/runs/2026-05-25T12-47-00+0200-vivado-y26-lane0-oracle-autoloop-nosudo`
+- Physical snapshot: `artifacts/task6/runs/2026-05-25T12-48-00+0200-vivado-y26-lane0-oracle-physical-link-probe`
+- Sudo/input: none.
+
+Result:
+
+- Iteration 1 of the no-sudo loop reported `no-endpoint`.
+- Iteration 2 reported `endpoint-found: 0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]`.
+- `lspci -tv` showed the endpoint under the Helios/Thunderbolt path: `00:07.2-[40-7e] -> 40:00.0-[41-7e] -> 41:00.0-[42] -> 42:00.0`.
+- No-sudo endpoint details showed BAR0 present: `Region 0: Memory at 74000000 (32-bit, non-prefetchable) [disabled] [size=4K]`.
+- The physical snapshot still reports `0000:41:00.0` at `current_link_speed=2.5 GT/s PCIe`, `current_link_width=1`.
+- The physical probe's FPGA USER1 status fields are not meaningful for this Vivado image because the OpenXC7-only `task6_pcie_jtag_status_shift` module is not present; `magic_ok=false` is expected here.
+
+Interpretation:
+
+- Plain endpoint enumeration passes with Vivado when the smoke design uses the YPCB board-file PERST# pin (`Y26`), Gen1-only mode, and the local YPCB Vivado lane-0 placement reference.
+- This shifts the main failure boundary away from the OWC Helios chassis, YPCB lane-0 pinout, static PERST# pin assignment, and host hotplug timing. The OpenXC7 `pcie_7x` smoke shape still fails under equivalent static constraints, so the next isolation target is OpenXC7 modeling or the open-source GTX/PCIe hard-block wrapper semantics.
+- The next gated action is privileged BAR proof: enable memory space for `0000:42:00.0` and run the BAR smoke. This was not run because the current autonomous loop is no-sudo by user request.
+- Do not advance DDR3 or rowstream-over-PCIe until BAR0 read/write smoke passes on this Vivado oracle, then reproduce the same behavior with OpenXC7.
+
+
+### 2026-05-25 - Vivado BAR smoke blocked by root-only PCI sysfs
+
+Attempt:
+
+- The Vivado Y26 lane-0 oracle endpoint was still enumerated as `0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]`.
+- BAR0 was visible at `0x74000000`, 32-bit non-prefetchable, 4 KiB, but disabled because PCI command memory space was still `Mem-`.
+- Running `scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0` as the normal user did not reach BAR access:
+  - `setpci` could not open `/sys/bus/pci/devices/0000:42:00.0/config` for the needed command-register write.
+  - The external `pcimem` utility was not installed.
+- Host permissions confirm the remaining autonomous blocker:
+  - `/sys/bus/pci/devices/0000:42:00.0/config` is root-owned.
+  - `/sys/bus/pci/devices/0000:42:00.0/resource0` is root-only (`0600`).
+  - `sudo -n` fails with `sudo: a password is required`, so the session cannot perform privileged config/MMIO access without user/root action.
+
+Implementation:
+
+- Added `scripts/task6/task6_pcie_bar_smoke.py`, a small Linux sysfs BAR0 smoke helper that removes the `pcimem` dependency.
+- Updated `scripts/task6/task6_pcie_bar_smoke.sh` to delegate to the Python helper.
+- The helper still intentionally requires root because the host exposes PCI command-register writes and BAR0 MMIO through root-only sysfs nodes.
+
+Root command to run for Gate C:
+
+```bash
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+```
+
+Interpretation:
+
+- Vivado endpoint enumeration remains proven; this BAR attempt is blocked by local privilege/tooling, not by new PCIe transport evidence.
+- The BAR read/write gate is still Vivado-first. Do not treat OpenXC7 BAR, DDR3, or rowstream PCIe work as unblocked until this root-only Vivado BAR smoke passes.
+- OpenXC7 work can continue in parallel only on the enumeration mismatch, using the Vivado Y26 lane-0 oracle as the reference shape.
+
+
+### 2026-05-25 - Root BAR smoke still blocked by host PCI write policy
+
+User-run result:
+
+```text
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0000
+pcilib: sysfs_write: write failed: Operation not permitted
+COMMAND after:  0x0000
+PermissionError: [Errno 1] Operation not permitted
+```
+
+Follow-up host state:
+
+- `lspci -vv -s 0000:42:00.0` still reports `Control: I/O- Mem- BusMaster-`.
+- BAR0 remains `Memory at 74000000 ... [disabled] [size=4K]`.
+- `/sys/kernel/security/lockdown` reports `none [integrity] confidentiality`.
+- `/proc/cmdline` has no explicit lockdown override.
+
+Implementation update:
+
+- Hardened `scripts/task6/task6_pcie_bar_smoke.py` so it verifies the PCI command register before attempting BAR0 mmap.
+- The helper now tries the normal `setpci` config path first, then `setpci -H1` direct config access, and exits with a clear message if the memory-enable bit remains clear.
+
+Next command to retry under sudo:
+
+```bash
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+```
+
+Interpretation:
+
+- The previous mmap error was secondary: BAR0 cannot be mapped while PCI memory space remains disabled.
+- This is now a host privilege/policy boundary, not evidence that the Vivado endpoint or BAR decode is broken.
+- If the `setpci -H1` fallback is also rejected, the practical next host-side action is to run the BAR smoke from a boot/profile that allows PCI config writes and MMIO mapping, for example with kernel lockdown/Secure Boot restrictions disabled for this bring-up session.
+
+
+### 2026-05-25 - Direct PCI config fallback rejected; sysfs enable fallback added
+
+User-run result with direct config fallback:
+
+```text
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0000
+COMMAND memory-enable bit is still clear; trying setpci -H1
+direct config write failed:
+setpci: No permission to access I/O ports (you probably have to be root).
+COMMAND after:  0x0000
+PCI memory space is still disabled, so BAR0 cannot be mmapped. The host rejected both normal sysfs config access and any enabled fallback. Check kernel lockdown/Secure Boot policy or use a root environment that permits PCI config writes.
+```
+
+Follow-up:
+
+- Direct hardware config access (`setpci -H1`) is also blocked under sudo on this host.
+- The device sysfs `enable` count is currently `0`.
+- Updated `scripts/task6/task6_pcie_bar_smoke.py` to try a kernel-mediated `echo 1 > /sys/bus/pci/devices/<BDF>/enable` equivalent before the raw `setpci -H1` fallback.
+- This is less invasive than raw I/O config access because it asks the kernel PCI core to enable the device.
+
+Retry command:
+
+```bash
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+```
+
+Interpretation:
+
+- If sysfs `enable` turns `COMMAND` into `Mem+`, continue to BAR0 read/write in the same smoke run.
+- If sysfs `enable` is also rejected or leaves `COMMAND=0x0000`, the remaining Vivado BAR gate is blocked by host policy/lockdown rather than endpoint enumeration.
+
+
+### 2026-05-25 - Sysfs enable reaches Mem+; BAR mmap denied
+
+User-run result with sysfs enable fallback:
+
+```text
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0000
+COMMAND memory-enable bit is still clear; trying sysfs device enable
+sysfs enable count: 0 -> 1
+COMMAND after:  0x0002
+PermissionError: [Errno 1] Operation not permitted
+```
+
+Follow-up:
+
+- `lspci -vv -s 0000:42:00.0` now reports `Control: I/O- Mem+ BusMaster-`.
+- BAR0 is now enabled: `Region 0: Memory at 74000000 (32-bit, non-prefetchable) [size=4K]`.
+- This proves the kernel-mediated sysfs enable path can turn on PCI memory space even though raw config writes are blocked.
+- The remaining host-side failure is userspace BAR0 access: `mmap(resource0)` is denied under the current policy.
+
+Implementation update:
+
+- Updated `scripts/task6/task6_pcie_bar_smoke.py` to fall back from `mmap(resource0)` to `os.pread` / `os.pwrite` on `resource0`.
+- The next run will still prefer mmap, but if mmap is denied it will try direct file read/write before declaring host MMIO access blocked.
+
+Retry command:
+
+```bash
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+```
+
+Interpretation:
+
+- Vivado Gate B plus the PCI memory-enable part of Gate C now pass.
+- The remaining Gate C question is only whether this host policy permits BAR0 read/write through any sysfs resource0 path.
+
+
+### 2026-05-25 - Vivado BAR access blocked by host MMIO policy after Mem+
+
+User-run result after adding pread/pwrite fallback:
+
+```text
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0002
+COMMAND after:  0x0002
+BAR0 mmap denied: [Errno 1] Operation not permitted; trying pread/pwrite fallback
+BAR0 resource access failed after PCI memory space was enabled: [Errno 5] Input/output error. The host may allow PCI device enable but still block userspace MMIO access to resource0.
+```
+
+Final host state:
+
+- `lspci -vv -s 0000:42:00.0` reports `Control: I/O- Mem+ BusMaster-`.
+- BAR0 remains enabled at `Memory at 74000000 (32-bit, non-prefetchable) [size=4K]`.
+- `/sys/kernel/security/lockdown` remains `none [integrity] confidentiality`.
+
+Interpretation:
+
+- Vivado endpoint enumeration passes.
+- PCI memory-space enable now passes through the kernel-mediated sysfs `enable` path.
+- BAR0 userspace access remains blocked by host policy: `mmap(resource0)` is denied and `resource0` pread/pwrite returns `EIO`.
+- This is not evidence of a Vivado BAR decode failure. It is a host MMIO-access boundary.
+
+Next practical gate action:
+
+- Run the same Vivado BAR smoke from a boot/profile that allows userspace PCI BAR MMIO, for example with kernel lockdown/Secure Boot restrictions disabled for the bring-up session.
+- Keep OpenXC7 work scoped to the enumeration mismatch until a host profile can complete the Vivado BAR read/write gate.
+
+
+### 2026-05-25 - Local pcie_7x guidance relevant to BAR gate
+
+Checked `/home/roland/pcie_7x` for bring-up guidance after the Vivado endpoint reached `Mem+` but userspace BAR access was blocked.
+
+Relevant guidance from `Artix_7_PCIe.md`:
+
+- The documented BAR smoke expects the endpoint to show in `lspci`, then enables memory space with `setpci -s <BDF> COMMAND=0x02`, then uses `pcimem` to read/write BAR0.
+- The expected AXI-MM smoke value is the repeated `0x12345678` pattern from `axil_minimum.v`, with ASCII write/readback such as `abcdefgh` at BAR0 offset 0.
+- `remove` plus `rescan` is treated as a quick test only; reboot/cold boot is the safer path, especially after BAR-size changes.
+- The debug checklist says to prove code boot without JTAG / host reboot, Gen1 mode, reset deassertion, valid clocks, GT reset FSM progress, LTSSM progress, and `user_link_up`.
+
+Relevant guidance from `uSDR_Guide.md`:
+
+- Reprogram/remove/rescan can work but is not considered the fully correct PCIe debug path; reboot/cold boot is recommended when detection is unreliable.
+- Cold boot from flash is explicitly recommended for PCIe behavior validation.
+- Larger BAR sizes after a previous enumeration can cause host allocation errors such as `BAR0 cannot assign, no space`; keep BAR0 size stable during bring-up.
+
+Relevant guidance from `MSI_Interrupt.md` and `pcie_7x_msi/pcie_7x_msi.c`:
+
+- The repo includes a kernel-driver path for BAR access using `pci_enable_device()`, `pci_set_master()`, and `pci_iomap()`.
+- That path is for the MSI design and hardcodes device ID `0x9999`, while the current Vivado oracle enumerates as `10ee:0480`.
+- A small kernel BAR smoke module adapted to `10ee:0480` could test kernel-space `pci_iomap()` as an alternative to userspace `resource0`, but module loading may also be blocked while kernel lockdown is in `integrity` mode unless the module is signed/trusted or lockdown/Secure Boot is disabled.
+
+Local host check:
+
+- Kernel headers exist for the running kernel `6.17.0-29-generic` (`/lib/modules/$(uname -r)/build` exists), so building a local test module is feasible if we choose that route.
+- `/home/roland/pcie_7x/pcie_7x_msi/pcie_7x_msi.ko` is not currently built.
+
+Interpretation:
+
+- The local pcie_7x docs do not contradict the current conclusion: Vivado endpoint enumeration and `Mem+` are proven; BAR read/write is blocked by host access policy in the current boot profile.
+- The cleanest next gate remains disabling lockdown/Secure Boot and retrying the existing userspace BAR smoke.
+- A kernel BAR smoke driver is a possible fallback or cross-check, but under the current lockdown profile it is likely to hit module-signing or kernel lockdown restrictions and should not replace the simpler boot-profile fix.
+
+
+### 2026-05-25 - Secure Boot disabled; MMIO read now hangs endpoint path
+
+User-run result after disabling Secure Boot in UEFI:
+
+```text
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0000
+COMMAND after:  0x0002
+```
+
+Follow-up host state:
+
+- `/sys/kernel/security/lockdown` now reports `[none] integrity confidentiality`, so kernel lockdown is disabled.
+- `lspci -vv -s 0000:42:00.0` still reports `Control: I/O- Mem+ BusMaster-` and BAR0 enabled at `0x74000000`, 4 KiB.
+- The smoke process continued running after printing `COMMAND after`; `ps` showed the Python helper consuming CPU in the BAR access phase.
+- `dmesg` is still not readable by the current unprivileged automation (`read kernel buffer failed: Operation not permitted`), so host AER/completion-timeout logs require an interactive `sudo dmesg` if needed.
+
+Implementation update:
+
+- Updated `scripts/task6/task6_pcie_bar_smoke.py` so BAR0 access runs in a child process with a timeout (`--bar-timeout`, default 3 seconds).
+- The helper now probes only the first 32-bit word before attempting write/readback, and it kills the child probe if the BAR transaction does not complete.
+- This prevents a stuck MMIO read from hanging the whole bring-up loop.
+
+Interpretation:
+
+- Disabling Secure Boot removed the previous host lockdown/MMIO permission boundary.
+- Vivado endpoint enumeration, BAR allocation, and PCI memory enable all pass.
+- The new boundary is actual BAR0 completion: the first MMIO read appears to hang rather than returning the expected `0x12345678` pattern.
+- On the next retry, a timeout from the helper should be treated as a Vivado BAR/TLP completion failure unless root dmesg shows a host-side AER/reset event.
+
+
+### 2026-05-25 - Vivado BAR0 read/write smoke passes after Secure Boot disabled
+
+User-run result:
+
+```text
+sudo scripts/task6/task6_pcie_bar_smoke.sh 0000:42:00.0
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0002
+COMMAND after:  0x0002
+BAR0 first word via mmap:
+00000000  12 34 56 78                                      |.4Vx|
+BAR0 write/readback smoke:
+00000000  61 62 63 64 65 66 67 68 12 34 56 78 12 34 56 78  |abcdefgh.4Vx.4Vx|
+00000010  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+00000020  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+00000030  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+PASS: BAR0 write/readback matched
+```
+
+Result:
+
+- Vivado Gate B passes: the Y26 lane-0 Gen1 endpoint enumerates as `10ee:0480` under the OWC Helios path.
+- Vivado Gate C passes: BAR0 mmaps successfully, reads the expected repeated `0x12345678` smoke pattern, and write/readback of `abcdefgh` at offset 0 matches.
+- Host policy root cause is confirmed: Secure Boot/kernel lockdown was the blocker for userspace PCI BAR MMIO. With Secure Boot disabled, BAR0 access works.
+
+Interpretation:
+
+- The OWC Helios chassis, YPCB lane-0 wiring, PERST# pin/timing, PCIe refclk/link training, pcie_7x Vivado integration, and host BAR/MMIO path are all good enough for the minimal Vivado endpoint.
+- DDR3 and Task 6 PCIe rowstream work should still wait for the OpenXC7 version to reproduce this same enumeration and BAR0 smoke behavior.
+- The next gate is OpenXC7: rebuild/program the YPCB `pcie_7x` smoke shape matching the Vivado-passing oracle, then require `lspci` enumeration and the same BAR0 smoke pass before adding Task 6 command/rowstream transport.
+
+
+### 2026-05-25 - OpenXC7 Y26 lane-0 smoke still fails enumeration
+
+Implementation:
+
+- Corrected the OpenXC7 `task6-pcie7x-source` derivation so the YPCB top now uses `.NO_RESET(0)`, matching the Vivado-passing Y26 PERST# oracle.
+- Rebuilt the Vivado-lane0 OpenXC7 source and verified the generated top/XDC:
+  - `.NO_RESET(0)`
+  - `.ENABLE_GEN2(0)`
+  - `.GT_DEVICE("GTX")`
+  - `.CFG_DEV_ID(16'h0480)`
+  - BAR0 mask `32'hFFFFF000` (4 KiB)
+  - refclk `J8/J7`, RX `H6/H5`, TX `F2/F1`, PERST# `Y26 LVCMOS18`
+  - `GTXE2_CHANNEL_X0Y23` and `PCIE_X0Y0`
+- Built `.#task6-ypcb-pcie7x-smoke-vivado-lane0-loc-bitstream`.
+- Bitstream path: `/nix/store/rxfjkxfnxl4vqlk1wd3nwdx57g7c5j1s-task6-ypcb-pcie7x-smoke-vivado-lane0-loc.bit`.
+- Programmed SRAM with `/home/roland/openFPGALoader/build/openFPGALoader`; final status reported `isc_done=1`, `init=1`, and `done=1`.
+
+Post-program result:
+
+- Host still listed stale `0000:42:00.0 [10ee:0480]`, but `lspci -vv -s 0000:42:00.0` reported `!!! Unknown header type 7f`, so this is not a valid OpenXC7 endpoint enumeration pass.
+- OpenXC7 USER1 JTAG status was live (`magic_ok=true`) and showed:
+  - `sys_rst_n=true`
+  - `pipe_mmcm_lock=true`
+  - `user_reset=false`
+  - `user_lnk_up=false`
+  - `pl_ltssm_state=0`
+  - `cfg_bus_number=0`
+  - `cfg_command=0`
+  - `link_up_seen_count=0`
+  - `gt_reset_fsm=2`
+- Standard physical probe: `artifacts/task6/runs/2026-05-25T-openxc7-y26-lane0-after-program-physical-link-probe`.
+- Stricter autonomous loop: `artifacts/task6/runs/2026-05-25T-openxc7-y26-lane0-autoloop-nosudo`.
+- The stricter loop now rejects stale `Unknown header type 7f` entries and reported `no-endpoint` for all three iterations.
+
+Helper updates:
+
+- Updated `scripts/task6/task6_pcie_autoloop.sh` to reject stale endpoints whose detailed `lspci -vv` output contains `Unknown header type 7f`.
+- Added `scripts/task6/task6_pcie_rescan_bar_gate.sh`, a root-only one-shot gate that removes a stale BDF, rescans PCI, rejects invalid headers, and runs BAR smoke only if a valid endpoint appears.
+
+Next root command, if interactive sudo is available:
+
+```bash
+sudo scripts/task6/task6_pcie_rescan_bar_gate.sh 0000:42:00.0
+```
+
+Interpretation:
+
+- OpenXC7 does not yet reproduce the Vivado-passing endpoint with the same static reset/lane/placement shape.
+- The failure is before BAR access: the FPGA-side OpenXC7 status reports no link-up and LTSSM state 0, despite reset deasserted and PIPE MMCM locked.
+- Do not proceed to OpenXC7 BAR, DDR3, or Task 6 rowstream transport until OpenXC7 endpoint enumeration is real and the BAR0 smoke passes.
+
+
+### 2026-05-25 - OpenXC7 CPLL variant programmed; awaiting root rescan
+
+Post-rescan confirmation from user:
+
+```text
+sudo scripts/task6/task6_pcie_rescan_bar_gate.sh 0000:42:00.0
+PCIe rescan/BAR gate for 0000:42:00.0
+removing existing/stale 0000:42:00.0
+rescanning PCI bus
+FAIL: no valid endpoint at 0000:42:00.0 after remove/rescan
+```
+
+Follow-up after that failed rescan:
+
+- `lspci -Dnn -s 0000:42:00.0` returned no endpoint.
+- Lockdown remained disabled: `[none] integrity confidentiality`.
+- OpenXC7 USER1 status remained live for the QPLL-forced image, with `magic_ok=true`, `pipe_mmcm_lock=true`, but `user_lnk_up=false`, `pl_ltssm_state=0`, `cfg_bus_number=0`.
+
+CPLL correction:
+
+- The OpenXC7 source still had an extra `.PCIE_PLL_SEL("QPLL")` override that Vivado did not use.
+- Removed the QPLL override and regenerated the Vivado-lane0 OpenXC7 source so the GTX wrapper uses upstream default CPLL, matching the Vivado oracle more closely.
+- Rebuilt `.#task6-ypcb-pcie7x-smoke-vivado-lane0-loc-bitstream`.
+- CPLL bitstream path: `/nix/store/m6lmpc5jhwdjwqjhcxk1vhwy4w7qkkyv-task6-ypcb-pcie7x-smoke-vivado-lane0-loc.bit`.
+- Programmed SRAM successfully with `openFPGALoader`; final status reported `isc_done=1`, `init=1`, and `done=1`.
+
+Immediate CPLL post-program status:
+
+- No endpoint was present at `0000:42:00.0` before host rescan.
+- USER1 status was live (`magic_ok=true`) and showed:
+  - `sys_rst_n=false`
+  - `user_reset=true`
+  - `pipe_mmcm_lock=true`
+  - `user_lnk_up=false`
+  - `pl_ltssm_state=0`
+  - `cfg_bus_number=0`
+  - `gt_reset_fsm=3`
+
+Interpretation:
+
+- The CPLL OpenXC7 image has not yet had a fair enumeration test because the stale endpoint was removed before programming and the host-side rescan requires interactive sudo.
+- The current `sys_rst_n=false` / `user_reset=true` status is consistent with the slot reset still asserted or not yet released after the previous remove/rescan sequence.
+- Next required action is the root rescan/BAR gate against the newly programmed CPLL image.
+
+Next command:
+
+```bash
+sudo scripts/task6/task6_pcie_rescan_bar_gate.sh 0000:42:00.0
+```
+
+
+### 2026-05-25 - OpenXC7 CPLL smoke enumerates and BAR0 passes
+
+User-run result for the CPLL OpenXC7 image:
+
+```text
+sudo scripts/task6/task6_pcie_rescan_bar_gate.sh 0000:42:00.0
+PCIe rescan/BAR gate for 0000:42:00.0
+removing existing/stale 0000:42:00.0
+rescanning PCI bus
+endpoint: 0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]
+...
+Region 0: Memory at 74000000 (32-bit, non-prefetchable) [disabled] [size=4K]
+...
+COMMAND before: 0x0000
+COMMAND after:  0x0002
+BAR0 first word via mmap:
+00000000  12 34 56 78                                      |.4Vx|
+BAR0 write/readback smoke:
+00000000  61 62 63 64 65 66 67 68 12 34 56 78 12 34 56 78  |abcdefgh.4Vx.4Vx|
+00000010  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+00000020  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+00000030  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+PASS: BAR0 write/readback matched
+```
+
+Post-pass snapshots:
+
+- `/sys/kernel/security/lockdown`: `[none] integrity confidentiality`.
+- `lspci -vv -s 0000:42:00.0`: `Control: I/O- Mem+ BusMaster-`, BAR0 enabled at `74000000`, size 4 KiB.
+- OpenXC7 USER1 status:
+  - `magic_ok=true`
+  - `sys_rst_n=true`
+  - `pipe_mmcm_lock=true`
+  - `user_reset=false`
+  - `user_lnk_up=true`
+  - `pl_ltssm_state=22`
+  - `last_ltssm_state=22`
+  - `cfg_bus_number=66`
+  - `cfg_command=2`
+  - `cfg_command_mem_enable=true`
+  - `cfg_lstatus=4113`
+
+Root cause isolated:
+
+- The previous OpenXC7 failure was caused by the repo-local OpenXC7 patch forcing `.PCIE_PLL_SEL("QPLL")` for the Kintex-7 GTX wrapper.
+- Vivado had used the upstream/default GTX CPLL path. Removing the QPLL override made the OpenXC7 image match the Vivado-passing oracle and allowed endpoint enumeration plus BAR0 read/write.
+
+Gate status:
+
+- Gate A: Vivado flash/SRAM configuration evidence gathered earlier.
+- Gate B: Vivado Gen1 Y26 lane0 endpoint enumerates.
+- Gate C: Vivado BAR0 read/write passes.
+- Gate D: OpenXC7 Gen1 Y26 lane0 CPLL endpoint enumerates and BAR0 read/write passes.
+
+Next gate:
+
+- Build `task6-ypcb-pcie7x-command-bridge-bitstream` using the same CPLL/Y26/lane0 shape.
+- Prove command BAR echo before adding rowstream upload:
+  - magic `0x54365043`
+  - version `1`
+  - payload write
+  - doorbell
+  - accepted-count increment
+- Keep DDR3 acceptance unchanged and do not merge rowstream transport until the command BAR gate passes.
