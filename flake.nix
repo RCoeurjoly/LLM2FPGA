@@ -6509,7 +6509,7 @@
           };
 
         task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson =
-          { seed, json }:
+          { seed, json, nextpnrExtraArgs ? "" }:
           let
             seedStr = toString seed;
             name = "task6-ypcb-uberddr3-rowstream-loader-seed${seedStr}-clocked";
@@ -6520,6 +6520,7 @@
               seed = seed;
               freqMHz = 25;
               prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+              inherit nextpnrExtraArgs;
             };
             bitstream = mkBitstream {
               inherit name;
@@ -6533,6 +6534,7 @@
               seed = seed;
               freqMHz = 25;
               prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+              inherit nextpnrExtraArgs;
             };
           in
           {
@@ -6637,6 +6639,22 @@
 
         task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedPlacedJson =
           task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedArtifacts.placedJson;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson {
+            seed = 15;
+            json = task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerYosysJson;
+            nextpnrExtraArgs = "--no-tmdriv";
+          };
+
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedFasm =
+          task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedBitstream =
+          task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedPlacedJson =
+          task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedArtifacts.placedJson;
 
         task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedArtifacts =
           task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson {
@@ -11628,6 +11646,12 @@
             task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedBitstream;
           task6-ypcb-uberddr3-rowstream-loader-2lane-known-good-seed19-clocked-placed-json =
             task6YpcbUberDdr3RowstreamLoader2LaneKnownGoodSeed19ClockedPlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed15-clocked-fasm =
+            task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedFasm;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed15-clocked-bitstream =
+            task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed15-clocked-placed-json =
+            task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed15ClockedPlacedJson;
           task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed18-clocked-fasm =
             task6YpcbUberDdr3RowstreamLoader2LaneSlowControllerSeed18ClockedFasm;
           task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed18-clocked-bitstream =

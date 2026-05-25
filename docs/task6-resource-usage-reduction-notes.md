@@ -22542,3 +22542,22 @@ scripts/task6/task6_seed15_bist_gate.sh
 ```
 
 The helper builds or uses the seed15 robust two-lane `BIST_MODE=2` bitstream with the local UberDDR3 override, waits 15 seconds after programming, and requires the pure BIST verdict to pass before advanced Task 6 testing continues.
+
+### 2026-05-25 - Seed15 rowstream-loader continuation target
+
+Decision:
+
+- Continue Task 6 rowstream work on seed15 only, gated by the seed15 `BIST_MODE=2` admission test.
+- Add a seed15 counterpart of the less-locked two-lane slow-controller rowstream-loader target that previously cleared the high-address packet boundary on seed18.
+- Use `--no-tmdriv` on the seed15 rowstream-loader build to match the current robust DDR3 routing policy.
+
+New target:
+
+- `task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed15-clocked-bitstream`
+
+Required test order:
+
+1. Run `scripts/task6/task6_seed15_bist_gate.sh`.
+2. If BIST passes, build/program the seed15 rowstream-loader target.
+3. First run boot-only on the rowstream-loader bitstream.
+4. Then run the smallest packetized rowstream gate before scaling.
