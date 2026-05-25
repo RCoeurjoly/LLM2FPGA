@@ -22593,3 +22593,39 @@ Boot-only gate:
 Next gate:
 
 - Re-run seed15 `BIST_MODE=2` admission gate, then scale the same rowstream packet path to 1024 beats with sampled postread.
+
+#### Seed15 rowstream-loader 1024-beat packet gate
+
+Admission gate:
+
+- `scripts/task6/task6_seed15_bist_gate.sh seed15-bist2-before-rowstream-1024`
+- Result: PASS.
+- Run: `artifacts/task6/runs/2026-05-25T05-20-11+0200-seed15-bist2-before-rowstream-1024`
+
+Unpaced 1024-beat attempt:
+
+- Run: `artifacts/task6/runs/final-ts1m-inference/seed15-2lane-rowstream-loader-rowstream-packet-1024beats`
+- Result: FAIL before packet execution completed.
+- Failure: packet slot 3 load was not accepted; observed USER2 packet bytes differed from expected bytes while calibration remained valid and `err=0`.
+- Interpretation: sustained USER2 command/payload transport was too aggressive; this was not a raw DDR3 BIST/calibration failure.
+
+Paced 1024-beat attempt:
+
+- Admission gate: `scripts/task6/task6_seed15_bist_gate.sh seed15-bist2-before-rowstream-1024-paced`, PASS.
+- Run: `artifacts/task6/runs/final-ts1m-inference/seed15-2lane-rowstream-loader-rowstream-packet-1024beats-paced`
+- Source: real `rowstream.bin`
+- Beats: 1024
+- Packets: 256
+- Command pacing: `--freq-hz 500000`, `--command-repeats 4`, `--command-delay 0.005`, `--diagnostic-host-packet-load-delay 0.05`
+- Sampled standalone postread beats: `0,1,2,3,21,90,193,512,1023`
+- Result: PASS, `mismatch_count=0`, `standalone_mismatch_count=0`, `completed_beats=1024`.
+
+Current conclusion:
+
+- Seed15 plus BIST admission gate is usable for continued Task 6 rowstream work.
+- Sustained packet loading needs conservative JTAG command pacing.
+- With pacing, rowstream packet storage/readback is clean through 1024 beats / 64 KiB.
+
+Next gate:
+
+- Re-run seed15 `BIST_MODE=2` admission gate, then scale the paced rowstream packet path to 4096 beats / 256 KiB with sampled postread.
