@@ -24130,3 +24130,11 @@ Then run:
 ```bash
 scripts/task6/task6_pcie_autonomous_gate.sh rowstream-loopback 0000:42:00.0 --run-dir artifacts/task6/pcie-bringup/2026-05-25-rowstream-loopback-idempotent-no-readback --repeat 1
 ```
+
+### 2026-05-25 - Rowstream loopback hardware gate passed
+
+- Installed the no-full-readback rowstream helper into `/usr/local/libexec/task6-pcie/task6_pcie_rowstream_loopback_smoke.py`.
+- Ran `scripts/task6/task6_pcie_autonomous_gate.sh rowstream-loopback 0000:42:00.0 --run-dir artifacts/task6/pcie-bringup/2026-05-25-rowstream-loopback-idempotent-no-readback --repeat 1` against the duplicate-write-hardened OpenXC7 bitstream.
+- Gate passed: endpoint `10ee:0480`, BAR magic `T6PC`, version `2`, status after `0x00000005`, accepted count `1`, written bytes `3840`, checksum sum `0x00077880`, xor32 `0`, first/last words matched, mismatch `0`.
+- Observed payload write throughput was `3.19 MiB/s` for this AXI-lite BAR smoke path. This is a correctness rung, not the expected final bulk loader throughput.
+- Next implementation rung remains PCIe-to-DDR3 command ingress: use PCIe to feed the DDR3 rowstream loader/control path while DDR3 stays the self-contained weight store.
