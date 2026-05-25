@@ -80,6 +80,12 @@ def read_header(mm: mmap.mmap) -> tuple[int, int, int, int]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bdf", help="PCI BDF, for example 0000:42:00.0")
+    parser.add_argument(
+        "--stage",
+        choices=("header", "echo", "doorbell", "full"),
+        default="full",
+        help="Stop after the selected command bridge ladder stage",
+    )
     parser.add_argument("--payload", nargs=7, type=lambda x: int(x, 0), default=PAYLOAD)
     args = parser.parse_args()
 
@@ -118,6 +124,9 @@ def main() -> int:
                 raise SystemExit(f"bad magic: expected 0x{MAGIC:08x}, got 0x{magic:08x}")
             if version != VERSION:
                 raise SystemExit(f"bad version: expected {VERSION}, got {version}")
+            if args.stage == "header":
+                print("PASS: Task 6 PCIe command bridge header matched")
+                return 0
 
             for index, value in enumerate(args.payload):
                 wr32(mm, 0x040 + index * 4, value)
@@ -125,6 +134,9 @@ def main() -> int:
             print("payload echo:", " ".join(f"0x{x:08x}" for x in echoed))
             if echoed != args.payload:
                 raise SystemExit(f"payload echo mismatch: expected {args.payload!r}, got {echoed!r}")
+            if args.stage == "echo":
+                print("PASS: Task 6 PCIe command bridge payload echo matched")
+                return 0
 
             wr32(mm, 0x060, 0x00000001)
             deadline = time.monotonic() + 1.0
@@ -140,6 +152,9 @@ def main() -> int:
 
             if count1 != ((count0 + 1) & 0xFFFFFFFF):
                 raise SystemExit(f"accepted_count did not increment by one: before={count0} after={count1}")
+            if args.stage == "doorbell":
+                print("PASS: Task 6 PCIe command bridge doorbell count matched")
+                return 0
             if accepted != args.payload:
                 raise SystemExit(f"accepted payload mismatch: expected {args.payload!r}, got {accepted!r}")
     finally:

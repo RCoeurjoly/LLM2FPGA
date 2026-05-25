@@ -23842,3 +23842,29 @@ Next root-only gate:
 ```sh
 sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
 ```
+
+### 2026-05-25 - Replanned OpenXC7 PCIe BAR ladder and autonomous gate
+
+Decision:
+
+- Stop iterating directly on the failing full Task 6 PCIe command bridge while BAR0 reads return all ones.
+- Treat Vivado and OpenXC7 plain BAR smoke as proof that physical link, Y26 PERST#, lane0 placement, CPLL/Gen1/x1, and BAR MMIO can work on this board/chassis.
+- Move the boundary to custom BAR responder integration: prove each responder rung before returning to rowstream or DDR3 PCIe transport.
+
+Implementation added:
+
+- `scripts/task6/task6_pcie_gate_root.sh`: root-owned gate helper intended for `/usr/local/sbin/task6-pcie-gate`; it whitelists BDF `0000:42:00.0`, performs remove/rescan, rejects stale/invalid config headers, validates `[10ee:0480]`, enables PCI memory space, and dispatches BAR/command ladder smoke helpers.
+- `scripts/task6/task6_pcie_autonomous_gate.sh`: noninteractive runner that calls `sudo -n /usr/local/sbin/task6-pcie-gate`, captures gate output, captures JTAG PCIe status, and writes per-iteration summaries under `artifacts/task6/pcie-bringup/`.
+- `scripts/task6/task6_pcie_command_bridge_smoke.py` now supports `--stage header|echo|doorbell|full` so one host helper can gate each command bridge ladder rung.
+- `fpga/rtl/task6_pcie_axil_command_header.v`: first custom responder rung, intentionally close to upstream `axil_minimum` with only Task 6 header/status memory initialization changed.
+- New flake packages: `task6-ypcb-pcie7x-command-header-yosys-json` and `task6-ypcb-pcie7x-command-header-bitstream`.
+
+Security/operation note:
+
+- The persistent passwordless sudo installation is deliberately not performed by repo scripts here. The safe operating model is to install root-owned copies of the gate and smoke helpers, then allow only `/usr/local/sbin/task6-pcie-gate *` via sudoers. Once installed, the agent should use `scripts/task6/task6_pcie_autonomous_gate.sh ...`; manual `sudo scripts/task6/...` gates should no longer be needed.
+
+Next gate:
+
+1. Build and program `.#task6-ypcb-pcie7x-command-header-bitstream`.
+2. Run `scripts/task6/task6_pcie_autonomous_gate.sh command-header 0000:42:00.0`.
+3. If header passes, add the echo/doorbell/full RTL rungs one at a time; if it returns all ones, capture post-MMIO JTAG status and compare this exact header RTL against Vivado as the oracle.

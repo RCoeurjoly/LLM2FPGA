@@ -310,6 +310,12 @@ EOF
           source = task6Pcie7xSourceVivadoLane0Loc;
           axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_command_bridge.v}";
         };
+
+        task6YpcbPcie7xCommandHeaderYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-command-header-yosys.json";
+          source = task6Pcie7xSourceVivadoLane0Loc;
+          axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_command_header.v}";
+        };
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
             buildInputs = [ pkgs.yosys ];
@@ -5890,6 +5896,20 @@ EOF
           name = "task6-ypcb-pcie7x-command-bridge";
           fasm = task6YpcbPcie7xCommandBridgeFasm;
           framesBase = "task6-ypcb-pcie7x-command-bridge";
+        };
+
+        task6YpcbPcie7xCommandHeaderFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-command-header";
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcie7xCommandHeaderYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcie7xCommandHeaderBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-command-header";
+          fasm = task6YpcbPcie7xCommandHeaderFasm;
+          framesBase = "task6-ypcb-pcie7x-command-header";
         };
 
         task6YpcbUberDdr3BistXdc =
@@ -11572,6 +11592,10 @@ EOF
             task6YpcbPcie7xCommandBridgeYosysJson;
           task6-ypcb-pcie7x-command-bridge-bitstream =
             task6YpcbPcie7xCommandBridgeBitstream;
+          task6-ypcb-pcie7x-command-header-yosys-json =
+            task6YpcbPcie7xCommandHeaderYosysJson;
+          task6-ypcb-pcie7x-command-header-bitstream =
+            task6YpcbPcie7xCommandHeaderBitstream;
           task6-litex-boards-ypcb-master =
             task6LitexBoardsYpcbMasterRunner;
           task6-litex-boards-ypcb-validated =
