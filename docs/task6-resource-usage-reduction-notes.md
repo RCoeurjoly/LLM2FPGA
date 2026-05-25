@@ -22793,3 +22793,27 @@ Next gate:
 - Immediate `lspci -nn` / `lspci -Dnn` after programming did not show a new FPGA PCIe endpoint.
 - Attempted the normal post-programming host-side gate, `echo 1 > /sys/bus/pci/rescan`, but `sudo -n` was blocked because cached credentials were unavailable.
 - Current interpretation: bitstream generation and FPGA programming are proven; PCIe enumeration is not yet proven. The next gate requires either a privileged PCIe rescan or booting/power-cycling with the FPGA already configured so the root complex trains/enumerates the endpoint.
+
+### 2026-05-25 - PCIe endpoint link/debug status pivot
+
+- Host-side PCIe probing after the smoke bitstream showed the Thunderbolt chassis and downstream bridge tree, but no FPGA endpoint on bus `42`.
+- Downstream port `0000:41:00.0` previously reported `PresDet+` and `LnkSta: Speed 2.5GT/s, Width x1`, which means the chassis detects card presence and an x1 Gen1 link, but Linux still cannot read endpoint config space.
+- Removing/rescanning `0000:41:00.0` did not discover the endpoint. Secondary bus reset via `setpci BRIDGE_CONTROL` was blocked by the kernel/Thunderbolt stack with `Operation not permitted`.
+- Added minimal PCIe LED status instrumentation in the copied `pcie_7x` source-prep path:
+  - LED0 = `pipe_mmcm_lock`.
+  - LED1 = `user_lnk_up_q`.
+  - LED2 = `pl_ltssm_state == 6'h10` (LTSSM L0 hypothesis).
+- Rebuilt `.#task6-ypcb-pcie7x-smoke-bitstream --impure -L`; route completed with reported max frequencies of about 209 MHz for `user_clk` and 338 MHz for `PIPE_OOBCLK_IN`.
+- Programmed `/nix/store/4a7hhqd7zkh6w7gsb88b55vxqvwn5gqb-task6-ypcb-pcie7x-smoke.bit` using `/home/roland/openFPGALoader/build/openFPGALoader`; programming completed with `isc_done=1`, `init=1`, and `done=1`.
+- Immediate `lspci -Dnn` still did not enumerate the FPGA endpoint. Next evidence needed: physical LED state to distinguish MMCM/refclk failure, PCIe block link-up failure, and config-space/openXC7 bitstream failure after LTSSM L0.
+
+### 2026-05-25 - PCIe LTSSM LED reconstruction
+
+- First LED diagnostic mapped active-low status as LED0=`pipe_mmcm_lock`, LED1=`user_lnk_up_q`, LED2=`pl_ltssm_state == 6'h10`.
+- Observed LED0 off, LED1 off, LED2 on. With active-low LEDs this implies MMCM lock and `user_lnk_up_q` appear asserted, but the guessed LTSSM-L0 comparator was false.
+- Rebuilt two raw LTSSM LED diagnostics:
+  - low bits diagnostic: LED0/1/2 = active-low `pl_ltssm_state[0]`, `[1]`, `[2]`.
+  - upper bits diagnostic: LED0/1/2 = active-low `pl_ltssm_state[3]`, `[4]`, `[5]`.
+- Both diagnostics showed LED0/1/2 all on, reconstructing `pl_ltssm_state = 6'b111111` (`0x3f`).
+- Current interpretation: the Thunderbolt downstream port sees presence and x1 Gen1 link, and the PCIe wrapper's `user_lnk_up` path appears high, but Linux still cannot enumerate config space and the raw LTSSM output is all ones. This strongly suggests either the openXC7 `PCIE_2_1` primitive/status mapping is incomplete or the hard block is entering an invalid/unmodeled state despite partial link training.
+- Next useful PCIe work: compare the `PCIE_2_1` primitive parameters/ports/status wiring against upstream/Vivado-proven `pcie_7x` output, and expose a second independent config/status signal such as `cfg_bus_number`, `cfg_device_number`, `cfg_function_number`, or `cfg_lstatus` before spending time on BAR access.

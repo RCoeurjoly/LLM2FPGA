@@ -219,6 +219,9 @@
             chmod -R u+w "$out"
             perl -0pi -e 's/\.GTREFCLK0\s*\(PIPE_CLK\),\s*\/\/ IBUFDS_GTE2 output/.GTREFCLK0                      (PCIE_PLL_SEL == "QPLL" ? PIPE_CLK : 1\x27b0), \/\/ IBUFDS_GTE2 output/' "$out/src/pipe_wrapper_gtx.v"
             perl -0pi -e 's/(\.PCIE_GT_DEVICE\s*\( GT_DEVICE \),\n)/$1  .PCIE_PLL_SEL                   ( "QPLL" ),\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/assign led = {3\x27b111, pipe_mmcm_lock};/assign led = {1\x27b1, ~pl_ltssm_state[5], ~pl_ltssm_state[4], ~pl_ltssm_state[3]};/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/(\/\/assign led = cnt\[27:25\];\n)/$1wire pcie_led_unused;\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
+            perl -0pi -e 's/\.led\(led\)/.led({pcie_led_unused, led})/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
           '';
 
 
