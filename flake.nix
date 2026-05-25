@@ -69,13 +69,17 @@
       url = "github:RCoeurjoly/UberDDR3/8e6b0bb9ed38a97505b29b28a6d2689746470e7b";
       flake = false;
     };
+    pcie7x = {
+      url = "github:regymm/pcie_7x";
+      flake = false;
+    };
   };
 
   outputs = inputs@{ nixpkgs, nixpkgs-llvm21, nixpkgs-nix-eda, flake-utils, yosys, circt-nix
     , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litex, litedram
     , litepcie, litexBoards, litexBoardsValidatedYpcb, pythondataCpuVexriscv
     , pythondataSoftwarePicolibc, pythondataSoftwareCompilerRt, uberDdr3
-    , ... }:
+    , pcie7x, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -208,6 +212,49 @@
             patch -p1 < ${./patches/uberddr3/0001-ypcb-disable-unpinned-ddr3-dm-outputs.patch}
             patch -p1 < ${./patches/uberddr3/0003-ypcb-fast-bist-exit.patch}
           '';
+        task6Pcie7xSource =
+          pkgs.runCommand "task6-pcie7x-source" { } ''
+            set -euo pipefail
+            cp -r ${pcie7x} "$out"
+          '';
+
+        mkTask6YpcbPcie7xYosysJson = { name, axilMinimumSource }:
+          pkgs.runCommand name {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv \
+              ${pcie7x}/src/xilinx_pcie_mmcm.v \
+              ${pcie7x}/src/axil_to_al.v \
+              ${pcie7x}/src/axis_pcie_to_al_us.v \
+              ${pcie7x}/src/pcie_7x.v \
+              ${pcie7x}/src/pcie_axi_rx.v \
+              ${pcie7x}/src/pcie_axi_tx.v \
+              ${pcie7x}/src/pcie_block.v \
+              ${pcie7x}/src/pcie_brams.v \
+              ${pcie7x}/src/pcie_tx_thrtl_ctl.v \
+              ${pcie7x}/src/pipe_wrapper_gtx.v \
+              ${pcie7x}/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v \
+              ${pcie7x}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${axilMinimumSource}
+            hierarchy -top pcie_7x_top_aximm_ypcb_480t -check
+            synth_xilinx -flatten -abc9 -arch xc7 -nosrl -top pcie_7x_top_aximm_ypcb_480t
+            stat -top pcie_7x_top_aximm_ypcb_480t
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6YpcbPcie7xSmokeYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-smoke-yosys.json";
+          axilMinimumSource = "${pcie7x}/src/aximm-minimal/axil_minimum.v";
+        };
+
+        task6YpcbPcie7xCommandBridgeYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-command-bridge-yosys.json";
+          axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_command_bridge.v}";
+        };
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
             buildInputs = [ pkgs.yosys ];
@@ -5734,6 +5781,36 @@
             "${task6YpcbLiteDramNoOdelayLowrateDqs0RtlElaboration}/build/gateware/ypcb_litedram_core.xdc"
             ./fpga/constraints/task6_ypcb_litedram_init_bandwidth_probe.xdc
           ];
+        };
+
+        task6YpcbPcie7xXdc = ${pcie7x}/pcie_7x_ypcb_k480t.xdc;
+
+        task6YpcbPcie7xSmokeFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-smoke";
+          xdc = task6YpcbPcie7xXdc;
+          json = task6YpcbPcie7xSmokeYosysJson;
+          seed = 15;
+          freqMHz = 25;
+        };
+
+        task6YpcbPcie7xSmokeBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-smoke";
+          fasm = task6YpcbPcie7xSmokeFasm;
+          framesBase = "task6-ypcb-pcie7x-smoke";
+        };
+
+        task6YpcbPcie7xCommandBridgeFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-command-bridge";
+          xdc = task6YpcbPcie7xXdc;
+          json = task6YpcbPcie7xCommandBridgeYosysJson;
+          seed = 15;
+          freqMHz = 25;
+        };
+
+        task6YpcbPcie7xCommandBridgeBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-command-bridge";
+          fasm = task6YpcbPcie7xCommandBridgeFasm;
+          framesBase = "task6-ypcb-pcie7x-command-bridge";
         };
 
         task6YpcbUberDdr3BistXdc =
@@ -11394,6 +11471,16 @@
             task6YpcbDdr3LaneReport;
           task6-ypcb-uberddr3-clock-discipline-report =
             task6YpcbUberDdr3ClockDisciplineReport;
+          task6-pcie7x-source =
+            task6Pcie7xSource;
+          task6-ypcb-pcie7x-smoke-yosys-json =
+            task6YpcbPcie7xSmokeYosysJson;
+          task6-ypcb-pcie7x-smoke-bitstream =
+            task6YpcbPcie7xSmokeBitstream;
+          task6-ypcb-pcie7x-command-bridge-yosys-json =
+            task6YpcbPcie7xCommandBridgeYosysJson;
+          task6-ypcb-pcie7x-command-bridge-bitstream =
+            task6YpcbPcie7xCommandBridgeBitstream;
           task6-litex-boards-ypcb-master =
             task6LitexBoardsYpcbMasterRunner;
           task6-litex-boards-ypcb-validated =

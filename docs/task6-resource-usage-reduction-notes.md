@@ -22675,3 +22675,33 @@ Current conclusion:
 
 - The previously risky high-address boundary around beat 131071 is clean on the seed15 paced rowstream-loader path.
 - The next useful gate is a full rowstream packet load with sampled same-process postread, still preceded by the seed15 BIST admission gate.
+
+### 2026-05-25 - PCIe acceleration lane implementation checkpoint
+
+Decision:
+
+- Start a PCIe transport lane in parallel with the current JTAG rowstream proof, but do not program or reset the FPGA while the JTAG rowstream loader is active.
+- Use `regymm/pcie_7x` as the reference because it has explicit YPCB K480T support and an openXC7 AXI-Lite BAR example.
+- Keep the first PCIe implementation small: BAR read/write and 208-bit command echo before any DDR3/rowstream integration.
+
+Implementation added:
+
+- New flake input: `pcie7x`, defaulting to `github:regymm/pcie_7x` and overrideable with `--override-input pcie7x path:/home/roland/pcie_7x`.
+- New build targets:
+  - `task6-ypcb-pcie7x-smoke-bitstream`: upstream YPCB BAR smoke design, using upstream `axil_minimum`.
+  - `task6-ypcb-pcie7x-command-bridge-bitstream`: same PCIe wrapper, but replaces upstream `axil_minimum` with a Task 6 command bridge.
+- New RTL bridge: `fpga/rtl/task6_pcie_axil_command_bridge.v`.
+  - BAR magic: `0x54365043` (`T6PC`).
+  - Version: `1`.
+  - Seven 32-bit command payload words hold the lower 208 bits of the existing Task 6 loader command format.
+  - Doorbell at BAR word `0x18` snapshots the command payload into readback registers and increments an accepted count.
+- New host helper: `scripts/task6/task6_pcie_bar_smoke.sh <BDF>`.
+  - Enables PCIe memory access with `setpci`.
+  - Reads BAR0 through `pcimem`.
+  - Writes `abcdefgh` and reads back the first BAR bytes.
+
+Current status:
+
+- Repo-side implementation is staged for build/test.
+- No PCIe build or board programming has been run yet in this checkpoint.
+- Next safe step after the current JTAG rowstream run finishes: build `task6-ypcb-pcie7x-smoke-bitstream`, program it, rescan PCIe, and require BAR read/write success before touching DDR3.
