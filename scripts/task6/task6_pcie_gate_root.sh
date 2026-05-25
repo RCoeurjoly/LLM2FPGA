@@ -35,16 +35,32 @@ command_value() {
   setpci -s "$BDF" COMMAND
 }
 
+reset_bridge_subordinate() {
+  local reset_file
+  reset_file="/sys/bus/pci/devices/$BRIDGE_BDF/reset_subordinate"
+  if [[ -e "$reset_file" ]]; then
+    echo "kernel-resetting subordinate bus below $BRIDGE_BDF"
+    echo 1 >"$reset_file"
+    sleep 3
+    return 0
+  fi
+  return 1
+}
+
 hot_reset_bridge() {
   local before asserted restored
   echo "hot-resetting downstream bridge $BRIDGE_BDF"
   before="$(setpci -s "$BRIDGE_BDF" BRIDGE_CONTROL)"
   asserted="$(printf "%04x" "$((0x$before | 0x0040))")"
   setpci -s "$BRIDGE_BDF" "BRIDGE_CONTROL=$asserted"
-  sleep 1
+  sleep 2
   restored="$(printf "%04x" "$((0x$before & ~0x0040))")"
   setpci -s "$BRIDGE_BDF" "BRIDGE_CONTROL=$restored"
-  sleep 2
+  sleep 3
+}
+
+reset_bridge_for_recovery() {
+  reset_bridge_subordinate || hot_reset_bridge
 }
 
 dump_failure_context() {
@@ -121,8 +137,8 @@ prepare_endpoint() {
   echo "rescanning PCI bus"
   echo 1 >/sys/bus/pci/rescan
   if ! wait_for_endpoint; then
-    hot_reset_bridge
-    echo "rescanning PCI bus after bridge hot reset"
+    reset_bridge_for_recovery
+    echo "rescanning PCI bus after bridge reset"
     echo 1 >/sys/bus/pci/rescan
     wait_for_endpoint || exit 1
   fi

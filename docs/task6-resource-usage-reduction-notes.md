@@ -23894,3 +23894,23 @@ Next gate:
 2. Rerun the upstream smoke control with `scripts/task6/task6_pcie_autonomous_gate.sh bar 0000:42:00.0`.
 3. If upstream smoke recovers, continue with an exact upstream-copy custom responder before changing Task 6 header constants; if it does not recover, keep the boundary at Thunderbolt bridge reset/enumeration instead of PCIe BAR RTL.
 
+### 2026-05-25 - Thunderbolt bridge reset escalation after no-child bus 42
+
+Additional control evidence:
+
+- Reprogrammed upstream-shaped OpenXC7 BAR smoke (`/nix/store/ndx9l3hsy4wv3cw2p3651qvgcmwkc0zx-task6-ypcb-pcie7x-smoke-vivado-lane0-loc.bit`) successfully with `done=1`.
+- Repeated autonomous BAR gates after reprogramming still found no `0000:42:00.0` child endpoint.
+- Thunderbolt bridge `0000:41:00.0` reports `PresDet+`, `DLActive+`, link speed `2.5 GT/s PCIe`, width `x1`, and AER `MalfTLP+` fatal status while the FPGA USER1 scan reports `user_lnk_up=true`, `pl_ltssm_state=22`, and `cfg_bus_number=0`.
+- Manual bridge-control secondary-bus reset via the installed helper did not recover enumeration.
+
+Repo-side helper update:
+
+- `scripts/task6/task6_pcie_gate_root.sh` now prefers the kernel `reset_subordinate` sysfs hook for bridge `0000:41:00.0` before falling back to raw bridge-control reset.
+- The installed `/usr/local/sbin/task6-pcie-gate` still needs to be updated with that version before the autonomous loop can test it.
+
+Install command:
+
+```sh
+sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
+```
+
