@@ -85,6 +85,20 @@ earns more work.
   appropriate, result-oriented commit message before starting the next
   experiment.
 
+
+### 2026-05-25 - Rowstream top1 host gate and RTL cutout counters
+
+Implementation update:
+
+- Extended `rtl/task6/task6_ddr3_rowstream_top1_cutout.sv` with final-row `out_done`, `out_busy`, `out_rows_scanned`, and `out_cycle_count` signals so the rowstream consumer exposes the board-facing completion counters needed by the Task 6 top1 gate.
+- Updated `sim/task6_ddr3_rowstream_top1_cutout_tb.sv` to require `out_done`, cleared busy, and exact `VOCAB_SIZE` rows scanned for every replay sample.
+- Added `scripts/task6/task6_rowstream_top1.py` as the host-side rowstream top1 gate. It accepts either `rowstream.bin` or a DDR3 readback image, derives replay hidden vectors from the TinyStories model, scans packed rows, checks Q0.24 top1 tokens/scores, and emits a JSON artifact.
+- Verified `nix build .#task6-ddr3-row-stream-cutout-sv-sim -L` after the post-GC rebuild. The Verilator proof passed 8 replay samples, each scanning 50,257 rows with matching top1 tokens/scores.
+
+Current limitation:
+
+- This does not yet prove hardware top1 execution through PCIe/DDR3. PCIe enumeration, BAR access, and full rowstream loading have later PASS evidence in these notes; the remaining gap is integrating this top1 consumer into the PCIe+DDR3 image and running its hardware result registers against the DDR3-resident rowstream image.
+
 ## Active PCIe Bring-Up: YPCB + OWC Helios
 
 ### 2026-05-25 - No-reset OpenXC7 smoke after Helios power cycle

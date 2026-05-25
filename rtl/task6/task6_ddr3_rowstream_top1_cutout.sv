@@ -17,12 +17,17 @@ module task6_ddr3_rowstream_top1_cutout #(
   input  logic [HIDDEN_SIZE * 8 - 1:0] hidden_q_i8,
 
   output logic out_valid,
+  output logic out_done,
+  output logic out_busy,
   output logic out_error_reserved_bits,
   output logic [15:0] out_top_token_id,
-  output logic signed [45:0] out_top_score_signed_q024
+  output logic signed [45:0] out_top_score_signed_q024,
+  output logic [31:0] out_rows_scanned,
+  output logic [31:0] out_cycle_count
 );
   wire row_fire = row_valid && row_ready;
   logic signed [ACC_WIDTH - 1:0] row_acc;
+  logic seen_row_q;
 
   function automatic logic signed [ACC_WIDTH - 1:0] dot_acc(
     input logic [HIDDEN_SIZE * 8 - 1:0] weights,
@@ -61,5 +66,28 @@ module task6_ddr3_rowstream_top1_cutout #(
     .out_top_score_signed_q024(out_top_score_signed_q024)
   );
 
-  wire unused_row_last = row_last;
+  always_ff @(posedge clock) begin
+    if (reset) begin
+      out_done <= 1'b0;
+      out_busy <= 1'b0;
+      out_rows_scanned <= 32'd0;
+      out_cycle_count <= 32'd0;
+      seen_row_q <= 1'b0;
+    end else begin
+      if (row_valid || out_busy)
+        out_cycle_count <= out_cycle_count + 32'd1;
+
+      if (row_fire) begin
+        seen_row_q <= 1'b1;
+        if (row_last)
+          out_done <= 1'b1;
+        out_busy <= !row_last;
+        out_rows_scanned <= out_rows_scanned + 32'd1;
+      end else if (row_valid) begin
+        out_busy <= 1'b1;
+      end else if (!seen_row_q) begin
+        out_busy <= 1'b0;
+      end
+    end
+  end
 endmodule

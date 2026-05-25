@@ -18,9 +18,13 @@ module task6_ddr3_rowstream_top1_cutout_tb;
   wire row_last;
   logic [HIDDEN_SIZE * 8 - 1:0] hidden_q_i8;
   wire out_valid;
+  wire out_done;
+  wire out_busy;
   wire out_error_reserved_bits;
   wire [15:0] out_top_token_id;
   wire signed [45:0] out_top_score_signed_q024;
+  wire [31:0] out_rows_scanned;
+  wire [31:0] out_cycle_count;
 
   integer cycles;
   integer sample_rows;
@@ -61,9 +65,13 @@ module task6_ddr3_rowstream_top1_cutout_tb;
     .row_last(row_last),
     .hidden_q_i8(hidden_q_i8),
     .out_valid(out_valid),
+    .out_done(out_done),
+    .out_busy(out_busy),
     .out_error_reserved_bits(out_error_reserved_bits),
     .out_top_token_id(out_top_token_id),
-    .out_top_score_signed_q024(out_top_score_signed_q024)
+    .out_top_score_signed_q024(out_top_score_signed_q024),
+    .out_rows_scanned(out_rows_scanned),
+    .out_cycle_count(out_cycle_count)
   );
 
   always #5 clock = ~clock;
@@ -105,6 +113,23 @@ module task6_ddr3_rowstream_top1_cutout_tb;
         );
         errors = errors + 1;
       end
+      if (!out_done) begin
+        $display("FAIL: sample %0d did not assert final done", sample_index);
+        errors = errors + 1;
+      end
+      if (out_busy) begin
+        $display("FAIL: sample %0d remained busy after final row", sample_index);
+        errors = errors + 1;
+      end
+      if (out_rows_scanned != VOCAB_SIZE) begin
+        $display(
+          "FAIL: sample %0d RTL rows_scanned expected %0d got %0d",
+          sample_index,
+          VOCAB_SIZE,
+          out_rows_scanned
+        );
+        errors = errors + 1;
+      end
       if (out_error_reserved_bits) begin
         $display("FAIL: sample %0d saw nonzero reserved sidecar bits", sample_index);
         errors = errors + 1;
@@ -130,11 +155,12 @@ module task6_ddr3_rowstream_top1_cutout_tb;
 
       if (errors == 0) begin
         $display(
-          "PASS: sample %0d rows %0d top_token %0d top_score %0d",
+          "PASS: sample %0d rows %0d top_token %0d top_score %0d cycles %0d",
           sample_index,
           sample_rows,
           out_top_token_id,
-          out_top_score_signed_q024
+          out_top_score_signed_q024,
+          out_cycle_count
         );
       end
       total_rows = total_rows + sample_rows;
