@@ -85,6 +85,46 @@ earns more work.
   appropriate, result-oriented commit message before starting the next
   experiment.
 
+## Active PCIe Bring-Up: YPCB + OWC Helios
+
+### 2026-05-25 - No-reset OpenXC7 smoke after Helios power cycle
+
+Decision:
+
+- Keep PCIe behind the plain endpoint gates. Do not connect Task 6 DDR3 or
+  rowstream transport until a smoke endpoint enumerates and BAR0 passes.
+- Add an OpenXC7 `NO_RESET=1` smoke target using the same Vivado-passing lane0
+  placement so PERST#/Y26 can be isolated from lane/GT/hard-block behavior.
+
+Evidence:
+
+| check | result |
+| --- | --- |
+| Helios power-cycle, before reprogram | Thunderbolt bridge present, no `42:00.0`; USER1 PCIe status all zero, so the FPGA PCIe diagnostic image was not live |
+| OpenXC7 Y26/lane0 smoke reprogram | DONE asserted; USER1 magic valid, `pipe_mmcm_lock=true`, external `sys_rst_n=false`, `user_reset=true`, `pl_ltssm_state=0`, no link-up |
+| OpenXC7 no-reset/lane0 smoke build | `/nix/store/lbwip300sqlxihi1ryv4hrssviq5dx9l-task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset.bit` |
+| OpenXC7 no-reset/lane0 smoke reprogram | DONE asserted; USER1 magic valid, `pipe_mmcm_lock=true`, `sys_rst_n=true`, `user_reset=false` |
+| No-reset autonomous BAR gate | FAIL, no valid endpoint at `0000:42:00.0`; artifact `artifacts/task6/pcie-bringup/2026-05-25-openxc7-no-reset-after-helios-power-cycle` |
+| No-reset final USER1 status | `pl_ltssm_state=4`, `last_ltssm_state=4`, `user_lnk_up=false`, `link_up_seen_count=0`, `cfg_bus_number=0` |
+| Thunderbolt downstream port during fail | `0000:41:00.0` reports `PresDet+` and `LnkSta: Speed 2.5GT/s, Width x1`, but config discovery of the endpoint never completes |
+
+Interpretation:
+
+- The post-power-cycle Y26/lane0 image was held in external reset; ignoring
+  PERST# removes that reset blocker.
+- With reset removed, the OpenXC7 endpoint still does not train far enough to
+  enumerate. The current boundary is therefore lane/GT/hard-block integration,
+  host/chassis slot behavior, or the already-suspicious PERST#/reset electrical
+  state. BAR/DDR3/rowstream PCIe work remains blocked.
+
+Next gate:
+
+1. Preserve the no-reset target as a reproducible probe.
+2. Compare against a Vivado `NO_RESET=1` lane0 oracle, or directly instrument
+   RX/TX electrical/link-training signals if Vivado cannot be rebuilt quickly.
+3. Only after smoke enumeration and BAR0 read/write pass should the command
+   bridge or rowstream PCIe transport be retried.
+
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
 ### 2026-05-20 - Active one-lane full-bank baseline consumed from `~/UberDDR3_vainilla`

@@ -300,10 +300,24 @@ EOF
           axilMinimumSource = "${task6Pcie7xSourceTxInvert}/src/aximm-minimal/axil_minimum.v";
         };
 
+        task6Pcie7xSourceVivadoLane0LocNoReset =
+          pkgs.runCommand "task6-pcie7x-source-vivado-lane0-loc-no-reset" { nativeBuildInputs = [ pkgs.perl ]; } ''
+            set -euo pipefail
+            cp -r ${task6Pcie7xSourceVivadoLane0Loc} "$out"
+            chmod -R u+w "$out"
+            perl -0pi -e 's/\.NO_RESET\(0\)/.NO_RESET(1)/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
+          '';
+
         task6YpcbPcie7xSmokeVivadoLane0LocYosysJson = mkTask6YpcbPcie7xYosysJson {
           name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-yosys.json";
           source = task6Pcie7xSourceVivadoLane0Loc;
           axilMinimumSource = "${task6Pcie7xSourceVivadoLane0Loc}/src/aximm-minimal/axil_minimum.v";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocNoResetYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset-yosys.json";
+          source = task6Pcie7xSourceVivadoLane0LocNoReset;
+          axilMinimumSource = "${task6Pcie7xSourceVivadoLane0LocNoReset}/src/aximm-minimal/axil_minimum.v";
         };
 
         task6YpcbPcie7xCommandBridgeYosysJson = mkTask6YpcbPcie7xYosysJson {
@@ -5883,6 +5897,20 @@ EOF
           name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc";
           fasm = task6YpcbPcie7xSmokeVivadoLane0LocFasm;
           framesBase = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocNoResetFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset";
+          xdc = "${task6Pcie7xSourceVivadoLane0LocNoReset}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcie7xSmokeVivadoLane0LocNoResetYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocNoResetBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset";
+          fasm = task6YpcbPcie7xSmokeVivadoLane0LocNoResetFasm;
+          framesBase = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset";
         };
 
         task6YpcbPcie7xCommandBridgeFasm = mkFasm {
@@ -11589,6 +11617,10 @@ EOF
             task6YpcbPcie7xSmokeVivadoLane0LocYosysJson;
           task6-ypcb-pcie7x-smoke-vivado-lane0-loc-bitstream =
             task6YpcbPcie7xSmokeVivadoLane0LocBitstream;
+          task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset-yosys-json =
+            task6YpcbPcie7xSmokeVivadoLane0LocNoResetYosysJson;
+          task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset-bitstream =
+            task6YpcbPcie7xSmokeVivadoLane0LocNoResetBitstream;
           task6-ypcb-pcie7x-command-bridge-yosys-json =
             task6YpcbPcie7xCommandBridgeYosysJson;
           task6-ypcb-pcie7x-command-bridge-bitstream =
