@@ -23652,3 +23652,48 @@ Next gate:
   - doorbell
   - accepted-count increment
 - Keep DDR3 acceptance unchanged and do not merge rowstream transport until the command BAR gate passes.
+
+
+### 2026-05-25 - Task 6 PCIe command bridge gate prep
+
+Implementation:
+
+- Rewired `task6-ypcb-pcie7x-command-bridge-bitstream` to use the same proven OpenXC7 CPLL/Y26/lane0 source/XDC shape as the BAR0 smoke image.
+- Added `scripts/task6/task6_pcie_command_bridge_smoke.py`, a root-only BAR0 command-register smoke for the bridge contract:
+  - magic `0x54365043`
+  - version `1`
+  - seven-word payload write/echo
+  - doorbell write
+  - accepted-count increment
+  - accepted-payload mirror
+- Added `scripts/task6/task6_pcie_rescan_command_bridge_gate.sh` to remove any stale endpoint, rescan PCIe, reject invalid `Unknown header type 7f` config reads, print endpoint details, and run the command-bridge BAR smoke.
+
+Build/program evidence:
+
+- Built bitstream:
+  `/nix/store/m8i5snbqn3skc0ylwgfxdv81i4y7aj48-task6-ypcb-pcie7x-command-bridge.bit`
+- SRAM programming with local `openFPGALoader` completed with `isc_done=1`, `init=1`, and `done=1`.
+- Post-program USER1 PCIe status showed the command bridge image/link alive before host rescan:
+  - `magic_ok=true`
+  - `sys_rst_n=true`
+  - `pipe_mmcm_lock=true`
+  - `user_reset=false`
+  - `user_lnk_up=true`
+  - `pl_ltssm_state=22`
+  - `last_ltssm_state=22`
+  - `cfg_lstatus=4113`
+  - `cfg_bus_number=0`, `cfg_command=0` before host enumeration/rescan
+
+Next root-only gate:
+
+```sh
+sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
+```
+
+Passing bar:
+
+- Endpoint reappears at `0000:42:00.0`.
+- BAR magic/version match.
+- Payload echo matches.
+- Doorbell increments `accepted_count` by exactly one.
+- Accepted payload mirror matches the written payload.

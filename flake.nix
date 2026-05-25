@@ -307,6 +307,7 @@ EOF
 
         task6YpcbPcie7xCommandBridgeYosysJson = mkTask6YpcbPcie7xYosysJson {
           name = "task6-ypcb-pcie7x-command-bridge-yosys.json";
+          source = task6Pcie7xSourceVivadoLane0Loc;
           axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_command_bridge.v}";
         };
         task6UberDdr3ControllerYosysJson =
@@ -5879,7 +5880,7 @@ EOF
 
         task6YpcbPcie7xCommandBridgeFasm = mkFasm {
           name = "task6-ypcb-pcie7x-command-bridge";
-          xdc = task6YpcbPcie7xXdc;
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
           json = task6YpcbPcie7xCommandBridgeYosysJson;
           seed = 15;
           nextpnrExtraArgs = "--no-tmdriv";
