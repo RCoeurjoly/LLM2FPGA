@@ -23,7 +23,7 @@
     openXC7.url = "github:RCoeurjoly/toolchain-nix";
     nextpnrXilinxFork = {
       url =
-        "git+https://github.com/RCoeurjoly/nextpnr-xilinx?ref=stable-backports&submodules=1";
+        "git+https://github.com/RCoeurjoly/nextpnr-xilinx?ref=openxc7-stable-pcie-meta&submodules=1";
       flake = false;
     };
     ypcbHack = {

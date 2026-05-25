@@ -22775,3 +22775,13 @@ Next gate:
 
 - Rebuild `.#task6-ypcb-pcie7x-smoke-bitstream --override-input pcie7x path:/home/roland/pcie_7x --impure`.
 - If bitstream build passes, program the board and run `lspci` plus BAR smoke.
+
+### 2026-05-25 - PCIe smoke bitstream reaches route with PR #88 dependency stack
+
+- `openXC7/nextpnr-xilinx` PR #88 alone was not enough because upstream `stable-backports` still pointed at metadata/database submodules that did not include the Kintex-7 PCIe pieces needed by this design.
+- Created and pushed `RCoeurjoly/nextpnr-xilinx:openxc7-stable-pcie-meta` from upstream `openXC7/stable-backports`, with only dependency submodule updates:
+  - `nextpnr-xilinx-meta` at `75b114c` (`Added Kintex 7 PCIE_2_1`).
+  - `prjxray-db` at `6c02fde` (`Added Kintex 7 PCIe segbits/tilegrid and GTX bit fixes`).
+- Locked `nextpnrXilinxFork` to `32e8b798520d90e1130afe95908f04cf52125cf6` on that hybrid branch.
+- Gate result: `nix build .#task6-ypcb-pcie7x-smoke-bitstream --impure -L` completed route and produced the smoke bitstream. The earlier `GTXE2_CHANNEL.RXRATE[0]` missing-wire failure is resolved by this dependency stack.
+- Next hardware gate: program the smoke bitstream, check `lspci` enumeration, then run a minimal BAR read/write smoke test before attempting PCIe-backed rowstream or DDR3 loading.

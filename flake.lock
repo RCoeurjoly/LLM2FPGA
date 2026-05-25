@@ -230,17 +230,17 @@
     "nextpnrXilinxFork": {
       "flake": false,
       "locked": {
-        "lastModified": 1779688666,
-        "narHash": "sha256-/xER3Uu5jzLDOaqKzRP+rXJ+hWpP8g4gn6OA6WKZcoo=",
-        "ref": "stable-backports",
-        "rev": "c31552c0e3ce6483945869e6abb0acc59e5861f3",
-        "revCount": 3137,
+        "lastModified": 1779689509,
+        "narHash": "sha256-qKIxVFH1okPM1w2WFR0xgDisjRSw65qHGQpQa5eakgA=",
+        "ref": "openxc7-stable-pcie-meta",
+        "rev": "32e8b798520d90e1130afe95908f04cf52125cf6",
+        "revCount": 3144,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/RCoeurjoly/nextpnr-xilinx"
       },
       "original": {
-        "ref": "stable-backports",
+        "ref": "openxc7-stable-pcie-meta",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/RCoeurjoly/nextpnr-xilinx"
