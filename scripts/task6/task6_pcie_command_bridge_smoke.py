@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Task 6 PCIe command BAR smoke.
 
+The upstream pcie_7x AXI-lite BAR presents 32-bit RTL register values in
+the byte order observed by the original BAR pattern smoke, so this helper
+uses big-endian 32-bit mmap accesses for register words.
+
 Expected BAR layout from task6_pcie_axil_command_bridge.v:
   0x000 magic   = 0x54365043 ("T6PC")
   0x004 version = 1
@@ -59,11 +63,11 @@ def ensure_mem_enabled(bdf: str, device: Path) -> int:
 
 
 def rd32(mm: mmap.mmap, offset: int) -> int:
-    return struct.unpack_from("<I", mm, offset)[0]
+    return struct.unpack_from(">I", mm, offset)[0]
 
 
 def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
-    struct.pack_into("<I", mm, offset, value & 0xFFFFFFFF)
+    struct.pack_into(">I", mm, offset, value & 0xFFFFFFFF)
     mm.flush(offset & ~0xFFF, 0x1000)
 
 

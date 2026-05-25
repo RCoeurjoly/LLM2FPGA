@@ -23697,3 +23697,33 @@ Passing bar:
 - Payload echo matches.
 - Doorbell increments `accepted_count` by exactly one.
 - Accepted payload mirror matches the written payload.
+
+
+### 2026-05-25 - Task 6 PCIe command bridge first BAR run
+
+User-run result:
+
+```text
+sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
+endpoint: 0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]
+LnkSta: Speed 2.5GT/s, Width x1
+COMMAND before: 0x0000
+COMMAND after:  0x0002
+magic: 0x43503654
+version: 16777216
+status before: 0x01000000
+accepted_count before: 0
+bad magic: expected 0x54365043, got 0x43503654
+```
+
+Interpretation:
+
+- Endpoint enumeration, Gen1 x1 link, PCI memory enable, and BAR0 mmap all succeeded for the OpenXC7 command bridge image.
+- The failed magic/version values are byte-reversed forms of the RTL constants (`0x54365043` and `1`), matching the byte order already visible in the earlier BAR pattern smoke.
+- Fixed `scripts/task6/task6_pcie_command_bridge_smoke.py` to use that observed 32-bit BAR register byte order for reads and writes. No FPGA rebuild or reprogramming is required for this correction.
+
+Next root-only rerun:
+
+```sh
+sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
+```
