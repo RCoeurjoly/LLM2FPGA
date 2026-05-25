@@ -23952,3 +23952,16 @@ Install command before the next autonomous gate:
 sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
 ```
 
+### 2026-05-25 - Thunderbolt reauthorization did not recover bus 42
+
+Result after installing the scoped Thunderbolt reauthorization helper:
+
+- Ran `scripts/task6/task6_pcie_autonomous_gate.sh bar 0000:42:00.0 --run-dir artifacts/task6/pcie-bringup/2026-05-25-vivado-smoke-control-thunderbolt-reauth --repeat 1` with the Vivado smoke bitstream programmed.
+- The helper executed the recovery ladder, including the guarded Thunderbolt reauthorization step for `1-1 (Helios 5S)`.
+- `0000:42:00.0` still did not enumerate. Bridge `0000:41:00.0` remained present with bus 42 empty.
+
+Conclusion:
+
+- Software reset/reauthorization has not recovered this host/chassis state.
+- The next fastest recovery is a physical Helios chassis power cycle while leaving the FPGA programmed with the Vivado smoke bitstream, followed by the autonomous BAR gate.
+
