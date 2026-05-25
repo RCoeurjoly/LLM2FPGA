@@ -45,11 +45,12 @@ STATUS_ERROR = 1 << 3
 STATUS_DOORBELL_ERROR = 1 << 4
 STATUS_BOOT_DONE = 1 << 5
 
-LOADER_BOOT_DONE = 1 << 0
-LOADER_DONE = 1 << 1
-LOADER_ERROR = 1 << 2
-LOADER_MAGIC_OK = 1 << 3
-LOADER_ACCEPTED = 1 << 4
+LOADER_CALIB_COMPLETE = 1 << 0
+LOADER_BOOT_DONE = 1 << 1
+LOADER_DONE = 1 << 2
+LOADER_ERROR = 1 << 3
+LOADER_MAGIC_OK = 1 << 4
+LOADER_ACCEPTED = 1 << 5
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -103,6 +104,7 @@ def decode_status(value: int) -> str:
 def decode_loader(value: int) -> str:
     names = []
     for bit, name in (
+        (LOADER_CALIB_COMPLETE, "calib_complete"),
         (LOADER_BOOT_DONE, "boot_done"),
         (LOADER_DONE, "done"),
         (LOADER_ERROR, "error"),

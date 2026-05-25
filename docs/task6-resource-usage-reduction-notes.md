@@ -24278,3 +24278,35 @@ Interpretation:
 Next debugging rung:
 
 - Build a DDR-only one-lane physical-isolation image with the same narrowed top-port/XDC shape as the combined PCIe image. If that calibrates, the remaining issue is PCIe integration placement/reset/clock interference. If it also fails, the one-lane port/XDC transformation itself needs to be reconciled with the known-good standalone DDR image.
+
+### 2026-05-25 - Two-lane combined PCIe + DDR3 rowstream loader gate pass
+
+Updated the combined PCIe+UberDDR3 rowstream loader image from the failed one-lane DDR experiment to the proven two-byte-lane DDR profile. The top-level DDR data and DQS port widths now derive from `DDR_BYTE_LANES`, and the same parameter drives the UberDDR3 `.BYTE_LANES(...)` instance setting. LED ownership is now DDR-focused for bringup: LED0 follows DDR rowstream boot/BIST done, LED1 indicates DDR boot pending after reset release, and LED2 remains PCIe debug.
+
+Build/program result:
+
+```text
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream -L
+/nix/store/v3whja1gmc7yg5ssmkib9hd7wgd3nj8j-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+Programmed YPCB over Digilent HS3 serial `210299BF3824`:
+
+```text
+/home/roland/openFPGALoader/build/openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/v3whja1gmc7yg5ssmkib9hd7wgd3nj8j-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+Hardware gates:
+
+- JTAG PCIe link passed: `pipe_mmcm_lock=true`, `sys_rst_n=true`, `user_reset=false`, `user_lnk_up=true`, `pl_ltssm_state=22`.
+- Host enumeration passed: `0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]`.
+- BAR gate passed through `/usr/local/sbin/task6-pcie-gate bar 0000:42:00.0`: BAR0 first word `T6PC`, version `3`, status `0x00000061 rst_n,boot_done`.
+- Rowstream-loader gate passed through `/usr/local/sbin/task6-pcie-gate rowstream-loader 0000:42:00.0`: wrote dense byte address `70` with value `0x5a`, read dense beat address `1`, observed lane byte `0x5a`, `wait_cycles=9`.
+
+Host-tool fix made during this gate: `scripts/task6/task6_pcie_rowstream_loader_smoke.py` now decodes the loader sticky-status register according to the RTL layout `{accepted, magic_ok, error, done, boot_done, calib_complete}`. The previous script treated bit 4 as accepted and bit 3 as magic, so it timed out even when hardware returned `0x37` (`calib_complete,boot_done,done,magic_ok,accepted`).
+
+Interpretation:
+
+- The combined PCIe + two-lane DDR3 rowstream path is now alive for the first real PCIe-to-DDR3 ingress rung.
+- PCIe can feed the DDR rowstream loader and read back through the loader readback aperture while DDR3 remains the self-contained weight store.
+- Next work should move from byte smoke to packetized rowstream loading of real model rows over PCIe, keeping JTAG as the slower fallback/control/debug path.

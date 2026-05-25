@@ -4,18 +4,20 @@ import re
 import sys
 
 
+PCIE_UBERDDR3_BYTE_LANES = 2
+PCIE_UBERDDR3_DQ_BITS = PCIE_UBERDDR3_BYTE_LANES * 8
+
+
 def adapt_ddr_line_for_pcie_top(line: str) -> str | None:
-    """Map the 64-bit standalone DDR constraints onto the combined x8 top."""
+    """Map the 64-bit standalone DDR constraints onto the combined DDR top."""
 
     dq_match = re.search(r"ddram_dq\[(\d+)\]", line)
-    if dq_match and int(dq_match.group(1)) >= 8:
+    if dq_match and int(dq_match.group(1)) >= PCIE_UBERDDR3_DQ_BITS:
         return None
 
     dqs_match = re.search(r"ddram_dqs_([pn])\[(\d+)\]", line)
-    if dqs_match:
-        if int(dqs_match.group(2)) != 0:
-            return None
-        line = re.sub(r"ddram_dqs_([pn])\[0\]", r"ddram_dqs_\1", line)
+    if dqs_match and int(dqs_match.group(2)) >= PCIE_UBERDDR3_BYTE_LANES:
+        return None
 
     return line
 

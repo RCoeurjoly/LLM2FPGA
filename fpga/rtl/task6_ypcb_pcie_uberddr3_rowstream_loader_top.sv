@@ -1,7 +1,9 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
+module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
+  parameter int DDR_BYTE_LANES = 2
+) (
   output wire        pci_exp_txp,
   output wire        pci_exp_txn,
   input  wire        pci_exp_rxp,
@@ -18,9 +20,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
   output wire        ddram_clk_n,
   output wire        ddram_clk_p,
   output wire        ddram_cs_n,
-  inout  wire [7:0] ddram_dq,
-  inout  wire [0:0] ddram_dqs_n,
-  inout  wire [0:0] ddram_dqs_p,
+  inout  wire [DDR_BYTE_LANES * 8 - 1:0] ddram_dq,
+  inout  wire [DDR_BYTE_LANES - 1:0] ddram_dqs_n,
+  inout  wire [DDR_BYTE_LANES - 1:0] ddram_dqs_p,
   output wire        ddram_odt,
   output wire        ddram_ras_n,
   output wire        ddram_reset_n,
@@ -50,7 +52,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
   wire [511:0] rowstream_loader_read_data;
 
   wire [3:0] pcie_led;
-  assign led = pcie_led[2:0];
+  assign led[0] = rowstream_boot_done;
+  assign led[1] = rowstream_rst_n && !rowstream_boot_done;
+  assign led[2] = pcie_led[2];
 
   wire [31:0] s_axi_awaddr;
   wire        s_axi_awvalid;
@@ -148,19 +152,20 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
   );
 
   task6_ypcb_uberddr3_bist_rowstream_loader_top #(
-    .BYTE_LANES(1),
+    .BYTE_LANES(DDR_BYTE_LANES),
     .JTAG_CHAIN(3),
     .JTAG_COMMAND_CHAIN(2),
     .DISABLE_JTAG_DEBUG_SHIFT(1),
-    .BOOT_ISOLATE_UNTIL_CALIB(0),
-    .PLL_CLKOUT0_DIVIDE(10),
-    .PLL_CLKOUT1_DIVIDE(10),
-    .PLL_CLKOUT2_DIVIDE(40),
-    .CONTROLLER_CLK_PERIOD_PS(40_000),
-    .DDR3_CLK_PERIOD_PS(10_000),
+    .BOOT_ISOLATE_UNTIL_CALIB(1),
+    .PLL_CLKOUT0_DIVIDE(3),
+    .PLL_CLKOUT1_DIVIDE(3),
+    .PLL_CLKOUT2_DIVIDE(12),
+    .CONTROLLER_CLK_PERIOD_PS(12_000),
+    .DDR3_CLK_PERIOD_PS(3_000),
     .DLL_OFF_PARAM(1'b0),
     .SPEED_BIN_PARAM(1),
     .SDRAM_CAPACITY_PARAM(4),
+    .BIST_MODE_PARAM(2),
     .BIST_TEST_DATAMASK(1'b0)
   ) rowstream_ddr3 (
     .clk50(clk_50),

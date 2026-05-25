@@ -3,7 +3,7 @@
 
 Expected BAR layout from task6_pcie_axil_rowstream_loopback.v:
   0x000 magic   = 0x54365043 ("T6PC")
-  0x004 version = 2
+  0x004 version = 2 or 3
   0x008 status  = {error, done, busy, rst_n}
   0x00c accepted_count
   0x010 payload byte count
@@ -29,7 +29,8 @@ import subprocess
 import time
 
 MAGIC = 0x54365043
-VERSION = 2
+VERSION = 3
+SUPPORTED_VERSIONS = {2, 3}
 BAR_SIZE = 4096
 PAYLOAD_OFFSET = 0x100
 MAX_PAYLOAD_BYTES = BAR_SIZE - PAYLOAD_OFFSET
@@ -170,8 +171,9 @@ def main() -> int:
                 raise SystemExit("BAR0 returned all ones; endpoint may be stale or BAR transactions are not completing")
             if magic != MAGIC:
                 raise SystemExit(f"bad magic: expected 0x{MAGIC:08x}, got 0x{magic:08x}")
-            if version != VERSION:
-                raise SystemExit(f"bad version: expected {VERSION}, got {version}")
+            if version not in SUPPORTED_VERSIONS:
+                expected = ", ".join(str(item) for item in sorted(SUPPORTED_VERSIONS))
+                raise SystemExit(f"bad version: expected one of {expected}, got {version}")
 
             wr32(mm, 0x008, 0x1)  # clear done/error
             wr32(mm, 0x010, args.bytes)

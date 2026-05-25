@@ -16,6 +16,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter bit DLL_OFF_PARAM = 1'b1,
   parameter int SPEED_BIN_PARAM = 0,
   parameter int SDRAM_CAPACITY_PARAM = 5,
+  parameter int BIST_MODE_PARAM = 1,
   parameter bit BIST_TEST_DATAMASK = 1'b1
 ) (
   input  wire        clk50,
@@ -1481,7 +1482,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .SECOND_WISHBONE(0),
     .DLL_OFF(DLL_OFF_PARAM),
     .WB_ERROR(0),
-    .BIST_MODE(1),
+    .BIST_MODE(BIST_MODE_PARAM),
     .BIST_TEST_DATAMASK(BIST_TEST_DATAMASK),
     .ECC_ENABLE(0)
   ) uberddr3 (
