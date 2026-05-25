@@ -1,0 +1,10 @@
+{
+  "boot_done": true,
+  "boot_error": false,
+  "boot_mismatch": true,
+  "calib_seen": true,
+  "diagnostic_json": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-25T19-53-30+0200-ypcb-ddr3-rowstream-loader-ypcb-ddr3-rowstream-loader/boot-diagnostic.json",
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-25T19-53-30+0200-ypcb-ddr3-rowstream-loader-ypcb-ddr3-rowstream-loader",
+  "status": "FAIL",
+  "verdict": "boot-unclean"
+}

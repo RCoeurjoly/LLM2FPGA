@@ -43,6 +43,8 @@ def main() -> int:
     requested_types = set(args.type)
 
     def keep_lock(lock: dict[str, Any]) -> bool:
+        if str(lock.get("type", "")) == "BSCAN":
+            return False
         if requested_scopes and str(lock.get("scope", "")) not in requested_scopes:
             return False
         if requested_types and str(lock.get("type", "")) not in requested_types:
@@ -63,38 +65,63 @@ conflicts = []
 used_cells = set()
 
 
-def resolve_cell_name(lock):
-    name = lock["cell"]
-    if name in ctx.cells and name not in used_cells:
-        return name
-
-    # Yosys/nextpnr preserve the hierarchical reset-release signal name, but
-    # the synthesized $LUT$ numeric suffix can move between the standalone
-    # UberDDR3 reference and the LLM2FPGA wrapper.  Treat the pre-$LUT$ portion
-    # as the durable identity and assign same-prefix locks in deterministic
-    # cell-name order.  This keeps the four-lock policy strict without baking in
-    # wrapper-specific numeric suffixes.
-    if "$LUT$" not in name:
-        return None
-    prefix = name.split("$LUT$", 1)[0] + "$LUT$"
+def all_cell_names():
     try:
-        cell_names = list(ctx.cells.keys())
+        return list(ctx.cells.keys())
     except AttributeError:
-        cell_names = []
+        names = []
         for item in ctx.cells:
             for attr in ("key", "first"):
                 if hasattr(item, attr):
-                    cell_names.append(str(getattr(item, attr)))
+                    names.append(str(getattr(item, attr)))
                     break
             else:
-                cell_names.append(str(item[0]))
-    candidates = sorted(
+                names.append(str(item[0]))
+        return names
+
+
+def first_unused(candidates):
+    for cell_name in sorted(candidates):
+        if cell_name in ctx.cells and cell_name not in used_cells:
+            return cell_name
+    return None
+
+
+def resolve_cell_name(lock):
+    name = lock["cell"]
+    direct = first_unused([name, "rowstream_ddr3." + name])
+    if direct is not None:
+        return direct
+
+    cell_names = all_cell_names()
+
+    # Standalone DDR lock manifests are captured without the combined wrapper
+    # instance prefix.  Prefer deterministic suffix/prefix matches so the same
+    # physical lock bundle can be reused under rowstream_ddr3 in the PCIe+DDR3
+    # top without regenerating the baseline from scratch.
+    suffix_candidates = [
         cell_name for cell_name in cell_names
-        if cell_name.startswith(prefix) and cell_name not in used_cells
-    )
-    if not candidates:
+        if (cell_name.endswith("." + name) or cell_name.endswith(name))
+        and cell_name not in used_cells
+    ]
+    resolved = first_unused(suffix_candidates)
+    if resolved is not None:
+        return resolved
+
+    # Yosys/nextpnr preserve the hierarchical reset-release signal name, but
+    # the synthesized $LUT$ numeric suffix can move between builds. Treat the
+    # pre-$LUT$ portion as the durable identity and assign same-prefix/suffix
+    # locks in deterministic cell-name order.
+    if "$LUT$" not in name:
         return None
-    return candidates[0]
+    prefix = name.split("$LUT$", 1)[0] + "$LUT$"
+    prefixes = [prefix, "rowstream_ddr3." + prefix]
+    candidates = [
+        cell_name for cell_name in cell_names
+        if any(cell_name.startswith(pfx) or ("." + pfx) in cell_name for pfx in prefixes)
+        and cell_name not in used_cells
+    ]
+    return first_unused(candidates)
 
 
 for lock in LOCKS:

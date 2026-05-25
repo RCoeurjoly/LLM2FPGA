@@ -39,7 +39,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     output reg [COMMAND_WIDTH - 1:0] command_payload_o,
     output reg         command_event_o,
 
+    input wire         calib_complete_i,
     input wire         boot_done_i,
+    input wire [31:0]  ddr_debug1_i,
     input wire         loader_done_i,
     input wire         loader_error_i,
     input wire         loader_last_accepted_i,
@@ -290,7 +292,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                 case (read_word_index)
                     10'h000: s_axi_rdata <= TASK6_PCIE_MAGIC;
                     10'h001: s_axi_rdata <= TASK6_PCIE_VERSION;
-                    10'h002: s_axi_rdata <= {26'd0, boot_done_i, doorbell_error_q, loader_error_seen_q, loader_done_seen_q, event_active, rst_n};
+                    10'h002: s_axi_rdata <= {25'd0, boot_done_i, calib_complete_i, doorbell_error_q, loader_error_seen_q, loader_done_seen_q, event_active, rst_n};
                     10'h003: s_axi_rdata <= accepted_count_q;
                     10'h004: s_axi_rdata <= command_magic_q;
                     10'h005: s_axi_rdata <= {22'd0, command_chunk_q, command_opcode_q};
@@ -299,7 +301,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                     10'h009: s_axi_rdata <= command_data_q[1];
                     10'h00a: s_axi_rdata <= command_data_q[2];
                     10'h00b: s_axi_rdata <= command_data_q[3];
-                    10'h00d: s_axi_rdata <= {27'd0, loader_accepted_seen_q, loader_magic_ok_seen_q, loader_error_seen_q, loader_done_seen_q, boot_done_i};
+                    10'h00d: s_axi_rdata <= {26'd0, loader_accepted_seen_q, loader_magic_ok_seen_q, loader_error_seen_q, loader_done_seen_q, boot_done_i, calib_complete_i};
                     10'h00e: s_axi_rdata <= {22'd0, loader_last_chunk_i, loader_last_opcode_i};
                     10'h00f: s_axi_rdata <= loader_command_payload_addr_i;
                     10'h010: s_axi_rdata <= loader_wait_cycles_i;
@@ -307,6 +309,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                     10'h012: s_axi_rdata <= loader_read_data_i[63:32];
                     10'h013: s_axi_rdata <= loader_read_data_i[95:64];
                     10'h014: s_axi_rdata <= loader_read_data_i[127:96];
+                    10'h015: s_axi_rdata <= ddr_debug1_i;
                     default: s_axi_rdata <= 32'd0;
                 endcase
                 s_axi_rvalid <= 1'b1;

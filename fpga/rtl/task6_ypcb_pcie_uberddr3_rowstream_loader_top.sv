@@ -18,9 +18,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
   output wire        ddram_clk_n,
   output wire        ddram_clk_p,
   output wire        ddram_cs_n,
-  inout  wire [63:0] ddram_dq,
-  inout  wire  [7:0] ddram_dqs_n,
-  inout  wire  [7:0] ddram_dqs_p,
+  inout  wire [7:0] ddram_dq,
+  inout  wire [0:0] ddram_dqs_n,
+  inout  wire [0:0] ddram_dqs_p,
   output wire        ddram_odt,
   output wire        ddram_ras_n,
   output wire        ddram_reset_n,
@@ -36,7 +36,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
   wire [COMMAND_WIDTH - 1:0] rowstream_command_payload;
   wire rowstream_command_event;
   wire rowstream_status_clear;
+  wire rowstream_calib_complete;
   wire rowstream_boot_done;
+  wire [31:0] rowstream_ddr_debug1;
   wire rowstream_loader_done;
   wire rowstream_loader_error;
   wire rowstream_loader_last_accepted;
@@ -131,7 +133,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
     .rowstream_command_payload_o(rowstream_command_payload),
     .rowstream_command_event_o(rowstream_command_event),
     .rowstream_status_clear_o(rowstream_status_clear),
+    .rowstream_calib_complete_i(rowstream_calib_complete),
     .rowstream_boot_done_i(rowstream_boot_done),
+    .rowstream_ddr_debug1_i(rowstream_ddr_debug1),
     .rowstream_loader_done_i(rowstream_loader_done),
     .rowstream_loader_error_i(rowstream_loader_error),
     .rowstream_loader_last_accepted_i(rowstream_loader_last_accepted),
@@ -148,7 +152,16 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
     .JTAG_CHAIN(3),
     .JTAG_COMMAND_CHAIN(2),
     .DISABLE_JTAG_DEBUG_SHIFT(1),
-    .BOOT_ISOLATE_UNTIL_CALIB(0)
+    .BOOT_ISOLATE_UNTIL_CALIB(0),
+    .PLL_CLKOUT0_DIVIDE(10),
+    .PLL_CLKOUT1_DIVIDE(10),
+    .PLL_CLKOUT2_DIVIDE(40),
+    .CONTROLLER_CLK_PERIOD_PS(40_000),
+    .DDR3_CLK_PERIOD_PS(10_000),
+    .DLL_OFF_PARAM(1'b0),
+    .SPEED_BIN_PARAM(1),
+    .SDRAM_CAPACITY_PARAM(4),
+    .BIST_TEST_DATAMASK(1'b0)
   ) rowstream_ddr3 (
     .clk50(clk_50),
     .SYS_RSTN(sys_rst_n),
@@ -171,7 +184,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top (
     .pcie_status_clear_i(rowstream_status_clear),
     .pcie_controller_clk_o(rowstream_clk),
     .pcie_controller_rst_n_o(rowstream_rst_n),
+    .pcie_calib_complete_o(rowstream_calib_complete),
     .pcie_boot_done_o(rowstream_boot_done),
+    .pcie_ddr_debug1_o(rowstream_ddr_debug1),
     .pcie_loader_done_o(rowstream_loader_done),
     .pcie_loader_error_o(rowstream_loader_error),
     .pcie_loader_last_accepted_o(rowstream_loader_last_accepted),

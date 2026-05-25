@@ -6044,7 +6044,7 @@ EOF
               ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv} \
               ${./fpga/rtl/task6_ypcb_pcie_uberddr3_rowstream_loader_top.sv}
             hierarchy -top task6_ypcb_pcie_uberddr3_rowstream_loader_top -check
-            synth_xilinx -flatten -abc9 -arch xc7 -nosrl -top task6_ypcb_pcie_uberddr3_rowstream_loader_top
+            synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_uberddr3_rowstream_loader_top
             stat -top task6_ypcb_pcie_uberddr3_rowstream_loader_top
             write_json "$out"
             EOF
@@ -6064,6 +6064,7 @@ EOF
           xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
           json = task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
           seed = 15;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
           nextpnrExtraArgs = "--no-tmdriv";
         };
 
@@ -6770,6 +6771,7 @@ EOF
             name = "seed18-clock-and-phy-full-placed";
             locksJson = task6YpcbUberDdr3Seed18ClockAndPhyFullPlacedBelLocks;
             scopes = [ "all_placed_cells" ];
+            allowMissing = true;
           };
 
         task6YpcbUberDdr3Seed18ClockAndPhyControllerPlacedBelLocks =

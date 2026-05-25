@@ -27,9 +27,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   output wire        ddram_clk_n,
   output wire        ddram_clk_p,
   output wire        ddram_cs_n,
-  inout  wire [63:0] ddram_dq,
-  inout  wire  [7:0] ddram_dqs_n,
-  inout  wire  [7:0] ddram_dqs_p,
+  inout  wire [BYTE_LANES * 8 - 1:0] ddram_dq,
+  inout  wire [BYTE_LANES - 1:0] ddram_dqs_n,
+  inout  wire [BYTE_LANES - 1:0] ddram_dqs_p,
   output wire        ddram_odt,
   output wire        ddram_ras_n,
   output wire        ddram_reset_n,
@@ -40,7 +40,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   , input  wire                             pcie_status_clear_i
   , output wire                             pcie_controller_clk_o
   , output wire                             pcie_controller_rst_n_o
+  , output wire                             pcie_calib_complete_o
   , output wire                             pcie_boot_done_o
+  , output wire [31:0]                      pcie_ddr_debug1_o
   , output wire                             pcie_loader_done_o
   , output wire                             pcie_loader_error_o
   , output wire                             pcie_loader_last_accepted_o
@@ -1519,9 +1521,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .o_ddr3_we_n(ddram_we_n),
     .o_ddr3_addr(ddram_a),
     .o_ddr3_ba_addr(ddram_ba),
-    .io_ddr3_dq(ddram_dq[BYTE_LANES * 8 - 1:0]),
-    .io_ddr3_dqs(ddram_dqs_p[BYTE_LANES - 1:0]),
-    .io_ddr3_dqs_n(ddram_dqs_n[BYTE_LANES - 1:0]),
+    .io_ddr3_dq(ddram_dq),
+    .io_ddr3_dqs(ddram_dqs_p),
+    .io_ddr3_dqs_n(ddram_dqs_n),
     .o_ddr3_dm(ddr3_dm_w),
     .o_ddr3_odt(ddr3_odt_w),
     .o_calib_complete(calib_complete),
@@ -1564,7 +1566,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 `ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
   assign pcie_controller_clk_o = controller_clk;
   assign pcie_controller_rst_n_o = rst_n;
+  assign pcie_calib_complete_o = calib_complete;
   assign pcie_boot_done_o = read_probe_done_q;
+  assign pcie_ddr_debug1_o = debug1;
   assign pcie_loader_done_o = pcie_loader_done_sticky_q;
   assign pcie_loader_error_o = pcie_loader_error_sticky_q;
   assign pcie_loader_last_accepted_o = pcie_loader_last_accepted_sticky_q;

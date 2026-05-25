@@ -24235,3 +24235,46 @@ sudo scripts/task6/task6_pcie_rowstream_loader_smoke.py 0000:42:00.0
 ```
 
 If permanent root-helper coverage is desired, install it beside the existing PCIe helpers and add a `rowstream-loader` dispatch case to `/usr/local/sbin/task6-pcie-gate`/`scripts/task6/task6_pcie_gate_root.sh`.
+
+### 2026-05-25 - One-lane combined PCIe + DDR3 rowstream loader bringup
+
+Refined the combined PCIe+DDR3 rowstream loader image to make the PCIe BAR ingress target the real one-byte-lane DDR rowstream loader rather than carrying unused DDR data/DQS top ports.
+
+Implementation notes:
+
+- Narrowed the combined top-level DDR data ports to `ddram_dq[7:0]` plus scalar one-lane DQS ports.
+- Parameterized the rowstream loader DDR data/DQS ports by `BYTE_LANES` so one-lane synthesis does not expose unused lane pads.
+- Updated the combined XDC merger to keep only DQ lane 0 pins, keep DQS lane 0, and rename single-bit DQS constraints to the scalar port names emitted by OpenXC7.
+- Kept the combined target on seed 15. Seed 18 reached placement but router2 stalled with 3 persistent overused wires; seed 15 routed with 0 routing errors.
+- Removed the full-placement lock oracle from the combined target. It did not improve DDR calibration in earlier hardware runs and created an unnecessary standalone one-lane/full-XDC dependency.
+
+Build/program result:
+
+```text
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream -L --no-link --print-out-paths
+/nix/store/ykikly5zfsw97695zy6wy32ra44x09sp-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+Programmed YPCB over Digilent HS3 serial `210299BF3824`:
+
+```text
+/home/roland/openFPGALoader/build/openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/ykikly5zfsw97695zy6wy32ra44x09sp-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+Hardware gates:
+
+- PCIe link gate passed immediately after programming: `pipe_mmcm_lock=true`, `sys_rst_n=true`, `user_reset=false`, `user_lnk_up=true`, `pl_ltssm_state=22`, `last_ltssm_state=22`.
+- Host enumeration passed: `0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]`.
+- Rowstream BAR header gate passed after privileged rescan: `magic=0x54365043` (`T6PC`), `version=3`, `status=0x00000001 rst_n`.
+- DDR boot gate still failed: `/usr/local/sbin/task6-pcie-gate rowstream-loader 0000:42:00.0` timed out waiting for `boot_done`, with `loader=0x00000000`.
+- DDR JTAG boot-only probe confirmed the failure is inside DDR calibration/boot, not the PCIe BAR path: `magic_ok=True version=63 calib_seen=False state=1 ack=0 err=0 loader_error=False debug1=0x00000000`.
+
+Interpretation:
+
+- PCIe ingress integration is alive enough to enumerate and expose the rowstream BAR header from the combined hardware image.
+- The current blocker is the DDR controller side of the combined image: calibration never reports `calib_seen`, so PCIe cannot yet load or read DDR rowstream data.
+- Narrowing the top-level DDR lane ports fixed the unused-pad issue and produced a routable seed15 image, but it did not by itself recover DDR calibration.
+
+Next debugging rung:
+
+- Build a DDR-only one-lane physical-isolation image with the same narrowed top-port/XDC shape as the combined PCIe image. If that calibrates, the remaining issue is PCIe integration placement/reset/clock interference. If it also fails, the one-lane port/XDC transformation itself needs to be reconciled with the known-good standalone DDR image.

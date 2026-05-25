@@ -34,7 +34,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     output reg                       rowstream_command_event_o,
     output reg                       rowstream_status_clear_o,
 
+    input wire        rowstream_calib_complete_i,
     input wire        rowstream_boot_done_i,
+    input wire [31:0] rowstream_ddr_debug1_i,
     input wire        rowstream_loader_done_i,
     input wire        rowstream_loader_error_i,
     input wire        rowstream_loader_last_accepted_i,
@@ -58,6 +60,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [2:0] clear_sync_row_q;
     reg clear_seen_row_q;
 
+    reg [2:0] calib_complete_sync_pcie_q;
     reg [2:0] boot_done_sync_pcie_q;
     reg [2:0] loader_done_sync_pcie_q;
     reg [2:0] loader_error_sync_pcie_q;
@@ -67,6 +70,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [1:0] loader_chunk_pcie_q;
     reg [31:0] loader_addr_pcie_q;
     reg [31:0] loader_wait_pcie_q;
+    reg [31:0] ddr_debug1_pcie_q;
     reg [511:0] loader_read_data_pcie_q;
 
     task6_pcie_axil_rowstream_loader_ingress #(
@@ -94,7 +98,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
         .s_axi_rresp(s_axi_rresp),
         .command_payload_o(pcie_command_payload),
         .command_event_o(pcie_command_event),
+        .calib_complete_i(calib_complete_sync_pcie_q[2]),
         .boot_done_i(boot_done_sync_pcie_q[2]),
+        .ddr_debug1_i(ddr_debug1_pcie_q),
         .loader_done_i(loader_done_sync_pcie_q[2]),
         .loader_error_i(loader_error_sync_pcie_q[2]),
         .loader_last_accepted_i(loader_accepted_sync_pcie_q[2]),
@@ -112,6 +118,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             req_toggle_pcie_q <= 1'b0;
             clear_toggle_pcie_q <= 1'b0;
             payload_hold_pcie_q <= {COMMAND_WIDTH{1'b0}};
+            calib_complete_sync_pcie_q <= 3'd0;
             boot_done_sync_pcie_q <= 3'd0;
             loader_done_sync_pcie_q <= 3'd0;
             loader_error_sync_pcie_q <= 3'd0;
@@ -121,6 +128,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             loader_chunk_pcie_q <= 2'd0;
             loader_addr_pcie_q <= 32'd0;
             loader_wait_pcie_q <= 32'd0;
+            ddr_debug1_pcie_q <= 32'd0;
             loader_read_data_pcie_q <= 512'd0;
         end else begin
             if (pcie_command_event) begin
@@ -130,6 +138,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             if (pcie_status_clear)
                 clear_toggle_pcie_q <= ~clear_toggle_pcie_q;
 
+            calib_complete_sync_pcie_q <= {calib_complete_sync_pcie_q[1:0], rowstream_calib_complete_i};
             boot_done_sync_pcie_q <= {boot_done_sync_pcie_q[1:0], rowstream_boot_done_i};
             loader_done_sync_pcie_q <= {loader_done_sync_pcie_q[1:0], rowstream_loader_done_i};
             loader_error_sync_pcie_q <= {loader_error_sync_pcie_q[1:0], rowstream_loader_error_i};
@@ -139,6 +148,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             loader_chunk_pcie_q <= rowstream_loader_last_chunk_i;
             loader_addr_pcie_q <= rowstream_loader_command_payload_addr_i;
             loader_wait_pcie_q <= rowstream_loader_wait_cycles_i;
+            ddr_debug1_pcie_q <= rowstream_ddr_debug1_i;
             loader_read_data_pcie_q <= rowstream_loader_read_data_i;
         end
     end
