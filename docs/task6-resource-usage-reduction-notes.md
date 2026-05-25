@@ -22828,3 +22828,16 @@ Next gate:
 - Immediate `lspci -Dnn` still did not enumerate an FPGA endpoint while `boltctl` still reported the OWC Helios 5S authorized and connected.
 - Could not run the post-program PCIe rescan from Codex because `sudo -n` required a password. The next hardware gate must be run manually: `sudo sh -c 'echo 1 > /sys/bus/pci/rescan'; lspci -Dnn`, or replug/power-cycle the Thunderbolt chassis after programming if rescan is insufficient.
 - Current interpretation: Vivado proves the RTL can be built by the vendor tool, but immediate post-program enumeration still fails. Until a privileged rescan or Thunderbolt replug/reboot test is done, this does not yet distinguish between endpoint reset/hotplug timing and toolchain bitstream correctness.
+
+### 2026-05-25: YPCB PCIe smoke persisted to BPI flash
+
+The Vivado-built YPCB PCIe smoke bitstream was programmed into the board's BPI flash using the local `/home/roland/openFPGALoader` build and the `ypcb003381p1` board definition. This matters because PCIe endpoints normally need to be configured before host/chassis enumeration; SRAM programming after the Thunderbolt/PCIe tree is already up may miss the enumeration window.
+
+Observed flash path:
+
+- The generic `-f --verify` command initially tried to use `spiOverJtag_xc7k480tffg1156.bit.gz` and failed because this board uses BPI flash, not SPI flash.
+- The local openFPGALoader BPI path was patched outside this repository so BPI boards defer bridge loading to the BPI implementation.
+- Programming then loaded `bpiOverJtag_xc7k480tffg1156.bit.gz`, detected Intel/Micron BPI flash, erased 72 blocks, wrote `18735004` bytes, and completed.
+- `--verify` reported: `Verification passed for first 32 words`.
+
+Next gate: power-cycle or replug the FPGA/chassis so the FPGA boots the PCIe smoke design from flash before host PCIe enumeration, then run `boltctl` and `lspci -Dnn` to check whether the endpoint appears under the Thunderbolt downstream port.
