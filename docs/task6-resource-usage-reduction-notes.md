@@ -22715,3 +22715,45 @@ Current status:
 - Fixed the PCIe Yosys helper to load Xilinx primitive libraries before synthesis.
 - Kept only the GTX wrapper source for YPCB and removed strict pre-synthesis hierarchy checking so the unused GTP generate branch does not require the conflicting `pipe_wrapper` source.
 - Build-level status: PCIe smoke JSON and PCIe command-bridge JSON both synthesize successfully. Next PCIe gate, after the board is free, is bitstream build/program and BAR read/write smoke.
+
+### 2026-05-25 - PCIe two-hour timebox early result
+
+Decision:
+
+- Cancelled the active JTAG full-rowstream run and started the PCIe early-gate path.
+- Scope for this timebox was: build PCIe smoke bitstream, program board, check `lspci`, then BAR read/write smoke if enumeration worked.
+
+Implementation attempted:
+
+- Integrated the freshly cloned `~/pcie_7x` source through the existing Task 6 Nix flow using `--override-input pcie7x path:/home/roland/pcie_7x`.
+- Kept the upstream YPCB x1 GTX smoke design shape: `pcie_7x_top_aximm_ypcb_480t` with `axil_minimum`.
+- Added source-prep patches in the copied source only:
+  - route the GTX reference clock to `GTXE2_COMMON` for the QPLL path instead of driving both common and channel from `IBUFDS_GTE2.O`.
+  - force `PCIE_PLL_SEL = "QPLL"` at the `pcie_7x` top instantiation.
+- Kept `seed = 15` and added `--no-tmdriv` to the PCIe FASM targets, matching the current Task 6 hardware policy.
+
+Evidence:
+
+- The first smoke build failed during nextpnr pack because `IBUFDS_GTE2.O` fanned out to both `GTXE2_COMMON.GTREFCLK0` and `GTXE2_CHANNEL.GTREFCLK0`.
+- After the QPLL/source-copy fix, nextpnr packed the GTX channel/common/refclk path correctly and reached PCIe hard-block placement.
+- The current blocker is the openXC7 nextpnr chipdb, not a seed issue:
+  - the design contains one packed `PCIE_2_1_PCIE_2_1` cell.
+  - nextpnr fails with no placeable BEL for that cell.
+  - local BEL enumeration found no real `PCIE_2_1` or `PCIE` hard-block BELs in the tested `xc7k480tffg1156.bin` chipdbs; only PCIe routing/string names and pseudo BELs were visible.
+- The cloned PCIe repo had no reusable local bitstream; its existing `build/top.log` only recorded `yosys: not found`.
+
+Conclusion:
+
+- PCIe did not reach the programming, `lspci`, or BAR-smoke gates in the early timebox because the current open-source placement database cannot place the PCIe hard block for `xc7k480tffg1156`.
+- The PCIe RTL integration is still promising, but the immediate blocker is toolchain/chipdb support for the hard PCIe site, not rowstream logic or the board.
+
+Next viable PCIe gates:
+
+1. Build or obtain an openXC7 nextpnr chipdb that exposes the `PCIE_2_1` hard block as a placeable BEL for `xc7k480tffg1156`.
+2. Re-run `.#task6-ypcb-pcie7x-smoke-bitstream --override-input pcie7x path:/home/roland/pcie_7x --impure` with the fixed chipdb.
+3. Only after the smoke bitstream builds, program the board and run `lspci` plus BAR read/write smoke.
+
+Task 6 impact:
+
+- For the immediate two-week inference goal, DDR3/JTAG remains the only path that has already produced board-level data movement evidence.
+- PCIe should remain a parallel acceleration lane, but not the critical path until the PCIe hard-block chipdb problem is resolved.

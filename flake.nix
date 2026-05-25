@@ -213,10 +213,14 @@
             patch -p1 < ${./patches/uberddr3/0003-ypcb-fast-bist-exit.patch}
           '';
         task6Pcie7xSource =
-          pkgs.runCommand "task6-pcie7x-source" { } ''
+          pkgs.runCommand "task6-pcie7x-source" { nativeBuildInputs = [ pkgs.perl ]; } ''
             set -euo pipefail
             cp -r ${pcie7x} "$out"
+            chmod -R u+w "$out"
+            perl -0pi -e 's/\.GTREFCLK0\s*\(PIPE_CLK\),\s*\/\/ IBUFDS_GTE2 output/.GTREFCLK0                      (PCIE_PLL_SEL == "QPLL" ? PIPE_CLK : 1\x27b0), \/\/ IBUFDS_GTE2 output/' "$out/src/pipe_wrapper_gtx.v"
+            perl -0pi -e 's/(\.PCIE_GT_DEVICE\s*\( GT_DEVICE \),\n)/$1  .PCIE_PLL_SEL                   ( "QPLL" ),\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
           '';
+
 
         mkTask6YpcbPcie7xYosysJson = { name, axilMinimumSource }:
           pkgs.runCommand name {
@@ -224,21 +228,19 @@
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
-            read_verilog -lib +/xilinx/cells_sim.v
-            read_verilog -lib +/xilinx/cells_xtra.v
             read_verilog -sv \
-              ${pcie7x}/src/xilinx_pcie_mmcm.v \
-              ${pcie7x}/src/axil_to_al.v \
-              ${pcie7x}/src/axis_pcie_to_al_us.v \
-              ${pcie7x}/src/pcie_7x.v \
-              ${pcie7x}/src/pcie_axi_rx.v \
-              ${pcie7x}/src/pcie_axi_tx.v \
-              ${pcie7x}/src/pcie_block.v \
-              ${pcie7x}/src/pcie_brams.v \
-              ${pcie7x}/src/pcie_tx_thrtl_ctl.v \
-              ${pcie7x}/src/pipe_wrapper_gtx.v \
-              ${pcie7x}/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v \
-              ${pcie7x}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${task6Pcie7xSource}/src/xilinx_pcie_mmcm.v \
+              ${task6Pcie7xSource}/src/axil_to_al.v \
+              ${task6Pcie7xSource}/src/axis_pcie_to_al_us.v \
+              ${task6Pcie7xSource}/src/pcie_7x.v \
+              ${task6Pcie7xSource}/src/pcie_axi_rx.v \
+              ${task6Pcie7xSource}/src/pcie_axi_tx.v \
+              ${task6Pcie7xSource}/src/pcie_block.v \
+              ${task6Pcie7xSource}/src/pcie_brams.v \
+              ${task6Pcie7xSource}/src/pcie_tx_thrtl_ctl.v \
+              ${task6Pcie7xSource}/src/pipe_wrapper_gtx.v \
+              ${task6Pcie7xSource}/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v \
+              ${task6Pcie7xSource}/src/aximm-minimal/pcie_7x_top_aximm.v \
               ${axilMinimumSource}
             hierarchy -top pcie_7x_top_aximm_ypcb_480t
             synth_xilinx -flatten -abc9 -arch xc7 -nosrl -top pcie_7x_top_aximm_ypcb_480t
@@ -250,7 +252,7 @@
 
         task6YpcbPcie7xSmokeYosysJson = mkTask6YpcbPcie7xYosysJson {
           name = "task6-ypcb-pcie7x-smoke-yosys.json";
-          axilMinimumSource = "${pcie7x}/src/aximm-minimal/axil_minimum.v";
+          axilMinimumSource = "${task6Pcie7xSource}/src/aximm-minimal/axil_minimum.v";
         };
 
         task6YpcbPcie7xCommandBridgeYosysJson = mkTask6YpcbPcie7xYosysJson {
@@ -5785,14 +5787,14 @@
           ];
         };
 
-        task6YpcbPcie7xXdc = "${pcie7x}/pcie_7x_ypcb_k480t.xdc";
+        task6YpcbPcie7xXdc = "${task6Pcie7xSource}/pcie_7x_ypcb_k480t.xdc";
 
         task6YpcbPcie7xSmokeFasm = mkFasm {
           name = "task6-ypcb-pcie7x-smoke";
           xdc = task6YpcbPcie7xXdc;
           json = task6YpcbPcie7xSmokeYosysJson;
           seed = 15;
-          freqMHz = 25;
+          nextpnrExtraArgs = "--no-tmdriv";
         };
 
         task6YpcbPcie7xSmokeBitstream = mkBitstream {
@@ -5806,7 +5808,7 @@
           xdc = task6YpcbPcie7xXdc;
           json = task6YpcbPcie7xCommandBridgeYosysJson;
           seed = 15;
-          freqMHz = 25;
+          nextpnrExtraArgs = "--no-tmdriv";
         };
 
         task6YpcbPcie7xCommandBridgeBitstream = mkBitstream {
