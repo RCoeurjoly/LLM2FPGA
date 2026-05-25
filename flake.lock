@@ -230,11 +230,11 @@
     "nextpnrXilinxFork": {
       "flake": false,
       "locked": {
-        "lastModified": 1773321188,
-        "narHash": "sha256-5s1eWJ+t8MEwefRc6o+4KKze22X+c4H49W7/Blj115I=",
+        "lastModified": 1779688666,
+        "narHash": "sha256-/xER3Uu5jzLDOaqKzRP+rXJ+hWpP8g4gn6OA6WKZcoo=",
         "ref": "stable-backports",
-        "rev": "49b29b292469b15ca5330bd620caa0bd143eb8dd",
-        "revCount": 3127,
+        "rev": "c31552c0e3ce6483945869e6abb0acc59e5861f3",
+        "revCount": 3137,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/RCoeurjoly/nextpnr-xilinx"
@@ -380,6 +380,22 @@
         "type": "github"
       }
     },
+    "pcie7x": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1777005844,
+        "narHash": "sha256-7elok8dXDB894imNHINrCBLbXCXpEjZ1yV6RQ/zcTs0=",
+        "owner": "regymm",
+        "repo": "pcie_7x",
+        "rev": "2d9712913133d660f9114ba437c3288a08728d00",
+        "type": "github"
+      },
+      "original": {
+        "owner": "regymm",
+        "repo": "pcie_7x",
+        "type": "github"
+      }
+    },
     "pythondataCpuVexriscv": {
       "flake": false,
       "locked": {
@@ -447,6 +463,7 @@
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "nixpkgs-nix-eda": "nixpkgs-nix-eda",
         "openXC7": "openXC7",
+        "pcie7x": "pcie7x",
         "pythondataCpuVexriscv": "pythondataCpuVexriscv",
         "pythondataSoftwareCompilerRt": "pythondataSoftwareCompilerRt",
         "pythondataSoftwarePicolibc": "pythondataSoftwarePicolibc",

@@ -880,10 +880,6 @@
         openXC7Nextpnr = openXC7Packages.nextpnr-xilinx.overrideAttrs
           (old: {
             src = nextpnrXilinxFork;
-            patches = (old.patches or [ ]) ++ [
-              ./patches/nextpnr-xilinx/0001-xc7-allow-odelay-to-hr-output-buffers.patch
-              ./patches/nextpnr-xilinx/0002-xc7-avoid-oserdes-ofb-null-deref.patch
-            ];
           });
         openXC7Chipdb = openXC7Packages.nextpnr-xilinx-chipdb.kintex7.override {
           chipdbFootprints = [ "xc7k480tffg1156" ];
