@@ -24481,3 +24481,54 @@ nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-yosys-json -L
 ```
 
 The reader simulation covers all four 68-byte row alignment phases on the 16-byte DDR beat interface and reports `PASS: task6 DDR3 rowstream WB top1 reader rows 8`. The combined PCIe+DDR3 Yosys JSON build completed, with the final Yosys `check` reporting 0 problems. This is a synthesis gate only; place/route and a board `rowstream-top1` host gate are still required before claiming the full Task 6 hardware acceptance result.
+
+
+### 2026-05-26 - PCIe rowstream-top1 board gate host tool
+
+Added the board-side `rowstream-top1` host gate for the combined PCIe+DDR3 rowstream-top1 bitstream.
+
+Implementation notes:
+
+- Added `scripts/task6/task6_pcie_rowstream_top1_gate.py`.
+- The gate can load the packed `rowstream.bin` into DDR3 through the existing host-packet BAR command path, sparsely verify the DDR3 image, write the 64-byte int8 hidden vector into the top1 BAR aperture, start the FPGA scan, poll top1 status, and compare board token/score/row-count results against a host reference scan of the same rowstream image.
+- It supports `--hidden-q-hex` for a hardware smoke without model loading and `--model-path --sample-count N` for deterministic replay samples using `h2-full-vocab-rowwise-topk-replay.json`.
+- Updated `scripts/task6/task6_pcie_gate_root.sh` with a `rowstream-top1` dispatch for the installed privileged helper.
+
+Local verification passed:
+
+```bash
+python3 -m py_compile scripts/task6/task6_pcie_rowstream_top1_gate.py
+bash -n scripts/task6/task6_pcie_gate_root.sh
+scripts/task6/task6_pcie_rowstream_top1_gate.py --help
+python3 - <<'PY'
+import importlib.util
+from pathlib import Path
+p=Path('scripts/task6/task6_pcie_rowstream_top1_gate.py')
+spec=importlib.util.spec_from_file_location('gate', p)
+gate=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(gate)
+contract=gate.read_json(gate.DEFAULT_CONTRACT)
+image=gate.DEFAULT_ROWSTREAM.read_bytes()
+token, score, rows, reserved = gate.scan_rowstream_top1(image, contract, [0]*64)
+assert token == 0 and score == 0 and rows == contract['model']['vocab_size'] and reserved == 0
+PY
+```
+
+Install commands before running the board gate through `/usr/local/sbin/task6-pcie-gate`:
+
+```bash
+sudo install -o root -g root -m 0755 scripts/task6/task6_pcie_rowstream_top1_gate.py /usr/local/libexec/task6-pcie/task6_pcie_rowstream_top1_gate.py
+sudo install -o root -g root -m 0755 scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
+```
+
+First board smoke command after programming the new bitstream:
+
+```bash
+sudo TASK6_REPO_ROOT=/home/roland/LLM2FPGA /usr/local/sbin/task6-pcie-gate rowstream-top1 0000:42:00.0 --hidden-q-hex 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --json-out /tmp/task6-pcie-rowstream-top1-zero.json
+```
+
+Replay gate command after the smoke passes:
+
+```bash
+sudo TASK6_REPO_ROOT=/home/roland/LLM2FPGA /usr/local/sbin/task6-pcie-gate rowstream-top1 0000:42:00.0 --model-path TinyStories --sample-count 1 --json-out /tmp/task6-pcie-rowstream-top1-sample1.json
+```
