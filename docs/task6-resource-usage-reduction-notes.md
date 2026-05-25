@@ -24023,3 +24023,16 @@ Operational result:
 
 - A BAR result that reads `T6PC` at offset 0 is now a BAR header pass, not an echo failure.
 - Writable BAR validation for Task 6 command images should use `task6_pcie_command_bridge_smoke.py` ladder stages or an explicit non-header scratch offset, not implicit writes to BAR0 offset 0.
+
+
+### 2026-05-25 - OpenXC7 PCIe enumeration debug plan implementation
+
+Implementation update:
+
+- Added a v2 PCIe USER1 JTAG payload with RX/TX packet counters, sticky AXI stream activity flags, first RX/TX data samples, and TX config-request visibility.
+- Added named OpenXC7 debug clone outputs for the minimal Vivado-lane0 smoke responder so enumeration can be debugged before command-bridge work.
+- Added `scripts/task6/task6_pcie_openxc7_primitive_report.py` to summarize PCIE_2_1 and GTXE2 primitive parameters from Yosys JSON artifacts.
+
+Operational intent:
+
+- Use the Vivado oracle as the host/chassis control, then program the OpenXC7 debug clone and inspect whether host config traffic reaches RX and whether TX emits completions before `cfg_bus_number` becomes nonzero.

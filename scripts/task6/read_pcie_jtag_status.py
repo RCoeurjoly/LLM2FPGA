@@ -20,11 +20,12 @@ def decode(raw_hex: str, bit_count: int) -> dict:
     gt_ltssm_word = field(payload, 104, 32)
     cfg_id_word = field(payload, 136, 32)
     last_word = field(payload, 296, 32)
+    version = field(payload, 32, 8)
     decoded = {
         "raw_hex": raw_hex,
         "magic": field(payload, 0, 32),
         "magic_ok": field(payload, 0, 32) == MAGIC,
-        "version": field(payload, 32, 8),
+        "version": version,
         "flags_word": flags,
         "flags": {
             "sys_rst_n": bool(flags & (1 << 0)),
@@ -59,6 +60,36 @@ def decode(raw_hex: str, bit_count: int) -> dict:
         "link_up_seen_count": field(payload, 360, 32),
         "bit_count": bit_count,
     }
+
+    if version >= 2:
+        rx_sticky = field(payload, 488, 32)
+        tx_sticky = field(payload, 616, 32)
+        first_rx = field(payload, 648, 32) | (field(payload, 680, 32) << 32)
+        first_tx = field(payload, 712, 32) | (field(payload, 744, 32) << 32)
+        decoded["tlp_debug"] = {
+            "rx_beat_count": field(payload, 392, 32),
+            "rx_packet_count": field(payload, 424, 32),
+            "rx_eof_count": field(payload, 456, 32),
+            "rx_sticky_word": rx_sticky,
+            "rx_sof_seen": bool(rx_sticky & (1 << 0)),
+            "rx_tkeep_seen": field(rx_sticky, 1, 8),
+            "rx_tuser_seen": field(rx_sticky, 9, 22),
+            "first_rx_qword": first_rx,
+            "first_rx_qword_hex": f"0x{first_rx:016x}",
+            "tx_beat_count": field(payload, 520, 32),
+            "tx_packet_count": field(payload, 552, 32),
+            "tx_eof_count": field(payload, 584, 32),
+            "tx_sticky_word": tx_sticky,
+            "tx_sof_seen": bool(tx_sticky & (1 << 0)),
+            "tx_tkeep_seen": field(tx_sticky, 1, 8),
+            "tx_tuser_seen": field(tx_sticky, 9, 4),
+            "tx_cfg_req_seen": bool(tx_sticky & (1 << 13)),
+            "tx_cfg_gnt_seen": bool(tx_sticky & (1 << 14)),
+            "tx_err_drop_seen": bool(tx_sticky & (1 << 15)),
+            "tx_buf_av_seen": field(tx_sticky, 16, 6),
+            "first_tx_qword": first_tx,
+            "first_tx_qword_hex": f"0x{first_tx:016x}",
+        }
     return decoded
 
 
@@ -67,7 +98,7 @@ def main() -> int:
     parser.add_argument("--reader", default="scripts/task6/read_jtag_debug_ftdi_bitbang.py")
     parser.add_argument("--serial", default="210299BF3824")
     parser.add_argument("--tdo-bit", type=int, choices=(0, 7), default=7)
-    parser.add_argument("--bits", type=int, default=512)
+    parser.add_argument("--bits", type=int, default=1024)
     parser.add_argument("--user-ir", default="0x02")
     parser.add_argument("--freq-hz", type=int, default=1_000_000)
     parser.add_argument("--json-only", action="store_true")

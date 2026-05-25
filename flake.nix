@@ -224,7 +224,7 @@
             perl -0pi -e 's/assign led = {3\x27b111, pipe_mmcm_lock};/assign led = {1\x27b1, ~pl_ltssm_state[5], ~pl_ltssm_state[4], ~pl_ltssm_state[3]};/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
             perl -0pi -e 's/\.NO_RESET\(1\)/.NO_RESET(0)/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
             perl -0pi -e 's/\.ENABLE_GEN2\(1\)/.ENABLE_GEN2(0)/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
-            perl -0pi -e 's/(wire\s+\[2:0\]\s+cfg_function_number;\n)/$1  wire [15:0] cfg_status;\n  wire [15:0] cfg_command;\n  wire [15:0] cfg_dstatus;\n  wire [15:0] cfg_dcommand;\n  wire [15:0] cfg_lstatus;\n  wire [15:0] cfg_lcommand;\n  wire [15:0] cfg_dcommand2;\n  wire [2:0] cfg_pcie_link_state;\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/(wire\s+\[2:0\]\s+cfg_function_number;\n)/$1  wire [15:0] cfg_status;\n  wire [15:0] cfg_command;\n  wire [15:0] cfg_dstatus;\n  wire [15:0] cfg_dcommand;\n  wire [15:0] cfg_lstatus;\n  wire [15:0] cfg_lcommand;\n  wire [15:0] cfg_dcommand2;\n  wire [2:0] cfg_pcie_link_state;\n  wire tx_err_drop;\n  wire tx_cfg_req;\n  wire [5:0] tx_buf_av;\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
             perl -0pi -e 's/\.cfg_status\s*\( \),/.cfg_status                                ( cfg_status ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
             perl -0pi -e 's/\.cfg_command\s*\( \),/.cfg_command                               ( cfg_command ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
             perl -0pi -e 's/\.cfg_dstatus\s*\( \),/.cfg_dstatus                               ( cfg_dstatus ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
@@ -233,7 +233,10 @@
             perl -0pi -e 's/\.cfg_dcommand\s*\( \),/.cfg_dcommand                              ( cfg_dcommand ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
             perl -0pi -e 's/\.cfg_lcommand\s*\( \),/.cfg_lcommand                              ( cfg_lcommand ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
             perl -0pi -e 's/\.cfg_dcommand2\s*\( \),/.cfg_dcommand2                             ( cfg_dcommand2 ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
-            perl -0pi -e 's/(\.pipe_txoutclk_out\s*\( pipe_txoutclk_out \)\n\);)/$1\n\ntask6_pcie_jtag_status_shift #(.WIDTH(512), .JTAG_CHAIN(1)) task6_pcie_status_i (\n  .user_clk_i(user_clk),\n  .sys_rst_n_i(sys_rst_n_c),\n  .pipe_mmcm_lock_i(pipe_mmcm_lock),\n  .user_reset_i(user_reset_q),\n  .user_lnk_up_i(user_lnk_up_q),\n  .pl_ltssm_state_i(pl_ltssm_state),\n  .gt_reset_fsm_i(gt_reset_fsm),\n  .cfg_bus_number_i(cfg_bus_number),\n  .cfg_device_number_i(cfg_device_number),\n  .cfg_function_number_i(cfg_function_number),\n  .cfg_status_i(cfg_status),\n  .cfg_command_i(cfg_command),\n  .cfg_dstatus_i(cfg_dstatus),\n  .cfg_dcommand_i(cfg_dcommand),\n  .cfg_lstatus_i(cfg_lstatus),\n  .cfg_lcommand_i(cfg_lcommand),\n  .cfg_dcommand2_i(cfg_dcommand2),\n  .cfg_pcie_link_state_i(cfg_pcie_link_state)\n);/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.tx_buf_av\s*\( \),/.tx_buf_av                                 ( tx_buf_av ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.tx_err_drop\s*\( \),/.tx_err_drop                               ( tx_err_drop ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/\.tx_cfg_req\s*\( \),/.tx_cfg_req                                ( tx_cfg_req ),/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+            perl -0pi -e 's/(\.pipe_txoutclk_out\s*\( pipe_txoutclk_out \)\n\);)/$1\n\ntask6_pcie_jtag_status_shift #(.WIDTH(1024), .JTAG_CHAIN(1)) task6_pcie_status_i (\n  .user_clk_i(user_clk),\n  .sys_rst_n_i(sys_rst_n_c),\n  .pipe_mmcm_lock_i(pipe_mmcm_lock),\n  .user_reset_i(user_reset_q),\n  .user_lnk_up_i(user_lnk_up_q),\n  .pl_ltssm_state_i(pl_ltssm_state),\n  .gt_reset_fsm_i(gt_reset_fsm),\n  .cfg_bus_number_i(cfg_bus_number),\n  .cfg_device_number_i(cfg_device_number),\n  .cfg_function_number_i(cfg_function_number),\n  .cfg_status_i(cfg_status),\n  .cfg_command_i(cfg_command),\n  .cfg_dstatus_i(cfg_dstatus),\n  .cfg_dcommand_i(cfg_dcommand),\n  .cfg_lstatus_i(cfg_lstatus),\n  .cfg_lcommand_i(cfg_lcommand),\n  .cfg_dcommand2_i(cfg_dcommand2),\n  .cfg_pcie_link_state_i(cfg_pcie_link_state),\n  .m_axis_rx_tdata_i(m_axis_rx_tdata),\n  .m_axis_rx_tkeep_i(m_axis_rx_tkeep),\n  .m_axis_rx_tlast_i(m_axis_rx_tlast),\n  .m_axis_rx_tvalid_i(m_axis_rx_tvalid),\n  .m_axis_rx_tready_i(m_axis_rx_tready),\n  .m_axis_rx_tuser_i(m_axis_rx_tuser),\n  .s_axis_tx_tdata_i(s_axis_tx_tdata),\n  .s_axis_tx_tkeep_i(s_axis_tx_tkeep),\n  .s_axis_tx_tlast_i(s_axis_tx_tlast),\n  .s_axis_tx_tvalid_i(s_axis_tx_tvalid),\n  .s_axis_tx_tready_i(s_axis_tx_tready),\n  .s_axis_tx_tuser_i(s_axis_tx_tuser),\n  .tx_cfg_req_i(tx_cfg_req),\n  .tx_cfg_gnt_i(tx_cfg_gnt),\n  .tx_err_drop_i(tx_err_drop),\n  .tx_buf_av_i(tx_buf_av)\n);/' "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
             perl -0pi -e 's/(\/\/assign led = cnt\[27:25\];\n)/$1wire pcie_led_unused;\n/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
             perl -0pi -e 's/\.led\(led\)/.led({pcie_led_unused, led})/' "$out/src/aximm-minimal/pcie_7x_top_aximm_ypcb_480t.v"
           '';
@@ -5903,6 +5906,26 @@ EOF
           name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc";
           fasm = task6YpcbPcie7xSmokeVivadoLane0LocFasm;
           framesBase = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocDebugYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-debug-yosys.json";
+          source = task6Pcie7xSourceVivadoLane0Loc;
+          axilMinimumSource = "${task6Pcie7xSourceVivadoLane0Loc}/src/aximm-minimal/axil_minimum.v";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocDebugFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-debug";
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcie7xSmokeVivadoLane0LocDebugYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcie7xSmokeVivadoLane0LocDebugBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-debug";
+          fasm = task6YpcbPcie7xSmokeVivadoLane0LocDebugFasm;
+          framesBase = "task6-ypcb-pcie7x-smoke-vivado-lane0-loc-debug";
         };
 
         task6YpcbPcie7xSmokeVivadoLane0LocNoResetFasm = mkFasm {
@@ -11637,6 +11660,10 @@ EOF
             task6YpcbPcie7xSmokeVivadoLane0LocYosysJson;
           task6-ypcb-pcie7x-smoke-vivado-lane0-loc-bitstream =
             task6YpcbPcie7xSmokeVivadoLane0LocBitstream;
+          task6-ypcb-pcie7x-smoke-vivado-lane0-loc-debug-yosys-json =
+            task6YpcbPcie7xSmokeVivadoLane0LocDebugYosysJson;
+          task6-ypcb-pcie7x-smoke-vivado-lane0-loc-debug-bitstream =
+            task6YpcbPcie7xSmokeVivadoLane0LocDebugBitstream;
           task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset-yosys-json =
             task6YpcbPcie7xSmokeVivadoLane0LocNoResetYosysJson;
           task6-ypcb-pcie7x-smoke-vivado-lane0-loc-no-reset-bitstream =
