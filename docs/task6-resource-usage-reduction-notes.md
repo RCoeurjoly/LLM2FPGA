@@ -22629,3 +22629,25 @@ Current conclusion:
 Next gate:
 
 - Re-run seed15 `BIST_MODE=2` admission gate, then scale the paced rowstream packet path to 4096 beats / 256 KiB with sampled postread.
+
+#### Seed15 rowstream-loader 4096-beat / 256 KiB packet gate
+
+Admission gate:
+
+- `scripts/task6/task6_seed15_bist_gate.sh seed15-bist2-before-rowstream-4096-paced`
+- Result: PASS.
+- Run: `artifacts/task6/runs/2026-05-25T05-29-04+0200-seed15-bist2-before-rowstream-4096-paced`
+
+Paced 4096-beat attempt:
+
+- Run: `artifacts/task6/runs/final-ts1m-inference/seed15-2lane-rowstream-loader-rowstream-packet-4096beats-paced`
+- Source: real `rowstream.bin`
+- Beats: 4096 / 256 KiB
+- Packets: 1024
+- Command pacing: `--freq-hz 500000`, `--command-repeats 4`, `--command-delay 0.005`, `--diagnostic-host-packet-load-delay 0.05`
+- Sampled standalone postread beats: `0,1,2,3,21,90,193,512,1023,2048,4095`
+- Result: PASS, `mismatch_count=0`, `standalone_mismatch_count=0`, `completed_beats=4096`.
+
+Next gate:
+
+- Re-run seed15 `BIST_MODE=2` admission gate, then test the historically risky high-address packet window around beats `131064..131075` before attempting a full rowstream load.

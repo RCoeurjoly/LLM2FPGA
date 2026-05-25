@@ -1,0 +1,30 @@
+{
+  "beats": 4096,
+  "completed_beats": 4096,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/seed15-2lane-rowstream-loader-rowstream-packet-4096beats-paced/host-packet-diagnostic.json",
+  "first_mismatch": 255,
+  "first_standalone_mismatch": null,
+  "mismatch_count": 0,
+  "packet_count": 1024,
+  "packet_load_delay": 0.05,
+  "packet_postread_delay": 0.0,
+  "packet_postread_sample_beats": [
+    0,
+    1,
+    2,
+    3,
+    21,
+    90,
+    193,
+    512,
+    1023,
+    2048,
+    4095
+  ],
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/seed15-2lane-rowstream-loader-rowstream-packet-4096beats-paced",
+  "source": "rowstream",
+  "standalone_mismatch_count": 0,
+  "start_beat": 0,
+  "status": "PASS",
+  "verdict": "host-packet-passes"
+}
