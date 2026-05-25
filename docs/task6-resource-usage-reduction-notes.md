@@ -23727,3 +23727,25 @@ Next root-only rerun:
 ```sh
 sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
 ```
+
+
+### 2026-05-25 - Task 6 PCIe command bridge all-ones BAR retry
+
+User-run result after the byte-order helper fix:
+
+```text
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0000
+COMMAND after:  0x0002
+magic: 0xffffffff
+version: 4294967295
+status before: 0xffffffff
+accepted_count before: 4294967295
+bad magic: expected 0x54365043, got 0xffffffff
+```
+
+Interpretation:
+
+- This is no longer a byte-order mismatch. All BAR header words reading `0xffffffff` means the MMIO read is not completing to the FPGA BAR at that moment, or the host has a stale endpoint/resource after remove/rescan.
+- Hardened `scripts/task6/task6_pcie_command_bridge_smoke.py` to retry the BAR header briefly after memory-space enable and then report persistent all-ones as a BAR non-response/stale-endpoint condition.
+- Next action is operational, not RTL: rerun the rescan gate once. If all-ones repeats, reprogram the same SRAM bitstream and run the rescan gate again before touching DDR3, rowstream, or command bridge RTL.

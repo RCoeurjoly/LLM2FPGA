@@ -27,6 +27,8 @@ from pathlib import Path
 
 MAGIC = 0x54365043
 VERSION = 1
+ALL_ONES = 0xFFFFFFFF
+
 PAYLOAD = [
     0x54364A43,  # related Task 6 command/debug magic style
     0x00000001,
@@ -71,6 +73,10 @@ def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
     mm.flush(offset & ~0xFFF, 0x1000)
 
 
+def read_header(mm: mmap.mmap) -> tuple[int, int, int, int]:
+    return (rd32(mm, 0x000), rd32(mm, 0x004), rd32(mm, 0x008), rd32(mm, 0x00C))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bdf", help="PCI BDF, for example 0000:42:00.0")
@@ -92,14 +98,22 @@ def main() -> int:
     fd = os.open(resource0, os.O_RDWR | os.O_SYNC)
     try:
         with mmap.mmap(fd, 4096, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE) as mm:
-            magic = rd32(mm, 0x000)
-            version = rd32(mm, 0x004)
-            status0 = rd32(mm, 0x008)
-            count0 = rd32(mm, 0x00C)
+            magic, version, status0, count0 = read_header(mm)
+            for _ in range(10):
+                if (magic, version, status0, count0) != (ALL_ONES, ALL_ONES, ALL_ONES, ALL_ONES):
+                    break
+                time.sleep(0.05)
+                magic, version, status0, count0 = read_header(mm)
             print(f"magic: 0x{magic:08x}")
             print(f"version: {version}")
             print(f"status before: 0x{status0:08x}")
             print(f"accepted_count before: {count0}")
+            if (magic, version, status0, count0) == (ALL_ONES, ALL_ONES, ALL_ONES, ALL_ONES):
+                raise SystemExit(
+                    "BAR0 returned all ones after PCI memory space was enabled; "
+                    "the endpoint config header may be stale or BAR transactions are not completing. "
+                    "Re-run the rescan gate; if it repeats, reprogram the SRAM bitstream and rescan again."
+                )
             if magic != MAGIC:
                 raise SystemExit(f"bad magic: expected 0x{MAGIC:08x}, got 0x{magic:08x}")
             if version != VERSION:
