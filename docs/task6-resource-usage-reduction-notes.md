@@ -22817,3 +22817,14 @@ Next gate:
 - Both diagnostics showed LED0/1/2 all on, reconstructing `pl_ltssm_state = 6'b111111` (`0x3f`).
 - Current interpretation: the Thunderbolt downstream port sees presence and x1 Gen1 link, and the PCIe wrapper's `user_lnk_up` path appears high, but Linux still cannot enumerate config space and the raw LTSSM output is all ones. This strongly suggests either the openXC7 `PCIE_2_1` primitive/status mapping is incomplete or the hard block is entering an invalid/unmodeled state despite partial link training.
 - Next useful PCIe work: compare the `PCIE_2_1` primitive parameters/ports/status wiring against upstream/Vivado-proven `pcie_7x` output, and expose a second independent config/status signal such as `cfg_bus_number`, `cfg_device_number`, `cfg_function_number`, or `cfg_lstatus` before spending time on BAR access.
+
+### 2026-05-25 - Vivado PCIe smoke oracle build
+
+- Built the original `/home/roland/pcie_7x` YPCB smoke design with Vivado 2025.2.1 using `artifacts/task6/vivado-pcie-smoke/build_ypcb_pcie_smoke.tcl`.
+- Vivado synthesis, placement, routing, timing report, utilization report, and bitstream generation completed successfully.
+- Output bitstream: `artifacts/task6/vivado-pcie-smoke/ypcb_pcie_smoke_vivado.bit`.
+- Vivado synthesis reports the hard PCIe cell as `PCIE_2`; placement warns on a `PCIE_2_1` cell name but completes successfully. This is useful reference evidence for comparing openXC7 hard-block modeling.
+- Programmed the Vivado bitstream with `/home/roland/openFPGALoader/build/openFPGALoader`; programming completed with `isc_done=1`, `init=1`, and `done=1`.
+- Immediate `lspci -Dnn` still did not enumerate an FPGA endpoint while `boltctl` still reported the OWC Helios 5S authorized and connected.
+- Could not run the post-program PCIe rescan from Codex because `sudo -n` required a password. The next hardware gate must be run manually: `sudo sh -c 'echo 1 > /sys/bus/pci/rescan'; lspci -Dnn`, or replug/power-cycle the Thunderbolt chassis after programming if rescan is insufficient.
+- Current interpretation: Vivado proves the RTL can be built by the vendor tool, but immediate post-program enumeration still fails. Until a privileged rescan or Thunderbolt replug/reboot test is done, this does not yet distinguish between endpoint reset/hotplug timing and toolchain bitstream correctness.
