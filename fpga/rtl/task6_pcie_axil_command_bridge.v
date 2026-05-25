@@ -37,6 +37,7 @@ module axil_minimum(
     localparam [31:0] TASK6_PCIE_VERSION = 32'd1;
 
     reg [31:0] write_address_q;
+    reg [31:0] read_address_q;
     reg [31:0] command_payload_q [0:6];
     reg [31:0] accepted_payload_q [0:6];
     reg [31:0] accepted_count_q;
@@ -61,7 +62,7 @@ module axil_minimum(
 
     wire write_fire = s_axi_wready && s_axi_wvalid;
     wire [9:2] write_word_addr = write_address_q[9:2];
-    wire [9:2] read_word_addr = s_axi_araddr[9:2];
+    wire [9:2] read_word_addr = read_address_q[9:2];
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -131,8 +132,14 @@ module axil_minimum(
     always @(posedge clk) begin
         if (!rst_n) begin
             s_axi_arready <= 1'b0;
+            read_address_q <= 32'd0;
         end else begin
-            s_axi_arready <= !s_axi_arready && s_axi_arvalid;
+            if (!s_axi_arready && s_axi_arvalid) begin
+                s_axi_arready <= 1'b1;
+                read_address_q <= s_axi_araddr;
+            end else begin
+                s_axi_arready <= 1'b0;
+            end
         end
     end
 

@@ -23774,3 +23774,34 @@ Next root-only gate remains:
 ```sh
 sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
 ```
+
+
+### 2026-05-25 - Task 6 PCIe command bridge AXI-lite read-path revision
+
+Finding after repeated all-ones BAR reads:
+
+- The plain upstream `axil_minimum.v` BAR responder latches `s_axi_araddr` on the AXI-lite read-address handshake and later decodes that latched address for `s_axi_rdata`.
+- The first Task 6 command bridge decoded the live `s_axi_araddr` in the read-data block instead of a latched read address. That diverged from the known-working responder shape and is a plausible cause for no read completion / all-ones BAR behavior.
+
+Implementation:
+
+- Updated `fpga/rtl/task6_pcie_axil_command_bridge.v` to add `read_address_q`, latch `s_axi_araddr` when `s_axi_arvalid` is accepted, and decode `read_address_q[9:2]` for command bridge reads.
+- Rebuilt the OpenXC7 command bridge bitstream:
+  `/nix/store/c8553k1cidfa4mcbdq3m29qn9g45p8m5-task6-ypcb-pcie7x-command-bridge.bit`
+- Programmed that rebuilt bitstream into SRAM. `openFPGALoader` completed with `isc_done=1`, `init=1`, and `done=1`.
+- Post-program USER1 PCIe status remained live before host rescan:
+  - `magic_ok=true`
+  - `sys_rst_n=true`
+  - `pipe_mmcm_lock=true`
+  - `user_reset=false`
+  - `user_lnk_up=true`
+  - `pl_ltssm_state=22`
+  - `last_ltssm_state=22`
+  - `cfg_lstatus=4113`
+  - `cfg_bus_number=0`, `cfg_command=0` before host enumeration/rescan
+
+Next root-only gate:
+
+```sh
+sudo scripts/task6/task6_pcie_rescan_command_bridge_gate.sh 0000:42:00.0
+```
