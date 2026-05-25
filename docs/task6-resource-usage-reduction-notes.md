@@ -107,21 +107,26 @@ Evidence:
 | No-reset autonomous BAR gate | FAIL, no valid endpoint at `0000:42:00.0`; artifact `artifacts/task6/pcie-bringup/2026-05-25-openxc7-no-reset-after-helios-power-cycle` |
 | No-reset final USER1 status | `pl_ltssm_state=4`, `last_ltssm_state=4`, `user_lnk_up=false`, `link_up_seen_count=0`, `cfg_bus_number=0` |
 | Thunderbolt downstream port during fail | `0000:41:00.0` reports `PresDet+` and `LnkSta: Speed 2.5GT/s, Width x1`, but config discovery of the endpoint never completes |
+| Vivado no-reset/lane0 oracle build | `artifacts/task6/vivado-pcie-y26-lane0-no-reset-oracle/ypcb_pcie_y26_lane0_no_reset_oracle.bit`; Vivado route and bitgen completed with 0 errors |
+| Vivado no-reset autonomous BAR gate | FAIL, no valid endpoint at `0000:42:00.0`; artifact `artifacts/task6/pcie-bringup/2026-05-25-vivado-no-reset-after-helios-power-cycle` |
+| Vivado no-reset Thunderbolt port during fail | `0000:41:00.0` still reports `PresDet+`; link appears as x1 but no endpoint config header is discovered |
 
 Interpretation:
 
 - The post-power-cycle Y26/lane0 image was held in external reset; ignoring
   PERST# removes that reset blocker.
-- With reset removed, the OpenXC7 endpoint still does not train far enough to
-  enumerate. The current boundary is therefore lane/GT/hard-block integration,
-  host/chassis slot behavior, or the already-suspicious PERST#/reset electrical
-  state. BAR/DDR3/rowstream PCIe work remains blocked.
+- With reset removed, neither OpenXC7 nor a Vivado-built no-reset lane0 oracle
+  enumerates. A pure OpenXC7 modeling bug is no longer the leading explanation
+  for the current post-power-cycle state; the boundary is physical slot/lane/reset
+  behavior or a host/Thunderbolt state that reports downstream link/presence
+  without completing endpoint discovery. BAR/DDR3/rowstream PCIe work remains blocked.
 
 Next gate:
 
 1. Preserve the no-reset target as a reproducible probe.
-2. Compare against a Vivado `NO_RESET=1` lane0 oracle, or directly instrument
-   RX/TX electrical/link-training signals if Vivado cannot be rebuilt quickly.
+2. Instrument physical link training next: LED or JTAG expose RX electrical idle,
+   GT reset FSM, receiver detect, polarity, and LTSSM history under both reset
+   modes.
 3. Only after smoke enumeration and BAR0 read/write pass should the command
    bridge or rowstream PCIe transport be retried.
 
