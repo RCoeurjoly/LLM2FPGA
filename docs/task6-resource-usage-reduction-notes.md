@@ -22651,3 +22651,27 @@ Paced 4096-beat attempt:
 Next gate:
 
 - Re-run seed15 `BIST_MODE=2` admission gate, then test the historically risky high-address packet window around beats `131064..131075` before attempting a full rowstream load.
+
+#### Seed15 high-address packet window gate
+
+Admission gate:
+
+- `scripts/task6/task6_seed15_bist_gate.sh seed15-bist2-before-rowstream-highaddr-131064-paced`
+- Result: PASS.
+- Run: `artifacts/task6/runs/2026-05-25T05-45-52+0200-seed15-bist2-before-rowstream-highaddr-131064-paced`
+
+High-address packet window:
+
+- Run: `artifacts/task6/runs/final-ts1m-inference/seed15-2lane-rowstream-loader-highaddr-131064-12beats-paced`
+- Source: real `rowstream.bin`
+- Start beat: 131064
+- Beats: 12 (`131064..131075`)
+- Packets: 3
+- Command pacing: `--freq-hz 500000`, `--command-repeats 4`, `--command-delay 0.005`, `--diagnostic-host-packet-load-delay 0.05`
+- Sampled standalone postread beats: every beat in the window
+- Result: PASS, `mismatch_count=0`, `standalone_mismatch_count=0`, `completed_beats=12`.
+
+Current conclusion:
+
+- The previously risky high-address boundary around beat 131071 is clean on the seed15 paced rowstream-loader path.
+- The next useful gate is a full rowstream packet load with sampled same-process postread, still preceded by the seed15 BIST admission gate.
