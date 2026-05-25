@@ -50,6 +50,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
   wire [31:0] rowstream_loader_command_payload_addr;
   wire [31:0] rowstream_loader_wait_cycles;
   wire [511:0] rowstream_loader_read_data;
+  wire [511:0] rowstream_top1_hidden_vector;
+  wire rowstream_top1_start;
+  wire rowstream_top1_status_clear;
 
   wire [3:0] pcie_led;
   assign led[0] = rowstream_boot_done;
@@ -148,7 +151,17 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .rowstream_loader_last_chunk_i(rowstream_loader_last_chunk),
     .rowstream_loader_command_payload_addr_i(rowstream_loader_command_payload_addr),
     .rowstream_loader_wait_cycles_i(rowstream_loader_wait_cycles),
-    .rowstream_loader_read_data_i(rowstream_loader_read_data)
+    .rowstream_loader_read_data_i(rowstream_loader_read_data),
+    .rowstream_top1_hidden_vector_o(rowstream_top1_hidden_vector),
+    .rowstream_top1_start_o(rowstream_top1_start),
+    .rowstream_top1_status_clear_o(rowstream_top1_status_clear),
+    .rowstream_top1_busy_i(1'b0),
+    .rowstream_top1_done_i(1'b0),
+    .rowstream_top1_error_i(1'b0),
+    .rowstream_top1_token_i(32'd0),
+    .rowstream_top1_score_q024_i(32'd0),
+    .rowstream_top1_rows_scanned_i(32'd0),
+    .rowstream_top1_cycle_count_i(32'd0)
   );
 
   task6_ypcb_uberddr3_bist_rowstream_loader_top #(

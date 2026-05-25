@@ -51,7 +51,18 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [31:0]  loader_command_payload_addr_i,
     input wire [31:0]  loader_wait_cycles_i,
     input wire [511:0] loader_read_data_i,
-    output reg         status_clear_pulse_o
+    output reg         status_clear_pulse_o,
+
+    output reg [511:0] top1_hidden_vector_o,
+    output reg         top1_start_pulse_o,
+    output reg         top1_status_clear_pulse_o,
+    input wire         top1_busy_i,
+    input wire         top1_done_i,
+    input wire         top1_error_i,
+    input wire [31:0]  top1_token_i,
+    input wire [31:0]  top1_score_q024_i,
+    input wire [31:0]  top1_rows_scanned_i,
+    input wire [31:0]  top1_cycle_count_i
 );
     localparam [1:0] EVENT_IDLE = 2'd0;
     localparam [1:0] EVENT_ISSUE = 2'd1;
@@ -76,6 +87,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     reg        loader_accepted_seen_q;
     reg        loader_magic_ok_seen_q;
     reg [1:0]  event_state_q;
+    reg        top1_done_seen_q;
+    reg        top1_error_seen_q;
+    reg [31:0] top1_start_count_q;
 
     reg        last_write_valid_q;
     reg [9:0]  last_write_word_index_q;
@@ -132,6 +146,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         command_payload_o = {COMMAND_WIDTH{1'b0}};
         command_event_o = 1'b0;
         status_clear_pulse_o = 1'b0;
+        top1_hidden_vector_o = 512'd0;
+        top1_start_pulse_o = 1'b0;
+        top1_status_clear_pulse_o = 1'b0;
         command_magic_q = LOADER_COMMAND_MAGIC;
         command_opcode_q = 8'd0;
         command_chunk_q = 2'd0;
@@ -143,6 +160,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         loader_accepted_seen_q = 1'b0;
         loader_magic_ok_seen_q = 1'b0;
         event_state_q = EVENT_IDLE;
+        top1_done_seen_q = 1'b0;
+        top1_error_seen_q = 1'b0;
+        top1_start_count_q = 32'd0;
         awaddr_valid_q = 1'b0;
         wdata_valid_q = 1'b0;
         last_write_valid_q = 1'b0;
@@ -172,8 +192,14 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             loader_accepted_seen_q <= 1'b0;
             loader_magic_ok_seen_q <= 1'b0;
             event_state_q <= EVENT_IDLE;
+            top1_done_seen_q <= 1'b0;
+            top1_error_seen_q <= 1'b0;
+            top1_start_count_q <= 32'd0;
             command_payload_o <= {COMMAND_WIDTH{1'b0}};
             command_event_o <= 1'b0;
+            top1_hidden_vector_o <= 512'd0;
+            top1_start_pulse_o <= 1'b0;
+            top1_status_clear_pulse_o <= 1'b0;
             last_write_valid_q <= 1'b0;
             last_write_word_index_q <= 10'd0;
             last_wdata_q <= 32'd0;
@@ -183,6 +209,8 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         end else begin
             command_event_o <= 1'b0;
             status_clear_pulse_o <= 1'b0;
+            top1_start_pulse_o <= 1'b0;
+            top1_status_clear_pulse_o <= 1'b0;
             if (loader_done_i)
                 loader_done_seen_q <= 1'b1;
             if (loader_error_i)
@@ -191,6 +219,10 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                 loader_accepted_seen_q <= 1'b1;
             if (loader_last_magic_ok_i)
                 loader_magic_ok_seen_q <= 1'b1;
+            if (top1_done_i)
+                top1_done_seen_q <= 1'b1;
+            if (top1_error_i)
+                top1_error_seen_q <= 1'b1;
 
             s_axi_awready <= !awaddr_valid_q && !write_ready && !s_axi_bvalid;
             s_axi_wready <= !wdata_valid_q && !write_ready && !s_axi_bvalid;
@@ -270,6 +302,37 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                                 end
                             end
                         end
+                        10'h018: begin
+                            if (wdata_q[1]) begin
+                                top1_done_seen_q <= 1'b0;
+                                top1_error_seen_q <= 1'b0;
+                                top1_status_clear_pulse_o <= 1'b1;
+                            end
+                            if (wdata_q[0]) begin
+                                if (top1_busy_i) begin
+                                    top1_error_seen_q <= 1'b1;
+                                end else begin
+                                    top1_start_pulse_o <= 1'b1;
+                                    top1_start_count_q <= top1_start_count_q + 32'd1;
+                                end
+                            end
+                        end
+                        10'h020: top1_hidden_vector_o[0 +: 32] <= apply_wstrb(top1_hidden_vector_o[0 +: 32], wdata_q, wstrb_q);
+                        10'h021: top1_hidden_vector_o[32 +: 32] <= apply_wstrb(top1_hidden_vector_o[32 +: 32], wdata_q, wstrb_q);
+                        10'h022: top1_hidden_vector_o[64 +: 32] <= apply_wstrb(top1_hidden_vector_o[64 +: 32], wdata_q, wstrb_q);
+                        10'h023: top1_hidden_vector_o[96 +: 32] <= apply_wstrb(top1_hidden_vector_o[96 +: 32], wdata_q, wstrb_q);
+                        10'h024: top1_hidden_vector_o[128 +: 32] <= apply_wstrb(top1_hidden_vector_o[128 +: 32], wdata_q, wstrb_q);
+                        10'h025: top1_hidden_vector_o[160 +: 32] <= apply_wstrb(top1_hidden_vector_o[160 +: 32], wdata_q, wstrb_q);
+                        10'h026: top1_hidden_vector_o[192 +: 32] <= apply_wstrb(top1_hidden_vector_o[192 +: 32], wdata_q, wstrb_q);
+                        10'h027: top1_hidden_vector_o[224 +: 32] <= apply_wstrb(top1_hidden_vector_o[224 +: 32], wdata_q, wstrb_q);
+                        10'h028: top1_hidden_vector_o[256 +: 32] <= apply_wstrb(top1_hidden_vector_o[256 +: 32], wdata_q, wstrb_q);
+                        10'h029: top1_hidden_vector_o[288 +: 32] <= apply_wstrb(top1_hidden_vector_o[288 +: 32], wdata_q, wstrb_q);
+                        10'h02a: top1_hidden_vector_o[320 +: 32] <= apply_wstrb(top1_hidden_vector_o[320 +: 32], wdata_q, wstrb_q);
+                        10'h02b: top1_hidden_vector_o[352 +: 32] <= apply_wstrb(top1_hidden_vector_o[352 +: 32], wdata_q, wstrb_q);
+                        10'h02c: top1_hidden_vector_o[384 +: 32] <= apply_wstrb(top1_hidden_vector_o[384 +: 32], wdata_q, wstrb_q);
+                        10'h02d: top1_hidden_vector_o[416 +: 32] <= apply_wstrb(top1_hidden_vector_o[416 +: 32], wdata_q, wstrb_q);
+                        10'h02e: top1_hidden_vector_o[448 +: 32] <= apply_wstrb(top1_hidden_vector_o[448 +: 32], wdata_q, wstrb_q);
+                        10'h02f: top1_hidden_vector_o[480 +: 32] <= apply_wstrb(top1_hidden_vector_o[480 +: 32], wdata_q, wstrb_q);
                         default: begin
                         end
                     endcase
@@ -310,6 +373,28 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                     10'h013: s_axi_rdata <= loader_read_data_i[95:64];
                     10'h014: s_axi_rdata <= loader_read_data_i[127:96];
                     10'h015: s_axi_rdata <= ddr_debug1_i;
+                    10'h018: s_axi_rdata <= {28'd0, top1_error_seen_q, top1_done_seen_q, top1_busy_i, rst_n};
+                    10'h019: s_axi_rdata <= top1_start_count_q;
+                    10'h01a: s_axi_rdata <= top1_token_i;
+                    10'h01b: s_axi_rdata <= top1_score_q024_i;
+                    10'h01c: s_axi_rdata <= top1_rows_scanned_i;
+                    10'h01d: s_axi_rdata <= top1_cycle_count_i;
+                    10'h020: s_axi_rdata <= top1_hidden_vector_o[0 +: 32];
+                    10'h021: s_axi_rdata <= top1_hidden_vector_o[32 +: 32];
+                    10'h022: s_axi_rdata <= top1_hidden_vector_o[64 +: 32];
+                    10'h023: s_axi_rdata <= top1_hidden_vector_o[96 +: 32];
+                    10'h024: s_axi_rdata <= top1_hidden_vector_o[128 +: 32];
+                    10'h025: s_axi_rdata <= top1_hidden_vector_o[160 +: 32];
+                    10'h026: s_axi_rdata <= top1_hidden_vector_o[192 +: 32];
+                    10'h027: s_axi_rdata <= top1_hidden_vector_o[224 +: 32];
+                    10'h028: s_axi_rdata <= top1_hidden_vector_o[256 +: 32];
+                    10'h029: s_axi_rdata <= top1_hidden_vector_o[288 +: 32];
+                    10'h02a: s_axi_rdata <= top1_hidden_vector_o[320 +: 32];
+                    10'h02b: s_axi_rdata <= top1_hidden_vector_o[352 +: 32];
+                    10'h02c: s_axi_rdata <= top1_hidden_vector_o[384 +: 32];
+                    10'h02d: s_axi_rdata <= top1_hidden_vector_o[416 +: 32];
+                    10'h02e: s_axi_rdata <= top1_hidden_vector_o[448 +: 32];
+                    10'h02f: s_axi_rdata <= top1_hidden_vector_o[480 +: 32];
                     default: s_axi_rdata <= 32'd0;
                 endcase
                 s_axi_rvalid <= 1'b1;

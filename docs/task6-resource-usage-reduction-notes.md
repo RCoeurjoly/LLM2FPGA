@@ -24441,3 +24441,20 @@ sudo /usr/local/sbin/task6-pcie-gate rowstream-run 0000:42:00.0 --image artifact
 ```
 
 If the full run gate passes, the next RTL step is a new combined PCIe+DDR3+rowstream-consumer bitstream that consumes the DDR3-resident image without host readback.
+
+
+### 2026-05-25 - PCIe top1 BAR control aperture
+
+Added the first control-plane slice for the PCIe+DDR3+rowstream-top1 bitstream. The existing loader BAR map and version `3` stay compatible with the proven `rowstream-packet` and `rowstream-run` scripts; the new top1 controls occupy previously unused BAR words:
+
+- `0x060`: top1 control/status. Write bit 0 starts top1, write bit 1 clears top1 sticky status. Read bit 0 is `rst_n`, bit 1 is top1 busy, bit 2 is sticky done, bit 3 is sticky error.
+- `0x064`: top1 start count.
+- `0x068`: top1 token result.
+- `0x06c`: top1 Q0.24 score result.
+- `0x070`: rows scanned.
+- `0x074`: cycle count.
+- `0x080..0x0bc`: 16 little-endian 32-bit words holding the 64-byte int8 hidden vector.
+
+The CDC wrapper now transfers the hidden vector and start/clear pulses from the PCIe clock domain into the rowstream/controller clock domain, and returns top1 status/result counters to the BAR aperture. The combined PCIe+DDR3 loader top currently ties top1 result/status low until the DDR3 rowstream consumer is wired in; this keeps the route-reference loader path intact while making the next integration point explicit.
+
+Local verification: the focused `task6-pcie-rowstream-loader-ingress-sim-main` Verilator model builds and `./result/obj_dir/sim_main` passes. A narrow Verilator lint over `task6_pcie_axil_rowstream_loader_ingress.v` plus `task6_pcie_axil_rowstream_loader_ingress_cdc.v` also passes. While extending that test, fixed stale loader-status bit assertions in the testbench so it checks done/error/magic/accepted against the actual BAR status bits.

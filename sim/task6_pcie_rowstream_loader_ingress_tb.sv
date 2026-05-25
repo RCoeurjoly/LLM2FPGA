@@ -47,6 +47,18 @@ module task6_pcie_rowstream_loader_ingress_tb;
   wire loader_read_ack_seen;
   wire loader_stall_seen;
   wire [511:0] loader_read_data;
+  wire [511:0] top1_hidden_vector;
+  wire top1_start_pulse;
+  wire top1_status_clear_pulse;
+  logic top1_busy;
+  logic top1_done;
+  logic top1_error;
+  logic [31:0] top1_token;
+  logic [31:0] top1_score_q024;
+  logic [31:0] top1_rows_scanned;
+  logic [31:0] top1_cycle_count;
+  int top1_start_pulses;
+  int top1_clear_pulses;
   wire [31:0] loader_wait_cycles;
   wire [31:0] loader_command_payload_addr;
   wire [7:0] loader_last_opcode;
@@ -84,7 +96,9 @@ module task6_pcie_rowstream_loader_ingress_tb;
     .s_axi_rresp(rresp),
     .command_payload_o(command_payload),
     .command_event_o(command_event),
+    .calib_complete_i(boot_done),
     .boot_done_i(boot_done),
+    .ddr_debug1_i(32'hcafe_f00d),
     .loader_done_i(loader_done),
     .loader_error_i(loader_error),
     .loader_last_accepted_i(loader_last_accepted),
@@ -94,7 +108,17 @@ module task6_pcie_rowstream_loader_ingress_tb;
     .loader_command_payload_addr_i(loader_command_payload_addr),
     .loader_wait_cycles_i(loader_wait_cycles),
     .loader_read_data_i(loader_read_data),
-    .status_clear_pulse_o(status_clear_pulse)
+    .status_clear_pulse_o(status_clear_pulse),
+    .top1_hidden_vector_o(top1_hidden_vector),
+    .top1_start_pulse_o(top1_start_pulse),
+    .top1_status_clear_pulse_o(top1_status_clear_pulse),
+    .top1_busy_i(top1_busy),
+    .top1_done_i(top1_done),
+    .top1_error_i(top1_error),
+    .top1_token_i(top1_token),
+    .top1_score_q024_i(top1_score_q024),
+    .top1_rows_scanned_i(top1_rows_scanned),
+    .top1_cycle_count_i(top1_cycle_count)
   );
 
   task6_uberddr3_rowstream_loader_contract #(
@@ -135,6 +159,18 @@ module task6_pcie_rowstream_loader_ingress_tb;
   );
 
   always #5 clk = ~clk;
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      top1_start_pulses <= 0;
+      top1_clear_pulses <= 0;
+    end else begin
+      if (top1_start_pulse)
+        top1_start_pulses <= top1_start_pulses + 1;
+      if (top1_status_clear_pulse)
+        top1_clear_pulses <= top1_clear_pulses + 1;
+    end
+  end
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -214,7 +250,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
       status = 32'd0;
       repeat (2000) begin
         axil_read(32'h034, status);
-        if (status[1] || status[2])
+        if (status[2] || status[3])
           return;
         @(negedge clk);
       end
@@ -241,9 +277,9 @@ module task6_pcie_rowstream_loader_ingress_tb;
       axil_write(32'h030, 32'h1);
       axil_write(32'h030, 32'h1);
       wait_loader_done(status);
-      check(!status[2], "loader must not report an error");
-      check(status[4], "loader must accept the PCIe command");
-      check(status[3], "loader must see the rowstream command magic");
+      check(!status[3], "loader must not report an error");
+      check(status[5], "loader must accept the PCIe command");
+      check(status[4], "loader must see the rowstream command magic");
       check(loader_last_opcode == opcode, "loader opcode must match PCIe command");
     end
   endtask
@@ -264,6 +300,13 @@ module task6_pcie_rowstream_loader_ingress_tb;
     arvalid = 1'b0;
     rready = 1'b0;
     wb_stall = 1'b0;
+    top1_busy = 1'b0;
+    top1_done = 1'b0;
+    top1_error = 1'b0;
+    top1_token = 32'd0;
+    top1_score_q024 = 32'd0;
+    top1_rows_scanned = 32'd0;
+    top1_cycle_count = 32'd0;
     errors = 0;
 
     for (int i = 0; i < 1024; i++)
@@ -278,6 +321,47 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(value == 32'h54365043, "PCIe ingress magic must match T6PC");
     axil_read(32'h004, value);
     check(value == 32'd3, "PCIe ingress version must be 3");
+
+
+    for (int word = 0; word < 16; word++) begin
+      axil_write(32'h080 + word * 4, 32'h8000_1000 + word);
+      axil_read(32'h080 + word * 4, value);
+      check(value == 32'h8000_1000 + word, "top1 hidden-vector word must read back");
+    end
+    check(top1_hidden_vector[0 +: 32] == 32'h8000_1000, "top1 hidden vector low word must update");
+    check(top1_hidden_vector[480 +: 32] == 32'h8000_100f, "top1 hidden vector high word must update");
+
+    top1_token = 32'd3043;
+    top1_score_q024 = 32'ha5a5_1234;
+    top1_rows_scanned = 32'd50257;
+    top1_cycle_count = 32'd50301;
+    axil_write(32'h060, 32'h2);
+    repeat (2) @(negedge clk);
+    check(top1_clear_pulses == 1, "top1 clear write must emit one clear pulse");
+    axil_write(32'h060, 32'h1);
+    repeat (2) @(negedge clk);
+    check(top1_start_pulses == 1, "top1 start write must emit one start pulse");
+    axil_read(32'h064, value);
+    check(value == 32'd1, "top1 start counter must increment");
+    top1_done = 1'b1;
+    @(negedge clk);
+    top1_done = 1'b0;
+    axil_read(32'h060, value);
+    check(value[2], "top1 done sticky bit must be visible");
+    axil_read(32'h068, value);
+    check(value == 32'd3043, "top1 token result must be visible");
+    axil_read(32'h06c, value);
+    check(value == 32'ha5a5_1234, "top1 score result must be visible");
+    axil_read(32'h070, value);
+    check(value == 32'd50257, "top1 rows-scanned result must be visible");
+    axil_read(32'h074, value);
+    check(value == 32'd50301, "top1 cycle-count result must be visible");
+    axil_write(32'h060, 32'h2);
+    top1_busy = 1'b1;
+    axil_write(32'h060, 32'h1);
+    top1_busy = 1'b0;
+    axil_read(32'h060, value);
+    check(value[3], "top1 busy start rejection must set sticky error");
 
     pcie_command(OP_WRITE_DENSE_BYTE, 2'd0, 32'd13, 8'ha5);
     check(mem[0][13 * 8 +: 8] == 8'ha5, "PCIe dense-byte write must land in DDR3 rowstream memory model");
@@ -296,7 +380,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
     axil_read(32'h00c, value);
     check(value == 32'd4, "duplicate BAR doorbells must be ignored by ingress");
     axil_read(32'h034, value);
-    check(value[4], "loader accepted status must be visible in the BAR status aperture");
+    check(value[5], "loader accepted status must be visible in the BAR status aperture");
 
     if (errors == 0) begin
       $display("PASS: task6 PCIe rowstream loader ingress simulation");
