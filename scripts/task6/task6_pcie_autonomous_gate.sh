@@ -10,14 +10,14 @@ GATE="${TASK6_PCIE_GATE:-/usr/local/sbin/task6-pcie-gate}"
 
 usage() {
   cat >&2 <<'EOF'
-usage: scripts/task6/task6_pcie_autonomous_gate.sh <bar|command|command-header|command-echo|command-doorbell> [BDF] [--run-dir DIR] [--repeat N]
+usage: scripts/task6/task6_pcie_autonomous_gate.sh <bar|rowstream-loopback|command|command-header|command-echo|command-doorbell> [BDF] [--run-dir DIR] [--repeat N]
 EOF
   exit 2
 }
 
 [[ -n "$MODE" ]] || usage
 case "$MODE" in
-  bar|command|command-header|command-echo|command-doorbell) ;;
+  bar|rowstream-loopback|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 shift || true

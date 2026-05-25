@@ -340,6 +340,12 @@ EOF
           source = task6Pcie7xSourceVivadoLane0Loc;
           axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_command_header.v}";
         };
+
+        task6YpcbPcie7xRowstreamLoopbackYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-rowstream-loopback-yosys.json";
+          source = task6Pcie7xSourceVivadoLane0Loc;
+          axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_rowstream_loopback.v}";
+        };
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
             buildInputs = [ pkgs.yosys ];
@@ -5984,6 +5990,20 @@ EOF
           framesBase = "task6-ypcb-pcie7x-command-header";
         };
 
+        task6YpcbPcie7xRowstreamLoopbackFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-rowstream-loopback";
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcie7xRowstreamLoopbackYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcie7xRowstreamLoopbackBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-rowstream-loopback";
+          fasm = task6YpcbPcie7xRowstreamLoopbackFasm;
+          framesBase = "task6-ypcb-pcie7x-rowstream-loopback";
+        };
+
         task6YpcbUberDdr3BistXdc =
           pkgs.runCommand "task6-ypcb-uberddr3-bist.xdc" {
             nativeBuildInputs = [ pkgs.python3 ];
@@ -8320,6 +8340,19 @@ EOF
               -Mdir "$out/obj_dir" -o sim_main \
               ${./fpga/rtl/task6_uberddr3_rowstream_loader_contract.sv} \
               ${./sim/task6_uberddr3_rowstream_loader_contract_tb.sv}
+          '';
+
+        task6PcieAxilRowstreamLoopbackSimMain =
+          pkgs.runCommand "task6-pcie-axil-rowstream-loopback-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_pcie_axil_rowstream_loopback_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loopback.v} \
+              ${./sim/task6_pcie_axil_rowstream_loopback_tb.sv}
           '';
 
         task6UberDdr3ControllerLaneOrderSimMain =
@@ -11616,6 +11649,8 @@ EOF
             task6Ddr3RowStreamCutoutSvSim;
           task6-uberddr3-rowstream-loader-contract-sim-main =
             task6UberDdr3RowstreamLoaderContractSimMain;
+          task6-pcie-axil-rowstream-loopback-sim-main =
+            task6PcieAxilRowstreamLoopbackSimMain;
           task6-uberddr3-rowstream-loader-contract-sv-sim =
             task6UberDdr3RowstreamLoaderContractSvSim;
           task6-uberddr3-controller-lane-order-sim-main =
@@ -11680,6 +11715,10 @@ EOF
             task6YpcbPcie7xCommandHeaderYosysJson;
           task6-ypcb-pcie7x-command-header-bitstream =
             task6YpcbPcie7xCommandHeaderBitstream;
+          task6-ypcb-pcie7x-rowstream-loopback-yosys-json =
+            task6YpcbPcie7xRowstreamLoopbackYosysJson;
+          task6-ypcb-pcie7x-rowstream-loopback-bitstream =
+            task6YpcbPcie7xRowstreamLoopbackBitstream;
           task6-litex-boards-ypcb-master =
             task6LitexBoardsYpcbMasterRunner;
           task6-litex-boards-ypcb-validated =

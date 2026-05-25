@@ -12,7 +12,7 @@ LIBEXEC_DIR="${TASK6_PCIE_LIBEXEC_DIR:-/usr/local/libexec/task6-pcie}"
 
 usage() {
   cat >&2 <<'EOF'
-usage: task6-pcie-gate <prepare|bar|command|command-header|command-echo|command-doorbell> [0000:42:00.0]
+usage: task6-pcie-gate <prepare|bar|rowstream-loopback|command|command-header|command-echo|command-doorbell> [0000:42:00.0]
 
 Install this file root-owned as /usr/local/sbin/task6-pcie-gate when enabling
 hands-free PCIe gates. It accepts only the configured YPCB endpoint BDF.
@@ -28,7 +28,7 @@ fi
 MODE="${1:-}"
 BDF="${2:-$ALLOWED_BDF}"
 case "$MODE" in
-  prepare|bar|command|command-header|command-echo|command-doorbell) ;;
+  prepare|bar|rowstream-loopback|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 if [[ "$BDF" != "$ALLOWED_BDF" ]]; then
@@ -205,6 +205,9 @@ case "$MODE" in
     ;;
   bar)
     exec python3 "$LIBEXEC_DIR/task6_pcie_bar_smoke.py" "$BDF"
+    ;;
+  rowstream-loopback)
+    exec python3 "$LIBEXEC_DIR/task6_pcie_rowstream_loopback_smoke.py" "$BDF"
     ;;
   command-header)
     exec python3 "$LIBEXEC_DIR/task6_pcie_command_bridge_smoke.py" "$BDF" --stage header

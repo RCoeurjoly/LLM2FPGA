@@ -24036,3 +24036,56 @@ Implementation update:
 Operational intent:
 
 - Use the Vivado oracle as the host/chassis control, then program the OpenXC7 debug clone and inspect whether host config traffic reaches RX and whether TX emits completions before `cfg_bus_number` becomes nonzero.
+
+
+### 2026-05-25 - PCIe rowstream loopback rung for DDR3-primary plan
+
+Implemented the first transport-proof rung for the DDR3-primary PCIe rowstream direction:
+
+- Added `fpga/rtl/task6_pcie_axil_rowstream_loopback.v`, an `axil_minimum` BAR0 responder with `T6PC`/version-2 header, 4 KiB BAR footprint, `0x100..0xfff` payload aperture, byte-count, byte-sum, xor32, first/last-word, and doorbell status registers.
+- Added `scripts/task6/task6_pcie_rowstream_loopback_smoke.py`, a root-only BAR0 mmap gate that writes deterministic or rowstream-derived payloads, rings the doorbell, checks FPGA-observed checksums, and reports payload write throughput.
+- Added `sim/task6_pcie_axil_rowstream_loopback_tb.sv` plus flake wiring for `task6-pcie-axil-rowstream-loopback-sim-main`.
+- Added flake packages `task6-ypcb-pcie7x-rowstream-loopback-yosys-json` and `task6-ypcb-pcie7x-rowstream-loopback-bitstream`, using the same proven OpenXC7 Y26 lane0/CPLL PCIe shape.
+- Preserved the known-good OpenXC7 PCIe debug smoke bitstream under `artifacts/task6/openxc7-pcie-smoke-good/` so it survives Nix store garbage collection.
+
+Verification performed:
+
+```text
+python3 -m py_compile scripts/task6/task6_pcie_rowstream_loopback_smoke.py scripts/task6/read_pcie_jtag_status.py scripts/task6/task6_pcie_bar_smoke.py
+bash -n scripts/task6/task6_pcie_bringup_probe.sh scripts/task6/task6_pcie_autonomous_gate.sh scripts/task6/task6_pcie_rescan_bar_gate.sh
+nix build .#task6-pcie-axil-rowstream-loopback-sim-main -L --no-link --print-out-paths
+/nix/store/77ss6s54jd52wc14x16rfn5p4icng2wi-task6-pcie-axil-rowstream-loopback-sim-main/obj_dir/sim_main
+nix build .#task6-ypcb-pcie7x-rowstream-loopback-yosys-json -L --no-link --print-out-paths
+nix build .#task6-ypcb-pcie7x-rowstream-loopback-bitstream -L --no-link --print-out-paths
+/home/roland/openFPGALoader/build/openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/x3dbi023ynsjd6387mbd4aa9g9vj0fp5-task6-ypcb-pcie7x-rowstream-loopback.bit
+scripts/task6/read_pcie_jtag_status.py --json-only
+sudo /usr/local/sbin/task6-pcie-gate bar 0000:42:00.0
+```
+
+Results:
+
+- Verilator simulation passed: `PASS: task6 PCIe rowstream loopback AXI-lite simulation`.
+- Yosys synthesis reported `Found and reported 0 problems`.
+- Bitstream built: `/nix/store/x3dbi023ynsjd6387mbd4aa9g9vj0fp5-task6-ypcb-pcie7x-rowstream-loopback.bit`.
+- Programming reported `done=1`.
+- JTAG link gate passed after programming: `magic_ok=true`, `version=2`, `pipe_mmcm_lock=true`, `sys_rst_n=true`, `user_lnk_up=true`, `pl_ltssm_state=22`.
+- BAR gate passed after remove/rescan: endpoint `10ee:0480`, BAR0 first word `T6PC`, version `2`, and offset 0 was not overwritten.
+
+The root-installed `/usr/local/sbin/task6-pcie-gate` currently does not dispatch the new `rowstream-loopback` mode, and direct `sudo scripts/task6/task6_pcie_rowstream_loopback_smoke.py ...` is password-blocked. Repo-side support was added to `scripts/task6/task6_pcie_gate_root.sh` and `scripts/task6/task6_pcie_autonomous_gate.sh`, but installing it is a security-sensitive root helper update that requires explicit user approval.
+
+Required install step before the hardware payload gate:
+
+```bash
+sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
+sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_bar_smoke.py /usr/local/libexec/task6-pcie/task6_pcie_bar_smoke.py
+sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_command_bridge_smoke.py /usr/local/libexec/task6-pcie/task6_pcie_command_bridge_smoke.py
+sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_rowstream_loopback_smoke.py /usr/local/libexec/task6-pcie/task6_pcie_rowstream_loopback_smoke.py
+```
+
+Then run:
+
+```bash
+scripts/task6/task6_pcie_autonomous_gate.sh rowstream-loopback 0000:42:00.0 --run-dir artifacts/task6/pcie-bringup/2026-05-25-rowstream-loopback --repeat 1
+```
+
+If that passes, the next implementation rung is PCIe-to-DDR3 command ingress: make PCIe assemble the same rowstream loader commands currently driven through JTAG, so PCIe becomes the fast DDR3 loader while DDR3 remains the primary self-contained weight store.
