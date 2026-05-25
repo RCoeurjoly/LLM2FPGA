@@ -1,0 +1,468 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (lin64) Build 6403652 Thu Mar 19 13:47:00 MDT 2026
+| Date         : Mon May 25 09:39:38 2026
+| Host         : roland-XPS-9320 running 64-bit Ubuntu 24.04.4 LTS
+| Command      : report_timing_summary -file /home/roland/LLM2FPGA/artifacts/task6/vivado-pcie-smoke/timing_summary.rpt
+| Design       : pcie_7x_top_aximm_ypcb_480t
+| Device       : 7k480t-ffg1156
+| Speed File   : -2  PRODUCTION 1.12 2017-02-17
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Summary Report
+
+------------------------------------------------------------------------------------------------
+| Timer Settings
+| --------------
+------------------------------------------------------------------------------------------------
+
+  Enable Multi Corner Analysis               :  Yes
+  Enable Pessimism Removal                   :  Yes
+  Pessimism Removal Resolution               :  Nearest Common Node
+  Enable Input Delay Default Clock           :  No
+  Enable Preset / Clear Arcs                 :  No
+  Disable Flight Delays                      :  No
+  Ignore I/O Paths                           :  No
+  Timing Early Launch at Borrowing Latches   :  No
+  Borrow Time for Max Delay Exceptions       :  Yes
+  Merge Timing Exceptions                    :  Yes
+  Inter-SLR Compensation                     :  Conservative
+
+  Corner  Analyze    Analyze    
+  Name    Max Paths  Min Paths  
+  ------  ---------  ---------  
+  Slow    Yes        Yes        
+  Fast    Yes        Yes        
+
+
+------------------------------------------------------------------------------------------------
+| Report Methodology
+| ------------------
+------------------------------------------------------------------------------------------------
+
+No report available as report_methodology has not been run prior. Run report_methodology on the current design for the summary of methodology violations.
+
+
+
+check_timing report
+
+Table of Contents
+-----------------
+1. checking no_clock (92)
+2. checking constant_clock (0)
+3. checking pulse_width_clock (0)
+4. checking unconstrained_internal_endpoints (199)
+5. checking no_input_delay (0)
+6. checking no_output_delay (0)
+7. checking multiple_clock (0)
+8. checking generated_clocks (0)
+9. checking loops (0)
+10. checking partial_input_delay (0)
+11. checking partial_output_delay (0)
+12. checking latch_loops (0)
+
+1. checking no_clock (92)
+-------------------------
+ There are 92 register/latch pins with no clock driven by root clock pin: pcie_7x_top_aximm_i/pcie_7x_i/gt_wrapper_gtx.pipe_wrapper_i/gtxe2_channel_i/TXOUTCLK (HIGH)
+
+
+2. checking constant_clock (0)
+------------------------------
+ There are 0 register/latch pins with constant_clock.
+
+
+3. checking pulse_width_clock (0)
+---------------------------------
+ There are 0 register/latch pins which need pulse_width check
+
+
+4. checking unconstrained_internal_endpoints (199)
+--------------------------------------------------
+ There are 199 pins that are not constrained for maximum delay. (HIGH)
+
+ There are 0 pins that are not constrained for maximum delay due to constant clock.
+
+
+5. checking no_input_delay (0)
+------------------------------
+ There are 0 input ports with no input delay specified.
+
+ There are 0 input ports with no input delay but user has a false path constraint.
+
+
+6. checking no_output_delay (0)
+-------------------------------
+ There are 0 ports with no output delay specified.
+
+ There are 0 ports with no output delay but user has a false path constraint
+
+ There are 0 ports with no output delay but with a timing clock defined on it or propagating through it
+
+
+7. checking multiple_clock (0)
+------------------------------
+ There are 0 register/latch pins with multiple clocks.
+
+
+8. checking generated_clocks (0)
+--------------------------------
+ There are 0 generated clocks that are not connected to a clock source.
+
+
+9. checking loops (0)
+---------------------
+ There are 0 combinational loops in the design.
+
+
+10. checking partial_input_delay (0)
+------------------------------------
+ There are 0 input ports with partial input delay specified.
+
+
+11. checking partial_output_delay (0)
+-------------------------------------
+ There are 0 ports with partial output delay specified.
+
+
+12. checking latch_loops (0)
+----------------------------
+ There are 0 combinational latch loops in the design through latch input
+
+
+
+------------------------------------------------------------------------------------------------
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+     12.699        0.000                      0                 3202        0.046        0.000                      0                 3202        0.549        0.000                       0                   779  
+
+
+All user specified timing constraints are met.
+
+
+------------------------------------------------------------------------------------------------
+| Clock Summary
+| -------------
+------------------------------------------------------------------------------------------------
+
+Clock                     Waveform(ns)       Period(ns)      Frequency(MHz)
+-----                     ------------       ----------      --------------
+pcie_100mhz_refin         {0.000 5.000}      10.000          100.000         
+pcie_62d5mhz_user1_user2  {0.000 8.000}      16.000          62.500          
+
+
+------------------------------------------------------------------------------------------------
+| Intra Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+Clock                         WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+-----                         -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+pcie_100mhz_refin                                                                                                                                                           8.462        0.000                       0                     2  
+pcie_62d5mhz_user1_user2       12.699        0.000                      0                 3114        0.046        0.000                      0                 3114        0.549        0.000                       0                   777  
+
+
+------------------------------------------------------------------------------------------------
+| Inter Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------    --------          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Other Path Groups Table
+| -----------------------
+------------------------------------------------------------------------------------------------
+
+Path Group                From Clock                To Clock                      WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------                ----------                --------                      -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+**async_default**         pcie_62d5mhz_user1_user2  pcie_62d5mhz_user1_user2       14.234        0.000                      0                   88        0.299        0.000                      0                   88  
+
+
+------------------------------------------------------------------------------------------------
+| Timing Details
+| --------------
+------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  pcie_100mhz_refin
+  To Clock:  pcie_100mhz_refin
+
+Setup :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+Hold  :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+PW    :            0  Failing Endpoints,  Worst Slack        8.462ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         pcie_100mhz_refin
+Waveform(ns):       { 0.000 5.000 }
+Period(ns):         10.000
+Sources:            { pcie_7x_top_aximm_i/refclk_ibuf/O }
+
+Check Type  Corner  Lib Pin                  Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location             Pin
+Min Period  n/a     GTXE2_CHANNEL/GTREFCLK0  n/a            1.538         10.000      8.462      GTXE2_CHANNEL_X0Y23  pcie_7x_top_aximm_i/pcie_7x_i/gt_wrapper_gtx.pipe_wrapper_i/gtxe2_channel_i/GTREFCLK0
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  pcie_62d5mhz_user1_user2
+  To Clock:  pcie_62d5mhz_user1_user2
+
+Setup :            0  Failing Endpoints,  Worst Slack       12.699ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.046ns,  Total Violation        0.000ns
+PW    :            0  Failing Endpoints,  Worst Slack        0.549ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             12.699ns  (required time - arrival time)
+  Source:                 pcie_7x_top_aximm_i/user_reset_q_reg/C
+                            (rising edge-triggered cell FDRE clocked by pcie_62d5mhz_user1_user2  {rise@0.000ns fall@8.000ns period=16.000ns})
+  Destination:            pcie_7x_top_aximm_i/axil_minimum_inst/s_axi_rdata_reg[18]/CE
+                            (rising edge-triggered cell FDRE clocked by pcie_62d5mhz_user1_user2  {rise@0.000ns fall@8.000ns period=16.000ns})
+  Path Group:             pcie_62d5mhz_user1_user2
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            16.000ns  (pcie_62d5mhz_user1_user2 rise@16.000ns - pcie_62d5mhz_user1_user2 rise@0.000ns)
+  Data Path Delay:        2.907ns  (logic 0.277ns (9.528%)  route 2.630ns (90.472%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        -0.027ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.724ns = ( 18.724 - 16.000 ) 
+    Source Clock Delay      (SCD):    2.990ns
+    Clock Pessimism Removal (CPR):    0.239ns
+  Clock Uncertainty:      0.071ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.124ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pcie_62d5mhz_user1_user2 rise edge)
+                                                      0.000     0.000 r  
+    MMCME2_ADV_X0Y3      MMCME2_ADV                   0.000     0.000 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+                         net (fo=1, routed)           1.529     1.529    pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.093     1.622 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1_i1.usrclk1_i1/O
+                         net (fo=775, routed)         1.368     2.990    pcie_7x_top_aximm_i/user_clk
+    SLICE_X181Y210       FDRE                                         r  pcie_7x_top_aximm_i/user_reset_q_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X181Y210       FDRE (Prop_fdre_C_Q)         0.223     3.213 f  pcie_7x_top_aximm_i/user_reset_q_reg/Q
+                         net (fo=123, routed)         1.195     4.408    pcie_7x_top_aximm_i/axil_to_al_inst/user_reset_q
+    SLICE_X165Y216       LUT3 (Prop_lut3_I2_O)        0.054     4.462 r  pcie_7x_top_aximm_i/axil_to_al_inst/s_axi_rdata[31]_i_1/O
+                         net (fo=32, routed)          1.435     5.897    pcie_7x_top_aximm_i/axil_minimum_inst/s_axi_rdata_reg[31]_1[0]
+    SLICE_X181Y214       FDRE                                         r  pcie_7x_top_aximm_i/axil_minimum_inst/s_axi_rdata_reg[18]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pcie_62d5mhz_user1_user2 rise edge)
+                                                     16.000    16.000 r  
+    MMCME2_ADV_X0Y3      MMCME2_ADV                   0.000    16.000 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+                         net (fo=1, routed)           1.418    17.418    pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.083    17.501 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1_i1.usrclk1_i1/O
+                         net (fo=775, routed)         1.223    18.724    pcie_7x_top_aximm_i/axil_minimum_inst/user_clk
+    SLICE_X181Y214       FDRE                                         r  pcie_7x_top_aximm_i/axil_minimum_inst/s_axi_rdata_reg[18]/C
+                         clock pessimism              0.239    18.963    
+                         clock uncertainty           -0.071    18.892    
+    SLICE_X181Y214       FDRE (Setup_fdre_C_CE)      -0.295    18.597    pcie_7x_top_aximm_i/axil_minimum_inst/s_axi_rdata_reg[18]
+  -------------------------------------------------------------------
+                         required time                         18.597    
+                         arrival time                          -5.897    
+  -------------------------------------------------------------------
+                         slack                                 12.699    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.046ns  (arrival time - required time)
+  Source:                 pcie_7x_top_aximm_i/axil_to_al_inst/s_axi_wdata_reg[1]/C
+                            (rising edge-triggered cell FDCE clocked by pcie_62d5mhz_user1_user2  {rise@0.000ns fall@8.000ns period=16.000ns})
+  Destination:            pcie_7x_top_aximm_i/axil_minimum_inst/mem_reg_128_191_0_2/RAMB/I
+                            (rising edge-triggered cell RAMD64E clocked by pcie_62d5mhz_user1_user2  {rise@0.000ns fall@8.000ns period=16.000ns})
+  Path Group:             pcie_62d5mhz_user1_user2
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pcie_62d5mhz_user1_user2 rise@0.000ns - pcie_62d5mhz_user1_user2 rise@0.000ns)
+  Data Path Delay:        0.211ns  (logic 0.100ns (47.350%)  route 0.111ns (52.650%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.033ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    1.530ns
+    Source Clock Delay      (SCD):    1.257ns
+    Clock Pessimism Removal (CPR):    0.240ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pcie_62d5mhz_user1_user2 rise edge)
+                                                      0.000     0.000 r  
+    MMCME2_ADV_X0Y3      MMCME2_ADV                   0.000     0.000 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+                         net (fo=1, routed)           0.612     0.612    pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.026     0.638 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1_i1.usrclk1_i1/O
+                         net (fo=775, routed)         0.619     1.257    pcie_7x_top_aximm_i/axil_to_al_inst/user_clk
+    SLICE_X177Y215       FDCE                                         r  pcie_7x_top_aximm_i/axil_to_al_inst/s_axi_wdata_reg[1]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X177Y215       FDCE (Prop_fdce_C_Q)         0.100     1.357 r  pcie_7x_top_aximm_i/axil_to_al_inst/s_axi_wdata_reg[1]/Q
+                         net (fo=4, routed)           0.111     1.468    pcie_7x_top_aximm_i/axil_minimum_inst/mem_reg_128_191_0_2/DIB
+    SLICE_X178Y216       RAMD64E                                      r  pcie_7x_top_aximm_i/axil_minimum_inst/mem_reg_128_191_0_2/RAMB/I
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pcie_62d5mhz_user1_user2 rise edge)
+                                                      0.000     0.000 r  
+    MMCME2_ADV_X0Y3      MMCME2_ADV                   0.000     0.000 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+                         net (fo=1, routed)           0.675     0.675    pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.030     0.705 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1_i1.usrclk1_i1/O
+                         net (fo=775, routed)         0.825     1.530    pcie_7x_top_aximm_i/axil_minimum_inst/mem_reg_128_191_0_2/WCLK
+    SLICE_X178Y216       RAMD64E                                      r  pcie_7x_top_aximm_i/axil_minimum_inst/mem_reg_128_191_0_2/RAMB/CLK
+                         clock pessimism             -0.240     1.290    
+    SLICE_X178Y216       RAMD64E (Hold_ramd64e_CLK_I)
+                                                      0.132     1.422    pcie_7x_top_aximm_i/axil_minimum_inst/mem_reg_128_191_0_2/RAMB
+  -------------------------------------------------------------------
+                         required time                         -1.422    
+                         arrival time                           1.468    
+  -------------------------------------------------------------------
+                         slack                                  0.046    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         pcie_62d5mhz_user1_user2
+Waveform(ns):       { 0.000 8.000 }
+Period(ns):         16.000
+Sources:            { pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2 }
+
+Check Type        Corner  Lib Pin             Reference Pin      Required(ns)  Actual(ns)  Slack(ns)  Location         Pin
+Min Period        n/a     PCIE_2_1/USERCLK2   n/a                4.000         16.000      12.000     PCIE_X0Y0        pcie_7x_top_aximm_i/pcie_7x_i/pcie_block_inst/pcie_2_1_block/USERCLK2
+Max Period        n/a     MMCME2_ADV/CLKOUT2  n/a                213.360       16.000      197.360    MMCME2_ADV_X0Y3  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+Low Pulse Width   Slow    RAMD64E/CLK         n/a                0.768         8.000       7.232      SLICE_X176Y216   pcie_7x_top_aximm_i/axil_minimum_inst/mem_reg_0_63_0_2/RAMA/CLK
+High Pulse Width  Slow    RAMD64E/CLK         n/a                0.768         8.000       7.232      SLICE_X176Y216   pcie_7x_top_aximm_i/axil_minimum_inst/mem_reg_0_63_0_2/RAMA/CLK
+Max Skew          Fast    PCIE_2_1/USERCLK    PCIE_2_1/USERCLK2  0.560         0.011       0.549      PCIE_X0Y0        pcie_7x_top_aximm_i/pcie_7x_i/pcie_block_inst/pcie_2_1_block/USERCLK
+
+
+
+---------------------------------------------------------------------------------------------------
+Path Group:  **async_default**
+From Clock:  pcie_62d5mhz_user1_user2
+  To Clock:  pcie_62d5mhz_user1_user2
+
+Setup :            0  Failing Endpoints,  Worst Slack       14.234ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.299ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             14.234ns  (required time - arrival time)
+  Source:                 pcie_7x_top_aximm_i/user_reset_q_reg/C
+                            (rising edge-triggered cell FDRE clocked by pcie_62d5mhz_user1_user2  {rise@0.000ns fall@8.000ns period=16.000ns})
+  Destination:            pcie_7x_top_aximm_i/axil_to_al_inst/read_in_progress_reg/CLR
+                            (recovery check against rising-edge clock pcie_62d5mhz_user1_user2  {rise@0.000ns fall@8.000ns period=16.000ns})
+  Path Group:             **async_default**
+  Path Type:              Recovery (Max at Slow Process Corner)
+  Requirement:            16.000ns  (pcie_62d5mhz_user1_user2 rise@16.000ns - pcie_62d5mhz_user1_user2 rise@0.000ns)
+  Data Path Delay:        1.378ns  (logic 0.223ns (16.187%)  route 1.155ns (83.813%))
+  Logic Levels:           0  
+  Clock Path Skew:        -0.105ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.671ns = ( 18.671 - 16.000 ) 
+    Source Clock Delay      (SCD):    2.990ns
+    Clock Pessimism Removal (CPR):    0.214ns
+  Clock Uncertainty:      0.071ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.124ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pcie_62d5mhz_user1_user2 rise edge)
+                                                      0.000     0.000 r  
+    MMCME2_ADV_X0Y3      MMCME2_ADV                   0.000     0.000 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+                         net (fo=1, routed)           1.529     1.529    pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.093     1.622 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1_i1.usrclk1_i1/O
+                         net (fo=775, routed)         1.368     2.990    pcie_7x_top_aximm_i/user_clk
+    SLICE_X181Y210       FDRE                                         r  pcie_7x_top_aximm_i/user_reset_q_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X181Y210       FDRE (Prop_fdre_C_Q)         0.223     3.213 f  pcie_7x_top_aximm_i/user_reset_q_reg/Q
+                         net (fo=123, routed)         1.155     4.368    pcie_7x_top_aximm_i/axil_to_al_inst/user_reset_q
+    SLICE_X163Y216       FDCE                                         f  pcie_7x_top_aximm_i/axil_to_al_inst/read_in_progress_reg/CLR
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pcie_62d5mhz_user1_user2 rise edge)
+                                                     16.000    16.000 r  
+    MMCME2_ADV_X0Y3      MMCME2_ADV                   0.000    16.000 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+                         net (fo=1, routed)           1.418    17.418    pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.083    17.501 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1_i1.usrclk1_i1/O
+                         net (fo=775, routed)         1.170    18.671    pcie_7x_top_aximm_i/axil_to_al_inst/user_clk
+    SLICE_X163Y216       FDCE                                         r  pcie_7x_top_aximm_i/axil_to_al_inst/read_in_progress_reg/C
+                         clock pessimism              0.214    18.885    
+                         clock uncertainty           -0.071    18.814    
+    SLICE_X163Y216       FDCE (Recov_fdce_C_CLR)     -0.212    18.602    pcie_7x_top_aximm_i/axil_to_al_inst/read_in_progress_reg
+  -------------------------------------------------------------------
+                         required time                         18.602    
+                         arrival time                          -4.368    
+  -------------------------------------------------------------------
+                         slack                                 14.234    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.299ns  (arrival time - required time)
+  Source:                 pcie_7x_top_aximm_i/user_reset_q_reg/C
+                            (rising edge-triggered cell FDRE clocked by pcie_62d5mhz_user1_user2  {rise@0.000ns fall@8.000ns period=16.000ns})
+  Destination:            pcie_7x_top_aximm_i/axil_to_al_inst/m_al_rdata_reg[18]/CLR
+                            (removal check against rising-edge clock pcie_62d5mhz_user1_user2  {rise@0.000ns fall@8.000ns period=16.000ns})
+  Path Group:             **async_default**
+  Path Type:              Removal (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pcie_62d5mhz_user1_user2 rise@0.000ns - pcie_62d5mhz_user1_user2 rise@0.000ns)
+  Data Path Delay:        0.262ns  (logic 0.100ns (38.145%)  route 0.162ns (61.855%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.032ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    1.532ns
+    Source Clock Delay      (SCD):    1.260ns
+    Clock Pessimism Removal (CPR):    0.240ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pcie_62d5mhz_user1_user2 rise edge)
+                                                      0.000     0.000 r  
+    MMCME2_ADV_X0Y3      MMCME2_ADV                   0.000     0.000 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+                         net (fo=1, routed)           0.612     0.612    pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.026     0.638 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1_i1.usrclk1_i1/O
+                         net (fo=775, routed)         0.622     1.260    pcie_7x_top_aximm_i/user_clk
+    SLICE_X181Y210       FDRE                                         r  pcie_7x_top_aximm_i/user_reset_q_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X181Y210       FDRE (Prop_fdre_C_Q)         0.100     1.360 f  pcie_7x_top_aximm_i/user_reset_q_reg/Q
+                         net (fo=123, routed)         0.162     1.522    pcie_7x_top_aximm_i/axil_to_al_inst/user_reset_q
+    SLICE_X179Y214       FDCE                                         f  pcie_7x_top_aximm_i/axil_to_al_inst/m_al_rdata_reg[18]/CLR
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pcie_62d5mhz_user1_user2 rise edge)
+                                                      0.000     0.000 r  
+    MMCME2_ADV_X0Y3      MMCME2_ADV                   0.000     0.000 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/mmcm_i/CLKOUT2
+                         net (fo=1, routed)           0.675     0.675    pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.030     0.705 r  pcie_7x_top_aximm_i/pcie_7x_i/in_module_mmcm.pipe_clock_i/userclk1_i1.usrclk1_i1/O
+                         net (fo=775, routed)         0.827     1.532    pcie_7x_top_aximm_i/axil_to_al_inst/user_clk
+    SLICE_X179Y214       FDCE                                         r  pcie_7x_top_aximm_i/axil_to_al_inst/m_al_rdata_reg[18]/C
+                         clock pessimism             -0.240     1.292    
+    SLICE_X179Y214       FDCE (Remov_fdce_C_CLR)     -0.069     1.223    pcie_7x_top_aximm_i/axil_to_al_inst/m_al_rdata_reg[18]
+  -------------------------------------------------------------------
+                         required time                         -1.223    
+                         arrival time                           1.522    
+  -------------------------------------------------------------------
+                         slack                                  0.299    
+
+
+
+
+

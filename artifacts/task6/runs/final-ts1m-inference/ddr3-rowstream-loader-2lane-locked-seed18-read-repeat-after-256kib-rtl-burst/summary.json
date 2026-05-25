@@ -1,0 +1,22 @@
+{
+  "beats": [
+    0,
+    90,
+    1023,
+    4096,
+    8192,
+    16383
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-locked-seed18-read-repeat-after-256kib-rtl-burst/read-repeat-diagnostic.json",
+  "mismatch_counts": {
+    "0": 0,
+    "1023": 0,
+    "16383": 0,
+    "4096": 0,
+    "8192": 0,
+    "90": 0
+  },
+  "read_count": 100,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-locked-seed18-read-repeat-after-256kib-rtl-burst",
+  "status": "PASS"
+}

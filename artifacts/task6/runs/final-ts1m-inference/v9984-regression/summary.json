@@ -1,0 +1,27 @@
+{
+  "gate": "v9984-regression",
+  "status": "PASS",
+  "bitstream": "/nix/store/zls1b0i8918qxg834zv0g6min3wzprh2-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit",
+  "programming": {
+    "status": "PASS",
+    "isc_done": 1,
+    "init": 1,
+    "done": 1
+  },
+  "idcode_hex": "0x23751093",
+  "payload": {
+    "magic_ok": true,
+    "state": "SELFTEST_PASS",
+    "fail_reason": "NONE",
+    "observed_top_index": 229,
+    "expected_top_index": 229,
+    "observed_top_acc": 54965,
+    "expected_top_acc": 54965,
+    "vocab_load_checksum_hex": "0x693c603d",
+    "expected_vocab_weight_checksum_hex": "0x693c603d",
+    "head_activation_checksum_hex": "0x00001ef9",
+    "expected_head_activation_checksum_hex": "0x00001ef9",
+    "embedding_combined_checksum_hex": "0x00001e74",
+    "expected_embedding_combined_checksum_hex": "0x00001e74"
+  }
+}

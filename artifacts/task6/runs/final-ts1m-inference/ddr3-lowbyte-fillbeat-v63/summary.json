@@ -1,0 +1,11 @@
+{
+  "beat_addr": 123,
+  "beat_prefix_hex": "00c1000000c1000000510000005100a3",
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-fillbeat-v63/fillbeat-diagnostic.json",
+  "expected_prefix_hex": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "mismatch_count": 64,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-fillbeat-v63",
+  "status": "FAIL",
+  "value": 90,
+  "verdict": "fillbeat-write-read-fails"
+}

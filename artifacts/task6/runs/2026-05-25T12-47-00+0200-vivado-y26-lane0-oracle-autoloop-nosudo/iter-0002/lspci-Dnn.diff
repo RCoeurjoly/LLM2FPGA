@@ -1,0 +1,9 @@
+--- artifacts/task6/runs/2026-05-25T12-47-00+0200-vivado-y26-lane0-oracle-autoloop-nosudo/iter-0001/lspci-Dnn.log	2026-05-25 11:15:18.497235079 +0200
++++ artifacts/task6/runs/2026-05-25T12-47-00+0200-vivado-y26-lane0-oracle-autoloop-nosudo/iter-0002/lspci-Dnn.log	2026-05-25 11:15:24.310222686 +0200
+@@ -30,5 +30,6 @@
+ 0000:41:01.0 PCI bridge [0604]: Intel Corporation Thunderbolt 80/120G Bridge [Barlow Ridge Hub 80G 2023] [8086:5786] (rev 85)
+ 0000:41:02.0 PCI bridge [0604]: Intel Corporation Thunderbolt 80/120G Bridge [Barlow Ridge Hub 80G 2023] [8086:5786] (rev 85)
+ 0000:41:03.0 PCI bridge [0604]: Intel Corporation Thunderbolt 80/120G Bridge [Barlow Ridge Hub 80G 2023] [8086:5786] (rev 85)
++0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]
+ 10000:e0:06.0 PCI bridge [0604]: Intel Corporation Raptor Lake PCIe 4.0 Graphics Port [8086:a74d]
+ 10000:e1:00.0 Non-Volatile memory controller [0108]: KIOXIA Corporation NVMe SSD Controller XG7 [1e0f:000d]

@@ -1,0 +1,12 @@
+{
+  "beats": 64,
+  "completed_beats": 64,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-packet-1kib/host-packet-diagnostic.json",
+  "first_mismatch": 255,
+  "mismatch_count": 0,
+  "packet_count": 16,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-packet-1kib",
+  "start_beat": 0,
+  "status": "PASS",
+  "verdict": "host-packet-passes"
+}

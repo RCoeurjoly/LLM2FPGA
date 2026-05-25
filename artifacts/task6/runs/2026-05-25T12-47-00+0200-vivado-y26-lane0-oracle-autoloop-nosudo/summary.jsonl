@@ -1,0 +1,2 @@
+{"iteration": 1, "time": "2026-05-25T11:15:18+02:00", "status": "no-endpoint", "endpoint": "", "dir": "artifacts/task6/runs/2026-05-25T12-47-00+0200-vivado-y26-lane0-oracle-autoloop-nosudo/iter-0001"}
+{"iteration": 2, "time": "2026-05-25T11:15:24+02:00", "status": "endpoint-found", "endpoint": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]", "dir": "artifacts/task6/runs/2026-05-25T12-47-00+0200-vivado-y26-lane0-oracle-autoloop-nosudo/iter-0002"}

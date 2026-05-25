@@ -1,0 +1,15 @@
+{
+  "beats": [
+    0,
+    1,
+    21
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-read-compare-instrumented-0-1-21/read-compare-diagnostic.json",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-read-compare-instrumented-0-1-21",
+  "status": "FAIL",
+  "statuses": {
+    "0": "FAIL",
+    "1": "FAIL",
+    "21": "FAIL"
+  }
+}

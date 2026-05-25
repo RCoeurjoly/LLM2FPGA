@@ -1,0 +1,19 @@
+{
+  "beats": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-beat0-case1-rowstream-start0-read0-3/read-repeat-diagnostic.json",
+  "mismatch_counts": {
+    "0": 10,
+    "1": 10,
+    "2": 0,
+    "3": 0
+  },
+  "preload": false,
+  "read_count": 10,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-beat0-case1-rowstream-start0-read0-3",
+  "status": "FAIL"
+}

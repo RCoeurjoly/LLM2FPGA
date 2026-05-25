@@ -37,7 +37,7 @@ module task6_ypcb_uberddr3_bist_top #(
   output wire        ddram_we_n
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
-  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd32;
+  localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd33;
   localparam int ROW_BITS = 15;
   localparam int COL_BITS = 10;
   localparam int BA_BITS = 3;
@@ -142,6 +142,9 @@ module task6_ypcb_uberddr3_bist_top #(
   wire [BYTE_LANES - 1:0] ddr3_dm_w;
   wire calib_complete;
   wire [31:0] debug1;
+  wire [31:0] debug_calib_gate;
+  wire debug_phy_sync_rst;
+  wire [2:0] debug_phy_status;
   wire uart_tx;
   wire bist_done;
 
@@ -530,6 +533,8 @@ module task6_ypcb_uberddr3_bist_top #(
     jtag_debug_payload[465 +: 4] = read_probe_stream_valid_q;
     jtag_debug_payload[469 +: 4] = read_probe_stream_mismatch_q;
     jtag_debug_payload[480 +: WB_DATA_BITS] = read_probe_data_q;
+    jtag_debug_payload[768 +: 32] = debug_calib_gate;
+    jtag_debug_payload[800 +: 8] = {4'd0, debug_phy_status, rst_n};
     jtag_debug_payload[240 +: 32] =
       read_probe_stream_bytes_q;
   end
@@ -601,6 +606,9 @@ module task6_ypcb_uberddr3_bist_top #(
     .o_ddr3_odt(ddr3_odt_w),
     .o_calib_complete(calib_complete),
     .o_debug1(debug1),
+    .o_debug_calib_gate(debug_calib_gate),
+    .o_debug_phy_sync_rst(debug_phy_sync_rst),
+    .o_debug_phy_status(debug_phy_status),
     .i_user_self_refresh(1'b0),
     .uart_tx(uart_tx)
   );

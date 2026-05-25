@@ -24010,3 +24010,16 @@ Conclusion:
 - Software reset/reauthorization has not recovered this host/chassis state.
 - The next fastest recovery is a physical Helios chassis power cycle while leaving the FPGA programmed with the Vivado smoke bitstream, followed by the autonomous BAR gate.
 
+
+### 2026-05-25 - PCIe BAR smoke no longer writes Task 6 header offset
+
+Implementation update:
+
+- Updated `scripts/task6/task6_pcie_bar_smoke.py` so default `--mode auto` treats a readable `T6PC` BAR0 offset-0 word as a header-gate pass and does not write the offset-0 header register.
+- Kept the legacy upstream BAR RAM smoke path: when offset 0 still exposes the `0x12345678` smoke pattern, the helper continues to run the `abcdefgh` write/readback echo.
+- Added explicit `--mode header|echo` and `--write-offset` controls for future staged gates, plus argument passthrough in `scripts/task6/task6_pcie_bar_smoke.sh`.
+
+Operational result:
+
+- A BAR result that reads `T6PC` at offset 0 is now a BAR header pass, not an echo failure.
+- Writable BAR validation for Task 6 command images should use `task6_pcie_command_bridge_smoke.py` ladder stages or an explicit non-header scratch offset, not implicit writes to BAR0 offset 0.

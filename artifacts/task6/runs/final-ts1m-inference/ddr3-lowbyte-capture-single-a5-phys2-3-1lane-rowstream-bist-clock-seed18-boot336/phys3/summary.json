@@ -1,0 +1,14 @@
+{
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-capture-single-a5-phys2-3-1lane-rowstream-bist-clock-seed18-boot336/phys3/lowbyte-single-diagnostic.json",
+  "loader_error": false,
+  "match": false,
+  "observed": 1,
+  "physical_addr": 3,
+  "read_ack_count": 13,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-capture-single-a5-phys2-3-1lane-rowstream-bist-clock-seed18-boot336/phys3",
+  "status": "FAIL",
+  "verdict": "lowbyte-single-command-fails",
+  "wb_err_count": 0,
+  "write_ack_count": 12,
+  "write_byte": 165
+}

@@ -1,0 +1,10 @@
+{
+  "beats": 255,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-locked-seed18-fixed-rtl-burst-v2-255/rtl-burst-diagnostic.json",
+  "first_mismatch": 255,
+  "mismatch_count": 0,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-locked-seed18-fixed-rtl-burst-v2-255",
+  "start_beat": 0,
+  "status": "PASS",
+  "verdict": "rtl-burst-passes"
+}

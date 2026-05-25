@@ -1,0 +1,8 @@
+{
+  "count": 16,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-lane3-diagnostic-16-seed18-g0i6bm/lane3-diagnostic.json",
+  "mismatch_count": 11,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-lane3-diagnostic-16-seed18-g0i6bm",
+  "status": "FAIL",
+  "verdict": "lane3-logical-contract-fails"
+}

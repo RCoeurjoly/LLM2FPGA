@@ -1,0 +1,2153 @@
+{
+  "artifact_name": "task6-ypcb-uberddr3-host-packet-write-read",
+  "beats": 512,
+  "completed_beats": 512,
+  "decision": {
+    "next_gate": "If this passes at 1 KiB and 16 KiB, replace deterministic packet data with rowstream bytes.",
+    "verdict": "host-packet-passes"
+  },
+  "final_debug": {
+    "_ack_supported": true,
+    "bist_state_alternate_seen": null,
+    "bist_state_analyze_low_seen": null,
+    "bist_state_burst_read_seen": null,
+    "bist_state_burst_write_seen": null,
+    "bist_state_done_seen": null,
+    "bist_state_finish_seen": null,
+    "bist_state_issue_read_seen": null,
+    "bist_state_issue_write1_seen": null,
+    "bist_state_issue_write2_seen": null,
+    "bist_state_random_read_seen": null,
+    "bist_state_random_write_seen": null,
+    "bist_state_read_data_seen": null,
+    "boot_done": true,
+    "boot_error": false,
+    "boot_mismatch": false,
+    "boot_read_ack_seen": false,
+    "boot_stall_seen": false,
+    "boot_write_ack_seen": false,
+    "calib_complete": true,
+    "calib_seen": true,
+    "calib_seen_cycle": 62825,
+    "command_count": 0,
+    "cycle": 3198009533,
+    "debug1": 23,
+    "dense_burst_active": true,
+    "dense_burst_addr_low24": 255,
+    "dense_burst_expected_base": 3,
+    "dense_burst_mismatch_count": 0,
+    "dense_write_data": 0,
+    "dense_write_lane": 0,
+    "dense_write_seen": true,
+    "dense_write_sel_low16": 42499,
+    "dense_write_wb_addr_low16": 32640,
+    "fullbeat_read_ack_delta": 10,
+    "fullbeat_write_ack_delta": 6,
+    "last_accepted": false,
+    "last_addr_low15": 9731,
+    "last_chunk": 0,
+    "last_magic_ok": true,
+    "last_opcode": 16,
+    "loader_cyc": false,
+    "loader_done": false,
+    "loader_error": false,
+    "loader_read_ack_seen": true,
+    "loader_stall_seen": false,
+    "loader_state": 1,
+    "loader_stb": false,
+    "loader_wait_cycles": 65281,
+    "loader_write_ack_seen": true,
+    "lowbyte_addr_capture": 255,
+    "lowbyte_read_data_capture": 3,
+    "lowbyte_read_seen_capture": true,
+    "lowbyte_seen_flags": 3,
+    "lowbyte_write_data_capture": 0,
+    "lowbyte_write_seen_capture": true,
+    "magic": 1412844100,
+    "magic_ok": true,
+    "pll_locked": null,
+    "raw_bits": 512,
+    "raw_hex": "0xa6030000ff01e606f22747ee00e4d9337a67f181b9f70002098100004002ff00030309fdfeee0000000000000400000000170000f569be9dc0bdd33f54364a44",
+    "rtl_burst_count": 3,
+    "rtl_burst_first_mismatch": 255,
+    "rtl_burst_index": 3,
+    "rtl_burst_mismatch_count": 0,
+    "rtl_burst_status_first_mismatch": 255,
+    "rtl_burst_status_mismatch_count": 0,
+    "rtl_fullbeat_done": true,
+    "rtl_fullbeat_mismatch_count": 0,
+    "rtl_fullbeat_write_echo32": 4278190851,
+    "schema": "legacy-512",
+    "seen_bits": null,
+    "selected_dqs_page": null,
+    "standalone_read_ack_addr_low24": 255,
+    "standalone_read_ack_delta": 6,
+    "standalone_read_ack_opcode_capture": 0,
+    "standalone_read_ack_seen_capture": true,
+    "standalone_read_request_addr_low8": 255,
+    "status": 211,
+    "sys_rstn": null,
+    "user1_selected": null,
+    "version": 63,
+    "wb_ack_count": 1024,
+    "wb_err_count": 0,
+    "wb_stall_count": 167640814
+  },
+  "first_mismatch": 255,
+  "mismatch_count": 0,
+  "packet_count": 128,
+  "packet_max_beats": 4,
+  "packets": [
+    {
+      "beats": 4,
+      "expected_hex": [
+        "d425fef3e8e6e6fec8faf9e304341508",
+        "ce3f1f40cf260004e1f8e505f9e1d625",
+        "81220e2a063cbee32a323134eb031723",
+        "13e25316fe1808d0eed2e906c30cf84d"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 0,
+      "status": "PASS",
+      "wb_ack_count": 8,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "9ac300001bf4e7f5d9be374a5bc227d3",
+        "55cc3727a7f10a5e0bd704e1a89db9f0",
+        "4fdde1ee81ea29175a13c060a3ea15fa",
+        "25332e7b36414212ace5bfe2beced217"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 4,
+      "status": "PASS",
+      "wb_ack_count": 16,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "4ee3f4f4958b000040a0a510ecf5455d",
+        "ff190417fad2fe84f8a9d6026b2d7f1a",
+        "d0b1f826333e8fcc373662d8cc00e48e",
+        "f614000a3022d2f30daafb532146f9be"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 8,
+      "status": "PASS",
+      "wb_ack_count": 24,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "ee0c3e0660abc9acd76f00002ba7a209",
+        "e02327662a35b1470b9801adfc9fccdc",
+        "072c1ebe2ba5e64a7f220e26404f2ced",
+        "91c915c9fc6f28f29af70bd699fa13f7"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 12,
+      "status": "PASS",
+      "wb_ack_count": 32,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "273c11b02b361fca3b98dddaa75a0000",
+        "15b4d5e108214661e3c61857e0f6220c",
+        "daaf2b101a504ca6ed81e6fd5720abf1",
+        "0c4b58142ed5fd12c65349b935d4b8f5"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 16,
+      "status": "PASS",
+      "wb_ack_count": 40,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "199cd228fd663abf19ead7db22abc918",
+        "237a0000c8d481ae8936e87d681b493b",
+        "9ed0dfa405d6a3c952491e530bd9014b",
+        "3125a43254527f2426021db08c5e6f0f"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 20,
+      "status": "PASS",
+      "wb_ack_count": 48,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "84b5a8bdd6ac37ee241935f3c7093e13",
+        "493c9e3bda5d0000551adb2b0b0b0d36",
+        "fac508125ad2fdde8f08f92a3efa2c3c",
+        "07e29efe2f14f713e60d0a3b24e9eb3c"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 24,
+      "status": "PASS",
+      "wb_ack_count": 56,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "b33b3f49f5eeb003e0f30fe6b08100b1",
+        "d1c8a75640ccce1391ab0000d0b4ef21",
+        "e8e02a1df6ea144124de39900da596e9",
+        "7f4c20fcd603e44c062cd42ee63466e6"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 28,
+      "status": "PASS",
+      "wb_ack_count": 64,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "17af31d0fe0e52d71cf6cec2fffbf4d7",
+        "312ae5bb2d010dc56ea79ce6fb670000",
+        "39fecd2be22a1dfd5e04da1a19fa08ea",
+        "afffe4f0eb1a16f10dccf6071809fb25"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 32,
+      "status": "PASS",
+      "wb_ack_count": 72,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e94823c62f2bece8e37f54d0e400e7d8",
+        "e6b31bc7250507e41ce5fa0331cbfd0a",
+        "c38e0000fe04c41ddb061c13290fe91c",
+        "3fe3fa81d0c4dd1c42fdf20d1c1af026"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 36,
+      "status": "PASS",
+      "wb_ack_count": 80,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "46f72061f9052c0a381fb1e2e2514c0a",
+        "f50a05bedbc306e61504da0f04e10cd8",
+        "48c7e5f5a67e00003ce581f0c608fe3c",
+        "221ae41a20fdf4d75c9e3bf0f44c5dfc"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 40,
+      "status": "PASS",
+      "wb_ack_count": 88,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "11cec238e61d9a6e11321a9db9b537aa",
+        "db275ffbecfcadee4216da5a005530c0",
+        "f801141c2a8acb24279700000d3a03dc",
+        "fc05e0f2d29450e5f5353025b668664c"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 44,
+      "status": "PASS",
+      "wb_ack_count": 96,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "a8c3ed508207debfdbfb0fef8110ab1f",
+        "c52eccfaea22e95527152846304f50ef",
+        "c1c71948a6e9b860bb133435ad900000",
+        "ee2fbbc5002b1466c93605f7ebde6429"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 48,
+      "status": "PASS",
+      "wb_ack_count": 104,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1304424703fdcdf796819dfcd51d3625",
+        "b210e1c7374ac916dcf64e2bacf0dc24",
+        "00c66324f8eb17edd324001ab2f4090b",
+        "6ab10000c66946c5e8b8c4e9c5dc2cf5"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 52,
+      "status": "PASS",
+      "wb_ack_count": 112,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "ef51515abc554367a0009447cb3190e7",
+        "c9a3359dbb16cc0a603dba034851ec57",
+        "135e2e46f0aa7f3ac0b8c8fffbacc046",
+        "bb543e7b7571000002fb01e7c5fb122b"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 56,
+      "status": "PASS",
+      "wb_ack_count": 120,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "2f19f81511fee2f1f2faded4f015ded7",
+        "e2f0ad07e809d2580a415a000b4302ce",
+        "f47f27ffe20fd5faf11aca46f0eb08b7",
+        "f036d5e5dd5b0011b9d20000ecc2ddee"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 60,
+      "status": "PASS",
+      "wb_ack_count": 128,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "d4e4320a7317f62feac1d4d76281e005",
+        "1a2b2fc4490a0939f714031b373060da",
+        "2bb5cec9d423f3e20efa14e216d8d8d6",
+        "1bf901c30de8270760dcd2f3327c0000"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 64,
+      "status": "PASS",
+      "wb_ack_count": 136,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "01e0a53febd5ff04560917ec19d9a3ff",
+        "56980909ff486cd350bf0b061101e1e0",
+        "245f1b28111208e5ca30e31816da25ea",
+        "eef1d2111b2cc9cef2ea29fb2781e7c5"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 68,
+      "status": "PASS",
+      "wb_ack_count": 144,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "dbaa0000211a9d0ad5fc321731f214e8",
+        "3db1f61b208103351f4147e72cc3f91e",
+        "0905c9ec5a5bfa1ddafa0ad9b74c0d27",
+        "d6d6da110ce4c846253bded5f7e1dd04"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 72,
+      "status": "PASS",
+      "wb_ack_count": 152,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "2e9d13df21b50000fc0fac3305d7172b",
+        "541121fb1ecebafe48812415243838ca",
+        "4cc817040801ddea324c1f0dea3b0adc",
+        "d61fe12a0ae6fdf8f4ffd4010824b9cd"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 76,
+      "status": "PASS",
+      "wb_ack_count": 160,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "f8e512e2f689ddd7ffb00000ff17b51c",
+        "c7ea22ff2e0209f610d2dd1121810e44",
+        "2d2047e145b211182918dbef224c31fd",
+        "f90925e8be3bda14f1e1efea0ec8dd1e"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 80,
+      "status": "PASS",
+      "wb_ack_count": 168,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1b24dde4fce8010befb2faee29cf0000",
+        "d5dfcef3f4ed340f3dfc1ef816c4b104",
+        "2feff41315314ec233cefd0a080cd10e",
+        "2f2024ec08fc22d4c71b11041a05ef11"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 84,
+      "status": "PASS",
+      "wb_ack_count": 176,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1efdcd0e1902c1f30cf2f5f70f81f3eb",
+        "b3c1000000efc3e5b3c6210c4dfd25fe",
+        "19d8b7f11d8f011b201f6be835ba0a0b",
+        "2d1fce01591a4ff6f2ec48b8cb5bfdeb"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 88,
+      "status": "PASS",
+      "wb_ack_count": 184,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "16e5f9d516f2ed2f2024dce3ecfb30f1",
+        "1f81ded2398a0000e2f8a521dad52e2b",
+        "3803200509d3a3ef33c4ee05162f41a9",
+        "41dff1292b18d5f648172ffdf4f72cd9"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 92,
+      "status": "PASS",
+      "wb_ack_count": 192,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "d739f6fa1bf1ffeff1f1d8002a2fddcc",
+        "faec43fd1f81d8d7c99a0000e3eebefa",
+        "cbf61d2f3f07170bf6b8bb1140c5f705",
+        "01305cd935e3ee181417d9fd5e2708fa"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 96,
+      "status": "PASS",
+      "wb_ack_count": 200,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "f6ea1ccbb94016fe12e9f6f520dbd81b",
+        "2f16e2f4130323ff19811bd896a20000",
+        "f7ecab10b6ef1728320b2a0215e0acff",
+        "48aaf50f0d3a4dc325cfef1c2628e6fd"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 100,
+      "status": "PASS",
+      "wb_ack_count": 208,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "6a202301f6e11ecab52f0bff28d9fdfe",
+        "eef2cc061819e6c3fffc27090c8109ba",
+        "219d00003bb00ee8eca708ef34acea05",
+        "563e2ed5c92537591611c25bcaf037c4"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 104,
+      "status": "PASS",
+      "wb_ack_count": 216,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "aac5f407c50baaf31247f3d2a2691723",
+        "e2e6e51b3f0b633dfe811731badd040a",
+        "3aef0f10be9a000029d3c4eff8071ae7",
+        "15c9250fdb290ecbc451163ff92df218"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 108,
+      "status": "PASS",
+      "wb_ack_count": 224,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "f5eb0ff5f6e8f452ba33d90dcf17d8e8",
+        "247f3a05eefbec1d22c45a0c1cc11ae9",
+        "bfecebd51be2ea3d68ad00003ab94331",
+        "bcd1f61adc1cc5ead6c82a974ad2aee6"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 112,
+      "status": "PASS",
+      "wb_ack_count": 232,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "5611f418e617065bccfb0bf7362122ea",
+        "254038210ccf1b15f60110bf4eb6cabf",
+        "0aecfc3af2f212bb7fe0dcebbb9f0000",
+        "0be2a0e7c0ed4254430e2213dd1a10ac"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 116,
+      "status": "PASS",
+      "wb_ack_count": 240,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e6bce3d717282bd20fbc04fae718d5fe",
+        "32232dbc00f60f8cb37f4afa1dedeef8",
+        "0bb50a00f2250bf1fc3118f426c726ff",
+        "638f000022e3583dd912f3363ec9cf0d"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 120,
+      "status": "PASS",
+      "wb_ack_count": 248,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e0d9029de1d9b3093260f7270bf4f2db",
+        "0412080cd628370a207f0ae4fb224f32",
+        "b9f12c1401ede2abe3e1e028fc076be2",
+        "4bebb9bbfd9f00002fbc33f2c6cad47f"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 124,
+      "status": "PASS",
+      "wb_ack_count": 256,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "ecf9e5e6d830a74cd21d4afc113fc844",
+        "b35fca1519db060e922cb304fb34c9be",
+        "1a225aec0e12d522d92b473fec68e096",
+        "e204932d7d6100304a8d00005d8ed22c"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 128,
+      "status": "PASS",
+      "wb_ack_count": 264,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "be372f3c384bc67088adc6bc4baf81e5",
+        "215834c341c1563f5937cd3e50425ec9",
+        "b5b559b4c2635495c4c9ceabd3accad4",
+        "2d293cf8423742cc62cbc2a15b440000"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 132,
+      "status": "PASS",
+      "wb_ack_count": 272,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "2eb2d1e6e6a6fd110a01202c679bc5e7",
+        "15d3020a52f116d524cbdf1b1fc508a9",
+        "d5ef051e3f07b6420cbd16dd3705472f",
+        "3317290e6415d9f3e0fed4812e08fef1"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 136,
+      "status": "PASS",
+      "wb_ack_count": 280,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "44a10000f6d1b63936e7d9ea1957172d",
+        "ee8151f40223d4ee0ffd30c502bcb752",
+        "28e5e50cddfb3ed5f4f8bd3bfbbb3a4e",
+        "28254af90993200f3205f8eaeeffd0e8"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 140,
+      "status": "PASS",
+      "wb_ack_count": 288,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "4b09faaf53c0000036bab09e25c005fa",
+        "2ff7200d1fac0af247cf840d502551c3",
+        "1c98c46258f3c21920447df73ccbde63",
+        "e01839352530d7c70bfa3e0c35d3fa9c"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 144,
+      "status": "PASS",
+      "wb_ack_count": 296,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e70ac48137d2d2b9c68900000acddf22",
+        "121826013e27091cfac71d1d0bfbc726",
+        "1ef81ad019d4c22237f4bcd7f9177ffe",
+        "28eac617fbba0923fc4106ca26023bce"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 148,
+      "status": "PASS",
+      "wb_ack_count": 304,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "300400b0f9f3aacb35f303b306b20000",
+        "b79fa1ce3bb44f3018321f10f1a00ef5",
+        "2aefd0191ff60c0511f5d05c49cad615",
+        "2e327fe6ffeabf13f8f321f9200a1506"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 152,
+      "status": "PASS",
+      "wb_ack_count": 312,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "f8ebfdde1f08f8fbe70c22aa1e0004cb",
+        "7ccf0000d5aac33afef112f2220d1c0b",
+        "098812ede4e9bddd2a3821c113c6fc4f",
+        "3a06cdfc1d5d771b2027c559d1dbfc24"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 156,
+      "status": "PASS",
+      "wb_ack_count": 320,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "46252fcef7d37adc50ff138116cad1db",
+        "2ece1386d19200003ba8d6e30e1e07c9",
+        "76062b1301c30d17fcdfcc43471013d9",
+        "25cd013d2528ebf3cd4d6f2716b7bf1f"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 160,
+      "status": "PASS",
+      "wb_ack_count": 328,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "f1ccf8f9e41c00d302c033f74c0528ad",
+        "f3e6d08158c9d2c40cae000007af9d20",
+        "47a911163d07f52d159324060fb0c3f0",
+        "58f755122fd0963e16f89613ec437f0e"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 164,
+      "status": "PASS",
+      "wb_ack_count": 336,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1c14b754f3ca3f2f3e3408bfeff11fe1",
+        "47d60ea108f2bdab3307f9a34d8d0000",
+        "e1929e3260cfbefc2f34109757ae810c",
+        "d9b2d6d66cfd15df21eae41e2eadf4f3"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 168,
+      "status": "PASS",
+      "wb_ack_count": 344,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "51023d4f78a9b1720d955abb4a5b1ce7",
+        "073944214db19e8752dbbacc497f36fa",
+        "f67800005dad8f19c2d504e845503e18",
+        "37932b2d39b50725197b214320d10532"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 172,
+      "status": "PASS",
+      "wb_ack_count": 352,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "3df489dee0f635f2428d83bc41be1813",
+        "d036d3f22adc21630c07de07181acdfd",
+        "36d3cd81759b000032e3abf4e603b8e2",
+        "4928172ccb12c2e924bfa60b3bddfca1"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 176,
+      "status": "PASS",
+      "wb_ack_count": 360,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1bb9032437e3bd38fe207f01ed25c630",
+        "02c4041c40132c2416c033b7290707ae",
+        "ec032ece23d5239923b50000e7bcb705",
+        "e8d003e027425b28f29c16395cc2ec22"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 180,
+      "status": "PASS",
+      "wb_ack_count": 368,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "5fef1532e3d2983d5fdc9ed4ecdf5bc3",
+        "2ef5b34b16a3342c04631f29690e0a2e",
+        "1011a5d2fb2bc819145d0d8157910000",
+        "12c7a61610d8f3001418430d178c1419"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 184,
+      "status": "PASS",
+      "wb_ack_count": 376,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "c5d7e74c34cef7242ad204154e03bbc9",
+        "e5e654014f2ebefdfbbc320d113af6f3",
+        "0d287f38e60decf6ed00eaaa4302d8ca",
+        "38b2000002aba2eb29e078085116131e"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 188,
+      "status": "PASS",
+      "wb_ack_count": 384,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1a863d2b10cafb154a662b14f323d36d",
+        "5aeac4d1bf7f78d8378c9028fda42110",
+        "c147f4e9ffd030c75af02bcdeee3dda1",
+        "4a32c7bdd0860000d7a4a0fff6e0ef29"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 192,
+      "status": "PASS",
+      "wb_ack_count": 392,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "2847182e09a428af160af52254c2e4f3",
+        "1fefba7f4f04b522071f3e1c33d3b70d",
+        "dea95201420922be453647f3373c1fd1",
+        "ecd514ab5006ffa4c4a1000038cbdd08"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 196,
+      "status": "PASS",
+      "wb_ack_count": 400,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "091dca020f230612ec81182bec04f913",
+        "424507fefdbcd22a260df8f1d5361a04",
+        "2e07dd08d8da1f02360ee9e5ed240bf8",
+        "0b1208cf220ebad73f04d8d377240100"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 200,
+      "status": "PASS",
+      "wb_ack_count": 408,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "f3fdb7f8c9ea1b304c1817261ac0e5ee",
+        "57bcdb262b4048bafdbde3393410e3e1",
+        "220e20e818ab1edbb85f6fca14c0d481",
+        "1a1c10bc396012960135e0f754c502ae"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 204,
+      "status": "PASS",
+      "wb_ack_count": 416,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1d7a00002dbbdeff04ec1b0916f33818",
+        "529629f8dbb99a0719f42fcd16e4e840",
+        "5c0fddfdea464de415f2b742b0d50a0d",
+        "292005db00f05ceb424a68a311e60098"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 208,
+      "status": "PASS",
+      "wb_ack_count": 424,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "35daf38124a8000005d8c2daa81802ef",
+        "4d3f4911b896032cf9cbc9510b26c20b",
+        "d8c9d7315a06dd01df1f7fd76db5a84b",
+        "e7ace5050517bf064f366f290224e8db"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 212,
+      "status": "PASS",
+      "wb_ack_count": 432,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "ee12ae94070f199189a000002abeb1e3",
+        "30ed0e034ee7412e5eae4b1b18d4b9f1",
+        "1ac95cec29d2aa7067e894e6b6de4efa",
+        "0cebbb041feb410ad84527bcfa81161d"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 216,
+      "status": "PASS",
+      "wb_ack_count": 440,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "292c10b0da1be6b649f5cbb5649c0000",
+        "ecbb81d2f4e40e3f3210093b418b00e5",
+        "23f9133920fbf32650c406465be7b706",
+        "06252feb0fd3e701f50117d5eaf4d2b3"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 220,
+      "status": "PASS",
+      "wb_ack_count": 448,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "241cfa291523e3a50a5355c750b8d9ce",
+        "59a3000022b8d717ecabef5751041022",
+        "40a8fedf7f89bdfa08cb50eb07faef38",
+        "32bdd01e5e0b4eea060c06f7d8c9f61c"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 224,
+      "status": "PASS",
+      "wb_ack_count": 456,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "3b1f54b20df4f3e00d48bdb6051b4c1f",
+        "ebf4f2825da80000e6d4e91315ffe521",
+        "251efb0d1281110022eaa7d53cf131d5",
+        "0ac4ee31230ec816f80748002ff6c358"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 228,
+      "status": "PASS",
+      "wb_ack_count": 464,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "eaec1c3c451305c61402460145d602ab",
+        "0708e8c4190f00bcb3b70000f6cab8eb",
+        "0909ff29631c08282ac5f7ec4ec3221f",
+        "0e33348f37c6e87be2ec0f0e2f157f0e"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 232,
+      "status": "PASS",
+      "wb_ack_count": 472,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "06de0adad80d4d09dbfc30e31b39e9f9",
+        "1314c8bb1bdd21ef2689c69ddd900000",
+        "c5eca1f7e1dcf91d11422b0af587f3f2",
+        "130702d6310644d633bb090b4d15b2e5"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 236,
+      "status": "PASS",
+      "wb_ack_count": 480,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "3cf57f2c46b1d1eb24df23da1ceff9e7",
+        "2e4d15d50919ebf31bfd0bb30531e7f7",
+        "abb6000003e5c813d6c103071f0b283b",
+        "2fd411f53aacdef4fe0d16d1f5ddfa2e"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 240,
+      "status": "PASS",
+      "wb_ack_count": 488,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "16c4effb323550fa10f9d135ef00f125",
+        "48001d0728ca1bb61c0508c2170a350c",
+        "fbf00c8187d00000289ab5ebd503373d",
+        "40ff1b40fef805c40aa5b6e96e51200c"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 244,
+      "status": "PASS",
+      "wb_ack_count": 496,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "0799ef1f481f9e20104c7fcfe3c11e01",
+        "e82cedf0f802d8c1f4e8fbd31f50edd4",
+        "000c07d8579dc5b91f6d00001cfad606",
+        "fee7203f6922ea16a593efdf0db5abdf"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 248,
+      "status": "PASS",
+      "wb_ack_count": 504,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "293b330e3613210a49ffbb5cf71d632f",
+        "18d517e00232f1dbbec4decded0bfbba",
+        "f936fab325f913d67fbcf00ecd6a0000",
+        "26d8a2f5f7cc443c6f12b006062036fb"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 252,
+      "status": "PASS",
+      "wb_ack_count": 512,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e3edd11d273f08f208cc350ef5dcde3f",
+        "08677fc2e615c8f52d79389f28dfc2ae",
+        "cad4f6a2253d52a6060a2ad142dce4ee",
+        "f86200005588ca3eb83c41483d52c967"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 256,
+      "status": "PASS",
+      "wb_ack_count": 520,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "87b9bcbc4fb384e02c5736ba3fbd5e4d",
+        "5f57bf47655265cabdc15c9bb2605097",
+        "c8d2c0afd0aac8cd372c44ec45303ebc",
+        "7fd3c59ea640000006e4d2e1fd70276e"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 260,
+      "status": "PASS",
+      "wb_ack_count": 528,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "000ecc2c0df51f00fdb205fdff5409e9",
+        "e881d11a5611d622e41922e74127e6c5",
+        "d7562609cfe0d3b3bfdbe53bf73712cd",
+        "2f09e5e75eaa28c7b969000053d09426"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 264,
+      "status": "PASS",
+      "wb_ack_count": 536,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "3c9c20726626e2ca121014819fcbcbeb",
+        "4db0180b4e0cb7f6290bb21cf1f66f46",
+        "bbec2ff6e54c2e332aec45ec040df114",
+        "d6b00aae2917ecef50bd8a31137b0000"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 268,
+      "status": "PASS",
+      "wb_ack_count": 544,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "69f4aa27160e493ff919e40033d6117f",
+        "f9b9e2231afbc00214edd100ded5c6d7",
+        "cc633da8382deb39e3eb2ff0d71cc2ff",
+        "0806000ef7fe21aefc28fffef1c5edc5"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 272,
+      "status": "PASS",
+      "wb_ack_count": 552,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "42db000005ccb60cec371412dc38a216",
+        "14ba470331e73053fd40048115a1ce17",
+        "c52aef01c65510b426de28022e0af8ea",
+        "f2251525b6e62a0d083c49b4d9200437"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 276,
+      "status": "PASS",
+      "wb_ack_count": 560,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "5bd0ecb3a5c600002409f7f35147c7ec",
+        "c349dd259acdc70b2cd2f80e2807edbd",
+        "e3e6ee0944160dfa1a2655bd3c202ddf",
+        "fd555608f3ea1f12d0de33f7c11d1781"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 280,
+      "status": "PASS",
+      "wb_ack_count": 568,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "9e3ecd5700b4c0c27dc100000c0195ef",
+        "24f7d321f74dc4030ba5482bd70bf557",
+        "184434ff169fcaefb5da0a0eff3429e7",
+        "7f7ad918e6d31a360349d5da2b8dcd0d"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 284,
+      "status": "PASS",
+      "wb_ack_count": 576,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1fb233fbe0f8cf1337bdf0fad69b0000",
+        "431f11f3dc44c836b0571b205ba2dd08",
+        "cc3613e90ff702d9f23ffaed0e05d30b",
+        "15482bf6373ea920cb6c24f2e4e70ae7"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 288,
+      "status": "PASS",
+      "wb_ack_count": 584,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "bfdd14d809e408b2fd0f1e4ef3bc818c",
+        "7dcf0000cf5fa75298f6ed5ac07ff226",
+        "24c83e1526ad011dc714493637a3adc4",
+        "ee1d08f4d54349e309e6c5dbeb3be4f9"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 292,
+      "status": "PASS",
+      "wb_ack_count": 592,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e80d920652a8faa107c631cbf72c0d2e",
+        "3f9bf2a43f9a0000f733eaf4d7c6be1b",
+        "2550b42714d409810b122d250c1f2fd7",
+        "2a9eac0b1c0d0f2ae0453cec4345f610"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 296,
+      "status": "PASS",
+      "wb_ack_count": 600,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e93df32b0221c7ae01bc3e98ffd607d1",
+        "fa1b1ee9ddc7d796e5a70000fbfca3d5",
+        "dceaf51d2732112601dfe700e9d5307f",
+        "14eef7ec08f806c722fcc737a470f9e7"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 300,
+      "status": "PASS",
+      "wb_ack_count": 608,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "27dcf1f6d0d92eef100a07131b9147dc",
+        "071711d8d900ef1cffe3e6c261e00000",
+        "ce0bc71131673914f205ef0bc8391647",
+        "faf2f140142108312de10ce7d71baa26"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 304,
+      "status": "PASS",
+      "wb_ack_count": 616,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "d673f30e0d12e6cec5480fcaadd81c10",
+        "81b549dd0a046ab8de2cc6d52f0af996",
+        "80be0000150f8307fbdcfa5477c3d00f",
+        "dd9a110d29b2d52d126f36eb2bceede3"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 308,
+      "status": "PASS",
+      "wb_ack_count": 624,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1816fead305e67da18f31819694a4413",
+        "9e0ff5d398a62e811df04a86b756e30c",
+        "f50514acee960000f425e926c355191d",
+        "2e21f9263bcd062f23cdea38040a2aa7"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 312,
+      "status": "PASS",
+      "wb_ack_count": 632,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "13eedfc1e3131805114526da250604f9",
+        "077f21e2b2f4f5f9c3b1e9d11a1ee6be",
+        "0df4041fcde3f993ebd70000e8e8e8ed",
+        "e8db2eede7238f1503f626cb2bacfb7f"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 316,
+      "status": "PASS",
+      "wb_ack_count": 640,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "ec17c5321399df722df52bd2c53328cd",
+        "38a1ef05e452ca2e1b45eb1002c5101a",
+        "e6157106c741191312dc59d6edb10000",
+        "07f8b75e2a24130ce319cb2eccdf95ff"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 320,
+      "status": "PASS",
+      "wb_ack_count": 648,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "baad0b79d2162e2e2810f00f9e2f9d59",
+        "383251d07feabc14e4af2f392746a4fb",
+        "d0e64035e0eb39eeab118145272a34ff",
+        "759e0000fd23b1e4c5edfce3143dc70f"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 324,
+      "status": "PASS",
+      "wb_ack_count": 656,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "0b1209c8221a10f8022ff4f6030caee6",
+        "08fbd3fe051f282e2e050734eff3e9ff",
+        "03b61df016cc17b5fce737ddd72f2d2b",
+        "7fe4b0eab3df0000fa0ae7470945893c"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 328,
+      "status": "PASS",
+      "wb_ack_count": 664,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "3634c6fae7efe64dd1cc8143f504219b",
+        "f32735deb70002150c1a399b3c71d9dd",
+        "e2c6270dbe13ff2726e2464c03e33cb3",
+        "bf42d23932f4fdab5db90000f703ec0c"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 332,
+      "status": "PASS",
+      "wb_ack_count": 672,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "ba02fbea0475de070ee616f717eb0d7f",
+        "320bce832c0ef9d6be050006e922eeb6",
+        "6d1efa539d3de825e6de3dbfb9b34df4",
+        "49591cdae0fb52ed05d2c8ab83a80000"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 336,
+      "status": "PASS",
+      "wb_ack_count": 680,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "26039013050c01034a42ce36f504fe12",
+        "29bfb9db38651bc5f381ec6ffc12c503",
+        "f2fd412414bcfecfc5626d0cb6c7d1ff",
+        "eebc07e5192124cbd8232f1139a58add"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 340,
+      "status": "PASS",
+      "wb_ack_count": 688,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "4d830000de00ea1ff9f1fc0c1431161d",
+        "11d0e10af2052134f21912f2dc11f8ee",
+        "0609e8f0fe300fcd0205cc2ccc7f37fb",
+        "c9ec1712dc8c10d1001c05fed813fc39"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 344,
+      "status": "PASS",
+      "wb_ack_count": 696,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "13c6bebc72fd0000cae3c21156f51036",
+        "b9d5c11c2def3a0be1f68151d4e83c1e",
+        "f092cff8092035e3d0ed43d74b0f14fa",
+        "003be7f00b46ce4331d62a10e7ea61ed"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 348,
+      "status": "PASS",
+      "wb_ack_count": 704,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "da0b975ed4144ff7b0c400001cc78739",
+        "f0e7fa312a4fbd21fcfad8ace1e8ea1b",
+        "dbeb35ef1dfbbff600f601e9cf1fe614",
+        "50d0cc44f7ef14e3e94ecb177fabecd8"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 352,
+      "status": "PASS",
+      "wb_ack_count": 712,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "30be51f7e42c1a2d08ce163152db0000",
+        "22f6a6f8120d1c6b2af0ac361def6115",
+        "54c7eafd1f104e1cf1b8cb48d1f4c7fb",
+        "b64132e80d39f6cae75143f1ce04bedb"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 356,
+      "status": "PASS",
+      "wb_ack_count": 720,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "b7affc8412e17fe4f544e94118f0dcc9",
+        "8bb40000c5e48157cc0eba5a1b17d54e",
+        "23a7043d4ea2095fed54e2830fdef837",
+        "e11219246b355cb55503f426f26b0c15"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 360,
+      "status": "PASS",
+      "wb_ack_count": 728,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "ecef0838be95dc2eeb18fcb9dd180952",
+        "bed499dad2a1000022d9e536e039d349",
+        "e626e10d2497c909fbfc0124e717d2f3",
+        "30b8a8e4f826ec4ec1511c066523c8f8"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 364,
+      "status": "PASS",
+      "wb_ack_count": 736,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "dcfd3bb1122bece21803ebd119507f8d",
+        "0435ebf33c0cfa9919db0000efe0dc1c",
+        "0b3f070a3816d817f800ef243ed2e30e",
+        "073439b61aeadbf90101dc04250c0214"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 368,
+      "status": "PASS",
+      "wb_ack_count": 744,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "0031f7dfd44f63eee1ead73ad097ecc5",
+        "0b0f22ba0a460a2514f70a810af40000",
+        "fafac758741b11261406e51bde0c1539",
+        "cbe6ef7ff304fefff0f8eecbf4eb1102"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 372,
+      "status": "PASS",
+      "wb_ack_count": 752,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "f92406ab1803d0fade226dfcc82aeb29",
+        "01bc24f6de221ad0e01bd002bb2001b0",
+        "13ea00001cf88d2fec09d168dbf9f706",
+        "fdd21add17d4de30f51c2781f790e800"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 376,
+      "status": "PASS",
+      "wb_ack_count": 760,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "03dce50401497ee8342e0ee306f829f7",
+        "ef1bcc13019d56a8ee1f34f3f4643938",
+        "f3b8eeaf1bce0000f499e207e5140815",
+        "2310fb73a7d509c7ed9c89f43b61fa02"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 380,
+      "status": "PASS",
+      "wb_ack_count": 768,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "10e317234e0dca2f2e4d7f0e08c90a08",
+        "f73a4fac06ceefddf5e223fcfc05f22b",
+        "f8ff17f94ab1e70b1d5c0000faee2533",
+        "12dccd150c5cca38aaeccfb5f9d6b9cd"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 384,
+      "status": "PASS",
+      "wb_ack_count": 776,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1d433303e44904f71b2b0afb121f7fce",
+        "d8f7c72c080e2bfd06f5f3f213aefdba",
+        "24e425f4fd281742feefca86b4ed0000",
+        "0eaff2ffdd0c3c150f3ee77fccf6f8a8"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 388,
+      "status": "PASS",
+      "wb_ack_count": 784,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1ea0d7f92058f70942b639564626c347",
+        "205835d3fee30ac7ed6e31d2c7ee06c5",
+        "eab2dbd8ea09670d33f8f9065ce9d7e8",
+        "8d5a00000ae9fb1bd80109271028c929"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 392,
+      "status": "PASS",
+      "wb_ack_count": 792,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "efd215d3efcfd7f30c5ef3ff0eef2535",
+        "13ef0225f92230e0f7011100ed4e29f9",
+        "bf0beee4030029d30dfff5d517fdf9f9",
+        "7fe7d6da19a400001fcf1db6a1002653"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 396,
+      "status": "PASS",
+      "wb_ack_count": 800,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "310bee1712f9348cf881d8dd355b36d1",
+        "28dd1107311bf1f72e625cc4a9013de0",
+        "e97a39f5d80cfc961eedfcd62515feb8",
+        "e30520fd28f5c0ce5b86000005f0c6e4"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 400,
+      "status": "PASS",
+      "wb_ack_count": 808,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "a5e306452a0d023febd220ad21aec8cb",
+        "5b721f0aedcbf13d54fabc3c127f29f7",
+        "b0fa0efc064a26a9f706e087fef10aa5",
+        "24220fc0fef2131846b0f4002c800000"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 404,
+      "status": "PASS",
+      "wb_ack_count": 816,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1898d113a218315d2a21d57fddc2069c",
+        "0d91adb651763ef6e6bcff2b5424b318",
+        "45666897e5fe15cbfa7215d0df0db683",
+        "c2b505bf494015b10c192ceb47a3ccd3"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 408,
+      "status": "PASS",
+      "wb_ack_count": 824,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "fa5a000028d9b4e5cad630614942194e",
+        "f2c6cfe534d1e2b4775b40fbedcfeb2d",
+        "fefac3fc0a681fcab51b190102721dd3",
+        "18e3a581f4fbc8b242d702e5223122f3"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 412,
+      "status": "PASS",
+      "wb_ack_count": 832,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "4bbdbeec9180000003d2d803aa173538",
+        "5317ef58d8de0e9e18d2b2da264916dd",
+        "02c8033e340fe1103a7f31f4abf131e0",
+        "ed6052dcbcfc0296eaf3e7b51f2bfcbd"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 416,
+      "status": "PASS",
+      "wb_ack_count": 840,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "1dfc2bf452f6b7d62c65000006c8f0f6",
+        "ac0d4565460dce6ed8c106a4038bc1d6",
+        "507345fce5b1f2116317e5f85b6f5599",
+        "d2ff0adcf17310cee900ea81b4ba0db6"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 420,
+      "status": "PASS",
+      "wb_ack_count": 848,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "493c1cbdfb1437fa27b1b7d1d4610000",
+        "5289b529b5364644334fcb698fa9c8b0",
+        "47b181e52d4e3db73fbf5c4c5340cd3e",
+        "614653b8c0b354b5bf5a4f9abbcbc3ad"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 424,
+      "status": "PASS",
+      "wb_ack_count": 856,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "d5afcad52e1b48fc412335d064c5c3a4",
+        "0d44000015f4ede4e5261416401fda57",
+        "eed4fc9617b4bde203022d024fc8ddfb",
+        "2dfe1a01ff7f650bcc19f9b1d43f2ddb"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 428,
+      "status": "PASS",
+      "wb_ack_count": 864,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e404ddc5e9fd12c0181606ff190ddf28",
+        "68f5dbf3337e00001bee0ac7dfed1525",
+        "1301c6540fe4259a0f81bf03264861fe",
+        "0ea5e90722102317416a5bc9db03fdd0"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 432,
+      "status": "PASS",
+      "wb_ack_count": 872,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "d97135e40afd18d0edf025b80af305d8",
+        "ef0f061c3404addaa584000009de1ff0",
+        "b3e8e74144e4c94eefb0089d03b09dde",
+        "322b660a2dc0d836330fed10fa7f4fe9"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 436,
+      "status": "PASS",
+      "wb_ack_count": 880,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e4fd21b2f3502bee09feffb7d3d61ac5",
+        "3302f0f5eeefde0e16e21206638e0000",
+        "6485bf3cc33b43503e46d36f8dacb6a9",
+        "4da881d9335b4abf37c050435b46cb3f"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 440,
+      "status": "PASS",
+      "wb_ack_count": 888,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "614c50c9afaf4da8c45c4a9cbcc9cba5",
+        "d4b0bfcc26224d013f3833c469becd99",
+        "424100001e01e7cbe1fe265d2310b252",
+        "eaa6cba524c4a8f6554131e1e8d2f627"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 444,
+      "status": "PASS",
+      "wb_ack_count": 896,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "4af201faf67c46f1bbfc43d4017201ff",
+        "d507f681f4010ec632f7dbbf153704d8",
+        "72d4ffbffe780000058707f39b05234f",
+        "5223bc7fdcbe008b138f97c75c7521fb"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 448,
+      "status": "PASS",
+      "wb_ack_count": 904,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "18dc083a2a17d3f03b734cace8fd0ff0",
+        "cc7e33e7d3010588bbaffbbf353b1fb6",
+        "0c0727e356b8b7d9c95800006985bc3f",
+        "9f433a523b3ebe768ba3bdad5ca981cc"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 452,
+      "status": "PASS",
+      "wb_ack_count": 912,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "37554ca741ba5a5a685bb937653d57b9",
+        "b3a83da7b2604f99adc1c69cd1a6c2ce",
+        "2f1f57f63c2f44b970c6b898943d0000",
+        "31c1d5ee8eef612d4d40bd61c3bf2181"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 456,
+      "status": "PASS",
+      "wb_ack_count": 920,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e987abe94b683fceee8d15322b03e9ee",
+        "354c42dab5e501bdef79320cdbf6068e",
+        "f00123e230382c930b4c14067dc0ccd9",
+        "2a55000021c009efa4eb284e5616c068"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 460,
+      "status": "PASS",
+      "wb_ack_count": 928,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "e6c10b9efe8bcadb53765e11edc7ec2a",
+        "3a01e2075c6a2d9edf0ef9eef87805f8",
+        "ea15f981edb8f8c15d300cb5f8f00906",
+        "15bad6c6126e00005386c230b3303b4e"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 464,
+      "status": "PASS",
+      "wb_ack_count": 936,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "3247be6691a7c4bb4db081d1265539c0",
+        "31bc58405f4acb435e435dccb7ac53b7",
+        "c0584da9c2c5c4a5cba7c6d6332542f1",
+        "42373dd16fc2bda4c94300000cb8fdee"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 468,
+      "status": "PASS",
+      "wb_ack_count": 944,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "9ef651545214cd4af7a2159903ad92d8",
+        "646f600be8bbf24d540db5f44675419e",
+        "e608fce7ff7ffcf6d81bd081f4b306b8",
+        "5d260cbf07000cee1dac04f40f6d0000"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 472,
+      "status": "PASS",
+      "wb_ack_count": 952,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "fdfb9e0ee2dd384e5b44f540e9c9f3ad",
+        "03e7b3d15e7a7f24f1c4fe28292196ea",
+        "606b2d87d7fe0e22c67a00fa070ef4a4",
+        "0ed129a35d140aabf0f6f2f633a2e3b5"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 476,
+      "status": "PASS",
+      "wb_ack_count": 960,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "897200001daee8f8a6f721544b0fbb76",
+        "dcb9f6ad1898abde5e754dfc02cf004c",
+        "512bd30550715ea5d1f90ef0eb7f10dd",
+        "ed07c483fba0eabc5c3610c50af723fe"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 480,
+      "status": "PASS",
+      "wb_ack_count": 968,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "33c5d4d1515d000006bfdefd9022285a",
+        "3b15e753d6c7f192fcc381be5a5b57ed",
+        "eaa927315c2db600486737ced8d839a6",
+        "df671cc0ee13efa301bf01b84c2b4ed4"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 484,
+      "status": "PASS",
+      "wb_ack_count": 976,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "f91b25014ea0eced1e5f0000529ac43b",
+        "a72e43504349c27786a3beb74fb481dc",
+        "2e553aba4aba564d6750b54f673c6bc4",
+        "bcbb51a4b05c6094c8c5b9a0cab0c3c9"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 488,
+      "status": "PASS",
+      "wb_ack_count": 984,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "302354fc512441c675bdab9cf93e0000",
+        "5f86ba3da82b45542d4cc17f839ea2af",
+        "57a981d02e5c3da842c16f5e573dc142",
+        "684959bea5b656a0ac5e5387aacdc587"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 492,
+      "status": "PASS",
+      "wb_ack_count": 992,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "cd9cc4ca2a204ce842323bb76db8ad8e",
+        "e53b000010c3d8df9ff93e1b3e13b257",
+        "e1b719982384cad45c7c3c0c0cd1002a",
+        "100def1c3c73409ef2caf719c87f0cfa"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 496,
+      "status": "PASS",
+      "wb_ack_count": 1000,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "dcf818b9f7cdf7c618feefce09022713",
+        "5ad3c5e37a7000006e87cb3bb5274446",
+        "3852bc6581abb4b74ba689df2c604db9",
+        "37b65e526e4da8496a4c61c2bdb44eaa"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 500,
+      "status": "PASS",
+      "wb_ack_count": 1008,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "bb62458eb4c9d1abcfadbfd1342e53fc",
+        "493544c162bbc09bb03f0000e100e4dd",
+        "d6df1250191fac5700c6b7b907968bfe",
+        "617f19c4fff1572443f70400f0733bd7"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 504,
+      "status": "PASS",
+      "wb_ack_count": 1016,
+      "wb_err_count": 0
+    },
+    {
+      "beats": 4,
+      "expected_hex": [
+        "fb2915e50b7415f535f0d0a2e90c15ed",
+        "0bece8f4dc1902ca6cff1bc98a910000",
+        "0ecb06f6d7e70f4c5012b843efe50996",
+        "f7b981f1677a33d9e400ee4727f206e6"
+      ],
+      "final_index": 3,
+      "first_mismatch": 255,
+      "mismatch_count": 0,
+      "start_beat": 508,
+      "status": "PASS",
+      "wb_ack_count": 1024,
+      "wb_err_count": 0
+    }
+  ],
+  "source": "rowstream",
+  "start_beat": 0,
+  "status": "PASS"
+}

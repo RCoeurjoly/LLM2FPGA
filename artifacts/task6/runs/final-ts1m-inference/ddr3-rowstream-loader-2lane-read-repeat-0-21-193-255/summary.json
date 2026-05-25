@@ -1,0 +1,18 @@
+{
+  "beats": [
+    0,
+    21,
+    193,
+    255
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-read-repeat-0-21-193-255/read-repeat-diagnostic.json",
+  "mismatch_counts": {
+    "0": 1000,
+    "193": 1000,
+    "21": 1000,
+    "255": 1000
+  },
+  "read_count": 1000,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-read-repeat-0-21-193-255",
+  "status": "FAIL"
+}

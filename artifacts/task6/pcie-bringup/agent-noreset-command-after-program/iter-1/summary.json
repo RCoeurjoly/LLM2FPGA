@@ -1,0 +1,9 @@
+{
+  "app_status": "artifacts/task6/pcie-bringup/agent-noreset-command-after-program/iter-1/pcie-app-status.json",
+  "bdf": "0000:42:00.0",
+  "gate_log": "artifacts/task6/pcie-bringup/agent-noreset-command-after-program/iter-1/gate.log",
+  "jtag_status": "artifacts/task6/pcie-bringup/agent-noreset-command-after-program/iter-1/pcie-jtag-status.json",
+  "mode": "command",
+  "pass": false,
+  "returncode": 1
+}

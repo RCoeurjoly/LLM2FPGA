@@ -1,0 +1,16 @@
+{
+  "beats": 4,
+  "completed_beats": 4,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-standalone-postread-rowstream-4beats/host-packet-diagnostic.json",
+  "first_mismatch": 255,
+  "first_standalone_mismatch": null,
+  "mismatch_count": 0,
+  "packet_count": 1,
+  "packet_load_delay": 0.01,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-standalone-postread-rowstream-4beats",
+  "source": "rowstream",
+  "standalone_mismatch_count": 0,
+  "start_beat": 0,
+  "status": "PASS",
+  "verdict": "host-packet-passes"
+}

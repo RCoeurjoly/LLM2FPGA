@@ -1,0 +1,17 @@
+{
+  "beats": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-low16-fullbeat-address-mask-compare-2-5/read-compare-diagnostic.json",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-low16-fullbeat-address-mask-compare-2-5",
+  "status": "PASS",
+  "statuses": {
+    "2": "PASS",
+    "3": "PASS",
+    "4": "PASS",
+    "5": "PASS"
+  }
+}

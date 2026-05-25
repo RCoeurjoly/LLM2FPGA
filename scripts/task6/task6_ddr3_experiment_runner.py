@@ -157,6 +157,19 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
         mismatch = bool(bit(probe, 11))
     stream_status = (raw >> 416) & 0xFFFF
     command_trace = (raw >> 992) & 0xFFFFFFFF if args.bits >= 1024 else 0
+    debug_calib_gate = (raw >> 768) & 0xFFFFFFFF if version >= 33 and args.bits >= 808 else 0
+    debug_calib_status = (raw >> 800) & 0xFF if version >= 33 and args.bits >= 808 else 0
+    calib_gate_state = debug_calib_gate & 0x1F
+    instruction_address = (debug_calib_gate >> 5) & 0x1F if version >= 33 else (debug1 >> 5) & 0x1F
+    idelay_ready = bool((debug_calib_gate >> 10) & 0x1) if version >= 33 else bool(bit(debug1, 10))
+    controller_phy_reset = bool((debug_calib_gate >> 11) & 0x1) if version >= 33 else None
+    sync_rst_controller = bool((debug_calib_gate >> 12) & 0x1) if version >= 33 else None
+    initial_calibration_done = bool((debug_calib_gate >> 13) & 0x1) if version >= 33 else None
+    final_calibration_done = bool((debug_calib_gate >> 14) & 0x1) if version >= 33 else None
+    debug_rst_n = bool(debug_calib_status & 0x1) if version >= 33 else None
+    phy_sync_rst = bool((debug_calib_status >> 1) & 0x1) if version >= 33 else None
+    debug_ddr3_reset_n = bool((debug_calib_status >> 2) & 0x1) if version >= 33 else None
+    debug_ddr3_cke = bool((debug_calib_status >> 3) & 0x1) if version >= 33 else None
     if version <= 23:
         stream_mismatch_count = 1 if mismatch else 0
         stream_read_index = 0
@@ -206,8 +219,19 @@ def decode_uberddr3_payload(readback: dict[str, Any], args: argparse.Namespace) 
         "debug1": f"0x{debug1:08x}",
         "state": debug1 & 0x1F,
         "bist_done": bist_done,
-        "instruction": (debug1 >> 5) & 0x1F,
-        "idelay_ready": bool(bit(debug1, 10)),
+        "instruction": instruction_address,
+        "instruction_address": instruction_address,
+        "idelay_ready": idelay_ready,
+        "calib_gate": f"0x{debug_calib_gate:08x}",
+        "calib_gate_state": calib_gate_state,
+        "controller_phy_reset": controller_phy_reset,
+        "sync_rst_controller": sync_rst_controller,
+        "initial_calibration_done": initial_calibration_done,
+        "final_calibration_done": final_calibration_done,
+        "debug_rst_n": debug_rst_n,
+        "phy_sync_rst": phy_sync_rst,
+        "ddr3_reset_n": debug_ddr3_reset_n,
+        "ddr3_cke": debug_ddr3_cke,
         "ack_count": ack_count,
         "err_count": err_count,
         "stall_count": f"0x{((raw >> 208) & 0xFFFFFFFF):08x}",
@@ -276,6 +300,7 @@ def update_verdict(run_dir: Path, decoded: dict[str, Any]) -> None:
             "notes": [
                 f"calibration={result['calibration']}",
                 f"bist={result['bist']} state={decoded['state']} debug1={decoded['debug1']}",
+                f"gate={decoded['calib_gate']} instr={decoded['instruction_address']} idelay={decoded['idelay_ready']} phy_sync_rst={decoded['phy_sync_rst']} ddr3_reset_n={decoded['ddr3_reset_n']} cke={decoded['ddr3_cke']}",
                 f"command_gate={result['command_gate']}",
                 f"integrity={result['integrity']}",
                 f"read_byte={decoded['read_byte']} expected={decoded['expected_byte']}",
@@ -378,6 +403,11 @@ def run_experiment(args: argparse.Namespace) -> Path:
             "run_count": decoded["run_count"],
             "ack_count": decoded["ack_count"],
             "err_count": decoded["err_count"],
+            "instruction_address": decoded["instruction_address"],
+            "idelay_ready": decoded["idelay_ready"],
+            "phy_sync_rst": decoded["phy_sync_rst"],
+            "ddr3_reset_n": decoded["ddr3_reset_n"],
+            "ddr3_cke": decoded["ddr3_cke"],
         },
     )
     return run_dir

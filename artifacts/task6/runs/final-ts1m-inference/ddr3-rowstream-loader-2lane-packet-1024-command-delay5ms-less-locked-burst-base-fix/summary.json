@@ -1,0 +1,30 @@
+{
+  "beats": 1024,
+  "completed_beats": 112,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-packet-1024-command-delay5ms-less-locked-burst-base-fix/host-packet-diagnostic.json",
+  "exception": "TimeoutError('loader did not become ready: magic_ok=True version=63 calib_seen=True state=4 ack=230 err=0 loader_error=True debug1=0x00000017')",
+  "failed_packet_beats": 4,
+  "failed_packet_start": 112,
+  "first_mismatch": 255,
+  "first_standalone_mismatch": null,
+  "mismatch_count": 0,
+  "packet_count": 28,
+  "packet_load_delay": 0.01,
+  "packet_postread_delay": 0.0,
+  "packet_postread_sample_beats": [
+    0,
+    1,
+    2,
+    3,
+    21,
+    90,
+    193,
+    1023
+  ],
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-packet-1024-command-delay5ms-less-locked-burst-base-fix",
+  "source": "rowstream",
+  "standalone_mismatch_count": 0,
+  "start_beat": 0,
+  "status": "FAIL",
+  "verdict": "host-packet-timeout"
+}

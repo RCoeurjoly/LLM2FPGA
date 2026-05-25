@@ -1,0 +1,10 @@
+{
+  "base": 32,
+  "beat_addr": 1,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-fullbeat-matrix-addr1/host-fullbeat-diagnostic.json",
+  "expected_hex": "202122232425262728292a2b2c2d2e2f",
+  "observed_hex": "202122232425262728292a2b2c2d2e2f",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-fullbeat-matrix-addr1",
+  "status": "PASS",
+  "verdict": "host-fullbeat-write-read-passes"
+}

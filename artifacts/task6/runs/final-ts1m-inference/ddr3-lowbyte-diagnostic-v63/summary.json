@@ -1,0 +1,7 @@
+{
+  "count": 16,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-diagnostic-v63/lowbyte-diagnostic.json",
+  "mismatch_count": 16,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-lowbyte-diagnostic-v63",
+  "status": "FAIL"
+}

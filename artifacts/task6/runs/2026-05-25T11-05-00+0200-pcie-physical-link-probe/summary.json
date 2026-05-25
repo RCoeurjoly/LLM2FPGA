@@ -1,0 +1,258 @@
+{
+  "pcie_jtag_status": {
+    "bit_count": 512,
+    "cfg_bus_number": 0,
+    "cfg_command": 0,
+    "cfg_dcommand": 10256,
+    "cfg_dcommand2": 0,
+    "cfg_device_number": 0,
+    "cfg_dstatus": 0,
+    "cfg_function_number": 0,
+    "cfg_lcommand": 0,
+    "cfg_lstatus": 4096,
+    "cfg_pcie_link_state": 0,
+    "cfg_pcie_link_state_from_flags": 0,
+    "cfg_status": 0,
+    "flags": {
+      "cfg_bus_number_nonzero": false,
+      "cfg_command_bus_master_enable": false,
+      "cfg_command_io_enable": false,
+      "cfg_command_mem_enable": false,
+      "cfg_lstatus_nonzero": true,
+      "pipe_mmcm_lock": true,
+      "sys_rst_n": true,
+      "user_lnk_up": false,
+      "user_reset": false
+    },
+    "flags_word": 4131,
+    "gt_reset_fsm": 2,
+    "gt_reset_fsm_low2_from_flags": 2,
+    "last_lstatus": 4096,
+    "last_ltssm_state": 0,
+    "link_up_seen_count": 0,
+    "magic": 1412845641,
+    "magic_ok": true,
+    "pl_ltssm_state": 0,
+    "raw_hex": "0x000000000000000000000000000000000000000000100110000000000000001000281000000000000000000000000000001000e03c9496000010230154365049",
+    "user_clk_count": 3762066582,
+    "user_reset_seen_count": 4097,
+    "version": 1
+  },
+  "ports": [
+    {
+      "bdf": "0000:40:00.0",
+      "config_header_hex": "86808657070010008500040600000100000000000000000040417e0051810000007410800120f13b6000000060000000000000008000000000000000ff010200",
+      "pcie_cap": {
+        "pcie_cap_found": false,
+        "readable": true
+      },
+      "present": true,
+      "sysfs": {
+        "aer_dev_correctable": "RxErr 0\nBadTLP 0\nBadDLLP 0\nRollover 0\nTimeout 0\nNonFatalErr 0\nCorrIntErr 0\nHeaderOF 0\nTOTAL_ERR_COR 0",
+        "aer_dev_fatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_FATAL 0",
+        "aer_dev_nonfatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_NONFATAL 0",
+        "ari_enabled": "0",
+        "class": "0x060400",
+        "current_link_speed": "2.5 GT/s PCIe",
+        "current_link_width": "4",
+        "device": "0x5786",
+        "enable": "1",
+        "max_link_speed": "2.5 GT/s PCIe",
+        "max_link_width": "4",
+        "power_state": "D0",
+        "removable": "removable",
+        "reset_method": "bus",
+        "revision": "0x85",
+        "secondary_bus_number": "65",
+        "subordinate_bus_number": "126",
+        "vendor": "0x8086"
+      }
+    },
+    {
+      "bdf": "0000:41:00.0",
+      "config_header_hex": "868086570704100085000406000001000000000000000000414242005151000000740074012001206000000060000000000000008000000000000000ff010200",
+      "pcie_cap": {
+        "pcie_cap_found": false,
+        "readable": true
+      },
+      "present": true,
+      "sysfs": {
+        "aer_dev_correctable": "RxErr 0\nBadTLP 0\nBadDLLP 0\nRollover 0\nTimeout 0\nNonFatalErr 0\nCorrIntErr 0\nHeaderOF 0\nTOTAL_ERR_COR 0",
+        "aer_dev_fatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_FATAL 0",
+        "aer_dev_nonfatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_NONFATAL 0",
+        "ari_enabled": "0",
+        "class": "0x060400",
+        "current_link_speed": "2.5 GT/s PCIe",
+        "current_link_width": "1",
+        "device": "0x5786",
+        "enable": "1",
+        "max_link_speed": "16.0 GT/s PCIe",
+        "max_link_width": "4",
+        "power_state": "D0",
+        "removable": "removable",
+        "reset_method": "bus",
+        "revision": "0x85",
+        "secondary_bus_number": "66",
+        "subordinate_bus_number": "66",
+        "vendor": "0x8086"
+      }
+    },
+    {
+      "bdf": "0000:41:01.0",
+      "config_header_hex": "868086570704100085000406000001000000000000000000414356006161000010740078112051296000000060000000000000008000000000000000ff010200",
+      "pcie_cap": {
+        "pcie_cap_found": false,
+        "readable": true
+      },
+      "present": true,
+      "sysfs": {
+        "aer_dev_correctable": "RxErr 0\nBadTLP 0\nBadDLLP 0\nRollover 0\nTimeout 0\nNonFatalErr 0\nCorrIntErr 0\nHeaderOF 0\nTOTAL_ERR_COR 0",
+        "aer_dev_fatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_FATAL 0",
+        "aer_dev_nonfatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_NONFATAL 0",
+        "ari_enabled": "0",
+        "class": "0x060400",
+        "current_link_speed": "2.5 GT/s PCIe",
+        "current_link_width": "4",
+        "device": "0x5786",
+        "enable": "1",
+        "max_link_speed": "2.5 GT/s PCIe",
+        "max_link_width": "4",
+        "power_state": "D0",
+        "removable": "removable",
+        "revision": "0x85",
+        "secondary_bus_number": "67",
+        "subordinate_bus_number": "86",
+        "vendor": "0x8086"
+      }
+    },
+    {
+      "bdf": "0000:41:02.0",
+      "config_header_hex": "86808657070410008500040600000100000000000000000041576a00717100001078007c6129a1326000000060000000000000008000000000000000ff010200",
+      "pcie_cap": {
+        "pcie_cap_found": false,
+        "readable": true
+      },
+      "present": true,
+      "sysfs": {
+        "aer_dev_correctable": "RxErr 0\nBadTLP 0\nBadDLLP 0\nRollover 0\nTimeout 0\nNonFatalErr 0\nCorrIntErr 0\nHeaderOF 0\nTOTAL_ERR_COR 0",
+        "aer_dev_fatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_FATAL 0",
+        "aer_dev_nonfatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_NONFATAL 0",
+        "ari_enabled": "0",
+        "class": "0x060400",
+        "current_link_speed": "2.5 GT/s PCIe",
+        "current_link_width": "4",
+        "device": "0x5786",
+        "enable": "1",
+        "max_link_speed": "2.5 GT/s PCIe",
+        "max_link_width": "4",
+        "power_state": "D0",
+        "removable": "removable",
+        "revision": "0x85",
+        "secondary_bus_number": "87",
+        "subordinate_bus_number": "106",
+        "vendor": "0x8086"
+      }
+    },
+    {
+      "bdf": "0000:41:03.0",
+      "config_header_hex": "868086570704100085000406000001000000000000000000416b7e0081810000107c0080b132f13b6000000060000000000000008000000000000000ff010200",
+      "pcie_cap": {
+        "pcie_cap_found": false,
+        "readable": true
+      },
+      "present": true,
+      "sysfs": {
+        "aer_dev_correctable": "RxErr 0\nBadTLP 0\nBadDLLP 0\nRollover 0\nTimeout 0\nNonFatalErr 0\nCorrIntErr 0\nHeaderOF 0\nTOTAL_ERR_COR 0",
+        "aer_dev_fatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_FATAL 0",
+        "aer_dev_nonfatal": "Undefined 0\nDLP 0\nSDES 0\nTLP 0\nFCP 0\nCmpltTO 0\nCmpltAbrt 0\nUnxCmplt 0\nRxOF 0\nMalfTLP 0\nECRC 0\nUnsupReq 0\nACSViol 0\nUncorrIntErr 0\nBlockedTLP 0\nAtomicOpBlocked 0\nTLPBlockedErr 0\nPoisonTLPBlocked 0\nDMWrReqBlocked 0\nIDECheck 0\nMisIDETLP 0\nPCRC_CHECK 0\nTLPXlatBlocked 0\nTOTAL_ERR_NONFATAL 0",
+        "ari_enabled": "0",
+        "class": "0x060400",
+        "current_link_speed": "2.5 GT/s PCIe",
+        "current_link_width": "4",
+        "device": "0x5786",
+        "enable": "1",
+        "max_link_speed": "2.5 GT/s PCIe",
+        "max_link_width": "4",
+        "power_state": "D0",
+        "removable": "removable",
+        "revision": "0x85",
+        "secondary_bus_number": "107",
+        "subordinate_bus_number": "126",
+        "vendor": "0x8086"
+      }
+    }
+  ],
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-05-25T11-05-00+0200-pcie-physical-link-probe",
+  "sudo": "not used",
+  "timestamp": "2026-05-25T08:42:24.802337+00:00",
+  "xdc_audit": {
+    "all_ports": {
+      "clk_50": {
+        "IOSTANDARD": "LVCMOS33",
+        "PACKAGE_PIN": "AA28"
+      },
+      "led[0": {
+        "IOSTANDARD": "LVCMOS33",
+        "PACKAGE_PIN": "N30"
+      },
+      "led[1": {
+        "IOSTANDARD": "LVCMOS33",
+        "PACKAGE_PIN": "M30"
+      },
+      "led[2": {
+        "IOSTANDARD": "LVCMOS33",
+        "PACKAGE_PIN": "P30"
+      },
+      "pci_exp_rxn": {
+        "PACKAGE_PIN": "H5"
+      },
+      "pci_exp_rxp": {
+        "PACKAGE_PIN": "H6"
+      },
+      "pci_exp_txn": {
+        "PACKAGE_PIN": "F1"
+      },
+      "pci_exp_txp": {
+        "PACKAGE_PIN": "F2"
+      },
+      "sys_clk_n": {
+        "PACKAGE_PIN": "J7"
+      },
+      "sys_clk_p": {
+        "PACKAGE_PIN": "J8"
+      },
+      "sys_rst_n": {
+        "IOSTANDARD": "LVCMOS33",
+        "PACKAGE_PIN": "Y28",
+        "PULLUP": "true"
+      }
+    },
+    "exists": true,
+    "path": "/nix/store/pix19pzfrnmj3dh8c5h1w7r4rzq0862y-task6-pcie7x-source/pcie_7x_ypcb_k480t.xdc",
+    "ports": {
+      "pci_exp_rxn": {
+        "PACKAGE_PIN": "H5"
+      },
+      "pci_exp_rxp": {
+        "PACKAGE_PIN": "H6"
+      },
+      "pci_exp_txn": {
+        "PACKAGE_PIN": "F1"
+      },
+      "pci_exp_txp": {
+        "PACKAGE_PIN": "F2"
+      },
+      "sys_clk_n": {
+        "PACKAGE_PIN": "J7"
+      },
+      "sys_clk_p": {
+        "PACKAGE_PIN": "J8"
+      },
+      "sys_rst_n": {
+        "IOSTANDARD": "LVCMOS33",
+        "PACKAGE_PIN": "Y28",
+        "PULLUP": "true"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "beats": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-fresh-readrepeat-warmup-2/read-repeat-diagnostic.json",
+  "mismatch_counts": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0
+  },
+  "preload": false,
+  "read_count": 10,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-fresh-readrepeat-warmup-2",
+  "status": "PASS",
+  "warmup_beats": [
+    2
+  ]
+}

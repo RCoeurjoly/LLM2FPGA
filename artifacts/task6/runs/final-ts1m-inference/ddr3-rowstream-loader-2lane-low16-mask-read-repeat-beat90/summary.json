@@ -1,0 +1,12 @@
+{
+  "beats": [
+    90
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-low16-mask-read-repeat-beat90/read-repeat-diagnostic.json",
+  "mismatch_counts": {
+    "90": 0
+  },
+  "read_count": 1000,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-low16-mask-read-repeat-beat90",
+  "status": "PASS"
+}

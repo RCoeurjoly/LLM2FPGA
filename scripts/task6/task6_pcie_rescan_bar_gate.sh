@@ -3,15 +3,13 @@ set -euo pipefail
 
 BDF="${1:-0000:42:00.0}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DEVICE="/sys/bus/pci/devices/$BDF"
 
-echo "PCIe rescan/BAR gate for $BDF"
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-  echo "error: this gate requires root for PCI remove/rescan and BAR MMIO" >&2
-  echo "usage: sudo $0 [$BDF]" >&2
-  exit 2
+  exec "$ROOT/scripts/task6/task6_pcie_autonomous_gate.sh" bar "$BDF"
 fi
 
+echo "Task 6 rescan BAR gate (legacy root mode): $BDF"
+DEVICE="/sys/bus/pci/devices/$BDF"
 if [[ -e "$DEVICE/remove" ]]; then
   echo "removing existing/stale $BDF"
   echo 1 >"$DEVICE/remove"

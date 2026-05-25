@@ -1,0 +1,14 @@
+{
+  "beat_addr": 123,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-densefill-v63/denseburst-diagnostic.json",
+  "expected_prefix_hex": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "mismatch_count": 1,
+  "observed_prefix_hex": "00c1000000c1000000510000005100a3",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-densefill-v63",
+  "status": "FAIL",
+  "value": 90,
+  "verdict": "board-side-densefill-readback-fails",
+  "wb_ack_count": 12
+}

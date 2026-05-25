@@ -326,6 +326,12 @@ EOF
           axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_command_bridge.v}";
         };
 
+        task6YpcbPcie7xCommandBridgeNoResetYosysJson = mkTask6YpcbPcie7xYosysJson {
+          name = "task6-ypcb-pcie7x-command-bridge-no-reset-yosys.json";
+          source = task6Pcie7xSourceVivadoLane0LocNoReset;
+          axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_command_bridge.v}";
+        };
+
         task6YpcbPcie7xCommandHeaderYosysJson = mkTask6YpcbPcie7xYosysJson {
           name = "task6-ypcb-pcie7x-command-header-yosys.json";
           source = task6Pcie7xSourceVivadoLane0Loc;
@@ -5925,6 +5931,20 @@ EOF
           name = "task6-ypcb-pcie7x-command-bridge";
           fasm = task6YpcbPcie7xCommandBridgeFasm;
           framesBase = "task6-ypcb-pcie7x-command-bridge";
+        };
+
+        task6YpcbPcie7xCommandBridgeNoResetFasm = mkFasm {
+          name = "task6-ypcb-pcie7x-command-bridge-no-reset";
+          xdc = "${task6Pcie7xSourceVivadoLane0LocNoReset}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcie7xCommandBridgeNoResetYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcie7xCommandBridgeNoResetBitstream = mkBitstream {
+          name = "task6-ypcb-pcie7x-command-bridge-no-reset";
+          fasm = task6YpcbPcie7xCommandBridgeNoResetFasm;
+          framesBase = "task6-ypcb-pcie7x-command-bridge-no-reset";
         };
 
         task6YpcbPcie7xCommandHeaderFasm = mkFasm {
@@ -11625,6 +11645,10 @@ EOF
             task6YpcbPcie7xCommandBridgeYosysJson;
           task6-ypcb-pcie7x-command-bridge-bitstream =
             task6YpcbPcie7xCommandBridgeBitstream;
+          task6-ypcb-pcie7x-command-bridge-no-reset-yosys-json =
+            task6YpcbPcie7xCommandBridgeNoResetYosysJson;
+          task6-ypcb-pcie7x-command-bridge-no-reset-bitstream =
+            task6YpcbPcie7xCommandBridgeNoResetBitstream;
           task6-ypcb-pcie7x-command-header-yosys-json =
             task6YpcbPcie7xCommandHeaderYosysJson;
           task6-ypcb-pcie7x-command-header-bitstream =

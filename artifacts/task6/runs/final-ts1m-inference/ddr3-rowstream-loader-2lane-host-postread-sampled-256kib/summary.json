@@ -1,0 +1,31 @@
+{
+  "beats": 16384,
+  "completed_beats": 16384,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-postread-sampled-256kib/host-packet-diagnostic.json",
+  "first_mismatch": 255,
+  "first_standalone_mismatch": null,
+  "mismatch_count": 0,
+  "packet_count": 4096,
+  "packet_load_delay": 0.01,
+  "packet_postread_delay": 0.0,
+  "packet_postread_sample_beats": [
+    0,
+    1,
+    2,
+    3,
+    90,
+    255,
+    512,
+    1023,
+    4096,
+    8191,
+    8192,
+    16383
+  ],
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-postread-sampled-256kib",
+  "source": "rowstream",
+  "standalone_mismatch_count": 0,
+  "start_beat": 0,
+  "status": "PASS",
+  "verdict": "host-packet-passes"
+}

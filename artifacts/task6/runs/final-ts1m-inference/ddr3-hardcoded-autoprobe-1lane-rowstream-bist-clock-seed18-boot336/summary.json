@@ -1,0 +1,12 @@
+{
+  "boot_error": false,
+  "boot_mismatch": true,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-hardcoded-autoprobe-1lane-rowstream-bist-clock-seed18-boot336/hardcoded-autoprobe-diagnostic.json",
+  "expected_base_value": 165,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-hardcoded-autoprobe-1lane-rowstream-bist-clock-seed18-boot336",
+  "status": "FAIL",
+  "stream_base": 0,
+  "verdict": "hardcoded-board-side-autoprobe-fails",
+  "wb_ack_count": 18,
+  "wb_err_count": 0
+}

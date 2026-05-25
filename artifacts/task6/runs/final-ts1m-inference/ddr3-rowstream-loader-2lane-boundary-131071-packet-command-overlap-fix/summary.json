@@ -1,0 +1,31 @@
+{
+  "beats": 12,
+  "completed_beats": 4,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-boundary-131071-packet-command-overlap-fix/host-packet-diagnostic.json",
+  "first_mismatch": 255,
+  "first_standalone_mismatch": 1,
+  "mismatch_count": 0,
+  "packet_count": 1,
+  "packet_load_delay": 0.01,
+  "packet_postread_delay": 0.0,
+  "packet_postread_sample_beats": [
+    131064,
+    131065,
+    131066,
+    131067,
+    131068,
+    131069,
+    131070,
+    131071,
+    131072,
+    131073,
+    131074,
+    131075
+  ],
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-boundary-131071-packet-command-overlap-fix",
+  "source": "rowstream",
+  "standalone_mismatch_count": 3,
+  "start_beat": 131064,
+  "status": "FAIL",
+  "verdict": "host-packet-fails"
+}

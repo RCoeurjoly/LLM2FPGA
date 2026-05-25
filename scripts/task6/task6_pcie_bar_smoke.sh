@@ -9,4 +9,5 @@ if [[ -z "$BDF" ]]; then
   exit 2
 fi
 
-exec "$(dirname "$0")/task6_pcie_bar_smoke.py" "$BDF"
+shift
+exec "$(dirname "$0")/task6_pcie_bar_smoke.py" "$BDF" "$@"

@@ -1,0 +1,18 @@
+{
+  "bdf": "0000:42:00.0",
+  "iterations": [
+    {
+      "app_status": "artifacts/task6/pcie-bringup/2026-05-25-host-reboot-command-bridge-afterbar/iter-1/pcie-app-status.json",
+      "bdf": "0000:42:00.0",
+      "gate_log": "artifacts/task6/pcie-bringup/2026-05-25-host-reboot-command-bridge-afterbar/iter-1/gate.log",
+      "jtag_status": "artifacts/task6/pcie-bringup/2026-05-25-host-reboot-command-bridge-afterbar/iter-1/pcie-jtag-status.json",
+      "mode": "command",
+      "pass": false,
+      "returncode": 1
+    }
+  ],
+  "mode": "command",
+  "pass": false,
+  "requested_iterations": 1,
+  "returncode": 1
+}

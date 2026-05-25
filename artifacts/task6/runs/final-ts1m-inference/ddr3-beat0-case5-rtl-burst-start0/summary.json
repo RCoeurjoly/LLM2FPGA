@@ -1,0 +1,12 @@
+{
+  "beats": 4,
+  "chunk_count": 1,
+  "completed_beats": 4,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-beat0-case5-rtl-burst-start0/rtl-burst-diagnostic.json",
+  "first_mismatch": 255,
+  "mismatch_count": 0,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-beat0-case5-rtl-burst-start0",
+  "start_beat": 0,
+  "status": "PASS",
+  "verdict": "rtl-burst-passes"
+}

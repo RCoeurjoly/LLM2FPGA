@@ -1,0 +1,21 @@
+{
+  "beats": [
+    1,
+    90,
+    255,
+    512,
+    1024
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-packet-reduced-debug-rowstream-16kib-start1-read-repeat/read-repeat-diagnostic.json",
+  "mismatch_counts": {
+    "1": 100,
+    "1024": 100,
+    "255": 100,
+    "512": 100,
+    "90": 100
+  },
+  "preload": false,
+  "read_count": 100,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-host-packet-reduced-debug-rowstream-16kib-start1-read-repeat",
+  "status": "FAIL"
+}

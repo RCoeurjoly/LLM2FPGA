@@ -1,0 +1,7 @@
+{
+  "beat_addr": 0,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-readbeat-1lane-rowstream-bist-clock-seed18-boot336/readbeat-diagnostic.json",
+  "lower128_hex": "00000000000000000000000000000000",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-readbeat-1lane-rowstream-bist-clock-seed18-boot336",
+  "status": "FAIL"
+}

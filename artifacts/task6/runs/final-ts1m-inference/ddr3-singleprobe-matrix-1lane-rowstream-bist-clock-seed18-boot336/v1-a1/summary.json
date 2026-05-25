@@ -1,0 +1,17 @@
+{
+  "boot_error": false,
+  "boot_mismatch": false,
+  "command_addr": 257,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-singleprobe-matrix-1lane-rowstream-bist-clock-seed18-boot336/v1-a1/hardcoded-singlebyte-diagnostic.json",
+  "expected": 255,
+  "mismatch_bits": 0,
+  "observed": 255,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-singleprobe-matrix-1lane-rowstream-bist-clock-seed18-boot336/v1-a1",
+  "status": "PASS",
+  "stream_base": 1,
+  "valid_bits": 1,
+  "value_index": 1,
+  "verdict": "hardcoded-singlebyte-passes",
+  "wb_ack_count": 21,
+  "wb_err_count": 0
+}

@@ -1,0 +1,36 @@
+{
+  "beats": [
+    0,
+    1,
+    2,
+    3,
+    90,
+    255,
+    512,
+    1023,
+    4096,
+    8191,
+    8192,
+    16383
+  ],
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-fresh-readrepeat-after-256kib-sampled/read-repeat-diagnostic.json",
+  "mismatch_counts": {
+    "0": 0,
+    "1": 0,
+    "1023": 0,
+    "16383": 0,
+    "2": 0,
+    "255": 0,
+    "3": 0,
+    "4096": 0,
+    "512": 0,
+    "8191": 0,
+    "8192": 0,
+    "90": 0
+  },
+  "preload": false,
+  "read_count": 10,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-fresh-readrepeat-after-256kib-sampled",
+  "status": "PASS",
+  "warmup_beats": []
+}

@@ -1,0 +1,10 @@
+{
+  "boot_done": true,
+  "boot_error": false,
+  "boot_mismatch": true,
+  "calib_seen": true,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-rowstream-bist-clock-seed18-boot336/boot-diagnostic.json",
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-boot-1lane-rowstream-bist-clock-seed18-boot336",
+  "status": "FAIL",
+  "verdict": "boot-unclean"
+}

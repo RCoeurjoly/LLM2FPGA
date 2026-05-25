@@ -1,0 +1,10 @@
+{
+  "beats": 16,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-low16-mask-rtl-burst-16/rtl-burst-diagnostic.json",
+  "first_mismatch": 1,
+  "mismatch_count": 16,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-low16-mask-rtl-burst-16",
+  "start_beat": 0,
+  "status": "FAIL",
+  "verdict": "rtl-burst-fails"
+}

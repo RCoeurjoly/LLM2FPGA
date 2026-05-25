@@ -1,0 +1,15 @@
+{
+  "boot_error": false,
+  "boot_mismatch": true,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-hardcoded-singlebyte-1lane-rowstream-bist-clock-seed18-boot336/hardcoded-singlebyte-diagnostic.json",
+  "expected": 165,
+  "mismatch_bits": 1,
+  "observed": 168,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-hardcoded-singlebyte-1lane-rowstream-bist-clock-seed18-boot336",
+  "status": "FAIL",
+  "stream_base": 0,
+  "valid_bits": 1,
+  "verdict": "hardcoded-singlebyte-fails",
+  "wb_ack_count": 11,
+  "wb_err_count": 0
+}

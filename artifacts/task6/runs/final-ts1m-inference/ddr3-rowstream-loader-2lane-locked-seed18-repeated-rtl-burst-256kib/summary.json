@@ -1,0 +1,12 @@
+{
+  "beats": 16384,
+  "chunk_count": 65,
+  "completed_beats": 16384,
+  "diagnostic_json": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-locked-seed18-repeated-rtl-burst-256kib/rtl-burst-diagnostic.json",
+  "first_mismatch": 255,
+  "mismatch_count": 0,
+  "run_dir": "artifacts/task6/runs/final-ts1m-inference/ddr3-rowstream-loader-2lane-locked-seed18-repeated-rtl-burst-256kib",
+  "start_beat": 0,
+  "status": "PASS",
+  "verdict": "rtl-burst-passes"
+}
