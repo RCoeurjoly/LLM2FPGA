@@ -23914,3 +23914,22 @@ Install command:
 sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
 ```
 
+### 2026-05-25 - Vivado oracle also fails after Thunderbolt no-child state
+
+Control result:
+
+- Programmed the previously Vivado-passing smoke bitstream `artifacts/task6/vivado-pcie-smoke/ypcb_pcie_smoke_vivado.bit`; openFPGALoader reported `done=1`.
+- The autonomous BAR gate still did not find `0000:42:00.0` after PCI rescan and `reset_subordinate` on downstream bridge `0000:41:00.0`.
+- This rules out OpenXC7 BAR RTL as the immediate blocker in the current host state. The boundary is now Thunderbolt/host recovery: bridge `0000:41:00.0` is present, `PresDet+`, link trained at Gen1 x1, but no child config function is created on bus 42.
+
+Repo-side recovery update:
+
+- `scripts/task6/task6_pcie_gate_root.sh` now tries a scoped PCIe recovery ladder: downstream bridge subordinate reset, downstream bridge device reset, downstream bridge hot reset, upstream Thunderbolt bridge subordinate/device reset, then host root-port subordinate reset.
+- The helper remains constrained to the known endpoint BDF and Thunderbolt path defaults: `0000:42:00.0`, `0000:41:00.0`, `0000:40:00.0`, and `0000:00:07.2`.
+
+Install command before the next autonomous gate:
+
+```sh
+sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
+```
+

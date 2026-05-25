@@ -3,6 +3,8 @@ set -euo pipefail
 
 ALLOWED_BDF="${TASK6_PCIE_ALLOWED_BDF:-0000:42:00.0}"
 BRIDGE_BDF="${TASK6_PCIE_BRIDGE_BDF:-0000:41:00.0}"
+UPSTREAM_BRIDGE_BDF="${TASK6_PCIE_UPSTREAM_BRIDGE_BDF:-0000:40:00.0}"
+ROOT_PORT_BDF="${TASK6_PCIE_ROOT_PORT_BDF:-0000:00:07.2}"
 LIBEXEC_DIR="${TASK6_PCIE_LIBEXEC_DIR:-/usr/local/libexec/task6-pcie}"
 
 usage() {
@@ -35,11 +37,25 @@ command_value() {
   setpci -s "$BDF" COMMAND
 }
 
-reset_bridge_subordinate() {
-  local reset_file
-  reset_file="/sys/bus/pci/devices/$BRIDGE_BDF/reset_subordinate"
+reset_subordinate_bus() {
+  local bridge_bdf reset_file
+  bridge_bdf="$1"
+  reset_file="/sys/bus/pci/devices/$bridge_bdf/reset_subordinate"
   if [[ -e "$reset_file" ]]; then
-    echo "kernel-resetting subordinate bus below $BRIDGE_BDF"
+    echo "kernel-resetting subordinate bus below $bridge_bdf"
+    echo 1 >"$reset_file"
+    sleep 3
+    return 0
+  fi
+  return 1
+}
+
+reset_pci_device() {
+  local dev_bdf reset_file
+  dev_bdf="$1"
+  reset_file="/sys/bus/pci/devices/$dev_bdf/reset"
+  if [[ -e "$reset_file" ]]; then
+    echo "kernel-resetting PCI device $dev_bdf"
     echo 1 >"$reset_file"
     sleep 3
     return 0
@@ -48,19 +64,37 @@ reset_bridge_subordinate() {
 }
 
 hot_reset_bridge() {
-  local before asserted restored
-  echo "hot-resetting downstream bridge $BRIDGE_BDF"
-  before="$(setpci -s "$BRIDGE_BDF" BRIDGE_CONTROL)"
+  local bridge_bdf before asserted restored
+  bridge_bdf="$1"
+  echo "hot-resetting downstream bridge $bridge_bdf"
+  before="$(setpci -s "$bridge_bdf" BRIDGE_CONTROL)"
   asserted="$(printf "%04x" "$((0x$before | 0x0040))")"
-  setpci -s "$BRIDGE_BDF" "BRIDGE_CONTROL=$asserted"
+  setpci -s "$bridge_bdf" "BRIDGE_CONTROL=$asserted"
   sleep 2
   restored="$(printf "%04x" "$((0x$before & ~0x0040))")"
-  setpci -s "$BRIDGE_BDF" "BRIDGE_CONTROL=$restored"
+  setpci -s "$bridge_bdf" "BRIDGE_CONTROL=$restored"
   sleep 3
 }
 
+rescan_pci() {
+  echo "rescanning PCI bus"
+  echo 1 >/sys/bus/pci/rescan
+}
+
 reset_bridge_for_recovery() {
-  reset_bridge_subordinate || hot_reset_bridge
+  local step
+  for step in     "subordinate:$BRIDGE_BDF"     "device:$BRIDGE_BDF"     "hot:$BRIDGE_BDF"     "subordinate:$UPSTREAM_BRIDGE_BDF"     "device:$UPSTREAM_BRIDGE_BDF"     "subordinate:$ROOT_PORT_BDF"; do
+    case "$step" in
+      subordinate:*) reset_subordinate_bus "${step#subordinate:}" || continue ;;
+      device:*) reset_pci_device "${step#device:}" || continue ;;
+      hot:*) hot_reset_bridge "${step#hot:}" || continue ;;
+    esac
+    rescan_pci
+    if wait_for_endpoint; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 dump_failure_context() {
@@ -134,13 +168,9 @@ prepare_endpoint() {
     echo "no existing $BDF device to remove"
   fi
   sleep 1
-  echo "rescanning PCI bus"
-  echo 1 >/sys/bus/pci/rescan
+  rescan_pci
   if ! wait_for_endpoint; then
-    reset_bridge_for_recovery
-    echo "rescanning PCI bus after bridge reset"
-    echo 1 >/sys/bus/pci/rescan
-    wait_for_endpoint || exit 1
+    reset_bridge_for_recovery || exit 1
   fi
   enable_memory_space
 }
