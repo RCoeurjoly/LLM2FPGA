@@ -1,0 +1,11 @@
+schema: "task6-board-run-v1"
+created_at: "2026-05-26T01:43:56.651939+02:00"
+label: "pcie-rowstream-top1-seq-bit-program"
+experiment: "task6-pcie-rowstream-top1"
+board: "YPCB-00338-1P1"
+fpga: "xc7k480tffg1156"
+jtag_cable: "digilent_hs3"
+ftdi_serial: "210299BF3824"
+bitstream: "/nix/store/973iqijprcadlzw4cc4dyz6jd87kcy76-task6-ypcb-pcie-uberddr3-rowstream-loader.bit"
+reference_artifacts:
+notes: "Sequential rowstream top1 cutout P&R bitstream; prepare board rowstream-top1 gate."

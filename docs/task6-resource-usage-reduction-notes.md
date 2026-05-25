@@ -24564,3 +24564,28 @@ Physical result:
 - The build reported 10 warnings and 0 errors.
 
 Next acceptance step: program this bitstream and run the installed `rowstream-top1` board gate against `0000:42:00.0`.
+
+
+### 2026-05-26 - Board program for rowstream top1 bitstream
+
+Commit note: `Record Task 6 rowstream top1 board program attempt`.
+
+Programmed the routed sequential rowstream-top1 PCIe+DDR3 bitstream into SRAM:
+
+```bash
+python3 scripts/task6/task6_board_run.py with-lock --run-dir artifacts/task6/runs/2026-05-26T01-43-56+0200-pcie-rowstream-top1-seq-bit-program --log-name program-openfpgaloader.log -- /home/roland/openFPGALoader/build/openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/973iqijprcadlzw4cc4dyz6jd87kcy76-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+Result:
+
+- `openFPGALoader` exited 0 and reported `isc_done=1`, `init=1`, and `done=1`.
+- `lspci -Dnn -s 0000:42:00.0` still reports `0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]`.
+- `lspci -vv -s 0000:42:00.0` reports BAR0 at `0x74000000`, size 4 KiB, but command state is still `Control: I/O- Mem- BusMaster-`.
+
+Attempted the board-side zero-hidden `rowstream-top1` gate with non-interactive sudo:
+
+```bash
+sudo -n env TASK6_REPO_ROOT=/home/roland/LLM2FPGA scripts/task6/task6_pcie_rowstream_top1_gate.py 0000:42:00.0 --hidden-q-hex 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --json-out /tmp/task6-pcie-rowstream-top1-zero.json
+```
+
+This did not reach BAR access because `sudo` requires a password in this session. The exact blocker is logged in `artifacts/task6/runs/2026-05-26T01-45-27+0200-pcie-rowstream-top1-sudo-block/logs/rowstream-top1-sudo-check.log`. The remaining acceptance action is to rerun the same gate with root privileges so the script can enable PCIe memory space and mmap BAR0.

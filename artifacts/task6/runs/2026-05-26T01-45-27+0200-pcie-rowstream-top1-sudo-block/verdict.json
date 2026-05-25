@@ -1,0 +1,15 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "CREATED",
+  "created_at": "2026-05-26T01:45:27.367932+02:00",
+  "run_dir": "artifacts/task6/runs/2026-05-26T01-45-27+0200-pcie-rowstream-top1-sudo-block",
+  "correctness": null,
+  "route": null,
+  "board": null,
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": []
+}
