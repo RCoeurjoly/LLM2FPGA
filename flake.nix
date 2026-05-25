@@ -262,6 +262,14 @@ EOF
           '';
 
 
+        task6Pcie7xSourceVivadoLane0LocRowstreamIngress =
+          pkgs.runCommand "task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+            set -euo pipefail
+            cp -r ${task6Pcie7xSourceVivadoLane0Loc} "$out"
+            chmod -R u+w "$out"
+            python3 ${./scripts/task6/patch_pcie_rowstream_ingress_source.py} "$out/src/aximm-minimal/pcie_7x_top_aximm.v"
+          '';
+
         mkTask6YpcbPcie7xYosysJson = { name, axilMinimumSource, source ? task6Pcie7xSource }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
@@ -6004,6 +6012,67 @@ EOF
           framesBase = "task6-ypcb-pcie7x-rowstream-loopback";
         };
 
+        task6YpcbPcieUberDdr3RowstreamLoaderYosysJson =
+          pkgs.runCommand "task6-ypcb-pcie-uberddr3-rowstream-loader-yosys.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/xilinx_pcie_mmcm.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axil_to_al.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axis_pcie_to_al_us.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_7x.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_rx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_tx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_block.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_brams.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_tx_thrtl_ctl.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pipe_wrapper_gtx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_top.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_controller.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_phy.v \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
+              ${./fpga/rtl/task6_pcie_jtag_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress_cdc.v} \
+              ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv} \
+              ${./fpga/rtl/task6_ypcb_pcie_uberddr3_rowstream_loader_top.sv}
+            hierarchy -top task6_ypcb_pcie_uberddr3_rowstream_loader_top -check
+            synth_xilinx -flatten -abc9 -arch xc7 -nosrl -top task6_ypcb_pcie_uberddr3_rowstream_loader_top
+            stat -top task6_ypcb_pcie_uberddr3_rowstream_loader_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6YpcbPcieUberDdr3RowstreamLoaderXdc =
+          pkgs.runCommand "task6-ypcb-pcie-uberddr3-rowstream-loader.xdc" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+            set -euo pipefail
+            python3 ${./scripts/task6/make_pcie_uberddr3_xdc.py} \
+              ${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc \
+              ${task6YpcbUberDdr3BistXdc} > "$out"
+          '';
+
+        task6YpcbPcieUberDdr3RowstreamLoaderFasm = mkFasm {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderBitstream = mkBitstream {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader";
+          fasm = task6YpcbPcieUberDdr3RowstreamLoaderFasm;
+          framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader";
+        };
+
         task6YpcbUberDdr3BistXdc =
           pkgs.runCommand "task6-ypcb-uberddr3-bist.xdc" {
             nativeBuildInputs = [ pkgs.python3 ];
@@ -11730,6 +11799,12 @@ EOF
             task6YpcbPcie7xRowstreamLoopbackYosysJson;
           task6-ypcb-pcie7x-rowstream-loopback-bitstream =
             task6YpcbPcie7xRowstreamLoopbackBitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-yosys-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-xdc =
+            task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderBitstream;
           task6-litex-boards-ypcb-master =
             task6LitexBoardsYpcbMasterRunner;
           task6-litex-boards-ypcb-validated =

@@ -7,7 +7,9 @@
 module task6_pcie_axil_rowstream_loader_ingress #(
     parameter [31:0] TASK6_PCIE_MAGIC = 32'h54365043,
     parameter [31:0] TASK6_PCIE_VERSION = 32'd3,
-    parameter [31:0] LOADER_COMMAND_MAGIC = 32'h33445244
+    parameter [31:0] LOADER_COMMAND_MAGIC = 32'h33445244,
+    parameter integer COMMAND_WIDTH = 192,
+    parameter integer COMMAND_DATA_LSB = 64
 ) (
     input wire clk,
     input wire rst_n,
@@ -34,7 +36,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire        s_axi_rready,
     output reg [1:0]  s_axi_rresp,
 
-    output reg [191:0] command_payload_o,
+    output reg [COMMAND_WIDTH - 1:0] command_payload_o,
     output reg         command_event_o,
 
     input wire         boot_done_i,
@@ -46,7 +48,8 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [1:0]   loader_last_chunk_i,
     input wire [31:0]  loader_command_payload_addr_i,
     input wire [31:0]  loader_wait_cycles_i,
-    input wire [511:0] loader_read_data_i
+    input wire [511:0] loader_read_data_i,
+    output reg         status_clear_pulse_o
 );
     localparam [1:0] EVENT_IDLE = 2'd0;
     localparam [1:0] EVENT_ISSUE = 2'd1;
@@ -92,7 +95,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         end
     endfunction
 
-    function [191:0] pack_command_payload;
+    function [COMMAND_WIDTH - 1:0] pack_command_payload;
         input [31:0] magic;
         input [7:0] opcode;
         input [1:0] chunk;
@@ -102,12 +105,12 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         input [31:0] data2;
         input [31:0] data3;
         begin
-            pack_command_payload = 192'd0;
+            pack_command_payload = {COMMAND_WIDTH{1'b0}};
             pack_command_payload[0 +: 32] = magic;
             pack_command_payload[32 +: 8] = opcode;
             pack_command_payload[40 +: 2] = chunk;
             pack_command_payload[48 +: 32] = addr;
-            pack_command_payload[64 +: 128] = {data3, data2, data1, data0};
+            pack_command_payload[COMMAND_DATA_LSB +: 128] = {data3, data2, data1, data0};
         end
     endfunction
 
@@ -124,8 +127,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
 
     initial begin
         s_axi_rdata = 32'd0;
-        command_payload_o = 192'd0;
+        command_payload_o = {COMMAND_WIDTH{1'b0}};
         command_event_o = 1'b0;
+        status_clear_pulse_o = 1'b0;
         command_magic_q = LOADER_COMMAND_MAGIC;
         command_opcode_q = 8'd0;
         command_chunk_q = 2'd0;
@@ -166,7 +170,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             loader_accepted_seen_q <= 1'b0;
             loader_magic_ok_seen_q <= 1'b0;
             event_state_q <= EVENT_IDLE;
-            command_payload_o <= 192'd0;
+            command_payload_o <= {COMMAND_WIDTH{1'b0}};
             command_event_o <= 1'b0;
             last_write_valid_q <= 1'b0;
             last_write_word_index_q <= 10'd0;
@@ -176,6 +180,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                 command_data_q[i] <= 32'd0;
         end else begin
             command_event_o <= 1'b0;
+            status_clear_pulse_o <= 1'b0;
             if (loader_done_i)
                 loader_done_seen_q <= 1'b1;
             if (loader_error_i)
@@ -228,6 +233,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                                 loader_error_seen_q <= 1'b0;
                                 loader_accepted_seen_q <= 1'b0;
                                 loader_magic_ok_seen_q <= 1'b0;
+                                status_clear_pulse_o <= 1'b1;
                             end
                         end
                         10'h004: command_magic_q <= apply_wstrb(command_magic_q, wdata_q, wstrb_q);

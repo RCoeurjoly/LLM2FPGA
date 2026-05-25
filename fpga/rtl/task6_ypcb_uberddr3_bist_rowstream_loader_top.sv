@@ -34,6 +34,23 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   output wire        ddram_ras_n,
   output wire        ddram_reset_n,
   output wire        ddram_we_n
+`ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
+  , input  wire [JTAG_COMMAND_WIDTH - 1:0] pcie_command_payload_i
+  , input  wire                             pcie_command_event_i
+  , input  wire                             pcie_status_clear_i
+  , output wire                             pcie_controller_clk_o
+  , output wire                             pcie_controller_rst_n_o
+  , output wire                             pcie_boot_done_o
+  , output wire                             pcie_loader_done_o
+  , output wire                             pcie_loader_error_o
+  , output wire                             pcie_loader_last_accepted_o
+  , output wire                             pcie_loader_last_magic_ok_o
+  , output wire [7:0]                       pcie_loader_last_opcode_o
+  , output wire [1:0]                       pcie_loader_last_chunk_o
+  , output wire [31:0]                      pcie_loader_command_payload_addr_o
+  , output wire [31:0]                      pcie_loader_wait_cycles_o
+  , output wire [511:0]                     pcie_loader_read_data_o
+`endif
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
   localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd63;
@@ -225,9 +242,21 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [7:0] read_probe_write_byte;
   logic [1:0] read_probe_capture_index;
   logic [7:0] read_probe_capture_byte;
-  logic [JTAG_COMMAND_WIDTH - 1:0] jtag_command_payload;
-  logic jtag_command_event;
+  logic [JTAG_COMMAND_WIDTH - 1:0] jtag_command_payload_from_shift;
+  logic jtag_command_event_from_shift;
   logic [15:0] jtag_command_count;
+`ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
+  wire [JTAG_COMMAND_WIDTH - 1:0] jtag_command_payload =
+    pcie_command_event_i ? pcie_command_payload_i : jtag_command_payload_from_shift;
+  wire jtag_command_event = pcie_command_event_i | jtag_command_event_from_shift;
+  logic pcie_loader_done_sticky_q;
+  logic pcie_loader_error_sticky_q;
+  logic pcie_loader_last_accepted_sticky_q;
+  logic pcie_loader_last_magic_ok_sticky_q;
+`else
+  wire [JTAG_COMMAND_WIDTH - 1:0] jtag_command_payload = jtag_command_payload_from_shift;
+  wire jtag_command_event = jtag_command_event_from_shift;
+`endif
   logic [15:0] read_probe_run_count_q;
   logic [WB_ADDR_BITS - 1:0] loader_addr_q;
   logic [WB_DATA_BITS - 1:0] loader_write_data_q;
@@ -563,6 +592,23 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       if (jtag_command_event)
         jtag_command_accept_phase_q <= ~jtag_command_accept_phase_q;
 
+`ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
+      if (pcie_status_clear_i) begin
+        pcie_loader_done_sticky_q <= 1'b0;
+        pcie_loader_error_sticky_q <= 1'b0;
+        pcie_loader_last_accepted_sticky_q <= 1'b0;
+        pcie_loader_last_magic_ok_sticky_q <= 1'b0;
+      end else begin
+        if (loader_done_q)
+          pcie_loader_done_sticky_q <= 1'b1;
+        if (loader_error_q)
+          pcie_loader_error_sticky_q <= 1'b1;
+        if (loader_last_accepted_q)
+          pcie_loader_last_accepted_sticky_q <= 1'b1;
+        if (loader_last_magic_ok_q)
+          pcie_loader_last_magic_ok_sticky_q <= 1'b1;
+      end
+`endif
       loader_done_q <= 1'b0;
       loader_last_accepted_q <= 1'b0;
 
@@ -1510,10 +1556,25 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   ) jtag_command_shift (
     .controller_clk_i(controller_clk),
     .rst_ni(rst_n),
-    .payload_o(jtag_command_payload),
-    .event_o(jtag_command_event),
+    .payload_o(jtag_command_payload_from_shift),
+    .event_o(jtag_command_event_from_shift),
     .command_count_o(jtag_command_count)
   );
+
+`ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
+  assign pcie_controller_clk_o = controller_clk;
+  assign pcie_controller_rst_n_o = rst_n;
+  assign pcie_boot_done_o = read_probe_done_q;
+  assign pcie_loader_done_o = pcie_loader_done_sticky_q;
+  assign pcie_loader_error_o = pcie_loader_error_sticky_q;
+  assign pcie_loader_last_accepted_o = pcie_loader_last_accepted_sticky_q;
+  assign pcie_loader_last_magic_ok_o = pcie_loader_last_magic_ok_sticky_q;
+  assign pcie_loader_last_opcode_o = loader_last_opcode_q;
+  assign pcie_loader_last_chunk_o = loader_last_chunk_q;
+  assign pcie_loader_command_payload_addr_o = loader_command_payload_addr_q;
+  assign pcie_loader_wait_cycles_o = loader_wait_cycles_q;
+  assign pcie_loader_read_data_o = {{(512 - WB_DATA_BITS){1'b0}}, loader_read_data_q};
+`endif
 endmodule
 
 module task6_uberddr3_loader_jtag_command_shift #(

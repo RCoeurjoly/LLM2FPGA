@@ -24186,3 +24186,52 @@ Result:
 Next hardware step:
 
 - Integrate `task6_pcie_axil_rowstream_loader_ingress` beside the real YPCB DDR3 rowstream loader top so BAR writes feed the actual DDR3 Wishbone loader path, then build a PCIe+DDR3 bitstream and reuse the existing autonomous PCIe gate shape for a hardware dense-byte write/read smoke.
+
+### 2026-05-25 - Combined PCIe + YPCB DDR3 rowstream loader bitstream
+
+Integrated the PCIe BAR rowstream ingress beside the actual YPCB `uberddr3` BIST rowstream loader top and built/programmed a combined hardware image.
+
+Implementation notes:
+
+- Added `fpga/rtl/task6_pcie_axil_rowstream_loader_ingress_cdc.v` to bridge the PCIe user-clock AXI-lite ingress into the DDR rowstream controller clock domain.
+- Added `fpga/rtl/task6_ypcb_pcie_uberddr3_rowstream_loader_top.sv`, combining `pcie_7x_top_aximm`, the ingress CDC bridge, and `task6_ypcb_uberddr3_bist_rowstream_loader_top`.
+- Extended `task6_ypcb_uberddr3_bist_rowstream_loader_top.sv` with guarded PCIe rowstream command/status ports under `TASK6_PCIE_ROWSTREAM_INGRESS_PORTS`, preserving the existing DDR-only top by default.
+- Parameterized the ingress command payload width/data offset for the real BIST loader command format: `COMMAND_WIDTH=208`, `COMMAND_DATA_LSB=80`.
+- Patched the generated PCIe source for this target so the AXI-lite BAR responder is exported to the combined top and the OpenXC7 flow structurally selects the GTX wrapper path.
+- Merged the PCIe lane-0 XDC with the YPCB DDR3 XDC for the combined top.
+- Assigned BSCAN chains to avoid conflicts in the combined image: PCIe status chain 1, DDR command chain 2, DDR boot/debug chain 3.
+
+New flake targets:
+
+```bash
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-yosys-json -L --no-link --print-out-paths
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-xdc -L --no-link --print-out-paths
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream -L --no-link --print-out-paths
+```
+
+Build/program results:
+
+- Yosys JSON built and `check` reported 0 problems.
+- XDC built: `/nix/store/cixj313xhvp5x52qlq845rzgbjmsr378-task6-ypcb-pcie-uberddr3-rowstream-loader.xdc`.
+- Bitstream built: `/nix/store/cxqgknfip02qnywyb9mr0py43p35sg0k-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`.
+- Programmed YPCB over Digilent HS3 serial `210299BF3824`:
+
+```bash
+/home/roland/openFPGALoader/build/openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/cxqgknfip02qnywyb9mr0py43p35sg0k-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+Post-program gates:
+
+- JTAG PCIe status: `pipe_mmcm_lock=true`, `sys_rst_n=true`, `user_reset=false`, `user_lnk_up=true`, `pl_ltssm_state=22`, `last_ltssm_state=22`, `cfg_lstatus=4113`, PCIe status magic OK.
+- Host enumeration: `0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]`.
+- BAR gate passed through `/usr/local/sbin/task6-pcie-gate bar 0000:42:00.0`: BAR0 first word `T6PC`, version `3`, header magic matched, and offset 0 was not written.
+
+Added `scripts/task6/task6_pcie_rowstream_loader_smoke.py` as the next hardware smoke. It writes a dense byte into DDR3 through the PCIe BAR ingress, reads the containing dense beat back through the loader readback aperture, and compares the target lane byte. Direct execution from the repo needs root BAR access; in this session `sudo` required a password and could not prompt through the noninteractive tool.
+
+Run once sudo/root access is available:
+
+```bash
+sudo scripts/task6/task6_pcie_rowstream_loader_smoke.py 0000:42:00.0
+```
+
+If permanent root-helper coverage is desired, install it beside the existing PCIe helpers and add a `rowstream-loader` dispatch case to `/usr/local/sbin/task6-pcie-gate`/`scripts/task6/task6_pcie_gate_root.sh`.

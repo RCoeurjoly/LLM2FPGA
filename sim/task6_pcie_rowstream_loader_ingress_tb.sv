@@ -29,6 +29,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
   wire [1:0] rresp;
 
   wire [191:0] command_payload;
+  wire status_clear_pulse;
   wire command_event;
   wire wb_cyc;
   wire wb_stb;
@@ -92,7 +93,8 @@ module task6_pcie_rowstream_loader_ingress_tb;
     .loader_last_chunk_i(loader_last_chunk),
     .loader_command_payload_addr_i(loader_command_payload_addr),
     .loader_wait_cycles_i(loader_wait_cycles),
-    .loader_read_data_i(loader_read_data)
+    .loader_read_data_i(loader_read_data),
+    .status_clear_pulse_o(status_clear_pulse)
   );
 
   task6_uberddr3_rowstream_loader_contract #(
