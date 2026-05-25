@@ -22757,3 +22757,21 @@ Task 6 impact:
 
 - For the immediate two-week inference goal, DDR3/JTAG remains the only path that has already produced board-level data movement evidence.
 - PCIe should remain a parallel acceleration lane, but not the critical path until the PCIe hard-block chipdb problem is resolved.
+
+### 2026-05-25 - PCIe metadata update path
+
+Decision:
+
+- Treat openXC7/nextpnr-xilinx-meta#5 as the likely missing dependency for YPCB PCIe smoke placement.
+- Keep PCIe as a timeboxed parallel acceleration lane only after the chipdb is regenerated with that metadata.
+
+Implementation:
+
+- Fetched `openXC7/nextpnr-xilinx-meta` PR #5 locally and confirmed it adds `kintex7/site_type_PCIE_2_1.json`.
+- Added repo-local backport patch `patches/nextpnr-xilinx/0003-xc7-add-kintex7-pcie-site-type-metadata.patch` to the `openXC7Nextpnr` override.
+- Expected effect: regenerated Kintex7 chipdbs should expose the `PCIE_2_1` hard block as a placeable BEL, allowing the PCIe smoke bitstream to move past the prior `no Bels remaining of type PCIE_2_1_PCIE_2_1` failure.
+
+Next gate:
+
+- Rebuild `.#task6-ypcb-pcie7x-smoke-bitstream --override-input pcie7x path:/home/roland/pcie_7x --impure`.
+- If bitstream build passes, program the board and run `lspci` plus BAR smoke.
