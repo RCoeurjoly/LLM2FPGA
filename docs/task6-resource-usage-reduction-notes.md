@@ -24138,3 +24138,51 @@ scripts/task6/task6_pcie_autonomous_gate.sh rowstream-loopback 0000:42:00.0 --ru
 - Gate passed: endpoint `10ee:0480`, BAR magic `T6PC`, version `2`, status after `0x00000005`, accepted count `1`, written bytes `3840`, checksum sum `0x00077880`, xor32 `0`, first/last words matched, mismatch `0`.
 - Observed payload write throughput was `3.19 MiB/s` for this AXI-lite BAR smoke path. This is a correctness rung, not the expected final bulk loader throughput.
 - Next implementation rung remains PCIe-to-DDR3 command ingress: use PCIe to feed the DDR3 rowstream loader/control path while DDR3 stays the self-contained weight store.
+
+
+### 2026-05-25 - PCIe-to-DDR3 rowstream ingress contract rung
+
+Implemented the first real PCIe-to-DDR3 ingress rung as a reusable BAR front-end for the existing DDR3 rowstream loader command contract:
+
+- Added `fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v`.
+- Added `sim/task6_pcie_rowstream_loader_ingress_tb.sv`.
+- Added flake target `task6-pcie-rowstream-loader-ingress-sim-main`.
+
+The ingress exposes a PCIe BAR command aperture that packs host writes into the same 192-bit rowstream command payload accepted by `task6_uberddr3_rowstream_loader_contract`. DDR3 remains the weight store; PCIe is only the faster ingress/control path.
+
+BAR register map for this rung:
+
+- `0x000`: `T6PC` magic.
+- `0x004`: ingress version `3`.
+- `0x008`: status/clear; write bit 0 to clear sticky loader status.
+- `0x00c`: accepted doorbell count.
+- `0x010`: rowstream command magic, normally `0x33445244`.
+- `0x014`: `{chunk[1:0], opcode[7:0]}` in the low bits.
+- `0x018`: rowstream command address.
+- `0x020..0x02c`: 128-bit rowstream command data aperture.
+- `0x030`: doorbell; write bit 0 to issue one rowstream command.
+- `0x034`: sticky loader status: boot/done/error/magic-ok/accepted.
+- `0x038..0x050`: loader opcode/address/wait/read-data readback.
+
+Important design points:
+
+- The ingress keeps the duplicate-write suppression pattern from the passing PCIe rowstream loopback BAR responder, so replayed identical posted MMIO writes do not double-issue doorbells.
+- The ingress latches one-cycle loader `done`, `error`, `magic_ok`, and `accepted` pulses into sticky BAR-readable status bits, because a PCIe host must poll status rather than sample same-cycle HDL pulses.
+- A host doorbell is delayed by one clock before the loader event pulse so the packed command payload is stable when the loader samples it.
+- Each host doorbell also emits the loader re-arm pulse needed by the existing every-other-event filter, hiding that JTAG-era detail from PCIe software.
+
+Verification performed:
+
+```text
+nix build .#task6-pcie-rowstream-loader-ingress-sim-main -L --no-link --print-out-paths
+/nix/store/008sc36nmzgi7dr9190gaxm9mgp4h6mv-task6-pcie-rowstream-loader-ingress-sim-main/obj_dir/sim_main
+```
+
+Result:
+
+- `PASS: task6 PCIe rowstream loader ingress simulation`.
+- The simulation drives PCIe-style AXI-lite writes into the ingress, issues duplicate BAR doorbells, writes dense bytes into a DDR3 rowstream memory model, reads a DDR3 beat back through the loader status aperture, and runs the loader fullbeat write/read compare.
+
+Next hardware step:
+
+- Integrate `task6_pcie_axil_rowstream_loader_ingress` beside the real YPCB DDR3 rowstream loader top so BAR writes feed the actual DDR3 Wishbone loader path, then build a PCIe+DDR3 bitstream and reuse the existing autonomous PCIe gate shape for a hardware dense-byte write/read smoke.

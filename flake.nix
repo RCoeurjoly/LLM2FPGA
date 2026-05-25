@@ -8355,6 +8355,15 @@ EOF
               ${./sim/task6_pcie_axil_rowstream_loopback_tb.sv}
           '';
 
+        task6PcieRowstreamLoaderIngressSimMain =
+          pkgs.runCommand "task6-pcie-rowstream-loader-ingress-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal -top task6_pcie_rowstream_loader_ingress_tb -Mdir "$out/obj_dir" -o sim_main ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} ${./fpga/rtl/task6_uberddr3_rowstream_loader_contract.sv} ${./sim/task6_pcie_rowstream_loader_ingress_tb.sv}
+          '';
+
         task6UberDdr3ControllerLaneOrderSimMain =
           pkgs.runCommand "task6-uberddr3-controller-lane-order-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -11651,6 +11660,8 @@ EOF
             task6UberDdr3RowstreamLoaderContractSimMain;
           task6-pcie-axil-rowstream-loopback-sim-main =
             task6PcieAxilRowstreamLoopbackSimMain;
+          task6-pcie-rowstream-loader-ingress-sim-main =
+            task6PcieRowstreamLoaderIngressSimMain;
           task6-uberddr3-rowstream-loader-contract-sv-sim =
             task6UberDdr3RowstreamLoaderContractSvSim;
           task6-uberddr3-controller-lane-order-sim-main =
