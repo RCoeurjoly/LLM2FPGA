@@ -24384,3 +24384,46 @@ Interpretation:
 - DDR3 remains the self-contained weight store; PCIe is now a practical loader/control transport, while JTAG can remain fallback/debug.
 - The current throughput is command-limited rather than PCIe-limited. A wider BAR data window or DMA-style ingress is the next performance improvement, but it is not needed to prove correctness.
 - Next functional rung: run the FPGA rowstream consumer/selftest against the DDR3-resident image that was loaded over PCIe.
+
+### 2026-05-25 - PCIe rowstream-run gate implementation
+
+Implemented the next functional gate for the current two-lane combined PCIe+DDR3 loader bitstream: `scripts/task6/task6_pcie_rowstream_run_gate.py`. This bitstream contains the DDR3 rowstream loader/diagnostic path, not the output-head compute consumer, so the first honest `rowstream-run` gate validates the DDR3-resident rowstream image itself before building a compute-consumer bitstream.
+
+What the gate does:
+
+- Opens BAR0 through the existing privileged PCIe helper path.
+- Checks `T6PC` magic, version `3`, and DDR `boot_done`.
+- Issues `OP_READ_DENSE_BEAT` commands against DDR3.
+- By default reads the expected image range back from DDR3, computes SHA-256, and compares it byte-for-byte with the expected packed `rowstream.bin`.
+- Also records sparse verification samples in JSON.
+- Supports a faster sample-only mode with `--no-full-readback`.
+
+Updated `scripts/task6/task6_pcie_gate_root.sh` with a `rowstream-run` dispatch. Local validation passed:
+
+```bash
+python3 -m py_compile scripts/task6/task6_pcie_rowstream_run_gate.py scripts/task6/task6_pcie_rowstream_packet_loader.py
+bash -n scripts/task6/task6_pcie_gate_root.sh
+scripts/task6/task6_pcie_rowstream_run_gate.py --help
+```
+
+The approval layer would not let the agent install the new root-executed helper without explicit authorization for this exact persistent privileged-code change. Install commands needed before hardware execution:
+
+```bash
+cd /home/roland/LLM2FPGA
+sudo install -o root -g root -m 0755 scripts/task6/task6_pcie_rowstream_run_gate.py /usr/local/libexec/task6-pcie/task6_pcie_rowstream_run_gate.py
+sudo install -o root -g root -m 0755 scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
+```
+
+Then run a capped smoke first:
+
+```bash
+sudo /usr/local/sbin/task6-pcie-gate rowstream-run 0000:42:00.0 --image artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin --max-bytes 4096 --full-readback --verify-samples 8 --json-out /tmp/task6-pcie-rowstream-run-4k.json
+```
+
+If that passes, run the full DDR3-resident image validation:
+
+```bash
+sudo /usr/local/sbin/task6-pcie-gate rowstream-run 0000:42:00.0 --image artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin --full-readback --verify-samples 16 --progress-every 16384 --json-out /tmp/task6-pcie-rowstream-run-full.json
+```
+
+If the full run gate passes, the next RTL step is a new combined PCIe+DDR3+rowstream-consumer bitstream that consumes the DDR3-resident image without host readback.
