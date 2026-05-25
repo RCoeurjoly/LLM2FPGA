@@ -24532,3 +24532,35 @@ Replay gate command after the smoke passes:
 ```bash
 sudo TASK6_REPO_ROOT=/home/roland/LLM2FPGA /usr/local/sbin/task6-pcie-gate rowstream-top1 0000:42:00.0 --model-path TinyStories --sample-count 1 --json-out /tmp/task6-pcie-rowstream-top1-sample1.json
 ```
+
+
+### 2026-05-26 - Serialized DDR3 rowstream top1 cutout and P&R
+
+Commit note: `Serialize Task 6 DDR3 rowstream top1 cutout`.
+
+The first fully parallel rowstream-top1 cutout was a poor physical shape for the combined PCIe+DDR3 image: synthesis reduced it, but nextpnr placement did not produce useful progress after an extended run. Replaced the 64-lane dot-product cutout with a sequential one-multiply-per-cycle datapath while preserving the same row/result interface and lower-token tie-break behavior.
+
+Implementation notes:
+
+- `task6_ddr3_rowstream_top1_cutout` now latches one packed 68-byte row, accumulates 64 int8 products over 64 cycles, multiplies by the Q0.24 sidecar scale, and updates the sticky top1 registers.
+- `out_done` now represents completed scoring of the last row, so the cutout testbench waits for `out_done` rather than source exhaustion.
+- DSP use in the combined Yosys build drops to 4 DSP48E1 cells, avoiding the physical bottleneck seen with the parallel cutout.
+
+Verification passed:
+
+```bash
+nix build .#task6-ddr3-row-stream-cutout-sim-main -L
+./result/obj_dir/sim_main
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-yosys-json -L
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream -L
+```
+
+The focused cutout sim passed all 8 replay samples, scanning 50,257 rows per sample and 402,056 rows total. The combined Yosys JSON build completed with final `check` reporting 0 problems. The openXC7/nextpnr bitstream build completed successfully at `/nix/store/973iqijprcadlzw4cc4dyz6jd87kcy76-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`.
+
+Physical result:
+
+- nextpnr route converged in 6 main-router iterations with `overused=0`, `overuse=0`, and `archfail=0`.
+- Post-route timing passed: `rowstream_clk` 60.15 MHz against 25.00 MHz, `pcie_user_clk` 80.08 MHz against 12.00 MHz.
+- The build reported 10 warnings and 0 errors.
+
+Next acceptance step: program this bitstream and run the installed `rowstream-top1` board gate against `0000:42:00.0`.

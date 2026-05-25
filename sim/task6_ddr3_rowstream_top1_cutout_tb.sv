@@ -3,7 +3,7 @@
 module task6_ddr3_rowstream_top1_cutout_tb;
   `include "tb_data.sv"
 
-  localparam int TIMEOUT_CYCLES = (VOCAB_SIZE + 16) * SAMPLE_COUNT + 1000;
+  localparam int TIMEOUT_CYCLES = (VOCAB_SIZE * (HIDDEN_SIZE + 8)) * SAMPLE_COUNT + 1000;
 
   logic clock;
   logic reset;
@@ -100,7 +100,7 @@ module task6_ddr3_rowstream_top1_cutout_tb;
       @(negedge clock);
       start = 1'b0;
 
-      wait (source_done);
+      wait (out_done);
       @(posedge clock);
       #1;
 
