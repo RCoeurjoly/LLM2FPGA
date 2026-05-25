@@ -24348,3 +24348,39 @@ sudo /usr/local/sbin/task6-pcie-gate rowstream-packet 0000:42:00.0 --image /tmp/
 ```
 
 If that passes, the next execution rung is a capped real image load, for example `--image <rowstream.bin> --max-bytes 4096`, before attempting the full rowstream image.
+
+### 2026-05-25 - Full PCIe rowstream image load into DDR3
+
+After installing `task6_pcie_rowstream_packet_loader.py` and the updated `task6-pcie-gate` wrapper, the packet loader passed both synthetic and real-image hardware gates on the already-programmed two-lane combined PCIe+DDR3 bitstream.
+
+Synthetic packet smoke:
+
+```bash
+python3 -c 'from pathlib import Path; Path("/tmp/task6-pcie-rowstream-smoke.bin").write_bytes(bytes(range(64)))'
+sudo /usr/local/sbin/task6-pcie-gate rowstream-packet 0000:42:00.0 --image /tmp/task6-pcie-rowstream-smoke.bin --start-beat 16 --verify-samples 4 --progress-every 1
+```
+
+Result: PASS. Loaded 64 bytes / 4 beats at start beat 16; all four sampled beats matched exactly.
+
+Capped real-image packet smoke:
+
+```bash
+sudo /usr/local/sbin/task6-pcie-gate rowstream-packet 0000:42:00.0 --image artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin --max-bytes 4096 --start-beat 0 --verify-samples 8 --progress-every 64 --json-out /tmp/task6-pcie-rowstream-real-4k.json
+```
+
+Result: PASS. Loaded 4096 bytes / 256 beats; 8 sparse samples matched.
+
+Full real-image load:
+
+```bash
+sudo /usr/local/sbin/task6-pcie-gate rowstream-packet 0000:42:00.0 --image artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin --start-beat 0 --verify-samples 16 --progress-every 16384 --json-out /tmp/task6-pcie-rowstream-full.json
+```
+
+Result: PASS. Loaded 3,418,496 bytes / 213,656 beats in 37.44 seconds, about 91.3 kB/s through the current command-path loader. SHA-256 of the loaded image bytes: `2b30755a9a351538999cdc51cf9e7c6238672b2a0499bfb92b3f1dbf177b43b2`. All 16 sparse verification samples matched, including beat 0 and the final padded beat 213655.
+
+Interpretation:
+
+- The first useful PCIe-to-DDR3 rowstream path is now proven beyond smoke: the full packed rowstream image can be loaded into DDR3 over PCIe and sampled back correctly.
+- DDR3 remains the self-contained weight store; PCIe is now a practical loader/control transport, while JTAG can remain fallback/debug.
+- The current throughput is command-limited rather than PCIe-limited. A wider BAR data window or DMA-style ingress is the next performance improvement, but it is not needed to prove correctness.
+- Next functional rung: run the FPGA rowstream consumer/selftest against the DDR3-resident image that was loaded over PCIe.
