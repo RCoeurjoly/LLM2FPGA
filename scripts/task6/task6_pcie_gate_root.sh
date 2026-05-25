@@ -5,6 +5,9 @@ ALLOWED_BDF="${TASK6_PCIE_ALLOWED_BDF:-0000:42:00.0}"
 BRIDGE_BDF="${TASK6_PCIE_BRIDGE_BDF:-0000:41:00.0}"
 UPSTREAM_BRIDGE_BDF="${TASK6_PCIE_UPSTREAM_BRIDGE_BDF:-0000:40:00.0}"
 ROOT_PORT_BDF="${TASK6_PCIE_ROOT_PORT_BDF:-0000:00:07.2}"
+TB_DEVICE="${TASK6_PCIE_TB_DEVICE:-1-1}"
+TB_DEVICE_NAME="${TASK6_PCIE_TB_DEVICE_NAME:-Helios 5S}"
+TB_UNIQUE_ID="${TASK6_PCIE_TB_UNIQUE_ID:-c4148780-0010-1ed9-ffff-ffffffffffff}"
 LIBEXEC_DIR="${TASK6_PCIE_LIBEXEC_DIR:-/usr/local/libexec/task6-pcie}"
 
 usage() {
@@ -81,13 +84,34 @@ rescan_pci() {
   echo 1 >/sys/bus/pci/rescan
 }
 
+thunderbolt_reauthorize() {
+  local dev_dir auth name uuid
+  dev_dir="/sys/bus/thunderbolt/devices/$TB_DEVICE"
+  auth="$dev_dir/authorized"
+  if [[ ! -e "$auth" ]]; then
+    return 1
+  fi
+  name="$(cat "$dev_dir/device_name" 2>/dev/null || true)"
+  uuid="$(cat "$dev_dir/unique_id" 2>/dev/null || true)"
+  if [[ "$name" != "$TB_DEVICE_NAME" || "$uuid" != "$TB_UNIQUE_ID" ]]; then
+    echo "refusing Thunderbolt reauthorize for $TB_DEVICE: name='$name' uuid='$uuid'" >&2
+    return 1
+  fi
+  echo "reauthorizing Thunderbolt device $TB_DEVICE ($name)"
+  echo 0 >"$auth"
+  sleep 5
+  echo 1 >"$auth"
+  sleep 8
+}
+
 reset_bridge_for_recovery() {
   local step
-  for step in     "subordinate:$BRIDGE_BDF"     "device:$BRIDGE_BDF"     "hot:$BRIDGE_BDF"     "subordinate:$UPSTREAM_BRIDGE_BDF"     "device:$UPSTREAM_BRIDGE_BDF"     "subordinate:$ROOT_PORT_BDF"; do
+  for step in     "subordinate:$BRIDGE_BDF"     "device:$BRIDGE_BDF"     "hot:$BRIDGE_BDF"     "subordinate:$UPSTREAM_BRIDGE_BDF"     "device:$UPSTREAM_BRIDGE_BDF"     "subordinate:$ROOT_PORT_BDF"     "thunderbolt:$TB_DEVICE"; do
     case "$step" in
       subordinate:*) reset_subordinate_bus "${step#subordinate:}" || continue ;;
       device:*) reset_pci_device "${step#device:}" || continue ;;
       hot:*) hot_reset_bridge "${step#hot:}" || continue ;;
+      thunderbolt:*) thunderbolt_reauthorize || continue ;;
     esac
     rescan_pci
     if wait_for_endpoint; then

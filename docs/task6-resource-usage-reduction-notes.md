@@ -23933,3 +23933,22 @@ Install command before the next autonomous gate:
 sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
 ```
 
+### 2026-05-25 - Scoped Thunderbolt reauthorization recovery added
+
+Extended recovery result:
+
+- The broader PCI reset ladder still did not recover `0000:42:00.0` with the Vivado smoke bitstream programmed.
+- Some kernel PCI reset writes on Thunderbolt bridge/root-port functions returned `Inappropriate ioctl for device`, leaving the bridge present and bus 42 empty.
+- The connected Thunderbolt sysfs device is `1-1`, `device_name=Helios 5S`, `unique_id=c4148780-0010-1ed9-ffff-ffffffffffff`, and `authorized=1`.
+
+Repo-side helper update:
+
+- `scripts/task6/task6_pcie_gate_root.sh` now adds a final scoped Thunderbolt reauthorization recovery step: write `0` then `1` to `/sys/bus/thunderbolt/devices/1-1/authorized`, guarded by the expected Helios device name and UUID.
+- This is the closest software equivalent to a chassis replug while preserving a narrow root helper surface.
+
+Install command before the next autonomous gate:
+
+```sh
+sudo install -o root -g root -m 0755 /home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh /usr/local/sbin/task6-pcie-gate
+```
+
