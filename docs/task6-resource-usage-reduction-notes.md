@@ -22561,3 +22561,35 @@ Required test order:
 2. If BIST passes, build/program the seed15 rowstream-loader target.
 3. First run boot-only on the rowstream-loader bitstream.
 4. Then run the smallest packetized rowstream gate before scaling.
+
+#### Seed15 rowstream-loader 64-beat packet gate
+
+Admission gate:
+
+- `scripts/task6/task6_seed15_bist_gate.sh seed15-bist2-before-rowstream-continuation`
+- Result: PASS, `state=23`, `debug1=0x00000017`, `idelay_ready=true`, DDR3 reset released, CKE asserted, `err_count=0`.
+- Run: `artifacts/task6/runs/2026-05-25T05-11-55+0200-seed15-bist2-before-rowstream-continuation`
+
+Advanced bitstream:
+
+- Target: `task6-ypcb-uberddr3-rowstream-loader-2lane-slow-controller-seed15-clocked-bitstream`
+- Bitstream: `/nix/store/gi9yhxfyi6yasg0xjp19q9w6kw7b4g28-task6-ypcb-uberddr3-rowstream-loader-seed15-clocked.bit`
+- Route note: controller route reported 82.22 MHz, which is marginal against the nominal 83.3 MHz controller clock; keep this as a candidate only while HIL gates are green.
+
+Boot-only gate:
+
+- Run: `artifacts/task6/runs/final-ts1m-inference/seed15-2lane-rowstream-loader-boot-only`
+- Result: PASS, `calib_seen=True`, `boot_done=True`, `boot_mismatch=False`.
+
+64-beat rowstream packet gate:
+
+- Run: `artifacts/task6/runs/final-ts1m-inference/seed15-2lane-rowstream-loader-rowstream-packet-64beats-auto-debug`
+- Source: real `rowstream.bin`
+- Beats: 64
+- Packets: 16
+- Sampled standalone postread beats: `0,1,2,3,21,63`
+- Result: PASS, `mismatch_count=0`, `standalone_mismatch_count=0`, `completed_beats=64`.
+
+Next gate:
+
+- Re-run seed15 `BIST_MODE=2` admission gate, then scale the same rowstream packet path to 1024 beats with sampled postread.

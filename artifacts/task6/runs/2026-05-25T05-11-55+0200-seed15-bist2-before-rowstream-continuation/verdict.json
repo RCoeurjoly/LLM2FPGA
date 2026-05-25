@@ -1,0 +1,26 @@
+{
+  "board": "bist_pass",
+  "bram_margin": null,
+  "correctness": "pass",
+  "created_at": "2026-05-25T05:11:55.207826+02:00",
+  "dsp_margin": null,
+  "lut_margin": null,
+  "notes": [
+    "calibration=pass",
+    "bist=pass state=23 debug1=0x00000017",
+    "gate=0x000066d7 instr=22 idelay=True phy_sync_rst=False ddr3_reset_n=True cke=True",
+    "command_gate=fail",
+    "integrity=pass",
+    "read_byte=0x00 expected=0xa5",
+    "stream_bytes=['0x00', '0x00', '0x00', '0x00'] expected=['0xa5', '0xa6', '0xa7', '0xa8']",
+    "stream_valid=0x0 mismatch=0x0",
+    "ack_count=0 err_count=0",
+    "command_trace={'raw': '0x00000000', 'count': 0, 'byte_o': '0x00', 'expected_byte_q': '0x00', 'write_byte': '0x00'}"
+  ],
+  "route": null,
+  "run_dir": "artifacts/task6/runs/2026-05-25T05-11-55+0200-seed15-bist2-before-rowstream-continuation",
+  "runtime": null,
+  "schema": "task6-board-verdict-v1",
+  "status": "COMPLETE",
+  "timing_margin": null
+}
