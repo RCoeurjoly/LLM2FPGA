@@ -25754,3 +25754,18 @@ timeout waiting for DDR boot_done: offset=0x008 value=0x00000001
 Debug dump showed the rowstream/DDR clock domain itself is alive: `debug_status=0x13` (`pcie_rst_n,rowstream_rst_n,rowstream_heartbeat`) and heartbeat samples advanced. The live DDR debug mirror later showed `ddr_debug1=0x00000002`, but no `calib_complete`/`boot_done` bits.
 
 Conclusion: the loader-only coupled image narrows the full-image failure further. PCIe BAR advertisement survives with real rowstream ingress plus real DDR loader coupling, so the earlier full-image `missing_resource0` is not a simple consequence of coupling those blocks. The immediate blocker for this seed/placement is DDR calibration, consistent with the route-sensitive calibration class already documented for rowstream-loader variants. Next step is a seed/placement variant before changing functionality.
+
+
+### 2026-05-26 - Rowstream loader-only seed19 image built
+
+Commit note: `Record Task 6 loader-only seed19 build`.
+
+Built the seed-19 variant of the PCIe+DDR rowstream loader-only diagnostic image:
+
+```text
+/nix/store/y4nmrkp7ypmdawvmj8y45ps0yibcgir8-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed19.bit
+```
+
+The logic/resource footprint matches the seed-15 loader-only image: 15856 LUTX, 8759 FFX, 4 RAMB36, 18 IDELAYE2, 43 OSERDESE2, 18 ISERDESE2, 11 BUFGCTRL, 3 BSCAN, 1 PCIE/GT, 18 warnings, 0 errors. Placement timing was weaker than seed15 (`pcie_user_clk` about 55.07 MHz, `rowstream_clk` about 42.91 MHz). Post-route recovered to about 79.94 MHz for `pcie_user_clk` and 62.49 MHz for `rowstream_clk`.
+
+This remains a valid seed-sensitivity hardware test because earlier robust BIST2 work showed calibration can be seed-sensitive, but this build does not improve the route timing envelope over seed15.
