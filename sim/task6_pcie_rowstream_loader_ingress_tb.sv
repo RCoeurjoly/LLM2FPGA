@@ -99,6 +99,9 @@ module task6_pcie_rowstream_loader_ingress_tb;
     .calib_complete_i(boot_done),
     .boot_done_i(boot_done),
     .ddr_debug1_i(32'hcafe_f00d),
+    .debug_rowstream_heartbeat_count_i(32'h0000_1234),
+    .debug_rowstream_status_i(32'h0000_0057),
+    .debug_rowstream_seen_i(32'h0000_001f),
     .loader_done_i(loader_done),
     .loader_error_i(loader_error),
     .loader_last_accepted_i(loader_last_accepted),
@@ -322,6 +325,18 @@ module task6_pcie_rowstream_loader_ingress_tb;
     axil_read(32'h004, value);
     check(value == 32'd3, "PCIe ingress version must be 3");
 
+    axil_read(32'h200, value);
+    check(value == 32'h54364442, "debug aperture magic must match T6DB");
+    axil_read(32'h204, value);
+    check(value == 32'd1, "debug aperture version must be 1");
+    axil_read(32'h208, value);
+    check(value == 32'h0000_1234, "debug heartbeat count must be visible");
+    axil_read(32'h20c, value);
+    check(value == 32'h0000_0057, "debug rowstream status must be visible");
+    axil_read(32'h210, value);
+    check(value == 32'h0000_001f, "debug rowstream seen flags must be visible");
+    axil_read(32'h214, value);
+    check(value == 32'hcafe_f00d, "debug DDR debug1 mirror must be visible");
 
     for (int word = 0; word < 16; word++) begin
       axil_write(32'h080 + word * 4, 32'h8000_1000 + word);

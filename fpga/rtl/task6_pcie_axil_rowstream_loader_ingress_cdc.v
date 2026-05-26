@@ -86,6 +86,11 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [2:0] loader_done_sync_pcie_q;
     reg [2:0] loader_error_sync_pcie_q;
     reg [2:0] loader_accepted_sync_pcie_q;
+    reg [2:0] rowstream_rst_n_sync_pcie_q;
+    reg [2:0] rowstream_heartbeat_sync_pcie_q;
+    reg rowstream_heartbeat_last_pcie_q;
+    reg [31:0] rowstream_heartbeat_count_pcie_q;
+    reg [31:0] rowstream_seen_pcie_q;
     reg [2:0] loader_magic_ok_sync_pcie_q;
     reg [7:0] loader_opcode_pcie_q;
     reg [1:0] loader_chunk_pcie_q;
@@ -100,6 +105,8 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [31:0] top1_score_pcie_q;
     reg [31:0] top1_rows_pcie_q;
     reg [31:0] top1_cycles_pcie_q;
+    reg [31:0] rowstream_clk_counter_q;
+    wire rowstream_heartbeat_edge = rowstream_heartbeat_sync_pcie_q[2] ^ rowstream_heartbeat_last_pcie_q;
 
     task6_pcie_axil_rowstream_loader_ingress #(
         .COMMAND_WIDTH(COMMAND_WIDTH),
@@ -129,6 +136,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
         .calib_complete_i(calib_complete_sync_pcie_q[2]),
         .boot_done_i(boot_done_sync_pcie_q[2]),
         .ddr_debug1_i(ddr_debug1_pcie_q),
+        .debug_rowstream_heartbeat_count_i(rowstream_heartbeat_count_pcie_q),
+        .debug_rowstream_status_i({24'd0, top1_busy_sync_pcie_q[2], loader_error_sync_pcie_q[2], loader_done_sync_pcie_q[2], rowstream_heartbeat_sync_pcie_q[2], boot_done_sync_pcie_q[2], calib_complete_sync_pcie_q[2], rowstream_rst_n_sync_pcie_q[2], pcie_rst_n}),
+        .debug_rowstream_seen_i(rowstream_seen_pcie_q),
         .loader_done_i(loader_done_sync_pcie_q[2]),
         .loader_error_i(loader_error_sync_pcie_q[2]),
         .loader_last_accepted_i(loader_accepted_sync_pcie_q[2]),
@@ -164,6 +174,11 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             loader_done_sync_pcie_q <= 3'd0;
             loader_error_sync_pcie_q <= 3'd0;
             loader_accepted_sync_pcie_q <= 3'd0;
+            rowstream_rst_n_sync_pcie_q <= 3'd0;
+            rowstream_heartbeat_sync_pcie_q <= 3'd0;
+            rowstream_heartbeat_last_pcie_q <= 1'b0;
+            rowstream_heartbeat_count_pcie_q <= 32'd0;
+            rowstream_seen_pcie_q <= 32'd0;
             loader_magic_ok_sync_pcie_q <= 3'd0;
             loader_opcode_pcie_q <= 8'd0;
             loader_chunk_pcie_q <= 2'd0;
@@ -197,6 +212,16 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             loader_done_sync_pcie_q <= {loader_done_sync_pcie_q[1:0], rowstream_loader_done_i};
             loader_error_sync_pcie_q <= {loader_error_sync_pcie_q[1:0], rowstream_loader_error_i};
             loader_accepted_sync_pcie_q <= {loader_accepted_sync_pcie_q[1:0], rowstream_loader_last_accepted_i};
+            rowstream_rst_n_sync_pcie_q <= {rowstream_rst_n_sync_pcie_q[1:0], rowstream_rst_n};
+            rowstream_heartbeat_sync_pcie_q <= {rowstream_heartbeat_sync_pcie_q[1:0], rowstream_clk_counter_q[20]};
+            rowstream_heartbeat_last_pcie_q <= rowstream_heartbeat_sync_pcie_q[2];
+            if (rowstream_heartbeat_edge)
+                rowstream_heartbeat_count_pcie_q <= rowstream_heartbeat_count_pcie_q + 32'd1;
+            rowstream_seen_pcie_q[0] <= rowstream_seen_pcie_q[0] | rowstream_heartbeat_edge;
+            rowstream_seen_pcie_q[1] <= rowstream_seen_pcie_q[1] | rowstream_rst_n_sync_pcie_q[2];
+            rowstream_seen_pcie_q[2] <= rowstream_seen_pcie_q[2] | calib_complete_sync_pcie_q[2];
+            rowstream_seen_pcie_q[3] <= rowstream_seen_pcie_q[3] | boot_done_sync_pcie_q[2];
+            rowstream_seen_pcie_q[4] <= rowstream_seen_pcie_q[4] | (rowstream_ddr_debug1_i != 32'd0);
             loader_magic_ok_sync_pcie_q <= {loader_magic_ok_sync_pcie_q[1:0], rowstream_loader_last_magic_ok_i};
             loader_opcode_pcie_q <= rowstream_loader_last_opcode_i;
             loader_chunk_pcie_q <= rowstream_loader_last_chunk_i;
@@ -212,6 +237,13 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             top1_rows_pcie_q <= rowstream_top1_rows_scanned_i;
             top1_cycles_pcie_q <= rowstream_top1_cycle_count_i;
         end
+    end
+
+    always @(posedge rowstream_clk or negedge pcie_rst_n) begin
+        if (!pcie_rst_n)
+            rowstream_clk_counter_q <= 32'd0;
+        else
+            rowstream_clk_counter_q <= rowstream_clk_counter_q + 32'd1;
     end
 
     always @(posedge rowstream_clk or negedge rowstream_rst_n) begin

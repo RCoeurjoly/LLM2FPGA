@@ -42,6 +42,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire         calib_complete_i,
     input wire         boot_done_i,
     input wire [31:0]  ddr_debug1_i,
+    input wire [31:0]  debug_rowstream_heartbeat_count_i,
+    input wire [31:0]  debug_rowstream_status_i,
+    input wire [31:0]  debug_rowstream_seen_i,
     input wire         loader_done_i,
     input wire         loader_error_i,
     input wire         loader_last_accepted_i,
@@ -395,6 +398,13 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                     10'h02d: s_axi_rdata <= top1_hidden_vector_o[416 +: 32];
                     10'h02e: s_axi_rdata <= top1_hidden_vector_o[448 +: 32];
                     10'h02f: s_axi_rdata <= top1_hidden_vector_o[480 +: 32];
+                    10'h080: s_axi_rdata <= 32'h54364442;
+                    10'h081: s_axi_rdata <= 32'd1;
+                    10'h082: s_axi_rdata <= debug_rowstream_heartbeat_count_i;
+                    10'h083: s_axi_rdata <= debug_rowstream_status_i;
+                    10'h084: s_axi_rdata <= debug_rowstream_seen_i;
+                    10'h085: s_axi_rdata <= ddr_debug1_i;
+                    10'h086: s_axi_rdata <= loader_wait_cycles_i;
                     default: s_axi_rdata <= 32'd0;
                 endcase
                 s_axi_rvalid <= 1'b1;

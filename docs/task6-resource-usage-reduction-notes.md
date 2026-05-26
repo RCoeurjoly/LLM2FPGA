@@ -24686,3 +24686,50 @@ status:  0x00000001 rst_n
 loader:  0x00000000 0
 timeout waiting for DDR boot_done: offset=0x008 value=0x00000001
 ```
+
+
+### 2026-05-26 - PCIe rowstream reset debug aperture
+
+Commit note: `Add Task 6 PCIe rowstream debug aperture`.
+
+Added a BAR-readable debug block for the PCIe+DDR3 rowstream loader/top1 bitstream so the next board run can distinguish PCIe ingress health from rowstream-clock/reset/calibration progress without sudo or a vendor ILA.
+
+New BAR offsets:
+
+```text
+0x200 debug magic      0x54364442 ("T6DB")
+0x204 debug version    1
+0x208 heartbeat count  increments on synced rowstream clock heartbeat edges
+0x20c rowstream status bit0 pcie_rst_n, bit1 rowstream_rst_n, bit2 calib_complete, bit3 boot_done, bit4 heartbeat, bit5 loader_done, bit6 loader_error, bit7 top1_busy
+0x210 sticky seen      bit0 heartbeat_seen, bit1 rowstream_rst_n_seen, bit2 calib_complete_seen, bit3 boot_done_seen, bit4 ddr_debug1_nonzero_seen
+0x214 DDR debug1 mirror
+0x218 loader wait cycles mirror
+```
+
+Host command:
+
+```bash
+cd /home/roland/LLM2FPGA
+scripts/task6/task6_pcie_user_gate.sh debug-dump 0000:42:00.0
+```
+
+Interpretation for the current LED symptom: if `debug_status` has `pcie_rst_n` but not `rowstream_rst_n` and the heartbeat count is not advancing, the rowstream/DDR clock-reset side is not alive. If heartbeat advances but `rowstream_rst_n` never appears, debug the reset release path. If `rowstream_rst_n` appears but `calib_complete` never appears, continue at DDR3 calibration/PHY.
+
+Verification for the debug-aperture bitstream:
+
+```bash
+bash -n scripts/task6/task6_pcie_user_gate.sh
+python3 -m py_compile scripts/task6/task6_pcie_debug_dump.py
+nix build .#task6-pcie-rowstream-loader-ingress-sim-main -L --no-link --print-out-paths
+/nix/store/zwz45kwqyrdndyzq0gd0rp0wyamamlhi-task6-pcie-rowstream-loader-ingress-sim-main/obj_dir/sim_main
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-yosys-json -L --no-link --print-out-paths
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream -L --no-link --print-out-paths
+```
+
+Results:
+
+- Focused ingress Verilator simulation passed, including the new debug BAR registers.
+- Full Yosys build completed with final `check` reporting 0 problems.
+- Place/route converged at router iteration 11 with `overuse=0`, `archfail=0`.
+- Routed timing passed: `rowstream_clk` 55.76 MHz against 25 MHz, `pcie_user_clk` 70.30 MHz against 12 MHz.
+- Bitstream: `/nix/store/hdc7a117ilvxglf3zcg10i080749zv96-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`.

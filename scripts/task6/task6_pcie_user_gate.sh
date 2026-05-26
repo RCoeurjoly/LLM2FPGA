@@ -8,7 +8,7 @@ BDF="${2:-$ALLOWED_BDF}"
 
 usage() {
   cat >&2 <<'EOF'
-usage: scripts/task6/task6_pcie_user_gate.sh <bar|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
+usage: scripts/task6/task6_pcie_user_gate.sh <bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
 
 Rootless Task 6 PCIe gate dispatcher. This assumes the Task 6 YPCB PCIe udev
 rule has enabled PCI memory space and granted plugdev read/write access to
@@ -19,7 +19,7 @@ EOF
 }
 
 case "$MODE" in
-  bar|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
+  bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 
@@ -69,6 +69,7 @@ export TASK6_REPO_ROOT="${TASK6_REPO_ROOT:-$ROOT}"
 
 case "$MODE" in
   bar) exec python3 "$ROOT/scripts/task6/task6_pcie_bar_smoke.py" "$BDF" "${@:3}" ;;
+  debug-dump) exec python3 "$ROOT/scripts/task6/task6_pcie_debug_dump.py" "$BDF" "${@:3}" ;;
   rowstream-loopback) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_loopback_smoke.py" "$BDF" "${@:3}" ;;
   rowstream-loader) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_loader_smoke.py" "$BDF" "${@:3}" ;;
   rowstream-packet) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_packet_loader.py" "$BDF" "${@:3}" ;;
