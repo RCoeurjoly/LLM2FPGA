@@ -65,14 +65,30 @@ def verify_identity(device: Path) -> None:
             raise SystemExit(f"unexpected {name}: expected {expected}, got {observed}")
 
 
-def wait_for_endpoint(bdf: str, timeout_s: float) -> Path:
+def wait_for_endpoint_resource(
+    bdf: str,
+    bridge_rescan: Path,
+    timeout_s: float,
+    rescan_interval_s: float,
+) -> Path:
     deadline = time.monotonic() + timeout_s
+    next_rescan = 0.0
     device = Path("/sys/bus/pci/devices") / bdf
+    last_state = "missing"
     while time.monotonic() < deadline:
-        if device.exists() and (device / "resource0").exists():
-            return device
+        now = time.monotonic()
+        if device.exists():
+            if (device / "resource0").exists():
+                return device
+            last_state = "present without resource0"
+        else:
+            last_state = "missing"
+
+        if now >= next_rescan:
+            write_one(bridge_rescan, "upstream bridge rescan")
+            next_rescan = now + rescan_interval_s
         time.sleep(0.1)
-    raise SystemExit(f"timeout waiting for PCI endpoint to reappear: {bdf}")
+    raise SystemExit(f"timeout waiting for PCI endpoint resource0: {bdf} ({last_state})")
 
 
 def wait_for_config(bdf: str, timeout_s: float) -> int:
@@ -96,6 +112,12 @@ def main() -> int:
         "--reset-first",
         action="store_true",
         help="Write the endpoint reset node before remove/rescan when available",
+    )
+    parser.add_argument(
+        "--rescan-interval",
+        type=float,
+        default=1.0,
+        help="seconds between repeated upstream bridge rescans while waiting for BAR0",
     )
     args = parser.parse_args()
 
@@ -124,7 +146,12 @@ def main() -> int:
 
     write_one(bridge_rescan, "upstream bridge rescan")
 
-    recovered = wait_for_endpoint(args.bdf, args.timeout)
+    recovered = wait_for_endpoint_resource(
+        args.bdf,
+        bridge_rescan,
+        args.timeout,
+        args.rescan_interval,
+    )
     command_after = wait_for_config(args.bdf, args.timeout)
     verify_identity(recovered)
 

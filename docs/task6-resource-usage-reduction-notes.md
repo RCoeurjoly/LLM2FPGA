@@ -24777,3 +24777,12 @@ scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0
 ```
 
 This command removes the stale endpoint, rescans the immediate upstream bridge, waits for config space to stop returning `ffff`, and reports the restored `resource0` permissions. The updated udev payload still has to be installed into the system udev location before the live machine can use this path.
+
+
+### 2026-05-26 - Recovery retry handles BAR0-late enumeration
+
+Commit note: `Delegate Task 6 recovery before BAR assignment` in `~/FutureProofDotfiles`.
+
+The first rootless recovery removed the stale endpoint and rescanned the immediate upstream bridge, but the endpoint returned in two phases: first as partial config space, then as `10ee:0480` without `resource0`. Because the udev helper previously waited for `resource0` before delegating recovery nodes, that partial device was left root-owned and could not be removed/retried by the user.
+
+The udev helper now delegates endpoint `remove`/`rescan`/`reset` and the immediate upstream bridge `rescan` immediately after identity validation, then waits briefly for `resource0` and delegates it only if assigned. The repo recovery helper also retries the upstream bridge rescan while waiting for BAR0/resource0.
