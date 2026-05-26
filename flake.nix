@@ -6299,6 +6299,21 @@ EOF
           framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed19";
         };
 
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Fasm = mkFasm {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyYosysJson;
+          seed = 20;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20";
+          fasm = task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Fasm;
+          framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20";
+        };
+
         task6YpcbUberDdr3BistXdc =
           pkgs.runCommand "task6-ypcb-uberddr3-bist.xdc" {
             nativeBuildInputs = [ pkgs.python3 ];
@@ -12065,6 +12080,8 @@ EOF
             task6YpcbPcieUberDdr3RowstreamLoaderOnlyBitstream;
           task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed19-bitstream =
             task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed19Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Bitstream;
           task6-litex-boards-ypcb-master =
             task6LitexBoardsYpcbMasterRunner;
           task6-litex-boards-ypcb-validated =
