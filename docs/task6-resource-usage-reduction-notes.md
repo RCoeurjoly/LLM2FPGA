@@ -144,6 +144,45 @@ Next gate:
 3. Only after smoke enumeration and BAR0 read/write pass should the command
    bridge or rowstream PCIe transport be retried.
 
+
+
+### 2026-05-26 - PCIe BAR-loss isolation build: exported command bridge
+
+Decision:
+
+- Treat the current BAR failure as integration-level specific, not as a proven host/chassis failure. The command-bridge and rowstream-loopback PCIe-only shells can advertise BAR0 and pass MMIO, while the full PCIe+DDR3 rowstream image re-enumerates with the same vendor/device identity but BAR0 cleared to zero and no `resource0`.
+- Add a new A/B bitstream that uses the full image's patched/exported `pcie_7x_top_aximm` wrapper shape, but connects it only to the known-good Task 6 command bridge. This isolates the patched PCIe wrapper/exported AXI boundary from DDR3/top1 resource and timing load.
+
+Implementation:
+
+- Added `fpga/rtl/task6_ypcb_pcie_exported_command_bridge_top.sv`.
+- Added flake products:
+  - `task6-ypcb-pcie-exported-command-bridge-yosys-json`
+  - `task6-ypcb-pcie-exported-command-bridge-bitstream`
+- Built bitstream: `/nix/store/gc75dv1z3akjvfykv732b9kqz2h5ibxg-task6-ypcb-pcie-exported-command-bridge.bit`.
+
+Comparison evidence:
+
+| image | wrapper shape | DDR3/top1 load | BAR behavior seen on board | resource/timing signal |
+| --- | --- | --- | --- | --- |
+| rowstream loopback | original `pcie_7x_top_aximm_ypcb_480t` shell | no | BAR0 usable; loopback payload/checksum PASS | about 3.9k LUTX, 4 BUFGCTRL, `pcie_user_clk` about 121 MHz |
+| command bridge | original `pcie_7x_top_aximm_ypcb_480t` shell | no | BAR0 usable; command smoke PASS after mmap byte-slice fix | about 3.3k LUTX, 4 BUFGCTRL, `pcie_user_clk` about 179 MHz |
+| exported command bridge | patched/exported `pcie_7x_top_aximm` shell, same top-level shape as full image | no | not yet flashed/tested | 3350 LUTX, 2585 FFX, 4 BUFGCTRL, 1 PCIE, 1 GTX channel/common, 1 BSCAN; route completed with 2 warnings/0 errors; `pcie_user_clk` post-route 177.40 MHz |
+| full PCIe+DDR3 rowstream loader | patched/exported `pcie_7x_top_aximm` shell | yes | endpoint identity returns, but BAR0 is `0x00000000` and `resource0` is missing after bridge rescan | about 23.4k LUTX, 11 BUFGCTRL, 3 BSCAN; `pcie_user_clk` about 70 MHz |
+
+Interpretation:
+
+- PCIE hard-block BAR parameters remain identical across the passing command/loopback images and the full rowstream image (`BAR0=0xfffff000`, other BARs disabled), so the missing BAR is not explained by a changed static BAR parameter in synthesized JSON.
+- The exported command bridge is the decisive next board gate:
+  - if it advertises BAR0 and passes command smoke, the patched/exported PCIe shell is acceptable and the remaining suspect is DDR3/top1 integration pressure, reset/clock interaction, or weak timing margin in the full image;
+  - if it loses BAR0, the failure boundary moves earlier to the patched exported wrapper/top hierarchy before DDR3 is involved.
+
+Next hardware gate:
+
+1. Flash `/nix/store/gc75dv1z3akjvfykv732b9kqz2h5ibxg-task6-ypcb-pcie-exported-command-bridge.bit` to BPI.
+2. Cold enumerate or bridge-rescan only after the FPGA is configured.
+3. Run lifecycle BAR/debug and then `scripts/task6/task6_pcie_user_gate.sh command-smoke 0000:42:00.0`.
+
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
 ### 2026-05-20 - Active one-lane full-bank baseline consumed from `~/UberDDR3_vainilla`

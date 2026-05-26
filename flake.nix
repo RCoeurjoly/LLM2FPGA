@@ -354,6 +354,38 @@ EOF
           source = task6Pcie7xSourceVivadoLane0Loc;
           axilMinimumSource = "${./fpga/rtl/task6_pcie_axil_rowstream_loopback.v}";
         };
+
+        task6YpcbPcieExportedCommandBridgeYosysJson =
+          pkgs.runCommand "task6-ypcb-pcie-exported-command-bridge-yosys.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/xilinx_pcie_mmcm.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axil_to_al.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axis_pcie_to_al_us.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_7x.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_rx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_tx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_block.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_brams.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_tx_thrtl_ctl.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pipe_wrapper_gtx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${./fpga/rtl/task6_pcie_jtag_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_command_bridge.v} \
+              ${./fpga/rtl/task6_ypcb_pcie_exported_command_bridge_top.sv}
+            hierarchy -top task6_ypcb_pcie_exported_command_bridge_top -check
+            synth_xilinx -flatten -abc9 -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_exported_command_bridge_top
+            stat -top task6_ypcb_pcie_exported_command_bridge_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
             buildInputs = [ pkgs.yosys ];
@@ -6010,6 +6042,20 @@ EOF
           name = "task6-ypcb-pcie7x-rowstream-loopback";
           fasm = task6YpcbPcie7xRowstreamLoopbackFasm;
           framesBase = "task6-ypcb-pcie7x-rowstream-loopback";
+        };
+
+        task6YpcbPcieExportedCommandBridgeFasm = mkFasm {
+          name = "task6-ypcb-pcie-exported-command-bridge";
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcieExportedCommandBridgeYosysJson;
+          seed = 15;
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieExportedCommandBridgeBitstream = mkBitstream {
+          name = "task6-ypcb-pcie-exported-command-bridge";
+          fasm = task6YpcbPcieExportedCommandBridgeFasm;
+          framesBase = "task6-ypcb-pcie-exported-command-bridge";
         };
 
         task6YpcbPcieUberDdr3RowstreamLoaderYosysJson =
@@ -11819,6 +11865,10 @@ EOF
             task6YpcbPcie7xRowstreamLoopbackYosysJson;
           task6-ypcb-pcie7x-rowstream-loopback-bitstream =
             task6YpcbPcie7xRowstreamLoopbackBitstream;
+          task6-ypcb-pcie-exported-command-bridge-yosys-json =
+            task6YpcbPcieExportedCommandBridgeYosysJson;
+          task6-ypcb-pcie-exported-command-bridge-bitstream =
+            task6YpcbPcieExportedCommandBridgeBitstream;
           task6-ypcb-pcie-uberddr3-rowstream-loader-yosys-json =
             task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
           task6-ypcb-pcie-uberddr3-rowstream-loader-xdc =
