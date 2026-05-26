@@ -24935,3 +24935,16 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write /nix/store/hdc7a1
 Run artifact: `artifacts/task6/runs/2026-05-26T11-56-31+0200-pcie-rowstream-top1-bpi-flash`. openFPGALoader used `bpiOverJtag_xc7k480tffg1156.bit.gz`, detected Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
 
 Next hardware step: power-cycle the FPGA/chassis so the FPGA boots the rowstream-top1 PCIe image from BPI flash before host PCIe enumeration. Then rerun `scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar --run-debug`; if BAR0 reports the `T6PC` header, continue to `rowstream-top1 --sample-count 1`.
+
+### 2026-05-26 - Post-BPI power-cycle still needs full PCIe re-enumeration
+
+After power-cycling into the flashed sequential rowstream-top1 image, the lifecycle gate saw the endpoint at `0000:42:00.0` but still no assigned BAR0:
+
+```bash
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar --run-debug --label pcie-lifecycle-after-rowstream-bpi-powercycle
+# classification: missing_resource0
+```
+
+Delegated endpoint recovery with and without endpoint reset did not recover `resource0`; a longer 60-second remove/rescan also timed out with the endpoint present without BAR0. Raw `resource` showed all-zero BAR resources, while the bridge still had a 1 MiB memory window. A direct config read after the transient reset window showed the endpoint identity as `10ee:0480`, but BAR0 remained absent.
+
+The synthesized rowstream-top1 JSON still contains the same nonzero `PCIE_2_1` `BAR0` parameter as the known PCIe smoke/loopback images, so the current evidence points to host/chassis enumeration order rather than a missing BAR parameter in RTL. The next hardware step is a full Thunderbolt/chassis re-enumeration with the FPGA already booted from BPI flash: disconnect/reconnect the chassis, or reboot the laptop with the chassis powered and FPGA booted. Then rerun the lifecycle gate before any flash probe, because flash probing may load the BPI bridge into SRAM for flash access.

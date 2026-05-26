@@ -1,0 +1,16 @@
+empty
+write to flash
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz   
+Detect flash:
+BPI flash board: defer bridge loading to BPI path
+Detail: 
+Jedec ID          : 14
+memory type       : d8
+memory capacity   : 54
+RDSR : 0x14
+WIP  : 0
+WEL  : 0
+BP   : 5
+TB   : 0
+SRWD : 0
+Done
