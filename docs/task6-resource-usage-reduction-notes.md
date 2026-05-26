@@ -24889,3 +24889,16 @@ Error: fail to open /usr/local/share/openFPGALoader/spiOverJtag_xc7k480t.bit.gz
 ```
 
 Next PCIe stabilization step is to provide/build the correct spiOverJtag bridge for `xc7k480t` or confirm the correct openFPGALoader part alias before attempting any flash write.
+
+### 2026-05-26 - Task 6 flash helper uses local YPCB BPI path
+
+The rootless Task 6 flash helper now defaults to the known-good local loader and board/adapter combination:
+
+```bash
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 probe
+# /home/roland/openFPGALoader/build/openFPGALoader -b ypcb003381p1 -c digilent_hs3 --ftdi-serial 210299BF3824 --detect -f
+```
+
+This avoids the stale/generic SPI-over-JTAG path that looked for a missing `spiOverJtag_xc7k480t.bit.gz`. The validated probe run is `artifacts/task6/runs/2026-05-26T11-46-20+0200-pcie-flash-board-hs3-probe`; it detected BPI flash through the YPCB board definition and printed `BPI flash board: defer bridge loading to BPI path`.
+
+Use `--board ""` only for explicit generic cable/part experiments. The Task 6 smooth path should stay on the local `/home/roland/openFPGALoader/build/openFPGALoader` binary, `-b ypcb003381p1`, and `-c digilent_hs3`.

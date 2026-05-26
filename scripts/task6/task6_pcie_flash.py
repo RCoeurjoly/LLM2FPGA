@@ -20,6 +20,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 RUNS_ROOT = ROOT / "artifacts" / "task6" / "runs"
 DEFAULT_OPENFPGALOADER = Path("/home/roland/openFPGALoader/build/openFPGALoader")
+DEFAULT_BOARD = "ypcb003381p1"
 DEFAULT_CABLE = "digilent_hs3"
 DEFAULT_SERIAL = "210299BF3824"
 DEFAULT_FPGA_PART = "xc7k480t"
@@ -56,15 +57,21 @@ def run(cmd: list[str], label: str) -> int:
 
 
 def base_cmd(args: argparse.Namespace) -> list[str]:
-    cmd = [
-        str(args.openfpgaloader),
-        "-c",
-        args.cable,
-        "--ftdi-serial",
-        args.ftdi_serial,
-        "--fpga-part",
-        args.fpga_part,
-    ]
+    cmd = [str(args.openfpgaloader)]
+    if args.board:
+        cmd += ["-b", args.board]
+        if args.cable:
+            cmd += ["-c", args.cable]
+        cmd += ["--ftdi-serial", args.ftdi_serial]
+    else:
+        cmd += [
+            "-c",
+            args.cable,
+            "--ftdi-serial",
+            args.ftdi_serial,
+            "--fpga-part",
+            args.fpga_part,
+        ]
     if args.bridge is not None:
         cmd += ["--bridge", args.bridge]
     return cmd
@@ -73,6 +80,11 @@ def base_cmd(args: argparse.Namespace) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--openfpgaloader", type=Path, default=DEFAULT_OPENFPGALOADER)
+    parser.add_argument(
+        "--board",
+        default=DEFAULT_BOARD,
+        help='openFPGALoader board name; pass "" to use --cable/--fpga-part mode',
+    )
     parser.add_argument("--cable", default=DEFAULT_CABLE)
     parser.add_argument("--ftdi-serial", default=DEFAULT_SERIAL)
     parser.add_argument("--fpga-part", default=DEFAULT_FPGA_PART)

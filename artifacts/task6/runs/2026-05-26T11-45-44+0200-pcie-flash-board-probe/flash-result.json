@@ -1,0 +1,14 @@
+{
+  "finished_at": "2026-05-26T11:45:44.848753+02:00",
+  "argv": [
+    "/home/roland/openFPGALoader/build/openFPGALoader",
+    "-b",
+    "ypcb003381p1",
+    "--ftdi-serial",
+    "210299BF3824",
+    "--detect",
+    "-f"
+  ],
+  "returncode": 1,
+  "run_dir": "artifacts/task6/runs/2026-05-26T11-45-44+0200-pcie-flash-board-probe"
+}
