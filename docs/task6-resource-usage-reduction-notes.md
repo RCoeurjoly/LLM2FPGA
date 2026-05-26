@@ -25216,3 +25216,20 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-lifecy
 Artifact `artifacts/task6/runs/2026-05-26T14-15-27+0200-pcie-lifecycle-after-cold-connected-reboot` classified `missing_resource0`. This is progress from the prior `COMMAND=ffff` state, but still not BAR-capable: `config_decoded.command=0147`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=ffff`, `bar0=00000000`, and no `resource0`.
 
 No recovery, rescan, BAR/debug, or top1 command was run. Next low-risk step is to verify what image is actually configured via JTAG/readback or LEDs before attempting any more PCIe operations.
+
+
+### 2026-05-26 - JTAG alive after cold reboot; flash image is stale
+
+Commit note: `Record Task 6 cold reboot JTAG detect`.
+
+After the cold connected reboot missing-BAR lifecycle result, ran a non-PCIe JTAG detect under the board lock:
+
+```sh
+python3 scripts/task6/task6_board_run.py with-lock \
+  --run-dir artifacts/task6/runs/2026-05-26T1418-jtag-detect-after-cold-reboot \
+  --log-name openfpgaloader-detect.log -- \
+  /home/roland/openFPGALoader/build/openFPGALoader \
+    -b ypcb003381p1 -c digilent_hs3 --ftdi-serial 210299BF3824 --detect
+```
+
+JTAG detected `xc7k480t` successfully, so the FPGA chain is alive. The prior BPI flash artifact shows flash currently contains `/nix/store/hdc7a117ilvxglf3zcg10i080749zv96-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`, while the later cleaned XDC routed image is `/nix/store/i2cwrhxrdp9sgch1k4cc2mfnlhlsznff-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`. Next forward step should be to write the current cleaned image to BPI flash, then cold-enumerate again.
