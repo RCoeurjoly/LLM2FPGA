@@ -297,6 +297,29 @@ Interpretation:
 - This matches the earlier exported-command-bridge hot behavior and should not be used to classify the RTL by itself.
 - The decisive check remains cold BPI enumeration with the FPGA configured before the host enumerates the Thunderbolt/PCIe tree.
 
+
+### 2026-05-26 - DDR3-isolated command bridge cold-BPI PASS
+
+Evidence after full shutdown, FPGA/chassis power-cycle, flash configuration, and laptop boot with chassis already powered:
+
+| check | result |
+| --- | --- |
+| lifecycle | `pcie_ready`; artifact `artifacts/task6/runs/2026-05-26T18-38-02+0200-pcie-ddr3-isolated-command-bridge-cold-bpi` |
+| BAR header | PASS; BAR0 magic `T6PC`, version `1`, command-bridge initialized payload `0x12345678` |
+| command-header | PASS; status `0x00000001`, accepted count `0` |
+| command-echo | PASS; payload echo matched |
+| command-doorbell | PASS; accepted count advanced from `0` to `2`, accepted payload matched |
+| full command smoke | PASS; accepted count advanced from `2` to `4`, accepted payload matched |
+
+Interpretation:
+
+- DDR3 physical integration, DDR clocks, DDR IO constraints, 11 BUFGCTRL use, 3 BSCANs, and the two-lane DDR/top1 resource pressure do not by themselves break PCIe BAR advertisement or BAR MMIO when the image is present before host enumeration.
+- The full rowstream image failure boundary is now narrowed to the rowstream PCIe ingress/CDC/status register file, its coupling to the DDR/top1 block, or the full image's specific timing/placement after that coupling.
+
+Next engineering step:
+
+- Build a rowstream-ingress dummy-backend image: keep the patched/exported PCIe shell and instantiate `task6_pcie_axil_rowstream_loader_ingress_cdc`, but replace the DDR backend with constant/toggle status signals. If this cold-BPI image passes BAR/header/register reads, the CDC/register file is not the BAR root cause. If it fails, the rowstream ingress path is enough to break PCIe before DDR traffic is involved.
+
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
 ### 2026-05-20 - Active one-lane full-bank baseline consumed from `~/UberDDR3_vainilla`
