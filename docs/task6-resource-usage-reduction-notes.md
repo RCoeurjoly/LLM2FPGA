@@ -25786,3 +25786,25 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
 Run artifact: `artifacts/task6/runs/2026-05-26T19-29-59+0200-pcie-rowstream-loader-only-seed19-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron 64 MB BPI flash, wrote `18735004` bytes at offset `0x000000`, verified the first 32 words, and reported `BPI flash programming complete`.
 
 The next probe requires cold enumeration from flash.
+
+
+### 2026-05-26 - Rowstream loader-only seed19 cold missing endpoint
+
+Commit note: `Record Task 6 loader-only seed19 cold result`.
+
+After flashing the seed19 PCIe+DDR rowstream loader-only image to BPI, performed the full cold enumeration sequence. The first lifecycle probe did not find the FPGA endpoint:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-rowstream-loader-only-seed19-cold-bpi
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T19-41-09+0200-pcie-rowstream-loader-only-seed19-cold-bpi`. Classification was `missing_endpoint`. A single delegated upstream bridge rescan completed, but the endpoint remained absent:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh bridge-rescan 0000:42:00.0 0000:41:00.0
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-rowstream-loader-only-seed19-after-bridge-rescan
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T19-41-35+0200-pcie-rowstream-loader-only-seed19-after-bridge-rescan`. Classification remained `missing_endpoint`.
+
+Conclusion: seed19 is worse than seed15 for the combined PCIe+DDR loader-only image. Seed15 cold-enumerated with BAR0 and then failed DDR calibration; seed19 does not expose the PCIe endpoint at all. Do not spend more board time on seed19.
