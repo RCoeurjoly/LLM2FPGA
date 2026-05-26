@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "skipped": true,
+  "pre_classification": "missing_resource0",
+  "reason": "bridge rescan is skipped unless the endpoint is missing; use --force-rescan only for a deliberate PCIe recovery experiment"
+}

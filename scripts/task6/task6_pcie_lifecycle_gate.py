@@ -111,7 +111,7 @@ def classify(snapshot: dict[str, object]) -> str:
 
 
 def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]:
-    lifecycle_probe = f"scripts/task6/task6_pcie_user_gate.sh lifecycle {bdf} --rescan"
+    lifecycle_probe = f"scripts/task6/task6_pcie_user_gate.sh lifecycle {bdf}"
     lifecycle_bar = f"scripts/task6/task6_pcie_user_gate.sh lifecycle {bdf} --run-bar --run-debug"
     recover = f"scripts/task6/task6_pcie_user_gate.sh recover {bdf} --reset-first --timeout 20"
     bar = f"scripts/task6/task6_pcie_user_gate.sh bar {bdf} --mode header"
@@ -121,11 +121,11 @@ def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]
 
     table = {
         "missing_bridge": [
-            "Reconnect or power-cycle the Thunderbolt chassis, then run the non-BAR lifecycle probe: " + lifecycle_probe,
+            "Reconnect or power-cycle the Thunderbolt chassis, then run the non-BAR lifecycle probe without rescan: " + lifecycle_probe,
         ],
         "missing_endpoint": [
-            "Ensure the FPGA booted from BPI flash before host PCIe enumeration, then run the non-BAR lifecycle probe: " + lifecycle_probe,
-            "If the bridge is present but the endpoint is absent, try a rootless bridge rescan: " + bridge_rescan,
+            "Ensure the FPGA booted from BPI flash before host PCIe enumeration, then run the non-BAR lifecycle probe without rescan: " + lifecycle_probe,
+            "If the bridge is present but the endpoint is absent, try one rootless bridge rescan: " + bridge_rescan,
         ],
         "config_unreadable": [
             "Config space is not readable yet; wait briefly or power-cycle the chassis, then run the non-BAR lifecycle probe: " + lifecycle_probe,
@@ -220,6 +220,11 @@ def main() -> int:
     parser.add_argument("--bridge-bdf", default=EXPECTED_BRIDGE)
     parser.add_argument("--label", default="pcie-lifecycle")
     parser.add_argument("--rescan", action="store_true", help="write the delegated bridge rescan before probing")
+    parser.add_argument(
+        "--force-rescan",
+        action="store_true",
+        help="write bridge rescan even when a pre-snapshot classifies the endpoint as present or stale",
+    )
     parser.add_argument("--wait", type=float, default=0.5, help="seconds to wait after rescan")
     parser.add_argument("--run-bar", action="store_true")
     parser.add_argument("--run-debug", action="store_true")
@@ -229,15 +234,47 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=False)
 
     bridge = Path("/sys/bus/pci/devices") / args.bridge_bdf
+    snap: dict[str, object] | None = None
     if args.rescan:
-        ok, err = write_one(bridge / "rescan")
-        (run_dir / "bridge-rescan.json").write_text(
-            json.dumps({"ok": ok, "error": err}, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        time.sleep(args.wait)
+        pre_snap = snapshot(args.bdf, args.bridge_bdf)
+        pre_classification = str(pre_snap["classification"])
+        if not args.force_rescan and pre_classification != "missing_endpoint":
+            (run_dir / "bridge-rescan.json").write_text(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "skipped": True,
+                        "pre_classification": pre_classification,
+                        "reason": (
+                            "bridge rescan is skipped unless the endpoint is missing; "
+                            "use --force-rescan only for a deliberate PCIe recovery experiment"
+                        ),
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            snap = pre_snap
+        else:
+            ok, err = write_one(bridge / "rescan")
+            (run_dir / "bridge-rescan.json").write_text(
+                json.dumps(
+                    {
+                        "ok": ok,
+                        "error": err,
+                        "forced": bool(args.force_rescan),
+                        "pre_classification": pre_classification,
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            time.sleep(args.wait)
 
-    snap = snapshot(args.bdf, args.bridge_bdf)
+    if snap is None:
+        snap = snapshot(args.bdf, args.bridge_bdf)
     snap["recommendations"] = recommendations(str(snap["classification"]), args.bdf, args.bridge_bdf)
     maybe_run_bar_checks(snap, run_dir, args)
     (run_dir / "pcie-lifecycle.json").write_text(json.dumps(snap, indent=2) + "\n", encoding="utf-8")

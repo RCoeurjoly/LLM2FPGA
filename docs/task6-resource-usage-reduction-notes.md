@@ -25152,3 +25152,20 @@ scripts/task6/task6_pcie_user_gate.sh rowstream-top1 0000:42:00.0 --sample-count
 ```
 
 This keeps the Task 6 top1 acceptance gate from touching MMIO until the non-BAR lifecycle probe reports `pcie_ready`.
+
+
+### 2026-05-26 - Lifecycle skips rescan on present stale endpoints
+
+Commit note: `Skip Task 6 lifecycle rescan on stale endpoints`.
+
+Made `scripts/task6/task6_pcie_lifecycle_gate.py` safer for the repeated laptop-freeze pattern. `--rescan` now takes a pre-snapshot first and writes the delegated bridge rescan only when the endpoint is missing. If the endpoint is already present but classified stale/corrupt/missing-BAR, lifecycle records a skipped `bridge-rescan.json` instead of poking PCIe again. `--force-rescan` remains available for deliberate experiments.
+
+Verification:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --label pcie-lifecycle-rescan-skip-check
+# classification: missing_resource0
+# bridge-rescan.json: skipped=true, pre_classification=missing_resource0
+```
+
+The normal safe first check is now `scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0` with no rescan. Only if the endpoint is absent should rootless bridge rescan be considered.
