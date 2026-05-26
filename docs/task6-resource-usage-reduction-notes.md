@@ -24840,3 +24840,29 @@ After a physical Thunderbolt/FPGA power-cycle, the Thunderbolt bridge stack came
 ```
 
 Added a separate, narrowly scoped udev helper for fixed bridge `0000:41:00.0` that validates `vendor=0x8086`, `device=0x5786`, `subsystem_vendor=0x2222`, `subsystem_device=0x1111`, and delegates only that bridge `rescan` node to `plugdev`. Home Manager now publishes `task6-pcie-bridge-permissions` into `~/.local/share/task6-udev`; the root-installed `/etc/udev` rule still needs one install/trigger before the bridge rescan is live.
+
+
+### 2026-05-26 - Post-power-cycle bridge rescan still finds no BAR0
+
+After installing the bridge-rescan helper and power-cycling, the Thunderbolt bridge stack returned but the endpoint was initially absent. The new bridge `rescan` delegation was live and could be used without sudo. JTAG still detected the Kintex-7, so the FPGA was powered.
+
+Reprogrammed the debug-aperture bitstream after the power-cycle:
+
+```text
+run: artifacts/task6/runs/2026-05-26T11-21-20+0200-pcie-rowstream-debug-after-powercycle
+openFPGALoader: isc_done 1, init 1, done 1
+```
+
+Then rescanned the immediate bridge and retried endpoint recovery. The endpoint appeared as `10ee:0480`, but config space stayed unstable and BAR0/resource0 never appeared:
+
+```text
+COMMAND=0147
+VENDOR_ID=10ee
+DEVICE_ID=ffff
+HEADER_TYPE=ff
+BASE_ADDRESS_0 unavailable
+resource table: all zeroes
+resource0: absent
+```
+
+Conclusion: udev/rootless permissions are no longer the limiting factor. The programmed image is not producing a stable PCIe endpoint/BAR through this Thunderbolt path after the current programming sequence. Continue at the PCIe bitstream/endpoint bring-up layer before DDR debug can proceed.
