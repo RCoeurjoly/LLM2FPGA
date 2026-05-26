@@ -25308,3 +25308,15 @@ scripts/task6/task6_pcie_user_gate.sh rowstream-loopback 0000:42:00.0
 Result: `PASS: Task 6 PCIe rowstream loopback matched`, `accepted_count` advanced from 0 to 1, checksum sum matched `0x00077880`, checksum xor matched `0x00000000`, first/last words matched, and mismatch was zero. This proves the laptop/chassis/udev/BAR path works when the FPGA image advertises BAR0 reliably. The remaining blocker is specific to the full PCIe+DDR rowstream image or its integration, not the host path.
 
 Also fixed `scripts/task6/task6_pcie_lifecycle_gate.py` to allocate a suffixed run directory when repeated lifecycle invocations land in the same second, avoiding `FileExistsError` on labels like `pcie-loopback-after-chassis-cycle`.
+
+### 2026-05-26 - Loopback BAR path remains stable across transactions
+
+Commit note: `Record Task 6 second loopback pass`.
+
+The user reran the rootless rowstream loopback gate against the BPI-flashed loopback image:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh rowstream-loopback 0000:42:00.0
+```
+
+Result: `PASS: Task 6 PCIe rowstream loopback matched`, `accepted_count` advanced from 1 to 2, checksum sum matched `0x00077880`, checksum xor matched `0x00000000`, first/last words matched, and mismatch was zero. This confirms the BAR path is not just a one-shot success; the loopback image continues to accept host writes and return coherent result registers. The next Task 6 isolation step is to flash the PCIe-only command-bridge image, cold-enumerate it, and test command/status registers before returning to the full DDR3 rowstream-top1 image.
