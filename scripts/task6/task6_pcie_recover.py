@@ -50,6 +50,16 @@ def command_value(bdf: str) -> int | None:
     return int(text, 16)
 
 
+def config_words(bdf: str) -> list[str]:
+    result = run(
+        ["setpci", "-s", bdf, "COMMAND", "VENDOR_ID", "DEVICE_ID", "HEADER_TYPE"],
+        check=False,
+    )
+    if result.returncode != 0:
+        return []
+    return result.stdout.split()
+
+
 def verify_identity(device: Path, *, allow_stale_subsystem: bool = False) -> None:
     fields = {
         "vendor": EXPECTED_VENDOR,
@@ -135,6 +145,15 @@ def main() -> int:
         default=1.0,
         help="seconds between repeated upstream bridge rescans while waiting for BAR0",
     )
+    parser.add_argument(
+        "--force-dead-config",
+        action="store_true",
+        help=(
+            "attempt remove/rescan even when live PCI config reads as all 0xffff; "
+            "normally this is treated as a stale Thunderbolt function that needs "
+            "chassis or host re-enumeration"
+        ),
+    )
     args = parser.parse_args()
 
     device = Path("/sys/bus/pci/devices") / args.bdf
@@ -149,6 +168,21 @@ def main() -> int:
     command_before = command_value(args.bdf)
     print(endpoint or f"{args.bdf} not shown by lspci")
     print("COMMAND before: " + ("none" if command_before is None else f"0x{command_before:04x}"))
+    words_before = [word.lower() for word in config_words(args.bdf)]
+    if (
+        not args.force_dead_config
+        and command_before == 0xFFFF
+        and not (device / "resource0").exists()
+    ):
+        observed = " ".join(words_before) if words_before else "unreadable"
+        raise SystemExit(
+            "live PCI config COMMAND reads as 0xffff and BAR0 is absent; "
+            f"refusing delegated remove/rescan by default (config={observed}) "
+            "because this stale Thunderbolt function state has correlated with "
+            "host freezes. Re-enumerate the chassis or reboot with the FPGA "
+            "already configured, then run lifecycle again. Use "
+            "--force-dead-config only for a deliberate recovery experiment."
+        )
 
     if args.reset_first and (real_device / "reset").exists():
         write_one(real_device / "reset", "endpoint reset")

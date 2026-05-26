@@ -25094,3 +25094,14 @@ wc -c /usr/local/libexec/task6-pcie/task6-pcie-pci-permissions /etc/udev/rules.d
 The home-manager payload under `/home/roland/.local/share/task6-udev` was nonzero, so the dotfiles installer was hardened to resolve payload symlinks with `readlink -f` and fail if any source or installed destination is empty. Ran `bash -n udev/install-task6-pcie-rules.sh` and `home-manager switch --flake /home/roland/FutureProofDotfiles#roland`.
 
 Do not mmap or probe BAR0 while config reads show `COMMAND=ffff` or while the root-installed udev rule/helper are zero bytes. Reinstall the fixed udev payload first, verify nonzero file sizes and `plugdev` permissions, then resume with single-operation lifecycle checks.
+
+
+### 2026-05-26 - Guard rootless recovery from dead PCIe config
+
+Commit note: `Guard Task 6 recovery against dead PCIe config`.
+
+After reinstalling the nonzero udev payload and rebooting/power-cycling attempts, the endpoint again reached a stale Thunderbolt state: sysfs retained the expected `10ee:0480` / `10ee:abcd` identity and delegated `remove/reset/rescan`, but live PCI config sometimes returned all `ffff` and sometimes returned `COMMAND=0000` with BAR0 register `00000000`. The safe JTAG detect still passed through the local `/home/roland/openFPGALoader/build/openFPGALoader` binary, confirming the FPGA JTAG chain is reachable. A JPROGRAM reload did not make Linux assign BAR0; lifecycle artifact `artifacts/task6/runs/2026-05-26T13-34-03+0200-pcie-lifecycle-after-jprogram-post-freeze` classified `corrupt_command` with no `resource0`.
+
+Because two laptop freezes happened while iterating on stale/corrupt PCIe recovery states, `scripts/task6/task6_pcie_recover.py` now refuses delegated remove/rescan by default when live `COMMAND` reads `0xffff` and BAR0 is absent. That state is treated as needing Thunderbolt/chassis or host re-enumeration with the FPGA already configured. A new `--force-dead-config` flag keeps the old behavior available for deliberate experiments, but it should not be part of the normal Task 6 acceptance path.
+
+Current hardware conclusion: no board-side rowstream-top1 gate should run from this state. The next safe hardware step is to get a clean host enumeration where lifecycle reports `pcie_ready`; only then run BAR/debug and `rowstream-top1 --sample-count 1`.
