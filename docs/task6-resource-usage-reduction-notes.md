@@ -24733,3 +24733,31 @@ Results:
 - Place/route converged at router iteration 11 with `overuse=0`, `archfail=0`.
 - Routed timing passed: `rowstream_clk` 55.76 MHz against 25 MHz, `pcie_user_clk` 70.30 MHz against 12 MHz.
 - Bitstream: `/nix/store/hdc7a117ilvxglf3zcg10i080749zv96-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`.
+
+
+### 2026-05-26 - Debug aperture programming exposed stale PCIe endpoint
+
+Programmed the debug-aperture bitstream through the board lock:
+
+```bash
+python3 scripts/task6/task6_board_run.py with-lock \
+  --run-dir artifacts/task6/runs/2026-05-26T10-34-39+0200-pcie-rowstream-debug-aperture-program \
+  --log-name program-openfpgaloader.log \
+  -- /home/roland/openFPGALoader/build/openFPGALoader \
+    -c digilent_hs3 --ftdi-serial 210299BF3824 \
+    /nix/store/hdc7a117ilvxglf3zcg10i080749zv96-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+`openFPGALoader` completed successfully with `isc_done 1`, `init 1`, and `done 1`.
+
+Immediate rootless debug dump did not reach the new aperture because the host still had the old PCIe function instance after FPGA reprogramming:
+
+```text
+COMMAND: 0x0000
+magic:        0xffffffff
+debug_magic:  0xffffffff
+```
+
+`setpci -s 0000:42:00.0 COMMAND VENDOR_ID DEVICE_ID` also returned all `ffff`, confirming stale config-space reads rather than a valid BAR response. Current udev permissions delegate only `resource0`; `remove`, `reset`, per-device `rescan`, bridge `rescan`, and global `/sys/bus/pci/rescan` remain root-only. The next blocker is therefore PCIe recovery after JTAG reprogramming, before the rowstream reset/calibration debug aperture can be sampled.
+
+Considered extending the Home Manager udev helper to delegate endpoint recovery writes. A broad version with config/global rescan and a narrower version with endpoint `remove`/`reset`/`rescan` plus immediate parent bridge `rescan` were both rejected by the safety reviewer as persistent PCI permission broadening without explicit user approval of the blast radius. No dotfiles change was committed.
