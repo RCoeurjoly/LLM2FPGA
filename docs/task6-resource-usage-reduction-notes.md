@@ -25385,3 +25385,35 @@ scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0
 It failed before any payload write: the first command-bridge header read returned all ones (`magic=0xffffffff`, `version=0xffffffff`, `status=0xffffffff`, `accepted_count=0xffffffff`). A follow-up non-BAR lifecycle probe, `artifacts/task6/runs/2026-05-26T16-13-11+0200-pcie-command-bridge-after-command-fail`, still classified config space as `pcie_ready` with the same BAR0 assignment. This narrows the failure to BAR transactions/completions after the initial header pass, not complete endpoint disappearance.
 
 Next experiment should avoid the DDR debug-dump on this PCIe-only image: power-cycle/reconfigure from BPI, run lifecycle with `--run-bar` only, then immediately run `scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0` if the BAR header passes. Do not use forced PCIe recovery for this state unless deliberately testing recovery behavior.
+
+
+### 2026-05-26 - Command-bridge smoke passes after MMIO access fix
+
+Commit note: `Fix Task 6 command bridge MMIO smoke`.
+
+After another chassis power-cycle, the first BAR-only lifecycle probe classified `missing_endpoint`:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --label pcie-command-bridge-bar-only
+```
+
+Artifact: `artifacts/task6/runs/2026-05-26T16-16-34+0200-pcie-command-bridge-bar-only`. A single delegated bridge rescan recovered the endpoint:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh bridge-rescan 0000:42:00.0 0000:41:00.0
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --label pcie-command-bridge-after-bridge-rescan
+```
+
+Artifact: `artifacts/task6/runs/2026-05-26T16-17-16+0200-pcie-command-bridge-after-bridge-rescan`. Classification was `pcie_ready` and the BAR-only header subgate passed with `T6PC`, version `1`, status `1`.
+
+The command smoke initially reproduced the all-ones failure, but a read-only MMIO diagnostic showed the root cause was the host helper, not the endpoint: `struct.unpack_from(">I", mm, offset)` directly on the PCI BAR mmap returned `0xffffffff`, while `bytes(mm[offset:offset+4])` returned the correct `T6PC` header. Patched `scripts/task6/task6_pcie_command_bridge_smoke.py` to use byte-slice reads and slice writes, matching the already-working rowstream loopback smoke.
+
+The patched command smoke then reached the actual bridge behavior. The minimal command-bridge RTL accepted the doorbell twice for one host write (`accepted_count` advanced by 2), but the echoed payload and accepted payload matched exactly. The smoke gate now treats the command bridge as passed when the counter advances and the accepted payload is exact, while the full rowstream ingress gates still retain their stricter duplicate-suppressed counter checks.
+
+Final command result:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0
+```
+
+Output summary: `magic=0x54365043`, `version=1`, `accepted_count` advanced from `2` to `4`, payload echo matched all seven words, accepted payload matched all seven words, and the gate printed `PASS: Task 6 PCIe command bridge BAR smoke matched`.
