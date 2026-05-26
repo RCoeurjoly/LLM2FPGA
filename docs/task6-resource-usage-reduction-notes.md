@@ -25883,3 +25883,19 @@ Place/route completed with 10 warnings and 0 errors. Packed resources included 2
 
 This is the direct follow-up to the loader-only seed20 cold DDR pass. The next acceptance step is to flash this full seed20 image, cold-enumerate it from BPI, run the rowstream-loader smoke, then run the board-side `rowstream-top1` gate.
 
+### 2026-05-26 - Full rowstream-top1 seed20 image flashed to BPI
+
+Commit note: `Record Task 6 full rowstream seed20 flash`.
+
+Flashed the full PCIe+DDR rowstream loader/top1 seed20 candidate to BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
+  /nix/store/zry320qwwh9i2p4cq97fh34cpwlwaxp4-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20.bit \
+  --confirm-write-flash --label pcie-rowstream-full-seed20-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T20-24-24+0200-pcie-rowstream-full-seed20-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron 64 MB BPI flash, wrote `18735004` bytes at offset `0x000000`, verified the first 32 words, and reported `BPI flash programming complete`.
+
+The next probe requires cold enumeration from flash.
+
