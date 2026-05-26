@@ -110,6 +110,56 @@ def classify(snapshot: dict[str, object]) -> str:
     return "pcie_ready"
 
 
+def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]:
+    lifecycle = f"scripts/task6/task6_pcie_user_gate.sh lifecycle {bdf} --rescan --run-bar --run-debug"
+    recover = f"scripts/task6/task6_pcie_user_gate.sh recover {bdf} --reset-first --timeout 20"
+    flash_probe = f"scripts/task6/task6_pcie_user_gate.sh flash {bdf} probe"
+    bar = f"scripts/task6/task6_pcie_user_gate.sh bar {bdf} --mode header"
+    top1 = f"scripts/task6/task6_pcie_user_gate.sh rowstream-top1 {bdf} --sample-count 1"
+    bridge_rescan = f"scripts/task6/task6_pcie_user_gate.sh bridge-rescan {bridge_bdf}"
+    install_rules = "/home/roland/.local/bin/install-task6-pcie-rules.sh"
+
+    table = {
+        "missing_bridge": [
+            "Reconnect or power-cycle the Thunderbolt chassis, then run: " + lifecycle,
+        ],
+        "missing_endpoint": [
+            "Ensure the FPGA booted from BPI flash before host PCIe enumeration, then run: " + lifecycle,
+            "If the bridge is present but the endpoint is absent, try a rootless bridge rescan: " + bridge_rescan,
+        ],
+        "config_unreadable": [
+            "Config space is not readable yet; wait briefly or power-cycle the chassis, then run: " + lifecycle,
+        ],
+        "corrupt_command": [
+            "Config space is returning 0xffff; use flash-first boot, power-cycle the chassis, then run: " + lifecycle,
+            "Confirm the BPI flash path is reachable without writing: " + flash_probe,
+        ],
+        "wrong_vendor": [
+            "The BDF no longer points at the expected Xilinx endpoint; inspect lspci and update TASK6_PCIE_ALLOWED_BDF only if the endpoint moved.",
+        ],
+        "corrupt_device_id": [
+            "The endpoint partially enumerated but device ID is wrong; power-cycle the chassis and rerun: " + lifecycle,
+        ],
+        "corrupt_header_type": [
+            "The endpoint header is corrupt; power-cycle the chassis after flash boot and rerun: " + lifecycle,
+        ],
+        "missing_resource0": [
+            "The endpoint is present without BAR0; try delegated endpoint recovery: " + recover,
+        ],
+        "resource0_permission": [
+            "Reinstall/trigger the Task 6 udev rule, then replug or rescan: " + install_rules,
+        ],
+        "mem_disabled": [
+            "PCI memory space is disabled; reinstall/trigger the udev rule, then rerun: " + lifecycle,
+        ],
+        "pcie_ready": [
+            "BAR0 is usable; run the BAR gate: " + bar,
+            "After BAR/debug are stable, run the first board top1 gate: " + top1,
+        ],
+    }
+    return table.get(classification, ["Unknown lifecycle classification; inspect pcie-lifecycle.json in the run directory."])
+
+
 def snapshot(bdf: str, bridge_bdf: str) -> dict[str, object]:
     device = Path("/sys/bus/pci/devices") / bdf
     bridge = Path("/sys/bus/pci/devices") / bridge_bdf
@@ -186,11 +236,15 @@ def main() -> int:
         time.sleep(args.wait)
 
     snap = snapshot(args.bdf, args.bridge_bdf)
+    snap["recommendations"] = recommendations(str(snap["classification"]), args.bdf, args.bridge_bdf)
     maybe_run_bar_checks(snap, run_dir, args)
     (run_dir / "pcie-lifecycle.json").write_text(json.dumps(snap, indent=2) + "\n", encoding="utf-8")
 
     print(f"classification: {snap['classification']}")
     print(f"run_dir: {run_dir}")
+    print("next:")
+    for item in snap["recommendations"]:
+        print(f"- {item}")
     if snap.get("bar0_magic"):
         print(f"bar0_magic: {snap['bar0_magic']}")
     if snap.get("debug_magic"):

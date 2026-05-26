@@ -24902,3 +24902,15 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 probe
 This avoids the stale/generic SPI-over-JTAG path that looked for a missing `spiOverJtag_xc7k480t.bit.gz`. The validated probe run is `artifacts/task6/runs/2026-05-26T11-46-20+0200-pcie-flash-board-hs3-probe`; it detected BPI flash through the YPCB board definition and printed `BPI flash board: defer bridge loading to BPI path`.
 
 Use `--board ""` only for explicit generic cable/part experiments. The Task 6 smooth path should stay on the local `/home/roland/openFPGALoader/build/openFPGALoader` binary, `-b ypcb003381p1`, and `-c digilent_hs3`.
+
+### 2026-05-26 - Task 6 lifecycle gate now prints recovery actions
+
+The lifecycle gate now writes `recommendations` into `pcie-lifecycle.json` and prints the next command for each classification. The implementation check run `artifacts/task6/runs/2026-05-26T11-48-29+0200-pcie-lifecycle-recommendations-check` classified the board as `missing_resource0` and recommended delegated recovery.
+
+The delegated recovery command succeeded and restored `resource0`:
+
+```bash
+scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeout 20
+```
+
+The post-recovery lifecycle run `artifacts/task6/runs/2026-05-26T11-48-58+0200-pcie-lifecycle-post-recover` then classified the board as `mem_disabled` with `COMMAND=0x0000`. Root-installed udev still lacks the helper fix that writes `enable=1`; the FutureProofDotfiles source has been updated and home-manager has installed the updated payload in the user profile. The remaining one-time root step is to reinstall the Task 6 udev files from `/home/roland/.local/bin/install-task6-pcie-rules.sh`, then rerun lifecycle/recover.
