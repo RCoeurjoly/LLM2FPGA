@@ -25362,3 +25362,26 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-deb
 Artifact: `artifacts/task6/runs/2026-05-26T16-09-33+0200-pcie-command-bridge-after-flash`. Classification was `missing_resource0`, so the lifecycle gate did not touch BAR0. This is consistent with the board still running the BPI-over-JTAG SRAM helper loaded by flash programming rather than the newly flashed command-bridge image.
 
 Do not escalate to forced PCIe recovery for this state. The next valid test requires FPGA/chassis reconfiguration from BPI flash first, then rerun the same lifecycle capture. If it reaches `pcie_ready`, run `scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0`.
+
+
+### 2026-05-26 - Command-bridge enumerates but full command smoke saw all-ones BAR
+
+Commit note: `Record Task 6 command bridge BAR drop`.
+
+After the user power-cycled the chassis, the command-bridge image enumerated cleanly from BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-debug --label pcie-command-bridge-after-reconfig
+```
+
+Artifact: `artifacts/task6/runs/2026-05-26T16-12-18+0200-pcie-command-bridge-after-reconfig`. Classification was `pcie_ready`, config space reported `COMMAND=0002`, `vendor=10ee`, `device=0480`, `subsystem_device=abcd`, `BAR0=74000000`, and `resource0` was user-writable. The lifecycle BAR subgate passed: BAR0 offset 0 read `T6PC`, version `1`, status `1`. The debug-dump subgate returned nonzero because this PCIe-only command image does not implement the full DDR debug aperture and reads the `0x12345678` filler beyond the command bridge header.
+
+Then ran the full command smoke:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0
+```
+
+It failed before any payload write: the first command-bridge header read returned all ones (`magic=0xffffffff`, `version=0xffffffff`, `status=0xffffffff`, `accepted_count=0xffffffff`). A follow-up non-BAR lifecycle probe, `artifacts/task6/runs/2026-05-26T16-13-11+0200-pcie-command-bridge-after-command-fail`, still classified config space as `pcie_ready` with the same BAR0 assignment. This narrows the failure to BAR transactions/completions after the initial header pass, not complete endpoint disappearance.
+
+Next experiment should avoid the DDR debug-dump on this PCIe-only image: power-cycle/reconfigure from BPI, run lifecycle with `--run-bar` only, then immediately run `scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0` if the BAR header passes. Do not use forced PCIe recovery for this state unless deliberately testing recovery behavior.
