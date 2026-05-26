@@ -1,0 +1,17 @@
+{
+  "finished_at": "2026-05-26T12:03:35.953895+02:00",
+  "argv": [
+    "/home/roland/openFPGALoader/build/openFPGALoader",
+    "-b",
+    "ypcb003381p1",
+    "-c",
+    "digilent_hs3",
+    "--ftdi-serial",
+    "210299BF3824",
+    "--write-flash",
+    "--verify",
+    "/nix/store/hdc7a117ilvxglf3zcg10i080749zv96-task6-ypcb-pcie-uberddr3-rowstream-loader.bit"
+  ],
+  "returncode": 0,
+  "run_dir": "artifacts/task6/runs/2026-05-26T11-56-31+0200-pcie-rowstream-top1-bpi-flash"
+}

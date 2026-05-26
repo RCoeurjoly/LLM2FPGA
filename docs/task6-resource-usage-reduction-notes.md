@@ -24914,3 +24914,24 @@ scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeo
 ```
 
 The post-recovery lifecycle run `artifacts/task6/runs/2026-05-26T11-48-58+0200-pcie-lifecycle-post-recover` then classified the board as `mem_disabled` with `COMMAND=0x0000`. Root-installed udev still lacks the helper fix that writes `enable=1`; the FutureProofDotfiles source has been updated and home-manager has installed the updated payload in the user profile. The remaining one-time root step is to reinstall the Task 6 udev files from `/home/roland/.local/bin/install-task6-pcie-rules.sh`, then rerun lifecycle/recover.
+
+### 2026-05-26 - Sequential rowstream-top1 image persisted to BPI flash
+
+The current routed PCIe+DDR3 sequential rowstream-top1 image was restored from Nix and programmed into SRAM for a fast check:
+
+```bash
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream -L --no-link --print-out-paths
+python3 scripts/task6/task6_board_run.py with-lock --run-dir artifacts/task6/runs/2026-05-26T1155-pcie-rowstream-top1-sram-program --log-name program-openfpgaloader.log -- /home/roland/openFPGALoader/build/openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 /nix/store/hdc7a117ilvxglf3zcg10i080749zv96-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+SRAM programming completed with `isc_done=1`, `init=1`, and `done=1`, but post-program PCIe recovery still classified the endpoint as `missing_resource0`. This confirms the fast SRAM path still misses the host enumeration/BAR assignment window for this image.
+
+The same routed image was then written to BPI flash through the guarded local YPCB BPI helper:
+
+```bash
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write /nix/store/hdc7a117ilvxglf3zcg10i080749zv96-task6-ypcb-pcie-uberddr3-rowstream-loader.bit --confirm-write-flash --label pcie-rowstream-top1-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T11-56-31+0200-pcie-rowstream-top1-bpi-flash`. openFPGALoader used `bpiOverJtag_xc7k480tffg1156.bit.gz`, detected Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
+
+Next hardware step: power-cycle the FPGA/chassis so the FPGA boots the rowstream-top1 PCIe image from BPI flash before host PCIe enumeration. Then rerun `scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar --run-debug`; if BAR0 reports the `T6PC` header, continue to `rowstream-top1 --sample-count 1`.
