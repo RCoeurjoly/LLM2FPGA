@@ -25808,3 +25808,18 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-rowstr
 Run artifact: `artifacts/task6/runs/2026-05-26T19-41-35+0200-pcie-rowstream-loader-only-seed19-after-bridge-rescan`. Classification remained `missing_endpoint`.
 
 Conclusion: seed19 is worse than seed15 for the combined PCIe+DDR loader-only image. Seed15 cold-enumerated with BAR0 and then failed DDR calibration; seed19 does not expose the PCIe endpoint at all. Do not spend more board time on seed19.
+
+### 2026-05-26 - Rowstream loader-only seed20 image built
+
+Commit note: `Record Task 6 loader-only seed20 build`.
+
+Built the seed-20 variant of the PCIe+DDR rowstream loader-only diagnostic image:
+
+```text
+/nix/store/mmpy2zxz43h2mc7sq74zjnkhs97gf5wf-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.bit
+```
+
+The build completed with the same logic/resource footprint as seed15 and seed19: 15856 LUTX, 8759 FFX, 4 RAMB36, 18 IDELAYE2, 43 OSERDESE2, 18 ISERDESE2, 11 BUFGCTRL, 3 BSCAN, 1 PCIE/GT, 18 warnings, 0 errors. Placement timing reported about 51.72 MHz for `pcie_user_clk` and 47.60 MHz for `rowstream_clk`; post-route timing reported about 75.39 MHz for `pcie_user_clk` and 70.21 MHz for `rowstream_clk`.
+
+This is still a seed-sensitivity diagnostic, not a functionality change. Compared with seed19, seed20 has weaker post-route PCIe timing but stronger post-route rowstream timing. The useful hardware question is whether it can at least preserve PCIe enumeration like seed15, and then whether DDR calibration improves.
+
