@@ -25028,3 +25028,20 @@ home-manager switch --flake /home/roland/FutureProofDotfiles#roland
 ```
 
 The home-manager profile payload at `/home/roland/.local/share/task6-udev` now contains the fallback. The active root-installed `/etc/udev` rule and `/usr/local/libexec/task6-pcie/task6-pcie-pci-permissions` still require the installer to be run once before the fallback can affect live sysfs permissions.
+
+### 2026-05-26 - Stale endpoint accepted by rootless recovery helper
+
+Commit note: `Allow Task 6 recover from stale subsystem ID`.
+
+Updated `scripts/task6/task6_pcie_recover.py` so the initial pre-remove identity check accepts the known stale `subsystem_device=0xffff` state after JTAG/SRAM reprogramming. The helper still requires the normal `subsystem_device=0xabcd` identity after remove/rescan and before reporting recovery success.
+
+After reinstalling the udev rules, the stale endpoint had delegated `remove/reset/rescan` nodes. Retried:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeout 40 --rescan-interval 0.5
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar --run-debug --label pcie-lifecycle-after-stale-recover-helper
+```
+
+The helper now reached delegated remove/rescan, but BAR0 still did not appear. Lifecycle artifact: `artifacts/task6/runs/2026-05-26T12-48-38+0200-pcie-lifecycle-after-stale-recover-helper`, classified `corrupt_command`. Follow-up reads showed the endpoint identity recovered to `subsystem_device=0xabcd` and `enable=1`, with endpoint recovery nodes still delegated, but the resource file remained all zero and `resource0` was absent. Config reads were still inconsistent: `COMMAND=ffff`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=abcd`.
+
+Interpretation: rootless recovery permissions are no longer the blocker. The current full rowstream PCIe+DDR image still fails to get BAR0 assigned in this Thunderbolt topology after remove/rescan. Next debug should compare against a known-good PCIe-only BAR image in the same session, then return to either PCIe shell integration or full chassis re-enumeration depending on whether the simple image gets BAR0.

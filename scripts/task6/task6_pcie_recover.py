@@ -18,6 +18,7 @@ EXPECTED_VENDOR = "0x10ee"
 EXPECTED_DEVICE = "0x0480"
 EXPECTED_SUBSYSTEM_VENDOR = "0x10ee"
 EXPECTED_SUBSYSTEM_DEVICE = "0xabcd"
+STALE_SUBSYSTEM_DEVICE = "0xffff"
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -49,12 +50,11 @@ def command_value(bdf: str) -> int | None:
     return int(text, 16)
 
 
-def verify_identity(device: Path) -> None:
+def verify_identity(device: Path, *, allow_stale_subsystem: bool = False) -> None:
     fields = {
         "vendor": EXPECTED_VENDOR,
         "device": EXPECTED_DEVICE,
         "subsystem_vendor": EXPECTED_SUBSYSTEM_VENDOR,
-        "subsystem_device": EXPECTED_SUBSYSTEM_DEVICE,
     }
     for name, expected in fields.items():
         path = device / name
@@ -63,6 +63,22 @@ def verify_identity(device: Path) -> None:
         observed = read_text(path)
         if observed != expected:
             raise SystemExit(f"unexpected {name}: expected {expected}, got {observed}")
+
+    subsystem_path = device / "subsystem_device"
+    if not subsystem_path.exists():
+        raise SystemExit(f"missing PCI identity attribute: {subsystem_path}")
+    subsystem_device = read_text(subsystem_path)
+    if subsystem_device == EXPECTED_SUBSYSTEM_DEVICE:
+        return
+    if allow_stale_subsystem and subsystem_device == STALE_SUBSYSTEM_DEVICE:
+        print(
+            "stale subsystem_device 0xffff; attempting delegated remove/rescan recovery"
+        )
+        return
+    raise SystemExit(
+        "unexpected subsystem_device: "
+        f"expected {EXPECTED_SUBSYSTEM_DEVICE}, got {subsystem_device}"
+    )
 
 
 def wait_for_endpoint_resource(
@@ -124,7 +140,7 @@ def main() -> int:
     device = Path("/sys/bus/pci/devices") / args.bdf
     if not device.exists():
         raise SystemExit(f"missing PCI endpoint: {device}")
-    verify_identity(device)
+    verify_identity(device, allow_stale_subsystem=True)
 
     real_device = device.resolve()
     bridge_rescan = real_device.parent / "rescan"
