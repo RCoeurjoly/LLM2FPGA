@@ -216,6 +216,30 @@ Next gate:
 4. Run only `scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-exported-command-bridge-cold-bpi` first.
 5. If that reports `pcie_ready`, run `scripts/task6/task6_pcie_user_gate.sh bar 0000:42:00.0 --mode header` before command smoke.
 
+
+### 2026-05-26 - Exported command bridge cold-BPI PASS
+
+Evidence after full shutdown, FPGA/chassis power-cycle, flash configuration, and laptop boot with the chassis already powered:
+
+| check | result |
+| --- | --- |
+| lifecycle | `pcie_ready`; artifact `artifacts/task6/runs/2026-05-26T17-33-38+0200-pcie-exported-command-bridge-cold-bpi` |
+| BAR header | PASS; BAR0 magic `T6PC`, version `1`, command-bridge initialized payload `0x12345678` |
+| command-header | PASS; status `0x00000001`, accepted count `0` |
+| command-echo | PASS; payload echo matched |
+| command-doorbell | PASS; accepted count advanced from `0` to `2`, accepted payload matched |
+| full command smoke | PASS; accepted count advanced from `2` to `4`, accepted payload matched |
+
+Interpretation:
+
+- The patched/exported `pcie_7x_top_aximm` wrapper and the direct top-level exported AXI connection are not the BAR-loss root cause when the FPGA image is present before host enumeration.
+- The earlier hot SRAM/rescan result that reached `pcie_ready` and then collapsed to config `0xffff` is best treated as a hotplug/recovery artifact, not as a design failure by itself.
+- This narrows the full-image BAR0-zero failure to what is added after the exported wrapper: DDR3/top1 integration, added clocks/resets/BSCANs, placement/timing pressure, or interaction between the full app logic and the PCIe user clock/reset path.
+
+Next engineering step:
+
+- Build a staged full-wrapper image that keeps the exported PCIe shell and command bridge stable while incrementally adding the full-image non-PCIe load, starting with DDR3 clocks/IO/controller held isolated from AXI. The first failing stage identifies whether BAR loss comes from DDR3 physical integration, clock/reset interaction, or rowstream/top1 logic load.
+
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
 ### 2026-05-20 - Active one-lane full-bank baseline consumed from `~/UberDDR3_vainilla`
