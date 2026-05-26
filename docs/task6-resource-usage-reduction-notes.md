@@ -25669,3 +25669,20 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
 Run artifact: `artifacts/task6/runs/2026-05-26T18-44-20+0200-pcie-rowstream-ingress-dummy-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron 64 MB BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
 
 As with the previous BPI writes, this leaves the SRAM in the BPI-over-JTAG programming bridge state. The decisive PCIe result now requires a cold enumeration from flash: shut the laptop down fully, power-cycle FPGA/chassis, wait for the BPI image to configure, then boot the laptop with the chassis connected and powered.
+
+
+### 2026-05-26 - Rowstream-ingress dummy cold BAR pass
+
+Commit note: `Record Task 6 rowstream ingress dummy cold pass`.
+
+After flashing the rowstream-ingress dummy image to BPI, performed a full cold enumeration sequence: laptop shutdown, FPGA/chassis power-cycle, wait for flash configuration, then boot with chassis connected and powered. The first lifecycle probe classified the endpoint as `pcie_ready`:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-rowstream-ingress-dummy-cold-bpi
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T18-58-38+0200-pcie-rowstream-ingress-dummy-cold-bpi`. BAR header gate passed with `T6PC`, version `3`, status `0x00000061`, and rowstream magic `3DRD`. The BAR/debug lifecycle also classified `pcie_ready` in `artifacts/task6/runs/2026-05-26T18-58-47+0200-pcie-rowstream-ingress-dummy-cold-bpi-bar-debug`.
+
+The rowstream-loader gate reached the real ingress path and accepted commands, then failed only at the expected dummy-backend readback check: wrote byte `0x5a`, observed `0x00`, with status `rst_n,done,boot_done`, loader status `calib_complete,boot_done,done,magic_ok,accepted`, and accepted count `2`. A synthetic top1 command similarly reached the ingress path and failed at packet echo because the dummy image has no rowstream storage. A final BAR header gate still passed afterward with status `0x65`, proving the command attempts did not poison BAR access.
+
+Conclusion: the exported PCIe wrapper plus real rowstream ingress/CDC/register file can cold enumerate and keep BAR0 alive. Combined with the DDR3-isolated command-bridge cold pass, the full-image BAR loss is now narrowed to the coupled DDR rowstream loader/top1 datapath integration or its placement/timing effects, not the PCIe wrapper, DDR physical block alone, or rowstream ingress alone.
