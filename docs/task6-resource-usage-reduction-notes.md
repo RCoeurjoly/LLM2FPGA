@@ -278,6 +278,25 @@ Next hardware gate:
 2. Cold enumerate with FPGA/chassis powered and configured before laptop boot.
 3. Run lifecycle, BAR header, and command smoke exactly as for the exported command bridge.
 
+
+### 2026-05-26 - DDR3-isolated bridge hot SRAM probe
+
+Evidence:
+
+| step | result |
+| --- | --- |
+| SRAM program of `/nix/store/c0fbvgs1h3060lvlncw3pg3w6nn69kf4-task6-ypcb-pcie-ddr3-isolated-command-bridge.bit` | PASS, DONE high over JTAG |
+| bridge rescan after SRAM program | PASS, but lifecycle classified `missing_resource0`; artifact `artifacts/task6/runs/2026-05-26T17-51-05+0200-pcie-ddr3-isolated-command-bridge-after-sram-rescan` |
+| delegated endpoint recovery | PASS, endpoint recovered and memory space enabled |
+| lifecycle after recovery | `pcie_ready`; artifact `artifacts/task6/runs/2026-05-26T17-51-28+0200-pcie-ddr3-isolated-command-bridge-after-recover` |
+| command-header after recovered lifecycle | FAIL before BAR mmap: config space returned all `0xffff` |
+
+Interpretation:
+
+- Hot SRAM/recovery is again unstable even for an image whose PCIe BAR responder is the simple command bridge.
+- This matches the earlier exported-command-bridge hot behavior and should not be used to classify the RTL by itself.
+- The decisive check remains cold BPI enumeration with the FPGA configured before the host enumerates the Thunderbolt/PCIe tree.
+
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
 ### 2026-05-20 - Active one-lane full-bank baseline consumed from `~/UberDDR3_vainilla`
