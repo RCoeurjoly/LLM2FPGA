@@ -146,7 +146,7 @@ def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]
     recover = f"scripts/task6/task6_pcie_user_gate.sh recover {bdf} --reset-first --timeout 20"
     bar = f"scripts/task6/task6_pcie_user_gate.sh bar {bdf} --mode header"
     top1 = f"scripts/task6/task6_pcie_user_gate.sh rowstream-top1 {bdf} --sample-count 1"
-    bridge_rescan = f"scripts/task6/task6_pcie_user_gate.sh bridge-rescan {bridge_bdf}"
+    bridge_rescan = f"scripts/task6/task6_pcie_user_gate.sh bridge-rescan {bdf} {bridge_bdf}"
     install_rules = "/home/roland/.local/bin/install-task6-pcie-rules.sh"
 
     table = {

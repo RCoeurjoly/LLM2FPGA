@@ -25432,3 +25432,25 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write   /nix/store/i2cw
 Run artifact: `artifacts/task6/runs/2026-05-26T16-21-52+0200-pcie-rowstream-full-after-command-bridge-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
 
 Because the flash operation loads the BPI-over-JTAG bridge into SRAM, the next acceptance probe requires FPGA/chassis reconfiguration from BPI flash first. Then run the safe lifecycle capture before any rowstream/top1 gate.
+
+
+### 2026-05-26 - Full rowstream image still misses BAR0 after bridge rescan
+
+Commit note: `Record Task 6 full image missing BAR after rescan`.
+
+After reflashing the full PCIe+DDR3 rowstream image and power-cycling the chassis, ran the safe lifecycle capture:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-debug --label pcie-full-rowstream-after-bridge-pass
+```
+
+Artifact: `artifacts/task6/runs/2026-05-26T16-33-22+0200-pcie-full-rowstream-after-bridge-pass`. Classification was `missing_endpoint`, so no BAR/debug access occurred. A single delegated upstream bridge rescan recovered the endpoint object:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh bridge-rescan 0000:42:00.0 0000:41:00.0
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-debug --label pcie-full-rowstream-after-bridge-rescan
+```
+
+Artifact: `artifacts/task6/runs/2026-05-26T16-33-43+0200-pcie-full-rowstream-after-bridge-rescan`. Classification was `missing_resource0`: config space reported `COMMAND=0147`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=abcd`, but `BAR0=00000000` and `/sys/bus/pci/devices/0000:42:00.0/resource0` did not exist. This reproduces the full-image-specific BAR advertisement failure after the command-bridge image proved the host/chassis/BAR path and command MMIO path can work.
+
+Also fixed the lifecycle recommendation text for `missing_endpoint` so it prints the rootless wrapper's actual bridge-rescan calling convention: `scripts/task6/task6_pcie_user_gate.sh bridge-rescan <endpoint-bdf> <bridge-bdf>`.
