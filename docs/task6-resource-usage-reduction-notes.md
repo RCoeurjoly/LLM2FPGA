@@ -25320,3 +25320,30 @@ scripts/task6/task6_pcie_user_gate.sh rowstream-loopback 0000:42:00.0
 ```
 
 Result: `PASS: Task 6 PCIe rowstream loopback matched`, `accepted_count` advanced from 1 to 2, checksum sum matched `0x00077880`, checksum xor matched `0x00000000`, first/last words matched, and mismatch was zero. This confirms the BAR path is not just a one-shot success; the loopback image continues to accept host writes and return coherent result registers. The next Task 6 isolation step is to flash the PCIe-only command-bridge image, cold-enumerate it, and test command/status registers before returning to the full DDR3 rowstream-top1 image.
+
+
+### 2026-05-26 - PCIe command-bridge image written to BPI flash
+
+Commit note: `Flash Task 6 PCIe command bridge image`.
+
+Programmed the PCIe-only command-bridge image to BPI flash as the next isolation point between the stable loopback image and the failing full PCIe+DDR3 rowstream image:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
+  /nix/store/gi0b6iybc9c6ml8sv0470j74d1c1nldx-task6-ypcb-pcie7x-command-bridge.bit \
+  --confirm-write-flash --label pcie-command-bridge-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T15-59-48+0200-pcie-command-bridge-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
+
+Because flash programming loads the BPI-over-JTAG bridge into SRAM, the next PCIe test requires reconfiguration from BPI flash before probing. After the chassis/host re-enumerates, run one safe lifecycle capture first:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-debug --label pcie-command-bridge-after-flash
+```
+
+If that reports `classification: pcie_ready`, run:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0
+```
