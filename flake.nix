@@ -386,6 +386,47 @@ EOF
             EOF
             yosys -s run.ys
           '';
+
+        task6YpcbPcieDdr3IsolatedCommandBridgeYosysJson =
+          pkgs.runCommand "task6-ypcb-pcie-ddr3-isolated-command-bridge-yosys.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/xilinx_pcie_mmcm.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axil_to_al.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axis_pcie_to_al_us.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_7x.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_rx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_tx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_block.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_brams.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_tx_thrtl_ctl.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pipe_wrapper_gtx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_top.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_controller.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_phy.v \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
+              ${./fpga/rtl/task6_pcie_jtag_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_command_bridge.v} \
+              ${./rtl/task6/task6_q024_topk_score_compare.sv} \
+              ${./rtl/task6/task6_ddr3_rowstream_top1_cutout.sv} \
+              ${./rtl/task6/task6_ddr3_rowstream_wb_top1_reader.sv} \
+              ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv} \
+              ${./fpga/rtl/task6_ypcb_pcie_ddr3_isolated_command_bridge_top.sv}
+            hierarchy -top task6_ypcb_pcie_ddr3_isolated_command_bridge_top -check
+            synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_ddr3_isolated_command_bridge_top
+            stat -top task6_ypcb_pcie_ddr3_isolated_command_bridge_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
             buildInputs = [ pkgs.yosys ];
@@ -6056,6 +6097,21 @@ EOF
           name = "task6-ypcb-pcie-exported-command-bridge";
           fasm = task6YpcbPcieExportedCommandBridgeFasm;
           framesBase = "task6-ypcb-pcie-exported-command-bridge";
+        };
+
+        task6YpcbPcieDdr3IsolatedCommandBridgeFasm = mkFasm {
+          name = "task6-ypcb-pcie-ddr3-isolated-command-bridge";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieDdr3IsolatedCommandBridgeYosysJson;
+          seed = 15;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieDdr3IsolatedCommandBridgeBitstream = mkBitstream {
+          name = "task6-ypcb-pcie-ddr3-isolated-command-bridge";
+          fasm = task6YpcbPcieDdr3IsolatedCommandBridgeFasm;
+          framesBase = "task6-ypcb-pcie-ddr3-isolated-command-bridge";
         };
 
         task6YpcbPcieUberDdr3RowstreamLoaderYosysJson =
@@ -11869,6 +11925,10 @@ EOF
             task6YpcbPcieExportedCommandBridgeYosysJson;
           task6-ypcb-pcie-exported-command-bridge-bitstream =
             task6YpcbPcieExportedCommandBridgeBitstream;
+          task6-ypcb-pcie-ddr3-isolated-command-bridge-yosys-json =
+            task6YpcbPcieDdr3IsolatedCommandBridgeYosysJson;
+          task6-ypcb-pcie-ddr3-isolated-command-bridge-bitstream =
+            task6YpcbPcieDdr3IsolatedCommandBridgeBitstream;
           task6-ypcb-pcie-uberddr3-rowstream-loader-yosys-json =
             task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
           task6-ypcb-pcie-uberddr3-rowstream-loader-xdc =

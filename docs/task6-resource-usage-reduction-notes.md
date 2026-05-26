@@ -240,6 +240,43 @@ Next engineering step:
 
 - Build a staged full-wrapper image that keeps the exported PCIe shell and command bridge stable while incrementally adding the full-image non-PCIe load, starting with DDR3 clocks/IO/controller held isolated from AXI. The first failing stage identifies whether BAR loss comes from DDR3 physical integration, clock/reset interaction, or rowstream/top1 logic load.
 
+
+### 2026-05-26 - DDR3-isolated command bridge build
+
+Decision:
+
+- Add a staged image between exported-command-bridge PASS and full PCIe+DDR3 rowstream FAIL.
+- Keep the patched/exported PCIe wrapper and the known-good command bridge as the BAR responder.
+- Instantiate the two-lane DDR3 rowstream loader/top1 block with PCIe command inputs tied off, so DDR clocks, DDR IO, BSCAN load, and placement pressure are present without routing PCIe BAR traffic through the rowstream AXI register file.
+
+Implementation:
+
+- Added `fpga/rtl/task6_ypcb_pcie_ddr3_isolated_command_bridge_top.sv`.
+- Added flake products:
+  - `task6-ypcb-pcie-ddr3-isolated-command-bridge-yosys-json`
+  - `task6-ypcb-pcie-ddr3-isolated-command-bridge-bitstream`
+- Built bitstream: `/nix/store/c0fbvgs1h3060lvlncw3pg3w6nn69kf4-task6-ypcb-pcie-ddr3-isolated-command-bridge.bit`.
+
+Build evidence:
+
+| check | result |
+| --- | --- |
+| route | PASS, 18 warnings, 0 errors |
+| resource profile | 15076 LUTX, 7109 FFX, 11 BUFGCTRL, 3 BSCAN, 18 IDELAYE2, 43 OSERDESE2, 18 ISERDESE2, 1 PCIE, 1 GTX channel/common |
+| post-route PCIe user timing | `pcie_user_clk` max 132.75 MHz |
+| DDR controller timing | `ddr_controller_clk` max 67.79 MHz |
+
+Interpretation:
+
+- This stage reproduces the full image's DDR physical/clock/BSCAN pressure class while preserving a simple PCIe command-bridge BAR path.
+- Its post-route PCIe user-clock timing is much closer to the cold-BPI-passing exported command bridge than to the failing full rowstream image. If this image cold-enumerates and passes command smoke, the remaining failure boundary moves from DDR physical integration to the rowstream PCIe ingress/CDC/status register file or full rowstream/top1 logic coupling.
+
+Next hardware gate:
+
+1. Flash `/nix/store/c0fbvgs1h3060lvlncw3pg3w6nn69kf4-task6-ypcb-pcie-ddr3-isolated-command-bridge.bit` to BPI.
+2. Cold enumerate with FPGA/chassis powered and configured before laptop boot.
+3. Run lifecycle, BAR header, and command smoke exactly as for the exported command bridge.
+
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
 ### 2026-05-20 - Active one-lane full-bank baseline consumed from `~/UberDDR3_vainilla`
