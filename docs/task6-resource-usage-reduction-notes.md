@@ -25417,3 +25417,18 @@ scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0
 ```
 
 Output summary: `magic=0x54365043`, `version=1`, `accepted_count` advanced from `2` to `4`, payload echo matched all seven words, accepted payload matched all seven words, and the gate printed `PASS: Task 6 PCIe command bridge BAR smoke matched`.
+
+
+### 2026-05-26 - Full rowstream image reflashed after command-bridge isolation
+
+Commit note: `Flash Task 6 full rowstream image after bridge pass`.
+
+After the PCIe-only command-bridge image passed the rootless command smoke, reflashed the full PCIe+DDR3 rowstream loader/top1 image to BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write   /nix/store/i2cwrhxrdp9sgch1k4cc2mfnlhlsznff-task6-ypcb-pcie-uberddr3-rowstream-loader.bit   --confirm-write-flash --label pcie-rowstream-full-after-command-bridge-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T16-21-52+0200-pcie-rowstream-full-after-command-bridge-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
+
+Because the flash operation loads the BPI-over-JTAG bridge into SRAM, the next acceptance probe requires FPGA/chassis reconfiguration from BPI flash first. Then run the safe lifecycle capture before any rowstream/top1 gate.
