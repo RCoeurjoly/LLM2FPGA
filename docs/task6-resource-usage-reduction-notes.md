@@ -24761,3 +24761,19 @@ debug_magic:  0xffffffff
 `setpci -s 0000:42:00.0 COMMAND VENDOR_ID DEVICE_ID` also returned all `ffff`, confirming stale config-space reads rather than a valid BAR response. Current udev permissions delegate only `resource0`; `remove`, `reset`, per-device `rescan`, bridge `rescan`, and global `/sys/bus/pci/rescan` remain root-only. The next blocker is therefore PCIe recovery after JTAG reprogramming, before the rowstream reset/calibration debug aperture can be sampled.
 
 Considered extending the Home Manager udev helper to delegate endpoint recovery writes. A broad version with config/global rescan and a narrower version with endpoint `remove`/`reset`/`rescan` plus immediate parent bridge `rescan` were both rejected by the safety reviewer as persistent PCI permission broadening without explicit user approval of the blast radius. No dotfiles change was committed.
+
+
+### 2026-05-26 - Approved rootless PCIe recovery path
+
+Commit note: `Delegate Task 6 PCIe endpoint recovery` in `~/FutureProofDotfiles`.
+
+The Task 6 udev helper now grants `plugdev` write access to only the matched FPGA endpoint recovery nodes (`remove`, `rescan`, `reset`) plus the immediate upstream bridge `rescan`. It does not delegate PCI config space and does not delegate global `/sys/bus/pci/rescan`.
+
+Repo-side recovery command added:
+
+```bash
+cd /home/roland/LLM2FPGA
+scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0
+```
+
+This command removes the stale endpoint, rescans the immediate upstream bridge, waits for config space to stop returning `ffff`, and reports the restored `resource0` permissions. The updated udev payload still has to be installed into the system udev location before the live machine can use this path.

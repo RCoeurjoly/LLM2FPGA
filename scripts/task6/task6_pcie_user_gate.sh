@@ -8,18 +8,18 @@ BDF="${2:-$ALLOWED_BDF}"
 
 usage() {
   cat >&2 <<'EOF'
-usage: scripts/task6/task6_pcie_user_gate.sh <bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
+usage: scripts/task6/task6_pcie_user_gate.sh <recover|bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
 
 Rootless Task 6 PCIe gate dispatcher. This assumes the Task 6 YPCB PCIe udev
-rule has enabled PCI memory space and granted plugdev read/write access to
-/sys/bus/pci/devices/<BDF>/resource0. It never removes, rescans, hot-resets,
-or otherwise recovers the PCIe endpoint.
+rule has enabled PCI memory space, granted plugdev read/write access to
+/sys/bus/pci/devices/<BDF>/resource0, and delegated narrowly scoped recovery
+nodes for recover mode.
 EOF
   exit 2
 }
 
 case "$MODE" in
-  bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
+  recover|bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 
@@ -44,6 +44,10 @@ fi
 if ! grep -q '\[10ee:0480\]' <<<"$endpoint"; then
   echo "error: endpoint is not the expected Xilinx 10ee:0480 device: $endpoint" >&2
   exit 1
+fi
+
+if [[ "$MODE" == "recover" ]]; then
+  exec python3 "$ROOT/scripts/task6/task6_pcie_recover.py" "$BDF" "${@:3}"
 fi
 
 if [[ ! -r "$RESOURCE0" || ! -w "$RESOURCE0" ]]; then
