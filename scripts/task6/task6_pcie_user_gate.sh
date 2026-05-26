@@ -8,7 +8,7 @@ BDF="${2:-$ALLOWED_BDF}"
 
 usage() {
   cat >&2 <<'EOF'
-usage: scripts/task6/task6_pcie_user_gate.sh <recover|bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
+usage: scripts/task6/task6_pcie_user_gate.sh <bridge-rescan|lifecycle|flash|recover|bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
 
 Rootless Task 6 PCIe gate dispatcher. This assumes the Task 6 YPCB PCIe udev
 rule has enabled PCI memory space, granted plugdev read/write access to
@@ -19,7 +19,7 @@ EOF
 }
 
 case "$MODE" in
-  recover|bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
+  bridge-rescan|lifecycle|flash|recover|bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 
@@ -30,6 +30,18 @@ fi
 
 DEVICE="/sys/bus/pci/devices/$BDF"
 RESOURCE0="$DEVICE/resource0"
+
+if [[ "$MODE" == "bridge-rescan" ]]; then
+  exec python3 "$ROOT/scripts/task6/task6_pcie_bridge_rescan.py" "${3:-0000:41:00.0}"
+fi
+
+if [[ "$MODE" == "lifecycle" ]]; then
+  exec python3 "$ROOT/scripts/task6/task6_pcie_lifecycle_gate.py" "$BDF" "${@:3}"
+fi
+
+if [[ "$MODE" == "flash" ]]; then
+  exec python3 "$ROOT/scripts/task6/task6_pcie_flash.py" "${@:3}"
+fi
 
 if [[ ! -d "$DEVICE" ]]; then
   echo "error: missing PCI endpoint $BDF; rootless gate does not rescan/recover PCIe" >&2
