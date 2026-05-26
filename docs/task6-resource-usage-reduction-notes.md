@@ -25274,3 +25274,20 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-deb
 Artifact `artifacts/task6/runs/2026-05-26T14-49-53+0200-pcie-catch-ready-after-clean-flash` classified `missing_resource0`: `command=0147`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=abcd`, `bar0=00000000`, and no `resource0`. Because classification was not `pcie_ready`, lifecycle did not run BAR/debug.
 
 This confirms the cleaned-XDC full image can reach valid identity but usually does not advertise BAR0 after cold enumeration. Next debug should flash or boot the known-good PCIe rowstream-loopback image and perform the same cold-enumeration capture, to separate host/chassis reliability from the full PCIe+DDR image.
+
+
+### 2026-05-26 - Known-good PCIe loopback image written to BPI flash
+
+Commit note: `Flash Task 6 PCIe loopback image`.
+
+To separate host/chassis enumeration from the full PCIe+DDR rowstream image, programmed the known-good PCIe rowstream-loopback image to BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
+  /nix/store/rydcyibvh3h76bd6ygsq154nmic6sp5k-task6-ypcb-pcie7x-rowstream-loopback.bit \
+  --confirm-write-flash --label pcie-rowstream-loopback-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T14-52-35+0200-pcie-rowstream-loopback-bpi-flash`. openFPGALoader detected Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
+
+Next step: cold power/boot cycle so the FPGA boots this loopback image from BPI flash, then run the single capture lifecycle command.
