@@ -25013,3 +25013,18 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar 
 Lifecycle artifact: `artifacts/task6/runs/2026-05-26T12-39-42+0200-pcie-lifecycle-after-clean-xdc-sram-program`, classified `corrupt_command`. A follow-up config/sysfs read showed mixed stale fields: `COMMAND=0547`, `vendor=0x10ee`, `device=0x0480`, but `subsystem_device=0xffff`, no `resource0`, `enable=0`, and endpoint `remove/reset/rescan` root-only while bridge `0000:41:00.0/rescan` remained delegated to `plugdev`.
 
 Interpretation: the cleaned XDC routes, but board-side acceptance is still blocked before BAR access. Because the current udev endpoint rule requires `subsystem_device==0xabcd`, it does not delegate recovery nodes when the stale/corrupt endpoint reports `0xffff`. The next PCIe-smoothing change should make the recovery permission path tolerate the fixed-BDF `10ee:0480`/`subsystem_device=0xffff` stale state enough to remove/rescan the endpoint, while keeping BAR0 access gated on the normal valid identity.
+
+### 2026-05-26 - Stale endpoint udev recovery fallback
+
+Commit note: dotfiles `e2ffed8 Allow Task 6 stale endpoint recovery` and repo `Record Task 6 stale endpoint udev fallback`.
+
+Updated `/home/roland/FutureProofDotfiles/udev` so the fixed Task 6 endpoint BDF can still get `remove/reset/rescan` delegated when config space is stale enough to report `subsystem_device=0xffff`. The helper now treats `0xabcd` as a valid BAR-capable identity and `0xffff` as recovery-only: it delegates endpoint and upstream bridge recovery nodes, but does not enable PCI memory decoding or grant `resource0` access unless the normal `0xabcd` identity is present.
+
+Ran:
+
+```sh
+bash -n udev/task6-pcie-pci-permissions udev/install-task6-pcie-rules.sh
+home-manager switch --flake /home/roland/FutureProofDotfiles#roland
+```
+
+The home-manager profile payload at `/home/roland/.local/share/task6-udev` now contains the fallback. The active root-installed `/etc/udev` rule and `/usr/local/libexec/task6-pcie/task6-pcie-pci-permissions` still require the installer to be run once before the fallback can affect live sysfs permissions.
