@@ -24966,3 +24966,17 @@ ffff ffff ffff ff 00000000
 The endpoint `resource` file still showed all-zero resources. Since a flash probe had been run after the prior BPI flash test, a laptop-only reboot is not enough evidence that the FPGA reloaded the rowstream-top1 image from BPI flash; the FPGA may have remained configured with the temporary BPI-over-JTAG bridge image in SRAM while the host rebooted.
 
 Next sequence must be: power-cycle/reconfigure the FPGA itself after the flash probe, keep the chassis connected, then run PCIe lifecycle before any JTAG/openFPGALoader/flash command.
+
+### 2026-05-26 - JPROGRAM reload avoids separate board power-cycle but still no BAR0
+
+Because the FPGA board cannot easily be power-cycled while the chassis stays connected, tested a JTAG-only Xilinx reconfiguration reset:
+
+```bash
+/home/roland/openFPGALoader/build/openFPGALoader -b ypcb003381p1 -c digilent_hs3 --ftdi-serial 210299BF3824 --reset
+```
+
+In this local openFPGALoader build, `--reset` calls `Xilinx::reset()`, which shifts `JSHUTDOWN`, `JPROGRAM`, waits, then shifts `BYPASS`; it does not load the BPI bridge and does not write flash. This is the right software substitute for "reload FPGA from BPI flash while leaving chassis cabled".
+
+Result: lifecycle after JPROGRAM still saw a corrupt/stale endpoint (`artifacts/task6/runs/2026-05-26T12-22-40+0200-pcie-lifecycle-after-jprogram-reload`), and delegated remove/rescan after the reload again timed out with the endpoint present but no `resource0`. So the reset/reload method is usable, but the host still does not assign BAR0 for the current flashed rowstream-top1 image in this topology.
+
+Remaining physical alternatives are full Thunderbolt/chassis disconnect/reconnect or boot with the chassis disconnected then reconnect after the FPGA has had time to configure from BPI flash.
