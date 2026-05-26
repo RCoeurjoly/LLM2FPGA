@@ -25839,3 +25839,31 @@ Run artifact: `artifacts/task6/runs/2026-05-26T19-46-53+0200-pcie-rowstream-load
 
 The next probe requires cold enumeration from flash.
 
+### 2026-05-26 - Rowstream loader-only seed20 cold DDR pass
+
+Commit note: `Record Task 6 loader-only seed20 cold result`.
+
+After flashing the seed20 PCIe+DDR rowstream loader-only image to BPI, performed the full cold enumeration sequence. The initial lifecycle probe classified the endpoint as `pcie_ready`:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-rowstream-loader-only-seed20-cold-bpi
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T20-15-29+0200-pcie-rowstream-loader-only-seed20-cold-bpi`. The BAR/debug lifecycle also classified `pcie_ready` in `artifacts/task6/runs/2026-05-26T20-15-43+0200-pcie-rowstream-loader-only-seed20-cold-bpi-bar-debug`.
+
+The standalone BAR header helper produced a suspicious header snapshot with bit-4-low characters (`T6@C` instead of `T6PC`, and `3DBD` instead of `3DRD`), so treat that helper result as a diagnostic anomaly until investigated. The rowstream-loader gate itself read the correct magic and passed the DDR3 smoke test:
+
+```text
+magic:   0x54365043
+version: 3
+status:  0x00000061 rst_n,boot_done
+loader:  0x00000003 calib_complete,boot_done
+after write: status=0x00000065 rst_n,done,boot_done loader=0x00000037 calib_complete,boot_done,done,magic_ok,accepted count=1
+after read:  status=0x00000065 rst_n,done,boot_done loader=0x00000037 calib_complete,boot_done,done,magic_ok,accepted count=2
+read word offset 0x048: 0x005a0000
+observed lane byte: 0x5a
+PASS: Task 6 PCIe rowstream loader DDR3 write/read smoke matched
+```
+
+Conclusion: seed20 is the first PCIe+DDR rowstream loader-only seed in this sequence that both cold-enumerates and reaches DDR calibration/boot_done. Seed15 kept BAR but failed DDR calibration; seed19 failed endpoint enumeration; seed20 passes the loader-only DDR smoke. Next engineering step is to carry this seed/placement candidate back to the real rowstream-top1/full integration, with a quick check of the standalone BAR header helper's byte snapshot behavior.
+
