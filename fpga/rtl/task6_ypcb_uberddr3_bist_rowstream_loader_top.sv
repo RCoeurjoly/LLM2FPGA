@@ -17,7 +17,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter int SPEED_BIN_PARAM = 0,
   parameter int SDRAM_CAPACITY_PARAM = 5,
   parameter int BIST_MODE_PARAM = 1,
-  parameter bit BIST_TEST_DATAMASK = 1'b1
+  parameter bit BIST_TEST_DATAMASK = 1'b1,
+  parameter bit ENABLE_PCIE_TOP1 = 1'b1
 ) (
   input  wire        clk50,
   input  wire        SYS_RSTN,
@@ -1652,64 +1653,93 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 
 
 `ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
-  assign top1_start_accepted =
-    pcie_top1_start_i && !top1_reader_busy && read_probe_done_q && calib_complete && debug1[4:0] == 5'd23;
-  assign top1_start_rejected =
-    pcie_top1_start_i && (top1_reader_busy || !read_probe_done_q || !calib_complete || debug1[4:0] != 5'd23);
+  generate
+    if (ENABLE_PCIE_TOP1) begin : gen_pcie_top1
+      assign top1_start_accepted =
+        pcie_top1_start_i && !top1_reader_busy && read_probe_done_q && calib_complete && debug1[4:0] == 5'd23;
+      assign top1_start_rejected =
+        pcie_top1_start_i && (top1_reader_busy || !read_probe_done_q || !calib_complete || debug1[4:0] != 5'd23);
 
-  task6_ddr3_rowstream_wb_top1_reader #(
-    .HIDDEN_SIZE(64),
-    .VOCAB_SIZE(50257),
-    .ROW_BYTES(68),
-    .WB_ADDR_BITS(WB_ADDR_BITS),
-    .WB_DATA_BITS(WB_DATA_BITS),
-    .WB_SEL_BITS(WB_SEL_BITS)
-  ) top1_reader (
-    .clk_i(controller_clk),
-    .rst_ni(rst_n),
-    .start_i(top1_start_accepted),
-    .busy_o(top1_reader_busy),
-    .done_o(top1_reader_done),
-    .error_o(top1_reader_error),
-    .wb_cyc_o(top1_reader_wb_cyc),
-    .wb_stb_o(top1_reader_wb_stb),
-    .wb_we_o(top1_reader_wb_we),
-    .wb_addr_o(top1_reader_wb_addr),
-    .wb_data_o(top1_reader_wb_data),
-    .wb_sel_o(top1_reader_wb_sel),
-    .wb_stall_i(wb_stall),
-    .wb_ack_i(wb_ack && top1_reader_wb_cyc),
-    .wb_err_i(wb_err && top1_reader_wb_cyc),
-    .wb_data_i(wb_data),
-    .row_valid_o(top1_row_valid),
-    .row_ready_i(top1_row_ready),
-    .row_token_id_o(top1_row_token_id),
-    .row_weight_q_i8_o(top1_row_weight_q_i8),
-    .row_sidecar_word_o(top1_row_sidecar_word),
-    .row_last_o(top1_row_last)
-  );
+      task6_ddr3_rowstream_wb_top1_reader #(
+        .HIDDEN_SIZE(64),
+        .VOCAB_SIZE(50257),
+        .ROW_BYTES(68),
+        .WB_ADDR_BITS(WB_ADDR_BITS),
+        .WB_DATA_BITS(WB_DATA_BITS),
+        .WB_SEL_BITS(WB_SEL_BITS)
+      ) top1_reader (
+        .clk_i(controller_clk),
+        .rst_ni(rst_n),
+        .start_i(top1_start_accepted),
+        .busy_o(top1_reader_busy),
+        .done_o(top1_reader_done),
+        .error_o(top1_reader_error),
+        .wb_cyc_o(top1_reader_wb_cyc),
+        .wb_stb_o(top1_reader_wb_stb),
+        .wb_we_o(top1_reader_wb_we),
+        .wb_addr_o(top1_reader_wb_addr),
+        .wb_data_o(top1_reader_wb_data),
+        .wb_sel_o(top1_reader_wb_sel),
+        .wb_stall_i(wb_stall),
+        .wb_ack_i(wb_ack && top1_reader_wb_cyc),
+        .wb_err_i(wb_err && top1_reader_wb_cyc),
+        .wb_data_i(wb_data),
+        .row_valid_o(top1_row_valid),
+        .row_ready_i(top1_row_ready),
+        .row_token_id_o(top1_row_token_id),
+        .row_weight_q_i8_o(top1_row_weight_q_i8),
+        .row_sidecar_word_o(top1_row_sidecar_word),
+        .row_last_o(top1_row_last)
+      );
 
-  task6_ddr3_rowstream_top1_cutout #(
-    .HIDDEN_SIZE(64)
-  ) top1_cutout (
-    .clock(controller_clk),
-    .reset(!rst_n || top1_reset_pulse_q),
-    .row_valid(top1_row_valid),
-    .row_ready(top1_row_ready),
-    .row_token_id(top1_row_token_id),
-    .row_weight_q_i8(top1_row_weight_q_i8),
-    .row_sidecar_word(top1_row_sidecar_word),
-    .row_last(top1_row_last),
-    .hidden_q_i8(pcie_top1_hidden_vector_i),
-    .out_valid(top1_cutout_valid),
-    .out_done(top1_cutout_done),
-    .out_busy(top1_cutout_busy),
-    .out_error_reserved_bits(top1_cutout_error_reserved_bits),
-    .out_top_token_id(top1_cutout_token_id),
-    .out_top_score_signed_q024(top1_cutout_score_q024),
-    .out_rows_scanned(top1_cutout_rows_scanned),
-    .out_cycle_count(top1_cutout_cycle_count)
-  );
+      task6_ddr3_rowstream_top1_cutout #(
+        .HIDDEN_SIZE(64)
+      ) top1_cutout (
+        .clock(controller_clk),
+        .reset(!rst_n || top1_reset_pulse_q),
+        .row_valid(top1_row_valid),
+        .row_ready(top1_row_ready),
+        .row_token_id(top1_row_token_id),
+        .row_weight_q_i8(top1_row_weight_q_i8),
+        .row_sidecar_word(top1_row_sidecar_word),
+        .row_last(top1_row_last),
+        .hidden_q_i8(pcie_top1_hidden_vector_i),
+        .out_valid(top1_cutout_valid),
+        .out_done(top1_cutout_done),
+        .out_busy(top1_cutout_busy),
+        .out_error_reserved_bits(top1_cutout_error_reserved_bits),
+        .out_top_token_id(top1_cutout_token_id),
+        .out_top_score_signed_q024(top1_cutout_score_q024),
+        .out_rows_scanned(top1_cutout_rows_scanned),
+        .out_cycle_count(top1_cutout_cycle_count)
+      );
+    end else begin : gen_no_pcie_top1
+      assign top1_start_accepted = 1'b0;
+      assign top1_start_rejected = pcie_top1_start_i;
+      assign top1_reader_busy = 1'b0;
+      assign top1_reader_done = 1'b0;
+      assign top1_reader_error = 1'b0;
+      assign top1_reader_wb_cyc = 1'b0;
+      assign top1_reader_wb_stb = 1'b0;
+      assign top1_reader_wb_we = 1'b0;
+      assign top1_reader_wb_addr = '0;
+      assign top1_reader_wb_data = '0;
+      assign top1_reader_wb_sel = '0;
+      assign top1_row_valid = 1'b0;
+      assign top1_row_token_id = 16'd0;
+      assign top1_row_weight_q_i8 = 512'd0;
+      assign top1_row_sidecar_word = 32'd0;
+      assign top1_row_last = 1'b0;
+      assign top1_cutout_valid = 1'b0;
+      assign top1_cutout_done = 1'b0;
+      assign top1_cutout_busy = 1'b0;
+      assign top1_cutout_error_reserved_bits = 1'b0;
+      assign top1_cutout_token_id = 16'd0;
+      assign top1_cutout_score_q024 = 46'sd0;
+      assign top1_cutout_rows_scanned = 32'd0;
+      assign top1_cutout_cycle_count = 32'd0;
+    end
+  endgenerate
 `endif
 
   task6_uberddr3_loader_jtag_command_shift #(

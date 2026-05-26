@@ -2,7 +2,8 @@
 `default_nettype none
 
 module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
-  parameter int DDR_BYTE_LANES = 2
+  parameter int DDR_BYTE_LANES = 2,
+  parameter bit ENABLE_PCIE_TOP1 = 1'b1
 ) (
   output wire        pci_exp_txp,
   output wire        pci_exp_txn,
@@ -186,7 +187,8 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .SPEED_BIN_PARAM(1),
     .SDRAM_CAPACITY_PARAM(4),
     .BIST_MODE_PARAM(2),
-    .BIST_TEST_DATAMASK(1'b0)
+    .BIST_TEST_DATAMASK(1'b0),
+    .ENABLE_PCIE_TOP1(ENABLE_PCIE_TOP1)
   ) rowstream_ddr3 (
     .clk50(clk_50),
     .SYS_RSTN(sys_rst_n),

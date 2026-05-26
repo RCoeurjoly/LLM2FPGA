@@ -25686,3 +25686,27 @@ Run artifact: `artifacts/task6/runs/2026-05-26T18-58-38+0200-pcie-rowstream-ingr
 The rowstream-loader gate reached the real ingress path and accepted commands, then failed only at the expected dummy-backend readback check: wrote byte `0x5a`, observed `0x00`, with status `rst_n,done,boot_done`, loader status `calib_complete,boot_done,done,magic_ok,accepted`, and accepted count `2`. A synthetic top1 command similarly reached the ingress path and failed at packet echo because the dummy image has no rowstream storage. A final BAR header gate still passed afterward with status `0x65`, proving the command attempts did not poison BAR access.
 
 Conclusion: the exported PCIe wrapper plus real rowstream ingress/CDC/register file can cold enumerate and keep BAR0 alive. Combined with the DDR3-isolated command-bridge cold pass, the full-image BAR loss is now narrowed to the coupled DDR rowstream loader/top1 datapath integration or its placement/timing effects, not the PCIe wrapper, DDR physical block alone, or rowstream ingress alone.
+
+
+### 2026-05-26 - PCIe+DDR rowstream loader-only image built
+
+Commit note: `Add Task 6 rowstream loader-only stage`.
+
+Added `ENABLE_PCIE_TOP1` to the DDR3 rowstream loader block and a thin `task6_ypcb_pcie_uberddr3_rowstream_loader_only_top` wrapper that sets it to zero. This keeps the exported PCIe wrapper, real rowstream ingress/CDC/register file, and real DDR3 rowstream loader/write/read datapath coupled together, but removes the full-vocab top1 reader/cutout from the routed design.
+
+New flake targets:
+
+```sh
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-yosys-json
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-bitstream
+```
+
+Built bitstream:
+
+```text
+/nix/store/1v1g0pj3q01m2044nrca8pxkvdh3ikbh-task6-ypcb-pcie-uberddr3-rowstream-loader-only.bit
+```
+
+Build summary from nextpnr/openXC7: 15856 LUTX, 8759 FFX, 4 RAMB36, 18 IDELAYE2, 43 OSERDESE2, 18 ISERDESE2, 11 BUFGCTRL, 3 BSCAN, 1 PCIE/GT, 18 warnings, 0 errors. Placement timing was weak: `pcie_user_clk` about 51.76 MHz and `rowstream_clk` about 48.04 MHz. Post-route recovered only to about 80.72 MHz for `pcie_user_clk` and 68.41 MHz for `rowstream_clk`.
+
+This is now the smallest decisive coupled image: if it cold-enumerates with BAR0, the full-image BAR loss is likely due to top1 reader/cutout pressure or top1/loader arbitration. If it loses BAR0, the DDR rowstream loader coupling itself is enough to break the endpoint, independent of the top1 scanner.
