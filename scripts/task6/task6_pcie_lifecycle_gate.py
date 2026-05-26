@@ -75,9 +75,24 @@ def sysfs_file(path: Path) -> dict[str, object]:
 
 
 def setpci_words(bdf: str) -> dict[str, object]:
-    result = run(["setpci", "-s", bdf, "COMMAND", "VENDOR_ID", "DEVICE_ID", "HEADER_TYPE"], timeout=3)
+    result = run(
+        [
+            "setpci",
+            "-s",
+            bdf,
+            "COMMAND",
+            "VENDOR_ID",
+            "DEVICE_ID",
+            "HEADER_TYPE",
+            "2e.w",
+            "10.l",
+        ],
+        timeout=3,
+    )
     words = (result["stdout"] or "").split()
-    return {"result": result, "words": words}
+    names = ["command", "vendor", "device", "header_type", "subsystem_device", "bar0"]
+    decoded = {name: words[index].lower() for index, name in enumerate(names) if index < len(words)}
+    return {"result": result, "words": words, "decoded": decoded}
 
 
 def classify(snapshot: dict[str, object]) -> str:
@@ -101,6 +116,9 @@ def classify(snapshot: dict[str, object]) -> str:
         return "corrupt_device_id"
     if header_type not in ("00", "0000"):
         return "corrupt_header_type"
+    bar0 = str(snapshot.get("config_decoded", {}).get("bar0", "")).lower()
+    if bar0 in ("00000000", "ffffffff"):
+        return "missing_resource0"
     if not resource0.exists():
         return "missing_resource0"
     if not os.access(resource0, os.R_OK | os.W_OK):
@@ -173,6 +191,7 @@ def snapshot(bdf: str, bridge_bdf: str) -> dict[str, object]:
         "endpoint_exists": device.exists(),
         "bridge_exists": bridge.exists(),
         "config_words": cfg["words"],
+        "config_decoded": cfg["decoded"],
         "config_probe": cfg["result"],
         "resource": sysfs_file(device / "resource"),
         "resource0": sysfs_file(device / "resource0"),

@@ -25169,3 +25169,20 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --label pc
 ```
 
 The normal safe first check is now `scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0` with no rescan. Only if the endpoint is absent should rootless bridge rescan be considered.
+
+
+### 2026-05-26 - Lifecycle records BAR0 config and gates on it
+
+Commit note: `Record Task 6 BAR0 config in PCIe preflight`.
+
+Extended the safe PCIe preflight to include subsystem device and BAR0 config register reads (`2e.w` and `10.l`) in addition to `COMMAND`, vendor, device, and header type. Lifecycle artifacts now include `config_decoded`, making the stale state explicit instead of inferring it from absent `resource0`. The BAR-using dispatcher also refuses access if subsystem device is not `abcd` or BAR0 config is `00000000`/`ffffffff`, even before checking the sysfs `resource0` node.
+
+Verification artifacts:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-lifecycle-extended-config-check
+# config_decoded: command=ffff, vendor=10ee, device=0480, subsystem_device=abcd, bar0=00000000
+
+scripts/task6/task6_pcie_user_gate.sh bar 0000:42:00.0 --mode header
+# refused before mmap: BAR0 is not assigned, BAR0=00000000
+```
