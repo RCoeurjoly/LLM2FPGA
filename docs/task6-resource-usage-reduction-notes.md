@@ -25823,3 +25823,19 @@ The build completed with the same logic/resource footprint as seed15 and seed19:
 
 This is still a seed-sensitivity diagnostic, not a functionality change. Compared with seed19, seed20 has weaker post-route PCIe timing but stronger post-route rowstream timing. The useful hardware question is whether it can at least preserve PCIe enumeration like seed15, and then whether DDR calibration improves.
 
+### 2026-05-26 - Rowstream loader-only seed20 image flashed to BPI
+
+Commit note: `Record Task 6 loader-only seed20 flash`.
+
+Flashed the seed-20 PCIe+DDR rowstream loader-only diagnostic bitstream to BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
+  /nix/store/mmpy2zxz43h2mc7sq74zjnkhs97gf5wf-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.bit \
+  --confirm-write-flash --label pcie-rowstream-loader-only-seed20-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T19-46-53+0200-pcie-rowstream-loader-only-seed20-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron 64 MB BPI flash, wrote `18735004` bytes at offset `0x000000`, verified the first 32 words, and reported `BPI flash programming complete`.
+
+The next probe requires cold enumeration from flash.
+
