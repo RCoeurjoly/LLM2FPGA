@@ -25291,3 +25291,20 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
 Run artifact: `artifacts/task6/runs/2026-05-26T14-52-35+0200-pcie-rowstream-loopback-bpi-flash`. openFPGALoader detected Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
 
 Next step: cold power/boot cycle so the FPGA boots this loopback image from BPI flash, then run the single capture lifecycle command.
+
+
+### 2026-05-26 - BPI loopback image proves PCIe host path
+
+Commit note: `Record Task 6 loopback BAR pass`.
+
+After flashing the known-good PCIe rowstream-loopback image to BPI, the user power-cycled the chassis and ran repeated catch lifecycle probes. Artifact `artifacts/task6/runs/2026-05-26T15-07-01+0200-pcie-loopback-after-chassis-cycle` classified `pcie_ready`: `command=0002`, `vendor=10ee`, `device=0480`, `subsystem_device=abcd`, `bar0=74000000`, and `resource0` mode `0660 root:plugdev`. The embedded BAR header gate passed with `T6PC` magic and version 2. The debug-dump subgate returned nonzero because this loopback image exposes the simple loopback pattern, not the full DDR debug aperture.
+
+Then ran the actual rowstream loopback gate while the endpoint was BAR-ready:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh rowstream-loopback 0000:42:00.0
+```
+
+Result: `PASS: Task 6 PCIe rowstream loopback matched`, `accepted_count` advanced from 0 to 1, checksum sum matched `0x00077880`, checksum xor matched `0x00000000`, first/last words matched, and mismatch was zero. This proves the laptop/chassis/udev/BAR path works when the FPGA image advertises BAR0 reliably. The remaining blocker is specific to the full PCIe+DDR rowstream image or its integration, not the host path.
+
+Also fixed `scripts/task6/task6_pcie_lifecycle_gate.py` to allocate a suffixed run directory when repeated lifecycle invocations land in the same second, avoiding `FileExistsError` on labels like `pcie-loopback-after-chassis-cycle`.

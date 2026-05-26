@@ -23,6 +23,18 @@ def iso_stamp() -> str:
     return datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S%z")
 
 
+def make_run_dir(label: str) -> Path:
+    base = RUNS_ROOT / f"{iso_stamp()}-{label}"
+    for suffix in [""] + [f"-{index:02d}" for index in range(1, 100)]:
+        path = Path(str(base) + suffix)
+        try:
+            path.mkdir(parents=True, exist_ok=False)
+            return path
+        except FileExistsError:
+            continue
+    raise SystemExit(f"could not allocate unique run directory for label: {label}")
+
+
 def run(cmd: list[str], timeout: float = 10.0) -> dict[str, object]:
     try:
         proc = subprocess.run(
@@ -249,8 +261,7 @@ def main() -> int:
     parser.add_argument("--run-debug", action="store_true")
     args = parser.parse_args()
 
-    run_dir = RUNS_ROOT / f"{iso_stamp()}-{args.label}"
-    run_dir.mkdir(parents=True, exist_ok=False)
+    run_dir = make_run_dir(args.label)
 
     bridge = Path("/sys/bus/pci/devices") / args.bridge_bdf
     snap: dict[str, object] | None = None
