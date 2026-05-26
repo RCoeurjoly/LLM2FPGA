@@ -183,6 +183,39 @@ Next hardware gate:
 2. Cold enumerate or bridge-rescan only after the FPGA is configured.
 3. Run lifecycle BAR/debug and then `scripts/task6/task6_pcie_user_gate.sh command-smoke 0000:42:00.0`.
 
+
+### 2026-05-26 - Exported command bridge board test
+
+Bitstream under test:
+
+- `/nix/store/gc75dv1z3akjvfykv732b9kqz2h5ibxg-task6-ypcb-pcie-exported-command-bridge.bit`
+
+Evidence:
+
+| step | result |
+| --- | --- |
+| BPI flash write/verify | PASS, openFPGALoader from `/home/roland/openFPGALoader/build/openFPGALoader`, first 32 flash words verified; artifact `artifacts/task6/runs/2026-05-26T17-13-48+0200-pcie-exported-command-bridge-bpi-flash` |
+| lifecycle immediately after flash, before reconfiguration | `missing_resource0`; expected stale/full-image host state; artifact `artifacts/task6/runs/2026-05-26T17-21-09+0200-pcie-exported-command-bridge-after-flash-before-reconfig` |
+| SRAM program of same bitstream | PASS, DONE high over JTAG |
+| bridge rescan after SRAM program | PASS, but lifecycle still `missing_resource0`; artifact `artifacts/task6/runs/2026-05-26T17-22-10+0200-pcie-exported-command-bridge-after-sram-rescan` |
+| delegated endpoint recovery after SRAM program | PASS, endpoint recovered and memory space enabled |
+| lifecycle after recovery | `pcie_ready`; BAR0 usable; artifact `artifacts/task6/runs/2026-05-26T17-22-36+0200-pcie-exported-command-bridge-after-recover` |
+| command bridge smoke immediately after ready lifecycle | FAIL before BAR mmap: config space returned all `0xffff`; follow-up lifecycle classified `corrupt_command`; artifact `artifacts/task6/runs/2026-05-26T17-22-59+0200-pcie-exported-command-bridge-after-command-config-ffff` |
+
+Interpretation:
+
+- The patched/exported PCIe wrapper is not an immediate permanent BAR0-zero failure: after the FPGA is configured and the endpoint is reset/rescanned, it can reach `pcie_ready` with BAR0 assigned.
+- It is also not yet equivalent to the original command bridge shell: the first full command-smoke attempt destabilized config access to all-ones. That keeps the patched/exported shell in the suspect set, even before DDR3/top1 logic is added.
+- The next decisive check is a cold BPI enumeration with this exact flash image active before the host enumerates the downstream bridge. If cold BPI enumeration plus BAR-only access is stable, the hot-recovery collapse is a host/hotplug artifact. If it still collapses, the patched/exported wrapper/top hierarchy is the failure boundary.
+
+Next gate:
+
+1. With the exported-command-bridge bitstream already in BPI flash, shut the laptop down fully.
+2. Power-cycle FPGA/chassis and wait for flash configuration.
+3. Boot the laptop with chassis connected/powered.
+4. Run only `scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-exported-command-bridge-cold-bpi` first.
+5. If that reports `pcie_ready`, run `scripts/task6/task6_pcie_user_gate.sh bar 0000:42:00.0 --mode header` before command smoke.
+
 ## Active DDR3 Rebaseline: Upstream LiteX-Boards YPCB Support
 
 ### 2026-05-20 - Active one-lane full-bank baseline consumed from `~/UberDDR3_vainilla`
