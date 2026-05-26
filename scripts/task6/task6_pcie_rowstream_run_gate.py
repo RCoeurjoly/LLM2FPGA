@@ -46,6 +46,14 @@ def command_value(bdf: str) -> int:
 
 def ensure_mem_enabled(bdf: str, device: Path) -> tuple[int, int]:
     before = command_value(bdf)
+    if before & 0x0002:
+        return before, before
+    if os.geteuid() != 0:
+        raise SystemExit(
+            f"PCI memory space is disabled for {bdf}. Install/trigger the "
+            "Task 6 YPCB PCIe udev rule so it can enable the endpoint and "
+            "grant plugdev access to resource0."
+        )
     desired = before | 0x0002
     result = run(["setpci", "-s", bdf, f"COMMAND={desired:04x}"], check=False)
     after = command_value(bdf)

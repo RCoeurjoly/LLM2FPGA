@@ -24602,3 +24602,28 @@ sudo /usr/local/sbin/task6-pcie-gate rowstream-loader 0000:42:00.0 --boot-timeou
 ```
 
 still used the Python helper default `--boot-timeout 5.0`. Updated `scripts/task6/task6_pcie_gate_root.sh` so `rowstream-loader` forwards `"${@:3}"`, matching the packet/run/top1 gate modes. The board status observed before this fix was a valid PCIe BAR header (`magic=0x54365043`, `version=3`) with `status=0x00000001`, which means PCIe reset is released but DDR `calib_complete`/`boot_done` are not yet set.
+
+
+### 2026-05-26 - Rootless Task 6 PCIe gate path
+
+Commit note: `Add Task 6 rootless PCIe gate path`.
+
+Implemented the repo side of the no-sudo PCIe gate plan. The system permissions live in the separate dotfiles commit `b23c3ef` (`FutureProofDotfiles`: `Add Task 6 YPCB PCIe udev permissions`), which adds `/home/roland/FutureProofDotfiles/udev/60-task6-ypcb-pcie.rules`, a validated `task6-pcie-pci-permissions` helper, and an installer script.
+
+Repo implementation notes:
+
+- Added `scripts/task6/task6_pcie_user_gate.sh`, a rootless dispatcher for the normal BAR/rowstream/top1 gate modes. It validates BDF `0000:42:00.0`, confirms `[10ee:0480]`, checks user read/write access to BAR0, checks the PCI memory-space bit, and then dispatches directly to the repo Python helper. It intentionally does not remove, rescan, reset bridges, or perform PCIe recovery.
+- Updated the PCIe Python helpers so they skip privileged `setpci`/sysfs writes when memory space is already enabled. If memory space is disabled while running unprivileged, they now fail with a message pointing to the Task 6 YPCB PCIe udev rule instead of trying root-only writes.
+
+Verification passed:
+
+```bash
+bash -n /home/roland/FutureProofDotfiles/udev/task6-pcie-pci-permissions
+bash -n /home/roland/FutureProofDotfiles/udev/install-task6-pcie-rules.sh
+bash -n scripts/task6/task6_pcie_user_gate.sh
+python3 -m py_compile scripts/task6/task6_pcie_bar_smoke.py scripts/task6/task6_pcie_command_bridge_smoke.py scripts/task6/task6_pcie_rowstream_loopback_smoke.py scripts/task6/task6_pcie_rowstream_loader_smoke.py scripts/task6/task6_pcie_rowstream_packet_loader.py scripts/task6/task6_pcie_rowstream_run_gate.py scripts/task6/task6_pcie_rowstream_top1_gate.py
+```
+
+Activation command for the user, run once:
+
+```bash

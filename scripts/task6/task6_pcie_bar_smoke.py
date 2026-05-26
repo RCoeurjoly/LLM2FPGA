@@ -260,8 +260,17 @@ def main() -> int:
     print(f"COMMAND before: 0x{before:04x}")
 
     desired_command = before | 0x0002
-    command_write(args.bdf, desired_command)
-    after = command_value(args.bdf)
+    if before & 0x0002:
+        after = before
+    elif os.geteuid() != 0:
+        raise SystemExit(
+            f"PCI memory space is disabled for {args.bdf}. Install/trigger the "
+            "Task 6 YPCB PCIe udev rule so it can enable the endpoint and "
+            "grant plugdev access to resource0."
+        )
+    else:
+        command_write(args.bdf, desired_command)
+        after = command_value(args.bdf)
 
     if (after & 0x0002) == 0 and not args.no_sysfs_enable:
         print("COMMAND memory-enable bit is still clear; trying sysfs device enable")
