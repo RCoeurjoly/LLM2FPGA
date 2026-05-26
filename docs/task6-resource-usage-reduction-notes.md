@@ -25769,3 +25769,20 @@ Built the seed-19 variant of the PCIe+DDR rowstream loader-only diagnostic image
 The logic/resource footprint matches the seed-15 loader-only image: 15856 LUTX, 8759 FFX, 4 RAMB36, 18 IDELAYE2, 43 OSERDESE2, 18 ISERDESE2, 11 BUFGCTRL, 3 BSCAN, 1 PCIE/GT, 18 warnings, 0 errors. Placement timing was weaker than seed15 (`pcie_user_clk` about 55.07 MHz, `rowstream_clk` about 42.91 MHz). Post-route recovered to about 79.94 MHz for `pcie_user_clk` and 62.49 MHz for `rowstream_clk`.
 
 This remains a valid seed-sensitivity hardware test because earlier robust BIST2 work showed calibration can be seed-sensitive, but this build does not improve the route timing envelope over seed15.
+
+
+### 2026-05-26 - Rowstream loader-only seed19 image flashed to BPI
+
+Commit note: `Record Task 6 loader-only seed19 flash`.
+
+Flashed the seed-19 PCIe+DDR rowstream loader-only diagnostic bitstream to BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
+  /nix/store/y4nmrkp7ypmdawvmj8y45ps0yibcgir8-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed19.bit \
+  --confirm-write-flash --label pcie-rowstream-loader-only-seed19-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T19-29-59+0200-pcie-rowstream-loader-only-seed19-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron 64 MB BPI flash, wrote `18735004` bytes at offset `0x000000`, verified the first 32 words, and reported `BPI flash programming complete`.
+
+The next probe requires cold enumeration from flash.
