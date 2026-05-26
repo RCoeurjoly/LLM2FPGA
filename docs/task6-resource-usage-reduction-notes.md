@@ -25630,3 +25630,25 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-deb
 Artifact: `artifacts/task6/runs/2026-05-26T16-33-43+0200-pcie-full-rowstream-after-bridge-rescan`. Classification was `missing_resource0`: config space reported `COMMAND=0147`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=abcd`, but `BAR0=00000000` and `/sys/bus/pci/devices/0000:42:00.0/resource0` did not exist. This reproduces the full-image-specific BAR advertisement failure after the command-bridge image proved the host/chassis/BAR path and command MMIO path can work.
 
 Also fixed the lifecycle recommendation text for `missing_endpoint` so it prints the rootless wrapper's actual bridge-rescan calling convention: `scripts/task6/task6_pcie_user_gate.sh bridge-rescan <endpoint-bdf> <bridge-bdf>`.
+
+
+### 2026-05-26 - Rowstream-ingress dummy isolation image built
+
+Commit note: `Add Task 6 rowstream ingress dummy stage`.
+
+Added a diagnostic image that keeps the exported PCIe wrapper and real Task 6 rowstream PCIe ingress/CDC/register-file path, but replaces the DDR3 backend and top1 scan with deterministic dummy responses. This isolates whether the rowstream ingress logic itself is enough to disturb PCIe BAR enumeration, before reintroducing the full DDR3 loader/top1 datapath.
+
+New flake targets:
+
+```sh
+nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json
+nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-bitstream
+```
+
+Built bitstream:
+
+```text
+/nix/store/hsc1fsgi97fsj71n8pxsikxn8pqniwkz-task6-ypcb-pcie-rowstream-ingress-dummy.bit
+```
+
+Build summary from nextpnr/openXC7: 3661 LUTX, 4186 FFX, 4 BUFGCTRL, 1 BSCAN, 1 PCIE/GT, 4 RAMB36, 2 warnings, 0 errors. Placement initially reported `pcie_user_clk` around 71 MHz, which matches the weak full-image placement class, but post-route recovered to about 118.85 MHz in this smaller dummy image. This makes the cold board test decisive: if this image keeps BAR0, rowstream ingress is probably tolerable and the failure is in the coupled full DDR/top1 integration; if it loses BAR0, the rowstream ingress/register-file path is already enough to break the endpoint.
