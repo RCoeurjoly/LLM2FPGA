@@ -144,7 +144,8 @@ def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]
             "The endpoint header is corrupt; power-cycle the chassis after flash boot and rerun the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
         "missing_resource0": [
-            "The endpoint is present without BAR0; try delegated endpoint recovery: " + recover,
+            "The endpoint is present without BAR0; stop PCIe probing and re-enumerate with the FPGA already configured.",
+            "Delegated endpoint recovery is now a deliberate experiment only: " + recover + " --force-dead-config",
         ],
         "resource0_permission": [
             "Reinstall/trigger the Task 6 udev rule, then replug or rescan: " + install_rules,

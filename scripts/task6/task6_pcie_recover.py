@@ -52,12 +52,44 @@ def command_value(bdf: str) -> int | None:
 
 def config_words(bdf: str) -> list[str]:
     result = run(
-        ["setpci", "-s", bdf, "COMMAND", "VENDOR_ID", "DEVICE_ID", "HEADER_TYPE"],
+        [
+            "setpci",
+            "-s",
+            bdf,
+            "COMMAND",
+            "VENDOR_ID",
+            "DEVICE_ID",
+            "HEADER_TYPE",
+            "2e.w",
+            "10.l",
+        ],
         check=False,
     )
     if result.returncode != 0:
         return []
     return result.stdout.split()
+
+
+def unsafe_missing_bar_reason(device: Path, words: list[str]) -> str | None:
+    if (device / "resource0").exists():
+        return None
+    if len(words) < 6:
+        observed = " ".join(words) if words else "unreadable"
+        return f"incomplete config words with BAR0 absent: {observed}"
+
+    command, vendor, device_id, header_type, subsystem_device, bar0 = [
+        word.lower() for word in words[:6]
+    ]
+    if command == "ffff":
+        return "COMMAND=ffff with BAR0 absent"
+    if vendor != "10ee" or device_id != "0480" or header_type not in ("00", "0000"):
+        observed = " ".join(words[:6])
+        return f"unexpected live config identity with BAR0 absent: {observed}"
+    if subsystem_device not in ("abcd", "ffff"):
+        return f"unexpected subsystem_device={subsystem_device} with BAR0 absent"
+    if bar0 in ("00000000", "ffffffff"):
+        return f"BAR0 config register is {bar0} and sysfs resource0 is absent"
+    return None
 
 
 def verify_identity(device: Path, *, allow_stale_subsystem: bool = False) -> None:
@@ -149,9 +181,9 @@ def main() -> int:
         "--force-dead-config",
         action="store_true",
         help=(
-            "attempt remove/rescan even when live PCI config reads as all 0xffff; "
-            "normally this is treated as a stale Thunderbolt function that needs "
-            "chassis or host re-enumeration"
+            "attempt remove/rescan even when live PCI config/BAR state looks "
+            "unsafe; normally this is treated as a stale Thunderbolt function "
+            "that needs chassis or host re-enumeration"
         ),
     )
     args = parser.parse_args()
@@ -168,19 +200,15 @@ def main() -> int:
     command_before = command_value(args.bdf)
     print(endpoint or f"{args.bdf} not shown by lspci")
     print("COMMAND before: " + ("none" if command_before is None else f"0x{command_before:04x}"))
-    words_before = [word.lower() for word in config_words(args.bdf)]
-    if (
-        not args.force_dead_config
-        and command_before == 0xFFFF
-        and not (device / "resource0").exists()
-    ):
+    words_before = config_words(args.bdf)
+    unsafe_reason = unsafe_missing_bar_reason(device, words_before)
+    if not args.force_dead_config and unsafe_reason is not None:
         observed = " ".join(words_before) if words_before else "unreadable"
         raise SystemExit(
-            "live PCI config COMMAND reads as 0xffff and BAR0 is absent; "
-            f"refusing delegated remove/rescan by default (config={observed}) "
-            "because this stale Thunderbolt function state has correlated with "
-            "host freezes. Re-enumerate the chassis or reboot with the FPGA "
-            "already configured, then run lifecycle again. Use "
+            f"{unsafe_reason}; refusing delegated remove/rescan by default "
+            f"(config={observed}) because stale Thunderbolt PCIe states have "
+            "correlated with host freezes. Re-enumerate the chassis or reboot "
+            "with the FPGA already configured, then run lifecycle again. Use "
             "--force-dead-config only for a deliberate recovery experiment."
         )
 

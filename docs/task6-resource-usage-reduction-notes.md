@@ -25120,3 +25120,19 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --label pc
 The endpoint still classified unsafe: `artifacts/task6/runs/2026-05-26T13-48-17+0200-pcie-lifecycle-cold-flash-boot` reported `corrupt_command`, with config words `ffff 10ee 0480 00`, no `resource0`, and delegated recovery nodes present. No BAR/debug/top1 gate was run from that state.
 
 Updated `scripts/task6/task6_pcie_lifecycle_gate.py` so unsafe classes recommend a non-BAR lifecycle probe after physical/host re-enumeration. `corrupt_command` no longer recommends `--run-bar --run-debug` or flash probing as the next command, because the repeated freeze pattern makes corrupt config-space states a stop condition rather than a software recovery target.
+
+
+### 2026-05-26 - Missing-BAR recovery requires explicit force
+
+Commit note: `Require force for Task 6 missing-BAR recovery`.
+
+Tightened `scripts/task6/task6_pcie_recover.py` again after the third host freeze report. The helper now reads extended config words (`COMMAND`, vendor/device/header, subsystem device, BAR0 register) and refuses delegated reset/remove/rescan by default whenever `resource0` is absent and live config does not advertise a real BAR0. This catches the observed stale state where config can look superficially valid (`0147 10ee 0480 00 abcd 00000000`) but Linux still has no BAR0 sysfs node.
+
+Verification from the current stale endpoint:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeout 5
+# BAR0 config register is 00000000 and sysfs resource0 is absent; refusing delegated remove/rescan by default ...
+```
+
+`--force-dead-config` remains available only for a deliberate experiment. The normal Task 6 acceptance path should not use it. Lifecycle `missing_resource0` recommendations now tell us to stop PCIe probing and re-enumerate with the FPGA already configured, not to try recovery by default.
