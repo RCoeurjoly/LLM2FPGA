@@ -24882,7 +24882,7 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 probe
 
 The lifecycle gate writes `pcie-lifecycle.json` under `artifacts/task6/runs/...` and classifies failures as missing bridge, missing endpoint, corrupt config, missing `resource0`, permission failure, memory-disabled, or ready. Initial implementation check classified the current endpoint as `corrupt_command`, matching the observed bad config-space state.
 
-The guarded flash helper exposes probe/write modes and refuses flash writes unless `--confirm-write-flash` is supplied. Current flash probing does not yet reach flash detection because the local openFPGALoader data install lacks a Kintex-7 K480T `spiOverJtag` bridge image:
+The guarded flash helper exposes probe/write modes, records each openFPGALoader invocation under `artifacts/task6/runs`, and refuses flash writes unless `--confirm-write-flash` is supplied. Current flash probing does not yet reach flash detection because the local openFPGALoader data install lacks a Kintex-7 K480T `spiOverJtag` bridge image:
 
 ```text
 Error: fail to open /usr/local/share/openFPGALoader/spiOverJtag_xc7k480t.bit.gz

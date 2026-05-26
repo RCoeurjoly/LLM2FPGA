@@ -1,0 +1,16 @@
+{
+  "finished_at": "2026-05-26T11:41:20.656543+02:00",
+  "argv": [
+    "/home/roland/openFPGALoader/build/openFPGALoader",
+    "-c",
+    "digilent_hs3",
+    "--ftdi-serial",
+    "210299BF3824",
+    "--fpga-part",
+    "xc7k480t",
+    "--detect",
+    "-f"
+  ],
+  "returncode": -6,
+  "run_dir": "artifacts/task6/runs/2026-05-26T11-41-19+0200-pcie-flash-probe-implementation-check"
+}
