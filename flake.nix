@@ -6269,6 +6269,21 @@ EOF
           framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader";
         };
 
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20Fasm = mkFasm {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
+          seed = 20;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20";
+          fasm = task6YpcbPcieUberDdr3RowstreamLoaderSeed20Fasm;
+          framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20";
+        };
+
         task6YpcbPcieUberDdr3RowstreamLoaderOnlyFasm = mkFasm {
           name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only";
           xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
@@ -12074,6 +12089,8 @@ EOF
             task6YpcbPcieUberDdr3RowstreamLoaderXdc;
           task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream =
             task6YpcbPcieUberDdr3RowstreamLoaderBitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Bitstream;
           task6-ypcb-pcie-uberddr3-rowstream-loader-only-yosys-json =
             task6YpcbPcieUberDdr3RowstreamLoaderOnlyYosysJson;
           task6-ypcb-pcie-uberddr3-rowstream-loader-only-bitstream =
