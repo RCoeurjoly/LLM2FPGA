@@ -25727,3 +25727,30 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
 Run artifact: `artifacts/task6/runs/2026-05-26T19-07-21+0200-pcie-rowstream-loader-only-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron 64 MB BPI flash, wrote `18735004` bytes at offset `0x000000`, verified the first 32 words, and reported `BPI flash programming complete`.
 
 The FPGA SRAM is again left in the BPI-over-JTAG bridge state, so the next decisive probe requires cold enumeration from flash before any PCIe BAR gate.
+
+
+### 2026-05-26 - Rowstream loader-only cold BAR pass, DDR calibration fail
+
+Commit note: `Record Task 6 rowstream loader-only cold result`.
+
+After flashing the PCIe+DDR rowstream loader-only image to BPI, performed the full cold enumeration sequence. The first lifecycle probe classified the endpoint as `pcie_ready`:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-rowstream-loader-only-cold-bpi
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T19-23-15+0200-pcie-rowstream-loader-only-cold-bpi`. BAR header gate passed with `T6PC`, version `3`, status `0x00000001`, and rowstream magic `3DRD`. BAR/debug lifecycle also classified `pcie_ready` in `artifacts/task6/runs/2026-05-26T19-23-27+0200-pcie-rowstream-loader-only-cold-bpi-bar-debug`.
+
+The rowstream-loader gate kept BAR access alive but timed out waiting for DDR `boot_done` after 60 seconds:
+
+```text
+magic:   0x54365043
+version: 3
+status:  0x00000001 rst_n
+loader:  0x00000000 0
+timeout waiting for DDR boot_done: offset=0x008 value=0x00000001
+```
+
+Debug dump showed the rowstream/DDR clock domain itself is alive: `debug_status=0x13` (`pcie_rst_n,rowstream_rst_n,rowstream_heartbeat`) and heartbeat samples advanced. The live DDR debug mirror later showed `ddr_debug1=0x00000002`, but no `calib_complete`/`boot_done` bits.
+
+Conclusion: the loader-only coupled image narrows the full-image failure further. PCIe BAR advertisement survives with real rowstream ingress plus real DDR loader coupling, so the earlier full-image `missing_resource0` is not a simple consequence of coupling those blocks. The immediate blocker for this seed/placement is DDR calibration, consistent with the route-sensitive calibration class already documented for rowstream-loader variants. Next step is a seed/placement variant before changing functionality.
