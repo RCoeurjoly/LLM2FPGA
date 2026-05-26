@@ -25233,3 +25233,20 @@ python3 scripts/task6/task6_board_run.py with-lock \
 ```
 
 JTAG detected `xc7k480t` successfully, so the FPGA chain is alive. The prior BPI flash artifact shows flash currently contains `/nix/store/hdc7a117ilvxglf3zcg10i080749zv96-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`, while the later cleaned XDC routed image is `/nix/store/i2cwrhxrdp9sgch1k4cc2mfnlhlsznff-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`. Next forward step should be to write the current cleaned image to BPI flash, then cold-enumerate again.
+
+
+### 2026-05-26 - Cleaned-XDC rowstream image written to BPI flash
+
+Commit note: `Flash Task 6 cleaned XDC rowstream image`.
+
+Programmed the cleaned-XDC full PCIe+DDR3 rowstream image to BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
+  /nix/store/i2cwrhxrdp9sgch1k4cc2mfnlhlsznff-task6-ypcb-pcie-uberddr3-rowstream-loader.bit \
+  --confirm-write-flash --label pcie-rowstream-clean-xdc-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T14-26-38+0200-pcie-rowstream-clean-xdc-bpi-flash`. openFPGALoader used the local YPCB BPI path, detected Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
+
+Because flash programming loads the BPI-over-JTAG bridge into SRAM, the next PCIe test requires cold reconfiguration/re-enumeration before running lifecycle.
