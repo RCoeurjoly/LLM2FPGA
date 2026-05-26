@@ -25250,3 +25250,12 @@ scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
 Run artifact: `artifacts/task6/runs/2026-05-26T14-26-38+0200-pcie-rowstream-clean-xdc-bpi-flash`. openFPGALoader used the local YPCB BPI path, detected Intel/Micron BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
 
 Because flash programming loads the BPI-over-JTAG bridge into SRAM, the next PCIe test requires cold reconfiguration/re-enumeration before running lifecycle.
+
+
+### 2026-05-26 - Post-flash lifecycle briefly reached pcie_ready
+
+Commit note: `Record Task 6 transient PCIe ready window`.
+
+After flashing the cleaned-XDC BPI image and cold booting, repeated user-run lifecycle probes produced mixed states. The key artifact is `artifacts/task6/runs/2026-05-26T14-37-47+0200-pcie-lifecycle`, which classified `pcie_ready` with `config_decoded.command=0002`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=abcd`, `bar0=74000000`, and `resource0` present with mode `0660 root:plugdev`. Later probes regressed to missing/corrupt BAR0 (`14-38-23` missing_resource0 and `14-39-07` corrupt_command).
+
+Interpretation: the cleaned image can present a BAR-capable endpoint, but the ready window is transient or easily lost. The next cold-boot command should be a single lifecycle invocation with `--run-bar --run-debug`; the lifecycle helper will still skip BAR access unless classification is `pcie_ready`, but if the ready window appears it will capture BAR/debug immediately instead of requiring a second manual command.
