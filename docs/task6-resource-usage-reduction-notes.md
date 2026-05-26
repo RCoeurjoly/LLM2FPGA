@@ -25259,3 +25259,18 @@ Commit note: `Record Task 6 transient PCIe ready window`.
 After flashing the cleaned-XDC BPI image and cold booting, repeated user-run lifecycle probes produced mixed states. The key artifact is `artifacts/task6/runs/2026-05-26T14-37-47+0200-pcie-lifecycle`, which classified `pcie_ready` with `config_decoded.command=0002`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=abcd`, `bar0=74000000`, and `resource0` present with mode `0660 root:plugdev`. Later probes regressed to missing/corrupt BAR0 (`14-38-23` missing_resource0 and `14-39-07` corrupt_command).
 
 Interpretation: the cleaned image can present a BAR-capable endpoint, but the ready window is transient or easily lost. The next cold-boot command should be a single lifecycle invocation with `--run-bar --run-debug`; the lifecycle helper will still skip BAR access unless classification is `pcie_ready`, but if the ready window appears it will capture BAR/debug immediately instead of requiring a second manual command.
+
+
+### 2026-05-26 - Clean flash cold boot catch missed BAR window
+
+Commit note: `Record Task 6 clean flash cold boot missing BAR0`.
+
+After full shutdown, FPGA/chassis power cycle, 60-90 second wait, and laptop boot with chassis connected, ran the single safe capture command:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-debug --label pcie-catch-ready-after-clean-flash
+```
+
+Artifact `artifacts/task6/runs/2026-05-26T14-49-53+0200-pcie-catch-ready-after-clean-flash` classified `missing_resource0`: `command=0147`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=abcd`, `bar0=00000000`, and no `resource0`. Because classification was not `pcie_ready`, lifecycle did not run BAR/debug.
+
+This confirms the cleaned-XDC full image can reach valid identity but usually does not advertise BAR0 after cold enumeration. Next debug should flash or boot the known-good PCIe rowstream-loopback image and perform the same cold-enumeration capture, to separate host/chassis reliability from the full PCIe+DDR image.
