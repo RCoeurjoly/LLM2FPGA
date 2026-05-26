@@ -210,7 +210,7 @@ case "$MODE" in
     exec python3 "$LIBEXEC_DIR/task6_pcie_rowstream_loopback_smoke.py" "$BDF"
     ;;
   rowstream-loader)
-    exec python3 "$LIBEXEC_DIR/task6_pcie_rowstream_loader_smoke.py" "$BDF"
+    exec python3 "$LIBEXEC_DIR/task6_pcie_rowstream_loader_smoke.py" "$BDF" "${@:3}"
     ;;
   rowstream-packet)
     exec python3 "$LIBEXEC_DIR/task6_pcie_rowstream_packet_loader.py" "$BDF" "${@:3}"

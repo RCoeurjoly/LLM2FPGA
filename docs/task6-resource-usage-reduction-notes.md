@@ -24589,3 +24589,16 @@ sudo -n env TASK6_REPO_ROOT=/home/roland/LLM2FPGA scripts/task6/task6_pcie_rowst
 ```
 
 This did not reach BAR access because `sudo` requires a password in this session. The exact blocker is logged in `artifacts/task6/runs/2026-05-26T01-45-27+0200-pcie-rowstream-top1-sudo-block/logs/rowstream-top1-sudo-check.log`. The remaining acceptance action is to rerun the same gate with root privileges so the script can enable PCIe memory space and mmap BAR0.
+
+
+### 2026-05-26 - Rowstream-loader gate timeout forwarding fix
+
+Commit note: `Forward Task 6 rowstream loader gate args`.
+
+The installed `rowstream-loader` root wrapper path did not forward mode arguments to `task6_pcie_rowstream_loader_smoke.py`, so a command such as:
+
+```bash
+sudo /usr/local/sbin/task6-pcie-gate rowstream-loader 0000:42:00.0 --boot-timeout 60
+```
+
+still used the Python helper default `--boot-timeout 5.0`. Updated `scripts/task6/task6_pcie_gate_root.sh` so `rowstream-loader` forwards `"${@:3}"`, matching the packet/run/top1 gate modes. The board status observed before this fix was a valid PCIe BAR header (`magic=0x54365043`, `version=3`) with `status=0x00000001`, which means PCIe reset is released but DDR `calib_complete`/`boot_done` are not yet set.
