@@ -25061,3 +25061,18 @@ journalctl -b -u systemd-udevd --since '5 minutes ago' --no-pager | rg -i 'task6
 reported the Task 6 helper exited with code 1, and the endpoint stayed root-owned: `resource0` mode `0600`, recovery nodes root-only, and `enable=0`. `udevadm test --action=add /sys/bus/pci/devices/0000:42:00.0` confirmed the rule matches and would run the helper.
 
 Updated the dotfiles helper so it delegates endpoint `remove/reset/rescan` and upstream bridge `rescan` before attempting the PCI `enable` write. The `enable` write is now nonfatal, so a partially enumerated endpoint cannot prevent recovery permissions from being installed. Ran `home-manager switch --flake /home/roland/FutureProofDotfiles#roland`; active `/etc/udev` still needs one installer run before live udev uses this helper.
+
+### 2026-05-26 - Udev helper sets PCI COMMAND memory decode
+
+Commit note: dotfiles `cc4a805 Set Task 6 PCI memory decode in udev` and repo `Record Task 6 udev memory decode fix`.
+
+After the laptop freeze, reprogramming the PCIe rowstream-loopback control image restored BAR0 assignment, but lifecycle classified the endpoint as `mem_disabled`: `resource0` existed and had `plugdev` permissions, yet `setpci COMMAND` read `0000` and sysfs `enable` stayed `0`.
+
+Updated the dotfiles udev helper to explicitly set the PCI COMMAND memory-space bit for valid `10ee:0480` / `10ee:abcd` endpoints:
+
+```sh
+command_next=$(printf "%04x" $(( 0x$command_value | 0x0002 )))
+/usr/bin/setpci -s "$bdf" COMMAND="$command_next"
+```
+
+The helper still delegates recovery permissions first, and the setpci write is nonfatal. Ran `bash -n udev/task6-pcie-pci-permissions` and `home-manager switch --flake /home/roland/FutureProofDotfiles#roland`. Active `/etc/udev` still needs one installer run before live udev uses the COMMAND-bit fix.
