@@ -24948,3 +24948,21 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar 
 Delegated endpoint recovery with and without endpoint reset did not recover `resource0`; a longer 60-second remove/rescan also timed out with the endpoint present without BAR0. Raw `resource` showed all-zero BAR resources, while the bridge still had a 1 MiB memory window. A direct config read after the transient reset window showed the endpoint identity as `10ee:0480`, but BAR0 remained absent.
 
 The synthesized rowstream-top1 JSON still contains the same nonzero `PCIE_2_1` `BAR0` parameter as the known PCIe smoke/loopback images, so the current evidence points to host/chassis enumeration order rather than a missing BAR parameter in RTL. The next hardware step is a full Thunderbolt/chassis re-enumeration with the FPGA already booted from BPI flash: disconnect/reconnect the chassis, or reboot the laptop with the chassis powered and FPGA booted. Then rerun the lifecycle gate before any flash probe, because flash probing may load the BPI bridge into SRAM for flash access.
+
+### 2026-05-26 - Laptop reboot without FPGA reconfiguration leaves stale PCIe state
+
+After the laptop rebooted with the chassis and FPGA kept powered, the endpoint still appeared at `0000:42:00.0`, but BAR0 was not assigned and config reads were unstable. Lifecycle artifact: `artifacts/task6/runs/2026-05-26T12-16-42+0200-pcie-lifecycle-after-laptop-reboot-rowstream-bpi`.
+
+Observed repeated config reads alternated between sane identity and all-ones/stale fields:
+
+```text
+COMMAND/VENDOR/DEVICE/HEADER/BAR0 samples included:
+ffff 10ee 0480 00 00000000
+0147 10ee 0480 00 00000000
+ffff ffff ffff ff 00000000
+0147 ffff ffff ff ffffffff
+```
+
+The endpoint `resource` file still showed all-zero resources. Since a flash probe had been run after the prior BPI flash test, a laptop-only reboot is not enough evidence that the FPGA reloaded the rowstream-top1 image from BPI flash; the FPGA may have remained configured with the temporary BPI-over-JTAG bridge image in SRAM while the host rebooted.
+
+Next sequence must be: power-cycle/reconfigure the FPGA itself after the flash probe, keep the chassis connected, then run PCIe lifecycle before any JTAG/openFPGALoader/flash command.
