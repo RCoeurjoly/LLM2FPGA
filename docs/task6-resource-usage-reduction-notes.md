@@ -25201,3 +25201,18 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-lifecy
 The gate stopped before BAR access as designed. Artifact `artifacts/task6/runs/2026-05-26T14-04-48+0200-pcie-lifecycle-plan-implementation-start` classified `corrupt_command` with `config_decoded.command=ffff`, `vendor=10ee`, `device=0480`, `subsystem_device=abcd`, `bar0=00000000`, and no `resource0`.
 
 No `recover`, bridge rescan, BAR/debug, or rowstream-top1 command was run. The next step remains physical cold re-enumeration: power/configure FPGA/chassis before host PCIe enumeration, then rerun `scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0`.
+
+
+### 2026-05-26 - Cold connected reboot still missing BAR0
+
+Commit note: `Record Task 6 cold reboot missing BAR0`.
+
+After physical cold connected reboot (FPGA/chassis powered before laptop boot), ran the safe non-BAR lifecycle probe:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label pcie-lifecycle-after-cold-connected-reboot
+```
+
+Artifact `artifacts/task6/runs/2026-05-26T14-15-27+0200-pcie-lifecycle-after-cold-connected-reboot` classified `missing_resource0`. This is progress from the prior `COMMAND=ffff` state, but still not BAR-capable: `config_decoded.command=0147`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=ffff`, `bar0=00000000`, and no `resource0`.
+
+No recovery, rescan, BAR/debug, or top1 command was run. Next low-risk step is to verify what image is actually configured via JTAG/readback or LEDs before attempting any more PCIe operations.
