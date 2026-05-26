@@ -25045,3 +25045,19 @@ scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar 
 The helper now reached delegated remove/rescan, but BAR0 still did not appear. Lifecycle artifact: `artifacts/task6/runs/2026-05-26T12-48-38+0200-pcie-lifecycle-after-stale-recover-helper`, classified `corrupt_command`. Follow-up reads showed the endpoint identity recovered to `subsystem_device=0xabcd` and `enable=1`, with endpoint recovery nodes still delegated, but the resource file remained all zero and `resource0` was absent. Config reads were still inconsistent: `COMMAND=ffff`, `vendor=10ee`, `device=0480`, `header_type=00`, `subsystem_device=abcd`.
 
 Interpretation: rootless recovery permissions are no longer the blocker. The current full rowstream PCIe+DDR image still fails to get BAR0 assigned in this Thunderbolt topology after remove/rescan. Next debug should compare against a known-good PCIe-only BAR image in the same session, then return to either PCIe shell integration or full chassis re-enumeration depending on whether the simple image gets BAR0.
+
+### 2026-05-26 - Udev helper delegates before nonfatal enable
+
+Commit note: dotfiles `52432ce Keep Task 6 udev recovery delegation nonfatal` and repo `Record Task 6 nonfatal udev enable fix`.
+
+The PCIe rowstream-loopback control image proved the host/chassis can recover BAR0 in the same session: after programming `/nix/store/rydcyibvh3h76bd6ygsq154nmic6sp5k-task6-ypcb-pcie7x-rowstream-loopback.bit`, delegated recovery found `/sys/bus/pci/devices/0000:42:00.0/resource0`.
+
+However, the udev worker failed while handling the endpoint add event:
+
+```sh
+journalctl -b -u systemd-udevd --since '5 minutes ago' --no-pager | rg -i 'task6|42:00|pcie-pci|udev'
+```
+
+reported the Task 6 helper exited with code 1, and the endpoint stayed root-owned: `resource0` mode `0600`, recovery nodes root-only, and `enable=0`. `udevadm test --action=add /sys/bus/pci/devices/0000:42:00.0` confirmed the rule matches and would run the helper.
+
+Updated the dotfiles helper so it delegates endpoint `remove/reset/rescan` and upstream bridge `rescan` before attempting the PCI `enable` write. The `enable` write is now nonfatal, so a partially enumerated endpoint cannot prevent recovery permissions from being installed. Ran `home-manager switch --flake /home/roland/FutureProofDotfiles#roland`; active `/etc/udev` still needs one installer run before live udev uses this helper.
