@@ -24627,3 +24627,37 @@ python3 -m py_compile scripts/task6/task6_pcie_bar_smoke.py scripts/task6/task6_
 Activation command for the user, run once:
 
 ```bash
+sudo /home/roland/FutureProofDotfiles/udev/install-task6-pcie-rules.sh
+```
+
+After activation, the normal command path should be `scripts/task6/task6_pcie_user_gate.sh ...` without sudo. If the endpoint is missing or stale, recovery remains a separate manual/admin operation; the rootless path will not rescan or reset PCIe.
+
+
+### 2026-05-26 - Rootless BAR gate pass
+
+Commit note: `Record Task 6 rootless BAR gate pass`.
+
+After installing the Home Manager-managed Task 6 PCIe udev setup, the normal user BAR gate passed without sudo:
+
+```bash
+cd /home/roland/LLM2FPGA
+scripts/task6/task6_pcie_user_gate.sh bar 0000:42:00.0 --mode header
+```
+
+Observed output:
+
+```text
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0002
+COMMAND after:  0x0002
+BAR0 first word via mmap:
+00000000  54 36 50 43                                      |T6PC|
+BAR0 header snapshot:
+00000000  54 36 50 43 00 00 00 03 00 00 00 01 00 00 00 00  |T6PC............|
+00000010  33 44 52 44 00 00 00 00 00 00 00 00 00 00 00 00  |3DRD............|
+00000020  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  |................|
+00000030  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  |................|
+PASS: BAR0 Task 6 header magic matched; offset 0 was not written
+```
+
+This confirms the no-sudo `resource0` mmap path works for the Task 6 PCIe endpoint. DDR status in the header remained `status=0x00000001`, so the next hardware debug is still DDR calibration/boot, not host permissions.
