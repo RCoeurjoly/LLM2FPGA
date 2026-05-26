@@ -111,9 +111,9 @@ def classify(snapshot: dict[str, object]) -> str:
 
 
 def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]:
-    lifecycle = f"scripts/task6/task6_pcie_user_gate.sh lifecycle {bdf} --rescan --run-bar --run-debug"
+    lifecycle_probe = f"scripts/task6/task6_pcie_user_gate.sh lifecycle {bdf} --rescan"
+    lifecycle_bar = f"scripts/task6/task6_pcie_user_gate.sh lifecycle {bdf} --run-bar --run-debug"
     recover = f"scripts/task6/task6_pcie_user_gate.sh recover {bdf} --reset-first --timeout 20"
-    flash_probe = f"scripts/task6/task6_pcie_user_gate.sh flash {bdf} probe"
     bar = f"scripts/task6/task6_pcie_user_gate.sh bar {bdf} --mode header"
     top1 = f"scripts/task6/task6_pcie_user_gate.sh rowstream-top1 {bdf} --sample-count 1"
     bridge_rescan = f"scripts/task6/task6_pcie_user_gate.sh bridge-rescan {bridge_bdf}"
@@ -121,27 +121,27 @@ def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]
 
     table = {
         "missing_bridge": [
-            "Reconnect or power-cycle the Thunderbolt chassis, then run: " + lifecycle,
+            "Reconnect or power-cycle the Thunderbolt chassis, then run the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
         "missing_endpoint": [
-            "Ensure the FPGA booted from BPI flash before host PCIe enumeration, then run: " + lifecycle,
+            "Ensure the FPGA booted from BPI flash before host PCIe enumeration, then run the non-BAR lifecycle probe: " + lifecycle_probe,
             "If the bridge is present but the endpoint is absent, try a rootless bridge rescan: " + bridge_rescan,
         ],
         "config_unreadable": [
-            "Config space is not readable yet; wait briefly or power-cycle the chassis, then run: " + lifecycle,
+            "Config space is not readable yet; wait briefly or power-cycle the chassis, then run the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
         "corrupt_command": [
-            "Config space is returning 0xffff; use flash-first boot, power-cycle the chassis, then run: " + lifecycle,
-            "Confirm the BPI flash path is reachable without writing: " + flash_probe,
+            "Config space is returning 0xffff; stop PCIe probing and re-enumerate with the FPGA already configured from BPI flash.",
+            "After chassis or host re-enumeration, run only the non-BAR lifecycle probe first: " + lifecycle_probe,
         ],
         "wrong_vendor": [
             "The BDF no longer points at the expected Xilinx endpoint; inspect lspci and update TASK6_PCIE_ALLOWED_BDF only if the endpoint moved.",
         ],
         "corrupt_device_id": [
-            "The endpoint partially enumerated but device ID is wrong; power-cycle the chassis and rerun: " + lifecycle,
+            "The endpoint partially enumerated but device ID is wrong; power-cycle the chassis and rerun the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
         "corrupt_header_type": [
-            "The endpoint header is corrupt; power-cycle the chassis after flash boot and rerun: " + lifecycle,
+            "The endpoint header is corrupt; power-cycle the chassis after flash boot and rerun the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
         "missing_resource0": [
             "The endpoint is present without BAR0; try delegated endpoint recovery: " + recover,
@@ -150,10 +150,11 @@ def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]
             "Reinstall/trigger the Task 6 udev rule, then replug or rescan: " + install_rules,
         ],
         "mem_disabled": [
-            "PCI memory space is disabled; reinstall/trigger the udev rule, then rerun: " + lifecycle,
+            "PCI memory space is disabled; reinstall/trigger the udev rule, then rerun the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
         "pcie_ready": [
-            "BAR0 is usable; run the BAR gate: " + bar,
+            "BAR0 is usable; run BAR/debug lifecycle: " + lifecycle_bar,
+            "Or run the standalone BAR gate: " + bar,
             "After BAR/debug are stable, run the first board top1 gate: " + top1,
         ],
     }

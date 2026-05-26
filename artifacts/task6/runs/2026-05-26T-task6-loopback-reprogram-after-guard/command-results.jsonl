@@ -1,0 +1,1 @@
+{"argv": ["/home/roland/openFPGALoader/build/openFPGALoader", "-b", "ypcb003381p1", "-c", "digilent_hs3", "--ftdi-serial", "210299BF3824", "/nix/store/rydcyibvh3h76bd6ygsq154nmic6sp5k-task6-ypcb-pcie7x-rowstream-loopback.bit"], "finished_at": "2026-05-26T13:37:51.182693+02:00", "log": "program-openfpgaloader.log", "returncode": 0}

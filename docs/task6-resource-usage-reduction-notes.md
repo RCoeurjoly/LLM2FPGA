@@ -25105,3 +25105,18 @@ After reinstalling the nonzero udev payload and rebooting/power-cycling attempts
 Because two laptop freezes happened while iterating on stale/corrupt PCIe recovery states, `scripts/task6/task6_pcie_recover.py` now refuses delegated remove/rescan by default when live `COMMAND` reads `0xffff` and BAR0 is absent. That state is treated as needing Thunderbolt/chassis or host re-enumeration with the FPGA already configured. A new `--force-dead-config` flag keeps the old behavior available for deliberate experiments, but it should not be part of the normal Task 6 acceptance path.
 
 Current hardware conclusion: no board-side rowstream-top1 gate should run from this state. The next safe hardware step is to get a clean host enumeration where lifecycle reports `pcie_ready`; only then run BAR/debug and `rowstream-top1 --sample-count 1`.
+
+
+### 2026-05-26 - Lifecycle guidance avoids BAR from corrupt PCIe states
+
+Commit note: `Harden Task 6 PCIe lifecycle recommendations`.
+
+Ran the requested safe continuation gate without BAR access:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --label pcie-lifecycle-cold-flash-boot
+```
+
+The endpoint still classified unsafe: `artifacts/task6/runs/2026-05-26T13-48-17+0200-pcie-lifecycle-cold-flash-boot` reported `corrupt_command`, with config words `ffff 10ee 0480 00`, no `resource0`, and delegated recovery nodes present. No BAR/debug/top1 gate was run from that state.
+
+Updated `scripts/task6/task6_pcie_lifecycle_gate.py` so unsafe classes recommend a non-BAR lifecycle probe after physical/host re-enumeration. `corrupt_command` no longer recommends `--run-bar --run-debug` or flash probing as the next command, because the repeated freeze pattern makes corrupt config-space states a stop condition rather than a software recovery target.
