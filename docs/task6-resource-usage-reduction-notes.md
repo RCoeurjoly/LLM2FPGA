@@ -24786,3 +24786,44 @@ Commit note: `Delegate Task 6 recovery before BAR assignment` in `~/FutureProofD
 The first rootless recovery removed the stale endpoint and rescanned the immediate upstream bridge, but the endpoint returned in two phases: first as partial config space, then as `10ee:0480` without `resource0`. Because the udev helper previously waited for `resource0` before delegating recovery nodes, that partial device was left root-owned and could not be removed/retried by the user.
 
 The udev helper now delegates endpoint `remove`/`rescan`/`reset` and the immediate upstream bridge `rescan` immediately after identity validation, then waits briefly for `resource0` and delegates it only if assigned. The repo recovery helper also retries the upstream bridge rescan while waiting for BAR0/resource0.
+
+
+### 2026-05-26 - Rootless recovery reaches endpoint but BAR0 stays absent
+
+Commit note: `Retry Task 6 PCIe recovery until BAR0 appears` plus reprogram run `2026-05-26T11-04-49+0200-pcie-rowstream-debug-aperture-reprogram`.
+
+After installing the updated udev helper, the live sysfs permissions were correct for rootless recovery:
+
+```text
+/sys/bus/pci/devices/0000:42:00.0/remove root:plugdev 0220
+/sys/bus/pci/devices/0000:42:00.0/rescan root:plugdev 0220
+/sys/bus/pci/devices/0000:42:00.0/reset  root:plugdev 0220
+/sys/devices/.../0000:41:00.0/rescan     root:plugdev 0220
+```
+
+The recovery command can remove and rediscover the endpoint, but it never gets BAR0/resource0 back:
+
+```bash
+scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --timeout 40 --rescan-interval 0.5
+```
+
+Result after reprogramming the same debug-aperture bitstream:
+
+```text
+COMMAND before: 0x0000
+timeout waiting for PCI endpoint resource0: 0000:42:00.0 (present without resource0)
+```
+
+Final config/resource state:
+
+```text
+COMMAND=0147
+VENDOR_ID=10ee
+DEVICE_ID=ffff
+HEADER_TYPE=ff
+BASE_ADDRESS_0=00000000
+resource table: all zeroes
+resource0: absent
+```
+
+The endpoint/bridge-level rootless recovery path is therefore not enough after this JTAG reprogramming sequence. The host can rediscover a partial function, but config space is unstable/corrupt and the BAR is not advertised/assigned. The next recovery step is above the delegated endpoint path: Thunderbolt/slot reset, physical power-cycle/replug, or host reboot, then immediately run `debug-dump` before any further JTAG reprogramming.
