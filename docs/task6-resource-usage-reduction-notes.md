@@ -25076,3 +25076,21 @@ command_next=$(printf "%04x" $(( 0x$command_value | 0x0002 )))
 ```
 
 The helper still delegates recovery permissions first, and the setpci write is nonfatal. Ran `bash -n udev/task6-pcie-pci-permissions` and `home-manager switch --flake /home/roland/FutureProofDotfiles#roland`. Active `/etc/udev` still needs one installer run before live udev uses the COMMAND-bit fix.
+
+### 2026-05-26 - Udev installer zero-byte guard
+
+Commit note: dotfiles `bacb63b Validate Task 6 udev installer payloads` and repo `Record Task 6 udev installer guard`.
+
+After another laptop freeze/reboot, the kernel log showed the FPGA endpoint first appeared as `type 7f` with `unknown header type 7f, ignoring device`, then later as a type-00 endpoint with BAR0 assigned. That unstable PCIe config-space state is a plausible cause of the observed laptop freezes when combined with Thunderbolt hotplug/recovery and BAR probing.
+
+The live root-installed udev files were also found to be zero bytes:
+
+```sh
+wc -c /usr/local/libexec/task6-pcie/task6-pcie-pci-permissions /etc/udev/rules.d/60-task6-ypcb-pcie.rules
+# 0 ...task6-pcie-pci-permissions
+# 0 ...60-task6-ypcb-pcie.rules
+```
+
+The home-manager payload under `/home/roland/.local/share/task6-udev` was nonzero, so the dotfiles installer was hardened to resolve payload symlinks with `readlink -f` and fail if any source or installed destination is empty. Ran `bash -n udev/install-task6-pcie-rules.sh` and `home-manager switch --flake /home/roland/FutureProofDotfiles#roland`.
+
+Do not mmap or probe BAR0 while config reads show `COMMAND=ffff` or while the root-installed udev rule/helper are zero bytes. Reinstall the fixed udev payload first, verify nonzero file sizes and `plugdev` permissions, then resume with single-operation lifecycle checks.
