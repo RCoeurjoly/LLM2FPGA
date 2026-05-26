@@ -25710,3 +25710,20 @@ Built bitstream:
 Build summary from nextpnr/openXC7: 15856 LUTX, 8759 FFX, 4 RAMB36, 18 IDELAYE2, 43 OSERDESE2, 18 ISERDESE2, 11 BUFGCTRL, 3 BSCAN, 1 PCIE/GT, 18 warnings, 0 errors. Placement timing was weak: `pcie_user_clk` about 51.76 MHz and `rowstream_clk` about 48.04 MHz. Post-route recovered only to about 80.72 MHz for `pcie_user_clk` and 68.41 MHz for `rowstream_clk`.
 
 This is now the smallest decisive coupled image: if it cold-enumerates with BAR0, the full-image BAR loss is likely due to top1 reader/cutout pressure or top1/loader arbitration. If it loses BAR0, the DDR rowstream loader coupling itself is enough to break the endpoint, independent of the top1 scanner.
+
+
+### 2026-05-26 - Rowstream loader-only image flashed to BPI
+
+Commit note: `Record Task 6 rowstream loader-only flash`.
+
+Flashed the PCIe+DDR rowstream loader-only diagnostic bitstream to BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
+  /nix/store/1v1g0pj3q01m2044nrca8pxkvdh3ikbh-task6-ypcb-pcie-uberddr3-rowstream-loader-only.bit \
+  --confirm-write-flash --label pcie-rowstream-loader-only-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T19-07-21+0200-pcie-rowstream-loader-only-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron 64 MB BPI flash, wrote `18735004` bytes at offset `0x000000`, verified the first 32 words, and reported `BPI flash programming complete`.
+
+The FPGA SRAM is again left in the BPI-over-JTAG bridge state, so the next decisive probe requires cold enumeration from flash before any PCIe BAR gate.
