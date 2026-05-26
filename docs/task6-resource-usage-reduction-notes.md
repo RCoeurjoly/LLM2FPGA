@@ -24866,3 +24866,26 @@ resource0: absent
 ```
 
 Conclusion: udev/rootless permissions are no longer the limiting factor. The programmed image is not producing a stable PCIe endpoint/BAR through this Thunderbolt path after the current programming sequence. Continue at the PCIe bitstream/endpoint bring-up layer before DDR debug can proceed.
+
+
+### 2026-05-26 - PCIe lifecycle gate and flash probe tooling
+
+Commit note: `Add Task 6 PCIe lifecycle tooling`.
+
+Added rootless lifecycle tooling to classify the PCIe state before DDR/top1 gates run:
+
+```bash
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar --run-debug
+scripts/task6/task6_pcie_user_gate.sh bridge-rescan
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 probe
+```
+
+The lifecycle gate writes `pcie-lifecycle.json` under `artifacts/task6/runs/...` and classifies failures as missing bridge, missing endpoint, corrupt config, missing `resource0`, permission failure, memory-disabled, or ready. Initial implementation check classified the current endpoint as `corrupt_command`, matching the observed bad config-space state.
+
+The guarded flash helper exposes probe/write modes and refuses flash writes unless `--confirm-write-flash` is supplied. Current flash probing does not yet reach flash detection because the local openFPGALoader data install lacks a Kintex-7 K480T `spiOverJtag` bridge image:
+
+```text
+Error: fail to open /usr/local/share/openFPGALoader/spiOverJtag_xc7k480t.bit.gz
+```
+
+Next PCIe stabilization step is to provide/build the correct spiOverJtag bridge for `xc7k480t` or confirm the correct openFPGALoader part alias before attempting any flash write.
