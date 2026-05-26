@@ -25652,3 +25652,20 @@ Built bitstream:
 ```
 
 Build summary from nextpnr/openXC7: 3661 LUTX, 4186 FFX, 4 BUFGCTRL, 1 BSCAN, 1 PCIE/GT, 4 RAMB36, 2 warnings, 0 errors. Placement initially reported `pcie_user_clk` around 71 MHz, which matches the weak full-image placement class, but post-route recovered to about 118.85 MHz in this smaller dummy image. This makes the cold board test decisive: if this image keeps BAR0, rowstream ingress is probably tolerable and the failure is in the coupled full DDR/top1 integration; if it loses BAR0, the rowstream ingress/register-file path is already enough to break the endpoint.
+
+
+### 2026-05-26 - Rowstream-ingress dummy image flashed to BPI
+
+Commit note: `Record Task 6 rowstream ingress dummy flash`.
+
+Flashed the rowstream-ingress dummy diagnostic bitstream to BPI flash:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write \
+  /nix/store/hsc1fsgi97fsj71n8pxsikxn8pqniwkz-task6-ypcb-pcie-rowstream-ingress-dummy.bit \
+  --confirm-write-flash --label pcie-rowstream-ingress-dummy-bpi-flash
+```
+
+Run artifact: `artifacts/task6/runs/2026-05-26T18-44-20+0200-pcie-rowstream-ingress-dummy-bpi-flash`. openFPGALoader used `/home/roland/openFPGALoader/build/openFPGALoader`, detected the Intel/Micron 64 MB BPI flash, wrote `18735004` bytes at offset `0x000000`, and reported `Verification passed for first 32 words` followed by `BPI flash programming complete`.
+
+As with the previous BPI writes, this leaves the SRAM in the BPI-over-JTAG programming bridge state. The decisive PCIe result now requires a cold enumeration from flash: shut the laptop down fully, power-cycle FPGA/chassis, wait for the BPI image to configure, then boot the laptop with the chassis connected and powered.
