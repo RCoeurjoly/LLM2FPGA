@@ -25867,3 +25867,19 @@ PASS: Task 6 PCIe rowstream loader DDR3 write/read smoke matched
 
 Conclusion: seed20 is the first PCIe+DDR rowstream loader-only seed in this sequence that both cold-enumerates and reaches DDR calibration/boot_done. Seed15 kept BAR but failed DDR calibration; seed19 failed endpoint enumeration; seed20 passes the loader-only DDR smoke. Next engineering step is to carry this seed/placement candidate back to the real rowstream-top1/full integration, with a quick check of the standalone BAR header helper's byte snapshot behavior.
 
+### 2026-05-26 - Full rowstream-top1 seed20 image built
+
+Commit note: `Record Task 6 full rowstream seed20 build`.
+
+Built the full PCIe+DDR rowstream loader/top1 seed20 candidate:
+
+```text
+/nix/store/zry320qwwh9i2p4cq97fh34cpwlwaxp4-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20.bit
+```
+
+This uses the normal `task6_ypcb_pcie_uberddr3_rowstream_loader_top` with `ENABLE_PCIE_TOP1=1`, not the loader-only wrapper. It therefore carries the real PCIe top1 command/result path and the DDR3 rowstream top1 reader/cutout.
+
+Place/route completed with 10 warnings and 0 errors. Packed resources included 22852 SLICE_LUTX, 11379 SLICE_FFX, 4 DSP48E1, 4 RAMB36E1, 18 IDELAYE2, 43 OSERDESE2, 18 ISERDESE2, 11 BUFGCTRL, 3 BSCAN, 1 PCIE_2_1, 1 GTXE2_CHANNEL, and 1 GTXE2_COMMON. Placement timing reported about 51.69 MHz for `rowstream_clk` and 49.62 MHz for `pcie_user_clk`; post-route timing improved to about 68.68 MHz for `rowstream_clk` and 76.48 MHz for `pcie_user_clk`.
+
+This is the direct follow-up to the loader-only seed20 cold DDR pass. The next acceptance step is to flash this full seed20 image, cold-enumerate it from BPI, run the rowstream-loader smoke, then run the board-side `rowstream-top1` gate.
+
