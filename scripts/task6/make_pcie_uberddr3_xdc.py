@@ -33,6 +33,8 @@ def main() -> None:
     for line in ddr.splitlines():
         if "SYS_RSTN" in line:
             continue
+        if "clk50" in line:
+            continue
         mapped = adapt_ddr_line_for_pcie_top(line.replace("clk50", "clk_50"))
         if mapped is not None:
             print(mapped)

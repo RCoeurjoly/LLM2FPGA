@@ -24980,3 +24980,36 @@ In this local openFPGALoader build, `--reset` calls `Xilinx::reset()`, which shi
 Result: lifecycle after JPROGRAM still saw a corrupt/stale endpoint (`artifacts/task6/runs/2026-05-26T12-22-40+0200-pcie-lifecycle-after-jprogram-reload`), and delegated remove/rescan after the reload again timed out with the endpoint present but no `resource0`. So the reset/reload method is usable, but the host still does not assign BAR0 for the current flashed rowstream-top1 image in this topology.
 
 Remaining physical alternatives are full Thunderbolt/chassis disconnect/reconnect or boot with the chassis disconnected then reconnect after the FPGA has had time to configure from BPI flash.
+
+### 2026-05-26 - Clean PCIe+DDR rowstream XDC clock ownership
+
+Commit note: `Clean Task 6 PCIe DDR XDC clock merge`.
+
+The combined PCIe+DDR XDC generator now skips the DDR-side `clk50` lines when appending DDR constraints. The PCIe XDC already owns the top-level `clk_50` LOC, IOSTANDARD, and clock; duplicating the DDR `clk50` clock made the generated constraint set harder to reason about during PCIe enumeration debug.
+
+Rebuilt the real PCIe+DDR rowstream-top1 image with the cleaned XDC:
+
+```sh
+nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream -L --no-link --print-out-paths
+```
+
+Resulting bitstream: `/nix/store/i2cwrhxrdp9sgch1k4cc2mfnlhlsznff-task6-ypcb-pcie-uberddr3-rowstream-loader.bit`.
+
+Route completed with `10 warnings, 0 errors`. Final timing still passed the constrained domains: `rowstream_clk` 55.76 MHz against 25 MHz and `pcie_user_clk` 70.30 MHz against 12 MHz.
+
+Programmed the cleaned image into SRAM:
+
+```sh
+python3 scripts/task6/task6_board_run.py with-lock   --run-dir artifacts/task6/runs/2026-05-26T1235-pcie-rowstream-clean-xdc-sram-program   --log-name program-openfpgaloader.log --   /home/roland/openFPGALoader/build/openFPGALoader   -b ypcb003381p1 -c digilent_hs3 --ftdi-serial 210299BF3824   /nix/store/i2cwrhxrdp9sgch1k4cc2mfnlhlsznff-task6-ypcb-pcie-uberddr3-rowstream-loader.bit
+```
+
+Rootless PCIe recovery still did not produce BAR0:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeout 40 --rescan-interval 0.5
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --rescan --run-bar --run-debug --label pcie-lifecycle-after-clean-xdc-sram-program
+```
+
+Lifecycle artifact: `artifacts/task6/runs/2026-05-26T12-39-42+0200-pcie-lifecycle-after-clean-xdc-sram-program`, classified `corrupt_command`. A follow-up config/sysfs read showed mixed stale fields: `COMMAND=0547`, `vendor=0x10ee`, `device=0x0480`, but `subsystem_device=0xffff`, no `resource0`, `enable=0`, and endpoint `remove/reset/rescan` root-only while bridge `0000:41:00.0/rescan` remained delegated to `plugdev`.
+
+Interpretation: the cleaned XDC routes, but board-side acceptance is still blocked before BAR access. Because the current udev endpoint rule requires `subsystem_device==0xabcd`, it does not delegate recovery nodes when the stale/corrupt endpoint reports `0xffff`. The next PCIe-smoothing change should make the recovery permission path tolerate the fixed-BDF `10ee:0480`/`subsystem_device=0xffff` stale state enough to remove/rescan the endpoint, while keeping BAR0 access gated on the normal valid identity.
