@@ -25347,3 +25347,18 @@ If that reports `classification: pcie_ready`, run:
 ```sh
 scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0
 ```
+
+
+### 2026-05-26 - Command-bridge post-flash probe still needs reconfiguration
+
+Commit note: `Record Task 6 command bridge needs reconfig`.
+
+After writing the PCIe command-bridge image to BPI flash, ran the safe lifecycle probe without a chassis/FPGA reconfiguration step:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-debug --label pcie-command-bridge-after-flash
+```
+
+Artifact: `artifacts/task6/runs/2026-05-26T16-09-33+0200-pcie-command-bridge-after-flash`. Classification was `missing_resource0`, so the lifecycle gate did not touch BAR0. This is consistent with the board still running the BPI-over-JTAG SRAM helper loaded by flash programming rather than the newly flashed command-bridge image.
+
+Do not escalate to forced PCIe recovery for this state. The next valid test requires FPGA/chassis reconfiguration from BPI flash first, then rerun the same lifecycle capture. If it reaches `pcie_ready`, run `scripts/task6/task6_pcie_user_gate.sh command 0000:42:00.0`.
