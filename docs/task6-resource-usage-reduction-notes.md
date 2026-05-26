@@ -25313,7 +25313,7 @@ Also fixed `scripts/task6/task6_pcie_lifecycle_gate.py` to allocate a suffixed r
 
 Commit note: `Record Task 6 second loopback pass`.
 
-The user reran the rootless rowstream loopback gate against the BPI-flashed loopback image:
+The user reran the rootless rowstream loopback gate against the BPI-flashed loopback image `/nix/store/rydcyibvh3h76bd6ygsq154nmic6sp5k-task6-ypcb-pcie7x-rowstream-loopback.bit`:
 
 ```sh
 scripts/task6/task6_pcie_user_gate.sh rowstream-loopback 0000:42:00.0
