@@ -265,6 +265,7 @@ Build evidence:
 | resource profile | 15076 LUTX, 7109 FFX, 11 BUFGCTRL, 3 BSCAN, 18 IDELAYE2, 43 OSERDESE2, 18 ISERDESE2, 1 PCIE, 1 GTX channel/common |
 | post-route PCIe user timing | `pcie_user_clk` max 132.75 MHz |
 | DDR controller timing | `ddr_controller_clk` max 67.79 MHz |
+| BPI flash write/verify | PASS, first 32 flash words verified; artifact `artifacts/task6/runs/2026-05-26T17-42-23+0200-pcie-ddr3-isolated-command-bridge-bpi-flash` |
 
 Interpretation:
 
