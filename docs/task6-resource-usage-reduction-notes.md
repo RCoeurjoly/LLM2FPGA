@@ -25136,3 +25136,19 @@ scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeo
 ```
 
 `--force-dead-config` remains available only for a deliberate experiment. The normal Task 6 acceptance path should not use it. Lifecycle `missing_resource0` recommendations now tell us to stop PCIe probing and re-enumerate with the FPGA already configured, not to try recovery by default.
+
+
+### 2026-05-26 - BAR gates require clean PCI config preflight
+
+Commit note: `Guard Task 6 BAR gates with PCI config preflight`.
+
+Hardened `scripts/task6/task6_pcie_user_gate.sh` so every BAR-using mode (`bar`, `debug-dump`, rowstream gates, and command bridge gates) checks live PCI config before considering BAR access. The dispatcher now refuses if config is unreadable, `COMMAND=ffff`, vendor/device/header are not the expected clean endpoint values, BAR0 is absent, BAR0 permissions are missing, or PCI memory decoding is disabled.
+
+Verification in the current stale state:
+
+```sh
+scripts/task6/task6_pcie_user_gate.sh rowstream-top1 0000:42:00.0 --sample-count 1
+# error: refusing BAR access because BAR0 is absent ...
+```
+
+This keeps the Task 6 top1 acceptance gate from touching MMIO until the non-BAR lifecycle probe reports `pcie_ready`.

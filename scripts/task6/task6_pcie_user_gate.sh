@@ -62,6 +62,34 @@ if [[ "$MODE" == "recover" ]]; then
   exec python3 "$ROOT/scripts/task6/task6_pcie_recover.py" "$BDF" "${@:3}"
 fi
 
+mapfile -t config_words < <(setpci -s "$BDF" COMMAND VENDOR_ID DEVICE_ID HEADER_TYPE 2>/dev/null || true)
+if (( ${#config_words[@]} < 4 )); then
+  echo "error: PCI config space is not readable for $BDF; stop BAR access and re-enumerate the chassis/host" >&2
+  exit 1
+fi
+command_value="${config_words[0],,}"
+vendor_value="${config_words[1],,}"
+device_value="${config_words[2],,}"
+header_value="${config_words[3],,}"
+if [[ "$command_value" == "ffff" || "$vendor_value" != "10ee" || "$device_value" != "0480" || ( "$header_value" != "00" && "$header_value" != "0000" ) ]]; then
+  cat >&2 <<EOF
+error: refusing BAR access because PCI config is not clean for $BDF
+config: COMMAND=$command_value VENDOR=$vendor_value DEVICE=$device_value HEADER=$header_value
+Run the non-BAR lifecycle probe after chassis/host re-enumeration:
+  scripts/task6/task6_pcie_user_gate.sh lifecycle $BDF --rescan
+EOF
+  exit 1
+fi
+
+if [[ ! -e "$RESOURCE0" ]]; then
+  cat >&2 <<EOF
+error: refusing BAR access because BAR0 is absent: $RESOURCE0
+Run the non-BAR lifecycle probe after chassis/host re-enumeration:
+  scripts/task6/task6_pcie_user_gate.sh lifecycle $BDF --rescan
+EOF
+  exit 1
+fi
+
 if [[ ! -r "$RESOURCE0" || ! -w "$RESOURCE0" ]]; then
   cat >&2 <<EOF
 error: BAR0 is not readable/writable by this user: $RESOURCE0
@@ -71,12 +99,10 @@ EOF
   exit 1
 fi
 
-command_value="$(setpci -s "$BDF" COMMAND)"
 if (( (0x$command_value & 0x0002) == 0 )); then
   cat >&2 <<EOF
 error: PCI memory space is disabled for $BDF (COMMAND=0x$command_value)
-Install/trigger the Task 6 YPCB PCIe udev rule from ~/FutureProofDotfiles/udev:
-  sudo /home/roland/FutureProofDotfiles/udev/install-task6-pcie-rules.sh
+Install/trigger the Task 6 YPCB PCIe udev rule, then re-enumerate and rerun the non-BAR lifecycle probe first.
 EOF
   exit 1
 fi
