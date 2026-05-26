@@ -24827,3 +24827,16 @@ resource0: absent
 ```
 
 The endpoint/bridge-level rootless recovery path is therefore not enough after this JTAG reprogramming sequence. The host can rediscover a partial function, but config space is unstable/corrupt and the BAR is not advertised/assigned. The next recovery step is above the delegated endpoint path: Thunderbolt/slot reset, physical power-cycle/replug, or host reboot, then immediately run `debug-dump` before any further JTAG reprogramming.
+
+
+### 2026-05-26 - Bridge rescan helper needed after power-cycle
+
+Commit notes: `Delegate Task 6 upstream bridge rescan` and `Publish Task 6 bridge helper in Home Manager` in `~/FutureProofDotfiles`.
+
+After a physical Thunderbolt/FPGA power-cycle, the Thunderbolt bridge stack came back but the FPGA endpoint was absent. Because the endpoint was absent, the endpoint-triggered udev rule could not delegate the immediate upstream bridge `rescan` node:
+
+```text
+/sys/devices/.../0000:41:00.0/rescan root:root 0200
+```
+
+Added a separate, narrowly scoped udev helper for fixed bridge `0000:41:00.0` that validates `vendor=0x8086`, `device=0x5786`, `subsystem_vendor=0x2222`, `subsystem_device=0x1111`, and delegates only that bridge `rescan` node to `plugdev`. Home Manager now publishes `task6-pcie-bridge-permissions` into `~/.local/share/task6-udev`; the root-installed `/etc/udev` rule still needs one install/trigger before the bridge rescan is live.
