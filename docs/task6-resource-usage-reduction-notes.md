@@ -24661,3 +24661,28 @@ PASS: BAR0 Task 6 header magic matched; offset 0 was not written
 ```
 
 This confirms the no-sudo `resource0` mmap path works for the Task 6 PCIe endpoint. DDR status in the header remained `status=0x00000001`, so the next hardware debug is still DDR calibration/boot, not host permissions.
+
+
+### 2026-05-26 - Rootless rowstream-loader DDR boot timeout
+
+Commit note: `Record Task 6 rootless rowstream loader timeout`.
+
+Ran the normal user rowstream-loader gate with a 60 second boot timeout:
+
+```bash
+cd /home/roland/LLM2FPGA
+scripts/task6/task6_pcie_user_gate.sh rowstream-loader 0000:42:00.0 --boot-timeout 60
+```
+
+The command stayed active past 30 seconds, confirming the prior timeout-forwarding bug is fixed for the rootless path, then timed out at the expected DDR boot wait:
+
+```text
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0002
+COMMAND after:  0x0002
+magic:   0x54365043
+version: 3
+status:  0x00000001 rst_n
+loader:  0x00000000 0
+timeout waiting for DDR boot_done: offset=0x008 value=0x00000001
+```
