@@ -1,0 +1,87 @@
+{
+  "artifact_name": "h2-int8-l2-c-proj-from-post-gelu-boundary",
+  "status": "FAIL",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-requant-rtl-proof.json"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_fc",
+    "boundary": "post_gelu_int8_activation",
+    "consumer": "transformer.h.0.mlp.c_proj",
+    "interpretation": "The accepted replacement region is c_fc -> GELU -> int8 activation, and this artifact scores the immediate c_proj consumer."
+  },
+  "c_fc_post_gelu_activation": {
+    "dtype": "int8",
+    "quantization": "int8-per-tensor-symmetric",
+    "scale": 0.005411566543946203,
+    "q_min": -29,
+    "q_max": 127,
+    "q_sha256": "987cd9e05ce0cb54d258c11617664c24662bfb19ce27a3dca6997d839cee3e17",
+    "dequantized_bytes": 1024,
+    "int8_bytes": 256
+  },
+  "c_proj_contract": {
+    "in_features": 256,
+    "out_features": 64,
+    "macs": 16384,
+    "activation_quantization": "post-GELU int8-per-tensor-symmetric",
+    "weight_quantization": "int8-per-output-symmetric",
+    "accumulator_dtype": "int32",
+    "output_dtype_for_score": "float32"
+  },
+  "c_proj_quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "weight_scale_min": 0.0003460609889405919,
+    "weight_scale_max": 0.0008360356327116959,
+    "weight_q_min": -127,
+    "weight_q_max": 127,
+    "accumulator_min": -67899,
+    "accumulator_max": 88300,
+    "activation_q_sha256": "987cd9e05ce0cb54d258c11617664c24662bfb19ce27a3dca6997d839cee3e17",
+    "weight_q_sha256": "919d3ae1e399d2f86bb8c30bf69ea2312f8c609c83bc72365acbab2cb47bce39",
+    "accumulator_sha256": "d76e2f31cabaff2eda226e85850c498fd3103d0dc9fe6adaa82760f67bae142e"
+  },
+  "metrics": {
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 2.1315682885436615e-08,
+      "mean_abs_error": 3.3850977003220577e-09,
+      "rmse": 5.17426668971602e-09,
+      "normalized_rmse": 3.4171616717295247e-08,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    "post_gelu_int8_vs_c_proj_input": {
+      "max_abs_error": 0.028708072802507312,
+      "mean_abs_error": 0.002005766563816924,
+      "rmse": 0.0035718813385620905,
+      "normalized_rmse": 0.02358922848302082,
+      "signal_max_abs": 0.6872689723968506,
+      "signal_mean_abs": 0.11283289705170318
+    },
+    "c_proj_output_from_post_gelu_int8": {
+      "max_abs_error": 0.004470262356268531,
+      "mean_abs_error": 0.0010978347432156206,
+      "rmse": 0.001456905480273181,
+      "normalized_rmse": 0.01292893933558265,
+      "signal_max_abs": 0.3027295172214508,
+      "signal_mean_abs": 0.0915549298406404
+    }
+  },
+  "byte_budget": {
+    "post_gelu_int8_activation_bytes": 256,
+    "f32_activation_bytes_replaced": 1024,
+    "activation_transfer_savings_bytes": 768,
+    "c_proj_weight_int8_bytes": 16384,
+    "c_proj_weight_f32_bytes_replaced": 65536,
+    "c_proj_weight_transfer_savings_bytes": 49152,
+    "c_proj_weight_scale_sidecar_bytes": 256
+  },
+  "decision": {
+    "verdict": "stop",
+    "next_gate": "fall back to f32 c_proj input or widen calibration/scoring"
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "artifact_name": "h2-full-tinystories-1m-block0-mlp-chain-residual-add-rtl-proof",
+  "status": "FAIL",
+  "source_artifacts": {
+    "residual_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-residual-add-contract/manifest.json",
+    "residual_boundary_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-residual-add-boundary.json",
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-requant-rtl-proof.json",
+    "c_proj_output_boundary_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-proj-output-boundary.json",
+    "c_proj_requant_rtl_proof_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-mlp-chain-c-proj-requant-rtl-proof.json"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_proj",
+    "boundary": "post_c_proj_residual_add",
+    "consumer": "transformer.h.0 block output",
+    "interpretation": "Composed RTL proof for c_fc -> fixed-point GELU -> c_proj int8 output -> fixed-point residual add requant."
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_l2_mlp_chain_residual_add_kernel",
+    "base_chain_top_name": "task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel",
+    "output_dim": 64,
+    "activation_dtype": "int8",
+    "c_proj_output_dtype": "int8",
+    "residual_dtype": "int8",
+    "output_dtype": "int8",
+    "residual_quantization": "int8-per-tensor-symmetric",
+    "c_proj_output_quantization": "int8-per-tensor-symmetric",
+    "final_output_quantization": "int8-per-tensor-symmetric",
+    "local_residual_memory": true,
+    "local_output_memory": true
+  },
+  "fixed_point": {
+    "x_frac": 12,
+    "scale_shift": 24,
+    "gelu_approximation": "0.5*x + 0.39894228*x*x",
+    "gelu_quad_q": 1634,
+    "output_requant_shift": 16,
+    "output_requant_mult": 2957,
+    "c_proj_output_requant_shift": 24,
+    "c_proj_postprocess_formula": "q[i] = saturate_i8(round_shift(acc[i] * scale_mul[i], c_proj_output_requant_shift) + bias_q[i])",
+    "residual_add_requant_shift": 24,
+    "residual_requant_mult": 25008960,
+    "c_proj_residual_add_requant_mult": 24891227,
+    "residual_add_formula": "q[i] = saturate_i8(round_shift(residual_q[i] * residual_requant_mult + c_proj_q[i] * c_proj_residual_add_requant_mult, residual_add_requant_shift))"
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "residual_scale": 0.002394971650416457,
+    "residual_q_min": -127,
+    "residual_q_max": 107,
+    "residual_q_sha256": "a1493d43e93000c10e3c3e5fddc9361a906061e19b700efc233dc5b2576a9f3b",
+    "residual_boundary_q_sha256": "a1493d43e93000c10e3c3e5fddc9361a906061e19b700efc233dc5b2576a9f3b",
+    "c_proj_output_scale": 0.0023836969859956755,
+    "c_proj_output_q_sha256": "e80a26ff3bab0d417b2e6cb8863bcb7f44db06e45256798fbbf4403217a35db9",
+    "c_proj_output_proof_q_sha256": "e80a26ff3bab0d417b2e6cb8863bcb7f44db06e45256798fbbf4403217a35db9",
+    "c_proj_output_boundary_q_sha256": "e80a26ff3bab0d417b2e6cb8863bcb7f44db06e45256798fbbf4403217a35db9",
+    "final_output_scale": 0.00160666241095332,
+    "final_output_q_min": -127,
+    "final_output_q_max": 126,
+    "final_output_q_sha256": "5c5d61166228d5dfcd5e0d8b661503ed5cb2fe63cc0d5632d2d585cf703cd959",
+    "reference_final_output_q_sha256": "5c5d61166228d5dfcd5e0d8b661503ed5cb2fe63cc0d5632d2d585cf703cd959",
+    "expected_final_output_q_sha256": "5c5d61166228d5dfcd5e0d8b661503ed5cb2fe63cc0d5632d2d585cf703cd959",
+    "final_output_matches_boundary_quantizer": true
+  },
+  "upstream_metrics": {
+    "post_gelu_q_sha256": "987cd9e05ce0cb54d258c11617664c24662bfb19ce27a3dca6997d839cee3e17",
+    "c_proj_accumulator_sha256": "d76e2f31cabaff2eda226e85850c498fd3103d0dc9fe6adaa82760f67bae142e",
+    "c_proj_output_scale": 0.0023836969859956755,
+    "c_proj_output_q_sha256": "e80a26ff3bab0d417b2e6cb8863bcb7f44db06e45256798fbbf4403217a35db9",
+    "post_gelu_int8_vs_c_proj_input": {
+      "max_abs_error": 0.028708072802507312,
+      "mean_abs_error": 0.002005766563816924,
+      "rmse": 0.0035718813385620905,
+      "normalized_rmse": 0.02358922848302082,
+      "signal_max_abs": 0.6872689723968506,
+      "signal_mean_abs": 0.11283289705170318
+    },
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 2.1315682885436615e-08,
+      "mean_abs_error": 3.3850977003220577e-09,
+      "rmse": 5.17426668971602e-09,
+      "normalized_rmse": 3.4171616717295247e-08,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    "residual_boundary_metrics": {
+      "captured_residual_add_f32_vs_block_output": {
+        "max_abs_error": 0.0,
+        "mean_abs_error": 0.0,
+        "rmse": 0.0,
+        "normalized_rmse": 0.0,
+        "signal_max_abs": 0.20341834425926208,
+        "signal_mean_abs": 0.07632826500048395
+      },
+      "residual_plus_c_proj_contract_vs_block_output": {
+        "max_abs_error": 7.450580596923828e-09,
+        "mean_abs_error": 1.1168594937771559e-09,
+        "rmse": 2.188213255336088e-09,
+        "normalized_rmse": 2.277742953632517e-08,
+        "signal_max_abs": 0.20341834425926208,
+        "signal_mean_abs": 0.07632826500048395
+      },
+      "f32_residual_plus_int8_c_proj_vs_block_output": {
+        "max_abs_error": 0.005019658604475452,
+        "mean_abs_error": 0.0014551168900738486,
+        "rmse": 0.0018483896977106516,
+        "normalized_rmse": 0.019240156777501728,
+        "signal_max_abs": 0.20341834425926208,
+        "signal_mean_abs": 0.07632826500048395
+      },
+      "int8_residual_plus_int8_c_proj_vs_block_output": {
+        "max_abs_error": 0.005958910239493742,
+        "mean_abs_error": 0.0015557724083031309,
+        "rmse": 0.0020066194997727708,
+        "normalized_rmse": 0.02088719376451744,
+        "signal_max_abs": 0.20341834425926208,
+        "signal_mean_abs": 0.07632826500048395
+      },
+      "int8_final_residual_add_output_vs_block_output": {
+        "max_abs_error": 0.005659191631359504,
+        "mean_abs_error": 0.0016434317406432315,
+        "rmse": 0.00213153078472151,
+        "normalized_rmse": 0.022187413468549327,
+        "signal_max_abs": 0.20341834425926208,
+        "signal_mean_abs": 0.07632826500048395
+      }
+    }
+  },
+  "metrics": {
+    "fixed_residual_add_output_vs_block_output": {
+      "max_abs_error": 0.005659191631359504,
+      "mean_abs_error": 0.0016434317406432315,
+      "rmse": 0.00213153078472151,
+      "normalized_rmse": 0.022187413468549327,
+      "signal_max_abs": 0.20341834425926208,
+      "signal_mean_abs": 0.07632826500048395
+    },
+    "fixed_residual_add_output_vs_boundary_quantizer": {
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0,
+      "rmse": 0.0,
+      "normalized_rmse": 0.0,
+      "signal_max_abs": 0.20404612619107165,
+      "signal_mean_abs": 0.07669302602284989
+    }
+  },
+  "byte_budget": {
+    "residual_f32_bytes": 256,
+    "residual_int8_bytes": 64,
+    "c_proj_int8_output_bytes": 64,
+    "c_proj_output_scale_bytes": 4,
+    "final_residual_add_int8_output_bytes": 64,
+    "final_output_scale_bytes": 4,
+    "residual_int8_savings_vs_f32_bytes": 192,
+    "final_output_int8_savings_vs_f32_bytes": 192
+  },
+  "sim_result": null,
+  "yosys_result": null,
+  "mapped_utilization": null,
+  "decision": {
+    "verdict": "stop",
+    "next_gate": "fix residual-add RTL proof before integration"
+  }
+}

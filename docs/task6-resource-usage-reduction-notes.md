@@ -27770,3 +27770,61 @@ Next M1 action:
    TinyStories-1M prompt-aligned weights, scales, and residual-add constants.
 2. Rerun `prompt-infer --engine mlp` only after the software reference and
    compiled RTL `tb_data.sv` share the same contract identity.
+
+### 2026-06-09 - Full TinyStories-1M block-0 MLP contract export
+
+Follow-up to the M1 contract correction:
+
+- The `tiny-stories-v1k-h64-l1` and `tiny-stories-v4k-h64-l1` MLP weight packs
+  are not pretrained TinyStories-1M weights. They are representative-core
+  weights produced from a reduced config path seeded with `torch.manual_seed(0)`.
+- Direct comparison against the full TinyStories-1M checkpoint showed large
+  differences in block-0 MLP weights (`max_abs` around `0.13..0.16`), so a
+  prompt-derived TinyStories-1M MLP gate cannot be made valid by only changing
+  reference vectors.
+
+Implementation update:
+
+- `scripts/task6/export_l1_contract.py` and
+  `scripts/task6/export_weights_pack.py` now accept `--adapter-path`, while
+  preserving the representative-core adapter as the default.
+- Exported real-checkpoint block-0 artifacts using `TinyStories/model_adapter.py`
+  and the TinyStories-1M snapshot:
+  - `artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/`
+  - `artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract/`
+  - `artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-residual-add-contract/`
+  - `artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/`
+  - `artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj/`
+
+Quantization result:
+
+| artifact | status | key result |
+| --- | --- | --- |
+| `h2-full-tinystories-1m-block0-c-fc-downstream-int8-boundary.json` | PASS | post-GELU int8 remains the recommended boundary |
+| `h2-full-tinystories-1m-block0-c-fc-post-gelu-requant-rtl-proof.json` | FAIL | post-GELU nRMSE `0.023589`, threshold `0.02` |
+| `h2-full-tinystories-1m-block0-mlp-chain-c-proj-requant-rtl-proof.json` | FAIL | c_proj fixed requant nRMSE `0.016403`, but upstream post-GELU input nRMSE `0.023589` |
+| `h2-full-tinystories-1m-block0-residual-add-boundary.json` | FAIL | final residual-add output nRMSE `0.022187`, threshold `0.02` |
+| `h2-full-tinystories-1m-block0-mlp-chain-residual-add-rtl-proof.json` | FAIL | fixed residual-add output matches boundary quantizer, but boundary is already above threshold |
+
+Interpretation:
+
+- The real TinyStories-1M block-0 MLP path is now exported, but it is not ready
+  to compile into the board lane.
+- The first failing boundary is the fixed-point post-GELU approximation. The
+  full checkpoint has pre-GELU range about `-0.772..0.859`; the existing
+  `0.5*x + 0.39894228*x*x` small-range approximation was acceptable for the
+  representative-core proof but does not meet the established `0.02` threshold
+  here.
+- Do not rebuild the hardware lane from these full-checkpoint artifacts until
+  the post-GELU approximation is improved or a calibrated threshold change is
+  explicitly justified.
+
+Next M1 action:
+
+1. Replace the current quadratic GELU approximation for the full-checkpoint MLP
+   path with a better FPGA-suitable approximation, likely a small fixed-point
+   LUT or piecewise-linear/tanh approximation.
+2. Regenerate the full-checkpoint c_fc post-GELU, c_proj requant, and
+   residual-add proofs.
+3. Only after the full-checkpoint residual-add proof returns PASS, wire that
+   `tb_data.sv` into a pnr100 MLP lane and rerun `prompt-infer --engine mlp`.

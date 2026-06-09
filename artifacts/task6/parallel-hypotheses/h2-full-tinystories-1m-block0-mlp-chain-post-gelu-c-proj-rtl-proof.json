@@ -1,0 +1,121 @@
+{
+  "artifact_name": "h2-full-tinystories-1m-block0-mlp-chain-post-gelu-c-proj-rtl-proof",
+  "status": "FAIL",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-requant-rtl-proof.json",
+    "model_label": "tiny-stories-1m-h64-l8-block0"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_fc",
+    "boundary": "post_gelu_int8_activation",
+    "consumer": "transformer.h.0.mlp.c_proj",
+    "interpretation": "Composed RTL proof for c_fc -> fixed-point GELU -> int8 activation handoff -> c_proj."
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel",
+    "c_fc_in_dim": 64,
+    "hidden_dim": 256,
+    "c_proj_out_dim": 64,
+    "lane_count": 4,
+    "c_fc_packed_weight_words": 4096,
+    "c_proj_packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "handoff_dtype": "int8",
+    "c_proj_accumulator_dtype": "int32",
+    "output_score_dtype": "float32",
+    "activation_quantization": "int8-per-tensor-symmetric",
+    "c_fc_weight_quantization": "int8-per-output-symmetric",
+    "handoff_quantization": "post-GELU int8-per-tensor-symmetric",
+    "c_proj_weight_quantization": "int8-per-output-symmetric",
+    "handoff": "explicit sequential read/write through local activation memories"
+  },
+  "fixed_point": {
+    "x_frac": 12,
+    "scale_shift": 24,
+    "gelu_approximation": "0.5*x + 0.39894228*x*x",
+    "gelu_quad_q": 1634,
+    "output_requant_shift": 16,
+    "output_requant_mult": 2957
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "c_fc_activation_scale": 0.022635108842624454,
+    "post_gelu_output_scale": 0.005411566543946203,
+    "c_fc_effective_scale_min": 6.6306137374378125e-06,
+    "c_fc_effective_scale_max": 2.2909378968124816e-05,
+    "c_fc_scale_mul_min": 455652,
+    "c_fc_scale_mul_max": 1574321,
+    "c_fc_bias_q_min": -120,
+    "c_fc_bias_q_max": 208,
+    "c_fc_accumulator_min": -51561,
+    "c_fc_accumulator_max": 73318,
+    "post_gelu_q_min": -29,
+    "post_gelu_q_max": 127,
+    "c_proj_weight_scale_min": 0.0003460609889405919,
+    "c_proj_weight_scale_max": 0.0008360356327116959,
+    "c_proj_accumulator_min": -67899,
+    "c_proj_accumulator_max": 88300,
+    "c_fc_activation_q_sha256": "d5ed6a31506903cb7d172d7fbd576e07f5dc6eae3284e08c9150a110eba1ad7f",
+    "c_fc_weight_q_sha256": "8686879a4f14dff846de4e41666f77b992e7c32433cad419fa97572fa1c3b132",
+    "c_fc_packed_weight_sha256": "a6e3303bc2983888930921b33ad3cc115855a17448622010aad0304f85a6c721",
+    "c_fc_accumulator_sha256": "b5c442b5e79dd80da47a073204b268d39ec3d47f7ad16e970cbbc3a37fd8d3e7",
+    "c_fc_scale_mul_sha256": "a17532dce90c8179331cf054562e2483ea6150caa2d592f26d100d29b41e7ed7",
+    "c_fc_bias_q_sha256": "0b085f3214e031d231ac7201836b62ac97451b40c0a89359f6bcd7f514c40a3e",
+    "post_gelu_q_sha256": "987cd9e05ce0cb54d258c11617664c24662bfb19ce27a3dca6997d839cee3e17",
+    "c_proj_weight_q_sha256": "919d3ae1e399d2f86bb8c30bf69ea2312f8c609c83bc72365acbab2cb47bce39",
+    "c_proj_packed_weight_sha256": "8b4940f5844b8d79263cc55e2f413b220c7f4d86eb1b46c9d11baa3281771ec0",
+    "c_proj_accumulator_sha256": "d76e2f31cabaff2eda226e85850c498fd3103d0dc9fe6adaa82760f67bae142e"
+  },
+  "metrics": {
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 2.1315682885436615e-08,
+      "mean_abs_error": 3.3850977003220577e-09,
+      "rmse": 5.17426668971602e-09,
+      "normalized_rmse": 3.4171616717295247e-08,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    "post_gelu_int8_vs_c_proj_input": {
+      "max_abs_error": 0.028708072802507312,
+      "mean_abs_error": 0.002005766563816924,
+      "rmse": 0.0035718813385620905,
+      "normalized_rmse": 0.02358922848302082,
+      "signal_max_abs": 0.6872689723968506,
+      "signal_mean_abs": 0.11283289705170318
+    },
+    "c_proj_output_from_chain_accumulators": {
+      "max_abs_error": 0.004470262356268531,
+      "mean_abs_error": 0.0010978347432156206,
+      "rmse": 0.001456905480273181,
+      "normalized_rmse": 0.01292893933558265,
+      "signal_max_abs": 0.3027295172214508,
+      "signal_mean_abs": 0.0915549298406404
+    }
+  },
+  "byte_budget": {
+    "c_fc_activation_int8_bytes": 64,
+    "c_fc_packed_weight_bytes": 16384,
+    "c_fc_scale_mul_sidecar_bytes": 1024,
+    "c_fc_bias_q_sidecar_bytes": 1024,
+    "handoff_int8_activation_bytes": 256,
+    "handoff_f32_activation_bytes_replaced": 1024,
+    "handoff_activation_transfer_savings_bytes": 768,
+    "c_proj_weight_int8_bytes": 16384,
+    "c_proj_weight_f32_bytes_replaced": 65536,
+    "c_proj_weight_transfer_savings_bytes": 49152,
+    "c_proj_weight_scale_sidecar_bytes": 256,
+    "c_proj_accumulator_output_bytes": 256
+  },
+  "sim_result": null,
+  "yosys_result": null,
+  "mapped_utilization": null,
+  "decision": {
+    "verdict": "stop",
+    "next_gate": "fix the composed-chain RTL proof or return to the two-proof boundary"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "model_label": "tiny-stories-1m-h64-l8-block0",
+  "adapter_path": "TinyStories/model_adapter.py",
+  "module_name": "transformer.h.0.mlp.c_fc",
+  "representation_level": "pytorch-state-dict",
+  "format": "raw-f32-le",
+  "config": {
+    "vocab_size": 50257,
+    "num_layers": 8,
+    "max_position_embeddings": 2048,
+    "window_size": 256,
+    "hidden_size": 64,
+    "num_heads": 16
+  },
+  "tensors": [
+    {
+      "name": "weight",
+      "filename": "weight.bin",
+      "dtype": "float32",
+      "shape": [
+        256,
+        64
+      ],
+      "numel": 16384,
+      "byte_length": 65536
+    },
+    {
+      "name": "bias",
+      "filename": "bias.bin",
+      "dtype": "float32",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "byte_length": 1024
+    }
+  ]
+}

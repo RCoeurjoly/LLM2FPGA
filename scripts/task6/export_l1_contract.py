@@ -23,6 +23,13 @@ def parse_args() -> argparse.Namespace:
         default="transformer.h.0.mlp.c_fc",
         help="Fully-qualified module name to capture",
     )
+    parser.add_argument(
+        "--adapter-path",
+        type=Path,
+        default=Path(__file__).resolve().parents[2]
+        / "TinyStories"
+        / "model_adapter_representative_core.py",
+    )
     parser.add_argument("--candidate-json", type=Path)
     parser.add_argument("--vocab-size", type=int, required=True)
     parser.add_argument("--num-layers", type=int, required=True)
@@ -66,12 +73,10 @@ def write_tensor(path: Path, tensor: torch.Tensor) -> None:
     path.write_bytes(detached.numpy().tobytes(order="C"))
 
 
-def load_representative_core_builder() -> Any:
-    repo_root = Path(__file__).resolve().parents[2]
-    adapter_path = repo_root / "TinyStories" / "model_adapter_representative_core.py"
+def load_model_builder(adapter_path: Path) -> Any:
     sys.path.insert(0, str(adapter_path.parent))
     spec = importlib.util.spec_from_file_location(
-        "model_adapter_representative_core", adapter_path
+        "task6_model_adapter", adapter_path
     )
     if spec is None or spec.loader is None:
         raise SystemExit(f"unable to load adapter from {adapter_path}")
@@ -89,7 +94,7 @@ def load_representative_core_builder() -> Any:
 def main() -> None:
     args = parse_args()
     set_representative_core_env(args)
-    build_model = load_representative_core_builder()
+    build_model = load_model_builder(args.adapter_path)
     model = build_model(str(args.model_path))
     named_modules = dict(model.named_modules())
     if args.module_name not in named_modules:
@@ -130,6 +135,7 @@ def main() -> None:
 
     manifest: dict[str, Any] = {
         "model_label": args.model_label,
+        "adapter_path": str(args.adapter_path),
         "module_name": args.module_name,
         "representation_level": "pytorch-module-hook",
         "capture_kind": "representative-core-single-token",

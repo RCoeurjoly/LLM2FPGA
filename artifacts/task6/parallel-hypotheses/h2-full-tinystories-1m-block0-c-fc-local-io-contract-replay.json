@@ -1,0 +1,58 @@
+{
+  "artifact_name": "h2-full-tinystories-1m-block0-c-fc-local-io-contract-replay",
+  "status": "partial",
+  "source_contract": {
+    "contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "model_label": "tiny-stories-1m-h64-l8-block0",
+    "module_name": "transformer.h.0.mlp.c_fc",
+    "selected_site": null
+  },
+  "rtl_contract": {
+    "in_dim": 64,
+    "out_dim": 256,
+    "lane_count": 4,
+    "packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "accumulator_dtype": "int32",
+    "activation_quantization": "int8-per-tensor-symmetric",
+    "weight_quantization": "int8-per-output-symmetric",
+    "bias_handling": "f32 bias added during dequantized contract scoring, not inside RTL",
+    "local_activation_memory": true,
+    "local_packed_weight_memory": true,
+    "local_output_memory": true
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "activation_scale": 0.022635108842624454,
+    "weight_scale_min": 0.0002929349173241713,
+    "weight_scale_max": 0.0010121170226044542,
+    "weight_scale_count": 256,
+    "activation_q_min": -127,
+    "activation_q_max": 102,
+    "weight_q_min": -127,
+    "weight_q_max": 127,
+    "expected_acc_min": -51561,
+    "expected_acc_max": 73318,
+    "activation_q_sha256": "d5ed6a31506903cb7d172d7fbd576e07f5dc6eae3284e08c9150a110eba1ad7f",
+    "weight_q_sha256": "8686879a4f14dff846de4e41666f77b992e7c32433cad419fa97572fa1c3b132",
+    "packed_weight_sha256": "a6e3303bc2983888930921b33ad3cc115855a17448622010aad0304f85a6c721",
+    "expected_acc_sha256": "b5c442b5e79dd80da47a073204b268d39ec3d47f7ad16e970cbbc3a37fd8d3e7",
+    "max_abs_error": 0.006828556750671091,
+    "mean_abs_error": 0.001571726513296271,
+    "rmse": 0.001962252428864008,
+    "normalized_rmse": 0.00731754746264498,
+    "signal_max_abs": 0.8551793098449707,
+    "signal_mean_abs": 0.21470311474331538,
+    "verdict": "pass"
+  },
+  "sim_result": null,
+  "yosys_result": null,
+  "mapped_utilization": null,
+  "interpretation": [
+    "This replays the captured L2 c_fc contract through the fixed-point int8 local-memory RTL shape.",
+    "Verilator checks the raw int32 accumulators produced by quantized activation and per-output quantized weights.",
+    "The JSON error metrics dequantize those accumulators with f32 bias added outside the RTL boundary."
+  ]
+}

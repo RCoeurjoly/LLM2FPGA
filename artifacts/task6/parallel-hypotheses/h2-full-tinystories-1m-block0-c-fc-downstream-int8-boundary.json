@@ -1,0 +1,105 @@
+{
+  "artifact_name": "h2-int8-l2-c-fc-downstream-int8-boundary",
+  "status": "PASS",
+  "source_artifacts": {
+    "contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "contract_replay_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-local-io-contract-replay.json"
+  },
+  "assumptions": {
+    "gelu_variant": "tanh approximation",
+    "output_scale_source": "single captured contract sample used as calibration reference",
+    "threshold": 0.02,
+    "calibration_caveat": "This is a bounded single-sample gate. A production activation scale needs a calibration set before board-level claims."
+  },
+  "module": {
+    "model_label": "tiny-stories-1m-h64-l8-block0",
+    "module_name": "transformer.h.0.mlp.c_fc",
+    "in_features": 64,
+    "out_features": 256,
+    "macs": 16384
+  },
+  "input_replay": {
+    "contract_replay_status": "partial",
+    "activation_scale": 0.022635108842624454,
+    "effective_scale_min": 6.6306137374378125e-06,
+    "effective_scale_max": 2.2909378968124816e-05,
+    "accumulator_min": -51561,
+    "accumulator_max": 73318,
+    "f32_boundary_metrics": {
+      "max_abs_error": 0.006828556750671091,
+      "mean_abs_error": 0.0015717265132962708,
+      "rmse": 0.001962252428864008,
+      "normalized_rmse": 0.00731754746264498,
+      "signal_max_abs": 0.8551793098449707,
+      "signal_mean_abs": 0.21470311474331538
+    }
+  },
+  "candidates": [
+    {
+      "name": "pre_gelu_int8_activation",
+      "output_quantization": "int8-per-tensor-symmetric",
+      "output_scale": 0.006733695353110005,
+      "output_q_min": -115,
+      "output_q_max": 127,
+      "output_q_sha256": "16ddae0dc4eb8cbaa3b31ed784199148db2b47b48942aefc88a2d9610bad4892",
+      "output_int8_bytes": 256,
+      "output_scale_bytes": 4,
+      "c_fc_output_metrics": {
+        "max_abs_error": 0.00959840167577811,
+        "mean_abs_error": 0.0023300588563727174,
+        "rmse": 0.002902335071282655,
+        "normalized_rmse": 0.010823263268378305,
+        "signal_max_abs": 0.8551793098449707,
+        "signal_mean_abs": 0.21470311474331538
+      },
+      "gelu_output_metrics": {
+        "max_abs_error": 0.005323233485819812,
+        "mean_abs_error": 0.001213534238033874,
+        "rmse": 0.0015899140202379745,
+        "normalized_rmse": 0.010500025563237416,
+        "signal_max_abs": 0.6872689510811677,
+        "signal_mean_abs": 0.11283289663220802
+      },
+      "verdict": "pass"
+    },
+    {
+      "name": "post_gelu_int8_activation",
+      "output_quantization": "int8-per-tensor-symmetric",
+      "output_scale": 0.005411566543946203,
+      "output_q_min": -31,
+      "output_q_max": 127,
+      "output_q_sha256": "4a80a9920efb1ed3dcc98a4f6fdcc2e5da428aa72ac6da34d3db0dff040f1cbe",
+      "output_int8_bytes": 256,
+      "output_scale_bytes": 4,
+      "c_fc_output_metrics": {
+        "max_abs_error": 0.006828556750671091,
+        "mean_abs_error": 0.0015717265132962708,
+        "rmse": 0.001962252428864008,
+        "normalized_rmse": 0.00731754746264498,
+        "signal_max_abs": 0.8551793098449707,
+        "signal_mean_abs": 0.21470311474331538
+      },
+      "gelu_output_metrics": {
+        "max_abs_error": 0.005293311384176658,
+        "mean_abs_error": 0.0014322421540594787,
+        "rmse": 0.0017909617424812002,
+        "normalized_rmse": 0.011827774231475813,
+        "signal_max_abs": 0.6872689510811677,
+        "signal_mean_abs": 0.11283289663220802
+      },
+      "verdict": "pass"
+    }
+  ],
+  "byte_budget": {
+    "pre_gelu_int8_output_bytes": 256,
+    "post_gelu_int8_output_bytes": 256,
+    "f32_output_bytes_replaced": 1024,
+    "output_scale_bytes": 4,
+    "int8_output_write_savings_vs_f32_bytes": 768
+  },
+  "decision": {
+    "recommended_boundary": "post_gelu_int8_activation",
+    "next_gate": "if a candidate passes, implement a bounded fixed-point requant/output memory proof; otherwise fall back to the explicit f32 scale/bias boundary"
+  }
+}
