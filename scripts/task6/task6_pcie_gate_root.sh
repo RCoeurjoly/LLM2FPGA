@@ -8,15 +8,16 @@ ROOT_PORT_BDF="${TASK6_PCIE_ROOT_PORT_BDF:-0000:00:07.2}"
 TB_DEVICE="${TASK6_PCIE_TB_DEVICE:-1-1}"
 TB_DEVICE_NAME="${TASK6_PCIE_TB_DEVICE_NAME:-Helios 5S}"
 TB_UNIQUE_ID="${TASK6_PCIE_TB_UNIQUE_ID:-c4148780-0010-1ed9-ffff-ffffffffffff}"
+TB_DOMAIN="${TASK6_PCIE_TB_DOMAIN:-domain1}"
 LIBEXEC_DIR="${TASK6_PCIE_LIBEXEC_DIR:-/usr/local/libexec/task6-pcie}"
 
 usage() {
-  cat >&2 <<'EOF'
-usage: task6-pcie-gate <prepare|bar|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
+  cat >&2 <<'USAGE'
+usage: task6-pcie-gate <prepare|bar|prompt-infer|mlp-boundary|mlp-accel|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
 
 Install this file root-owned as /usr/local/sbin/task6-pcie-gate when enabling
 hands-free PCIe gates. It accepts only the configured YPCB endpoint BDF.
-EOF
+USAGE
   exit 2
 }
 
@@ -28,7 +29,7 @@ fi
 MODE="${1:-}"
 BDF="${2:-$ALLOWED_BDF}"
 case "$MODE" in
-  prepare|bar|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
+  prepare|bar|prompt-infer|mlp-boundary|mlp-accel|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 if [[ "$BDF" != "$ALLOWED_BDF" ]]; then
@@ -38,6 +39,53 @@ fi
 
 command_value() {
   setpci -s "$BDF" COMMAND
+}
+
+verify_pci_bdf_exists() {
+  local bdf="$1"
+  if [[ ! -d "/sys/bus/pci/devices/$bdf" ]]; then
+    echo "error: missing expected PCI device $bdf" >&2
+    exit 1
+  fi
+}
+
+verify_optional_endpoint_identity() {
+  local endpoint
+  if [[ ! -d "/sys/bus/pci/devices/$BDF" ]]; then
+    return 0
+  fi
+  endpoint="$(lspci -Dnn -s "$BDF" || true)"
+  if [[ -z "$endpoint" ]]; then
+    echo "error: expected endpoint directory exists but lspci cannot read $BDF" >&2
+    exit 1
+  fi
+  if ! grep -q '\[10ee:0480\]' <<<"$endpoint"; then
+    echo "error: refusing unexpected endpoint at $BDF: $endpoint" >&2
+    exit 1
+  fi
+}
+
+verify_thunderbolt_identity() {
+  local dev_dir name uuid
+  dev_dir="/sys/bus/thunderbolt/devices/$TB_DEVICE"
+  if [[ ! -d "$dev_dir" ]]; then
+    echo "error: missing expected Thunderbolt device $TB_DEVICE" >&2
+    exit 1
+  fi
+  name="$(cat "$dev_dir/device_name" 2>/dev/null || true)"
+  uuid="$(cat "$dev_dir/unique_id" 2>/dev/null || true)"
+  if [[ "$name" != "$TB_DEVICE_NAME" || "$uuid" != "$TB_UNIQUE_ID" ]]; then
+    echo "error: refusing Thunderbolt device $TB_DEVICE: name='$name' uuid='$uuid'" >&2
+    exit 1
+  fi
+}
+
+verify_fixed_topology() {
+  verify_pci_bdf_exists "$ROOT_PORT_BDF"
+  verify_pci_bdf_exists "$UPSTREAM_BRIDGE_BDF"
+  verify_pci_bdf_exists "$BRIDGE_BDF"
+  verify_optional_endpoint_identity
+  verify_thunderbolt_identity
 }
 
 reset_subordinate_bus() {
@@ -85,10 +133,15 @@ rescan_pci() {
 }
 
 thunderbolt_reauthorize() {
-  local dev_dir auth name uuid
+  local dev_dir auth name uuid deauth
   dev_dir="/sys/bus/thunderbolt/devices/$TB_DEVICE"
   auth="$dev_dir/authorized"
   if [[ ! -e "$auth" ]]; then
+    return 1
+  fi
+  deauth="/sys/bus/thunderbolt/devices/$TB_DOMAIN/deauthorization"
+  if [[ ! -e "$deauth" || "$(cat "$deauth" 2>/dev/null || true)" != "1" ]]; then
+    echo "Thunderbolt deauthorization is not supported for $TB_DOMAIN" >&2
     return 1
   fi
   name="$(cat "$dev_dir/device_name" 2>/dev/null || true)"
@@ -106,7 +159,15 @@ thunderbolt_reauthorize() {
 
 reset_bridge_for_recovery() {
   local step
-  for step in     "subordinate:$BRIDGE_BDF"     "device:$BRIDGE_BDF"     "hot:$BRIDGE_BDF"     "subordinate:$UPSTREAM_BRIDGE_BDF"     "device:$UPSTREAM_BRIDGE_BDF"     "subordinate:$ROOT_PORT_BDF"     "thunderbolt:$TB_DEVICE"; do
+  for step in \
+    "device:$BDF" \
+    "subordinate:$BRIDGE_BDF" \
+    "device:$BRIDGE_BDF" \
+    "hot:$BRIDGE_BDF" \
+    "subordinate:$UPSTREAM_BRIDGE_BDF" \
+    "device:$UPSTREAM_BRIDGE_BDF" \
+    "subordinate:$ROOT_PORT_BDF" \
+    "thunderbolt:$TB_DEVICE"; do
     case "$step" in
       subordinate:*) reset_subordinate_bus "${step#subordinate:}" || continue ;;
       device:*) reset_pci_device "${step#device:}" || continue ;;
@@ -185,6 +246,7 @@ prepare_endpoint() {
   local device
   device="/sys/bus/pci/devices/$BDF"
   echo "Task 6 PCIe privileged prepare for $BDF"
+  verify_fixed_topology
   if [[ -e "$device/remove" ]]; then
     echo "removing existing/stale $BDF"
     echo 1 >"$device/remove"
@@ -218,8 +280,17 @@ case "$MODE" in
   rowstream-run)
     exec python3 "$LIBEXEC_DIR/task6_pcie_rowstream_run_gate.py" "$BDF" "${@:3}"
     ;;
+  mlp-boundary)
+    exec python3 "$LIBEXEC_DIR/task6_pcie_mlp_boundary_gate.py" "$BDF" "${@:3}"
+    ;;
+  mlp-accel)
+    exec python3 "$LIBEXEC_DIR/task6_pcie_mlp_accel_gate.py" "$BDF" "${@:3}"
+    ;;
   rowstream-top1)
     exec python3 "$LIBEXEC_DIR/task6_pcie_rowstream_top1_gate.py" "$BDF" "${@:3}"
+    ;;
+  prompt-infer)
+    exec python3 "$LIBEXEC_DIR/task6_prompt_infer.py" "$BDF" "${@:3}"
     ;;
   command-header)
     exec python3 "$LIBEXEC_DIR/task6_pcie_command_bridge_smoke.py" "$BDF" --stage header

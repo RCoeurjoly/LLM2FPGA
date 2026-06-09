@@ -150,7 +150,30 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top (
     .rowstream_top1_token_i(top1_token_q),
     .rowstream_top1_score_q024_i(top1_score_q024_q),
     .rowstream_top1_rows_scanned_i(top1_rows_scanned_q),
-    .rowstream_top1_cycle_count_i(top1_cycle_count_q)
+    .rowstream_top1_cycle_count_i(top1_cycle_count_q),
+    .rowstream_top1_debug_status_i(32'h0000_0000),
+    .rowstream_top1_debug_reader_addr_i(32'h0000_0000),
+    .rowstream_top1_debug_wb_ack_count_i(32'd0),
+    .rowstream_top1_debug_wb_err_count_i(32'd0),
+    .rowstream_top1_debug_packet_wb_write_ack_count_i(32'd0),
+    .rowstream_top1_debug_packet_wb_read_ack_count_i(32'd0),
+    .rowstream_mlp_selftest_present_i(1'b0),
+    .rowstream_mlp_selftest_status_i(32'd0),
+    .rowstream_mlp_selftest_cycle_count_i(32'd0),
+    .rowstream_mlp_selftest_fail_detail_i(32'd0),
+    .rowstream_mlp_selftest_fail_values_i(32'd0),
+    .rowstream_mlp_selftest_first_add_sample_i(32'd0),
+    .rowstream_mlp_selftest_first_requant_sample_i(32'd0),
+    .rowstream_mlp_accel_activation_vector_o(),
+    .rowstream_mlp_accel_residual_vector_o(),
+    .rowstream_mlp_accel_start_o(),
+    .rowstream_mlp_accel_clear_o(),
+    .rowstream_mlp_accel_status_i(32'd0),
+    .rowstream_mlp_accel_cycle_count_i(32'd0),
+    .rowstream_mlp_accel_output_checksum_i(32'd0),
+    .rowstream_mlp_accel_output_sample0_i(32'd0),
+    .rowstream_mlp_accel_output_sample1_i(32'd0),
+    .rowstream_mlp_accel_output_vector_i(512'd0)
   );
 
   always @(posedge pcie_user_clk or negedge pcie_user_rst_n) begin

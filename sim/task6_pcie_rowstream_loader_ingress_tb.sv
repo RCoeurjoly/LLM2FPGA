@@ -57,8 +57,31 @@ module task6_pcie_rowstream_loader_ingress_tb;
   logic [31:0] top1_score_q024;
   logic [31:0] top1_rows_scanned;
   logic [31:0] top1_cycle_count;
+  logic [31:0] top1_debug_status;
+  logic [31:0] top1_debug_reader_addr;
+  logic [31:0] top1_debug_wb_ack_count;
+  logic [31:0] top1_debug_wb_err_count;
   int top1_start_pulses;
   int top1_clear_pulses;
+  logic mlp_selftest_present;
+  logic [31:0] mlp_selftest_status;
+  logic [31:0] mlp_selftest_cycle_count;
+  logic [31:0] mlp_selftest_fail_detail;
+  logic [31:0] mlp_selftest_fail_values;
+  logic [31:0] mlp_selftest_first_add_sample;
+  logic [31:0] mlp_selftest_first_requant_sample;
+  wire [511:0] mlp_accel_activation_vector;
+  wire [511:0] mlp_accel_residual_vector;
+  wire mlp_accel_start_pulse;
+  wire mlp_accel_clear_pulse;
+  logic [31:0] mlp_accel_status;
+  logic [31:0] mlp_accel_cycle_count;
+  logic [31:0] mlp_accel_output_checksum;
+  logic [31:0] mlp_accel_output_sample0;
+  logic [31:0] mlp_accel_output_sample1;
+  logic [511:0] mlp_accel_output_vector;
+  int mlp_accel_start_pulses;
+  int mlp_accel_clear_pulses;
   wire [31:0] loader_wait_cycles;
   wire [31:0] loader_command_payload_addr;
   wire [7:0] loader_last_opcode;
@@ -121,7 +144,28 @@ module task6_pcie_rowstream_loader_ingress_tb;
     .top1_token_i(top1_token),
     .top1_score_q024_i(top1_score_q024),
     .top1_rows_scanned_i(top1_rows_scanned),
-    .top1_cycle_count_i(top1_cycle_count)
+    .top1_cycle_count_i(top1_cycle_count),
+    .top1_debug_status_i(top1_debug_status),
+    .top1_debug_reader_addr_i(top1_debug_reader_addr),
+    .top1_debug_wb_ack_count_i(top1_debug_wb_ack_count),
+    .top1_debug_wb_err_count_i(top1_debug_wb_err_count),
+    .mlp_selftest_present_i(mlp_selftest_present),
+    .mlp_selftest_status_i(mlp_selftest_status),
+    .mlp_selftest_cycle_count_i(mlp_selftest_cycle_count),
+    .mlp_selftest_fail_detail_i(mlp_selftest_fail_detail),
+    .mlp_selftest_fail_values_i(mlp_selftest_fail_values),
+    .mlp_selftest_first_add_sample_i(mlp_selftest_first_add_sample),
+    .mlp_selftest_first_requant_sample_i(mlp_selftest_first_requant_sample),
+    .mlp_accel_activation_vector_o(mlp_accel_activation_vector),
+    .mlp_accel_residual_vector_o(mlp_accel_residual_vector),
+    .mlp_accel_start_pulse_o(mlp_accel_start_pulse),
+    .mlp_accel_clear_pulse_o(mlp_accel_clear_pulse),
+    .mlp_accel_status_i(mlp_accel_status),
+    .mlp_accel_cycle_count_i(mlp_accel_cycle_count),
+    .mlp_accel_output_checksum_i(mlp_accel_output_checksum),
+    .mlp_accel_output_sample0_i(mlp_accel_output_sample0),
+    .mlp_accel_output_sample1_i(mlp_accel_output_sample1),
+    .mlp_accel_output_vector_i(mlp_accel_output_vector)
   );
 
   task6_uberddr3_rowstream_loader_contract #(
@@ -167,11 +211,17 @@ module task6_pcie_rowstream_loader_ingress_tb;
     if (!rst_n) begin
       top1_start_pulses <= 0;
       top1_clear_pulses <= 0;
+      mlp_accel_start_pulses <= 0;
+      mlp_accel_clear_pulses <= 0;
     end else begin
       if (top1_start_pulse)
         top1_start_pulses <= top1_start_pulses + 1;
       if (top1_status_clear_pulse)
         top1_clear_pulses <= top1_clear_pulses + 1;
+      if (mlp_accel_start_pulse)
+        mlp_accel_start_pulses <= mlp_accel_start_pulses + 1;
+      if (mlp_accel_clear_pulse)
+        mlp_accel_clear_pulses <= mlp_accel_clear_pulses + 1;
     end
   end
 
@@ -310,6 +360,23 @@ module task6_pcie_rowstream_loader_ingress_tb;
     top1_score_q024 = 32'd0;
     top1_rows_scanned = 32'd0;
     top1_cycle_count = 32'd0;
+    top1_debug_status = 32'd0;
+    top1_debug_reader_addr = 32'd0;
+    top1_debug_wb_ack_count = 32'd0;
+    top1_debug_wb_err_count = 32'd0;
+    mlp_selftest_present = 1'b1;
+    mlp_selftest_status = 32'h0000_0003;
+    mlp_selftest_cycle_count = 32'd63860;
+    mlp_selftest_fail_detail = 32'd0;
+    mlp_selftest_fail_values = 32'd0;
+    mlp_selftest_first_add_sample = 32'h1122_3344;
+    mlp_selftest_first_requant_sample = 32'h5566_7788;
+    mlp_accel_status = 32'h0000_0004;
+    mlp_accel_cycle_count = 32'd4096;
+    mlp_accel_output_checksum = 32'hdeed_beef;
+    mlp_accel_output_sample0 = 32'h0102_0304;
+    mlp_accel_output_sample1 = 32'h1112_1314;
+    mlp_accel_output_vector = '0;
     errors = 0;
 
     for (int i = 0; i < 1024; i++)
@@ -350,6 +417,10 @@ module task6_pcie_rowstream_loader_ingress_tb;
     top1_score_q024 = 32'ha5a5_1234;
     top1_rows_scanned = 32'd50257;
     top1_cycle_count = 32'd50301;
+    top1_debug_status = 32'h0000_00a7;
+    top1_debug_reader_addr = 32'h0000_0200;
+    top1_debug_wb_ack_count = 32'd17;
+    top1_debug_wb_err_count = 32'd0;
     axil_write(32'h060, 32'h2);
     repeat (2) @(negedge clk);
     check(top1_clear_pulses == 1, "top1 clear write must emit one clear pulse");
@@ -371,12 +442,77 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(value == 32'd50257, "top1 rows-scanned result must be visible");
     axil_read(32'h074, value);
     check(value == 32'd50301, "top1 cycle-count result must be visible");
+    axil_read(32'h21c, value);
+    check(value == 32'h0000_00a7, "top1 debug status must be visible");
+    axil_read(32'h220, value);
+    check(value == 32'h0000_0200, "top1 debug reader address must be visible");
+    axil_read(32'h224, value);
+    check(value == 32'd17, "top1 debug WB ack count must be visible");
+    axil_read(32'h228, value);
+    check(value == 32'd0, "top1 debug WB err count must be visible");
     axil_write(32'h060, 32'h2);
     top1_busy = 1'b1;
     axil_write(32'h060, 32'h1);
     top1_busy = 1'b0;
     axil_read(32'h060, value);
     check(value[3], "top1 busy start rejection must set sticky error");
+
+    axil_read(32'h300, value);
+    check(value == 32'h54364d4c, "MLP selftest aperture magic must match T6ML");
+    axil_read(32'h308, value);
+    check(value[0], "MLP selftest present bit must be visible");
+    axil_read(32'h30c, value);
+    check(value == 32'h0000_0003, "MLP selftest status must be visible");
+    axil_read(32'h310, value);
+    check(value == 32'd63860, "MLP selftest cycle count must be visible");
+    axil_read(32'h31c, value);
+    check(value == 32'h1122_3344, "MLP first-add sample must be visible");
+    axil_read(32'h320, value);
+    check(value == 32'h5566_7788, "MLP first-requant sample must be visible");
+
+    axil_read(32'h324, value);
+    check(value == 32'h54364d41, "MLP accelerator aperture magic must match T6MA");
+    axil_read(32'h328, value);
+    check(value == 32'd1, "MLP accelerator aperture version must be 1");
+    axil_read(32'h32c, value);
+    check(value[0], "MLP accelerator present bit must be visible");
+    for (int word = 0; word < 16; word++) begin
+      axil_write(32'h340 + word * 4, 32'h9000_1000 + word);
+      axil_read(32'h340 + word * 4, value);
+      check(value == 32'h9000_1000 + word, "MLP activation vector word must read back");
+      axil_write(32'h380 + word * 4, 32'ha000_2000 + word);
+      axil_read(32'h380 + word * 4, value);
+      check(value == 32'ha000_2000 + word, "MLP residual vector word must read back");
+    end
+    check(mlp_accel_activation_vector[0 +: 32] == 32'h9000_1000, "MLP activation low word must update");
+    check(mlp_accel_activation_vector[480 +: 32] == 32'h9000_100f, "MLP activation high word must update");
+    check(mlp_accel_residual_vector[0 +: 32] == 32'ha000_2000, "MLP residual low word must update");
+    check(mlp_accel_residual_vector[480 +: 32] == 32'ha000_200f, "MLP residual high word must update");
+    axil_write(32'h330, 32'h2);
+    repeat (2) @(negedge clk);
+    check(mlp_accel_clear_pulses == 1, "MLP accelerator clear write must emit one clear pulse");
+    axil_write(32'h330, 32'h1);
+    repeat (2) @(negedge clk);
+    check(mlp_accel_start_pulses == 1, "MLP accelerator start write must emit one start pulse");
+    axil_read(32'h330, value);
+    check(value == 32'h0000_0004, "MLP accelerator status must be visible");
+    axil_read(32'h334, value);
+    check(value == 32'd1, "MLP accelerator start counter must increment");
+    axil_read(32'h338, value);
+    check(value == 32'd4096, "MLP accelerator cycle count must be visible");
+    axil_read(32'h33c, value);
+    check(value == 32'hdeed_beef, "MLP accelerator output checksum must be visible");
+    axil_read(32'h3c0, value);
+    check(value == 32'h0102_0304, "MLP accelerator sample0 must be visible");
+    axil_read(32'h3c4, value);
+    check(value == 32'h1112_1314, "MLP accelerator sample1 must be visible");
+    for (int word = 0; word < 16; word++) begin
+      mlp_accel_output_vector[word * 32 +: 32] = 32'hb000_3000 + word;
+    end
+    for (int word = 0; word < 16; word++) begin
+      axil_read(32'h400 + word * 4, value);
+      check(value == 32'hb000_3000 + word, "MLP accelerator full output vector word must be visible");
+    end
 
     pcie_command(OP_WRITE_DENSE_BYTE, 2'd0, 32'd13, 8'ha5);
     check(mem[0][13 * 8 +: 8] == 8'ha5, "PCIe dense-byte write must land in DDR3 rowstream memory model");

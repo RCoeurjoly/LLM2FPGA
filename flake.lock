@@ -553,18 +553,14 @@
     "uberDdr3": {
       "flake": false,
       "locked": {
-        "lastModified": 1779486940,
-        "narHash": "sha256-oWFNbqMkW0MmCI9le6Vzl0bKwulsl4tTUliq6kfU+qk=",
-        "owner": "RCoeurjoly",
-        "repo": "UberDDR3",
-        "rev": "8e6b0bb9ed38a97505b29b28a6d2689746470e7b",
-        "type": "github"
+        "lastModified": 1780915210,
+        "narHash": "sha256-wtKP1lGeB4ZYPcA64gchTUdi8HYBLvNrW6Nl42V/+Ik=",
+        "path": "/home/roland/UberDDR3",
+        "type": "path"
       },
       "original": {
-        "owner": "RCoeurjoly",
-        "repo": "UberDDR3",
-        "rev": "8e6b0bb9ed38a97505b29b28a6d2689746470e7b",
-        "type": "github"
+        "path": "/home/roland/UberDDR3",
+        "type": "path"
       }
     },
     "yosys": {

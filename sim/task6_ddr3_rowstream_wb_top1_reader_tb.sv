@@ -6,8 +6,15 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
   localparam int VOCAB_SIZE = 8;
   localparam int ROW_BYTES = 68;
   localparam int WB_ADDR_BITS = 8;
-  localparam int WB_DATA_BITS = 128;
+  `ifndef TASK6_TOP1_READER_WB_DATA_BITS
+  `define TASK6_TOP1_READER_WB_DATA_BITS 128
+`endif
+  localparam int WB_DATA_BITS = `TASK6_TOP1_READER_WB_DATA_BITS;
   localparam int WB_SEL_BITS = WB_DATA_BITS / 8;
+  `ifndef TASK6_TOP1_READER_REVERSE_WB_BEAT_BYTES
+  `define TASK6_TOP1_READER_REVERSE_WB_BEAT_BYTES 0
+`endif
+  localparam bit REVERSE_WB_BEAT_BYTES = `TASK6_TOP1_READER_REVERSE_WB_BEAT_BYTES;
   localparam int TOTAL_BYTES = VOCAB_SIZE * ROW_BYTES;
   localparam int TOTAL_BEATS = (TOTAL_BYTES + WB_SEL_BITS - 1) / WB_SEL_BITS + 1;
 
@@ -45,7 +52,8 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
     .ROW_BYTES(ROW_BYTES),
     .WB_ADDR_BITS(WB_ADDR_BITS),
     .WB_DATA_BITS(WB_DATA_BITS),
-    .WB_SEL_BITS(WB_SEL_BITS)
+    .WB_SEL_BITS(WB_SEL_BITS),
+    .REVERSE_WB_BEAT_BYTES(REVERSE_WB_BEAT_BYTES)
   ) dut (
     .clk_i(clk),
     .rst_ni(rst_n),
@@ -136,8 +144,12 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
 
     for (int beat = 0; beat < TOTAL_BEATS; beat++) begin
       beat_mem[beat] = '0;
-      for (int lane = 0; lane < WB_SEL_BITS; lane++)
-        beat_mem[beat][lane * 8 +: 8] = image[beat * WB_SEL_BITS + lane];
+      for (int lane = 0; lane < WB_SEL_BITS; lane++) begin
+        if (REVERSE_WB_BEAT_BYTES)
+          beat_mem[beat][(WB_SEL_BITS - 1 - lane) * 8 +: 8] = image[beat * WB_SEL_BITS + lane];
+        else
+          beat_mem[beat][lane * 8 +: 8] = image[beat * WB_SEL_BITS + lane];
+      end
     end
 
     repeat (4) @(negedge clk);

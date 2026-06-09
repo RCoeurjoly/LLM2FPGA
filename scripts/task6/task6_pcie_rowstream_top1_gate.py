@@ -22,6 +22,21 @@ COMMAND_MAGIC = 0x33445244
 BAR_SIZE = 4096
 ALL_ONES = 0xFFFFFFFF
 
+CONTRACT_VERSION = "task6-host-assisted-rowstream-top1-v1"
+CONTRACT_STAGE = "M0-host-assisted-rowstream-top1"
+CONTRACT_RESP_HOST = [
+    "prompt handling and tokenizer/detokenizer flow",
+    "contract/replay/model artifact loading",
+    "PCIe lifecycle/recovery orchestration",
+    "transformer hidden-state generation from host reference (`--reference-json` or `--model-path`)",
+]
+CONTRACT_RESP_FPGA = [
+    "rowstream load/read sequencing",
+    "DDR3 transport and storage",
+    "output-head top1 compute scan for fixed-size rowstream rows",
+    "status/result/MMIO debug readback",
+]
+
 OP_READ_DENSE_BEAT = 0x06
 OP_LOAD_PACKET_BEAT = 0x0F
 OP_RUN_HOST_PACKET = 0x10
@@ -45,6 +60,8 @@ REG_TOP1_SCORE_Q024 = 0x06C
 REG_TOP1_ROWS_SCANNED = 0x070
 REG_TOP1_CYCLE_COUNT = 0x074
 REG_TOP1_HIDDEN = 0x080
+REG_TOP1_PACKET_WB_WRITE_ACK_COUNT = 0x22C
+REG_TOP1_PACKET_WB_READ_ACK_COUNT = 0x230
 
 STATUS_RST_N = 1 << 0
 STATUS_DONE = 1 << 2
@@ -87,6 +104,13 @@ DEFAULT_REPLAY = (
     / "task6"
     / "parallel-hypotheses"
     / "h2-full-vocab-rowwise-topk-replay.json"
+)
+DEFAULT_REFERENCE = (
+    ROOT
+    / "artifacts"
+    / "task6"
+    / "parallel-hypotheses"
+    / "h2-tinystories-1m-prompt-output-head-q024-reference.json"
 )
 DEFAULT_OUT = ROOT / "artifacts" / "task6" / "runs" / "rowstream-top1-board-summary.json"
 
@@ -148,8 +172,64 @@ def wait_for(mm: mmap.mmap, offset: int, mask: int, timeout: float, label: str) 
     return value
 
 
+def wait_clear(mm: mmap.mmap, offset: int, mask: int, timeout: float, label: str) -> int:
+    deadline = time.monotonic() + timeout
+    value = rd32(mm, offset)
+    while (value & mask) != 0 and time.monotonic() < deadline:
+        time.sleep(0.001)
+        value = rd32(mm, offset)
+    if (value & mask) != 0:
+        raise TimeoutError(
+            f"timeout waiting for {label} to clear: offset=0x{offset:03x} value=0x{value:08x}"
+        )
+    return value
+
+
 def read_low_16(mm: mmap.mmap) -> bytes:
     return b"".join(rd32(mm, REG_READ_LOW + index * 4).to_bytes(4, "little") for index in range(4))
+
+
+def u32_delta(later: int, earlier: int) -> int:
+    return (later - earlier) & 0xFFFFFFFF
+
+
+def wait_for_packet_ack_deltas(
+    mm: mmap.mmap,
+    before_write_ack: int,
+    before_read_ack: int,
+    expected_write_ack: int,
+    expected_read_ack: int,
+    timeout: float,
+    label: str,
+) -> tuple[int, int]:
+    deadline = time.monotonic() + timeout
+    write_ack = rd32(mm, REG_TOP1_PACKET_WB_WRITE_ACK_COUNT)
+    read_ack = rd32(mm, REG_TOP1_PACKET_WB_READ_ACK_COUNT)
+    while (
+        u32_delta(write_ack, before_write_ack) < expected_write_ack
+        or u32_delta(read_ack, before_read_ack) < expected_read_ack
+    ) and time.monotonic() < deadline:
+        time.sleep(0.0001)
+        write_ack = rd32(mm, REG_TOP1_PACKET_WB_WRITE_ACK_COUNT)
+        read_ack = rd32(mm, REG_TOP1_PACKET_WB_READ_ACK_COUNT)
+
+    if u32_delta(write_ack, before_write_ack) < expected_write_ack:
+        raise TimeoutError(
+            f"timeout waiting for {label}: write ack delta did not reach {expected_write_ack} "
+            f"from=0x{before_write_ack:08x} to=0x{write_ack:08x}"
+        )
+    if u32_delta(read_ack, before_read_ack) < expected_read_ack:
+        raise TimeoutError(
+            f"timeout waiting for {label}: read ack delta did not reach {expected_read_ack} "
+            f"from=0x{before_read_ack:08x} to=0x{read_ack:08x}"
+        )
+    return write_ack, read_ack
+
+
+def packet_ack_counters_available(mm: mmap.mmap) -> bool:
+    write_ack = rd32(mm, REG_TOP1_PACKET_WB_WRITE_ACK_COUNT)
+    read_ack = rd32(mm, REG_TOP1_PACKET_WB_READ_ACK_COUNT)
+    return write_ack != ALL_ONES and read_ack != ALL_ONES
 
 
 def issue_command(
@@ -161,6 +241,10 @@ def issue_command(
     timeout: float = 2.0,
 ) -> None:
     data = data[:16].ljust(16, b"\0")
+    # Break the ingress duplicate-write filter before pulsing the sticky-status
+    # clear bit. This matters after failed or interrupted gates where the last
+    # accepted BAR write may also have been REG_STATUS=1.
+    wr32(mm, REG_STATUS, 0x0)
     wr32(mm, REG_STATUS, 0x1)
     wr32(mm, REG_CMD_MAGIC, COMMAND_MAGIC)
     wr32(mm, REG_CMD_OPCODE, ((chunk & 0x3) << 8) | (opcode & 0xFF))
@@ -187,29 +271,75 @@ def issue_command(
         raise RuntimeError(f"accepted_count did not increment: before={accepted_before} after={accepted_after}")
 
 
-def load_rowstream(mm: mmap.mmap, image: bytes, start_beat: int, timeout: float, progress_every: int) -> None:
-    if len(image) % 16:
-        image += bytes(16 - (len(image) % 16))
-    total_beats = len(image) // 16
+def load_rowstream(
+    mm: mmap.mmap,
+    image: bytes,
+    start_beat: int,
+    timeout: float,
+    progress_every: int,
+    beat_bytes: int,
+    packet_ack_mode: str,
+    packet_settle: float,
+) -> dict[str, Any]:
+    if len(image) % beat_bytes:
+        image += bytes(beat_bytes - (len(image) % beat_bytes))
+    total_beats = len(image) // beat_bytes
+    ack_supported = packet_ack_counters_available(mm)
+    if packet_ack_mode == "require" and not ack_supported:
+        raise RuntimeError("packet ACK counters are required but read as unavailable/all-ones")
+    ack_fallback_count = 0
+    packet_count = 0
     for packet_start in range(0, total_beats, 4):
-        packet = image[packet_start * 16 : (packet_start + 4) * 16]
-        beats = len(packet) // 16
+        packet_count += 1
+        packet = image[packet_start * beat_bytes : (packet_start + 4) * beat_bytes]
+        beats = len(packet) // beat_bytes
         for slot in range(beats):
-            slot_data = packet[slot * 16 : (slot + 1) * 16]
+            slot_data = packet[slot * beat_bytes : (slot + 1) * beat_bytes]
             issue_command(mm, OP_LOAD_PACKET_BEAT, 0, slot, slot_data, timeout)
-            echoed = read_low_16(mm)
+            echoed = read_low_16(mm)[:beat_bytes]
             if echoed != slot_data:
                 raise RuntimeError(
                     f"packet slot echo mismatch: slot={slot} expected={slot_data.hex()} observed={echoed.hex()}"
                 )
         command_addr = ((start_beat + packet_start) & 0x1FFF_FFFF) | ((beats & 0x7) << 29)
+        packet_write_ack_before = rd32(mm, REG_TOP1_PACKET_WB_WRITE_ACK_COUNT)
+        packet_read_ack_before = rd32(mm, REG_TOP1_PACKET_WB_READ_ACK_COUNT)
         issue_command(mm, OP_RUN_HOST_PACKET, 0, command_addr, b"", timeout)
+        if packet_ack_mode != "off" and ack_supported:
+            try:
+                wait_for_packet_ack_deltas(
+                    mm,
+                    packet_write_ack_before,
+                    packet_read_ack_before,
+                    expected_write_ack=beats,
+                    expected_read_ack=0,
+                    timeout=timeout,
+                    label=f"packet beat commit packet_start={packet_start} beats={beats}",
+                )
+            except TimeoutError:
+                if packet_ack_mode == "require":
+                    raise
+                ack_supported = False
+                ack_fallback_count += 1
+                if packet_settle > 0:
+                    time.sleep(packet_settle)
+        else:
+            ack_fallback_count += 1
+            if packet_settle > 0:
+                time.sleep(packet_settle)
         if progress_every and (
             packet_start == 0
             or packet_start + beats == total_beats
             or (packet_start + beats) % progress_every == 0
         ):
             print(f"loaded beats: {packet_start + beats}/{total_beats}")
+    return {
+        "packet_count": packet_count,
+        "packet_ack_mode": packet_ack_mode,
+        "packet_ack_supported_initial": ack_supported,
+        "packet_ack_fallback_count": ack_fallback_count,
+        "packet_settle_seconds": packet_settle,
+    }
 
 
 def verify_loaded_samples(
@@ -218,10 +348,12 @@ def verify_loaded_samples(
     start_beat: int,
     timeout: float,
     sample_count: int,
+    beat_bytes: int,
+    retries: int,
 ) -> list[dict[str, Any]]:
-    if len(image) % 16:
-        image += bytes(16 - (len(image) % 16))
-    total_beats = len(image) // 16
+    if len(image) % beat_bytes:
+        image += bytes(beat_bytes - (len(image) % beat_bytes))
+    total_beats = len(image) // beat_bytes
     if sample_count <= 0:
         return []
     if sample_count >= total_beats:
@@ -230,10 +362,21 @@ def verify_loaded_samples(
         beats = sorted({0, total_beats - 1, *(round(i * (total_beats - 1) / max(sample_count - 1, 1)) for i in range(sample_count))})[:sample_count]
     samples = []
     for beat_index in beats:
-        issue_command(mm, OP_READ_DENSE_BEAT, 0, start_beat + beat_index, b"", timeout)
-        observed = read_low_16(mm)
-        expected = image[beat_index * 16 : (beat_index + 1) * 16]
-        match = observed == expected
+        expected = image[beat_index * beat_bytes : (beat_index + 1) * beat_bytes]
+        observed = b""
+        match = False
+        retry_count = 0
+        for attempt in range(max(1, retries + 1)):
+            # The loader exposes sticky status bits across a PCIe-to-rowstream
+            # CDC. After a long packet load, give the read command and BAR
+            # shadow a small margin before accepting sampled readback evidence.
+            time.sleep(0.001 * (attempt + 1))
+            issue_command(mm, OP_READ_DENSE_BEAT, 0, start_beat + beat_index, b"", timeout)
+            observed = read_low_16(mm)[:beat_bytes]
+            match = observed == expected
+            retry_count = attempt
+            if match:
+                break
         samples.append(
             {
                 "beat": start_beat + beat_index,
@@ -241,6 +384,7 @@ def verify_loaded_samples(
                 "expected_hex": expected.hex(),
                 "observed_hex": observed.hex(),
                 "match": match,
+                "retry_count": retry_count,
             }
         )
         if not match:
@@ -343,6 +487,47 @@ def build_sample_hidden_vectors(model_path: Path, adapter_path: Path, sample_cou
     return payloads
 
 
+def build_reference_hidden_vectors(reference: dict[str, Any], hidden_size: int) -> list[dict[str, Any]]:
+    steps = reference.get("steps")
+    if not isinstance(steps, list) or not steps:
+        raise SystemExit("reference JSON does not contain a non-empty steps array")
+
+    generation = reference.get("generation") or {}
+    expected_tokens = generation.get("q024_generated_token_ids") or []
+    payloads = []
+    for index, step in enumerate(steps):
+        hidden_q = step.get("hidden_q")
+        if not isinstance(hidden_q, list):
+            raise SystemExit(f"reference step {index} is missing hidden_q")
+        if len(hidden_q) != hidden_size:
+            raise SystemExit(
+                f"reference step {index} hidden_q has {len(hidden_q)} entries, expected {hidden_size}"
+            )
+        expected_topk = step.get("q024_topk_token_ids") or []
+        expected_token = expected_topk[0] if expected_topk else None
+        if index < len(expected_tokens) and expected_token is not None and expected_tokens[index] != expected_token:
+            raise SystemExit(
+                f"reference step {index} disagrees: generation token {expected_tokens[index]} "
+                f"!= q024_topk_token_ids[0] {expected_token}"
+            )
+        payloads.append(
+            {
+                "sample_id": f"prompt_step_{index}",
+                "reference_step": index,
+                "token_ids": step.get("q024_context_token_ids"),
+                "hidden_scale": step.get("hidden_scale"),
+                "hidden_q": [int(value) for value in hidden_q],
+                "reference_expected_top1_token": expected_token,
+                "reference_expected_top1_text": (step.get("q024_topk_text") or [None])[0],
+                "reference_expected_score_low32": (
+                    (step.get("q024_topk_scores_low32") or [None])[0]
+                ),
+                "reference_tokens_match_f32_top1": step.get("tokens_match_f32_top1"),
+            }
+        )
+    return payloads
+
+
 def write_hidden(mm: mmap.mmap, hidden_bytes: bytes) -> None:
     if len(hidden_bytes) != 64:
         raise ValueError("top1 hidden vector must be exactly 64 bytes")
@@ -351,28 +536,64 @@ def write_hidden(mm: mmap.mmap, hidden_bytes: bytes) -> None:
         wr32(mm, REG_TOP1_HIDDEN + index * 4, value)
 
 
-def run_board_top1(mm: mmap.mmap, hidden_bytes: bytes, timeout: float) -> dict[str, int]:
-    write_hidden(mm, hidden_bytes)
+def clear_top1_status(mm: mmap.mmap, timeout: float) -> None:
+    # Break the ingress duplicate-write filter before issuing the clear pulse.
+    wr32(mm, REG_TOP1_STATUS, 0x0)
     wr32(mm, REG_TOP1_STATUS, 0x2)
     wait_for(mm, REG_TOP1_STATUS, TOP1_RST_N, timeout, "top1 reset released")
+    try:
+        wait_clear(
+            mm,
+            REG_TOP1_STATUS,
+            TOP1_BUSY | TOP1_DONE,
+            timeout,
+            "top1 busy/done",
+        )
+    except TimeoutError:
+        wr32(mm, REG_TOP1_STATUS, 0x0)
+        wr32(mm, REG_TOP1_STATUS, 0x2)
+        wait_clear(
+            mm,
+            REG_TOP1_STATUS,
+            TOP1_BUSY | TOP1_DONE,
+            min(timeout, 5.0),
+            "top1 busy/done after retry",
+        )
+    # The board RTL stretches clear into a short reader/cutout reset window in
+    # the rowstream clock domain. TOP1_RST_N reflects the global reset, not
+    # that local clear window, so give the CDC pulse time to retire before the
+    # start doorbell.
+    time.sleep(0.001)
+
+
+def run_board_top1(mm: mmap.mmap, hidden_bytes: bytes, timeout: float) -> dict[str, int]:
+    write_hidden(mm, hidden_bytes)
+    clear_top1_status(mm, timeout)
     start_count_before = rd32(mm, REG_TOP1_START_COUNT)
     wr32(mm, REG_TOP1_STATUS, 0x1)
     deadline = time.monotonic() + timeout
     status = rd32(mm, REG_TOP1_STATUS)
+    start_count_after = rd32(mm, REG_TOP1_START_COUNT)
     while time.monotonic() < deadline:
         status = rd32(mm, REG_TOP1_STATUS)
-        if status & TOP1_ERROR:
+        start_count_after = rd32(mm, REG_TOP1_START_COUNT)
+        start_seen = start_count_after != start_count_before
+        if start_seen and (status & TOP1_ERROR):
             break
-        if status & TOP1_DONE:
+        if start_seen and (status & TOP1_DONE):
             break
         time.sleep(0.001)
+    if start_count_after == start_count_before:
+        raise TimeoutError(
+            f"timeout waiting for top1 start acceptance: status=0x{status:08x} "
+            f"start_count={start_count_after}"
+        )
     if not (status & (TOP1_DONE | TOP1_ERROR)):
         raise TimeoutError(f"timeout waiting for top1 done: status=0x{status:08x}")
     token = rd32(mm, REG_TOP1_TOKEN)
     score_q024 = rd32(mm, REG_TOP1_SCORE_Q024)
     rows_scanned = rd32(mm, REG_TOP1_ROWS_SCANNED)
     cycle_count = rd32(mm, REG_TOP1_CYCLE_COUNT)
-    start_count_after = rd32(mm, REG_TOP1_START_COUNT)
     return {
         "status_reg": status,
         "start_count_before": start_count_before,
@@ -390,17 +611,39 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--image", type=Path, default=DEFAULT_ROWSTREAM, help="packed rowstream image")
     parser.add_argument("--contract-json", type=Path, default=DEFAULT_CONTRACT)
     parser.add_argument("--replay-json", type=Path, default=DEFAULT_REPLAY)
+    parser.add_argument(
+        "--reference-json",
+        type=Path,
+        help=(
+            "Prompt-level generation reference JSON. Replays each step's hidden_q "
+            "and compares board top1 against q024_topk_token_ids[0]."
+        ),
+    )
     parser.add_argument("--model-path", type=Path)
     parser.add_argument("--adapter-path", type=Path, default=ROOT / "TinyStories" / "model_adapter.py")
     parser.add_argument("--sample-count", type=int, default=1)
     parser.add_argument("--hidden-q-hex", help="Single 64-byte int8 hidden vector as hex")
     parser.add_argument("--start-beat", type=lambda text: int(text, 0), default=0)
+    parser.add_argument("--beat-bytes", type=int, choices=(8, 16), default=8, help="DDR Wishbone beat size in bytes; one-lane UberDDR3 uses 8, two-lane uses 16")
     parser.add_argument("--load-image", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--verify-samples", type=int, default=8)
+    parser.add_argument("--verify-retries", type=int, default=3)
     parser.add_argument("--poll-timeout", type=float, default=2.0)
     parser.add_argument("--boot-timeout", type=float, default=5.0)
     parser.add_argument("--top1-timeout", type=float, default=20.0)
     parser.add_argument("--progress-every", type=int, default=16384)
+    parser.add_argument(
+        "--packet-ack-mode",
+        choices=("auto", "require", "off"),
+        default="auto",
+        help="Packet commit wait policy. auto uses ACK counters when live and falls back to --packet-settle.",
+    )
+    parser.add_argument(
+        "--packet-settle",
+        type=float,
+        default=0.001,
+        help="Seconds to wait after OP_RUN_HOST_PACKET when packet ACK counters are unavailable or inactive.",
+    )
     parser.add_argument("--json-out", type=Path, default=DEFAULT_OUT)
     return parser.parse_args()
 
@@ -417,7 +660,30 @@ def main() -> int:
     hidden_size = contract["model"]["hidden_size"]
     if hidden_size != 64:
         raise SystemExit(f"this BAR gate expects 64-byte hidden vectors, got hidden_size={hidden_size}")
-    if args.hidden_q_hex:
+    sample_sources = sum(
+        1
+        for enabled in (
+            bool(args.reference_json),
+            bool(args.hidden_q_hex),
+            bool(args.model_path),
+        )
+        if enabled
+    )
+    if sample_sources != 1:
+        raise SystemExit("specify exactly one of --reference-json, --hidden-q-hex, or --model-path")
+
+    reference_metadata: dict[str, Any] | None = None
+    if args.reference_json:
+        reference = read_json(args.reference_json)
+        reference_metadata = {
+            "path": str(args.reference_json),
+            "artifact_name": reference.get("artifact_name"),
+            "status": reference.get("status"),
+            "prompt": reference.get("prompt"),
+            "generation": reference.get("generation"),
+        }
+        sample_payloads = build_reference_hidden_vectors(reference, hidden_size)
+    elif args.hidden_q_hex:
         sample_payloads = [
             {
                 "sample_id": "host_hidden_q_hex",
@@ -427,8 +693,6 @@ def main() -> int:
             }
         ]
     else:
-        if args.model_path is None:
-            raise SystemExit("--model-path is required unless --hidden-q-hex is supplied")
         sample_payloads = build_sample_hidden_vectors(args.model_path, args.adapter_path, args.sample_count)
 
     replay_by_sample = {entry["sample_id"]: entry for entry in replay.get("samples", [])}
@@ -446,6 +710,9 @@ def main() -> int:
             "expected_top1_score_q024_low32": score & 0xFFFFFFFF,
             "expected_rows_scanned": rows_scanned,
             "expected_replay_top1_token": replay_expected,
+            "expected_reference_top1_token": payload.get("reference_expected_top1_token"),
+            "expected_reference_top1_text": payload.get("reference_expected_top1_text"),
+            "expected_reference_score_low32": payload.get("reference_expected_score_low32"),
         }
 
     device = Path("/sys/bus/pci/devices") / args.bdf
@@ -460,6 +727,7 @@ def main() -> int:
 
     started = time.monotonic()
     load_verify_samples: list[dict[str, Any]] = []
+    load_metadata: dict[str, Any] | None = None
     board_samples = []
     fd = os.open(resource0, os.O_RDWR | os.O_SYNC)
     try:
@@ -483,13 +751,24 @@ def main() -> int:
             wait_for(mm, REG_STATUS, STATUS_RST_N | STATUS_BOOT_DONE, args.boot_timeout, "DDR boot_done")
 
             if args.load_image:
-                load_rowstream(mm, image, args.start_beat, args.poll_timeout, args.progress_every)
+                load_metadata = load_rowstream(
+                    mm,
+                    image,
+                    args.start_beat,
+                    args.poll_timeout,
+                    args.progress_every,
+                    args.beat_bytes,
+                    args.packet_ack_mode,
+                    args.packet_settle,
+                )
                 load_verify_samples = verify_loaded_samples(
                     mm,
                     image,
                     args.start_beat,
                     args.poll_timeout,
                     args.verify_samples,
+                    args.beat_bytes,
+                    args.verify_retries,
                 )
 
             for payload in sample_payloads:
@@ -506,8 +785,10 @@ def main() -> int:
                 board_samples.append(
                     {
                         "sample_id": payload["sample_id"],
+                        "reference_step": payload.get("reference_step"),
                         "token_ids": payload["token_ids"],
                         "hidden_scale": payload["hidden_scale"],
+                        "reference_tokens_match_f32_top1": payload.get("reference_tokens_match_f32_top1"),
                         **expected,
                         **observed,
                         "matches_token": matches_token,
@@ -517,6 +798,16 @@ def main() -> int:
                         "matches_expected_replay_top1": (
                             observed["top1_token"] == expected["expected_replay_top1_token"]
                             if expected["expected_replay_top1_token"] is not None
+                            else None
+                        ),
+                        "matches_expected_reference_top1": (
+                            observed["top1_token"] == expected["expected_reference_top1_token"]
+                            if expected["expected_reference_top1_token"] is not None
+                            else None
+                        ),
+                        "matches_expected_reference_score_low32": (
+                            observed["top1_score_q024"] == expected["expected_reference_score_low32"]
+                            if expected["expected_reference_score_low32"] is not None
                             else None
                         ),
                     }
@@ -540,11 +831,23 @@ def main() -> int:
         "artifact_name": "task6-pcie-rowstream-top1-board-gate",
         "status": status,
         "date": dt.date.today().isoformat(),
+        "contract": {
+            "version": CONTRACT_VERSION,
+            "stage": CONTRACT_STAGE,
+            "responsibilities": {
+                "host": CONTRACT_RESP_HOST,
+                "fpga": CONTRACT_RESP_FPGA,
+            },
+            "notes": "Host-assisted transformer hidden-state generation; board performs output-head top1 over rowstream.",
+        },
         "bdf": args.bdf,
         "image": str(args.image),
         "image_sha256": hashlib.sha256(image).hexdigest(),
+        "reference": reference_metadata,
         "load_image": args.load_image,
+        "load_metadata": load_metadata,
         "start_beat": args.start_beat,
+        "beat_bytes": args.beat_bytes,
         "elapsed_seconds": elapsed,
         "model": {
             "model_label": contract["model"].get("model_label"),

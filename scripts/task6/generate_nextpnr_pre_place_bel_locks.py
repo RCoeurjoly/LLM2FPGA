@@ -87,9 +87,42 @@ def first_unused(candidates):
     return None
 
 
+def alias_cell_names(name):
+    aliases = [name, "rowstream_ddr3." + name]
+
+    prefix_aliases = (
+        ("ddr3_top_inst.ddr3_phy_inst.", "uberddr3.ddr3_phy_inst."),
+        ("ddr3_top_inst.ddr3_controller_inst.", "uberddr3.ddr3_controller_inst."),
+        ("ddr3_top_inst.", "uberddr3."),
+    )
+    for old_prefix, new_prefix in prefix_aliases:
+        if name.startswith(old_prefix):
+            aliases.append(new_prefix + name[len(old_prefix):])
+
+    exact_aliases = {{
+        "clk_wiz_inst.plle2_adv_inst": "clock_pll",
+        "clk_wiz_inst.clkout1_buf": "clk100_90_bufg",
+        "clk_wiz_inst.clkout2_buf": "clk100_bufg",
+        "clk_wiz_inst.clkout3_buf": "clk200_bufg",
+        "clk_wiz_inst.clkout4_buf": "clk25_bufg",
+    }}
+    if name in exact_aliases:
+        aliases.append(exact_aliases[name])
+
+    # Preserve order but avoid duplicate candidate work.
+    seen = set()
+    result = []
+    for alias in aliases:
+        if alias not in seen:
+            seen.add(alias)
+            result.append(alias)
+    return result
+
+
 def resolve_cell_name(lock):
     name = lock["cell"]
-    direct = first_unused([name, "rowstream_ddr3." + name])
+    aliases = alias_cell_names(name)
+    direct = first_unused(aliases)
     if direct is not None:
         return direct
 
@@ -115,7 +148,10 @@ def resolve_cell_name(lock):
     if "$LUT$" not in name:
         return None
     prefix = name.split("$LUT$", 1)[0] + "$LUT$"
-    prefixes = [prefix, "rowstream_ddr3." + prefix]
+    prefixes = []
+    for alias in aliases:
+        alias_prefix = alias.split("$LUT$", 1)[0] + "$LUT$"
+        prefixes.append(alias_prefix)
     candidates = [
         cell_name for cell_name in cell_names
         if any(cell_name.startswith(pfx) or ("." + pfx) in cell_name for pfx in prefixes)

@@ -6,7 +6,23 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
 )(
   input logic SYS_CLK,
   input logic SYS_RSTN,
-  output logic [2:0] led_3bits_tri_o
+  output logic [2:0] led_3bits_tri_o,
+  output logic [31:0] pcie_status_o,
+  output logic [31:0] pcie_cycle_count_o,
+  output logic [31:0] pcie_fail_detail_o,
+  output logic [31:0] pcie_fail_values_o,
+  output logic [31:0] pcie_first_add_sample_o,
+  output logic [31:0] pcie_first_requant_sample_o,
+  input logic [511:0] pcie_accel_activation_i,
+  input logic [511:0] pcie_accel_residual_i,
+  input logic pcie_accel_start_pulse_i,
+  input logic pcie_accel_clear_pulse_i,
+  output logic [31:0] pcie_accel_status_o,
+  output logic [31:0] pcie_accel_cycle_count_o,
+  output logic [31:0] pcie_accel_output_checksum_o,
+  output logic [31:0] pcie_accel_output_sample0_o,
+  output logic [31:0] pcie_accel_output_sample1_o,
+  output logic [511:0] pcie_accel_output_vector_o
 );
   `include "tb_data.sv"
 
@@ -69,6 +85,18 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     SELFTEST_FAIL
   } selftest_state_t;
 
+  typedef enum logic [3:0] {
+    ACCEL_IDLE,
+    ACCEL_LOAD_ACTIVATION,
+    ACCEL_LOAD_RESIDUAL,
+    ACCEL_START,
+    ACCEL_RUN,
+    ACCEL_READ_SETUP,
+    ACCEL_READ_ACCUM,
+    ACCEL_DONE,
+    ACCEL_ERROR
+  } accel_state_t;
+
   selftest_state_t state_q;
   logic [7:0] boot_count_q;
   logic [12:0] load_index_q;
@@ -93,10 +121,22 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic [2:0] first_c_proj_requant_scale_match_leds;
   logic [2:0] first_c_proj_requant_bias_match_leds;
 
+  logic dut_reset_raw;
   logic dut_reset;
   logic start;
   logic busy;
   logic done;
+  accel_state_t accel_state_q;
+  logic [5:0] accel_index_q;
+  logic [31:0] accel_cycle_count_q;
+  logic [31:0] accel_output_checksum_q;
+  logic [31:0] accel_output_sample0_q;
+  logic [31:0] accel_output_sample1_q;
+  logic [511:0] accel_output_vector_q;
+  logic [31:0] accel_start_count_q;
+  logic accel_error_q;
+  logic accel_active;
+  logic accel_output_valid_q;
 
   logic c_fc_weight_load_valid;
   logic [C_FC_PACKED_WEIGHT_ADDR_WIDTH - 1:0] c_fc_weight_load_addr;
@@ -199,6 +239,71 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     state_q == SELFTEST_FAIL,
     state_q == SELFTEST_PASS
   };
+  always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
+    if (!SYS_RSTN) begin
+      pcie_status_o <= 32'd0;
+      pcie_cycle_count_o <= 32'd0;
+      pcie_fail_detail_o <= 32'd0;
+      pcie_fail_values_o <= 32'd0;
+      pcie_first_add_sample_o <= 32'd0;
+      pcie_first_requant_sample_o <= 32'd0;
+      pcie_accel_status_o <= 32'd0;
+      pcie_accel_cycle_count_o <= 32'd0;
+      pcie_accel_output_checksum_o <= 32'd0;
+      pcie_accel_output_sample0_o <= 32'd0;
+      pcie_accel_output_sample1_o <= 32'd0;
+      pcie_accel_output_vector_o <= 512'd0;
+    end else begin
+      pcie_status_o <= {
+        20'd0,
+        first_c_proj_requant_seen_q,
+        first_add_seen_q,
+        done,
+        busy,
+        4'd0,
+        state_q
+      };
+      pcie_cycle_count_o <= cycle_count_q;
+      pcie_fail_detail_o <= {
+        16'd0,
+        6'd0,
+        fail_reason_q,
+        {{(8 - C_PROJ_OUT_ADDR_WIDTH){1'b0}}, fail_index_q}
+      };
+      pcie_fail_values_o <= {
+        fail_expected_c_proj_q,
+        fail_observed_q,
+        fail_expected_q,
+        8'd0
+      };
+      pcie_first_add_sample_o <= {
+        first_add_output_q,
+        first_add_c_proj_q,
+        first_add_residual_q,
+        {7'd0, first_add_seen_q}
+      };
+      pcie_first_requant_sample_o <= {
+        first_c_proj_requant_output_q,
+        expected_c_proj_output_q_values[0],
+        {5'd0, c_proj_requant_stage_code},
+        {7'd0, first_c_proj_requant_seen_q}
+      };
+      pcie_accel_status_o <= {
+        20'd0,
+        accel_output_valid_q,
+        accel_error_q,
+        accel_state_q == ACCEL_DONE,
+        accel_active,
+        4'd0,
+        accel_state_q
+      };
+      pcie_accel_cycle_count_o <= accel_cycle_count_q;
+      pcie_accel_output_checksum_o <= accel_output_checksum_q;
+      pcie_accel_output_sample0_o <= accel_output_sample0_q;
+      pcie_accel_output_sample1_o <= accel_output_sample1_q;
+      pcie_accel_output_vector_o <= accel_output_vector_q;
+    end
+  end
   assign expected_c_proj_gemv_lane0_weights = {
     c_proj_packed_weight_values[255][C_PROJ_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
     c_proj_packed_weight_values[191][C_PROJ_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
@@ -280,12 +385,146 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     else if (!config_reset_done)
       config_reset_count_q <= config_reset_count_q + 8'd1;
   end
+  always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
+    if (!SYS_RSTN) begin
+      accel_state_q <= ACCEL_IDLE;
+      accel_index_q <= 6'd0;
+      accel_cycle_count_q <= 32'd0;
+      accel_output_checksum_q <= 32'd0;
+      accel_output_sample0_q <= 32'd0;
+      accel_output_sample1_q <= 32'd0;
+      accel_output_vector_q <= 512'd0;
+      accel_start_count_q <= 32'd0;
+      accel_error_q <= 1'b0;
+      accel_output_valid_q <= 1'b0;
+    end else if (pcie_accel_clear_pulse_i) begin
+      accel_state_q <= ACCEL_IDLE;
+      accel_index_q <= 6'd0;
+      accel_cycle_count_q <= 32'd0;
+      accel_output_checksum_q <= 32'd0;
+      accel_output_sample0_q <= 32'd0;
+      accel_output_sample1_q <= 32'd0;
+      accel_output_vector_q <= 512'd0;
+      accel_error_q <= 1'b0;
+      accel_output_valid_q <= 1'b0;
+    end else begin
+      unique case (accel_state_q)
+        ACCEL_IDLE: begin
+          if (pcie_accel_start_pulse_i) begin
+            accel_start_count_q <= accel_start_count_q + 32'd1;
+            accel_cycle_count_q <= 32'd0;
+            accel_output_checksum_q <= 32'd0;
+            accel_output_sample0_q <= 32'd0;
+            accel_output_sample1_q <= 32'd0;
+            accel_output_vector_q <= 512'd0;
+            accel_index_q <= 6'd0;
+            accel_output_valid_q <= 1'b0;
+            if (state_q == SELFTEST_PASS) begin
+              accel_error_q <= 1'b0;
+              accel_state_q <= ACCEL_LOAD_ACTIVATION;
+            end else begin
+              accel_error_q <= 1'b1;
+              accel_state_q <= ACCEL_ERROR;
+            end
+          end
+        end
+
+        ACCEL_LOAD_ACTIVATION: begin
+          accel_cycle_count_q <= accel_cycle_count_q + 32'd1;
+          if (accel_index_q == 6'd63) begin
+            accel_index_q <= 6'd0;
+            accel_state_q <= ACCEL_LOAD_RESIDUAL;
+          end else begin
+            accel_index_q <= accel_index_q + 6'd1;
+          end
+        end
+
+        ACCEL_LOAD_RESIDUAL: begin
+          accel_cycle_count_q <= accel_cycle_count_q + 32'd1;
+          if (accel_index_q == 6'd63) begin
+            accel_index_q <= 6'd0;
+            accel_state_q <= ACCEL_START;
+          end else begin
+            accel_index_q <= accel_index_q + 6'd1;
+          end
+        end
+
+        ACCEL_START: begin
+          accel_cycle_count_q <= accel_cycle_count_q + 32'd1;
+          accel_state_q <= ACCEL_RUN;
+        end
+
+        ACCEL_RUN: begin
+          accel_cycle_count_q <= accel_cycle_count_q + 32'd1;
+          if (done) begin
+            accel_index_q <= 6'd0;
+            accel_state_q <= ACCEL_READ_SETUP;
+          end
+        end
+
+        ACCEL_READ_SETUP: begin
+          accel_cycle_count_q <= accel_cycle_count_q + 32'd1;
+          accel_state_q <= ACCEL_READ_ACCUM;
+        end
+
+        ACCEL_READ_ACCUM: begin
+          accel_cycle_count_q <= accel_cycle_count_q + 32'd1;
+          accel_output_checksum_q <= accel_output_checksum_q + {24'd0, output_read_data};
+          accel_output_vector_q[accel_index_q * 8 +: 8] <= output_read_data;
+          if (accel_index_q < 6'd4)
+            accel_output_sample0_q[accel_index_q * 8 +: 8] <= output_read_data;
+          if (accel_index_q >= 6'd4 && accel_index_q < 6'd8)
+            accel_output_sample1_q[(accel_index_q - 6'd4) * 8 +: 8] <= output_read_data;
+          if (accel_index_q == 6'd63) begin
+            accel_output_valid_q <= 1'b1;
+            accel_state_q <= ACCEL_DONE;
+          end else begin
+            accel_index_q <= accel_index_q + 6'd1;
+            accel_state_q <= ACCEL_READ_SETUP;
+          end
+        end
+
+        ACCEL_DONE,
+        ACCEL_ERROR: begin
+          if (pcie_accel_start_pulse_i) begin
+            accel_cycle_count_q <= 32'd0;
+            accel_output_checksum_q <= 32'd0;
+            accel_output_sample0_q <= 32'd0;
+            accel_output_sample1_q <= 32'd0;
+            accel_output_vector_q <= 512'd0;
+            accel_index_q <= 6'd0;
+            accel_output_valid_q <= 1'b0;
+            if (state_q == SELFTEST_PASS) begin
+              accel_error_q <= 1'b0;
+              accel_start_count_q <= accel_start_count_q + 32'd1;
+              accel_state_q <= ACCEL_LOAD_ACTIVATION;
+            end
+          end
+        end
+
+        default: begin
+          accel_error_q <= 1'b1;
+          accel_state_q <= ACCEL_ERROR;
+        end
+      endcase
+    end
+  end
+
 
   assign config_reset_done = config_reset_count_q[7];
   assign selftest_reset = !SYS_RSTN || !config_reset_done;
 
+`ifdef VERILATOR
+  assign dut_reset = dut_reset_raw;
+`else
+  BUFG dut_reset_bufg (
+    .I(dut_reset_raw),
+    .O(dut_reset)
+  );
+`endif
+
   always_comb begin
-    dut_reset = selftest_reset;
+    dut_reset_raw = selftest_reset;
     unique case (state_q)
       SELFTEST_BOOT,
       SELFTEST_LOAD_C_FC_ACTIVATION,
@@ -293,12 +532,18 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       SELFTEST_LOAD_C_FC_REQUANT,
       SELFTEST_LOAD_C_PROJ_WEIGHT,
       SELFTEST_LOAD_C_PROJ_REQUANT,
-      SELFTEST_LOAD_RESIDUAL: dut_reset = 1'b1;
-      default: dut_reset = selftest_reset;
+      SELFTEST_LOAD_RESIDUAL: dut_reset_raw = 1'b1;
+      default: dut_reset_raw = selftest_reset;
     endcase
+    if (accel_state_q == ACCEL_LOAD_ACTIVATION ||
+        accel_state_q == ACCEL_LOAD_RESIDUAL)
+      dut_reset_raw = 1'b1;
   end
 
-  assign start = (state_q == SELFTEST_START);
+  assign accel_active = accel_state_q != ACCEL_IDLE &&
+    accel_state_q != ACCEL_DONE &&
+    accel_state_q != ACCEL_ERROR;
+  assign start = (state_q == SELFTEST_START) || (accel_state_q == ACCEL_START);
 
   always_comb begin
     c_fc_weight_load_valid = 1'b0;
@@ -321,7 +566,8 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     residual_load_valid = 1'b0;
     residual_load_addr = '0;
     residual_load_data = '0;
-    output_read_addr = check_index_q;
+    output_read_addr = accel_active ?
+      C_PROJ_OUT_ADDR_WIDTH'(accel_index_q) : check_index_q;
 
     unique case (state_q)
       SELFTEST_LOAD_C_FC_ACTIVATION: begin
@@ -376,6 +622,17 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       default: begin
       end
     endcase
+
+    if (accel_state_q == ACCEL_LOAD_ACTIVATION) begin
+      c_fc_activation_load_valid = 1'b1;
+      c_fc_activation_load_addr = C_FC_ACTIVATION_ADDR_WIDTH'(accel_index_q);
+      c_fc_activation_load_data =
+        pcie_accel_activation_i[accel_index_q * 8 +: 8];
+    end else if (accel_state_q == ACCEL_LOAD_RESIDUAL) begin
+      residual_load_valid = 1'b1;
+      residual_load_addr = C_PROJ_OUT_ADDR_WIDTH'(accel_index_q);
+      residual_load_data = pcie_accel_residual_i[accel_index_q * 8 +: 8];
+    end
   end
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin

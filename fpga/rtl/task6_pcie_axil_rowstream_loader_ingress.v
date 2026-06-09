@@ -65,7 +65,32 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [31:0]  top1_token_i,
     input wire [31:0]  top1_score_q024_i,
     input wire [31:0]  top1_rows_scanned_i,
-    input wire [31:0]  top1_cycle_count_i
+    input wire [31:0]  top1_cycle_count_i,
+    input wire [31:0]  top1_debug_status_i,
+    input wire [31:0]  top1_debug_reader_addr_i,
+    input wire [31:0]  top1_debug_wb_ack_count_i,
+    input wire [31:0]  top1_debug_wb_err_count_i,
+    input wire [31:0]  top1_debug_packet_wb_write_ack_count_i,
+    input wire [31:0]  top1_debug_packet_wb_read_ack_count_i,
+
+    input wire         mlp_selftest_present_i,
+    input wire [31:0]  mlp_selftest_status_i,
+    input wire [31:0]  mlp_selftest_cycle_count_i,
+    input wire [31:0]  mlp_selftest_fail_detail_i,
+    input wire [31:0]  mlp_selftest_fail_values_i,
+    input wire [31:0]  mlp_selftest_first_add_sample_i,
+    input wire [31:0]  mlp_selftest_first_requant_sample_i,
+
+    output reg [511:0] mlp_accel_activation_vector_o,
+    output reg [511:0] mlp_accel_residual_vector_o,
+    output reg         mlp_accel_start_pulse_o,
+    output reg         mlp_accel_clear_pulse_o,
+    input wire [31:0]  mlp_accel_status_i,
+    input wire [31:0]  mlp_accel_cycle_count_i,
+    input wire [31:0]  mlp_accel_output_checksum_i,
+    input wire [31:0]  mlp_accel_output_sample0_i,
+    input wire [31:0]  mlp_accel_output_sample1_i,
+    input wire [511:0] mlp_accel_output_vector_i
 );
     localparam [1:0] EVENT_IDLE = 2'd0;
     localparam [1:0] EVENT_ISSUE = 2'd1;
@@ -92,7 +117,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     reg [1:0]  event_state_q;
     reg        top1_done_seen_q;
     reg        top1_error_seen_q;
+    reg        top1_clear_pending_q;
     reg [31:0] top1_start_count_q;
+    reg [31:0] mlp_accel_start_count_q;
 
     reg        last_write_valid_q;
     reg [9:0]  last_write_word_index_q;
@@ -152,6 +179,11 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         top1_hidden_vector_o = 512'd0;
         top1_start_pulse_o = 1'b0;
         top1_status_clear_pulse_o = 1'b0;
+        mlp_accel_activation_vector_o = 512'd0;
+        mlp_accel_residual_vector_o = 512'd0;
+        mlp_accel_start_pulse_o = 1'b0;
+        mlp_accel_clear_pulse_o = 1'b0;
+        mlp_accel_start_count_q = 32'd0;
         command_magic_q = LOADER_COMMAND_MAGIC;
         command_opcode_q = 8'd0;
         command_chunk_q = 2'd0;
@@ -197,12 +229,20 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             event_state_q <= EVENT_IDLE;
             top1_done_seen_q <= 1'b0;
             top1_error_seen_q <= 1'b0;
+            top1_clear_pending_q <= 1'b0;
             top1_start_count_q <= 32'd0;
             command_payload_o <= {COMMAND_WIDTH{1'b0}};
             command_event_o <= 1'b0;
             top1_hidden_vector_o <= 512'd0;
             top1_start_pulse_o <= 1'b0;
             top1_status_clear_pulse_o <= 1'b0;
+            mlp_accel_start_pulse_o <= 1'b0;
+            mlp_accel_clear_pulse_o <= 1'b0;
+            mlp_accel_activation_vector_o <= 512'd0;
+            mlp_accel_residual_vector_o <= 512'd0;
+            mlp_accel_start_pulse_o <= 1'b0;
+            mlp_accel_clear_pulse_o <= 1'b0;
+            mlp_accel_start_count_q <= 32'd0;
             last_write_valid_q <= 1'b0;
             last_write_word_index_q <= 10'd0;
             last_wdata_q <= 32'd0;
@@ -214,6 +254,8 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             status_clear_pulse_o <= 1'b0;
             top1_start_pulse_o <= 1'b0;
             top1_status_clear_pulse_o <= 1'b0;
+            mlp_accel_start_pulse_o <= 1'b0;
+            mlp_accel_clear_pulse_o <= 1'b0;
             if (loader_done_i)
                 loader_done_seen_q <= 1'b1;
             if (loader_error_i)
@@ -222,9 +264,11 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                 loader_accepted_seen_q <= 1'b1;
             if (loader_last_magic_ok_i)
                 loader_magic_ok_seen_q <= 1'b1;
-            if (top1_done_i)
+            if (top1_clear_pending_q && !top1_done_i && !top1_error_i)
+                top1_clear_pending_q <= 1'b0;
+            if (top1_done_i && !top1_clear_pending_q)
                 top1_done_seen_q <= 1'b1;
-            if (top1_error_i)
+            if (top1_error_i && !top1_clear_pending_q)
                 top1_error_seen_q <= 1'b1;
 
             s_axi_awready <= !awaddr_valid_q && !write_ready && !s_axi_bvalid;
@@ -309,12 +353,16 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                             if (wdata_q[1]) begin
                                 top1_done_seen_q <= 1'b0;
                                 top1_error_seen_q <= 1'b0;
+                                top1_clear_pending_q <= 1'b1;
                                 top1_status_clear_pulse_o <= 1'b1;
                             end
                             if (wdata_q[0]) begin
                                 if (top1_busy_i) begin
                                     top1_error_seen_q <= 1'b1;
                                 end else begin
+                                    top1_done_seen_q <= 1'b0;
+                                    top1_error_seen_q <= 1'b0;
+                                    top1_clear_pending_q <= 1'b1;
                                     top1_start_pulse_o <= 1'b1;
                                     top1_start_count_q <= top1_start_count_q + 32'd1;
                                 end
@@ -336,6 +384,46 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                         10'h02d: top1_hidden_vector_o[416 +: 32] <= apply_wstrb(top1_hidden_vector_o[416 +: 32], wdata_q, wstrb_q);
                         10'h02e: top1_hidden_vector_o[448 +: 32] <= apply_wstrb(top1_hidden_vector_o[448 +: 32], wdata_q, wstrb_q);
                         10'h02f: top1_hidden_vector_o[480 +: 32] <= apply_wstrb(top1_hidden_vector_o[480 +: 32], wdata_q, wstrb_q);
+                        10'h0cc: begin
+                            if (wdata_q[1])
+                                mlp_accel_clear_pulse_o <= 1'b1;
+                            if (wdata_q[0]) begin
+                                mlp_accel_start_pulse_o <= 1'b1;
+                                mlp_accel_start_count_q <= mlp_accel_start_count_q + 32'd1;
+                            end
+                        end
+                        10'h0d0: mlp_accel_activation_vector_o[0 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[0 +: 32], wdata_q, wstrb_q);
+                        10'h0d1: mlp_accel_activation_vector_o[32 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[32 +: 32], wdata_q, wstrb_q);
+                        10'h0d2: mlp_accel_activation_vector_o[64 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[64 +: 32], wdata_q, wstrb_q);
+                        10'h0d3: mlp_accel_activation_vector_o[96 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[96 +: 32], wdata_q, wstrb_q);
+                        10'h0d4: mlp_accel_activation_vector_o[128 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[128 +: 32], wdata_q, wstrb_q);
+                        10'h0d5: mlp_accel_activation_vector_o[160 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[160 +: 32], wdata_q, wstrb_q);
+                        10'h0d6: mlp_accel_activation_vector_o[192 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[192 +: 32], wdata_q, wstrb_q);
+                        10'h0d7: mlp_accel_activation_vector_o[224 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[224 +: 32], wdata_q, wstrb_q);
+                        10'h0d8: mlp_accel_activation_vector_o[256 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[256 +: 32], wdata_q, wstrb_q);
+                        10'h0d9: mlp_accel_activation_vector_o[288 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[288 +: 32], wdata_q, wstrb_q);
+                        10'h0da: mlp_accel_activation_vector_o[320 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[320 +: 32], wdata_q, wstrb_q);
+                        10'h0db: mlp_accel_activation_vector_o[352 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[352 +: 32], wdata_q, wstrb_q);
+                        10'h0dc: mlp_accel_activation_vector_o[384 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[384 +: 32], wdata_q, wstrb_q);
+                        10'h0dd: mlp_accel_activation_vector_o[416 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[416 +: 32], wdata_q, wstrb_q);
+                        10'h0de: mlp_accel_activation_vector_o[448 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[448 +: 32], wdata_q, wstrb_q);
+                        10'h0df: mlp_accel_activation_vector_o[480 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[480 +: 32], wdata_q, wstrb_q);
+                        10'h0e0: mlp_accel_residual_vector_o[0 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[0 +: 32], wdata_q, wstrb_q);
+                        10'h0e1: mlp_accel_residual_vector_o[32 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[32 +: 32], wdata_q, wstrb_q);
+                        10'h0e2: mlp_accel_residual_vector_o[64 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[64 +: 32], wdata_q, wstrb_q);
+                        10'h0e3: mlp_accel_residual_vector_o[96 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[96 +: 32], wdata_q, wstrb_q);
+                        10'h0e4: mlp_accel_residual_vector_o[128 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[128 +: 32], wdata_q, wstrb_q);
+                        10'h0e5: mlp_accel_residual_vector_o[160 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[160 +: 32], wdata_q, wstrb_q);
+                        10'h0e6: mlp_accel_residual_vector_o[192 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[192 +: 32], wdata_q, wstrb_q);
+                        10'h0e7: mlp_accel_residual_vector_o[224 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[224 +: 32], wdata_q, wstrb_q);
+                        10'h0e8: mlp_accel_residual_vector_o[256 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[256 +: 32], wdata_q, wstrb_q);
+                        10'h0e9: mlp_accel_residual_vector_o[288 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[288 +: 32], wdata_q, wstrb_q);
+                        10'h0ea: mlp_accel_residual_vector_o[320 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[320 +: 32], wdata_q, wstrb_q);
+                        10'h0eb: mlp_accel_residual_vector_o[352 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[352 +: 32], wdata_q, wstrb_q);
+                        10'h0ec: mlp_accel_residual_vector_o[384 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[384 +: 32], wdata_q, wstrb_q);
+                        10'h0ed: mlp_accel_residual_vector_o[416 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[416 +: 32], wdata_q, wstrb_q);
+                        10'h0ee: mlp_accel_residual_vector_o[448 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[448 +: 32], wdata_q, wstrb_q);
+                        10'h0ef: mlp_accel_residual_vector_o[480 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[480 +: 32], wdata_q, wstrb_q);
                         default: begin
                         end
                     endcase
@@ -405,6 +493,78 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                     10'h084: s_axi_rdata <= debug_rowstream_seen_i;
                     10'h085: s_axi_rdata <= ddr_debug1_i;
                     10'h086: s_axi_rdata <= loader_wait_cycles_i;
+                    10'h087: s_axi_rdata <= top1_debug_status_i;
+                    10'h088: s_axi_rdata <= top1_debug_reader_addr_i;
+                    10'h089: s_axi_rdata <= top1_debug_wb_ack_count_i;
+                    10'h08a: s_axi_rdata <= top1_debug_wb_err_count_i;
+                    10'h08b: s_axi_rdata <= top1_debug_packet_wb_write_ack_count_i;
+                    10'h08c: s_axi_rdata <= top1_debug_packet_wb_read_ack_count_i;
+                    10'h0c0: s_axi_rdata <= 32'h54364d4c;
+                    10'h0c1: s_axi_rdata <= 32'd1;
+                    10'h0c2: s_axi_rdata <= {31'd0, mlp_selftest_present_i};
+                    10'h0c3: s_axi_rdata <= mlp_selftest_status_i;
+                    10'h0c4: s_axi_rdata <= mlp_selftest_cycle_count_i;
+                    10'h0c5: s_axi_rdata <= mlp_selftest_fail_detail_i;
+                    10'h0c6: s_axi_rdata <= mlp_selftest_fail_values_i;
+                    10'h0c7: s_axi_rdata <= mlp_selftest_first_add_sample_i;
+                    10'h0c8: s_axi_rdata <= mlp_selftest_first_requant_sample_i;
+                    10'h0c9: s_axi_rdata <= 32'h54364d41;
+                    10'h0ca: s_axi_rdata <= 32'd1;
+                    10'h0cb: s_axi_rdata <= {31'd0, mlp_selftest_present_i};
+                    10'h0cc: s_axi_rdata <= mlp_accel_status_i;
+                    10'h0cd: s_axi_rdata <= mlp_accel_start_count_q;
+                    10'h0ce: s_axi_rdata <= mlp_accel_cycle_count_i;
+                    10'h0cf: s_axi_rdata <= mlp_accel_output_checksum_i;
+                    10'h0d0: s_axi_rdata <= mlp_accel_activation_vector_o[0 +: 32];
+                    10'h0d1: s_axi_rdata <= mlp_accel_activation_vector_o[32 +: 32];
+                    10'h0d2: s_axi_rdata <= mlp_accel_activation_vector_o[64 +: 32];
+                    10'h0d3: s_axi_rdata <= mlp_accel_activation_vector_o[96 +: 32];
+                    10'h0d4: s_axi_rdata <= mlp_accel_activation_vector_o[128 +: 32];
+                    10'h0d5: s_axi_rdata <= mlp_accel_activation_vector_o[160 +: 32];
+                    10'h0d6: s_axi_rdata <= mlp_accel_activation_vector_o[192 +: 32];
+                    10'h0d7: s_axi_rdata <= mlp_accel_activation_vector_o[224 +: 32];
+                    10'h0d8: s_axi_rdata <= mlp_accel_activation_vector_o[256 +: 32];
+                    10'h0d9: s_axi_rdata <= mlp_accel_activation_vector_o[288 +: 32];
+                    10'h0da: s_axi_rdata <= mlp_accel_activation_vector_o[320 +: 32];
+                    10'h0db: s_axi_rdata <= mlp_accel_activation_vector_o[352 +: 32];
+                    10'h0dc: s_axi_rdata <= mlp_accel_activation_vector_o[384 +: 32];
+                    10'h0dd: s_axi_rdata <= mlp_accel_activation_vector_o[416 +: 32];
+                    10'h0de: s_axi_rdata <= mlp_accel_activation_vector_o[448 +: 32];
+                    10'h0df: s_axi_rdata <= mlp_accel_activation_vector_o[480 +: 32];
+                    10'h0e0: s_axi_rdata <= mlp_accel_residual_vector_o[0 +: 32];
+                    10'h0e1: s_axi_rdata <= mlp_accel_residual_vector_o[32 +: 32];
+                    10'h0e2: s_axi_rdata <= mlp_accel_residual_vector_o[64 +: 32];
+                    10'h0e3: s_axi_rdata <= mlp_accel_residual_vector_o[96 +: 32];
+                    10'h0e4: s_axi_rdata <= mlp_accel_residual_vector_o[128 +: 32];
+                    10'h0e5: s_axi_rdata <= mlp_accel_residual_vector_o[160 +: 32];
+                    10'h0e6: s_axi_rdata <= mlp_accel_residual_vector_o[192 +: 32];
+                    10'h0e7: s_axi_rdata <= mlp_accel_residual_vector_o[224 +: 32];
+                    10'h0e8: s_axi_rdata <= mlp_accel_residual_vector_o[256 +: 32];
+                    10'h0e9: s_axi_rdata <= mlp_accel_residual_vector_o[288 +: 32];
+                    10'h0ea: s_axi_rdata <= mlp_accel_residual_vector_o[320 +: 32];
+                    10'h0eb: s_axi_rdata <= mlp_accel_residual_vector_o[352 +: 32];
+                    10'h0ec: s_axi_rdata <= mlp_accel_residual_vector_o[384 +: 32];
+                    10'h0ed: s_axi_rdata <= mlp_accel_residual_vector_o[416 +: 32];
+                    10'h0ee: s_axi_rdata <= mlp_accel_residual_vector_o[448 +: 32];
+                    10'h0ef: s_axi_rdata <= mlp_accel_residual_vector_o[480 +: 32];
+                    10'h0f0: s_axi_rdata <= mlp_accel_output_sample0_i;
+                    10'h0f1: s_axi_rdata <= mlp_accel_output_sample1_i;
+                    10'h100: s_axi_rdata <= mlp_accel_output_vector_i[0 +: 32];
+                    10'h101: s_axi_rdata <= mlp_accel_output_vector_i[32 +: 32];
+                    10'h102: s_axi_rdata <= mlp_accel_output_vector_i[64 +: 32];
+                    10'h103: s_axi_rdata <= mlp_accel_output_vector_i[96 +: 32];
+                    10'h104: s_axi_rdata <= mlp_accel_output_vector_i[128 +: 32];
+                    10'h105: s_axi_rdata <= mlp_accel_output_vector_i[160 +: 32];
+                    10'h106: s_axi_rdata <= mlp_accel_output_vector_i[192 +: 32];
+                    10'h107: s_axi_rdata <= mlp_accel_output_vector_i[224 +: 32];
+                    10'h108: s_axi_rdata <= mlp_accel_output_vector_i[256 +: 32];
+                    10'h109: s_axi_rdata <= mlp_accel_output_vector_i[288 +: 32];
+                    10'h10a: s_axi_rdata <= mlp_accel_output_vector_i[320 +: 32];
+                    10'h10b: s_axi_rdata <= mlp_accel_output_vector_i[352 +: 32];
+                    10'h10c: s_axi_rdata <= mlp_accel_output_vector_i[384 +: 32];
+                    10'h10d: s_axi_rdata <= mlp_accel_output_vector_i[416 +: 32];
+                    10'h10e: s_axi_rdata <= mlp_accel_output_vector_i[448 +: 32];
+                    10'h10f: s_axi_rdata <= mlp_accel_output_vector_i[480 +: 32];
                     default: s_axi_rdata <= 32'd0;
                 endcase
                 s_axi_rvalid <= 1'b1;

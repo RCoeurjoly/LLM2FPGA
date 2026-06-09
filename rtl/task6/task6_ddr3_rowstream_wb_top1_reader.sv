@@ -7,6 +7,7 @@ module task6_ddr3_rowstream_wb_top1_reader #(
   parameter int WB_ADDR_BITS = 25,
   parameter int WB_DATA_BITS = 128,
   parameter int WB_SEL_BITS = WB_DATA_BITS / 8,
+  parameter bit REVERSE_WB_BEAT_BYTES = 1'b0,
   parameter int ADDR_WIDTH = (VOCAB_SIZE <= 1) ? 1 : $clog2(VOCAB_SIZE)
 )(
   input  logic                            clk_i,
@@ -45,12 +46,14 @@ module task6_ddr3_rowstream_wb_top1_reader #(
     S_ISSUE = 3'd1,
     S_WAIT_ACK = 3'd2,
     S_EMIT = 3'd3,
-    S_ERROR = 3'd4
+    S_ERROR = 3'd4,
+    S_CAPTURE = 3'd5
   } state_t;
 
   state_t state_q;
   logic [ADDR_WIDTH - 1:0] row_index_q;
   logic [$clog2(ROW_WINDOW_BEATS) - 1:0] beat_index_q;
+  logic [$clog2(ROW_WINDOW_BEATS) - 1:0] capture_beat_index_q;
   logic [ROW_WINDOW_BITS - 1:0] row_window_q;
   logic [WB_BYTE_SHIFT - 1:0] row_phase_q;
   logic [BYTE_OFFSET_BITS - 1:0] row_byte_offset;
@@ -61,6 +64,16 @@ module task6_ddr3_rowstream_wb_top1_reader #(
   logic [31:0] row_sidecar_start_byte;
   logic [WB_ADDR_BITS - 1:0] next_beat_addr;
   logic row_fire;
+  logic [WB_DATA_BITS - 1:0] captured_wb_data;
+
+  always_comb begin
+    captured_wb_data = wb_data_i;
+    if (REVERSE_WB_BEAT_BYTES) begin
+      for (int lane = 0; lane < WB_SEL_BITS; lane = lane + 1) begin
+        captured_wb_data[lane * 8 +: 8] = wb_data_i[(WB_SEL_BITS - 1 - lane) * 8 +: 8];
+      end
+    end
+  end
 
   assign row_fire = row_valid_o && row_ready_i;
   assign row_byte_offset = BYTE_OFFSET_BITS'(row_index_q) * BYTE_OFFSET_BITS'(ROW_BYTES);
@@ -83,6 +96,7 @@ module task6_ddr3_rowstream_wb_top1_reader #(
       state_q <= S_IDLE;
       row_index_q <= '0;
       beat_index_q <= '0;
+      capture_beat_index_q <= '0;
       row_window_q <= '0;
       row_phase_q <= '0;
       busy_o <= 1'b0;
@@ -106,6 +120,7 @@ module task6_ddr3_rowstream_wb_top1_reader #(
           error_o <= 1'b0;
           row_index_q <= '0;
           beat_index_q <= '0;
+          capture_beat_index_q <= '0;
           row_window_q <= '0;
           row_phase_q <= '0;
           wb_addr_o <= '0;
@@ -125,18 +140,9 @@ module task6_ddr3_rowstream_wb_top1_reader #(
         end else if (!wb_stall_i) begin
           wb_stb_o <= 1'b0;
           if (wb_ack_i) begin
-            row_window_q[beat_index_q * WB_DATA_BITS +: WB_DATA_BITS] <= wb_data_i;
+            capture_beat_index_q <= beat_index_q;
             wb_cyc_o <= 1'b0;
-            if (beat_index_q == $clog2(ROW_WINDOW_BEATS)'(ROW_WINDOW_BEATS - 1)) begin
-              row_valid_o <= 1'b1;
-              state_q <= S_EMIT;
-            end else begin
-              beat_index_q <= beat_index_q + 1'b1;
-              wb_addr_o <= next_beat_addr;
-              wb_cyc_o <= 1'b1;
-              wb_stb_o <= 1'b1;
-              state_q <= S_ISSUE;
-            end
+            state_q <= S_CAPTURE;
           end else begin
             state_q <= S_WAIT_ACK;
           end
@@ -150,18 +156,23 @@ module task6_ddr3_rowstream_wb_top1_reader #(
           busy_o <= 1'b0;
           state_q <= S_ERROR;
         end else if (wb_ack_i) begin
-          row_window_q[beat_index_q * WB_DATA_BITS +: WB_DATA_BITS] <= wb_data_i;
+          capture_beat_index_q <= beat_index_q;
           wb_cyc_o <= 1'b0;
-          if (beat_index_q == $clog2(ROW_WINDOW_BEATS)'(ROW_WINDOW_BEATS - 1)) begin
-            row_valid_o <= 1'b1;
-            state_q <= S_EMIT;
-          end else begin
-            beat_index_q <= beat_index_q + 1'b1;
-            wb_addr_o <= next_beat_addr;
-            wb_cyc_o <= 1'b1;
-            wb_stb_o <= 1'b1;
-            state_q <= S_ISSUE;
-          end
+          state_q <= S_CAPTURE;
+        end
+      end
+
+      S_CAPTURE: begin
+        row_window_q[capture_beat_index_q * WB_DATA_BITS +: WB_DATA_BITS] <= captured_wb_data;
+        if (capture_beat_index_q == $clog2(ROW_WINDOW_BEATS)'(ROW_WINDOW_BEATS - 1)) begin
+          row_valid_o <= 1'b1;
+          state_q <= S_EMIT;
+        end else begin
+          beat_index_q <= capture_beat_index_q + 1'b1;
+          wb_addr_o <= row_base_beat + WB_ADDR_BITS'(32'(capture_beat_index_q) + 32'd1);
+          wb_cyc_o <= 1'b1;
+          wb_stb_o <= 1'b1;
+          state_q <= S_ISSUE;
         end
       end
 
@@ -194,6 +205,7 @@ module task6_ddr3_rowstream_wb_top1_reader #(
           error_o <= 1'b0;
           row_index_q <= '0;
           beat_index_q <= '0;
+          capture_beat_index_q <= '0;
           row_window_q <= '0;
           row_phase_q <= '0;
           busy_o <= 1'b1;

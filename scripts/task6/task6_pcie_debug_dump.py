@@ -39,6 +39,19 @@ REG_DEBUG_ROWSTREAM_STATUS = 0x20C
 REG_DEBUG_ROWSTREAM_SEEN = 0x210
 REG_DEBUG_DDR_DEBUG1 = 0x214
 REG_DEBUG_LOADER_WAIT = 0x218
+REG_DEBUG_TOP1_STATUS = 0x21C
+REG_DEBUG_TOP1_READER_ADDR = 0x220
+REG_DEBUG_TOP1_WB_ACK_COUNT = 0x224
+REG_DEBUG_TOP1_WB_ERR_COUNT = 0x228
+REG_MLP_MAGIC = 0x300
+REG_MLP_VERSION = 0x304
+REG_MLP_PRESENT = 0x308
+REG_MLP_STATUS = 0x30C
+REG_MLP_CYCLE_COUNT = 0x310
+REG_MLP_FAIL_DETAIL = 0x314
+REG_MLP_FAIL_VALUES = 0x318
+REG_MLP_FIRST_ADD_SAMPLE = 0x31C
+REG_MLP_FIRST_REQUANT_SAMPLE = 0x320
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -93,6 +106,19 @@ def main() -> int:
                 "debug_seen": rd32(mm, REG_DEBUG_ROWSTREAM_SEEN),
                 "debug_ddr_debug1": rd32(mm, REG_DEBUG_DDR_DEBUG1),
                 "debug_loader_wait": rd32(mm, REG_DEBUG_LOADER_WAIT),
+                "debug_top1_status": rd32(mm, REG_DEBUG_TOP1_STATUS),
+                "debug_top1_reader_addr": rd32(mm, REG_DEBUG_TOP1_READER_ADDR),
+                "debug_top1_wb_ack_or_fault_token": rd32(mm, REG_DEBUG_TOP1_WB_ACK_COUNT),
+                "debug_top1_wb_err_or_fault_sidecar": rd32(mm, REG_DEBUG_TOP1_WB_ERR_COUNT),
+                "mlp_magic": rd32(mm, REG_MLP_MAGIC),
+                "mlp_version": rd32(mm, REG_MLP_VERSION),
+                "mlp_present": rd32(mm, REG_MLP_PRESENT),
+                "mlp_status": rd32(mm, REG_MLP_STATUS),
+                "mlp_cycle_count": rd32(mm, REG_MLP_CYCLE_COUNT),
+                "mlp_fail_detail": rd32(mm, REG_MLP_FAIL_DETAIL),
+                "mlp_fail_values": rd32(mm, REG_MLP_FAIL_VALUES),
+                "mlp_first_add_sample": rd32(mm, REG_MLP_FIRST_ADD_SAMPLE),
+                "mlp_first_requant_sample": rd32(mm, REG_MLP_FIRST_REQUANT_SAMPLE),
             }
             heartbeat_samples = []
             for sample in range(max(args.samples, 1)):
@@ -117,6 +143,19 @@ def main() -> int:
                 "debug_seen",
                 "debug_ddr_debug1",
                 "debug_loader_wait",
+                "debug_top1_status",
+                "debug_top1_reader_addr",
+                "debug_top1_wb_ack_or_fault_token",
+                "debug_top1_wb_err_or_fault_sidecar",
+                "mlp_magic",
+                "mlp_version",
+                "mlp_present",
+                "mlp_status",
+                "mlp_cycle_count",
+                "mlp_fail_detail",
+                "mlp_fail_values",
+                "mlp_first_add_sample",
+                "mlp_first_requant_sample",
             ):
                 print(f"{name:18s}: 0x{regs[name]:08x}")
             print("heartbeat_samples : " + " ".join(f"0x{x:08x}" for x in heartbeat_samples))
@@ -155,6 +194,63 @@ def main() -> int:
                 (3, "boot_done_seen"),
                 (4, "ddr_debug1_nonzero_seen"),
             )))
+            print("mlp status bits    : " + decode_bits(regs["mlp_status"], (
+                (8, "busy"),
+                (9, "done"),
+                (10, "first_add_seen"),
+                (11, "first_requant_seen"),
+            )))
+            mlp_state = regs["mlp_status"] & 0x0f
+            mlp_state_name = {
+                0x0: "BOOT",
+                0x1: "LOAD_C_FC_ACTIVATION",
+                0x2: "LOAD_C_FC_WEIGHT",
+                0x3: "LOAD_C_FC_REQUANT",
+                0x4: "LOAD_C_PROJ_WEIGHT",
+                0x5: "LOAD_C_PROJ_REQUANT",
+                0x6: "LOAD_RESIDUAL",
+                0x7: "START",
+                0x8: "RUN",
+                0x9: "READ_SETUP",
+                0xA: "READ_CHECK",
+                0xB: "PASS",
+                0xC: "FAIL",
+            }.get(mlp_state, "UNKNOWN")
+            mlp_fail_reason = (regs["mlp_fail_detail"] >> 8) & 0x03
+            print(f"mlp state          : 0x{mlp_state:01x} ({mlp_state_name})")
+            print(f"mlp pass           : {mlp_state == 0xB and mlp_fail_reason == 0}")
+            print(f"mlp fail reason   : 0x{mlp_fail_reason:01x}")
+            print(f"mlp fail index    : 0x{regs["mlp_fail_detail"] & 0xff:02x}")
+            print("top1 debug bits    : " + decode_bits(regs["debug_top1_status"], (
+                (0, "rst_n"),
+                (1, "ddr_debug_ok"),
+                (2, "calib_complete"),
+                (3, "read_probe_done"),
+                (4, "start_accepted"),
+                (5, "start_rejected"),
+                (6, "reader_busy"),
+                (7, "reader_done"),
+                (8, "reader_error"),
+                (9, "reader_wb_cyc"),
+                (10, "reader_wb_stb"),
+                (11, "reader_wb_we"),
+                (12, "wb_stall"),
+                (13, "reader_wb_ack"),
+                (14, "reader_wb_err"),
+                (15, "cutout_valid"),
+                (16, "cutout_done"),
+                (17, "cutout_busy"),
+                (18, "cutout_reserved_error"),
+                (19, "row_valid"),
+                (20, "row_ready"),
+                (21, "row_last"),
+            )))
+            if regs["debug_top1_status"] & (1 << 18):
+                fault_token_word = regs["debug_top1_wb_ack_or_fault_token"]
+                print(f"top1 fault seen    : {bool(fault_token_word & 0x00010000)}")
+                print(f"top1 fault token   : 0x{fault_token_word & 0xffff:04x}")
+                print(f"top1 fault sidecar : 0x{regs['debug_top1_wb_err_or_fault_sidecar']:08x}")
+                print(f"top1 fault addr    : 0x{regs['debug_top1_reader_addr']:08x}")
 
             if regs["magic"] == ALL_ONES or regs["debug_magic"] == ALL_ONES:
                 raise SystemExit("BAR returned all ones; endpoint may be stale")

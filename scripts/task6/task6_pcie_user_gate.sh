@@ -8,7 +8,7 @@ BDF="${2:-$ALLOWED_BDF}"
 
 usage() {
   cat >&2 <<'EOF'
-usage: scripts/task6/task6_pcie_user_gate.sh <bridge-rescan|lifecycle|flash|recover|bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
+usage: scripts/task6/task6_pcie_user_gate.sh <recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
 
 Rootless Task 6 PCIe gate dispatcher. This assumes the Task 6 YPCB PCIe udev
 rule has enabled PCI memory space, granted plugdev read/write access to
@@ -19,7 +19,7 @@ EOF
 }
 
 case "$MODE" in
-  bridge-rescan|lifecycle|flash|recover|bar|debug-dump|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
+  recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 
@@ -33,6 +33,10 @@ RESOURCE0="$DEVICE/resource0"
 
 if [[ "$MODE" == "bridge-rescan" ]]; then
   exec python3 "$ROOT/scripts/task6/task6_pcie_bridge_rescan.py" "${3:-0000:41:00.0}"
+fi
+
+if [[ "$MODE" == "recover-auto" ]]; then
+  exec python3 "$ROOT/scripts/task6/task6_pcie_recovery_orchestrator.py" --bdf "$BDF" "${@:3}"
 fi
 
 if [[ "$MODE" == "lifecycle" ]]; then
@@ -115,6 +119,9 @@ export TASK6_REPO_ROOT="${TASK6_REPO_ROOT:-$ROOT}"
 case "$MODE" in
   bar) exec python3 "$ROOT/scripts/task6/task6_pcie_bar_smoke.py" "$BDF" "${@:3}" ;;
   debug-dump) exec python3 "$ROOT/scripts/task6/task6_pcie_debug_dump.py" "$BDF" "${@:3}" ;;
+  mlp-boundary) exec python3 "$ROOT/scripts/task6/task6_pcie_mlp_boundary_gate.py" "$BDF" "${@:3}" ;;
+  mlp-accel) exec python3 "$ROOT/scripts/task6/task6_pcie_mlp_accel_gate.py" "$BDF" "${@:3}" ;;
+  prompt-infer) exec python3 "$ROOT/scripts/task6/task6_prompt_infer.py" "$BDF" "${@:3}" ;;
   rowstream-loopback) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_loopback_smoke.py" "$BDF" "${@:3}" ;;
   rowstream-loader) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_loader_smoke.py" "$BDF" "${@:3}" ;;
   rowstream-packet) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_packet_loader.py" "$BDF" "${@:3}" ;;

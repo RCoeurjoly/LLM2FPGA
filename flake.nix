@@ -66,7 +66,7 @@
       flake = false;
     };
     uberDdr3 = {
-      url = "github:RCoeurjoly/UberDDR3/8e6b0bb9ed38a97505b29b28a6d2689746470e7b";
+      url = "path:/home/roland/UberDDR3";
       flake = false;
     };
     pcie7x = {
@@ -564,7 +564,7 @@ EOF
             bistTestDatamask = false;
           };
         mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
-          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false, pllClkout0Divide ? 3, pllClkout1Divide ? 3, pllClkout2Divide ? 12, controllerClkPeriodPs ? "12_000", ddr3ClkPeriodPs ? "3_000", dllOff ? true, speedBin ? 0, sdramCapacity ? 5, bistTestDatamask ? true }:
+          { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false, pllFbMult ? 20, pllClkout0Divide ? 3, pllClkout1Divide ? 3, pllClkout2Divide ? 12, pllClkout3Divide ? 5, controllerClkPeriodPs ? "12_000", ddr3ClkPeriodPs ? "3_000", dllOff ? true, speedBin ? 0, sdramCapacity ? 5, bistTestDatamask ? true }:
           pkgs.runCommand name {
             buildInputs = [ pkgs.yosys ];
           } ''
@@ -579,12 +579,16 @@ EOF
                              "parameter int DISABLE_JTAG_DEBUG_SHIFT = ${if disableJtagDebugShift then "1" else "0"}," \
               --replace-fail "parameter int BOOT_ISOLATE_UNTIL_CALIB = 0," \
                              "parameter int BOOT_ISOLATE_UNTIL_CALIB = ${if bootIsolateUntilCalib then "1" else "0"}," \
+              --replace-fail "parameter int PLL_FB_MULT = 20," \
+                             "parameter int PLL_FB_MULT = ${toString pllFbMult}," \
               --replace-fail "parameter int PLL_CLKOUT0_DIVIDE = 3," \
                              "parameter int PLL_CLKOUT0_DIVIDE = ${toString pllClkout0Divide}," \
               --replace-fail "parameter int PLL_CLKOUT1_DIVIDE = 3," \
                              "parameter int PLL_CLKOUT1_DIVIDE = ${toString pllClkout1Divide}," \
               --replace-fail "parameter int PLL_CLKOUT2_DIVIDE = 12," \
                              "parameter int PLL_CLKOUT2_DIVIDE = ${toString pllClkout2Divide}," \
+              --replace-fail "parameter int PLL_CLKOUT3_DIVIDE = 5," \
+                             "parameter int PLL_CLKOUT3_DIVIDE = ${toString pllClkout3Divide}," \
               --replace-fail "parameter int CONTROLLER_CLK_PERIOD_PS = 12_000," \
                              "parameter int CONTROLLER_CLK_PERIOD_PS = ${controllerClkPeriodPs}," \
               --replace-fail "parameter int DDR3_CLK_PERIOD_PS = 3_000," \
@@ -666,6 +670,23 @@ EOF
             pllClkout2Divide = 12;
             controllerClkPeriodPs = "12_000";
             ddr3ClkPeriodPs = "3_000";
+            dllOff = false;
+            speedBin = 1;
+            sdramCapacity = 4;
+            bistTestDatamask = false;
+          };
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100YosysJson =
+          mkTask6YpcbUberDdr3RowstreamLoaderYosysJson {
+            name = "task6-ypcb-uberddr3-rowstream-loader-1lane-llm2fpga-min-pnr100-yosys.json";
+            byteLanes = 1;
+            bootIsolateUntilCalib = true;
+            pllFbMult = 16;
+            pllClkout0Divide = 3;
+            pllClkout1Divide = 3;
+            pllClkout2Divide = 12;
+            pllClkout3Divide = 4;
+            controllerClkPeriodPs = "15_000";
+            ddr3ClkPeriodPs = "3_750";
             dllOff = false;
             speedBin = 1;
             sdramCapacity = 4;
@@ -849,6 +870,91 @@ EOF
             pyyaml
           ]) ++ [ litexPkg ];
           doCheck = false;
+        };
+
+        sdfToolkitClick = pkgs.python311Packages.buildPythonPackage rec {
+          pname = "click";
+          version = "8.2.1";
+          format = "wheel";
+          src = pkgs.fetchurl {
+            url = "https://files.pythonhosted.org/packages/py3/c/click/click-${version}-py3-none-any.whl";
+            hash = "sha256-YaMmW5FOhQuFMX0LMQnH+M01pnD5Y4ZgBdbvHVF1oSs=";
+          };
+          doCheck = false;
+          pythonImportsCheck = [ "click" ];
+        };
+
+        sdfToolkitRich = pkgs.python311Packages.buildPythonPackage rec {
+          pname = "rich";
+          version = "14.3.3";
+          format = "wheel";
+          src = pkgs.fetchurl {
+            url = "https://files.pythonhosted.org/packages/py3/r/rich/rich-${version}-py3-none-any.whl";
+            hash = "sha256-eTQxwfhhmvp9O1KyzeyFlWK5UOoNS2tQU5dhLbjVNi0=";
+          };
+          propagatedBuildInputs = with pkgs.python311Packages; [ markdown-it-py pygments ];
+          doCheck = false;
+          pythonImportsCheck = [ "rich" ];
+        };
+
+        sdfToolkitAnnotatedDoc = pkgs.python311Packages.buildPythonPackage rec {
+          pname = "annotated-doc";
+          version = "0.0.4";
+          format = "wheel";
+          src = pkgs.fetchurl {
+            url = "https://files.pythonhosted.org/packages/py3/a/annotated-doc/annotated_doc-${version}-py3-none-any.whl";
+            hash = "sha256-VxrB3GmRxFCyWpwthKNwXirnpTRntdERwk+ouqu+0yA=";
+          };
+          doCheck = false;
+          pythonImportsCheck = [ "annotated_doc" ];
+        };
+
+        sdfToolkitTyper = pkgs.python311Packages.buildPythonPackage rec {
+          pname = "typer";
+          version = "0.24.1";
+          format = "wheel";
+          src = pkgs.fetchurl {
+            url = "https://files.pythonhosted.org/packages/py3/t/typer/typer-${version}-py3-none-any.whl";
+            hash = "sha256-ESwfDOV4v7TKuf/avGjwMUFuvMIWU2YRuiHwTpqoTJ4=";
+          };
+          propagatedBuildInputs = with pkgs.python311Packages; [
+            shellingham
+          ] ++ [ sdfToolkitAnnotatedDoc sdfToolkitClick sdfToolkitRich ];
+          doCheck = false;
+          pythonImportsCheck = [ "typer" ];
+        };
+
+        sdfToolkit = pkgs.python311Packages.buildPythonPackage rec {
+          pname = "sdf-toolkit";
+          version = "0.1.1";
+          format = "pyproject";
+          src = pkgs.fetchPypi {
+            pname = "sdf_toolkit";
+            inherit version;
+            hash = "sha256-s5D6TitfRk+7Q6VRiAhFG+D0zQNkqx+gnMURxrQKG1c=";
+          };
+          postPatch = ''
+            substituteInPlace src/sdf_toolkit/parser/sdf.lark \
+              --replace-fail 'STRING: /[a-zA-Z0-9_\/.\[\]\\]+/' 'STRING: /[a-zA-Z0-9_\/.\[\]\\\$:\-]+/'
+          '';
+          nativeBuildInputs = with pkgs.python311Packages; [
+            hatchling
+            hatch-vcs
+          ];
+          propagatedBuildInputs = with pkgs.python311Packages; [
+            jinja2
+            lark
+            networkx
+            sdfToolkitRich
+            sdfToolkitTyper
+          ];
+          doCheck = false;
+          pythonImportsCheck = [ "sdf_toolkit" ];
+          meta = {
+            description = "Python library and CLI toolkit for Standard Delay Format timing files";
+            homepage = "https://github.com/KelvinChung2000/sdf-toolkit";
+            license = pkgs.lib.licenses.asl20;
+          };
         };
         mkLitexBoardsPkg = src:
           pkgs.python311Packages.buildPythonPackage {
@@ -1161,6 +1267,25 @@ EOF
           sourceDir = ./TinyStories;
           adapterPy = ./TinyStories/model_adapter.py;
         };
+        gptNeoTokenizer = let
+          modelId = "EleutherAI/gpt-neo-125M";
+          fetch = file: sha256:
+            pkgs.fetchurl {
+              url = "https://huggingface.co/" + modelId + "/resolve/main/" + file;
+              inherit sha256;
+            };
+        in pkgs.linkFarm "gpt-neo-125m-tokenizer" [
+          {
+            name = "vocab.json";
+            path = fetch "vocab.json"
+              "09rgyz8xllry92darghnji34rnyjhzkl6ykwdsv1iikhpi9ph203";
+          }
+          {
+            name = "merges.txt";
+            path = fetch "merges.txt"
+              "1idd4rvkpqqbks51i2vjbd928inw7slij9l4r063w3y5fd3ndq8w";
+          }
+        ];
         representativeCoreSweepSpecs =
           import ./nix/representative-core-sweep.nix;
         pipelineLib = import ./nix/pipeline.nix {
@@ -3366,7 +3491,7 @@ EOF
             cat $constraintFiles > "$out"
           '';
 
-        mkFasm = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ], nextpnrExtraArgs ? "" }:
+        mkFasm = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ], preRouteScripts ? [ ], postRouteScripts ? [ ], nextpnrExtraArgs ? "" }:
           let
             outputArgs =
               if freqMHz == null then "--fasm \"$out\""
@@ -3377,6 +3502,10 @@ EOF
               pkgs.lib.concatMapStringsSep " " (script: "--pre-pack ${script}") prePackScripts;
             prePlaceArgs =
               pkgs.lib.concatMapStringsSep " " (script: "--pre-place ${script}") prePlaceScripts;
+            preRouteArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-route ${script}") preRouteScripts;
+            postRouteArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--post-route ${script}") postRouteScripts;
           in
           pkgs.runCommand "${name}.fasm" { } ''
             if [ ! -f "${fpgaChipdb}" ]; then
@@ -3390,11 +3519,13 @@ EOF
               --json ${json} \
               ${prePackArgs} \
               ${prePlaceArgs} \
+              ${preRouteArgs} \
+              ${postRouteArgs} \
               ${nextpnrExtraArgs} \
               ${seedArg}${outputArgs}
           '';
 
-        mkPlacedJson = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ], nextpnrExtraArgs ? "" }:
+        mkPlacedJson = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ], preRouteScripts ? [ ], postRouteScripts ? [ ], nextpnrExtraArgs ? "" }:
           let
             freqArg =
               pkgs.lib.optionalString (freqMHz != null) "--freq ${toString freqMHz} ";
@@ -3404,6 +3535,10 @@ EOF
               pkgs.lib.concatMapStringsSep " " (script: "--pre-pack ${script}") prePackScripts;
             prePlaceArgs =
               pkgs.lib.concatMapStringsSep " " (script: "--pre-place ${script}") prePlaceScripts;
+            preRouteArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-route ${script}") preRouteScripts;
+            postRouteArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--post-route ${script}") postRouteScripts;
           in
           pkgs.runCommand "${name}.placed.json" { } ''
             if [ ! -f "${fpgaChipdb}" ]; then
@@ -3417,8 +3552,45 @@ EOF
               --json ${json} \
               ${prePackArgs} \
               ${prePlaceArgs} \
+              ${preRouteArgs} \
+              ${postRouteArgs} \
               ${nextpnrExtraArgs} \
               ${seedArg}${freqArg}--write "$out"
+          '';
+
+        mkSdf = { name, xdc, json, freqMHz ? null, seed ? null, prePackScripts ? [ ], prePlaceScripts ? [ ], preRouteScripts ? [ ], postRouteScripts ? [ ], nextpnrExtraArgs ? "", cvc ? false }:
+          let
+            freqArg =
+              pkgs.lib.optionalString (freqMHz != null) "--freq ${toString freqMHz} ";
+            seedArg =
+              pkgs.lib.optionalString (seed != null) "--seed ${toString seed} ";
+            prePackArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-pack ${script}") prePackScripts;
+            prePlaceArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-place ${script}") prePlaceScripts;
+            preRouteArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--pre-route ${script}") preRouteScripts;
+            postRouteArgs =
+              pkgs.lib.concatMapStringsSep " " (script: "--post-route ${script}") postRouteScripts;
+            cvcArg = pkgs.lib.optionalString cvc "--sdf-cvc";
+          in
+          pkgs.runCommand "${name}.sdf" { } ''
+            if [ ! -f "${fpgaChipdb}" ]; then
+              echo "chipdb file missing: ${fpgaChipdb}" >&2
+              exit 1
+            fi
+
+            ${openXC7Nextpnr}/bin/nextpnr-xilinx \
+              --chipdb "${fpgaChipdb}" \
+              --xdc ${xdc} \
+              --json ${json} \
+              ${prePackArgs} \
+              ${prePlaceArgs} \
+              ${preRouteArgs} \
+              ${postRouteArgs} \
+              ${nextpnrExtraArgs} \
+              ${cvcArg} \
+              ${seedArg}${freqArg}--sdf "$out"
           '';
 
         mkBitstream = { name, fasm, framesBase }:
@@ -4353,6 +4525,8 @@ EOF
               --out-json "$out/output-head-full-pretrained-multisample-sweep.json" \
               --out-md "$out/output-head-full-pretrained-multisample-sweep.md"
           '';
+
+        task6TinyStories1mPromptOutputHeadQ024Reference = pkgs.runCommand "task6-tinystories-1m-prompt-output-head-q024-reference" { } "mkdir -p \"$out\"; ${pythonWithTinyStoriesBin}/bin/python ${./scripts/task6/task6_tinystories_generation_reference.py} --model-path ${tinyStories1m.snapshot} --adapter-path ${./TinyStories/model_adapter.py} --tokenizer-vocab ${gptNeoTokenizer}/vocab.json --tokenizer-merges ${gptNeoTokenizer}/merges.txt --prompt \"Once upon a time there was\" --max-new-tokens 8 --out-json \"$out/reference.json\"";
 
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
@@ -6246,12 +6420,65 @@ EOF
             yosys -s run.ys
           '';
 
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson =
+          pkgs.runCommand "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-yosys.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/xilinx_pcie_mmcm.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axil_to_al.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axis_pcie_to_al_us.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_7x.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_rx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_tx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_block.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_brams.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_tx_thrtl_ctl.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pipe_wrapper_gtx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_top.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_controller.v \
+              ${task6YpcbUberDdr3Source}/rtl/ddr3_phy.v \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_dec.sv \
+              ${task6YpcbUberDdr3Source}/rtl/ecc/ecc_enc.sv \
+              ${./fpga/rtl/task6_pcie_jtag_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress_cdc.v} \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${task6Int8L2MlpChainResidualAddSelftestTop} \
+              ${./rtl/task6/task6_q024_topk_score_compare.sv} \
+              ${./rtl/task6/task6_ddr3_rowstream_top1_cutout.sv} \
+              ${./rtl/task6/task6_ddr3_rowstream_wb_top1_reader.sv} \
+              ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv} \
+              ${./fpga/rtl/task6_ypcb_pcie_uberddr3_rowstream_loader_top.sv} \
+              ${./fpga/rtl/task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top.sv}
+            hierarchy -top task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top -check
+            synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top
+            stat -top task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
         task6YpcbPcieUberDdr3RowstreamLoaderXdc =
           pkgs.runCommand "task6-ypcb-pcie-uberddr3-rowstream-loader.xdc" { nativeBuildInputs = [ pkgs.python3 ]; } ''
             set -euo pipefail
             python3 ${./scripts/task6/make_pcie_uberddr3_xdc.py} \
               ${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc \
-              ${task6YpcbUberDdr3BistXdc} > "$out"
+              ${task6YpcbUberDdr3Bist1LaneXdc} > "$out"
           '';
 
         task6YpcbPcieUberDdr3RowstreamLoaderFasm = mkFasm {
@@ -6278,11 +6505,100 @@ EOF
           nextpnrExtraArgs = "--no-tmdriv";
         };
 
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacedJson = mkPlacedJson {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
+          seed = 20;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20Sdf = mkSdf {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
+          seed = 20;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20CvcSdf = mkSdf {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-cvc";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
+          seed = 20;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+          cvc = true;
+        };
+
         task6YpcbPcieUberDdr3RowstreamLoaderSeed20Bitstream = mkBitstream {
           name = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20";
           fasm = task6YpcbPcieUberDdr3RowstreamLoaderSeed20Fasm;
           framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20";
         };
+
+        mkTask6PcieUberDdr3FullSeed20Variant = { suffix, nextpnrExtraArgs, freqMHz ? null }:
+          let
+            name = "task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-${suffix}";
+            fasm = mkFasm {
+              inherit name freqMHz nextpnrExtraArgs;
+              xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+              json = task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
+              seed = 20;
+              prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+            };
+            placedJson = mkPlacedJson {
+              inherit name freqMHz nextpnrExtraArgs;
+              xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+              json = task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
+              seed = 20;
+              prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+            };
+            bitstream = mkBitstream {
+              inherit name fasm;
+              framesBase = name;
+            };
+          in { inherit fasm placedJson bitstream nextpnrExtraArgs freqMHz; };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20TmdrivVariant =
+          mkTask6PcieUberDdr3FullSeed20Variant {
+            suffix = "tmdriv";
+            nextpnrExtraArgs = "";
+          };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20Freq625Variant =
+          mkTask6PcieUberDdr3FullSeed20Variant {
+            suffix = "freq625";
+            freqMHz = 62.5;
+            nextpnrExtraArgs = "--no-tmdriv";
+          };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacerSaVariant =
+          mkTask6PcieUberDdr3FullSeed20Variant {
+            suffix = "placer-sa";
+            nextpnrExtraArgs = "--no-tmdriv --placer sa";
+          };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20Router1Variant =
+          mkTask6PcieUberDdr3FullSeed20Variant {
+            suffix = "router1";
+            nextpnrExtraArgs = "--no-tmdriv --router router1";
+          };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacerBudgetsVariant =
+          mkTask6PcieUberDdr3FullSeed20Variant {
+            suffix = "placer-budgets";
+            nextpnrExtraArgs = "--no-tmdriv --placer-budgets";
+          };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderSeed20TmdrivFreq625Variant =
+          mkTask6PcieUberDdr3FullSeed20Variant {
+            suffix = "tmdriv-freq625";
+            freqMHz = 62.5;
+            nextpnrExtraArgs = "";
+          };
 
         task6YpcbPcieUberDdr3RowstreamLoaderOnlyFasm = mkFasm {
           name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only";
@@ -6323,10 +6639,167 @@ EOF
           nextpnrExtraArgs = "--no-tmdriv";
         };
 
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20PlacedJson = mkPlacedJson {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyYosysJson;
+          seed = 20;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Sdf = mkSdf {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyYosysJson;
+          seed = 20;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20CvcSdf = mkSdf {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20-cvc";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyYosysJson;
+          seed = 20;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+          cvc = true;
+        };
+
         task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Bitstream = mkBitstream {
           name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20";
           fasm = task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Fasm;
           framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20";
+        };
+
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Pnr100Fasm = mkFasm {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Pnr100PlacedJson = mkPlacedJson {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Pnr100Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100";
+          fasm = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Pnr100Fasm;
+          framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed20Fasm = mkFasm {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed20";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          seed = 20;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed20PlacedJson = mkPlacedJson {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed20";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          seed = 20;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed20Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed20";
+          fasm = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed20Fasm;
+          framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed20";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed15Fasm = mkFasm {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed15";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          seed = 15;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed15PlacedJson = mkPlacedJson {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed15";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          seed = 15;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed15Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed15";
+          fasm = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed15Fasm;
+          framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed15";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed16Fasm = mkFasm {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed16";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          seed = 16;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed16PlacedJson = mkPlacedJson {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed16";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          seed = 16;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed16Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed16";
+          fasm = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed16Fasm;
+          framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed16";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed17Fasm = mkFasm {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed17";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          seed = 17;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed17PlacedJson = mkPlacedJson {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed17";
+          xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          json = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          seed = 17;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed17Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed17";
+          fasm = task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed17Fasm;
+          framesBase = "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed17";
         };
 
         task6YpcbUberDdr3BistXdc =
@@ -6403,6 +6876,25 @@ EOF
             print("# LiteX/Vivado-style constraints, but nextpnr-xilinx's XDC")
             print("# frontend only accepts get_ports targets here.")
             PY
+          '';
+
+        task6YpcbUberDdr3Bist1LaneXdc =
+          pkgs.runCommand "task6-ypcb-uberddr3-bist-1lane.xdc" { } ''
+            set -euo pipefail
+            cat ${task6YpcbUberDdr3BistXdc} > "$out"
+            cat >> "$out" <<'EOF'
+
+# Scalar DQS aliases for 1-byte-lane top-level ports.
+set_property LOC AK16 [get_ports {ddram_dqs_p}]
+set_property SLEW FAST [get_ports {ddram_dqs_p}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_p}]
+set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_p}]
+
+set_property LOC AK17 [get_ports {ddram_dqs_n}]
+set_property SLEW FAST [get_ports {ddram_dqs_n}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_n}]
+set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_n}]
+EOF
           '';
 
         task6YpcbMmcmDiagXdc =
@@ -7102,6 +7594,28 @@ EOF
             ];
           };
 
+        task6YpcbUberDdr3Llm2fpgaMinPnr100Seed29ControllerFfPrePlaceBelLocks =
+          task6YpcbUberDdr3GeneratePrePlaceBelLocks {
+            name = "llm2fpga-min-pnr100-seed29-controller-ff";
+            locksJson = ./artifacts/task6/baselines/uberddr3-llm2fpga-min-pnr100-seed29/full-seed29-bel-locks.json;
+            allowMissing = true;
+            scopes = [ "full_lanes1_pnr100_seed29" ];
+            types = [
+              "BUFGCTRL"
+              "PLLE2_ADV_PLLE2_ADV"
+              "IDELAYCTRL_IDELAYCTRL"
+              "IDELAYE2_IDELAYE2"
+              "INVERTER"
+              "IOB33M_INBUF_EN"
+              "IOB33M_OUTBUF"
+              "IOB33S_OUTBUF"
+              "IOB33_INBUF_EN"
+              "IOB33_OUTBUF"
+              "ISERDESE2_ISERDESE2"
+              "OSERDESE2_OSERDESE2"
+            ];
+          };
+
         task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithJson =
           { seed, json, nextpnrExtraArgs ? "" }:
           let
@@ -7145,19 +7659,19 @@ EOF
           };
 
         task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace =
-          { seed, prePlaceLocks, suffix, json ? task6YpcbUberDdr3RowstreamLoaderYosysJson }:
+          { seed, prePlaceLocks, suffix, json ? task6YpcbUberDdr3RowstreamLoaderYosysJson, xdc ? task6YpcbUberDdr3BistXdc, freqMHz ? 25, nextpnrExtraArgs ? "" }:
           let
             seedStr = toString seed;
             tag = suffix;
             name = "task6-ypcb-uberddr3-rowstream-loader-seed${seedStr}-${tag}";
             fasm = mkFasm {
-              inherit name;
-              xdc = task6YpcbUberDdr3BistXdc;
+              inherit name xdc;
               inherit json;
               seed = seed;
-              freqMHz = 25;
+              freqMHz = freqMHz;
               prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
               prePlaceScripts = [ prePlaceLocks ];
+              inherit nextpnrExtraArgs;
             };
             bitstream = mkBitstream {
               inherit name;
@@ -7165,13 +7679,13 @@ EOF
               framesBase = name;
             };
             placedJson = mkPlacedJson {
-              inherit name;
-              xdc = task6YpcbUberDdr3BistXdc;
+              inherit name xdc;
               inherit json;
               seed = seed;
-              freqMHz = 25;
+              freqMHz = freqMHz;
               prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
               prePlaceScripts = [ prePlaceLocks ];
+              inherit nextpnrExtraArgs;
             };
           in
           {
@@ -7315,6 +7829,44 @@ EOF
 
         task6YpcbUberDdr3RowstreamLoader2LanePacedControllerFfPlacementSeed18Fasm =
           task6YpcbUberDdr3RowstreamLoader2LanePacedControllerFfPlacementSeed18Artifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace {
+            seed = 29;
+            suffix = "1lane-llm2fpga-min-pnr100-seed29lock";
+            json = task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100YosysJson;
+            xdc = task6YpcbUberDdr3Bist1LaneXdc;
+            prePlaceLocks = task6YpcbUberDdr3Llm2fpgaMinPnr100Seed29ControllerFfPrePlaceBelLocks;
+            freqMHz = 100;
+          };
+
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockBitstream =
+          task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockPlacedJson =
+          task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockArtifacts.placedJson;
+
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockFasm =
+          task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockArtifacts.fasm;
+
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockArtifacts =
+          task6YpcbUberDdr3ClockedRowstreamLoaderArtifactsForSeedWithPrePlace {
+            seed = 16;
+            suffix = "1lane-llm2fpga-min-pnr100-seed16-portablelock";
+            json = task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100YosysJson;
+            xdc = task6YpcbUberDdr3Bist1LaneXdc;
+            prePlaceLocks = task6YpcbUberDdr3Llm2fpgaMinPnr100Seed29ControllerFfPrePlaceBelLocks;
+            freqMHz = 100;
+          };
+
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockBitstream =
+          task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockArtifacts.bitstream;
+
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockPlacedJson =
+          task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockArtifacts.placedJson;
+
+        task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockFasm =
+          task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockArtifacts.fasm;
 
         task6YpcbUberDdr3RowstreamLoader1LaneSeed16ClockedArtifacts =
           let
@@ -11843,6 +12395,9 @@ EOF
           python-with-tiny-stories-torchao = pythonWithTinyStoriesTorchAO;
           model-registry = modelRegistryJson;
           tiny-stories-1m-snapshot = tinyStories1m.snapshot;
+          gpt-neo-tokenizer = gptNeoTokenizer;
+          task6-tinystories-1m-prompt-output-head-q024-reference =
+            task6TinyStories1mPromptOutputHeadQ024Reference;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
@@ -12087,18 +12642,103 @@ EOF
             task6YpcbPcieUberDdr3RowstreamLoaderYosysJson;
           task6-ypcb-pcie-uberddr3-rowstream-loader-xdc =
             task6YpcbPcieUberDdr3RowstreamLoaderXdc;
+          task6-sdf-toolkit = sdfToolkit;
           task6-ypcb-pcie-uberddr3-rowstream-loader-bitstream =
             task6YpcbPcieUberDdr3RowstreamLoaderBitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Fasm;
           task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-bitstream =
             task6YpcbPcieUberDdr3RowstreamLoaderSeed20Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-sdf =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Sdf;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-cvc-sdf =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20CvcSdf;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20TmdrivVariant.fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20TmdrivVariant.placedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20TmdrivVariant.bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-freq625-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Freq625Variant.fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-freq625-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Freq625Variant.placedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-freq625-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Freq625Variant.bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-placer-sa-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacerSaVariant.fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-placer-sa-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacerSaVariant.placedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-placer-sa-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacerSaVariant.bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-router1-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Router1Variant.fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-router1-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Router1Variant.placedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-router1-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20Router1Variant.bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-placer-budgets-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacerBudgetsVariant.fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-placer-budgets-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacerBudgetsVariant.placedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-placer-budgets-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20PlacerBudgetsVariant.bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv-freq625-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20TmdrivFreq625Variant.fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv-freq625-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20TmdrivFreq625Variant.placedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv-freq625-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderSeed20TmdrivFreq625Variant.bitstream;
           task6-ypcb-pcie-uberddr3-rowstream-loader-only-yosys-json =
             task6YpcbPcieUberDdr3RowstreamLoaderOnlyYosysJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-yosys-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Pnr100Fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Pnr100Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Pnr100PlacedJson;
           task6-ypcb-pcie-uberddr3-rowstream-loader-only-bitstream =
             task6YpcbPcieUberDdr3RowstreamLoaderOnlyBitstream;
           task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed19-bitstream =
             task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed19Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Fasm;
           task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20-bitstream =
             task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20PlacedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20-sdf =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20Sdf;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20-cvc-sdf =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlySeed20CvcSdf;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed20-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed20Fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed20-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed20Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed20-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed20PlacedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed15-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed15Fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed15-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed15Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed15-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed15PlacedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed16-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed16Fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed16-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed16Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed16-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed16PlacedJson;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed17-fasm =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed17Fasm;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed17-bitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed17Bitstream;
+          task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed17-placed-json =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Seed17PlacedJson;
           task6-litex-boards-ypcb-master =
             task6LitexBoardsYpcbMasterRunner;
           task6-litex-boards-ypcb-validated =
@@ -12177,6 +12817,22 @@ EOF
             task6YpcbUberDdr3RowstreamLoader1LaneSeed16ClockedBitstream;
           task6-ypcb-uberddr3-rowstream-loader-1lane-seed16-clocked-placed-json =
             task6YpcbUberDdr3RowstreamLoader1LaneSeed16ClockedPlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-1lane-llm2fpga-min-pnr100-yosys-json =
+            task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100YosysJson;
+          task6-ypcb-uberddr3-llm2fpga-min-pnr100-seed29-controller-ff-pre-place-bel-locks =
+            task6YpcbUberDdr3Llm2fpgaMinPnr100Seed29ControllerFfPrePlaceBelLocks;
+          task6-ypcb-uberddr3-rowstream-loader-1lane-llm2fpga-min-pnr100-seed29lock-fasm =
+            task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockFasm;
+          task6-ypcb-uberddr3-rowstream-loader-1lane-llm2fpga-min-pnr100-seed29lock-bitstream =
+            task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-1lane-llm2fpga-min-pnr100-seed29lock-placed-json =
+            task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed29LockPlacedJson;
+          task6-ypcb-uberddr3-rowstream-loader-1lane-llm2fpga-min-pnr100-seed16-portablelock-fasm =
+            task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockFasm;
+          task6-ypcb-uberddr3-rowstream-loader-1lane-llm2fpga-min-pnr100-seed16-portablelock-bitstream =
+            task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockBitstream;
+          task6-ypcb-uberddr3-rowstream-loader-1lane-llm2fpga-min-pnr100-seed16-portablelock-placed-json =
+            task6YpcbUberDdr3RowstreamLoader1LaneLlm2fpgaMinPnr100Seed16PortableLockPlacedJson;
           task6-ypcb-uberddr3-known-good-pre-place-bel-locks =
             task6YpcbUberDdr3KnownGoodPrePlaceBelLocks;
           task6-ypcb-uberddr3-known-good-clock-pre-place-bel-locks =

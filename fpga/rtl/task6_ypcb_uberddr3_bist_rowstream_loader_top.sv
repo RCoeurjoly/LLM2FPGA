@@ -8,9 +8,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   parameter int BYTE_LANES = 8,
   parameter int DISABLE_JTAG_DEBUG_SHIFT = (BYTE_LANES == 1),
   parameter int BOOT_ISOLATE_UNTIL_CALIB = 0,
+  parameter int PLL_FB_MULT = 20,
   parameter int PLL_CLKOUT0_DIVIDE = 3,
   parameter int PLL_CLKOUT1_DIVIDE = 3,
   parameter int PLL_CLKOUT2_DIVIDE = 12,
+  parameter int PLL_CLKOUT3_DIVIDE = 5,
   parameter int CONTROLLER_CLK_PERIOD_PS = 12_000,
   parameter int DDR3_CLK_PERIOD_PS = 3_000,
   parameter bit DLL_OFF_PARAM = 1'b1,
@@ -64,6 +66,12 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   , output wire [31:0]                      pcie_top1_score_q024_o
   , output wire [31:0]                      pcie_top1_rows_scanned_o
   , output wire [31:0]                      pcie_top1_cycle_count_o
+  , output wire [31:0]                      pcie_top1_debug_status_o
+  , output wire [31:0]                      pcie_top1_debug_reader_addr_o
+  , output wire [31:0]                      pcie_top1_debug_wb_ack_count_o
+  , output wire [31:0]                      pcie_top1_debug_wb_err_count_o
+  , output wire [31:0]                      pcie_top1_debug_packet_wb_write_ack_count_o
+  , output wire [31:0]                      pcie_top1_debug_packet_wb_read_ack_count_o
 `endif
 );
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
@@ -133,7 +141,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 
   PLLE2_BASE #(
     .BANDWIDTH("OPTIMIZED"),
-    .CLKFBOUT_MULT(20),
+    .CLKFBOUT_MULT(PLL_FB_MULT),
     .CLKFBOUT_PHASE(0.000),
     .CLKIN1_PERIOD(20.000),
     .CLKOUT0_DIVIDE(PLL_CLKOUT0_DIVIDE),
@@ -145,7 +153,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
     .CLKOUT2_DIVIDE(PLL_CLKOUT2_DIVIDE),
     .CLKOUT2_DUTY_CYCLE(0.500),
     .CLKOUT2_PHASE(0.000),
-    .CLKOUT3_DIVIDE(5),
+    .CLKOUT3_DIVIDE(PLL_CLKOUT3_DIVIDE),
     .CLKOUT3_DUTY_CYCLE(0.500),
     .CLKOUT3_PHASE(0.000),
     .DIVCLK_DIVIDE(1),
@@ -339,7 +347,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
 `ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
   logic top1_start_accepted;
   logic top1_start_rejected;
-  logic top1_reset_pulse_q;
+  logic [2:0] top1_reset_count_q;
+  logic top1_reset_active;
   logic top1_done_sticky_q;
   logic top1_error_sticky_q;
   logic [31:0] top1_token_q;
@@ -386,6 +395,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   wire [WB_ADDR_BITS - 1:0] jtag_command_addr_full =
     jtag_command_addr[WB_ADDR_BITS - 1:0];
   wire jtag_command_magic_ok = jtag_command_magic == LOADER_COMMAND_MAGIC;
+`ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
+  assign top1_reset_active = top1_reset_count_q != 3'd0;
+`endif
   wire [WB_ADDR_BITS - 1:0] jtag_command_lowbyte_addr =
     jtag_command_addr[WB_ADDR_BITS + $clog2(WB_SEL_BITS) - 1:$clog2(WB_SEL_BITS)];
   wire [$clog2(WB_SEL_BITS) - 1:0] jtag_command_lowbyte_index =
@@ -478,6 +490,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [31:0] cycle_count_q;
   logic [31:0] calib_seen_cycle_q;
   logic [31:0] wb_ack_count_q;
+  logic [31:0] wb_packet_write_ack_count_q;
+  logic [31:0] wb_packet_read_ack_count_q;
   logic [31:0] wb_err_count_q;
   logic [31:0] wb_stall_count_q;
   logic calib_seen_q;
@@ -543,6 +557,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       cycle_count_q <= 32'd0;
       calib_seen_cycle_q <= 32'd0;
       wb_ack_count_q <= 32'd0;
+      wb_packet_write_ack_count_q <= 32'd0;
+      wb_packet_read_ack_count_q <= 32'd0;
       wb_err_count_q <= 32'd0;
       wb_stall_count_q <= 32'd0;
       calib_seen_q <= 1'b0;
@@ -633,7 +649,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       loader_fullbeat_issue_phase_q <= FULLBEAT_PHASE_NONE;
       loader_fullbeat_last_issue_data_q <= '0;
 `ifdef TASK6_PCIE_ROWSTREAM_INGRESS_PORTS
-      top1_reset_pulse_q <= 1'b0;
+      top1_reset_count_q <= 3'd0;
       top1_done_sticky_q <= 1'b0;
       top1_error_sticky_q <= 1'b0;
       top1_token_q <= 32'd0;
@@ -675,21 +691,26 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           pcie_loader_last_magic_ok_sticky_q <= 1'b1;
       end
 
-      top1_reset_pulse_q <= 1'b0;
+      if (top1_reset_count_q != 3'd0)
+        top1_reset_count_q <= top1_reset_count_q - 3'd1;
       if (pcie_top1_status_clear_i) begin
+        top1_reset_count_q <= 3'd4;
         top1_done_sticky_q <= 1'b0;
         top1_error_sticky_q <= 1'b0;
+        top1_token_q <= 32'd0;
+        top1_score_q024_q <= 32'd0;
+        top1_rows_scanned_q <= 32'd0;
+        top1_cycle_count_q <= 32'd0;
       end
       if (top1_start_accepted) begin
-        top1_reset_pulse_q <= 1'b1;
         top1_done_sticky_q <= 1'b0;
         top1_error_sticky_q <= 1'b0;
-      end else if (top1_start_rejected) begin
+      end else if (top1_start_rejected && !pcie_top1_status_clear_i) begin
         top1_error_sticky_q <= 1'b1;
       end
-      if (top1_reader_error || top1_cutout_error_reserved_bits)
+      if ((top1_reader_error || top1_cutout_error_reserved_bits) && !pcie_top1_status_clear_i)
         top1_error_sticky_q <= 1'b1;
-      if (top1_cutout_done && !top1_done_sticky_q) begin
+      if (top1_cutout_done && !top1_done_sticky_q && !pcie_top1_status_clear_i) begin
         top1_done_sticky_q <= 1'b1;
         top1_token_q <= {16'd0, top1_cutout_token_id};
         top1_score_q024_q <= top1_cutout_score_q024[31:0];
@@ -793,6 +814,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
           loader_packet_write_ack_sel_q <= '0;
           loader_packet_read_ack_addr_q <= '0;
           loader_packet_read_ack_data_q <= '0;
+          wb_packet_write_ack_count_q <= 32'd0;
+          wb_packet_read_ack_count_q <= 32'd0;
           read_probe_cyc_q <= 1'b1;
           read_probe_stb_q <= 1'b1;
           read_probe_we_q <= 1'b1;
@@ -1242,6 +1265,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             if (read_probe_we_q) begin
               loader_write_ack_seen_q <= 1'b1;
               if (loader_burst_active_q && loader_burst_packet_mode_q) begin
+                wb_packet_write_ack_count_q <= wb_packet_write_ack_count_q + 32'd1;
                 loader_packet_write_ack_seen_q <= 1'b1;
                 loader_packet_write_ack_index_q <= loader_burst_index_q;
                 loader_packet_write_ack_addr_q <= loader_addr_q;
@@ -1259,6 +1283,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
               loader_read_ack_seen_q <= 1'b1;
               loader_read_data_q <= wb_data;
               if (loader_burst_active_q && loader_burst_packet_mode_q) begin
+                wb_packet_read_ack_count_q <= wb_packet_read_ack_count_q + 32'd1;
                 loader_packet_read_ack_seen_q <= 1'b1;
                 loader_packet_read_ack_addr_q <= loader_addr_q;
                 loader_packet_read_ack_data_q <= wb_data;
@@ -1315,6 +1340,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
             if (read_probe_we_q) begin
               loader_write_ack_seen_q <= 1'b1;
               if (loader_burst_active_q && loader_burst_packet_mode_q) begin
+                wb_packet_write_ack_count_q <= wb_packet_write_ack_count_q + 32'd1;
                 loader_packet_write_ack_seen_q <= 1'b1;
                 loader_packet_write_ack_index_q <= loader_burst_index_q;
                 loader_packet_write_ack_addr_q <= loader_addr_q;
@@ -1332,6 +1358,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
               loader_read_ack_seen_q <= 1'b1;
               loader_read_data_q <= wb_data;
               if (loader_burst_active_q && loader_burst_packet_mode_q) begin
+                wb_packet_read_ack_count_q <= wb_packet_read_ack_count_q + 32'd1;
                 loader_packet_read_ack_seen_q <= 1'b1;
                 loader_packet_read_ack_addr_q <= loader_addr_q;
                 loader_packet_read_ack_data_q <= wb_data;
@@ -1656,9 +1683,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   generate
     if (ENABLE_PCIE_TOP1) begin : gen_pcie_top1
       assign top1_start_accepted =
-        pcie_top1_start_i && !top1_reader_busy && read_probe_done_q && calib_complete && debug1[4:0] == 5'd23;
+        pcie_top1_start_i && !top1_reset_active && !top1_reader_busy &&
+        read_probe_done_q && calib_complete && debug1[4:0] == 5'd23;
       assign top1_start_rejected =
-        pcie_top1_start_i && (top1_reader_busy || !read_probe_done_q || !calib_complete || debug1[4:0] != 5'd23);
+        pcie_top1_start_i && (top1_reset_active || top1_reader_busy || !read_probe_done_q ||
+        !calib_complete || debug1[4:0] != 5'd23);
 
       task6_ddr3_rowstream_wb_top1_reader #(
         .HIDDEN_SIZE(64),
@@ -1666,10 +1695,11 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         .ROW_BYTES(68),
         .WB_ADDR_BITS(WB_ADDR_BITS),
         .WB_DATA_BITS(WB_DATA_BITS),
-        .WB_SEL_BITS(WB_SEL_BITS)
+        .WB_SEL_BITS(WB_SEL_BITS),
+        .REVERSE_WB_BEAT_BYTES(1'b0)
       ) top1_reader (
         .clk_i(controller_clk),
-        .rst_ni(rst_n),
+        .rst_ni(rst_n && !top1_reset_active),
         .start_i(top1_start_accepted),
         .busy_o(top1_reader_busy),
         .done_o(top1_reader_done),
@@ -1696,7 +1726,7 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         .HIDDEN_SIZE(64)
       ) top1_cutout (
         .clock(controller_clk),
-        .reset(!rst_n || top1_reset_pulse_q),
+        .reset(!rst_n || top1_reset_active),
         .row_valid(top1_row_valid),
         .row_ready(top1_row_ready),
         .row_token_id(top1_row_token_id),
@@ -1775,6 +1805,36 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   assign pcie_top1_score_q024_o = top1_score_q024_q;
   assign pcie_top1_rows_scanned_o = top1_rows_scanned_q;
   assign pcie_top1_cycle_count_o = top1_cycle_count_q;
+  assign pcie_top1_debug_status_o = {
+    10'd0,
+    top1_row_last,
+    top1_row_ready,
+    top1_row_valid,
+    top1_cutout_error_reserved_bits,
+    top1_cutout_busy,
+    top1_cutout_done,
+    top1_cutout_valid,
+    wb_err && top1_reader_wb_cyc,
+    wb_ack && top1_reader_wb_cyc,
+    wb_stall,
+    top1_reader_wb_we,
+    top1_reader_wb_stb,
+    top1_reader_wb_cyc,
+    top1_reader_error,
+    top1_reader_done,
+    top1_reader_busy,
+    top1_start_rejected,
+    top1_start_accepted,
+    read_probe_done_q,
+    calib_complete,
+    debug1[4:0] == 5'd23,
+    rst_n
+  };
+  assign pcie_top1_debug_reader_addr_o = {{(32 - WB_ADDR_BITS){1'b0}}, top1_reader_wb_addr};
+  assign pcie_top1_debug_wb_ack_count_o = wb_ack_count_q;
+  assign pcie_top1_debug_wb_err_count_o = wb_err_count_q;
+  assign pcie_top1_debug_packet_wb_write_ack_count_o = wb_packet_write_ack_count_q;
+  assign pcie_top1_debug_packet_wb_read_ack_count_o = wb_packet_read_ack_count_q;
 `endif
 endmodule
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 import json
+import multiprocessing as mp
 import os
 from pathlib import Path
 import subprocess
@@ -174,8 +175,9 @@ def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]
             "The endpoint header is corrupt; power-cycle the chassis after flash boot and rerun the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
         "missing_resource0": [
-            "The endpoint is present without BAR0; stop PCIe probing and re-enumerate with the FPGA already configured.",
-            "Delegated endpoint recovery is now a deliberate experiment only: " + recover + " --force-dead-config",
+            "The endpoint is present without usable BAR0; do not run BAR gates yet.",
+            "If pcie-lifecycle.json shows clean identity (10ee:0480, header 00, subsystem abcd) and resource0/recovery nodes exist, delegated recovery may restore config space, but it is not BAR-safe for acceptance gates: " + recover,
+            "After delegated recovery, power-cycle the chassis and rerun non-BAR lifecycle before any BAR gate. If config is all-ones/corrupt or no-force recovery refuses, stop PCIe probing and re-enumerate with the FPGA already configured. Use --force-dead-config only for a deliberate recovery experiment.",
         ],
         "resource0_permission": [
             "Reinstall/trigger the Task 6 udev rule, then replug or rescan: " + install_rules,
@@ -183,10 +185,14 @@ def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]
         "mem_disabled": [
             "PCI memory space is disabled; reinstall/trigger the udev rule, then rerun the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
+        "stale_bar_all_ones": [
+            "BAR0 is assigned but MMIO reads return all ones; classify this as stale PCIe BAR state, not DDR3 or top1 failure.",
+            "Stop BAR probing and re-enumerate with the FPGA already configured from BPI flash: " + lifecycle_probe,
+        ],
         "pcie_ready": [
-            "BAR0 is usable; run BAR/debug lifecycle: " + lifecycle_bar,
-            "Or run the standalone BAR gate: " + bar,
-            "After BAR/debug are stable, run the first board top1 gate: " + top1,
+            "If this pcie_ready state followed delegated missing_resource0 recovery, do not run BAR gates; power-cycle the chassis first.",
+            "If this is a clean post-power-cycle pcie_ready state, run the intended acceptance gate directly and avoid exploratory BAR/debug probes.",
+            "First board top1 gate shape: " + top1,
         ],
     }
     return table.get(classification, ["Unknown lifecycle classification; inspect pcie-lifecycle.json in the run directory."])
@@ -218,13 +224,34 @@ def snapshot(bdf: str, bridge_bdf: str) -> dict[str, object]:
     return snap
 
 
-def read_bar_word(path: Path, offset: int) -> str | None:
+def read_bar_word_worker(path: str, offset: int, conn: mp.connection.Connection) -> None:
     try:
-        with path.open("rb", buffering=0) as handle:
+        with Path(path).open("rb", buffering=0) as handle:
             handle.seek(offset)
-            return handle.read(4).hex()
-    except OSError:
-        return None
+            conn.send(handle.read(4).hex())
+    except BaseException as exc:
+        conn.send({"error": f"{type(exc).__name__}: {exc}"})
+    finally:
+        conn.close()
+
+
+def read_bar_word(path: Path, offset: int, timeout_s: float = 1.0) -> str | None:
+    parent_conn, child_conn = mp.Pipe(duplex=False)
+    proc = mp.Process(target=read_bar_word_worker, args=(str(path), offset, child_conn))
+    proc.start()
+    child_conn.close()
+    try:
+        if not parent_conn.poll(timeout_s):
+            proc.kill()
+            return None
+        value = parent_conn.recv()
+        return value if isinstance(value, str) else None
+    finally:
+        parent_conn.close()
+        proc.join(0.2)
+        if proc.is_alive():
+            proc.kill()
+            proc.join(0.2)
 
 
 def maybe_run_bar_checks(snap: dict[str, object], run_dir: Path, args: argparse.Namespace) -> None:
@@ -233,6 +260,9 @@ def maybe_run_bar_checks(snap: dict[str, object], run_dir: Path, args: argparse.
     resource0 = Path("/sys/bus/pci/devices") / args.bdf / "resource0"
     snap["bar0_magic"] = read_bar_word(resource0, 0)
     snap["debug_magic"] = read_bar_word(resource0, 0x200)
+    if snap["bar0_magic"] == "ffffffff":
+        snap["classification"] = "stale_bar_all_ones"
+        return
     if args.run_bar:
         bar = run(["scripts/task6/task6_pcie_user_gate.sh", "bar", args.bdf, "--mode", "header"], timeout=10)
         snap["bar_gate"] = bar
@@ -305,8 +335,8 @@ def main() -> int:
 
     if snap is None:
         snap = snapshot(args.bdf, args.bridge_bdf)
-    snap["recommendations"] = recommendations(str(snap["classification"]), args.bdf, args.bridge_bdf)
     maybe_run_bar_checks(snap, run_dir, args)
+    snap["recommendations"] = recommendations(str(snap["classification"]), args.bdf, args.bridge_bdf)
     (run_dir / "pcie-lifecycle.json").write_text(json.dumps(snap, indent=2) + "\n", encoding="utf-8")
 
     print(f"classification: {snap['classification']}")

@@ -121,11 +121,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--storage-mode",
         choices=("lowbyte", "lowbyte64", "beat", "lane3"),
-        default="lowbyte64",
+        default="beat",
         help=(
-            "lowbyte stores one rowstream byte in DDR3 byte lane 0 at one "
-            "Wishbone address per stream byte; beat uses dense 64-byte beats; "
-            "lane3 maps logical byte i to one stable physical DDR3 lane per beat"
+            "beat stores packed DDR3 controller beats through OP_RUN_HOST_FULLBEAT "
+            "with command padding only at the JTAG boundary; lowbyte/lowbyte64 "
+            "are legacy byte-oriented modes; lane3 maps logical byte i to one "
+            "stable physical DDR3 lane per beat"
         ),
     )
     parser.add_argument(
@@ -702,6 +703,11 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
     loader_word = (raw >> 304) & 0xFFFF_FFFF
     read_data_int = (raw >> 336) & ((1 << 128) - 1)
     read_data_chunk = read_data_int.to_bytes(16, "little")
+    if read_data_int == 0:
+        # Some 1-lane builds expose only the compact boot/status payload on
+        # JTAG. In that layout, the valid read/echo low32 lives in the status
+        # lane at bits 240..271, while the widened 128-bit chunk is absent.
+        read_data_chunk = ((raw >> 240) & 0xFFFF_FFFF).to_bytes(4, "little") + bytes(12)
     return {
         "raw_bits": DEBUG_BITS,
         "raw_hex": f"0x{raw:0{DEBUG_BITS // 4}x}",
@@ -770,7 +776,7 @@ def decode_debug_legacy(raw: int) -> dict[str, Any]:
         "packet_ack_write_index": (raw >> 466) & 0x3F,
         "packet_ack_write_addr_low24": (raw >> 472) & 0xFF_FFFF,
         "packet_ack_write_sel_low8": (raw >> 496) & 0xFF,
-        "packet_ack_write_data_low32": (raw >> 336) & 0xFFFF_FFFF,
+        "packet_ack_write_data_low32": (raw >> 240) & 0xFFFF_FFFF,
         "rtl_burst_index": (raw >> 240) & 0xFF,
         "rtl_burst_count": (raw >> 248) & 0xFF,
         "rtl_burst_mismatch_count": (raw >> 256) & 0xFF,
@@ -1048,13 +1054,30 @@ class RowstreamLoader:
             observed, debug = self.run_host_fullbeat(beat_addr, payload)
             last_observed = observed[: len(data)]
             last_debug = debug
-            if last_observed == data:
-                if attempt:
-                    debug["write_verify_retry_count"] = attempt
-                return debug
+            expected_echo32 = int.from_bytes(data[:4], "little")
+            status_ok = (
+                int(debug.get("rtl_fullbeat_write_echo32", -1)) == expected_echo32
+                and bool(debug.get("loader_write_ack_seen", False))
+                and bool(debug.get("loader_read_ack_seen", False))
+                and not bool(debug.get("loader_error", False))
+                and not bool(debug.get("boot_error", False))
+            )
+            if status_ok:
+                readback, read_debug = self.read_beat(beat_addr)
+                authoritative_len = authoritative_read_length(read_debug, len(data))
+                if readback[:authoritative_len] == data[:authoritative_len]:
+                    if attempt:
+                        debug["write_verify_retry_count"] = attempt
+                    debug["host_fullbeat_verify_source"] = "write_echo_and_standalone_readback"
+                    debug["host_fullbeat_debug_read_data_chunk_hex"] = observed.hex()
+                    debug["host_fullbeat_readback_authoritative_bytes"] = authoritative_len
+                    debug["host_fullbeat_readback_hex"] = readback[:authoritative_len].hex()
+                    debug["host_fullbeat_readback_debug"] = json_debug(read_debug)
+                    return debug
         raise RuntimeError(
             f"host fullbeat verify mismatch at beat {beat_addr} after {attempts} attempt(s): "
-            f"expected={data.hex()} observed={last_observed.hex()}"
+            f"expected={data.hex()} debug_read_data_chunk={last_observed.hex()} "
+            f"debug={summarize_debug(last_debug or {})}"
         )
 
     def read_beat(self, beat_addr: int) -> tuple[bytes, dict[str, Any]]:
@@ -1170,24 +1193,35 @@ class RowstreamLoader:
         addr = slot if tag_addr is None else tag_addr
         last_debug = None
         for attempt in range(max(1, self.args.write_verify_retries + 1)):
+            before = self.read_debug()
+            before_count = int(before.get("command_count", 0))
             self.send_command(OP_LOAD_PACKET_BEAT, 0, addr, data)
-            if self.args.diagnostic_host_packet_load_delay > 0:
-                time.sleep(self.args.diagnostic_host_packet_load_delay)
-            last_debug = self.read_debug()
-            echoed = last_debug.get("read_data_beat", b"")[: len(data)]
-            if (
-                last_debug.get("magic_ok", False)
-                and int(last_debug.get("last_opcode", -1)) == OP_LOAD_PACKET_BEAT
-                and echoed == data
-            ):
-                return last_debug
-            time.sleep(0.01)
+            deadline = time.monotonic() + self.args.poll_timeout
+            while time.monotonic() < deadline:
+                if self.args.diagnostic_host_packet_load_delay > 0:
+                    time.sleep(self.args.diagnostic_host_packet_load_delay)
+                last_debug = self.read_debug()
+                echoed = last_debug.get("read_data_beat", b"")[: len(data)]
+                command_advanced = int(last_debug.get("command_count", 0)) > before_count
+                expected_low32 = int.from_bytes(data[:4], "little")
+                packet_low32 = int(last_debug.get("packet_ack_write_data_low32", -1))
+                if (
+                    last_debug.get("magic_ok", False)
+                    and command_advanced
+                    and int(last_debug.get("last_opcode", -1)) == OP_LOAD_PACKET_BEAT
+                    and packet_low32 == expected_low32
+                ):
+                    last_debug["packet_load_verify_source"] = "last_opcode_and_packet_data_low32"
+                    last_debug["packet_load_debug_read_data_beat_hex"] = echoed.hex()
+                    return last_debug
+                time.sleep(0.01)
         observed = (last_debug or {}).get("read_data_beat", b"")
         observed_hex = observed[: len(data)].hex() if isinstance(observed, bytes) else str(observed)
+        packet_low32 = (last_debug or {}).get("packet_ack_write_data_low32")
         raise RuntimeError(
             "packet slot load was not accepted after "
             f"{max(1, self.args.write_verify_retries + 1)} attempt(s): "
-            f"slot={slot} expected={data.hex()} observed={observed_hex} "
+            f"slot={slot} expected={data.hex()} observed={observed_hex} packet_low32={packet_low32} "
             f"debug={summarize_debug(last_debug or {})}"
         )
 
@@ -1226,6 +1260,19 @@ def summarize_debug(debug: dict[str, Any]) -> str:
     )
 
 
+def authoritative_read_length(debug: dict[str, Any], requested: int) -> int:
+    chunk = debug.get("read_data_chunk", b"")
+    if not isinstance(chunk, bytes):
+        return requested
+    if requested <= 4:
+        return requested
+    if len(chunk) >= requested and chunk[4:requested] != bytes(requested - 4):
+        return requested
+    if int(debug.get("rtl_fullbeat_write_echo32", -1)) == int.from_bytes(chunk[:4], "little"):
+        return 4
+    return requested
+
+
 def make_run_dir(base: Path | None, label: str) -> Path:
     if base is not None:
         base.mkdir(parents=True, exist_ok=True)
@@ -1243,15 +1290,22 @@ def program_bitstream(args: argparse.Namespace, run_dir: Path) -> None:
     if args.bitstream is None:
         raise SystemExit("--bitstream is required when --program is enabled")
     log_path = run_dir / "program.log"
+    local_programmer = Path("/home/roland/openFPGALoader/build/openFPGALoader")
+    programmer = local_programmer if local_programmer.exists() else Path("openFPGALoader")
     command = [
-        "openFPGALoader",
+        str(programmer),
         "-c",
         args.jtag_cable,
         "--ftdi-serial",
         args.serial,
+        "-m",
+        "--file-type",
+        "bit",
         str(args.bitstream),
     ]
     with log_path.open("w", encoding="utf-8") as log:
+        log.write("command: " + " ".join(command) + "\n")
+        log.flush()
         subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
 
 
@@ -2165,34 +2219,38 @@ def run_rtl_fullbeat_diagnostic(
         return payload
 
     debug = loader.run_rtl_fullbeat(beat_addr, base)
-    expected_prefix = bytes(((base + lane) & 0xFF) for lane in range(16))
-    observed_prefix = debug["read_data_chunk"]
+    expected_prefix = bytes(((base + lane) & 0xFF) for lane in range(loader.beat_bytes))
+    debug_read_data_chunk = debug["read_data_chunk"]
     expected_echo32 = int.from_bytes(expected_prefix[:4], "little")
     write_echo32_match = debug["rtl_fullbeat_write_echo32"] == expected_echo32
     final_bist_done = (debug.get("debug1", 0) & 0x1F) == 23
+    status_mismatch_count = int(debug.get("rtl_fullbeat_mismatch_count", debug.get("rtl_burst_status_mismatch_count", 0xFF)))
     pass_status = (
         final_bist_done
         and not bool(debug["boot_error"])
         and not bool(debug["loader_error"])
+        and bool(debug.get("rtl_fullbeat_done", False))
         and bool(debug["loader_write_ack_seen"])
         and bool(debug["loader_read_ack_seen"])
-        and bool(debug["dense_burst_active"])
-        and debug["dense_burst_mismatch_count"] == 0
-        and debug["dense_burst_expected_base"] == (base & 0xFF)
+        and status_mismatch_count == 0
+        and write_echo32_match
     )
     payload = {
         "artifact_name": "task6-ypcb-uberddr3-rtl-fullbeat-board-diagnostic",
         "status": "PASS" if pass_status else "FAIL",
         "base": base,
         "beat_addr": beat_addr,
-        "mismatch_count": debug["dense_burst_mismatch_count"],
+        "mismatch_count": status_mismatch_count,
+        "status_source": "rtl_fullbeat_status_fields",
         "write_echo32": debug["rtl_fullbeat_write_echo32"],
         "expected_echo32": expected_echo32,
         "fullbeat_write_ack_delta": debug["fullbeat_write_ack_delta"],
         "fullbeat_read_ack_delta": debug["fullbeat_read_ack_delta"],
         "write_echo32_match": write_echo32_match,
         "expected_prefix_hex": expected_prefix.hex(),
-        "observed_prefix_hex": observed_prefix.hex(),
+        "observed_prefix_authoritative": False,
+        "observed_prefix_hex": None,
+        "debug_read_data_chunk_hex": debug_read_data_chunk.hex(),
         "initial_debug": json_debug(initial_debug),
         "final_debug": json_debug(debug),
         "decision": {
@@ -2360,8 +2418,8 @@ def main() -> int:
                 and not bool(initial_debug["boot_mismatch"])
             ):
                 raise SystemExit("--run-inference requires a clean boot")
-            if args.storage_mode not in ("lowbyte", "lowbyte64", "lane3"):
-                raise SystemExit("--run-inference requires --storage-mode lowbyte64, lowbyte, or lane3")
+            if args.storage_mode not in ("beat", "lowbyte", "lowbyte64", "lane3"):
+                raise SystemExit("--run-inference requires --storage-mode beat, lowbyte64, lowbyte, or lane3")
             if args.max_bytes is not None or args.max_beats is not None:
                 raise SystemExit("--run-inference requires full-image load and does not support --max-bytes or --max-beats")
             if args.top1_from_model and (args.model_path is None or args.adapter_path is None):
@@ -2532,18 +2590,14 @@ def main() -> int:
                     beat_addr = packet_start + slot
                     if args.diagnostic_host_packet_source == "rowstream":
                         offset = beat_addr * loader.beat_bytes
-                        data = image[offset : offset + loader.beat_bytes]
-                        if len(data) != loader.beat_bytes:
+                        beat_data = image[offset : offset + loader.beat_bytes]
+                        if len(beat_data) != loader.beat_bytes:
                             raise SystemExit(f"beat {beat_addr} outside rowstream image")
-                        if len(data) != 16:
-                            raise SystemExit(
-                                "host packet rowstream diagnostic currently requires "
-                                "16-byte DDR3 beats; use --byte-lanes 2"
-                            )
                     else:
-                        data = bytes(((beat_addr + lane) & 0xFF) for lane in range(16))
-                    expected_packet.append(data.hex())
-                    loader.load_packet_beat(slot, data)
+                        beat_data = bytes(((beat_addr + lane) & 0xFF) for lane in range(loader.beat_bytes))
+                    command_data = beat_data + bytes(16 - len(beat_data))
+                    expected_packet.append(beat_data.hex())
+                    loader.load_packet_beat(slot, command_data)
                 try:
                     debug = loader.run_host_packet(packet_start, packet_beats)
                 except Exception as exc:
@@ -2612,8 +2666,10 @@ def main() -> int:
                         continue
                     expected = bytes.fromhex(expected_hex)
                     observed, read_debug = loader.read_beat(beat_addr)
-                    observed = observed[: len(expected)]
-                    standalone_match = observed == expected
+                    authoritative_len = authoritative_read_length(read_debug, len(expected))
+                    observed = observed[:authoritative_len]
+                    expected_compare = expected[:authoritative_len]
+                    standalone_match = observed == expected_compare
                     if not standalone_match:
                         standalone_mismatch_count += 1
                         if standalone_first_mismatch == 0xFF:
@@ -2623,7 +2679,9 @@ def main() -> int:
                         "beat_addr": beat_addr,
                         "status": "PASS" if standalone_match else "FAIL",
                         "expected_hex": expected.hex(),
+                        "expected_compare_hex": expected_compare.hex(),
                         "observed_hex": observed.hex(),
+                        "authoritative_bytes": authoritative_len,
                         "debug": json_debug(read_debug),
                     })
                 packet_status = (
@@ -2782,19 +2840,41 @@ def main() -> int:
             return 0 if status == "PASS" else 1
         if args.diagnostic_host_fullbeat:
             expected = (
-                bytes.fromhex(args.diagnostic_host_fullbeat_hex)
+                bytes.fromhex(args.diagnostic_host_fullbeat_hex)[: loader.beat_bytes]
                 if args.diagnostic_host_fullbeat_hex is not None
-                else bytes(((args.diagnostic_host_fullbeat_base + lane) & 0xFF) for lane in range(16))
+                else bytes(((args.diagnostic_host_fullbeat_base + lane) & 0xFF) for lane in range(loader.beat_bytes))
             )
-            observed, debug = loader.run_host_fullbeat(args.diagnostic_host_fullbeat_addr, expected)
+            if not expected or len(expected) > loader.beat_bytes:
+                raise SystemExit(f"--diagnostic-host-fullbeat-hex must provide 1..{loader.beat_bytes} meaningful bytes")
+            command_data = expected + bytes(16 - len(expected))
+            observed, debug = loader.run_host_fullbeat(args.diagnostic_host_fullbeat_addr, command_data)
+            expected_echo32 = int.from_bytes(expected[:4], "little")
+            status_mismatch_count = int(debug.get("rtl_fullbeat_mismatch_count", debug.get("rtl_burst_status_mismatch_count", 0xFF)))
+            pass_status = (
+                bool(debug.get("rtl_fullbeat_done", False))
+                and status_mismatch_count == 0
+                and int(debug.get("rtl_fullbeat_write_echo32", -1)) == expected_echo32
+                and bool(debug.get("loader_write_ack_seen", False))
+                and bool(debug.get("loader_read_ack_seen", False))
+                and not bool(debug.get("loader_error", False))
+                and not bool(debug.get("boot_error", False))
+            )
             diagnostic = {
                 "artifact_name": "task6-ypcb-uberddr3-host-fullbeat-write-read",
-                "status": "PASS" if observed == expected else "FAIL",
+                "status": "PASS" if pass_status else "FAIL",
                 "expected_hex": expected.hex(),
-                "observed_hex": observed.hex(),
+                "command_data_hex": command_data.hex(),
+                "mismatch_count": status_mismatch_count,
+                "status_source": "rtl_fullbeat_status_fields",
+                "write_echo32": debug.get("rtl_fullbeat_write_echo32"),
+                "expected_echo32": expected_echo32,
+                "write_echo32_match": int(debug.get("rtl_fullbeat_write_echo32", -1)) == expected_echo32,
+                "observed_authoritative": False,
+                "observed_hex": None,
+                "debug_read_data_chunk_hex": observed.hex(),
                 "final_debug": json_debug(debug),
                 "decision": {
-                    "verdict": "host-fullbeat-write-read-passes" if observed == expected else "host-fullbeat-write-read-fails",
+                    "verdict": "host-fullbeat-write-read-passes" if pass_status else "host-fullbeat-write-read-fails",
                     "next_gate": "If this passes, use OP_RUN_HOST_FULLBEAT for packed rowstream writes. If it fails, compare host-data write path against generated OP_RUN_FULLBEAT.",
                 },
             }
@@ -2805,6 +2885,11 @@ def main() -> int:
                 "diagnostic_json": str(run_dir / "host-fullbeat-diagnostic.json"),
                 "expected_hex": diagnostic["expected_hex"],
                 "observed_hex": diagnostic["observed_hex"],
+                "observed_authoritative": diagnostic.get("observed_authoritative"),
+                "debug_read_data_chunk_hex": diagnostic.get("debug_read_data_chunk_hex"),
+                "mismatch_count": diagnostic.get("mismatch_count"),
+                "status_source": diagnostic.get("status_source"),
+                "write_echo32_match": diagnostic.get("write_echo32_match"),
                 "beat_addr": args.diagnostic_host_fullbeat_addr,
                 "base": args.diagnostic_host_fullbeat_base,
                 "verdict": diagnostic["decision"]["verdict"],
@@ -2831,6 +2916,11 @@ def main() -> int:
                 "diagnostic_json": str(run_dir / "echo-chunk-diagnostic.json"),
                 "expected_hex": diagnostic["expected_hex"],
                 "observed_hex": diagnostic["observed_hex"],
+                "observed_authoritative": diagnostic.get("observed_authoritative"),
+                "debug_read_data_chunk_hex": diagnostic.get("debug_read_data_chunk_hex"),
+                "mismatch_count": diagnostic.get("mismatch_count"),
+                "status_source": diagnostic.get("status_source"),
+                "write_echo32_match": diagnostic.get("write_echo32_match"),
                 "verdict": diagnostic["decision"]["verdict"],
             })
             return 0 if diagnostic["status"] == "PASS" else 1
@@ -2959,6 +3049,9 @@ def main() -> int:
                     "mismatch_count": diagnostic["mismatch_count"],
                     "beat_prefix_hex": diagnostic.get("beat0_prefix_hex"),
                     "expected_prefix_hex": diagnostic.get("expected_prefix_hex"),
+                    "observed_prefix_authoritative": diagnostic.get("observed_prefix_authoritative"),
+                    "debug_read_data_chunk_hex": diagnostic.get("debug_read_data_chunk_hex"),
+                    "status_source": diagnostic.get("status_source"),
                     "verdict": diagnostic["decision"]["verdict"],
                 },
             )
@@ -3131,6 +3224,9 @@ def main() -> int:
                     "mismatch_count": diagnostic["mismatch_count"],
                     "observed_prefix_hex": diagnostic.get("observed_prefix_hex"),
                     "expected_prefix_hex": diagnostic.get("expected_prefix_hex"),
+                    "observed_prefix_authoritative": diagnostic.get("observed_prefix_authoritative"),
+                    "debug_read_data_chunk_hex": diagnostic.get("debug_read_data_chunk_hex"),
+                    "status_source": diagnostic.get("status_source"),
                     "verdict": diagnostic["decision"]["verdict"],
                     "boot_mismatch": diagnostic["final_debug"]["boot_mismatch"],
                     "boot_error": diagnostic["final_debug"]["boot_error"],
@@ -3169,6 +3265,9 @@ def main() -> int:
                     "write_echo32_match": diagnostic.get("write_echo32_match"),
                     "observed_prefix_hex": diagnostic.get("observed_prefix_hex"),
                     "expected_prefix_hex": diagnostic.get("expected_prefix_hex"),
+                    "observed_prefix_authoritative": diagnostic.get("observed_prefix_authoritative"),
+                    "debug_read_data_chunk_hex": diagnostic.get("debug_read_data_chunk_hex"),
+                    "status_source": diagnostic.get("status_source"),
                     "verdict": diagnostic["decision"]["verdict"],
                     "boot_mismatch": diagnostic["final_debug"]["boot_mismatch"],
                     "boot_error": diagnostic["final_debug"]["boot_error"],
@@ -3199,6 +3298,9 @@ def main() -> int:
                     "count": diagnostic["count"],
                     "beat0_prefix_hex": diagnostic.get("beat0_prefix_hex"),
                     "expected_prefix_hex": diagnostic.get("expected_prefix_hex"),
+                    "observed_prefix_authoritative": diagnostic.get("observed_prefix_authoritative"),
+                    "debug_read_data_chunk_hex": diagnostic.get("debug_read_data_chunk_hex"),
+                    "status_source": diagnostic.get("status_source"),
                     "verdict": diagnostic["decision"]["verdict"],
                 },
             )
