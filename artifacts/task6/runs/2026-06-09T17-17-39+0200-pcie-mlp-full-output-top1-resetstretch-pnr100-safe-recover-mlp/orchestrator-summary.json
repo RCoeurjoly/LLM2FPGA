@@ -1,0 +1,24 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T17-17-39+0200-pcie-mlp-full-output-top1-resetstretch-pnr100-safe-recover-mlp",
+  "final_classification": "pcie_ready",
+  "final_action": "run_then_gate",
+  "then_returncode": 0,
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "pcie_ready",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T17-17-39+0200-pcie-mlp-full-output-top1-resetstretch-pnr100-safe-recover-mlp-lifecycle-0"
+    },
+    {
+      "action": "run_then_gate",
+      "reason": "PCIe lifecycle and BAR preflight are ready",
+      "command": [
+        "scripts/task6/task6_pcie_user_gate.sh",
+        "mlp-accel",
+        "0000:42:00.0",
+        "--json-out",
+        "artifacts/task6/runs/2026-06-09T-resetstretch-pnr100-cold-bpi/board-mlp-accel-full-output-after-powercycle-summary.json"
+      ]
+    }
+  ]
+}

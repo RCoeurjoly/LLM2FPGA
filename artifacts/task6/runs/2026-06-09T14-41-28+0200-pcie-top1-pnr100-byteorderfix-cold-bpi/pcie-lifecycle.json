@@ -1,0 +1,124 @@
+{
+  "created_at": "2026-06-09T14:41:28.816132+02:00",
+  "bdf": "0000:42:00.0",
+  "bridge_bdf": "0000:41:00.0",
+  "endpoint_exists": true,
+  "bridge_exists": true,
+  "config_words": [
+    "0000",
+    "10ee",
+    "0480",
+    "00",
+    "abcd",
+    "00000000"
+  ],
+  "config_decoded": {
+    "command": "0000",
+    "vendor": "10ee",
+    "device": "0480",
+    "header_type": "00",
+    "subsystem_device": "abcd",
+    "bar0": "00000000"
+  },
+  "config_probe": {
+    "argv": [
+      "setpci",
+      "-s",
+      "0000:42:00.0",
+      "COMMAND",
+      "VENDOR_ID",
+      "DEVICE_ID",
+      "HEADER_TYPE",
+      "2e.w",
+      "10.l"
+    ],
+    "returncode": 0,
+    "stdout": "0000\n10ee\n0480\n00\nabcd\n00000000\n",
+    "stderr": "",
+    "timeout": false
+  },
+  "resource": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/resource",
+    "exists": true,
+    "mode": "0o444",
+    "uid": 0,
+    "gid": 0,
+    "readable": true,
+    "writable": false
+  },
+  "resource0": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/resource0",
+    "exists": true,
+    "mode": "0o660",
+    "uid": 0,
+    "gid": 46,
+    "readable": true,
+    "writable": true
+  },
+  "endpoint_remove": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/remove",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 0,
+    "gid": 46,
+    "readable": false,
+    "writable": true
+  },
+  "endpoint_rescan": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/rescan",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 0,
+    "gid": 46,
+    "readable": false,
+    "writable": true
+  },
+  "endpoint_reset": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/reset",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 0,
+    "gid": 46,
+    "readable": false,
+    "writable": true
+  },
+  "bridge_rescan": {
+    "path": "/sys/bus/pci/devices/0000:41:00.0/rescan",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 0,
+    "gid": 46,
+    "readable": false,
+    "writable": true
+  },
+  "lspci_endpoint": {
+    "argv": [
+      "lspci",
+      "-Dnn",
+      "-s",
+      "0000:42:00.0"
+    ],
+    "returncode": 0,
+    "stdout": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]\n",
+    "stderr": "",
+    "timeout": false
+  },
+  "lspci_bridge": {
+    "argv": [
+      "lspci",
+      "-Dnn",
+      "-s",
+      "0000:41:00.0"
+    ],
+    "returncode": 0,
+    "stdout": "0000:41:00.0 PCI bridge [0604]: Intel Corporation Thunderbolt 80/120G Bridge [Barlow Ridge Hub 80G 2023] [8086:5786] (rev 85)\n",
+    "stderr": "",
+    "timeout": false
+  },
+  "classification": "missing_resource0",
+  "recommendations": [
+    "The endpoint is present without usable BAR0; do not run BAR gates yet.",
+    "If pcie-lifecycle.json shows clean identity (10ee:0480, header 00, subsystem abcd) and resource0/recovery nodes exist, try one delegated recovery without force: scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeout 20",
+    "If config is all-ones/corrupt or no-force recovery refuses, stop PCIe probing and re-enumerate with the FPGA already configured. Use --force-dead-config only for a deliberate recovery experiment."
+  ]
+}

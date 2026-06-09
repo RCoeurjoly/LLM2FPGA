@@ -1,0 +1,34 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T17-09-21+0200-pcie-mlp-full-output-top1-resetstretch-pnr100-cold-bpi-auto",
+  "final_classification": "resource0_permission",
+  "final_action": "stop",
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "missing_resource0",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T17-09-21+0200-pcie-mlp-full-output-top1-resetstretch-pnr100-cold-bpi-auto-lifecycle-0"
+    },
+    {
+      "action": "delegated_recover",
+      "reason": "endpoint identity is present but BAR0/resource0 is missing",
+      "command": [
+        "scripts/task6/task6_pcie_user_gate.sh",
+        "recover",
+        "0000:42:00.0",
+        "--reset-first",
+        "--timeout",
+        "20.0"
+      ]
+    },
+    {
+      "action": "lifecycle",
+      "classification": "resource0_permission",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T17-09-22+0200-pcie-mlp-full-output-top1-resetstretch-pnr100-cold-bpi-auto-lifecycle-1"
+    },
+    {
+      "action": "stop",
+      "reason": "unsupported lifecycle classification: resource0_permission",
+      "command": null
+    }
+  ]
+}

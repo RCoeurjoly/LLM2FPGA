@@ -1,0 +1,17 @@
+{
+  "finished_at": "2026-05-26T17:49:32.635092+02:00",
+  "argv": [
+    "/home/roland/openFPGALoader/build/openFPGALoader",
+    "-b",
+    "ypcb003381p1",
+    "-c",
+    "digilent_hs3",
+    "--ftdi-serial",
+    "210299BF3824",
+    "--write-flash",
+    "--verify",
+    "/nix/store/c0fbvgs1h3060lvlncw3pg3w6nn69kf4-task6-ypcb-pcie-ddr3-isolated-command-bridge.bit"
+  ],
+  "returncode": 0,
+  "run_dir": "artifacts/task6/runs/2026-05-26T17-42-23+0200-pcie-ddr3-isolated-command-bridge-bpi-flash"
+}

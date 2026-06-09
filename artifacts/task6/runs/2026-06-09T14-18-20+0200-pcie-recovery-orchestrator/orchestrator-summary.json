@@ -1,0 +1,9 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T14-18-20+0200-pcie-recovery-orchestrator",
+  "fixture": "/tmp/task6-stale-bar-fixture.json",
+  "selected": {
+    "action": "needs_physical_power_cycle",
+    "reason": "software recovery did not produce a live BAR",
+    "command": null
+  }
+}

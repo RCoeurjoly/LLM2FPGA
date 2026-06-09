@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "pcie-mlp-full-output-pnr100-cold-bpi-auto-lifecycle-0"
+  ],
+  "name": "lifecycle-0",
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "classification: missing_endpoint\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T16-36-26+0200-pcie-mlp-full-output-pnr100-cold-bpi-auto-lifecycle-0\nnext:\n- Ensure the FPGA booted from BPI flash before host PCIe enumeration, then run the non-BAR lifecycle probe without rescan: scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0\n- If the bridge is present but the endpoint is absent, try one rootless bridge rescan: scripts/task6/task6_pcie_user_gate.sh bridge-rescan 0000:42:00.0 0000:41:00.0\n",
+  "stderr": "",
+  "timeout": false
+}

@@ -1,0 +1,3794 @@
+{
+  "format": "task6.nextpnr-ddr3-bel-locks.v1",
+  "lock_count": 626,
+  "locks": [
+    {
+      "bel": "IOB_X0Y75/IOB33/OUTBUF",
+      "cell": "ddram_a[0]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y79/IOB33/OUTBUF",
+      "cell": "ddram_a[10]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y78/IOB33/OUTBUF",
+      "cell": "ddram_a[11]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y86/IOB33/OUTBUF",
+      "cell": "ddram_a[12]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y82/IOB33/OUTBUF",
+      "cell": "ddram_a[13]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y88/IOB33/OUTBUF",
+      "cell": "ddram_a[14]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y97/IOB33/OUTBUF",
+      "cell": "ddram_a[1]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y81/IOB33/OUTBUF",
+      "cell": "ddram_a[2]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y76/IOB33/OUTBUF",
+      "cell": "ddram_a[3]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y68/IOB33/OUTBUF",
+      "cell": "ddram_a[4]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y70/IOB33/OUTBUF",
+      "cell": "ddram_a[5]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y77/IOB33/OUTBUF",
+      "cell": "ddram_a[6]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y67/IOB33/OUTBUF",
+      "cell": "ddram_a[7]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y69/IOB33/OUTBUF",
+      "cell": "ddram_a[8]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y98/IOB33/OUTBUF",
+      "cell": "ddram_a[9]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y85/IOB33/OUTBUF",
+      "cell": "ddram_ba[0]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y95/IOB33/OUTBUF",
+      "cell": "ddram_ba[1]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y89/IOB33/OUTBUF",
+      "cell": "ddram_ba[2]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y92/IOB33/OUTBUF",
+      "cell": "ddram_cas_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y91/IOB33/OUTBUF",
+      "cell": "ddram_cke$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y80/IOB33/OUTBUF",
+      "cell": "ddram_cs_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y83/IOB33/OUTBUF",
+      "cell": "ddram_odt$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y84/IOB33/OUTBUF",
+      "cell": "ddram_ras_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y138/IOB33/OUTBUF",
+      "cell": "ddram_reset_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y90/IOB33/OUTBUF",
+      "cell": "ddram_we_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "SLICE_X144Y240/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[0]$LUT$712",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y240/A5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[0]$LUT$714",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y240/B5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[1]$LUT$716",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y240/C5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[2]$LUT$718",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y240/D5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[3]$LUT$720",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y241/A5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[4]$LUT$722",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y241/B5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[5]$LUT$724",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y241/C5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[6]$LUT$726",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y241/D5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rb[7]$LUT$728",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y240/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[0]$LUT$694",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y240/A5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[0]$LUT$696",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y240/B5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[1]$LUT$698",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y240/C5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[2]$LUT$700",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y240/D5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[3]$LUT$702",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y241/A5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[4]$LUT$704",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y241/B5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[5]$LUT$706",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y241/C5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[6]$LUT$708",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y241/D5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.pcie_len_dw_rd[7]$LUT$710",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y245/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.rx_state[1]$LUT$682",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y245/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.rx_state[2]$LUT$686",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X144Y245/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.rx_state[3]$LUT$690",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y223/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.state[1]$LUT$622",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y223/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.state[2]$LUT$626",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y223/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.state[3]$LUT$630",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y220/A5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.axis_pcie_to_al_us_inst.tx_inc_addr$LUT$574",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "IOB_X0Y176/IOB33/INBUF_EN",
+      "cell": "impl.pcie_7x_top_aximm_i.genblk1.sys_reset_n_ibuf$intcell$IBUF",
+      "scope": "pcie",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "SLICE_X138Y230/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[10]$LUT$664",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y230/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[11]$LUT$668",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y230/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[12]$LUT$672",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y230/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[13]$LUT$676",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y228/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[3]$LUT$636",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y228/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[4]$LUT$640",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y228/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[5]$LUT$644",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y229/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[6]$LUT$648",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y229/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[7]$LUT$652",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y229/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[8]$LUT$656",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y229/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_araddr[9]$LUT$660",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y222/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[10]$LUT$604",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y222/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[11]$LUT$608",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y222/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[12]$LUT$612",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y222/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[13]$LUT$616",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y220/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[3]$LUT$576",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y220/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[4]$LUT$580",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y220/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[5]$LUT$584",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y221/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[6]$LUT$588",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y221/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[7]$LUT$592",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y221/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[8]$LUT$596",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X140Y221/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.m_al_waddr[9]$LUT$600",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X180Y301/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.cfg_wait_cnt[1]$LUT$732",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X180Y301/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.cfg_wait_cnt[2]$LUT$736",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X180Y301/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.cfg_wait_cnt[3]$LUT$740",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X180Y302/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.cfg_wait_cnt[4]$LUT$744",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X180Y302/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.cfg_wait_cnt[5]$LUT$748",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "GTXE2_CHANNEL_X0Y23/GTXE2_CHANNEL",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.gtxe2_channel_i",
+      "scope": "pcie",
+      "type": "GTXE2_CHANNEL"
+    },
+    {
+      "bel": "GTXE2_COMMON_X0Y5/GTXE2_COMMON",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.gtxe2_common_i",
+      "scope": "pcie",
+      "type": "GTXE2_COMMON"
+    },
+    {
+      "bel": "SLICE_X180Y297/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.rxvalid_cnt[1]$LUT$762",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X180Y297/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.rxvalid_cnt[2]$LUT$766",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X180Y297/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.rxvalid_cnt[3]$LUT$770",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X180Y298/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.rxvalid_cnt[4]$LUT$774",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "MMCME2_ADV_X0Y4/MMCME2_ADV",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.in_module_mmcm.pipe_clock_i.mmcm_i",
+      "scope": "pcie",
+      "type": "MMCME2_ADV_MMCME2_ADV"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y19/BUFGCTRL",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.in_module_mmcm.pipe_clock_i.pclk_i1_bufgctrl.pclk_i1",
+      "scope": "pcie",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y28/BUFGCTRL",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.in_module_mmcm.pipe_clock_i.txoutclk0_i",
+      "scope": "pcie",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y24/BUFGCTRL",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.in_module_mmcm.pipe_clock_i.userclk1_i1.usrclk1_i1",
+      "scope": "pcie",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "PCIE_X0Y0/PCIE_2_1",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.pcie_2_1_block",
+      "scope": "pcie",
+      "type": "PCIE_2_1_PCIE_2_1"
+    },
+    {
+      "bel": "RAMB36_X11Y48/RAMB36E1",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.pcie_brams_rx.ram.0.0",
+      "scope": "pcie",
+      "type": "RAMB36E1_RAMB36E1"
+    },
+    {
+      "bel": "RAMB36_X9Y45/RAMB36E1",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.pcie_brams_rx.ram.0.1",
+      "scope": "pcie",
+      "type": "RAMB36E1_RAMB36E1"
+    },
+    {
+      "bel": "RAMB36_X9Y39/RAMB36E1",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.pcie_brams_tx.ram.0.0",
+      "scope": "pcie",
+      "type": "RAMB36E1_RAMB36E1"
+    },
+    {
+      "bel": "RAMB36_X11Y39/RAMB36E1",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.pcie_brams_tx.ram.0.1",
+      "scope": "pcie",
+      "type": "RAMB36E1_RAMB36E1"
+    },
+    {
+      "bel": "SLICE_X154Y265/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.tx_thrl_ctl_inst.tbuf_gap_cnt[0]$LUT$790",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y265/A5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.tx_thrl_ctl_inst.tbuf_gap_cnt[0]$LUT$792",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y265/B5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.tx_thrl_ctl_inst.tbuf_gap_cnt[1]$LUT$794",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y265/C5LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.tx_thrl_ctl_inst.tbuf_gap_cnt[2]$LUT$796",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "IBUFDS_GTE2_X0Y10/IBUFDS_GTE2",
+      "cell": "impl.pcie_7x_top_aximm_i.refclk_ibuf",
+      "scope": "pcie",
+      "type": "IBUFDS_GTE2"
+    },
+    {
+      "bel": "BSCAN_X0Y0/BSCAN",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.bscan",
+      "scope": "pcie",
+      "type": "BSCAN"
+    },
+    {
+      "bel": "SLICE_X150Y256/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[10]$LUT$1344",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y256/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[11]$LUT$1348",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y257/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[12]$LUT$1352",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y257/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[13]$LUT$1356",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y257/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[14]$LUT$1360",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y257/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[15]$LUT$1364",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y258/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[16]$LUT$1368",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y258/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[17]$LUT$1372",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y258/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[18]$LUT$1376",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y258/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[19]$LUT$1380",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y254/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[1]$LUT$1308",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y259/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[20]$LUT$1384",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y259/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[21]$LUT$1388",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y259/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[22]$LUT$1392",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y259/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[23]$LUT$1396",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y260/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[24]$LUT$1400",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y260/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[25]$LUT$1404",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y260/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[26]$LUT$1408",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y260/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[27]$LUT$1412",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y261/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[28]$LUT$1416",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y261/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[29]$LUT$1420",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y254/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[2]$LUT$1312",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y261/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[30]$LUT$1424",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y261/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[31]$LUT$1428",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y254/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[3]$LUT$1316",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y255/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[4]$LUT$1320",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y255/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[5]$LUT$1324",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y255/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[6]$LUT$1328",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y255/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[7]$LUT$1332",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y256/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[8]$LUT$1336",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X150Y256/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.link_up_seen_count_q[9]$LUT$1340",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y212/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[100]$LUT$1290",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y212/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[101]$LUT$1294",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y212/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[102]$LUT$1298",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y212/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[103]$LUT$1302",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y207/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[329]$LUT$1434",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y207/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[330]$LUT$1438",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y207/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[331]$LUT$1442",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y208/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[332]$LUT$1446",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y208/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[333]$LUT$1450",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y208/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[334]$LUT$1454",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y208/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[335]$LUT$1458",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y209/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[336]$LUT$1462",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y209/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[337]$LUT$1466",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y209/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[338]$LUT$1470",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y209/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[339]$LUT$1474",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y210/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[340]$LUT$1478",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y210/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[341]$LUT$1482",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y210/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[342]$LUT$1486",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y210/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[343]$LUT$1490",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y211/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[344]$LUT$1494",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y211/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[345]$LUT$1498",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y211/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[346]$LUT$1502",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y211/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[347]$LUT$1506",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y212/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[348]$LUT$1510",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y212/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[349]$LUT$1514",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y212/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[350]$LUT$1518",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y212/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[351]$LUT$1522",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y213/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[352]$LUT$1526",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y213/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[353]$LUT$1530",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y213/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[354]$LUT$1534",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y213/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[355]$LUT$1538",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y214/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[356]$LUT$1542",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y214/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[357]$LUT$1546",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y214/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[358]$LUT$1550",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X158Y214/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[359]$LUT$1554",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y208/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[393]$LUT$1560",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y208/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[394]$LUT$1564",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y208/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[395]$LUT$1568",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y209/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[396]$LUT$1572",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y209/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[397]$LUT$1576",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y209/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[398]$LUT$1580",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y209/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[399]$LUT$1584",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y210/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[400]$LUT$1588",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y210/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[401]$LUT$1592",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y210/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[402]$LUT$1596",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y210/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[403]$LUT$1600",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y211/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[404]$LUT$1604",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y211/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[405]$LUT$1608",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y211/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[406]$LUT$1612",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y211/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[407]$LUT$1616",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y212/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[408]$LUT$1620",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y212/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[409]$LUT$1624",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y212/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[410]$LUT$1628",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y212/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[411]$LUT$1632",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y213/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[412]$LUT$1636",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y213/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[413]$LUT$1640",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y213/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[414]$LUT$1644",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y213/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[415]$LUT$1648",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y214/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[416]$LUT$1652",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y214/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[417]$LUT$1656",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y214/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[418]$LUT$1660",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y214/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[419]$LUT$1664",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y215/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[420]$LUT$1668",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y215/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[421]$LUT$1672",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y215/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[422]$LUT$1676",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y215/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[423]$LUT$1680",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y257/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[425]$LUT$1686",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y257/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[426]$LUT$1690",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y257/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[427]$LUT$1694",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y258/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[428]$LUT$1698",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y258/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[429]$LUT$1702",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y258/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[430]$LUT$1706",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y258/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[431]$LUT$1710",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y259/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[432]$LUT$1714",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y259/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[433]$LUT$1718",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y259/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[434]$LUT$1722",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y259/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[435]$LUT$1726",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y260/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[436]$LUT$1730",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y260/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[437]$LUT$1734",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y260/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[438]$LUT$1738",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y260/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[439]$LUT$1742",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y261/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[440]$LUT$1746",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y261/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[441]$LUT$1750",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y261/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[442]$LUT$1754",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y261/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[443]$LUT$1758",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y262/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[444]$LUT$1762",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y262/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[445]$LUT$1766",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y262/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[446]$LUT$1770",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y262/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[447]$LUT$1774",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y263/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[448]$LUT$1778",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y263/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[449]$LUT$1782",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y263/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[450]$LUT$1786",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y263/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[451]$LUT$1790",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y264/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[452]$LUT$1794",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y264/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[453]$LUT$1798",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y264/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[454]$LUT$1802",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X146Y264/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[455]$LUT$1806",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y254/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[457]$LUT$1812",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y254/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[458]$LUT$1816",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y254/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[459]$LUT$1820",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y255/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[460]$LUT$1824",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y255/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[461]$LUT$1828",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y255/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[462]$LUT$1832",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y255/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[463]$LUT$1836",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y256/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[464]$LUT$1840",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y256/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[465]$LUT$1844",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y256/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[466]$LUT$1848",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y256/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[467]$LUT$1852",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y257/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[468]$LUT$1856",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y257/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[469]$LUT$1860",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y257/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[470]$LUT$1864",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y257/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[471]$LUT$1868",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y258/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[472]$LUT$1872",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y258/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[473]$LUT$1876",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y258/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[474]$LUT$1880",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y258/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[475]$LUT$1884",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y259/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[476]$LUT$1888",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y259/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[477]$LUT$1892",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y259/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[478]$LUT$1896",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y259/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[479]$LUT$1900",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y260/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[480]$LUT$1904",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y260/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[481]$LUT$1908",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y260/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[482]$LUT$1912",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y260/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[483]$LUT$1916",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y261/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[484]$LUT$1920",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y261/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[485]$LUT$1924",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y261/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[486]$LUT$1928",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X138Y261/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[487]$LUT$1932",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y267/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[521]$LUT$804",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y267/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[522]$LUT$808",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y267/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[523]$LUT$812",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y268/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[524]$LUT$816",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y268/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[525]$LUT$820",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y268/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[526]$LUT$824",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y268/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[527]$LUT$828",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y269/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[528]$LUT$832",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y269/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[529]$LUT$836",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y269/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[530]$LUT$840",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y269/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[531]$LUT$844",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y270/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[532]$LUT$848",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y270/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[533]$LUT$852",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y270/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[534]$LUT$856",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y270/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[535]$LUT$860",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y271/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[536]$LUT$864",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y271/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[537]$LUT$868",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y271/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[538]$LUT$872",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y271/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[539]$LUT$876",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y272/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[540]$LUT$880",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y272/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[541]$LUT$884",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y272/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[542]$LUT$888",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y272/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[543]$LUT$892",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y273/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[544]$LUT$896",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y273/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[545]$LUT$900",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y273/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[546]$LUT$904",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y273/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[547]$LUT$908",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y274/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[548]$LUT$912",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y274/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[549]$LUT$916",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y274/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[550]$LUT$920",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y274/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[551]$LUT$924",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y250/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[553]$LUT$930",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y250/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[554]$LUT$934",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y250/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[555]$LUT$938",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y251/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[556]$LUT$942",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y251/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[557]$LUT$946",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y251/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[558]$LUT$950",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y251/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[559]$LUT$954",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y252/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[560]$LUT$958",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y252/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[561]$LUT$962",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y252/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[562]$LUT$966",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y252/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[563]$LUT$970",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y253/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[564]$LUT$974",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y253/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[565]$LUT$978",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y253/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[566]$LUT$982",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y253/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[567]$LUT$986",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y254/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[568]$LUT$990",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y254/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[569]$LUT$994",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y254/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[570]$LUT$998",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y254/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[571]$LUT$1002",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y255/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[572]$LUT$1006",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y255/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[573]$LUT$1010",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y255/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[574]$LUT$1014",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y255/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[575]$LUT$1018",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y256/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[576]$LUT$1022",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y256/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[577]$LUT$1026",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y256/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[578]$LUT$1030",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y256/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[579]$LUT$1034",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y257/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[580]$LUT$1038",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y257/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[581]$LUT$1042",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y257/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[582]$LUT$1046",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X136Y257/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[583]$LUT$1050",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y266/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[585]$LUT$1056",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y266/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[586]$LUT$1060",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y266/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[587]$LUT$1064",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y267/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[588]$LUT$1068",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y267/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[589]$LUT$1072",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y267/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[590]$LUT$1076",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y267/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[591]$LUT$1080",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y268/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[592]$LUT$1084",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y268/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[593]$LUT$1088",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y268/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[594]$LUT$1092",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y268/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[595]$LUT$1096",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y269/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[596]$LUT$1100",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y269/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[597]$LUT$1104",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y269/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[598]$LUT$1108",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y269/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[599]$LUT$1112",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y270/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[600]$LUT$1116",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y270/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[601]$LUT$1120",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y270/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[602]$LUT$1124",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y270/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[603]$LUT$1128",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y271/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[604]$LUT$1132",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y271/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[605]$LUT$1136",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y271/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[606]$LUT$1140",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y271/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[607]$LUT$1144",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y272/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[608]$LUT$1148",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y272/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[609]$LUT$1152",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y272/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[610]$LUT$1156",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y272/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[611]$LUT$1160",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y273/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[612]$LUT$1164",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y273/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[613]$LUT$1168",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y273/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[614]$LUT$1172",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X142Y273/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[615]$LUT$1176",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y205/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[73]$LUT$1182",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y205/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[74]$LUT$1186",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y205/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[75]$LUT$1190",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y206/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[76]$LUT$1194",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y206/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[77]$LUT$1198",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y206/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[78]$LUT$1202",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y206/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[79]$LUT$1206",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y207/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[80]$LUT$1210",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y207/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[81]$LUT$1214",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y207/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[82]$LUT$1218",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y207/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[83]$LUT$1222",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y208/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[84]$LUT$1226",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y208/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[85]$LUT$1230",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y208/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[86]$LUT$1234",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y208/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[87]$LUT$1238",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y209/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[88]$LUT$1242",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y209/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[89]$LUT$1246",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y209/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[90]$LUT$1250",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y209/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[91]$LUT$1254",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y210/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[92]$LUT$1258",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y210/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[93]$LUT$1262",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y210/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[94]$LUT$1266",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y210/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[95]$LUT$1270",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y211/A6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[96]$LUT$1274",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y211/B6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[97]$LUT$1278",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y211/C6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[98]$LUT$1282",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X154Y211/D6LUT",
+      "cell": "impl.pcie_7x_top_aximm_i.task6_pcie_status_i.payload_fixed[99]$LUT$1286",
+      "scope": "pcie",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y88/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[10]$LUT$2194",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y88/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[11]$LUT$2198",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y89/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[12]$LUT$2202",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y89/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[13]$LUT$2206",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y89/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[14]$LUT$2210",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y89/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[15]$LUT$2214",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y90/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[16]$LUT$2218",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y90/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[17]$LUT$2222",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y90/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[18]$LUT$2226",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y90/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[19]$LUT$2230",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y86/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[1]$LUT$2158",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y91/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[20]$LUT$2234",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y91/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[21]$LUT$2238",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y91/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[22]$LUT$2242",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y91/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[23]$LUT$2246",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y92/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[24]$LUT$2250",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y92/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[25]$LUT$2254",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y92/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[26]$LUT$2258",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y92/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[27]$LUT$2262",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y93/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[28]$LUT$2266",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y93/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[29]$LUT$2270",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y86/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[2]$LUT$2162",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y93/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[30]$LUT$2274",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y93/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[31]$LUT$2278",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y86/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[3]$LUT$2166",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y87/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[4]$LUT$2170",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y87/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[5]$LUT$2174",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y87/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[6]$LUT$2178",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y87/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[7]$LUT$2182",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y88/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[8]$LUT$2186",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y88/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.accepted_count_q[9]$LUT$2190",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y88/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[10]$LUT$2320",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y88/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[11]$LUT$2324",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y89/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[12]$LUT$2328",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y89/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[13]$LUT$2332",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y89/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[14]$LUT$2336",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y89/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[15]$LUT$2340",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y90/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[16]$LUT$2344",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y90/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[17]$LUT$2348",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y90/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[18]$LUT$2352",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y90/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[19]$LUT$2356",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y86/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[1]$LUT$2284",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y91/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[20]$LUT$2360",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y91/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[21]$LUT$2364",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y91/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[22]$LUT$2368",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y91/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[23]$LUT$2372",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y92/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[24]$LUT$2376",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y92/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[25]$LUT$2380",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y92/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[26]$LUT$2384",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y92/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[27]$LUT$2388",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y93/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[28]$LUT$2392",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y93/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[29]$LUT$2396",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y86/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[2]$LUT$2288",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y93/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[30]$LUT$2400",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y93/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[31]$LUT$2404",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y86/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[3]$LUT$2292",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y87/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[4]$LUT$2296",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y87/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[5]$LUT$2300",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y87/C6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[6]$LUT$2304",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y87/D6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[7]$LUT$2308",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y88/A6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[8]$LUT$2312",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X28Y88/B6LUT",
+      "cell": "impl.pcie_ingress.ingress.top1_start_count_q[9]$LUT$2316",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y111/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[10]$LUT$2100",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y111/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[11]$LUT$2104",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y112/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[12]$LUT$2108",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y112/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[13]$LUT$2112",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y112/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[14]$LUT$2116",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y112/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[15]$LUT$2120",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y113/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[16]$LUT$2124",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y113/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[17]$LUT$2128",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y113/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[18]$LUT$2132",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y113/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[19]$LUT$2136",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y109/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[1]$LUT$2064",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y114/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[20]$LUT$2140",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y114/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[21]$LUT$2144",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y114/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[22]$LUT$2148",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y114/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[23]$LUT$2152",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y109/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[2]$LUT$2068",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y109/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[3]$LUT$2072",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y110/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[4]$LUT$2076",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y110/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[5]$LUT$2080",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y110/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[6]$LUT$2084",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y110/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[7]$LUT$2088",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y111/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[8]$LUT$2092",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X32Y111/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_clk_counter_q[9]$LUT$2096",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y107/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[10]$LUT$1974",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y107/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[11]$LUT$1978",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y108/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[12]$LUT$1982",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y108/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[13]$LUT$1986",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y108/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[14]$LUT$1990",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y108/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[15]$LUT$1994",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y109/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[16]$LUT$1998",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y109/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[17]$LUT$2002",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y109/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[18]$LUT$2006",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y109/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[19]$LUT$2010",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y105/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[1]$LUT$1938",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y110/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[20]$LUT$2014",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y110/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[21]$LUT$2018",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y110/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[22]$LUT$2022",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y110/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[23]$LUT$2026",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y111/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[24]$LUT$2030",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y111/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[25]$LUT$2034",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y111/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[26]$LUT$2038",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y111/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[27]$LUT$2042",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y112/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[28]$LUT$2046",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y112/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[29]$LUT$2050",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y105/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[2]$LUT$1942",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y112/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[30]$LUT$2054",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y112/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[31]$LUT$2058",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y105/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[3]$LUT$1946",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y106/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[4]$LUT$1950",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y106/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[5]$LUT$1954",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y106/C6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[6]$LUT$1958",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y106/D6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[7]$LUT$1962",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y107/A6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[8]$LUT$1966",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X24Y107/B6LUT",
+      "cell": "impl.pcie_ingress.rowstream_heartbeat_count_pcie_q[9]$LUT$1970",
+      "scope": "pcie_ingress",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y0/BUFGCTRL",
+      "cell": "impl.rowstream_ddr3.clk100_90_bufg",
+      "scope": "ddr3_clock",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y5/BUFGCTRL",
+      "cell": "impl.rowstream_ddr3.clk100_bufg",
+      "scope": "ddr3_clock",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y6/BUFGCTRL",
+      "cell": "impl.rowstream_ddr3.clk200_bufg",
+      "scope": "ddr3_clock",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "BUFGCTRL_X0Y7/BUFGCTRL",
+      "cell": "impl.rowstream_ddr3.clk25_bufg",
+      "scope": "ddr3_clock",
+      "type": "BUFGCTRL"
+    },
+    {
+      "bel": "PLLE2_ADV_X0Y3/PLLE2_ADV",
+      "cell": "impl.rowstream_ddr3.clock_pll",
+      "scope": "ddr3_clock",
+      "type": "PLLE2_ADV_PLLE2_ADV"
+    },
+    {
+      "bel": "IDELAYCTRL_X0Y0/IDELAYCTRL",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.IDELAYCTRL_inst$intcell$CTRL_DUP_0",
+      "scope": "ddr3_phy",
+      "type": "IDELAYCTRL_IDELAYCTRL"
+    },
+    {
+      "bel": "SLICE_X0Y105/A6LUT",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.delay_before_release_reset[0]$LUT$2486",
+      "scope": "ddr3_phy",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X0Y105/A5LUT",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.delay_before_release_reset[0]$LUT$2488",
+      "scope": "ddr3_phy",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X0Y105/B5LUT",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.delay_before_release_reset[1]$LUT$2490",
+      "scope": "ddr3_phy",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "SLICE_X0Y105/C5LUT",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.delay_before_release_reset[2]$LUT$2492",
+      "scope": "ddr3_phy",
+      "type": "SLICE_LUTX"
+    },
+    {
+      "bel": "OLOGIC_X0Y75/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[0].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y79/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[10].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y78/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[11].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y86/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[12].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y82/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[13].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y88/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[14].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y85/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[15].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y95/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[16].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y89/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[17].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y138/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[18].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y91/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[19].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y97/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[1].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y83/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[20].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y90/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[21].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y92/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[22].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y84/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[23].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y80/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[24].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y81/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[2].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y76/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[3].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y68/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[4].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y70/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[5].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y77/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[6].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y67/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[7].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y69/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[8].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "OLOGIC_X0Y98/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk1[9].OSERDESE2_cmd",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y93/IOB33S/O_ININV",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk4.genblk1.OBUFDS_inst$subcell$INV",
+      "scope": "ddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y93/IOB33S/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk4.genblk1.OBUFDS_inst$subcell$N",
+      "scope": "ddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y94/IOB33M/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk4.genblk1.OBUFDS_inst$subcell$P",
+      "scope": "ddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "IDELAY_X0Y13/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[0].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y13/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[0].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y13/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[0].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y13/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[0].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y13/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[0].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y25/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[10].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y25/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[10].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y25/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[10].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y25/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[10].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y25/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[10].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y29/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[11].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y29/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[11].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y29/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[11].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y29/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[11].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y29/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[11].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y26/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[12].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y26/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[12].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y26/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[12].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y26/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[12].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y26/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[12].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y30/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[13].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y30/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[13].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y30/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[13].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y30/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[13].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y30/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[13].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y27/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[14].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y27/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[14].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y27/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[14].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y27/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[14].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y27/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[14].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y35/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[15].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y35/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[15].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y35/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[15].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y35/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[15].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y35/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[15].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y14/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[1].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y14/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[1].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y14/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[1].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y14/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[1].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y14/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[1].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y16/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[2].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y16/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[2].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y16/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[2].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y16/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[2].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y16/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[2].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y21/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[3].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y21/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[3].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y21/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[3].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y21/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[3].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y21/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[3].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y15/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[4].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y15/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[4].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y15/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[4].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y15/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[4].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y15/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[4].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y22/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[5].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y22/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[5].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y22/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[5].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y22/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[5].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y22/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[5].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y18/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[6].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y18/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[6].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y18/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[6].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y18/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[6].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y18/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[6].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y17/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[7].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y17/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[7].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y17/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[7].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y17/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[7].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y17/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[7].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y28/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[8].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y28/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[8].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y28/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[8].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y28/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[8].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y28/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[8].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y36/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[9].IDELAYE2_data",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y36/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[9].ISERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y36/IOB33/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[9].genblk1.IOBUF_data$subcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y36/IOB33/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[9].genblk1.IOBUF_data$subcell$OBUFT",
+      "scope": "ddr3_phy",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y36/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk5[9].genblk1.OSERDESE2_data",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y20/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[0].IDELAYE2_dqs",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y20/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[0].ISERDESE2_dqs",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y20/IOB33M/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[0].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y19/IOB33S/O_ININV",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[0].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "ddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y19/IOB33S/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[0].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "ddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y20/IOB33M/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[0].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "ddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y20/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[0].genblk1.OSERDESE2_dqs",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    },
+    {
+      "bel": "IDELAY_X0Y32/IDELAYE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[1].IDELAYE2_dqs",
+      "scope": "ddr3_phy",
+      "type": "IDELAYE2_IDELAYE2"
+    },
+    {
+      "bel": "ILOGIC_X0Y32/ISERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[1].ISERDESE2_dqs",
+      "scope": "ddr3_phy",
+      "type": "ISERDESE2_ISERDESE2"
+    },
+    {
+      "bel": "IOB_X0Y32/IOB33M/INBUF_EN",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[1].genblk1.IOBUFDS_dqs$intcell$IBUF",
+      "scope": "ddr3_phy",
+      "type": "IOB33M_INBUF_EN"
+    },
+    {
+      "bel": "IOB_X0Y31/IOB33S/O_ININV",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[1].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$INV",
+      "scope": "ddr3_phy",
+      "type": "INVERTER"
+    },
+    {
+      "bel": "IOB_X0Y31/IOB33S/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[1].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$N",
+      "scope": "ddr3_phy",
+      "type": "IOB33S_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y32/IOB33M/OUTBUF",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[1].genblk1.IOBUFDS_dqs$subcell$OBUFTDS$subcell$P",
+      "scope": "ddr3_phy",
+      "type": "IOB33M_OUTBUF"
+    },
+    {
+      "bel": "OLOGIC_X0Y32/OSERDESE2",
+      "cell": "impl.rowstream_ddr3.uberddr3.ddr3_phy_inst.genblk7[1].genblk1.OSERDESE2_dqs",
+      "scope": "ddr3_phy",
+      "type": "OSERDESE2_OSERDESE2"
+    }
+  ],
+  "scope_counts": {
+    "ddr3_board_pins": 25,
+    "ddr3_clock": 5,
+    "ddr3_phy": 127,
+    "pcie": 353,
+    "pcie_ingress": 116
+  },
+  "skipped_missing_bel": [],
+  "skipped_missing_bel_count": 0,
+  "source_placed_json": "/nix/store/rvams2ak81zmpv2sk01j16mc4f0yqm52-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.placed.json",
+  "type_counts": {
+    "BSCAN": 1,
+    "BUFGCTRL": 7,
+    "GTXE2_CHANNEL": 1,
+    "GTXE2_COMMON": 1,
+    "IBUFDS_GTE2": 1,
+    "IDELAYCTRL_IDELAYCTRL": 1,
+    "IDELAYE2_IDELAYE2": 18,
+    "INVERTER": 3,
+    "IOB33M_INBUF_EN": 2,
+    "IOB33M_OUTBUF": 3,
+    "IOB33S_OUTBUF": 3,
+    "IOB33_INBUF_EN": 17,
+    "IOB33_OUTBUF": 41,
+    "ISERDESE2_ISERDESE2": 18,
+    "MMCME2_ADV_MMCME2_ADV": 1,
+    "OSERDESE2_OSERDESE2": 43,
+    "PCIE_2_1_PCIE_2_1": 1,
+    "PLLE2_ADV_PLLE2_ADV": 1,
+    "RAMB36E1_RAMB36E1": 4,
+    "SLICE_LUTX": 459
+  }
+}

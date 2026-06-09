@@ -1,0 +1,17 @@
+{
+  "finished_at": "2026-06-09T11:29:13.217399+02:00",
+  "argv": [
+    "/home/roland/openFPGALoader/build/openFPGALoader",
+    "-b",
+    "ypcb003381p1",
+    "-c",
+    "digilent_hs3",
+    "--ftdi-serial",
+    "210299BF3824",
+    "--write-flash",
+    "--verify",
+    "/nix/store/ixxijpficbzinbv9fvxhdy5lr0zccsyq-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit"
+  ],
+  "returncode": 0,
+  "run_dir": "artifacts/task6/runs/2026-06-09T11-22-06+0200-pcie-top1-pnr100-readcapture-lean-bpi-flash"
+}

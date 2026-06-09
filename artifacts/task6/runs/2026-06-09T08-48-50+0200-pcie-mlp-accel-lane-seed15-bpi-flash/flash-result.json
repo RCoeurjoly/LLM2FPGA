@@ -1,0 +1,17 @@
+{
+  "finished_at": "2026-06-09T08:55:58.287785+02:00",
+  "argv": [
+    "/home/roland/openFPGALoader/build/openFPGALoader",
+    "-b",
+    "ypcb003381p1",
+    "-c",
+    "digilent_hs3",
+    "--ftdi-serial",
+    "210299BF3824",
+    "--write-flash",
+    "--verify",
+    "/nix/store/jg2vylvswgwkp7gfs8m4812mzxbnsp55-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-seed15.bit"
+  ],
+  "returncode": 0,
+  "run_dir": "artifacts/task6/runs/2026-06-09T08-48-50+0200-pcie-mlp-accel-lane-seed15-bpi-flash"
+}

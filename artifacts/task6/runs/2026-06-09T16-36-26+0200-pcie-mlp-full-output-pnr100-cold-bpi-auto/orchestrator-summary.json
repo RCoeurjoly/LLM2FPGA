@@ -1,0 +1,32 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T16-36-26+0200-pcie-mlp-full-output-pnr100-cold-bpi-auto",
+  "final_classification": "pcie_ready",
+  "final_action": "done",
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "missing_endpoint",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T16-36-26+0200-pcie-mlp-full-output-pnr100-cold-bpi-auto-lifecycle-0"
+    },
+    {
+      "action": "bridge_rescan",
+      "reason": "endpoint is absent but the upstream bridge may rescan it",
+      "command": [
+        "scripts/task6/task6_pcie_user_gate.sh",
+        "bridge-rescan",
+        "0000:42:00.0",
+        "0000:41:00.0"
+      ]
+    },
+    {
+      "action": "lifecycle",
+      "classification": "pcie_ready",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T16-36-26+0200-pcie-mlp-full-output-pnr100-cold-bpi-auto-lifecycle-1"
+    },
+    {
+      "action": "done",
+      "reason": "PCIe lifecycle and BAR preflight are ready",
+      "command": null
+    }
+  ]
+}

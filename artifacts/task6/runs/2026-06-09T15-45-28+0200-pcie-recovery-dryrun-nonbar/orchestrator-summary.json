@@ -1,0 +1,17 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T15-45-28+0200-pcie-recovery-dryrun-nonbar",
+  "final_classification": "unknown",
+  "final_action": "stop",
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "unknown",
+      "lifecycle_run_dir": null
+    },
+    {
+      "action": "stop",
+      "reason": "unsupported lifecycle classification: unknown",
+      "command": null
+    }
+  ]
+}

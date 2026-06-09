@@ -1,0 +1,2290 @@
+{
+  "inputs": {
+    "combined_xdc": "/nix/store/5573qy7kbngwsapmdl8rkr6kpybf7jd1-task6-ypcb-pcie-uberddr3-rowstream-loader.xdc",
+    "ddr_xdc": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+    "pcie_xdc": "/nix/store/zv1815dwl1lzpixpdi1x5gqh3i0b4czy-task6-pcie7x-source-vivado-lane0-loc/pcie_7x_ypcb_k480t.xdc"
+  },
+  "missing": {
+    "ddr_count": 245,
+    "ddr_examples": [
+      {
+        "categories": [
+          "placement"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 3,
+        "op": "set_property",
+        "targets": [
+          "ports:clk50"
+        ],
+        "text": "set_property LOC AA28 [get_ports {clk50}]"
+      },
+      {
+        "categories": [],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 4,
+        "op": "set_property",
+        "targets": [
+          "ports:clk50"
+        ],
+        "text": "set_property IOSTANDARD LVCMOS18 [get_ports {clk50}]"
+      },
+      {
+        "categories": [
+          "clock"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 5,
+        "op": "create_clock",
+        "targets": [
+          "ports:clk50"
+        ],
+        "text": "create_clock -name clk50 -period 20.000 [get_ports clk50]"
+      },
+      {
+        "categories": [
+          "placement"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 7,
+        "op": "set_property",
+        "targets": [
+          "ports:SYS_RSTN"
+        ],
+        "text": "set_property LOC R28 [get_ports {SYS_RSTN}]"
+      },
+      {
+        "categories": [],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 8,
+        "op": "set_property",
+        "targets": [
+          "ports:SYS_RSTN"
+        ],
+        "text": "set_property IOSTANDARD LVCMOS18 [get_ports {SYS_RSTN}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 232,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[16"
+        ],
+        "text": "set_property LOC AL23 [get_ports {ddram_dq[16]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 233,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[16"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[16]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 234,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[16"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[16]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 235,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[16"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[16]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 238,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[17"
+        ],
+        "text": "set_property LOC AN20 [get_ports {ddram_dq[17]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 239,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[17"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[17]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 240,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[17"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[17]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 241,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[17"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[17]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 244,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[18"
+        ],
+        "text": "set_property LOC AK23 [get_ports {ddram_dq[18]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 245,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[18"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[18]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 246,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[18"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[18]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 247,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[18"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[18]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 250,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[19"
+        ],
+        "text": "set_property LOC AP19 [get_ports {ddram_dq[19]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 251,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[19"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[19]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 252,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[19"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[19]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 253,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[19"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[19]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 256,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[20"
+        ],
+        "text": "set_property LOC AN22 [get_ports {ddram_dq[20]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 257,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[20"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[20]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 258,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[20"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[20]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 259,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[20"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[20]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 262,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[21"
+        ],
+        "text": "set_property LOC AN19 [get_ports {ddram_dq[21]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 263,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[21"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[21]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 264,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[21"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[21]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 265,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[21"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[21]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 268,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[22"
+        ],
+        "text": "set_property LOC AM22 [get_ports {ddram_dq[22]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 269,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[22"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[22]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 270,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[22"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[22]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 271,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[22"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[22]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 274,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[23"
+        ],
+        "text": "set_property LOC AP20 [get_ports {ddram_dq[23]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 275,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[23"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[23]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 276,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[23"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[23]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 277,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[23"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[23]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 280,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[24"
+        ],
+        "text": "set_property LOC AJ21 [get_ports {ddram_dq[24]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 281,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[24"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[24]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 282,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[24"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[24]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 283,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[24"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[24]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 286,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[25"
+        ],
+        "text": "set_property LOC AH22 [get_ports {ddram_dq[25]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 287,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[25"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[25]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 288,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[25"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[25]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 289,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[25"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[25]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 292,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[26"
+        ],
+        "text": "set_property LOC AK21 [get_ports {ddram_dq[26]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 293,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[26"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[26]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 294,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[26"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[26]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 295,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[26"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[26]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 298,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[27"
+        ],
+        "text": "set_property LOC AG21 [get_ports {ddram_dq[27]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 299,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[27"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[27]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 300,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[27"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[27]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 301,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[27"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[27]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 304,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[28"
+        ],
+        "text": "set_property LOC AG22 [get_ports {ddram_dq[28]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 305,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[28"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[28]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 306,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[28"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[28]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 307,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[28"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[28]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 310,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[29"
+        ],
+        "text": "set_property LOC AG20 [get_ports {ddram_dq[29]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 311,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[29"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[29]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 312,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[29"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[29]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 313,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[29"
+        ],
+        "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[29]}]"
+      },
+      {
+        "categories": [
+          "placement",
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 316,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[30"
+        ],
+        "text": "set_property LOC AH23 [get_ports {ddram_dq[30]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 317,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[30"
+        ],
+        "text": "set_property SLEW FAST [get_ports {ddram_dq[30]}]"
+      },
+      {
+        "categories": [
+          "ddr"
+        ],
+        "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+        "line": 318,
+        "op": "set_property",
+        "targets": [
+          "ports:ddram_dq[30"
+        ],
+        "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[30]}]"
+      }
+    ],
+    "expected_ddr_by_reason": {
+      "expected_2_byte_lane_dq_filter": {
+        "count": 192,
+        "examples": [
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 232,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[16"
+            ],
+            "text": "set_property LOC AL23 [get_ports {ddram_dq[16]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 233,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[16"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[16]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 234,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[16"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[16]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 235,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[16"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[16]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 238,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[17"
+            ],
+            "text": "set_property LOC AN20 [get_ports {ddram_dq[17]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 239,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[17"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[17]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 240,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[17"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[17]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 241,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[17"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[17]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 244,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[18"
+            ],
+            "text": "set_property LOC AK23 [get_ports {ddram_dq[18]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 245,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[18"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[18]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 246,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[18"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[18]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 247,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[18"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[18]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 250,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[19"
+            ],
+            "text": "set_property LOC AP19 [get_ports {ddram_dq[19]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 251,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[19"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[19]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 252,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[19"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[19]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 253,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[19"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[19]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 256,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[20"
+            ],
+            "text": "set_property LOC AN22 [get_ports {ddram_dq[20]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 257,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[20"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[20]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 258,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[20"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[20]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 259,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[20"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[20]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 262,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[21"
+            ],
+            "text": "set_property LOC AN19 [get_ports {ddram_dq[21]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 263,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[21"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[21]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 264,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[21"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[21]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 265,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[21"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[21]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 268,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[22"
+            ],
+            "text": "set_property LOC AM22 [get_ports {ddram_dq[22]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 269,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[22"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[22]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 270,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[22"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[22]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 271,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[22"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[22]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 274,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[23"
+            ],
+            "text": "set_property LOC AP20 [get_ports {ddram_dq[23]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 275,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[23"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[23]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 276,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[23"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[23]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 277,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[23"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[23]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 280,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[24"
+            ],
+            "text": "set_property LOC AJ21 [get_ports {ddram_dq[24]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 281,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[24"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[24]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 282,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[24"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[24]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 283,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[24"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[24]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 286,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[25"
+            ],
+            "text": "set_property LOC AH22 [get_ports {ddram_dq[25]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 287,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[25"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[25]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 288,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[25"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[25]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 289,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[25"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[25]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 292,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[26"
+            ],
+            "text": "set_property LOC AK21 [get_ports {ddram_dq[26]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 293,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[26"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[26]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 294,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[26"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[26]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 295,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[26"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[26]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 298,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[27"
+            ],
+            "text": "set_property LOC AG21 [get_ports {ddram_dq[27]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 299,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[27"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[27]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 300,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[27"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[27]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 301,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[27"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[27]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 304,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[28"
+            ],
+            "text": "set_property LOC AG22 [get_ports {ddram_dq[28]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 305,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[28"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[28]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 306,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[28"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[28]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 307,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[28"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[28]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 310,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[29"
+            ],
+            "text": "set_property LOC AG20 [get_ports {ddram_dq[29]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 311,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[29"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[29]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 312,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[29"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[29]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 313,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[29"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[29]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 316,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[30"
+            ],
+            "text": "set_property LOC AH23 [get_ports {ddram_dq[30]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 317,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[30"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[30]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 318,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[30"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[30]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 319,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[30"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[30]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 322,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[31"
+            ],
+            "text": "set_property LOC AG23 [get_ports {ddram_dq[31]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 323,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[31"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dq[31]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 324,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[31"
+            ],
+            "text": "set_property IOSTANDARD SSTL15 [get_ports {ddram_dq[31]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 325,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dq[31"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dq[31]}]"
+          }
+        ]
+      },
+      "expected_2_byte_lane_dqs_filter": {
+        "count": 48,
+        "examples": [
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 532,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[2"
+            ],
+            "text": "set_property LOC AP21 [get_ports {ddram_dqs_p[2]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 533,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[2"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_p[2]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 534,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[2"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_p[2]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 535,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[2"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_p[2]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 538,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[3"
+            ],
+            "text": "set_property LOC AH20 [get_ports {ddram_dqs_p[3]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 539,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[3"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_p[3]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 540,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[3"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_p[3]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 541,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[3"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_p[3]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 544,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[4"
+            ],
+            "text": "set_property LOC AK33 [get_ports {ddram_dqs_p[4]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 545,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[4"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_p[4]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 546,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[4"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_p[4]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 547,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[4"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_p[4]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 550,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[5"
+            ],
+            "text": "set_property LOC AG33 [get_ports {ddram_dqs_p[5]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 551,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[5"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_p[5]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 552,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[5"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_p[5]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 553,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[5"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_p[5]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 556,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[6"
+            ],
+            "text": "set_property LOC AE34 [get_ports {ddram_dqs_p[6]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 557,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[6"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_p[6]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 558,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[6"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_p[6]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 559,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[6"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_p[6]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 562,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[7"
+            ],
+            "text": "set_property LOC AE27 [get_ports {ddram_dqs_p[7]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 563,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[7"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_p[7]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 564,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[7"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_p[7]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 565,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_p[7"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_p[7]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 580,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[2"
+            ],
+            "text": "set_property LOC AP22 [get_ports {ddram_dqs_n[2]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 581,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[2"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_n[2]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 582,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[2"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_n[2]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 583,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[2"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_n[2]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 586,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[3"
+            ],
+            "text": "set_property LOC AJ20 [get_ports {ddram_dqs_n[3]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 587,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[3"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_n[3]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 588,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[3"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_n[3]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 589,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[3"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_n[3]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 592,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[4"
+            ],
+            "text": "set_property LOC AL33 [get_ports {ddram_dqs_n[4]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 593,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[4"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_n[4]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 594,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[4"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_n[4]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 595,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[4"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_n[4]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 598,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[5"
+            ],
+            "text": "set_property LOC AH33 [get_ports {ddram_dqs_n[5]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 599,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[5"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_n[5]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 600,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[5"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_n[5]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 601,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[5"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_n[5]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 604,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[6"
+            ],
+            "text": "set_property LOC AF34 [get_ports {ddram_dqs_n[6]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 605,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[6"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_n[6]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 606,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[6"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_n[6]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 607,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[6"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_n[6]}]"
+          },
+          {
+            "categories": [
+              "placement",
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 610,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[7"
+            ],
+            "text": "set_property LOC AE28 [get_ports {ddram_dqs_n[7]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 611,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[7"
+            ],
+            "text": "set_property SLEW FAST [get_ports {ddram_dqs_n[7]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 612,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[7"
+            ],
+            "text": "set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddram_dqs_n[7]}]"
+          },
+          {
+            "categories": [
+              "ddr"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 613,
+            "op": "set_property",
+            "targets": [
+              "ports:ddram_dqs_n[7"
+            ],
+            "text": "set_property IN_TERM UNTUNED_SPLIT_40 [get_ports {ddram_dqs_n[7]}]"
+          }
+        ]
+      },
+      "expected_combined_top_SYS_RSTN_replaced_by_pcie_sys_rst_n": {
+        "count": 2,
+        "examples": [
+          {
+            "categories": [
+              "placement"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 7,
+            "op": "set_property",
+            "targets": [
+              "ports:SYS_RSTN"
+            ],
+            "text": "set_property LOC R28 [get_ports {SYS_RSTN}]"
+          },
+          {
+            "categories": [],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 8,
+            "op": "set_property",
+            "targets": [
+              "ports:SYS_RSTN"
+            ],
+            "text": "set_property IOSTANDARD LVCMOS18 [get_ports {SYS_RSTN}]"
+          }
+        ]
+      },
+      "expected_combined_top_clk50_replaced_by_pcie_clk_50": {
+        "count": 3,
+        "examples": [
+          {
+            "categories": [
+              "placement"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 3,
+            "op": "set_property",
+            "targets": [
+              "ports:clk50"
+            ],
+            "text": "set_property LOC AA28 [get_ports {clk50}]"
+          },
+          {
+            "categories": [],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 4,
+            "op": "set_property",
+            "targets": [
+              "ports:clk50"
+            ],
+            "text": "set_property IOSTANDARD LVCMOS18 [get_ports {clk50}]"
+          },
+          {
+            "categories": [
+              "clock"
+            ],
+            "file": "/nix/store/qs2ypxbxw7h2n5dd1f6srn4zd03c2nf2-task6-ypcb-uberddr3-bist.xdc",
+            "line": 5,
+            "op": "create_clock",
+            "targets": [
+              "ports:clk50"
+            ],
+            "text": "create_clock -name clk50 -period 20.000 [get_ports clk50]"
+          }
+        ]
+      }
+    },
+    "expected_ddr_count": 245,
+    "important_by_category": {},
+    "important_ddr_count": 0,
+    "important_ddr_examples": [],
+    "important_pcie_count": 0,
+    "important_pcie_examples": [],
+    "pcie_count": 0,
+    "pcie_examples": [],
+    "suspicious_ddr_count": 0,
+    "suspicious_ddr_examples": []
+  },
+  "schema": "task6-xdc-constraint-audit-v1",
+  "summaries": {
+    "combined": {
+      "category_counts": {
+        "clock": 6,
+        "ddr": 161,
+        "placement": 60
+      },
+      "constraint_count": 186,
+      "op_counts": {
+        "create_clock": 6,
+        "set_property": 180
+      }
+    },
+    "ddr": {
+      "category_counts": {
+        "clock": 1,
+        "ddr": 401,
+        "placement": 109
+      },
+      "constraint_count": 406,
+      "op_counts": {
+        "create_clock": 1,
+        "set_property": 405
+      }
+    },
+    "pcie": {
+      "category_counts": {
+        "clock": 6,
+        "placement": 13
+      },
+      "constraint_count": 25,
+      "op_counts": {
+        "create_clock": 6,
+        "set_property": 19
+      }
+    }
+  },
+  "verdict": "PASS"
+}

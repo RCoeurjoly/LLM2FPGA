@@ -1,0 +1,165 @@
+{
+  "format": "task6.nextpnr-ddr3-bel-locks.v1",
+  "lock_count": 25,
+  "locks": [
+    {
+      "bel": "IOB_X0Y75/IOB33/OUTBUF",
+      "cell": "ddram_a[0]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y79/IOB33/OUTBUF",
+      "cell": "ddram_a[10]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y78/IOB33/OUTBUF",
+      "cell": "ddram_a[11]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y86/IOB33/OUTBUF",
+      "cell": "ddram_a[12]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y82/IOB33/OUTBUF",
+      "cell": "ddram_a[13]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y88/IOB33/OUTBUF",
+      "cell": "ddram_a[14]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y97/IOB33/OUTBUF",
+      "cell": "ddram_a[1]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y81/IOB33/OUTBUF",
+      "cell": "ddram_a[2]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y76/IOB33/OUTBUF",
+      "cell": "ddram_a[3]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y68/IOB33/OUTBUF",
+      "cell": "ddram_a[4]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y70/IOB33/OUTBUF",
+      "cell": "ddram_a[5]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y77/IOB33/OUTBUF",
+      "cell": "ddram_a[6]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y67/IOB33/OUTBUF",
+      "cell": "ddram_a[7]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y69/IOB33/OUTBUF",
+      "cell": "ddram_a[8]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y98/IOB33/OUTBUF",
+      "cell": "ddram_a[9]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y85/IOB33/OUTBUF",
+      "cell": "ddram_ba[0]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y95/IOB33/OUTBUF",
+      "cell": "ddram_ba[1]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y89/IOB33/OUTBUF",
+      "cell": "ddram_ba[2]$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y92/IOB33/OUTBUF",
+      "cell": "ddram_cas_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y91/IOB33/OUTBUF",
+      "cell": "ddram_cke$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y80/IOB33/OUTBUF",
+      "cell": "ddram_cs_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y83/IOB33/OUTBUF",
+      "cell": "ddram_odt$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y84/IOB33/OUTBUF",
+      "cell": "ddram_ras_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y138/IOB33/OUTBUF",
+      "cell": "ddram_reset_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    },
+    {
+      "bel": "IOB_X0Y90/IOB33/OUTBUF",
+      "cell": "ddram_we_n$obuf$$intcell$OBUF",
+      "scope": "ddr3_board_pins",
+      "type": "IOB33_OUTBUF"
+    }
+  ],
+  "scope_counts": {
+    "ddr3_board_pins": 25
+  },
+  "skipped_missing_bel": [],
+  "skipped_missing_bel_count": 0,
+  "source_placed_json": "/nix/store/b4cg42wml5cr61x58bl1r34brgja6k3z-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.placed.json",
+  "type_counts": {
+    "IOB33_OUTBUF": 25
+  }
+}

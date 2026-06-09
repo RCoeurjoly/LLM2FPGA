@@ -1,0 +1,241 @@
+{
+  "baseline_fasm": "/nix/store/lvyzlm0phqdvmv1b53xszn546qkn505c-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.fasm",
+  "candidate_fasm": "/nix/store/ym4zbd535gl7xq9ywkhld1g8p9npmdha-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20.fasm",
+  "critical_classes": {
+    "bscan_jtag": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 26,
+      "candidate_feature_count": 26,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "clock_route": {
+      "added_count": 9731,
+      "added_examples": [
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y11.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y14.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y14.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y14.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y14.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y4.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y4.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y4.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y4.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL10_I0.CLK_BUFG_BOT_R_CK_MUXED20",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL11_I0.CLK_BUFG_IMUX27_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL14_I0.CLK_BUFG_IMUX30_3",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL15_I0.CLK_BUFG_IMUX31_3"
+      ],
+      "baseline_feature_count": 11304,
+      "candidate_feature_count": 14399,
+      "changed_tile_count": 4544,
+      "changed_tiles": {
+        "CLK_BUFG_REBUF_X155Y38": {
+          "baseline": 31,
+          "candidate": 32
+        },
+        "CLK_BUFG_REBUF_X155Y65": {
+          "baseline": 31,
+          "candidate": 32
+        },
+        "CLK_HROW_BOT_R_X155Y182": {
+          "baseline": 44,
+          "candidate": 48
+        },
+        "CLK_HROW_BOT_R_X155Y26": {
+          "baseline": 35,
+          "candidate": 40
+        },
+        "DSP_L_X14Y115": {
+          "baseline": 0,
+          "candidate": 1
+        },
+        "DSP_L_X14Y145": {
+          "baseline": 0,
+          "candidate": 1
+        },
+        "DSP_L_X14Y95": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_CMT_X8Y182": {
+          "baseline": 15,
+          "candidate": 16
+        },
+        "HCLK_CMT_X8Y26": {
+          "baseline": 4,
+          "candidate": 5
+        },
+        "HCLK_L_X104Y130": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X108Y130": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X108Y78": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X11Y182": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X15Y182": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X21Y182": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X251Y234": {
+          "baseline": 3,
+          "candidate": 5
+        }
+      },
+      "removed_count": 6636,
+      "removed_examples": [
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y3.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL10_I0.CLK_BUFG_IMUX26_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL15_I0.CLK_BUFG_BOT_R_CK_MUXED30",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL1_I0.CLK_BUFG_IMUX29_0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL2_I0.CLK_BUFG_IMUX26_0"
+      ]
+    },
+    "idelay": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 113,
+      "candidate_feature_count": 113,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "iob": {
+      "added_count": 9,
+      "added_examples": [
+        "HCLK_IOI3_X1Y26.HCLK_IOI_CK_IGCLK5.HCLK_IOI_CK_BUFHCLK5",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_BOT1.HCLK_IOI_CK_IGCLK3",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_BOT2.HCLK_IOI_CK_IGCLK4",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_BOT3.HCLK_IOI_CK_IGCLK5",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_TOP1.HCLK_IOI_CK_IGCLK3",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_TOP2.HCLK_IOI_CK_IGCLK4",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_CK_IGCLK3.HCLK_IOI_CK_BUFHCLK3",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_BOT1.HCLK_IOI_CK_IGCLK3",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_TOP1.HCLK_IOI_CK_IGCLK3"
+      ],
+      "baseline_feature_count": 2846,
+      "candidate_feature_count": 2846,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 9,
+      "removed_examples": [
+        "HCLK_IOI3_X1Y26.HCLK_IOI_CK_IGCLK2.HCLK_IOI_CK_BUFHCLK2",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_BOT1.HCLK_IOI_CK_IGCLK2",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_BOT2.HCLK_IOI_CK_IGCLK3",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_BOT3.HCLK_IOI_CK_IGCLK4",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_TOP1.HCLK_IOI_CK_IGCLK2",
+        "HCLK_IOI3_X1Y26.HCLK_IOI_LEAF_GCLK_TOP2.HCLK_IOI_CK_IGCLK3",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_CK_IGCLK4.HCLK_IOI_CK_BUFHCLK4",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_BOT1.HCLK_IOI_CK_IGCLK4",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_TOP1.HCLK_IOI_CK_IGCLK4"
+      ]
+    },
+    "iserdes_oserdes": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 352,
+      "candidate_feature_count": 352,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "pll_mmcm_site": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 88,
+      "candidate_feature_count": 88,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    }
+  },
+  "label": "loader-only-seed20-vs-full-seed20",
+  "reasons": [
+    "DDR3 PHY/JTAG site-level FASM features changed relative to the baseline"
+  ],
+  "status": "FAIL",
+  "summary": {
+    "baseline_feature_count": 371195,
+    "candidate_feature_count": 537608,
+    "common_feature_count": 93678,
+    "critical_added_count": 9740,
+    "critical_changed_tile_count": 4544,
+    "critical_removed_count": 6645,
+    "hard_fail_added_count": 9,
+    "hard_fail_changed_tile_count": 0,
+    "hard_fail_removed_count": 9,
+    "ignored_tile_count": 0,
+    "ignored_tiles": [],
+    "total_added_count": 443930,
+    "total_removed_count": 277517
+  },
+  "total_added_examples": [
+    "BRAM_INT_INTERFACE_L_X114Y197.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+    "BRAM_INT_INTERFACE_L_X114Y198.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y199.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22"
+  ],
+  "total_removed_examples": [
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6"
+  ]
+}

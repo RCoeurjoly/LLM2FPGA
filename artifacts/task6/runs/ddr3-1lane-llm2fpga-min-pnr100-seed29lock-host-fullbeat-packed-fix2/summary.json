@@ -1,0 +1,15 @@
+{
+  "base": 49,
+  "beat_addr": 4,
+  "debug_read_data_chunk_hex": "00000000000000000000000000000000",
+  "diagnostic_json": "artifacts/task6/runs/ddr3-1lane-llm2fpga-min-pnr100-seed29lock-host-fullbeat-packed-fix2/host-fullbeat-diagnostic.json",
+  "expected_hex": "3132333435363738",
+  "mismatch_count": 0,
+  "observed_authoritative": false,
+  "observed_hex": null,
+  "run_dir": "artifacts/task6/runs/ddr3-1lane-llm2fpga-min-pnr100-seed29lock-host-fullbeat-packed-fix2",
+  "status": "PASS",
+  "status_source": "rtl_fullbeat_status_fields",
+  "verdict": "host-fullbeat-write-read-passes",
+  "write_echo32_match": true
+}

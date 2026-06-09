@@ -1,0 +1,23 @@
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND: 0x0002
+magic             : 0x54365043
+version           : 0x00000003
+status            : 0x00000061
+accepted          : 0x00000000
+loader            : 0x00000003
+last_opcode       : 0x00000000
+last_addr         : 0x00000000
+wait_cycles       : 0x00000000
+ddr_debug1        : 0x00000017
+top1_status       : 0x00000001
+debug_magic       : 0x54364442
+debug_version     : 0x00000001
+debug_status      : 0x0000000f
+debug_seen        : 0x0000001f
+debug_ddr_debug1  : 0x00000017
+debug_loader_wait : 0x00000000
+heartbeat_samples : 0x000004f2 0x000004fa 0x00000502 0x0000050a
+status bits        : pcie_rst_n,calib_complete,boot_done
+loader bits        : calib_complete,boot_done
+debug status bits  : pcie_rst_n,rowstream_rst_n,calib_complete,boot_done
+debug seen bits    : rowstream_heartbeat_seen,rowstream_rst_n_seen,calib_complete_seen,boot_done_seen,ddr_debug1_nonzero_seen

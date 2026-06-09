@@ -1,0 +1,10 @@
+{
+  "base": 49,
+  "beat_addr": 4,
+  "diagnostic_json": "artifacts/task6/runs/ddr3-1lane-llm2fpga-min-pnr100-seed29lock-host-fullbeat-packed-fix/host-fullbeat-diagnostic.json",
+  "expected_hex": "3132333435363738393a3b3c3d3e3f40",
+  "observed_hex": "00000000000000000000000000000000",
+  "run_dir": "artifacts/task6/runs/ddr3-1lane-llm2fpga-min-pnr100-seed29lock-host-fullbeat-packed-fix",
+  "status": "FAIL",
+  "verdict": "host-fullbeat-write-read-fails"
+}

@@ -1,0 +1,14 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T11-53-59+0200-pcie-recovery-wrapper-fixture-test",
+  "fixture": "/tmp/task6-pcie-stale-bar-fixture.json",
+  "selected": {
+    "action": "root_recovery",
+    "reason": "bounded root PCIe/Thunderbolt reset ladder is the last software recovery step",
+    "command": [
+      "sudo",
+      "/usr/local/sbin/task6-pcie-gate",
+      "prepare",
+      "0000:42:00.0"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "task6-board-verdict-v1",
+  "status": "CREATED",
+  "created_at": "2026-06-08T12:51:37.317358+02:00",
+  "run_dir": "artifacts/task6/runs/2026-06-08T12-51-37+0200-pcie-loader-only-top1-local-uberddr3-seed20-sram-program",
+  "correctness": null,
+  "route": null,
+  "board": null,
+  "bram_margin": null,
+  "lut_margin": null,
+  "dsp_margin": null,
+  "timing_margin": null,
+  "runtime": null,
+  "notes": []
+}

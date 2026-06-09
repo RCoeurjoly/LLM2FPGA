@@ -1,0 +1,69 @@
+{
+  "bdf": "0000:42:00.0",
+  "beats_loaded": 213656,
+  "bytes_loaded": 3418496,
+  "bytes_per_second": 91180.71630023474,
+  "elapsed_seconds": 37.49143611401087,
+  "image": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin",
+  "sha256_loaded": "2b30755a9a351538999cdc51cf9e7c6238672b2a0499bfb92b3f1dbf177b43b2",
+  "start_beat": 0,
+  "status": "PASS",
+  "verify_samples": [
+    {
+      "beat": 0,
+      "expected_hex": "d425fef3e8e6e6fec8faf9e304341508",
+      "image_beat": 0,
+      "match": true,
+      "observed_hex": "d425fef3e8e6e6fec8faf9e304341508"
+    },
+    {
+      "beat": 30522,
+      "expected_hex": "01121ccfcdd931c31e4305c8011928e1",
+      "image_beat": 30522,
+      "match": true,
+      "observed_hex": "01121ccfcdd931c31e4305c8011928e1"
+    },
+    {
+      "beat": 61044,
+      "expected_hex": "0e7038b20a2eb1181ff8cc1d1dcff6fc",
+      "image_beat": 61044,
+      "match": true,
+      "observed_hex": "0e7038b20a2eb1181ff8cc1d1dcff6fc"
+    },
+    {
+      "beat": 91566,
+      "expected_hex": "159900005881ca34b73840503745c96c",
+      "image_beat": 91566,
+      "match": true,
+      "observed_hex": "159900005881ca34b73840503745c96c"
+    },
+    {
+      "beat": 122089,
+      "expected_hex": "001512e902e906f89ccb00005781bf37",
+      "image_beat": 122089,
+      "match": true,
+      "observed_hex": "001512e902e906f89ccb00005781bf37"
+    },
+    {
+      "beat": 152611,
+      "expected_hex": "563550cdc2bf4ea9bf5848abd1d2c9a1",
+      "image_beat": 152611,
+      "match": true,
+      "observed_hex": "563550cdc2bf4ea9bf5848abd1d2c9a1"
+    },
+    {
+      "beat": 183133,
+      "expected_hex": "d4c1e73a00e3f2171fc6fc0d257f4a2b",
+      "image_beat": 183133,
+      "match": true,
+      "observed_hex": "d4c1e73a00e3f2171fc6fc0d257f4a2b"
+    },
+    {
+      "beat": 213655,
+      "expected_hex": "00000000000000000000000000000000",
+      "image_beat": 213655,
+      "match": true,
+      "observed_hex": "00000000000000000000000000000000"
+    }
+  ]
+}

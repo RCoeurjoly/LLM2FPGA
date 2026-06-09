@@ -1,0 +1,64 @@
+{
+  "json": "/nix/store/sj8jgcbbm0nhizqir9wfksfir13vnz6r-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-yosys.json",
+  "primitive_count": 3,
+  "primitives": [
+    {
+      "attributes": {
+        "hdlname": "impl pcie_7x_top_aximm_i pcie_7x_i gt_wrapper_gtx.pipe_wrapper_i gtxe2_channel_i",
+        "module_not_derived": "00000000000000000000000000000001",
+        "src": "/nix/store/l9smfbplnn5azh331n48p6m1kb9ydgw4-task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top.sv:34.5-58.4|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/aximm-minimal/pcie_7x_top_aximm.v:240.3-315.2|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/pipe_wrapper_gtx.v:936.6-1166.6|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/pcie_7x.v:1129.3-1175.2|/nix/store/bg31jyyw8k2fv31majvdsnv9pp8c73ck-task6_ypcb_pcie_uberddr3_rowstream_loader_top.sv:93.5-121.4"
+      },
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.gtxe2_channel_i",
+      "module": "task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top",
+      "parameters": {
+        "ALIGN_COMMA_DOUBLE": "FALSE",
+        "CHAN_BOND_SEQ_LEN": "00000000000000000000000000000100",
+        "CLK_COR_SEQ_2_USE": "FALSE",
+        "RXBUF_EN": "TRUE",
+        "RXCDR_CFG": "000000110000000000000000001000111111111100010000001000000000000000100000",
+        "RXOUT_DIV": "00000000000000000000000000000010",
+        "RX_DATA_WIDTH": "00000000000000000000000000010100",
+        "TXOUT_DIV": "00000000000000000000000000000010",
+        "TX_DATA_WIDTH": "00000000000000000000000000010100"
+      },
+      "type": "GTXE2_CHANNEL"
+    },
+    {
+      "attributes": {
+        "hdlname": "impl pcie_7x_top_aximm_i pcie_7x_i gt_wrapper_gtx.pipe_wrapper_i gtxe2_common_i",
+        "module_not_derived": "00000000000000000000000000000001",
+        "src": "/nix/store/l9smfbplnn5azh331n48p6m1kb9ydgw4-task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top.sv:34.5-58.4|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/aximm-minimal/pcie_7x_top_aximm.v:240.3-315.2|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/pipe_wrapper_gtx.v:665.5-707.6|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/pcie_7x.v:1129.3-1175.2|/nix/store/bg31jyyw8k2fv31majvdsnv9pp8c73ck-task6_ypcb_pcie_uberddr3_rowstream_loader_top.sv:93.5-121.4"
+      },
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.gt_wrapper_gtx.pipe_wrapper_i.gtxe2_common_i",
+      "module": "task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top",
+      "parameters": {},
+      "type": "GTXE2_COMMON"
+    },
+    {
+      "attributes": {
+        "hdlname": "impl pcie_7x_top_aximm_i pcie_7x_i pcie_block_inst pcie_2_1_block",
+        "module_not_derived": "00000000000000000000000000000001",
+        "src": "/nix/store/l9smfbplnn5azh331n48p6m1kb9ydgw4-task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top.sv:34.5-58.4|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/aximm-minimal/pcie_7x_top_aximm.v:240.3-315.2|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/pcie_block.v:1160.5-1571.4|/nix/store/2cir5cw4knmkpw7sp8wxlfhgs3iyzxnh-task6-pcie7x-source-vivado-lane0-loc-rowstream-ingress/src/pcie_7x.v:750.3-1036.2|/nix/store/bg31jyyw8k2fv31majvdsnv9pp8c73ck-task6_ypcb_pcie_uberddr3_rowstream_loader_top.sv:93.5-121.4"
+      },
+      "cell": "impl.pcie_7x_top_aximm_i.pcie_7x_i.pcie_block_inst.pcie_2_1_block",
+      "module": "task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top",
+      "parameters": {
+        "BAR0": "11111111111111111111000000000000",
+        "BAR1": "00000000000000000000000000000000",
+        "CLASS_CODE": "000001011000000000000000",
+        "DEV_CAP_MAX_PAYLOAD_SUPPORTED": "00000000000000000000000000000001",
+        "DISABLE_LANE_REVERSAL": "TRUE",
+        "LINK_CAP_MAX_LINK_SPEED": "0001",
+        "LINK_CAP_MAX_LINK_WIDTH": "000001",
+        "LINK_CTRL2_TARGET_LINK_SPEED": "0001",
+        "LTSSM_MAX_LINK_WIDTH": "000001",
+        "PCIE_CAP_DEVICE_PORT_TYPE": "0000",
+        "PCIE_CAP_NEXTPTR": "00000000",
+        "PCIE_CAP_ON": "TRUE",
+        "PCIE_REVISION": "00000000000000000000000000000010",
+        "PL_FAST_TRAIN": "TRUE"
+      },
+      "type": "PCIE_2_1"
+    }
+  ]
+}

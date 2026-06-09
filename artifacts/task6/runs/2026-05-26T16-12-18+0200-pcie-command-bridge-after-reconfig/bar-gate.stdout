@@ -1,0 +1,11 @@
+0000:42:00.0 Memory controller: Xilinx Corporation Device 0480
+COMMAND before: 0x0002
+COMMAND after:  0x0002
+BAR0 first word via mmap:
+00000000  54 36 50 43                                      |T6PC|
+BAR0 header snapshot:
+00000000  54 36 50 43 00 00 00 01 00 00 00 01 00 00 00 00  |T6PC............|
+00000010  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+00000020  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+00000030  12 34 56 78 12 34 56 78 12 34 56 78 12 34 56 78  |.4Vx.4Vx.4Vx.4Vx|
+PASS: BAR0 Task 6 header magic matched; offset 0 was not written

@@ -1,0 +1,17 @@
+{
+  "base": 165,
+  "beat_addr": 0,
+  "boot_error": false,
+  "boot_mismatch": false,
+  "diagnostic_json": "artifacts/task6/runs/ddr3-1lane-llm2fpga-min-pnr100-seed29lock-rtl-fullbeat-after-filetype-bit/rtl-fullbeat-diagnostic.json",
+  "expected_echo32": 2829559461,
+  "expected_prefix_hex": "a5a6a7a8a9aaabacadaeafb0b1b2b3b4",
+  "mismatch_count": 0,
+  "observed_prefix_hex": "00000000000000000000000000000000",
+  "run_dir": "artifacts/task6/runs/ddr3-1lane-llm2fpga-min-pnr100-seed29lock-rtl-fullbeat-after-filetype-bit",
+  "status": "FAIL",
+  "verdict": "rtl-generated-fullbeat-readback-fails",
+  "wb_ack_count": 2,
+  "write_echo32": 2829559461,
+  "write_echo32_match": true
+}

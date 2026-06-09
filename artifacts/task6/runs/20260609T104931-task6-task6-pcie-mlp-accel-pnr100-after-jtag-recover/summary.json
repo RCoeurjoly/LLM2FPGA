@@ -1,0 +1,25 @@
+{
+  "plan_id": "task6-pnr100",
+  "hypothesis_id": "no-seed-pnr100",
+  "lane": "task6",
+  "slug": "pcie-mlp-accel-pnr100-after-jtag-recover",
+  "timestamp": "2026-06-09T10:49:31+02:00",
+  "notes": "",
+  "status": "IN_PROGRESS",
+  "commands": {
+    "boot_only": null,
+    "diagnostic_fullbeat": null,
+    "memory_contract": null,
+    "tinystories_inference": null,
+    "resource_check": null
+  },
+  "gates": {
+    "boot_gate": null,
+    "fullbeat_gate": null,
+    "boundary_rows_gate": null,
+    "full_readback_gate": null,
+    "top1_gate": null,
+    "resource_gate": null
+  },
+  "artifacts": []
+}

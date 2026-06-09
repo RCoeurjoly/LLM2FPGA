@@ -1,0 +1,48 @@
+{
+  "artifact_name": "task6-pcie-rowstream-top1-board-gate",
+  "bdf": "0000:42:00.0",
+  "date": "2026-06-08",
+  "elapsed_seconds": 0.0419727279804647,
+  "image": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin",
+  "image_sha256": "2b30755a9a351538999cdc51cf9e7c6238672b2a0499bfb92b3f1dbf177b43b2",
+  "load_image": false,
+  "load_verify_samples": [],
+  "model": {
+    "hidden_size": 64,
+    "model_label": "tiny-stories-1m-full",
+    "sample_count": 1,
+    "vocab_size": 50257
+  },
+  "samples": [
+    {
+      "cycle_count": 3452639,
+      "expected_replay_top1_token": null,
+      "expected_rows_scanned": 50257,
+      "expected_top1_score_q024_low32": 19047028,
+      "expected_top1_score_q024_signed": 19047028,
+      "expected_top1_token": 815,
+      "hidden_scale": null,
+      "matches_expected_replay_top1": null,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "rows_scanned": 50257,
+      "sample_id": "host_hidden_q_hex",
+      "start_count_after": 1,
+      "start_count_before": 0,
+      "status_reg": 5,
+      "token_ids": null,
+      "top1_score_q024": 19047028,
+      "top1_token": 815
+    }
+  ],
+  "start_beat": 0,
+  "status": "PASS",
+  "validation": {
+    "hardware_top1_used": true,
+    "mismatch_count": 0,
+    "reserved_nonzero_count": 0,
+    "score_compare": "low32 of signed Q0.24 product, matching current BAR result width"
+  }
+}

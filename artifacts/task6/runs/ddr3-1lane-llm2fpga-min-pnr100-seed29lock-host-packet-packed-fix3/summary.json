@@ -1,0 +1,18 @@
+{
+  "beats": 8,
+  "completed_beats": 4,
+  "diagnostic_json": "artifacts/task6/runs/ddr3-1lane-llm2fpga-min-pnr100-seed29lock-host-packet-packed-fix3/host-packet-diagnostic.json",
+  "first_mismatch": 255,
+  "first_standalone_mismatch": 0,
+  "mismatch_count": 0,
+  "packet_count": 1,
+  "packet_load_delay": 0.01,
+  "packet_postread_delay": 0.0,
+  "packet_postread_sample_beats": null,
+  "run_dir": "artifacts/task6/runs/ddr3-1lane-llm2fpga-min-pnr100-seed29lock-host-packet-packed-fix3",
+  "source": "deterministic",
+  "standalone_mismatch_count": 4,
+  "start_beat": 16,
+  "status": "FAIL",
+  "verdict": "host-packet-fails"
+}

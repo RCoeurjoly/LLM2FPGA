@@ -1,0 +1,54 @@
+{
+  "artifact_name": "task6-pcie-mlp-boundary-board-gate",
+  "bdf": "0000:42:00.0",
+  "boundary": "c_fc -> fixed-point GELU -> c_proj -> residual add -> int8 block output",
+  "checks": {
+    "first_add_sample": true,
+    "first_requant_sample": true,
+    "mlp_fail_clear": true,
+    "mlp_magic": true,
+    "mlp_present": true,
+    "mlp_state_pass": true,
+    "mlp_version": true,
+    "not_all_ones": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "command": "0002",
+  "date": "2026-06-09",
+  "decoded": {
+    "first_add_seen": true,
+    "first_requant_seen": true,
+    "mlp_fail_index": 0,
+    "mlp_fail_reason": 0,
+    "mlp_state": 11,
+    "mlp_state_name": "PASS"
+  },
+  "elapsed_seconds": 0.00022855200222693384,
+  "expected": {
+    "first_add_sample": "0x0a0a0201",
+    "first_requant_sample": "0x0a0a0001",
+    "mlp_magic": "0x54364d4c",
+    "mlp_state": 11,
+    "mlp_state_name": "PASS",
+    "mlp_version": 1
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "registers": {
+    "debug_magic": "0x54364442",
+    "debug_status": "0x00000001",
+    "magic": "0x54365043",
+    "mlp_cycle_count": "0x0000d720",
+    "mlp_fail_detail": "0x00000000",
+    "mlp_fail_values": "0x00000000",
+    "mlp_first_add_sample": "0x0a0a0201",
+    "mlp_first_requant_sample": "0x0a0a0001",
+    "mlp_magic": "0x54364d4c",
+    "mlp_present": "0x00000001",
+    "mlp_status": "0x00000c0b",
+    "mlp_version": "0x00000001",
+    "status": "0x00000061",
+    "version": "0x00000003"
+  },
+  "status": "PASS"
+}

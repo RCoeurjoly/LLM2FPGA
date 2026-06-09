@@ -1,0 +1,229 @@
+{
+  "baseline_fasm": "/nix/store/83kvvpysc7lfbvhfgrlwcm3yhxd6bqs3-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.fasm",
+  "candidate_fasm": "/nix/store/fj0qvky5fmxlc8aqys3awh2dd71p17zg-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv.fasm",
+  "critical_classes": {
+    "bscan_jtag": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 26,
+      "candidate_feature_count": 26,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "clock_route": {
+      "added_count": 10728,
+      "added_examples": [
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y12.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y12.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y12.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y12.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y8.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y8.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y8.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y8.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y9.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y9.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y9.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y9.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL12_I0.CLK_BUFG_IMUX24_3",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL15_I0.CLK_BUFG_IMUX31_3",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL3_I0.CLK_BUFG_BOT_R_CK_MUXED6",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL8_I0.CLK_BUFG_IMUX24_2"
+      ],
+      "baseline_feature_count": 11304,
+      "candidate_feature_count": 14748,
+      "changed_tile_count": 4924,
+      "changed_tiles": {
+        "CLK_BUFG_REBUF_X155Y246": {
+          "baseline": 27,
+          "candidate": 28
+        },
+        "CLK_BUFG_REBUF_X155Y273": {
+          "baseline": 27,
+          "candidate": 28
+        },
+        "CLK_HROW_BOT_R_X155Y182": {
+          "baseline": 44,
+          "candidate": 43
+        },
+        "CLK_HROW_TOP_R_X155Y286": {
+          "baseline": 20,
+          "candidate": 25
+        },
+        "DSP_L_X14Y100": {
+          "baseline": 0,
+          "candidate": 1
+        },
+        "DSP_L_X14Y115": {
+          "baseline": 0,
+          "candidate": 1
+        },
+        "DSP_L_X14Y95": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_CMT_X8Y286": {
+          "baseline": 4,
+          "candidate": 5
+        },
+        "HCLK_L_BOT_UTURN_X280Y234": {
+          "baseline": 2,
+          "candidate": 0
+        },
+        "HCLK_L_X226Y234": {
+          "baseline": 3,
+          "candidate": 0
+        },
+        "HCLK_L_X226Y286": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X231Y234": {
+          "baseline": 3,
+          "candidate": 0
+        },
+        "HCLK_L_X231Y286": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X236Y234": {
+          "baseline": 3,
+          "candidate": 0
+        },
+        "HCLK_L_X236Y286": {
+          "baseline": 0,
+          "candidate": 2
+        },
+        "HCLK_L_X241Y234": {
+          "baseline": 3,
+          "candidate": 0
+        }
+      },
+      "removed_count": 7284,
+      "removed_examples": [
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.IN_USE",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.IS_IGNORE1_INVERTED",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.ZINV_CE0",
+        "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.ZINV_S0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL10_I0.CLK_BUFG_IMUX26_2",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL15_I0.CLK_BUFG_BOT_R_CK_MUXED30",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL1_I0.CLK_BUFG_IMUX29_0",
+        "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL2_I0.CLK_BUFG_IMUX26_0"
+      ]
+    },
+    "idelay": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 113,
+      "candidate_feature_count": 113,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "iob": {
+      "added_count": 3,
+      "added_examples": [
+        "HCLK_IOI3_X1Y78.HCLK_IOI_CK_IGCLK3.HCLK_IOI_CK_BUFHCLK3",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_BOT1.HCLK_IOI_CK_IGCLK3",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_TOP1.HCLK_IOI_CK_IGCLK3"
+      ],
+      "baseline_feature_count": 2846,
+      "candidate_feature_count": 2846,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 3,
+      "removed_examples": [
+        "HCLK_IOI3_X1Y78.HCLK_IOI_CK_IGCLK4.HCLK_IOI_CK_BUFHCLK4",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_BOT1.HCLK_IOI_CK_IGCLK4",
+        "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_TOP1.HCLK_IOI_CK_IGCLK4"
+      ]
+    },
+    "iserdes_oserdes": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 352,
+      "candidate_feature_count": 352,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    },
+    "pll_mmcm_site": {
+      "added_count": 0,
+      "added_examples": [],
+      "baseline_feature_count": 88,
+      "candidate_feature_count": 88,
+      "changed_tile_count": 0,
+      "changed_tiles": {},
+      "removed_count": 0,
+      "removed_examples": []
+    }
+  },
+  "label": "seed20-tmdriv",
+  "reasons": [
+    "DDR3 PHY/JTAG site-level FASM features changed relative to the baseline"
+  ],
+  "status": "FAIL",
+  "summary": {
+    "baseline_feature_count": 371195,
+    "candidate_feature_count": 539485,
+    "common_feature_count": 90583,
+    "critical_added_count": 10731,
+    "critical_changed_tile_count": 4924,
+    "critical_removed_count": 7287,
+    "hard_fail_added_count": 3,
+    "hard_fail_changed_tile_count": 0,
+    "hard_fail_removed_count": 3,
+    "ignored_tile_count": 0,
+    "ignored_tiles": [],
+    "total_added_count": 448902,
+    "total_removed_count": 280612
+  },
+  "total_added_examples": [
+    "BRAM_INT_INTERFACE_L_X114Y197.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+    "BRAM_INT_INTERFACE_L_X114Y198.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y199.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+    "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+    "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22"
+  ],
+  "total_removed_examples": [
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+    "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+    "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6"
+  ]
+}

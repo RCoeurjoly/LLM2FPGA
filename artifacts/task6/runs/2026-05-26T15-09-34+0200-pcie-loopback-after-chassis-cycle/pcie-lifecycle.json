@@ -1,0 +1,152 @@
+{
+  "created_at": "2026-05-26T15:09:34.825276+02:00",
+  "bdf": "0000:42:00.0",
+  "bridge_bdf": "0000:41:00.0",
+  "endpoint_exists": true,
+  "bridge_exists": true,
+  "config_words": [
+    "0002",
+    "10ee",
+    "0480",
+    "00",
+    "abcd",
+    "74000000"
+  ],
+  "config_decoded": {
+    "command": "0002",
+    "vendor": "10ee",
+    "device": "0480",
+    "header_type": "00",
+    "subsystem_device": "abcd",
+    "bar0": "74000000"
+  },
+  "config_probe": {
+    "argv": [
+      "setpci",
+      "-s",
+      "0000:42:00.0",
+      "COMMAND",
+      "VENDOR_ID",
+      "DEVICE_ID",
+      "HEADER_TYPE",
+      "2e.w",
+      "10.l"
+    ],
+    "returncode": 0,
+    "stdout": "0002\n10ee\n0480\n00\nabcd\n74000000\n",
+    "stderr": "",
+    "timeout": false
+  },
+  "resource": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/resource",
+    "exists": true,
+    "mode": "0o444",
+    "uid": 0,
+    "gid": 0,
+    "readable": true,
+    "writable": false
+  },
+  "resource0": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/resource0",
+    "exists": true,
+    "mode": "0o660",
+    "uid": 0,
+    "gid": 46,
+    "readable": true,
+    "writable": true
+  },
+  "endpoint_remove": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/remove",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 0,
+    "gid": 46,
+    "readable": false,
+    "writable": true
+  },
+  "endpoint_rescan": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/rescan",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 0,
+    "gid": 46,
+    "readable": false,
+    "writable": true
+  },
+  "endpoint_reset": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/reset",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 0,
+    "gid": 46,
+    "readable": false,
+    "writable": true
+  },
+  "bridge_rescan": {
+    "path": "/sys/bus/pci/devices/0000:41:00.0/rescan",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 0,
+    "gid": 46,
+    "readable": false,
+    "writable": true
+  },
+  "lspci_endpoint": {
+    "argv": [
+      "lspci",
+      "-Dnn",
+      "-s",
+      "0000:42:00.0"
+    ],
+    "returncode": 0,
+    "stdout": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]\n",
+    "stderr": "",
+    "timeout": false
+  },
+  "lspci_bridge": {
+    "argv": [
+      "lspci",
+      "-Dnn",
+      "-s",
+      "0000:41:00.0"
+    ],
+    "returncode": 0,
+    "stdout": "0000:41:00.0 PCI bridge [0604]: Intel Corporation Thunderbolt 80/120G Bridge [Barlow Ridge Hub 80G 2023] [8086:5786] (rev 85)\n",
+    "stderr": "",
+    "timeout": false
+  },
+  "classification": "pcie_ready",
+  "recommendations": [
+    "BAR0 is usable; run BAR/debug lifecycle: scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-debug",
+    "Or run the standalone BAR gate: scripts/task6/task6_pcie_user_gate.sh bar 0000:42:00.0 --mode header",
+    "After BAR/debug are stable, run the first board top1 gate: scripts/task6/task6_pcie_user_gate.sh rowstream-top1 0000:42:00.0 --sample-count 1"
+  ],
+  "bar0_magic": null,
+  "debug_magic": null,
+  "bar_gate": {
+    "argv": [
+      "scripts/task6/task6_pcie_user_gate.sh",
+      "bar",
+      "0000:42:00.0",
+      "--mode",
+      "header"
+    ],
+    "returncode": 0,
+    "stdout": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480\nCOMMAND before: 0x0002\nCOMMAND after:  0x0002\nBAR0 first word via mmap:\n00000000  54 36 50 43                                      |T6PC|\nBAR0 header snapshot:\n00000000  54 36 50 43 00 00 00 02 00 00 00 05 00 00 00 01  |T6PC............|\n00000010  00 00 0f 00 00 07 78 80 12 34 56 78 12 34 56 78  |......x..4Vx.4Vx|\n00000020  00 07 78 80 00 00 00 00 17 28 39 4a d3 e4 f5 06  |..x......(9J....|\n00000030  00 00 00 00 00 00 0f 00 12 34 56 78 12 34 56 78  |.........4Vx.4Vx|\nPASS: BAR0 Task 6 header magic matched; offset 0 was not written\n",
+    "stderr": "",
+    "timeout": false
+  },
+  "debug_gate": {
+    "argv": [
+      "scripts/task6/task6_pcie_user_gate.sh",
+      "debug-dump",
+      "0000:42:00.0",
+      "--samples",
+      "4"
+    ],
+    "returncode": 1,
+    "stdout": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480\nCOMMAND: 0x0002\nmagic             : 0x54365043\nversion           : 0x00000002\nstatus            : 0x00000005\naccepted          : 0x00000001\nloader            : 0x00000f00\nlast_opcode       : 0x12345678\nlast_addr         : 0x12345678\nwait_cycles       : 0x12345678\nddr_debug1        : 0x12345678\ntop1_status       : 0x12345678\ndebug_magic       : 0x1728394a\ndebug_version     : 0x5b6c7d8e\ndebug_status      : 0xe3f40516\ndebug_seen        : 0x2738495a\ndebug_ddr_debug1  : 0x6b7c8d9e\ndebug_loader_wait : 0xafc0d1e2\nheartbeat_samples : 0x9fb0c1d2 0x9fb0c1d2 0x9fb0c1d2 0x9fb0c1d2\nstatus bits        : pcie_rst_n,loader_done\nloader bits        : 0\ndebug status bits  : rowstream_rst_n,calib_complete,rowstream_heartbeat\ndebug seen bits    : rowstream_rst_n_seen,boot_done_seen,ddr_debug1_nonzero_seen\n",
+    "stderr": "main Task 6 BAR header did not match\n",
+    "timeout": false
+  }
+}

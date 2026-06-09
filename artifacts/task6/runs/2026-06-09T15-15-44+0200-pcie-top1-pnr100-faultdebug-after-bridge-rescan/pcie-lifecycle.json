@@ -1,0 +1,84 @@
+{
+  "created_at": "2026-06-09T15:15:44.733658+02:00",
+  "bdf": "0000:42:00.0",
+  "bridge_bdf": "0000:41:00.0",
+  "endpoint_exists": false,
+  "bridge_exists": true,
+  "config_words": [],
+  "config_decoded": {},
+  "config_probe": {
+    "argv": [
+      "setpci",
+      "-s",
+      "0000:42:00.0",
+      "COMMAND",
+      "VENDOR_ID",
+      "DEVICE_ID",
+      "HEADER_TYPE",
+      "2e.w",
+      "10.l"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "setpci: Warning: No devices selected for operation group 1.\n",
+    "timeout": false
+  },
+  "resource": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/resource",
+    "exists": false
+  },
+  "resource0": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/resource0",
+    "exists": false
+  },
+  "endpoint_remove": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/remove",
+    "exists": false
+  },
+  "endpoint_rescan": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/rescan",
+    "exists": false
+  },
+  "endpoint_reset": {
+    "path": "/sys/bus/pci/devices/0000:42:00.0/reset",
+    "exists": false
+  },
+  "bridge_rescan": {
+    "path": "/sys/bus/pci/devices/0000:41:00.0/rescan",
+    "exists": true,
+    "mode": "0o220",
+    "uid": 65534,
+    "gid": 65534,
+    "readable": false,
+    "writable": false
+  },
+  "lspci_endpoint": {
+    "argv": [
+      "lspci",
+      "-Dnn",
+      "-s",
+      "0000:42:00.0"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "",
+    "timeout": false
+  },
+  "lspci_bridge": {
+    "argv": [
+      "lspci",
+      "-Dnn",
+      "-s",
+      "0000:41:00.0"
+    ],
+    "returncode": 0,
+    "stdout": "0000:41:00.0 PCI bridge [0604]: Intel Corporation Thunderbolt 80/120G Bridge [Barlow Ridge Hub 80G 2023] [8086:5786] (rev 85)\n",
+    "stderr": "",
+    "timeout": false
+  },
+  "classification": "missing_endpoint",
+  "recommendations": [
+    "Ensure the FPGA booted from BPI flash before host PCIe enumeration, then run the non-BAR lifecycle probe without rescan: scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0",
+    "If the bridge is present but the endpoint is absent, try one rootless bridge rescan: scripts/task6/task6_pcie_user_gate.sh bridge-rescan 0000:42:00.0 0000:41:00.0"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T15-45-28+0200-pcie-recovery-fixture-nonbar",
+  "fixture": "/dev/stdin",
+  "selected": {
+    "action": "done",
+    "reason": "PCIe lifecycle and BAR preflight are ready",
+    "command": null
+  }
+}

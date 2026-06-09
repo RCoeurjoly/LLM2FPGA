@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "pcie-mlp-full-output-pnr100-cold-bpi-auto-lifecycle-1"
+  ],
+  "name": "lifecycle-1",
+  "dry_run": false,
+  "returncode": 0,
+  "stdout": "classification: pcie_ready\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T16-36-26+0200-pcie-mlp-full-output-pnr100-cold-bpi-auto-lifecycle-1\nnext:\n- BAR0 is usable; run BAR/debug lifecycle: scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --run-bar --run-debug\n- Or run the standalone BAR gate: scripts/task6/task6_pcie_user_gate.sh bar 0000:42:00.0 --mode header\n- After BAR/debug are stable, run the first board top1 gate: scripts/task6/task6_pcie_user_gate.sh rowstream-top1 0000:42:00.0 --sample-count 1\n",
+  "stderr": "",
+  "timeout": false
+}

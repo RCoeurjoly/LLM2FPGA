@@ -1,0 +1,441 @@
+{
+  "classification": "pcie_physical_delta",
+  "commands": {
+    "ddr_fasm_compare": {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/roland/LLM2FPGA/scripts/task6/compare_nextpnr_fasm_physical_stability.py",
+        "--baseline-fasm",
+        "/nix/store/83kvvpysc7lfbvhfgrlwcm3yhxd6bqs3-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.fasm",
+        "--candidate-fasm",
+        "/nix/store/fj0qvky5fmxlc8aqys3awh2dd71p17zg-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv.fasm",
+        "--label",
+        "seed20-tmdriv",
+        "--out-json",
+        "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T23-22-26+0200-seed20-tmdriv/ddr3-fasm-compare.json",
+        "--no-fail-on-change"
+      ],
+      "log": "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T23-22-26+0200-seed20-tmdriv/ddr3-fasm-compare.stdout.json",
+      "returncode": 0
+    },
+    "full_primitive_report": {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/roland/LLM2FPGA/scripts/task6/task6_pcie_openxc7_primitive_report.py",
+        "/nix/store/pkdwpq212f6r9ypm9qph15sx321wrdm6-task6-ypcb-pcie-uberddr3-rowstream-loader-yosys.json",
+        "--pretty"
+      ],
+      "log": "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T23-22-26+0200-seed20-tmdriv/full-pcie-primitives.json",
+      "returncode": 0
+    },
+    "loader_primitive_report": {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/roland/LLM2FPGA/scripts/task6/task6_pcie_openxc7_primitive_report.py",
+        "/nix/store/py4i08kzsb1w2212hgk6przqblgvwfcw-task6-ypcb-pcie-uberddr3-rowstream-loader-only-yosys.json",
+        "--pretty"
+      ],
+      "log": "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T23-22-26+0200-seed20-tmdriv/loader-only-pcie-primitives.json",
+      "returncode": 0
+    },
+    "placement_compare": {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/roland/LLM2FPGA/scripts/task6/compare_nextpnr_placement_stability.py",
+        "--baseline-bel-locks",
+        "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T23-22-26+0200-seed20-tmdriv/loader-only-ddr3-bel-locks.json",
+        "--candidate-placed-json",
+        "/nix/store/inm4x3923c1n557kwrmmw2h0xk3qy3l7-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv.placed.json",
+        "--label",
+        "seed20-tmdriv",
+        "--out-json",
+        "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T23-22-26+0200-seed20-tmdriv/ddr3-placement-compare.json",
+        "--no-fail-on-change"
+      ],
+      "log": "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T23-22-26+0200-seed20-tmdriv/ddr3-placement-compare.stdout.json",
+      "returncode": 0
+    }
+  },
+  "created_at": "2026-05-26T23:22:38.542857+02:00",
+  "ddr3_fasm": {
+    "baseline_fasm": "/nix/store/83kvvpysc7lfbvhfgrlwcm3yhxd6bqs3-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.fasm",
+    "candidate_fasm": "/nix/store/fj0qvky5fmxlc8aqys3awh2dd71p17zg-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv.fasm",
+    "critical_classes": {
+      "bscan_jtag": {
+        "added_count": 0,
+        "added_examples": [],
+        "baseline_feature_count": 26,
+        "candidate_feature_count": 26,
+        "changed_tile_count": 0,
+        "changed_tiles": {},
+        "removed_count": 0,
+        "removed_examples": []
+      },
+      "clock_route": {
+        "added_count": 10728,
+        "added_examples": [
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y12.IN_USE",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y12.IS_IGNORE1_INVERTED",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y12.ZINV_CE0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y12.ZINV_S0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y8.IN_USE",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y8.IS_IGNORE1_INVERTED",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y8.ZINV_CE0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y8.ZINV_S0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y9.IN_USE",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y9.IS_IGNORE1_INVERTED",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y9.ZINV_CE0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y9.ZINV_S0",
+          "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL12_I0.CLK_BUFG_IMUX24_3",
+          "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL15_I0.CLK_BUFG_IMUX31_3",
+          "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL3_I0.CLK_BUFG_BOT_R_CK_MUXED6",
+          "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL8_I0.CLK_BUFG_IMUX24_2"
+        ],
+        "baseline_feature_count": 11304,
+        "candidate_feature_count": 14748,
+        "changed_tile_count": 4924,
+        "changed_tiles": {
+          "CLK_BUFG_REBUF_X155Y246": {
+            "baseline": 27,
+            "candidate": 28
+          },
+          "CLK_BUFG_REBUF_X155Y273": {
+            "baseline": 27,
+            "candidate": 28
+          },
+          "CLK_HROW_BOT_R_X155Y182": {
+            "baseline": 44,
+            "candidate": 43
+          },
+          "CLK_HROW_TOP_R_X155Y286": {
+            "baseline": 20,
+            "candidate": 25
+          },
+          "DSP_L_X14Y100": {
+            "baseline": 0,
+            "candidate": 1
+          },
+          "DSP_L_X14Y115": {
+            "baseline": 0,
+            "candidate": 1
+          },
+          "DSP_L_X14Y95": {
+            "baseline": 0,
+            "candidate": 2
+          },
+          "HCLK_CMT_X8Y286": {
+            "baseline": 4,
+            "candidate": 5
+          },
+          "HCLK_L_BOT_UTURN_X280Y234": {
+            "baseline": 2,
+            "candidate": 0
+          },
+          "HCLK_L_X226Y234": {
+            "baseline": 3,
+            "candidate": 0
+          },
+          "HCLK_L_X226Y286": {
+            "baseline": 0,
+            "candidate": 2
+          },
+          "HCLK_L_X231Y234": {
+            "baseline": 3,
+            "candidate": 0
+          },
+          "HCLK_L_X231Y286": {
+            "baseline": 0,
+            "candidate": 2
+          },
+          "HCLK_L_X236Y234": {
+            "baseline": 3,
+            "candidate": 0
+          },
+          "HCLK_L_X236Y286": {
+            "baseline": 0,
+            "candidate": 2
+          },
+          "HCLK_L_X241Y234": {
+            "baseline": 3,
+            "candidate": 0
+          }
+        },
+        "removed_count": 7284,
+        "removed_examples": [
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.IN_USE",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.IS_IGNORE1_INVERTED",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.ZINV_CE0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y1.ZINV_S0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.IN_USE",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.IS_IGNORE1_INVERTED",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.ZINV_CE0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y10.ZINV_S0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.IN_USE",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.IS_IGNORE1_INVERTED",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.ZINV_CE0",
+          "CLK_BUFG_BOT_R_X155Y204.BUFGCTRL.BUFGCTRL_X0Y2.ZINV_S0",
+          "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL10_I0.CLK_BUFG_IMUX26_2",
+          "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL15_I0.CLK_BUFG_BOT_R_CK_MUXED30",
+          "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL1_I0.CLK_BUFG_IMUX29_0",
+          "CLK_BUFG_BOT_R_X155Y204.CLK_BUFG_BUFGCTRL2_I0.CLK_BUFG_IMUX26_0"
+        ]
+      },
+      "idelay": {
+        "added_count": 0,
+        "added_examples": [],
+        "baseline_feature_count": 113,
+        "candidate_feature_count": 113,
+        "changed_tile_count": 0,
+        "changed_tiles": {},
+        "removed_count": 0,
+        "removed_examples": []
+      },
+      "iob": {
+        "added_count": 3,
+        "added_examples": [
+          "HCLK_IOI3_X1Y78.HCLK_IOI_CK_IGCLK3.HCLK_IOI_CK_BUFHCLK3",
+          "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_BOT1.HCLK_IOI_CK_IGCLK3",
+          "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_TOP1.HCLK_IOI_CK_IGCLK3"
+        ],
+        "baseline_feature_count": 2846,
+        "candidate_feature_count": 2846,
+        "changed_tile_count": 0,
+        "changed_tiles": {},
+        "removed_count": 3,
+        "removed_examples": [
+          "HCLK_IOI3_X1Y78.HCLK_IOI_CK_IGCLK4.HCLK_IOI_CK_BUFHCLK4",
+          "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_BOT1.HCLK_IOI_CK_IGCLK4",
+          "HCLK_IOI3_X1Y78.HCLK_IOI_LEAF_GCLK_TOP1.HCLK_IOI_CK_IGCLK4"
+        ]
+      },
+      "iserdes_oserdes": {
+        "added_count": 0,
+        "added_examples": [],
+        "baseline_feature_count": 352,
+        "candidate_feature_count": 352,
+        "changed_tile_count": 0,
+        "changed_tiles": {},
+        "removed_count": 0,
+        "removed_examples": []
+      },
+      "pll_mmcm_site": {
+        "added_count": 0,
+        "added_examples": [],
+        "baseline_feature_count": 88,
+        "candidate_feature_count": 88,
+        "changed_tile_count": 0,
+        "changed_tiles": {},
+        "removed_count": 0,
+        "removed_examples": []
+      }
+    },
+    "label": "seed20-tmdriv",
+    "reasons": [
+      "DDR3 PHY/JTAG site-level FASM features changed relative to the baseline"
+    ],
+    "status": "FAIL",
+    "summary": {
+      "baseline_feature_count": 371195,
+      "candidate_feature_count": 539485,
+      "common_feature_count": 90583,
+      "critical_added_count": 10731,
+      "critical_changed_tile_count": 4924,
+      "critical_removed_count": 7287,
+      "hard_fail_added_count": 3,
+      "hard_fail_changed_tile_count": 0,
+      "hard_fail_removed_count": 3,
+      "ignored_tile_count": 0,
+      "ignored_tiles": [],
+      "total_added_count": 448902,
+      "total_removed_count": 280612
+    },
+    "total_added_examples": [
+      "BRAM_INT_INTERFACE_L_X114Y197.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+      "BRAM_INT_INTERFACE_L_X114Y198.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+      "BRAM_INT_INTERFACE_L_X114Y199.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+      "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+      "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+      "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+      "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+      "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+      "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+      "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+      "BRAM_INT_INTERFACE_L_X114Y225.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6",
+      "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+      "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+      "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+      "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+      "BRAM_INT_INTERFACE_L_X114Y226.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22"
+    ],
+    "total_removed_examples": [
+      "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+      "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+      "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+      "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+      "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+      "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+      "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+      "BRAM_INT_INTERFACE_L_X114Y240.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6",
+      "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L1.INT_INTERFACE_LOGIC_OUTS_L_B1",
+      "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L17.INT_INTERFACE_LOGIC_OUTS_L_B17",
+      "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L19.INT_INTERFACE_LOGIC_OUTS_L_B19",
+      "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L20.INT_INTERFACE_LOGIC_OUTS_L_B20",
+      "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L22.INT_INTERFACE_LOGIC_OUTS_L_B22",
+      "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L3.INT_INTERFACE_LOGIC_OUTS_L_B3",
+      "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L4.INT_INTERFACE_LOGIC_OUTS_L_B4",
+      "BRAM_INT_INTERFACE_L_X114Y241.INT_INTERFACE_LOGIC_OUTS_L6.INT_INTERFACE_LOGIC_OUTS_L_B6"
+    ]
+  },
+  "ddr3_placement": {
+    "baseline_bel_locks": "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T23-22-26+0200-seed20-tmdriv/loader-only-ddr3-bel-locks.json",
+    "candidate_placed_json": "/nix/store/inm4x3923c1n557kwrmmw2h0xk3qy3l7-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv.placed.json",
+    "details": {
+      "candidate_only": [],
+      "candidate_only_count_total": 0,
+      "missing": [],
+      "missing_bel": [],
+      "missing_bel_count_total": 0,
+      "missing_count_total": 0,
+      "moved": [],
+      "moved_count_total": 0,
+      "unchanged_cells_sample": [
+        "ddram_a[0]$obuf$$intcell$OBUF",
+        "ddram_a[10]$obuf$$intcell$OBUF",
+        "ddram_a[11]$obuf$$intcell$OBUF",
+        "ddram_a[12]$obuf$$intcell$OBUF",
+        "ddram_a[13]$obuf$$intcell$OBUF",
+        "ddram_a[14]$obuf$$intcell$OBUF",
+        "ddram_a[1]$obuf$$intcell$OBUF",
+        "ddram_a[2]$obuf$$intcell$OBUF",
+        "ddram_a[3]$obuf$$intcell$OBUF",
+        "ddram_a[4]$obuf$$intcell$OBUF",
+        "ddram_a[5]$obuf$$intcell$OBUF",
+        "ddram_a[6]$obuf$$intcell$OBUF",
+        "ddram_a[7]$obuf$$intcell$OBUF",
+        "ddram_a[8]$obuf$$intcell$OBUF",
+        "ddram_a[9]$obuf$$intcell$OBUF",
+        "ddram_ba[0]$obuf$$intcell$OBUF",
+        "ddram_ba[1]$obuf$$intcell$OBUF",
+        "ddram_ba[2]$obuf$$intcell$OBUF",
+        "ddram_cas_n$obuf$$intcell$OBUF",
+        "ddram_cke$obuf$$intcell$OBUF",
+        "ddram_cs_n$obuf$$intcell$OBUF",
+        "ddram_odt$obuf$$intcell$OBUF",
+        "ddram_ras_n$obuf$$intcell$OBUF",
+        "ddram_reset_n$obuf$$intcell$OBUF"
+      ],
+      "unchanged_count_total": 25
+    },
+    "generated_at": "2026-05-26T21:22:28.085600+00:00",
+    "label": "seed20-tmdriv",
+    "reasons": [
+      "No DDR3 placement movement detected"
+    ],
+    "status": "PASS",
+    "summary": {
+      "baseline_cell_count": 25,
+      "baseline_scope_counts": {
+        "ddr3_board_pins": 25
+      },
+      "candidate_cell_count": 25,
+      "candidate_only_count": 0,
+      "candidate_scope_counts": {
+        "ddr3_board_pins": 25
+      },
+      "critical_fail_count": 0,
+      "ignore_scopes": [],
+      "missing_bel_count": 0,
+      "missing_count": 0,
+      "moved_count": 0,
+      "unchanged_count": 25,
+      "unchecked_baseline_cell_count": 0,
+      "warning_count": 0
+    }
+  },
+  "inputs": {
+    "full_fasm": "/nix/store/fj0qvky5fmxlc8aqys3awh2dd71p17zg-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv.fasm",
+    "full_placed_json": "/nix/store/inm4x3923c1n557kwrmmw2h0xk3qy3l7-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv.placed.json",
+    "full_yosys_json": "/nix/store/pkdwpq212f6r9ypm9qph15sx321wrdm6-task6-ypcb-pcie-uberddr3-rowstream-loader-yosys.json",
+    "loader_only_fasm": "/nix/store/83kvvpysc7lfbvhfgrlwcm3yhxd6bqs3-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.fasm",
+    "loader_only_placed_json": "/nix/store/rvams2ak81zmpv2sk01j16mc4f0yqm52-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.placed.json",
+    "loader_only_yosys_json": "/nix/store/py4i08kzsb1w2212hgk6przqblgvwfcw-task6-ypcb-pcie-uberddr3-rowstream-loader-only-yosys.json"
+  },
+  "label": "seed20-tmdriv",
+  "pcie_fasm_delta": {
+    "classes": {
+      "gt": {
+        "added_count": 0,
+        "added_examples": [],
+        "removed_count": 0,
+        "removed_examples": []
+      },
+      "pcie": {
+        "added_count": 0,
+        "added_examples": [],
+        "removed_count": 0,
+        "removed_examples": []
+      },
+      "pcie_clock": {
+        "added_count": 17828,
+        "added_examples": [
+          "BRAM_L_X114Y225.BRAM_FIFO36_CLKARDCLKL.BRAM_CLK0_3",
+          "BRAM_L_X114Y225.BRAM_FIFO36_CLKARDCLKU.BRAM_CLK1_3",
+          "BRAM_L_X114Y225.BRAM_FIFO36_CLKBWRCLKL.BRAM_CLK0_1",
+          "BRAM_L_X114Y225.BRAM_FIFO36_CLKBWRCLKU.BRAM_CLK1_1",
+          "BRAM_L_X114Y225.RAMB18_Y0.ZINV_CLKARDCLK",
+          "BRAM_L_X114Y225.RAMB18_Y0.ZINV_CLKBWRCLK",
+          "BRAM_L_X114Y225.RAMB18_Y1.ZINV_CLKARDCLK",
+          "BRAM_L_X114Y225.RAMB18_Y1.ZINV_CLKBWRCLK",
+          "BRAM_R_X97Y200.BRAM_FIFO36_CLKARDCLKL.BRAM_CLK0_3",
+          "BRAM_R_X97Y200.BRAM_FIFO36_CLKARDCLKU.BRAM_CLK1_3",
+          "BRAM_R_X97Y200.BRAM_FIFO36_CLKBWRCLKL.BRAM_CLK0_1",
+          "BRAM_R_X97Y200.BRAM_FIFO36_CLKBWRCLKU.BRAM_CLK1_1",
+          "BRAM_R_X97Y200.RAMB18_Y0.ZINV_CLKARDCLK",
+          "BRAM_R_X97Y200.RAMB18_Y0.ZINV_CLKBWRCLK",
+          "BRAM_R_X97Y200.RAMB18_Y1.ZINV_CLKARDCLK",
+          "BRAM_R_X97Y200.RAMB18_Y1.ZINV_CLKBWRCLK"
+        ],
+        "removed_count": 9871,
+        "removed_examples": [
+          "BRAM_L_X114Y240.BRAM_FIFO36_CLKARDCLKL.BRAM_CLK0_3",
+          "BRAM_L_X114Y240.BRAM_FIFO36_CLKARDCLKU.BRAM_CLK1_3",
+          "BRAM_L_X114Y240.BRAM_FIFO36_CLKBWRCLKL.BRAM_CLK0_1",
+          "BRAM_L_X114Y240.BRAM_FIFO36_CLKBWRCLKU.BRAM_CLK1_1",
+          "BRAM_L_X114Y240.RAMB18_Y0.ZINV_CLKARDCLK",
+          "BRAM_L_X114Y240.RAMB18_Y0.ZINV_CLKBWRCLK",
+          "BRAM_L_X114Y240.RAMB18_Y1.ZINV_CLKARDCLK",
+          "BRAM_L_X114Y240.RAMB18_Y1.ZINV_CLKBWRCLK",
+          "BRAM_R_X97Y195.BRAM_FIFO36_CLKARDCLKL.BRAM_CLK0_3",
+          "BRAM_R_X97Y195.BRAM_FIFO36_CLKARDCLKU.BRAM_CLK1_3",
+          "BRAM_R_X97Y195.BRAM_FIFO36_CLKBWRCLKL.BRAM_CLK0_1",
+          "BRAM_R_X97Y195.BRAM_FIFO36_CLKBWRCLKU.BRAM_CLK1_1",
+          "BRAM_R_X97Y195.RAMB18_Y0.ZINV_CLKARDCLK",
+          "BRAM_R_X97Y195.RAMB18_Y0.ZINV_CLKBWRCLK",
+          "BRAM_R_X97Y195.RAMB18_Y1.ZINV_CLKARDCLK",
+          "BRAM_R_X97Y195.RAMB18_Y1.ZINV_CLKBWRCLK"
+        ]
+      }
+    },
+    "full_fasm": "/nix/store/fj0qvky5fmxlc8aqys3awh2dd71p17zg-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20-tmdriv.fasm",
+    "loader_only_fasm": "/nix/store/83kvvpysc7lfbvhfgrlwcm3yhxd6bqs3-task6-ypcb-pcie-uberddr3-rowstream-loader-only-seed20.fasm",
+    "total_added_count": 448902,
+    "total_removed_count": 280612
+  },
+  "pcie_primitive_delta": {
+    "changed_cell_count": 0,
+    "changed_cells": {},
+    "full_primitive_count": 3,
+    "loader_only_primitive_count": 3
+  },
+  "schema": "task6-seed20-physical-comparison-v1",
+  "timing": {
+    "full": {
+      "logs": {},
+      "note": "Pass --loader-only-timing-log/--full-timing-log with nextpnr logs to populate this section."
+    },
+    "loader_only": {
+      "logs": {},
+      "note": "Pass --loader-only-timing-log/--full-timing-log with nextpnr logs to populate this section."
+    }
+  }
+}

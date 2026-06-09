@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "pcie-recovery-orchestrator-live-smoke-lifecycle-0",
+    "--run-bar"
+  ],
+  "name": "lifecycle-0",
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "classification: corrupt_command\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T11-59-07+0200-pcie-recovery-orchestrator-live-smoke-lifecycle-0\nnext:\n- Config space is returning 0xffff; stop PCIe probing and re-enumerate with the FPGA already configured from BPI flash.\n- After chassis or host re-enumeration, run only the non-BAR lifecycle probe first: scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0\n",
+  "stderr": "",
+  "timeout": false
+}

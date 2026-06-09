@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "pcie-top1-pnr100-byteorderfix-recover-auto-lifecycle-1",
+    "--run-bar"
+  ],
+  "name": "lifecycle-1",
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "classification: resource0_permission\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T14-42-03+0200-pcie-top1-pnr100-byteorderfix-recover-auto-lifecycle-1\nnext:\n- Reinstall/trigger the Task 6 udev rule, then replug or rescan: /home/roland/.local/bin/install-task6-pcie-rules.sh\n",
+  "stderr": "",
+  "timeout": false
+}

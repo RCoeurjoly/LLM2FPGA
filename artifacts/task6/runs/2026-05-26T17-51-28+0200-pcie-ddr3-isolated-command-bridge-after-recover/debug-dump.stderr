@@ -1,0 +1,4 @@
+error: refusing BAR access because PCI config is not clean for 0000:42:00.0
+config: COMMAND=ffff VENDOR=ffff DEVICE=ffff HEADER=ff SUBSYSTEM_DEVICE=ffff BAR0=ffffffff
+Run the non-BAR lifecycle probe after chassis/host re-enumeration:
+  scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0

@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "pcie-top1-pnr100-byteorderfix-recover-auto-lifecycle-0",
+    "--run-bar"
+  ],
+  "name": "lifecycle-0",
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "classification: missing_resource0\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-09T14-42-02+0200-pcie-top1-pnr100-byteorderfix-recover-auto-lifecycle-0\nnext:\n- The endpoint is present without usable BAR0; do not run BAR gates yet.\n- If pcie-lifecycle.json shows clean identity (10ee:0480, header 00, subsystem abcd) and resource0/recovery nodes exist, try one delegated recovery without force: scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeout 20\n- If config is all-ones/corrupt or no-force recovery refuses, stop PCIe probing and re-enumerate with the FPGA already configured. Use --force-dead-config only for a deliberate recovery experiment.\n",
+  "stderr": "",
+  "timeout": false
+}

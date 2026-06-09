@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "sudo",
+    "/home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh",
+    "prepare",
+    "0000:42:00.0"
+  ],
+  "name": "root_recovery-0",
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "",
+  "stderr": "sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper\nsudo: a password is required\n",
+  "timeout": false
+}

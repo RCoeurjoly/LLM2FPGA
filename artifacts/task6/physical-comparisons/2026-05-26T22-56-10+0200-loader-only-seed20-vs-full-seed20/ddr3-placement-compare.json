@@ -1,0 +1,66 @@
+{
+  "baseline_bel_locks": "/home/roland/LLM2FPGA/artifacts/task6/physical-comparisons/2026-05-26T22-56-10+0200-loader-only-seed20-vs-full-seed20/loader-only-ddr3-bel-locks.json",
+  "candidate_placed_json": "/nix/store/0f5ckl1vabsf8f0kghrb88zr0vp3kj4w-task6-ypcb-pcie-uberddr3-rowstream-loader-seed20.placed.json",
+  "details": {
+    "candidate_only": [],
+    "candidate_only_count_total": 0,
+    "missing": [],
+    "missing_bel": [],
+    "missing_bel_count_total": 0,
+    "missing_count_total": 0,
+    "moved": [],
+    "moved_count_total": 0,
+    "unchanged_cells_sample": [
+      "ddram_a[0]$obuf$$intcell$OBUF",
+      "ddram_a[10]$obuf$$intcell$OBUF",
+      "ddram_a[11]$obuf$$intcell$OBUF",
+      "ddram_a[12]$obuf$$intcell$OBUF",
+      "ddram_a[13]$obuf$$intcell$OBUF",
+      "ddram_a[14]$obuf$$intcell$OBUF",
+      "ddram_a[1]$obuf$$intcell$OBUF",
+      "ddram_a[2]$obuf$$intcell$OBUF",
+      "ddram_a[3]$obuf$$intcell$OBUF",
+      "ddram_a[4]$obuf$$intcell$OBUF",
+      "ddram_a[5]$obuf$$intcell$OBUF",
+      "ddram_a[6]$obuf$$intcell$OBUF",
+      "ddram_a[7]$obuf$$intcell$OBUF",
+      "ddram_a[8]$obuf$$intcell$OBUF",
+      "ddram_a[9]$obuf$$intcell$OBUF",
+      "ddram_ba[0]$obuf$$intcell$OBUF",
+      "ddram_ba[1]$obuf$$intcell$OBUF",
+      "ddram_ba[2]$obuf$$intcell$OBUF",
+      "ddram_cas_n$obuf$$intcell$OBUF",
+      "ddram_cke$obuf$$intcell$OBUF",
+      "ddram_cs_n$obuf$$intcell$OBUF",
+      "ddram_odt$obuf$$intcell$OBUF",
+      "ddram_ras_n$obuf$$intcell$OBUF",
+      "ddram_reset_n$obuf$$intcell$OBUF"
+    ],
+    "unchanged_count_total": 25
+  },
+  "generated_at": "2026-05-26T20:56:11.793303+00:00",
+  "label": "loader-only-seed20-vs-full-seed20",
+  "reasons": [
+    "No DDR3 placement movement detected"
+  ],
+  "status": "PASS",
+  "summary": {
+    "baseline_cell_count": 25,
+    "baseline_scope_counts": {
+      "ddr3_board_pins": 25
+    },
+    "candidate_cell_count": 25,
+    "candidate_only_count": 0,
+    "candidate_scope_counts": {
+      "ddr3_board_pins": 25
+    },
+    "critical_fail_count": 0,
+    "ignore_scopes": [],
+    "missing_bel_count": 0,
+    "missing_count": 0,
+    "moved_count": 0,
+    "unchanged_count": 25,
+    "unchecked_baseline_cell_count": 0,
+    "warning_count": 0
+  }
+}
