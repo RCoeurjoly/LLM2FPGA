@@ -1,0 +1,171 @@
+{
+  "artifact_name": "task6-pcie-mlp-accelerator-board-gate",
+  "bdf": "0000:42:00.0",
+  "checks": {
+    "mismatch_count": true,
+    "mlp_accel_magic": true,
+    "mlp_accel_present": true,
+    "mlp_accel_version": true,
+    "not_all_ones": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "checks_required": {
+    "require_samples": false,
+    "sample_checks_enabled": true
+  },
+  "command": "0002",
+  "contract": {
+    "notes": "Host supplies prompt-derived residual-boundary vectors; board executes int8 MLP/residual lane.",
+    "responsibilities": {
+      "fpga": [
+        "int8 MLP/residual boundary execution",
+        "activation/residual vector ingress via BAR",
+        "kernel completion/status signaling and full output exposure"
+      ],
+      "host": [
+        "prompt/hidden-state capture orchestration",
+        "prompt-derived residual boundary vector generation from reference",
+        "checkpoint/retry loop and artifact logging"
+      ]
+    },
+    "stage": "M1-transformer-boundary-mlp",
+    "version": "task6-transformer-boundary-mlp-accel-v1"
+  },
+  "date": "2026-06-09",
+  "decoded": {
+    "mlp_accel_status": 2567,
+    "state": 7,
+    "state_name": "DONE"
+  },
+  "elapsed_seconds": 0.0018896239998866804,
+  "expected": {
+    "default_checksum": "0x0000200c",
+    "default_output_hex": "0a4c912adef615d69e3fd30cde7318c24b27bdd683e2d1b3d6b47f4dbc3f16144cf5cecb57d2c60442d4b418c4ba26be0ce1a2062f35a11ffba0d1510825f642",
+    "default_sample0": "0x2a914c0a",
+    "default_sample1": "0xd615f6de"
+  },
+  "input_reference": {
+    "default_mode": true,
+    "sample_inputs": [
+      {
+        "activation_hex": "0759972ecf0608f1ad559a01a80f0bba3922f6d3a7ebd4bdd4c07f4efe3a24f21d43ffff48e4ee402cfaf919e7bf35c214eece09383bbf12d6adf1461425233b",
+        "residual_hex": "02578e2bc80104eba55491fca00b07b2371ef1cc9fe6ceb6ceb97f4df93721ed1941fbfa46dee93e29f5f415e2b732bb10e9c7053639b70ed0a6ec4410222038",
+        "sample_id": "default-legacy-sample",
+        "sample_index": 0
+      }
+    ]
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "reference_json": null,
+  "reference_max_samples": null,
+  "register_map": {
+    "activation_vector": "0x340..0x37f",
+    "control_status": "0x330",
+    "output_checksum": "0x33c",
+    "output_samples": [
+      "0x3c0",
+      "0x3c4"
+    ],
+    "output_vector": "0x400..0x43f",
+    "residual_vector": "0x380..0x3bf"
+  },
+  "registers": {
+    "magic": "0x54365043",
+    "mlp_accel_cycle_count": "0x0000d7a1",
+    "mlp_accel_magic": "0x54364d41",
+    "mlp_accel_present": "0x00000001",
+    "mlp_accel_start_count": "0x00000012",
+    "mlp_accel_status": "0x00000a07",
+    "mlp_accel_version": "0x00000001",
+    "status": "0x00000065",
+    "version": "0x00000003"
+  },
+  "sample_count": 1,
+  "samples": [
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": true,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": true,
+        "residual_echo": true,
+        "sample0": true,
+        "sample1": true,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x0000200c",
+        "output_hex": "0a4c912adef615d69e3fd30cde7318c24b27bdd683e2d1b3d6b47f4dbc3f16144cf5cecb57d2c60442d4b418c4ba26be0ce1a2062f35a11ffba0d1510825f642",
+        "sample0": "0x2a914c0a",
+        "sample1": "0xd615f6de"
+      },
+      "input": {
+        "activation_hex": "0759972ecf0608f1ad559a01a80f0bba3922f6d3a7ebd4bdd4c07f4efe3a24f21d43ffff48e4ee402cfaf919e7bf35c214eece09383bbf12d6adf1461425233b",
+        "activation_words_little_packed": [
+          "0x2e975907",
+          "0xf10806cf",
+          "0x019a55ad",
+          "0xba0b0fa8",
+          "0xd3f62239",
+          "0xbdd4eba7",
+          "0x4e7fc0d4",
+          "0xf2243afe",
+          "0xffff431d",
+          "0x40eee448",
+          "0x19f9fa2c",
+          "0xc235bfe7",
+          "0x09ceee14",
+          "0x12bf3b38",
+          "0x46f1add6",
+          "0x3b232514"
+        ],
+        "residual_hex": "02578e2bc80104eba55491fca00b07b2371ef1cc9fe6ceb6ceb97f4df93721ed1941fbfa46dee93e29f5f415e2b732bb10e9c7053639b70ed0a6ec4410222038",
+        "residual_words_little_packed": [
+          "0x2b8e5702",
+          "0xeb0401c8",
+          "0xfc9154a5",
+          "0xb2070ba0",
+          "0xccf11e37",
+          "0xb6cee69f",
+          "0x4d7fb9ce",
+          "0xed2137f9",
+          "0xfafb4119",
+          "0x3ee9de46",
+          "0x15f4f529",
+          "0xbb32b7e2",
+          "0x05c7e910",
+          "0x0eb73936",
+          "0x44eca6d0",
+          "0x38202210"
+        ]
+      },
+      "observed": {
+        "checksum": "0x0000200c",
+        "output_hex": "0a4c912adef615d69e3fd30cde7318c24b27bdd683e2d1b3d6b47f4dbc3f16144cf5cecb57d2c60442d4b418c4ba26be0ce1a2062f35a11ffba0d1510825f642",
+        "sample0": "0x2a914c0a",
+        "sample1": "0xd615f6de",
+        "start_count_after": 18,
+        "start_count_before": 17,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": null,
+        "residual_scale": null
+      },
+      "reference_step": 0,
+      "sample_id": "default-legacy-sample",
+      "sample_index": 0,
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS",
+  "validation": {
+    "mismatch_count": 0,
+    "sample_count": 1
+  }
+}

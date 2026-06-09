@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -59,12 +60,17 @@ MLP_REFERENCE_REQUIRED_FIELDS = (
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        cmd,
-        text=True,
-        capture_output=True,
-        check=check,
-    )
+    completed = subprocess.run(cmd, text=True, capture_output=True, check=False)
+    if check and completed.returncode != 0:
+        print(f"child command failed with exit code {completed.returncode}: {' '.join(cmd)}", file=sys.stderr)
+        if completed.stdout:
+            print("child stdout:", file=sys.stderr)
+            print(completed.stdout, file=sys.stderr, end="" if completed.stdout.endswith("\n") else "\n")
+        if completed.stderr:
+            print("child stderr:", file=sys.stderr)
+            print(completed.stderr, file=sys.stderr, end="" if completed.stderr.endswith("\n") else "\n")
+        raise SystemExit(completed.returncode)
+    return completed
 
 
 def safe_decode_tokens(
@@ -261,6 +267,8 @@ def run_mlp_gate(args: argparse.Namespace, reference_json: Path) -> tuple[Path, 
         gate_cmd.extend(["--poll-interval", str(args.mlp_poll_interval)])
     if args.mlp_require_samples:
         gate_cmd.append("--require-samples")
+    if args.mlp_allow_reference_contract_mismatch:
+        gate_cmd.append("--allow-reference-contract-mismatch")
     run(gate_cmd)
     return out_json, read_json(out_json)
 
@@ -336,6 +344,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mlp-timeout", type=float, default=2.0)
     parser.add_argument("--mlp-poll-interval", type=float, default=0.001)
     parser.add_argument("--mlp-require-samples", action="store_true", help="Require checksum/sample checks when expected")
+    parser.add_argument(
+        "--mlp-allow-reference-contract-mismatch",
+        action="store_true",
+        help="Run engine=mlp even when the reference identity is known to differ from the compiled MLP contract",
+    )
 
     return parser.parse_args()
 

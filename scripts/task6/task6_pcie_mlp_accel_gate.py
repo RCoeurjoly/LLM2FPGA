@@ -35,6 +35,19 @@ CONTRACT_RESP_FPGA = [
     "activation/residual vector ingress via BAR",
     "kernel completion/status signaling and full output exposure",
 ]
+COMPILED_MLP_CONTRACT = {
+    "artifact_name": "h2-int8-l2-mlp-chain-residual-add-rtl-proof",
+    "model_contract": "tiny-stories-v1k-h64-l1",
+    "top_name": "task6_int8_l2_mlp_chain_residual_add_kernel",
+    "note": (
+        "Current bitstream MLP weights/scales are compiled from the v1k L2 "
+        "MLP/residual proof bundle, not from the TinyStories-1M prompt "
+        "output-head reference."
+    ),
+}
+KNOWN_INCOMPATIBLE_REFERENCE_ARTIFACTS = {
+    "h2-tinystories-1m-prompt-output-head-q024-reference",
+}
 
 REG_MAGIC = 0x000
 REG_VERSION = 0x004
@@ -160,10 +173,51 @@ def bytes_checksum(data: bytes) -> int:
     return sum(data) & 0xFFFFFFFF
 
 
-def read_reference_payload(path: Path, max_samples: int | None = None) -> list[dict[str, Any]]:
-    with path.open("r", encoding="utf-8") as stream:
-        payload = json.load(stream)
+def check_reference_contract(payload: dict[str, Any], path: Path, allow_mismatch: bool) -> dict[str, Any]:
+    artifact_name = payload.get("artifact_name")
+    mlp_contract = payload.get("mlp_contract") or payload.get("compiled_mlp_contract")
+    contract_status = {
+        "reference_artifact_name": artifact_name,
+        "compiled_mlp_contract": COMPILED_MLP_CONTRACT,
+        "reference_mlp_contract": mlp_contract,
+        "allow_reference_contract_mismatch": allow_mismatch,
+        "compatible": True,
+        "reason": "no explicit incompatible MLP contract identity found",
+    }
 
+    if isinstance(mlp_contract, dict):
+        reference_contract_name = mlp_contract.get("artifact_name")
+        reference_model_contract = mlp_contract.get("model_contract")
+        if (
+            reference_contract_name not in (None, COMPILED_MLP_CONTRACT["artifact_name"])
+            or reference_model_contract not in (None, COMPILED_MLP_CONTRACT["model_contract"])
+        ):
+            contract_status["compatible"] = False
+            contract_status["reason"] = "explicit reference MLP contract does not match compiled hardware contract"
+    elif artifact_name in KNOWN_INCOMPATIBLE_REFERENCE_ARTIFACTS:
+        contract_status["compatible"] = False
+        contract_status["reason"] = (
+            "reference is a TinyStories-1M output-head prompt artifact, while "
+            "the current MLP lane is compiled from the v1k L2 MLP/residual contract"
+        )
+
+    if not contract_status["compatible"] and not allow_mismatch:
+        raise SystemExit(
+            "MLP reference contract does not match the compiled accelerator contract:\n"
+            f"  reference: {path}\n"
+            f"  reference artifact: {artifact_name}\n"
+            f"  expected MLP contract: {COMPILED_MLP_CONTRACT['artifact_name']} "
+            f"({COMPILED_MLP_CONTRACT['model_contract']})\n"
+            f"  reason: {contract_status['reason']}\n"
+            "  action: regenerate a reference from the compiled MLP contract, rebuild "
+            "the bitstream for this reference, or rerun with "
+            "--allow-reference-contract-mismatch for a deliberate negative experiment."
+        )
+
+    return contract_status
+
+
+def reference_payloads_from_document(payload: dict[str, Any], path: Path, max_samples: int | None = None) -> list[dict[str, Any]]:
     steps = payload.get("steps")
     if not isinstance(steps, list) or not steps:
         raise SystemExit(f"reference JSON missing non-empty steps list: {path}")
@@ -206,6 +260,14 @@ def read_reference_payload(path: Path, max_samples: int | None = None) -> list[d
     return result
 
 
+def read_reference_document(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as stream:
+        payload = json.load(stream)
+    if not isinstance(payload, dict):
+        raise SystemExit(f"reference JSON must contain an object: {path}")
+    return payload
+
+
 def build_default_payload() -> list[dict[str, Any]]:
     activation = parse_hex_vector(DEFAULT_ACTIVATION_HEX, name="activation")
     residual = parse_hex_vector(DEFAULT_RESIDUAL_HEX, name="residual")
@@ -242,6 +304,11 @@ def parse_args() -> argparse.Namespace:
         "--require-samples",
         action="store_true",
         help="require sample0/sample1 checks when expectations are provided",
+    )
+    parser.add_argument(
+        "--allow-reference-contract-mismatch",
+        action="store_true",
+        help="run even when the reference identity is known to differ from the compiled MLP contract",
     )
     return parser.parse_args()
 
@@ -300,9 +367,27 @@ def main() -> int:
     args = parse_args()
 
     if args.reference_json is not None:
-        sample_payloads = read_reference_payload(args.reference_json, args.reference_max_samples)
+        reference_document = read_reference_document(args.reference_json)
+        reference_contract = check_reference_contract(
+            reference_document,
+            args.reference_json,
+            args.allow_reference_contract_mismatch,
+        )
+        sample_payloads = reference_payloads_from_document(
+            reference_document,
+            args.reference_json,
+            args.reference_max_samples,
+        )
         default_mode = False
     else:
+        reference_contract = {
+            "reference_artifact_name": None,
+            "compiled_mlp_contract": COMPILED_MLP_CONTRACT,
+            "reference_mlp_contract": None,
+            "allow_reference_contract_mismatch": False,
+            "compatible": True,
+            "reason": "legacy default vector is generated from the compiled MLP contract",
+        }
         activation = parse_hex_vector(args.activation_hex, name="activation")
         residual = parse_hex_vector(args.residual_hex, name="residual")
         expected_output = parse_hex_vector(args.expect_output_hex, name="expected output")
@@ -468,6 +553,7 @@ def main() -> int:
         "command": command,
         "elapsed_seconds": time.monotonic() - started,
         "reference_json": str(args.reference_json) if args.reference_json else None,
+        "reference_contract": reference_contract,
         "reference_max_samples": args.reference_max_samples,
         "sample_count": len(samples),
         "input_reference": {

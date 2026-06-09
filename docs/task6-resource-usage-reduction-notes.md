@@ -27716,3 +27716,57 @@ Verification impact:
 - The existing full prompt `rowstream-top1` pass evidence remains valid.
 - A full-reload benchmark should now have substantially less than 350s wall-time,
   with one-row commit latency measured via ACK counters instead of fixed settle.
+
+### 2026-06-09 - M1 prompt-derived MLP contract correction
+
+After the reset-stretched pnr100 image reached clean post-power-cycle
+`pcie_ready`, the MLP accelerator lane was retested with a freshly regenerated
+TinyStories-1M prompt reference that includes `activation_q`, `residual_q`, and
+`residual_add_output_q` for the prompt `Once upon a time there was`.
+
+Result summary:
+
+| check | result |
+| --- | --- |
+| lifecycle preflight | `pcie_ready`; artifact `artifacts/task6/runs/2026-06-09T21-31-45+0200-task6-m1-mlp-preflight/pcie-lifecycle.json` |
+| MLP gate with TinyStories-1M prompt reference | FAIL; 8/8 prompt samples reached DONE but output checksum/vector/sample words mismatched |
+| MLP gate with compiled legacy/default sample | PASS; full 64-byte output vector, checksum, sample0, and sample1 matched |
+
+Interpretation:
+
+- This is not a PCIe, BAR, or MLP-control failure. The accelerator magic/version
+  were valid, activation/residual BAR echoes matched, start counts advanced,
+  every sample reached DONE, no error bit was set, and output-valid was asserted.
+- The current flashed MLP lane is healthy for the contract compiled into
+  `task6_int8_l2_mlp_chain_residual_add_selftest_top`.
+- That compiled contract is still derived from the `tiny-stories-v1k-h64-l1`
+  L2 MLP/residual proof bundle in `flake.nix`, while the prompt reference is a
+  TinyStories-1M prompt/output-head reference. Therefore the prompt-derived MLP
+  acceptance target is semantically mismatched with the current bitstream.
+- Earlier checksum-only MLP evidence should be treated as proof of the reusable
+  BAR-driven MLP lane for its compiled contract, not as proof that the board is
+  executing the TinyStories-1M prompt-derived transformer boundary.
+
+Artifacts:
+
+- `artifacts/task6/runs/task6-m1-mlp-prompt-acceptance/mlp-accel-direct-summary.json`
+- `artifacts/task6/runs/task6-m1-mlp-prompt-acceptance/mlp-accel-legacy-default-summary.json`
+
+Tooling update:
+
+- `task6_pcie_mlp_accel_gate.py` now records the compiled MLP contract identity
+  (`h2-int8-l2-mlp-chain-residual-add-rtl-proof`,
+  `tiny-stories-v1k-h64-l1`) in new results.
+- Known-incompatible TinyStories-1M output-head prompt references fail before
+  BAR access unless `--allow-reference-contract-mismatch` is passed.
+- `task6_prompt_infer.py` now surfaces child gate stdout/stderr on failures and
+  forwards the deliberate-experiment override as
+  `--mlp-allow-reference-contract-mismatch`.
+
+Next M1 action:
+
+1. Either generate a prompt-style reference from the exact
+   `tiny-stories-v1k-h64-l1` compiled MLP contract, or rebuild the MLP lane from
+   TinyStories-1M prompt-aligned weights, scales, and residual-add constants.
+2. Rerun `prompt-infer --engine mlp` only after the software reference and
+   compiled RTL `tb_data.sv` share the same contract identity.

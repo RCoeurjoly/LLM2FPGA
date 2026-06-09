@@ -1,0 +1,766 @@
+{
+  "artifact_name": "task6-pcie-mlp-accelerator-board-gate",
+  "bdf": "0000:42:00.0",
+  "checks": {
+    "mismatch_count": false,
+    "mlp_accel_magic": true,
+    "mlp_accel_present": true,
+    "mlp_accel_version": true,
+    "not_all_ones": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "checks_required": {
+    "require_samples": false,
+    "sample_checks_enabled": true
+  },
+  "command": "0002",
+  "contract": {
+    "notes": "Host supplies prompt-derived residual-boundary vectors; board executes int8 MLP/residual lane.",
+    "responsibilities": {
+      "fpga": [
+        "int8 MLP/residual boundary execution",
+        "activation/residual vector ingress via BAR",
+        "kernel completion/status signaling and full output exposure"
+      ],
+      "host": [
+        "prompt/hidden-state capture orchestration",
+        "prompt-derived residual boundary vector generation from reference",
+        "checkpoint/retry loop and artifact logging"
+      ]
+    },
+    "stage": "M1-transformer-boundary-mlp",
+    "version": "task6-transformer-boundary-mlp-accel-v1"
+  },
+  "date": "2026-06-09",
+  "decoded": {
+    "mlp_accel_status": 2567,
+    "state": 7,
+    "state_name": "DONE"
+  },
+  "elapsed_seconds": 0.013031451999268029,
+  "expected": {
+    "default_checksum": "0x0000200c",
+    "default_output_hex": "0a4c912adef615d69e3fd30cde7318c24b27bdd683e2d1b3d6b47f4dbc3f16144cf5cecb57d2c60442d4b418c4ba26be0ce1a2062f35a11ffba0d1510825f642",
+    "default_sample0": "0x2a914c0a",
+    "default_sample1": "0xd615f6de"
+  },
+  "input_reference": {
+    "default_mode": false,
+    "sample_inputs": [
+      {
+        "activation_hex": "fbdaa9007fc2f3b1bd06b0e3422be7f3e6f43ff80db4f014bcbecbcbc9f004dc42cb2afa0206ac2046d0192cfb1253f338345d52cac240f9052b1a5bfe65e006",
+        "residual_hex": "fcdcae007fc4f5b6c006b3e6432decf6e7f740fa0fb6f214bfc3cfcdccf106dd40cf29fc0408b12046d4192efe1454f536375e54cbc83dfb072a1a5a0060e208",
+        "sample_id": "0",
+        "sample_index": 0
+      },
+      {
+        "activation_hex": "52224dba4cb3c8e3a6f323f74afa0045fd1b490209ded9b52d59b8fbdceffeb810c5b0060646991241aaa4262ed87fa92b54063b0afeb73c0d50f9c7adbe133c",
+        "residual_hex": "4e234ebd4db4cae4a8f424f84afc0343fc1d49030adedabe2f58bbfbddefffb90fc9b40706489d1341aea7272dda7fae2956073c0900ba3b0e4cf9caaec4143c",
+        "sample_id": "1",
+        "sample_index": 1
+      },
+      {
+        "activation_hex": "151defcb541857f5cfe6be12e6ba1e1ef6b6352306c3ed38d0ddb0ff22dcd1ad2ae7f9f2b2dfbe610fc7ff74bdbd3834163cc2060a48e073ff1e12add048297f",
+        "residual_hex": "131ef0ca551656f4cee5bd12e5b91e1ef4b5362206c1ec35cfdeb1fe20d9d2ac29e7f9f3b4ddbe610fc7fe75c1bd3a33153ec1070947df71ff1b11adce452a7f",
+        "sample_id": "2",
+        "sample_index": 2
+      },
+      {
+        "activation_hex": "1634ef355a123ce1fe1c03f392aefc3f3b8104302ae7102afcb4ccebf1f4f82245c50bdbbba8cd4df3d028f0d401031fb73dfa04cb38eff7281afc02c1534330",
+        "residual_hex": "1435f031590f3ae1fd1902f291adfd3c3a81032e2ae50e26fcb5cde9eff2f71e41c609debda5cd4cf3d025f1d601041db93df904c836eef62816fa01c04d442f",
+        "sample_id": "3",
+        "sample_index": 3
+      },
+      {
+        "activation_hex": "7de610b6fe7798a82256f142d0e5d732591a54c34dd508e398294bd02fc9ff1b11413ea8ae669712abf6cf429afc660216e7ed33cb810cbe101ec91e411e09cb",
+        "residual_hex": "7fe614b4007a94a72656f146cfe5d9345e1d5ac255d208e6932c51ce30c40019124240acae6f9514aaf6cd479dfe6d0316e9ed38c7820bbd131dc521461f0bcc",
+        "sample_id": "4",
+        "sample_index": 4
+      },
+      {
+        "activation_hex": "b80914bb2bcfd6bb190014fd8b06380d7f10ebd1faebfc271870eef44be992f740a4d4c3e1ecb512e7aee1f7efe151056b44d236f402bd402539fc63de6447ce",
+        "residual_hex": "ba0a15bc2bced6bd1aff15fd8b06370d7f11ebd2faeafc25196feff449e897f53da8d5c9e2ecb712e9b0e1faf1e252056645d238f303bf3f2736fb62de5f49d0",
+        "sample_id": "5",
+        "sample_index": 5
+      },
+      {
+        "activation_hex": "e54d37b509cbc4dcd4dbf4fad0272f55d62d496ea1f6b62dde208ae6d9cd159ee011ccfe3825920a4951db4ef227401e02977f4ab7b8d5f41de3d953cd423667",
+        "residual_hex": "ea503abd0dd0cbe1dae0f9ffd62a3053da304a6aa5f8be2ce32394ebded117a7e613d30237289c0d494fe04ff82a422005a17f4cbbc2dbf920e6dc53d2403966",
+        "sample_id": "6",
+        "sample_index": 6
+      },
+      {
+        "activation_hex": "f9fce6c36acbcabf44cbfbc981f1bb1ce9eab16926b4163efffc59eb40f6dd2856d9e73005f7d83b0f48fa8e402338bf3cf00e211dcfa8250917f22f00cc3a0b",
+        "residual_hex": "fc00ebc672cdcdc34bceffcd81f5c220ebeeb36d2cb41940040160ee44f8e22959ddea3108fadc40144bfd9342293ec33ef5122821d4ac290e19f43404d24110",
+        "sample_id": "7",
+        "sample_index": 7
+      }
+    ]
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "reference_json": "/tmp/task6-m1-reference/reference.json",
+  "reference_max_samples": null,
+  "register_map": {
+    "activation_vector": "0x340..0x37f",
+    "control_status": "0x330",
+    "output_checksum": "0x33c",
+    "output_samples": [
+      "0x3c0",
+      "0x3c4"
+    ],
+    "output_vector": "0x400..0x43f",
+    "residual_vector": "0x380..0x3bf"
+  },
+  "registers": {
+    "magic": "0x54365043",
+    "mlp_accel_cycle_count": "0x0000d7a1",
+    "mlp_accel_magic": "0x54364d41",
+    "mlp_accel_present": "0x00000001",
+    "mlp_accel_start_count": "0x00000011",
+    "mlp_accel_status": "0x00000a07",
+    "mlp_accel_version": "0x00000001",
+    "status": "0x00000065",
+    "version": "0x00000003"
+  },
+  "sample_count": 8,
+  "samples": [
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": false,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": false,
+        "residual_echo": true,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x00001e5c",
+        "output_hex": "64b518bf152d5d1f2939d846dac4c81ba0da30bc261fccda282c38cd1a239e031323c008f1ed02b7e015b1f52eb2058de1def44d3431d43d6fd32cf0b1f61aee",
+        "sample0": "0xbf18b564",
+        "sample1": "0x1f5d2d15"
+      },
+      "input": {
+        "activation_hex": "fbdaa9007fc2f3b1bd06b0e3422be7f3e6f43ff80db4f014bcbecbcbc9f004dc42cb2afa0206ac2046d0192cfb1253f338345d52cac240f9052b1a5bfe65e006",
+        "activation_words_little_packed": [
+          "0x00a9dafb",
+          "0xb1f3c27f",
+          "0xe3b006bd",
+          "0xf3e72b42",
+          "0xf83ff4e6",
+          "0x14f0b40d",
+          "0xcbcbbebc",
+          "0xdc04f0c9",
+          "0xfa2acb42",
+          "0x20ac0602",
+          "0x2c19d046",
+          "0xf35312fb",
+          "0x525d3438",
+          "0xf940c2ca",
+          "0x5b1a2b05",
+          "0x06e065fe"
+        ],
+        "residual_hex": "fcdcae007fc4f5b6c006b3e6432decf6e7f740fa0fb6f214bfc3cfcdccf106dd40cf29fc0408b12046d4192efe1454f536375e54cbc83dfb072a1a5a0060e208",
+        "residual_words_little_packed": [
+          "0x00aedcfc",
+          "0xb6f5c47f",
+          "0xe6b306c0",
+          "0xf6ec2d43",
+          "0xfa40f7e7",
+          "0x14f2b60f",
+          "0xcdcfc3bf",
+          "0xdd06f1cc",
+          "0xfc29cf40",
+          "0x20b10804",
+          "0x2e19d446",
+          "0xf55414fe",
+          "0x545e3736",
+          "0xfb3dc8cb",
+          "0x5a1a2a07",
+          "0x08e26000"
+        ]
+      },
+      "observed": {
+        "checksum": "0x00002059",
+        "output_hex": "14ba902440e210988a0fc3f46732e7ccdff04708f010b90fb2bec5f6dbc334c62fea2eea11169f4e55df324605fe23f676517a28baac63f20828be68e07fbf23",
+        "sample0": "0x2490ba14",
+        "sample1": "0x9810e240",
+        "start_count_after": 10,
+        "start_count_before": 9,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": 0.0216746311488114,
+        "residual_scale": 0.002407558790342076
+      },
+      "reference_step": 0,
+      "sample_id": "0",
+      "sample_index": 0,
+      "status": "FAIL"
+    },
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": false,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": false,
+        "residual_echo": true,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x00001ed6",
+        "output_hex": "40ba1d0a5feb3333fc3abb36e194ab2f06b50035f3ff43270eeec22f460cb28ee8f61cf39edf0719d818d434c4f6151325ecd209eb680dd85bfe1c33b92ddbd3",
+        "sample0": "0x0a1dba40",
+        "sample1": "0x3333eb5f"
+      },
+      "input": {
+        "activation_hex": "52224dba4cb3c8e3a6f323f74afa0045fd1b490209ded9b52d59b8fbdceffeb810c5b0060646991241aaa4262ed87fa92b54063b0afeb73c0d50f9c7adbe133c",
+        "activation_words_little_packed": [
+          "0xba4d2252",
+          "0xe3c8b34c",
+          "0xf723f3a6",
+          "0x4500fa4a",
+          "0x02491bfd",
+          "0xb5d9de09",
+          "0xfbb8592d",
+          "0xb8feefdc",
+          "0x06b0c510",
+          "0x12994606",
+          "0x26a4aa41",
+          "0xa97fd82e",
+          "0x3b06542b",
+          "0x3cb7fe0a",
+          "0xc7f9500d",
+          "0x3c13bead"
+        ],
+        "residual_hex": "4e234ebd4db4cae4a8f424f84afc0343fc1d49030adedabe2f58bbfbddefffb90fc9b40706489d1341aea7272dda7fae2956073c0900ba3b0e4cf9caaec4143c",
+        "residual_words_little_packed": [
+          "0xbd4e234e",
+          "0xe4cab44d",
+          "0xf824f4a8",
+          "0x4303fc4a",
+          "0x03491dfc",
+          "0xbedade0a",
+          "0xfbbb582f",
+          "0xb9ffefdd",
+          "0x07b4c90f",
+          "0x139d4806",
+          "0x27a7ae41",
+          "0xae7fda2d",
+          "0x3c075629",
+          "0x3bba0009",
+          "0xcaf94c0e",
+          "0x3c14c4ae"
+        ]
+      },
+      "observed": {
+        "checksum": "0x00001e4a",
+        "output_hex": "574132c51ce2c4eea9072ece5906ee31f5015507f3edb6a61777b933ebef21c8edb0a6fb146d810a19d4cd3542bb39996b7f01210b01c42e1514cff6b4c84159",
+        "sample0": "0xc5324157",
+        "sample1": "0xeec4e21c",
+        "start_count_after": 11,
+        "start_count_before": 10,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": 0.0196169004665585,
+        "residual_scale": 0.0020722357306893415
+      },
+      "reference_step": 1,
+      "sample_id": "1",
+      "sample_index": 1,
+      "status": "FAIL"
+    },
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": false,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": false,
+        "residual_echo": true,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x00001b18",
+        "output_hex": "431413047f13eca1374ded3bbc81b549931eef47cd2af5cc3847d6cc2205e416121b44168b08e4f7f330b40b9bf846ca10d52a09255882073b1bed1710dcd015",
+        "sample0": "0x04131443",
+        "sample1": "0xa1ec137f"
+      },
+      "input": {
+        "activation_hex": "151defcb541857f5cfe6be12e6ba1e1ef6b6352306c3ed38d0ddb0ff22dcd1ad2ae7f9f2b2dfbe610fc7ff74bdbd3834163cc2060a48e073ff1e12add048297f",
+        "activation_words_little_packed": [
+          "0xcbef1d15",
+          "0xf5571854",
+          "0x12bee6cf",
+          "0x1e1ebae6",
+          "0x2335b6f6",
+          "0x38edc306",
+          "0xffb0ddd0",
+          "0xadd1dc22",
+          "0xf2f9e72a",
+          "0x61bedfb2",
+          "0x74ffc70f",
+          "0x3438bdbd",
+          "0x06c23c16",
+          "0x73e0480a",
+          "0xad121eff",
+          "0x7f2948d0"
+        ],
+        "residual_hex": "131ef0ca551656f4cee5bd12e5b91e1ef4b5362206c1ec35cfdeb1fe20d9d2ac29e7f9f3b4ddbe610fc7fe75c1bd3a33153ec1070947df71ff1b11adce452a7f",
+        "residual_words_little_packed": [
+          "0xcaf01e13",
+          "0xf4561655",
+          "0x12bde5ce",
+          "0x1e1eb9e5",
+          "0x2236b5f4",
+          "0x35ecc106",
+          "0xfeb1decf",
+          "0xacd2d920",
+          "0xf3f9e729",
+          "0x61beddb4",
+          "0x75fec70f",
+          "0x333abdc1",
+          "0x07c13e15",
+          "0x71df4709",
+          "0xad111bff",
+          "0x7f2a45ce"
+        ]
+      },
+      "observed": {
+        "checksum": "0x00002270",
+        "output_hex": "48efc8e554255726c1e6bdc83cb134ef01b4411d10bff9e703ce974915dea8816fc9cef6d4d9a0390293e87fe5ed141a4062afc5f2390e46e135aec7b118e97b",
+        "sample0": "0xe5c8ef48",
+        "sample1": "0x26572554",
+        "start_count_after": 12,
+        "start_count_before": 11,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": 0.02080452348303607,
+        "residual_scale": 0.0023879127239617775
+      },
+      "reference_step": 2,
+      "sample_id": "2",
+      "sample_index": 2,
+      "status": "FAIL"
+    },
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": false,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": false,
+        "residual_echo": true,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x00001f23",
+        "output_hex": "223be0c874f9d1811a1ae139fbdce205d1eb9dc5c6cc14d83a1e2c00ce00c4fcdf2f1432820f95283639bc2a1ed66cbe22fa15561ecde00f590e1553dbe4dbc6",
+        "sample0": "0xc8e03b22",
+        "sample1": "0x81d1f974"
+      },
+      "input": {
+        "activation_hex": "1634ef355a123ce1fe1c03f392aefc3f3b8104302ae7102afcb4ccebf1f4f82245c50bdbbba8cd4df3d028f0d401031fb73dfa04cb38eff7281afc02c1534330",
+        "activation_words_little_packed": [
+          "0x35ef3416",
+          "0xe13c125a",
+          "0xf3031cfe",
+          "0x3ffcae92",
+          "0x3004813b",
+          "0x2a10e72a",
+          "0xebccb4fc",
+          "0x22f8f4f1",
+          "0xdb0bc545",
+          "0x4dcda8bb",
+          "0xf028d0f3",
+          "0x1f0301d4",
+          "0x04fa3db7",
+          "0xf7ef38cb",
+          "0x02fc1a28",
+          "0x304353c1"
+        ],
+        "residual_hex": "1435f031590f3ae1fd1902f291adfd3c3a81032e2ae50e26fcb5cde9eff2f71e41c609debda5cd4cf3d025f1d601041db93df904c836eef62816fa01c04d442f",
+        "residual_words_little_packed": [
+          "0x31f03514",
+          "0xe13a0f59",
+          "0xf20219fd",
+          "0x3cfdad91",
+          "0x2e03813a",
+          "0x260ee52a",
+          "0xe9cdb5fc",
+          "0x1ef7f2ef",
+          "0xde09c641",
+          "0x4ccda5bd",
+          "0xf125d0f3",
+          "0x1d0401d6",
+          "0x04f93db9",
+          "0xf6ee36c8",
+          "0x01fa1628",
+          "0x2f444dc0"
+        ]
+      },
+      "observed": {
+        "checksum": "0x00001e9d",
+        "output_hex": "3d350f2a7f025c03f31906c39e95ee222b8e092a43d10bf4119cecd8f1e4d50f77c021f69b8bcc3400b21feee812f91eba20ccefc65002b0ff4ab4fdd1293903",
+        "sample0": "0x2a0f353d",
+        "sample1": "0x035c027f",
+        "start_count_after": 13,
+        "start_count_before": 12,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": 0.02313995924521619,
+        "residual_scale": 0.002920989915141909
+      },
+      "reference_step": 3,
+      "sample_id": "3",
+      "sample_index": 3,
+      "status": "FAIL"
+    },
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": false,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": false,
+        "residual_echo": true,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x0000223c",
+        "output_hex": "15e25ba66810fe1111ecba2d818142ebf4bdf02beb3b3411fd24e8cfc7dee7b4fcd9f0161816b325145c8134b3f517faf3ea473529ecfe085814e77fddd17335",
+        "sample0": "0xa65be215",
+        "sample1": "0x11fe1068"
+      },
+      "input": {
+        "activation_hex": "7de610b6fe7798a82256f142d0e5d732591a54c34dd508e398294bd02fc9ff1b11413ea8ae669712abf6cf429afc660216e7ed33cb810cbe101ec91e411e09cb",
+        "activation_words_little_packed": [
+          "0xb610e67d",
+          "0xa89877fe",
+          "0x42f15622",
+          "0x32d7e5d0",
+          "0xc3541a59",
+          "0xe308d54d",
+          "0xd04b2998",
+          "0x1bffc92f",
+          "0xa83e4111",
+          "0x129766ae",
+          "0x42cff6ab",
+          "0x0266fc9a",
+          "0x33ede716",
+          "0xbe0c81cb",
+          "0x1ec91e10",
+          "0xcb091e41"
+        ],
+        "residual_hex": "7fe614b4007a94a72656f146cfe5d9345e1d5ac255d208e6932c51ce30c40019124240acae6f9514aaf6cd479dfe6d0316e9ed38c7820bbd131dc521461f0bcc",
+        "residual_words_little_packed": [
+          "0xb414e67f",
+          "0xa7947a00",
+          "0x46f15626",
+          "0x34d9e5cf",
+          "0xc25a1d5e",
+          "0xe608d255",
+          "0xce512c93",
+          "0x1900c430",
+          "0xac404212",
+          "0x14956fae",
+          "0x47cdf6aa",
+          "0x036dfe9d",
+          "0x38ede916",
+          "0xbd0b82c7",
+          "0x21c51d13",
+          "0xcc0b1f46"
+        ]
+      },
+      "observed": {
+        "checksum": "0x00002176",
+        "output_hex": "19d3269dc87d918128ff1938a7ff8e15332e4d8f4a8402ba814147ea2681e367e47613b5ab5ca42bbbd5855c92d67fd8dbe6db38b481f78cf425e6ea317f3087",
+        "sample0": "0x9d26d319",
+        "sample1": "0x81917dc8",
+        "start_count_after": 14,
+        "start_count_before": 13,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": 0.018227620387640524,
+        "residual_scale": 0.002113415969638374
+      },
+      "reference_step": 4,
+      "sample_id": "4",
+      "sample_index": 4,
+      "status": "FAIL"
+    },
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": false,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": false,
+        "residual_echo": true,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x00001b9d",
+        "output_hex": "23321e1d07373f0cb212adf1ad9ed47515acc219d4271b123e05875be0d2e4dada123e040dedb61d20194a2febeb14d2fcdc2223c12428d624401d0aebf5e081",
+        "sample0": "0x1d1e3223",
+        "sample1": "0x0c3f3707"
+      },
+      "input": {
+        "activation_hex": "b80914bb2bcfd6bb190014fd8b06380d7f10ebd1faebfc271870eef44be992f740a4d4c3e1ecb512e7aee1f7efe151056b44d236f402bd402539fc63de6447ce",
+        "activation_words_little_packed": [
+          "0xbb1409b8",
+          "0xbbd6cf2b",
+          "0xfd140019",
+          "0x0d38068b",
+          "0xd1eb107f",
+          "0x27fcebfa",
+          "0xf4ee7018",
+          "0xf792e94b",
+          "0xc3d4a440",
+          "0x12b5ece1",
+          "0xf7e1aee7",
+          "0x0551e1ef",
+          "0x36d2446b",
+          "0x40bd02f4",
+          "0x63fc3925",
+          "0xce4764de"
+        ],
+        "residual_hex": "ba0a15bc2bced6bd1aff15fd8b06370d7f11ebd2faeafc25196feff449e897f53da8d5c9e2ecb712e9b0e1faf1e252056645d238f303bf3f2736fb62de5f49d0",
+        "residual_words_little_packed": [
+          "0xbc150aba",
+          "0xbdd6ce2b",
+          "0xfd15ff1a",
+          "0x0d37068b",
+          "0xd2eb117f",
+          "0x25fceafa",
+          "0xf4ef6f19",
+          "0xf597e849",
+          "0xc9d5a83d",
+          "0x12b7ece2",
+          "0xfae1b0e9",
+          "0x0552e2f1",
+          "0x38d24566",
+          "0x3fbf03f3",
+          "0x62fb3627",
+          "0xd0495fde"
+        ]
+      },
+      "observed": {
+        "checksum": "0x00001d84",
+        "output_hex": "890a2acb25e8ceb9f9c739dbbd2f3512650a0bf206b805074a4ffccf42a6b52734b4bbcdb8f7b703bfb2cb0f210950cd1820ce4fc10fd3130220fe63cc6d339e",
+        "sample0": "0xcb2a0a89",
+        "sample1": "0xb9cee825",
+        "start_count_after": 15,
+        "start_count_before": 14,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": 0.02046485397759385,
+        "residual_scale": 0.0023081694531628468
+      },
+      "reference_step": 5,
+      "sample_id": "5",
+      "sample_index": 5,
+      "status": "FAIL"
+    },
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": false,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": false,
+        "residual_echo": true,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x00002138",
+        "output_hex": "4de709e47508f73b43efe54cc0e0ece9c4c7e1020fb727e94b65fed6471eaf114aabef24ce1dd1ea14300a1113ecd9b76d0b156d242b91ca34f1f3e93bf734fc",
+        "sample0": "0xe409e74d",
+        "sample1": "0x3bf70875"
+      },
+      "input": {
+        "activation_hex": "e54d37b509cbc4dcd4dbf4fad0272f55d62d496ea1f6b62dde208ae6d9cd159ee011ccfe3825920a4951db4ef227401e02977f4ab7b8d5f41de3d953cd423667",
+        "activation_words_little_packed": [
+          "0xb5374de5",
+          "0xdcc4cb09",
+          "0xfaf4dbd4",
+          "0x552f27d0",
+          "0x6e492dd6",
+          "0x2db6f6a1",
+          "0xe68a20de",
+          "0x9e15cdd9",
+          "0xfecc11e0",
+          "0x0a922538",
+          "0x4edb5149",
+          "0x1e4027f2",
+          "0x4a7f9702",
+          "0xf4d5b8b7",
+          "0x53d9e31d",
+          "0x673642cd"
+        ],
+        "residual_hex": "ea503abd0dd0cbe1dae0f9ffd62a3053da304a6aa5f8be2ce32394ebded117a7e613d30237289c0d494fe04ff82a422005a17f4cbbc2dbf920e6dc53d2403966",
+        "residual_words_little_packed": [
+          "0xbd3a50ea",
+          "0xe1cbd00d",
+          "0xfff9e0da",
+          "0x53302ad6",
+          "0x6a4a30da",
+          "0x2cbef8a5",
+          "0xeb9423e3",
+          "0xa717d1de",
+          "0x02d313e6",
+          "0x0d9c2837",
+          "0x4fe04f49",
+          "0x20422af8",
+          "0x4c7fa105",
+          "0xf9dbc2bb",
+          "0x53dce620",
+          "0x663940d2"
+        ]
+      },
+      "observed": {
+        "checksum": "0x00002272",
+        "output_hex": "e85e2dcbfbb3c1a3bbdbf9ddde0ede2ad0583355813edb33b2f0bd47eaafecaaaaeb98094e4685145a51025cfb12240b2ccf7f6481c8e2f754e78172ec371f58",
+        "sample0": "0xcb2d5ee8",
+        "sample1": "0xa3c1b3fb",
+        "start_count_after": 16,
+        "start_count_before": 15,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": 0.018639091431625246,
+        "residual_scale": 0.001975668696906623
+      },
+      "reference_step": 6,
+      "sample_id": "6",
+      "sample_index": 6,
+      "status": "FAIL"
+    },
+    {
+      "checks": {
+        "activation_echo": true,
+        "checksum": false,
+        "done_bit": true,
+        "no_error": true,
+        "output_valid": true,
+        "output_vector": false,
+        "residual_echo": true,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": true
+      },
+      "expected": {
+        "checksum": "0x000021a7",
+        "output_hex": "fb5a532f243636cae237972cebe22b50c6031c032ad9f9d76cf8f64ce909c8c0ef464909b33afadb52e9cffdd9c02517d5ef225ef7c716f5630029e01e3bd8a8",
+        "sample0": "0x2f535afb",
+        "sample1": "0xca363624"
+      },
+      "input": {
+        "activation_hex": "f9fce6c36acbcabf44cbfbc981f1bb1ce9eab16926b4163efffc59eb40f6dd2856d9e73005f7d83b0f48fa8e402338bf3cf00e211dcfa8250917f22f00cc3a0b",
+        "activation_words_little_packed": [
+          "0xc3e6fcf9",
+          "0xbfcacb6a",
+          "0xc9fbcb44",
+          "0x1cbbf181",
+          "0x69b1eae9",
+          "0x3e16b426",
+          "0xeb59fcff",
+          "0x28ddf640",
+          "0x30e7d956",
+          "0x3bd8f705",
+          "0x8efa480f",
+          "0xbf382340",
+          "0x210ef03c",
+          "0x25a8cf1d",
+          "0x2ff21709",
+          "0x0b3acc00"
+        ],
+        "residual_hex": "fc00ebc672cdcdc34bceffcd81f5c220ebeeb36d2cb41940040160ee44f8e22959ddea3108fadc40144bfd9342293ec33ef5122821d4ac290e19f43404d24110",
+        "residual_words_little_packed": [
+          "0xc6eb00fc",
+          "0xc3cdcd72",
+          "0xcdffce4b",
+          "0x20c2f581",
+          "0x6db3eeeb",
+          "0x4019b42c",
+          "0xee600104",
+          "0x29e2f844",
+          "0x31eadd59",
+          "0x40dcfa08",
+          "0x93fd4b14",
+          "0xc33e2942",
+          "0x2812f53e",
+          "0x29acd421",
+          "0x34f4190e",
+          "0x1041d204"
+        ]
+      },
+      "observed": {
+        "checksum": "0x0000214b",
+        "output_hex": "94164b9d7fc2ec815f9e2eb5bb379121afbcab6c25a51f25f8be58074f03ba47f8c5f87ffc01ef0b2642eb814d3043b92cebfd1cd9de94dcc9fbe31a02e745d1",
+        "sample0": "0x9d4b1694",
+        "sample1": "0x81ecc27f",
+        "start_count_after": 17,
+        "start_count_before": 16,
+        "state": 7,
+        "state_name": "DONE"
+      },
+      "reference_scale": {
+        "activation_scale": 0.021571542334368848,
+        "residual_scale": 0.0024870957915238507
+      },
+      "reference_step": 7,
+      "sample_id": "7",
+      "sample_index": 7,
+      "status": "FAIL"
+    }
+  ],
+  "status": "FAIL",
+  "validation": {
+    "mismatch_count": 8,
+    "sample_count": 8
+  }
+}
