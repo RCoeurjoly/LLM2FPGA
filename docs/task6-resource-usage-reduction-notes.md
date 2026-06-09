@@ -27828,3 +27828,18 @@ Next M1 action:
    residual-add proofs.
 3. Only after the full-checkpoint residual-add proof returns PASS, wire that
    `tb_data.sv` into a pnr100 MLP lane and rerun `prompt-infer --engine mlp`.
+
+GELU approximation scout:
+
+- Artifact:
+  `artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-gelu-approx-scout.json`
+- Exact GELU followed by the existing post-GELU int8 quantization gives nRMSE
+  `0.011828`, so the quantization target itself is viable.
+- A 16-node piecewise-linear q-domain approximation gives nRMSE `0.014387`,
+  below the `0.02` threshold.
+- Uniform center-bin LUT results:
+  - 128 entries: nRMSE `0.020033`, just above threshold.
+  - 256 entries: nRMSE `0.014886`, below threshold.
+- Recommended next implementation target: a small piecewise-linear fixed-point
+  GELU stage, because it clears threshold with far fewer table entries than a
+  simple uniform LUT.

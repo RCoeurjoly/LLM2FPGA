@@ -1,0 +1,119 @@
+{
+  "artifact_name": "h2-full-tinystories-1m-block0-gelu-approx-scout",
+  "status": "PASS",
+  "source_artifacts": {
+    "contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "downstream_boundary_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-downstream-int8-boundary.json"
+  },
+  "pre_gelu_range": {
+    "min": -0.7720510774649482,
+    "max": 0.8585812006165051
+  },
+  "output_scale": 0.005411566543946203,
+  "results": [
+    {
+      "name": "exact_gelu_quantized",
+      "unique_q": 87,
+      "max_abs_error": 0.005293311384176658,
+      "mean_abs_error": 0.0014322421540594787,
+      "rmse": 0.0017909617424812002,
+      "normalized_rmse": 0.011827774231475813,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "uniform_lut_32",
+      "unique_q": 26,
+      "max_abs_error": 0.028534680729469686,
+      "mean_abs_error": 0.007592046472919587,
+      "rmse": 0.009611782868068706,
+      "normalized_rmse": 0.06347762491452388,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "uniform_lut_64",
+      "unique_q": 46,
+      "max_abs_error": 0.018622200979295456,
+      "mean_abs_error": 0.004025774900742174,
+      "rmse": 0.005135698707251051,
+      "normalized_rmse": 0.03391690809994243,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "uniform_lut_128",
+      "unique_q": 71,
+      "max_abs_error": 0.01030246354342812,
+      "mean_abs_error": 0.002287549795525983,
+      "rmse": 0.0030334568389522257,
+      "normalized_rmse": 0.020033394226694284,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "uniform_lut_256",
+      "unique_q": 85,
+      "max_abs_error": 0.007799067891403055,
+      "mean_abs_error": 0.00174361589195567,
+      "rmse": 0.0022541089972706006,
+      "normalized_rmse": 0.014886466684608623,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "uniform_lut_512",
+      "unique_q": 85,
+      "max_abs_error": 0.006540621829141502,
+      "mean_abs_error": 0.0014724686401548204,
+      "rmse": 0.0018681989270905516,
+      "normalized_rmse": 0.012337859935801693,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "pwl_q_16",
+      "unique_q": 87,
+      "max_abs_error": 0.0055842803983691125,
+      "mean_abs_error": 0.001714287072363719,
+      "rmse": 0.002178442982555386,
+      "normalized_rmse": 0.014386757216885876,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "pwl_q_32",
+      "unique_q": 86,
+      "max_abs_error": 0.007061826406998373,
+      "mean_abs_error": 0.0019368237142554988,
+      "rmse": 0.0024710122759099918,
+      "normalized_rmse": 0.01631892777462576,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "pwl_q_64",
+      "unique_q": 87,
+      "max_abs_error": 0.005818420508885508,
+      "mean_abs_error": 0.0018155364351626511,
+      "rmse": 0.0023056323695121025,
+      "normalized_rmse": 0.01522673459768671,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    {
+      "name": "pwl_q_128",
+      "unique_q": 86,
+      "max_abs_error": 0.005872860448332081,
+      "mean_abs_error": 0.0016359757568091742,
+      "rmse": 0.002086693052092652,
+      "normalized_rmse": 0.013780827208708598,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    }
+  ],
+  "decision": {
+    "next_gate": "implement the smallest FPGA-suitable candidate that clears threshold"
+  }
+}
