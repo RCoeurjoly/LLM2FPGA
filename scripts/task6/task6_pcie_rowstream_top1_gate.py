@@ -61,6 +61,10 @@ REG_TOP1_SCORE_Q024 = 0x06C
 REG_TOP1_ROWS_SCANNED = 0x070
 REG_TOP1_CYCLE_COUNT = 0x074
 REG_TOP1_HIDDEN = 0x080
+REG_DEBUG_TOP1_STATUS = 0x21C
+REG_DEBUG_TOP1_READER_ADDR = 0x220
+REG_DEBUG_TOP1_WB_ACK_OR_FAULT_TOKEN = 0x224
+REG_DEBUG_TOP1_WB_ERR_OR_FAULT_SIDECAR = 0x228
 REG_TOP1_PACKET_WB_WRITE_ACK_COUNT = 0x22C
 REG_TOP1_PACKET_WB_READ_ACK_COUNT = 0x230
 
@@ -81,6 +85,32 @@ TOP1_RST_N = 1 << 0
 TOP1_BUSY = 1 << 1
 TOP1_DONE = 1 << 2
 TOP1_ERROR = 1 << 3
+
+TOP1_DEBUG_BITS = (
+    (0, "rst_n"),
+    (1, "ddr_debug_ok"),
+    (2, "calib_complete"),
+    (3, "read_probe_done"),
+    (4, "start_accepted"),
+    (5, "start_rejected"),
+    (6, "reader_busy"),
+    (7, "reader_done"),
+    (8, "reader_error"),
+    (9, "reader_wb_cyc"),
+    (10, "reader_wb_stb"),
+    (11, "reader_wb_we"),
+    (12, "wb_stall"),
+    (13, "reader_wb_ack"),
+    (14, "reader_wb_err"),
+    (15, "cutout_valid"),
+    (16, "cutout_done"),
+    (17, "cutout_busy"),
+    (18, "cutout_reserved_error"),
+    (19, "row_valid"),
+    (20, "row_ready"),
+    (21, "row_last"),
+    (22, "row0_sidecar_decode_mismatch"),
+)
 
 SCRIPT_ROOT = Path(__file__).resolve().parents[2]
 ROOT = Path(os.environ.get("TASK6_REPO_ROOT", SCRIPT_ROOT if (SCRIPT_ROOT / "artifacts").exists() else Path.cwd())).resolve()
@@ -613,6 +643,25 @@ def read_hidden(mm: mmap.mmap) -> bytes:
     )
 
 
+def decode_bit_names(value: int, bits: tuple[tuple[int, str], ...]) -> list[str]:
+    return [name for bit, name in bits if value & (1 << bit)]
+
+
+def read_top1_debug(mm: mmap.mmap) -> dict[str, Any]:
+    status = rd32(mm, REG_DEBUG_TOP1_STATUS)
+    fault_word = rd32(mm, REG_DEBUG_TOP1_WB_ACK_OR_FAULT_TOKEN)
+    fault_sidecar = rd32(mm, REG_DEBUG_TOP1_WB_ERR_OR_FAULT_SIDECAR)
+    fault_addr = rd32(mm, REG_DEBUG_TOP1_READER_ADDR)
+    return {
+        "debug_top1_status": status,
+        "debug_top1_status_bits": decode_bit_names(status, TOP1_DEBUG_BITS),
+        "debug_top1_reader_addr": fault_addr,
+        "debug_top1_fault_seen": bool(fault_word & 0x00010000),
+        "debug_top1_fault_token": fault_word & 0xFFFF,
+        "debug_top1_fault_sidecar": fault_sidecar,
+    }
+
+
 def clear_top1_status(mm: mmap.mmap, timeout: float) -> None:
     # Break the ingress duplicate-write filter before issuing the clear pulse.
     wr32(mm, REG_TOP1_STATUS, 0x0)
@@ -975,12 +1024,14 @@ def main() -> int:
                 hidden_bytes = hidden_to_bytes(payload["hidden_q"], hidden_size)
                 write_hidden(mm, hidden_bytes)
                 hidden_readback = read_hidden(mm)
+                top1_debug_before = read_top1_debug(mm)
                 observed = run_board_top1(
                     mm,
                     hidden_bytes,
                     args.top1_timeout,
                     args.top1_retries,
                 )
+                top1_debug_after = read_top1_debug(mm)
                 matches_token = observed["top1_token"] == expected["expected_top1_token"]
                 matches_score = observed["top1_score_q024"] == expected["expected_top1_score_q024_low32"]
                 matches_rows = observed["rows_scanned"] == expected["expected_rows_scanned"]
@@ -996,6 +1047,8 @@ def main() -> int:
                         **observed,
                         "hidden_mmio_readback_match": hidden_readback == hidden_bytes,
                         "hidden_mmio_readback_sha256": hashlib.sha256(hidden_readback).hexdigest(),
+                        "top1_debug_before": top1_debug_before,
+                        "top1_debug_after": top1_debug_after,
                         "matches_token": matches_token,
                         "matches_score_low32": matches_score,
                         "matches_rows_scanned": matches_rows,

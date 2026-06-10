@@ -360,6 +360,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [15:0] top1_fault_token_q;
   logic [31:0] top1_fault_sidecar_q;
   logic [WB_ADDR_BITS - 1:0] top1_fault_reader_addr_q;
+  logic top1_row0_sidecar_decode_checked_q;
+  logic top1_row0_sidecar_decode_mismatch_q;
   logic top1_reader_busy;
   logic top1_reader_done;
   logic top1_reader_error;
@@ -375,6 +377,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   logic [511:0] top1_row_weight_q_i8;
   logic [31:0] top1_row_sidecar_word;
   logic top1_row_last;
+  logic [63:0] top1_debug_first_row_sidecar_beat;
+  logic top1_debug_first_row_sidecar_beat_valid;
   logic top1_cutout_valid;
   logic top1_cutout_done;
   logic top1_cutout_busy;
@@ -667,6 +671,12 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       top1_score_q024_q <= 32'd0;
       top1_rows_scanned_q <= 32'd0;
       top1_cycle_count_q <= 32'd0;
+      top1_fault_seen_q <= 1'b0;
+      top1_fault_token_q <= 16'd0;
+      top1_fault_sidecar_q <= 32'd0;
+      top1_fault_reader_addr_q <= '0;
+      top1_row0_sidecar_decode_checked_q <= 1'b0;
+      top1_row0_sidecar_decode_mismatch_q <= 1'b0;
 `endif
       read_probe_single_q <= 1'b0;
     end else begin
@@ -716,6 +726,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         top1_fault_token_q <= 16'd0;
         top1_fault_sidecar_q <= 32'd0;
         top1_fault_reader_addr_q <= '0;
+        top1_row0_sidecar_decode_checked_q <= 1'b0;
+        top1_row0_sidecar_decode_mismatch_q <= 1'b0;
       end
       if (top1_start_accepted) begin
         top1_done_sticky_q <= 1'b0;
@@ -724,8 +736,19 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         top1_fault_token_q <= 16'd0;
         top1_fault_sidecar_q <= 32'd0;
         top1_fault_reader_addr_q <= '0;
+        top1_row0_sidecar_decode_checked_q <= 1'b0;
+        top1_row0_sidecar_decode_mismatch_q <= 1'b0;
       end else if (top1_start_rejected && !pcie_top1_status_clear_i) begin
         top1_error_sticky_q <= 1'b1;
+      end
+      if (
+        top1_row_valid && top1_row_ready && top1_row_token_id == 16'd0 &&
+        top1_debug_first_row_sidecar_beat_valid &&
+        !top1_row0_sidecar_decode_checked_q && !pcie_top1_status_clear_i
+      ) begin
+        top1_row0_sidecar_decode_checked_q <= 1'b1;
+        top1_row0_sidecar_decode_mismatch_q <=
+          top1_row_sidecar_word != top1_debug_first_row_sidecar_beat[31:0];
       end
       if (
         top1_row_valid && top1_row_ready && |top1_row_sidecar_word[31:24] &&
@@ -1758,7 +1781,9 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
         .row_token_id_o(top1_row_token_id),
         .row_weight_q_i8_o(top1_row_weight_q_i8),
         .row_sidecar_word_o(top1_row_sidecar_word),
-        .row_last_o(top1_row_last)
+        .row_last_o(top1_row_last),
+        .debug_first_row_sidecar_beat_o(top1_debug_first_row_sidecar_beat),
+        .debug_first_row_sidecar_beat_valid_o(top1_debug_first_row_sidecar_beat_valid)
       );
 
       task6_ddr3_rowstream_top1_cutout #(
@@ -1799,6 +1824,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
       assign top1_row_weight_q_i8 = 512'd0;
       assign top1_row_sidecar_word = 32'd0;
       assign top1_row_last = 1'b0;
+      assign top1_debug_first_row_sidecar_beat = 64'd0;
+      assign top1_debug_first_row_sidecar_beat_valid = 1'b0;
       assign top1_cutout_valid = 1'b0;
       assign top1_cutout_done = 1'b0;
       assign top1_cutout_busy = 1'b0;
@@ -1845,7 +1872,8 @@ module task6_ypcb_uberddr3_bist_rowstream_loader_top #(
   assign pcie_top1_rows_scanned_o = top1_rows_scanned_q;
   assign pcie_top1_cycle_count_o = top1_cycle_count_q;
   assign pcie_top1_debug_status_o = {
-    10'd0,
+    9'd0,
+    top1_row0_sidecar_decode_mismatch_q,
     top1_row_last,
     top1_row_ready,
     top1_row_valid,

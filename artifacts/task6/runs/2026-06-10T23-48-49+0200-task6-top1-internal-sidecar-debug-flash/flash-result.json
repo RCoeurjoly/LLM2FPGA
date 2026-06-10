@@ -1,0 +1,17 @@
+{
+  "finished_at": "2026-06-10T23:56:07.835750+02:00",
+  "argv": [
+    "/home/roland/openFPGALoader/build/openFPGALoader",
+    "-b",
+    "ypcb003381p1",
+    "-c",
+    "digilent_hs3",
+    "--ftdi-serial",
+    "210299BF3824",
+    "--write-flash",
+    "--verify",
+    "/nix/store/anbqgn8xnn9xygpwgb7pcpiyp0ifkfap-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit"
+  ],
+  "returncode": 0,
+  "run_dir": "artifacts/task6/runs/2026-06-10T23-48-49+0200-task6-top1-internal-sidecar-debug-flash"
+}

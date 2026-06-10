@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "task6-top1-internal-sidecar-debug-recover-lifecycle-0"
+  ],
+  "name": "lifecycle-0",
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "classification: missing_resource0\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T23-56-19+0200-task6-top1-internal-sidecar-debug-recover-lifecycle-0\nnext:\n- The endpoint is present without usable BAR0; do not run BAR gates yet.\n- If pcie-lifecycle.json shows clean identity (10ee:0480, header 00, subsystem abcd) and resource0/recovery nodes exist, delegated recovery may restore config space, but it is not BAR-safe for acceptance gates: scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeout 20\n- After delegated recovery, power-cycle the chassis and rerun non-BAR lifecycle before any BAR gate. If config is all-ones/corrupt or no-force recovery refuses, stop PCIe probing and re-enumerate with the FPGA already configured. Use --force-dead-config only for a deliberate recovery experiment.\n",
+  "stderr": "",
+  "timeout": false
+}

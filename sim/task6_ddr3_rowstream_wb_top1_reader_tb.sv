@@ -40,11 +40,14 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
   wire [HIDDEN_SIZE * 8 - 1:0] row_weight_q_i8;
   wire [31:0] row_sidecar_word;
   wire row_last;
+  wire [63:0] debug_first_row_sidecar_beat;
+  wire debug_first_row_sidecar_beat_valid;
 
   logic [7:0] image [0:TOTAL_BEATS * WB_SEL_BITS - 1];
   logic [WB_DATA_BITS - 1:0] beat_mem [0:TOTAL_BEATS - 1];
   int errors;
   int rows_seen;
+  int row_valid_high_cycles;
 
   task6_ddr3_rowstream_wb_top1_reader #(
     .HIDDEN_SIZE(HIDDEN_SIZE),
@@ -76,21 +79,24 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
     .row_token_id_o(row_token_id),
     .row_weight_q_i8_o(row_weight_q_i8),
     .row_sidecar_word_o(row_sidecar_word),
-    .row_last_o(row_last)
+    .row_last_o(row_last),
+    .debug_first_row_sidecar_beat_o(debug_first_row_sidecar_beat),
+    .debug_first_row_sidecar_beat_valid_o(debug_first_row_sidecar_beat_valid)
   );
 
   always #5 clk = ~clk;
+
+  always_comb begin
+    wb_data_i = beat_mem[$clog2(TOTAL_BEATS)'(wb_addr)];
+  end
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       wb_ack <= 1'b0;
       wb_err <= 1'b0;
-      wb_data_i <= '0;
     end else begin
       wb_ack <= wb_cyc && wb_stb && !wb_stall;
       wb_err <= 1'b0;
-      if (wb_cyc && wb_stb && !wb_stall)
-        wb_data_i <= beat_mem[$clog2(TOTAL_BEATS)'(wb_addr)];
     end
   end
 
@@ -128,6 +134,7 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
     row_ready = 1'b1;
     errors = 0;
     rows_seen = 0;
+    row_valid_high_cycles = 0;
 
     for (int i = 0; i < TOTAL_BEATS * WB_SEL_BITS; i++)
       image[i] = 8'h00;
@@ -160,11 +167,13 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
     start = 1'b0;
 
     repeat (1000) begin
-      @(negedge clk);
+      @(posedge clk);
       if (row_valid && row_ready) begin
         check_row(rows_seen);
         rows_seen++;
       end
+      if (row_valid)
+        row_valid_high_cycles++;
       if (done)
         break;
     end
@@ -172,7 +181,16 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
     check(done, "reader must complete");
     check(!error, "reader must not report an error");
     check(rows_seen == VOCAB_SIZE, "reader must emit all vocab rows");
+    check(row_valid_high_cycles == VOCAB_SIZE, "reader must hold each row valid for exactly one consumer cycle");
     check(!busy, "reader must drop busy after completion");
+    check(debug_first_row_sidecar_beat_valid, "reader must capture row0 sidecar debug beat");
+    check(
+      debug_first_row_sidecar_beat == {
+        image[71], image[70], image[69], image[68],
+        image[67], image[66], image[65], image[64]
+      },
+      "row0 sidecar debug beat must match packed image bytes"
+    );
 
     if (errors == 0) begin
       $display("PASS: task6 DDR3 rowstream WB top1 reader rows %0d", rows_seen);

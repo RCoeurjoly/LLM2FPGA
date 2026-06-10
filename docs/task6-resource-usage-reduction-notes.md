@@ -28942,3 +28942,105 @@ Next engineering direction after pair-load:
 - Before another full rowstream/top1 attempt, add a cheap top1/debug isolation
   gate that reuses already-loaded DDR rows and distinguishes top1 compute/mux
   errors from loader errors.
+
+Top1 compute/debug isolation after pair-load:
+
+- Added PCIe-visible top1 debug snapshots to
+  `scripts/task6/task6_pcie_rowstream_top1_gate.py`:
+  `debug_top1_status`, `debug_top1_reader_addr`,
+  `debug_top1_fault_token`, and `debug_top1_fault_sidecar`.
+- No-load isolation against already-loaded DDR rows:
+  `artifacts/task6/runs/2026-06-10T22-01-06+0200-task6-rowstream-loader-pairload-pnr100/top1-isolation-noload-debug.json`.
+  - Lifecycle before the BAR run classified `pcie_ready`:
+    `artifacts/task6/runs/2026-06-10T22-21-04+0200-task6-top1-isolation-lifecycle`.
+  - `--no-load-image` still failed all 8 top1 samples.
+  - Sampled token rows continued to match the DDR image.
+  - The first failing row was token 0 at reader address 9, with sidecar
+    `0x8374e977`, while packed row 0 sidecar in `rowstream.bin` is
+    `0x0000c39a`.
+- Interpretation: the rowstream contents are present and readable through the
+  debug path, but the streaming top1 reader/cutout boundary is assembling or
+  interpreting at least the first row incorrectly.
+
+Top1 reader ACK/data timing experiments:
+
+- Changed `rtl/task6/task6_ddr3_rowstream_wb_top1_reader.sv` to sample
+  `wb_data_i` on the ACK cycle, matching the debug read path instead of the
+  previous delayed `S_CAPTURE` state.
+- Updated `sim/task6_ddr3_rowstream_wb_top1_reader_tb.sv` so read data is
+  available when ACK is asserted.
+- Verification:
+  - `nix build .#task6-ddr3-rowstream-wb-top1-reader-sim-main --no-link -L`
+  - `nix build .#task6-ddr3-rowstream-wb-top1-reader-64-sim-main --no-link -L`
+  - both generated sim binaries passed.
+  - `nix build .#task6-ddr3-row-stream-cutout-sv-sim --no-link -L` passed.
+- Strict pnr100 image built timing-clean:
+  `/nix/store/52j9i37vlf2fq6zkjva9zrkcycr4vars-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`.
+  - `impl.rowstream_clk`: 72.56 MHz, PASS against 66.67 MHz.
+  - `impl.pcie_user_clk`: 70.65 MHz, PASS against 62.50 MHz.
+- Board validation:
+  `artifacts/task6/runs/2026-06-10T22-35-53+0200-task6-top1-reader-ackcapture-pnr100`.
+  - Flash write/verify succeeded.
+  - Tapo off/on succeeded.
+  - Autonomous recovery/lifecycle reached BAR-ready state.
+  - Full rowstream load used `packet_load_mode=pair`, `packet_count=106828`,
+    and sampled DDR verification matched.
+  - Hardware top1 still failed all 8 prompt samples.
+  - Fault sidecar changed to `0x800061cd` for token 0 at reader address 9.
+- Interpretation: ACK-cycle capture changed the physical failure signature but
+  did not fix top1. The remaining suspect is sequential top1 reader timing
+  against the UberDDR3 user port: unlike the debug read-probe path, the top1
+  reader was issuing the next read immediately after each ACK.
+- Next fix under test: insert a one-cycle `S_GAP` bubble between accepted
+  top1 reader beats, preserving the conservative read-probe transaction shape.
+
+Top1 reader decode isolation and finalize-state fix:
+
+- The `S_GAP` experiment was not accepted: it made the loader/BAR path less
+  stable and did not resolve the top1 failure.
+- Replaced the wide BAR row0-sidecar readback experiment with a narrow internal
+  consistency bit:
+  - `task6_ddr3_rowstream_wb_top1_reader` captures the raw first row sidecar
+    beat locally.
+  - `task6_ypcb_uberddr3_bist_rowstream_loader_top` compares the decoded row0
+    sidecar against that raw beat and exposes only
+    `row0_sidecar_decode_mismatch` in the existing top1 debug status.
+- Evidence from the timing-clean internal-debug image:
+  `/nix/store/anbqgn8xnn9xygpwgb7pcpiyp0ifkfap-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`.
+  - Flash:
+    `artifacts/task6/runs/2026-06-10T23-48-49+0200-task6-top1-internal-sidecar-debug-flash`.
+  - Tapo recovery:
+    `artifacts/task6/runs/2026-06-10T23-56-19+0200-task6-top1-internal-sidecar-debug-recover`.
+  - Rowstream/top1:
+    `artifacts/task6/runs/2026-06-10T23-48-49+0200-task6-top1-internal-sidecar-debug-flash/rowstream-top1-internal-sidecar-debug.json`.
+  - Full rowstream load completed with `packet_load_mode=pair`,
+    `packet_count=106828`, and sampled DDR verification matched.
+  - Hardware top1 still failed all 8 prompt samples.
+  - New debug status included both `row0_sidecar_decode_mismatch` and
+    `cutout_reserved_error`, with token 0 fault sidecar `0x800061cd`.
+- Interpretation: the DDR rowstream and loader transport are still good; the
+  failure is isolated inside the streaming reader/cutout row decode path.
+- Current local fix:
+  - `task6_ddr3_rowstream_wb_top1_reader` now has an `S_FINALIZE` state so it
+    asserts `row_valid_o` only after the final row-window beat has been
+    registered.
+  - The reader testbench now samples rows on the consumer clock edge and checks
+    that each row is valid for exactly one accepted cycle.
+- Verification before board:
+  - `python3 -m py_compile scripts/task6/task6_pcie_rowstream_top1_gate.py`
+  - `nix build .#task6-ddr3-rowstream-wb-top1-reader-sim-main --no-link --print-out-paths -L`
+  - `/nix/store/cfxwn7nvh9mrdlhy51fmappkp32jd6ys-task6-ddr3-rowstream-wb-top1-reader-128-sim-main/obj_dir/sim_main`
+  - `nix build .#task6-ddr3-rowstream-wb-top1-reader-64-sim-main --no-link --print-out-paths -L`
+  - `/nix/store/ln8bbzlqaf6wsyvc3qpi155abljvv12c-task6-ddr3-rowstream-wb-top1-reader-64-sim-main/obj_dir/sim_main`
+  - `git diff --check`
+- Strict pnr100 rebuild passed timing with no timing waiver:
+  `/nix/store/8dzcq921qwa97njnivrhv345ll84pvyr-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`.
+  - `impl.rowstream_clk`: 93.83 MHz, PASS against 66.67 MHz.
+  - `impl.pcie_user_clk`: 71.42 MHz, PASS against 62.50 MHz.
+- Hardware validation is still pending because the physical flash command was
+  blocked by the execution approval/usage gate. Next safe sequence:
+  - Flash the bitstream above with
+    `scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write /nix/store/8dzcq921qwa97njnivrhv345ll84pvyr-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit --confirm-write-flash --label task6-top1-reader-finalize-flash`
+  - Run Tapo-backed recovery/lifecycle and require `pcie_ready`.
+  - Run rowstream/top1 with
+    `scripts/task6/task6_pcie_user_gate.sh rowstream-top1 0000:42:00.0 --sample-count 8 --reference-json artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json`.

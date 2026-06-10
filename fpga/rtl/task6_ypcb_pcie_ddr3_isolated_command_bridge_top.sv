@@ -178,7 +178,13 @@ module task6_ypcb_pcie_ddr3_isolated_command_bridge_top #(
     .pcie_top1_token_o(),
     .pcie_top1_score_q024_o(),
     .pcie_top1_rows_scanned_o(),
-    .pcie_top1_cycle_count_o()
+    .pcie_top1_cycle_count_o(),
+    .pcie_top1_debug_status_o(),
+    .pcie_top1_debug_reader_addr_o(),
+    .pcie_top1_debug_wb_ack_count_o(),
+    .pcie_top1_debug_wb_err_count_o(),
+    .pcie_top1_debug_packet_wb_write_ack_count_o(),
+    .pcie_top1_debug_packet_wb_read_ack_count_o()
   );
 
   wire unused_ddr_calib_complete = ddr_calib_complete;
