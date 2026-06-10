@@ -31,7 +31,8 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top #(
   task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .DDR_BYTE_LANES(DDR_BYTE_LANES),
     .ENABLE_PCIE_TOP1(1'b1),
-    .ENABLE_PCIE_MLP_SELFTEST(1'b1)
+    .ENABLE_PCIE_MLP_SELFTEST(1'b0),
+    .ENABLE_PCIE_MLP_ACCEL(1'b1)
   ) impl (
     .pci_exp_txp(pci_exp_txp),
     .pci_exp_txn(pci_exp_txn),

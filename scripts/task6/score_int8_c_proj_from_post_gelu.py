@@ -142,6 +142,32 @@ def fixed_post_gelu_q(
     return saturate_i8(output_q)
 
 
+def fixed_post_gelu_pwl_q(x_q: int, x_nodes: list[int], y_nodes: list[int]) -> int:
+    if len(x_nodes) != len(y_nodes):
+        raise SystemExit("PWL GELU x/y node length mismatch")
+    if len(x_nodes) != 16:
+        raise SystemExit("RTL currently supports exactly 16 PWL GELU nodes")
+    if x_q <= x_nodes[0]:
+        return y_nodes[0]
+    if x_q >= x_nodes[-1]:
+        return y_nodes[-1]
+    segment = 0
+    for index in range(len(x_nodes) - 1):
+        if x_nodes[index] <= x_q <= x_nodes[index + 1]:
+            segment = index
+            break
+    x0 = x_nodes[segment]
+    x1 = x_nodes[segment + 1]
+    y0 = y_nodes[segment]
+    y1 = y_nodes[segment + 1]
+    numerator = (x_q - x0) * (y1 - y0)
+    denominator = x1 - x0
+    recip_shift = 16
+    recip_q = ((1 << recip_shift) + (denominator // 2)) // denominator
+    delta = round_shift_signed(numerator * recip_q, recip_shift)
+    return saturate_i8(y0 + delta)
+
+
 def score_error(actual: list[float], expected: list[float]) -> dict[str, float]:
     if len(actual) != len(expected):
         raise SystemExit(f"length mismatch: actual={len(actual)} expected={len(expected)}")
@@ -212,6 +238,9 @@ def main() -> None:
     output_requant_shift = int(fixed_point["output_requant_shift"])
     gelu_quad_q = int(fixed_point["gelu_quad_q"])
     output_requant_mult = int(fixed_point["output_requant_mult"])
+    gelu_approx_mode = fixed_point.get("gelu_approx_mode", "quadratic")
+    gelu_pwl_x_nodes = [int(value) for value in fixed_point.get("gelu_pwl_x_nodes", [])]
+    gelu_pwl_y_nodes = [int(value) for value in fixed_point.get("gelu_pwl_y_nodes", [])]
     post_gelu_output_scale = float(post_gelu["quantization"]["output_scale"])
     c_fc_effective_scales = [
         c_fc_activation_scale * weight_scale
@@ -222,19 +251,24 @@ def main() -> None:
         for scale in c_fc_effective_scales
     ]
     c_fc_bias_q = [round(value * (1 << x_frac)) for value in c_fc_bias]
-    post_gelu_q = [
-        fixed_post_gelu_q(
-            acc,
-            c_fc_scale_mul[index],
-            c_fc_bias_q[index],
-            gelu_quad_q,
-            output_requant_mult,
-            x_frac,
-            scale_shift,
-            output_requant_shift,
-        )
-        for index, acc in enumerate(c_fc_accs)
-    ]
+    post_gelu_q: list[int] = []
+    for index, acc in enumerate(c_fc_accs):
+        x_q = round_shift_signed(acc * c_fc_scale_mul[index], scale_shift) + c_fc_bias_q[index]
+        if gelu_approx_mode == "pwl":
+            post_gelu_q.append(fixed_post_gelu_pwl_q(x_q, gelu_pwl_x_nodes, gelu_pwl_y_nodes))
+        else:
+            post_gelu_q.append(
+                fixed_post_gelu_q(
+                    acc,
+                    c_fc_scale_mul[index],
+                    c_fc_bias_q[index],
+                    gelu_quad_q,
+                    output_requant_mult,
+                    x_frac,
+                    scale_shift,
+                    output_requant_shift,
+                )
+            )
     post_gelu_dequantized = [
         value * post_gelu_output_scale
         for value in post_gelu_q

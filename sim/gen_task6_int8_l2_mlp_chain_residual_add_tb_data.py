@@ -12,6 +12,7 @@ from typing import Any
 from gen_task6_int8_l2_c_proj_from_post_gelu_tb_data import (
     compute_accumulators,
     fixed_post_gelu_q,
+    fixed_post_gelu_pwl_q,
     gelu_tanh,
     load_contract_tensor,
     load_f32,
@@ -159,6 +160,9 @@ def build_c_proj_int8_output(
     output_requant_shift = int(fixed_point["output_requant_shift"])
     gelu_quad_q = int(fixed_point["gelu_quad_q"])
     output_requant_mult = int(fixed_point["output_requant_mult"])
+    gelu_approx_mode = fixed_point.get("gelu_approx_mode", "quadratic")
+    gelu_pwl_x_nodes = [int(value) for value in fixed_point.get("gelu_pwl_x_nodes", [])]
+    gelu_pwl_y_nodes = [int(value) for value in fixed_point.get("gelu_pwl_y_nodes", [])]
     post_gelu_scale = float(post_gelu["quantization"]["output_scale"])
     c_fc_effective_scales = [
         c_fc_activation_scale * weight_scale
@@ -169,19 +173,24 @@ def build_c_proj_int8_output(
         for scale in c_fc_effective_scales
     ]
     c_fc_bias_q_values = [round(value * (1 << x_frac)) for value in c_fc_bias]
-    post_gelu_q = [
-        fixed_post_gelu_q(
-            acc,
-            c_fc_scale_mul_values[index],
-            c_fc_bias_q_values[index],
-            gelu_quad_q,
-            output_requant_mult,
-            x_frac,
-            scale_shift,
-            output_requant_shift,
-        )
-        for index, acc in enumerate(c_fc_accs)
-    ]
+    post_gelu_q: list[int] = []
+    for index, acc in enumerate(c_fc_accs):
+        x_q = round_shift_signed(acc * c_fc_scale_mul_values[index], scale_shift) + c_fc_bias_q_values[index]
+        if gelu_approx_mode == "pwl":
+            post_gelu_q.append(fixed_post_gelu_pwl_q(x_q, gelu_pwl_x_nodes, gelu_pwl_y_nodes))
+        else:
+            post_gelu_q.append(
+                fixed_post_gelu_q(
+                    acc,
+                    c_fc_scale_mul_values[index],
+                    c_fc_bias_q_values[index],
+                    gelu_quad_q,
+                    output_requant_mult,
+                    x_frac,
+                    scale_shift,
+                    output_requant_shift,
+                )
+            )
     post_gelu_dequantized = [value * post_gelu_scale for value in post_gelu_q]
 
     c_proj_weight_meta = tensor_by_name(c_proj_weight_pack, "weight")

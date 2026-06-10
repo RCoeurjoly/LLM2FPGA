@@ -34,10 +34,40 @@ module task6_int8_l2_mlp_chain_residual_add_tb;
 
   logic [C_PROJ_OUT_ADDR_WIDTH - 1:0] output_read_addr;
   wire signed [7:0] output_read_data;
+  wire debug_add_valid;
+  wire [C_PROJ_OUT_ADDR_WIDTH - 1:0] debug_add_addr;
+  wire signed [7:0] debug_add_residual_q;
+  wire signed [7:0] debug_add_c_proj_q;
+  wire signed [7:0] debug_add_output_q;
+  wire debug_c_proj_requant_valid;
+  wire [C_PROJ_OUT_ADDR_WIDTH - 1:0] debug_c_proj_requant_addr;
+  wire signed [31:0] debug_c_proj_requant_acc_q;
+  wire signed [31:0] debug_c_proj_requant_scale_mul_q;
+  wire signed [31:0] debug_c_proj_requant_bias_q;
+  wire signed [63:0] debug_c_proj_requant_product_q;
+  wire signed [63:0] debug_c_proj_requant_scaled_q;
+  wire signed [63:0] debug_c_proj_requant_biased_q;
+  wire signed [7:0] debug_c_proj_requant_output_q;
+  wire [8 * 128 - 1:0] debug_c_proj_gemv_lane0_samples;
+  wire [3:0] debug_c_proj_gemv_lane0_sample_count;
+  wire signed [31:0] debug_c_proj_gemv_lane0_final_acc;
+  wire [8 * 8 - 1:0] debug_c_proj_transfer_post_gelu_samples;
+  wire [8 * 144 - 1:0] debug_c_fc_post_gelu_samples;
+  wire [3:0] debug_c_fc_post_gelu_sample_count;
+  wire [8 * 128 - 1:0] debug_c_fc_gemv_samples;
+  wire [3:0] debug_c_fc_gemv_sample_count;
+  wire signed [31:0] debug_c_fc_gemv_final_acc;
 
   integer cycles;
   integer compute_cycles;
   integer read_count;
+  logic first_add_seen;
+  logic signed [7:0] first_add_residual_q;
+  logic signed [7:0] first_add_c_proj_q;
+  logic signed [7:0] first_add_output_q;
+  logic first_requant_seen;
+  logic signed [31:0] first_requant_acc_q;
+  logic signed [7:0] first_requant_output_q;
 
   task6_int8_l2_mlp_chain_residual_add_kernel #(
     .C_FC_IN_DIM(C_FC_IN_DIM),
@@ -50,6 +80,39 @@ module task6_int8_l2_mlp_chain_residual_add_tb;
     .X_FRAC(X_FRAC),
     .SCALE_SHIFT(SCALE_SHIFT),
     .GELU_QUAD_Q(GELU_QUAD_Q),
+    .GELU_APPROX_MODE(GELU_APPROX_MODE),
+    .GELU_PWL_X0(GELU_PWL_X0),
+    .GELU_PWL_X1(GELU_PWL_X1),
+    .GELU_PWL_X2(GELU_PWL_X2),
+    .GELU_PWL_X3(GELU_PWL_X3),
+    .GELU_PWL_X4(GELU_PWL_X4),
+    .GELU_PWL_X5(GELU_PWL_X5),
+    .GELU_PWL_X6(GELU_PWL_X6),
+    .GELU_PWL_X7(GELU_PWL_X7),
+    .GELU_PWL_X8(GELU_PWL_X8),
+    .GELU_PWL_X9(GELU_PWL_X9),
+    .GELU_PWL_X10(GELU_PWL_X10),
+    .GELU_PWL_X11(GELU_PWL_X11),
+    .GELU_PWL_X12(GELU_PWL_X12),
+    .GELU_PWL_X13(GELU_PWL_X13),
+    .GELU_PWL_X14(GELU_PWL_X14),
+    .GELU_PWL_X15(GELU_PWL_X15),
+    .GELU_PWL_Y0(GELU_PWL_Y0),
+    .GELU_PWL_Y1(GELU_PWL_Y1),
+    .GELU_PWL_Y2(GELU_PWL_Y2),
+    .GELU_PWL_Y3(GELU_PWL_Y3),
+    .GELU_PWL_Y4(GELU_PWL_Y4),
+    .GELU_PWL_Y5(GELU_PWL_Y5),
+    .GELU_PWL_Y6(GELU_PWL_Y6),
+    .GELU_PWL_Y7(GELU_PWL_Y7),
+    .GELU_PWL_Y8(GELU_PWL_Y8),
+    .GELU_PWL_Y9(GELU_PWL_Y9),
+    .GELU_PWL_Y10(GELU_PWL_Y10),
+    .GELU_PWL_Y11(GELU_PWL_Y11),
+    .GELU_PWL_Y12(GELU_PWL_Y12),
+    .GELU_PWL_Y13(GELU_PWL_Y13),
+    .GELU_PWL_Y14(GELU_PWL_Y14),
+    .GELU_PWL_Y15(GELU_PWL_Y15),
     .OUTPUT_REQUANT_SHIFT(OUTPUT_REQUANT_SHIFT),
     .OUTPUT_REQUANT_MULT(OUTPUT_REQUANT_MULT),
     .C_PROJ_OUTPUT_REQUANT_SHIFT(C_PROJ_OUTPUT_REQUANT_SHIFT),
@@ -83,7 +146,30 @@ module task6_int8_l2_mlp_chain_residual_add_tb;
     .busy(busy),
     .done(done),
     .output_read_addr(output_read_addr),
-    .output_read_data(output_read_data)
+    .output_read_data(output_read_data),
+    .debug_add_valid(debug_add_valid),
+    .debug_add_addr(debug_add_addr),
+    .debug_add_residual_q(debug_add_residual_q),
+    .debug_add_c_proj_q(debug_add_c_proj_q),
+    .debug_add_output_q(debug_add_output_q),
+    .debug_c_proj_requant_valid(debug_c_proj_requant_valid),
+    .debug_c_proj_requant_addr(debug_c_proj_requant_addr),
+    .debug_c_proj_requant_acc_q(debug_c_proj_requant_acc_q),
+    .debug_c_proj_requant_scale_mul_q(debug_c_proj_requant_scale_mul_q),
+    .debug_c_proj_requant_bias_q(debug_c_proj_requant_bias_q),
+    .debug_c_proj_requant_product_q(debug_c_proj_requant_product_q),
+    .debug_c_proj_requant_scaled_q(debug_c_proj_requant_scaled_q),
+    .debug_c_proj_requant_biased_q(debug_c_proj_requant_biased_q),
+    .debug_c_proj_requant_output_q(debug_c_proj_requant_output_q),
+    .debug_c_proj_gemv_lane0_samples(debug_c_proj_gemv_lane0_samples),
+    .debug_c_proj_gemv_lane0_sample_count(debug_c_proj_gemv_lane0_sample_count),
+    .debug_c_proj_gemv_lane0_final_acc(debug_c_proj_gemv_lane0_final_acc),
+    .debug_c_proj_transfer_post_gelu_samples(debug_c_proj_transfer_post_gelu_samples),
+    .debug_c_fc_post_gelu_samples(debug_c_fc_post_gelu_samples),
+    .debug_c_fc_post_gelu_sample_count(debug_c_fc_post_gelu_sample_count),
+    .debug_c_fc_gemv_samples(debug_c_fc_gemv_samples),
+    .debug_c_fc_gemv_sample_count(debug_c_fc_gemv_sample_count),
+    .debug_c_fc_gemv_final_acc(debug_c_fc_gemv_final_acc)
   );
 
   always #5 clock = ~clock;
@@ -121,6 +207,13 @@ module task6_int8_l2_mlp_chain_residual_add_tb;
     cycles = 0;
     compute_cycles = 0;
     read_count = 0;
+    first_add_seen = 1'b0;
+    first_add_residual_q = '0;
+    first_add_c_proj_q = '0;
+    first_add_output_q = '0;
+    first_requant_seen = 1'b0;
+    first_requant_acc_q = '0;
+    first_requant_output_q = '0;
 
     repeat (2) @(negedge clock);
     for (in_index = 0; in_index < C_FC_IN_DIM; in_index = in_index + 1) begin
@@ -209,6 +302,37 @@ module task6_int8_l2_mlp_chain_residual_add_tb;
           expected_residual_add_output_q_values[out_index],
           output_read_data
         );
+        $display(
+          "C_PROJ_REQUANT: addr=%0d acc=%0d expected_acc0=%0d out=%0d expected_out0=%0d first_acc=%0d first_out=%0d",
+          debug_c_proj_requant_addr,
+          debug_c_proj_requant_acc_q,
+          expected_c_proj_acc_values[0],
+          debug_c_proj_requant_output_q,
+          expected_c_proj_output_q_values[0],
+          first_requant_acc_q,
+          first_requant_output_q
+        );
+        $display(
+          "C_PROJ_TRANSFER: observed=%016x",
+          debug_c_proj_transfer_post_gelu_samples
+        );
+        $display(
+          "MEM_DEBUG: c_proj_output_mem0=%0d residual_output_mem0=%0d expected_c_proj0=%0d expected_residual0=%0d",
+          dut.chain.output_mem[0],
+          dut.output_mem[0],
+          expected_c_proj_output_q_values[0],
+          expected_residual_add_output_q_values[0]
+        );
+        $display(
+          "ADD_DEBUG: addr=%0d residual=%0d c_proj=%0d output=%0d first_residual=%0d first_c_proj=%0d first_output=%0d",
+          debug_add_addr,
+          debug_add_residual_q,
+          debug_add_c_proj_q,
+          debug_add_output_q,
+          first_add_residual_q,
+          first_add_c_proj_q,
+          first_add_output_q
+        );
         $fatal(1);
       end
       read_count = read_count + 1;
@@ -226,6 +350,19 @@ module task6_int8_l2_mlp_chain_residual_add_tb;
   end
 
   always_ff @(posedge clock) begin
+    if (debug_add_valid && debug_add_addr == '0 && !first_add_seen) begin
+      first_add_seen <= 1'b1;
+      first_add_residual_q <= debug_add_residual_q;
+      first_add_c_proj_q <= debug_add_c_proj_q;
+      first_add_output_q <= debug_add_output_q;
+    end
+    if (debug_c_proj_requant_valid &&
+        debug_c_proj_requant_addr == '0 &&
+        !first_requant_seen) begin
+      first_requant_seen <= 1'b1;
+      first_requant_acc_q <= debug_c_proj_requant_acc_q;
+      first_requant_output_q <= debug_c_proj_requant_output_q;
+    end
     if (!reset) begin
       cycles <= cycles + 1;
       if (cycles > TIMEOUT_CYCLES)

@@ -4226,23 +4226,24 @@ EOF
             ${pkgs.python3}/bin/python ${
               ./sim
             }/gen_task6_int8_l2_mlp_chain_c_proj_requant_tb_data.py \
+              --artifact-name h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof \
               --c-fc-contract-manifest ${
-                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+                ./artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract
               }/manifest.json \
               --c-fc-weight-pack-manifest ${
-                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+                ./artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc
               }/manifest.json \
               --c-proj-contract-manifest ${
-                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+                ./artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract
               }/manifest.json \
               --c-proj-weight-pack-manifest ${
-                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+                ./artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj
               }/manifest.json \
               --post-gelu-requant-json ${
-                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json
               } \
               --c-proj-output-boundary-json ${
-                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-output-boundary.json
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-c-proj-output-boundary.json
               } \
               --out-sv "$out/tb_data.sv" \
               --out-json "$out/summary.json"
@@ -4254,32 +4255,33 @@ EOF
             ${pkgs.python3}/bin/python ${
               ./sim
             }/gen_task6_int8_l2_mlp_chain_residual_add_tb_data.py \
+              --artifact-name h2-full-tinystories-1m-block0-pwl-mlp-chain-residual-add-rtl-proof \
               --residual-contract-manifest ${
-                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-residual-add-contract
+                ./artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-residual-add-contract
               }/manifest.json \
               --residual-boundary-json ${
-                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-residual-add-boundary.json
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-residual-add-boundary.json
               } \
               --c-fc-contract-manifest ${
-                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_fc-contract
+                ./artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract
               }/manifest.json \
               --c-fc-weight-pack-manifest ${
-                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_fc
+                ./artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc
               }/manifest.json \
               --c-proj-contract-manifest ${
-                ./artifacts/task6/streamtensor-lite/l2/tiny-stories-v1k-h64-l1-c_proj-contract
+                ./artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract
               }/manifest.json \
               --c-proj-weight-pack-manifest ${
-                ./artifacts/task6/weights_pack/tiny-stories-v1k-h64-l1/transformer.h.0.mlp.c_proj
+                ./artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj
               }/manifest.json \
               --post-gelu-requant-json ${
-                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-fc-post-gelu-requant-rtl-proof.json
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json
               } \
               --c-proj-output-boundary-json ${
-                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-c-proj-output-boundary.json
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-c-proj-output-boundary.json
               } \
               --c-proj-requant-rtl-proof-json ${
-                ./artifacts/task6/parallel-hypotheses/h2-int8-l2-mlp-chain-c-proj-requant-rtl-proof.json
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json
               } \
               --out-sv "$out/tb_data.sv" \
               --out-json "$out/summary.json"
@@ -4289,6 +4291,13 @@ EOF
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-top.sv" { } ''
             sed 's|"tb_data.sv"|"${task6Int8L2MlpChainResidualAddTbDataSv}/tb_data.sv"|g' \
               ${./fpga/rtl/task6_int8_l2_mlp_chain_residual_add_selftest_top.sv} \
+              > "$out"
+          '';
+
+        task6Int8L2MlpChainResidualAddAccelTop =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-accel-top.sv" { } ''
+            sed 's|"tb_data.sv"|"${task6Int8L2MlpChainResidualAddTbDataSv}/tb_data.sv"|g' \
+              ${./fpga/rtl/task6_int8_l2_mlp_chain_residual_add_accel_top.sv} \
               > "$out"
           '';
 
@@ -6458,7 +6467,7 @@ EOF
               ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
               ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
               ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
-              ${task6Int8L2MlpChainResidualAddSelftestTop} \
+              ${task6Int8L2MlpChainResidualAddAccelTop} \
               ${./rtl/task6/task6_q024_topk_score_compare.sv} \
               ${./rtl/task6/task6_ddr3_rowstream_top1_cutout.sv} \
               ${./rtl/task6/task6_ddr3_rowstream_wb_top1_reader.sv} \
@@ -9762,9 +9771,66 @@ EOF
             read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
             read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
             read_verilog -sv ${task6Int8L2MlpChainResidualAddSelftestTop}
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
             hierarchy -top task6_int8_l2_mlp_chain_residual_add_selftest_top -check
             proc
             synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6Int8L2MlpChainResidualAddSelftestBoardJson =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-board.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > board_top.sv <<'EOF'
+            module task6_int8_l2_mlp_chain_residual_add_selftest_board_top(
+              input logic SYS_CLK,
+              input logic SYS_RSTN,
+              output logic [2:0] led_3bits_tri_o
+            );
+              task6_int8_l2_mlp_chain_residual_add_selftest_top dut (
+                .SYS_CLK(SYS_CLK),
+                .SYS_RSTN(SYS_RSTN),
+                .led_3bits_tri_o(led_3bits_tri_o),
+                .pcie_status_o(),
+                .pcie_cycle_count_o(),
+                .pcie_fail_detail_o(),
+                .pcie_fail_values_o(),
+                .pcie_first_add_sample_o(),
+                .pcie_first_requant_sample_o(),
+                .pcie_accel_activation_i(512'd0),
+                .pcie_accel_residual_i(512'd0),
+                .pcie_accel_start_pulse_i(1'b0),
+                .pcie_accel_clear_pulse_i(1'b0),
+                .pcie_accel_status_o(),
+                .pcie_accel_cycle_count_o(),
+                .pcie_accel_output_checksum_o(),
+                .pcie_accel_output_sample0_o(),
+                .pcie_accel_output_sample1_o(),
+                .pcie_accel_output_vector_o()
+              );
+            endmodule
+            EOF
+            cat > run.ys <<EOF
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv}
+            read_verilog -sv ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv}
+            read_verilog -sv ${task6Int8L2MlpChainResidualAddSelftestTop}
+            read_verilog -sv board_top.sv
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            hierarchy -top task6_int8_l2_mlp_chain_residual_add_selftest_board_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_selftest_board_top -noiopad
             write_json "$out"
             EOF
             yosys -s run.ys
@@ -10197,7 +10263,7 @@ EOF
         task6Int8L2MlpChainResidualAddSelftestFasm = mkFasm {
           name = "task6-int8-l2-mlp-chain-residual-add-selftest";
           xdc = task6Int8L2MlpChainResidualAddSelftestXdc;
-          json = task6Int8L2MlpChainResidualAddSelftestJson;
+          json = task6Int8L2MlpChainResidualAddSelftestBoardJson;
           freqMHz = 50;
         };
 

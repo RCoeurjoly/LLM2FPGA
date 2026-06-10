@@ -1,0 +1,117 @@
+{
+  "artifact_name": "h2-int8-l2-c-proj-output-boundary",
+  "status": "PASS",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json",
+    "mlp_chain_rtl_proof_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-post-gelu-c-proj-rtl-proof.json",
+    "c_proj_candidate_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-c-proj-from-post-gelu-boundary.json"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_fc",
+    "consumer": "transformer.h.0.mlp.c_proj",
+    "boundary": "c_proj_output",
+    "interpretation": "Score the output side of the composed int8 MLP chain after the c_proj int32 accumulators."
+  },
+  "module": {
+    "model_label": "tiny-stories-1m-h64-l8-block0",
+    "c_proj_in_features": 256,
+    "c_proj_out_features": 64,
+    "c_proj_macs": 16384
+  },
+  "input_boundary": {
+    "activation_dtype": "post-GELU int8",
+    "activation_scale": 0.005411566543946203,
+    "activation_q_min": -31,
+    "activation_q_max": 127,
+    "activation_q_sha256": "8db33d891b13c76f4d6f7376a0768ec8f55ad7dc20923d85e68f1ba5fee3c285",
+    "activation_vs_c_proj_input": {
+      "max_abs_error": 0.005818406669556686,
+      "mean_abs_error": 0.0016861114420274634,
+      "rmse": 0.0021471703202100775,
+      "normalized_rmse": 0.014180227861596988,
+      "signal_max_abs": 0.6872689723968506,
+      "signal_mean_abs": 0.11283289705170318
+    },
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 2.1315682885436615e-08,
+      "mean_abs_error": 3.3850977003220577e-09,
+      "rmse": 5.17426668971602e-09,
+      "normalized_rmse": 3.4171616717295247e-08,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    }
+  },
+  "accumulator_boundary": {
+    "accumulator_dtype": "int32",
+    "accumulator_min": -66829,
+    "accumulator_max": 87596,
+    "accumulator_sha256": "50e094e0e4bc4f39c48b6a00cebae08374e3490ff71f53b546c6c58c95c06fbe",
+    "chain_proof_accumulator_sha256": "50e094e0e4bc4f39c48b6a00cebae08374e3490ff71f53b546c6c58c95c06fbe",
+    "matches_chain_proof": true
+  },
+  "f32_output_candidate": {
+    "boundary": "int32_accumulator_to_f32_output",
+    "formula": "f32_out[i] = int32_acc[i] * post_gelu_scale * weight_scale[i] + bias[i]",
+    "scale_dtype": "float32",
+    "bias_dtype": "float32",
+    "output_dtype": "float32",
+    "effective_scale_min": 1.8727320699158438e-06,
+    "effective_scale_max": 4.5242624595295094e-06,
+    "effective_scale_sha256": "a4d362d68efcf4ed267cc386de7d76a669ab82d40fe60761b6b2d2a395727e3b",
+    "bias_sha256": "5f2e5e5cb2917415357991761d011b0ad567ee5ca07ea14b137ab5543e03acfc",
+    "dequantized_output_sha256": "9f814a8af99a1e727e67b37051853a2e0c3ed363c663dc94085c60a295e2b39e",
+    "metrics": {
+      "max_abs_error": 0.0021532847008202544,
+      "mean_abs_error": 0.0008392213504454084,
+      "rmse": 0.001005706566147605,
+      "normalized_rmse": 0.008924888648700407,
+      "signal_max_abs": 0.3027295172214508,
+      "signal_mean_abs": 0.0915549298406404
+    },
+    "verdict": "pass"
+  },
+  "int8_output_candidate": {
+    "boundary": "int32_accumulator_to_int8_output",
+    "calibration": "single captured c_proj activation_out max-abs scale",
+    "output_scale": 0.0023836969859956755,
+    "output_q_min": -89,
+    "output_q_max": 127,
+    "output_q_sha256": "c02c222b5151102d1698b6027f2e8a10888bcef51f7a64466d4989576b66fc64",
+    "metrics": {
+      "max_abs_error": 0.002453618074261296,
+      "mean_abs_error": 0.0008925433379428846,
+      "rmse": 0.0011054565431808225,
+      "normalized_rmse": 0.009810094600116287,
+      "signal_max_abs": 0.3027295172214508,
+      "signal_mean_abs": 0.0915549298406404
+    },
+    "verdict": "pass",
+    "calibration_caveat": "A production output scale still needs a calibration set before board-level claims."
+  },
+  "byte_budget": {
+    "c_proj_accumulator_int32_bytes": 256,
+    "c_proj_effective_scale_f32_bytes": 256,
+    "c_proj_bias_f32_bytes": 256,
+    "c_proj_f32_output_bytes": 256,
+    "c_proj_int8_output_bytes": 64,
+    "c_proj_int8_output_scale_bytes": 4,
+    "f32_output_postprocess_read_write_bytes": 1024,
+    "int8_output_write_savings_vs_f32_bytes": 192
+  },
+  "mapped_chain_reference": null,
+  "next_linalg_context": {
+    "candidate_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-c-proj-from-post-gelu-boundary.json",
+    "selected_line": null,
+    "selected_value": null,
+    "next_lines": [],
+    "interpretation": "The captured Linalg context shows c_proj bias add immediately after the matmul, then a same-shape add with another 1x1x64 tensor. A residual/add proof needs that residual tensor captured explicitly."
+  },
+  "decision": {
+    "verdict": "promote-int8-output-boundary",
+    "next_gate": "implement a bounded fixed-point c_proj requant/output-memory RTL proof"
+  }
+}

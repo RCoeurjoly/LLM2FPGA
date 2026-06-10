@@ -25,17 +25,21 @@ class RecoveryDecisionTest(unittest.TestCase):
         *,
         recovered_missing_resource0: bool = False,
         tried_bridge_rescan: bool = False,
+        tried_safe_helper: bool = False,
         tried_root_recovery: bool = False,
         has_then_gate: bool = True,
         allow_root_recovery: bool = False,
+        allow_delegated_resource0_recovery: bool = False,
     ) -> str:
         return MODULE.next_step(
             classification,
             recovered_missing_resource0=recovered_missing_resource0,
             tried_bridge_rescan=tried_bridge_rescan,
+            tried_safe_helper=tried_safe_helper,
             tried_root_recovery=tried_root_recovery,
             has_then_gate=has_then_gate,
             allow_root_recovery=allow_root_recovery,
+            allow_delegated_resource0_recovery=allow_delegated_resource0_recovery,
         ).action
 
     def test_ready_runs_gate_when_requested(self) -> None:
@@ -58,12 +62,25 @@ class RecoveryDecisionTest(unittest.TestCase):
         self.assertEqual(self.decide("missing_endpoint"), "bridge_rescan")
         self.assertEqual(self.decide("missing_endpoint", tried_bridge_rescan=True), "needs_physical_power_cycle")
 
-    def test_clean_missing_resource0_gets_one_delegated_recover_then_power_cycle_by_default(self) -> None:
-        self.assertEqual(self.decide("missing_resource0"), "delegated_recover")
+    def test_clean_missing_resource0_power_cycles_by_default(self) -> None:
+        self.assertEqual(self.decide("missing_resource0"), "needs_physical_power_cycle")
+        self.assertEqual(
+            self.decide("missing_resource0", allow_delegated_resource0_recovery=True),
+            "delegated_recover",
+        )
         self.assertEqual(
             self.decide("missing_resource0", recovered_missing_resource0=True),
             "needs_physical_power_cycle",
         )
+
+    def test_permission_and_mem_disabled_use_safe_helper_once(self) -> None:
+        for classification in ["resource0_permission", "mem_disabled"]:
+            with self.subTest(classification=classification):
+                self.assertEqual(self.decide(classification), "safe_root_helper")
+                self.assertEqual(
+                    self.decide(classification, tried_safe_helper=True),
+                    "needs_physical_power_cycle",
+                )
 
     def test_stale_and_corrupt_states_power_cycle_by_default(self) -> None:
         for classification in ["stale_bar_all_ones", "corrupt_command", "config_unreadable"]:
@@ -145,6 +162,29 @@ class RecoveryDecisionTest(unittest.TestCase):
                 "off",
             ],
         )
+
+    def test_secret_file_loads_tapo_credentials(self) -> None:
+        import os
+        import tempfile
+
+        old_username = os.environ.pop("TAPO_USERNAME", None)
+        old_password = os.environ.pop("TAPO_PASSWORD", None)
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8") as stream:
+                stream.write("TAPO_USERNAME=user@example.com\nTAPO_PASSWORD=secret\n")
+                stream.flush()
+                MODULE.load_secret_file(stream.name)
+            self.assertEqual(os.environ["TAPO_USERNAME"], "user@example.com")
+            self.assertEqual(os.environ["TAPO_PASSWORD"], "secret")
+        finally:
+            if old_username is not None:
+                os.environ["TAPO_USERNAME"] = old_username
+            else:
+                os.environ.pop("TAPO_USERNAME", None)
+            if old_password is not None:
+                os.environ["TAPO_PASSWORD"] = old_password
+            else:
+                os.environ.pop("TAPO_PASSWORD", None)
 
 
 if __name__ == "__main__":

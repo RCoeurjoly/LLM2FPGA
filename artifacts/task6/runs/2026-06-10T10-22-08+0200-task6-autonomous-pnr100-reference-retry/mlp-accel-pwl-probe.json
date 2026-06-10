@@ -1,0 +1,184 @@
+{
+  "artifact_name": "task6-pcie-mlp-accelerator-board-gate",
+  "bdf": "0000:42:00.0",
+  "checks": {
+    "mismatch_count": false,
+    "mlp_accel_magic": true,
+    "mlp_accel_present": true,
+    "mlp_accel_version": true,
+    "not_all_ones": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "checks_required": {
+    "output_surface": "checksum-sample",
+    "require_samples": true,
+    "sample_checks_enabled": true
+  },
+  "command": "0002",
+  "contract": {
+    "notes": "Host supplies prompt-derived residual-boundary vectors; board executes int8 MLP/residual lane.",
+    "responsibilities": {
+      "fpga": [
+        "int8 MLP/residual boundary execution",
+        "activation/residual vector ingress via BAR",
+        "kernel completion/status signaling and full output exposure"
+      ],
+      "host": [
+        "prompt/hidden-state capture orchestration",
+        "prompt-derived residual boundary vector generation from reference",
+        "checkpoint/retry loop and artifact logging"
+      ]
+    },
+    "stage": "M1-transformer-boundary-mlp",
+    "version": "task6-transformer-boundary-mlp-accel-v1"
+  },
+  "date": "2026-06-10",
+  "decoded": {
+    "mlp_accel_status": 324206777,
+    "state": 9,
+    "state_name": "UNKNOWN"
+  },
+  "elapsed_seconds": 2.001790032001736,
+  "expected": {
+    "default_checksum": "0x0000200c",
+    "default_output_hex": "0a4c912adef615d69e3fd30cde7318c24b27bdd683e2d1b3d6b47f4dbc3f16144cf5cecb57d2c60442d4b418c4ba26be0ce1a2062f35a11ffba0d1510825f642",
+    "default_sample0": "0x2a914c0a",
+    "default_sample1": "0xd615f6de"
+  },
+  "input_reference": {
+    "default_mode": true,
+    "sample_inputs": [
+      {
+        "activation_hex": "0b16cefff9ed06fc9503c5eef406eef8bf330f62cc2e0203d8febe0c0ff2cb4c8b0d164b022b81cc425a1239a8eb27f24ed46017e41302af24020d11d81c0666",
+        "residual_hex": "0c1acffffbed07fd9404c5f0f509f1fbbd381264ca2f0306d801bf0e11f2cd4b8d0e1849043081cc465c143eaeed2cf44fd6661be31602b128020e14d81e086b",
+        "sample_id": "default-legacy-sample",
+        "sample_index": 0
+      }
+    ]
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "reference_contract": {
+    "allow_reference_contract_mismatch": false,
+    "compatible": true,
+    "compiled_mlp_contract": {
+      "artifact_name": "h2-int8-l2-mlp-chain-residual-add-rtl-proof",
+      "model_contract": "tiny-stories-v1k-h64-l1",
+      "note": "Current bitstream MLP weights/scales are compiled from the v1k L2 MLP/residual proof bundle, not from the TinyStories-1M prompt output-head reference.",
+      "top_name": "task6_int8_l2_mlp_chain_residual_add_kernel"
+    },
+    "reason": "legacy default vector is generated from the compiled MLP contract",
+    "reference_artifact_name": null,
+    "reference_mlp_contract": null
+  },
+  "reference_json": null,
+  "reference_max_samples": null,
+  "register_map": {
+    "activation_vector": "0x340..0x37f",
+    "control_status": "0x330",
+    "output_checksum": "0x33c",
+    "output_samples": [
+      "0x3c0",
+      "0x3c4"
+    ],
+    "output_vector": "0x400..0x43f",
+    "residual_vector": "0x380..0x3bf"
+  },
+  "registers": {
+    "magic": "0x54365043",
+    "mlp_accel_cycle_count": "0x000052a0",
+    "mlp_accel_magic": "0x54364d41",
+    "mlp_accel_present": "0x00000001",
+    "mlp_accel_start_count": "0x00000002",
+    "mlp_accel_status": "0x135300b9",
+    "mlp_accel_version": "0x00000001",
+    "status": "0x00000065",
+    "version": "0x00000003"
+  },
+  "sample_count": 1,
+  "samples": [
+    {
+      "checks": {
+        "activation_echo": false,
+        "checksum": false,
+        "done_bit": false,
+        "no_error": true,
+        "output_valid": false,
+        "residual_echo": false,
+        "sample0": false,
+        "sample1": false,
+        "start_count_incremented": true,
+        "state_done": false
+      },
+      "expected": {
+        "checksum": "0x73f70356",
+        "output_hex": "0a4c912adef615d69e3fd30cde7318c24b27bdd683e2d1b3d6b47f4dbc3f16144cf5cecb57d2c60442d4b418c4ba26be0ce1a2062f35a11ffba0d1510825f642",
+        "sample0": "0xb31b6c3e",
+        "sample1": "0xc5f9edff"
+      },
+      "input": {
+        "activation_hex": "0b16cefff9ed06fc9503c5eef406eef8bf330f62cc2e0203d8febe0c0ff2cb4c8b0d164b022b81cc425a1239a8eb27f24ed46017e41302af24020d11d81c0666",
+        "activation_words_little_packed": [
+          "0xffce160b",
+          "0xfc06edf9",
+          "0xeec50395",
+          "0xf8ee06f4",
+          "0x620f33bf",
+          "0x03022ecc",
+          "0x0cbefed8",
+          "0x4ccbf20f",
+          "0x4b160d8b",
+          "0xcc812b02",
+          "0x39125a42",
+          "0xf227eba8",
+          "0x1760d44e",
+          "0xaf0213e4",
+          "0x110d0224",
+          "0x66061cd8"
+        ],
+        "residual_hex": "0c1acffffbed07fd9404c5f0f509f1fbbd381264ca2f0306d801bf0e11f2cd4b8d0e1849043081cc465c143eaeed2cf44fd6661be31602b128020e14d81e086b",
+        "residual_words_little_packed": [
+          "0xffcf1a0c",
+          "0xfd07edfb",
+          "0xf0c50494",
+          "0xfbf109f5",
+          "0x641238bd",
+          "0x06032fca",
+          "0x0ebf01d8",
+          "0x4bcdf211",
+          "0x49180e8d",
+          "0xcc813004",
+          "0x3e145c46",
+          "0xf42cedae",
+          "0x1b66d64f",
+          "0xb10216e3",
+          "0x140e0228",
+          "0x6b081ed8"
+        ]
+      },
+      "observed": {
+        "checksum": "0x41c3a6a1",
+        "output_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "sample0": "0x812d7f11",
+        "sample1": "0xe47f4002",
+        "start_count_after": 2,
+        "start_count_before": 1,
+        "state": 9,
+        "state_name": "UNKNOWN"
+      },
+      "reference_scale": {
+        "activation_scale": null,
+        "residual_scale": null
+      },
+      "reference_step": 0,
+      "sample_id": "default-legacy-sample",
+      "sample_index": 0,
+      "status": "FAIL"
+    }
+  ],
+  "status": "FAIL",
+  "validation": {
+    "mismatch_count": 1,
+    "sample_count": 1
+  }
+}

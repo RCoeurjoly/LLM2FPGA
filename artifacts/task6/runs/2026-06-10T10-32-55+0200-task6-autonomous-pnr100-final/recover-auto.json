@@ -1,0 +1,30 @@
+{
+  "name": "recover-auto",
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "recover-auto",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "task6-autonomous-pnr100-final-recover",
+    "--allow-power-cycle",
+    "--max-power-cycles",
+    "3",
+    "--power-provider",
+    "tapo-p115",
+    "--power-url",
+    "192.168.1.136",
+    "--secret-file",
+    "/home/roland/.config/task6-pcie/tapo.env",
+    "--power-off-wait",
+    "10.0",
+    "--power-on-wait",
+    "45.0"
+  ],
+  "dry_run": false,
+  "returncode": 0,
+  "stdout": "{\n  \"run_dir\": \"/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T10-32-55+0200-task6-autonomous-pnr100-final-recover\",\n  \"final_classification\": \"pcie_ready\",\n  \"final_action\": \"done\",\n  \"transcript\": [\n    {\n      \"action\": \"lifecycle\",\n      \"classification\": \"pcie_ready\",\n      \"lifecycle_run_dir\": \"/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T10-32-55+0200-task6-autonomous-pnr100-final-recover-lifecycle-0\"\n    },\n    {\n      \"action\": \"done\",\n      \"reason\": \"PCIe lifecycle and BAR preflight are ready\",\n      \"command\": null\n    }\n  ]\n}\n",
+  "stderr": "",
+  "timeout": false
+}

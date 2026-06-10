@@ -1,0 +1,101 @@
+{
+  "artifact_name": "h2-full-tinystories-1m-block0-pwl-c-proj-from-post-gelu-boundary",
+  "status": "partial",
+  "source_artifacts": {
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json",
+    "model_label": "tiny-stories-1m-h64-l8-block0"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_fc",
+    "boundary": "post_gelu_int8_activation",
+    "consumer": "transformer.h.0.mlp.c_proj",
+    "interpretation": "RTL proof for c_proj consuming the accepted post-GELU int8 activation from the c_fc proof."
+  },
+  "rtl_contract": {
+    "top_name": "task6_int8_l2_c_proj_from_post_gelu_kernel",
+    "in_dim": 256,
+    "out_dim": 64,
+    "lane_count": 4,
+    "packed_weight_words": 4096,
+    "activation_dtype": "int8",
+    "weight_dtype": "int8",
+    "accumulator_dtype": "int32",
+    "output_dtype": "int32",
+    "output_score_dtype": "float32",
+    "activation_quantization": "post-GELU int8-per-tensor-symmetric",
+    "weight_quantization": "int8-per-output-symmetric",
+    "local_activation_memory": true,
+    "local_packed_weight_memory": true,
+    "local_output_memory": true
+  },
+  "c_fc_post_gelu_activation": {
+    "dtype": "int8",
+    "scale": 0.005411566543946203,
+    "q_min": -31,
+    "q_max": 127,
+    "q_sha256": "8db33d891b13c76f4d6f7376a0768ec8f55ad7dc20923d85e68f1ba5fee3c285",
+    "source_accumulator_sha256": "b5c442b5e79dd80da47a073204b268d39ec3d47f7ad16e970cbbc3a37fd8d3e7"
+  },
+  "c_proj_quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "weight_scale_min": 0.0003460609889405919,
+    "weight_scale_max": 0.0008360356327116959,
+    "weight_q_min": -127,
+    "weight_q_max": 127,
+    "bias_min": -0.03089720942080021,
+    "bias_max": 0.047787949442863464,
+    "accumulator_min": -66829,
+    "accumulator_max": 87596,
+    "activation_q_sha256": "8db33d891b13c76f4d6f7376a0768ec8f55ad7dc20923d85e68f1ba5fee3c285",
+    "weight_q_sha256": "919d3ae1e399d2f86bb8c30bf69ea2312f8c609c83bc72365acbab2cb47bce39",
+    "packed_weight_sha256": "8b4940f5844b8d79263cc55e2f413b220c7f4d86eb1b46c9d11baa3281771ec0",
+    "accumulator_sha256": "50e094e0e4bc4f39c48b6a00cebae08374e3490ff71f53b546c6c58c95c06fbe"
+  },
+  "metrics": {
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 2.1315682885436615e-08,
+      "mean_abs_error": 3.3850977003220577e-09,
+      "rmse": 5.17426668971602e-09,
+      "normalized_rmse": 3.4171616717295247e-08,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    },
+    "post_gelu_int8_vs_c_proj_input": {
+      "max_abs_error": 0.005818406669556686,
+      "mean_abs_error": 0.0016861114420274634,
+      "rmse": 0.0021471703202100775,
+      "normalized_rmse": 0.014180227861596988,
+      "signal_max_abs": 0.6872689723968506,
+      "signal_mean_abs": 0.11283289705170318
+    },
+    "c_proj_output_from_rtl_accumulators": {
+      "max_abs_error": 0.0021532847008202544,
+      "mean_abs_error": 0.0008392213504454084,
+      "rmse": 0.001005706566147605,
+      "normalized_rmse": 0.008924888648700407,
+      "signal_max_abs": 0.3027295172214508,
+      "signal_mean_abs": 0.0915549298406404
+    }
+  },
+  "byte_budget": {
+    "post_gelu_int8_activation_bytes": 256,
+    "f32_activation_bytes_replaced": 1024,
+    "activation_transfer_savings_bytes": 768,
+    "c_proj_weight_int8_bytes": 16384,
+    "c_proj_weight_f32_bytes_replaced": 65536,
+    "c_proj_weight_transfer_savings_bytes": 49152,
+    "c_proj_weight_scale_sidecar_bytes": 256,
+    "c_proj_accumulator_output_bytes": 256
+  },
+  "sim_result": null,
+  "yosys_result": null,
+  "mapped_utilization": null,
+  "decision": {
+    "verdict": "continue",
+    "next_gate": "run Verilator, Yosys, and mapped utilization for this bounded c_proj RTL proof"
+  }
+}

@@ -4,6 +4,52 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-10 - Autonomous PCIe Recovery Plan Implemented
+
+Task 6 PCIe bring-up now has a hands-off recovery path built around the Tapo
+P115 chassis power switch and a narrow root helper. The normal path is:
+
+```bash
+sudo scripts/task6/task6_pcie_autonomous_setup.sh install
+install -d -m 0700 ~/.config/task6-pcie
+$EDITOR ~/.config/task6-pcie/tapo.env
+chmod 0600 ~/.config/task6-pcie/tapo.env
+scripts/task6/task6_pcie_autonomous_setup.sh doctor
+
+scripts/task6/task6_pcie_user_gate.sh bringup-full 0000:42:00.0 \
+  --label task6-autonomous-pnr100 \
+  --power-provider tapo-p115 \
+  --power-url 192.168.1.136 \
+  --secret-file ~/.config/task6-pcie/tapo.env \
+  --model-path TinyStories \
+  --prompt "Once upon a time there was"
+```
+
+The installed helper is intentionally limited to udev reload/trigger and
+permission repair for the fixed YPCB endpoint/bridge. It does not perform PCIe
+device reset, bridge hot reset, Thunderbolt reauthorization, endpoint remove,
+or global PCI rescan. The normal autonomous recovery rule is: if BAR0 is
+missing, stale, all-ones, corrupt, or unsafe after recovery, power-cycle the
+chassis through Tapo before any BAR/MMIO gate.
+
+The old root reset ladder remains diagnostic-only and must not be used by the
+standard bring-up command, because it has correlated with host freezes. A clean
+post-Tapo lifecycle classification is required before rowstream/top1 or MLP BAR
+gates run.
+
+Cold autonomous acceptance:
+
+- Command: `scripts/task6/task6_pcie_user_gate.sh bringup-full 0000:42:00.0 --label task6-autonomous-pnr100-cold-final --power-provider tapo-p115 --power-url 192.168.1.136 --secret-file ~/.config/task6-pcie/tapo.env --model-path TinyStories --prompt "Once upon a time there was"`
+- Run directory: `artifacts/task6/runs/2026-06-10T10-39-31+0200-task6-autonomous-pnr100-cold-final`
+- Result: PASS.
+- Included Tapo P115 power-off/power-on, PCIe lifecycle/recovery to
+  `pcie_ready`, full rowstream reload plus 8-step prompt top1 replay, and MLP
+  checksum/sample live-surface gate.
+- Prompt reference:
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json`.
+  The board top1 replay matched the q0.24 continuation:
+  `Once upon a time there was a little girl named Lily. She loved`.
+
 ## Canonical task-status control
 - Canonical live plan: `docs/task6-current-plan.md`
 - Experiment history: `docs/task6-plans/ledger.md`
@@ -27843,3 +27889,191 @@ GELU approximation scout:
 - Recommended next implementation target: a small piecewise-linear fixed-point
   GELU stage, because it clears threshold with far fewer table entries than a
   simple uniform LUT.
+
+### 2026-06-09 - Full TinyStories-1M PWL GELU MLP proof
+
+Implemented the GELU approximation target from the scout as a fixed-point
+piecewise-linear mode in the MLP proof generator and RTL.
+
+Implementation update:
+
+- `task6_int8_l2_c_fc_post_gelu_requant_kernel` now supports
+  `GELU_APPROX_MODE=1` with 16 q-domain PWL nodes. The RTL uses
+  divisionless reciprocal constants for segment interpolation.
+- The MLP chain wrappers, FPGA selftest tops, and SystemVerilog testbenches now
+  propagate the PWL mode and node parameters.
+- The c_fc, c_proj, composed MLP, and residual-add generators/scorers now honor
+  `fixed_point.gelu_approx_mode == "pwl"` instead of recomputing the old
+  quadratic GELU approximation.
+- The PWL fast path now stages the 8-bit GELU output separately before the
+  output-memory write. This fixed a full-checkpoint-only failure where the
+  function evaluated correctly but the first post-GELU handoff entries were
+  written as zero through the old 64-bit output staging path.
+
+Generated full TinyStories-1M block-0 PWL proof artifacts:
+
+- `artifacts/task6/generated/full-tinystories-1m-block0-post-gelu-pwl/`
+- `artifacts/task6/generated/full-tinystories-1m-block0-pwl-mlp-chain-post-gelu-c-proj/`
+- `artifacts/task6/generated/full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant/`
+- `artifacts/task6/generated/full-tinystories-1m-block0-pwl-mlp-chain-residual-add/`
+- `artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json`
+- `artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-residual-add-rtl-proof.json`
+
+Proof result:
+
+| check | result |
+| --- | --- |
+| c_fc post-GELU PWL RTL proof | PASS |
+| c_fc post-GELU PWL SV sim | PASS; 256 reads, 256 outputs, 13,899 compute cycles, 14,155 total cycles |
+| c_proj handoff and output-boundary scorers | PASS |
+| composed c_proj/requant RTL and SV sims | PASS; 64 reads, 64 outputs, 21,024 compute cycles, 21,088 total cycles |
+| residual-add boundary scorer | PASS |
+| full residual-add RTL proof | PASS; final int8 residual-add nRMSE `0.01582254449198352` |
+| full residual-add SV sim | PASS; 64 reads, 64 outputs, 21,153 compute cycles, 21,217 total cycles |
+| residual-add selftest SV sim | PASS; LED pass after 30,069 cycles |
+
+PWL node set:
+
+- x nodes:
+  `[-3162, -2717, -2272, -1827, -1381, -936, -491, -45, 400, 845, 1290, 1736, 2181, 2626, 3071, 3517]`
+- y nodes:
+  `[-31, -31, -30, -27, -23, -17, -10, -1, 10, 22, 36, 52, 69, 88, 107, 127]`
+
+Interpretation:
+
+- The full-checkpoint TinyStories-1M block-0 MLP/residual contract is now
+  fixed-point-clean under the existing `0.02` nRMSE acceptance threshold.
+- The first blocker from the earlier full-checkpoint attempt, post-GELU
+  approximation error, is resolved by the 16-node PWL stage.
+- This is now a valid software/RTL proof target for the board lane.
+
+pnr100 board-lane rebuild attempt:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream -L`
+- The run used nextpnr target `--freq 100`, preserving the required YPCB DDR3
+  timing recipe. No timing waiver was used.
+- Pre-route timing was not clean:
+  - `impl.rowstream_clk`: 46.09 MHz reported against 66.67 MHz.
+  - `impl.pcie_user_clk`: 44.78 MHz reported against 62.50 MHz.
+- Routing did not converge cleanly. After 114 router iterations, overuse was
+  still oscillating around 18-20 resources, so the run was interrupted instead
+  of producing or accepting a risky bitstream.
+
+Residual-add selftest board-lane rebuild:
+
+- Command:
+  `nix build .#task6-int8-l2-mlp-chain-residual-add-selftest-bitstream -L`
+- The first build attempt exposed the PCIe-facing accelerator/status ports as
+  physical top-level IO and nextpnr failed with `1890 unconstrained pins`.
+- Fix: keep the reusable PCIe-facing selftest top intact, but synthesize the
+  LED-only bitstream through a thin board wrapper that exposes only `SYS_CLK`,
+  `SYS_RSTN`, and `led_3bits_tri_o`.
+- Result: PASS. Bitstream:
+  `/nix/store/8m0blx405214kzf4b94g8bx7wg31bmv4-task6-int8-l2-mlp-chain-residual-add-selftest.bit`
+- nextpnr result:
+  - target frequency: 50 MHz
+  - post-route max frequency: 106.51 MHz, PASS
+  - route convergence: overuse reached 0 at router iteration 4
+  - utilization: 24,640 `SLICE_LUTX`, 8,227 `SLICE_FFX`, 35 `DSP48E1`,
+    6 `RAMB18E1`, 8 `RAMB36E1`, 5 IO pads
+- This validates the full TinyStories-1M block-0 PWL MLP/residual proof as a
+  timing-clean standalone board lane. It does not replace the DDR3/PCIe pnr100
+  rowstream image; that integration still needs a leaner embedding or memory
+  surface before it should be accepted.
+
+Next M1 action:
+
+1. Keep the PWL proof artifacts as the accepted full TinyStories-1M block-0 MLP
+   contract.
+2. Move the timing-clean residual-add lane behind the pnr100 PCIe/BAR interface
+   without exposing proof/debug vectors as top-level IO.
+3. Reduce the DDR3/PCIe pnr100 integration footprint by loading proof payloads
+   from BRAM/DDR-oriented memories instead of synthesizing large constant
+   muxes in the top-level selftest harness.
+4. Continue to reject timing-waived or unrouted bitstreams.
+
+pnr100 lean accelerator wrapper attempt:
+
+- Change: replaced the pnr100/top1 image's selftest MLP harness with
+  `task6_int8_l2_mlp_chain_residual_add_accel_top`, a lean BAR-driven wrapper
+  around the proven PWL MLP/residual kernel. The wrapper omits expected-output
+  proof vectors and only exposes activation/residual input plus checksum/sample
+  output registers.
+- Command:
+  `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-placed-json -L`
+- The run used the required pnr100 recipe: nextpnr target `--freq 100`, no
+  timing waiver, no seed search.
+- Result: FAIL, but the failure changed from footprint/routing pressure to
+  narrow timing misses after legal routing.
+- Utilization before placement:
+  - 39,582 `SLICE_LUTX`
+  - 16,256 `SLICE_FFX`
+  - 35 `DSP48E1`
+  - 6 `RAMB18E1`
+  - 12 `RAMB36E1`
+- Router result:
+  - router2 converged to `overused=0` at iteration 9
+  - final route was legal
+- Final timing failures:
+  - `impl.pcie_user_clk`: 62.33 MHz reported against 62.50 MHz
+  - `impl.rowstream_clk`: 64.46 MHz reported against 66.67 MHz
+- Useful culprit signals from route/runtime and critical-path reports:
+  - high-fanout accelerator init/control: `mlp_accel.load_index_q[*]`,
+    `rowstream_mlp_accel_clear`, `pcie_mlp_accel_start`
+  - PCIe BAR read mux path rooted at `s_axi_araddr[8]`
+  - rowstream top1 read path through `wb_data[*]` into the lookahead row window
+  - rowstream-to-PCIe accelerator status path through
+    `rowstream_mlp_accel_status[1]`
+
+Interpretation:
+
+- The lean wrapper fixed the gross integration footprint problem: the pnr100
+  image now routes legally with the MLP lane present.
+- The image is still not acceptable because DDR3/PCIe timing must pass without
+  waiver.
+- Next fix should reduce timing fanout, not retry seeds: localize/pipeline the
+  accelerator load-index/control nets and reduce the PCIe BAR mux pressure for
+  wide MLP vectors/status.
+
+pnr100 MLP accelerator checksum/sample BAR integration:
+
+- Change: kept the BAR write path for 64-byte activation and residual vectors,
+  but removed BAR readback of the activation, residual, and full 64-byte output
+  vectors from the pnr100 image. The accelerator result remains visible through
+  status, cycle count, checksum, and two 32-bit output samples.
+- Rationale: the milestone allowed either full 64-byte output or checksum. The
+  full vector readback widened the PCIe BAR mux and CDC surface enough to leave
+  little timing margin in the DDR3/PCIe image.
+- Commands:
+  - `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-placed-json -L`
+  - `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream -L`
+- Result: PASS. Bitstream:
+  `/nix/store/f6m3nymx2iscqvzz7zqv764qcapcnvda-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+- This run used the required pnr100 recipe: nextpnr target `--freq 100`, no
+  timing waiver, no seed search.
+- Utilization:
+  - 35,773 `SLICE_LUTX`
+  - 15,232 `SLICE_FFX`
+  - 35 `DSP48E1`
+  - 6 `RAMB18E1`
+  - 12 `RAMB36E1`
+- Router result:
+  - router2 converged to `overused=0` at iteration 30
+  - final route was legal
+- Final routed timing:
+  - `impl.rowstream_clk`: 68.84 MHz, PASS against 66.67 MHz
+  - `impl.pcie_user_clk`: 73.30 MHz, PASS against 62.50 MHz
+  - JTAG/debug and PCIe PIPE clocks also passed their reported constraints.
+
+Interpretation:
+
+- This is the first strict-timing pnr100 DDR3/PCIe rowstream/top1 image with the
+  proven PWL MLP/residual accelerator lane present behind the PCIe BAR.
+- The accepted BAR result surface is checksum/sample-oriented, not full
+  64-byte output-vector readback. Full vector readback should be reintroduced
+  only behind a narrower/pipelined register window or memory-backed read port.
+- The highest route-runtime nets still include accelerator load-index/control
+  and reset fanout (`mlp_accel.load_index_q[*]`, `pcie_mlp_accel_start`,
+  `rowstream_mlp_accel_clear`, `pcie_user_reset`, `rowstream_rst_n`). These are
+  cleanup targets, not blockers for the current checksum/sample milestone.

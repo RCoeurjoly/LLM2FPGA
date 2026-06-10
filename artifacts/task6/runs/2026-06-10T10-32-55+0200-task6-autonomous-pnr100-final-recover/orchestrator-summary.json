@@ -1,0 +1,17 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T10-32-55+0200-task6-autonomous-pnr100-final-recover",
+  "final_classification": "pcie_ready",
+  "final_action": "done",
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "pcie_ready",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T10-32-55+0200-task6-autonomous-pnr100-final-recover-lifecycle-0"
+    },
+    {
+      "action": "done",
+      "reason": "PCIe lifecycle and BAR preflight are ready",
+      "command": null
+    }
+  ]
+}

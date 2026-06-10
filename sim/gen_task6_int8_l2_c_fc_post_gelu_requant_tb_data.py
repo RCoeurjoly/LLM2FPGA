@@ -30,6 +30,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--x-frac", type=int, default=12)
     parser.add_argument("--scale-shift", type=int, default=24)
     parser.add_argument("--output-requant-shift", type=int, default=16)
+    parser.add_argument(
+        "--gelu-approx-mode",
+        choices=("quadratic", "pwl"),
+        default="quadratic",
+    )
+    parser.add_argument("--gelu-pwl-node-count", type=int, default=16)
     return parser.parse_args()
 
 
@@ -161,6 +167,51 @@ def fixed_post_gelu_q(
     y_q = (x_q >> 1) + round_shift_signed(gelu_quad_q * x_q * x_q, 2 * x_frac)
     output_q = round_shift_signed(y_q * output_requant_mult, output_requant_shift)
     return saturate_i8(output_q)
+
+
+def gelu_pwl_nodes(
+    values: list[float],
+    output_scale: float,
+    node_count: int,
+    x_frac: int,
+) -> tuple[list[int], list[int]]:
+    if node_count < 2:
+        raise SystemExit("--gelu-pwl-node-count must be at least 2")
+    if node_count != 16:
+        raise SystemExit("RTL currently supports exactly 16 PWL GELU nodes")
+    x_min = min(values)
+    x_max = max(values)
+    if x_min == x_max:
+        x_max = x_min + (1.0 / (1 << x_frac))
+    x_nodes: list[int] = []
+    y_nodes: list[int] = []
+    for index in range(node_count):
+        x = x_min + index * (x_max - x_min) / (node_count - 1)
+        x_nodes.append(round(x * (1 << x_frac)))
+        y_nodes.append(saturate_i8(round(gelu_tanh([x])[0] / output_scale)))
+    return x_nodes, y_nodes
+
+
+def fixed_post_gelu_pwl_q(x_q: int, x_nodes: list[int], y_nodes: list[int]) -> int:
+    if x_q <= x_nodes[0]:
+        return y_nodes[0]
+    if x_q >= x_nodes[-1]:
+        return y_nodes[-1]
+    segment = 0
+    for index in range(len(x_nodes) - 1):
+        if x_nodes[index] <= x_q <= x_nodes[index + 1]:
+            segment = index
+            break
+    x0 = x_nodes[segment]
+    x1 = x_nodes[segment + 1]
+    y0 = y_nodes[segment]
+    y1 = y_nodes[segment + 1]
+    numerator = (x_q - x0) * (y1 - y0)
+    denominator = x1 - x0
+    recip_shift = 16
+    recip_q = ((1 << recip_shift) + (denominator // 2)) // denominator
+    delta = round_shift_signed(numerator * recip_q, recip_shift)
+    return saturate_i8(y0 + delta)
 
 
 def score_error(actual: list[float], expected: list[float]) -> dict[str, float]:
@@ -321,19 +372,36 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         for scale in effective_scales
     ]
     bias_q_values = [round(value * (1 << x_frac)) for value in bias]
-    output_q_values = [
-        fixed_post_gelu_q(
-            acc,
-            scale_mul_values[index],
-            bias_q_values[index],
-            gelu_quad_q,
-            output_requant_mult,
-            x_frac,
-            scale_shift,
-            output_requant_shift,
-        )
+    x_q_values = [
+        round_shift_signed(acc * scale_mul_values[index], scale_shift)
+        + bias_q_values[index]
         for index, acc in enumerate(accs)
     ]
+    pwl_x_nodes, pwl_y_nodes = gelu_pwl_nodes(
+        produced_c_fc,
+        output_scale,
+        args.gelu_pwl_node_count if args.gelu_approx_mode == "pwl" else 16,
+        x_frac,
+    )
+    if args.gelu_approx_mode == "pwl":
+        output_q_values = [
+            fixed_post_gelu_pwl_q(x_q, pwl_x_nodes, pwl_y_nodes)
+            for x_q in x_q_values
+        ]
+    else:
+        output_q_values = [
+            fixed_post_gelu_q(
+                acc,
+                scale_mul_values[index],
+                bias_q_values[index],
+                gelu_quad_q,
+                output_requant_mult,
+                x_frac,
+                scale_shift,
+                output_requant_shift,
+            )
+            for index, acc in enumerate(accs)
+        ]
     output_dequantized = [value * output_scale for value in output_q_values]
     metrics = score_error(output_dequantized, expected_gelu)
 
@@ -387,14 +455,26 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         "fixed_point": {
             "x_frac": x_frac,
             "scale_shift": scale_shift,
-            "gelu_approximation": "0.5*x + 0.39894228*x*x",
+            "gelu_approximation": (
+                "16-node fixed-point piecewise-linear output-q table"
+                if args.gelu_approx_mode == "pwl"
+                else "0.5*x + 0.39894228*x*x"
+            ),
+            "gelu_approx_mode": args.gelu_approx_mode,
             "gelu_quad_q": gelu_quad_q,
+            "gelu_pwl_x_nodes": pwl_x_nodes,
+            "gelu_pwl_y_nodes": pwl_y_nodes,
             "output_requant_shift": output_requant_shift,
             "output_requant_mult": output_requant_mult,
             "postprocess_formula": (
                 "x_q = round_shift(acc * scale_mul, scale_shift) + bias_q; "
-                "y_q = (x_q >> 1) + round_shift(gelu_quad_q * x_q * x_q, 2*x_frac); "
-                "q = saturate_i8(round_shift(y_q * output_requant_mult, output_requant_shift))"
+                "q = pwl_interp_i8(x_q, gelu_pwl_x_nodes, gelu_pwl_y_nodes)"
+                if args.gelu_approx_mode == "pwl"
+                else (
+                    "x_q = round_shift(acc * scale_mul, scale_shift) + bias_q; "
+                    "y_q = (x_q >> 1) + round_shift(gelu_quad_q * x_q * x_q, 2*x_frac); "
+                    "q = saturate_i8(round_shift(y_q * output_requant_mult, output_requant_shift))"
+                )
             ),
         },
         "quantization": {
@@ -409,6 +489,8 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
             "bias_q_max": max(bias_q_values),
             "accumulator_min": min(accs),
             "accumulator_max": max(accs),
+            "x_q_min": min(x_q_values),
+            "x_q_max": max(x_q_values),
             "pre_gelu_min": min(produced_c_fc),
             "pre_gelu_max": max(produced_c_fc),
             "output_q_min": min(output_q_values),
@@ -458,6 +540,15 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         f"localparam int X_FRAC = {x_frac};",
         f"localparam int SCALE_SHIFT = {scale_shift};",
         f"localparam int GELU_QUAD_Q = {gelu_quad_q};",
+        f"localparam int GELU_APPROX_MODE = {1 if args.gelu_approx_mode == 'pwl' else 0};",
+        *[
+            f"localparam int GELU_PWL_X{index} = {value};"
+            for index, value in enumerate(pwl_x_nodes)
+        ],
+        *[
+            f"localparam int GELU_PWL_Y{index} = {value};"
+            for index, value in enumerate(pwl_y_nodes)
+        ],
         f"localparam int OUTPUT_REQUANT_SHIFT = {output_requant_shift};",
         f"localparam int OUTPUT_REQUANT_MULT = {output_requant_mult};",
         "logic signed [7:0] activation_values [0:IN_DIM - 1];",

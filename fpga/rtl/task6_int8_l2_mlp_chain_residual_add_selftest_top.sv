@@ -44,10 +44,6 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   localparam logic [2:0] C_PROJ_STAGE_SHIFT = 3'd5;
   localparam logic [2:0] C_PROJ_STAGE_BIASED = 3'd6;
   localparam logic [2:0] C_PROJ_STAGE_OUTPUT = 3'd7;
-  localparam logic signed [63:0] EXPECTED_C_PROJ_PRODUCT_Q0 =
-    64'sh0000000009e13908;
-  localparam logic signed [63:0] EXPECTED_C_PROJ_SCALED_Q0 = 64'sd10;
-  localparam logic signed [63:0] EXPECTED_C_PROJ_BIASED_Q0 = 64'sd10;
   localparam int C_PROJ_GEMV_DEBUG_SAMPLE_COUNT = 8;
   localparam int C_PROJ_GEMV_DEBUG_SAMPLE_WIDTH = 128;
   localparam int C_PROJ_GEMV_DEBUG_SAMPLE_BITS =
@@ -65,10 +61,6 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   localparam int JTAG_DEBUG_WIDTH = 2048;
   localparam logic [31:0] JTAG_DEBUG_MAGIC = 32'h54364a44;
   localparam logic [7:0] JTAG_DEBUG_VERSION = 8'd9;
-  localparam logic [63:0] EXPECTED_C_PROJ_ACTIVATION_SAMPLES = {
-    8'h10, 8'hd6, 8'h0a, 8'he7, 8'h18, 8'hd8, 8'hf0, 8'hde
-  };
-
   typedef enum logic [3:0] {
     SELFTEST_BOOT,
     SELFTEST_LOAD_C_FC_ACTIVATION,
@@ -77,6 +69,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     SELFTEST_LOAD_C_PROJ_WEIGHT,
     SELFTEST_LOAD_C_PROJ_REQUANT,
     SELFTEST_LOAD_RESIDUAL,
+    SELFTEST_SETTLE,
     SELFTEST_START,
     SELFTEST_RUN,
     SELFTEST_READ_SETUP,
@@ -203,6 +196,8 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic signed [C_PROJ_ACC_WIDTH - 1:0] debug_c_proj_gemv_lane0_final_acc;
   logic [C_PROJ_GEMV_DEBUG_SAMPLE_COUNT * 8 - 1:0]
     debug_c_proj_transfer_post_gelu_samples;
+  logic [C_PROJ_GEMV_DEBUG_SAMPLE_COUNT * 8 - 1:0]
+    expected_c_proj_activation_samples;
   logic [C_FC_POST_GELU_DEBUG_SAMPLE_BITS - 1:0]
     debug_c_fc_post_gelu_samples;
   logic [3:0] debug_c_fc_post_gelu_sample_count;
@@ -210,9 +205,30 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic [3:0] debug_c_fc_gemv_sample_count;
   logic signed [C_PROJ_ACC_WIDTH - 1:0] debug_c_fc_gemv_final_acc;
   logic [63:0] expected_c_proj_gemv_lane0_weights;
+  logic signed [63:0] expected_c_proj_product_q0_w;
+  logic signed [63:0] expected_c_proj_scaled_q0_w;
+  logic signed [63:0] expected_c_proj_biased_q0_w;
   logic [2:0] c_proj_requant_stage_code;
   logic [3:0] jtag_debug_status;
   logic [JTAG_DEBUG_WIDTH - 1:0] jtag_debug_payload;
+
+  function automatic signed [63:0] round_shift_signed64(
+    input signed [63:0] value,
+    input int shift
+  );
+    logic signed [63:0] abs_value;
+    begin
+      if (shift == 0) begin
+        round_shift_signed64 = value;
+      end else if (value >= 0) begin
+        round_shift_signed64 = (value + (64'sd1 <<< (shift - 1))) >>> shift;
+      end else begin
+        abs_value = -value;
+        round_shift_signed64 =
+          -((abs_value + (64'sd1 <<< (shift - 1))) >>> shift);
+      end
+    end
+  endfunction
 
   assign value_debug_phase = blink_count_q[28:25];
   assign fail_expected_high_leds = {1'b0, fail_expected_q[7:6]};
@@ -221,6 +237,18 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   assign first_add_c_proj_high_leds = {1'b0, first_add_c_proj_q[7:6]};
   assign first_c_proj_requant_output_high_leds =
     {1'b0, first_c_proj_requant_output_q[7:6]};
+  assign expected_c_proj_product_q0_w =
+    $signed(expected_c_proj_acc_values[0]) *
+    $signed(c_proj_requant_scale_mul_values[0]);
+  assign expected_c_proj_scaled_q0_w =
+    round_shift_signed64(
+      expected_c_proj_product_q0_w,
+      C_PROJ_OUTPUT_REQUANT_SHIFT
+    );
+  assign expected_c_proj_biased_q0_w =
+    expected_c_proj_scaled_q0_w +
+    $signed({{32{c_proj_requant_bias_q_values[0][31]}},
+             c_proj_requant_bias_q_values[0]});
   assign first_c_proj_requant_acc_match_leds =
     first_c_proj_requant_seen_q &&
     (first_c_proj_requant_acc_q == expected_c_proj_acc_values[0])
@@ -233,6 +261,16 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     first_c_proj_requant_seen_q &&
     (first_c_proj_requant_bias_q == c_proj_requant_bias_q_values[0])
       ? 3'b010 : 3'b101;
+  assign expected_c_proj_activation_samples = {
+    expected_post_gelu_q_values[HIDDEN_DIM - 1],
+    expected_post_gelu_q_values[((HIDDEN_DIM * 3) / 4) - 1],
+    expected_post_gelu_q_values[(HIDDEN_DIM / 2) - 1],
+    expected_post_gelu_q_values[(HIDDEN_DIM / 4) - 1],
+    expected_post_gelu_q_values[3],
+    expected_post_gelu_q_values[2],
+    expected_post_gelu_q_values[1],
+    expected_post_gelu_q_values[0]
+  };
   assign jtag_debug_status = {
     first_c_proj_requant_seen_q,
     first_add_seen_q,
@@ -324,11 +362,11 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
         c_proj_requant_stage_code = C_PROJ_STAGE_SCALE;
       else if (first_c_proj_requant_bias_q != c_proj_requant_bias_q_values[0])
         c_proj_requant_stage_code = C_PROJ_STAGE_BIAS;
-      else if (first_c_proj_requant_product_q != EXPECTED_C_PROJ_PRODUCT_Q0)
+      else if (first_c_proj_requant_product_q != expected_c_proj_product_q0_w)
         c_proj_requant_stage_code = C_PROJ_STAGE_PRODUCT;
-      else if (first_c_proj_requant_scaled_q != EXPECTED_C_PROJ_SCALED_Q0)
+      else if (first_c_proj_requant_scaled_q != expected_c_proj_scaled_q0_w)
         c_proj_requant_stage_code = C_PROJ_STAGE_SHIFT;
-      else if (first_c_proj_requant_biased_q != EXPECTED_C_PROJ_BIASED_Q0)
+      else if (first_c_proj_requant_biased_q != expected_c_proj_biased_q0_w)
         c_proj_requant_stage_code = C_PROJ_STAGE_BIASED;
       else if (first_c_proj_requant_output_q != expected_c_proj_output_q_values[0])
         c_proj_requant_stage_code = C_PROJ_STAGE_OUTPUT;
@@ -361,9 +399,9 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     jtag_debug_payload[192 +: 32] = expected_c_proj_acc_values[DEBUG_INDEX_ONE];
     jtag_debug_payload[224 +: 32] = c_proj_requant_scale_mul_values[0];
     jtag_debug_payload[256 +: 32] = c_proj_requant_bias_q_values[0];
-    jtag_debug_payload[288 +: 64] = EXPECTED_C_PROJ_PRODUCT_Q0;
-    jtag_debug_payload[352 +: 64] = EXPECTED_C_PROJ_SCALED_Q0;
-    jtag_debug_payload[416 +: 64] = EXPECTED_C_PROJ_BIASED_Q0;
+    jtag_debug_payload[288 +: 64] = expected_c_proj_product_q0_w;
+    jtag_debug_payload[352 +: 64] = expected_c_proj_scaled_q0_w;
+    jtag_debug_payload[416 +: 64] = expected_c_proj_biased_q0_w;
     jtag_debug_payload[480 +: 32] = first_c_proj_requant_acc_q;
     jtag_debug_payload[512 +: 32] = first_c_proj_requant_scale_mul_q;
     jtag_debug_payload[544 +: 32] = first_c_proj_requant_bias_q;
@@ -375,7 +413,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     jtag_debug_payload[808 +: 64] = expected_c_proj_gemv_lane0_weights;
     jtag_debug_payload[896 +: C_PROJ_GEMV_DEBUG_SAMPLE_BITS] =
       debug_c_proj_gemv_lane0_samples;
-    jtag_debug_payload[1920 +: 64] = EXPECTED_C_PROJ_ACTIVATION_SAMPLES;
+    jtag_debug_payload[1920 +: 64] = expected_c_proj_activation_samples;
     jtag_debug_payload[1984 +: 64] = debug_c_proj_transfer_post_gelu_samples;
   end
 
@@ -826,10 +864,15 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
               load_index_q <= 13'd0;
               check_index_q <= '0;
               cycle_count_q <= 32'd0;
-              state_q <= SELFTEST_START;
+              state_q <= SELFTEST_SETTLE;
             end else begin
               load_index_q <= load_index_q + 13'd1;
             end
+          end
+
+          SELFTEST_SETTLE: begin
+            cycle_count_q <= 32'd0;
+            state_q <= SELFTEST_START;
           end
 
           SELFTEST_START: begin
@@ -1003,6 +1046,39 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     .X_FRAC(X_FRAC),
     .SCALE_SHIFT(SCALE_SHIFT),
     .GELU_QUAD_Q(GELU_QUAD_Q),
+    .GELU_APPROX_MODE(GELU_APPROX_MODE),
+    .GELU_PWL_X0(GELU_PWL_X0),
+    .GELU_PWL_X1(GELU_PWL_X1),
+    .GELU_PWL_X2(GELU_PWL_X2),
+    .GELU_PWL_X3(GELU_PWL_X3),
+    .GELU_PWL_X4(GELU_PWL_X4),
+    .GELU_PWL_X5(GELU_PWL_X5),
+    .GELU_PWL_X6(GELU_PWL_X6),
+    .GELU_PWL_X7(GELU_PWL_X7),
+    .GELU_PWL_X8(GELU_PWL_X8),
+    .GELU_PWL_X9(GELU_PWL_X9),
+    .GELU_PWL_X10(GELU_PWL_X10),
+    .GELU_PWL_X11(GELU_PWL_X11),
+    .GELU_PWL_X12(GELU_PWL_X12),
+    .GELU_PWL_X13(GELU_PWL_X13),
+    .GELU_PWL_X14(GELU_PWL_X14),
+    .GELU_PWL_X15(GELU_PWL_X15),
+    .GELU_PWL_Y0(GELU_PWL_Y0),
+    .GELU_PWL_Y1(GELU_PWL_Y1),
+    .GELU_PWL_Y2(GELU_PWL_Y2),
+    .GELU_PWL_Y3(GELU_PWL_Y3),
+    .GELU_PWL_Y4(GELU_PWL_Y4),
+    .GELU_PWL_Y5(GELU_PWL_Y5),
+    .GELU_PWL_Y6(GELU_PWL_Y6),
+    .GELU_PWL_Y7(GELU_PWL_Y7),
+    .GELU_PWL_Y8(GELU_PWL_Y8),
+    .GELU_PWL_Y9(GELU_PWL_Y9),
+    .GELU_PWL_Y10(GELU_PWL_Y10),
+    .GELU_PWL_Y11(GELU_PWL_Y11),
+    .GELU_PWL_Y12(GELU_PWL_Y12),
+    .GELU_PWL_Y13(GELU_PWL_Y13),
+    .GELU_PWL_Y14(GELU_PWL_Y14),
+    .GELU_PWL_Y15(GELU_PWL_Y15),
     .OUTPUT_REQUANT_SHIFT(OUTPUT_REQUANT_SHIFT),
     .OUTPUT_REQUANT_MULT(OUTPUT_REQUANT_MULT),
     .C_PROJ_OUTPUT_REQUANT_SHIFT(C_PROJ_OUTPUT_REQUANT_SHIFT),

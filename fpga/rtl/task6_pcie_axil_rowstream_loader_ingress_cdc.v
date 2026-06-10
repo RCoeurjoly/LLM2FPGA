@@ -160,7 +160,6 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [31:0] mlp_accel_output_checksum_pcie_q;
     reg [31:0] mlp_accel_output_sample0_pcie_q;
     reg [31:0] mlp_accel_output_sample1_pcie_q;
-    reg [511:0] mlp_accel_output_vector_pcie_q;
     reg [31:0] rowstream_clk_counter_q;
     wire rowstream_heartbeat_edge = rowstream_heartbeat_sync_pcie_q[2] ^ rowstream_heartbeat_last_pcie_q;
 
@@ -237,7 +236,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
         .mlp_accel_output_checksum_i(mlp_accel_output_checksum_pcie_q),
         .mlp_accel_output_sample0_i(mlp_accel_output_sample0_pcie_q),
         .mlp_accel_output_sample1_i(mlp_accel_output_sample1_pcie_q),
-        .mlp_accel_output_vector_i(mlp_accel_output_vector_pcie_q)
+        .mlp_accel_output_vector_i(512'd0)
     );
 
     always @(posedge pcie_clk or negedge pcie_rst_n) begin
@@ -294,7 +293,6 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             mlp_accel_output_checksum_pcie_q <= 32'd0;
             mlp_accel_output_sample0_pcie_q <= 32'd0;
             mlp_accel_output_sample1_pcie_q <= 32'd0;
-            mlp_accel_output_vector_pcie_q <= 512'd0;
         end else begin
             if (pcie_command_event) begin
                 payload_hold_pcie_q <= pcie_command_payload;
@@ -363,7 +361,6 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             mlp_accel_output_checksum_pcie_q <= rowstream_mlp_accel_output_checksum_i;
             mlp_accel_output_sample0_pcie_q <= rowstream_mlp_accel_output_sample0_i;
             mlp_accel_output_sample1_pcie_q <= rowstream_mlp_accel_output_sample1_i;
-            mlp_accel_output_vector_pcie_q <= rowstream_mlp_accel_output_vector_i;
         end
     end
 

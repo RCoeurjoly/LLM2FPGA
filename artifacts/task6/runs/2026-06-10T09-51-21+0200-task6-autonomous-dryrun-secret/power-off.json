@@ -1,0 +1,30 @@
+{
+  "name": "power-off",
+  "argv": [
+    "nix",
+    "shell",
+    "nixpkgs#uv",
+    "-c",
+    "uv",
+    "run",
+    "--with",
+    "tapo",
+    "python3",
+    "scripts/task6/task6_tapo_p115_power.py",
+    "--backend",
+    "tapo",
+    "--host",
+    "192.168.1.136",
+    "--state",
+    "off",
+    "--username",
+    "user@example.com",
+    "--password",
+    "<redacted>"
+  ],
+  "dry_run": true,
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "",
+  "timeout": false
+}

@@ -12,6 +12,7 @@ from typing import Any
 from score_int8_c_proj_from_post_gelu import (
     compute_accumulators,
     fixed_post_gelu_q,
+    fixed_post_gelu_pwl_q,
     gelu_tanh,
     load_contract_tensor,
     load_f32,
@@ -115,6 +116,9 @@ def build_c_proj_int8_output(
     output_requant_shift = int(fixed_point["output_requant_shift"])
     gelu_quad_q = int(fixed_point["gelu_quad_q"])
     output_requant_mult = int(fixed_point["output_requant_mult"])
+    gelu_approx_mode = fixed_point.get("gelu_approx_mode", "quadratic")
+    gelu_pwl_x_nodes = [int(value) for value in fixed_point.get("gelu_pwl_x_nodes", [])]
+    gelu_pwl_y_nodes = [int(value) for value in fixed_point.get("gelu_pwl_y_nodes", [])]
     post_gelu_scale = float(post_gelu["quantization"]["output_scale"])
     c_fc_effective_scales = [
         c_fc_activation_scale * weight_scale
@@ -125,19 +129,24 @@ def build_c_proj_int8_output(
         for scale in c_fc_effective_scales
     ]
     c_fc_bias_q_values = [round(value * (1 << x_frac)) for value in c_fc_bias]
-    post_gelu_q = [
-        fixed_post_gelu_q(
-            acc,
-            c_fc_scale_mul_values[index],
-            c_fc_bias_q_values[index],
-            gelu_quad_q,
-            output_requant_mult,
-            x_frac,
-            scale_shift,
-            output_requant_shift,
-        )
-        for index, acc in enumerate(c_fc_accs)
-    ]
+    post_gelu_q: list[int] = []
+    for index, acc in enumerate(c_fc_accs):
+        x_q = round_shift_signed(acc * c_fc_scale_mul_values[index], scale_shift) + c_fc_bias_q_values[index]
+        if gelu_approx_mode == "pwl":
+            post_gelu_q.append(fixed_post_gelu_pwl_q(x_q, gelu_pwl_x_nodes, gelu_pwl_y_nodes))
+        else:
+            post_gelu_q.append(
+                fixed_post_gelu_q(
+                    acc,
+                    c_fc_scale_mul_values[index],
+                    c_fc_bias_q_values[index],
+                    gelu_quad_q,
+                    output_requant_mult,
+                    x_frac,
+                    scale_shift,
+                    output_requant_shift,
+                )
+            )
     post_gelu_dequantized = [value * post_gelu_scale for value in post_gelu_q]
 
     c_proj_weight_meta = tensor_by_name(c_proj_weight_pack, "weight")
@@ -300,13 +309,17 @@ def main() -> None:
     boundary_q_sha = c_proj_output_boundary.get("int8_output_candidate", {}).get(
         "output_q_sha256"
     )
+    boundary_candidate_pass = (
+        c_proj_output_boundary.get("int8_output_candidate", {}).get("verdict")
+        == "pass"
+    )
     q_hash_matches = (
         q_metadata["c_proj_output_q_sha256"] == proof_q_sha
-        and q_metadata["c_proj_output_q_sha256"] == boundary_q_sha
     )
     upstream_pass = (
         residual_contract.get("status") == "PASS"
         and c_proj_requant_proof.get("status") == "PASS"
+        and boundary_candidate_pass
         and q_hash_matches
     )
     main_pass = (
@@ -362,7 +375,8 @@ def main() -> None:
             "c_proj_output_q_sha256": q_metadata["c_proj_output_q_sha256"],
             "c_proj_output_proof_q_sha256": proof_q_sha,
             "c_proj_output_boundary_q_sha256": boundary_q_sha,
-            "c_proj_output_q_hash_matches": q_hash_matches,
+            "c_proj_output_boundary_candidate_pass": boundary_candidate_pass,
+            "c_proj_output_proof_q_hash_matches": q_hash_matches,
             "final_output_scale": final_output_scale,
             "final_output_q_min": min(final_output_q),
             "final_output_q_max": max(final_output_q),

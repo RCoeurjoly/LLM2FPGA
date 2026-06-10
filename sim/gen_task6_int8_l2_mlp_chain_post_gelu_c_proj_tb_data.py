@@ -13,6 +13,7 @@ from gen_task6_int8_l2_c_proj_from_post_gelu_tb_data import (
     addr_width,
     compute_accumulators,
     fixed_post_gelu_q,
+    fixed_post_gelu_pwl_q,
     gelu_tanh,
     load_contract_tensor,
     load_f32,
@@ -24,6 +25,7 @@ from gen_task6_int8_l2_c_proj_from_post_gelu_tb_data import (
     product,
     quantize_per_output_symmetric,
     quantize_symmetric,
+    round_shift_signed,
     score_error,
     signed_hex,
     tensor_by_name,
@@ -156,6 +158,9 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     output_requant_shift = int(fixed_point["output_requant_shift"])
     gelu_quad_q = int(fixed_point["gelu_quad_q"])
     output_requant_mult = int(fixed_point["output_requant_mult"])
+    gelu_approx_mode = fixed_point.get("gelu_approx_mode", "quadratic")
+    gelu_pwl_x_nodes = [int(value) for value in fixed_point.get("gelu_pwl_x_nodes", [])]
+    gelu_pwl_y_nodes = [int(value) for value in fixed_point.get("gelu_pwl_y_nodes", [])]
     post_gelu_scale = float(post_gelu["quantization"]["output_scale"])
     c_fc_effective_scales = [
         c_fc_activation_scale * weight_scale
@@ -166,19 +171,24 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         for scale in c_fc_effective_scales
     ]
     c_fc_bias_q_values = [round(value * (1 << x_frac)) for value in c_fc_bias]
-    post_gelu_q = [
-        fixed_post_gelu_q(
-            acc,
-            c_fc_scale_mul_values[index],
-            c_fc_bias_q_values[index],
-            gelu_quad_q,
-            output_requant_mult,
-            x_frac,
-            scale_shift,
-            output_requant_shift,
-        )
-        for index, acc in enumerate(c_fc_accs)
-    ]
+    post_gelu_q: list[int] = []
+    for index, acc in enumerate(c_fc_accs):
+        x_q = round_shift_signed(acc * c_fc_scale_mul_values[index], scale_shift) + c_fc_bias_q_values[index]
+        if gelu_approx_mode == "pwl":
+            post_gelu_q.append(fixed_post_gelu_pwl_q(x_q, gelu_pwl_x_nodes, gelu_pwl_y_nodes))
+        else:
+            post_gelu_q.append(
+                fixed_post_gelu_q(
+                    acc,
+                    c_fc_scale_mul_values[index],
+                    c_fc_bias_q_values[index],
+                    gelu_quad_q,
+                    output_requant_mult,
+                    x_frac,
+                    scale_shift,
+                    output_requant_shift,
+                )
+            )
     post_gelu_dequantized = [value * post_gelu_scale for value in post_gelu_q]
 
     c_proj_weight_meta = tensor_by_name(c_proj_weight_pack, "weight")
@@ -309,6 +319,9 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
             "scale_shift": scale_shift,
             "gelu_approximation": "0.5*x + 0.39894228*x*x",
             "gelu_quad_q": gelu_quad_q,
+            "gelu_approx_mode": gelu_approx_mode,
+            "gelu_pwl_x_nodes": gelu_pwl_x_nodes,
+            "gelu_pwl_y_nodes": gelu_pwl_y_nodes,
             "output_requant_shift": output_requant_shift,
             "output_requant_mult": output_requant_mult,
         },
@@ -385,6 +398,15 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         f"localparam int X_FRAC = {x_frac};",
         f"localparam int SCALE_SHIFT = {scale_shift};",
         f"localparam int GELU_QUAD_Q = {gelu_quad_q};",
+        f"localparam int GELU_APPROX_MODE = {1 if gelu_approx_mode == 'pwl' else 0};",
+        *[
+            f"localparam int GELU_PWL_X{index} = {value};"
+            for index, value in enumerate(gelu_pwl_x_nodes or [0] * 16)
+        ],
+        *[
+            f"localparam int GELU_PWL_Y{index} = {value};"
+            for index, value in enumerate(gelu_pwl_y_nodes or [0] * 16)
+        ],
         f"localparam int OUTPUT_REQUANT_SHIFT = {output_requant_shift};",
         f"localparam int OUTPUT_REQUANT_MULT = {output_requant_mult};",
         "logic signed [7:0] c_fc_activation_values [0:C_FC_IN_DIM - 1];",

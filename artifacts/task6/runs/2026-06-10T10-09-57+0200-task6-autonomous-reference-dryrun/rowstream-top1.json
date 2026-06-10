@@ -1,0 +1,19 @@
+{
+  "name": "rowstream-top1",
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "rowstream-top1",
+    "0000:42:00.0",
+    "--sample-count",
+    "8",
+    "--json-out",
+    "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T10-09-57+0200-task6-autonomous-reference-dryrun/rowstream-top1.json",
+    "--reference-json",
+    "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json"
+  ],
+  "dry_run": true,
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "",
+  "timeout": false
+}

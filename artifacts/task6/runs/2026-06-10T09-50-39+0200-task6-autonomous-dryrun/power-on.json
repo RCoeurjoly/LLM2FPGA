@@ -1,0 +1,26 @@
+{
+  "name": "power-on",
+  "argv": [
+    "nix",
+    "shell",
+    "nixpkgs#uv",
+    "-c",
+    "uv",
+    "run",
+    "--with",
+    "tapo",
+    "python3",
+    "scripts/task6/task6_tapo_p115_power.py",
+    "--backend",
+    "tapo",
+    "--host",
+    "192.168.1.136",
+    "--state",
+    "on"
+  ],
+  "dry_run": true,
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "",
+  "timeout": false
+}

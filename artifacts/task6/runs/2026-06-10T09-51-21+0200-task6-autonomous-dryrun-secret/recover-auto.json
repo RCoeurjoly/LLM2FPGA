@@ -1,0 +1,30 @@
+{
+  "name": "recover-auto",
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "recover-auto",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "task6-autonomous-dryrun-secret-recover",
+    "--allow-power-cycle",
+    "--max-power-cycles",
+    "3",
+    "--power-provider",
+    "tapo-p115",
+    "--power-url",
+    "192.168.1.136",
+    "--secret-file",
+    "/tmp/task6-tapo-test.env",
+    "--power-off-wait",
+    "10.0",
+    "--power-on-wait",
+    "45.0"
+  ],
+  "dry_run": true,
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "",
+  "timeout": false
+}

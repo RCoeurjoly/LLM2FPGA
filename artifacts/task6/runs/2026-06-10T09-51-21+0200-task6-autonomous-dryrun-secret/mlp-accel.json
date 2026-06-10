@@ -1,0 +1,18 @@
+{
+  "name": "mlp-accel",
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "mlp-accel",
+    "0000:42:00.0",
+    "--output-surface",
+    "checksum-sample",
+    "--require-samples",
+    "--json-out",
+    "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T09-51-21+0200-task6-autonomous-dryrun-secret/mlp-accel.json"
+  ],
+  "dry_run": true,
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "",
+  "timeout": false
+}

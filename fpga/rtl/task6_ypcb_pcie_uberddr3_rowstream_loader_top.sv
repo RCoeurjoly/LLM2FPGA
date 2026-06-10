@@ -4,7 +4,8 @@
 module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
   parameter int DDR_BYTE_LANES = 1,
   parameter bit ENABLE_PCIE_TOP1 = 1'b1,
-  parameter bit ENABLE_PCIE_MLP_SELFTEST = 1'b0
+  parameter bit ENABLE_PCIE_MLP_SELFTEST = 1'b0,
+  parameter bit ENABLE_PCIE_MLP_ACCEL = ENABLE_PCIE_MLP_SELFTEST
 ) (
   output wire        pci_exp_txp,
   output wire        pci_exp_txn,
@@ -246,6 +247,28 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
         .pcie_accel_output_vector_o(rowstream_mlp_accel_output_vector)
       );
       assign rowstream_mlp_selftest_present = 1'b1;
+    end else if (ENABLE_PCIE_MLP_ACCEL) begin : gen_pcie_mlp_accel
+      task6_int8_l2_mlp_chain_residual_add_accel_top mlp_accel (
+        .SYS_CLK(rowstream_clk),
+        .SYS_RSTN(rowstream_rst_n),
+        .pcie_accel_activation_i(rowstream_mlp_accel_activation_vector),
+        .pcie_accel_residual_i(rowstream_mlp_accel_residual_vector),
+        .pcie_accel_start_pulse_i(rowstream_mlp_accel_start),
+        .pcie_accel_clear_pulse_i(rowstream_mlp_accel_clear),
+        .pcie_accel_status_o(rowstream_mlp_accel_status),
+        .pcie_accel_cycle_count_o(rowstream_mlp_accel_cycle_count),
+        .pcie_accel_output_checksum_o(rowstream_mlp_accel_output_checksum),
+        .pcie_accel_output_sample0_o(rowstream_mlp_accel_output_sample0),
+        .pcie_accel_output_sample1_o(rowstream_mlp_accel_output_sample1),
+        .pcie_accel_output_vector_o(rowstream_mlp_accel_output_vector)
+      );
+      assign rowstream_mlp_selftest_present = 1'b1;
+      assign rowstream_mlp_selftest_status = 32'h4d4c4150;
+      assign rowstream_mlp_selftest_cycle_count = rowstream_mlp_accel_cycle_count;
+      assign rowstream_mlp_selftest_fail_detail = 32'd0;
+      assign rowstream_mlp_selftest_fail_values = 32'd0;
+      assign rowstream_mlp_selftest_first_add_sample = rowstream_mlp_accel_output_sample0;
+      assign rowstream_mlp_selftest_first_requant_sample = rowstream_mlp_accel_output_sample1;
     end else begin : gen_no_pcie_mlp_selftest
       assign rowstream_mlp_selftest_present = 1'b0;
       assign rowstream_mlp_selftest_status = 32'd0;

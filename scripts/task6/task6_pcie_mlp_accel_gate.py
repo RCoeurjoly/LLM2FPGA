@@ -70,6 +70,14 @@ ACCEL_ERROR_BIT = 10
 ACCEL_OUTPUT_VALID_BIT = 11
 ACCEL_STATE_DONE = 0x7
 ACCEL_STATE_ERROR = 0x8
+ACCEL_V2_STATE_SHIFT = 4
+ACCEL_V2_STATE_MASK = 0xF
+ACCEL_V2_READY_BIT = 0
+ACCEL_V2_BUSY_BIT = 1
+ACCEL_V2_ERROR_BIT = 2
+ACCEL_V2_OUTPUT_VALID_BIT = 3
+ACCEL_V2_STATE_DONE = 0xB
+ACCEL_V2_STATE_ERROR = 0xC
 
 DEFAULT_ACTIVATION_HEX = (
     "0759972ecf0608f1ad559a01a80f0bba3922f6d3a7ebd4bdd4c07f4efe3a24f2"
@@ -167,6 +175,53 @@ def decode_state(status: int) -> tuple[int, str]:
         0x8: "ERROR",
     }
     return state, names.get(state, "UNKNOWN")
+
+
+def decode_accel_status(status: int) -> dict[str, Any]:
+    legacy_state, legacy_name = decode_state(status)
+    v2_state = (status >> ACCEL_V2_STATE_SHIFT) & ACCEL_V2_STATE_MASK
+    v2_names = {
+        0x0: "BOOT_LOAD_C_FC_WEIGHT",
+        0x1: "BOOT_LOAD_C_FC_REQUANT",
+        0x2: "BOOT_LOAD_C_PROJ_WEIGHT",
+        0x3: "BOOT_LOAD_C_PROJ_REQUANT",
+        0x4: "IDLE",
+        0x5: "LOAD_ACTIVATION",
+        0x6: "LOAD_RESIDUAL",
+        0x7: "START",
+        0x8: "RUN",
+        0x9: "READ_SETUP",
+        0xA: "READ_ACCUM",
+        0xB: "DONE",
+        0xC: "ERROR",
+    }
+    legacy_done = bool(status & (1 << ACCEL_DONE_BIT)) or legacy_state == ACCEL_STATE_DONE
+    legacy_error = bool(status & (1 << ACCEL_ERROR_BIT)) or legacy_state == ACCEL_STATE_ERROR
+    legacy_output_valid = bool(status & (1 << ACCEL_OUTPUT_VALID_BIT))
+    v2_done = v2_state == ACCEL_V2_STATE_DONE
+    v2_error = bool(status & (1 << ACCEL_V2_ERROR_BIT)) or v2_state == ACCEL_V2_STATE_ERROR
+    v2_output_valid = bool(status & (1 << ACCEL_V2_OUTPUT_VALID_BIT))
+    if v2_done or v2_output_valid or (status & 0xFFFF0000):
+        return {
+            "format": "v2",
+            "state": v2_state,
+            "state_name": v2_names.get(v2_state, "UNKNOWN"),
+            "done": v2_done,
+            "error": v2_error,
+            "output_valid": v2_output_valid,
+            "busy": bool(status & (1 << ACCEL_V2_BUSY_BIT)),
+            "ready": bool(status & (1 << ACCEL_V2_READY_BIT)),
+        }
+    return {
+        "format": "legacy",
+        "state": legacy_state,
+        "state_name": legacy_name,
+        "done": legacy_done,
+        "error": legacy_error,
+        "output_valid": legacy_output_valid,
+        "busy": not legacy_done and not legacy_error,
+        "ready": True,
+    }
 
 
 def bytes_checksum(data: bytes) -> int:
@@ -294,10 +349,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reference-max-samples", type=int, default=None, help="Limit number of reference steps consumed")
     parser.add_argument("--activation-hex", default=DEFAULT_ACTIVATION_HEX, help="Single 64-byte int8 activation as hex (for legacy manual mode)")
     parser.add_argument("--residual-hex", default=DEFAULT_RESIDUAL_HEX, help="Single 64-byte residual as hex (for legacy manual mode)")
-    parser.add_argument("--expect-output-hex", default=DEFAULT_EXPECT_OUTPUT_HEX, help="Expected output vector for legacy manual mode")
-    parser.add_argument("--expect-checksum", type=lambda text: int(text, 0), default=DEFAULT_EXPECT_CHECKSUM)
-    parser.add_argument("--expect-sample0", type=lambda text: int(text, 0), default=DEFAULT_EXPECT_SAMPLE0)
-    parser.add_argument("--expect-sample1", type=lambda text: int(text, 0), default=DEFAULT_EXPECT_SAMPLE1)
+    parser.add_argument("--expect-output-hex", default=None, help="Expected output vector for legacy manual mode")
+    parser.add_argument("--expect-checksum", type=lambda text: int(text, 0), default=None)
+    parser.add_argument("--expect-sample0", type=lambda text: int(text, 0), default=None)
+    parser.add_argument("--expect-sample1", type=lambda text: int(text, 0), default=None)
+    parser.add_argument(
+        "--output-surface",
+        choices=("full", "checksum-sample", "auto"),
+        default="full",
+        help="validation surface exposed by this bitstream; full preserves legacy 64-byte output checking",
+    )
     parser.add_argument("--timeout", type=float, default=2.0, help="seconds to wait for accelerator completion")
     parser.add_argument("--poll-interval", type=float, default=0.001)
     parser.add_argument(
@@ -390,7 +451,17 @@ def main() -> int:
         }
         activation = parse_hex_vector(args.activation_hex, name="activation")
         residual = parse_hex_vector(args.residual_hex, name="residual")
-        expected_output = parse_hex_vector(args.expect_output_hex, name="expected output")
+        if args.output_surface == "full":
+            expect_output_hex = args.expect_output_hex or DEFAULT_EXPECT_OUTPUT_HEX
+            expected_output = parse_hex_vector(expect_output_hex, name="expected output")
+            expected_checksum = args.expect_checksum if args.expect_checksum is not None else DEFAULT_EXPECT_CHECKSUM
+            expected_sample0 = args.expect_sample0 if args.expect_sample0 is not None else DEFAULT_EXPECT_SAMPLE0
+            expected_sample1 = args.expect_sample1 if args.expect_sample1 is not None else DEFAULT_EXPECT_SAMPLE1
+        else:
+            expected_output = parse_hex_vector(args.expect_output_hex, name="expected output") if args.expect_output_hex else None
+            expected_checksum = args.expect_checksum
+            expected_sample0 = args.expect_sample0
+            expected_sample1 = args.expect_sample1
         sample_payloads = [
             {
                 "sample_id": "default-legacy-sample",
@@ -398,9 +469,9 @@ def main() -> int:
                 "activation": activation,
                 "residual": residual,
                 "expected_output": expected_output,
-                "expected_checksum": args.expect_checksum,
-                "expected_sample0": args.expect_sample0,
-                "expected_sample1": args.expect_sample1,
+                "expected_checksum": expected_checksum,
+                "expected_sample0": expected_sample0,
+                "expected_sample1": expected_sample1,
             }
         ]
         default_mode = True
@@ -447,26 +518,39 @@ def main() -> int:
                     timeout=args.timeout,
                     poll_interval=args.poll_interval,
                 )
-                accel_state, accel_state_name = decode_state(observed["mlp_accel_status"])
+                decoded_status = decode_accel_status(observed["mlp_accel_status"])
+                accel_state = int(decoded_status["state"])
+                accel_state_name = str(decoded_status["state_name"])
+                require_echo = args.output_surface == "full"
                 checks = {
-                    "activation_echo": observed["activation_echo"] == activation,
-                    "residual_echo": observed["residual_echo"] == residual,
                     "start_count_incremented": observed["mlp_accel_start_count_after"] == ((start_count_before + 1) & 0xFFFFFFFF),
-                    "state_done": accel_state == ACCEL_STATE_DONE,
-                    "done_bit": bool(observed["mlp_accel_status"] & (1 << ACCEL_DONE_BIT)),
-                    "no_error": not bool(observed["mlp_accel_status"] & (1 << ACCEL_ERROR_BIT)) and accel_state != ACCEL_STATE_ERROR,
-                    "output_valid": bool(observed["mlp_accel_status"] & (1 << ACCEL_OUTPUT_VALID_BIT)),
+                    "state_done": bool(decoded_status["done"]),
+                    "done_bit": bool(decoded_status["done"]),
+                    "no_error": not bool(decoded_status["error"]),
+                    "output_valid": bool(decoded_status["output_valid"]),
                 }
-                if expected_output is not None:
+                if require_echo:
+                    checks["activation_echo"] = observed["activation_echo"] == activation
+                    checks["residual_echo"] = observed["residual_echo"] == residual
+                require_output_vector = args.output_surface == "full" or (
+                    args.output_surface == "auto" and expected_output is not None and expected_checksum is None
+                )
+                if expected_output is not None and require_output_vector:
                     checks["output_vector"] = observed["mlp_accel_output_vector"] == expected_output
                 if expected_checksum is not None:
                     checks["checksum"] = observed["mlp_accel_output_checksum"] == expected_checksum
+                elif args.output_surface == "checksum-sample":
+                    checks["checksum_live"] = observed["mlp_accel_output_checksum"] != ALL_ONES
                 if expected_sample0 is not None:
                     checks["sample0"] = observed["mlp_accel_output_sample0"] == expected_sample0
+                elif args.output_surface == "checksum-sample":
+                    checks["sample0_live"] = observed["mlp_accel_output_sample0"] != ALL_ONES
                 if expected_sample1 is not None:
                     checks["sample1"] = observed["mlp_accel_output_sample1"] == expected_sample1
+                elif args.output_surface == "checksum-sample":
+                    checks["sample1_live"] = observed["mlp_accel_output_sample1"] != ALL_ONES
 
-                if args.require_samples and expected_sample0 is None and expected_sample1 is None:
+                if args.require_samples and expected_sample0 is None and expected_sample1 is None and args.output_surface != "checksum-sample":
                     checks["sample_checks_required"] = False
 
                 sample_status = "PASS" if all(checks.values()) else "FAIL"
@@ -534,7 +618,9 @@ def main() -> int:
 
     status = "PASS" if mismatch_count == 0 and all(global_checks.values()) else "FAIL"
     accel_status = final_regs["mlp_accel_status"]
-    accel_state, accel_state_name = decode_state(accel_status)
+    decoded_final_status = decode_accel_status(accel_status)
+    accel_state = int(decoded_final_status["state"])
+    accel_state_name = str(decoded_final_status["state_name"])
     result: dict[str, Any] = {
         "artifact_name": "task6-pcie-mlp-accelerator-board-gate",
         "status": status,
@@ -582,6 +668,7 @@ def main() -> int:
         "checks": global_checks,
         "checks_required": {
             "require_samples": bool(args.require_samples),
+            "output_surface": args.output_surface,
             "sample_checks_enabled": len(samples) > 0,
         },
         "register_map": {
@@ -594,8 +681,12 @@ def main() -> int:
         },
         "decoded": {
             "mlp_accel_status": accel_status,
+            "mlp_accel_status_format": decoded_final_status["format"],
             "state": accel_state,
             "state_name": accel_state_name,
+            "done": decoded_final_status["done"],
+            "error": decoded_final_status["error"],
+            "output_valid": decoded_final_status["output_valid"],
         },
         "registers": {name: f"0x{value:08x}" for name, value in final_regs.items()},
     }

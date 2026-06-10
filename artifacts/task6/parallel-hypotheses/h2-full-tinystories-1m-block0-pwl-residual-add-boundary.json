@@ -1,0 +1,115 @@
+{
+  "artifact_name": "h2-full-tinystories-1m-block0-pwl-residual-add-boundary",
+  "status": "PASS",
+  "source_artifacts": {
+    "residual_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-residual-add-contract/manifest.json",
+    "c_fc_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_fc-contract/manifest.json",
+    "c_fc_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_fc/manifest.json",
+    "c_proj_contract_manifest": "artifacts/task6/streamtensor-lite/full/tiny-stories-1m-h64-l8-block0-c_proj-contract/manifest.json",
+    "c_proj_weight_pack_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-h64-l8-block0/transformer.h.0.mlp.c_proj/manifest.json",
+    "post_gelu_requant_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json",
+    "c_proj_output_boundary_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-c-proj-output-boundary.json",
+    "c_proj_requant_rtl_proof_json": "artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json"
+  },
+  "replacement_region": {
+    "producer": "transformer.h.0.mlp.c_proj",
+    "boundary": "post_c_proj_residual_add",
+    "consumer": "transformer.h.0 block output",
+    "interpretation": "Score whether the promoted int8 c_proj output can feed the post-MLP residual add without breaking the captured block output."
+  },
+  "quantization": {
+    "normalized_rmse_threshold": 0.02,
+    "residual_scale": 0.002394971650416457,
+    "residual_q_min": -127,
+    "residual_q_max": 107,
+    "residual_q_sha256": "a1493d43e93000c10e3c3e5fddc9361a906061e19b700efc233dc5b2576a9f3b",
+    "c_proj_output_scale": 0.0023836969859956755,
+    "c_proj_output_q_min": -89,
+    "c_proj_output_q_max": 127,
+    "c_proj_output_q_sha256": "385d76111473e094e752ac103fd18d3b6ef15a9ad9e570ca4dfd2e4c74b5ce38",
+    "c_proj_output_proof_q_sha256": "385d76111473e094e752ac103fd18d3b6ef15a9ad9e570ca4dfd2e4c74b5ce38",
+    "c_proj_output_boundary_q_sha256": "c02c222b5151102d1698b6027f2e8a10888bcef51f7a64466d4989576b66fc64",
+    "c_proj_output_boundary_candidate_pass": true,
+    "c_proj_output_proof_q_hash_matches": true,
+    "final_output_scale": 0.00160666241095332,
+    "final_output_q_min": -127,
+    "final_output_q_max": 126,
+    "final_output_q_sha256": "8ea8b8641681cd8ce7a50d809c62c934fece521bf593541e0474476d6486b337"
+  },
+  "upstream_metrics": {
+    "post_gelu_int8_vs_c_proj_input": {
+      "max_abs_error": 0.005818406669556686,
+      "mean_abs_error": 0.0016861114420274634,
+      "rmse": 0.0021471703202100775,
+      "normalized_rmse": 0.014180227861596988,
+      "signal_max_abs": 0.6872689723968506,
+      "signal_mean_abs": 0.11283289705170318
+    },
+    "c_proj_input_vs_gelu_c_fc_expected": {
+      "max_abs_error": 2.1315682885436615e-08,
+      "mean_abs_error": 3.3850977003220577e-09,
+      "rmse": 5.17426668971602e-09,
+      "normalized_rmse": 3.4171616717295247e-08,
+      "signal_max_abs": 0.6872689510811677,
+      "signal_mean_abs": 0.11283289663220802
+    }
+  },
+  "metrics": {
+    "captured_residual_add_f32_vs_block_output": {
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0,
+      "rmse": 0.0,
+      "normalized_rmse": 0.0,
+      "signal_max_abs": 0.20341834425926208,
+      "signal_mean_abs": 0.07632826500048395
+    },
+    "residual_plus_c_proj_contract_vs_block_output": {
+      "max_abs_error": 7.450580596923828e-09,
+      "mean_abs_error": 1.1168594937771559e-09,
+      "rmse": 2.188213255336088e-09,
+      "normalized_rmse": 2.277742953632517e-08,
+      "signal_max_abs": 0.20341834425926208,
+      "signal_mean_abs": 0.07632826500048395
+    },
+    "f32_residual_plus_int8_c_proj_vs_block_output": {
+      "max_abs_error": 0.0034390447411950242,
+      "mean_abs_error": 0.0010964145167092763,
+      "rmse": 0.001393724404321383,
+      "normalized_rmse": 0.01450747971436234,
+      "signal_max_abs": 0.20341834425926208,
+      "signal_mean_abs": 0.07632826500048395
+    },
+    "int8_residual_plus_int8_c_proj_vs_block_output": {
+      "max_abs_error": 0.00455135212639185,
+      "mean_abs_error": 0.001210920962639793,
+      "rmse": 0.0015363759672360614,
+      "normalized_rmse": 0.01599236054789732,
+      "signal_max_abs": 0.20341834425926208,
+      "signal_mean_abs": 0.07632826500048395
+    },
+    "int8_final_residual_add_output_vs_block_output": {
+      "max_abs_error": 0.004349456475379557,
+      "mean_abs_error": 0.001187737886267629,
+      "rmse": 0.0015200618461045764,
+      "normalized_rmse": 0.01582254449198352,
+      "signal_max_abs": 0.20341834425926208,
+      "signal_mean_abs": 0.07632826500048395
+    }
+  },
+  "byte_budget": {
+    "residual_f32_bytes": 256,
+    "residual_int8_bytes": 64,
+    "c_proj_int8_output_bytes": 64,
+    "c_proj_output_scale_bytes": 4,
+    "final_residual_add_int8_output_bytes": 64,
+    "final_output_scale_bytes": 4,
+    "residual_int8_savings_vs_f32_bytes": 192,
+    "final_output_int8_savings_vs_f32_bytes": 192
+  },
+  "decision": {
+    "verdict": "promote-f32-residual-plus-int8-c-proj",
+    "residual_int8_verdict": "pass",
+    "final_output_int8_verdict": "pass",
+    "next_gate": "implement a bounded residual-add RTL proof"
+  }
+}

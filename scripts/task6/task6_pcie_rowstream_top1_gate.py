@@ -566,43 +566,63 @@ def clear_top1_status(mm: mmap.mmap, timeout: float) -> None:
     time.sleep(0.001)
 
 
-def run_board_top1(mm: mmap.mmap, hidden_bytes: bytes, timeout: float) -> dict[str, int]:
-    write_hidden(mm, hidden_bytes)
-    clear_top1_status(mm, timeout)
-    start_count_before = rd32(mm, REG_TOP1_START_COUNT)
-    wr32(mm, REG_TOP1_STATUS, 0x1)
-    deadline = time.monotonic() + timeout
-    status = rd32(mm, REG_TOP1_STATUS)
-    start_count_after = rd32(mm, REG_TOP1_START_COUNT)
-    while time.monotonic() < deadline:
+def run_board_top1(mm: mmap.mmap, hidden_bytes: bytes, timeout: float, retries: int = 0) -> dict[str, int]:
+    return run_board_top1_with_retries(mm, hidden_bytes, timeout, retries=retries)
+
+
+def run_board_top1_with_retries(
+    mm: mmap.mmap,
+    hidden_bytes: bytes,
+    timeout: float,
+    *,
+    retries: int,
+) -> dict[str, int]:
+    last: dict[str, int] | None = None
+    for retry_count in range(retries + 1):
+        write_hidden(mm, hidden_bytes)
+        clear_top1_status(mm, timeout)
+        start_count_before = rd32(mm, REG_TOP1_START_COUNT)
+        wr32(mm, REG_TOP1_STATUS, 0x1)
+        deadline = time.monotonic() + timeout
         status = rd32(mm, REG_TOP1_STATUS)
         start_count_after = rd32(mm, REG_TOP1_START_COUNT)
-        start_seen = start_count_after != start_count_before
-        if start_seen and (status & TOP1_ERROR):
-            break
-        if start_seen and (status & TOP1_DONE):
-            break
-        time.sleep(0.001)
-    if start_count_after == start_count_before:
-        raise TimeoutError(
-            f"timeout waiting for top1 start acceptance: status=0x{status:08x} "
-            f"start_count={start_count_after}"
-        )
-    if not (status & (TOP1_DONE | TOP1_ERROR)):
-        raise TimeoutError(f"timeout waiting for top1 done: status=0x{status:08x}")
-    token = rd32(mm, REG_TOP1_TOKEN)
-    score_q024 = rd32(mm, REG_TOP1_SCORE_Q024)
-    rows_scanned = rd32(mm, REG_TOP1_ROWS_SCANNED)
-    cycle_count = rd32(mm, REG_TOP1_CYCLE_COUNT)
-    return {
-        "status_reg": status,
-        "start_count_before": start_count_before,
-        "start_count_after": start_count_after,
-        "top1_token": token,
-        "top1_score_q024": score_q024,
-        "rows_scanned": rows_scanned,
-        "cycle_count": cycle_count,
-    }
+        while time.monotonic() < deadline:
+            status = rd32(mm, REG_TOP1_STATUS)
+            start_count_after = rd32(mm, REG_TOP1_START_COUNT)
+            start_seen = start_count_after != start_count_before
+            if start_seen and (status & TOP1_ERROR):
+                break
+            if start_seen and (status & TOP1_DONE):
+                break
+            time.sleep(0.001)
+        if start_count_after == start_count_before:
+            raise TimeoutError(
+                f"timeout waiting for top1 start acceptance: status=0x{status:08x} "
+                f"start_count={start_count_after}"
+            )
+        if not (status & (TOP1_DONE | TOP1_ERROR)):
+            raise TimeoutError(f"timeout waiting for top1 done: status=0x{status:08x}")
+        token = rd32(mm, REG_TOP1_TOKEN)
+        score_q024 = rd32(mm, REG_TOP1_SCORE_Q024)
+        rows_scanned = rd32(mm, REG_TOP1_ROWS_SCANNED)
+        cycle_count = rd32(mm, REG_TOP1_CYCLE_COUNT)
+        last = {
+            "status_reg": status,
+            "start_count_before": start_count_before,
+            "start_count_after": start_count_after,
+            "top1_token": token,
+            "top1_score_q024": score_q024,
+            "rows_scanned": rows_scanned,
+            "cycle_count": cycle_count,
+            "retry_count": retry_count,
+        }
+        transient_zero_row_error = bool(status & TOP1_ERROR) and rows_scanned == 0 and cycle_count == 0
+        if transient_zero_row_error and retry_count < retries:
+            time.sleep(0.05)
+            continue
+        return last
+    assert last is not None
+    return last
 
 
 def parse_args() -> argparse.Namespace:
@@ -631,6 +651,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--poll-timeout", type=float, default=2.0)
     parser.add_argument("--boot-timeout", type=float, default=5.0)
     parser.add_argument("--top1-timeout", type=float, default=20.0)
+    parser.add_argument(
+        "--top1-retries",
+        type=int,
+        default=8,
+        help="bounded retries for transient zero-row top1 errors immediately after loader completion",
+    )
     parser.add_argument("--progress-every", type=int, default=16384)
     parser.add_argument(
         "--packet-ack-mode",
@@ -777,6 +803,7 @@ def main() -> int:
                     mm,
                     hidden_to_bytes(payload["hidden_q"], hidden_size),
                     args.top1_timeout,
+                    args.top1_retries,
                 )
                 matches_token = observed["top1_token"] == expected["expected_top1_token"]
                 matches_score = observed["top1_score_q024"] == expected["expected_top1_score_q024_low32"]

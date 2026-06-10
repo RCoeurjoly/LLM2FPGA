@@ -39,6 +39,11 @@ SOFTWARE_RECOVERY_CLASSES = {
     "corrupt_header_type",
 }
 
+SAFE_PERMISSION_REPAIR_CLASSES = {
+    "resource0_permission",
+    "mem_disabled",
+}
+
 
 @dataclass(frozen=True)
 class Step:
@@ -145,9 +150,11 @@ def next_step(
     *,
     recovered_missing_resource0: bool,
     tried_bridge_rescan: bool,
+    tried_safe_helper: bool,
     tried_root_recovery: bool,
     has_then_gate: bool,
     allow_root_recovery: bool = False,
+    allow_delegated_resource0_recovery: bool = False,
 ) -> Step:
     if classification == "pcie_ready":
         if recovered_missing_resource0:
@@ -162,7 +169,10 @@ def next_step(
     if classification == "missing_endpoint" and not tried_bridge_rescan:
         return Step("bridge_rescan", "endpoint is absent but the upstream bridge may rescan it")
 
-    if classification == "missing_resource0" and not recovered_missing_resource0:
+    if classification in SAFE_PERMISSION_REPAIR_CLASSES and not tried_safe_helper:
+        return Step("safe_root_helper", "PCIe identity is clean but udev permissions or COMMAND memory enable need repair")
+
+    if classification == "missing_resource0" and allow_delegated_resource0_recovery and not recovered_missing_resource0:
         return Step("delegated_recover", "endpoint identity is present but BAR0/resource0 is missing")
 
     if (
@@ -174,6 +184,8 @@ def next_step(
 
     if classification in SOFTWARE_RECOVERY_CLASSES or classification in {"missing_resource0", "missing_endpoint"}:
         return Step("needs_physical_power_cycle", "software recovery did not produce a live BAR")
+    if classification in SAFE_PERMISSION_REPAIR_CLASSES:
+        return Step("needs_physical_power_cycle", "safe permission repair did not produce a usable BAR")
 
     return Step("stop", f"unsupported lifecycle classification: {classification}")
 
@@ -205,6 +217,8 @@ def step_command(step: Step, args: argparse.Namespace) -> list[str] | None:
             "--timeout",
             str(args.recover_timeout),
         ]
+    if step.action == "safe_root_helper":
+        return [*shlex.split(args.sudo), args.safe_root_helper, "repair-permissions", args.bdf]
     if step.action == "root_recovery":
         return [*shlex.split(args.sudo), args.root_helper, "prepare", args.bdf]
     if step.action == "run_then_gate":
@@ -229,6 +243,25 @@ def tapo_credentials(args: argparse.Namespace) -> tuple[str, str]:
     if not username or not password:
         raise SystemExit("Tapo provider requires --tapo-username/--tapo-password or TAPO_USERNAME/TAPO_PASSWORD")
     return username, password
+
+
+def load_secret_file(path: str | None) -> None:
+    if not path:
+        return
+    secret_path = Path(path).expanduser()
+    if not secret_path.exists():
+        raise SystemExit(f"missing secret file: {secret_path}")
+    for line_number, raw_line in enumerate(secret_path.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            raise SystemExit(f"invalid secret file line {line_number}: expected KEY=VALUE")
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key in {"TAPO_USERNAME", "TAPO_PASSWORD"} and key not in os.environ:
+            os.environ[key] = value
 
 
 def tapo_p115_cmd(args: argparse.Namespace, on: bool) -> list[str]:
@@ -306,6 +339,7 @@ def main() -> int:
     parser.add_argument("--bridge-bdf", default=DEFAULT_BRIDGE_BDF)
     parser.add_argument("--label", default="pcie-recovery-orchestrator")
     parser.add_argument("--root-helper", default=DEFAULT_ROOT_HELPER)
+    parser.add_argument("--safe-root-helper", default="/usr/local/libexec/task6-pcie/task6-pcie-safe-root-helper")
     parser.add_argument("--sudo", default="sudo -n")
     parser.add_argument("--recover-timeout", type=float, default=20.0)
     parser.add_argument("--command-timeout", type=float, default=120.0)
@@ -320,14 +354,21 @@ def main() -> int:
         ),
     )
     parser.add_argument("--allow-power-cycle", action="store_true", help="allow configured smart-plug power cycle after software recovery fails")
+    parser.add_argument("--max-power-cycles", type=int, default=3)
     parser.add_argument("--allow-root-recovery", action="store_true", help="allow root PCIe/Thunderbolt reset ladder; disabled by default because it previously froze the host")
-    parser.add_argument("--power-provider", choices=["shelly", "tasmota", "tapo-p115"], default="shelly")
+    parser.add_argument(
+        "--allow-delegated-resource0-recovery",
+        action="store_true",
+        help="diagnostic only: try old delegated missing_resource0 recovery before power cycling",
+    )
+    parser.add_argument("--power-provider", choices=["shelly", "tasmota", "tapo-p115"], default="tapo-p115")
     parser.add_argument("--power-url", default="", help="HTTP base URL for Shelly/Tasmota, or host/IP for tapo-p115")
     parser.add_argument("--power-off-wait", type=float, default=10.0)
     parser.add_argument("--power-on-wait", type=float, default=30.0)
     parser.add_argument("--power-http-timeout", type=float, default=30.0)
     parser.add_argument("--tapo-username", default="", help="Tapo/TP-Link account email; TAPO_USERNAME is also accepted")
     parser.add_argument("--tapo-password", default="", help="Tapo/TP-Link password; TAPO_PASSWORD is also accepted")
+    parser.add_argument("--secret-file", default="", help="optional KEY=VALUE file with TAPO_USERNAME/TAPO_PASSWORD")
     parser.add_argument(
         "--tapo-p115-command",
         default=(
@@ -343,6 +384,7 @@ def main() -> int:
         help="gate command after pcie_ready, beginning with the task6_pcie_user_gate.sh mode",
     )
     args = parser.parse_args()
+    load_secret_file(args.secret_file)
 
     run_dir = make_run_dir(args.label)
     transcript: list[dict[str, Any]] = []
@@ -353,9 +395,11 @@ def main() -> int:
             classify_from_snapshot(fixture),
             recovered_missing_resource0=False,
             tried_bridge_rescan=False,
+            tried_safe_helper=False,
             tried_root_recovery=False,
             has_then_gate=bool(args.then),
             allow_root_recovery=args.allow_root_recovery,
+            allow_delegated_resource0_recovery=args.allow_delegated_resource0_recovery,
         )
         selected = {**step.__dict__, "command": step_command(step, args)}
         summary = {"run_dir": str(run_dir), "fixture": args.fixture_json, "selected": selected}
@@ -365,9 +409,10 @@ def main() -> int:
 
     recovered_missing_resource0 = False
     tried_bridge_rescan = False
+    tried_safe_helper = False
     tried_root_recovery = False
     last_classification = "unknown"
-    power_cycled = False
+    power_cycle_count = 0
 
     for action_index in range(args.max_actions + 1):
         life = run(
@@ -396,19 +441,22 @@ def main() -> int:
             last_classification,
             recovered_missing_resource0=recovered_missing_resource0,
             tried_bridge_rescan=tried_bridge_rescan,
+            tried_safe_helper=tried_safe_helper,
             tried_root_recovery=tried_root_recovery,
             has_then_gate=bool(args.then),
             allow_root_recovery=args.allow_root_recovery,
+            allow_delegated_resource0_recovery=args.allow_delegated_resource0_recovery,
         )
         cmd = step_command(step, args)
         transcript.append({"action": step.action, "reason": step.reason, "command": cmd})
 
-        if step.action == "needs_physical_power_cycle" and args.allow_power_cycle and args.power_url and not power_cycled:
+        if step.action == "needs_physical_power_cycle" and args.allow_power_cycle and args.power_url and power_cycle_count < args.max_power_cycles:
             cycle = power_cycle(args, run_dir, args.dry_run)
             transcript.append({"action": "power_cycle", "result": cycle})
-            power_cycled = True
+            power_cycle_count += 1
             recovered_missing_resource0 = False
             tried_bridge_rescan = False
+            tried_safe_helper = False
             tried_root_recovery = False
             continue
         if step.action in {"done", "needs_physical_power_cycle", "stop"}:
@@ -424,6 +472,8 @@ def main() -> int:
         )
         if step.action == "bridge_rescan":
             tried_bridge_rescan = True
+        elif step.action == "safe_root_helper":
+            tried_safe_helper = True
         elif step.action == "delegated_recover":
             recovered_missing_resource0 = True
         elif step.action == "root_recovery":
