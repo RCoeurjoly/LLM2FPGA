@@ -195,6 +195,31 @@ Dojo timing:
   variants, XtraMAC-style MAC variants, matmul-free kernels, and MoE routing
   kernels.
 
+Implementation update:
+
+- Added `scripts/pipeline/llm2fpga_model_manifest.py` and generated the first
+  real TinyStories-1M model manifest:
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-model-manifest.json`.
+  The manifest classifies the pinned PyTorch checkpoint as supported
+  `gpt-causal`, with vocab `50257`, hidden size `64`, and `3745984`
+  parameters.
+- Added `scripts/task6/export_m2_one_block_contract.py` and generated the first
+  `M2-one-full-block` block-0 contract:
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/`.
+  The artifact captures all 8 prompt-reference contexts, full-sequence f32
+  block input/output tensors, and last-token symmetric int8 input/output
+  vectors. This is an oracle artifact for the next RTL/fixed-point block
+  lowering step, not yet a board PASS.
+- Added `scripts/task6/export_m2_one_block_weight_pack.py` and generated the
+  matching block-0 weight pack:
+  `artifacts/task6/weights_pack/tiny-stories-1m-m2-block0/`. It contains raw
+  f32 token/position embeddings and all `transformer.h.0.*` parameters with
+  hashes and byte counts. This is the model-data side of the M2 contract.
+- Added flake products:
+  `.#task6-tinystories-1m-model-manifest` and
+  `.#task6-tinystories-1m-m2-one-block-contract` and
+  `.#task6-tinystories-1m-m2-one-block-weight-pack`.
+
 Operational update (2026-06-09):
 
 - The reference generator was extended to emit prompt-step `activation_q`, `residual_q`,

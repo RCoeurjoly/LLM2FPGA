@@ -1,0 +1,563 @@
+{
+  "adapter_path": "TinyStories/model_adapter.py",
+  "artifact_name": "h2-tinystories-1m-m2-one-block-contract",
+  "block_index": 0,
+  "contract": {
+    "acceptance": "block output tensors match this CPU/f32 contract after the chosen fixed-point lowering",
+    "fpga_compute": [
+      "token and position embeddings through block input",
+      "one full transformer block",
+      "downstream output-head check in later board gate"
+    ],
+    "host_input": [
+      "prompt token ids",
+      "generation control",
+      "PCIe lifecycle"
+    ]
+  },
+  "date": "2026-06-10T10:10:02.857650+00:00",
+  "model_label": "tiny-stories-1m",
+  "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+  "quantization": {
+    "last_token_vectors": "symmetric int8 per vector",
+    "note": "Full RTL fixed-point lowering must choose per-stage quantization before M2 board acceptance."
+  },
+  "reference_json": "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json",
+  "schema_version": 1,
+  "stage": "M2-one-full-block",
+  "status": "PASS",
+  "steps": [
+    {
+      "context_text": "Once upon a time there was",
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373
+      ],
+      "expected_next_text": " a",
+      "expected_next_token": 257,
+      "last_input_i8_scale": 0.0024079903373568075,
+      "last_output_i8_scale": 0.001687457359681918,
+      "sequence_length": 6,
+      "step": 0,
+      "tensors": {
+        "block_input_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-block-input-f32.bin",
+          "numel": 384,
+          "sha256": "dcd84c36a2ba0ddb51b4a1c87f940effe64cb1fa2eb4722e83ce91160cbeed9c",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "block_output_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-block-output-f32.bin",
+          "numel": 384,
+          "sha256": "5f50683e115b1a4fccf1bbd9ded1160e2e359b9a20db9ad02215a77ec41c64f5",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "last_input_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step00-last-input-i8.bin",
+          "numel": 64,
+          "sha256": "e65262a340a7641f8e149efc247ffc1fa911e673629375ea855c01abec5554f3",
+          "shape": [
+            64
+          ]
+        },
+        "last_output_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step00-last-output-i8.bin",
+          "numel": 64,
+          "sha256": "1202bd3c91f9095c3ec5acbc0073cba8ff05988c8df52e7df1893ee6832f807a",
+          "shape": [
+            64
+          ]
+        }
+      }
+    },
+    {
+      "context_text": "Once upon a time there was a",
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257
+      ],
+      "expected_next_text": " little",
+      "expected_next_token": 1310,
+      "last_input_i8_scale": 0.002198983365156519,
+      "last_output_i8_scale": 0.0018859240483111283,
+      "sequence_length": 7,
+      "step": 1,
+      "tensors": {
+        "block_input_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-block-input-f32.bin",
+          "numel": 448,
+          "sha256": "d84bdf7466b91916b8b72dc8d0fce2bbd4ae64a614908a973ae5773e3a5ff19e",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "block_output_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-block-output-f32.bin",
+          "numel": 448,
+          "sha256": "c23efb6374087e5f868727ab211979f48b195403ce59f1c15df70dd77f6a6b21",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "last_input_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step01-last-input-i8.bin",
+          "numel": 64,
+          "sha256": "7f89e4d9faab526adcf643c0dad73c4952e8e04dd557e75c9cb73f10d5936010",
+          "shape": [
+            64
+          ]
+        },
+        "last_output_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step01-last-output-i8.bin",
+          "numel": 64,
+          "sha256": "6a1c590168e55b7e41e583857c8d9a8747a702ea6abf269e130b2779bba7b0cd",
+          "shape": [
+            64
+          ]
+        }
+      }
+    },
+    {
+      "context_text": "Once upon a time there was a little",
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310
+      ],
+      "expected_next_text": " girl",
+      "expected_next_token": 2576,
+      "last_input_i8_scale": 0.0025460048923342245,
+      "last_output_i8_scale": 0.0023270150807898813,
+      "sequence_length": 8,
+      "step": 2,
+      "tensors": {
+        "block_input_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-block-input-f32.bin",
+          "numel": 512,
+          "sha256": "028527275e68e30d33fa996000f08abcaa5d6c0fd25c848c225d40f32931d904",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "block_output_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-block-output-f32.bin",
+          "numel": 512,
+          "sha256": "eff7c01200ba331c6c13f9f6fc306a96891aa12e8168d36e4b26485dbcc77681",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "last_input_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step02-last-input-i8.bin",
+          "numel": 64,
+          "sha256": "988fb645ad153b3ae51831d6157ecc5b5b25ea6dd07d548b9f7a426f8554f387",
+          "shape": [
+            64
+          ]
+        },
+        "last_output_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step02-last-output-i8.bin",
+          "numel": 64,
+          "sha256": "b6add936a37f9121ca88748ade94f1d31029bf6f0360c8f16ed0c0b93aeeb073",
+          "shape": [
+            64
+          ]
+        }
+      }
+    },
+    {
+      "context_text": "Once upon a time there was a little girl",
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576
+      ],
+      "expected_next_text": " named",
+      "expected_next_token": 3706,
+      "last_input_i8_scale": 0.0028054336393912005,
+      "last_output_i8_scale": 0.0019807543341569074,
+      "sequence_length": 9,
+      "step": 3,
+      "tensors": {
+        "block_input_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-block-input-f32.bin",
+          "numel": 576,
+          "sha256": "4ed2c03c32474964adc6cb17cbb279bdb2bd4d27e6f5e226325e771a975b3933",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "block_output_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-block-output-f32.bin",
+          "numel": 576,
+          "sha256": "bd44299f76000bbe3f86fbd32b8236860b33e6a242fc480598800d841beb7d6b",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "last_input_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step03-last-input-i8.bin",
+          "numel": 64,
+          "sha256": "35bf21c3610aa3ab2bda1378ff95ab7c38746baac07168721f8063ab56e15a33",
+          "shape": [
+            64
+          ]
+        },
+        "last_output_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step03-last-output-i8.bin",
+          "numel": 64,
+          "sha256": "5958ca17ede2f304bc3e06e5276ded4dee37e259b06edc2c330057a020d8b411",
+          "shape": [
+            64
+          ]
+        }
+      }
+    },
+    {
+      "context_text": "Once upon a time there was a little girl named",
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576,
+        3706
+      ],
+      "expected_next_text": " Lily",
+      "expected_next_token": 20037,
+      "last_input_i8_scale": 0.0024623941248796116,
+      "last_output_i8_scale": 0.0015965327033846397,
+      "sequence_length": 10,
+      "step": 4,
+      "tensors": {
+        "block_input_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-block-input-f32.bin",
+          "numel": 640,
+          "sha256": "729acbc5cc39b5a30a19b20cf0a1a2c1a5623c82540df6acf7cf7bb2283125a7",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "block_output_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-block-output-f32.bin",
+          "numel": 640,
+          "sha256": "df8d4c839347569718531d9f0d4cf409f217842a51c2d8e10a424cf019c19c43",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "last_input_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step04-last-input-i8.bin",
+          "numel": 64,
+          "sha256": "f6054609c1a552bbe01ccd543d0c0fe72e90e3efc67cb11efb52e8d656ca7299",
+          "shape": [
+            64
+          ]
+        },
+        "last_output_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step04-last-output-i8.bin",
+          "numel": 64,
+          "sha256": "6a3f805e86fb167038ffd8dacff6441dd1297cd3d56734649351dba78321c84d",
+          "shape": [
+            64
+          ]
+        }
+      }
+    },
+    {
+      "context_text": "Once upon a time there was a little girl named Lily",
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576,
+        3706,
+        20037
+      ],
+      "expected_next_text": ".",
+      "expected_next_token": 13,
+      "last_input_i8_scale": 0.0022854687660697876,
+      "last_output_i8_scale": 0.0019652491479408086,
+      "sequence_length": 11,
+      "step": 5,
+      "tensors": {
+        "block_input_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-block-input-f32.bin",
+          "numel": 704,
+          "sha256": "fe675d86f3daa83513d4c9d35616770e2ae68299ec26ceee2d522860e6ba2b0c",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "block_output_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-block-output-f32.bin",
+          "numel": 704,
+          "sha256": "1ea6fb6fb3bed869d2070cf5d4ec166335111261cff3d7e54f7505b4554eb973",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "last_input_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step05-last-input-i8.bin",
+          "numel": 64,
+          "sha256": "dd70952a800b8c85faeb63d08f11df03563640b564d60b5e0cb7a0a46651777a",
+          "shape": [
+            64
+          ]
+        },
+        "last_output_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step05-last-output-i8.bin",
+          "numel": 64,
+          "sha256": "62d30628ae61e8c9541a038b021e2328c3376efbf3b674223eb8c883dec75bdd",
+          "shape": [
+            64
+          ]
+        }
+      }
+    },
+    {
+      "context_text": "Once upon a time there was a little girl named Lily.",
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576,
+        3706,
+        20037,
+        13
+      ],
+      "expected_next_text": " She",
+      "expected_next_token": 1375,
+      "last_input_i8_scale": 0.0020035627320056826,
+      "last_output_i8_scale": 0.0014865112116956335,
+      "sequence_length": 12,
+      "step": 6,
+      "tensors": {
+        "block_input_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-block-input-f32.bin",
+          "numel": 768,
+          "sha256": "0acb1e6956d0cae5e0f2c74acd561e0814585bb7976b3e0f1e147c977b80f061",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "block_output_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-block-output-f32.bin",
+          "numel": 768,
+          "sha256": "faeaee8918de6b8d7b0a961a30cb6732c77dd951485ffe0db91e261fa07e8717",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "last_input_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step06-last-input-i8.bin",
+          "numel": 64,
+          "sha256": "df573f323a75466f0e5cdc023d62b90edb288ff30b96be566ac362213aff36fd",
+          "shape": [
+            64
+          ]
+        },
+        "last_output_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step06-last-output-i8.bin",
+          "numel": 64,
+          "sha256": "1e948188efc82141e0538da681395c51a7ed88cb47258cae7538520f0bfe8445",
+          "shape": [
+            64
+          ]
+        }
+      }
+    },
+    {
+      "context_text": "Once upon a time there was a little girl named Lily. She",
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576,
+        3706,
+        20037,
+        13,
+        1375
+      ],
+      "expected_next_text": " loved",
+      "expected_next_token": 6151,
+      "last_input_i8_scale": 0.002565084245261245,
+      "last_output_i8_scale": 0.0015856079229219693,
+      "sequence_length": 13,
+      "step": 7,
+      "tensors": {
+        "block_input_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-block-input-f32.bin",
+          "numel": 832,
+          "sha256": "e3e885ea4b1be6a6cf628153d16279b155d47ce15a5df5986f7db8d3c1671c8c",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "block_output_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-block-output-f32.bin",
+          "numel": 832,
+          "sha256": "7a321ec87edefac71830604d0bba27fe994c5217c8bd8d46cb7000ff4c34af22",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "last_input_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step07-last-input-i8.bin",
+          "numel": 64,
+          "sha256": "6788d94e49f84e5aaa3411db0536a4cfb3375e54a7ec54c8a08dd7b3ea69a767",
+          "shape": [
+            64
+          ]
+        },
+        "last_output_i8": {
+          "byte_length": 64,
+          "dtype": "int8",
+          "filename": "step07-last-output-i8.bin",
+          "numel": 64,
+          "sha256": "54e1fbd0ef689971eea5b1f1d7a820921a737c4e51ec6ef9a77050dc394e3279",
+          "shape": [
+            64
+          ]
+        }
+      }
+    }
+  ]
+}

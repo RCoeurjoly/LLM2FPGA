@@ -1,0 +1,2624 @@
+{
+  "adapter_path": "TinyStories/model_adapter.py",
+  "artifact_name": "llm2fpga-pytorch-model-manifest",
+  "config": {
+    "_name_or_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+    "activation_function": "gelu_new",
+    "add_cross_attention": false,
+    "architectures": [
+      "GPTNeoForCausalLM"
+    ],
+    "attention_dropout": 0,
+    "attention_layers": [
+      "global",
+      "local",
+      "global",
+      "local",
+      "global",
+      "local",
+      "global",
+      "local"
+    ],
+    "attention_types": [
+      [
+        [
+          "global",
+          "local"
+        ],
+        4
+      ]
+    ],
+    "bad_words_ids": null,
+    "begin_suppress_tokens": null,
+    "bos_token_id": 50256,
+    "chunk_size_feed_forward": 0,
+    "classifier_dropout": 0.1,
+    "cross_attention_hidden_size": null,
+    "decoder_start_token_id": null,
+    "diversity_penalty": 0.0,
+    "do_sample": false,
+    "dtype": "float32",
+    "early_stopping": false,
+    "embed_dropout": 0,
+    "encoder_no_repeat_ngram_size": 0,
+    "eos_token_id": 50256,
+    "exponential_decay_length_penalty": null,
+    "finetuning_task": null,
+    "forced_bos_token_id": null,
+    "forced_eos_token_id": null,
+    "gradient_checkpointing": false,
+    "hidden_size": 64,
+    "id2label": {
+      "0": "LABEL_0",
+      "1": "LABEL_1"
+    },
+    "initializer_range": 0.02,
+    "intermediate_size": null,
+    "is_decoder": false,
+    "is_encoder_decoder": false,
+    "label2id": {
+      "LABEL_0": 0,
+      "LABEL_1": 1
+    },
+    "layer_norm_epsilon": 1e-05,
+    "length_penalty": 1.0,
+    "max_length": 20,
+    "max_position_embeddings": 2048,
+    "min_length": 0,
+    "model_type": "gpt_neo",
+    "no_repeat_ngram_size": 0,
+    "num_beam_groups": 1,
+    "num_beams": 1,
+    "num_heads": 16,
+    "num_layers": 8,
+    "num_return_sequences": 1,
+    "output_attentions": false,
+    "output_hidden_states": false,
+    "output_scores": false,
+    "pad_token_id": null,
+    "prefix": null,
+    "problem_type": null,
+    "pruned_heads": {},
+    "remove_invalid_values": false,
+    "repetition_penalty": 1.0,
+    "resid_dropout": 0,
+    "return_dict": true,
+    "return_dict_in_generate": false,
+    "sep_token_id": null,
+    "summary_activation": null,
+    "summary_first_dropout": 0.1,
+    "summary_proj_to_labels": true,
+    "summary_type": "cls_index",
+    "summary_use_proj": true,
+    "suppress_tokens": null,
+    "task_specific_params": null,
+    "temperature": 1.0,
+    "tf_legacy_loss": false,
+    "tie_encoder_decoder": false,
+    "tie_word_embeddings": true,
+    "tokenizer_class": null,
+    "top_k": 50,
+    "top_p": 1.0,
+    "torchscript": false,
+    "transformers_version": "4.57.3",
+    "typical_p": 1.0,
+    "use_bfloat16": false,
+    "use_cache": false,
+    "vocab_size": 50257,
+    "window_size": 256
+  },
+  "dimensions": {
+    "hidden_size": 64,
+    "max_position_embeddings": 2048,
+    "parameter_bytes_f32": 14983936,
+    "parameter_count": 3745984,
+    "vocab_size": 50257
+  },
+  "family": "gpt-causal",
+  "family_check": {
+    "missing": [],
+    "status": "supported"
+  },
+  "input_format": "pytorch",
+  "model_label": "tiny-stories-1m",
+  "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+  "modules": [
+    {
+      "class": "torch.nn.modules.sparse.Embedding",
+      "name": "transformer.wte",
+      "parameters": [
+        {
+          "byte_length": 12865792,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 3216448,
+          "shape": [
+            50257,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.sparse.Embedding",
+      "name": "transformer.wpe",
+      "parameters": [
+        {
+          "byte_length": 524288,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 131072,
+          "shape": [
+            2048,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.0.ln_1",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.0.attn.attention.k_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.0.attn.attention.v_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.0.attn.attention.q_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.0.attn.attention.out_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.0.ln_2",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.0.mlp.c_fc",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            256,
+            64
+          ]
+        },
+        {
+          "byte_length": 1024,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 256,
+          "shape": [
+            256
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.0.mlp.c_proj",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.1.ln_1",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.1.attn.attention.k_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.1.attn.attention.v_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.1.attn.attention.q_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.1.attn.attention.out_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.1.ln_2",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.1.mlp.c_fc",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            256,
+            64
+          ]
+        },
+        {
+          "byte_length": 1024,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 256,
+          "shape": [
+            256
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.1.mlp.c_proj",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.2.ln_1",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.2.attn.attention.k_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.2.attn.attention.v_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.2.attn.attention.q_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.2.attn.attention.out_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.2.ln_2",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.2.mlp.c_fc",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            256,
+            64
+          ]
+        },
+        {
+          "byte_length": 1024,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 256,
+          "shape": [
+            256
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.2.mlp.c_proj",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.3.ln_1",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.3.attn.attention.k_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.3.attn.attention.v_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.3.attn.attention.q_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.3.attn.attention.out_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.3.ln_2",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.3.mlp.c_fc",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            256,
+            64
+          ]
+        },
+        {
+          "byte_length": 1024,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 256,
+          "shape": [
+            256
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.3.mlp.c_proj",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.4.ln_1",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.4.attn.attention.k_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.4.attn.attention.v_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.4.attn.attention.q_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.4.attn.attention.out_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.4.ln_2",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.4.mlp.c_fc",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            256,
+            64
+          ]
+        },
+        {
+          "byte_length": 1024,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 256,
+          "shape": [
+            256
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.4.mlp.c_proj",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.5.ln_1",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.5.attn.attention.k_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.5.attn.attention.v_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.5.attn.attention.q_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.5.attn.attention.out_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.5.ln_2",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.5.mlp.c_fc",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            256,
+            64
+          ]
+        },
+        {
+          "byte_length": 1024,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 256,
+          "shape": [
+            256
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.5.mlp.c_proj",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.6.ln_1",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.6.attn.attention.k_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.6.attn.attention.v_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.6.attn.attention.q_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.6.attn.attention.out_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.6.ln_2",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.6.mlp.c_fc",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            256,
+            64
+          ]
+        },
+        {
+          "byte_length": 1024,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 256,
+          "shape": [
+            256
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.6.mlp.c_proj",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.7.ln_1",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.7.attn.attention.k_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.7.attn.attention.v_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.7.attn.attention.q_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.7.attn.attention.out_proj",
+      "parameters": [
+        {
+          "byte_length": 16384,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.h.7.ln_2",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.7.mlp.c_fc",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            256,
+            64
+          ]
+        },
+        {
+          "byte_length": 1024,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 256,
+          "shape": [
+            256
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "transformer.h.7.mlp.c_proj",
+      "parameters": [
+        {
+          "byte_length": 65536,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 16384,
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.normalization.LayerNorm",
+      "name": "transformer.ln_f",
+      "parameters": [
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "byte_length": 256,
+          "dtype": "float32",
+          "name": "bias",
+          "numel": 64,
+          "shape": [
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "class": "torch.nn.modules.linear.Linear",
+      "name": "lm_head",
+      "parameters": [
+        {
+          "byte_length": 12865792,
+          "dtype": "float32",
+          "name": "weight",
+          "numel": 3216448,
+          "shape": [
+            50257,
+            64
+          ]
+        }
+      ]
+    }
+  ],
+  "next_artifact_stages": [
+    "quantized-weight-pack",
+    "ddr3-rowstream",
+    "fixed-point-reference",
+    "stage-rtl-generation",
+    "resource-estimate",
+    "board-run-recipe"
+  ],
+  "parameters": [
+    {
+      "byte_length": 12865792,
+      "dtype": "float32",
+      "name": "transformer.wte.weight",
+      "numel": 3216448,
+      "shape": [
+        50257,
+        64
+      ]
+    },
+    {
+      "byte_length": 524288,
+      "dtype": "float32",
+      "name": "transformer.wpe.weight",
+      "numel": 131072,
+      "shape": [
+        2048,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.0.ln_1.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.0.ln_1.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.0.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.0.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.0.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.0.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.0.attn.attention.out_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.0.ln_2.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.0.ln_2.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.0.mlp.c_fc.weight",
+      "numel": 16384,
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "name": "transformer.h.0.mlp.c_fc.bias",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.0.mlp.c_proj.weight",
+      "numel": 16384,
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.0.mlp.c_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.1.ln_1.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.1.ln_1.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.1.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.1.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.1.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.1.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.1.attn.attention.out_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.1.ln_2.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.1.ln_2.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.1.mlp.c_fc.weight",
+      "numel": 16384,
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "name": "transformer.h.1.mlp.c_fc.bias",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.1.mlp.c_proj.weight",
+      "numel": 16384,
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.1.mlp.c_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.2.ln_1.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.2.ln_1.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.2.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.2.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.2.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.2.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.2.attn.attention.out_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.2.ln_2.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.2.ln_2.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.2.mlp.c_fc.weight",
+      "numel": 16384,
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "name": "transformer.h.2.mlp.c_fc.bias",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.2.mlp.c_proj.weight",
+      "numel": 16384,
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.2.mlp.c_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.3.ln_1.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.3.ln_1.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.3.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.3.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.3.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.3.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.3.attn.attention.out_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.3.ln_2.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.3.ln_2.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.3.mlp.c_fc.weight",
+      "numel": 16384,
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "name": "transformer.h.3.mlp.c_fc.bias",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.3.mlp.c_proj.weight",
+      "numel": 16384,
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.3.mlp.c_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.4.ln_1.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.4.ln_1.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.4.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.4.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.4.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.4.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.4.attn.attention.out_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.4.ln_2.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.4.ln_2.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.4.mlp.c_fc.weight",
+      "numel": 16384,
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "name": "transformer.h.4.mlp.c_fc.bias",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.4.mlp.c_proj.weight",
+      "numel": 16384,
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.4.mlp.c_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.5.ln_1.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.5.ln_1.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.5.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.5.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.5.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.5.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.5.attn.attention.out_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.5.ln_2.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.5.ln_2.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.5.mlp.c_fc.weight",
+      "numel": 16384,
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "name": "transformer.h.5.mlp.c_fc.bias",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.5.mlp.c_proj.weight",
+      "numel": 16384,
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.5.mlp.c_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.6.ln_1.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.6.ln_1.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.6.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.6.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.6.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.6.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.6.attn.attention.out_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.6.ln_2.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.6.ln_2.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.6.mlp.c_fc.weight",
+      "numel": 16384,
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "name": "transformer.h.6.mlp.c_fc.bias",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.6.mlp.c_proj.weight",
+      "numel": 16384,
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.6.mlp.c_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.7.ln_1.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.7.ln_1.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.7.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.7.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.7.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "name": "transformer.h.7.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.7.attn.attention.out_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.7.ln_2.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.7.ln_2.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.7.mlp.c_fc.weight",
+      "numel": 16384,
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "name": "transformer.h.7.mlp.c_fc.bias",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "name": "transformer.h.7.mlp.c_proj.weight",
+      "numel": 16384,
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.h.7.mlp.c_proj.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.ln_f.weight",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "name": "transformer.ln_f.bias",
+      "numel": 64,
+      "shape": [
+        64
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "target_board": "ypcb-00338-1p1",
+  "target_board_contract": {
+    "fpga": [
+      "DDR3 model/row movement",
+      "embeddings",
+      "layernorm",
+      "attention/KV",
+      "MLP/GELU/residual",
+      "output-head top1/top-k"
+    ],
+    "host": [
+      "tokenization/detokenization",
+      "generation control",
+      "PCIe recovery/orchestration",
+      "CPU/fixed-point reference",
+      "artifact loading and logging"
+    ],
+    "pcie": [
+      "control/status",
+      "prompt/token IDs",
+      "model artifact loading",
+      "generated token/result readback"
+    ]
+  }
+}

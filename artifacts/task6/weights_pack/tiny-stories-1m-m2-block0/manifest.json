@@ -1,0 +1,199 @@
+{
+  "adapter_path": "TinyStories/model_adapter.py",
+  "artifact_name": "h2-tinystories-1m-m2-one-block-weight-pack",
+  "block_index": 0,
+  "bytes_by_region": {
+    "block": 199168,
+    "embeddings": 13390080
+  },
+  "date": "2026-06-10T10:12:45.838576+00:00",
+  "format": "raw-f32-le",
+  "model_label": "tiny-stories-1m",
+  "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+  "next_stage": "quantize selected tensors into the M2 fixed-point block format",
+  "schema_version": 1,
+  "selected_prefixes": [
+    "transformer.wte.",
+    "transformer.wpe.",
+    "transformer.h.0."
+  ],
+  "stage": "M2-one-full-block",
+  "status": "PASS",
+  "tensors": [
+    {
+      "byte_length": 12865792,
+      "dtype": "float32",
+      "filename": "transformer__wte__weight.bin",
+      "name": "transformer.wte.weight",
+      "numel": 3216448,
+      "sha256": "b43389bfc5085f12e6a87de454f9dddd50366d728e59138085467460f08cf469",
+      "shape": [
+        50257,
+        64
+      ]
+    },
+    {
+      "byte_length": 524288,
+      "dtype": "float32",
+      "filename": "transformer__wpe__weight.bin",
+      "name": "transformer.wpe.weight",
+      "numel": 131072,
+      "sha256": "7149b9b18175b9cccfb7d8500b995cfa871dffbcb579a3fc3bdfceaebdfff28d",
+      "shape": [
+        2048,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__ln_1__weight.bin",
+      "name": "transformer.h.0.ln_1.weight",
+      "numel": 64,
+      "sha256": "5a01ad0b350b25d9fc81d13227e0435f2083e758eeb2653f9afc57127efb8739",
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__ln_1__bias.bin",
+      "name": "transformer.h.0.ln_1.bias",
+      "numel": 64,
+      "sha256": "f9bf7634324a0f570df43ffa642e3d30cfc7b189e1b11f6ced732e7872eef39b",
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "filename": "transformer__h__0__attn__attention__k_proj__weight.bin",
+      "name": "transformer.h.0.attn.attention.k_proj.weight",
+      "numel": 4096,
+      "sha256": "0cc97f5db0afc16ce4395f16f53caaa3bee3484f5f04179239502400dfb192cb",
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "filename": "transformer__h__0__attn__attention__v_proj__weight.bin",
+      "name": "transformer.h.0.attn.attention.v_proj.weight",
+      "numel": 4096,
+      "sha256": "fe3c5f44f04f1f69c8e1d03a08c3e15d8fc77bd285a9016d49de32dcb81707b0",
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "filename": "transformer__h__0__attn__attention__q_proj__weight.bin",
+      "name": "transformer.h.0.attn.attention.q_proj.weight",
+      "numel": 4096,
+      "sha256": "83d9c2e637055498d46f0a4dd2ad05c872df51c70ada94b94246e4dc683e321d",
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 16384,
+      "dtype": "float32",
+      "filename": "transformer__h__0__attn__attention__out_proj__weight.bin",
+      "name": "transformer.h.0.attn.attention.out_proj.weight",
+      "numel": 4096,
+      "sha256": "429e070129720b0a563129a1395144ed3dadd4afe82d24facd077194f9f894c0",
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__attn__attention__out_proj__bias.bin",
+      "name": "transformer.h.0.attn.attention.out_proj.bias",
+      "numel": 64,
+      "sha256": "7622d87403157dd7ff17e5e460e15e0bda9d2f4ceb26c7cfdd2c110d0a1a81e6",
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__ln_2__weight.bin",
+      "name": "transformer.h.0.ln_2.weight",
+      "numel": 64,
+      "sha256": "047f6017611cf60b254d752ef9e5d6db1fbcfdc6d15f2973a4a4094d2582bebf",
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__ln_2__bias.bin",
+      "name": "transformer.h.0.ln_2.bias",
+      "numel": 64,
+      "sha256": "011d24fedd89acf2985d540ebdae538ffbd39a866fcb662a9178309e73c23b19",
+      "shape": [
+        64
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "filename": "transformer__h__0__mlp__c_fc__weight.bin",
+      "name": "transformer.h.0.mlp.c_fc.weight",
+      "numel": 16384,
+      "sha256": "ea11a9f3f359579d3cb61affa63c09c89087a468a7d48f67b7c84920c05e0e29",
+      "shape": [
+        256,
+        64
+      ]
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "filename": "transformer__h__0__mlp__c_fc__bias.bin",
+      "name": "transformer.h.0.mlp.c_fc.bias",
+      "numel": 256,
+      "sha256": "c964fae2566ee01f906a75c97ada259d1c7e24432ac1f2d824122bf8712b47fb",
+      "shape": [
+        256
+      ]
+    },
+    {
+      "byte_length": 65536,
+      "dtype": "float32",
+      "filename": "transformer__h__0__mlp__c_proj__weight.bin",
+      "name": "transformer.h.0.mlp.c_proj.weight",
+      "numel": 16384,
+      "sha256": "c73ab2284a140e55b170e7f00f5529181d90849e1de5d84ca9b1a027eacc9042",
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__mlp__c_proj__bias.bin",
+      "name": "transformer.h.0.mlp.c_proj.bias",
+      "numel": 64,
+      "sha256": "5f2e5e5cb2917415357991761d011b0ad567ee5ca07ea14b137ab5543e03acfc",
+      "shape": [
+        64
+      ]
+    }
+  ],
+  "total_bytes": 13589248,
+  "total_tensors": 15
+}

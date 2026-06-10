@@ -4537,6 +4537,49 @@ EOF
 
         task6TinyStories1mPromptOutputHeadQ024Reference = pkgs.runCommand "task6-tinystories-1m-prompt-output-head-q024-reference" { } "mkdir -p \"$out\"; ${pythonWithTinyStoriesBin}/bin/python ${./scripts/task6/task6_tinystories_generation_reference.py} --model-path ${tinyStories1m.snapshot} --adapter-path ${./TinyStories/model_adapter.py} --tokenizer-vocab ${gptNeoTokenizer}/vocab.json --tokenizer-merges ${gptNeoTokenizer}/merges.txt --prompt \"Once upon a time there was\" --max-new-tokens 8 --out-json \"$out/reference.json\"";
 
+        task6TinyStories1mModelManifest =
+          pkgs.runCommand "task6-tinystories-1m-model-manifest" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./scripts/pipeline/llm2fpga_model_manifest.py
+            } \
+              --model-path ${tinyStories1m.snapshot} \
+              --adapter-path ${./TinyStories/model_adapter.py} \
+              --model-label tiny-stories-1m \
+              --out-json "$out/manifest.json"
+          '';
+
+        task6TinyStories1mM2OneBlockContract =
+          pkgs.runCommand "task6-tinystories-1m-m2-one-block-contract" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./scripts/task6/export_m2_one_block_contract.py
+            } \
+              --model-path ${tinyStories1m.snapshot} \
+              --adapter-path ${./TinyStories/model_adapter.py} \
+              --tokenizer-vocab ${gptNeoTokenizer}/vocab.json \
+              --tokenizer-merges ${gptNeoTokenizer}/merges.txt \
+              --reference-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json
+              } \
+              --out-dir "$out" \
+              --block-index 0 \
+              --model-label tiny-stories-1m
+          '';
+
+        task6TinyStories1mM2OneBlockWeightPack =
+          pkgs.runCommand "task6-tinystories-1m-m2-one-block-weight-pack" { } ''
+            mkdir -p "$out"
+            ${pythonWithTinyStoriesBin}/bin/python ${
+              ./scripts/task6/export_m2_one_block_weight_pack.py
+            } \
+              --model-path ${tinyStories1m.snapshot} \
+              --adapter-path ${./TinyStories/model_adapter.py} \
+              --out-dir "$out" \
+              --block-index 0 \
+              --model-label tiny-stories-1m
+          '';
+
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
             sed \
@@ -12464,6 +12507,12 @@ EOF
           gpt-neo-tokenizer = gptNeoTokenizer;
           task6-tinystories-1m-prompt-output-head-q024-reference =
             task6TinyStories1mPromptOutputHeadQ024Reference;
+          task6-tinystories-1m-model-manifest =
+            task6TinyStories1mModelManifest;
+          task6-tinystories-1m-m2-one-block-contract =
+            task6TinyStories1mM2OneBlockContract;
+          task6-tinystories-1m-m2-one-block-weight-pack =
+            task6TinyStories1mM2OneBlockWeightPack;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
