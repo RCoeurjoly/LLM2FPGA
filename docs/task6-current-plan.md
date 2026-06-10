@@ -36,23 +36,40 @@ This finish line is single-token top1 inference, not multi-token generation.
 
 ### Host↔FPGA responsibility contract
 
-For this phase, Task 6 is explicitly host-assisted:
+Task 6 now uses a staged transformer-migration contract. The host remains the
+orchestrator, but the target TinyStories inference path must move transformer
+math onto the YPCB board instead of permanently shuttling hidden states over
+PCIe.
 
-- Host: model prompt path, tokenization/control, transformer replay for prompt `hidden_q`,
-  PCIe recovery/orchestration, CLI/logging/artifacts.
-- FPGA board: rowstream compute lane for output head and staged transformer boundary kernels
-  (currently int8 MLP/residual), plus status/result/MMIO exposure.
-- PCIe: control/status transport and data movement only.
+- Host: prompt text handling, tokenization/detokenization, generation policy,
+  PCIe recovery/orchestration, artifact loading, CPU/fixed-point reference
+  generation, and run logging.
+- FPGA board: DDR3 model/row movement, output-head top1/top-k, and progressively
+  migrated transformer compute: embeddings, layernorm, attention/KV,
+  MLP/GELU/residual, and final result registers.
+- PCIe: control, prompt/token IDs, model artifact loading, status, and generated
+  token/result readback. It should not be the normal transport for per-token
+  hidden-state vectors once the matching board stage exists.
 
-Do not treat current `rowstream-top1` passes as full-board transformer inference.
-They are the first milestone (`M0-host-assisted-rowstream-top1`) while the next milestone
-(`M1-transformer-boundary-mlp`) migrates the transformer boundary to board execution.
-For `--engine mlp`, the reference must include per-step `activation_q`,
-`residual_q`, and `residual_add_output_q` fields.
+Stage lock:
 
-This split is intentionally aligned with the state-of-practice boundaries recorded in
-`deliverables/1a-openflow-kintex480t-survey.org` and the broader survey in
-`deliverables/1a-survey.org`.
+- `M0-host-assisted-rowstream-top1`: host supplies `hidden_q`; board runs DDR3
+  rowstream output-head top1. This is already useful acceptance evidence, but it
+  is not full transformer inference.
+- `M1-transformer-boundary-mlp`: host supplies prompt-derived activation and
+  residual vectors; board runs the int8 MLP/residual boundary. For
+  `--engine mlp`, the reference must include per-step `activation_q`,
+  `residual_q`, and `residual_add_output_q` fields.
+- `M2-one-full-block`: host supplies token IDs/control; board runs one complete
+  TinyStories transformer block plus downstream output-head checking.
+- `M3-full-tinystories-1m`: host supplies token IDs/control; board runs all
+  TinyStories-1M transformer blocks and returns token-exact greedy generation.
+
+This split is intentionally aligned with the state-of-practice boundaries
+recorded in `deliverables/1a-openflow-kintex480t-survey.org` and the broader
+survey in `deliverables/1a-survey.org`: host software controls the decode loop,
+while FPGA fabric and board DDR carry the compressed numeric kernels and model
+movement.
 
 ## Current anchors
 
@@ -222,6 +239,18 @@ reusable MLP boundary lane.
 
 `prompt-infer` is the user-facing command for the milestone: host computes prompt
 `hidden_q` from reference, FPGA runs `rowstream-top1` for each step.
+
+The stable CPU-vs-board comparison CLIs are:
+
+```sh
+scripts/task6/llm2fpga_cpu_generate.py --steps 8 "Once upon a time there was"
+scripts/task6/llm2fpga_board_generate.py --steps 8 "Once upon a time there was"
+```
+
+For the current `M0`/`M1` stages, these remain deterministic comparison
+front-ends over the fixed-point CPU reference and the board-visible staged
+accelerators. They become full TinyStories board generation commands only after
+the `M3-full-tinystories-1m` gate passes.
 
 ### Reusable MLP boundary lane command
 

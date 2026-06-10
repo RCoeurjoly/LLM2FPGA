@@ -131,18 +131,20 @@ earns more work.
   appropriate, result-oriented commit message before starting the next
   experiment.
 
-### Host/FPGA Responsibility Contract v1 (SoA-locked)
+### Host/FPGA Responsibility Contract v2 (SoA-locked)
 
 Per `deliverables/1a-survey.org` and `deliverables/1c-selected_route.org`, this Task 6 work stays aligned with the state-of-practice split:
 
 - Host orchestration/control: prompt text handling, tokenization, generation control,
-  checkpoint/retry policy, model/contract artifact loading, and CLI/run logging.
-- Host compute in the current milestone: software transformer replay to generate fixed-point
-  prompt `hidden_q` when using `--reference-json` / `--model-path`.
-- FPGA board compute in the current milestone: rowstream load, DDR3 movement, and output-head
-  top-1 evaluation only.
+  checkpoint/retry policy, model/contract artifact loading, CPU/fixed-point
+  reference generation, and CLI/run logging.
+- FPGA board target compute: compressed model movement through board DDR3,
+  embeddings, layernorm, attention/KV, MLP/GELU/residual, and output-head top1/top-k
+  as those stages are migrated.
 - PCIe transport in the current milestone: control/status/MMIO, rowstream ingress/egress
-  sequencing, and result readback.
+  sequencing, token/control input, model artifact loading, and result readback.
+  Per-token hidden vectors are allowed only for a stage boundary that has not
+  yet been migrated.
 
 Contract lock by stage:
 
@@ -150,17 +152,48 @@ Contract lock by stage:
   over the loaded rowstream (`task6_pcie_rowstream_top1_*`).
 - `M1-transformer-boundary-mlp`: host supplies prompt-derived activation/residual vectors and the
   board executes the int8 MLP/residual boundary (`task6_pcie_mlp_boundary_gate.py`, `task6_pcie_mlp_accel_gate.py`).
-- `M2-transformer-first`: host remains orchestrator, board begins executing additional transformer stages
-  (attention/KV + additional MLP stages) after this next milestone.
+- `M2-one-full-block`: host supplies token IDs/control and the board executes one
+  complete TinyStories transformer block, then checks the downstream output-head
+  path against the CPU/fixed-point reference.
+- `M3-full-tinystories-1m`: host supplies token IDs/control and the board executes
+  all TinyStories-1M transformer blocks for token-exact greedy generation.
 
 This contract is authoritative for interpretation of run artifacts:
 
 - Any `rowstream-top1` result is a **host-assisted** TinyStories checkpoint proof, not
   full-board transformer inference.
 - Any `mlp-boundary`/`mlp-accel` result is a **transformer-boundary** milestone.
-- `full-tokenizer/inference` claims are only valid after the stage contract is updated with new gate evidence.
+- Full TinyStories inference claims are only valid after `M3` gate evidence:
+  board-generated token IDs must match CPU/fixed-point greedy generation.
 
 When a stage changes, update this section and version the contract in future stage artifacts.
+
+### 2026-06-10 - PyTorch-to-YPCB pipeline spine
+
+The next Task 6 implementation path is not arbitrary PyTorch lowering. It is a
+GPT/TinyStories-first artifact pipeline that turns a PyTorch checkpoint and
+adapter into stable manifests, quantized weight packs, DDR3 rowstreams, RTL
+generation inputs, resource estimates, and board-run recipes. TinyStories-1M is
+the correctness target; TinyStories-3M is the first scaling fixture for Task 5.
+
+Initial scope:
+
+- Input family: GPT-style causal decoder PyTorch models with embeddings,
+  layernorm, attention/KV, MLP/GELU/residual, and output head.
+- Target board: YPCB-00338-1P1 only.
+- First implementation artifact: a model manifest compiler that inventories the
+  loaded PyTorch model/config and emits enough metadata for Task 5 scaling and
+  later per-stage artifact generation.
+- Later formats such as ONNX are explicitly out of scope until the PyTorch path
+  can regenerate the TinyStories-1M board artifacts.
+
+Dojo timing:
+
+- Define benchmark contracts now, but do not start inference-kernel search until
+  TinyStories-1M board inference reaches `M3`.
+- Candidate dojo kernels after `M3`: current int8/PWL path, ternary/table-lookup
+  variants, XtraMAC-style MAC variants, matmul-free kernels, and MoE routing
+  kernels.
 
 Operational update (2026-06-09):
 
