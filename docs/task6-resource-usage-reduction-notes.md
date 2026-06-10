@@ -28880,3 +28880,65 @@ Limited-vocabulary whole-inference ladder:
 - This is not a replacement for full-vocab DDR3 rowstream. It is a feedback-loop
   ladder for full inference while the full-vocab output-head/DDR3 integration
   is still being debugged.
+
+BAR transaction reduction experiment:
+
+- Tried an 8-beat host-window loader protocol so one host command path would
+  cover more DDR beats. It built timing-clean:
+  `/nix/store/0lfamydazj8g4prvbzrr39v3n5ni1dsp-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`.
+  - `impl.rowstream_clk`: 91.64 MHz, PASS against 66.67 MHz
+  - `impl.pcie_user_clk`: 72.75 MHz, PASS against 62.50 MHz
+- Board run:
+  `artifacts/task6/runs/2026-06-10T21-35-36+0200-task6-rowstream-loader-window8-pnr100`
+  - Tapo cold-cycle and lifecycle reached `pcie_ready`.
+  - Full rowstream load completed in 131.56 s with `packet_beats=8`,
+    `packet_count=53414`, and `packet_ack_fallback_count=0`.
+  - Sampled DDR load verification matched.
+  - Expected and observed top1-token row readback matched.
+  - Hardware top1 still failed all 8 prompt samples with `status_reg=13`.
+- A legacy 4-beat run against the same 8-beat-window image also failed top1
+  with the same symptom, so this artifact is not accepted as a top1-passing
+  image. Treat the 8-beat window as useful evidence that larger host packets
+  can reduce load time, not as a validated board path.
+
+Lower-risk pair-load experiment:
+
+- Replaced the 8-beat-window approach with a narrower BAR-count reduction:
+  `LOADER_OP_LOAD_PACKET_PAIR` loads two adjacent 8-byte packet slots per BAR
+  command, then keeps the proven 4-beat `RUN_HOST_PACKET` commit path.
+- Host gates now default to `--packet-load-mode pair` for the 8-byte rowstream
+  path. Old bitstreams should use `--packet-load-mode single`.
+- Strict pnr100 rebuild passed timing with no timing waiver:
+  `/nix/store/f89k30lv661l38z0cm2bg2b3wj1bhpak-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+  - `impl.rowstream_clk`: 69.53 MHz, PASS against 66.67 MHz
+  - `impl.pcie_user_clk`: 71.67 MHz, PASS against 62.50 MHz
+- Board validation:
+  `artifacts/task6/runs/2026-06-10T22-01-06+0200-task6-rowstream-loader-pairload-pnr100`
+  - Flash write/verify succeeded.
+  - Tapo cold-cycle and lifecycle reached `pcie_ready`.
+  - Direct rowstream/top1 run:
+    `rowstream-top1-direct.json`
+  - Full rowstream load completed in 228.68 s with `packet_beats=4`,
+    `packet_load_mode=pair`, `packet_count=106828`, and
+    `packet_ack_fallback_count=0`.
+  - Sampled DDR load verification matched.
+  - Expected and observed top1-token row readback matched.
+  - Hardware top1 failed all 8 prompt samples with `status_reg=13`.
+- Interpretation: pair-load reduced BAR command count on the slot-load side and
+  kept the sustained loader path stable enough to complete the full transfer,
+  but the current image still does not satisfy the rowstream/top1 acceptance
+  gate. The failure is now beyond obvious rowstream transport corruption:
+  row samples, token-row samples, hidden MMIO readback, and row counts match,
+  while top1 score/token output does not.
+
+Next engineering direction after pair-load:
+
+- Keep `LOAD_PACKET_PAIR` as a low-risk loader primitive, but do not call it a
+  completed fix for full rowstream/top1.
+- The 1 ms per-packet settle still dominates full-load time because pair-load
+  keeps the 4-beat commit granularity. The next reduction should be a real
+  loader FIFO/window with an acceptance gate that proves top1 still matches, or
+  an ACK-driven host loop that safely removes the conservative packet settle.
+- Before another full rowstream/top1 attempt, add a cheap top1/debug isolation
+  gate that reuses already-loaded DDR rows and distinguishes top1 compute/mux
+  errors from loader errors.

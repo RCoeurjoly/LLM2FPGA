@@ -40,6 +40,7 @@ CONTRACT_RESP_FPGA = [
 OP_READ_DENSE_BEAT = 0x06
 OP_LOAD_PACKET_BEAT = 0x0F
 OP_RUN_HOST_PACKET = 0x10
+OP_LOAD_PACKET_PAIR = 0x11
 
 REG_MAGIC = 0x000
 REG_VERSION = 0x004
@@ -321,6 +322,8 @@ def load_rowstream(
     packet_echo_mode: str,
     packet_echo_limit_beats: int | None,
     progress_settle: float,
+    packet_beats: int,
+    packet_load_mode: str,
 ) -> dict[str, Any]:
     if len(image) % beat_bytes:
         image += bytes(beat_bytes - (len(image) % beat_bytes))
@@ -330,22 +333,37 @@ def load_rowstream(
         raise RuntimeError("packet ACK counters are required but read as unavailable/all-ones")
     ack_fallback_count = 0
     packet_count = 0
-    for packet_start in range(0, total_beats, 4):
+    for packet_start in range(0, total_beats, packet_beats):
         packet_count += 1
-        packet = image[packet_start * beat_bytes : (packet_start + 4) * beat_bytes]
+        packet = image[packet_start * beat_bytes : (packet_start + packet_beats) * beat_bytes]
         beats = len(packet) // beat_bytes
-        for slot in range(beats):
-            slot_data = packet[slot * beat_bytes : (slot + 1) * beat_bytes]
-            issue_command(mm, OP_LOAD_PACKET_BEAT, 0, slot, slot_data, timeout)
-            absolute_beat = packet_start + slot
-            echo_enabled = packet_echo_limit_beats is None or absolute_beat < packet_echo_limit_beats
-            if packet_echo_mode == "require" and echo_enabled:
-                wait_packet_slot_echo(mm, slot_data, timeout, f"slot={slot}")
-            elif packet_echo_mode == "auto" and echo_enabled:
-                try:
+        if beat_bytes == 8 and packet_load_mode == "pair":
+            for slot in range(0, beats, 2):
+                slot_data = packet[slot * beat_bytes : min((slot + 2) * beat_bytes, len(packet))]
+                slot_data = slot_data.ljust(16, b"\0")
+                issue_command(mm, OP_LOAD_PACKET_PAIR, 0, slot, slot_data, timeout)
+                absolute_beat = packet_start + slot
+                echo_enabled = packet_echo_limit_beats is None or absolute_beat < packet_echo_limit_beats
+                if packet_echo_mode == "require" and echo_enabled:
+                    wait_packet_slot_echo(mm, slot_data[:8], timeout, f"slot_pair={slot}")
+                elif packet_echo_mode == "auto" and echo_enabled:
+                    try:
+                        wait_packet_slot_echo(mm, slot_data[:8], timeout, f"slot_pair={slot}")
+                    except RuntimeError:
+                        packet_echo_mode = "off"
+        else:
+            for slot in range(beats):
+                slot_data = packet[slot * beat_bytes : (slot + 1) * beat_bytes]
+                issue_command(mm, OP_LOAD_PACKET_BEAT, 0, slot, slot_data, timeout)
+                absolute_beat = packet_start + slot
+                echo_enabled = packet_echo_limit_beats is None or absolute_beat < packet_echo_limit_beats
+                if packet_echo_mode == "require" and echo_enabled:
                     wait_packet_slot_echo(mm, slot_data, timeout, f"slot={slot}")
-                except RuntimeError:
-                    packet_echo_mode = "off"
+                elif packet_echo_mode == "auto" and echo_enabled:
+                    try:
+                        wait_packet_slot_echo(mm, slot_data, timeout, f"slot={slot}")
+                    except RuntimeError:
+                        packet_echo_mode = "off"
         command_addr = ((start_beat + packet_start) & 0x1FFF_FFFF) | ((beats & 0x7) << 29)
         packet_write_ack_before = rd32(mm, REG_TOP1_PACKET_WB_WRITE_ACK_COUNT)
         packet_read_ack_before = rd32(mm, REG_TOP1_PACKET_WB_READ_ACK_COUNT)
@@ -389,6 +407,8 @@ def load_rowstream(
         "packet_echo_mode_final": packet_echo_mode,
         "packet_echo_limit_beats": packet_echo_limit_beats,
         "progress_settle_seconds": progress_settle,
+        "packet_beats": packet_beats,
+        "packet_load_mode": packet_load_mode,
     }
 
 
@@ -775,6 +795,19 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--progress-every", type=int, default=16384)
     parser.add_argument(
+        "--packet-beats",
+        type=int,
+        choices=(4,),
+        default=4,
+        help="DDR beats per committed host packet. The current reduced-BAR path keeps the proven 4-beat commit.",
+    )
+    parser.add_argument(
+        "--packet-load-mode",
+        choices=("single", "pair"),
+        default="pair",
+        help="Use pair mode with new RTL to load two 8-byte slots per BAR command.",
+    )
+    parser.add_argument(
         "--packet-ack-mode",
         choices=("auto", "require", "off"),
         default="auto",
@@ -924,6 +957,8 @@ def main() -> int:
                     args.packet_echo_mode,
                     None if args.packet_echo_limit_beats < 0 else args.packet_echo_limit_beats,
                     args.progress_settle,
+                    args.packet_beats,
+                    args.packet_load_mode,
                 )
                 load_verify_samples = verify_loaded_samples(
                     mm,

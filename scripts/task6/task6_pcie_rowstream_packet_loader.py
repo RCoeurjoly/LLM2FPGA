@@ -23,6 +23,7 @@ ALL_ONES = 0xFFFFFFFF
 OP_READ_DENSE_BEAT = 0x06
 OP_LOAD_PACKET_BEAT = 0x0F
 OP_RUN_HOST_PACKET = 0x10
+OP_LOAD_PACKET_PAIR = 0x11
 
 STATUS_RST_N = 1 << 0
 STATUS_EVENT_ACTIVE = 1 << 1
@@ -202,6 +203,18 @@ def load_packet_slot(mm: mmap.mmap, slot: int, data: bytes, beat_bytes: int, tim
         )
 
 
+def load_packet_pair(mm: mmap.mmap, slot: int, data: bytes, timeout: float) -> None:
+    if len(data) != 16:
+        raise ValueError("packet pair data must be exactly 16 bytes")
+    issue_command(mm, OP_LOAD_PACKET_PAIR, 0, slot, data, timeout)
+    echoed = read_low_16(mm)
+    if echoed[:8] != data[:8]:
+        raise RuntimeError(
+            f"packet pair echo mismatch: slot={slot} "
+            f"expected_first64={data[:8].hex()} observed={echoed[:8].hex()}"
+        )
+
+
 def run_host_packet(mm: mmap.mmap, start_beat: int, beats: int, timeout: float) -> None:
     if beats < 1 or beats > 4:
         raise ValueError("host packet beat count must be in 1..4")
@@ -242,6 +255,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--start-beat", type=lambda text: int(text, 0), default=0)
     parser.add_argument("--max-bytes", type=lambda text: int(text, 0), default=None)
     parser.add_argument("--beat-bytes", type=int, choices=(8, 16), default=16)
+    parser.add_argument("--packet-beats", type=int, choices=(4,), default=4)
+    parser.add_argument(
+        "--packet-load-mode",
+        choices=("single", "pair"),
+        default="pair",
+        help="Use pair mode with new RTL to load two 8-byte slots per BAR command.",
+    )
     parser.add_argument("--poll-timeout", type=float, default=2.0)
     parser.add_argument("--boot-timeout", type=float, default=5.0)
     parser.add_argument("--verify-samples", type=int, default=8)
@@ -294,17 +314,22 @@ def main() -> int:
                 raise SystemExit(f"bad version: expected {TASK6_VERSION}, got {version}")
             wait_for(mm, 0x008, STATUS_RST_N | STATUS_BOOT_DONE, args.boot_timeout, "DDR boot_done")
 
-            for packet_start in range(0, total_beats, 4):
-                packet = image[packet_start * args.beat_bytes : (packet_start + 4) * args.beat_bytes]
+            for packet_start in range(0, total_beats, args.packet_beats):
+                packet = image[packet_start * args.beat_bytes : (packet_start + args.packet_beats) * args.beat_bytes]
                 beats = len(packet) // args.beat_bytes
-                for slot in range(beats):
-                    load_packet_slot(
-                        mm,
-                        slot,
-                        packet[slot * args.beat_bytes : (slot + 1) * args.beat_bytes],
-                        args.beat_bytes,
-                        args.poll_timeout,
-                    )
+                if args.beat_bytes == 8 and args.packet_load_mode == "pair":
+                    for slot in range(0, beats, 2):
+                        pair = packet[slot * args.beat_bytes : min((slot + 2) * args.beat_bytes, len(packet))]
+                        load_packet_pair(mm, slot, pair.ljust(16, b"\0"), args.poll_timeout)
+                else:
+                    for slot in range(beats):
+                        load_packet_slot(
+                            mm,
+                            slot,
+                            packet[slot * args.beat_bytes : (slot + 1) * args.beat_bytes],
+                            args.beat_bytes,
+                            args.poll_timeout,
+                        )
                 run_host_packet(mm, args.start_beat + packet_start, beats, args.poll_timeout)
                 if args.progress_every and (
                     packet_start == 0
@@ -348,6 +373,8 @@ def main() -> int:
         "bytes_loaded": len(image),
         "beats_loaded": total_beats,
         "beat_bytes": args.beat_bytes,
+        "packet_beats": args.packet_beats,
+        "packet_load_mode": args.packet_load_mode,
         "start_beat": args.start_beat,
         "sha256_loaded": image_sha256,
         "elapsed_seconds": elapsed,

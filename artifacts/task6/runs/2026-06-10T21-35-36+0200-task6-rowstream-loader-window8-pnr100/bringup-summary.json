@@ -1,0 +1,123 @@
+{
+  "artifact_name": "task6-pcie-autonomous-bringup-full",
+  "bdf": "0000:42:00.0",
+  "prompt": "Once upon a time there was",
+  "reason": "rowstream-top1 failed",
+  "reference_json": "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json",
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T21-35-36+0200-task6-rowstream-loader-window8-pnr100",
+  "status": "FAIL",
+  "steps": [
+    {
+      "argv": [
+        "scripts/task6/task6_pcie_user_gate.sh",
+        "flash",
+        "0000:42:00.0",
+        "write",
+        "/nix/store/0lfamydazj8g4prvbzrr39v3n5ni1dsp-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit",
+        "--confirm-write-flash",
+        "--label",
+        "task6-rowstream-loader-window8-pnr100-flash-write"
+      ],
+      "name": "flash-write",
+      "returncode": 0,
+      "timeout": false
+    },
+    {
+      "argv": [
+        "nix",
+        "shell",
+        "nixpkgs#uv",
+        "-c",
+        "uv",
+        "run",
+        "--with",
+        "tapo",
+        "python3",
+        "scripts/task6/task6_tapo_p115_power.py",
+        "--backend",
+        "tapo",
+        "--host",
+        "192.168.1.136",
+        "--state",
+        "off",
+        "--username",
+        "rolandcoeurjoly@gmail.com",
+        "--password",
+        "<redacted>"
+      ],
+      "name": "power-off",
+      "returncode": 0,
+      "timeout": false
+    },
+    {
+      "argv": [
+        "nix",
+        "shell",
+        "nixpkgs#uv",
+        "-c",
+        "uv",
+        "run",
+        "--with",
+        "tapo",
+        "python3",
+        "scripts/task6/task6_tapo_p115_power.py",
+        "--backend",
+        "tapo",
+        "--host",
+        "192.168.1.136",
+        "--state",
+        "on",
+        "--username",
+        "rolandcoeurjoly@gmail.com",
+        "--password",
+        "<redacted>"
+      ],
+      "name": "power-on",
+      "returncode": 0,
+      "timeout": false
+    },
+    {
+      "argv": [
+        "scripts/task6/task6_pcie_user_gate.sh",
+        "recover-auto",
+        "0000:42:00.0",
+        "--bridge-bdf",
+        "0000:41:00.0",
+        "--label",
+        "task6-rowstream-loader-window8-pnr100-recover",
+        "--allow-power-cycle",
+        "--max-power-cycles",
+        "3",
+        "--power-provider",
+        "tapo-p115",
+        "--power-url",
+        "192.168.1.136",
+        "--secret-file",
+        "/home/roland/.config/task6-pcie/tapo.env",
+        "--power-off-wait",
+        "10.0",
+        "--power-on-wait",
+        "45.0"
+      ],
+      "name": "recover-auto",
+      "returncode": 0,
+      "timeout": false
+    },
+    {
+      "argv": [
+        "scripts/task6/task6_pcie_user_gate.sh",
+        "rowstream-top1",
+        "0000:42:00.0",
+        "--sample-count",
+        "8",
+        "--json-out",
+        "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T21-35-36+0200-task6-rowstream-loader-window8-pnr100/rowstream-top1.json",
+        "--reference-json",
+        "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json"
+      ],
+      "name": "rowstream-top1",
+      "returncode": 1,
+      "timeout": false
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "power-on",
+  "argv": [
+    "nix",
+    "shell",
+    "nixpkgs#uv",
+    "-c",
+    "uv",
+    "run",
+    "--with",
+    "tapo",
+    "python3",
+    "scripts/task6/task6_tapo_p115_power.py",
+    "--backend",
+    "tapo",
+    "--host",
+    "192.168.1.136",
+    "--state",
+    "on",
+    "--username",
+    "rolandcoeurjoly@gmail.com",
+    "--password",
+    "<redacted>"
+  ],
+  "dry_run": false,
+  "returncode": 0,
+  "stdout": "{\n  \"action\": \"on\",\n  \"backend\": \"tapo\",\n  \"device_on\": true,\n  \"firmware_version\": \"1.4.6 Build 260309 Rel.093810\",\n  \"hardware_version\": \"1.0\",\n  \"host\": \"192.168.1.136\",\n  \"model\": \"P115\",\n  \"nickname\": \"VGFwbyBQMTE1\"\n}\n",
+  "stderr": "",
+  "timeout": false
+}
