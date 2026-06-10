@@ -28816,6 +28816,53 @@ Next step after the loader-counter fix:
   through the second and later packets instead of stalling after the first
   packet commit.
 
+Board result after flashing the loader-counter fix:
+
+- Programmed and verified first 32 BPI words successfully:
+  `/nix/store/adz95q47k64vcymn4dhmxq11p747qjlp-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+  - run dir:
+    `artifacts/task6/runs/2026-06-10T19-19-53+0200-rowstream-loader-ackfix-pnr100-flash`
+- Tapo recovery reached `pcie_ready`:
+  `artifacts/task6/runs/2026-06-10T19-27-41+0200-rowstream-loader-ackfix-pnr100-recover`
+- Strict rowstream/top1 no longer failed on the second packet. It progressed to
+  `loaded beats: 16384/427312`, then a later BAR status read returned
+  `0xffffffff`.
+- A paced run with packet echo limited to the first 1024 beats reached the same
+  boundary, so the original second-packet ACK-counter stall is fixed but full
+  rowstream transfer still has a BAR/endpoint robustness problem.
+- A small 8-byte packet-loader boundary diagnostic was added and run across
+  beats `0x3ffc..0x4003`. Without all-ones BAR read retry it failed on a packet
+  slot echo where the low 32 bits matched and the high 32-bit read returned
+  `0xffffffff`.
+- The rowstream packet-loader smoke now supports `--beat-bytes 8`, matching the
+  one-byte-lane DDR3 top. With bounded all-ones BAR read retry, the same
+  boundary diagnostic passed and verified beats 0, 16380, 16383, 16384, and
+  16387:
+  `artifacts/task6/runs/2026-06-10T-rowstream-loader-ackfix-boundary-retry-packet/packet-boundary.json`
+- Full retry-enabled rowstream/top1 then progressed farther, to
+  `loaded beats: 49152/427312`, before `accepted_count` became persistently
+  `0xffffffff`. A non-BAR lifecycle probe immediately afterward classified the
+  endpoint as `corrupt_command`, so BAR testing was stopped.
+
+Interpretation after the loader-counter fix:
+
+- The first concrete integration bug was real and fixed: packet ACK counters
+  must be monotonic across host packets.
+- The debug/readback path also sees transient all-ones BAR reads under load;
+  bounded retries are necessary in host gates to avoid false failures.
+- The remaining blocker is not the standalone row format, the cutout, the
+  64-bit reader, or the immediate packet ACK path. It is sustained physical
+  PCIe/BAR loader integration: after tens of thousands of BAR command/read
+  transactions, config space can degrade to `corrupt_command`.
+- Next engineering direction: reduce the number of BAR transactions in the
+  loader path instead of trying to make the current per-beat command protocol
+  survive a 3.4 MB transfer. Candidate fixes:
+  - add a loader-side multi-packet/window command so one doorbell commits more
+    than four DDR beats;
+  - expose a true BAR write FIFO or AXI-stream-like ingress for rowstream data;
+  - keep the 8-byte boundary packet diagnostic as the cheap gate before any
+    full rowstream/top1 attempt.
+
 Limited-vocabulary whole-inference ladder:
 
 - Add an explicit inference ladder before trying full 50,257-vocab generation:

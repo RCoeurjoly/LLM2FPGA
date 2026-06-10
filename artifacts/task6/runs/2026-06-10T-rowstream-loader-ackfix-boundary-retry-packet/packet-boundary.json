@@ -1,0 +1,49 @@
+{
+  "bdf": "0000:42:00.0",
+  "beat_bytes": 8,
+  "beats_loaded": 16388,
+  "bytes_loaded": 131104,
+  "bytes_per_second": 39668.9139803445,
+  "elapsed_seconds": 3.3049556149926502,
+  "image": "artifacts/task6/parallel-hypotheses/h2-ddr3-row-stream-pack-replay/rowstream.bin",
+  "sha256_loaded": "c041fea9c483da93b43d64ba6b8bb0bd1377da6394742005fc71c056f54d0615",
+  "start_beat": 0,
+  "status": "PASS",
+  "verify_samples": [
+    {
+      "beat": 0,
+      "expected_hex": "d425fef3e8e6e6fe",
+      "image_beat": 0,
+      "match": true,
+      "observed_hex": "d425fef3e8e6e6fe"
+    },
+    {
+      "beat": 16380,
+      "expected_hex": "12042b1e4e09e60a",
+      "image_beat": 16380,
+      "match": true,
+      "observed_hex": "12042b1e4e09e60a"
+    },
+    {
+      "beat": 16383,
+      "expected_hex": "08faca39f34022b0",
+      "image_beat": 16383,
+      "match": true,
+      "observed_hex": "08faca39f34022b0"
+    },
+    {
+      "beat": 16384,
+      "expected_hex": "f50aece7027f06cf",
+      "image_beat": 16384,
+      "match": true,
+      "observed_hex": "f50aece7027f06cf"
+    },
+    {
+      "beat": 16387,
+      "expected_hex": "3cf0d5ada18e0000",
+      "image_beat": 16387,
+      "match": true,
+      "observed_hex": "3cf0d5ada18e0000"
+    }
+  ]
+}

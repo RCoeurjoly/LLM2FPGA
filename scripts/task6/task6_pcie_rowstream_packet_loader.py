@@ -74,8 +74,18 @@ def ensure_mem_enabled(bdf: str, device: Path) -> tuple[int, int]:
     return before, after
 
 
-def rd32(mm: mmap.mmap, offset: int) -> int:
+def rd32_raw(mm: mmap.mmap, offset: int) -> int:
     return struct.unpack(">I", bytes(mm[offset : offset + 4]))[0]
+
+
+def rd32(mm: mmap.mmap, offset: int) -> int:
+    value = rd32_raw(mm, offset)
+    for _ in range(4):
+        if value != ALL_ONES:
+            return value
+        time.sleep(0.00005)
+        value = rd32_raw(mm, offset)
+    return value
 
 
 def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
@@ -180,11 +190,11 @@ def issue_command(
     return status, loader, accepted_after
 
 
-def load_packet_slot(mm: mmap.mmap, slot: int, data: bytes, timeout: float) -> None:
-    if len(data) != 16:
-        raise ValueError("packet slot data must be exactly 16 bytes")
+def load_packet_slot(mm: mmap.mmap, slot: int, data: bytes, beat_bytes: int, timeout: float) -> None:
+    if len(data) != beat_bytes:
+        raise ValueError(f"packet slot data must be exactly {beat_bytes} bytes")
     issue_command(mm, OP_LOAD_PACKET_BEAT, 0, slot, data, timeout)
-    echoed = read_low_16(mm)
+    echoed = read_low_16(mm)[:beat_bytes]
     if echoed != data:
         raise RuntimeError(
             f"packet slot echo mismatch: slot={slot} "
@@ -231,6 +241,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--image", required=True, type=Path, help="packed rowstream image")
     parser.add_argument("--start-beat", type=lambda text: int(text, 0), default=0)
     parser.add_argument("--max-bytes", type=lambda text: int(text, 0), default=None)
+    parser.add_argument("--beat-bytes", type=int, choices=(8, 16), default=16)
     parser.add_argument("--poll-timeout", type=float, default=2.0)
     parser.add_argument("--boot-timeout", type=float, default=5.0)
     parser.add_argument("--verify-samples", type=int, default=8)
@@ -247,9 +258,9 @@ def main() -> int:
         image = image[: args.max_bytes]
     if not image:
         raise SystemExit("empty rowstream image")
-    if len(image) % 16:
-        image += bytes(16 - (len(image) % 16))
-    total_beats = len(image) // 16
+    if len(image) % args.beat_bytes:
+        image += bytes(args.beat_bytes - (len(image) % args.beat_bytes))
+    total_beats = len(image) // args.beat_bytes
     image_sha256 = hashlib.sha256(image).hexdigest()
 
     device = Path("/sys/bus/pci/devices") / args.bdf
@@ -284,13 +295,14 @@ def main() -> int:
             wait_for(mm, 0x008, STATUS_RST_N | STATUS_BOOT_DONE, args.boot_timeout, "DDR boot_done")
 
             for packet_start in range(0, total_beats, 4):
-                packet = image[packet_start * 16 : (packet_start + 4) * 16]
-                beats = len(packet) // 16
+                packet = image[packet_start * args.beat_bytes : (packet_start + 4) * args.beat_bytes]
+                beats = len(packet) // args.beat_bytes
                 for slot in range(beats):
                     load_packet_slot(
                         mm,
                         slot,
-                        packet[slot * 16 : (slot + 1) * 16],
+                        packet[slot * args.beat_bytes : (slot + 1) * args.beat_bytes],
+                        args.beat_bytes,
                         args.poll_timeout,
                     )
                 run_host_packet(mm, args.start_beat + packet_start, beats, args.poll_timeout)
@@ -308,7 +320,8 @@ def main() -> int:
             )
             for beat_index in verify:
                 observed = read_beat_low16(mm, args.start_beat + beat_index, args.poll_timeout)
-                expected = image[beat_index * 16 : (beat_index + 1) * 16]
+                expected = image[beat_index * args.beat_bytes : (beat_index + 1) * args.beat_bytes]
+                observed = observed[: args.beat_bytes]
                 match = observed == expected
                 samples.append(
                     {
@@ -334,6 +347,7 @@ def main() -> int:
         "image": str(args.image),
         "bytes_loaded": len(image),
         "beats_loaded": total_beats,
+        "beat_bytes": args.beat_bytes,
         "start_beat": args.start_beat,
         "sha256_loaded": image_sha256,
         "elapsed_seconds": elapsed,

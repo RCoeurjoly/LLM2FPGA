@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "rowstream-loader-ackfix-pnr100-recover-before-paced-lifecycle-0"
+  ],
+  "name": "lifecycle-0",
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "classification: wrong_vendor\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T19-30-54+0200-rowstream-loader-ackfix-pnr100-recover-before-paced-lifecycle-0\nnext:\n- The BDF no longer points at the expected Xilinx endpoint; inspect lspci and update TASK6_PCIE_ALLOWED_BDF only if the endpoint moved.\n",
+  "stderr": "",
+  "timeout": false
+}

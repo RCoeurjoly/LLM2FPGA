@@ -1,0 +1,14 @@
+{
+  "artifact_name": "task6-rowstream-loader-ackfix-pnr100-strict-rowstream-top1-fail",
+  "bitstream": "/nix/store/adz95q47k64vcymn4dhmxq11p747qjlp-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit",
+  "bdf": "0000:42:00.0",
+  "status": "FAIL",
+  "failure": "BAR read returned 0xffffffff during OP_LOAD_PACKET_BEAT after loaded beats reached 16384/427312",
+  "observed_progress_beats": [
+    4,
+    16384
+  ],
+  "interpretation": "The monotonic packet ACK counter fix removed the prior second-packet stall, but the full strict transfer still hit an all-ones BAR read under sustained packet traffic.",
+  "post_failure_lifecycle": "pcie_ready",
+  "post_failure_lifecycle_run_dir": "artifacts/task6/runs/2026-06-10T19-29-26+0200-rowstream-loader-ackfix-pnr100-after-bar-ffff"
+}

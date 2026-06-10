@@ -150,8 +150,18 @@ def ensure_mem_enabled(bdf: str, device: Path) -> tuple[int, int]:
     return before, after
 
 
-def rd32(mm: mmap.mmap, offset: int) -> int:
+def rd32_raw(mm: mmap.mmap, offset: int) -> int:
     return struct.unpack(">I", bytes(mm[offset : offset + 4]))[0]
+
+
+def rd32(mm: mmap.mmap, offset: int) -> int:
+    value = rd32_raw(mm, offset)
+    for _ in range(4):
+        if value != ALL_ONES:
+            return value
+        time.sleep(0.00005)
+        value = rd32_raw(mm, offset)
+    return value
 
 
 def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
@@ -266,7 +276,7 @@ def issue_command(
     accepted_before = rd32(mm, REG_ACCEPTED_COUNT)
     wr32(mm, REG_DOORBELL, 0x1)
     wait_for(mm, REG_STATUS, STATUS_DONE, timeout, "ingress done")
-    accepted_after = wait_accepted_count(mm, accepted_before, timeout, f"accepted_count opcode=0x{opcode:02x}")
+    wait_accepted_count(mm, accepted_before, timeout, f"accepted_count opcode=0x{opcode:02x}")
     loader = wait_for(
         mm,
         REG_LOADER_STATUS,
@@ -309,6 +319,8 @@ def load_rowstream(
     packet_ack_mode: str,
     packet_settle: float,
     packet_echo_mode: str,
+    packet_echo_limit_beats: int | None,
+    progress_settle: float,
 ) -> dict[str, Any]:
     if len(image) % beat_bytes:
         image += bytes(beat_bytes - (len(image) % beat_bytes))
@@ -325,9 +337,11 @@ def load_rowstream(
         for slot in range(beats):
             slot_data = packet[slot * beat_bytes : (slot + 1) * beat_bytes]
             issue_command(mm, OP_LOAD_PACKET_BEAT, 0, slot, slot_data, timeout)
-            if packet_echo_mode == "require":
+            absolute_beat = packet_start + slot
+            echo_enabled = packet_echo_limit_beats is None or absolute_beat < packet_echo_limit_beats
+            if packet_echo_mode == "require" and echo_enabled:
                 wait_packet_slot_echo(mm, slot_data, timeout, f"slot={slot}")
-            elif packet_echo_mode == "auto":
+            elif packet_echo_mode == "auto" and echo_enabled:
                 try:
                     wait_packet_slot_echo(mm, slot_data, timeout, f"slot={slot}")
                 except RuntimeError:
@@ -364,6 +378,8 @@ def load_rowstream(
             or (packet_start + beats) % progress_every == 0
         ):
             print(f"loaded beats: {packet_start + beats}/{total_beats}")
+            if progress_settle > 0:
+                time.sleep(progress_settle)
     return {
         "packet_count": packet_count,
         "packet_ack_mode": packet_ack_mode,
@@ -371,6 +387,8 @@ def load_rowstream(
         "packet_ack_fallback_count": ack_fallback_count,
         "packet_settle_seconds": packet_settle,
         "packet_echo_mode_final": packet_echo_mode,
+        "packet_echo_limit_beats": packet_echo_limit_beats,
+        "progress_settle_seconds": progress_settle,
     }
 
 
@@ -774,6 +792,18 @@ def parse_args() -> argparse.Namespace:
         default="require",
         help="Packet slot echo policy before packet commit. Default require preserves the strict acceptance gate.",
     )
+    parser.add_argument(
+        "--packet-echo-limit-beats",
+        type=int,
+        default=-1,
+        help="Only echo-check the first N rowstream beats; -1 keeps checking every beat.",
+    )
+    parser.add_argument(
+        "--progress-settle",
+        type=float,
+        default=0.0,
+        help="Seconds to sleep after each progress checkpoint during rowstream load.",
+    )
     parser.add_argument("--json-out", type=Path, default=DEFAULT_OUT)
     return parser.parse_args()
 
@@ -892,6 +922,8 @@ def main() -> int:
                     args.packet_ack_mode,
                     args.packet_settle,
                     args.packet_echo_mode,
+                    None if args.packet_echo_limit_beats < 0 else args.packet_echo_limit_beats,
+                    args.progress_settle,
                 )
                 load_verify_samples = verify_loaded_samples(
                     mm,

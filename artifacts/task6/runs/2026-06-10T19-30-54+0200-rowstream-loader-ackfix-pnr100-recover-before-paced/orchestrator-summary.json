@@ -1,0 +1,17 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T19-30-54+0200-rowstream-loader-ackfix-pnr100-recover-before-paced",
+  "final_classification": "wrong_vendor",
+  "final_action": "stop",
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "wrong_vendor",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T19-30-54+0200-rowstream-loader-ackfix-pnr100-recover-before-paced-lifecycle-0"
+    },
+    {
+      "action": "stop",
+      "reason": "unsupported lifecycle classification: wrong_vendor",
+      "command": null
+    }
+  ]
+}

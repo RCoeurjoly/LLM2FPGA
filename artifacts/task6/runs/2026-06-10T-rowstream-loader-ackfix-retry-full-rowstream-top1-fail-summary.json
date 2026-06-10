@@ -1,0 +1,19 @@
+{
+  "artifact_name": "task6-rowstream-loader-ackfix-retry-full-rowstream-top1-fail",
+  "bitstream": "/nix/store/adz95q47k64vcymn4dhmxq11p747qjlp-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit",
+  "bdf": "0000:42:00.0",
+  "status": "FAIL",
+  "failure": "accepted_count stayed 0xffffffff during OP_LOAD_PACKET_BEAT after bounded all-ones BAR read retries",
+  "observed_progress_beats": [
+    4,
+    16384,
+    32768,
+    49152
+  ],
+  "packet_echo_limit_beats": 1024,
+  "interpretation": "Bounded all-ones read retries fixed the small boundary diagnostic and moved the full-load failure farther, but sustained BAR traffic still eventually corrupts PCIe config/BAR state.",
+  "post_failure_lifecycle": "corrupt_command",
+  "post_failure_lifecycle_run_dir": "artifacts/task6/runs/2026-06-10T19-42-59+0200-rowstream-loader-ackfix-retry-full-after-ffff",
+  "final_cleanup_lifecycle": "pcie_ready",
+  "final_cleanup_lifecycle_run_dir": "artifacts/task6/runs/2026-06-10T19-45-23+0200-rowstream-loader-ackfix-final-clean-lifecycle"
+}
