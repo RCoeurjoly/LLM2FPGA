@@ -4653,6 +4653,28 @@ EOF
               --out-json "$out/summary.json"
           '';
 
+        task6M2FullBlockReplaySelftestTbDataSv =
+          pkgs.runCommand "task6-m2-full-block-replay-selftest-tb-data-sv" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_full_block_replay_selftest_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --post-gelu-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json
+              } \
+              --c-proj-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --residual-add-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-residual-add-rtl-proof.json
+              } \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
             sed \
@@ -9221,6 +9243,20 @@ EOF
               ${./sim/task6_int8_l2_mlp_chain_residual_add_selftest_tb_main.sv}
           '';
 
+        task6M2FullBlockReplaySelftestSimMain =
+          pkgs.runCommand "task6-m2-full-block-replay-selftest-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2FullBlockReplaySelftestTbDataSv} \
+              -top task6_m2_full_block_replay_selftest_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_full_block_replay_selftest_top.sv} \
+              ${./sim/task6_m2_full_block_replay_selftest_tb_main.sv}
+          '';
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestSimMain =
           pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -9892,6 +9928,21 @@ EOF
             hierarchy -top task6_int8_l2_mlp_chain_residual_add_selftest_top -check
             proc
             synth_xilinx -family xc7 -top task6_int8_l2_mlp_chain_residual_add_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2FullBlockReplaySelftestJson =
+          pkgs.runCommand "task6-m2-full-block-replay-selftest.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv -I${task6M2FullBlockReplaySelftestTbDataSv} ${./fpga/rtl/task6_m2_full_block_replay_selftest_top.sv}
+            hierarchy -top task6_m2_full_block_replay_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_full_block_replay_selftest_top -noiopad
             write_json "$out"
             EOF
             yosys -s run.ys
@@ -10796,6 +10847,14 @@ EOF
             designJson = task6Int8L2MlpChainResidualAddSelftestJson;
           };
 
+        task6M2FullBlockReplaySelftestUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-full-block-replay-selftest";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_full_block_replay_selftest_top";
+            designJson = task6M2FullBlockReplaySelftestJson;
+          };
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestUtilization =
           mkMappedJsonUtilizationReport {
             name = "task6-int8-v4k-l2-residual-add-output-head-selftest";
@@ -11455,6 +11514,32 @@ EOF
             {
               "status": "PASS",
               "cycles": $cycles
+            }
+            EOF
+          '';
+
+        task6M2FullBlockReplaySelftestSvSim =
+          pkgs.runCommand "task6-m2-full-block-replay-selftest-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2FullBlockReplaySelftestSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 full block replay selftest cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-full-block-replay-selftest SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
             }
             EOF
           '';
@@ -12596,6 +12681,16 @@ EOF
             task6TinyStories1mM2MlpResidualLoweringScore;
           task6-tinystories-1m-m2-full-block-lowering-score =
             task6TinyStories1mM2FullBlockLoweringScore;
+          task6-m2-full-block-replay-selftest-tb-data-sv =
+            task6M2FullBlockReplaySelftestTbDataSv;
+          task6-m2-full-block-replay-selftest-sim-main =
+            task6M2FullBlockReplaySelftestSimMain;
+          task6-m2-full-block-replay-selftest-sv-sim =
+            task6M2FullBlockReplaySelftestSvSim;
+          task6-m2-full-block-replay-selftest-json =
+            task6M2FullBlockReplaySelftestJson;
+          task6-m2-full-block-replay-selftest-utilization =
+            task6M2FullBlockReplaySelftestUtilization;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;

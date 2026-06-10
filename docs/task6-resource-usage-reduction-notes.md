@@ -321,6 +321,51 @@ Next M2 lowering step: generate an M2 full-block RTL/selftest lane from this
 composed replay, then measure its standalone utilization before attempting
 DDR3/PCIe pnr100 integration.
 
+### 2026-06-10 - M2 full-block replay selftest lane
+
+Added a first standalone RTL/selftest lane for the composed M2 block replay:
+
+- Generator:
+  `sim/gen_task6_m2_full_block_replay_selftest_tb_data.py`.
+- RTL:
+  `fpga/rtl/task6_m2_full_block_replay_selftest_top.sv`.
+- Testbench:
+  `sim/task6_m2_full_block_replay_selftest_tb_main.sv`.
+- Canonical flake products:
+  - `.#task6-m2-full-block-replay-selftest-tb-data-sv`
+  - `.#task6-m2-full-block-replay-selftest-sv-sim`
+  - `.#task6-m2-full-block-replay-selftest-json`
+  - `.#task6-m2-full-block-replay-selftest-utilization`
+
+Scope note: this lane is a composed-replay checksum/sample selftest. It embeds
+the quantized M2 full-block replay output stream from the software gate and
+verifies that the RTL-visible stream checksum and first samples match. It is
+not yet the real M2 compute datapath for `ln_1`, attention, `ln_2`, and MLP.
+That distinction matters before DDR3/PCIe integration: this is an artifact
+plumbing and acceptance-surface baseline, not the final inference accelerator.
+
+Verification:
+
+- `nix build .#task6-m2-full-block-replay-selftest-sv-sim -L`
+- Result: PASS in `4880` cycles.
+- Output stream:
+  - count: `4864` int8 values
+  - checksum: `0x5ab10d7c`
+  - sample0: `0xd30af026`
+  - sample1: `0xd3330f55`
+
+Standalone mapped utilization:
+
+- `nix build .#task6-m2-full-block-replay-selftest-utilization -L`
+- `SLICE_LUT` equivalent: `673` (`0.23%` of the task capacity model)
+- `CLB_FF`: `168` (`0.03%`)
+- `DSP`: `1` (`0.05%`)
+- BRAM: `0`
+
+Next M2 RTL step: replace replayed-output ROM/checksum with real compute
+sub-lanes, starting with reusable fixed-point layernorm and attention score/value
+building blocks, while preserving this checksum/sample acceptance surface.
+
 Operational update (2026-06-09):
 
 - The reference generator was extended to emit prompt-step `activation_q`, `residual_q`,
