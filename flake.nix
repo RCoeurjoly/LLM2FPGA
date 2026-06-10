@@ -4632,6 +4632,27 @@ EOF
               --out-json "$out/summary.json"
           '';
 
+        task6TinyStories1mM2FullBlockLoweringScore =
+          pkgs.runCommand "task6-tinystories-1m-m2-full-block-lowering-score" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/score_m2_full_block_lowering.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --post-gelu-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json
+              } \
+              --c-proj-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --residual-add-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-residual-add-rtl-proof.json
+              } \
+              --out-json "$out/summary.json"
+          '';
+
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
             sed \
@@ -12573,6 +12594,8 @@ EOF
             task6TinyStories1mM2AttentionLoweringScore;
           task6-tinystories-1m-m2-mlp-residual-lowering-score =
             task6TinyStories1mM2MlpResidualLoweringScore;
+          task6-tinystories-1m-m2-full-block-lowering-score =
+            task6TinyStories1mM2FullBlockLoweringScore;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;

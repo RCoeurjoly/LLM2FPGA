@@ -296,6 +296,31 @@ MLP half against the one-block oracle:
 Next M2 lowering step: compose attention replay plus MLP replay into one
 full-block fixed-point gate before generating the M2 board lane.
 
+### 2026-06-10 - M2 full-block composed lowering scout
+
+Added `scripts/task6/score_m2_full_block_lowering.py` to compose the previously
+accepted attention and MLP scouts into one block-0 replay:
+
+- Input boundary: oracle `block_input_f32` tensors from all 8 prompt-reference
+  contexts.
+- Replay path: `ln_1 -> q/k/v -> causal attention -> attention residual ->
+  ln_2 -> c_fc -> PWL GELU -> c_proj -> final residual`.
+- The `ln_2` input is now the replayed attention residual, not the oracle
+  `ln_2` tensor. This is the first M2 software gate that scores the whole
+  block path as one composed lowering.
+- Result: PASS. Aggregate block-output normalized RMSE is about `0.0390`
+  against oracle `block_output_f32`. Intermediate aggregate normalized RMSE:
+  attention `0.0940`, replayed-attention `ln_2` `0.0220`, and MLP from replayed
+  `ln_2` `0.0378`.
+- Artifact:
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-full-block-lowering-score.json`.
+- Canonical flake product:
+  `.#task6-tinystories-1m-m2-full-block-lowering-score`.
+
+Next M2 lowering step: generate an M2 full-block RTL/selftest lane from this
+composed replay, then measure its standalone utilization before attempting
+DDR3/PCIe pnr100 integration.
+
 Operational update (2026-06-09):
 
 - The reference generator was extended to emit prompt-step `activation_q`, `residual_q`,

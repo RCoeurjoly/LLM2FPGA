@@ -1,0 +1,785 @@
+{
+  "aggregate": {
+    "attention_int8_replay": {
+      "count": 4864,
+      "max_abs_error": 0.012108823984518395,
+      "normalized_rmse": 0.09399220521118613,
+      "rmse": 0.002763882270360462,
+      "signal_rms": 0.02940544127196974
+    },
+    "block_output_replay": {
+      "count": 4864,
+      "max_abs_error": 0.0576114499014983,
+      "normalized_rmse": 0.03902037737671886,
+      "rmse": 0.003866530691990498,
+      "signal_rms": 0.09909003838331473
+    },
+    "ln1_f32_replay": {
+      "count": 4864,
+      "max_abs_error": 3.9910028393208563e-07,
+      "normalized_rmse": 5.4476772510345906e-08,
+      "rmse": 6.154865041411563e-08,
+      "signal_rms": 1.1298145535774293
+    },
+    "ln2_from_replayed_attention": {
+      "count": 4864,
+      "max_abs_error": 0.13071813194799442,
+      "normalized_rmse": 0.02196585139618252,
+      "rmse": 0.02491134699488941,
+      "signal_rms": 1.1340943060016693
+    },
+    "mlp_from_replayed_ln2": {
+      "count": 4864,
+      "max_abs_error": 0.05652394890785217,
+      "normalized_rmse": 0.03783952204963403,
+      "rmse": 0.0038218079752664427,
+      "signal_rms": 0.10100042939901259
+    },
+    "qkv_int8_replay": {
+      "k": {
+        "max_abs_error": 0.016437776521406433,
+        "max_normalized_rmse": 0.005722027913743361
+      },
+      "q": {
+        "max_abs_error": 0.02102400043268604,
+        "max_normalized_rmse": 0.006620882706816842
+      },
+      "v": {
+        "max_abs_error": 0.0036181921828954133,
+        "max_normalized_rmse": 0.007848529583878425
+      }
+    }
+  },
+  "artifact_name": "h2-tinystories-1m-m2-full-block-lowering-score",
+  "contract_manifest": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json",
+  "date": "2026-06-10T10:40:08.295993+00:00",
+  "fixed_point": {
+    "c_proj_output_requant_shift": 24,
+    "c_proj_postprocess_formula": "q[i] = saturate_i8(round_shift(acc[i] * scale_mul[i], c_proj_output_requant_shift) + bias_q[i])",
+    "gelu_approx_mode": "pwl",
+    "gelu_approximation": "0.5*x + 0.39894228*x*x",
+    "gelu_pwl_x_nodes": [
+      -3162,
+      -2717,
+      -2272,
+      -1827,
+      -1381,
+      -936,
+      -491,
+      -45,
+      400,
+      845,
+      1290,
+      1736,
+      2181,
+      2626,
+      3071,
+      3517
+    ],
+    "gelu_pwl_y_nodes": [
+      -31,
+      -31,
+      -30,
+      -27,
+      -23,
+      -17,
+      -10,
+      -1,
+      10,
+      22,
+      36,
+      52,
+      69,
+      88,
+      107,
+      127
+    ],
+    "gelu_quad_q": 1634,
+    "output_requant_mult": 2957,
+    "output_requant_shift": 16,
+    "scale_shift": 24,
+    "x_frac": 12
+  },
+  "next_stage": "generate an M2 full-block RTL/selftest lane from the composed fixed-point replay",
+  "policy": {
+    "attention": "causal f32 softmax over replayed q/k/v; out projection uses int8 activation/weight replay plus f32 bias",
+    "block_output": "replayed attention residual plus replayed MLP output compared directly to oracle block_output_f32",
+    "input_boundary": "oracle block_input tensors from the M2 one-block contract",
+    "ln1": "f32 layernorm formula with f32 gamma/beta",
+    "ln2": "f32 layernorm formula over block_input plus replayed attention output",
+    "mlp": "per-token symmetric int8 ln_2 activations, rowwise symmetric int8 c_fc/c_proj weights, accepted fixed PWL GELU handoff",
+    "qkv": "per-token symmetric int8 activations, rowwise symmetric int8 weights, f32 row scales"
+  },
+  "quantization": {
+    "c_fc_accumulator_max": 85648,
+    "c_fc_accumulator_min": -86445,
+    "c_fc_accumulator_sha256": "ce84b8e88dfbb73c2330392047e2b1632cb598a9741d5278076524dee28dbe6e",
+    "c_fc_weight_quantization": "rowwise-symmetric-int8",
+    "c_proj_accumulator_max": 93367,
+    "c_proj_accumulator_min": -100142,
+    "c_proj_accumulator_sha256": "893f0b4418100ff0e10f7583830b461e299329527ab50ee348bb2ff6a4c209a1",
+    "c_proj_output_scale": 0.0023836969859956755,
+    "c_proj_q_max": 127,
+    "c_proj_q_min": -127,
+    "c_proj_q_sha256": "8678060e8549ba417be7e883e0c0c441de1694729e3f6623768c49a6eca1ff78",
+    "c_proj_weight_quantization": "rowwise-symmetric-int8",
+    "ln2_q_max": 127,
+    "ln2_q_min": -127,
+    "ln2_q_sha256": "ba0bf80dc3ea69b68932d7a3ded5f39ce37e24f90a4fe5b9ba8508e936a5b117",
+    "post_gelu_output_scale": 0.005411566543946203,
+    "post_gelu_q_max": 127,
+    "post_gelu_q_min": -31,
+    "post_gelu_q_sha256": "ca9c251a45c679d1b468662fcb92d2734c131c1da36ea13c3fbcc346ca499b7d"
+  },
+  "schema_version": 1,
+  "source_proofs": {
+    "c_proj": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json",
+    "post_gelu": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json",
+    "residual_add": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-residual-add-rtl-proof.json"
+  },
+  "stage": "M2-one-full-block",
+  "status": "PASS",
+  "steps": [
+    {
+      "attention_int8_replay": {
+        "count": 384,
+        "max_abs_error": 0.009880700273461891,
+        "normalized_rmse": 0.07776058827941357,
+        "rmse": 0.0023553321846225164,
+        "signal_rms": 0.03028953659865855
+      },
+      "block_output_replay": {
+        "count": 384,
+        "max_abs_error": 0.015157483905002878,
+        "normalized_rmse": 0.03259869626468334,
+        "rmse": 0.003287694746463241,
+        "signal_rms": 0.10085356542387408
+      },
+      "ln1_f32_replay": {
+        "count": 384,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.487467704618636e-08,
+        "rmse": 6.186043047405227e-08,
+        "signal_rms": 1.127303772958631
+      },
+      "ln2_from_replayed_attention": {
+        "count": 384,
+        "max_abs_error": 0.09117518231014987,
+        "normalized_rmse": 0.018636699167125105,
+        "rmse": 0.02115955385861228,
+        "signal_rms": 1.1353702535445471
+      },
+      "mlp_from_replayed_ln2": {
+        "count": 384,
+        "max_abs_error": 0.015136658558695337,
+        "normalized_rmse": 0.03102200787487608,
+        "rmse": 0.0032273470971080384,
+        "signal_rms": 0.10403411378545176
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 384,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.00563515695203108,
+          "projection": "k",
+          "rmse": 0.003706413627142556,
+          "signal_rms": 0.6577303274235606,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 384,
+          "max_abs_error": 0.014186301412136393,
+          "normalized_rmse": 0.006561630585528745,
+          "projection": "q",
+          "rmse": 0.0035866061427149874,
+          "signal_rms": 0.5466028749965012,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 384,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007848529583878425,
+          "projection": "v",
+          "rmse": 0.0011279225585206336,
+          "signal_rms": 0.14371132152415994,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "row_quantization_ranges": {
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -112,
+        "ln2_scale_max": 0.027371396583412342,
+        "ln2_scale_min": 0.020282248985589325,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 6,
+      "step": 0
+    },
+    {
+      "attention_int8_replay": {
+        "count": 448,
+        "max_abs_error": 0.009880700273461891,
+        "normalized_rmse": 0.08367911207859607,
+        "rmse": 0.002513576664040935,
+        "signal_rms": 0.03003828078003557
+      },
+      "block_output_replay": {
+        "count": 448,
+        "max_abs_error": 0.015157483905002878,
+        "normalized_rmse": 0.03213551818902302,
+        "rmse": 0.003195730235934071,
+        "signal_rms": 0.09944542412966849
+      },
+      "ln1_f32_replay": {
+        "count": 448,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.2981059517211075e-08,
+        "rmse": 5.975635578671377e-08,
+        "signal_rms": 1.1278814793672014
+      },
+      "ln2_from_replayed_attention": {
+        "count": 448,
+        "max_abs_error": 0.09117518231014987,
+        "normalized_rmse": 0.020291361416413717,
+        "rmse": 0.023017773695453558,
+        "signal_rms": 1.1343632013194758
+      },
+      "mlp_from_replayed_ln2": {
+        "count": 448,
+        "max_abs_error": 0.015136658558695337,
+        "normalized_rmse": 0.030888312159729533,
+        "rmse": 0.0031441929545785747,
+        "signal_rms": 0.10179231996618446
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 448,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.00538684349458482,
+          "projection": "k",
+          "rmse": 0.0036562068869807718,
+          "signal_rms": 0.6787289979105967,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 448,
+          "max_abs_error": 0.014186301412136393,
+          "normalized_rmse": 0.006300016324994818,
+          "projection": "q",
+          "rmse": 0.0035379451122987504,
+          "signal_rms": 0.5615771340563408,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 448,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007750102348663464,
+          "projection": "v",
+          "rmse": 0.0011109012943370572,
+          "signal_rms": 0.14334020950428308,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "row_quantization_ranges": {
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -112,
+        "ln2_scale_max": 0.027371396583412342,
+        "ln2_scale_min": 0.019474556664054742,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 7,
+      "step": 1
+    },
+    {
+      "attention_int8_replay": {
+        "count": 512,
+        "max_abs_error": 0.009880700273461891,
+        "normalized_rmse": 0.08609168843801213,
+        "rmse": 0.0025659143645308234,
+        "signal_rms": 0.029804437699910334
+      },
+      "block_output_replay": {
+        "count": 512,
+        "max_abs_error": 0.015157483905002878,
+        "normalized_rmse": 0.031579624694295066,
+        "rmse": 0.003174171936452502,
+        "signal_rms": 0.10051328877970876
+      },
+      "ln1_f32_replay": {
+        "count": 512,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.4352820124146614e-08,
+        "rmse": 6.142057502682009e-08,
+        "signal_rms": 1.1300347412798473
+      },
+      "ln2_from_replayed_attention": {
+        "count": 512,
+        "max_abs_error": 0.09117518231014987,
+        "normalized_rmse": 0.020519836125732226,
+        "rmse": 0.02327238092452033,
+        "signal_rms": 1.1341406813349921
+      },
+      "mlp_from_replayed_ln2": {
+        "count": 512,
+        "max_abs_error": 0.015136658558695337,
+        "normalized_rmse": 0.03131710779800392,
+        "rmse": 0.0031564852257257746,
+        "signal_rms": 0.10079108345780775
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 512,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.00544683917390755,
+          "projection": "k",
+          "rmse": 0.003641385283339946,
+          "signal_rms": 0.6685318158067856,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 512,
+          "max_abs_error": 0.014186301412136393,
+          "normalized_rmse": 0.00623415160466835,
+          "projection": "q",
+          "rmse": 0.003427705034671289,
+          "signal_rms": 0.5498270257182234,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 512,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007834872021697296,
+          "projection": "v",
+          "rmse": 0.0011193183257966254,
+          "signal_rms": 0.14286363870358962,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "row_quantization_ranges": {
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027371396583412342,
+        "ln2_scale_min": 0.019474556664054742,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 8,
+      "step": 2
+    },
+    {
+      "attention_int8_replay": {
+        "count": 576,
+        "max_abs_error": 0.009880700273461891,
+        "normalized_rmse": 0.08411053619472798,
+        "rmse": 0.0024848489163240063,
+        "signal_rms": 0.029542659323574205
+      },
+      "block_output_replay": {
+        "count": 576,
+        "max_abs_error": 0.057611390296853526,
+        "normalized_rmse": 0.04238225911101037,
+        "rmse": 0.004263803563425287,
+        "signal_rms": 0.10060349903145217
+      },
+      "ln1_f32_replay": {
+        "count": 576,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.273200893411799e-08,
+        "rmse": 5.962339187487469e-08,
+        "signal_rms": 1.1306869030794298
+      },
+      "ln2_from_replayed_attention": {
+        "count": 576,
+        "max_abs_error": 0.09117518231014987,
+        "normalized_rmse": 0.019752939298631953,
+        "rmse": 0.02239840882226646,
+        "signal_rms": 1.1339278921298426
+      },
+      "mlp_from_replayed_ln2": {
+        "count": 576,
+        "max_abs_error": 0.0565238893032074,
+        "normalized_rmse": 0.04144155751414738,
+        "rmse": 0.004224409634143107,
+        "signal_rms": 0.1019365556591586
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 576,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.005722027913743361,
+          "projection": "k",
+          "rmse": 0.003782720311710006,
+          "signal_rms": 0.6610803667393059,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 576,
+          "max_abs_error": 0.014186301412136393,
+          "normalized_rmse": 0.006597855609338295,
+          "projection": "q",
+          "rmse": 0.0035088657953818783,
+          "signal_rms": 0.5318191247495011,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 576,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007678593651907318,
+          "projection": "v",
+          "rmse": 0.0011243483148231015,
+          "signal_rms": 0.14642633349191747,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "row_quantization_ranges": {
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027371396583412342,
+        "ln2_scale_min": 0.019474556664054742,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 9,
+      "step": 3
+    },
+    {
+      "attention_int8_replay": {
+        "count": 640,
+        "max_abs_error": 0.00988070399875219,
+        "normalized_rmse": 0.0879971222757997,
+        "rmse": 0.002580639651196855,
+        "signal_rms": 0.029326409596766585
+      },
+      "block_output_replay": {
+        "count": 640,
+        "max_abs_error": 0.0576114499014983,
+        "normalized_rmse": 0.04123397069476032,
+        "rmse": 0.004124341823650631,
+        "signal_rms": 0.10002291203487515
+      },
+      "ln1_f32_replay": {
+        "count": 640,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.377790759404179e-08,
+        "rmse": 6.076168888370757e-08,
+        "signal_rms": 1.1298633881850684
+      },
+      "ln2_from_replayed_attention": {
+        "count": 640,
+        "max_abs_error": 0.09117518231014987,
+        "normalized_rmse": 0.02022744708572375,
+        "rmse": 0.022943478668603506,
+        "signal_rms": 1.1342745612616973
+      },
+      "mlp_from_replayed_ln2": {
+        "count": 640,
+        "max_abs_error": 0.05652394890785217,
+        "normalized_rmse": 0.040150756737650034,
+        "rmse": 0.004079566139630291,
+        "signal_rms": 0.1016062079797568
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 640,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.005685603377290233,
+          "projection": "k",
+          "rmse": 0.003701355439606294,
+          "signal_rms": 0.6510048615755476,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 640,
+          "max_abs_error": 0.017206243924384967,
+          "normalized_rmse": 0.006620882706816842,
+          "projection": "q",
+          "rmse": 0.0035067855683754007,
+          "signal_rms": 0.5296552927549713,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 640,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007610972921952187,
+          "projection": "v",
+          "rmse": 0.001109652076061466,
+          "signal_rms": 0.1457963505376451,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "row_quantization_ranges": {
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027371396583412342,
+        "ln2_scale_min": 0.01796285251823836,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 10,
+      "step": 4
+    },
+    {
+      "attention_int8_replay": {
+        "count": 704,
+        "max_abs_error": 0.01028427660547791,
+        "normalized_rmse": 0.09405594892075612,
+        "rmse": 0.0027441394051125763,
+        "signal_rms": 0.02917560703602666
+      },
+      "block_output_replay": {
+        "count": 704,
+        "max_abs_error": 0.0576114499014983,
+        "normalized_rmse": 0.040825344365452314,
+        "rmse": 0.004046402596226824,
+        "signal_rms": 0.09911496544903653
+      },
+      "ln1_f32_replay": {
+        "count": 704,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.288686134793123e-08,
+        "rmse": 5.976807982414148e-08,
+        "signal_rms": 1.1301120599866987
+      },
+      "ln2_from_replayed_attention": {
+        "count": 704,
+        "max_abs_error": 0.09117518231014987,
+        "normalized_rmse": 0.021372658801469685,
+        "rmse": 0.024246453326627462,
+        "signal_rms": 1.134461255001187
+      },
+      "mlp_from_replayed_ln2": {
+        "count": 704,
+        "max_abs_error": 0.05652394890785217,
+        "normalized_rmse": 0.039791850756023754,
+        "rmse": 0.004004489838143829,
+        "signal_rms": 0.10063592826321663
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 704,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.005589691102173258,
+          "projection": "k",
+          "rmse": 0.0036363586768809993,
+          "signal_rms": 0.6505473398104579,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 704,
+          "max_abs_error": 0.017206243924384967,
+          "normalized_rmse": 0.006507546775683931,
+          "projection": "q",
+          "rmse": 0.0034985556036320905,
+          "signal_rms": 0.5376151296683379,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 704,
+          "max_abs_error": 0.0036181921828954133,
+          "normalized_rmse": 0.007405689564488282,
+          "projection": "v",
+          "rmse": 0.0011060246803337812,
+          "signal_rms": 0.1493479669519749,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "row_quantization_ranges": {
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027371396583412342,
+        "ln2_scale_min": 0.01796285251823836,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 11,
+      "step": 5
+    },
+    {
+      "attention_int8_replay": {
+        "count": 768,
+        "max_abs_error": 0.012108823984518395,
+        "normalized_rmse": 0.10601046929384769,
+        "rmse": 0.00307279984733496,
+        "signal_rms": 0.028985814965289375
+      },
+      "block_output_replay": {
+        "count": 768,
+        "max_abs_error": 0.0576114499014983,
+        "normalized_rmse": 0.041518761825568753,
+        "rmse": 0.004051486758777645,
+        "signal_rms": 0.09758207086711802
+      },
+      "ln1_f32_replay": {
+        "count": 768,
+        "max_abs_error": 3.9910028393208563e-07,
+        "normalized_rmse": 5.661409786764991e-08,
+        "rmse": 6.401589883013146e-08,
+        "signal_rms": 1.130741303690561
+      },
+      "ln2_from_replayed_attention": {
+        "count": 768,
+        "max_abs_error": 0.13071813194799442,
+        "normalized_rmse": 0.024732231044204873,
+        "rmse": 0.02802952363618449,
+        "signal_rms": 1.1333196583068563
+      },
+      "mlp_from_replayed_ln2": {
+        "count": 768,
+        "max_abs_error": 0.05652394890785217,
+        "normalized_rmse": 0.04034492009595633,
+        "rmse": 0.004013179405348684,
+        "signal_rms": 0.0994717400803804
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 768,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.004935293856514122,
+          "projection": "k",
+          "rmse": 0.0036028556824619523,
+          "signal_rms": 0.7300184724981518,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 768,
+          "max_abs_error": 0.02102400043268604,
+          "normalized_rmse": 0.005811207504224761,
+          "projection": "q",
+          "rmse": 0.00353229715805742,
+          "signal_rms": 0.607842200693992,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 768,
+          "max_abs_error": 0.0036181921828954133,
+          "normalized_rmse": 0.00712896602118423,
+          "projection": "v",
+          "rmse": 0.0011087915239678984,
+          "signal_rms": 0.15553328781102974,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "row_quantization_ranges": {
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027371396583412342,
+        "ln2_scale_min": 0.01796285251823836,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 12,
+      "step": 6
+    },
+    {
+      "attention_int8_replay": {
+        "count": 832,
+        "max_abs_error": 0.012108823984518395,
+        "normalized_rmse": 0.11014111766622088,
+        "rmse": 0.003187455165730561,
+        "signal_rms": 0.028939738703124853
+      },
+      "block_output_replay": {
+        "count": 832,
+        "max_abs_error": 0.0576114499014983,
+        "normalized_rmse": 0.04138849527807715,
+        "rmse": 0.004004375790151362,
+        "signal_rms": 0.0967509391981307
+      },
+      "ln1_f32_replay": {
+        "count": 832,
+        "max_abs_error": 3.9910028393208563e-07,
+        "normalized_rmse": 5.616989142004512e-08,
+        "rmse": 6.347912277149198e-08,
+        "signal_rms": 1.1301272116904688
+      },
+      "ln2_from_replayed_attention": {
+        "count": 832,
+        "max_abs_error": 0.13071813194799442,
+        "normalized_rmse": 0.025378757948127943,
+        "rmse": 0.02877221428967831,
+        "signal_rms": 1.1337124672722876
+      },
+      "mlp_from_replayed_ln2": {
+        "count": 832,
+        "max_abs_error": 0.05652394890785217,
+        "normalized_rmse": 0.03946960219152264,
+        "rmse": 0.003941563666848414,
+        "signal_rms": 0.0998632732025607
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 832,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.005063309468049362,
+          "projection": "k",
+          "rmse": 0.0036508489546501284,
+          "signal_rms": 0.7210400584218323,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 832,
+          "max_abs_error": 0.02102400043268604,
+          "normalized_rmse": 0.005785247166658687,
+          "projection": "q",
+          "rmse": 0.0035304655673323577,
+          "signal_rms": 0.6102531950024539,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 832,
+          "max_abs_error": 0.0036181921828954133,
+          "normalized_rmse": 0.007115840068819854,
+          "projection": "v",
+          "rmse": 0.0011137210796893287,
+          "signal_rms": 0.15651294420871334,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "row_quantization_ranges": {
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027371396583412342,
+        "ln2_scale_min": 0.01796285251823836,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 13,
+      "step": 7
+    }
+  ],
+  "thresholds": {
+    "attention_normalized_rmse": 0.12,
+    "block_output_normalized_rmse": 0.07,
+    "ln1_normalized_rmse": 1e-06,
+    "ln2_normalized_rmse": 0.05,
+    "mlp_normalized_rmse": 0.09,
+    "qkv_normalized_rmse": 0.02
+  },
+  "weight_manifest": "/home/roland/LLM2FPGA/artifacts/task6/weights_pack/tiny-stories-1m-m2-block0-int8/manifest.json"
+}
