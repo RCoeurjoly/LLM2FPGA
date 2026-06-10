@@ -158,15 +158,39 @@ def capture_block_tensors(model: Any, block: Any, token_ids: list[int]) -> dict[
         captured["block_input_f32"] = first_tensor(inputs).detach().cpu()
         captured["block_output_f32"] = first_tensor(output).detach().cpu()
 
-    handle = block.register_forward_hook(block_hook)
+    def make_output_hook(name: str) -> Any:
+        def hook(_module: Any, _inputs: tuple[Any, ...], output: Any) -> None:
+            captured[name] = first_tensor(output).detach().cpu()
+
+        return hook
+
+    attention = getattr(getattr(block, "attn", None), "attention", None)
+    hook_specs = [
+        ("ln1_output_f32", getattr(block, "ln_1", None)),
+        ("q_proj_output_f32", getattr(attention, "q_proj", None)),
+        ("k_proj_output_f32", getattr(attention, "k_proj", None)),
+        ("v_proj_output_f32", getattr(attention, "v_proj", None)),
+        ("attention_output_f32", getattr(block, "attn", None)),
+        ("ln2_output_f32", getattr(block, "ln_2", None)),
+        ("mlp_output_f32", getattr(block, "mlp", None)),
+    ]
+    handles = [block.register_forward_hook(block_hook)]
+    for name, module in hook_specs:
+        if module is None:
+            raise SystemExit(f"block is missing required M2 submodule for {name}")
+        handles.append(module.register_forward_hook(make_output_hook(name)))
     try:
         input_ids = torch.tensor([token_ids], dtype=torch.long)
         with torch.no_grad():
             model(input_ids)
     finally:
-        handle.remove()
+        for handle in handles:
+            handle.remove()
     if "block_input_f32" not in captured or "block_output_f32" not in captured:
         raise SystemExit("block hook did not capture input/output tensors")
+    missing = [name for name, _module in hook_specs if name not in captured]
+    if missing:
+        raise SystemExit(f"missing M2 substage captures: {', '.join(missing)}")
     return captured
 
 
@@ -207,6 +231,13 @@ def main() -> int:
         tensors = {
             "block_input_f32": tensor_to_file(args.out_dir / f"{prefix}-block-input-f32.bin", block_input.to(torch.float32)),
             "block_output_f32": tensor_to_file(args.out_dir / f"{prefix}-block-output-f32.bin", block_output.to(torch.float32)),
+            "ln1_output_f32": tensor_to_file(args.out_dir / f"{prefix}-ln1-output-f32.bin", captured["ln1_output_f32"].to(torch.float32)),
+            "q_proj_output_f32": tensor_to_file(args.out_dir / f"{prefix}-q-proj-output-f32.bin", captured["q_proj_output_f32"].to(torch.float32)),
+            "k_proj_output_f32": tensor_to_file(args.out_dir / f"{prefix}-k-proj-output-f32.bin", captured["k_proj_output_f32"].to(torch.float32)),
+            "v_proj_output_f32": tensor_to_file(args.out_dir / f"{prefix}-v-proj-output-f32.bin", captured["v_proj_output_f32"].to(torch.float32)),
+            "attention_output_f32": tensor_to_file(args.out_dir / f"{prefix}-attention-output-f32.bin", captured["attention_output_f32"].to(torch.float32)),
+            "ln2_output_f32": tensor_to_file(args.out_dir / f"{prefix}-ln2-output-f32.bin", captured["ln2_output_f32"].to(torch.float32)),
+            "mlp_output_f32": tensor_to_file(args.out_dir / f"{prefix}-mlp-output-f32.bin", captured["mlp_output_f32"].to(torch.float32)),
             "last_input_i8": tensor_to_file(args.out_dir / f"{prefix}-last-input-i8.bin", last_input_q),
             "last_output_i8": tensor_to_file(args.out_dir / f"{prefix}-last-output-i8.bin", last_output_q),
         }
@@ -239,6 +270,8 @@ def main() -> int:
             "host_input": ["prompt token ids", "generation control", "PCIe lifecycle"],
             "fpga_compute": [
                 "token and position embeddings through block input",
+                "ln_1 -> q/k/v projections -> attention -> residual path",
+                "ln_2 -> MLP/GELU/projection -> residual path",
                 "one full transformer block",
                 "downstream output-head check in later board gate",
             ],

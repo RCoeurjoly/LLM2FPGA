@@ -6,6 +6,8 @@
     "acceptance": "block output tensors match this CPU/f32 contract after the chosen fixed-point lowering",
     "fpga_compute": [
       "token and position embeddings through block input",
+      "ln_1 -> q/k/v projections -> attention -> residual path",
+      "ln_2 -> MLP/GELU/projection -> residual path",
       "one full transformer block",
       "downstream output-head check in later board gate"
     ],
@@ -15,7 +17,7 @@
       "PCIe lifecycle"
     ]
   },
-  "date": "2026-06-10T10:10:02.857650+00:00",
+  "date": "2026-06-10T10:17:49.452213+00:00",
   "model_label": "tiny-stories-1m",
   "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
   "quantization": {
@@ -44,6 +46,18 @@
       "sequence_length": 6,
       "step": 0,
       "tensors": {
+        "attention_output_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-attention-output-f32.bin",
+          "numel": 384,
+          "sha256": "e1383dc028ff098bc5e434d41b2ae93eeac572123afc5fbf0e4589b3e324eb1d",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
         "block_input_f32": {
           "byte_length": 1536,
           "dtype": "float32",
@@ -62,6 +76,18 @@
           "filename": "step00-block-output-f32.bin",
           "numel": 384,
           "sha256": "5f50683e115b1a4fccf1bbd9ded1160e2e359b9a20db9ad02215a77ec41c64f5",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-k-proj-output-f32.bin",
+          "numel": 384,
+          "sha256": "1b84e2d8a7091ec18dce80dfedcf57495d31a345cf7a1e7cffc9134ac6fdd8ae",
           "shape": [
             1,
             6,
@@ -87,6 +113,66 @@
           "shape": [
             64
           ]
+        },
+        "ln1_output_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-ln1-output-f32.bin",
+          "numel": 384,
+          "sha256": "1493b537bff1542839b584c32a4b6ef52adf13b32e454443772e3b0f2a349c3d",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-ln2-output-f32.bin",
+          "numel": 384,
+          "sha256": "5c0d5a4e6523f219f6a6e41c95b1c847fefef6378d645bcd70afcd46105dffa9",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-mlp-output-f32.bin",
+          "numel": 384,
+          "sha256": "ce46ac8682ec0e3a1cfa44a8e99d9ad75d8ad7ad56f924f03ffcb6a24899b1b3",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-q-proj-output-f32.bin",
+          "numel": 384,
+          "sha256": "c6d07fcc7b85e5caa59c55412169b74a7d22c574975fb7687d72b2d737f21544",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "byte_length": 1536,
+          "dtype": "float32",
+          "filename": "step00-v-proj-output-f32.bin",
+          "numel": 384,
+          "sha256": "319fd00e51e395cf63699ebb1b162a3735c644e74205dd3753d38b4e8c29530d",
+          "shape": [
+            1,
+            6,
+            64
+          ]
         }
       }
     },
@@ -108,6 +194,18 @@
       "sequence_length": 7,
       "step": 1,
       "tensors": {
+        "attention_output_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-attention-output-f32.bin",
+          "numel": 448,
+          "sha256": "896515c78233d96770834eb48108b1c4f030c6d8d463ca37ab4d279bdd5fc281",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
         "block_input_f32": {
           "byte_length": 1792,
           "dtype": "float32",
@@ -126,6 +224,18 @@
           "filename": "step01-block-output-f32.bin",
           "numel": 448,
           "sha256": "c23efb6374087e5f868727ab211979f48b195403ce59f1c15df70dd77f6a6b21",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-k-proj-output-f32.bin",
+          "numel": 448,
+          "sha256": "21dd78d263ede6a30b68940807e10cd4fb6d6b5dd345da390cefd182d2d08110",
           "shape": [
             1,
             7,
@@ -151,6 +261,66 @@
           "shape": [
             64
           ]
+        },
+        "ln1_output_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-ln1-output-f32.bin",
+          "numel": 448,
+          "sha256": "59283b11634e0b0b0ba3798e3fa621c4727317d6288100e283abde4eb1b56d8d",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-ln2-output-f32.bin",
+          "numel": 448,
+          "sha256": "8e3c7a9fd22baa4fa38fc9d1e91386fffaf325cf49a9c1e3203290e9b37dc2cc",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-mlp-output-f32.bin",
+          "numel": 448,
+          "sha256": "81dc365f781683017573e5facb4ca02de4f996a4165103e969492cdb084348f8",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-q-proj-output-f32.bin",
+          "numel": 448,
+          "sha256": "de77f8f4ebad708eb2cb05a8596c288c7d1552e29d7dccbe30e9ae0e9f674501",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "byte_length": 1792,
+          "dtype": "float32",
+          "filename": "step01-v-proj-output-f32.bin",
+          "numel": 448,
+          "sha256": "5d7fc0bbc44d866c7df5bd7010926f10e1906878f4a2700f412500e3fcf8346e",
+          "shape": [
+            1,
+            7,
+            64
+          ]
         }
       }
     },
@@ -173,6 +343,18 @@
       "sequence_length": 8,
       "step": 2,
       "tensors": {
+        "attention_output_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-attention-output-f32.bin",
+          "numel": 512,
+          "sha256": "93e9c03b8685443f0ea87de86e7cd040cb875d1a3ed14e2f3a10cc10f0069a51",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
         "block_input_f32": {
           "byte_length": 2048,
           "dtype": "float32",
@@ -191,6 +373,18 @@
           "filename": "step02-block-output-f32.bin",
           "numel": 512,
           "sha256": "eff7c01200ba331c6c13f9f6fc306a96891aa12e8168d36e4b26485dbcc77681",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-k-proj-output-f32.bin",
+          "numel": 512,
+          "sha256": "9d5985ce08d6c57de0dacd8b474ca3b7916b04b30e6aed283edea4e2accb792e",
           "shape": [
             1,
             8,
@@ -216,6 +410,66 @@
           "shape": [
             64
           ]
+        },
+        "ln1_output_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-ln1-output-f32.bin",
+          "numel": 512,
+          "sha256": "26ac4a8277676c73de8ad0d4775d9f8160a592f7919850b6e02eb53b0246ff5a",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-ln2-output-f32.bin",
+          "numel": 512,
+          "sha256": "b6add344b15abc2fb282152c3bf6441a7d687a303adb4ead7afc228e94cf8ac9",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-mlp-output-f32.bin",
+          "numel": 512,
+          "sha256": "40e7e9162021424dcb977b7e31595f2a2e733c3d9fe1c928d9c3e9a67505ad78",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-q-proj-output-f32.bin",
+          "numel": 512,
+          "sha256": "192f94b6cdcab0a7537c58bf5b2c010b33e48faa5346b613fa275fd4cdfc2b4f",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "byte_length": 2048,
+          "dtype": "float32",
+          "filename": "step02-v-proj-output-f32.bin",
+          "numel": 512,
+          "sha256": "b7acc65f9a9f39c7176406f7cb968b1f82435d530b5885c367e5cfe3cf1f77f9",
+          "shape": [
+            1,
+            8,
+            64
+          ]
         }
       }
     },
@@ -239,6 +493,18 @@
       "sequence_length": 9,
       "step": 3,
       "tensors": {
+        "attention_output_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-attention-output-f32.bin",
+          "numel": 576,
+          "sha256": "4dfcc278173525ddeb642e510ac50010c4aed7fe953dd29484d3e71e862fe59a",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
         "block_input_f32": {
           "byte_length": 2304,
           "dtype": "float32",
@@ -263,6 +529,18 @@
             64
           ]
         },
+        "k_proj_output_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-k-proj-output-f32.bin",
+          "numel": 576,
+          "sha256": "59e2c8c3276af9d85695fd92312a1f4742447f188e637ffea760e95e50087ef1",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
         "last_input_i8": {
           "byte_length": 64,
           "dtype": "int8",
@@ -280,6 +558,66 @@
           "numel": 64,
           "sha256": "5958ca17ede2f304bc3e06e5276ded4dee37e259b06edc2c330057a020d8b411",
           "shape": [
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-ln1-output-f32.bin",
+          "numel": 576,
+          "sha256": "8b858240dde17c35964bc9dd8b7586e630a5b7666e44792570db66de0aa77447",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-ln2-output-f32.bin",
+          "numel": 576,
+          "sha256": "30c801d74e6e7809f7c23fc0b2e62a26fcc6467af6c8c4f06dc8a15beb0afafe",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-mlp-output-f32.bin",
+          "numel": 576,
+          "sha256": "376aac0d56a477d800b426795ad1e0887b05de6bbe2eb8efcfffdebfd830921f",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-q-proj-output-f32.bin",
+          "numel": 576,
+          "sha256": "bc0db53b025d6bbc6caf953276b63ab5541b323c6aeffe24e53aea0dc94f2290",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "byte_length": 2304,
+          "dtype": "float32",
+          "filename": "step03-v-proj-output-f32.bin",
+          "numel": 576,
+          "sha256": "fd12c40c73046452180479f2ed2f006eef20939121cfcb5a7ac3eba11e748d43",
+          "shape": [
+            1,
+            9,
             64
           ]
         }
@@ -306,6 +644,18 @@
       "sequence_length": 10,
       "step": 4,
       "tensors": {
+        "attention_output_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-attention-output-f32.bin",
+          "numel": 640,
+          "sha256": "8333222bfd5130ba472b9fb201771e0fb0cde596c8a007e857df35ced6eb637c",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
         "block_input_f32": {
           "byte_length": 2560,
           "dtype": "float32",
@@ -330,6 +680,18 @@
             64
           ]
         },
+        "k_proj_output_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-k-proj-output-f32.bin",
+          "numel": 640,
+          "sha256": "5204881d899c66b5c93b24c5a13d1d1fa8509da5713f495a0391fb566f451fb9",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
         "last_input_i8": {
           "byte_length": 64,
           "dtype": "int8",
@@ -347,6 +709,66 @@
           "numel": 64,
           "sha256": "6a3f805e86fb167038ffd8dacff6441dd1297cd3d56734649351dba78321c84d",
           "shape": [
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-ln1-output-f32.bin",
+          "numel": 640,
+          "sha256": "1896151ab09a827e79ae776c8d4970493093cd3c41d52496fba3f6e8d53418d8",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-ln2-output-f32.bin",
+          "numel": 640,
+          "sha256": "6779d04663ab9e252521aaa3d8ad77f88c93ad39cde2021bfe1e6a557285e175",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-mlp-output-f32.bin",
+          "numel": 640,
+          "sha256": "906f4ecb8cdb9dadc52e3dad0b1d57a7e721d2f6323d1466f1f0c986732385c6",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-q-proj-output-f32.bin",
+          "numel": 640,
+          "sha256": "32ac2826c487d05f50fbd04af1ca4ed2e4af333390c14d4089b543e4272a847c",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "byte_length": 2560,
+          "dtype": "float32",
+          "filename": "step04-v-proj-output-f32.bin",
+          "numel": 640,
+          "sha256": "6ebde7dd8db54c61c3a69ed3d9fbcf4742b6f3289a1e0c91ef417ce4f7088f34",
+          "shape": [
+            1,
+            10,
             64
           ]
         }
@@ -374,6 +796,18 @@
       "sequence_length": 11,
       "step": 5,
       "tensors": {
+        "attention_output_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-attention-output-f32.bin",
+          "numel": 704,
+          "sha256": "ffa5d2a478b76cb09af02a31a97f3781fdc677557031896023041a37af9fc30b",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
         "block_input_f32": {
           "byte_length": 2816,
           "dtype": "float32",
@@ -398,6 +832,18 @@
             64
           ]
         },
+        "k_proj_output_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-k-proj-output-f32.bin",
+          "numel": 704,
+          "sha256": "4159aa1c52b5e3a83e92b6d0d06a07ca26e61321da703ba94ffd3133d0d08c05",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
         "last_input_i8": {
           "byte_length": 64,
           "dtype": "int8",
@@ -415,6 +861,66 @@
           "numel": 64,
           "sha256": "62d30628ae61e8c9541a038b021e2328c3376efbf3b674223eb8c883dec75bdd",
           "shape": [
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-ln1-output-f32.bin",
+          "numel": 704,
+          "sha256": "3acc82f70e244f44b4b1dac95974516b2f2a67277cb039b3d317b8e29dce8811",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-ln2-output-f32.bin",
+          "numel": 704,
+          "sha256": "6db4cb9014a622f8b5b14a727cf795add5535f0521539615ba937d073b0b1acf",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-mlp-output-f32.bin",
+          "numel": 704,
+          "sha256": "43f7ded17048e16d632ca3a4b92dfff1d6748160079bd9acac2e53845a956b6f",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-q-proj-output-f32.bin",
+          "numel": 704,
+          "sha256": "a2ecfc15be60c35841586c2fa3856d246683afac47c6f9e73969de8cc2f31ad8",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "byte_length": 2816,
+          "dtype": "float32",
+          "filename": "step05-v-proj-output-f32.bin",
+          "numel": 704,
+          "sha256": "55a24c5dca204b0714ec09fbb858f71dff81164eef126fab84500e5b6a66b920",
+          "shape": [
+            1,
+            11,
             64
           ]
         }
@@ -443,6 +949,18 @@
       "sequence_length": 12,
       "step": 6,
       "tensors": {
+        "attention_output_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-attention-output-f32.bin",
+          "numel": 768,
+          "sha256": "d247b765f66f198cb32e67ae51e806691ae8cc9b44a5e03742c80b8d1c4d42b6",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
         "block_input_f32": {
           "byte_length": 3072,
           "dtype": "float32",
@@ -467,6 +985,18 @@
             64
           ]
         },
+        "k_proj_output_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-k-proj-output-f32.bin",
+          "numel": 768,
+          "sha256": "445d01d121a086697f05ae1f7f36d69489b7ef988b2280a830d542f42860be35",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
         "last_input_i8": {
           "byte_length": 64,
           "dtype": "int8",
@@ -484,6 +1014,66 @@
           "numel": 64,
           "sha256": "1e948188efc82141e0538da681395c51a7ed88cb47258cae7538520f0bfe8445",
           "shape": [
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-ln1-output-f32.bin",
+          "numel": 768,
+          "sha256": "cb1d46d08a0cb44d7d549b5e59e857ac8fd78b431927e0f259bd84af6f427fb3",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-ln2-output-f32.bin",
+          "numel": 768,
+          "sha256": "ca2eb13bdb898ee33b4957bdd138a3d3703add367f47b7fa81dc9652c2c0e227",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-mlp-output-f32.bin",
+          "numel": 768,
+          "sha256": "b2a209e443b1d1c54ca27d89d379422ea3b8a7266f25ef5753493e4a90da0433",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-q-proj-output-f32.bin",
+          "numel": 768,
+          "sha256": "af8922fcae455c40aa7709a0b634050f7b8eded232c06d2930f5bd9b4f22ae5f",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "byte_length": 3072,
+          "dtype": "float32",
+          "filename": "step06-v-proj-output-f32.bin",
+          "numel": 768,
+          "sha256": "3e5c2ac802d3191c284bc0e0c306a3c351dfb9f51de2a036e40940f16be8c9f2",
+          "shape": [
+            1,
+            12,
             64
           ]
         }
@@ -513,6 +1103,18 @@
       "sequence_length": 13,
       "step": 7,
       "tensors": {
+        "attention_output_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-attention-output-f32.bin",
+          "numel": 832,
+          "sha256": "a9156beaaf15b98120147f6a8ee3c6ff651a1f11ed49f61e5eaf086ce948b9ac",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
         "block_input_f32": {
           "byte_length": 3328,
           "dtype": "float32",
@@ -537,6 +1139,18 @@
             64
           ]
         },
+        "k_proj_output_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-k-proj-output-f32.bin",
+          "numel": 832,
+          "sha256": "f29457ace410234f559bb93c0a0b1e15cee5c62faba4995c75d3ebb7187a118f",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
         "last_input_i8": {
           "byte_length": 64,
           "dtype": "int8",
@@ -554,6 +1168,66 @@
           "numel": 64,
           "sha256": "54e1fbd0ef689971eea5b1f1d7a820921a737c4e51ec6ef9a77050dc394e3279",
           "shape": [
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-ln1-output-f32.bin",
+          "numel": 832,
+          "sha256": "822d0536c9650ab1c3ed292c2d63e8d145fe01a6b021ec86f83ee0e1bbd68f91",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-ln2-output-f32.bin",
+          "numel": 832,
+          "sha256": "3670937bc8070f0011585d848c375170c294759f119104888886fc51f7136832",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-mlp-output-f32.bin",
+          "numel": 832,
+          "sha256": "933c4d3b51c14d16ae25731b581ded1f24cd01db27aa5d25b412a8a45222c205",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-q-proj-output-f32.bin",
+          "numel": 832,
+          "sha256": "c2bdbc7d39ae868ab4a8954d1acb4d95d96e7f30d2056db23c0d8b50596843f6",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "byte_length": 3328,
+          "dtype": "float32",
+          "filename": "step07-v-proj-output-f32.bin",
+          "numel": 832,
+          "sha256": "8b0f053680ee6e6ff9e39b4c2f1466e8f3b156161068568ca02c50de61c3a3cc",
+          "shape": [
+            1,
+            13,
             64
           ]
         }

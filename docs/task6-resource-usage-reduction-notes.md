@@ -207,9 +207,10 @@ Implementation update:
   `M2-one-full-block` block-0 contract:
   `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/`.
   The artifact captures all 8 prompt-reference contexts, full-sequence f32
-  block input/output tensors, and last-token symmetric int8 input/output
-  vectors. This is an oracle artifact for the next RTL/fixed-point block
-  lowering step, not yet a board PASS.
+  block input/output tensors, internal substage tensors (`ln_1`, q/k/v
+  projections, attention output, `ln_2`, MLP output), and last-token symmetric
+  int8 input/output vectors. This is an oracle artifact for the next
+  RTL/fixed-point block lowering step, not yet a board PASS.
 - Added `scripts/task6/export_m2_one_block_weight_pack.py` and generated the
   matching block-0 weight pack:
   `artifacts/task6/weights_pack/tiny-stories-1m-m2-block0/`. It contains raw
