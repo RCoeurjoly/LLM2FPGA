@@ -4675,6 +4675,19 @@ EOF
               --out-json "$out/summary.json"
           '';
 
+        task6M2LnAttnSublaneSelftestTbDataSv =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-selftest-tb-data-sv" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_ln_attn_sublane_selftest_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
             sed \
@@ -9257,6 +9270,20 @@ EOF
               ${./sim/task6_m2_full_block_replay_selftest_tb_main.sv}
           '';
 
+        task6M2LnAttnSublaneSelftestSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-selftest-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnSublaneSelftestTbDataSv} \
+              -top task6_m2_ln_attn_sublane_selftest_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_sublane_selftest_top.sv} \
+              ${./sim/task6_m2_ln_attn_sublane_selftest_tb_main.sv}
+          '';
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestSimMain =
           pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -9943,6 +9970,21 @@ EOF
             hierarchy -top task6_m2_full_block_replay_selftest_top -check
             proc
             synth_xilinx -family xc7 -top task6_m2_full_block_replay_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2LnAttnSublaneSelftestJson =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-selftest.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv -I${task6M2LnAttnSublaneSelftestTbDataSv} ${./fpga/rtl/task6_m2_ln_attn_sublane_selftest_top.sv}
+            hierarchy -top task6_m2_ln_attn_sublane_selftest_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_ln_attn_sublane_selftest_top -noiopad
             write_json "$out"
             EOF
             yosys -s run.ys
@@ -10855,6 +10897,14 @@ EOF
             designJson = task6M2FullBlockReplaySelftestJson;
           };
 
+        task6M2LnAttnSublaneSelftestUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-ln-attn-sublane-selftest";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_ln_attn_sublane_selftest_top";
+            designJson = task6M2LnAttnSublaneSelftestJson;
+          };
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestUtilization =
           mkMappedJsonUtilizationReport {
             name = "task6-int8-v4k-l2-residual-add-output-head-selftest";
@@ -11540,6 +11590,28 @@ EOF
               "checksum": "$checksum",
               "sample0": "$sample0",
               "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnSublaneSelftestSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-selftest-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnSublaneSelftestSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn sublane selftest cycles [0-9]+ status [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn-sublane-selftest SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            status="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "cycles": $cycles,
+              "rtl_status": "$status"
             }
             EOF
           '';
@@ -12691,6 +12763,16 @@ EOF
             task6M2FullBlockReplaySelftestJson;
           task6-m2-full-block-replay-selftest-utilization =
             task6M2FullBlockReplaySelftestUtilization;
+          task6-m2-ln-attn-sublane-selftest-tb-data-sv =
+            task6M2LnAttnSublaneSelftestTbDataSv;
+          task6-m2-ln-attn-sublane-selftest-sim-main =
+            task6M2LnAttnSublaneSelftestSimMain;
+          task6-m2-ln-attn-sublane-selftest-sv-sim =
+            task6M2LnAttnSublaneSelftestSvSim;
+          task6-m2-ln-attn-sublane-selftest-json =
+            task6M2LnAttnSublaneSelftestJson;
+          task6-m2-ln-attn-sublane-selftest-utilization =
+            task6M2LnAttnSublaneSelftestUtilization;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
