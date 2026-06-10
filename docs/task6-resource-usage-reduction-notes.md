@@ -227,6 +227,25 @@ Implementation update:
   `.#task6-tinystories-1m-m2-one-block-weight-pack` and
   `.#task6-tinystories-1m-m2-one-block-int8-weight-pack`.
 
+### 2026-06-10 - M2 ln1/qkv fixed-point lowering scout
+
+Added `scripts/task6/score_m2_ln1_qkv_lowering.py` to score the first M2
+internal lowering slice against the block-0 substage oracle:
+
+- `ln_1`: f32 formula replay with f32 gamma/beta reproduces the captured oracle
+  with aggregate normalized RMSE `5.45e-08`.
+- q/k/v projections: per-token symmetric int8 activations plus rowwise symmetric
+  int8 weights and f32 row scales pass the initial `0.02` normalized RMSE
+  threshold. Worst observed per-projection normalized RMSE: q `0.00662`,
+  k `0.00572`, v `0.00785`.
+- Artifact:
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-ln1-qkv-lowering-score.json`.
+- Flake product:
+  `.#task6-tinystories-1m-m2-ln1-qkv-lowering-score`.
+
+Next M2 lowering step: promote q/k/v into a fixed-point replay format suitable
+for RTL, then score attention softmax/value and residual-add boundaries.
+
 Operational update (2026-06-09):
 
 - The reference generator was extended to emit prompt-step `activation_q`, `residual_q`,

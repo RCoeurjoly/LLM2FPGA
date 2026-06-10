@@ -1,0 +1,387 @@
+{
+  "aggregate": {
+    "ln1_f32_replay": {
+      "count": 4864,
+      "max_abs_error": 3.9910028393208563e-07,
+      "normalized_rmse": 5.4476772510345906e-08,
+      "rmse": 6.154865041411563e-08,
+      "signal_rms": 1.1298145535774293
+    },
+    "qkv_int8_replay": {
+      "k": {
+        "max_abs_error": 0.016437776521406433,
+        "max_normalized_rmse": 0.005722027913743361
+      },
+      "q": {
+        "max_abs_error": 0.02102400043268604,
+        "max_normalized_rmse": 0.006620882706816842
+      },
+      "v": {
+        "max_abs_error": 0.0036181921828954133,
+        "max_normalized_rmse": 0.007848529583878425
+      }
+    }
+  },
+  "artifact_name": "h2-tinystories-1m-m2-ln1-qkv-lowering-score",
+  "contract_manifest": "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json",
+  "date": "2026-06-10T10:22:02.612398+00:00",
+  "next_stage": "promote q/k/v projection fixed-point replay",
+  "policy": {
+    "ln1": "f32 formula replay with f32 gamma/beta",
+    "qkv": "per-token symmetric int8 activations, rowwise symmetric int8 weights, f32 row scales"
+  },
+  "schema_version": 1,
+  "stage": "M2-one-full-block",
+  "status": "PASS",
+  "steps": [
+    {
+      "ln1_f32_replay": {
+        "count": 384,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.487467704618636e-08,
+        "rmse": 6.186043047405227e-08,
+        "signal_rms": 1.127303772958631
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 384,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.00563515695203108,
+          "projection": "k",
+          "rmse": 0.003706413627142556,
+          "signal_rms": 0.6577303274235606,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 384,
+          "max_abs_error": 0.014186301412136393,
+          "normalized_rmse": 0.006561630585528745,
+          "projection": "q",
+          "rmse": 0.0035866061427149874,
+          "signal_rms": 0.5466028749965012,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 384,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007848529583878425,
+          "projection": "v",
+          "rmse": 0.0011279225585206336,
+          "signal_rms": 0.14371132152415994,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "sequence_length": 6,
+      "step": 0
+    },
+    {
+      "ln1_f32_replay": {
+        "count": 448,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.2981059517211075e-08,
+        "rmse": 5.975635578671377e-08,
+        "signal_rms": 1.1278814793672014
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 448,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.00538684349458482,
+          "projection": "k",
+          "rmse": 0.0036562068869807718,
+          "signal_rms": 0.6787289979105967,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 448,
+          "max_abs_error": 0.014186301412136393,
+          "normalized_rmse": 0.006300016324994818,
+          "projection": "q",
+          "rmse": 0.0035379451122987504,
+          "signal_rms": 0.5615771340563408,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 448,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007750102348663464,
+          "projection": "v",
+          "rmse": 0.0011109012943370572,
+          "signal_rms": 0.14334020950428308,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "sequence_length": 7,
+      "step": 1
+    },
+    {
+      "ln1_f32_replay": {
+        "count": 512,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.4352820124146614e-08,
+        "rmse": 6.142057502682009e-08,
+        "signal_rms": 1.1300347412798473
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 512,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.00544683917390755,
+          "projection": "k",
+          "rmse": 0.003641385283339946,
+          "signal_rms": 0.6685318158067856,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 512,
+          "max_abs_error": 0.014186301412136393,
+          "normalized_rmse": 0.00623415160466835,
+          "projection": "q",
+          "rmse": 0.003427705034671289,
+          "signal_rms": 0.5498270257182234,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 512,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007834872021697296,
+          "projection": "v",
+          "rmse": 0.0011193183257966254,
+          "signal_rms": 0.14286363870358962,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "sequence_length": 8,
+      "step": 2
+    },
+    {
+      "ln1_f32_replay": {
+        "count": 576,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.273200893411799e-08,
+        "rmse": 5.962339187487469e-08,
+        "signal_rms": 1.1306869030794298
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 576,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.005722027913743361,
+          "projection": "k",
+          "rmse": 0.003782720311710006,
+          "signal_rms": 0.6610803667393059,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 576,
+          "max_abs_error": 0.014186301412136393,
+          "normalized_rmse": 0.006597855609338295,
+          "projection": "q",
+          "rmse": 0.0035088657953818783,
+          "signal_rms": 0.5318191247495011,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 576,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007678593651907318,
+          "projection": "v",
+          "rmse": 0.0011243483148231015,
+          "signal_rms": 0.14642633349191747,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "sequence_length": 9,
+      "step": 3
+    },
+    {
+      "ln1_f32_replay": {
+        "count": 640,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.377790759404179e-08,
+        "rmse": 6.076168888370757e-08,
+        "signal_rms": 1.1298633881850684
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 640,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.005685603377290233,
+          "projection": "k",
+          "rmse": 0.003701355439606294,
+          "signal_rms": 0.6510048615755476,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 640,
+          "max_abs_error": 0.017206243924384967,
+          "normalized_rmse": 0.006620882706816842,
+          "projection": "q",
+          "rmse": 0.0035067855683754007,
+          "signal_rms": 0.5296552927549713,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 640,
+          "max_abs_error": 0.0034435071350451957,
+          "normalized_rmse": 0.007610972921952187,
+          "projection": "v",
+          "rmse": 0.001109652076061466,
+          "signal_rms": 0.1457963505376451,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "sequence_length": 10,
+      "step": 4
+    },
+    {
+      "ln1_f32_replay": {
+        "count": 704,
+        "max_abs_error": 3.288899144138213e-07,
+        "normalized_rmse": 5.288686134793123e-08,
+        "rmse": 5.976807982414148e-08,
+        "signal_rms": 1.1301120599866987
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 704,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.005589691102173258,
+          "projection": "k",
+          "rmse": 0.0036363586768809993,
+          "signal_rms": 0.6505473398104579,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 704,
+          "max_abs_error": 0.017206243924384967,
+          "normalized_rmse": 0.006507546775683931,
+          "projection": "q",
+          "rmse": 0.0034985556036320905,
+          "signal_rms": 0.5376151296683379,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 704,
+          "max_abs_error": 0.0036181921828954133,
+          "normalized_rmse": 0.007405689564488282,
+          "projection": "v",
+          "rmse": 0.0011060246803337812,
+          "signal_rms": 0.1493479669519749,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "sequence_length": 11,
+      "step": 5
+    },
+    {
+      "ln1_f32_replay": {
+        "count": 768,
+        "max_abs_error": 3.9910028393208563e-07,
+        "normalized_rmse": 5.661409786764991e-08,
+        "rmse": 6.401589883013146e-08,
+        "signal_rms": 1.130741303690561
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 768,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.004935293856514122,
+          "projection": "k",
+          "rmse": 0.0036028556824619523,
+          "signal_rms": 0.7300184724981518,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 768,
+          "max_abs_error": 0.02102400043268604,
+          "normalized_rmse": 0.005811207504224761,
+          "projection": "q",
+          "rmse": 0.00353229715805742,
+          "signal_rms": 0.607842200693992,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 768,
+          "max_abs_error": 0.0036181921828954133,
+          "normalized_rmse": 0.00712896602118423,
+          "projection": "v",
+          "rmse": 0.0011087915239678984,
+          "signal_rms": 0.15553328781102974,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "sequence_length": 12,
+      "step": 6
+    },
+    {
+      "ln1_f32_replay": {
+        "count": 832,
+        "max_abs_error": 3.9910028393208563e-07,
+        "normalized_rmse": 5.616989142004512e-08,
+        "rmse": 6.347912277149198e-08,
+        "signal_rms": 1.1301272116904688
+      },
+      "qkv_int8_replay": {
+        "k": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 832,
+          "max_abs_error": 0.016437776521406433,
+          "normalized_rmse": 0.005063309468049362,
+          "projection": "k",
+          "rmse": 0.0036508489546501284,
+          "signal_rms": 0.7210400584218323,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "q": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 832,
+          "max_abs_error": 0.02102400043268604,
+          "normalized_rmse": 0.005785247166658687,
+          "projection": "q",
+          "rmse": 0.0035304655673323577,
+          "signal_rms": 0.6102531950024539,
+          "weight_quantization": "rowwise-symmetric-int8"
+        },
+        "v": {
+          "activation_quantization": "per-token symmetric int8",
+          "count": 832,
+          "max_abs_error": 0.0036181921828954133,
+          "normalized_rmse": 0.007115840068819854,
+          "projection": "v",
+          "rmse": 0.0011137210796893287,
+          "signal_rms": 0.15651294420871334,
+          "weight_quantization": "rowwise-symmetric-int8"
+        }
+      },
+      "sequence_length": 13,
+      "step": 7
+    }
+  ],
+  "thresholds": {
+    "ln1_normalized_rmse": 1e-06,
+    "qkv_normalized_rmse": 0.02
+  },
+  "weight_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-m2-block0-int8/manifest.json"
+}
