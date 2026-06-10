@@ -246,6 +246,32 @@ internal lowering slice against the block-0 substage oracle:
 Next M2 lowering step: promote q/k/v into a fixed-point replay format suitable
 for RTL, then score attention softmax/value and residual-add boundaries.
 
+### 2026-06-10 - M2 attention/residual lowering scout
+
+Extended the M2 lowering scorer through causal GPT-Neo block-0 attention:
+
+- Attention path: replayed q/k/v projections are split into 16 heads, scored
+  with causal scaled-dot-product softmax, multiplied by replayed v, merged, and
+  run through the int8 rowwise out projection plus f32 bias.
+- Raw attention-output score passes the scout threshold `0.12` normalized RMSE;
+  observed aggregate normalized RMSE is about `0.094` with max absolute error
+  about `0.0121`. The threshold is intentionally looser than q/k/v because the
+  attention output signal RMS is small.
+- Removing context requantization barely changes the attention score, so the
+  dominant error is q/k/v approximation through softmax, not the out-projection
+  activation requantization.
+- Attention residual boundary passes the stricter downstream check:
+  `ln_2(block_input + replayed_attention_output)` aggregate normalized RMSE is
+  about `0.022`, below the `0.05` threshold.
+- Artifact:
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-attention-lowering-score.json`.
+- Canonical flake product:
+  `.#task6-tinystories-1m-m2-attention-lowering-score`.
+
+Next M2 lowering step: score the `ln_2 -> MLP/PWL GELU -> c_proj -> residual`
+path against the M2 block oracle, then decide whether the combined one-block
+fixed-point replay is accurate enough to generate RTL.
+
 Operational update (2026-06-09):
 
 - The reference generator was extended to emit prompt-step `activation_q`, `residual_q`,
