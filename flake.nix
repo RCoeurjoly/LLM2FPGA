@@ -4675,6 +4675,13 @@ EOF
               --out-json "$out/summary.json"
           '';
 
+        task6M2FullBlockReplayAccelTop =
+          pkgs.runCommand "task6-m2-full-block-replay-accel-top.sv" { } ''
+            sed 's|"tb_data.sv"|"${task6M2FullBlockReplaySelftestTbDataSv}/tb_data.sv"|g' \
+              ${./fpga/rtl/task6_m2_full_block_replay_accel_top.sv} \
+              > "$out"
+          '';
+
         task6M2LnAttnSublaneSelftestTbDataSv =
           pkgs.runCommand "task6-m2-ln-attn-sublane-selftest-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -6619,6 +6626,7 @@ EOF
               ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
               ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
               ${task6Int8L2MlpChainResidualAddAccelTop} \
+              ${task6M2FullBlockReplayAccelTop} \
               ${./rtl/task6/task6_q024_topk_score_compare.sv} \
               ${./rtl/task6/task6_ddr3_rowstream_top1_cutout.sv} \
               ${./rtl/task6/task6_ddr3_rowstream_wb_top1_reader.sv} \
@@ -9395,18 +9403,25 @@ EOF
               ${./sim/task6_ddr3_rowstream_top1_cutout_tb.sv}
           '';
 
-        task6Ddr3RowstreamWbTop1ReaderSimMain =
-          pkgs.runCommand "task6-ddr3-rowstream-wb-top1-reader-sim-main" {
+        task6Ddr3RowstreamWbTop1ReaderSimMainFor =
+          wbDataBits: pkgs.runCommand "task6-ddr3-rowstream-wb-top1-reader-${toString wbDataBits}-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
           } ''
             set -euo pipefail
             mkdir -p "$out/obj_dir"
             verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -DTASK6_TOP1_READER_WB_DATA_BITS=${toString wbDataBits} \
               -top task6_ddr3_rowstream_wb_top1_reader_tb \
               -Mdir "$out/obj_dir" -o sim_main \
               ${./rtl/task6/task6_ddr3_rowstream_wb_top1_reader.sv} \
               ${./sim/task6_ddr3_rowstream_wb_top1_reader_tb.sv}
           '';
+
+        task6Ddr3RowstreamWbTop1ReaderSimMain =
+          task6Ddr3RowstreamWbTop1ReaderSimMainFor 128;
+
+        task6Ddr3RowstreamWbTop1Reader64SimMain =
+          task6Ddr3RowstreamWbTop1ReaderSimMainFor 64;
 
         task6UberDdr3RowstreamLoaderContractSimMain =
           pkgs.runCommand "task6-uberddr3-rowstream-loader-contract-sim-main" {
@@ -12927,6 +12942,8 @@ EOF
             task6Ddr3RowStreamCutoutSvSim;
           task6-ddr3-rowstream-wb-top1-reader-sim-main =
             task6Ddr3RowstreamWbTop1ReaderSimMain;
+          task6-ddr3-rowstream-wb-top1-reader-64-sim-main =
+            task6Ddr3RowstreamWbTop1Reader64SimMain;
           task6-uberddr3-rowstream-loader-contract-sim-main =
             task6UberDdr3RowstreamLoaderContractSimMain;
           task6-pcie-axil-rowstream-loopback-sim-main =

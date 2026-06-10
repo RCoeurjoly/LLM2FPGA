@@ -32,7 +32,10 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top #(
     .DDR_BYTE_LANES(DDR_BYTE_LANES),
     .ENABLE_PCIE_TOP1(1'b1),
     .ENABLE_PCIE_MLP_SELFTEST(1'b0),
-    .ENABLE_PCIE_MLP_ACCEL(1'b1)
+    // Keep this pnr100 target focused on rowstream/top1 debug. The replay-heavy
+    // M2 lane remains separately validated until the AXI-Lite mux is pipelined.
+    .ENABLE_PCIE_MLP_ACCEL(1'b0),
+    .ENABLE_PCIE_M2_FULL_BLOCK_ACCEL(1'b0)
   ) impl (
     .pci_exp_txp(pci_exp_txp),
     .pci_exp_txn(pci_exp_txn),

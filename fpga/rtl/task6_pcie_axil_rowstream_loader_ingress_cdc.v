@@ -81,7 +81,19 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     input wire [31:0]  rowstream_mlp_accel_output_checksum_i,
     input wire [31:0]  rowstream_mlp_accel_output_sample0_i,
     input wire [31:0]  rowstream_mlp_accel_output_sample1_i,
-    input wire [511:0] rowstream_mlp_accel_output_vector_i
+    input wire [511:0] rowstream_mlp_accel_output_vector_i,
+
+    output reg [511:0] rowstream_m2_full_block_input_vector_o,
+    output reg [511:0] rowstream_m2_full_block_residual_vector_o,
+    output reg         rowstream_m2_full_block_start_o,
+    output reg         rowstream_m2_full_block_clear_o,
+    input wire [31:0]  rowstream_m2_full_block_status_i,
+    input wire [31:0]  rowstream_m2_full_block_cycle_count_i,
+    input wire [31:0]  rowstream_m2_full_block_output_checksum_i,
+    input wire [31:0]  rowstream_m2_full_block_output_sample0_i,
+    input wire [31:0]  rowstream_m2_full_block_output_sample1_i,
+    input wire [31:0]  rowstream_m2_full_block_output_count_i,
+    input wire [511:0] rowstream_m2_full_block_output_vector_i
 );
     wire [COMMAND_WIDTH - 1:0] pcie_command_payload;
     wire pcie_command_event;
@@ -93,6 +105,10 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     wire [511:0] pcie_mlp_accel_residual_vector;
     wire pcie_mlp_accel_start;
     wire pcie_mlp_accel_clear;
+    wire [511:0] pcie_m2_full_block_input_vector;
+    wire [511:0] pcie_m2_full_block_residual_vector;
+    wire pcie_m2_full_block_start;
+    wire pcie_m2_full_block_clear;
 
     reg req_toggle_pcie_q;
     reg clear_toggle_pcie_q;
@@ -100,10 +116,14 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg top1_clear_toggle_pcie_q;
     reg mlp_accel_start_toggle_pcie_q;
     reg mlp_accel_clear_toggle_pcie_q;
+    reg m2_full_block_start_toggle_pcie_q;
+    reg m2_full_block_clear_toggle_pcie_q;
     reg [COMMAND_WIDTH - 1:0] payload_hold_pcie_q;
     reg [511:0] top1_hidden_hold_pcie_q;
     reg [511:0] mlp_accel_activation_hold_pcie_q;
     reg [511:0] mlp_accel_residual_hold_pcie_q;
+    reg [511:0] m2_full_block_input_hold_pcie_q;
+    reg [511:0] m2_full_block_residual_hold_pcie_q;
 
     reg [2:0] req_sync_row_q;
     reg req_seen_row_q;
@@ -117,6 +137,10 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg mlp_accel_start_seen_row_q;
     reg [2:0] mlp_accel_clear_sync_row_q;
     reg mlp_accel_clear_seen_row_q;
+    reg [2:0] m2_full_block_start_sync_row_q;
+    reg m2_full_block_start_seen_row_q;
+    reg [2:0] m2_full_block_clear_sync_row_q;
+    reg m2_full_block_clear_seen_row_q;
 
     reg [2:0] calib_complete_sync_pcie_q;
     reg [2:0] boot_done_sync_pcie_q;
@@ -160,6 +184,13 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [31:0] mlp_accel_output_checksum_pcie_q;
     reg [31:0] mlp_accel_output_sample0_pcie_q;
     reg [31:0] mlp_accel_output_sample1_pcie_q;
+    reg [31:0] m2_full_block_status_pcie_q;
+    reg [31:0] m2_full_block_cycle_count_pcie_q;
+    reg [31:0] m2_full_block_output_checksum_pcie_q;
+    reg [31:0] m2_full_block_output_sample0_pcie_q;
+    reg [31:0] m2_full_block_output_sample1_pcie_q;
+    reg [31:0] m2_full_block_output_count_pcie_q;
+    reg [511:0] m2_full_block_output_vector_pcie_q;
     reg [31:0] rowstream_clk_counter_q;
     wire rowstream_heartbeat_edge = rowstream_heartbeat_sync_pcie_q[2] ^ rowstream_heartbeat_last_pcie_q;
 
@@ -236,7 +267,18 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
         .mlp_accel_output_checksum_i(mlp_accel_output_checksum_pcie_q),
         .mlp_accel_output_sample0_i(mlp_accel_output_sample0_pcie_q),
         .mlp_accel_output_sample1_i(mlp_accel_output_sample1_pcie_q),
-        .mlp_accel_output_vector_i(512'd0)
+        .mlp_accel_output_vector_i(rowstream_mlp_accel_output_vector_i),
+        .m2_full_block_input_vector_o(pcie_m2_full_block_input_vector),
+        .m2_full_block_residual_vector_o(pcie_m2_full_block_residual_vector),
+        .m2_full_block_start_pulse_o(pcie_m2_full_block_start),
+        .m2_full_block_clear_pulse_o(pcie_m2_full_block_clear),
+        .m2_full_block_status_i(m2_full_block_status_pcie_q),
+        .m2_full_block_cycle_count_i(m2_full_block_cycle_count_pcie_q),
+        .m2_full_block_output_checksum_i(m2_full_block_output_checksum_pcie_q),
+        .m2_full_block_output_sample0_i(m2_full_block_output_sample0_pcie_q),
+        .m2_full_block_output_sample1_i(m2_full_block_output_sample1_pcie_q),
+        .m2_full_block_output_count_i(m2_full_block_output_count_pcie_q),
+        .m2_full_block_output_vector_i(m2_full_block_output_vector_pcie_q)
     );
 
     always @(posedge pcie_clk or negedge pcie_rst_n) begin
@@ -247,10 +289,14 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             top1_clear_toggle_pcie_q <= 1'b0;
             mlp_accel_start_toggle_pcie_q <= 1'b0;
             mlp_accel_clear_toggle_pcie_q <= 1'b0;
+            m2_full_block_start_toggle_pcie_q <= 1'b0;
+            m2_full_block_clear_toggle_pcie_q <= 1'b0;
             payload_hold_pcie_q <= {COMMAND_WIDTH{1'b0}};
             top1_hidden_hold_pcie_q <= 512'd0;
             mlp_accel_activation_hold_pcie_q <= 512'd0;
             mlp_accel_residual_hold_pcie_q <= 512'd0;
+            m2_full_block_input_hold_pcie_q <= 512'd0;
+            m2_full_block_residual_hold_pcie_q <= 512'd0;
             calib_complete_sync_pcie_q <= 3'd0;
             boot_done_sync_pcie_q <= 3'd0;
             loader_done_sync_pcie_q <= 3'd0;
@@ -293,6 +339,13 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             mlp_accel_output_checksum_pcie_q <= 32'd0;
             mlp_accel_output_sample0_pcie_q <= 32'd0;
             mlp_accel_output_sample1_pcie_q <= 32'd0;
+            m2_full_block_status_pcie_q <= 32'd0;
+            m2_full_block_cycle_count_pcie_q <= 32'd0;
+            m2_full_block_output_checksum_pcie_q <= 32'd0;
+            m2_full_block_output_sample0_pcie_q <= 32'd0;
+            m2_full_block_output_sample1_pcie_q <= 32'd0;
+            m2_full_block_output_count_pcie_q <= 32'd0;
+            m2_full_block_output_vector_pcie_q <= 512'd0;
         end else begin
             if (pcie_command_event) begin
                 payload_hold_pcie_q <= pcie_command_payload;
@@ -313,6 +366,13 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             end
             if (pcie_mlp_accel_clear)
                 mlp_accel_clear_toggle_pcie_q <= ~mlp_accel_clear_toggle_pcie_q;
+            if (pcie_m2_full_block_start) begin
+                m2_full_block_input_hold_pcie_q <= pcie_m2_full_block_input_vector;
+                m2_full_block_residual_hold_pcie_q <= pcie_m2_full_block_residual_vector;
+                m2_full_block_start_toggle_pcie_q <= ~m2_full_block_start_toggle_pcie_q;
+            end
+            if (pcie_m2_full_block_clear)
+                m2_full_block_clear_toggle_pcie_q <= ~m2_full_block_clear_toggle_pcie_q;
 
             calib_complete_sync_pcie_q <= {calib_complete_sync_pcie_q[1:0], rowstream_calib_complete_i};
             boot_done_sync_pcie_q <= {boot_done_sync_pcie_q[1:0], rowstream_boot_done_i};
@@ -361,6 +421,13 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             mlp_accel_output_checksum_pcie_q <= rowstream_mlp_accel_output_checksum_i;
             mlp_accel_output_sample0_pcie_q <= rowstream_mlp_accel_output_sample0_i;
             mlp_accel_output_sample1_pcie_q <= rowstream_mlp_accel_output_sample1_i;
+            m2_full_block_status_pcie_q <= rowstream_m2_full_block_status_i;
+            m2_full_block_cycle_count_pcie_q <= rowstream_m2_full_block_cycle_count_i;
+            m2_full_block_output_checksum_pcie_q <= rowstream_m2_full_block_output_checksum_i;
+            m2_full_block_output_sample0_pcie_q <= rowstream_m2_full_block_output_sample0_i;
+            m2_full_block_output_sample1_pcie_q <= rowstream_m2_full_block_output_sample1_i;
+            m2_full_block_output_count_pcie_q <= rowstream_m2_full_block_output_count_i;
+            m2_full_block_output_vector_pcie_q <= rowstream_m2_full_block_output_vector_i;
         end
     end
 
@@ -385,6 +452,10 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             mlp_accel_start_seen_row_q <= 1'b0;
             mlp_accel_clear_sync_row_q <= 3'd0;
             mlp_accel_clear_seen_row_q <= 1'b0;
+            m2_full_block_start_sync_row_q <= 3'd0;
+            m2_full_block_start_seen_row_q <= 1'b0;
+            m2_full_block_clear_sync_row_q <= 3'd0;
+            m2_full_block_clear_seen_row_q <= 1'b0;
             rowstream_command_payload_o <= {COMMAND_WIDTH{1'b0}};
             rowstream_command_event_o <= 1'b0;
             rowstream_status_clear_o <= 1'b0;
@@ -395,6 +466,10 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             rowstream_mlp_accel_residual_vector_o <= 512'd0;
             rowstream_mlp_accel_start_o <= 1'b0;
             rowstream_mlp_accel_clear_o <= 1'b0;
+            rowstream_m2_full_block_input_vector_o <= 512'd0;
+            rowstream_m2_full_block_residual_vector_o <= 512'd0;
+            rowstream_m2_full_block_start_o <= 1'b0;
+            rowstream_m2_full_block_clear_o <= 1'b0;
         end else begin
             req_sync_row_q <= {req_sync_row_q[1:0], req_toggle_pcie_q};
             clear_sync_row_q <= {clear_sync_row_q[1:0], clear_toggle_pcie_q};
@@ -402,12 +477,16 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             top1_clear_sync_row_q <= {top1_clear_sync_row_q[1:0], top1_clear_toggle_pcie_q};
             mlp_accel_start_sync_row_q <= {mlp_accel_start_sync_row_q[1:0], mlp_accel_start_toggle_pcie_q};
             mlp_accel_clear_sync_row_q <= {mlp_accel_clear_sync_row_q[1:0], mlp_accel_clear_toggle_pcie_q};
+            m2_full_block_start_sync_row_q <= {m2_full_block_start_sync_row_q[1:0], m2_full_block_start_toggle_pcie_q};
+            m2_full_block_clear_sync_row_q <= {m2_full_block_clear_sync_row_q[1:0], m2_full_block_clear_toggle_pcie_q};
             rowstream_command_event_o <= 1'b0;
             rowstream_status_clear_o <= 1'b0;
             rowstream_top1_start_o <= 1'b0;
             rowstream_top1_status_clear_o <= 1'b0;
             rowstream_mlp_accel_start_o <= 1'b0;
             rowstream_mlp_accel_clear_o <= 1'b0;
+            rowstream_m2_full_block_start_o <= 1'b0;
+            rowstream_m2_full_block_clear_o <= 1'b0;
 
             if (req_sync_row_q[2] ^ req_seen_row_q) begin
                 req_seen_row_q <= req_sync_row_q[2];
@@ -436,6 +515,16 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             if (mlp_accel_clear_sync_row_q[2] ^ mlp_accel_clear_seen_row_q) begin
                 mlp_accel_clear_seen_row_q <= mlp_accel_clear_sync_row_q[2];
                 rowstream_mlp_accel_clear_o <= 1'b1;
+            end
+            if (m2_full_block_start_sync_row_q[2] ^ m2_full_block_start_seen_row_q) begin
+                m2_full_block_start_seen_row_q <= m2_full_block_start_sync_row_q[2];
+                rowstream_m2_full_block_input_vector_o <= m2_full_block_input_hold_pcie_q;
+                rowstream_m2_full_block_residual_vector_o <= m2_full_block_residual_hold_pcie_q;
+                rowstream_m2_full_block_start_o <= 1'b1;
+            end
+            if (m2_full_block_clear_sync_row_q[2] ^ m2_full_block_clear_seen_row_q) begin
+                m2_full_block_clear_seen_row_q <= m2_full_block_clear_sync_row_q[2];
+                rowstream_m2_full_block_clear_o <= 1'b1;
             end
         end
     end

@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "bridge-rescan",
+    "0000:42:00.0",
+    "0000:41:00.0"
+  ],
+  "name": "bridge_rescan-0",
+  "dry_run": false,
+  "returncode": 0,
+  "stdout": "PASS: rescanned Task 6 upstream bridge 0000:41:00.0\n",
+  "stderr": "",
+  "timeout": false
+}

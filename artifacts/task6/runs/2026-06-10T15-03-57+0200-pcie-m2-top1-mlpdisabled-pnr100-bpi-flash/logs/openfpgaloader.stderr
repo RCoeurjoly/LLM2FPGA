@@ -1,0 +1,5 @@
+BPI Flash error: status = 0xff
+Buffered program failed at address 0x10cbc00
+
+Fail
+Error: Failed to program FPGA: BPI flash programming failed

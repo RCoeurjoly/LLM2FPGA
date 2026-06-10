@@ -1,0 +1,83 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T18-55-41+0200-rowstream-top1-debug-pnr100-bringup-recover",
+  "final_classification": "pcie_ready",
+  "final_action": "done",
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "missing_resource0",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T18-55-41+0200-rowstream-top1-debug-pnr100-bringup-recover-lifecycle-0"
+    },
+    {
+      "action": "needs_physical_power_cycle",
+      "reason": "software recovery did not produce a live BAR",
+      "command": null
+    },
+    {
+      "action": "power_cycle",
+      "result": {
+        "provider": "tapo-p115",
+        "target": "192.168.1.136",
+        "dry_run": false,
+        "off_wait_s": 10.0,
+        "on_wait_s": 45.0,
+        "off_command": [
+          "nix",
+          "shell",
+          "nixpkgs#uv",
+          "-c",
+          "uv",
+          "run",
+          "--with",
+          "tapo",
+          "python3",
+          "scripts/task6/task6_tapo_p115_power.py",
+          "--backend",
+          "tapo",
+          "--host",
+          "192.168.1.136",
+          "--username",
+          "rolandcoeurjoly@gmail.com",
+          "--password",
+          "<redacted>",
+          "--state",
+          "off"
+        ],
+        "on_command": [
+          "nix",
+          "shell",
+          "nixpkgs#uv",
+          "-c",
+          "uv",
+          "run",
+          "--with",
+          "tapo",
+          "python3",
+          "scripts/task6/task6_tapo_p115_power.py",
+          "--backend",
+          "tapo",
+          "--host",
+          "192.168.1.136",
+          "--username",
+          "rolandcoeurjoly@gmail.com",
+          "--password",
+          "<redacted>",
+          "--state",
+          "on"
+        ],
+        "off_returncode": 0,
+        "on_returncode": 0
+      }
+    },
+    {
+      "action": "lifecycle",
+      "classification": "pcie_ready",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T18-56-38+0200-rowstream-top1-debug-pnr100-bringup-recover-lifecycle-1"
+    },
+    {
+      "action": "done",
+      "reason": "PCIe lifecycle and BAR preflight are ready",
+      "command": null
+    }
+  ]
+}

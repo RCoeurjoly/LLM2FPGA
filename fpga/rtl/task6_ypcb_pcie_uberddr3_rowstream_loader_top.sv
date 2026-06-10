@@ -5,7 +5,8 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
   parameter int DDR_BYTE_LANES = 1,
   parameter bit ENABLE_PCIE_TOP1 = 1'b1,
   parameter bit ENABLE_PCIE_MLP_SELFTEST = 1'b0,
-  parameter bit ENABLE_PCIE_MLP_ACCEL = ENABLE_PCIE_MLP_SELFTEST
+  parameter bit ENABLE_PCIE_MLP_ACCEL = ENABLE_PCIE_MLP_SELFTEST,
+  parameter bit ENABLE_PCIE_M2_FULL_BLOCK_ACCEL = 1'b0
 ) (
   output wire        pci_exp_txp,
   output wire        pci_exp_txn,
@@ -86,6 +87,17 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
   wire [31:0] rowstream_mlp_accel_output_sample0;
   wire [31:0] rowstream_mlp_accel_output_sample1;
   wire [511:0] rowstream_mlp_accel_output_vector;
+  wire [511:0] rowstream_m2_full_block_input_vector;
+  wire [511:0] rowstream_m2_full_block_residual_vector;
+  wire rowstream_m2_full_block_start;
+  wire rowstream_m2_full_block_clear;
+  wire [31:0] rowstream_m2_full_block_status;
+  wire [31:0] rowstream_m2_full_block_cycle_count;
+  wire [31:0] rowstream_m2_full_block_output_checksum;
+  wire [31:0] rowstream_m2_full_block_output_sample0;
+  wire [31:0] rowstream_m2_full_block_output_sample1;
+  wire [31:0] rowstream_m2_full_block_output_count;
+  wire [511:0] rowstream_m2_full_block_output_vector;
 
   wire [3:0] pcie_led;
   assign led[0] = rowstream_boot_done;
@@ -217,7 +229,18 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .rowstream_mlp_accel_output_checksum_i(rowstream_mlp_accel_output_checksum),
     .rowstream_mlp_accel_output_sample0_i(rowstream_mlp_accel_output_sample0),
     .rowstream_mlp_accel_output_sample1_i(rowstream_mlp_accel_output_sample1),
-    .rowstream_mlp_accel_output_vector_i(rowstream_mlp_accel_output_vector)
+    .rowstream_mlp_accel_output_vector_i(rowstream_mlp_accel_output_vector),
+    .rowstream_m2_full_block_input_vector_o(rowstream_m2_full_block_input_vector),
+    .rowstream_m2_full_block_residual_vector_o(rowstream_m2_full_block_residual_vector),
+    .rowstream_m2_full_block_start_o(rowstream_m2_full_block_start),
+    .rowstream_m2_full_block_clear_o(rowstream_m2_full_block_clear),
+    .rowstream_m2_full_block_status_i(rowstream_m2_full_block_status),
+    .rowstream_m2_full_block_cycle_count_i(rowstream_m2_full_block_cycle_count),
+    .rowstream_m2_full_block_output_checksum_i(rowstream_m2_full_block_output_checksum),
+    .rowstream_m2_full_block_output_sample0_i(rowstream_m2_full_block_output_sample0),
+    .rowstream_m2_full_block_output_sample1_i(rowstream_m2_full_block_output_sample1),
+    .rowstream_m2_full_block_output_count_i(rowstream_m2_full_block_output_count),
+    .rowstream_m2_full_block_output_vector_i(rowstream_m2_full_block_output_vector)
   );
 
   generate
@@ -283,6 +306,34 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
       assign rowstream_mlp_accel_output_sample0 = 32'd0;
       assign rowstream_mlp_accel_output_sample1 = 32'd0;
       assign rowstream_mlp_accel_output_vector = 512'd0;
+    end
+  endgenerate
+
+  generate
+    if (ENABLE_PCIE_M2_FULL_BLOCK_ACCEL) begin : gen_pcie_m2_full_block_accel
+      task6_m2_full_block_replay_accel_top m2_full_block_accel (
+        .SYS_CLK(rowstream_clk),
+        .SYS_RSTN(rowstream_rst_n),
+        .pcie_block_input_i(rowstream_m2_full_block_input_vector),
+        .pcie_residual_after_attention_i(rowstream_m2_full_block_residual_vector),
+        .pcie_start_pulse_i(rowstream_m2_full_block_start),
+        .pcie_clear_pulse_i(rowstream_m2_full_block_clear),
+        .pcie_status_o(rowstream_m2_full_block_status),
+        .pcie_cycle_count_o(rowstream_m2_full_block_cycle_count),
+        .pcie_output_checksum_o(rowstream_m2_full_block_output_checksum),
+        .pcie_output_sample0_o(rowstream_m2_full_block_output_sample0),
+        .pcie_output_sample1_o(rowstream_m2_full_block_output_sample1),
+        .pcie_output_count_o(rowstream_m2_full_block_output_count),
+        .pcie_output_vector_o(rowstream_m2_full_block_output_vector)
+      );
+    end else begin : gen_no_pcie_m2_full_block_accel
+      assign rowstream_m2_full_block_status = 32'd0;
+      assign rowstream_m2_full_block_cycle_count = 32'd0;
+      assign rowstream_m2_full_block_output_checksum = 32'd0;
+      assign rowstream_m2_full_block_output_sample0 = 32'd0;
+      assign rowstream_m2_full_block_output_sample1 = 32'd0;
+      assign rowstream_m2_full_block_output_count = 32'd0;
+      assign rowstream_m2_full_block_output_vector = 512'd0;
     end
   endgenerate
 

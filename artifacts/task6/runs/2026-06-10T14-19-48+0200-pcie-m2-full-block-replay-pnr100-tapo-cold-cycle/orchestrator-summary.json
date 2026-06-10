@@ -1,0 +1,83 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T14-19-48+0200-pcie-m2-full-block-replay-pnr100-tapo-cold-cycle",
+  "final_classification": "pcie_ready",
+  "final_action": "done",
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "missing_resource0",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T14-19-48+0200-pcie-m2-full-block-replay-pnr100-tapo-cold-cycle-lifecycle-0"
+    },
+    {
+      "action": "needs_physical_power_cycle",
+      "reason": "software recovery did not produce a live BAR",
+      "command": null
+    },
+    {
+      "action": "power_cycle",
+      "result": {
+        "provider": "tapo-p115",
+        "target": "192.168.1.136",
+        "dry_run": false,
+        "off_wait_s": 10.0,
+        "on_wait_s": 30.0,
+        "off_command": [
+          "nix",
+          "shell",
+          "nixpkgs#uv",
+          "-c",
+          "uv",
+          "run",
+          "--with",
+          "tapo",
+          "python3",
+          "scripts/task6/task6_tapo_p115_power.py",
+          "--backend",
+          "tapo",
+          "--host",
+          "192.168.1.136",
+          "--username",
+          "rolandcoeurjoly@gmail.com",
+          "--password",
+          "<redacted>",
+          "--state",
+          "off"
+        ],
+        "on_command": [
+          "nix",
+          "shell",
+          "nixpkgs#uv",
+          "-c",
+          "uv",
+          "run",
+          "--with",
+          "tapo",
+          "python3",
+          "scripts/task6/task6_tapo_p115_power.py",
+          "--backend",
+          "tapo",
+          "--host",
+          "192.168.1.136",
+          "--username",
+          "rolandcoeurjoly@gmail.com",
+          "--password",
+          "<redacted>",
+          "--state",
+          "on"
+        ],
+        "off_returncode": 0,
+        "on_returncode": 0
+      }
+    },
+    {
+      "action": "lifecycle",
+      "classification": "pcie_ready",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T14-20-29+0200-pcie-m2-full-block-replay-pnr100-tapo-cold-cycle-lifecycle-1"
+    },
+    {
+      "action": "done",
+      "reason": "PCIe lifecycle and BAR preflight are ready",
+      "command": null
+    }
+  ]
+}

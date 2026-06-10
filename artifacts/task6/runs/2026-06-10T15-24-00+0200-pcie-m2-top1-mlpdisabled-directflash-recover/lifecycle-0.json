@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "pcie-m2-top1-mlpdisabled-directflash-recover-lifecycle-0"
+  ],
+  "name": "lifecycle-0",
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "classification: config_unreadable\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T15-24-00+0200-pcie-m2-top1-mlpdisabled-directflash-recover-lifecycle-0\nnext:\n- Config space is not readable yet; wait briefly or power-cycle the chassis, then run the non-BAR lifecycle probe: scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0\n",
+  "stderr": "",
+  "timeout": false
+}

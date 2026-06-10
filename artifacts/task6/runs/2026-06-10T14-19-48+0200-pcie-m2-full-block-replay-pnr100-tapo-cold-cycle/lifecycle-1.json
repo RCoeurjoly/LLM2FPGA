@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "lifecycle",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "pcie-m2-full-block-replay-pnr100-tapo-cold-cycle-lifecycle-1"
+  ],
+  "name": "lifecycle-1",
+  "dry_run": false,
+  "returncode": 0,
+  "stdout": "classification: pcie_ready\nrun_dir: /home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T14-20-29+0200-pcie-m2-full-block-replay-pnr100-tapo-cold-cycle-lifecycle-1\nnext:\n- If this pcie_ready state followed delegated missing_resource0 recovery, do not run BAR gates; power-cycle the chassis first.\n- If this is a clean post-power-cycle pcie_ready state, run the intended acceptance gate directly and avoid exploratory BAR/debug probes.\n- First board top1 gate shape: scripts/task6/task6_pcie_user_gate.sh rowstream-top1 0000:42:00.0 --sample-count 1\n",
+  "stderr": "",
+  "timeout": false
+}

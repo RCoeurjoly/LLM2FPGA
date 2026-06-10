@@ -8,7 +8,7 @@ BDF="${2:-$ALLOWED_BDF}"
 
 usage() {
   cat >&2 <<'EOF'
-usage: scripts/task6/task6_pcie_user_gate.sh <bringup-full|recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
+usage: scripts/task6/task6_pcie_user_gate.sh <bringup-full|recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|m2-full-block|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
 
 Rootless Task 6 PCIe gate dispatcher. This assumes the Task 6 YPCB PCIe udev
 rule has enabled PCI memory space, granted plugdev read/write access to
@@ -19,7 +19,7 @@ EOF
 }
 
 case "$MODE" in
-  bringup-full|recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
+  bringup-full|recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|m2-full-block|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 
@@ -125,6 +125,7 @@ case "$MODE" in
   debug-dump) exec python3 "$ROOT/scripts/task6/task6_pcie_debug_dump.py" "$BDF" "${@:3}" ;;
   mlp-boundary) exec python3 "$ROOT/scripts/task6/task6_pcie_mlp_boundary_gate.py" "$BDF" "${@:3}" ;;
   mlp-accel) exec python3 "$ROOT/scripts/task6/task6_pcie_mlp_accel_gate.py" "$BDF" "${@:3}" ;;
+  m2-full-block) exec python3 "$ROOT/scripts/task6/task6_pcie_m2_full_block_gate.py" "$BDF" "${@:3}" ;;
   prompt-infer) exec python3 "$ROOT/scripts/task6/task6_prompt_infer.py" "$BDF" "${@:3}" ;;
   rowstream-loopback) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_loopback_smoke.py" "$BDF" "${@:3}" ;;
   rowstream-loader) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_loader_smoke.py" "$BDF" "${@:3}" ;;

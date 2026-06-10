@@ -1,0 +1,98 @@
+{
+  "run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T15-10-49+0200-pcie-m2-top1-mlpdisabled-pnr100-recover",
+  "final_classification": "missing_endpoint",
+  "final_action": "needs_physical_power_cycle",
+  "transcript": [
+    {
+      "action": "lifecycle",
+      "classification": "corrupt_command",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T15-10-49+0200-pcie-m2-top1-mlpdisabled-pnr100-recover-lifecycle-0"
+    },
+    {
+      "action": "needs_physical_power_cycle",
+      "reason": "software recovery did not produce a live BAR",
+      "command": null
+    },
+    {
+      "action": "power_cycle",
+      "result": {
+        "provider": "tapo-p115",
+        "target": "192.168.1.136",
+        "dry_run": false,
+        "off_wait_s": 10.0,
+        "on_wait_s": 30.0,
+        "off_command": [
+          "nix",
+          "shell",
+          "nixpkgs#uv",
+          "-c",
+          "uv",
+          "run",
+          "--with",
+          "tapo",
+          "python3",
+          "scripts/task6/task6_tapo_p115_power.py",
+          "--backend",
+          "tapo",
+          "--host",
+          "192.168.1.136",
+          "--username",
+          "rolandcoeurjoly@gmail.com",
+          "--password",
+          "<redacted>",
+          "--state",
+          "off"
+        ],
+        "on_command": [
+          "nix",
+          "shell",
+          "nixpkgs#uv",
+          "-c",
+          "uv",
+          "run",
+          "--with",
+          "tapo",
+          "python3",
+          "scripts/task6/task6_tapo_p115_power.py",
+          "--backend",
+          "tapo",
+          "--host",
+          "192.168.1.136",
+          "--username",
+          "rolandcoeurjoly@gmail.com",
+          "--password",
+          "<redacted>",
+          "--state",
+          "on"
+        ],
+        "off_returncode": 0,
+        "on_returncode": 0
+      }
+    },
+    {
+      "action": "lifecycle",
+      "classification": "missing_endpoint",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T15-11-30+0200-pcie-m2-top1-mlpdisabled-pnr100-recover-lifecycle-1"
+    },
+    {
+      "action": "bridge_rescan",
+      "reason": "endpoint is absent but the upstream bridge may rescan it",
+      "command": [
+        "scripts/task6/task6_pcie_user_gate.sh",
+        "bridge-rescan",
+        "0000:42:00.0",
+        "0000:41:00.0"
+      ]
+    },
+    {
+      "action": "lifecycle",
+      "classification": "missing_endpoint",
+      "lifecycle_run_dir": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T15-11-31+0200-pcie-m2-top1-mlpdisabled-pnr100-recover-lifecycle-2"
+    },
+    {
+      "action": "needs_physical_power_cycle",
+      "reason": "software recovery did not produce a live BAR",
+      "command": null
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "rowstream-top1",
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "rowstream-top1",
+    "0000:42:00.0",
+    "--sample-count",
+    "8",
+    "--json-out",
+    "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T18-55-41+0200-rowstream-top1-debug-pnr100-bringup/rowstream-top1.json",
+    "--reference-json",
+    "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json"
+  ],
+  "dry_run": false,
+  "returncode": 1,
+  "stdout": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480\nCOMMAND before: 0x0002\nCOMMAND after:  0x0002\nmagic:       0x54365043\nversion:     3\nstatus:      0x00000061\nloader:      0x00000003\ntop1_status: 0x00000001\n",
+  "stderr": "Traceback (most recent call last):\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_pcie_rowstream_top1_gate.py\", line 991, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_pcie_rowstream_top1_gate.py\", line 847, in main\n    load_metadata = load_rowstream(\n                    ^^^^^^^^^^^^^^^\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_pcie_rowstream_top1_gate.py\", line 301, in load_rowstream\n    raise RuntimeError(\nRuntimeError: packet slot echo mismatch: slot=0 expected=d425fef3e8e6e6fe observed=ffffffffffffffff\n",
+  "timeout": false
+}

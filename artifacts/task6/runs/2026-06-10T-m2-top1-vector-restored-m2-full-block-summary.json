@@ -1,0 +1,125 @@
+{
+  "artifact_name": "task6-pcie-m2-full-block-board-gate",
+  "bdf": "0000:42:00.0",
+  "checks": {
+    "checksum": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_version": true,
+    "no_error": true,
+    "not_all_ones": true,
+    "output_count": true,
+    "output_count_live": true,
+    "output_valid": true,
+    "sample0": true,
+    "sample1": true,
+    "start_count_incremented": true,
+    "state_done": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "command": "0002",
+  "contract": {
+    "notes": "This gate validates the reusable M2 full-block BAR contract. The current RTL lane replays the composed fixed-point artifact; replacing replay ROM pieces with live layernorm/attention/MLP sub-lanes remains the next gate.",
+    "responsibilities": {
+      "fpga": [
+        "host-started M2 one-full-block replay lane",
+        "BAR-visible status/checksum/sample/full-first-64-byte output",
+        "board execution proof for the composed fixed-point full-block artifact"
+      ],
+      "host": [
+        "prompt/model artifact orchestration",
+        "PCIe lifecycle/recovery orchestration",
+        "M2 contract selection and result comparison"
+      ]
+    },
+    "stage": "M2-one-full-block",
+    "version": "task6-m2-one-full-block-replay-accel-v1"
+  },
+  "date": "2026-06-10",
+  "elapsed_seconds": 0.002221636998001486,
+  "expected": {
+    "checksum": "0x5ab10d7c",
+    "output_count": 4864,
+    "sample0": "0xd30af026",
+    "sample1": "0xd3330f55"
+  },
+  "fingerprints": {
+    "block_input_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b",
+    "expected_json": null,
+    "expected_json_sha256": null,
+    "expected_params_sha256": "593436eb69911660862458628831ba6109913802940d84d4d55c4f79c4ba4a7d",
+    "gate_script_sha256": "96fb5b470d8b87234ef3ebc61b0158d487fd768d74da7845853fc561bef9b7ad",
+    "residual_after_attention_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+  },
+  "input": {
+    "block_input_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "block_input_words_little_packed": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "residual_after_attention_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_words_little_packed": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ]
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "observed": {
+    "checksum": "0x5ab10d7c",
+    "cycle_count": 4864,
+    "decoded_status": {
+      "busy": false,
+      "done": true,
+      "error": false,
+      "output_valid": true,
+      "ready": true,
+      "state": 3,
+      "state_name": "DONE"
+    },
+    "first_64_output_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "output_count": 4864,
+    "sample0": "0xd30af026",
+    "sample1": "0xd3330f55",
+    "start_count_after": 2,
+    "start_count_before": 1,
+    "status": "0x134c8039"
+  },
+  "registers": {
+    "m2_magic": "0x54364d32",
+    "m2_present": 1,
+    "m2_version": 1,
+    "magic": "0x54365043",
+    "status": "0x00000065",
+    "version": 3
+  },
+  "status": "PASS"
+}

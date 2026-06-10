@@ -28333,3 +28333,503 @@ Interpretation:
   and reset fanout (`mlp_accel.load_index_q[*]`, `pcie_mlp_accel_start`,
   `rowstream_mlp_accel_clear`, `pcie_user_reset`, `rowstream_rst_n`). These are
   cleanup targets, not blockers for the current checksum/sample milestone.
+
+### 2026-06-10 - M2 full-block replay accelerator BAR integration
+
+Added a reusable PCIe/BAR-visible M2 one-full-block replay accelerator lane:
+
+- `fpga/rtl/task6_m2_full_block_replay_accel_top.sv` wraps the generated M2
+  full-block replay stream as a host-started accelerator.
+- `task6_pcie_axil_rowstream_loader_ingress{,_cdc}.v` expose the lane through a
+  new BAR aperture:
+  - `0x500`: M2 magic `0x54364d32`
+  - `0x504`: M2 ABI version
+  - `0x508`: present flag
+  - `0x50c`: control/status, write bit 0 start and bit 1 clear
+  - `0x510`: start count
+  - `0x514`: cycle count
+  - `0x518`: output checksum
+  - `0x51c`: output count
+  - `0x540..0x57f`: 64-byte block-input write window
+  - `0x580..0x5bf`: 64-byte residual-after-attention write window
+  - `0x5c0`, `0x5c4`: output samples
+  - `0x600..0x63f`: first 64 output bytes
+- `scripts/task6/task6_pcie_m2_full_block_gate.py` adds the host gate, with
+  `m2-full-block` modes in the user/root/autonomous gate wrappers.
+- The current integrated top enables this M2 replay lane together with DDR3,
+  rowstream/top1, and the MLP accelerator lane.
+
+Contract boundary:
+
+- This is a board-facing M2 full-block replay accelerator contract, not yet the
+  live M2 compute datapath.
+- It proves the BAR ABI, CDC, start/clear control, output count, checksum,
+  samples, and first-output-vector readback path for the M2 one-full-block
+  contract.
+- The next architectural gate remains replacing replay ROM pieces with real
+  fixed-point compute sublanes for layernorm, attention score/value/softmax,
+  and the MLP half.
+
+Verification:
+
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/task6_pcie_mlp_accel_gate.py`
+- `bash -n scripts/task6/task6_pcie_user_gate.sh scripts/task6/task6_pcie_gate_root.sh scripts/task6/task6_pcie_autonomous_gate.sh`
+- `nix build .#task6-m2-full-block-replay-selftest-sv-sim -L`
+  - PASS: cycles `4880`, checksum `0x5ab10d7c`, sample0 `0xd30af026`,
+    sample1 `0xd3330f55`.
+- `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-yosys-json -L`
+  - PASS, `check` reported 0 problems.
+  - Yosys peak memory: about 3.6 GiB.
+  - Integrated cell count: 54,041 cells.
+  - Resource summary: 36 `DSP48E1`, 12 `RAMB36E1`, 6 `RAMB18E1`.
+  - Estimated logic cells: 21,222.
+
+Next validation path:
+
+1. Build the strict pnr100 DDR3/PCIe bitstream with no timing waiver and no seed
+   search.
+2. If route and timing pass, put the image in BPI flash.
+3. Use the BAR-safe PCIe protocol: Tapo chassis cycle if needed, non-BAR
+   lifecycle first, and no MMIO gate unless lifecycle reports a clean
+   `pcie_ready`.
+4. Run `m2-full-block` with the generated summary JSON or the explicit expected
+   checksum/sample values, then re-run `mlp-accel`, `rowstream-top1`, and
+   prompt replay gates to confirm the new M2 BAR aperture did not regress the
+   existing Task 6 board proofs.
+
+pnr100 result:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream -L`
+- Result: PASS. Bitstream:
+  `/nix/store/iag232ayg48acnh0hlz9yykrn1926igs-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+- This run used the required pnr100 recipe: nextpnr target `--freq 100`, no
+  timing waiver, no seed search.
+- Utilization before placement:
+  - 40,241 `SLICE_LUTX`
+  - 16,583 `SLICE_FFX`
+  - 36 `DSP48E1`
+  - 6 `RAMB18E1`
+  - 12 `RAMB36E1`
+- Router result:
+  - router2 converged to `overused=0` at iteration 6
+  - final route was legal
+- Final routed timing:
+  - `impl.rowstream_clk`: 67.70 MHz, PASS against 66.67 MHz
+  - `impl.pcie_user_clk`: 65.27 MHz, PASS against 62.50 MHz
+  - JTAG/debug and PCIe PIPE clocks also passed their reported constraints.
+
+The next step is board validation from this timing-clean image. Because the
+M2 replay integration restores a 64-byte BAR readback window at `0x600..0x63f`,
+the first hardware run should use the BAR-safe PCIe sequence and stop on any
+all-ones BAR read rather than retrying MMIO.
+
+Board validation update:
+
+- The timing-clean `/nix/store/iag232ayg48acnh0hlz9yykrn1926igs-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+  image was flashed to BPI.
+- Post-flash PCIe initially reported `missing_resource0`; the Tapo P115 cold
+  cycle recovery protocol restored `pcie_ready`.
+- The M2 full-block replay BAR gate passed on hardware:
+  - checksum `0x5ab10d7c`
+  - output count `4864`
+  - sample0 `0xd30af026`
+  - sample1 `0xd3330f55`
+- The MLP accelerator BAR gate also still passed on that image:
+  - checksum `0x3dfe456b`
+  - sample0 `0x83f63ff5`
+  - sample1 `0xc0fb3fbf`
+- The rowstream loader path still loaded and sampled DDR3 successfully, but
+  `rowstream-top1` regressed:
+  - DDR3 sampled rowstream verification passed.
+  - Hardware scanned all 50,257 rows and reported no Wishbone errors.
+  - Top1 returned the wrong token and set the `cutout_reserved_error` debug
+    bit.
+
+Interpretation:
+
+- PCIe, DDR3 rowstream load/readback, the M2 replay BAR contract, and the MLP
+  BAR accelerator contract all have board evidence.
+- The combined image is not accepted for Task 6 because it regresses the
+  existing top1 proof.
+
+Follow-up pnr100 attempt:
+
+- The BAR-visible M2 surface was narrowed to checksum/sample/status output and
+  the host gate was changed to stop reading the full 64-byte output window.
+- The strict pnr100 rebuild, without `--timing-allow-fail`, still failed
+  timing:
+  - `impl.rowstream_clk`: 57.05 MHz, FAIL against 66.67 MHz.
+  - `impl.pcie_user_clk`: 70.54 MHz, PASS against 62.50 MHz.
+  - router2 did converge to a legal route (`overused=0`), but the artifact is
+    not acceptable because rowstream timing failed.
+- The critical path was routing-dominated and ran through
+  `impl.rowstream_command_event` into the DDR3 rowstream command/control path.
+
+Current corrective action:
+
+- Keep the rowstream/top1 + M2 full-block replay board image focused on the
+  M2 contract by disabling the older PCIe MLP accelerator in that wrapper.
+- Preserve the MLP accelerator as a separate proven lane; do not use the
+  combined MLP+M2+top1 image as an acceptance target until its routing pressure
+  and top1 regression are fixed.
+
+Corrective pnr100 result:
+
+- `task6_ypcb_pcie_uberddr3_rowstream_loader_only_top1_top` now enables
+  rowstream/top1 and the M2 full-block replay BAR lane, but disables the older
+  PCIe MLP accelerator lane.
+- Strict pnr100 build passed with no timing waiver and no seed search.
+- Bitstream:
+  `/nix/store/iiswyd7vh0bbiv9icdwvrv4vckz08qmd-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+- Packed utilization:
+  - 19,956 `SLICE_LUTX`
+  - 10,423 `SLICE_FFX`
+  - 5 `DSP48E1`
+  - 4 `RAMB36E1`
+- Final routed timing:
+  - `impl.rowstream_clk`: 76.73 MHz, PASS against 66.67 MHz.
+  - `impl.pcie_user_clk`: 67.62 MHz, PASS against 62.50 MHz.
+- This is the current candidate for board validation under the M2 one-full-block
+  replay contract plus the rowstream/top1 regression gate.
+
+### 2026-06-10 - M2 replay contract guardrails
+
+The M2 full-block lane must be described and accepted as a replay/integration
+contract, not as live transformer compute.
+
+What the current M2 BAR gate proves:
+
+- PCIe BAR lifecycle, start/clear control, status, timeout/error reporting, and
+  CDC for the M2 aperture.
+- Host-to-board contract payload plumbing for the 64-byte block input and
+  residual-after-attention windows.
+- Board-visible checksum, samples, output count, and first 64 output bytes for
+  the precomputed composed fixed-point M2 artifact.
+- Reproducibility metadata in the host result: gate-script hash, expected JSON
+  hash, input/residual payload hashes, and expected-parameter hash.
+
+What it does not prove:
+
+- It does not execute live `LN1 -> Q/K/V -> attention -> LN2 -> MLP` RTL.
+- It must not be used as evidence that TinyStories-1M inference has been fully
+  migrated onto the FPGA.
+- It must not replace the next architectural gate: progressively replacing the
+  replay ROM pieces with real fixed-point compute sublanes.
+
+Corrective fixes applied after the review:
+
+- Restored MLP and M2 output-vector wiring through
+  `task6_pcie_axil_rowstream_loader_ingress_cdc.v`; BAR vector windows are no
+  longer hard-tied to zero.
+- Added a bounded M2 run watchdog so a stalled replay state terminates in
+  `M2_ERROR` instead of relying only on host-side polling timeout.
+- Kept the pnr100 top-level wrapper deterministic: rowstream/top1 and M2 replay
+  are enabled, the older PCIe MLP accelerator is disabled in this wrapper, and
+  the MLP accelerator remains a separate proven lane.
+- Replaced the rowstream top1 reader's synthesis-hostile generic byte loop with
+  phase-specific WB8/WB16 extraction for the integrated pnr100 path.
+
+Verification:
+
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/task6_pcie_rowstream_top1_gate.py`
+- `git diff --check`
+- `nix build .#task6-ddr3-rowstream-wb-top1-reader-64-sim-main -o /tmp/task6-reader64-sim-main -L`
+  - `/tmp/task6-reader64-sim-main/obj_dir/sim_main`
+  - PASS: `task6 DDR3 rowstream WB top1 reader rows 8`
+- `nix build .#task6-ddr3-rowstream-wb-top1-reader-sim-main -o /tmp/task6-reader128-sim-main -L`
+  - `/tmp/task6-reader128-sim-main/obj_dir/sim_main`
+  - PASS: `task6 DDR3 rowstream WB top1 reader rows 8`
+- `nix build .#task6-m2-full-block-replay-selftest-sv-sim -L`
+  - PASS: cycles `4880`, checksum `0x5ab10d7c`, sample0 `0xd30af026`,
+    sample1 `0xd3330f55`.
+- `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-yosys-json -L`
+  - PASS, `check` reported 0 problems.
+  - Integrated cell count: 32,400 cells.
+  - Resource summary: 5 `DSP48E1`, 4 `RAMB36E1`.
+  - Estimated logic cells: 12,526.
+
+Post-review strict pnr100 result:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream -L`
+- Result: PASS. Bitstream:
+  `/nix/store/54l27xxsd8jdgbkam22nkifmbnq2xhhp-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+- This run includes the restored M2 first-64-byte BAR vector readback wiring
+  and the M2 run watchdog.
+- This run used the required pnr100 recipe: nextpnr target `--freq 100`, no
+  timing waiver, no seed search.
+- Packed utilization:
+  - 22,702 `SLICE_LUTX`
+  - 11,479 `SLICE_FFX`
+  - 5 `DSP48E1`
+  - 4 `RAMB36E1`
+- Router result:
+  - router2 converged to `overused=0` at iteration 8
+  - final route was legal
+- Final routed timing:
+  - `impl.rowstream_clk`: 92.04 MHz, PASS against 66.67 MHz.
+  - `impl.pcie_user_clk`: 63.30 MHz, PASS against 62.50 MHz.
+  - JTAG/debug and PCIe PIPE clocks also passed their reported constraints.
+
+Interpretation:
+
+- Restoring the BAR output-vector path did not break the strict DDR3/PCIe
+  pnr100 image.
+- The `pcie_user_clk` margin is narrow, so this artifact should be accepted
+  only with the same strict timing discipline: no timing waiver, no seed search,
+  and lifecycle-gated board validation before any BAR access.
+- This remains an M2 replay-contract artifact. It is not evidence of live
+  transformer sublane execution.
+
+Board validation update:
+
+- Non-BAR lifecycle was first run under the Codex sandbox and reported
+  `resource0_permission`; this was a sandbox `/sys` write restriction, not the
+  OS udev state.
+- The same lifecycle gate run outside the sandbox reported `pcie_ready`:
+  `artifacts/task6/runs/2026-06-10T16-48-41+0200-m2-top1-vector-restored-pnr100-unsandboxed-lifecycle`
+- `rowstream-top1` then ran with the explicit TinyStories prompt reference:
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json`
+- Rowstream load/readback evidence from that run:
+  - loaded all `427312` 8-byte beats
+  - sampled DDR3 verification passed for all 8 sampled beats
+  - exact DDR row readback for expected/observed token rows matched the
+    rowstream image
+- Top1 compute result: FAIL.
+  - All 8 prompt-reference steps scanned `50257` rows.
+  - Hidden-vector MMIO readback matched for all 8 steps.
+  - All 8 top1 token/score comparisons failed.
+  - `top1_status` was `0x0000000d`, so the top1 error bit was set.
+  - Summary:
+    `artifacts/task6/runs/2026-06-10T-m2-top1-vector-restored-rowstream-top1-summary.json`
+- M2 full-block replay BAR result on the same enumerated endpoint: PASS.
+  - checksum `0x5ab10d7c`
+  - sample0 `0xd30af026`
+  - sample1 `0xd3330f55`
+  - output count `4864`
+  - status `DONE`, no error, output valid
+  - Summary:
+    `artifacts/task6/runs/2026-06-10T-m2-top1-vector-restored-m2-full-block-summary.json`
+
+Interpretation:
+
+- PCIe lifecycle is good after unsandboxed permission checks.
+- The M2 replay BAR aperture is good on this corrected timing-clean image.
+- DDR3 rowstream transport is good: load, sampled readback, and exact token-row
+  readback all match the host rowstream image.
+- The remaining failure is localized to rowstream/top1 compute or its
+  status/error condition, not PCIe enumeration, BAR permission, DDR3 load, or
+  M2 BAR integration.
+
+M2 status-schema clarification:
+
+- Re-reviewed the M2 replay status packing after a concern that the gate might
+  have swapped `error` and `output_valid`.
+- The RTL packs `pcie_status_o` as:
+  `{16'h4d32, 6'd0, state, output_valid, error, busy, ready}`.
+- Because SystemVerilog concatenation places the last field at bit 0, the
+  actual low-bit layout is:
+  - bit 0: `ready`
+  - bit 1: `busy`
+  - bit 2: `error`
+  - bit 3: `output_valid`
+  - bits 7:4: `state`
+  - bits 29:14: status magic `0x4d32`
+- The M2 gate script already used that bit layout; the fix was to make the
+  schema explicit and add a `status_schema` gate check so future script/RTL
+  drift fails loudly.
+- Hardware rerun after adding the schema check:
+  - lifecycle: `pcie_ready`
+  - M2 full-block: PASS
+  - observed status `0x134c8039`
+  - decoded `ready=true`, `busy=false`, `error=false`,
+    `output_valid=true`, `state=DONE`, `status_schema=true`
+  - Summary:
+    `artifacts/task6/runs/2026-06-10T-m2-status-schema-rerun-summary.json`
+
+Rowstream/top1 fault-capture instrumentation:
+
+- A safe lifecycle-gated debug dump after the failing rowstream/top1 run showed:
+  - `top1_status = 0x0000000d`
+  - `debug_top1_status = 0x0005000f`
+  - decoded condition: top1 done plus error, with `cutout_reserved_error`
+    asserted.
+- This narrows the failure further: the board is not failing PCIe, BAR access,
+  DDR3 rowstream load, sampled DDR3 readback, exact token-row readback, hidden
+  vector MMIO readback, or M2 BAR replay. It is failing inside the rowstream
+  top1 cutout path because a row presented to the cutout has nonzero reserved
+  sidecar bits.
+- The existing `task6_pcie_debug_dump.py` interpretation expected a first
+  fault token/sidecar/address convention, but the RTL was still exposing plain
+  Wishbone ack/error counters on those debug words. That made the previous
+  fault token/sidecar printout non-actionable.
+- Added sticky first-fault capture in
+  `fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv`:
+  - first row where `top1_row_valid && top1_row_ready` and
+    `top1_row_sidecar_word[31:24] != 0`
+  - captures token id, full sidecar word, and reader Wishbone address
+  - clears on top1 status clear or a newly accepted top1 start
+  - reuses the existing debug BAR words without changing the BAR map
+  - the reused reader address / ack-count / err-count words now always expose
+    the fault-capture convention for this debug image:
+    `fault_addr`, `{15'd0, fault_seen, fault_token}`, `fault_sidecar`
+- Synthesis gate:
+  `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-yosys-json -L`
+  passed.
+  - Yosys `CHECK`: 0 problems
+  - estimated LCs: `12749`
+  - notable cells: `RAMB36E1=4`, `DSP48E1=5`, `PCIE_2_1=1`
+- First strict pnr100 attempt with selectable counter-versus-fault debug words
+  was rejected, as required, because final timing failed:
+  - `impl.rowstream_clk`: 79.05 MHz, PASS against 66.67 MHz
+  - `impl.pcie_user_clk`: 55.91 MHz, FAIL against 62.50 MHz
+  - no bitstream was accepted or flashed
+- The failing pcie path was the AXI-Lite read-data mux, so the debug words were
+  simplified to always expose fault-capture values instead of selecting between
+  old counters and fault values.
+- The second strict pnr100 attempt, with simplified fault debug but still
+  carrying the M2 replay lane, was also rejected:
+  - `impl.rowstream_clk`: 74.31 MHz, PASS against 66.67 MHz
+  - `impl.pcie_user_clk`: 59.96 MHz, FAIL against 62.50 MHz
+  - no bitstream was accepted or flashed
+- The final failing PCIe path again ran through the large AXI-Lite read-data
+  mux from `s_axi_araddr` to `s_axi_rdata`. Route logs also showed M2 replay
+  index/output nets among the slow routed nets, so the combined rowstream/top1
+  plus M2 replay image is not the right artifact for this top1-sidecar debug
+  loop.
+- The current debug pnr100 target is therefore split back to rowstream/top1
+  only (`ENABLE_PCIE_M2_FULL_BLOCK_ACCEL=0`). The already-passing M2 BAR replay
+  gate remains valid as a separate lane; reintegrating it into the pnr100 image
+  should wait for AXI-Lite read mux pipelining or a lighter live-compute M2
+  implementation.
+- The rowstream/top1-only debug pnr100 build passed strict timing:
+  - artifact:
+    `/nix/store/5b45n9wn913kvx5s6hc9w0wycki4pgb7-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+  - `impl.rowstream_clk`: 69.98 MHz, PASS against 66.67 MHz
+  - `impl.pcie_user_clk`: 71.24 MHz, PASS against 62.50 MHz
+  - no `--timing-allow-fail`, no seed search
+  - pnr footprint: `SLICE_LUTX=19181`, `SLICE_FFX=10213`,
+    `RAMB36E1=4`, `DSP48E1=4`, `PCIE_2_1=1`
+
+Next step:
+
+- Flash/load the strict rowstream/top1-only debug bitstream and rerun the safe
+  sequence: lifecycle first, rowstream/top1, and debug dump only after
+  `pcie_ready`.
+
+Board result for the rowstream/top1-only debug image:
+
+- Flashed and verified first 32 BPI words successfully:
+  `/nix/store/5b45n9wn913kvx5s6hc9w0wycki4pgb7-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+- Tapo cold-cycle recovery reached `pcie_ready`:
+  `artifacts/task6/runs/2026-06-10T18-55-41+0200-rowstream-top1-debug-pnr100-bringup-recover`
+- The strict rowstream/top1 gate did not reach top1 compute. It failed at the
+  packet-slot echo guard:
+  `packet slot echo mismatch: slot=0 expected=d425fef3e8e6e6fe observed=ffffffffffffffff`
+- BAR debug after the echo failure showed the endpoint and command bridge were
+  still alive:
+  - `magic = 0x54365043`
+  - `status = 0x00000065`
+  - `loader = 0x00000037`
+  - `last_opcode = 0x0000000f`
+  - loader bits decoded as calib, boot, done, magic_ok, accepted
+- A diagnostic host-script option was added to bypass only the packet-slot echo
+  (`--packet-echo-mode off`) while still requiring packet write ACK counters.
+  That allowed the first 4-beat packet to commit, then the second packet timed
+  out waiting for write ACK delta:
+  `from=0x00000004 to=0x00000004`.
+- Debug dump after the second-packet timeout showed the loader stuck on the
+  second packet commit:
+  - `accepted = 0x0000000c`
+  - `last_opcode = 0x00000010`
+  - `last_addr = 0x80000004`
+  - `wait_cycles = 0x00001041`
+- After a fresh Tapo cold cycle and conservative 1 ms packet-settle fallback,
+  BAR reads degraded to all-ones during packet loading:
+  `accepted_count opcode=0x0f: before=8191 observed=4294967295`.
+  A non-BAR lifecycle probe immediately afterward still classified the endpoint
+  as `pcie_ready`.
+
+Interpretation:
+
+- The rowstream/top1-only debug image is not acceptable as a top1 fault-capture
+  artifact even though it is timing-clean. It regressed the PCIe/BAR loader
+  behavior under packet traffic.
+- Do not use the current debug image for correctness evidence. Keep the earlier
+  timing-clean integrated image as the last useful evidence for rowstream
+  transport plus top1-sidecar failure localization, and rebuild the debug image
+  after fixing the loader read-data/packet-commit regression.
+- The first-fault capture should move to a debug path that does not perturb the
+  packet loader datapath or large AXI-Lite read mux. Candidate fixes:
+  - expose fault token/sidecar through a separate small status register bank
+    with registered/pipelined AXI-Lite read data;
+  - preserve the packet echo/readback and ACK-counter path exactly;
+  - add a tiny packet-loader selftest gate before full rowstream load so this
+    class of regression is caught before a 3.4 MB transfer.
+- Fast RTL checks after the debug-image regression:
+  - `nix build .#task6-ddr3-row-stream-cutout-sv-sim --no-link --print-out-paths -L`
+    passed. The DDR-free full-vocab cutout replay matched all 8 deterministic
+    samples and scanned `402056` rows total.
+  - `nix build .#task6-ddr3-rowstream-wb-top1-reader-64-sim-main --no-link --print-out-paths -L`
+    built, and running
+    `/nix/store/a8856chqrp7kv5v2fx7b6fhv8wkfsff1-task6-ddr3-rowstream-wb-top1-reader-64-sim-main/obj_dir/sim_main`
+    passed (`PASS: task6 DDR3 rowstream WB top1 reader rows 8`).
+  - These checks keep the row format, cutout arithmetic, and standalone 64-bit
+    reader phase handling out of the suspect set. The remaining failure is in
+    physical integration: UberDDR3 user-port arbitration/loader/readback,
+    PCIe/BAR loader command sequencing, or the debug image's readback mux/CDC.
+
+Loader integration fix:
+
+- Root cause found in `task6_ypcb_uberddr3_bist_rowstream_loader_top.sv`: the
+  packet write/read ACK counters were reset every time
+  `LOADER_OP_RUN_HOST_PACKET` was accepted. The host gate treats these as
+  monotonic counters and waits for a per-packet delta, so the first packet could
+  commit and the second packet could time out with `from=4 to=4`.
+- The per-packet resets were removed. The packet ACK counters now reset only on
+  global reset and increment as Wishbone packet writes/reads ACK.
+- Verification after the fix:
+  - `python3 -m py_compile scripts/task6/task6_pcie_rowstream_top1_gate.py`
+    passed.
+  - `git diff --check` passed.
+  - `nix build .#task6-uberddr3-rowstream-loader-contract-sim-main --no-link --print-out-paths -L`
+    built, and running the produced `sim_main` passed:
+    `PASS: task6 rowstream loader contract writes 19 reads 4 state 1 wait_cycles 1026`.
+  - `nix build .#task6-ddr3-row-stream-cutout-sv-sim --no-link --print-out-paths -L`
+    passed.
+  - `nix build .#task6-ddr3-rowstream-wb-top1-reader-64-sim-main --no-link --print-out-paths -L`
+    built, and running the produced `sim_main` passed:
+    `PASS: task6 DDR3 rowstream WB top1 reader rows 8`.
+- Strict pnr100 rebuild after the fix passed timing, with no timing waiver and
+  no seed search:
+  - artifact:
+    `/nix/store/adz95q47k64vcymn4dhmxq11p747qjlp-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+  - `impl.rowstream_clk`: 77.57 MHz, PASS against 66.67 MHz
+  - `impl.pcie_user_clk`: 70.66 MHz, PASS against 62.50 MHz
+
+Next step after the loader-counter fix:
+
+- Flash/load the new strict bitstream, Tapo cold-cycle enumerate, run lifecycle
+  first, and only if `pcie_ready` rerun strict rowstream/top1. The expected
+  improvement is that packet-slot echo and packet ACK counters remain live
+  through the second and later packets instead of stalling after the first
+  packet commit.
+
+Limited-vocabulary whole-inference ladder:
+
+- Add an explicit inference ladder before trying full 50,257-vocab generation:
+  `1k vocab whole inference -> larger reduced vocab -> full vocab`.
+- Purpose: prove the whole autoregressive loop and host/board contract with a
+  much faster board artifact, while preserving the intent to scale back to the
+  public TinyStories-1M full-vocab checkpoint.
+- Acceptance shape for the first rung:
+  - tokenizer/model adapter exports a deterministic reduced-vocab TinyStories
+    artifact with the same hidden size/block structure where possible;
+  - CPU CLI generates from `Once upon a time there was`;
+  - board CLI runs the same prompt through the FPGA-resident reduced-vocab path;
+  - compare token IDs and decoded text against the CPU reference for a fixed
+    small token count.
+- This is not a replacement for full-vocab DDR3 rowstream. It is a feedback-loop
+  ladder for full inference while the full-vocab output-head/DDR3 integration
+  is still being debugged.

@@ -13,7 +13,7 @@ LIBEXEC_DIR="${TASK6_PCIE_LIBEXEC_DIR:-/usr/local/libexec/task6-pcie}"
 
 usage() {
   cat >&2 <<'USAGE'
-usage: task6-pcie-gate <prepare|bar|prompt-infer|mlp-boundary|mlp-accel|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
+usage: task6-pcie-gate <prepare|bar|prompt-infer|mlp-boundary|mlp-accel|m2-full-block|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
 
 Install this file root-owned as /usr/local/sbin/task6-pcie-gate when enabling
 hands-free PCIe gates. It accepts only the configured YPCB endpoint BDF.
@@ -29,7 +29,7 @@ fi
 MODE="${1:-}"
 BDF="${2:-$ALLOWED_BDF}"
 case "$MODE" in
-  prepare|bar|prompt-infer|mlp-boundary|mlp-accel|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
+  prepare|bar|prompt-infer|mlp-boundary|mlp-accel|m2-full-block|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
 if [[ "$BDF" != "$ALLOWED_BDF" ]]; then
@@ -285,6 +285,9 @@ case "$MODE" in
     ;;
   mlp-accel)
     exec python3 "$LIBEXEC_DIR/task6_pcie_mlp_accel_gate.py" "$BDF" "${@:3}"
+    ;;
+  m2-full-block)
+    exec python3 "$LIBEXEC_DIR/task6_pcie_m2_full_block_gate.py" "$BDF" "${@:3}"
     ;;
   rowstream-top1)
     exec python3 "$LIBEXEC_DIR/task6_pcie_rowstream_top1_gate.py" "$BDF" "${@:3}"

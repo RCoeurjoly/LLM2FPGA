@@ -90,7 +90,19 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [31:0]  mlp_accel_output_checksum_i,
     input wire [31:0]  mlp_accel_output_sample0_i,
     input wire [31:0]  mlp_accel_output_sample1_i,
-    input wire [511:0] mlp_accel_output_vector_i
+    input wire [511:0] mlp_accel_output_vector_i,
+
+    output reg [511:0] m2_full_block_input_vector_o,
+    output reg [511:0] m2_full_block_residual_vector_o,
+    output reg         m2_full_block_start_pulse_o,
+    output reg         m2_full_block_clear_pulse_o,
+    input wire [31:0]  m2_full_block_status_i,
+    input wire [31:0]  m2_full_block_cycle_count_i,
+    input wire [31:0]  m2_full_block_output_checksum_i,
+    input wire [31:0]  m2_full_block_output_sample0_i,
+    input wire [31:0]  m2_full_block_output_sample1_i,
+    input wire [31:0]  m2_full_block_output_count_i,
+    input wire [511:0] m2_full_block_output_vector_i
 );
     localparam [1:0] EVENT_IDLE = 2'd0;
     localparam [1:0] EVENT_ISSUE = 2'd1;
@@ -120,6 +132,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     reg        top1_clear_pending_q;
     reg [31:0] top1_start_count_q;
     reg [31:0] mlp_accel_start_count_q;
+    reg [31:0] m2_full_block_start_count_q;
 
     reg        last_write_valid_q;
     reg [9:0]  last_write_word_index_q;
@@ -184,6 +197,11 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         mlp_accel_start_pulse_o = 1'b0;
         mlp_accel_clear_pulse_o = 1'b0;
         mlp_accel_start_count_q = 32'd0;
+        m2_full_block_input_vector_o = 512'd0;
+        m2_full_block_residual_vector_o = 512'd0;
+        m2_full_block_start_pulse_o = 1'b0;
+        m2_full_block_clear_pulse_o = 1'b0;
+        m2_full_block_start_count_q = 32'd0;
         command_magic_q = LOADER_COMMAND_MAGIC;
         command_opcode_q = 8'd0;
         command_chunk_q = 2'd0;
@@ -243,6 +261,11 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             mlp_accel_start_pulse_o <= 1'b0;
             mlp_accel_clear_pulse_o <= 1'b0;
             mlp_accel_start_count_q <= 32'd0;
+            m2_full_block_input_vector_o <= 512'd0;
+            m2_full_block_residual_vector_o <= 512'd0;
+            m2_full_block_start_pulse_o <= 1'b0;
+            m2_full_block_clear_pulse_o <= 1'b0;
+            m2_full_block_start_count_q <= 32'd0;
             last_write_valid_q <= 1'b0;
             last_write_word_index_q <= 10'd0;
             last_wdata_q <= 32'd0;
@@ -256,6 +279,8 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             top1_status_clear_pulse_o <= 1'b0;
             mlp_accel_start_pulse_o <= 1'b0;
             mlp_accel_clear_pulse_o <= 1'b0;
+            m2_full_block_start_pulse_o <= 1'b0;
+            m2_full_block_clear_pulse_o <= 1'b0;
             if (loader_done_i)
                 loader_done_seen_q <= 1'b1;
             if (loader_error_i)
@@ -424,7 +449,30 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                         10'h0ed: mlp_accel_residual_vector_o[416 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[416 +: 32], wdata_q, wstrb_q);
                         10'h0ee: mlp_accel_residual_vector_o[448 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[448 +: 32], wdata_q, wstrb_q);
                         10'h0ef: mlp_accel_residual_vector_o[480 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[480 +: 32], wdata_q, wstrb_q);
+                        10'h143: begin
+                            if (wdata_q[1])
+                                m2_full_block_clear_pulse_o <= 1'b1;
+                            if (wdata_q[0]) begin
+                                m2_full_block_start_pulse_o <= 1'b1;
+                                m2_full_block_start_count_q <= m2_full_block_start_count_q + 32'd1;
+                            end
+                        end
                         default: begin
+                            if (write_word_index >= 10'h150 && write_word_index <= 10'h15f) begin
+                                m2_full_block_input_vector_o[(write_word_index - 10'h150) * 32 +: 32] <=
+                                    apply_wstrb(
+                                        m2_full_block_input_vector_o[(write_word_index - 10'h150) * 32 +: 32],
+                                        wdata_q,
+                                        wstrb_q
+                                    );
+                            end else if (write_word_index >= 10'h160 && write_word_index <= 10'h16f) begin
+                                m2_full_block_residual_vector_o[(write_word_index - 10'h160) * 32 +: 32] <=
+                                    apply_wstrb(
+                                        m2_full_block_residual_vector_o[(write_word_index - 10'h160) * 32 +: 32],
+                                        wdata_q,
+                                        wstrb_q
+                                    );
+                            end
                         end
                     endcase
                 end
@@ -443,6 +491,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         end else begin
             s_axi_arready <= !s_axi_rvalid;
             if (!s_axi_rvalid && s_axi_arvalid) begin
+                if (read_word_index >= 10'h180 && read_word_index <= 10'h18f) begin
+                    s_axi_rdata <= m2_full_block_output_vector_i[(read_word_index - 10'h180) * 32 +: 32];
+                end else begin
                 case (read_word_index)
                     10'h000: s_axi_rdata <= TASK6_PCIE_MAGIC;
                     10'h001: s_axi_rdata <= TASK6_PCIE_VERSION;
@@ -517,8 +568,19 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                     10'h0cf: s_axi_rdata <= mlp_accel_output_checksum_i;
                     10'h0f0: s_axi_rdata <= mlp_accel_output_sample0_i;
                     10'h0f1: s_axi_rdata <= mlp_accel_output_sample1_i;
+                    10'h140: s_axi_rdata <= 32'h54364d32;
+                    10'h141: s_axi_rdata <= 32'd1;
+                    10'h142: s_axi_rdata <= 32'd1;
+                    10'h143: s_axi_rdata <= m2_full_block_status_i;
+                    10'h144: s_axi_rdata <= m2_full_block_start_count_q;
+                    10'h145: s_axi_rdata <= m2_full_block_cycle_count_i;
+                    10'h146: s_axi_rdata <= m2_full_block_output_checksum_i;
+                    10'h147: s_axi_rdata <= m2_full_block_output_count_i;
+                    10'h170: s_axi_rdata <= m2_full_block_output_sample0_i;
+                    10'h171: s_axi_rdata <= m2_full_block_output_sample1_i;
                     default: s_axi_rdata <= 32'd0;
                 endcase
+                end
                 s_axi_rvalid <= 1'b1;
                 s_axi_rresp <= 2'b00;
             end else if (s_axi_rvalid && s_axi_rready) begin

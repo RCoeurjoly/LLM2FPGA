@@ -1,0 +1,30 @@
+{
+  "name": "recover-auto",
+  "argv": [
+    "scripts/task6/task6_pcie_user_gate.sh",
+    "recover-auto",
+    "0000:42:00.0",
+    "--bridge-bdf",
+    "0000:41:00.0",
+    "--label",
+    "rowstream-top1-debug-pnr100-bringup-recover",
+    "--allow-power-cycle",
+    "--max-power-cycles",
+    "3",
+    "--power-provider",
+    "tapo-p115",
+    "--power-url",
+    "192.168.1.136",
+    "--secret-file",
+    "/home/roland/.config/task6-pcie/tapo.env",
+    "--power-off-wait",
+    "10.0",
+    "--power-on-wait",
+    "45.0"
+  ],
+  "dry_run": false,
+  "returncode": 0,
+  "stdout": "{\n  \"run_dir\": \"/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T18-55-41+0200-rowstream-top1-debug-pnr100-bringup-recover\",\n  \"final_classification\": \"pcie_ready\",\n  \"final_action\": \"done\",\n  \"transcript\": [\n    {\n      \"action\": \"lifecycle\",\n      \"classification\": \"missing_resource0\",\n      \"lifecycle_run_dir\": \"/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T18-55-41+0200-rowstream-top1-debug-pnr100-bringup-recover-lifecycle-0\"\n    },\n    {\n      \"action\": \"needs_physical_power_cycle\",\n      \"reason\": \"software recovery did not produce a live BAR\",\n      \"command\": null\n    },\n    {\n      \"action\": \"power_cycle\",\n      \"result\": {\n        \"provider\": \"tapo-p115\",\n        \"target\": \"192.168.1.136\",\n        \"dry_run\": false,\n        \"off_wait_s\": 10.0,\n        \"on_wait_s\": 45.0,\n        \"off_command\": [\n          \"nix\",\n          \"shell\",\n          \"nixpkgs#uv\",\n          \"-c\",\n          \"uv\",\n          \"run\",\n          \"--with\",\n          \"tapo\",\n          \"python3\",\n          \"scripts/task6/task6_tapo_p115_power.py\",\n          \"--backend\",\n          \"tapo\",\n          \"--host\",\n          \"192.168.1.136\",\n          \"--username\",\n          \"rolandcoeurjoly@gmail.com\",\n          \"--password\",\n          \"<redacted>\",\n          \"--state\",\n          \"off\"\n        ],\n        \"on_command\": [\n          \"nix\",\n          \"shell\",\n          \"nixpkgs#uv\",\n          \"-c\",\n          \"uv\",\n          \"run\",\n          \"--with\",\n          \"tapo\",\n          \"python3\",\n          \"scripts/task6/task6_tapo_p115_power.py\",\n          \"--backend\",\n          \"tapo\",\n          \"--host\",\n          \"192.168.1.136\",\n          \"--username\",\n          \"rolandcoeurjoly@gmail.com\",\n          \"--password\",\n          \"<redacted>\",\n          \"--state\",\n          \"on\"\n        ],\n        \"off_returncode\": 0,\n        \"on_returncode\": 0\n      }\n    },\n    {\n      \"action\": \"lifecycle\",\n      \"classification\": \"pcie_ready\",\n      \"lifecycle_run_dir\": \"/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-10T18-56-38+0200-rowstream-top1-debug-pnr100-bringup-recover-lifecycle-1\"\n    },\n    {\n      \"action\": \"done\",\n      \"reason\": \"PCIe lifecycle and BAR preflight are ready\",\n      \"command\": null\n    }\n  ]\n}\n",
+  "stderr": "",
+  "timeout": false
+}

@@ -232,6 +232,18 @@ def packet_ack_counters_available(mm: mmap.mmap) -> bool:
     return write_ack != ALL_ONES and read_ack != ALL_ONES
 
 
+def wait_accepted_count(mm: mmap.mmap, before: int, timeout: float, label: str) -> int:
+    expected = (before + 1) & 0xFFFFFFFF
+    deadline = time.monotonic() + timeout
+    value = rd32(mm, REG_ACCEPTED_COUNT)
+    while value != expected and time.monotonic() < deadline:
+        time.sleep(0.0001)
+        value = rd32(mm, REG_ACCEPTED_COUNT)
+    if value != expected:
+        raise TimeoutError(f"timeout waiting for {label}: before={before} observed={value}")
+    return value
+
+
 def issue_command(
     mm: mmap.mmap,
     opcode: int,
@@ -254,6 +266,7 @@ def issue_command(
     accepted_before = rd32(mm, REG_ACCEPTED_COUNT)
     wr32(mm, REG_DOORBELL, 0x1)
     wait_for(mm, REG_STATUS, STATUS_DONE, timeout, "ingress done")
+    accepted_after = wait_accepted_count(mm, accepted_before, timeout, f"accepted_count opcode=0x{opcode:02x}")
     loader = wait_for(
         mm,
         REG_LOADER_STATUS,
@@ -262,13 +275,28 @@ def issue_command(
         "loader accepted/done",
     )
     status = rd32(mm, REG_STATUS)
-    accepted_after = rd32(mm, REG_ACCEPTED_COUNT)
     if status & (STATUS_ERROR | STATUS_DOORBELL_ERROR):
         raise RuntimeError(f"ingress error after opcode 0x{opcode:02x}: status=0x{status:08x}")
     if loader & LOADER_ERROR:
         raise RuntimeError(f"loader error after opcode 0x{opcode:02x}: loader=0x{loader:08x}")
-    if accepted_after != ((accepted_before + 1) & 0xFFFFFFFF):
-        raise RuntimeError(f"accepted_count did not increment: before={accepted_before} after={accepted_after}")
+
+
+def wait_packet_slot_echo(
+    mm: mmap.mmap,
+    expected: bytes,
+    timeout: float,
+    label: str,
+) -> bytes:
+    deadline = time.monotonic() + min(timeout, 0.1)
+    observed = read_low_16(mm)[: len(expected)]
+    while observed != expected and time.monotonic() < deadline:
+        time.sleep(0.0001)
+        observed = read_low_16(mm)[: len(expected)]
+    if observed != expected:
+        raise RuntimeError(
+            f"packet slot echo mismatch: {label} expected={expected.hex()} observed={observed.hex()}"
+        )
+    return observed
 
 
 def load_rowstream(
@@ -280,6 +308,7 @@ def load_rowstream(
     beat_bytes: int,
     packet_ack_mode: str,
     packet_settle: float,
+    packet_echo_mode: str,
 ) -> dict[str, Any]:
     if len(image) % beat_bytes:
         image += bytes(beat_bytes - (len(image) % beat_bytes))
@@ -296,11 +325,13 @@ def load_rowstream(
         for slot in range(beats):
             slot_data = packet[slot * beat_bytes : (slot + 1) * beat_bytes]
             issue_command(mm, OP_LOAD_PACKET_BEAT, 0, slot, slot_data, timeout)
-            echoed = read_low_16(mm)[:beat_bytes]
-            if echoed != slot_data:
-                raise RuntimeError(
-                    f"packet slot echo mismatch: slot={slot} expected={slot_data.hex()} observed={echoed.hex()}"
-                )
+            if packet_echo_mode == "require":
+                wait_packet_slot_echo(mm, slot_data, timeout, f"slot={slot}")
+            elif packet_echo_mode == "auto":
+                try:
+                    wait_packet_slot_echo(mm, slot_data, timeout, f"slot={slot}")
+                except RuntimeError:
+                    packet_echo_mode = "off"
         command_addr = ((start_beat + packet_start) & 0x1FFF_FFFF) | ((beats & 0x7) << 29)
         packet_write_ack_before = rd32(mm, REG_TOP1_PACKET_WB_WRITE_ACK_COUNT)
         packet_read_ack_before = rd32(mm, REG_TOP1_PACKET_WB_READ_ACK_COUNT)
@@ -339,6 +370,7 @@ def load_rowstream(
         "packet_ack_supported_initial": ack_supported,
         "packet_ack_fallback_count": ack_fallback_count,
         "packet_settle_seconds": packet_settle,
+        "packet_echo_mode_final": packet_echo_mode,
     }
 
 
@@ -536,6 +568,13 @@ def write_hidden(mm: mmap.mmap, hidden_bytes: bytes) -> None:
         wr32(mm, REG_TOP1_HIDDEN + index * 4, value)
 
 
+def read_hidden(mm: mmap.mmap) -> bytes:
+    return b"".join(
+        rd32(mm, REG_TOP1_HIDDEN + index * 4).to_bytes(4, "little")
+        for index in range(16)
+    )
+
+
 def clear_top1_status(mm: mmap.mmap, timeout: float) -> None:
     # Break the ingress duplicate-write filter before issuing the clear pulse.
     wr32(mm, REG_TOP1_STATUS, 0x0)
@@ -590,8 +629,6 @@ def run_board_top1_with_retries(
             status = rd32(mm, REG_TOP1_STATUS)
             start_count_after = rd32(mm, REG_TOP1_START_COUNT)
             start_seen = start_count_after != start_count_before
-            if start_seen and (status & TOP1_ERROR):
-                break
             if start_seen and (status & TOP1_DONE):
                 break
             time.sleep(0.001)
@@ -625,6 +662,61 @@ def run_board_top1_with_retries(
     return last
 
 
+def verify_loaded_rows(
+    mm: mmap.mmap,
+    image: bytes,
+    contract: dict[str, Any],
+    tokens: list[int],
+    start_beat: int,
+    timeout: float,
+    beat_bytes: int,
+    retries: int,
+) -> list[dict[str, Any]]:
+    row_bytes = contract["row_format"]["row_bytes"]
+    results = []
+    for token in sorted(set(tokens)):
+        offset = row_offset(token, contract)
+        first_beat = offset // beat_bytes
+        phase = offset % beat_bytes
+        beat_count = (phase + row_bytes + beat_bytes - 1) // beat_bytes
+        observed_window = b""
+        for beat_delta in range(beat_count):
+            observed_beat = b""
+            for attempt in range(max(1, retries + 1)):
+                time.sleep(0.001 * (attempt + 1))
+                issue_command(
+                    mm,
+                    OP_READ_DENSE_BEAT,
+                    0,
+                    start_beat + first_beat + beat_delta,
+                    b"",
+                    timeout,
+                )
+                observed_beat = read_low_16(mm)[:beat_bytes]
+                if len(observed_beat) == beat_bytes:
+                    break
+            observed_window += observed_beat
+        observed = observed_window[phase : phase + row_bytes]
+        expected = image[offset : offset + row_bytes]
+        results.append(
+            {
+                "token": token,
+                "offset": offset,
+                "first_beat": start_beat + first_beat,
+                "phase": phase,
+                "beat_count": beat_count,
+                "expected_sha256": hashlib.sha256(expected).hexdigest(),
+                "observed_sha256": hashlib.sha256(observed).hexdigest(),
+                "match": observed == expected,
+                "expected_sidecar_hex": expected[-4:].hex(),
+                "observed_sidecar_hex": observed[-4:].hex(),
+                "expected_first16_hex": expected[:16].hex(),
+                "observed_first16_hex": observed[:16].hex(),
+            }
+        )
+    return results
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bdf", help="PCI BDF, for example 0000:42:00.0")
@@ -648,6 +740,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--load-image", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--verify-samples", type=int, default=8)
     parser.add_argument("--verify-retries", type=int, default=3)
+    parser.add_argument(
+        "--verify-token-rows",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Read back exact DDR rows for expected/observed top1 tokens.",
+    )
     parser.add_argument("--poll-timeout", type=float, default=2.0)
     parser.add_argument("--boot-timeout", type=float, default=5.0)
     parser.add_argument("--top1-timeout", type=float, default=20.0)
@@ -669,6 +767,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.001,
         help="Seconds to wait after OP_RUN_HOST_PACKET when packet ACK counters are unavailable or inactive.",
+    )
+    parser.add_argument(
+        "--packet-echo-mode",
+        choices=("auto", "require", "off"),
+        default="require",
+        help="Packet slot echo policy before packet commit. Default require preserves the strict acceptance gate.",
     )
     parser.add_argument("--json-out", type=Path, default=DEFAULT_OUT)
     return parser.parse_args()
@@ -753,6 +857,7 @@ def main() -> int:
 
     started = time.monotonic()
     load_verify_samples: list[dict[str, Any]] = []
+    token_row_verify_samples: list[dict[str, Any]] = []
     load_metadata: dict[str, Any] | None = None
     board_samples = []
     fd = os.open(resource0, os.O_RDWR | os.O_SYNC)
@@ -786,6 +891,7 @@ def main() -> int:
                     args.beat_bytes,
                     args.packet_ack_mode,
                     args.packet_settle,
+                    args.packet_echo_mode,
                 )
                 load_verify_samples = verify_loaded_samples(
                     mm,
@@ -799,9 +905,12 @@ def main() -> int:
 
             for payload in sample_payloads:
                 expected = expected_by_sample[payload["sample_id"]]
+                hidden_bytes = hidden_to_bytes(payload["hidden_q"], hidden_size)
+                write_hidden(mm, hidden_bytes)
+                hidden_readback = read_hidden(mm)
                 observed = run_board_top1(
                     mm,
-                    hidden_to_bytes(payload["hidden_q"], hidden_size),
+                    hidden_bytes,
                     args.top1_timeout,
                     args.top1_retries,
                 )
@@ -818,6 +927,8 @@ def main() -> int:
                         "reference_tokens_match_f32_top1": payload.get("reference_tokens_match_f32_top1"),
                         **expected,
                         **observed,
+                        "hidden_mmio_readback_match": hidden_readback == hidden_bytes,
+                        "hidden_mmio_readback_sha256": hashlib.sha256(hidden_readback).hexdigest(),
                         "matches_token": matches_token,
                         "matches_score_low32": matches_score,
                         "matches_rows_scanned": matches_rows,
@@ -839,6 +950,22 @@ def main() -> int:
                         ),
                     }
                 )
+                if args.verify_token_rows:
+                    token_row_verify_samples.extend(
+                        verify_loaded_rows(
+                            mm,
+                            image,
+                            contract,
+                            [
+                                int(expected["expected_top1_token"]),
+                                int(observed["top1_token"]),
+                            ],
+                            args.start_beat,
+                            args.poll_timeout,
+                            args.beat_bytes,
+                            args.verify_retries,
+                        )
+                    )
     finally:
         os.close(fd)
 
@@ -889,6 +1016,7 @@ def main() -> int:
             "score_compare": "low32 of signed Q0.24 product, matching current BAR result width",
         },
         "load_verify_samples": load_verify_samples,
+        "token_row_verify_samples": token_row_verify_samples,
         "samples": board_samples,
     }
     if args.json_out is not None:
