@@ -1,0 +1,355 @@
+{
+  "aggregate": {
+    "final_residual_replay": {
+      "count": 4864,
+      "max_abs_error": 0.056523945182561874,
+      "mean_abs_error": 0.0018216038626483045,
+      "normalized_rmse": 0.03301671731843313,
+      "rmse": 0.003271627786374591,
+      "signal_rms": 0.09909003838331473
+    },
+    "mlp_output_replay": {
+      "count": 4864,
+      "max_abs_error": 0.05652394890785217,
+      "mean_abs_error": 0.001821603671594582,
+      "normalized_rmse": 0.03239221573847169,
+      "rmse": 0.0032716276987710944,
+      "signal_rms": 0.10100042939901259
+    }
+  },
+  "artifact_name": "h2-tinystories-1m-m2-mlp-residual-lowering-score",
+  "contract_manifest": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json",
+  "date": "2026-06-10T10:36:26.776044+00:00",
+  "fixed_point": {
+    "c_proj_output_requant_shift": 24,
+    "c_proj_postprocess_formula": "q[i] = saturate_i8(round_shift(acc[i] * scale_mul[i], c_proj_output_requant_shift) + bias_q[i])",
+    "gelu_approx_mode": "pwl",
+    "gelu_approximation": "0.5*x + 0.39894228*x*x",
+    "gelu_pwl_x_nodes": [
+      -3162,
+      -2717,
+      -2272,
+      -1827,
+      -1381,
+      -936,
+      -491,
+      -45,
+      400,
+      845,
+      1290,
+      1736,
+      2181,
+      2626,
+      3071,
+      3517
+    ],
+    "gelu_pwl_y_nodes": [
+      -31,
+      -31,
+      -30,
+      -27,
+      -23,
+      -17,
+      -10,
+      -1,
+      10,
+      22,
+      36,
+      52,
+      69,
+      88,
+      107,
+      127
+    ],
+    "gelu_quad_q": 1634,
+    "output_requant_mult": 2957,
+    "output_requant_shift": 16,
+    "scale_shift": 24,
+    "x_frac": 12
+  },
+  "next_stage": "compose attention replay plus MLP replay into one full-block fixed-point gate",
+  "policy": {
+    "c_fc": "per-token symmetric int8 activations, rowwise symmetric int8 weights, f32 row scales, f32 bias converted to q12",
+    "c_proj": "rowwise symmetric int8 weights, fixed int8 output scale from the accepted c_proj proof",
+    "final_residual": "oracle block input + oracle attention output + replayed MLP output, compared to block_output_f32",
+    "gelu": "existing 16-node fixed-point PWL GELU table producing int8 post-GELU activation",
+    "input_boundary": "oracle ln_2 tensors from the M2 one-block contract",
+    "isolation_note": "This gate isolates the MLP half. A later end-to-end gate should feed replayed attention residual into ln_2 and this MLP replay."
+  },
+  "quantization": {
+    "c_fc_accumulator_max": 84734,
+    "c_fc_accumulator_min": -87985,
+    "c_fc_accumulator_sha256": "6b57dd157cd7d1898fbcc97cb5a63a3f90c6a1991bda50554e5e073e2686a25b",
+    "c_fc_weight_quantization": "rowwise-symmetric-int8",
+    "c_proj_accumulator_max": 95263,
+    "c_proj_accumulator_min": -101412,
+    "c_proj_accumulator_sha256": "80cfd0efe3198cfc7427dff933758ba4baeb55aad5cb6af6166028748a8712b6",
+    "c_proj_output_scale": 0.0023836969859956755,
+    "c_proj_q_max": 127,
+    "c_proj_q_min": -127,
+    "c_proj_q_sha256": "95670223655683bd121d8d8b6f56d9ad7791d0534ef6b2e522f733d7c3a0eda6",
+    "c_proj_weight_quantization": "rowwise-symmetric-int8",
+    "ln2_q_max": 127,
+    "ln2_q_min": -127,
+    "ln2_q_sha256": "aa5ed56a39f5f36b3264b41379c5963bb667a5bbea9219ffba6294af879a9dae",
+    "post_gelu_output_scale": 0.005411566543946203,
+    "post_gelu_q_max": 127,
+    "post_gelu_q_min": -31,
+    "post_gelu_q_sha256": "9937595e1a31dff33ae70bc32adf09701426d3640ee5f5082bd30474e669600f"
+  },
+  "schema_version": 1,
+  "source_proofs": {
+    "c_proj": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json",
+    "post_gelu": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json",
+    "residual_add": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-residual-add-rtl-proof.json"
+  },
+  "stage": "M2-one-full-block",
+  "status": "PASS",
+  "steps": [
+    {
+      "final_residual_replay": {
+        "count": 384,
+        "max_abs_error": 0.015136657627372763,
+        "mean_abs_error": 0.0018280226592849306,
+        "normalized_rmse": 0.027660379777614017,
+        "rmse": 0.002789647921550799,
+        "signal_rms": 0.10085356542387408
+      },
+      "mlp_output_replay": {
+        "count": 384,
+        "max_abs_error": 0.015136658558695337,
+        "mean_abs_error": 0.001828022745990092,
+        "normalized_rmse": 0.02681474123636855,
+        "rmse": 0.002789647840911811,
+        "signal_rms": 0.10403411378545176
+      },
+      "row_quantization_ranges": {
+        "c_fc_x_q_max": 4260,
+        "c_fc_x_q_min": -4840,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -112,
+        "ln2_scale_max": 0.027340967824139934,
+        "ln2_scale_min": 0.0202860006197231,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 6,
+      "step": 0
+    },
+    {
+      "final_residual_replay": {
+        "count": 448,
+        "max_abs_error": 0.015136657627372763,
+        "mean_abs_error": 0.0017296835583332777,
+        "normalized_rmse": 0.02650315443599528,
+        "rmse": 0.0026356174336616555,
+        "signal_rms": 0.09944542412966849
+      },
+      "mlp_output_replay": {
+        "count": 448,
+        "max_abs_error": 0.015136658558695337,
+        "mean_abs_error": 0.0017296837163255005,
+        "normalized_rmse": 0.025892104708361917,
+        "rmse": 0.0026356174070715273,
+        "signal_rms": 0.10179231996618446
+      },
+      "row_quantization_ranges": {
+        "c_fc_x_q_max": 4260,
+        "c_fc_x_q_min": -4840,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -112,
+        "ln2_scale_max": 0.027340967824139934,
+        "ln2_scale_min": 0.0196169004665585,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 7,
+      "step": 1
+    },
+    {
+      "final_residual_replay": {
+        "count": 512,
+        "max_abs_error": 0.015136656696050188,
+        "mean_abs_error": 0.0016850326047267486,
+        "normalized_rmse": 0.025709465201523854,
+        "rmse": 0.0025841429001726406,
+        "signal_rms": 0.10051328877970876
+      },
+      "mlp_output_replay": {
+        "count": 512,
+        "max_abs_error": 0.015136658558695337,
+        "mean_abs_error": 0.0016850322718516882,
+        "normalized_rmse": 0.02563860070839729,
+        "rmse": 0.0025841423437414804,
+        "signal_rms": 0.10079108345780775
+      },
+      "row_quantization_ranges": {
+        "c_fc_x_q_max": 4260,
+        "c_fc_x_q_min": -4840,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027340967824139934,
+        "ln2_scale_min": 0.0196169004665585,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 8,
+      "step": 2
+    },
+    {
+      "final_residual_replay": {
+        "count": 576,
+        "max_abs_error": 0.0565238893032074,
+        "mean_abs_error": 0.0020313241880449452,
+        "normalized_rmse": 0.03771825759733584,
+        "rmse": 0.0037945886916616396,
+        "signal_rms": 0.10060349903145217
+      },
+      "mlp_output_replay": {
+        "count": 576,
+        "max_abs_error": 0.0565238893032074,
+        "mean_abs_error": 0.0020313240678905896,
+        "normalized_rmse": 0.03722500178411025,
+        "rmse": 0.003794588466278233,
+        "signal_rms": 0.1019365556591586
+      },
+      "row_quantization_ranges": {
+        "c_fc_x_q_max": 4260,
+        "c_fc_x_q_min": -4840,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027340967824139934,
+        "ln2_scale_min": 0.0196169004665585,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 9,
+      "step": 3
+    },
+    {
+      "final_residual_replay": {
+        "count": 640,
+        "max_abs_error": 0.056523945182561874,
+        "mean_abs_error": 0.0019347140046980834,
+        "normalized_rmse": 0.036214809172662746,
+        "rmse": 0.0036223106722370357,
+        "signal_rms": 0.10002291203487515
+      },
+      "mlp_output_replay": {
+        "count": 640,
+        "max_abs_error": 0.05652394890785217,
+        "mean_abs_error": 0.0019347137079299623,
+        "normalized_rmse": 0.035650485801870795,
+        "rmse": 0.0036223106749642504,
+        "signal_rms": 0.1016062079797568
+      },
+      "row_quantization_ranges": {
+        "c_fc_x_q_max": 4260,
+        "c_fc_x_q_min": -4840,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027340967824139934,
+        "ln2_scale_min": 0.018227620387640524,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 10,
+      "step": 4
+    },
+    {
+      "final_residual_replay": {
+        "count": 704,
+        "max_abs_error": 0.056523945182561874,
+        "mean_abs_error": 0.0018446707267695034,
+        "normalized_rmse": 0.035016549477517915,
+        "rmse": 0.0034706640916086664,
+        "signal_rms": 0.09911496544903653
+      },
+      "mlp_output_replay": {
+        "count": 704,
+        "max_abs_error": 0.05652394890785217,
+        "mean_abs_error": 0.0018446704411054853,
+        "normalized_rmse": 0.03448732621687922,
+        "rmse": 0.0034706640871520074,
+        "signal_rms": 0.10063592826321663
+      },
+      "row_quantization_ranges": {
+        "c_fc_x_q_max": 4260,
+        "c_fc_x_q_min": -4840,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027340967824139934,
+        "ln2_scale_min": 0.018227620387640524,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 11,
+      "step": 5
+    },
+    {
+      "final_residual_replay": {
+        "count": 768,
+        "max_abs_error": 0.056523945182561874,
+        "mean_abs_error": 0.0017802322370327483,
+        "normalized_rmse": 0.03428496802443035,
+        "rmse": 0.0033455981794368378,
+        "signal_rms": 0.09758207086711802
+      },
+      "mlp_output_replay": {
+        "count": 768,
+        "max_abs_error": 0.05652394890785217,
+        "mean_abs_error": 0.001780231951224038,
+        "normalized_rmse": 0.0336336548264269,
+        "rmse": 0.0033455981708475683,
+        "signal_rms": 0.0994717400803804
+      },
+      "row_quantization_ranges": {
+        "c_fc_x_q_max": 4260,
+        "c_fc_x_q_min": -4840,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027340967824139934,
+        "ln2_scale_min": 0.018227620387640524,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 12,
+      "step": 6
+    },
+    {
+      "final_residual_replay": {
+        "count": 832,
+        "max_abs_error": 0.056523945182561874,
+        "mean_abs_error": 0.0017386530216285953,
+        "normalized_rmse": 0.03356671836902945,
+        "rmse": 0.0032476115280027453,
+        "signal_rms": 0.0967509391981307
+      },
+      "mlp_output_replay": {
+        "count": 832,
+        "max_abs_error": 0.05652394890785217,
+        "mean_abs_error": 0.0017386528014609157,
+        "normalized_rmse": 0.03252057954991398,
+        "rmse": 0.003247611520298669,
+        "signal_rms": 0.0998632732025607
+      },
+      "row_quantization_ranges": {
+        "c_fc_x_q_max": 4260,
+        "c_fc_x_q_min": -5089,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "ln2_scale_max": 0.027340967824139934,
+        "ln2_scale_min": 0.018227620387640524,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31
+      },
+      "sequence_length": 13,
+      "step": 7
+    }
+  ],
+  "thresholds": {
+    "final_residual_normalized_rmse": 0.05,
+    "mlp_output_normalized_rmse": 0.08
+  },
+  "weight_manifest": "/home/roland/LLM2FPGA/artifacts/task6/weights_pack/tiny-stories-1m-m2-block0-int8/manifest.json"
+}

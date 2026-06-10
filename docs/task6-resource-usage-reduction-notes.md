@@ -272,6 +272,30 @@ Next M2 lowering step: score the `ln_2 -> MLP/PWL GELU -> c_proj -> residual`
 path against the M2 block oracle, then decide whether the combined one-block
 fixed-point replay is accurate enough to generate RTL.
 
+### 2026-06-10 - M2 MLP/residual lowering scout
+
+Added `scripts/task6/score_m2_mlp_residual_lowering.py` to score the M2 block-0
+MLP half against the one-block oracle:
+
+- Input boundary: oracle `ln_2` tensors from all 8 prompt-reference contexts.
+- MLP replay: per-token symmetric int8 `ln_2` activations, rowwise symmetric
+  int8 `c_fc` weights, the accepted 16-node fixed-point PWL GELU handoff, and
+  rowwise symmetric int8 `c_proj` weights with the accepted fixed output scale.
+- Final residual check: oracle `block_input + attention_output` plus replayed
+  MLP output is compared against oracle `block_output_f32`. This isolates the
+  MLP half; a later full-block gate should compose replayed attention and
+  replayed MLP in one run.
+- Result: PASS. Aggregate MLP-output normalized RMSE is about `0.0324`, and
+  aggregate final-residual normalized RMSE is about `0.0330`, below the current
+  scout thresholds (`0.08` MLP, `0.05` final residual).
+- Artifact:
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-mlp-residual-lowering-score.json`.
+- Canonical flake product:
+  `.#task6-tinystories-1m-m2-mlp-residual-lowering-score`.
+
+Next M2 lowering step: compose attention replay plus MLP replay into one
+full-block fixed-point gate before generating the M2 board lane.
+
 Operational update (2026-06-09):
 
 - The reference generator was extended to emit prompt-step `activation_q`, `residual_q`,
