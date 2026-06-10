@@ -1,0 +1,266 @@
+{
+  "artifact_name": "h2-tinystories-1m-m2-one-block-int8-weight-pack",
+  "block_index": 0,
+  "date": "2026-06-10T10:15:33.214036+00:00",
+  "int8_payload_bytes": 3396672,
+  "model_label": "tiny-stories-1m",
+  "next_stage": "replace f32 passthrough tensors with fixed-point layernorm/bias constants",
+  "passthrough_f32_bytes": 2560,
+  "policy": {
+    "rank1_tensors": "f32-passthrough-until-layernorm-bias-fixed-point-contract",
+    "rank2_tensors": "rowwise-symmetric-int8-with-f32-row-scales"
+  },
+  "scale_bytes": 211524,
+  "schema_version": 1,
+  "source_manifest": "artifacts/task6/weights_pack/tiny-stories-1m-m2-block0/manifest.json",
+  "stage": "M2-one-full-block",
+  "status": "PASS",
+  "tensors": [
+    {
+      "name": "transformer.wte.weight",
+      "q_byte_length": 3216448,
+      "q_dtype": "int8",
+      "q_filename": "transformer__wte__weight__rowwise_i8.bin",
+      "q_sha256": "fc5f82f4c923222472fcbe520de49143c7884d93b8e0e21d44f52c59fd9e336d",
+      "quantization": "rowwise-symmetric-int8",
+      "scale_byte_length": 201028,
+      "scale_dtype": "float32",
+      "scale_filename": "transformer__wte__weight__row_scales_f32.bin",
+      "scale_sha256": "6c3acc9adba2dbeb6794538f2f5c8af970617f12d7bbf497c60cd843934e93bf",
+      "scale_shape": [
+        50257
+      ],
+      "shape": [
+        50257,
+        64
+      ],
+      "source_filename": "transformer__wte__weight.bin"
+    },
+    {
+      "name": "transformer.wpe.weight",
+      "q_byte_length": 131072,
+      "q_dtype": "int8",
+      "q_filename": "transformer__wpe__weight__rowwise_i8.bin",
+      "q_sha256": "d314b2bbb7601421cd888b56b93573e6a332a0d734510d03b401f9ebc1058bf7",
+      "quantization": "rowwise-symmetric-int8",
+      "scale_byte_length": 8192,
+      "scale_dtype": "float32",
+      "scale_filename": "transformer__wpe__weight__row_scales_f32.bin",
+      "scale_sha256": "16ebd07b53e01a0ea36fe2b7a03d252cb892d09eef4bc8b13c30d15fa72b750d",
+      "scale_shape": [
+        2048
+      ],
+      "shape": [
+        2048,
+        64
+      ],
+      "source_filename": "transformer__wpe__weight.bin"
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__ln_1__weight__f32.bin",
+      "name": "transformer.h.0.ln_1.weight",
+      "quantization": "f32-passthrough",
+      "sha256": "5a01ad0b350b25d9fc81d13227e0435f2083e758eeb2653f9afc57127efb8739",
+      "shape": [
+        64
+      ],
+      "source_filename": "transformer__h__0__ln_1__weight.bin"
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__ln_1__bias__f32.bin",
+      "name": "transformer.h.0.ln_1.bias",
+      "quantization": "f32-passthrough",
+      "sha256": "f9bf7634324a0f570df43ffa642e3d30cfc7b189e1b11f6ced732e7872eef39b",
+      "shape": [
+        64
+      ],
+      "source_filename": "transformer__h__0__ln_1__bias.bin"
+    },
+    {
+      "name": "transformer.h.0.attn.attention.k_proj.weight",
+      "q_byte_length": 4096,
+      "q_dtype": "int8",
+      "q_filename": "transformer__h__0__attn__attention__k_proj__weight__rowwise_i8.bin",
+      "q_sha256": "0f896a130a4cba5aab3a58f512254501586cf0bde8744f1e4810b0a42bb17b62",
+      "quantization": "rowwise-symmetric-int8",
+      "scale_byte_length": 256,
+      "scale_dtype": "float32",
+      "scale_filename": "transformer__h__0__attn__attention__k_proj__weight__row_scales_f32.bin",
+      "scale_sha256": "daeb6092511ade824d2b1f960fdb56722cf64bb4928e900396966ad9864164f8",
+      "scale_shape": [
+        64
+      ],
+      "shape": [
+        64,
+        64
+      ],
+      "source_filename": "transformer__h__0__attn__attention__k_proj__weight.bin"
+    },
+    {
+      "name": "transformer.h.0.attn.attention.v_proj.weight",
+      "q_byte_length": 4096,
+      "q_dtype": "int8",
+      "q_filename": "transformer__h__0__attn__attention__v_proj__weight__rowwise_i8.bin",
+      "q_sha256": "b71b24838fd82ca3909d3e9740bf7e7b1fc0e043ee48d60e4a54d3f56c4d1a26",
+      "quantization": "rowwise-symmetric-int8",
+      "scale_byte_length": 256,
+      "scale_dtype": "float32",
+      "scale_filename": "transformer__h__0__attn__attention__v_proj__weight__row_scales_f32.bin",
+      "scale_sha256": "5d7cf23f8fecb927fd62928c5b0c9a1c1b6668553e6449e0e452c034d6aac1fe",
+      "scale_shape": [
+        64
+      ],
+      "shape": [
+        64,
+        64
+      ],
+      "source_filename": "transformer__h__0__attn__attention__v_proj__weight.bin"
+    },
+    {
+      "name": "transformer.h.0.attn.attention.q_proj.weight",
+      "q_byte_length": 4096,
+      "q_dtype": "int8",
+      "q_filename": "transformer__h__0__attn__attention__q_proj__weight__rowwise_i8.bin",
+      "q_sha256": "4471722eea1e140618812aaef4e60f5ba081b3f720ef79c81fb28c5f415a3395",
+      "quantization": "rowwise-symmetric-int8",
+      "scale_byte_length": 256,
+      "scale_dtype": "float32",
+      "scale_filename": "transformer__h__0__attn__attention__q_proj__weight__row_scales_f32.bin",
+      "scale_sha256": "28dbc8602e3798ffa5be36b9f51ea30203ef99261496cf9601c7eb4f2e1a318a",
+      "scale_shape": [
+        64
+      ],
+      "shape": [
+        64,
+        64
+      ],
+      "source_filename": "transformer__h__0__attn__attention__q_proj__weight.bin"
+    },
+    {
+      "name": "transformer.h.0.attn.attention.out_proj.weight",
+      "q_byte_length": 4096,
+      "q_dtype": "int8",
+      "q_filename": "transformer__h__0__attn__attention__out_proj__weight__rowwise_i8.bin",
+      "q_sha256": "d42eac6137fb321416a435fcf1d15e1ffe34e95e5546561261f163a5b8c7e6a6",
+      "quantization": "rowwise-symmetric-int8",
+      "scale_byte_length": 256,
+      "scale_dtype": "float32",
+      "scale_filename": "transformer__h__0__attn__attention__out_proj__weight__row_scales_f32.bin",
+      "scale_sha256": "51a27b63a2901b4fa131a1349434d3856f37baf6afdbbd8b56d89e7ce655cb20",
+      "scale_shape": [
+        64
+      ],
+      "shape": [
+        64,
+        64
+      ],
+      "source_filename": "transformer__h__0__attn__attention__out_proj__weight.bin"
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__attn__attention__out_proj__bias__f32.bin",
+      "name": "transformer.h.0.attn.attention.out_proj.bias",
+      "quantization": "f32-passthrough",
+      "sha256": "7622d87403157dd7ff17e5e460e15e0bda9d2f4ceb26c7cfdd2c110d0a1a81e6",
+      "shape": [
+        64
+      ],
+      "source_filename": "transformer__h__0__attn__attention__out_proj__bias.bin"
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__ln_2__weight__f32.bin",
+      "name": "transformer.h.0.ln_2.weight",
+      "quantization": "f32-passthrough",
+      "sha256": "047f6017611cf60b254d752ef9e5d6db1fbcfdc6d15f2973a4a4094d2582bebf",
+      "shape": [
+        64
+      ],
+      "source_filename": "transformer__h__0__ln_2__weight.bin"
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__ln_2__bias__f32.bin",
+      "name": "transformer.h.0.ln_2.bias",
+      "quantization": "f32-passthrough",
+      "sha256": "011d24fedd89acf2985d540ebdae538ffbd39a866fcb662a9178309e73c23b19",
+      "shape": [
+        64
+      ],
+      "source_filename": "transformer__h__0__ln_2__bias.bin"
+    },
+    {
+      "name": "transformer.h.0.mlp.c_fc.weight",
+      "q_byte_length": 16384,
+      "q_dtype": "int8",
+      "q_filename": "transformer__h__0__mlp__c_fc__weight__rowwise_i8.bin",
+      "q_sha256": "8686879a4f14dff846de4e41666f77b992e7c32433cad419fa97572fa1c3b132",
+      "quantization": "rowwise-symmetric-int8",
+      "scale_byte_length": 1024,
+      "scale_dtype": "float32",
+      "scale_filename": "transformer__h__0__mlp__c_fc__weight__row_scales_f32.bin",
+      "scale_sha256": "238a20ef13f2b607d6f37fc0dfddd3082f2f7866dc24d1143e93f34e62b62ec4",
+      "scale_shape": [
+        256
+      ],
+      "shape": [
+        256,
+        64
+      ],
+      "source_filename": "transformer__h__0__mlp__c_fc__weight.bin"
+    },
+    {
+      "byte_length": 1024,
+      "dtype": "float32",
+      "filename": "transformer__h__0__mlp__c_fc__bias__f32.bin",
+      "name": "transformer.h.0.mlp.c_fc.bias",
+      "quantization": "f32-passthrough",
+      "sha256": "c964fae2566ee01f906a75c97ada259d1c7e24432ac1f2d824122bf8712b47fb",
+      "shape": [
+        256
+      ],
+      "source_filename": "transformer__h__0__mlp__c_fc__bias.bin"
+    },
+    {
+      "name": "transformer.h.0.mlp.c_proj.weight",
+      "q_byte_length": 16384,
+      "q_dtype": "int8",
+      "q_filename": "transformer__h__0__mlp__c_proj__weight__rowwise_i8.bin",
+      "q_sha256": "919d3ae1e399d2f86bb8c30bf69ea2312f8c609c83bc72365acbab2cb47bce39",
+      "quantization": "rowwise-symmetric-int8",
+      "scale_byte_length": 256,
+      "scale_dtype": "float32",
+      "scale_filename": "transformer__h__0__mlp__c_proj__weight__row_scales_f32.bin",
+      "scale_sha256": "4e492c181df3fe2384467b5d84c704f4eed2dbddb39e599197ea8ae1a63d00e3",
+      "scale_shape": [
+        64
+      ],
+      "shape": [
+        64,
+        256
+      ],
+      "source_filename": "transformer__h__0__mlp__c_proj__weight.bin"
+    },
+    {
+      "byte_length": 256,
+      "dtype": "float32",
+      "filename": "transformer__h__0__mlp__c_proj__bias__f32.bin",
+      "name": "transformer.h.0.mlp.c_proj.bias",
+      "quantization": "f32-passthrough",
+      "sha256": "5f2e5e5cb2917415357991761d011b0ad567ee5ca07ea14b137ab5543e03acfc",
+      "shape": [
+        64
+      ],
+      "source_filename": "transformer__h__0__mlp__c_proj__bias.bin"
+    }
+  ],
+  "total_quantized_bytes": 3610756,
+  "total_source_bytes": 13589248
+}

@@ -215,10 +215,16 @@ Implementation update:
   `artifacts/task6/weights_pack/tiny-stories-1m-m2-block0/`. It contains raw
   f32 token/position embeddings and all `transformer.h.0.*` parameters with
   hashes and byte counts. This is the model-data side of the M2 contract.
+- Added `scripts/task6/quantize_m2_one_block_weight_pack.py` and generated
+  `artifacts/task6/weights_pack/tiny-stories-1m-m2-block0-int8/`. The current
+  policy uses rowwise symmetric int8 plus f32 row scales for rank-2 tensors and
+  keeps rank-1 bias/layernorm tensors as f32 passthrough until the fixed-point
+  layernorm/bias contract is locked.
 - Added flake products:
   `.#task6-tinystories-1m-model-manifest` and
   `.#task6-tinystories-1m-m2-one-block-contract` and
-  `.#task6-tinystories-1m-m2-one-block-weight-pack`.
+  `.#task6-tinystories-1m-m2-one-block-weight-pack` and
+  `.#task6-tinystories-1m-m2-one-block-int8-weight-pack`.
 
 Operational update (2026-06-09):
 

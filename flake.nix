@@ -4580,6 +4580,16 @@ EOF
               --model-label tiny-stories-1m
           '';
 
+        task6TinyStories1mM2OneBlockInt8WeightPack =
+          pkgs.runCommand "task6-tinystories-1m-m2-one-block-int8-weight-pack" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/quantize_m2_one_block_weight_pack.py
+            } \
+              --input-manifest ${task6TinyStories1mM2OneBlockWeightPack}/manifest.json \
+              --out-dir "$out"
+          '';
+
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-top.sv" { } ''
             sed \
@@ -12513,6 +12523,8 @@ EOF
             task6TinyStories1mM2OneBlockContract;
           task6-tinystories-1m-m2-one-block-weight-pack =
             task6TinyStories1mM2OneBlockWeightPack;
+          task6-tinystories-1m-m2-one-block-int8-weight-pack =
+            task6TinyStories1mM2OneBlockInt8WeightPack;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;
