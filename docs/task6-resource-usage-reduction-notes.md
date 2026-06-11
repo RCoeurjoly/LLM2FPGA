@@ -29037,10 +29037,60 @@ Top1 reader decode isolation and finalize-state fix:
   `/nix/store/8dzcq921qwa97njnivrhv345ll84pvyr-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`.
   - `impl.rowstream_clk`: 93.83 MHz, PASS against 66.67 MHz.
   - `impl.pcie_user_clk`: 71.42 MHz, PASS against 62.50 MHz.
-- Hardware validation is still pending because the physical flash command was
-  blocked by the execution approval/usage gate. Next safe sequence:
-  - Flash the bitstream above with
-    `scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write /nix/store/8dzcq921qwa97njnivrhv345ll84pvyr-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit --confirm-write-flash --label task6-top1-reader-finalize-flash`
-  - Run Tapo-backed recovery/lifecycle and require `pcie_ready`.
-  - Run rowstream/top1 with
-    `scripts/task6/task6_pcie_user_gate.sh rowstream-top1 0000:42:00.0 --sample-count 8 --reference-json artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json`.
+- Follow-up on 2026-06-11:
+  - Updated the `pcie7x` flake input to local
+    `path:/home/roland/pcie_7x` so the YPCB PCIe reset-support branch is used
+    while debugging enumeration and BAR lifecycle behavior.
+  - Strengthened the reader fix by registering the emitted row token, weight
+    vector, sidecar, and `row_last` at `S_FINALIZE`; the cutout now consumes a
+    held row interface rather than live slices of the mutable read window.
+  - Extended `sim/task6_ddr3_rowstream_wb_top1_reader_tb.sv` to hold
+    `row_ready` low for 70 cycles and assert that all row fields stay stable
+    while backpressured.
+- Verification for the registered-output reader:
+  - `nix build .#task6-ddr3-rowstream-wb-top1-reader-64-sim-main --no-link --print-out-paths -L`
+  - `/nix/store/8mmhpxir9w2wa955qzq8jjyy341sqdyz-task6-ddr3-rowstream-wb-top1-reader-64-sim-main/obj_dir/sim_main`
+  - `nix build .#task6-ddr3-rowstream-wb-top1-reader-sim-main --no-link --print-out-paths -L`
+  - `/nix/store/7sxb0x19yv4i6swscv2nyganr8366ndn-task6-ddr3-rowstream-wb-top1-reader-128-sim-main/obj_dir/sim_main`
+  - both simulations passed.
+- Strict pnr100 rebuild passed timing with the local reset-support `pcie_7x`
+  input:
+  `/nix/store/4y13l7ya6qyv5pzaxm0n91z6la3spd33-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`.
+  - `impl.rowstream_clk`: 89.13 MHz, PASS against 66.67 MHz.
+  - `impl.pcie_user_clk`: 69.57 MHz, PASS against 62.50 MHz.
+- Board validation passed:
+  - Flash write/verify:
+    `artifacts/task6/runs/2026-06-11T23-14-05+0200-task6-registered-row-output-pnr100-flash`.
+  - Tapo-backed recovery reached `pcie_ready`:
+    `artifacts/task6/runs/2026-06-11T23-21-31+0200-task6-registered-row-output-pnr100-recover`.
+  - Rowstream/top1 summary:
+    `artifacts/task6/runs/2026-06-11T-task6-registered-row-output-rowstream-top1-summary.json`.
+  - Full rowstream load completed with `packet_load_mode=pair`,
+    `packet_count=106828`, `packet_ack_fallback_count=0`, and sampled DDR
+    verification matched.
+  - Hardware top1 matched the Q0.24 Tiny Stories 1M int8 reference for all 8
+    prompt samples: tokens `257, 1310, 2576, 3706, 20037, 13, 1375, 6151`.
+  - `mismatch_count=0`, `reserved_nonzero_count=0`, `hardware_top1_used=true`.
+  - Per-sample top1 debug ended with `cutout_done` and no
+    `debug_top1_fault_seen`.
+
+M0 completion and M3 continuation plan:
+
+- `M0-host-assisted-rowstream-top1` is now complete on hardware. It proves the
+  reset-support PCIe input, DDR3 rowstream load, registered top1 reader, and
+  output-head top1 path for the TinyStories-1M int8/Q0.24 reference. It does
+  not prove full transformer inference because the host still supplies
+  `hidden_q`.
+- The Task 6 finish line is now `M3-full-tinystories-1m`: host supplies token
+  IDs/control, while the board executes all TinyStories-1M transformer blocks
+  and returns token-exact greedy output.
+- Recommended next milestone is `M1-transformer-boundary-mlp` unless an already
+  green MLP boundary artifact is being replayed only as a regression. M1
+  acceptance requires board-visible `residual_add_output_q` matching the
+  fixed-point reference from prompt-derived `activation_q`/`residual_q`.
+- `M2-one-full-block` follows once M1 is stable: the board must run one live
+  TinyStories block from token/control input and match the one-block oracle
+  before M3 composition.
+- `M3-full-tinystories-1m` acceptance requires token-exact greedy continuation
+  for the recorded prompt/step count, with artifacts recording model hashes,
+  prompt tokens, decode policy, bitstream, software reference, and board output.

@@ -383,17 +383,14 @@
     "pcie7x": {
       "flake": false,
       "locked": {
-        "lastModified": 1777005844,
-        "narHash": "sha256-7elok8dXDB894imNHINrCBLbXCXpEjZ1yV6RQ/zcTs0=",
-        "owner": "regymm",
-        "repo": "pcie_7x",
-        "rev": "2d9712913133d660f9114ba437c3288a08728d00",
-        "type": "github"
+        "lastModified": 1781182804,
+        "narHash": "sha256-KtdpvAq6kJU/OZzjULNOIoB0tIhCwh4CG4UCoTzUw14=",
+        "path": "/home/roland/pcie_7x",
+        "type": "path"
       },
       "original": {
-        "owner": "regymm",
-        "repo": "pcie_7x",
-        "type": "github"
+        "path": "/home/roland/pcie_7x",
+        "type": "path"
       }
     },
     "pythondataCpuVexriscv": {

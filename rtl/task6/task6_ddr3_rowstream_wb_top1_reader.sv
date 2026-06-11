@@ -65,6 +65,8 @@ module task6_ddr3_rowstream_wb_top1_reader #(
   logic [WB_ADDR_BITS - 1:0] next_beat_addr;
   logic row_fire;
   logic [WB_DATA_BITS - 1:0] captured_wb_data;
+  logic [HIDDEN_SIZE * 8 - 1:0] extracted_row_weight_q_i8;
+  logic [31:0] extracted_row_sidecar_word;
   localparam int FIRST_ROW_SIDECAR_BEAT = HIDDEN_SIZE / WB_BYTES;
 
   always_comb begin
@@ -83,8 +85,6 @@ module task6_ddr3_rowstream_wb_top1_reader #(
   assign next_row_base_beat = WB_ADDR_BITS'(next_row_byte_offset[BYTE_OFFSET_BITS - 1:WB_BYTE_SHIFT]);
   assign next_row_phase = next_row_byte_offset[WB_BYTE_SHIFT - 1:0];
   assign next_beat_addr = row_base_beat + WB_ADDR_BITS'(32'(beat_index_q) + 32'd1);
-  assign row_token_id_o = 16'(row_index_q);
-  assign row_last_o = row_valid_o && row_index_q == ADDR_WIDTH'(VOCAB_SIZE - 1);
   assign wb_we_o = 1'b0;
   assign wb_data_o = '0;
   assign wb_sel_o = {WB_SEL_BITS{1'b1}};
@@ -92,47 +92,47 @@ module task6_ddr3_rowstream_wb_top1_reader #(
   generate
     if (WB_BYTES == 8) begin : gen_extract_wb8
       always_comb begin
-        row_weight_q_i8_o = '0;
-        row_sidecar_word_o = 32'd0;
+        extracted_row_weight_q_i8 = '0;
+        extracted_row_sidecar_word = 32'd0;
         unique case (row_phase_q)
           3'd0: begin
-            row_weight_q_i8_o = row_window_q[0 +: HIDDEN_SIZE * 8];
-            row_sidecar_word_o = row_window_q[HIDDEN_SIZE * 8 +: 32];
+            extracted_row_weight_q_i8 = row_window_q[0 +: HIDDEN_SIZE * 8];
+            extracted_row_sidecar_word = row_window_q[HIDDEN_SIZE * 8 +: 32];
           end
           3'd4: begin
-            row_weight_q_i8_o = row_window_q[32 +: HIDDEN_SIZE * 8];
-            row_sidecar_word_o = row_window_q[32 + HIDDEN_SIZE * 8 +: 32];
+            extracted_row_weight_q_i8 = row_window_q[32 +: HIDDEN_SIZE * 8];
+            extracted_row_sidecar_word = row_window_q[32 + HIDDEN_SIZE * 8 +: 32];
           end
           default: begin
-            row_weight_q_i8_o = '0;
-            row_sidecar_word_o = 32'd1;
+            extracted_row_weight_q_i8 = '0;
+            extracted_row_sidecar_word = 32'd1;
           end
         endcase
       end
     end else if (WB_BYTES == 16) begin : gen_extract_wb16
       always_comb begin
-        row_weight_q_i8_o = '0;
-        row_sidecar_word_o = 32'd0;
+        extracted_row_weight_q_i8 = '0;
+        extracted_row_sidecar_word = 32'd0;
         unique case (row_phase_q)
           4'd0: begin
-            row_weight_q_i8_o = row_window_q[0 +: HIDDEN_SIZE * 8];
-            row_sidecar_word_o = row_window_q[HIDDEN_SIZE * 8 +: 32];
+            extracted_row_weight_q_i8 = row_window_q[0 +: HIDDEN_SIZE * 8];
+            extracted_row_sidecar_word = row_window_q[HIDDEN_SIZE * 8 +: 32];
           end
           4'd4: begin
-            row_weight_q_i8_o = row_window_q[32 +: HIDDEN_SIZE * 8];
-            row_sidecar_word_o = row_window_q[32 + HIDDEN_SIZE * 8 +: 32];
+            extracted_row_weight_q_i8 = row_window_q[32 +: HIDDEN_SIZE * 8];
+            extracted_row_sidecar_word = row_window_q[32 + HIDDEN_SIZE * 8 +: 32];
           end
           4'd8: begin
-            row_weight_q_i8_o = row_window_q[64 +: HIDDEN_SIZE * 8];
-            row_sidecar_word_o = row_window_q[64 + HIDDEN_SIZE * 8 +: 32];
+            extracted_row_weight_q_i8 = row_window_q[64 +: HIDDEN_SIZE * 8];
+            extracted_row_sidecar_word = row_window_q[64 + HIDDEN_SIZE * 8 +: 32];
           end
           4'd12: begin
-            row_weight_q_i8_o = row_window_q[96 +: HIDDEN_SIZE * 8];
-            row_sidecar_word_o = row_window_q[96 + HIDDEN_SIZE * 8 +: 32];
+            extracted_row_weight_q_i8 = row_window_q[96 +: HIDDEN_SIZE * 8];
+            extracted_row_sidecar_word = row_window_q[96 + HIDDEN_SIZE * 8 +: 32];
           end
           default: begin
-            row_weight_q_i8_o = '0;
-            row_sidecar_word_o = 32'd1;
+            extracted_row_weight_q_i8 = '0;
+            extracted_row_sidecar_word = 32'd1;
           end
         endcase
       end
@@ -140,8 +140,8 @@ module task6_ddr3_rowstream_wb_top1_reader #(
       logic [31:0] row_sidecar_start_byte;
 
       assign row_sidecar_start_byte = 32'(row_phase_q) + 32'(HIDDEN_SIZE);
-      assign row_weight_q_i8_o = row_window_q[row_phase_q * 8 +: HIDDEN_SIZE * 8];
-      assign row_sidecar_word_o = row_window_q[row_sidecar_start_byte * 8 +: 32];
+      assign extracted_row_weight_q_i8 = row_window_q[row_phase_q * 8 +: HIDDEN_SIZE * 8];
+      assign extracted_row_sidecar_word = row_window_q[row_sidecar_start_byte * 8 +: 32];
     end
   endgenerate
 
@@ -161,6 +161,10 @@ module task6_ddr3_rowstream_wb_top1_reader #(
       wb_stb_o <= 1'b0;
       wb_addr_o <= '0;
       row_valid_o <= 1'b0;
+      row_token_id_o <= 16'd0;
+      row_weight_q_i8_o <= '0;
+      row_sidecar_word_o <= 32'd0;
+      row_last_o <= 1'b0;
     end else begin
       done_o <= 1'b0;
 
@@ -169,6 +173,7 @@ module task6_ddr3_rowstream_wb_top1_reader #(
         wb_cyc_o <= 1'b0;
         wb_stb_o <= 1'b0;
         row_valid_o <= 1'b0;
+        row_last_o <= 1'b0;
         busy_o <= 1'b0;
         if (start_i) begin
           busy_o <= 1'b1;
@@ -243,6 +248,10 @@ module task6_ddr3_rowstream_wb_top1_reader #(
       end
 
       S_FINALIZE: begin
+        row_token_id_o <= 16'(row_index_q);
+        row_weight_q_i8_o <= extracted_row_weight_q_i8;
+        row_sidecar_word_o <= extracted_row_sidecar_word;
+        row_last_o <= row_index_q == ADDR_WIDTH'(VOCAB_SIZE - 1);
         row_valid_o <= 1'b1;
         state_q <= S_EMIT;
       end
@@ -271,6 +280,7 @@ module task6_ddr3_rowstream_wb_top1_reader #(
         wb_cyc_o <= 1'b0;
         wb_stb_o <= 1'b0;
         row_valid_o <= 1'b0;
+        row_last_o <= 1'b0;
         busy_o <= 1'b0;
         if (start_i) begin
           error_o <= 1'b0;

@@ -48,6 +48,11 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
   int errors;
   int rows_seen;
   int row_valid_high_cycles;
+  logic [15:0] held_row_token_id;
+  logic [HIDDEN_SIZE * 8 - 1:0] held_row_weight_q_i8;
+  logic [31:0] held_row_sidecar_word;
+  logic held_row_last;
+  int row_ready_hold_cycles;
 
   task6_ddr3_rowstream_wb_top1_reader #(
     .HIDDEN_SIZE(HIDDEN_SIZE),
@@ -135,6 +140,7 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
     errors = 0;
     rows_seen = 0;
     row_valid_high_cycles = 0;
+    row_ready_hold_cycles = 0;
 
     for (int i = 0; i < TOTAL_BEATS * WB_SEL_BITS; i++)
       image[i] = 8'h00;
@@ -168,12 +174,32 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
 
     repeat (1000) begin
       @(posedge clk);
+      if (row_valid && !row_ready) begin
+        check(row_token_id == held_row_token_id, "held row token id must remain stable");
+        check(row_weight_q_i8 == held_row_weight_q_i8, "held row weights must remain stable");
+        check(row_sidecar_word == held_row_sidecar_word, "held row sidecar must remain stable");
+        check(row_last == held_row_last, "held row_last must remain stable");
+      end
       if (row_valid && row_ready) begin
         check_row(rows_seen);
         rows_seen++;
       end
       if (row_valid)
         row_valid_high_cycles++;
+      if (row_valid && row_ready && rows_seen == 1) begin
+        row_ready = 1'b0;
+        row_ready_hold_cycles = 70;
+      end else if (row_valid && !row_ready && row_ready_hold_cycles > 0) begin
+        row_ready_hold_cycles = row_ready_hold_cycles - 1;
+      end else if (row_valid && !row_ready) begin
+        row_ready = 1'b1;
+      end
+      if (row_valid) begin
+        held_row_token_id = row_token_id;
+        held_row_weight_q_i8 = row_weight_q_i8;
+        held_row_sidecar_word = row_sidecar_word;
+        held_row_last = row_last;
+      end
       if (done)
         break;
     end
@@ -181,7 +207,7 @@ module task6_ddr3_rowstream_wb_top1_reader_tb;
     check(done, "reader must complete");
     check(!error, "reader must not report an error");
     check(rows_seen == VOCAB_SIZE, "reader must emit all vocab rows");
-    check(row_valid_high_cycles == VOCAB_SIZE, "reader must hold each row valid for exactly one consumer cycle");
+    check(row_valid_high_cycles >= VOCAB_SIZE + 70, "reader must hold rows valid until accepted");
     check(!busy, "reader must drop busy after completion");
     check(debug_first_row_sidecar_beat_valid, "reader must capture row0 sidecar debug beat");
     check(

@@ -70,7 +70,7 @@
       flake = false;
     };
     pcie7x = {
-      url = "github:regymm/pcie_7x";
+      url = "path:/home/roland/pcie_7x";
       flake = false;
     };
   };
