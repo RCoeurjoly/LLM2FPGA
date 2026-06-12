@@ -9299,6 +9299,20 @@ EOF
               ${./sim/task6_m2_ln_attn_sublane_selftest_tb_main.sv}
           '';
 
+        task6M2LnAttnSublaneAccelSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnSublaneSelftestTbDataSv} \
+              -top task6_m2_ln_attn_sublane_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv} \
+              ${./sim/task6_m2_ln_attn_sublane_accel_tb_main.sv}
+          '';
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestSimMain =
           pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -10007,6 +10021,21 @@ EOF
             hierarchy -top task6_m2_ln_attn_sublane_selftest_top -check
             proc
             synth_xilinx -family xc7 -top task6_m2_ln_attn_sublane_selftest_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2LnAttnSublaneAccelJson =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-accel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv -I${task6M2LnAttnSublaneSelftestTbDataSv} ${./fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv}
+            hierarchy -top task6_m2_ln_attn_sublane_accel_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_ln_attn_sublane_accel_top -noiopad
             write_json "$out"
             EOF
             yosys -s run.ys
@@ -10927,6 +10956,14 @@ EOF
             designJson = task6M2LnAttnSublaneSelftestJson;
           };
 
+        task6M2LnAttnSublaneAccelUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-ln-attn-sublane-accel";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_ln_attn_sublane_accel_top";
+            designJson = task6M2LnAttnSublaneAccelJson;
+          };
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestUtilization =
           mkMappedJsonUtilizationReport {
             name = "task6-int8-v4k-l2-residual-add-output-head-selftest";
@@ -11634,6 +11671,32 @@ EOF
               "status": "PASS",
               "cycles": $cycles,
               "rtl_status": "$status"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnSublaneAccelSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnSublaneAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn sublane accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn-sublane-accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
             }
             EOF
           '';
@@ -12795,6 +12858,14 @@ EOF
             task6M2LnAttnSublaneSelftestJson;
           task6-m2-ln-attn-sublane-selftest-utilization =
             task6M2LnAttnSublaneSelftestUtilization;
+          task6-m2-ln-attn-sublane-accel-sim-main =
+            task6M2LnAttnSublaneAccelSimMain;
+          task6-m2-ln-attn-sublane-accel-sv-sim =
+            task6M2LnAttnSublaneAccelSvSim;
+          task6-m2-ln-attn-sublane-accel-json =
+            task6M2LnAttnSublaneAccelJson;
+          task6-m2-ln-attn-sublane-accel-utilization =
+            task6M2LnAttnSublaneAccelUtilization;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;

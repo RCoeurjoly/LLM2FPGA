@@ -29191,3 +29191,49 @@ Next M2 action:
   startable PCIe-visible M2 live-compute sublane, then compose it with the
   accepted M1 MLP/residual lane. Do not accept the older M2 replay gate as M2
   closure.
+
+### 2026-06-12 - M2 LN/attention live-sublane accelerator scaffold
+
+Added a startable M2 live-compute sublane wrapper:
+
+- RTL: `fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv`.
+- Testbench: `sim/task6_m2_ln_attn_sublane_accel_tb_main.sv`.
+- Flake targets:
+  - `task6-m2-ln-attn-sublane-accel-sim-main`
+  - `task6-m2-ln-attn-sublane-accel-sv-sim`
+  - `task6-m2-ln-attn-sublane-accel-json`
+  - `task6-m2-ln-attn-sublane-accel-utilization`
+
+What changed versus the earlier autonomous selftest:
+
+- The sublane now has a start/clear/status interface compatible with the M2
+  BAR-facing lane shape.
+- The layernorm row input is supplied through the two 512-bit host/BAR vectors:
+  together they carry 64 signed Q12 16-bit inputs.
+- The fixture still supplies the step/head constants, LN affine parameters,
+  quantization scale, attention q/k/v/probability constants, and expected
+  checks. This is a live-compute sublane scaffold, not full M2 block closure.
+- Output surface returns the computed 64-byte LN vector, checksum, samples, and
+  status/debug fields. This gives a concrete PCIe-insertable boundary for the
+  next M2 integration step.
+
+Verification:
+
+- `nix build .#task6-m2-ln-attn-sublane-accel-sv-sim -o /tmp/task6-m2-ln-attn-sublane-accel-sv-sim -L`
+  passed with:
+  - cycles: 74
+  - checksum: `000337f0`
+  - sample0: `06b6dcea`
+  - sample1: `b904b77f`
+- `nix build .#task6-m2-ln-attn-sublane-accel-utilization -o /tmp/task6-m2-ln-attn-sublane-accel-utilization -L`
+  passed. Summary:
+  - 4,464 CLB LUTs
+  - 1,707 CLB FFs
+  - 21 DSPs
+  - 0 BRAM36
+  - slices lower bound 558
+
+M2 remains open. The next step is to instantiate this startable sublane behind
+the existing M2 BAR aperture, validate it on the board, and then replace the
+remaining fixture/replay pieces with the full token/control block-0 compute
+path composed with the accepted M1 MLP/residual lane.
