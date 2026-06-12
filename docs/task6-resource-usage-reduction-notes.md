@@ -29094,3 +29094,100 @@ M0 completion and M3 continuation plan:
 - `M3-full-tinystories-1m` acceptance requires token-exact greedy continuation
   for the recorded prompt/step count, with artifacts recording model hashes,
   prompt tokens, decode policy, bitstream, software reference, and board output.
+
+### 2026-06-12 - M1 full-output BAR contract repaired and accepted
+
+Review follow-up fixed the M1 proof surface before treating the board result as
+accepted:
+
+- Restored full MLP output-vector exposure at the PCIe BAR aperture
+  `0x400..0x43f`; the integrated ingress no longer exposes only
+  checksum/sample words.
+- Carried the MLP output vector through
+  `task6_pcie_axil_rowstream_loader_ingress_cdc.v` instead of tying the leaf
+  ingress input to zero.
+- Restored ingress simulation coverage for activation/residual echo,
+  checksum/sample, debug selector, and full `0x400..0x43f` output-vector
+  readback.
+- Moved the debug dump requant/debug words away from the activation-vector
+  aperture: selector at `0x3c8`, debug words at `0x3d0..0x3d4`.
+- Replaced the problematic dynamic activation/residual BAR vector decode with
+  static per-word decode after live hardware showed the residual echo aperture
+  returning a stable but wrong pattern.
+
+Verification:
+
+- Ingress BAR simulation:
+  `/tmp/task6-m1-static-vector-ingress-sim/obj_dir/sim_main` passed.
+- pnr100 bitstream:
+  `/nix/store/i6fy1kxhyp81239ravvxdjk9g1cvxz51-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+  - nextpnr post-route `pcie_user_clk`: 90.50 MHz, PASS against 62.50 MHz.
+  - `task6_pcie_status_i.drck`: 350.63 MHz, PASS against 100 MHz.
+  - `PIPE_OOBCLK_IN`: 257.20 MHz, PASS against 100 MHz.
+  - Utilization: 25,935 `SLICE_LUTX`, 10,577 `SLICE_FFX`, 798 `CARRY4`,
+    8 `RAMB36E1`, 6 `RAMB18E1`, 11 `DSP48E1`.
+- Flash write/verify:
+  `artifacts/task6/runs/2026-06-12T11-15-30+0200-task6-m1-static-vector-pnr100-flash`.
+- Tapo-backed recovery reached `pcie_ready`:
+  `artifacts/task6/runs/2026-06-12T11-22-53+0200-task6-m1-static-vector-recover`.
+- Live M1 full-output board gate:
+  `artifacts/task6/runs/2026-06-12T-task6-m1-static-vector-mlp-accel.json`.
+
+M1 result:
+
+- Status: PASS.
+- Contract: `M1-transformer-boundary-mlp`.
+- `mlp_accel_status=0x4d4c00b9`, status format `v2`, state `DONE`,
+  `output_valid=true`, `error=false`.
+- Activation echo matched the host-supplied prompt-derived vector.
+- Residual echo matched the host-supplied prompt-derived vector.
+- Output checksum matched `0x00001eec`.
+- Samples matched: `sample0=0xde10ff3e`, `sample1=0xfd3eed6c`.
+- Full output vector at `0x400..0x43f` matched the fixed-point reference.
+- `mismatch_count=0`.
+
+Milestone status after this run:
+
+- `M0-host-assisted-rowstream-top1`: complete.
+- `M1-transformer-boundary-mlp`: complete.
+- `M2-one-full-block`: still open. Existing M2 evidence is replay/BAR
+  integration; it is not yet live full-block compute from token/control input.
+- `M3-full-tinystories-1m`: still open. It depends on live M2 block compute and
+  then all-block token-exact greedy generation.
+
+### 2026-06-12 - M2 live arithmetic sublane coverage expanded
+
+After closing M1, the next M2 work stayed below the replay BAR lane and focused
+on live arithmetic coverage for the future full-block compute path.
+
+Current M2 status:
+
+- The existing PCIe-visible M2 lane remains replay/integration evidence only.
+- `M2-one-full-block` is not closed until token/control input drives a live
+  block-0 compute path on the board.
+
+M2 arithmetic-sublane checks run today:
+
+- Generated LN/attention sublane fixtures for all 8 prompt steps and all 16
+  attention heads using
+  `sim/gen_task6_m2_ln_attn_sublane_selftest_tb_data.py`.
+  - Fixture count: 128.
+  - Sequence lengths covered: 6 through 13.
+  - Maximum layernorm quantization mismatch: 1 LSB.
+  - Attention score accumulator range: -37,583 to 29,488.
+- Fixed `task6_m2_ln_attn_sublane_selftest_top.sv` failure-detail packing so
+  the source/dimension indices are explicitly 4-bit fields. This removes the
+  Verilator width warning seen on longer prompt fixtures.
+- Default Nix sim passed:
+  `/tmp/task6-m2-ln-attn-sublane-sim-fixed/obj_dir/sim_main`
+  reported `PASS: task6 M2 ln attn sublane selftest cycles 82 status 4c410185`.
+- Non-default manual sim for step 7/head 15 passed:
+  `/tmp/task6-m2-lnattn-sim-step7-head15-fixed/obj_dir/sim_main`
+  reported `PASS: task6 M2 ln attn sublane selftest cycles 89 status 4c410184`.
+
+Next M2 action:
+
+- Promote the LN/attention arithmetic slice from selftest-only RTL into a
+  startable PCIe-visible M2 live-compute sublane, then compose it with the
+  accepted M1 MLP/residual lane. Do not accept the older M2 replay gate as M2
+  closure.

@@ -20,6 +20,13 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_BOARD = "ypcb-00338-1p1"
 SUPPORTED_FAMILIES = ("gpt-causal",)
+PIPELINE_PROFILE = {
+    "style": "contract-driven kernelized stages",
+    "frontend": "pytorch via adapter + optional torch-mlir exploration",
+    "compute_boundary": "gradual host-to-fpga transformer block migration",
+    "reference_scope": "fixed-point replay oracles + stage contracts",
+    "target_scope": "gpt-causal decoder families on YPCB first",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -197,6 +204,7 @@ def main() -> None:
         "family_check": family_check(args.family, cfg, modules),
         "parameters": tensors,
         "modules": modules,
+        "pipeline_profile": PIPELINE_PROFILE,
         "next_artifact_stages": [
             "quantized-weight-pack",
             "ddr3-rowstream",

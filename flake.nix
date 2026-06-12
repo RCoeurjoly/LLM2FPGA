@@ -9,10 +9,6 @@
     flake-utils.url = "github:numtide/flake-utils";
     # Clone with submodules
     yosys.url = "git+https://github.com/YosysHQ/yosys?submodules=1";
-    yosys-slang = {
-      url = "git+https://github.com/povik/yosys-slang?submodules=1";
-      flake = false;
-    };
     circt-nix = {
       url = "git+https://github.com/dtzSiFive/circt-nix?ref=main";
     };
@@ -137,44 +133,7 @@
           yosysPkg
         else
           (yosysPkg // { python3-env = pkgs.python311; });
-        yosysSlang = pkgs.clangStdenv.mkDerivation {
-          pname = "yosys-slang";
-          version = "flake-input";
-          src = inputs."yosys-slang";
-          dylibs = [ "slang" ];
-          cmakeFlags = [
-            "-DYOSYS_CONFIG=${yosysPkgWithPythonEnv}/bin/yosys-config"
-            "-DFMT_INSTALL:BOOL=OFF"
-          ];
-          nativeBuildInputs = [ pkgs.cmake pkgs.jq ];
-          buildInputs = [
-            yosysPkgWithPythonEnv
-            yosysPkgWithPythonEnv.python3-env
-            pkgs.fmt
-          ];
-          patchPhase = ''
-            runHook prePatch
-            sed -i \
-              -e '/git_rev_parse(YOSYS_SLANG_REVISION/c\set(YOSYS_SLANG_REVISION flake-input)' \
-              -e '/git_rev_parse(SLANG_REVISION/c\set(SLANG_REVISION flake-input-submodule)' \
-              src/CMakeLists.txt
-            runHook postPatch
-          '';
-          doCheck = true;
-          cmakeBuildType = "Debug";
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out/share/yosys/plugins
-            cp ../build/slang.so $out/share/yosys/plugins/
-            runHook postInstall
-          '';
-          meta = {
-            description = "SystemVerilog frontend for Yosys";
-            license = [ pkgs.lib.licenses.mit ];
-            homepage = "https://github.com/povik/yosys-slang";
-            platforms = pkgs.lib.platforms.all;
-          };
-        };
+        yosysSlang = nixEdaPkgs.yosys-slang;
         task6UberDdr3SourceSummary =
           pkgs.runCommand "task6-uberddr3-source-summary" { } ''
             set -euo pipefail
@@ -411,9 +370,18 @@ EOF
               ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
               ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} \
               ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress_cdc.v} \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${task6Int8L2MlpChainResidualAddAccelTop} \
               ${./fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv}
             hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
-            synth_xilinx -flatten -abc9 -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
+            synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
             stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top
             write_json "$out"
             EOF
@@ -6487,6 +6455,22 @@ EOF
           framesBase = "task6-ypcb-pcie-rowstream-ingress-dummy";
         };
 
+        task6YpcbPcieRowstreamIngressDummyPnr100Fasm = mkFasm {
+          name = "task6-ypcb-pcie-rowstream-ingress-dummy-pnr100";
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcieRowstreamIngressDummyYosysJson;
+          seed = 15;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieRowstreamIngressDummyPnr100Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-rowstream-ingress-dummy-pnr100";
+          fasm = task6YpcbPcieRowstreamIngressDummyPnr100Fasm;
+          framesBase = "task6-ypcb-pcie-rowstream-ingress-dummy-pnr100";
+        };
+
         task6YpcbPcieDdr3IsolatedCommandBridgeFasm = mkFasm {
           name = "task6-ypcb-pcie-ddr3-isolated-command-bridge";
           xdc = task6YpcbPcieUberDdr3RowstreamLoaderXdc;
@@ -6625,6 +6609,7 @@ EOF
               ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
               ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
               ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${task6Int8L2MlpChainResidualAddSelftestTop} \
               ${task6Int8L2MlpChainResidualAddAccelTop} \
               ${task6M2FullBlockReplayAccelTop} \
               ${./rtl/task6/task6_q024_topk_score_compare.sv} \
@@ -9262,6 +9247,28 @@ EOF
               ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
               ${./fpga/rtl/task6_int8_l2_mlp_chain_residual_add_selftest_top.sv} \
               ${./sim/task6_int8_l2_mlp_chain_residual_add_selftest_tb_main.sv}
+          '';
+
+        task6Int8L2MlpChainResidualAddAccelSimMain =
+          pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6Int8L2MlpChainResidualAddTbDataSv} \
+              -top task6_int8_l2_mlp_chain_residual_add_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${./fpga/rtl/task6_int8_l2_mlp_chain_residual_add_accel_top.sv} \
+              ${./sim/task6_int8_l2_mlp_chain_residual_add_accel_tb_main.sv}
           '';
 
         task6M2FullBlockReplaySelftestSimMain =
@@ -12703,16 +12710,16 @@ EOF
       in {
         devShells.default = pkgs.mkShell {
           packages = [
-            mlir
-            circt
+            # mlir
+            # circt
             yosysPkg
             # torchMlir
             # torchMlirPatched
-            llvmPackages.clang
-            llvmPackages.llvm
+            # llvmPackages.clang
+            # llvmPackages.llvm
             # pythonWithTorch
             # pythonWithTorchAO
-            pythonWithTinyStories
+            # pythonWithTinyStories
             # pythonWithTinyStoriesTorchAO
             yosysSlang
             openXC7Nextpnr
@@ -13026,6 +13033,8 @@ EOF
             task6YpcbPcieRowstreamIngressDummyYosysJson;
           task6-ypcb-pcie-rowstream-ingress-dummy-bitstream =
             task6YpcbPcieRowstreamIngressDummyBitstream;
+          task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream =
+            task6YpcbPcieRowstreamIngressDummyPnr100Bitstream;
           task6-ypcb-pcie-ddr3-isolated-command-bridge-yosys-json =
             task6YpcbPcieDdr3IsolatedCommandBridgeYosysJson;
           task6-ypcb-pcie-ddr3-isolated-command-bridge-bitstream =
@@ -13773,6 +13782,8 @@ EOF
             task6Int8L2MlpChainResidualAddSelftestTop;
           task6-int8-l2-mlp-chain-residual-add-selftest-sim-main =
             task6Int8L2MlpChainResidualAddSelftestSimMain;
+          task6-int8-l2-mlp-chain-residual-add-accel-sim-main =
+            task6Int8L2MlpChainResidualAddAccelSimMain;
           task6-int8-l2-mlp-chain-residual-add-selftest-sv-sim =
             task6Int8L2MlpChainResidualAddSelftestSvSim;
           task6-int8-l2-mlp-chain-residual-add-selftest-json =

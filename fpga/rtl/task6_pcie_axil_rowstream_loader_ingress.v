@@ -80,6 +80,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [31:0]  mlp_selftest_fail_values_i,
     input wire [31:0]  mlp_selftest_first_add_sample_i,
     input wire [31:0]  mlp_selftest_first_requant_sample_i,
+    input wire [31:0]  mlp_selftest_requant_debug0_i,
+    input wire [31:0]  mlp_selftest_requant_debug1_i,
+    output reg [31:0]  mlp_selftest_debug_select_o,
 
     output reg [511:0] mlp_accel_activation_vector_o,
     output reg [511:0] mlp_accel_residual_vector_o,
@@ -138,6 +141,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     reg [9:0]  last_write_word_index_q;
     reg [31:0] last_wdata_q;
     reg [3:0]  last_wstrb_q;
+    reg        read_pending_q;
+    reg [9:0]  read_word_index_q;
+    reg [31:0] read_mux_data;
 
     integer i;
 
@@ -184,6 +190,168 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         last_wstrb_q == wstrb_q;
     wire event_active = event_state_q != EVENT_IDLE;
 
+    always @* begin
+        read_mux_data = 32'd0;
+        case (read_word_index_q[9:4])
+            6'h00: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = TASK6_PCIE_MAGIC;
+                    4'h1: read_mux_data = TASK6_PCIE_VERSION;
+                    4'h2: read_mux_data = {25'd0, boot_done_i, calib_complete_i, doorbell_error_q, loader_error_seen_q, loader_done_seen_q, event_active, rst_n};
+                    4'h3: read_mux_data = accepted_count_q;
+                    4'h4: read_mux_data = command_magic_q;
+                    4'h5: read_mux_data = {22'd0, command_chunk_q, command_opcode_q};
+                    4'h6: read_mux_data = command_addr_q;
+                    4'h8: read_mux_data = command_data_q[0];
+                    4'h9: read_mux_data = command_data_q[1];
+                    4'ha: read_mux_data = command_data_q[2];
+                    4'hb: read_mux_data = command_data_q[3];
+                    4'hd: read_mux_data = {26'd0, loader_accepted_seen_q, loader_magic_ok_seen_q, loader_error_seen_q, loader_done_seen_q, boot_done_i, calib_complete_i};
+                    4'he: read_mux_data = {22'd0, loader_last_chunk_i, loader_last_opcode_i};
+                    4'hf: read_mux_data = loader_command_payload_addr_i;
+                    default: read_mux_data = 32'd0;
+                endcase
+            end
+            6'h01: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = loader_wait_cycles_i;
+                    4'h1: read_mux_data = loader_read_data_i[31:0];
+                    4'h2: read_mux_data = loader_read_data_i[63:32];
+                    4'h3: read_mux_data = loader_read_data_i[95:64];
+                    4'h4: read_mux_data = loader_read_data_i[127:96];
+                    4'h5: read_mux_data = ddr_debug1_i;
+                    4'h8: read_mux_data = {28'd0, top1_error_seen_q, top1_done_seen_q, top1_busy_i, rst_n};
+                    4'h9: read_mux_data = top1_start_count_q;
+                    4'ha: read_mux_data = top1_token_i;
+                    4'hb: read_mux_data = top1_score_q024_i;
+                    4'hc: read_mux_data = top1_rows_scanned_i;
+                    4'hd: read_mux_data = top1_cycle_count_i;
+                    default: read_mux_data = 32'd0;
+                endcase
+            end
+            6'h02: begin
+                read_mux_data = top1_hidden_vector_o[read_word_index_q[3:0] * 32 +: 32];
+            end
+            6'h08: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = 32'h54364442;
+                    4'h1: read_mux_data = 32'd1;
+                    4'h2: read_mux_data = debug_rowstream_heartbeat_count_i;
+                    4'h3: read_mux_data = debug_rowstream_status_i;
+                    4'h4: read_mux_data = debug_rowstream_seen_i;
+                    4'h5: read_mux_data = ddr_debug1_i;
+                    4'h6: read_mux_data = loader_wait_cycles_i;
+                    4'h7: read_mux_data = top1_debug_status_i;
+                    4'h8: read_mux_data = top1_debug_reader_addr_i;
+                    4'h9: read_mux_data = top1_debug_wb_ack_count_i;
+                    4'ha: read_mux_data = top1_debug_wb_err_count_i;
+                    4'hb: read_mux_data = top1_debug_packet_wb_write_ack_count_i;
+                    4'hc: read_mux_data = top1_debug_packet_wb_read_ack_count_i;
+                    default: read_mux_data = 32'd0;
+                endcase
+            end
+            6'h0c: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = 32'h54364d4c;
+                    4'h1: read_mux_data = 32'd1;
+                    4'h2: read_mux_data = {31'd0, mlp_selftest_present_i};
+                    4'h3: read_mux_data = mlp_selftest_status_i;
+                    4'h4: read_mux_data = mlp_selftest_cycle_count_i;
+                    4'h5: read_mux_data = mlp_selftest_fail_detail_i;
+                    4'h6: read_mux_data = mlp_selftest_fail_values_i;
+                    4'h7: read_mux_data = mlp_selftest_first_add_sample_i;
+                    4'h8: read_mux_data = mlp_selftest_first_requant_sample_i;
+                    4'h9: read_mux_data = 32'h54364d41;
+                    4'ha: read_mux_data = 32'd1;
+                    4'hb: read_mux_data = {31'd0, mlp_selftest_present_i};
+                    4'hc: read_mux_data = mlp_accel_status_i;
+                    4'hd: read_mux_data = mlp_accel_start_count_q;
+                    4'he: read_mux_data = mlp_accel_cycle_count_i;
+                    4'hf: read_mux_data = mlp_accel_output_checksum_i;
+                    default: read_mux_data = 32'd0;
+                endcase
+            end
+            6'h0d: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = mlp_accel_activation_vector_o[0 +: 32];
+                    4'h1: read_mux_data = mlp_accel_activation_vector_o[32 +: 32];
+                    4'h2: read_mux_data = mlp_accel_activation_vector_o[64 +: 32];
+                    4'h3: read_mux_data = mlp_accel_activation_vector_o[96 +: 32];
+                    4'h4: read_mux_data = mlp_accel_activation_vector_o[128 +: 32];
+                    4'h5: read_mux_data = mlp_accel_activation_vector_o[160 +: 32];
+                    4'h6: read_mux_data = mlp_accel_activation_vector_o[192 +: 32];
+                    4'h7: read_mux_data = mlp_accel_activation_vector_o[224 +: 32];
+                    4'h8: read_mux_data = mlp_accel_activation_vector_o[256 +: 32];
+                    4'h9: read_mux_data = mlp_accel_activation_vector_o[288 +: 32];
+                    4'ha: read_mux_data = mlp_accel_activation_vector_o[320 +: 32];
+                    4'hb: read_mux_data = mlp_accel_activation_vector_o[352 +: 32];
+                    4'hc: read_mux_data = mlp_accel_activation_vector_o[384 +: 32];
+                    4'hd: read_mux_data = mlp_accel_activation_vector_o[416 +: 32];
+                    4'he: read_mux_data = mlp_accel_activation_vector_o[448 +: 32];
+                    4'hf: read_mux_data = mlp_accel_activation_vector_o[480 +: 32];
+                endcase
+            end
+            6'h0e: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = mlp_accel_residual_vector_o[0 +: 32];
+                    4'h1: read_mux_data = mlp_accel_residual_vector_o[32 +: 32];
+                    4'h2: read_mux_data = mlp_accel_residual_vector_o[64 +: 32];
+                    4'h3: read_mux_data = mlp_accel_residual_vector_o[96 +: 32];
+                    4'h4: read_mux_data = mlp_accel_residual_vector_o[128 +: 32];
+                    4'h5: read_mux_data = mlp_accel_residual_vector_o[160 +: 32];
+                    4'h6: read_mux_data = mlp_accel_residual_vector_o[192 +: 32];
+                    4'h7: read_mux_data = mlp_accel_residual_vector_o[224 +: 32];
+                    4'h8: read_mux_data = mlp_accel_residual_vector_o[256 +: 32];
+                    4'h9: read_mux_data = mlp_accel_residual_vector_o[288 +: 32];
+                    4'ha: read_mux_data = mlp_accel_residual_vector_o[320 +: 32];
+                    4'hb: read_mux_data = mlp_accel_residual_vector_o[352 +: 32];
+                    4'hc: read_mux_data = mlp_accel_residual_vector_o[384 +: 32];
+                    4'hd: read_mux_data = mlp_accel_residual_vector_o[416 +: 32];
+                    4'he: read_mux_data = mlp_accel_residual_vector_o[448 +: 32];
+                    4'hf: read_mux_data = mlp_accel_residual_vector_o[480 +: 32];
+                endcase
+            end
+            6'h0f: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = mlp_accel_output_sample0_i;
+                    4'h1: read_mux_data = mlp_accel_output_sample1_i;
+                    4'h2: read_mux_data = mlp_selftest_debug_select_o;
+                    4'h4: read_mux_data = mlp_selftest_requant_debug0_i;
+                    4'h5: read_mux_data = mlp_selftest_requant_debug1_i;
+                    default: read_mux_data = 32'd0;
+                endcase
+            end
+            6'h10: begin
+                read_mux_data =
+                    mlp_accel_output_vector_i[read_word_index_q[3:0] * 32 +: 32];
+            end
+            6'h14: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = 32'h54364d32;
+                    4'h1: read_mux_data = 32'd1;
+                    4'h2: read_mux_data = 32'd1;
+                    4'h3: read_mux_data = m2_full_block_status_i;
+                    4'h4: read_mux_data = m2_full_block_start_count_q;
+                    4'h5: read_mux_data = m2_full_block_cycle_count_i;
+                    4'h6: read_mux_data = m2_full_block_output_checksum_i;
+                    4'h7: read_mux_data = m2_full_block_output_count_i;
+                    default: read_mux_data = 32'd0;
+                endcase
+            end
+            6'h17: begin
+                case (read_word_index_q[3:0])
+                    4'h0: read_mux_data = m2_full_block_output_sample0_i;
+                    4'h1: read_mux_data = m2_full_block_output_sample1_i;
+                    default: read_mux_data = 32'd0;
+                endcase
+            end
+            6'h18: begin
+                read_mux_data = m2_full_block_output_vector_i[read_word_index_q[3:0] * 32 +: 32];
+            end
+            default: read_mux_data = 32'd0;
+        endcase
+    end
+
     initial begin
         s_axi_rdata = 32'd0;
         command_payload_o = {COMMAND_WIDTH{1'b0}};
@@ -222,6 +390,8 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         last_write_word_index_q = 10'd0;
         last_wdata_q = 32'd0;
         last_wstrb_q = 4'd0;
+        read_pending_q = 1'b0;
+        read_word_index_q = 10'd0;
         for (i = 0; i < 4; i = i + 1)
             command_data_q[i] = 32'd0;
     end
@@ -261,6 +431,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             mlp_accel_start_pulse_o <= 1'b0;
             mlp_accel_clear_pulse_o <= 1'b0;
             mlp_accel_start_count_q <= 32'd0;
+            mlp_selftest_debug_select_o <= 32'd0;
             m2_full_block_input_vector_o <= 512'd0;
             m2_full_block_residual_vector_o <= 512'd0;
             m2_full_block_start_pulse_o <= 1'b0;
@@ -409,14 +580,6 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                         10'h02d: top1_hidden_vector_o[416 +: 32] <= apply_wstrb(top1_hidden_vector_o[416 +: 32], wdata_q, wstrb_q);
                         10'h02e: top1_hidden_vector_o[448 +: 32] <= apply_wstrb(top1_hidden_vector_o[448 +: 32], wdata_q, wstrb_q);
                         10'h02f: top1_hidden_vector_o[480 +: 32] <= apply_wstrb(top1_hidden_vector_o[480 +: 32], wdata_q, wstrb_q);
-                        10'h0cc: begin
-                            if (wdata_q[1])
-                                mlp_accel_clear_pulse_o <= 1'b1;
-                            if (wdata_q[0]) begin
-                                mlp_accel_start_pulse_o <= 1'b1;
-                                mlp_accel_start_count_q <= mlp_accel_start_count_q + 32'd1;
-                            end
-                        end
                         10'h0d0: mlp_accel_activation_vector_o[0 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[0 +: 32], wdata_q, wstrb_q);
                         10'h0d1: mlp_accel_activation_vector_o[32 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[32 +: 32], wdata_q, wstrb_q);
                         10'h0d2: mlp_accel_activation_vector_o[64 +: 32] <= apply_wstrb(mlp_accel_activation_vector_o[64 +: 32], wdata_q, wstrb_q);
@@ -449,6 +612,15 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                         10'h0ed: mlp_accel_residual_vector_o[416 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[416 +: 32], wdata_q, wstrb_q);
                         10'h0ee: mlp_accel_residual_vector_o[448 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[448 +: 32], wdata_q, wstrb_q);
                         10'h0ef: mlp_accel_residual_vector_o[480 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[480 +: 32], wdata_q, wstrb_q);
+                        10'h0cc: begin
+                            if (wdata_q[1])
+                                mlp_accel_clear_pulse_o <= 1'b1;
+                            if (wdata_q[0]) begin
+                                mlp_accel_start_pulse_o <= 1'b1;
+                                mlp_accel_start_count_q <= mlp_accel_start_count_q + 32'd1;
+                            end
+                        end
+                        10'h0f2: mlp_selftest_debug_select_o <= apply_wstrb(mlp_selftest_debug_select_o, wdata_q, wstrb_q);
                         10'h143: begin
                             if (wdata_q[1])
                                 m2_full_block_clear_pulse_o <= 1'b1;
@@ -488,101 +660,18 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             s_axi_rvalid <= 1'b0;
             s_axi_rresp <= 2'b00;
             s_axi_rdata <= 32'd0;
+            read_pending_q <= 1'b0;
+            read_word_index_q <= 10'd0;
         end else begin
-            s_axi_arready <= !s_axi_rvalid;
-            if (!s_axi_rvalid && s_axi_arvalid) begin
-                if (read_word_index >= 10'h180 && read_word_index <= 10'h18f) begin
-                    s_axi_rdata <= m2_full_block_output_vector_i[(read_word_index - 10'h180) * 32 +: 32];
-                end else begin
-                case (read_word_index)
-                    10'h000: s_axi_rdata <= TASK6_PCIE_MAGIC;
-                    10'h001: s_axi_rdata <= TASK6_PCIE_VERSION;
-                    10'h002: s_axi_rdata <= {25'd0, boot_done_i, calib_complete_i, doorbell_error_q, loader_error_seen_q, loader_done_seen_q, event_active, rst_n};
-                    10'h003: s_axi_rdata <= accepted_count_q;
-                    10'h004: s_axi_rdata <= command_magic_q;
-                    10'h005: s_axi_rdata <= {22'd0, command_chunk_q, command_opcode_q};
-                    10'h006: s_axi_rdata <= command_addr_q;
-                    10'h008: s_axi_rdata <= command_data_q[0];
-                    10'h009: s_axi_rdata <= command_data_q[1];
-                    10'h00a: s_axi_rdata <= command_data_q[2];
-                    10'h00b: s_axi_rdata <= command_data_q[3];
-                    10'h00d: s_axi_rdata <= {26'd0, loader_accepted_seen_q, loader_magic_ok_seen_q, loader_error_seen_q, loader_done_seen_q, boot_done_i, calib_complete_i};
-                    10'h00e: s_axi_rdata <= {22'd0, loader_last_chunk_i, loader_last_opcode_i};
-                    10'h00f: s_axi_rdata <= loader_command_payload_addr_i;
-                    10'h010: s_axi_rdata <= loader_wait_cycles_i;
-                    10'h011: s_axi_rdata <= loader_read_data_i[31:0];
-                    10'h012: s_axi_rdata <= loader_read_data_i[63:32];
-                    10'h013: s_axi_rdata <= loader_read_data_i[95:64];
-                    10'h014: s_axi_rdata <= loader_read_data_i[127:96];
-                    10'h015: s_axi_rdata <= ddr_debug1_i;
-                    10'h018: s_axi_rdata <= {28'd0, top1_error_seen_q, top1_done_seen_q, top1_busy_i, rst_n};
-                    10'h019: s_axi_rdata <= top1_start_count_q;
-                    10'h01a: s_axi_rdata <= top1_token_i;
-                    10'h01b: s_axi_rdata <= top1_score_q024_i;
-                    10'h01c: s_axi_rdata <= top1_rows_scanned_i;
-                    10'h01d: s_axi_rdata <= top1_cycle_count_i;
-                    10'h020: s_axi_rdata <= top1_hidden_vector_o[0 +: 32];
-                    10'h021: s_axi_rdata <= top1_hidden_vector_o[32 +: 32];
-                    10'h022: s_axi_rdata <= top1_hidden_vector_o[64 +: 32];
-                    10'h023: s_axi_rdata <= top1_hidden_vector_o[96 +: 32];
-                    10'h024: s_axi_rdata <= top1_hidden_vector_o[128 +: 32];
-                    10'h025: s_axi_rdata <= top1_hidden_vector_o[160 +: 32];
-                    10'h026: s_axi_rdata <= top1_hidden_vector_o[192 +: 32];
-                    10'h027: s_axi_rdata <= top1_hidden_vector_o[224 +: 32];
-                    10'h028: s_axi_rdata <= top1_hidden_vector_o[256 +: 32];
-                    10'h029: s_axi_rdata <= top1_hidden_vector_o[288 +: 32];
-                    10'h02a: s_axi_rdata <= top1_hidden_vector_o[320 +: 32];
-                    10'h02b: s_axi_rdata <= top1_hidden_vector_o[352 +: 32];
-                    10'h02c: s_axi_rdata <= top1_hidden_vector_o[384 +: 32];
-                    10'h02d: s_axi_rdata <= top1_hidden_vector_o[416 +: 32];
-                    10'h02e: s_axi_rdata <= top1_hidden_vector_o[448 +: 32];
-                    10'h02f: s_axi_rdata <= top1_hidden_vector_o[480 +: 32];
-                    10'h080: s_axi_rdata <= 32'h54364442;
-                    10'h081: s_axi_rdata <= 32'd1;
-                    10'h082: s_axi_rdata <= debug_rowstream_heartbeat_count_i;
-                    10'h083: s_axi_rdata <= debug_rowstream_status_i;
-                    10'h084: s_axi_rdata <= debug_rowstream_seen_i;
-                    10'h085: s_axi_rdata <= ddr_debug1_i;
-                    10'h086: s_axi_rdata <= loader_wait_cycles_i;
-                    10'h087: s_axi_rdata <= top1_debug_status_i;
-                    10'h088: s_axi_rdata <= top1_debug_reader_addr_i;
-                    10'h089: s_axi_rdata <= top1_debug_wb_ack_count_i;
-                    10'h08a: s_axi_rdata <= top1_debug_wb_err_count_i;
-                    10'h08b: s_axi_rdata <= top1_debug_packet_wb_write_ack_count_i;
-                    10'h08c: s_axi_rdata <= top1_debug_packet_wb_read_ack_count_i;
-                    10'h0c0: s_axi_rdata <= 32'h54364d4c;
-                    10'h0c1: s_axi_rdata <= 32'd1;
-                    10'h0c2: s_axi_rdata <= {31'd0, mlp_selftest_present_i};
-                    10'h0c3: s_axi_rdata <= mlp_selftest_status_i;
-                    10'h0c4: s_axi_rdata <= mlp_selftest_cycle_count_i;
-                    10'h0c5: s_axi_rdata <= mlp_selftest_fail_detail_i;
-                    10'h0c6: s_axi_rdata <= mlp_selftest_fail_values_i;
-                    10'h0c7: s_axi_rdata <= mlp_selftest_first_add_sample_i;
-                    10'h0c8: s_axi_rdata <= mlp_selftest_first_requant_sample_i;
-                    10'h0c9: s_axi_rdata <= 32'h54364d41;
-                    10'h0ca: s_axi_rdata <= 32'd1;
-                    10'h0cb: s_axi_rdata <= {31'd0, mlp_selftest_present_i};
-                    10'h0cc: s_axi_rdata <= mlp_accel_status_i;
-                    10'h0cd: s_axi_rdata <= mlp_accel_start_count_q;
-                    10'h0ce: s_axi_rdata <= mlp_accel_cycle_count_i;
-                    10'h0cf: s_axi_rdata <= mlp_accel_output_checksum_i;
-                    10'h0f0: s_axi_rdata <= mlp_accel_output_sample0_i;
-                    10'h0f1: s_axi_rdata <= mlp_accel_output_sample1_i;
-                    10'h140: s_axi_rdata <= 32'h54364d32;
-                    10'h141: s_axi_rdata <= 32'd1;
-                    10'h142: s_axi_rdata <= 32'd1;
-                    10'h143: s_axi_rdata <= m2_full_block_status_i;
-                    10'h144: s_axi_rdata <= m2_full_block_start_count_q;
-                    10'h145: s_axi_rdata <= m2_full_block_cycle_count_i;
-                    10'h146: s_axi_rdata <= m2_full_block_output_checksum_i;
-                    10'h147: s_axi_rdata <= m2_full_block_output_count_i;
-                    10'h170: s_axi_rdata <= m2_full_block_output_sample0_i;
-                    10'h171: s_axi_rdata <= m2_full_block_output_sample1_i;
-                    default: s_axi_rdata <= 32'd0;
-                endcase
-                end
+            s_axi_arready <= !s_axi_rvalid && !read_pending_q;
+            if (!s_axi_rvalid && !read_pending_q && s_axi_arvalid) begin
+                read_word_index_q <= read_word_index;
+                read_pending_q <= 1'b1;
+            end else if (read_pending_q) begin
+                s_axi_rdata <= read_mux_data;
                 s_axi_rvalid <= 1'b1;
                 s_axi_rresp <= 2'b00;
+                read_pending_q <= 1'b0;
             end else if (s_axi_rvalid && s_axi_rready) begin
                 s_axi_rvalid <= 1'b0;
             end

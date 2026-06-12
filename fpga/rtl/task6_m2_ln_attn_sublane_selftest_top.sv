@@ -44,6 +44,8 @@ module task6_m2_ln_attn_sublane_selftest_top (
   logic signed [31:0] value_acc_q;
   logic signed [63:0] value_shifted_q;
   logic signed [7:0] value_q;
+  logic [3:0] src_index_detail_w;
+  logic [3:0] dim_index_detail_w;
 
   function automatic signed [63:0] round_shift_signed64(
     input signed [63:0] value,
@@ -125,6 +127,8 @@ module task6_m2_ln_attn_sublane_selftest_top (
   assign value_shifted_q =
     round_shift_signed64({{32{value_acc_q[31]}}, value_acc_q}, 15);
   assign value_q = saturate_i8($signed(value_shifted_q[31:0]));
+  assign src_index_detail_w = {{(4 - ATTN_SRC_WIDTH){1'b0}}, src_index_q};
+  assign dim_index_detail_w = {{(4 - ATTN_DIM_WIDTH){1'b0}}, dim_index_q};
 
   assign led_3bits_tri_o = {
     state_q == ST_FAIL,
@@ -181,7 +185,7 @@ module task6_m2_ln_attn_sublane_selftest_top (
         ST_ATTN_SCORE: begin
           if (score_acc_q != attn_expected_score_acc[src_index_q]) begin
             state_q <= ST_FAIL;
-            fail_detail_q <= {8'h02, 5'd0, src_index_q, score_acc_q[15:0]};
+            fail_detail_q <= {8'h02, 4'd0, src_index_detail_w, score_acc_q[15:0]};
           end else if (src_index_q == ATTN_SRC_WIDTH'(ATTN_SEQ - 1)) begin
             state_q <= ST_ATTN_VALUE;
             dim_index_q <= '0;
@@ -195,7 +199,7 @@ module task6_m2_ln_attn_sublane_selftest_top (
             value_q != attn_expected_value_q[dim_index_q]
           ) begin
             state_q <= ST_FAIL;
-            fail_detail_q <= {8'h03, 6'd0, dim_index_q, value_acc_q[15:0]};
+            fail_detail_q <= {8'h03, 4'd0, dim_index_detail_w, value_acc_q[15:0]};
           end else if (dim_index_q == ATTN_DIM_WIDTH'(ATTN_HEAD_DIM - 1)) begin
             state_q <= ST_PASS;
           end else begin

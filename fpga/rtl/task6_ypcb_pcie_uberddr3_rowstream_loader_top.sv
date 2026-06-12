@@ -77,6 +77,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
   wire [31:0] rowstream_mlp_selftest_fail_values;
   wire [31:0] rowstream_mlp_selftest_first_add_sample;
   wire [31:0] rowstream_mlp_selftest_first_requant_sample;
+  wire [31:0] rowstream_mlp_selftest_requant_debug0;
+  wire [31:0] rowstream_mlp_selftest_requant_debug1;
+  wire [31:0] rowstream_mlp_selftest_debug_select;
   wire [511:0] rowstream_mlp_accel_activation_vector;
   wire [511:0] rowstream_mlp_accel_residual_vector;
   wire rowstream_mlp_accel_start;
@@ -220,6 +223,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .rowstream_mlp_selftest_fail_values_i(rowstream_mlp_selftest_fail_values),
     .rowstream_mlp_selftest_first_add_sample_i(rowstream_mlp_selftest_first_add_sample),
     .rowstream_mlp_selftest_first_requant_sample_i(rowstream_mlp_selftest_first_requant_sample),
+    .rowstream_mlp_selftest_requant_debug0_i(rowstream_mlp_selftest_requant_debug0),
+    .rowstream_mlp_selftest_requant_debug1_i(rowstream_mlp_selftest_requant_debug1),
+    .rowstream_mlp_selftest_debug_select_o(rowstream_mlp_selftest_debug_select),
     .rowstream_mlp_accel_activation_vector_o(rowstream_mlp_accel_activation_vector),
     .rowstream_mlp_accel_residual_vector_o(rowstream_mlp_accel_residual_vector),
     .rowstream_mlp_accel_start_o(rowstream_mlp_accel_start),
@@ -247,7 +253,8 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     if (ENABLE_PCIE_MLP_SELFTEST) begin : gen_pcie_mlp_selftest
       task6_int8_l2_mlp_chain_residual_add_selftest_top #(
         .DEBUG_LEDS(0),
-        .ENABLE_JTAG_DEBUG(0)
+        .ENABLE_JTAG_DEBUG(1),
+        .JTAG_CHAIN(4)
       ) mlp_selftest (
         .SYS_CLK(rowstream_clk),
         .SYS_RSTN(rowstream_rst_n),
@@ -258,6 +265,9 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
         .pcie_fail_values_o(rowstream_mlp_selftest_fail_values),
         .pcie_first_add_sample_o(rowstream_mlp_selftest_first_add_sample),
         .pcie_first_requant_sample_o(rowstream_mlp_selftest_first_requant_sample),
+        .pcie_requant_debug0_o(rowstream_mlp_selftest_requant_debug0),
+        .pcie_requant_debug1_o(rowstream_mlp_selftest_requant_debug1),
+        .pcie_debug_select_i(rowstream_mlp_selftest_debug_select),
         .pcie_accel_activation_i(rowstream_mlp_accel_activation_vector),
         .pcie_accel_residual_i(rowstream_mlp_accel_residual_vector),
         .pcie_accel_start_pulse_i(rowstream_mlp_accel_start),
@@ -292,6 +302,8 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
       assign rowstream_mlp_selftest_fail_values = 32'd0;
       assign rowstream_mlp_selftest_first_add_sample = rowstream_mlp_accel_output_sample0;
       assign rowstream_mlp_selftest_first_requant_sample = rowstream_mlp_accel_output_sample1;
+      assign rowstream_mlp_selftest_requant_debug0 = 32'd0;
+      assign rowstream_mlp_selftest_requant_debug1 = 32'd0;
     end else begin : gen_no_pcie_mlp_selftest
       assign rowstream_mlp_selftest_present = 1'b0;
       assign rowstream_mlp_selftest_status = 32'd0;
@@ -300,6 +312,8 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
       assign rowstream_mlp_selftest_fail_values = 32'd0;
       assign rowstream_mlp_selftest_first_add_sample = 32'd0;
       assign rowstream_mlp_selftest_first_requant_sample = 32'd0;
+      assign rowstream_mlp_selftest_requant_debug0 = 32'd0;
+      assign rowstream_mlp_selftest_requant_debug1 = 32'd0;
       assign rowstream_mlp_accel_status = 32'd0;
       assign rowstream_mlp_accel_cycle_count = 32'd0;
       assign rowstream_mlp_accel_output_checksum = 32'd0;
@@ -344,12 +358,12 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .DISABLE_JTAG_DEBUG_SHIFT(1),
     .BOOT_ISOLATE_UNTIL_CALIB(1),
     .PLL_FB_MULT(16),
-    .PLL_CLKOUT0_DIVIDE(3),
-    .PLL_CLKOUT1_DIVIDE(3),
+    .PLL_CLKOUT0_DIVIDE(4),
+    .PLL_CLKOUT1_DIVIDE(4),
     .PLL_CLKOUT2_DIVIDE(12),
     .PLL_CLKOUT3_DIVIDE(4),
-    .CONTROLLER_CLK_PERIOD_PS(15_000),
-    .DDR3_CLK_PERIOD_PS(3_750),
+    .CONTROLLER_CLK_PERIOD_PS(20_000),
+    .DDR3_CLK_PERIOD_PS(5_000),
     .DLL_OFF_PARAM(1'b0),
     .SPEED_BIN_PARAM(1),
     .SDRAM_CAPACITY_PARAM(4),

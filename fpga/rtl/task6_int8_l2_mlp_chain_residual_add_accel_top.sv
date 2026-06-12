@@ -287,14 +287,12 @@ module task6_int8_l2_mlp_chain_residual_add_accel_top (
           pcie_accel_output_vector_o[accel_index_q * 8 +: 8] <=
             output_read_data;
           pcie_accel_output_checksum_o <=
-            {pcie_accel_output_checksum_o[30:0],
-             pcie_accel_output_checksum_o[31]} ^
-            {{24{output_read_data[7]}}, output_read_data};
-          if (accel_index_q[1:0] == 2'd0)
-            pcie_accel_output_sample0_o[accel_index_q[4:2] * 8 +: 8] <=
+            pcie_accel_output_checksum_o + {24'd0, output_read_data};
+          if (accel_index_q < 6'd4)
+            pcie_accel_output_sample0_o[accel_index_q * 8 +: 8] <=
               output_read_data;
-          if (accel_index_q[1:0] == 2'd1)
-            pcie_accel_output_sample1_o[accel_index_q[4:2] * 8 +: 8] <=
+          if (accel_index_q >= 6'd4 && accel_index_q < 6'd8)
+            pcie_accel_output_sample1_o[(accel_index_q - 6'd4) * 8 +: 8] <=
               output_read_data;
 
           if (accel_index_q == LAST_OUTPUT_INDEX) begin
@@ -334,7 +332,7 @@ module task6_int8_l2_mlp_chain_residual_add_accel_top (
   always_comb begin
     pcie_accel_status_o = {
       16'h4d4c,
-      6'd0,
+      8'd0,
       state_q,
       output_valid_q,
       error_q,

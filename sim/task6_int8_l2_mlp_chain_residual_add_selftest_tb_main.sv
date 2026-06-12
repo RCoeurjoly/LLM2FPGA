@@ -12,6 +12,9 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_tb;
   logic [31:0] pcie_fail_values_o;
   logic [31:0] pcie_first_add_sample_o;
   logic [31:0] pcie_first_requant_sample_o;
+  logic [31:0] pcie_requant_debug0_o;
+  logic [31:0] pcie_requant_debug1_o;
+  logic [31:0] pcie_debug_select_i;
   logic [31:0] pcie_accel_status_o;
   logic [31:0] pcie_accel_cycle_count_o;
   logic [31:0] pcie_accel_output_checksum_o;
@@ -30,6 +33,9 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_tb;
     .pcie_fail_values_o(pcie_fail_values_o),
     .pcie_first_add_sample_o(pcie_first_add_sample_o),
     .pcie_first_requant_sample_o(pcie_first_requant_sample_o),
+    .pcie_requant_debug0_o(pcie_requant_debug0_o),
+    .pcie_requant_debug1_o(pcie_requant_debug1_o),
+    .pcie_debug_select_i(pcie_debug_select_i),
     .pcie_accel_activation_i(512'd0),
     .pcie_accel_residual_i(512'd0),
     .pcie_accel_start_pulse_i(1'b0),
@@ -47,6 +53,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_tb;
   initial begin
     SYS_CLK = 1'b0;
     SYS_RSTN = 1'b0;
+    pcie_debug_select_i = 32'd0;
     cycles = 0;
 
     repeat (4) @(negedge SYS_CLK);

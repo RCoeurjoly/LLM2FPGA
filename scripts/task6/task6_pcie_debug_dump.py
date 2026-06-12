@@ -52,6 +52,35 @@ REG_MLP_FAIL_DETAIL = 0x314
 REG_MLP_FAIL_VALUES = 0x318
 REG_MLP_FIRST_ADD_SAMPLE = 0x31C
 REG_MLP_FIRST_REQUANT_SAMPLE = 0x320
+REG_MLP_REQUANT_DEBUG_BASE = 0x3D0
+REG_MLP_DEBUG_SELECT = 0x3C8
+
+MLP_DEBUG_SELECT_LABELS = {
+    0: "c_proj_acc0",
+    1: "post_gelu_transfer_lo",
+    2: "post_gelu_transfer_hi",
+    3: "c_proj_weight_samples_lo",
+    4: "c_proj_weight_samples_hi",
+    5: "c_proj_activation_samples_lo",
+    6: "c_proj_activation_samples_hi",
+    7: "c_proj_sample0_addr_data",
+    8: "c_proj_sample0_acc",
+    9: "c_proj_final_acc",
+    10: "c_proj_requant_scale",
+    11: "c_proj_requant_bias",
+    12: "c_proj_requant_product_lo",
+    13: "c_proj_requant_product_hi",
+    14: "c_proj_requant_scaled_lo",
+    15: "c_proj_requant_biased_lo",
+    16: "c_fc_post_gelu_samples_lo",
+    17: "c_fc_post_gelu_samples_hi",
+    18: "c_fc_activation_samples_lo",
+    19: "c_fc_activation_samples_hi",
+    20: "c_fc_weight_samples_lo",
+    21: "c_fc_weight_samples_hi",
+    22: "c_fc_acc_vs_post_acc0",
+    23: "c_fc_scaled_vs_output0",
+}
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -60,6 +89,10 @@ def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[st
 
 def rd32(mm: mmap.mmap, offset: int) -> int:
     return struct.unpack(">I", bytes(mm[offset : offset + 4]))[0]
+
+
+def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
+    mm[offset : offset + 4] = struct.pack(">I", value & 0xFFFFFFFF)
 
 
 def decode_bits(value: int, fields: tuple[tuple[int, str], ...]) -> str:
@@ -71,6 +104,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bdf", help="PCI BDF, for example 0000:42:00.0")
     parser.add_argument("--samples", type=int, default=2, help="number of heartbeat samples to read")
+    parser.add_argument(
+        "--mlp-debug-select",
+        type=lambda value: int(value, 0),
+        help="write the MLP selftest debug selector before reading BAR debug words",
+    )
     return parser.parse_args()
 
 
@@ -89,6 +127,9 @@ def main() -> int:
     fd = os.open(resource0, os.O_RDWR | os.O_SYNC)
     try:
         with mmap.mmap(fd, BAR_SIZE, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE) as mm:
+            if args.mlp_debug_select is not None:
+                wr32(mm, REG_MLP_DEBUG_SELECT, args.mlp_debug_select)
+                time.sleep(0.05)
             regs = {
                 "magic": rd32(mm, REG_MAGIC),
                 "version": rd32(mm, REG_VERSION),
@@ -119,7 +160,10 @@ def main() -> int:
                 "mlp_fail_values": rd32(mm, REG_MLP_FAIL_VALUES),
                 "mlp_first_add_sample": rd32(mm, REG_MLP_FIRST_ADD_SAMPLE),
                 "mlp_first_requant_sample": rd32(mm, REG_MLP_FIRST_REQUANT_SAMPLE),
+                "mlp_debug_select": rd32(mm, REG_MLP_DEBUG_SELECT),
             }
+            for idx in range(2):
+                regs[f"mlp_requant_debug{idx}"] = rd32(mm, REG_MLP_REQUANT_DEBUG_BASE + idx * 4)
             heartbeat_samples = []
             for sample in range(max(args.samples, 1)):
                 heartbeat_samples.append(rd32(mm, REG_DEBUG_HEARTBEAT_COUNT))
@@ -156,8 +200,11 @@ def main() -> int:
                 "mlp_fail_values",
                 "mlp_first_add_sample",
                 "mlp_first_requant_sample",
+                "mlp_debug_select",
             ):
                 print(f"{name:18s}: 0x{regs[name]:08x}")
+            for idx in range(2):
+                print(f"mlp_requant_debug{idx:<2d}: 0x{regs[f'mlp_requant_debug{idx}']:08x}")
             print("heartbeat_samples : " + " ".join(f"0x{x:08x}" for x in heartbeat_samples))
 
             print("status bits        : " + decode_bits(regs["status"], (
@@ -220,7 +267,20 @@ def main() -> int:
             print(f"mlp state          : 0x{mlp_state:01x} ({mlp_state_name})")
             print(f"mlp pass           : {mlp_state == 0xB and mlp_fail_reason == 0}")
             print(f"mlp fail reason   : 0x{mlp_fail_reason:01x}")
-            print(f"mlp fail index    : 0x{regs["mlp_fail_detail"] & 0xff:02x}")
+            print(f"mlp fail index    : 0x{regs['mlp_fail_detail'] & 0xff:02x}")
+            if regs["mlp_present"] == 1:
+                print(
+                    "mlp requant acc    : "
+                    f"expected 0x{regs['mlp_requant_debug0']:08x} "
+                    f"observed 0x{regs['mlp_requant_debug1']:08x}"
+                )
+                selector = regs["mlp_debug_select"] & 0x1F
+                label = MLP_DEBUG_SELECT_LABELS.get(selector, "packed_status")
+                print(
+                    "mlp debug selected : "
+                    f"{selector} ({label}) expected 0x{regs['mlp_requant_debug0']:08x} "
+                    f"observed 0x{regs['mlp_requant_debug1']:08x}"
+                )
             print("top1 debug bits    : " + decode_bits(regs["debug_top1_status"], (
                 (0, "rst_n"),
                 (1, "ddr_debug_ok"),

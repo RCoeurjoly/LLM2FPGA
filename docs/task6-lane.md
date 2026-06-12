@@ -36,6 +36,27 @@ paper-review findings:
 - the architectural signal to copy first is not "stream everything"; it is
   "reuse a constrained accelerator block with off-chip parameters"
 
+## Architecture interpretation
+
+This lane is not a divergence from compiler thinking; it is the minimal
+compiler-valid path for this hardware target:
+
+- keep a high-level model frontend and graph-level capture for contracts and
+  operator discovery,
+- keep a reusable kernel contract per stage,
+- stop treating monolithic full-model lowering as the acceptance criterion.
+
+That is consistent with survey and literature signals for accelerator
+migrations: a compiler front-end can still feed a staged hardware pipeline, and
+host-side control remains on software while compute kernels move to FPGA fabric.
+
+Transferability is bounded by architecture, not by hardcoding TinyStories:
+
+- the current contract set covers GPT/Causal-style transformer blocks,
+- 3M/8M variants should differ only in config and contract regeneration,
+- non-Causal/alternative architectures should be introduced only with new operator
+  contracts and matching fixed-point oracle scaffolding.
+
 Practical interpretation for this lane:
 
 - keep the experiment local and narrow

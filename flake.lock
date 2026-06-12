@@ -116,11 +116,11 @@
         "systems": "systems_4"
       },
       "locked": {
-        "lastModified": 1705309234,
-        "narHash": "sha256-uNRRNRKmJyCRC/8y1RqBkqWBLM034y4qN7EprSdmgyA=",
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "1ef2e671c3b0c19053962c07dbda38332dcebf26",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
         "type": "github"
       },
       "original": {
@@ -132,11 +132,11 @@
     "litedram": {
       "flake": false,
       "locked": {
-        "lastModified": 1775661582,
-        "narHash": "sha256-Xbb4lRypUFhYudlBA44aIRE740Vk5lxTM9r+upHdNgw=",
+        "lastModified": 1780396984,
+        "narHash": "sha256-rQ8IMqAMighxRWmPFxiG/T+OtOZvL7JfX/Zy5/k09vA=",
         "owner": "enjoy-digital",
         "repo": "litedram",
-        "rev": "ef9f94a4aeef88f11567a5efa11fc6e7a3bf9dc2",
+        "rev": "8bc71e8d006de7c83f01391b37633f270ecbae81",
         "type": "github"
       },
       "original": {
@@ -148,11 +148,11 @@
     "litepcie": {
       "flake": false,
       "locked": {
-        "lastModified": 1778164816,
-        "narHash": "sha256-mhoxh2Qfz+6sSH9Qm0JeF7EyO7mqftcg/7JuVihtXnU=",
+        "lastModified": 1780604355,
+        "narHash": "sha256-vAKlRQ/NL3iZF/VxPhFx9f3jNe4B2rniNgK78vT4Iao=",
         "owner": "enjoy-digital",
         "repo": "litepcie",
-        "rev": "07531c51edc94e2f25cfba6012fa19d52c936ef0",
+        "rev": "647633a6220ac0cc75de241cc2202a608730d831",
         "type": "github"
       },
       "original": {
@@ -164,11 +164,11 @@
     "litex": {
       "flake": false,
       "locked": {
-        "lastModified": 1777539689,
-        "narHash": "sha256-plBJyvihCnEp4bNVAHseKGJ7J68Bswynk5PNJAGqsJ8=",
+        "lastModified": 1781189672,
+        "narHash": "sha256-wiyCz0ldx8EprAtcjN1a9XYBdAApMF4tL+ijWlPHUoE=",
         "owner": "enjoy-digital",
         "repo": "litex",
-        "rev": "d9918790cadefc51f9904f800cba40ece6e3f07e",
+        "rev": "328da97ab916fca166ada2f943ae08737a1bb277",
         "type": "github"
       },
       "original": {
@@ -180,11 +180,11 @@
     "litexBoards": {
       "flake": false,
       "locked": {
-        "lastModified": 1777481793,
-        "narHash": "sha256-LGGAKM0lOBd3UxxgpdR054Dsfs8t1DPAXo3wa/P7lSs=",
+        "lastModified": 1780938162,
+        "narHash": "sha256-OX8Z6lmqqSMXKwGyexIV1TdPg2Q5ukkvhALj/ByfAfo=",
         "owner": "litex-hub",
         "repo": "litex-boards",
-        "rev": "a323b27a3df0702183608308499c3759188cb41d",
+        "rev": "e2cb2ab06d8acfd608335780374e7ac92d50c4cf",
         "type": "github"
       },
       "original": {
@@ -253,11 +253,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1778333310,
-        "narHash": "sha256-ZYWWx3oav22gCo5kyV7vEHhVcZehGkh3xkXxVYVhJpE=",
+        "lastModified": 1780909493,
+        "narHash": "sha256-DI5j5e387Otx7KQFjaGR4iXOl4+h0s5aR/HXo28cbhU=",
         "owner": "fossi-foundation",
         "repo": "nix-eda",
-        "rev": "e89d603695fb01bc4523b74e187486253de9a9bf",
+        "rev": "ebee72ea782641c04291dfa4cdcb560d22047bab",
         "type": "github"
       },
       "original": {
@@ -347,16 +347,16 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1708807242,
-        "narHash": "sha256-sRTRkhMD4delO/hPxxi+XwLqPn8BuUq6nnj4JqLwOu0=",
+        "lastModified": 1778869304,
+        "narHash": "sha256-30sZNZoA1cqF5JNO9fVX+wgiQYjB7HJqqJ4ztCDeBZE=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "73de017ef2d18a04ac4bfd0c02650007ccb31c2a",
+        "rev": "d233902339c02a9c334e7e593de68855ad26c4cb",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-unstable",
+        "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -396,11 +396,11 @@
     "pythondataCpuVexriscv": {
       "flake": false,
       "locked": {
-        "lastModified": 1714046786,
-        "narHash": "sha256-wkdKTODOu83hCsBTcH+5skNlHr6ypuUu04Tyop4PrEc=",
+        "lastModified": 1780424737,
+        "narHash": "sha256-IizbjZki//WhHIh64SekmkrO1GiZDk4SznkidoVyYeg=",
         "owner": "litex-hub",
         "repo": "pythondata-cpu-vexriscv",
-        "rev": "1979a644dbe64d8d32dfbdd970dccee6add63723",
+        "rev": "642ecfed1c84460555d6d803d660cc60cfc1ecb6",
         "type": "github"
       },
       "original": {
@@ -412,11 +412,11 @@
     "pythondataSoftwareCompilerRt": {
       "flake": false,
       "locked": {
-        "lastModified": 1604528842,
-        "narHash": "sha256-s/tfxhPwYAnu1z1LxEimeYWjX6IHbF2uD/1HjvQn/xo=",
+        "lastModified": 1779797050,
+        "narHash": "sha256-trG1rA90eQxydA0r/uM/AWI13tzUacbIWMtpJSb3s20=",
         "ref": "refs/heads/master",
-        "rev": "fcb03245613ccf3079cc833a701f13d0beaae09d",
-        "revCount": 6160,
+        "rev": "6eb76609c9627bf26635e57c63fb22cda7115887",
+        "revCount": 6163,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/litex-hub/pythondata-software-compiler_rt"
@@ -430,11 +430,11 @@
     "pythondataSoftwarePicolibc": {
       "flake": false,
       "locked": {
-        "lastModified": 1772810877,
-        "narHash": "sha256-bnEnO0gXQE8HnTrO7fDykurNilvYQYJ6csM2t8NNedM=",
+        "lastModified": 1780676653,
+        "narHash": "sha256-9ZaaPoPkvE9dkv2wZFqWnMXuxQhcK8gtsde74YWue1U=",
         "ref": "refs/heads/master",
-        "rev": "4dbc2c3ffb06454a91d3101e27fa625d3a5f2069",
-        "revCount": 203,
+        "rev": "6a13ccce7c575b32c102dd9dc52178505b81fe39",
+        "revCount": 208,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/litex-hub/pythondata-software-picolibc"
@@ -466,7 +466,6 @@
         "pythondataSoftwarePicolibc": "pythondataSoftwarePicolibc",
         "uberDdr3": "uberDdr3",
         "yosys": "yosys",
-        "yosys-slang": "yosys-slang",
         "ypcbHack": "ypcbHack"
       }
     },
@@ -550,8 +549,8 @@
     "uberDdr3": {
       "flake": false,
       "locked": {
-        "lastModified": 1780915210,
-        "narHash": "sha256-wtKP1lGeB4ZYPcA64gchTUdi8HYBLvNrW6Nl42V/+Ik=",
+        "lastModified": 1781218801,
+        "narHash": "sha256-0A2MnEQvIpYzKiUWRbpq+0IKo1+AmB430izljDfVvqI=",
         "path": "/home/roland/UberDDR3",
         "type": "path"
       },
@@ -566,11 +565,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1776959277,
-        "narHash": "sha256-P/DrvHsMzfJLjxQ57cLycQvP8fuVorKMgL+3JRD6vyk=",
+        "lastModified": 1781023768,
+        "narHash": "sha256-MBkp16q8pl60AHlhliwLkFT25BT/UrJU/e08bO8V9kE=",
         "ref": "refs/heads/main",
-        "rev": "2dc69a75783b00e151e500d036c7bf4add26a93b",
-        "revCount": 17058,
+        "rev": "8eb3133076d8adaa89bd0000e80286b822842667",
+        "revCount": 17271,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
@@ -579,24 +578,6 @@
         "submodules": true,
         "type": "git",
         "url": "https://github.com/YosysHQ/yosys"
-      }
-    },
-    "yosys-slang": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1776884539,
-        "narHash": "sha256-Eq7Kzmyp+kg0mHA4BwNWoEMYN2pC5ich6Z2ok5Wptqk=",
-        "ref": "refs/heads/master",
-        "rev": "eabdfd1b836f08047de64dca93c286f2a935d68a",
-        "revCount": 614,
-        "submodules": true,
-        "type": "git",
-        "url": "https://github.com/povik/yosys-slang"
-      },
-      "original": {
-        "submodules": true,
-        "type": "git",
-        "url": "https://github.com/povik/yosys-slang"
       }
     },
     "ypcbHack": {

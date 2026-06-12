@@ -36,13 +36,12 @@ CONTRACT_RESP_FPGA = [
     "kernel completion/status signaling and full output exposure",
 ]
 COMPILED_MLP_CONTRACT = {
-    "artifact_name": "h2-int8-l2-mlp-chain-residual-add-rtl-proof",
-    "model_contract": "tiny-stories-v1k-h64-l1",
+    "artifact_name": "h2-full-tinystories-1m-block0-pwl-mlp-chain-residual-add-rtl-proof",
+    "model_contract": "tiny-stories-1m-h64-l8-block0",
     "top_name": "task6_int8_l2_mlp_chain_residual_add_kernel",
     "note": (
-        "Current bitstream MLP weights/scales are compiled from the v1k L2 "
-        "MLP/residual proof bundle, not from the TinyStories-1M prompt "
-        "output-head reference."
+        "Current bitstream MLP weights/scales are compiled from the full "
+        "TinyStories-1M block-0 PWL MLP/residual proof bundle."
     ),
 }
 KNOWN_INCOMPATIBLE_REFERENCE_ARTIFACTS = {
@@ -80,20 +79,20 @@ ACCEL_V2_STATE_DONE = 0xB
 ACCEL_V2_STATE_ERROR = 0xC
 
 DEFAULT_ACTIVATION_HEX = (
-    "0759972ecf0608f1ad559a01a80f0bba3922f6d3a7ebd4bdd4c07f4efe3a24f2"
-    "1d43ffff48e4ee402cfaf919e7bf35c214eece09383bbf12d6adf1461425233b"
+    "0b16cefff9ed06fc9503c5eef406eef8bf330f62cc2e0203d8febe0c0ff2cb4c"
+    "8b0d164b022b81cc425a1239a8eb27f24ed46017e41302af24020d11d81c0666"
 )
 DEFAULT_RESIDUAL_HEX = (
-    "02578e2bc80104eba55491fca00b07b2371ef1cc9fe6ceb6ceb97f4df93721ed19"
-    "41fbfa46dee93e29f5f415e2b732bb10e9c7053639b70ed0a6ec4410222038"
+    "0c1acffffbed07fd9404c5f0f509f1fbbd381264ca2f0306d801bf0e11f2cd4b"
+    "8d0e1849043081cc465c143eaeed2cf44fd6661be31602b128020e14d81e086b"
 )
 DEFAULT_EXPECT_OUTPUT_HEX = (
-    "0a4c912adef615d69e3fd30cde7318c24b27bdd683e2d1b3d6b47f4dbc3f16144"
-    "cf5cecb57d2c60442d4b418c4ba26be0ce1a2062f35a11ffba0d1510825f642"
+    "3eff10de6ced3efd1bf9c626b3c5130c8cf0d74b01050006296bfecc53e1c7e"
+    "cff91cf48fd0b81cc4542c651acf725d060094f712c418eef7e041e2bf71c3b49"
 )
-DEFAULT_EXPECT_CHECKSUM = 0x200C
-DEFAULT_EXPECT_SAMPLE0 = 0x2A914C0A
-DEFAULT_EXPECT_SAMPLE1 = 0xD615F6DE
+DEFAULT_EXPECT_CHECKSUM = 0x1EEC
+DEFAULT_EXPECT_SAMPLE0 = 0xDE10FF3E
+DEFAULT_EXPECT_SAMPLE1 = 0xFD3EED6C
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -381,7 +380,8 @@ def run_single_sample(
     start_count_before: int,
     timeout: float,
     poll_interval: float,
-) -> dict[str, int]:
+    read_output_vector_flag: bool,
+) -> dict[str, Any]:
     if len(activation) != 64 or len(residual) != 64:
         raise SystemExit("activation/residual vectors must be exactly 64 bytes")
 
@@ -398,16 +398,17 @@ def run_single_sample(
     status = rd32(mm, REG_MLP_ACCEL_CONTROL_STATUS)
     while time.monotonic() < deadline:
         status = rd32(mm, REG_MLP_ACCEL_CONTROL_STATUS)
-        if status & (1 << ACCEL_DONE_BIT):
+        decoded_status = decode_accel_status(status)
+        if decoded_status["done"]:
             break
-        if status & (1 << ACCEL_ERROR_BIT):
+        if decoded_status["error"]:
             break
         time.sleep(poll_interval)
 
     output_checksum = rd32(mm, REG_MLP_ACCEL_OUTPUT_CHECKSUM)
     output_sample0 = rd32(mm, REG_MLP_ACCEL_OUTPUT_SAMPLE0)
     output_sample1 = rd32(mm, REG_MLP_ACCEL_OUTPUT_SAMPLE1)
-    output_vector = read_vector(mm, REG_MLP_ACCEL_OUTPUT_VECTOR)
+    output_vector = read_vector(mm, REG_MLP_ACCEL_OUTPUT_VECTOR) if read_output_vector_flag else None
     start_count_after = rd32(mm, REG_MLP_ACCEL_START_COUNT)
     return {
         "activation_echo": activation_echo,
@@ -447,7 +448,7 @@ def main() -> int:
             "reference_mlp_contract": None,
             "allow_reference_contract_mismatch": False,
             "compatible": True,
-            "reason": "legacy default vector is generated from the compiled MLP contract",
+            "reason": "default vector is generated from the compiled full TinyStories-1M MLP contract",
         }
         activation = parse_hex_vector(args.activation_hex, name="activation")
         residual = parse_hex_vector(args.residual_hex, name="residual")
@@ -508,6 +509,9 @@ def main() -> int:
                 expected_checksum = sample.get("expected_checksum")
                 expected_sample0 = sample.get("expected_sample0")
                 expected_sample1 = sample.get("expected_sample1")
+                require_output_vector = args.output_surface == "full" or (
+                    args.output_surface == "auto" and expected_output is not None and expected_checksum is None
+                )
 
                 start_count_before = rd32(mm, REG_MLP_ACCEL_START_COUNT)
                 observed = run_single_sample(
@@ -517,6 +521,7 @@ def main() -> int:
                     start_count_before=start_count_before,
                     timeout=args.timeout,
                     poll_interval=args.poll_interval,
+                    read_output_vector_flag=require_output_vector,
                 )
                 decoded_status = decode_accel_status(observed["mlp_accel_status"])
                 accel_state = int(decoded_status["state"])
@@ -532,9 +537,6 @@ def main() -> int:
                 if require_echo:
                     checks["activation_echo"] = observed["activation_echo"] == activation
                     checks["residual_echo"] = observed["residual_echo"] == residual
-                require_output_vector = args.output_surface == "full" or (
-                    args.output_surface == "auto" and expected_output is not None and expected_checksum is None
-                )
                 if expected_output is not None and require_output_vector:
                     checks["output_vector"] = observed["mlp_accel_output_vector"] == expected_output
                 if expected_checksum is not None:
@@ -577,7 +579,13 @@ def main() -> int:
                             "sample1": f"0x{expected_sample1:08x}" if expected_sample1 is not None else None,
                         },
                         "observed": {
-                            "output_hex": observed["mlp_accel_output_vector"].hex(),
+                            "activation_echo_hex": observed["activation_echo"].hex(),
+                            "residual_echo_hex": observed["residual_echo"].hex(),
+                            "output_hex": (
+                                observed["mlp_accel_output_vector"].hex()
+                                if observed["mlp_accel_output_vector"] is not None
+                                else None
+                            ),
                             "checksum": f"0x{observed['mlp_accel_output_checksum']:08x}",
                             "sample0": f"0x{observed['mlp_accel_output_sample0']:08x}",
                             "sample1": f"0x{observed['mlp_accel_output_sample1']:08x}",

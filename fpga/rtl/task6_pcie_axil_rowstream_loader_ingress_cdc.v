@@ -71,6 +71,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     input wire [31:0]  rowstream_mlp_selftest_fail_values_i,
     input wire [31:0]  rowstream_mlp_selftest_first_add_sample_i,
     input wire [31:0]  rowstream_mlp_selftest_first_requant_sample_i,
+    input wire [31:0]  rowstream_mlp_selftest_requant_debug0_i,
+    input wire [31:0]  rowstream_mlp_selftest_requant_debug1_i,
+    output reg [31:0]  rowstream_mlp_selftest_debug_select_o,
 
     output reg [511:0] rowstream_mlp_accel_activation_vector_o,
     output reg [511:0] rowstream_mlp_accel_residual_vector_o,
@@ -105,6 +108,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     wire [511:0] pcie_mlp_accel_residual_vector;
     wire pcie_mlp_accel_start;
     wire pcie_mlp_accel_clear;
+    wire [31:0] pcie_mlp_selftest_debug_select;
     wire [511:0] pcie_m2_full_block_input_vector;
     wire [511:0] pcie_m2_full_block_residual_vector;
     wire pcie_m2_full_block_start;
@@ -122,6 +126,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [511:0] top1_hidden_hold_pcie_q;
     reg [511:0] mlp_accel_activation_hold_pcie_q;
     reg [511:0] mlp_accel_residual_hold_pcie_q;
+    reg [31:0] mlp_selftest_debug_select_hold_pcie_q;
     reg [511:0] m2_full_block_input_hold_pcie_q;
     reg [511:0] m2_full_block_residual_hold_pcie_q;
 
@@ -141,6 +146,8 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg m2_full_block_start_seen_row_q;
     reg [2:0] m2_full_block_clear_sync_row_q;
     reg m2_full_block_clear_seen_row_q;
+    reg [31:0] mlp_selftest_debug_select_sync1_row_q;
+    reg [31:0] mlp_selftest_debug_select_sync2_row_q;
 
     reg [2:0] calib_complete_sync_pcie_q;
     reg [2:0] boot_done_sync_pcie_q;
@@ -179,11 +186,14 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [31:0] mlp_selftest_fail_values_pcie_q;
     reg [31:0] mlp_selftest_first_add_sample_pcie_q;
     reg [31:0] mlp_selftest_first_requant_sample_pcie_q;
+    reg [31:0] mlp_selftest_requant_debug0_pcie_q;
+    reg [31:0] mlp_selftest_requant_debug1_pcie_q;
     reg [31:0] mlp_accel_status_pcie_q;
     reg [31:0] mlp_accel_cycle_count_pcie_q;
     reg [31:0] mlp_accel_output_checksum_pcie_q;
     reg [31:0] mlp_accel_output_sample0_pcie_q;
     reg [31:0] mlp_accel_output_sample1_pcie_q;
+    reg [511:0] mlp_accel_output_vector_pcie_q;
     reg [31:0] m2_full_block_status_pcie_q;
     reg [31:0] m2_full_block_cycle_count_pcie_q;
     reg [31:0] m2_full_block_output_checksum_pcie_q;
@@ -258,6 +268,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
         .mlp_selftest_fail_values_i(mlp_selftest_fail_values_pcie_q),
         .mlp_selftest_first_add_sample_i(mlp_selftest_first_add_sample_pcie_q),
         .mlp_selftest_first_requant_sample_i(mlp_selftest_first_requant_sample_pcie_q),
+        .mlp_selftest_requant_debug0_i(mlp_selftest_requant_debug0_pcie_q),
+        .mlp_selftest_requant_debug1_i(mlp_selftest_requant_debug1_pcie_q),
+        .mlp_selftest_debug_select_o(pcie_mlp_selftest_debug_select),
         .mlp_accel_activation_vector_o(pcie_mlp_accel_activation_vector),
         .mlp_accel_residual_vector_o(pcie_mlp_accel_residual_vector),
         .mlp_accel_start_pulse_o(pcie_mlp_accel_start),
@@ -267,7 +280,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
         .mlp_accel_output_checksum_i(mlp_accel_output_checksum_pcie_q),
         .mlp_accel_output_sample0_i(mlp_accel_output_sample0_pcie_q),
         .mlp_accel_output_sample1_i(mlp_accel_output_sample1_pcie_q),
-        .mlp_accel_output_vector_i(rowstream_mlp_accel_output_vector_i),
+        .mlp_accel_output_vector_i(mlp_accel_output_vector_pcie_q),
         .m2_full_block_input_vector_o(pcie_m2_full_block_input_vector),
         .m2_full_block_residual_vector_o(pcie_m2_full_block_residual_vector),
         .m2_full_block_start_pulse_o(pcie_m2_full_block_start),
@@ -295,6 +308,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             top1_hidden_hold_pcie_q <= 512'd0;
             mlp_accel_activation_hold_pcie_q <= 512'd0;
             mlp_accel_residual_hold_pcie_q <= 512'd0;
+            mlp_selftest_debug_select_hold_pcie_q <= 32'd0;
             m2_full_block_input_hold_pcie_q <= 512'd0;
             m2_full_block_residual_hold_pcie_q <= 512'd0;
             calib_complete_sync_pcie_q <= 3'd0;
@@ -334,11 +348,14 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             mlp_selftest_fail_values_pcie_q <= 32'd0;
             mlp_selftest_first_add_sample_pcie_q <= 32'd0;
             mlp_selftest_first_requant_sample_pcie_q <= 32'd0;
+            mlp_selftest_requant_debug0_pcie_q <= 32'd0;
+            mlp_selftest_requant_debug1_pcie_q <= 32'd0;
             mlp_accel_status_pcie_q <= 32'd0;
             mlp_accel_cycle_count_pcie_q <= 32'd0;
             mlp_accel_output_checksum_pcie_q <= 32'd0;
             mlp_accel_output_sample0_pcie_q <= 32'd0;
             mlp_accel_output_sample1_pcie_q <= 32'd0;
+            mlp_accel_output_vector_pcie_q <= 512'd0;
             m2_full_block_status_pcie_q <= 32'd0;
             m2_full_block_cycle_count_pcie_q <= 32'd0;
             m2_full_block_output_checksum_pcie_q <= 32'd0;
@@ -366,6 +383,7 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             end
             if (pcie_mlp_accel_clear)
                 mlp_accel_clear_toggle_pcie_q <= ~mlp_accel_clear_toggle_pcie_q;
+            mlp_selftest_debug_select_hold_pcie_q <= pcie_mlp_selftest_debug_select;
             if (pcie_m2_full_block_start) begin
                 m2_full_block_input_hold_pcie_q <= pcie_m2_full_block_input_vector;
                 m2_full_block_residual_hold_pcie_q <= pcie_m2_full_block_residual_vector;
@@ -416,11 +434,14 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             mlp_selftest_fail_values_pcie_q <= rowstream_mlp_selftest_fail_values_i;
             mlp_selftest_first_add_sample_pcie_q <= rowstream_mlp_selftest_first_add_sample_i;
             mlp_selftest_first_requant_sample_pcie_q <= rowstream_mlp_selftest_first_requant_sample_i;
+            mlp_selftest_requant_debug0_pcie_q <= rowstream_mlp_selftest_requant_debug0_i;
+            mlp_selftest_requant_debug1_pcie_q <= rowstream_mlp_selftest_requant_debug1_i;
             mlp_accel_status_pcie_q <= rowstream_mlp_accel_status_i;
             mlp_accel_cycle_count_pcie_q <= rowstream_mlp_accel_cycle_count_i;
             mlp_accel_output_checksum_pcie_q <= rowstream_mlp_accel_output_checksum_i;
             mlp_accel_output_sample0_pcie_q <= rowstream_mlp_accel_output_sample0_i;
             mlp_accel_output_sample1_pcie_q <= rowstream_mlp_accel_output_sample1_i;
+            mlp_accel_output_vector_pcie_q <= rowstream_mlp_accel_output_vector_i;
             m2_full_block_status_pcie_q <= rowstream_m2_full_block_status_i;
             m2_full_block_cycle_count_pcie_q <= rowstream_m2_full_block_cycle_count_i;
             m2_full_block_output_checksum_pcie_q <= rowstream_m2_full_block_output_checksum_i;
@@ -464,6 +485,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             rowstream_top1_status_clear_o <= 1'b0;
             rowstream_mlp_accel_activation_vector_o <= 512'd0;
             rowstream_mlp_accel_residual_vector_o <= 512'd0;
+            rowstream_mlp_selftest_debug_select_o <= 32'd0;
+            mlp_selftest_debug_select_sync1_row_q <= 32'd0;
+            mlp_selftest_debug_select_sync2_row_q <= 32'd0;
             rowstream_mlp_accel_start_o <= 1'b0;
             rowstream_mlp_accel_clear_o <= 1'b0;
             rowstream_m2_full_block_input_vector_o <= 512'd0;
@@ -479,6 +503,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             mlp_accel_clear_sync_row_q <= {mlp_accel_clear_sync_row_q[1:0], mlp_accel_clear_toggle_pcie_q};
             m2_full_block_start_sync_row_q <= {m2_full_block_start_sync_row_q[1:0], m2_full_block_start_toggle_pcie_q};
             m2_full_block_clear_sync_row_q <= {m2_full_block_clear_sync_row_q[1:0], m2_full_block_clear_toggle_pcie_q};
+            mlp_selftest_debug_select_sync1_row_q <= mlp_selftest_debug_select_hold_pcie_q;
+            mlp_selftest_debug_select_sync2_row_q <= mlp_selftest_debug_select_sync1_row_q;
+            rowstream_mlp_selftest_debug_select_o <= mlp_selftest_debug_select_sync2_row_q;
             rowstream_command_event_o <= 1'b0;
             rowstream_status_clear_o <= 1'b0;
             rowstream_top1_start_o <= 1'b0;

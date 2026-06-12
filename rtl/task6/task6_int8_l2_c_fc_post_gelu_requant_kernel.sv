@@ -144,7 +144,7 @@ module task6_int8_l2_c_fc_post_gelu_requant_kernel #(
     ((1 << GELU_PWL_RECIP_SHIFT) + ((GELU_PWL_X15 - GELU_PWL_X14) / 2)) /
     (GELU_PWL_X15 - GELU_PWL_X14);
 
-  typedef enum logic [3:0] {
+  typedef enum logic [4:0] {
     POST_IDLE,
     POST_WAIT,
     POST_CAPTURE,
@@ -156,6 +156,12 @@ module task6_int8_l2_c_fc_post_gelu_requant_kernel #(
     POST_QUAD_MUL_INIT,
     POST_QUAD_MUL_STEP,
     POST_GELU_Y,
+    POST_PWL_SELECT,
+    POST_PWL_DELTA_MUL_INIT,
+    POST_PWL_DELTA_MUL_STEP,
+    POST_PWL_RECIP_MUL_INIT,
+    POST_PWL_RECIP_MUL_STEP,
+    POST_PWL_FINISH,
     POST_OUTPUT_MUL_INIT,
     POST_OUTPUT_MUL_STEP,
     POST_WRITE
@@ -182,6 +188,12 @@ module task6_int8_l2_c_fc_post_gelu_requant_kernel #(
   logic signed [63:0] y_q_q;
   logic signed [63:0] output_q_q;
   logic signed [7:0] pwl_output_q_q;
+  logic signed [63:0] pwl_x0_q;
+  logic signed [63:0] pwl_y0_q;
+  logic signed [63:0] pwl_y_delta_q;
+  logic signed [63:0] pwl_recip_q;
+  logic signed [63:0] pwl_x_delta_q;
+  logic signed [127:0] pwl_delta_product_q;
   logic [63:0] mul_rhs_shift_q;
   logic [127:0] mul_addend_q;
   logic [127:0] mul_product_mag_q;
@@ -190,6 +202,7 @@ module task6_int8_l2_c_fc_post_gelu_requant_kernel #(
   logic [6:0] mul_last_bit_q;
   logic mul_negative_q;
   logic signed [127:0] mul_signed_next_w;
+  logic signed [63:0] pwl_x_delta_w;
   logic signed [7:0] post_output_w;
   logic debug_take_post_gelu_sample_w;
   logic [DEBUG_SAMPLE_WIDTH - 1:0] debug_post_gelu_sample_w;
@@ -209,6 +222,7 @@ module task6_int8_l2_c_fc_post_gelu_requant_kernel #(
       : mul_product_mag_q;
   assign mul_signed_next_w =
     mul_negative_q ? -$signed(mul_product_next_w) : $signed(mul_product_next_w);
+  assign pwl_x_delta_w = x_q_q - pwl_x0_q;
   assign post_output_w =
     (GELU_APPROX_MODE == 1) ? pwl_output_q_q : saturate_i8(output_q_q);
   assign debug_take_post_gelu_sample_w =
@@ -265,138 +279,6 @@ module task6_int8_l2_c_fc_post_gelu_requant_kernel #(
     end
   endfunction
 
-  function automatic signed [31:0] gelu_pwl_x_node(input int index);
-    begin
-      unique case (index)
-        0: gelu_pwl_x_node = GELU_PWL_X0;
-        1: gelu_pwl_x_node = GELU_PWL_X1;
-        2: gelu_pwl_x_node = GELU_PWL_X2;
-        3: gelu_pwl_x_node = GELU_PWL_X3;
-        4: gelu_pwl_x_node = GELU_PWL_X4;
-        5: gelu_pwl_x_node = GELU_PWL_X5;
-        6: gelu_pwl_x_node = GELU_PWL_X6;
-        7: gelu_pwl_x_node = GELU_PWL_X7;
-        8: gelu_pwl_x_node = GELU_PWL_X8;
-        9: gelu_pwl_x_node = GELU_PWL_X9;
-        10: gelu_pwl_x_node = GELU_PWL_X10;
-        11: gelu_pwl_x_node = GELU_PWL_X11;
-        12: gelu_pwl_x_node = GELU_PWL_X12;
-        13: gelu_pwl_x_node = GELU_PWL_X13;
-        14: gelu_pwl_x_node = GELU_PWL_X14;
-        default: gelu_pwl_x_node = GELU_PWL_X15;
-      endcase
-    end
-  endfunction
-
-  function automatic signed [31:0] gelu_pwl_y_node(input int index);
-    begin
-      unique case (index)
-        0: gelu_pwl_y_node = GELU_PWL_Y0;
-        1: gelu_pwl_y_node = GELU_PWL_Y1;
-        2: gelu_pwl_y_node = GELU_PWL_Y2;
-        3: gelu_pwl_y_node = GELU_PWL_Y3;
-        4: gelu_pwl_y_node = GELU_PWL_Y4;
-        5: gelu_pwl_y_node = GELU_PWL_Y5;
-        6: gelu_pwl_y_node = GELU_PWL_Y6;
-        7: gelu_pwl_y_node = GELU_PWL_Y7;
-        8: gelu_pwl_y_node = GELU_PWL_Y8;
-        9: gelu_pwl_y_node = GELU_PWL_Y9;
-        10: gelu_pwl_y_node = GELU_PWL_Y10;
-        11: gelu_pwl_y_node = GELU_PWL_Y11;
-        12: gelu_pwl_y_node = GELU_PWL_Y12;
-        13: gelu_pwl_y_node = GELU_PWL_Y13;
-        14: gelu_pwl_y_node = GELU_PWL_Y14;
-        default: gelu_pwl_y_node = GELU_PWL_Y15;
-      endcase
-    end
-  endfunction
-
-  function automatic signed [31:0] gelu_pwl_recip_q(input int index);
-    begin
-      unique case (index)
-        0: gelu_pwl_recip_q = GELU_PWL_RECIP_Q0;
-        1: gelu_pwl_recip_q = GELU_PWL_RECIP_Q1;
-        2: gelu_pwl_recip_q = GELU_PWL_RECIP_Q2;
-        3: gelu_pwl_recip_q = GELU_PWL_RECIP_Q3;
-        4: gelu_pwl_recip_q = GELU_PWL_RECIP_Q4;
-        5: gelu_pwl_recip_q = GELU_PWL_RECIP_Q5;
-        6: gelu_pwl_recip_q = GELU_PWL_RECIP_Q6;
-        7: gelu_pwl_recip_q = GELU_PWL_RECIP_Q7;
-        8: gelu_pwl_recip_q = GELU_PWL_RECIP_Q8;
-        9: gelu_pwl_recip_q = GELU_PWL_RECIP_Q9;
-        10: gelu_pwl_recip_q = GELU_PWL_RECIP_Q10;
-        11: gelu_pwl_recip_q = GELU_PWL_RECIP_Q11;
-        12: gelu_pwl_recip_q = GELU_PWL_RECIP_Q12;
-        13: gelu_pwl_recip_q = GELU_PWL_RECIP_Q13;
-        default: gelu_pwl_recip_q = GELU_PWL_RECIP_Q14;
-      endcase
-    end
-  endfunction
-
-  function automatic signed [7:0] gelu_pwl_output(input signed [63:0] x_q);
-    int segment;
-    logic signed [31:0] x0;
-    logic signed [31:0] y0;
-    logic signed [31:0] y1;
-    logic signed [31:0] y_delta;
-    logic signed [31:0] recip_q;
-    logic signed [31:0] xi;
-    logic signed [31:0] xi_next;
-    logic signed [63:0] xi_wide;
-    logic signed [63:0] xi_next_wide;
-    logic signed [63:0] x0_wide;
-    logic signed [63:0] y0_wide;
-    logic signed [63:0] y_delta_wide;
-    logic signed [63:0] recip_wide;
-    logic signed [63:0] x_delta_wide;
-    logic signed [127:0] x_delta_ext;
-    logic signed [127:0] y_delta_ext;
-    logic signed [127:0] recip_ext;
-    logic signed [127:0] numerator;
-    logic signed [127:0] scaled_numerator;
-    logic signed [63:0] interp;
-    logic signed [63:0] rounded_delta;
-    begin
-      if (x_q <= $signed({{32{GELU_PWL_X0[31]}}, GELU_PWL_X0})) begin
-        interp = $signed({{32{GELU_PWL_Y0[31]}}, GELU_PWL_Y0});
-      end else if (x_q >= $signed({{32{GELU_PWL_X15[31]}}, GELU_PWL_X15})) begin
-        interp = $signed({{32{GELU_PWL_Y15[31]}}, GELU_PWL_Y15});
-      end else begin
-        segment = 0;
-        for (int i = 0; i < 15; i = i + 1) begin
-          xi = gelu_pwl_x_node(i);
-          xi_next = gelu_pwl_x_node(i + 1);
-          xi_wide = $signed({{32{xi[31]}}, xi});
-          xi_next_wide = $signed({{32{xi_next[31]}}, xi_next});
-          if (
-            (x_q >= xi_wide) &&
-            (x_q <= xi_next_wide)
-          ) begin
-            segment = i;
-          end
-        end
-        x0 = gelu_pwl_x_node(segment);
-        y0 = gelu_pwl_y_node(segment);
-        y1 = gelu_pwl_y_node(segment + 1);
-        y_delta = y1 - y0;
-        recip_q = gelu_pwl_recip_q(segment);
-        x0_wide = $signed({{32{x0[31]}}, x0});
-        y0_wide = $signed({{32{y0[31]}}, y0});
-        y_delta_wide = $signed({{32{y_delta[31]}}, y_delta});
-        recip_wide = $signed({{32{recip_q[31]}}, recip_q});
-        x_delta_wide = $signed(x_q) - x0_wide;
-        x_delta_ext = $signed({{64{x_delta_wide[63]}}, x_delta_wide});
-        y_delta_ext = $signed({{64{y_delta_wide[63]}}, y_delta_wide});
-        recip_ext = $signed({{64{recip_wide[63]}}, recip_wide});
-        numerator = x_delta_ext * y_delta_ext;
-        scaled_numerator = numerator * recip_ext;
-        rounded_delta = round_shift_signed128(scaled_numerator, GELU_PWL_RECIP_SHIFT);
-        interp = y0_wide + rounded_delta;
-      end
-      gelu_pwl_output = saturate_i8(interp);
-    end
-  endfunction
-
   always_comb begin
     debug_post_gelu_sample_w = '0;
     debug_post_gelu_sample_w[0 +: 8] = {{(8 - OUT_ADDR_WIDTH){1'b0}}, post_addr_q};
@@ -434,6 +316,12 @@ module task6_int8_l2_c_fc_post_gelu_requant_kernel #(
       y_q_q <= '0;
       output_q_q <= '0;
       pwl_output_q_q <= '0;
+      pwl_x0_q <= '0;
+      pwl_y0_q <= '0;
+      pwl_y_delta_q <= '0;
+      pwl_recip_q <= '0;
+      pwl_x_delta_q <= '0;
+      pwl_delta_product_q <= '0;
       mul_rhs_shift_q <= '0;
       mul_addend_q <= '0;
       mul_product_mag_q <= '0;
@@ -496,16 +384,153 @@ module task6_int8_l2_c_fc_post_gelu_requant_kernel #(
           x_q_q <=
             scaled_q_q + $signed({{32{requant_bias_q[31]}}, requant_bias_q});
           if (GELU_APPROX_MODE == 1) begin
-            pwl_output_q_q <= gelu_pwl_output(
-              scaled_q_q + $signed({{32{requant_bias_q[31]}}, requant_bias_q})
-            );
             output_q_q <= '0;
             y_q_q <= '0;
             quad_q_q <= '0;
             x_sq_q <= '0;
-            post_state_q <= POST_WRITE;
+            post_state_q <= POST_PWL_SELECT;
           end else begin
             post_state_q <= POST_SQUARE_MUL_INIT;
+          end
+        end
+
+        POST_PWL_SELECT: begin
+          if (x_q_q <= 64'sd0 + GELU_PWL_X0) begin
+            pwl_output_q_q <= saturate_i8(64'sd0 + GELU_PWL_Y0);
+            post_state_q <= POST_WRITE;
+          end else if (x_q_q >= 64'sd0 + GELU_PWL_X15) begin
+            pwl_output_q_q <= saturate_i8(64'sd0 + GELU_PWL_Y15);
+            post_state_q <= POST_WRITE;
+          end else begin
+            if (x_q_q <= 64'sd0 + GELU_PWL_X1) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X0;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y0;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y1 - GELU_PWL_Y0;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q0;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X2) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X1;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y1;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y2 - GELU_PWL_Y1;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q1;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X3) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X2;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y2;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y3 - GELU_PWL_Y2;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q2;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X4) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X3;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y3;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y4 - GELU_PWL_Y3;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q3;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X5) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X4;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y4;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y5 - GELU_PWL_Y4;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q4;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X6) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X5;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y5;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y6 - GELU_PWL_Y5;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q5;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X7) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X6;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y6;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y7 - GELU_PWL_Y6;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q6;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X8) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X7;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y7;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y8 - GELU_PWL_Y7;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q7;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X9) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X8;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y8;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y9 - GELU_PWL_Y8;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q8;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X10) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X9;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y9;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y10 - GELU_PWL_Y9;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q9;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X11) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X10;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y10;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y11 - GELU_PWL_Y10;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q10;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X12) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X11;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y11;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y12 - GELU_PWL_Y11;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q11;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X13) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X12;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y12;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y13 - GELU_PWL_Y12;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q12;
+            end else if (x_q_q <= 64'sd0 + GELU_PWL_X14) begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X13;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y13;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y14 - GELU_PWL_Y13;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q13;
+            end else begin
+              pwl_x0_q <= 64'sd0 + GELU_PWL_X14;
+              pwl_y0_q <= 64'sd0 + GELU_PWL_Y14;
+              pwl_y_delta_q <= 64'sd0 + GELU_PWL_Y15 - GELU_PWL_Y14;
+              pwl_recip_q <= 64'sd0 + GELU_PWL_RECIP_Q14;
+            end
+            post_state_q <= POST_PWL_DELTA_MUL_INIT;
+          end
+        end
+
+        POST_PWL_DELTA_MUL_INIT: begin
+          pwl_x_delta_q <= pwl_x_delta_w;
+          mul_rhs_shift_q <= abs64(pwl_y_delta_q);
+          mul_addend_q <= {64'd0, abs64(pwl_x_delta_w)};
+          mul_product_mag_q <= '0;
+          mul_bit_q <= '0;
+          mul_last_bit_q <= 7'd63;
+          mul_negative_q <= pwl_x_delta_w[63] ^ pwl_y_delta_q[63];
+          post_state_q <= POST_PWL_DELTA_MUL_STEP;
+        end
+
+        POST_PWL_DELTA_MUL_STEP: begin
+          mul_product_mag_q <= mul_product_next_w;
+          mul_rhs_shift_q <= {1'b0, mul_rhs_shift_q[63:1]};
+          mul_addend_q <= {mul_addend_q[126:0], 1'b0};
+
+          if (mul_bit_q == mul_last_bit_q) begin
+            pwl_delta_product_q <= mul_signed_next_w;
+            post_state_q <= POST_PWL_RECIP_MUL_INIT;
+          end else begin
+            mul_bit_q <= mul_bit_q + 1'b1;
+          end
+        end
+
+        POST_PWL_RECIP_MUL_INIT: begin
+          mul_rhs_shift_q <= abs64(pwl_recip_q);
+          mul_addend_q <= {64'd0, abs64(pwl_delta_product_q[63:0])};
+          mul_product_mag_q <= '0;
+          mul_bit_q <= '0;
+          mul_last_bit_q <= 7'd63;
+          mul_negative_q <= pwl_delta_product_q[63] ^ pwl_recip_q[63];
+          post_state_q <= POST_PWL_RECIP_MUL_STEP;
+        end
+
+        POST_PWL_RECIP_MUL_STEP: begin
+          mul_product_mag_q <= mul_product_next_w;
+          mul_rhs_shift_q <= {1'b0, mul_rhs_shift_q[63:1]};
+          mul_addend_q <= {mul_addend_q[126:0], 1'b0};
+
+          if (mul_bit_q == mul_last_bit_q) begin
+            pwl_output_q_q <= saturate_i8(
+              pwl_y0_q + round_shift_signed128(
+                mul_signed_next_w,
+                GELU_PWL_RECIP_SHIFT
+              )
+            );
+            post_state_q <= POST_WRITE;
+          end else begin
+            mul_bit_q <= mul_bit_q + 1'b1;
           end
         end
 

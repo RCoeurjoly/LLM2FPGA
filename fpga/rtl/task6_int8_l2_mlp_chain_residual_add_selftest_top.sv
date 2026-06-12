@@ -2,7 +2,8 @@
 
 module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   parameter int DEBUG_LEDS = 0,
-  parameter int ENABLE_JTAG_DEBUG = 0
+  parameter int ENABLE_JTAG_DEBUG = 0,
+  parameter int JTAG_CHAIN = 1
 )(
   input logic SYS_CLK,
   input logic SYS_RSTN,
@@ -13,6 +14,9 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   output logic [31:0] pcie_fail_values_o,
   output logic [31:0] pcie_first_add_sample_o,
   output logic [31:0] pcie_first_requant_sample_o,
+  output logic [31:0] pcie_requant_debug0_o,
+  output logic [31:0] pcie_requant_debug1_o,
+  input logic [31:0] pcie_debug_select_i,
   input logic [511:0] pcie_accel_activation_i,
   input logic [511:0] pcie_accel_residual_i,
   input logic pcie_accel_start_pulse_i,
@@ -194,6 +198,8 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic [C_PROJ_GEMV_DEBUG_SAMPLE_BITS - 1:0] debug_c_proj_gemv_lane0_samples;
   logic [3:0] debug_c_proj_gemv_lane0_sample_count;
   logic signed [C_PROJ_ACC_WIDTH - 1:0] debug_c_proj_gemv_lane0_final_acc;
+  logic [63:0] observed_c_proj_gemv_lane0_activations;
+  logic [63:0] observed_c_proj_gemv_lane0_weights;
   logic [C_PROJ_GEMV_DEBUG_SAMPLE_COUNT * 8 - 1:0]
     debug_c_proj_transfer_post_gelu_samples;
   logic [C_PROJ_GEMV_DEBUG_SAMPLE_COUNT * 8 - 1:0]
@@ -204,6 +210,11 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
   logic [C_FC_GEMV_DEBUG_SAMPLE_BITS - 1:0] debug_c_fc_gemv_samples;
   logic [3:0] debug_c_fc_gemv_sample_count;
   logic signed [C_PROJ_ACC_WIDTH - 1:0] debug_c_fc_gemv_final_acc;
+  logic [63:0] observed_c_fc_post_gelu_samples;
+  logic [63:0] observed_c_fc_gemv_activations;
+  logic [63:0] observed_c_fc_gemv_weights;
+  logic [63:0] expected_c_fc_activation_samples;
+  logic [63:0] expected_c_fc_gemv_lane0_weights;
   logic [63:0] expected_c_proj_gemv_lane0_weights;
   logic signed [63:0] expected_c_proj_product_q0_w;
   logic signed [63:0] expected_c_proj_scaled_q0_w;
@@ -271,6 +282,66 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     expected_post_gelu_q_values[1],
     expected_post_gelu_q_values[0]
   };
+  assign observed_c_proj_gemv_lane0_activations = {
+    debug_c_proj_gemv_lane0_samples[896 + 32 +: 8],
+    debug_c_proj_gemv_lane0_samples[768 + 32 +: 8],
+    debug_c_proj_gemv_lane0_samples[640 + 32 +: 8],
+    debug_c_proj_gemv_lane0_samples[512 + 32 +: 8],
+    debug_c_proj_gemv_lane0_samples[384 + 32 +: 8],
+    debug_c_proj_gemv_lane0_samples[256 + 32 +: 8],
+    debug_c_proj_gemv_lane0_samples[128 + 32 +: 8],
+    debug_c_proj_gemv_lane0_samples[0 + 32 +: 8]
+  };
+  assign observed_c_proj_gemv_lane0_weights = {
+    debug_c_proj_gemv_lane0_samples[896 + 40 +: 8],
+    debug_c_proj_gemv_lane0_samples[768 + 40 +: 8],
+    debug_c_proj_gemv_lane0_samples[640 + 40 +: 8],
+    debug_c_proj_gemv_lane0_samples[512 + 40 +: 8],
+    debug_c_proj_gemv_lane0_samples[384 + 40 +: 8],
+    debug_c_proj_gemv_lane0_samples[256 + 40 +: 8],
+    debug_c_proj_gemv_lane0_samples[128 + 40 +: 8],
+    debug_c_proj_gemv_lane0_samples[0 + 40 +: 8]
+  };
+  assign observed_c_fc_post_gelu_samples = {
+    debug_c_fc_post_gelu_samples[1008 + 136 +: 8],
+    debug_c_fc_post_gelu_samples[864 + 136 +: 8],
+    debug_c_fc_post_gelu_samples[720 + 136 +: 8],
+    debug_c_fc_post_gelu_samples[576 + 136 +: 8],
+    debug_c_fc_post_gelu_samples[432 + 136 +: 8],
+    debug_c_fc_post_gelu_samples[288 + 136 +: 8],
+    debug_c_fc_post_gelu_samples[144 + 136 +: 8],
+    debug_c_fc_post_gelu_samples[0 + 136 +: 8]
+  };
+  assign observed_c_fc_gemv_activations = {
+    debug_c_fc_gemv_samples[896 + 32 +: 8],
+    debug_c_fc_gemv_samples[768 + 32 +: 8],
+    debug_c_fc_gemv_samples[640 + 32 +: 8],
+    debug_c_fc_gemv_samples[512 + 32 +: 8],
+    debug_c_fc_gemv_samples[384 + 32 +: 8],
+    debug_c_fc_gemv_samples[256 + 32 +: 8],
+    debug_c_fc_gemv_samples[128 + 32 +: 8],
+    debug_c_fc_gemv_samples[0 + 32 +: 8]
+  };
+  assign observed_c_fc_gemv_weights = {
+    debug_c_fc_gemv_samples[896 + 40 +: 8],
+    debug_c_fc_gemv_samples[768 + 40 +: 8],
+    debug_c_fc_gemv_samples[640 + 40 +: 8],
+    debug_c_fc_gemv_samples[512 + 40 +: 8],
+    debug_c_fc_gemv_samples[384 + 40 +: 8],
+    debug_c_fc_gemv_samples[256 + 40 +: 8],
+    debug_c_fc_gemv_samples[128 + 40 +: 8],
+    debug_c_fc_gemv_samples[0 + 40 +: 8]
+  };
+  assign expected_c_fc_activation_samples = {
+    c_fc_activation_values[C_FC_IN_DIM - 1],
+    c_fc_activation_values[((C_FC_IN_DIM * 3) / 4) - 1],
+    c_fc_activation_values[(C_FC_IN_DIM / 2) - 1],
+    c_fc_activation_values[(C_FC_IN_DIM / 4) - 1],
+    c_fc_activation_values[3],
+    c_fc_activation_values[2],
+    c_fc_activation_values[1],
+    c_fc_activation_values[0]
+  };
   assign jtag_debug_status = {
     first_c_proj_requant_seen_q,
     first_add_seen_q,
@@ -285,6 +356,8 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
       pcie_fail_values_o <= 32'd0;
       pcie_first_add_sample_o <= 32'd0;
       pcie_first_requant_sample_o <= 32'd0;
+      pcie_requant_debug0_o <= 32'd0;
+      pcie_requant_debug1_o <= 32'd0;
       pcie_accel_status_o <= 32'd0;
       pcie_accel_cycle_count_o <= 32'd0;
       pcie_accel_output_checksum_o <= 32'd0;
@@ -326,6 +399,124 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
         {5'd0, c_proj_requant_stage_code},
         {7'd0, first_c_proj_requant_seen_q}
       };
+      unique case (pcie_debug_select_i[4:0])
+        5'd0: begin
+          pcie_requant_debug0_o <= expected_c_proj_acc_values[0];
+          pcie_requant_debug1_o <= first_c_proj_requant_acc_q;
+        end
+        5'd1: begin
+          pcie_requant_debug0_o <= expected_c_proj_activation_samples[31:0];
+          pcie_requant_debug1_o <= debug_c_proj_transfer_post_gelu_samples[31:0];
+        end
+        5'd2: begin
+          pcie_requant_debug0_o <= expected_c_proj_activation_samples[63:32];
+          pcie_requant_debug1_o <= debug_c_proj_transfer_post_gelu_samples[63:32];
+        end
+        5'd3: begin
+          pcie_requant_debug0_o <= expected_c_proj_gemv_lane0_weights[31:0];
+          pcie_requant_debug1_o <= observed_c_proj_gemv_lane0_weights[31:0];
+        end
+        5'd4: begin
+          pcie_requant_debug0_o <= expected_c_proj_gemv_lane0_weights[63:32];
+          pcie_requant_debug1_o <= observed_c_proj_gemv_lane0_weights[63:32];
+        end
+        5'd5: begin
+          pcie_requant_debug0_o <= expected_c_proj_activation_samples[31:0];
+          pcie_requant_debug1_o <= observed_c_proj_gemv_lane0_activations[31:0];
+        end
+        5'd6: begin
+          pcie_requant_debug0_o <= expected_c_proj_activation_samples[63:32];
+          pcie_requant_debug1_o <= observed_c_proj_gemv_lane0_activations[63:32];
+        end
+        5'd7: begin
+          pcie_requant_debug0_o <= debug_c_proj_gemv_lane0_samples[0 +: 32];
+          pcie_requant_debug1_o <= debug_c_proj_gemv_lane0_samples[32 +: 32];
+        end
+        5'd8: begin
+          pcie_requant_debug0_o <= debug_c_proj_gemv_lane0_samples[64 +: 32];
+          pcie_requant_debug1_o <= debug_c_proj_gemv_lane0_samples[96 +: 32];
+        end
+        5'd9: begin
+          pcie_requant_debug0_o <= expected_c_proj_acc_values[0];
+          pcie_requant_debug1_o <= debug_c_proj_gemv_lane0_final_acc;
+        end
+        5'd10: begin
+          pcie_requant_debug0_o <= c_proj_requant_scale_mul_values[0];
+          pcie_requant_debug1_o <= first_c_proj_requant_scale_mul_q;
+        end
+        5'd11: begin
+          pcie_requant_debug0_o <= c_proj_requant_bias_q_values[0];
+          pcie_requant_debug1_o <= first_c_proj_requant_bias_q;
+        end
+        5'd12: begin
+          pcie_requant_debug0_o <= expected_c_proj_product_q0_w[31:0];
+          pcie_requant_debug1_o <= first_c_proj_requant_product_q[31:0];
+        end
+        5'd13: begin
+          pcie_requant_debug0_o <= expected_c_proj_product_q0_w[63:32];
+          pcie_requant_debug1_o <= first_c_proj_requant_product_q[63:32];
+        end
+        5'd14: begin
+          pcie_requant_debug0_o <= expected_c_proj_scaled_q0_w[31:0];
+          pcie_requant_debug1_o <= first_c_proj_requant_scaled_q[31:0];
+        end
+        5'd15: begin
+          pcie_requant_debug0_o <= expected_c_proj_biased_q0_w[31:0];
+          pcie_requant_debug1_o <= first_c_proj_requant_biased_q[31:0];
+        end
+        5'd16: begin
+          pcie_requant_debug0_o <= expected_c_proj_activation_samples[31:0];
+          pcie_requant_debug1_o <= observed_c_fc_post_gelu_samples[31:0];
+        end
+        5'd17: begin
+          pcie_requant_debug0_o <= expected_c_proj_activation_samples[63:32];
+          pcie_requant_debug1_o <= observed_c_fc_post_gelu_samples[63:32];
+        end
+        5'd18: begin
+          pcie_requant_debug0_o <= expected_c_fc_activation_samples[31:0];
+          pcie_requant_debug1_o <= observed_c_fc_gemv_activations[31:0];
+        end
+        5'd19: begin
+          pcie_requant_debug0_o <= expected_c_fc_activation_samples[63:32];
+          pcie_requant_debug1_o <= observed_c_fc_gemv_activations[63:32];
+        end
+        5'd20: begin
+          pcie_requant_debug0_o <= expected_c_fc_gemv_lane0_weights[31:0];
+          pcie_requant_debug1_o <= observed_c_fc_gemv_weights[31:0];
+        end
+        5'd21: begin
+          pcie_requant_debug0_o <= expected_c_fc_gemv_lane0_weights[63:32];
+          pcie_requant_debug1_o <= observed_c_fc_gemv_weights[63:32];
+        end
+        5'd22: begin
+          pcie_requant_debug0_o <= debug_c_fc_gemv_final_acc;
+          pcie_requant_debug1_o <= debug_c_fc_post_gelu_samples[0 + 8 +: 32];
+        end
+        5'd23: begin
+          pcie_requant_debug0_o <= debug_c_fc_post_gelu_samples[0 + 104 +: 32];
+          pcie_requant_debug1_o <= {24'd0, debug_c_fc_post_gelu_samples[0 + 136 +: 8]};
+        end
+        default: begin
+          pcie_requant_debug0_o <= {
+            debug_c_proj_gemv_lane0_sample_count,
+            c_proj_requant_stage_code,
+            first_c_proj_requant_output_q,
+            expected_c_proj_output_q_values[0],
+            first_c_proj_requant_seen_q,
+            first_add_seen_q,
+            state_q,
+            fail_reason_q,
+            1'b0
+          };
+          pcie_requant_debug1_o <= {
+            fail_expected_c_proj_q,
+            fail_observed_q,
+            fail_expected_q,
+            fail_reason_q,
+            6'd0
+          };
+        end
+      endcase
       pcie_accel_status_o <= {
         20'd0,
         accel_output_valid_q,
@@ -351,6 +542,16 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     c_proj_packed_weight_values[2][C_PROJ_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
     c_proj_packed_weight_values[1][C_PROJ_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
     c_proj_packed_weight_values[0][C_PROJ_GEMV_DEBUG_LANE_INDEX * 8 +: 8]
+  };
+  assign expected_c_fc_gemv_lane0_weights = {
+    c_fc_packed_weight_values[63][C_FC_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
+    c_fc_packed_weight_values[47][C_FC_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
+    c_fc_packed_weight_values[31][C_FC_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
+    c_fc_packed_weight_values[15][C_FC_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
+    c_fc_packed_weight_values[3][C_FC_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
+    c_fc_packed_weight_values[2][C_FC_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
+    c_fc_packed_weight_values[1][C_FC_GEMV_DEBUG_LANE_INDEX * 8 +: 8],
+    c_fc_packed_weight_values[0][C_FC_GEMV_DEBUG_LANE_INDEX * 8 +: 8]
   };
 
   always_comb begin
@@ -1150,7 +1351,7 @@ module task6_int8_l2_mlp_chain_residual_add_selftest_top #(
     if (ENABLE_JTAG_DEBUG != 0) begin : gen_jtag_debug
       task6_jtag_debug_shift #(
         .WIDTH(JTAG_DEBUG_WIDTH),
-        .JTAG_CHAIN(1)
+        .JTAG_CHAIN(JTAG_CHAIN)
       ) jtag_debug_shift (
         .payload_i(jtag_debug_payload)
       );

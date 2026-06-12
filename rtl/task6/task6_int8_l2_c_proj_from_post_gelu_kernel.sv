@@ -47,13 +47,13 @@ module task6_int8_l2_c_proj_from_post_gelu_kernel #(
   (* ram_style = "distributed" *)
   logic signed [7:0] activation_mem [0:IN_DIM - 1];
 
-  (* ram_style = "block" *)
+  (* ram_style = "distributed" *)
   logic [7:0] packed_weight_mem_lane0 [0:PACKED_WEIGHT_WORDS - 1];
-  (* ram_style = "block" *)
+  (* ram_style = "distributed" *)
   logic [7:0] packed_weight_mem_lane1 [0:PACKED_WEIGHT_WORDS - 1];
-  (* ram_style = "block" *)
+  (* ram_style = "distributed" *)
   logic [7:0] packed_weight_mem_lane2 [0:PACKED_WEIGHT_WORDS - 1];
-  (* ram_style = "block" *)
+  (* ram_style = "distributed" *)
   logic [7:0] packed_weight_mem_lane3 [0:PACKED_WEIGHT_WORDS - 1];
 
   (* ram_style = "block" *)

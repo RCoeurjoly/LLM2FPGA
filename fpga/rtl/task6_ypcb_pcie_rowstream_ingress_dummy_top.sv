@@ -43,6 +43,25 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top (
   wire [511:0] rowstream_top1_hidden_vector;
   wire rowstream_top1_start;
   wire rowstream_top1_status_clear;
+  wire [31:0] rowstream_mlp_selftest_status;
+  wire [31:0] rowstream_mlp_selftest_cycle_count;
+  wire [31:0] rowstream_mlp_selftest_fail_detail;
+  wire [31:0] rowstream_mlp_selftest_fail_values;
+  wire [31:0] rowstream_mlp_selftest_first_add_sample;
+  wire [31:0] rowstream_mlp_selftest_first_requant_sample;
+  wire [31:0] rowstream_mlp_selftest_requant_debug0;
+  wire [31:0] rowstream_mlp_selftest_requant_debug1;
+  wire [31:0] rowstream_mlp_selftest_debug_select;
+  wire [511:0] rowstream_mlp_accel_activation_vector;
+  wire [511:0] rowstream_mlp_accel_residual_vector;
+  wire rowstream_mlp_accel_start;
+  wire rowstream_mlp_accel_clear;
+  wire [31:0] rowstream_mlp_accel_status;
+  wire [31:0] rowstream_mlp_accel_cycle_count;
+  wire [31:0] rowstream_mlp_accel_output_checksum;
+  wire [31:0] rowstream_mlp_accel_output_sample0;
+  wire [31:0] rowstream_mlp_accel_output_sample1;
+  wire [511:0] rowstream_mlp_accel_output_vector;
 
   reg loader_done_q;
   reg loader_error_q;
@@ -64,7 +83,17 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top (
 
   assign led[0] = pcie_led[0];
   assign led[1] = pcie_user_rst_n;
-  assign led[2] = loader_last_accepted_q | top1_done_q;
+  assign led[2] =
+    loader_last_accepted_q | top1_done_q | rowstream_mlp_accel_status[3];
+
+  assign rowstream_mlp_selftest_status = 32'd0;
+  assign rowstream_mlp_selftest_cycle_count = rowstream_mlp_accel_cycle_count;
+  assign rowstream_mlp_selftest_fail_detail = 32'd0;
+  assign rowstream_mlp_selftest_fail_values = 32'd0;
+  assign rowstream_mlp_selftest_first_add_sample = 32'd0;
+  assign rowstream_mlp_selftest_first_requant_sample = 32'd0;
+  assign rowstream_mlp_selftest_requant_debug0 = 32'd0;
+  assign rowstream_mlp_selftest_requant_debug1 = 32'd0;
 
   pcie_7x_top_aximm #(
     .NO_RESET(0),
@@ -157,23 +186,52 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top (
     .rowstream_top1_debug_wb_err_count_i(32'd0),
     .rowstream_top1_debug_packet_wb_write_ack_count_i(32'd0),
     .rowstream_top1_debug_packet_wb_read_ack_count_i(32'd0),
-    .rowstream_mlp_selftest_present_i(1'b0),
-    .rowstream_mlp_selftest_status_i(32'd0),
-    .rowstream_mlp_selftest_cycle_count_i(32'd0),
-    .rowstream_mlp_selftest_fail_detail_i(32'd0),
-    .rowstream_mlp_selftest_fail_values_i(32'd0),
-    .rowstream_mlp_selftest_first_add_sample_i(32'd0),
-    .rowstream_mlp_selftest_first_requant_sample_i(32'd0),
-    .rowstream_mlp_accel_activation_vector_o(),
-    .rowstream_mlp_accel_residual_vector_o(),
-    .rowstream_mlp_accel_start_o(),
-    .rowstream_mlp_accel_clear_o(),
-    .rowstream_mlp_accel_status_i(32'd0),
-    .rowstream_mlp_accel_cycle_count_i(32'd0),
-    .rowstream_mlp_accel_output_checksum_i(32'd0),
-    .rowstream_mlp_accel_output_sample0_i(32'd0),
-    .rowstream_mlp_accel_output_sample1_i(32'd0),
-    .rowstream_mlp_accel_output_vector_i(512'd0)
+    .rowstream_mlp_selftest_present_i(1'b1),
+    .rowstream_mlp_selftest_status_i(rowstream_mlp_selftest_status),
+    .rowstream_mlp_selftest_cycle_count_i(rowstream_mlp_selftest_cycle_count),
+    .rowstream_mlp_selftest_fail_detail_i(rowstream_mlp_selftest_fail_detail),
+    .rowstream_mlp_selftest_fail_values_i(rowstream_mlp_selftest_fail_values),
+    .rowstream_mlp_selftest_first_add_sample_i(rowstream_mlp_selftest_first_add_sample),
+    .rowstream_mlp_selftest_first_requant_sample_i(rowstream_mlp_selftest_first_requant_sample),
+    .rowstream_mlp_selftest_requant_debug0_i(rowstream_mlp_selftest_requant_debug0),
+    .rowstream_mlp_selftest_requant_debug1_i(rowstream_mlp_selftest_requant_debug1),
+    .rowstream_mlp_selftest_debug_select_o(rowstream_mlp_selftest_debug_select),
+    .rowstream_mlp_accel_activation_vector_o(rowstream_mlp_accel_activation_vector),
+    .rowstream_mlp_accel_residual_vector_o(rowstream_mlp_accel_residual_vector),
+    .rowstream_mlp_accel_start_o(rowstream_mlp_accel_start),
+    .rowstream_mlp_accel_clear_o(rowstream_mlp_accel_clear),
+    .rowstream_mlp_accel_status_i(rowstream_mlp_accel_status),
+    .rowstream_mlp_accel_cycle_count_i(rowstream_mlp_accel_cycle_count),
+    .rowstream_mlp_accel_output_checksum_i(rowstream_mlp_accel_output_checksum),
+    .rowstream_mlp_accel_output_sample0_i(rowstream_mlp_accel_output_sample0),
+    .rowstream_mlp_accel_output_sample1_i(rowstream_mlp_accel_output_sample1),
+    .rowstream_mlp_accel_output_vector_i(rowstream_mlp_accel_output_vector),
+    .rowstream_m2_full_block_input_vector_o(),
+    .rowstream_m2_full_block_residual_vector_o(),
+    .rowstream_m2_full_block_start_o(),
+    .rowstream_m2_full_block_clear_o(),
+    .rowstream_m2_full_block_status_i(32'd0),
+    .rowstream_m2_full_block_cycle_count_i(32'd0),
+    .rowstream_m2_full_block_output_checksum_i(32'd0),
+    .rowstream_m2_full_block_output_sample0_i(32'd0),
+    .rowstream_m2_full_block_output_sample1_i(32'd0),
+    .rowstream_m2_full_block_output_count_i(32'd0),
+    .rowstream_m2_full_block_output_vector_i(512'd0)
+  );
+
+  task6_int8_l2_mlp_chain_residual_add_accel_top mlp_accel (
+    .SYS_CLK(pcie_user_clk),
+    .SYS_RSTN(pcie_user_rst_n),
+    .pcie_accel_activation_i(rowstream_mlp_accel_activation_vector),
+    .pcie_accel_residual_i(rowstream_mlp_accel_residual_vector),
+    .pcie_accel_start_pulse_i(rowstream_mlp_accel_start),
+    .pcie_accel_clear_pulse_i(rowstream_mlp_accel_clear),
+    .pcie_accel_status_o(rowstream_mlp_accel_status),
+    .pcie_accel_cycle_count_o(rowstream_mlp_accel_cycle_count),
+    .pcie_accel_output_checksum_o(rowstream_mlp_accel_output_checksum),
+    .pcie_accel_output_sample0_o(rowstream_mlp_accel_output_sample0),
+    .pcie_accel_output_sample1_o(rowstream_mlp_accel_output_sample1),
+    .pcie_accel_output_vector_o(rowstream_mlp_accel_output_vector)
   );
 
   always @(posedge pcie_user_clk or negedge pcie_user_rst_n) begin
