@@ -142,7 +142,11 @@ def main() -> int:
         "status": "PASS",
         "date": dt.datetime.now(dt.timezone.utc).isoformat(),
         "source_manifest": str(args.input_manifest),
-        "stage": source.get("stage", "M2-one-full-block"),
+        "stage": "M2-one-full-block-quantized-weight-pack",
+        "milestone_target": source.get("milestone_target", "M2-one-full-block"),
+        "source_stage": source.get("stage"),
+        "live_compute": False,
+        "artifact_role": "offline-quantized-weight-pack-prerequisite",
         "model_label": source.get("model_label"),
         "block_index": source.get("block_index"),
         "policy": {

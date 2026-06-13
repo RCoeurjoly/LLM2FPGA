@@ -23,10 +23,13 @@ module task6_m2_first_token_full_block_pcie_accel_tb;
   logic [31:0] pcie_debug_o;
   logic [31:0] pcie_debug1_o;
   logic [31:0] pcie_debug2_o;
+  logic [31:0] pcie_provenance_o;
   logic [511:0] expected_final_vector;
   integer i;
 
-  task6_m2_first_token_full_block_pcie_accel_top dut (
+  task6_m2_first_token_full_block_pcie_accel_top #(
+    .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX)
+  ) dut (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .pcie_block_input_i(pcie_block_input_i),
@@ -42,7 +45,8 @@ module task6_m2_first_token_full_block_pcie_accel_tb;
     .pcie_output_vector_o(pcie_output_vector_o),
     .pcie_debug_o(pcie_debug_o),
     .pcie_debug1_o(pcie_debug1_o),
-    .pcie_debug2_o(pcie_debug2_o)
+    .pcie_debug2_o(pcie_debug2_o),
+    .pcie_provenance_o(pcie_provenance_o)
   );
 
   always #5 SYS_CLK = ~SYS_CLK;
@@ -82,6 +86,14 @@ module task6_m2_first_token_full_block_pcie_accel_tb;
           end
           if (pcie_cycle_count_o == 32'd0) begin
             $fatal(1, "FAIL: done reported with zero core cycles on pass %0d", pass_index);
+          end
+          if (pcie_provenance_o !== (32'h4d32_2000 | {24'd0, M2_FULL_BLOCK_TOKEN_INDEX[7:0]})) begin
+            $fatal(
+              1,
+              "FAIL: provenance expected %08x got %08x",
+              (32'h4d32_2000 | {24'd0, M2_FULL_BLOCK_TOKEN_INDEX[7:0]}),
+              pcie_provenance_o
+            );
           end
           if (!pcie_status_o[0] || pcie_status_o[1]) begin
             $fatal(1, "FAIL: done status ready/busy inconsistent status=%08x", pcie_status_o);
@@ -128,14 +140,18 @@ module task6_m2_first_token_full_block_pcie_accel_tb;
   initial begin
     SYS_CLK = 1'b0;
     SYS_RSTN = 1'b0;
-    pcie_block_input_i = 512'h0123_4567;
-    pcie_residual_after_attention_i = 512'h89ab_cdef;
+    pcie_block_input_i = 512'd0;
+    pcie_residual_after_attention_i = 512'd0;
     pcie_start_pulse_i = 1'b0;
     pcie_clear_pulse_i = 1'b0;
     expected_final_vector = 512'd0;
 
     for (i = 0; i < MLP_C_PROJ_OUT_DIM; i = i + 1) begin
       expected_final_vector[i * 8 +: 8] = mlp_final_expected_q[i];
+    end
+    for (i = 0; i < OUT_PROJ_DIM; i = i + 1) begin
+      pcie_block_input_i[i * 8 +: 8] = out_proj_block_input_q[i];
+      pcie_residual_after_attention_i[i * 8 +: 8] = out_proj_context_q[i];
     end
 
     repeat (4) @(negedge SYS_CLK);

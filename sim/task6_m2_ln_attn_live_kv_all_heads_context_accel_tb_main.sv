@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 module task6_m2_ln_attn_live_kv_all_heads_context_accel_tb;
-  `include "tb_data.sv"
+  `include "task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv"
 
   localparam int TIMEOUT_CYCLES = 450000;
   localparam logic [2:0] S_DONE = 3'd6;

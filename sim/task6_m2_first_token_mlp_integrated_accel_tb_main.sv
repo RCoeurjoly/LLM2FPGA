@@ -4,7 +4,7 @@ module task6_m2_first_token_mlp_integrated_accel_tb;
   `include "tb_data.sv"
 
   localparam int TIMEOUT_CYCLES = 40000;
-  localparam logic [2:0] ST_DONE = 3'd5;
+  localparam logic [2:0] ST_DONE = 3'd7;
 
   logic SYS_CLK;
   logic SYS_RSTN;

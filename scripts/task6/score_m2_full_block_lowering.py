@@ -300,7 +300,10 @@ def main() -> int:
         "artifact_name": "h2-tinystories-1m-m2-full-block-lowering-score",
         "status": "PASS" if verdict else "FAIL",
         "date": dt.datetime.now(dt.timezone.utc).isoformat(),
-        "stage": "M2-one-full-block",
+        "stage": "M2-one-full-block-lowering-replay",
+        "milestone_target": "M2-one-full-block",
+        "live_compute": False,
+        "artifact_role": "offline-fixed-point-lowering-score",
         "contract_manifest": str(args.contract_manifest),
         "weight_manifest": str(args.weight_manifest),
         "source_proofs": {

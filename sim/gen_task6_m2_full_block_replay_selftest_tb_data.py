@@ -210,6 +210,7 @@ def main() -> None:
         "artifact_name": "task6-m2-full-block-replay-selftest-tb-data",
         "status": "PASS",
         "output_count": len(block_q),
+        "first_64_output_hex": bytes(u8(value) for value in block_q[:64]).hex(),
         "output_scale": scale,
         "output_scale_q24": int(round(scale * (1 << 24))),
         "expected_checksum": expected_checksum,

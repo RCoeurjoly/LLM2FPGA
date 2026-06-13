@@ -5,6 +5,8 @@ module task6_m2_ln_attn_live_kv_cache_accel_top (
   input logic SYS_RSTN,
   input logic start_i,
   input logic clear_i,
+  input logic use_external_ln_input_i,
+  input logic [CACHE_SEQ*LN_DIM*16-1:0] external_ln_input_q12_by_token_i,
   output logic [31:0] status_o,
   output logic [31:0] cycle_count_o,
   output logic [31:0] output_checksum_o,
@@ -59,6 +61,8 @@ module task6_m2_ln_attn_live_kv_cache_accel_top (
   logic [31:0] prob_sum_q;
 
   logic signed [15:0] ln_input_q12_w;
+  logic signed [15:0] ln_current_input_q12_w;
+  logic signed [15:0] ln_center_input_q12_w;
   logic signed [31:0] ln_mean_next_acc_q12_w;
   logic signed [63:0] ln_mean_next_shifted_w;
   logic signed [31:0] ln_centered_q12_w;
@@ -135,14 +139,19 @@ module task6_m2_ln_attn_live_kv_cache_accel_top (
   assign token_index_u32_w = {{(32 - TOKEN_WIDTH){1'b0}}, token_index_q};
   assign src_index_u32_w = {{(32 - TOKEN_WIDTH){1'b0}}, src_index_q};
   assign dim_index_u32_w = {{(32 - ATTN_DIM_WIDTH){1'b0}}, dim_index_q};
-  assign ln_input_q12_w = ln_input_q12_by_token[token_index_q][mean_index_q];
+  assign ln_current_input_q12_w = use_external_ln_input_i ?
+    $signed(external_ln_input_q12_by_token_i[((token_index_q * LN_DIM + mean_index_q) * 16) +: 16]) :
+    ln_input_q12_by_token[token_index_q][mean_index_q];
+  assign ln_center_input_q12_w = use_external_ln_input_i ?
+    $signed(external_ln_input_q12_by_token_i[((token_index_q * LN_DIM + ln_index_q) * 16) +: 16]) :
+    ln_input_q12_by_token[token_index_q][ln_index_q];
+  assign ln_input_q12_w = ln_current_input_q12_w;
   assign ln_mean_next_acc_q12_w =
     ln_mean_acc_q12 + $signed({{16{ln_input_q12_w[15]}}, ln_input_q12_w});
   assign ln_mean_next_shifted_w =
     round_shift_signed64({{32{ln_mean_next_acc_q12_w[31]}}, ln_mean_next_acc_q12_w}, 6);
   assign ln_centered_q12_w =
-    $signed({{16{ln_input_q12_by_token[token_index_q][ln_index_q][15]}},
-      ln_input_q12_by_token[token_index_q][ln_index_q]}) -
+    $signed({{16{ln_center_input_q12_w[15]}}, ln_center_input_q12_w}) -
     $signed(ln_mean_latched_q12);
   assign ln_norm_product_w =
     $signed(ln_centered_q12_w) *

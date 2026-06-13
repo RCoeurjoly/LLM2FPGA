@@ -4,6 +4,10 @@ module task6_m2_first_token_full_block_accel_top (
   input logic SYS_CLK,
   input logic SYS_RSTN,
   input logic start_i,
+  input logic use_external_context_i,
+  input logic [511:0] external_context_vector_i,
+  input logic use_external_block_input_i,
+  input logic [511:0] external_block_input_vector_i,
   output logic [31:0] status_o,
   output logic [31:0] cycle_count_o,
   output logic [31:0] attn_out_checksum_o,
@@ -28,8 +32,8 @@ module task6_m2_first_token_full_block_accel_top (
     ST_ERROR = 3'd7
   } state_t;
 
-  localparam logic [2:0] ATTN_ST_DONE = 3'd3;
-  localparam logic [2:0] MLP_ST_DONE = 3'd5;
+  localparam logic [2:0] ATTN_ST_DONE = 3'd4;
+  localparam logic [2:0] MLP_ST_DONE = 3'd7;
 
   state_t state_q;
   logic [31:0] cycle_count_q;
@@ -68,6 +72,10 @@ module task6_m2_first_token_full_block_accel_top (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(attn_start_q),
+    .use_external_context_i(use_external_context_i),
+    .external_context_vector_i(external_context_vector_i),
+    .use_external_block_input_i(use_external_block_input_i),
+    .external_block_input_vector_i(external_block_input_vector_i),
     .status_o(attn_status_w),
     .cycle_count_o(attn_cycle_count_w),
     .output_checksum_o(attn_output_checksum_w),

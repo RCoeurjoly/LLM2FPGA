@@ -87,6 +87,14 @@ def sv_i32(value: int) -> str:
     return f"-32'sd{abs(value)}" if value < 0 else f"32'sd{value}"
 
 
+def hex_i8(value: int) -> str:
+    return f"{u8(value):02x}"
+
+
+def write_hex_i8(path: Path, values: list[int]) -> None:
+    path.write_text("\n".join(hex_i8(value) for value in values) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     args = parse_args()
     contract = attention.load_json(args.contract_manifest)
@@ -181,12 +189,18 @@ def main() -> int:
     final_q_mismatches = sum(1 for actual, expected in zip(final_q, block_expected_q) if actual != expected)
 
     if args.out_sv is not None:
+        args.out_sv.parent.mkdir(parents=True, exist_ok=True)
+        c_fc_weight_hex = args.out_sv.parent / "mlp_c_fc_weight_q.hex"
+        c_proj_weight_hex = args.out_sv.parent / "mlp_c_proj_weight_q.hex"
+        write_hex_i8(c_fc_weight_hex, c_fc_weight_q)
+        write_hex_i8(c_proj_weight_hex, c_proj_weight_q)
         lines = [
             "localparam int MLP_C_FC_IN_DIM = %d;" % hidden,
             "localparam int MLP_C_FC_OUT_DIM = %d;" % c_fc_out,
             "localparam int MLP_C_FC_SCALE_SHIFT = %d;" % int(fixed_point["scale_shift"]),
             "localparam int MLP_C_FC_X_FRAC = %d;" % int(fixed_point["x_frac"]),
             "localparam int MLP_GELU_PWL_NODE_COUNT = %d;" % len(fixed_point["gelu_pwl_x_nodes"]),
+            "localparam int MLP_GELU_PWL_SEGMENT_COUNT = MLP_GELU_PWL_NODE_COUNT - 1;",
             "localparam logic [31:0] MLP_POST_GELU_EXPECTED_CHECKSUM = 32'h%08x;" % checksum(post_gelu_q),
             "localparam logic [31:0] MLP_POST_GELU_EXPECTED_SAMPLE0 = 32'h%08x;" % sample_word(post_gelu_q, 0),
             "localparam logic [31:0] MLP_POST_GELU_EXPECTED_SAMPLE1 = 32'h%08x;" % sample_word(post_gelu_q, 4),
@@ -202,21 +216,24 @@ def main() -> int:
             "localparam logic [31:0] MLP_FINAL_EXPECTED_SAMPLE0 = 32'h%08x;" % sample_word(fixed_final_q, 0),
             "localparam logic [31:0] MLP_FINAL_EXPECTED_SAMPLE1 = 32'h%08x;" % sample_word(fixed_final_q, 4),
             "logic signed [7:0] mlp_ln2_q [0:MLP_C_FC_IN_DIM-1];",
-            "logic signed [7:0] mlp_c_fc_weight_q [0:MLP_C_FC_OUT_DIM-1][0:MLP_C_FC_IN_DIM-1];",
+            "(* rom_style = \"block\", ram_style = \"block\" *) logic signed [7:0] mlp_c_fc_weight_q [0:(MLP_C_FC_OUT_DIM*MLP_C_FC_IN_DIM)-1];",
             "logic signed [31:0] mlp_c_fc_scale_mul_q [0:MLP_C_FC_OUT_DIM-1];",
             "logic signed [31:0] mlp_c_fc_bias_q [0:MLP_C_FC_OUT_DIM-1];",
             "logic signed [31:0] mlp_c_fc_expected_acc [0:MLP_C_FC_OUT_DIM-1];",
             "logic signed [31:0] mlp_c_fc_expected_x_q [0:MLP_C_FC_OUT_DIM-1];",
             "logic signed [31:0] mlp_gelu_pwl_x_nodes [0:MLP_GELU_PWL_NODE_COUNT-1];",
             "logic signed [7:0] mlp_gelu_pwl_y_nodes [0:MLP_GELU_PWL_NODE_COUNT-1];",
+            "logic signed [31:0] mlp_gelu_pwl_recip_q [0:MLP_GELU_PWL_SEGMENT_COUNT-1];",
             "logic signed [7:0] mlp_post_gelu_q [0:MLP_C_PROJ_IN_DIM-1];",
-            "logic signed [7:0] mlp_c_proj_weight_q [0:MLP_C_PROJ_OUT_DIM-1][0:MLP_C_PROJ_IN_DIM-1];",
+            "(* rom_style = \"block\", ram_style = \"block\" *) logic signed [7:0] mlp_c_proj_weight_q [0:(MLP_C_PROJ_OUT_DIM*MLP_C_PROJ_IN_DIM)-1];",
             "logic signed [31:0] mlp_c_proj_scale_mul_q [0:MLP_C_PROJ_OUT_DIM-1];",
             "logic signed [31:0] mlp_c_proj_bias_q [0:MLP_C_PROJ_OUT_DIM-1];",
             "logic signed [31:0] mlp_c_proj_expected_acc [0:MLP_C_PROJ_OUT_DIM-1];",
             "logic signed [7:0] mlp_c_proj_expected_q [0:MLP_C_PROJ_OUT_DIM-1];",
             "logic signed [7:0] mlp_residual_q [0:MLP_C_PROJ_OUT_DIM-1];",
             "logic signed [7:0] mlp_final_expected_q [0:MLP_C_PROJ_OUT_DIM-1];",
+            "initial $readmemh(\"%s\", mlp_c_fc_weight_q);" % c_fc_weight_hex,
+            "initial $readmemh(\"%s\", mlp_c_proj_weight_q);" % c_proj_weight_hex,
             "initial begin",
         ]
         c_fc_scale_mul = [
@@ -226,13 +243,6 @@ def main() -> int:
         c_fc_bias_q = [round(value * (1 << int(fixed_point["x_frac"]))) for value in c_fc_bias]
         for index, value in enumerate(debug["ln2_q"]):
             lines.append(f"  mlp_ln2_q[{index}] = {sv_i8(value)};")
-        for out_index in range(c_fc_out):
-            offset = out_index * hidden
-            for in_index in range(hidden):
-                lines.append(
-                    f"  mlp_c_fc_weight_q[{out_index}][{in_index}] = "
-                    f"{sv_i8(c_fc_weight_q[offset + in_index])};"
-                )
         for index, value in enumerate(c_fc_scale_mul):
             lines.append(f"  mlp_c_fc_scale_mul_q[{index}] = {sv_i32(value)};")
         for index, value in enumerate(c_fc_bias_q):
@@ -252,15 +262,13 @@ def main() -> int:
             lines.append(f"  mlp_gelu_pwl_x_nodes[{index}] = {sv_i32(int(value))};")
         for index, value in enumerate(fixed_point["gelu_pwl_y_nodes"]):
             lines.append(f"  mlp_gelu_pwl_y_nodes[{index}] = {sv_i8(int(value))};")
+        gelu_pwl_x_nodes = [int(value) for value in fixed_point["gelu_pwl_x_nodes"]]
+        for index in range(len(gelu_pwl_x_nodes) - 1):
+            denominator = gelu_pwl_x_nodes[index + 1] - gelu_pwl_x_nodes[index]
+            recip_q = ((1 << 16) + (denominator // 2)) // denominator
+            lines.append(f"  mlp_gelu_pwl_recip_q[{index}] = {sv_i32(recip_q)};")
         for index, value in enumerate(post_gelu_q):
             lines.append(f"  mlp_post_gelu_q[{index}] = {sv_i8(value)};")
-        for out_index in range(hidden):
-            offset = out_index * c_fc_out
-            for in_index in range(c_fc_out):
-                lines.append(
-                    f"  mlp_c_proj_weight_q[{out_index}][{in_index}] = "
-                    f"{sv_i8(c_proj_weight_q[offset + in_index])};"
-                )
         for index, value in enumerate(c_proj_scale_mul):
             lines.append(f"  mlp_c_proj_scale_mul_q[{index}] = {sv_i32(value)};")
         for index, value in enumerate(c_proj_bias_q):
@@ -274,7 +282,6 @@ def main() -> int:
         for index, value in enumerate(fixed_final_q):
             lines.append(f"  mlp_final_expected_q[{index}] = {sv_i8(value)};")
         lines.append("end")
-        args.out_sv.parent.mkdir(parents=True, exist_ok=True)
         args.out_sv.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     output = {

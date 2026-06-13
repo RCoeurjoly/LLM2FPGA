@@ -4,7 +4,7 @@ module task6_m2_first_token_attention_out_proj_accel_tb;
   `include "tb_data.sv"
 
   localparam int TIMEOUT_CYCLES = 10000;
-  localparam logic [2:0] ST_DONE = 3'd3;
+  localparam logic [2:0] ST_DONE = 3'd4;
 
   logic SYS_CLK;
   logic SYS_RSTN;
@@ -27,6 +27,8 @@ module task6_m2_first_token_attention_out_proj_accel_tb;
   logic [511:0] expected_vector;
   logic [511:0] expected_residual_vector;
   logic [511:0] expected_ln2_vector;
+  logic [511:0] external_context_vector_i;
+  logic [511:0] external_block_input_vector_i;
   integer cycles;
   integer i;
 
@@ -34,6 +36,10 @@ module task6_m2_first_token_attention_out_proj_accel_tb;
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(start_i),
+    .use_external_context_i(1'b1),
+    .external_context_vector_i(external_context_vector_i),
+    .use_external_block_input_i(1'b1),
+    .external_block_input_vector_i(external_block_input_vector_i),
     .status_o(status_o),
     .cycle_count_o(cycle_count_o),
     .output_checksum_o(output_checksum_o),
@@ -60,12 +66,16 @@ module task6_m2_first_token_attention_out_proj_accel_tb;
     expected_vector = 512'd0;
     expected_residual_vector = 512'd0;
     expected_ln2_vector = 512'd0;
+    external_context_vector_i = 512'd0;
+    external_block_input_vector_i = 512'd0;
     cycles = 0;
 
     for (i = 0; i < OUT_PROJ_DIM; i = i + 1) begin
       expected_vector[i * 8 +: 8] = out_proj_expected_q[i];
       expected_residual_vector[i * 8 +: 8] = attn_residual_expected_q[i];
       expected_ln2_vector[i * 8 +: 8] = ln2_expected_q[i];
+      external_context_vector_i[i * 8 +: 8] = out_proj_context_q[i];
+      external_block_input_vector_i[i * 8 +: 8] = out_proj_block_input_q[i];
     end
 
     repeat (4) @(negedge SYS_CLK);

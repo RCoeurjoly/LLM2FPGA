@@ -10,6 +10,8 @@ module task6_m2_ln_attn_live_kv_cache_accel_tb;
   logic SYS_RSTN;
   logic start_i;
   logic clear_i;
+  logic use_external_ln_input_i;
+  logic [CACHE_SEQ*LN_DIM*16-1:0] external_ln_input_q12_by_token_i;
   logic [31:0] status_o;
   logic [31:0] cycle_count_o;
   logic [31:0] output_checksum_o;
@@ -29,6 +31,8 @@ module task6_m2_ln_attn_live_kv_cache_accel_tb;
     .SYS_RSTN(SYS_RSTN),
     .start_i(start_i),
     .clear_i(clear_i),
+    .use_external_ln_input_i(use_external_ln_input_i),
+    .external_ln_input_q12_by_token_i(external_ln_input_q12_by_token_i),
     .status_o(status_o),
     .cycle_count_o(cycle_count_o),
     .output_checksum_o(output_checksum_o),
@@ -45,6 +49,8 @@ module task6_m2_ln_attn_live_kv_cache_accel_tb;
     SYS_RSTN = 1'b0;
     start_i = 1'b0;
     clear_i = 1'b0;
+    use_external_ln_input_i = 1'b1;
+    external_ln_input_q12_by_token_i = '0;
     expected_output_vector = 512'd0;
     expected_checksum = 32'd0;
     expected_sample0 = 32'd0;
@@ -61,6 +67,13 @@ module task6_m2_ln_attn_live_kv_cache_accel_tb;
       end else if (i < 8) begin
         expected_sample1 =
           expected_sample1 | ({24'd0, attn_expected_value_q[i][7:0]} << (8 * (i - 4)));
+      end
+    end
+
+    for (int token = 0; token < CACHE_SEQ; token = token + 1) begin
+      for (int dim = 0; dim < LN_DIM; dim = dim + 1) begin
+        external_ln_input_q12_by_token_i[(token * LN_DIM + dim) * 16 +: 16] =
+          ln_input_q12_by_token[token][dim];
       end
     end
 

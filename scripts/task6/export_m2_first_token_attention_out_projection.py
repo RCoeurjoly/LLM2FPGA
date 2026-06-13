@@ -92,6 +92,18 @@ def sv_i32(value: int) -> str:
     return f"-32'sd{abs(value)}" if value < 0 else f"32'sd{value}"
 
 
+def sv_i64(value: int) -> str:
+    return f"-64'sd{abs(value)}" if value < 0 else f"64'sd{value}"
+
+
+def hex_i8(value: int) -> str:
+    return f"{u8(value):02x}"
+
+
+def write_hex_i8(path: Path, values: list[int]) -> None:
+    path.write_text("\n".join(hex_i8(value) for value in values) + "\n", encoding="utf-8")
+
+
 def layernorm_q12_fixture(
     input_q12: list[int],
     gamma: list[float],
@@ -332,7 +344,19 @@ def main() -> int:
         1 for actual, expected in zip(residual_replayed_q, residual_float_q) if actual != expected
     )
     residual_q = residual_replayed_q
+    ln2_input_scale_mul_q20 = round(residual_scale * Q12 * Q20)
     residual_input_q12 = [round(value * residual_scale * Q12) for value in residual_q]
+    residual_input_q12_replayed = [
+        round_shift_signed(value * ln2_input_scale_mul_q20, 20)
+        for value in residual_q
+    ]
+    if residual_input_q12_replayed != residual_input_q12:
+        mismatches = sum(
+            1
+            for actual, expected in zip(residual_input_q12_replayed, residual_input_q12)
+            if actual != expected
+        )
+        raise SystemExit(f"residual-to-LN2 Q12 fixed-point mismatch count {mismatches}")
     ln2 = layernorm_q12_fixture(residual_input_q12, ln2_gamma, ln2_beta)
     ln2_expected_q = list(ln2["expected_q"])
     ln2_actual_q = list(ln2["actual_q"])
@@ -347,6 +371,9 @@ def main() -> int:
     )
 
     if args.out_sv is not None:
+        args.out_sv.parent.mkdir(parents=True, exist_ok=True)
+        out_proj_weight_hex = args.out_sv.parent / "out_proj_weight_q.hex"
+        write_hex_i8(out_proj_weight_hex, out_wq)
         lines = [
             "localparam int M2_FULL_BLOCK_TOKEN_INDEX = %d;" % args.token_index,
             "localparam int OUT_PROJ_DIM = %d;" % hidden,
@@ -356,6 +383,7 @@ def main() -> int:
             "localparam logic [31:0] ATTN_RESIDUAL_EXPECTED_CHECKSUM = 32'h%08x;" % checksum(residual_q),
             "localparam logic [31:0] ATTN_RESIDUAL_EXPECTED_SAMPLE0 = 32'h%08x;" % sample_word(residual_q, 0),
             "localparam logic [31:0] ATTN_RESIDUAL_EXPECTED_SAMPLE1 = 32'h%08x;" % sample_word(residual_q, 4),
+            "localparam logic signed [63:0] LN2_INPUT_SCALE_MUL_Q20 = %s;" % sv_i64(ln2_input_scale_mul_q20),
             "localparam logic signed [31:0] LN2_INV_STD_Q16 = %s;" % sv_i32(int(ln2["inv_std_q16"])),
             "localparam logic signed [31:0] LN2_OUTPUT_SCALE_MUL_Q20 = %s;" % sv_i32(int(ln2["output_scale_mul_q20"])),
             "localparam logic [31:0] LN2_EXPECTED_CHECKSUM = 32'h%08x;" % checksum(ln2_actual_q),
@@ -363,7 +391,7 @@ def main() -> int:
             "localparam logic [31:0] LN2_EXPECTED_SAMPLE1 = 32'h%08x;" % sample_word(ln2_actual_q, 4),
             "logic signed [7:0] out_proj_context_q [0:OUT_PROJ_DIM-1];",
             "logic signed [7:0] out_proj_block_input_q [0:OUT_PROJ_DIM-1];",
-            "logic signed [7:0] out_proj_weight_q [0:OUT_PROJ_DIM-1][0:OUT_PROJ_DIM-1];",
+            "(* rom_style = \"block\", ram_style = \"block\" *) logic signed [7:0] out_proj_weight_q [0:(OUT_PROJ_DIM*OUT_PROJ_DIM)-1];",
             "logic signed [31:0] out_proj_expected_acc [0:OUT_PROJ_DIM-1];",
             "logic signed [31:0] out_proj_mul_q20 [0:OUT_PROJ_DIM-1];",
             "logic signed [7:0] out_proj_expected_q [0:OUT_PROJ_DIM-1];",
@@ -371,22 +399,16 @@ def main() -> int:
             "logic signed [31:0] attn_residual_block_input_mul_q20 [0:OUT_PROJ_DIM-1];",
             "logic signed [31:0] attn_residual_bias_q20 [0:OUT_PROJ_DIM-1];",
             "logic signed [7:0] attn_residual_expected_q [0:OUT_PROJ_DIM-1];",
-            "logic signed [15:0] ln2_input_q12 [0:OUT_PROJ_DIM-1];",
             "logic signed [31:0] ln2_gamma_q16 [0:OUT_PROJ_DIM-1];",
             "logic signed [15:0] ln2_beta_q12 [0:OUT_PROJ_DIM-1];",
             "logic signed [7:0] ln2_expected_q [0:OUT_PROJ_DIM-1];",
+            "initial $readmemh(\"%s\", out_proj_weight_q);" % out_proj_weight_hex,
             "initial begin",
         ]
         for index, value in enumerate(context_q):
             lines.append(f"  out_proj_context_q[{index}] = {sv_i8(value)};")
         for index, value in enumerate(block_input_q):
             lines.append(f"  out_proj_block_input_q[{index}] = {sv_i8(value)};")
-        for out_index in range(hidden):
-            offset = out_index * hidden
-            for in_index in range(hidden):
-                lines.append(
-                    f"  out_proj_weight_q[{out_index}][{in_index}] = {sv_i8(out_wq[offset + in_index])};"
-                )
         for index, value in enumerate(out_acc):
             lines.append(f"  out_proj_expected_acc[{index}] = {sv_i32(value)};")
         for index, value in enumerate(out_mul_q20):
@@ -401,8 +423,6 @@ def main() -> int:
             lines.append(f"  attn_residual_bias_q20[{index}] = {sv_i32(value)};")
         for index, value in enumerate(residual_q):
             lines.append(f"  attn_residual_expected_q[{index}] = {sv_i8(value)};")
-        for index, value in enumerate(residual_input_q12):
-            lines.append(f"  ln2_input_q12[{index}] = {sv_i16(value)};")
         for index, value in enumerate(ln2["gamma_q16"]):
             lines.append(f"  ln2_gamma_q16[{index}] = {sv_i32(int(value))};")
         for index, value in enumerate(ln2["beta_q12"]):
@@ -410,7 +430,6 @@ def main() -> int:
         for index, value in enumerate(ln2_actual_q):
             lines.append(f"  ln2_expected_q[{index}] = {sv_i8(value)};")
         lines.append("end")
-        args.out_sv.parent.mkdir(parents=True, exist_ok=True)
         args.out_sv.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     output = {

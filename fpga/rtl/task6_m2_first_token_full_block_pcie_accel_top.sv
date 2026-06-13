@@ -1,6 +1,8 @@
 `timescale 1ns/1ps
 
-module task6_m2_first_token_full_block_pcie_accel_top (
+module task6_m2_first_token_full_block_pcie_accel_top #(
+  parameter int M2_FULL_BLOCK_TOKEN_INDEX = 0
+) (
   input logic SYS_CLK,
   input logic SYS_RSTN,
   input logic [511:0] pcie_block_input_i,
@@ -16,7 +18,8 @@ module task6_m2_first_token_full_block_pcie_accel_top (
   output logic [511:0] pcie_output_vector_o,
   output logic [31:0] pcie_debug_o,
   output logic [31:0] pcie_debug1_o,
-  output logic [31:0] pcie_debug2_o
+  output logic [31:0] pcie_debug2_o,
+  output logic [31:0] pcie_provenance_o
 );
   typedef enum logic [2:0] {
     M2_IDLE = 3'd0,
@@ -59,6 +62,10 @@ module task6_m2_first_token_full_block_pcie_accel_top (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(core_start_q),
+    .use_external_context_i(1'b1),
+    .external_context_vector_i(pcie_residual_after_attention_i),
+    .use_external_block_input_i(1'b1),
+    .external_block_input_vector_i(pcie_block_input_i),
     .status_o(core_status_w),
     .cycle_count_o(core_cycle_count_w),
     .attn_out_checksum_o(core_attn_out_checksum_w),
@@ -184,5 +191,6 @@ module task6_m2_first_token_full_block_pcie_accel_top (
     pcie_debug_o = debug_q;
     pcie_debug1_o = debug1_q;
     pcie_debug2_o = debug2_q;
+    pcie_provenance_o = 32'h4d32_2000 | {24'd0, M2_FULL_BLOCK_TOKEN_INDEX[7:0]};
   end
 endmodule

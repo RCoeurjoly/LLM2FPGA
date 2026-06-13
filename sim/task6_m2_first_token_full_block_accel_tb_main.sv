@@ -21,6 +21,8 @@ module task6_m2_first_token_full_block_accel_tb;
   logic [31:0] final_sample1_o;
   logic [511:0] final_vector_o;
   logic [31:0] debug_o;
+  logic [511:0] external_context_vector_i;
+  logic [511:0] external_block_input_vector_i;
   logic [511:0] expected_final_vector;
   integer cycles;
   integer i;
@@ -29,6 +31,10 @@ module task6_m2_first_token_full_block_accel_tb;
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(start_i),
+    .use_external_context_i(1'b1),
+    .external_context_vector_i(external_context_vector_i),
+    .use_external_block_input_i(1'b1),
+    .external_block_input_vector_i(external_block_input_vector_i),
     .status_o(status_o),
     .cycle_count_o(cycle_count_o),
     .attn_out_checksum_o(attn_out_checksum_o),
@@ -49,11 +55,17 @@ module task6_m2_first_token_full_block_accel_tb;
     SYS_CLK = 1'b0;
     SYS_RSTN = 1'b0;
     start_i = 1'b0;
+    external_context_vector_i = 512'd0;
+    external_block_input_vector_i = 512'd0;
     expected_final_vector = 512'd0;
     cycles = 0;
 
     for (i = 0; i < MLP_C_PROJ_OUT_DIM; i = i + 1) begin
       expected_final_vector[i * 8 +: 8] = mlp_final_expected_q[i];
+    end
+    for (i = 0; i < OUT_PROJ_DIM; i = i + 1) begin
+      external_context_vector_i[i * 8 +: 8] = out_proj_context_q[i];
+      external_block_input_vector_i[i * 8 +: 8] = out_proj_block_input_q[i];
     end
 
     repeat (4) @(negedge SYS_CLK);

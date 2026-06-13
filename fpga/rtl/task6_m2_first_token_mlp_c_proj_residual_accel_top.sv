@@ -91,7 +91,7 @@ module task6_m2_first_token_mlp_c_proj_residual_accel_top (
   assign next_acc_w =
     acc_q +
     ($signed(mlp_post_gelu_q[in_index_q]) *
-     $signed(mlp_c_proj_weight_q[out_index_q][in_index_q]));
+     $signed(mlp_c_proj_weight_q[(out_index_q * MLP_C_PROJ_IN_DIM) + in_index_q]));
   assign c_proj_product_w =
     $signed(acc_q) * $signed(mlp_c_proj_scale_mul_q[out_index_q]);
   assign c_proj_shifted_w =

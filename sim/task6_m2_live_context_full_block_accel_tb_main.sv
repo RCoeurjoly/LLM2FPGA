@@ -10,6 +10,7 @@ module task6_m2_live_context_full_block_accel_tb;
   logic SYS_CLK;
   logic SYS_RSTN;
   logic start_i;
+  logic clear_i;
   logic use_external_ln_input_i;
   logic [CACHE_SEQ*LN_DIM*16-1:0] external_ln_input_q12_by_token_i;
   logic [511:0] external_block_input_vector_i;
@@ -34,6 +35,7 @@ module task6_m2_live_context_full_block_accel_tb;
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(start_i),
+    .clear_i(clear_i),
     .use_external_ln_input_i(use_external_ln_input_i),
     .external_ln_input_q12_by_token_i(external_ln_input_q12_by_token_i),
     .use_external_block_input_i(1'b1),
@@ -59,6 +61,7 @@ module task6_m2_live_context_full_block_accel_tb;
     SYS_CLK = 1'b0;
     SYS_RSTN = 1'b0;
     start_i = 1'b0;
+    clear_i = 1'b0;
     use_external_ln_input_i = 1'b1;
     external_ln_input_q12_by_token_i = '0;
     external_block_input_vector_i = 512'd0;

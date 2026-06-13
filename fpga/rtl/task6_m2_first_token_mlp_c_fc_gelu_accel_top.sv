@@ -78,12 +78,9 @@ module task6_m2_first_token_mlp_c_fc_gelu_accel_top (
   function automatic signed [7:0] fixed_post_gelu_pwl(input signed [31:0] x_q);
     int segment;
     logic signed [31:0] x0;
-    logic signed [31:0] x1;
     logic signed [31:0] y0;
     logic signed [31:0] y1;
     logic signed [63:0] numerator;
-    logic signed [31:0] denominator;
-    logic signed [31:0] recip_q;
     logic signed [63:0] delta_product;
     logic signed [63:0] delta_q;
     begin
@@ -97,13 +94,10 @@ module task6_m2_first_token_mlp_c_fc_gelu_accel_top (
         segment = MLP_GELU_PWL_NODE_COUNT - 2;
       end
       x0 = mlp_gelu_pwl_x_nodes[segment];
-      x1 = mlp_gelu_pwl_x_nodes[segment + 1];
       y0 = {{24{mlp_gelu_pwl_y_nodes[segment][7]}}, mlp_gelu_pwl_y_nodes[segment]};
       y1 = {{24{mlp_gelu_pwl_y_nodes[segment + 1][7]}}, mlp_gelu_pwl_y_nodes[segment + 1]};
       numerator = $signed(x_q - x0) * $signed(y1 - y0);
-      denominator = x1 - x0;
-      recip_q = ((32'sd1 <<< 16) + (denominator >>> 1)) / denominator;
-      delta_product = numerator * $signed(recip_q);
+      delta_product = numerator * $signed(mlp_gelu_pwl_recip_q[segment]);
       delta_q = round_shift_signed64(delta_product, 16);
       fixed_post_gelu_pwl = saturate_i8($signed(y0 + delta_q[31:0]));
     end
@@ -112,7 +106,7 @@ module task6_m2_first_token_mlp_c_fc_gelu_accel_top (
   assign next_acc_w =
     acc_q +
     ($signed(mlp_ln2_q[in_index_q]) *
-     $signed(mlp_c_fc_weight_q[out_index_q][in_index_q]));
+     $signed(mlp_c_fc_weight_q[(out_index_q * MLP_C_FC_IN_DIM) + in_index_q]));
   assign x_product_w =
     $signed(acc_q) * $signed(mlp_c_fc_scale_mul_q[out_index_q]);
   assign x_shifted_w = round_shift_signed64(x_product_w, MLP_C_FC_SCALE_SHIFT);

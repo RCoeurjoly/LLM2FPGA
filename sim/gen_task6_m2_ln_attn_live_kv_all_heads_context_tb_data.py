@@ -97,7 +97,8 @@ def main() -> None:
     prob_q15 = []
     value_acc = []
     value_q = []
-    context_q = [0 for _ in range(hidden)]
+    context_value_q_by_head = []
+    context_float = [0.0 for _ in range(hidden)]
     head_summaries = []
 
     for head_index in range(args.num_heads):
@@ -132,16 +133,33 @@ def main() -> None:
         prob_q15.append(live["prob_q"])
         value_acc.append(live["value_acc"])
         value_q.append(live["value_q"])
+        context_value_q_by_head.append(live["value_q"])
         base = head_index * head_dim
         for dim, value in enumerate(live["value_q"]):
-            context_q[base + dim] = value
+            context_float[base + dim] = float(value) * float(attn["v_scale"])
         head_summaries.append(
             {
                 "head": head_index,
                 "value_checksum": sum((value & 0xFF) * (index + 1) for index, value in enumerate(live["value_q"])),
                 "score_scale_q20": live["score_scale_q20"],
+                "v_scale": attn["v_scale"],
             }
         )
+
+    context_q, context_scale = sublane.quantize_i8(context_float)
+    context_requant_mul = []
+    for head_index, summary in enumerate(head_summaries):
+        mul = round((float(summary["v_scale"]) / context_scale) * sublane.Q20)
+        context_requant_mul.append(mul)
+        base = head_index * head_dim
+        for dim, raw_value in enumerate(context_value_q_by_head[head_index]):
+            requant = sublane.clamp_i8(sublane.round_shift_signed(raw_value * mul, 20))
+            expected = context_q[base + dim]
+            if requant != expected:
+                raise SystemExit(
+                    "context requant mismatch "
+                    f"head={head_index} dim={dim}: got {requant} expected {expected}"
+                )
 
     lines = [
         "localparam int LN_DIM = 64;",
@@ -156,6 +174,7 @@ def main() -> None:
         "logic signed [31:0] ln_output_scale_mul_q20_by_token [0:CACHE_SEQ-1];",
         "logic signed [7:0] ln_expected_q_by_token [0:CACHE_SEQ-1][0:LN_DIM-1];",
         "logic signed [31:0] softmax_score_scale_q20_by_head [0:NUM_HEADS-1];",
+        "logic signed [31:0] context_requant_mul_q20_by_head [0:NUM_HEADS-1];",
         "logic signed [7:0] q_proj_weight_q [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
         "logic signed [7:0] k_proj_weight_q [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
         "logic signed [7:0] v_proj_weight_q [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
@@ -184,6 +203,8 @@ def main() -> None:
     emit_2d(lines, "ln_expected_q_by_token", [ln["actual_q"] for ln in ln_fixtures], sublane.sv_i8)
     for head_index, value in enumerate(score_scale):
         lines.append(f"  softmax_score_scale_q20_by_head[{head_index}] = {sublane.sv_i32(value)};")
+    for head_index, value in enumerate(context_requant_mul):
+        lines.append(f"  context_requant_mul_q20_by_head[{head_index}] = {sublane.sv_i32(value)};")
     emit_3d(lines, "q_proj_weight_q", q_weight_rows, sublane.sv_i8)
     emit_3d(lines, "k_proj_weight_q", k_weight_rows, sublane.sv_i8)
     emit_3d(lines, "v_proj_weight_q", v_weight_rows, sublane.sv_i8)
@@ -216,6 +237,7 @@ def main() -> None:
                 "head_dim": head_dim,
                 "cache_seq": token_index + 1,
                 "context_checksum": checksum,
+                "context_scale": context_scale,
                 "context_sample0": "".join(f"{value & 0xff:02x}" for value in reversed(context_q[:4])),
                 "context_sample1": "".join(f"{value & 0xff:02x}" for value in reversed(context_q[4:8])),
                 "heads": head_summaries,

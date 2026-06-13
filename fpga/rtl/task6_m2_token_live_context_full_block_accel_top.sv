@@ -79,6 +79,7 @@ module task6_m2_token_live_context_full_block_accel_top (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(block_start_q),
+    .clear_i(1'b0),
     .use_external_ln_input_i(1'b1),
     .external_ln_input_q12_by_token_i(token_ln_input_q12_by_token_w),
     .use_external_block_input_i(1'b1),
