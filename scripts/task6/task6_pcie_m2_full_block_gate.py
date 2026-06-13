@@ -228,18 +228,27 @@ def decode_debug(debug: int, debug1: int = 0, debug2: int = 0) -> dict[str, Any]
             decoded["ln_index"] = (debug >> 18) & 0x3F
             decoded["expected_q"] = f"0x{(debug >> 10) & 0xFF:02x}"
             decoded["observed_q"] = f"0x{debug & 0xFF:02x}"
-            ln_handoff_words = [
+            ln_debug_words = [
                 (debug1 >> 16) & 0xFFFF,
                 debug1 & 0xFFFF,
                 (debug2 >> 16) & 0xFFFF,
                 debug2 & 0xFFFF,
             ]
-            decoded["captured_ln_input_q12_first4_hex"] = [
-                f"0x{word:04x}" for word in ln_handoff_words
+            ln_debug_signed = [
+                word - 0x10000 if word & 0x8000 else word for word in ln_debug_words
             ]
-            decoded["captured_ln_input_q12_first4_signed"] = [
-                word - 0x10000 if word & 0x8000 else word for word in ln_handoff_words
-            ]
+            decoded["ln_intermediate_hex"] = {
+                "mean_q12": f"0x{ln_debug_words[0]:04x}",
+                "centered_q12": f"0x{ln_debug_words[1]:04x}",
+                "norm_q12": f"0x{ln_debug_words[2]:04x}",
+                "affine_q12": f"0x{ln_debug_words[3]:04x}",
+            }
+            decoded["ln_intermediate_signed"] = {
+                "mean_q12": ln_debug_signed[0],
+                "centered_q12": ln_debug_signed[1],
+                "norm_q12": ln_debug_signed[2],
+                "affine_q12": ln_debug_signed[3],
+            }
         elif context_stage in (0x02, 0x03, 0x04, 0x09):
             context_names = {
                 0x02: "K projection mismatch",
