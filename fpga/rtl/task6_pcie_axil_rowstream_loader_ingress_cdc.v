@@ -97,6 +97,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     input wire [31:0]  rowstream_m2_full_block_output_sample1_i,
     input wire [31:0]  rowstream_m2_full_block_output_count_i,
     input wire [31:0]  rowstream_m2_full_block_debug_i,
+    input wire [31:0]  rowstream_m2_full_block_debug1_i,
+    input wire [31:0]  rowstream_m2_full_block_debug2_i,
+    input wire [31:0]  rowstream_m2_full_block_provenance_i,
     input wire [511:0] rowstream_m2_full_block_output_vector_i
 );
     wire [COMMAND_WIDTH - 1:0] pcie_command_payload;
@@ -202,6 +205,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     reg [31:0] m2_full_block_output_sample1_pcie_q;
     reg [31:0] m2_full_block_output_count_pcie_q;
     reg [31:0] m2_full_block_debug_pcie_q;
+    reg [31:0] m2_full_block_debug1_pcie_q;
+    reg [31:0] m2_full_block_debug2_pcie_q;
+    reg [31:0] m2_full_block_provenance_pcie_q;
     reg [511:0] m2_full_block_output_vector_pcie_q;
     reg [31:0] rowstream_clk_counter_q;
     wire rowstream_heartbeat_edge = rowstream_heartbeat_sync_pcie_q[2] ^ rowstream_heartbeat_last_pcie_q;
@@ -294,6 +300,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
         .m2_full_block_output_sample1_i(m2_full_block_output_sample1_pcie_q),
         .m2_full_block_output_count_i(m2_full_block_output_count_pcie_q),
         .m2_full_block_debug_i(m2_full_block_debug_pcie_q),
+        .m2_full_block_debug1_i(m2_full_block_debug1_pcie_q),
+        .m2_full_block_debug2_i(m2_full_block_debug2_pcie_q),
+        .m2_full_block_provenance_i(m2_full_block_provenance_pcie_q),
         .m2_full_block_output_vector_i(m2_full_block_output_vector_pcie_q)
     );
 
@@ -366,6 +375,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             m2_full_block_output_sample1_pcie_q <= 32'd0;
             m2_full_block_output_count_pcie_q <= 32'd0;
             m2_full_block_debug_pcie_q <= 32'd0;
+            m2_full_block_debug1_pcie_q <= 32'd0;
+            m2_full_block_debug2_pcie_q <= 32'd0;
+            m2_full_block_provenance_pcie_q <= 32'd0;
             m2_full_block_output_vector_pcie_q <= 512'd0;
         end else begin
             if (pcie_command_event) begin
@@ -453,6 +465,9 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
             m2_full_block_output_sample1_pcie_q <= rowstream_m2_full_block_output_sample1_i;
             m2_full_block_output_count_pcie_q <= rowstream_m2_full_block_output_count_i;
             m2_full_block_debug_pcie_q <= rowstream_m2_full_block_debug_i;
+            m2_full_block_debug1_pcie_q <= rowstream_m2_full_block_debug1_i;
+            m2_full_block_debug2_pcie_q <= rowstream_m2_full_block_debug2_i;
+            m2_full_block_provenance_pcie_q <= rowstream_m2_full_block_provenance_i;
             m2_full_block_output_vector_pcie_q <= rowstream_m2_full_block_output_vector_i;
         end
     end

@@ -106,6 +106,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [31:0]  m2_full_block_output_sample1_i,
     input wire [31:0]  m2_full_block_output_count_i,
     input wire [31:0]  m2_full_block_debug_i,
+    input wire [31:0]  m2_full_block_debug1_i,
+    input wire [31:0]  m2_full_block_debug2_i,
+    input wire [31:0]  m2_full_block_provenance_i,
     input wire [511:0] m2_full_block_output_vector_i
 );
     localparam [1:0] EVENT_IDLE = 2'd0;
@@ -143,8 +146,11 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     reg [31:0] last_wdata_q;
     reg [3:0]  last_wstrb_q;
     reg        read_pending_q;
+    reg        read_response_pending_q;
     reg [9:0]  read_word_index_q;
-    reg [31:0] read_mux_data;
+    reg [3:0]  read_word_offset_q;
+    reg [511:0] read_window_q;
+    reg [511:0] read_window_data;
 
     integer i;
 
@@ -192,165 +198,118 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     wire event_active = event_state_q != EVENT_IDLE;
 
     always @* begin
-        read_mux_data = 32'd0;
+        read_window_data = 512'd0;
         case (read_word_index_q[9:4])
             6'h00: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = TASK6_PCIE_MAGIC;
-                    4'h1: read_mux_data = TASK6_PCIE_VERSION;
-                    4'h2: read_mux_data = {25'd0, boot_done_i, calib_complete_i, doorbell_error_q, loader_error_seen_q, loader_done_seen_q, event_active, rst_n};
-                    4'h3: read_mux_data = accepted_count_q;
-                    4'h4: read_mux_data = command_magic_q;
-                    4'h5: read_mux_data = {22'd0, command_chunk_q, command_opcode_q};
-                    4'h6: read_mux_data = command_addr_q;
-                    4'h8: read_mux_data = command_data_q[0];
-                    4'h9: read_mux_data = command_data_q[1];
-                    4'ha: read_mux_data = command_data_q[2];
-                    4'hb: read_mux_data = command_data_q[3];
-                    4'hd: read_mux_data = {26'd0, loader_accepted_seen_q, loader_magic_ok_seen_q, loader_error_seen_q, loader_done_seen_q, boot_done_i, calib_complete_i};
-                    4'he: read_mux_data = {22'd0, loader_last_chunk_i, loader_last_opcode_i};
-                    4'hf: read_mux_data = loader_command_payload_addr_i;
-                    default: read_mux_data = 32'd0;
-                endcase
+                read_window_data[0 +: 32] = TASK6_PCIE_MAGIC;
+                read_window_data[32 +: 32] = TASK6_PCIE_VERSION;
+                read_window_data[64 +: 32] = {25'd0, boot_done_i, calib_complete_i, doorbell_error_q, loader_error_seen_q, loader_done_seen_q, event_active, rst_n};
+                read_window_data[96 +: 32] = accepted_count_q;
+                read_window_data[128 +: 32] = command_magic_q;
+                read_window_data[160 +: 32] = {22'd0, command_chunk_q, command_opcode_q};
+                read_window_data[192 +: 32] = command_addr_q;
+                read_window_data[256 +: 32] = command_data_q[0];
+                read_window_data[288 +: 32] = command_data_q[1];
+                read_window_data[320 +: 32] = command_data_q[2];
+                read_window_data[352 +: 32] = command_data_q[3];
+                read_window_data[416 +: 32] = {26'd0, loader_accepted_seen_q, loader_magic_ok_seen_q, loader_error_seen_q, loader_done_seen_q, boot_done_i, calib_complete_i};
+                read_window_data[448 +: 32] = {22'd0, loader_last_chunk_i, loader_last_opcode_i};
+                read_window_data[480 +: 32] = loader_command_payload_addr_i;
             end
             6'h01: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = loader_wait_cycles_i;
-                    4'h1: read_mux_data = loader_read_data_i[31:0];
-                    4'h2: read_mux_data = loader_read_data_i[63:32];
-                    4'h3: read_mux_data = loader_read_data_i[95:64];
-                    4'h4: read_mux_data = loader_read_data_i[127:96];
-                    4'h5: read_mux_data = ddr_debug1_i;
-                    4'h8: read_mux_data = {28'd0, top1_error_seen_q, top1_done_seen_q, top1_busy_i, rst_n};
-                    4'h9: read_mux_data = top1_start_count_q;
-                    4'ha: read_mux_data = top1_token_i;
-                    4'hb: read_mux_data = top1_score_q024_i;
-                    4'hc: read_mux_data = top1_rows_scanned_i;
-                    4'hd: read_mux_data = top1_cycle_count_i;
-                    default: read_mux_data = 32'd0;
-                endcase
+                read_window_data[0 +: 32] = loader_wait_cycles_i;
+                read_window_data[32 +: 32] = loader_read_data_i[31:0];
+                read_window_data[64 +: 32] = loader_read_data_i[63:32];
+                read_window_data[96 +: 32] = loader_read_data_i[95:64];
+                read_window_data[128 +: 32] = loader_read_data_i[127:96];
+                read_window_data[160 +: 32] = ddr_debug1_i;
+                read_window_data[256 +: 32] = {28'd0, top1_error_seen_q, top1_done_seen_q, top1_busy_i, rst_n};
+                read_window_data[288 +: 32] = top1_start_count_q;
+                read_window_data[320 +: 32] = top1_token_i;
+                read_window_data[352 +: 32] = top1_score_q024_i;
+                read_window_data[384 +: 32] = top1_rows_scanned_i;
+                read_window_data[416 +: 32] = top1_cycle_count_i;
             end
             6'h02: begin
-                read_mux_data = top1_hidden_vector_o[read_word_index_q[3:0] * 32 +: 32];
+                read_window_data = top1_hidden_vector_o;
             end
             6'h08: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = 32'h54364442;
-                    4'h1: read_mux_data = 32'd1;
-                    4'h2: read_mux_data = debug_rowstream_heartbeat_count_i;
-                    4'h3: read_mux_data = debug_rowstream_status_i;
-                    4'h4: read_mux_data = debug_rowstream_seen_i;
-                    4'h5: read_mux_data = ddr_debug1_i;
-                    4'h6: read_mux_data = loader_wait_cycles_i;
-                    4'h7: read_mux_data = top1_debug_status_i;
-                    4'h8: read_mux_data = top1_debug_reader_addr_i;
-                    4'h9: read_mux_data = top1_debug_wb_ack_count_i;
-                    4'ha: read_mux_data = top1_debug_wb_err_count_i;
-                    4'hb: read_mux_data = top1_debug_packet_wb_write_ack_count_i;
-                    4'hc: read_mux_data = top1_debug_packet_wb_read_ack_count_i;
-                    default: read_mux_data = 32'd0;
-                endcase
+                read_window_data[0 +: 32] = 32'h54364442;
+                read_window_data[32 +: 32] = 32'd1;
+                read_window_data[64 +: 32] = debug_rowstream_heartbeat_count_i;
+                read_window_data[96 +: 32] = debug_rowstream_status_i;
+                read_window_data[128 +: 32] = debug_rowstream_seen_i;
+                read_window_data[160 +: 32] = ddr_debug1_i;
+                read_window_data[192 +: 32] = loader_wait_cycles_i;
+                read_window_data[224 +: 32] = top1_debug_status_i;
+                read_window_data[256 +: 32] = top1_debug_reader_addr_i;
+                read_window_data[288 +: 32] = top1_debug_wb_ack_count_i;
+                read_window_data[320 +: 32] = top1_debug_wb_err_count_i;
+                read_window_data[352 +: 32] = top1_debug_packet_wb_write_ack_count_i;
+                read_window_data[384 +: 32] = top1_debug_packet_wb_read_ack_count_i;
             end
             6'h0c: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = 32'h54364d4c;
-                    4'h1: read_mux_data = 32'd1;
-                    4'h2: read_mux_data = {31'd0, mlp_selftest_present_i};
-                    4'h3: read_mux_data = mlp_selftest_status_i;
-                    4'h4: read_mux_data = mlp_selftest_cycle_count_i;
-                    4'h5: read_mux_data = mlp_selftest_fail_detail_i;
-                    4'h6: read_mux_data = mlp_selftest_fail_values_i;
-                    4'h7: read_mux_data = mlp_selftest_first_add_sample_i;
-                    4'h8: read_mux_data = mlp_selftest_first_requant_sample_i;
-                    4'h9: read_mux_data = 32'h54364d41;
-                    4'ha: read_mux_data = 32'd1;
-                    4'hb: read_mux_data = {31'd0, mlp_selftest_present_i};
-                    4'hc: read_mux_data = mlp_accel_status_i;
-                    4'hd: read_mux_data = mlp_accel_start_count_q;
-                    4'he: read_mux_data = mlp_accel_cycle_count_i;
-                    4'hf: read_mux_data = mlp_accel_output_checksum_i;
-                    default: read_mux_data = 32'd0;
-                endcase
+                read_window_data[0 +: 32] = 32'h54364d4c;
+                read_window_data[32 +: 32] = 32'd1;
+                read_window_data[64 +: 32] = {31'd0, mlp_selftest_present_i};
+                read_window_data[96 +: 32] = mlp_selftest_status_i;
+                read_window_data[128 +: 32] = mlp_selftest_cycle_count_i;
+                read_window_data[160 +: 32] = mlp_selftest_fail_detail_i;
+                read_window_data[192 +: 32] = mlp_selftest_fail_values_i;
+                read_window_data[224 +: 32] = mlp_selftest_first_add_sample_i;
+                read_window_data[256 +: 32] = mlp_selftest_first_requant_sample_i;
+                read_window_data[288 +: 32] = 32'h54364d41;
+                read_window_data[320 +: 32] = 32'd1;
+                read_window_data[352 +: 32] = {31'd0, mlp_selftest_present_i};
+                read_window_data[384 +: 32] = mlp_accel_status_i;
+                read_window_data[416 +: 32] = mlp_accel_start_count_q;
+                read_window_data[448 +: 32] = mlp_accel_cycle_count_i;
+                read_window_data[480 +: 32] = mlp_accel_output_checksum_i;
             end
             6'h0d: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = mlp_accel_activation_vector_o[0 +: 32];
-                    4'h1: read_mux_data = mlp_accel_activation_vector_o[32 +: 32];
-                    4'h2: read_mux_data = mlp_accel_activation_vector_o[64 +: 32];
-                    4'h3: read_mux_data = mlp_accel_activation_vector_o[96 +: 32];
-                    4'h4: read_mux_data = mlp_accel_activation_vector_o[128 +: 32];
-                    4'h5: read_mux_data = mlp_accel_activation_vector_o[160 +: 32];
-                    4'h6: read_mux_data = mlp_accel_activation_vector_o[192 +: 32];
-                    4'h7: read_mux_data = mlp_accel_activation_vector_o[224 +: 32];
-                    4'h8: read_mux_data = mlp_accel_activation_vector_o[256 +: 32];
-                    4'h9: read_mux_data = mlp_accel_activation_vector_o[288 +: 32];
-                    4'ha: read_mux_data = mlp_accel_activation_vector_o[320 +: 32];
-                    4'hb: read_mux_data = mlp_accel_activation_vector_o[352 +: 32];
-                    4'hc: read_mux_data = mlp_accel_activation_vector_o[384 +: 32];
-                    4'hd: read_mux_data = mlp_accel_activation_vector_o[416 +: 32];
-                    4'he: read_mux_data = mlp_accel_activation_vector_o[448 +: 32];
-                    4'hf: read_mux_data = mlp_accel_activation_vector_o[480 +: 32];
-                endcase
+                read_window_data = mlp_accel_activation_vector_o;
             end
             6'h0e: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = mlp_accel_residual_vector_o[0 +: 32];
-                    4'h1: read_mux_data = mlp_accel_residual_vector_o[32 +: 32];
-                    4'h2: read_mux_data = mlp_accel_residual_vector_o[64 +: 32];
-                    4'h3: read_mux_data = mlp_accel_residual_vector_o[96 +: 32];
-                    4'h4: read_mux_data = mlp_accel_residual_vector_o[128 +: 32];
-                    4'h5: read_mux_data = mlp_accel_residual_vector_o[160 +: 32];
-                    4'h6: read_mux_data = mlp_accel_residual_vector_o[192 +: 32];
-                    4'h7: read_mux_data = mlp_accel_residual_vector_o[224 +: 32];
-                    4'h8: read_mux_data = mlp_accel_residual_vector_o[256 +: 32];
-                    4'h9: read_mux_data = mlp_accel_residual_vector_o[288 +: 32];
-                    4'ha: read_mux_data = mlp_accel_residual_vector_o[320 +: 32];
-                    4'hb: read_mux_data = mlp_accel_residual_vector_o[352 +: 32];
-                    4'hc: read_mux_data = mlp_accel_residual_vector_o[384 +: 32];
-                    4'hd: read_mux_data = mlp_accel_residual_vector_o[416 +: 32];
-                    4'he: read_mux_data = mlp_accel_residual_vector_o[448 +: 32];
-                    4'hf: read_mux_data = mlp_accel_residual_vector_o[480 +: 32];
-                endcase
+                read_window_data = mlp_accel_residual_vector_o;
             end
             6'h0f: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = mlp_accel_output_sample0_i;
-                    4'h1: read_mux_data = mlp_accel_output_sample1_i;
-                    4'h2: read_mux_data = mlp_selftest_debug_select_o;
-                    4'h4: read_mux_data = mlp_selftest_requant_debug0_i;
-                    4'h5: read_mux_data = mlp_selftest_requant_debug1_i;
-                    default: read_mux_data = 32'd0;
-                endcase
+                read_window_data[0 +: 32] = mlp_accel_output_sample0_i;
+                read_window_data[32 +: 32] = mlp_accel_output_sample1_i;
+                read_window_data[64 +: 32] = mlp_selftest_debug_select_o;
+                read_window_data[128 +: 32] = mlp_selftest_requant_debug0_i;
+                read_window_data[160 +: 32] = mlp_selftest_requant_debug1_i;
             end
             6'h10: begin
-                read_mux_data =
-                    mlp_accel_output_vector_i[read_word_index_q[3:0] * 32 +: 32];
+                read_window_data = mlp_accel_output_vector_i;
             end
             6'h14: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = 32'h54364d32;
-                    4'h1: read_mux_data = 32'd1;
-                    4'h2: read_mux_data = 32'd1;
-                    4'h3: read_mux_data = m2_full_block_status_i;
-                    4'h4: read_mux_data = m2_full_block_start_count_q;
-                    4'h5: read_mux_data = m2_full_block_cycle_count_i;
-                    4'h6: read_mux_data = m2_full_block_output_checksum_i;
-                    4'h7: read_mux_data = m2_full_block_output_count_i;
-                    default: read_mux_data = 32'd0;
-                endcase
+                read_window_data[0 +: 32] = 32'h54364d32;
+                read_window_data[32 +: 32] = 32'd1;
+                read_window_data[64 +: 32] = 32'd1;
+                read_window_data[96 +: 32] = m2_full_block_status_i;
+                read_window_data[128 +: 32] = m2_full_block_start_count_q;
+                read_window_data[160 +: 32] = m2_full_block_cycle_count_i;
+                read_window_data[192 +: 32] = m2_full_block_output_checksum_i;
+                read_window_data[224 +: 32] = m2_full_block_output_count_i;
+            end
+            6'h15: begin
+                read_window_data = m2_full_block_input_vector_o;
+            end
+            6'h16: begin
+                read_window_data = m2_full_block_residual_vector_o;
             end
             6'h17: begin
-                case (read_word_index_q[3:0])
-                    4'h0: read_mux_data = m2_full_block_output_sample0_i;
-                    4'h1: read_mux_data = m2_full_block_output_sample1_i;
-                    4'h2: read_mux_data = m2_full_block_debug_i;
-                    default: read_mux_data = 32'd0;
-                endcase
+                read_window_data[0 +: 32] = m2_full_block_output_sample0_i;
+                read_window_data[32 +: 32] = m2_full_block_output_sample1_i;
+                read_window_data[64 +: 32] = m2_full_block_debug_i;
+                read_window_data[96 +: 32] = m2_full_block_debug1_i;
+                read_window_data[128 +: 32] = m2_full_block_debug2_i;
+                read_window_data[160 +: 32] = m2_full_block_provenance_i;
             end
             6'h18: begin
-                read_mux_data = m2_full_block_output_vector_i[read_word_index_q[3:0] * 32 +: 32];
+                read_window_data = m2_full_block_output_vector_i;
             end
-            default: read_mux_data = 32'd0;
+            default: read_window_data = 512'd0;
         endcase
     end
 
@@ -393,7 +352,11 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         last_wdata_q = 32'd0;
         last_wstrb_q = 4'd0;
         read_pending_q = 1'b0;
+        read_response_pending_q = 1'b0;
         read_word_index_q = 10'd0;
+        read_word_offset_q = 4'd0;
+        read_window_q = 512'd0;
+        read_window_data = 512'd0;
         for (i = 0; i < 4; i = i + 1)
             command_data_q[i] = 32'd0;
     end
@@ -663,17 +626,25 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             s_axi_rresp <= 2'b00;
             s_axi_rdata <= 32'd0;
             read_pending_q <= 1'b0;
+            read_response_pending_q <= 1'b0;
             read_word_index_q <= 10'd0;
+            read_word_offset_q <= 4'd0;
+            read_window_q <= 512'd0;
         end else begin
-            s_axi_arready <= !s_axi_rvalid && !read_pending_q;
-            if (!s_axi_rvalid && !read_pending_q && s_axi_arvalid) begin
+            s_axi_arready <= !s_axi_rvalid && !read_pending_q && !read_response_pending_q;
+            if (!s_axi_rvalid && !read_pending_q && !read_response_pending_q && s_axi_arvalid) begin
                 read_word_index_q <= read_word_index;
+                read_word_offset_q <= read_word_index[3:0];
                 read_pending_q <= 1'b1;
             end else if (read_pending_q) begin
-                s_axi_rdata <= read_mux_data;
+                read_window_q <= read_window_data;
+                read_response_pending_q <= 1'b1;
+                read_pending_q <= 1'b0;
+            end else if (read_response_pending_q) begin
+                s_axi_rdata <= read_window_q[read_word_offset_q * 32 +: 32];
                 s_axi_rvalid <= 1'b1;
                 s_axi_rresp <= 2'b00;
-                read_pending_q <= 1'b0;
+                read_response_pending_q <= 1'b0;
             end else if (s_axi_rvalid && s_axi_rready) begin
                 s_axi_rvalid <= 1'b0;
             end

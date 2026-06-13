@@ -95,9 +95,15 @@ module task6_pcie_rowstream_loader_ingress_tb;
   logic [31:0] m2_full_block_output_sample0;
   logic [31:0] m2_full_block_output_sample1;
   logic [31:0] m2_full_block_output_count;
+  logic [31:0] m2_full_block_debug;
+  logic [31:0] m2_full_block_debug1;
+  logic [31:0] m2_full_block_debug2;
+  logic [31:0] m2_full_block_provenance;
   logic [511:0] m2_full_block_output_vector;
   int mlp_accel_start_pulses;
   int mlp_accel_clear_pulses;
+  int m2_full_block_start_pulses;
+  int m2_full_block_clear_pulses;
   wire [31:0] loader_wait_cycles;
   wire [31:0] loader_command_payload_addr;
   wire [7:0] loader_last_opcode;
@@ -197,6 +203,10 @@ module task6_pcie_rowstream_loader_ingress_tb;
     .m2_full_block_output_sample0_i(m2_full_block_output_sample0),
     .m2_full_block_output_sample1_i(m2_full_block_output_sample1),
     .m2_full_block_output_count_i(m2_full_block_output_count),
+    .m2_full_block_debug_i(m2_full_block_debug),
+    .m2_full_block_debug1_i(m2_full_block_debug1),
+    .m2_full_block_debug2_i(m2_full_block_debug2),
+    .m2_full_block_provenance_i(m2_full_block_provenance),
     .m2_full_block_output_vector_i(m2_full_block_output_vector)
   );
 
@@ -245,6 +255,8 @@ module task6_pcie_rowstream_loader_ingress_tb;
       top1_clear_pulses <= 0;
       mlp_accel_start_pulses <= 0;
       mlp_accel_clear_pulses <= 0;
+      m2_full_block_start_pulses <= 0;
+      m2_full_block_clear_pulses <= 0;
     end else begin
       if (top1_start_pulse)
         top1_start_pulses <= top1_start_pulses + 1;
@@ -254,6 +266,10 @@ module task6_pcie_rowstream_loader_ingress_tb;
         mlp_accel_start_pulses <= mlp_accel_start_pulses + 1;
       if (mlp_accel_clear_pulse)
         mlp_accel_clear_pulses <= mlp_accel_clear_pulses + 1;
+      if (m2_full_block_start_pulse)
+        m2_full_block_start_pulses <= m2_full_block_start_pulses + 1;
+      if (m2_full_block_clear_pulse)
+        m2_full_block_clear_pulses <= m2_full_block_clear_pulses + 1;
     end
   end
 
@@ -420,6 +436,10 @@ module task6_pcie_rowstream_loader_ingress_tb;
     m2_full_block_output_sample0 = 32'd0;
     m2_full_block_output_sample1 = 32'd0;
     m2_full_block_output_count = 32'd0;
+    m2_full_block_debug = 32'd0;
+    m2_full_block_debug1 = 32'd0;
+    m2_full_block_debug2 = 32'd0;
+    m2_full_block_provenance = 32'd0;
     m2_full_block_output_vector = 512'd0;
     errors = 0;
 
@@ -557,6 +577,81 @@ module task6_pcie_rowstream_loader_ingress_tb;
     for (int word = 0; word < 16; word++) begin
       axil_read(32'h400 + word * 4, value);
       check(value == 32'hb000_3000 + word, "MLP accelerator output-vector word must be visible");
+    end
+
+    axil_read(32'h500, value);
+    check(value == 32'h54364d32, "M2 aperture magic must match T6M2");
+    axil_read(32'h504, value);
+    check(value == 32'd1, "M2 aperture version must be 1");
+    axil_read(32'h508, value);
+    check(value[0], "M2 present bit must be visible");
+    for (int word = 0; word < 16; word++) begin
+      axil_write(32'h540 + word * 4, 32'hc000_4000 + word);
+      axil_write(32'h580 + word * 4, 32'hd000_5000 + word);
+    end
+    check(m2_full_block_input_vector[0 +: 32] == 32'hc000_4000, "M2 input low word must update");
+    check(m2_full_block_input_vector[480 +: 32] == 32'hc000_400f, "M2 input high word must update");
+    check(m2_full_block_residual_vector[0 +: 32] == 32'hd000_5000, "M2 residual low word must update");
+    check(m2_full_block_residual_vector[480 +: 32] == 32'hd000_500f, "M2 residual high word must update");
+    axil_read(32'h540, value);
+    check(value == 32'hc000_4000, "M2 input low word must read back");
+    axil_read(32'h57c, value);
+    check(value == 32'hc000_400f, "M2 input high word must read back");
+    axil_read(32'h580, value);
+    check(value == 32'hd000_5000, "M2 residual low word must read back");
+    axil_read(32'h5bc, value);
+    check(value == 32'hd000_500f, "M2 residual high word must read back");
+    axil_write(32'h580, 32'hfe60_017b);
+    axil_write(32'h584, 32'hff45_f1da);
+    axil_read(32'h580, value);
+    check(value == 32'hfe60_017b, "M2 signed residual fixture word0 must read back exactly");
+    axil_read(32'h584, value);
+    check(value == 32'hff45_f1da, "M2 signed residual fixture word1 must read back exactly");
+    check(m2_full_block_residual_vector[0 +: 32] == 32'hfe60_017b, "M2 signed residual fixture word0 must update exactly");
+    check(m2_full_block_residual_vector[32 +: 32] == 32'hff45_f1da, "M2 signed residual fixture word1 must update exactly");
+    axil_write(32'h50c, 32'h2);
+    repeat (2) @(negedge clk);
+    check(m2_full_block_clear_pulses == 1, "M2 clear write must emit one clear pulse");
+    axil_write(32'h50c, 32'h1);
+    repeat (2) @(negedge clk);
+    check(m2_full_block_start_pulses == 1, "M2 start write must emit one start pulse");
+    m2_full_block_status = 32'h4d32_0059;
+    m2_full_block_cycle_count = 32'd74;
+    m2_full_block_output_checksum = 32'h0003_37f0;
+    m2_full_block_output_count = 32'd64;
+    m2_full_block_output_sample0 = 32'h06b6_dcea;
+    m2_full_block_output_sample1 = 32'hb904_b77f;
+    m2_full_block_debug = 32'h0104_dcfd;
+    m2_full_block_debug1 = 32'hff45_000c;
+    m2_full_block_debug2 = 32'hff39_f985;
+    m2_full_block_provenance = 32'h4d32_2005;
+    for (int word = 0; word < 16; word++)
+      m2_full_block_output_vector[word * 32 +: 32] = 32'he000_6000 + word;
+    axil_read(32'h50c, value);
+    check(value == 32'h4d32_0059, "M2 status must be visible");
+    axil_read(32'h510, value);
+    check(value == 32'd1, "M2 start counter must increment");
+    axil_read(32'h514, value);
+    check(value == 32'd74, "M2 cycle count must be visible");
+    axil_read(32'h518, value);
+    check(value == 32'h0003_37f0, "M2 checksum must be visible");
+    axil_read(32'h51c, value);
+    check(value == 32'd64, "M2 output count must be visible");
+    axil_read(32'h5c0, value);
+    check(value == 32'h06b6_dcea, "M2 sample0 must be visible");
+    axil_read(32'h5c4, value);
+    check(value == 32'hb904_b77f, "M2 sample1 must be visible");
+    axil_read(32'h5c8, value);
+    check(value == 32'h0104_dcfd, "M2 debug detail must be visible");
+    axil_read(32'h5cc, value);
+    check(value == 32'hff45_000c, "M2 debug1 detail must be visible");
+    axil_read(32'h5d0, value);
+    check(value == 32'hff39_f985, "M2 debug2 detail must be visible");
+    axil_read(32'h5d4, value);
+    check(value == 32'h4d32_2005, "M2 provenance must be visible");
+    for (int word = 0; word < 16; word++) begin
+      axil_read(32'h600 + word * 4, value);
+      check(value == 32'he000_6000 + word, "M2 output-vector word must be visible");
     end
     pcie_command(OP_WRITE_DENSE_BYTE, 2'd0, 32'd13, 8'ha5);
     check(mem[0][13 * 8 +: 8] == 8'ha5, "PCIe dense-byte write must land in DDR3 rowstream memory model");

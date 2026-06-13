@@ -246,6 +246,7 @@ module task6_ypcb_pcie_uberddr3_rowstream_loader_top #(
     .rowstream_m2_full_block_output_sample0_i(rowstream_m2_full_block_output_sample0),
     .rowstream_m2_full_block_output_sample1_i(rowstream_m2_full_block_output_sample1),
     .rowstream_m2_full_block_output_count_i(rowstream_m2_full_block_output_count),
+    .rowstream_m2_full_block_provenance_i(32'd0),
     .rowstream_m2_full_block_output_vector_i(rowstream_m2_full_block_output_vector)
   );
 

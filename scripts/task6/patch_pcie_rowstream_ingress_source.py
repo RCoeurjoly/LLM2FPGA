@@ -3,6 +3,12 @@ from pathlib import Path
 import sys
 
 
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    if old not in text:
+        raise SystemExit(f"{label} not found")
+    return text.replace(old, new, 1)
+
+
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit("usage: patch_pcie_rowstream_ingress_source.py <pcie_7x_top_aximm.v>")
@@ -25,6 +31,35 @@ def main() -> None:
 
     text = path.read_text()
     text = text.replace('parameter GT_DEVICE           = "GTP",', 'parameter GT_DEVICE           = "GTX",', 1)
+    text = replace_once(
+        text,
+        "  .pipe_mmcm_rst_n                            ( 1 ),",
+        "  .pipe_mmcm_rst_n                            ( sys_rst_n_c ),",
+        "PIPE MMCM reset connection",
+    )
+    text = replace_once(
+        text,
+        """  always @(posedge user_clk) begin
+    user_reset_q  <= user_reset;
+    user_lnk_up_q <= user_lnk_up;
+  end
+""",
+        """  reg [9:0] task6_pcie_bar_ready_cnt = 0;
+  wire task6_pcie_bar_base_ready = !user_reset_q && user_lnk_up_q && cfg_command[1];
+  wire task6_pcie_bar_ready = task6_pcie_bar_ready_cnt[9];
+
+  always @(posedge user_clk) begin
+    user_reset_q  <= user_reset;
+    user_lnk_up_q <= user_lnk_up;
+    if (!task6_pcie_bar_base_ready) begin
+      task6_pcie_bar_ready_cnt <= 0;
+    end else if (!task6_pcie_bar_ready) begin
+      task6_pcie_bar_ready_cnt <= task6_pcie_bar_ready_cnt + 1'b1;
+    end
+  end
+""",
+        "registered user reset/link block",
+    )
     text = text.replace(
         "  output      [3:0] led\n);",
         "  output      [3:0] led,\n"
@@ -48,6 +83,30 @@ def main() -> None:
         "  output        task6_s_axi_rready_o,\n"
         "  input  [1:0]  task6_s_axi_rresp_i\n);",
         1,
+    )
+    text = replace_once(
+        text,
+        "wire            m_al_rready;\naxis_pcie_to_al_us #(",
+        "wire            m_al_rready;\nwire            task6_pcie_bar_rx_tready;\nassign m_axis_rx_tready = task6_pcie_bar_ready && task6_pcie_bar_rx_tready;\naxis_pcie_to_al_us #(",
+        "BAR RX ready gate insertion",
+    )
+    text = replace_once(
+        text,
+        "\t.rst_n(!user_reset_q),\n\t.cfg_completer_id({ cfg_bus_number, cfg_device_number, cfg_function_number }),",
+        "\t.rst_n(task6_pcie_bar_ready),\n\t.cfg_completer_id({ cfg_bus_number, cfg_device_number, cfg_function_number }),",
+        "PCIe-to-AL reset gate",
+    )
+    text = replace_once(
+        text,
+        "\t.s_axis_rx_tready(m_axis_rx_tready),",
+        "\t.s_axis_rx_tready(task6_pcie_bar_rx_tready),",
+        "PCIe-to-AL RX ready output",
+    )
+    text = replace_once(
+        text,
+        "\t.rst_n(!user_reset_q),\n\t// AXI Lite Interface",
+        "\t.rst_n(task6_pcie_bar_ready),\n\t// AXI Lite Interface",
+        "AXI-to-AL reset gate",
     )
     old = """// Instantiate axil_minimum
 axil_minimum axil_minimum_inst (
@@ -74,7 +133,7 @@ axil_minimum axil_minimum_inst (
 );
 """
     new = """assign task6_user_clk_o = user_clk;
-assign task6_user_reset_o = user_reset_q;
+assign task6_user_reset_o = !task6_pcie_bar_ready;
 assign task6_s_axi_awaddr_o = s_axi_awaddr;
 assign task6_s_axi_awvalid_o = s_axi_awvalid;
 assign s_axi_awready = task6_s_axi_awready_i;

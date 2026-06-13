@@ -10,11 +10,15 @@ import tempfile
 
 from task6_pcie_m2_full_block_gate import (
     CONTRACT,
+    compute_path_for_expected,
+    contract_for_expected,
     decode_status,
     expected_provenance,
+    is_token_live_mode,
     parse_embedding_tb_data_sv,
     parse_expected_json,
     parse_expected_tb_data_sv,
+    select_host_vectors,
     validate_expected,
 )
 
@@ -124,14 +128,43 @@ def test_parse_embedding_tb_data_sv_token_input_vector() -> None:
     expected = parse_embedding_tb_data_sv(path)
     assert expected["token_ids"] == [7454, 2402, 257, 640, 612, 373]
     assert expected["provenance_mode"] == 0x3000
-    assert expected["fixture_context"] == bytes(64)
-    token_input = expected["fixture_block_input"]
+    assert expected["reserved_input"] == bytes(64)
+    token_input = expected["token_input"]
     assert isinstance(token_input, bytes)
     assert token_input[:12] == b"".join(
         token_id.to_bytes(2, "little")
         for token_id in [7454, 2402, 257, 640, 612, 373]
     )
     assert token_input[12:] == bytes(52)
+
+
+def test_token_live_host_vector_selection_rejects_raw_overrides() -> None:
+    expected = {
+        "token_input": bytes([1, 0, 2, 0, 3, 0]) + bytes(58),
+        "reserved_input": bytes(64),
+        "token_ids": [1, 2, 3, 4, 5, 6],
+        "provenance_mode": 0x3000,
+    }
+    block_input, residual, block_source, residual_source = select_host_vectors(
+        expected,
+        input_hex=None,
+        residual_hex=None,
+    )
+    assert block_input[:6] == bytes([1, 0, 2, 0, 3, 0])
+    assert residual == bytes(64)
+    assert block_source == "embedding_tb_data_sv token_ids"
+    assert residual_source == "embedding_tb_data_sv reserved token-control vector"
+
+    try:
+        select_host_vectors(
+            expected,
+            input_hex=bytes(64).hex(),
+            residual_hex=None,
+        )
+    except SystemExit as exc:
+        assert "does not allow --input-hex or --residual-hex" in str(exc)
+    else:
+        raise AssertionError("token-live mode accepted a raw input override")
 
 
 def test_validate_expected_rejects_missing_first_64_output() -> None:
@@ -159,6 +192,24 @@ def test_wrapper_contract_is_not_live_m2_evidence() -> None:
     assert CONTRACT["artifact_role"] == "pcie-bar-full-block-candidate-gate"
 
 
+def test_embedding_token_mode_contract_can_close_m2_after_board_pass() -> None:
+    expected = {"token_ids": [7454, 2402, 257, 640, 612, 373], "provenance_mode": 0x3000}
+    contract = contract_for_expected(expected)
+    assert is_token_live_mode(expected)
+    assert contract["stage"] == "M2-one-full-block"
+    assert contract["live_compute"] is True
+    assert "one complete TinyStories transformer block" in contract["notes"]
+    assert "fixture" not in json.dumps(contract).lower()
+    assert compute_path_for_expected(expected) == "live-full-block"
+
+
+def test_fixture_mode_contract_remains_candidate_only() -> None:
+    expected = {"token_index": 5, "provenance_mode": 0x2000}
+    assert not is_token_live_mode(expected)
+    assert contract_for_expected(expected) is CONTRACT
+    assert compute_path_for_expected(expected) == "fixture-full-block-wrapper"
+
+
 def test_expected_provenance_encodes_fixture_token_index() -> None:
     assert expected_provenance({"token_index": 5}) == 0x4D32_2005
     assert expected_provenance({"token_index": 0x105}) == 0x4D32_2005
@@ -172,8 +223,11 @@ def main() -> None:
     test_parse_expected_json_requires_first_64_output()
     test_parse_expected_tb_data_sv_first_token_final_vector()
     test_parse_embedding_tb_data_sv_token_input_vector()
+    test_token_live_host_vector_selection_rejects_raw_overrides()
     test_validate_expected_rejects_missing_first_64_output()
     test_wrapper_contract_is_not_live_m2_evidence()
+    test_embedding_token_mode_contract_can_close_m2_after_board_pass()
+    test_fixture_mode_contract_remains_candidate_only()
     test_expected_provenance_encodes_fixture_token_index()
 
 

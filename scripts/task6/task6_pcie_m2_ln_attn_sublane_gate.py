@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Task 6 PCIe-visible M2 live layernorm/attention sublane gate."""
+"""Task 6 PCIe M2 host-live LN / live-QKV / fixture-attention output gate."""
 
 from __future__ import annotations
 
@@ -41,6 +41,8 @@ REG_M2_RESIDUAL = 0x580
 REG_M2_OUTPUT_SAMPLE0 = 0x5C0
 REG_M2_OUTPUT_SAMPLE1 = 0x5C4
 REG_M2_DEBUG = 0x5C8
+REG_M2_DEBUG1 = 0x5CC
+REG_M2_DEBUG2 = 0x5D0
 REG_M2_OUTPUT_VECTOR = 0x600
 
 M2_READY_BIT = 0
@@ -65,24 +67,31 @@ STATUS_SCHEMA = {
 }
 
 CONTRACT = {
-    "version": "task6-m2-host-live-ln-fixture-attn-sublane-v1",
-    "stage": "M2-host-live-LN-fixture-attention-sublane",
+    "version": "task6-m2-host-live-ln-live-qkv-fixture-attn-output-sublane-v1",
+    "stage": "M2-host-live-LN-live-QKV-fixture-attention-output-sublane",
+    "milestone_target": "M2-one-full-block",
+    "live_compute": False,
+    "artifact_role": "pcie-bar-live-sublane-fixture-gate",
     "responsibilities": {
         "host": [
             "prompt-derived layernorm input vector supply",
             "PCIe lifecycle/recovery orchestration",
-            "BAR-visible result comparison",
+            "BAR-visible attention sublane result comparison",
         ],
         "fpga": [
             "host-started live layernorm arithmetic over 64 Q12 activations",
+            "live Q/K/V projection dot-product checks over the computed layernorm output",
             "fixture-based attention score/value accumulator checks against compiled TinyStories-1M block-0 constants",
-            "BAR-visible status/checksum/sample/full layernorm output exposure",
+            "BAR-visible status/checksum/sample/attention-sublane output exposure",
         ],
     },
     "notes": (
-        "This validates host-live layernorm plus static fixture attention checks "
-        "through the M2 BAR aperture. It is not live end-to-end attention and is "
-        "not yet the full M2 token/control block compute contract."
+        "This validates host-live layernorm, live Q/K/V projection dot products, "
+        "and static fixture attention checks through the M2 BAR aperture. The "
+        "BAR output is the checked attention-value sublane, not the intermediate "
+        "layernorm vector. It "
+        "is not live end-to-end attention and is not yet the full M2 "
+        "token/control block compute contract."
     ),
 }
 
@@ -147,20 +156,30 @@ def parse_tb_data(path: Path) -> dict[str, Any]:
 
     input_q12 = [values.get("ln_input_q12", {}).get(index) for index in range(64)]
     expected_i8 = [values.get("ln_expected_q", {}).get(index) for index in range(64)]
+    attn_value_q = [values.get("attn_expected_value_q", {}).get(index) for index in range(64)]
     if any(value is None for value in input_q12):
         raise SystemExit(f"{path} does not contain all 64 ln_input_q12 values")
     if any(value is None for value in expected_i8):
         raise SystemExit(f"{path} does not contain all 64 ln_expected_q values")
+    attn_value_present = [value for value in attn_value_q if value is not None]
+    if not attn_value_present:
+        raise SystemExit(f"{path} does not contain attn_expected_value_q values")
 
     block_input = b"".join(int(value).to_bytes(2, "little", signed=True) for value in input_q12[:32])
     residual = b"".join(int(value).to_bytes(2, "little", signed=True) for value in input_q12[32:])
-    output = bytes(int(value) & 0xFF for value in expected_i8)
+    output_values = [0 for _ in range(64)]
+    for index, value in enumerate(attn_value_q):
+        if value is not None:
+            output_values[index] = value
+    output = bytes(int(value) & 0xFF for value in output_values)
     checksum = sum(byte * (index + 1) for index, byte in enumerate(output)) & 0xFFFFFFFF
     sample0 = int.from_bytes(output[0:4], "little")
     sample1 = int.from_bytes(output[4:8], "little")
     return {
         "input_q12": input_q12,
-        "expected_i8": expected_i8,
+        "expected_i8": output_values,
+        "ln_expected_i8": expected_i8,
+        "attn_expected_value_i8": attn_value_present,
         "block_input": block_input,
         "residual": residual,
         "output": output,
@@ -192,7 +211,7 @@ def decode_status(status: int) -> dict[str, Any]:
     magic = (status >> M2_MAGIC_SHIFT) & 0xFFFF
     names = {
         0x0: "IDLE",
-        0x1: "CAPTURE",
+        0x1: "RUN_QKV_PROJ",
         0x2: "RUN_LN",
         0x3: "RUN_ATTN_SCORE",
         0x4: "RUN_ATTN_VALUE",
@@ -291,6 +310,8 @@ def main() -> int:
             wr32(mm, REG_M2_CONTROL_STATUS, 2)
             input_words = write_vector(mm, REG_M2_INPUT, block_input)
             residual_words = write_vector(mm, REG_M2_RESIDUAL, residual)
+            input_readback = read_vector(mm, REG_M2_INPUT)
+            residual_readback = read_vector(mm, REG_M2_RESIDUAL)
             wr32(mm, REG_M2_CONTROL_STATUS, 0)
             start_count_before = rd32(mm, REG_M2_START_COUNT)
             wr32(mm, REG_M2_CONTROL_STATUS, 1)
@@ -312,6 +333,8 @@ def main() -> int:
             sample0 = rd32(mm, REG_M2_OUTPUT_SAMPLE0)
             sample1 = rd32(mm, REG_M2_OUTPUT_SAMPLE1)
             debug = rd32(mm, REG_M2_DEBUG)
+            debug1 = rd32(mm, REG_M2_DEBUG1)
+            debug2 = rd32(mm, REG_M2_DEBUG2)
             output_vector = read_vector(mm, REG_M2_OUTPUT_VECTOR)
     finally:
         os.close(fd)
@@ -336,6 +359,22 @@ def main() -> int:
                 "field": "output_vector",
                 "observed_hex": output_vector.hex(),
                 "expected_hex": expected["output"].hex(),
+            }
+        )
+    if input_readback != block_input:
+        mismatches.append(
+            {
+                "field": "input_readback",
+                "observed_hex": input_readback.hex(),
+                "expected_hex": block_input.hex(),
+            }
+        )
+    if residual_readback != residual:
+        mismatches.append(
+            {
+                "field": "residual_readback",
+                "observed_hex": residual_readback.hex(),
+                "expected_hex": residual.hex(),
             }
         )
 
@@ -377,7 +416,11 @@ def main() -> int:
             "m2_output_sample0": f"0x{sample0:08x}",
             "m2_output_sample1": f"0x{sample1:08x}",
             "m2_debug": f"0x{debug:08x}",
+            "m2_debug1": f"0x{debug1:08x}",
+            "m2_debug2": f"0x{debug2:08x}",
             "m2_output_vector_hex": output_vector.hex(),
+            "m2_input_readback_hex": input_readback.hex(),
+            "m2_residual_readback_hex": residual_readback.hex(),
         },
         "expected": {
             "checksum": f"0x{expected['checksum']:08x}",
