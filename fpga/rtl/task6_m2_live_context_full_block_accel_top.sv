@@ -86,7 +86,9 @@ module task6_m2_live_context_full_block_accel_top (
   logic [511:0] mlp_final_vector_w;
   logic [31:0] mlp_debug_w;
 
-  task6_m2_ln_attn_live_kv_all_heads_context_accel_top context_i (
+  task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
+    .ENABLE_INTERNAL_CHECKS(1'b1)
+  ) context_i (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(context_start_q),
