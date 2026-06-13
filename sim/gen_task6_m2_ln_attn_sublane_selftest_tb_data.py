@@ -65,6 +65,10 @@ def sv_i16(value: int) -> str:
     return f"-16'sd{abs(value)}" if value < 0 else f"16'sd{value}"
 
 
+def sv_u16(value: int) -> str:
+    return f"16'd{value}"
+
+
 def sv_i32(value: int) -> str:
     return f"-32'sd{abs(value)}" if value < 0 else f"32'sd{value}"
 
@@ -164,6 +168,79 @@ def attention_fixture(
     }
 
 
+def projection_fixture(
+    activation_q: list[int],
+    activation_scale: float,
+    output_scale: float,
+    weight_base: Path,
+    weights: dict,
+    name: str,
+    head_index: int,
+    head_dim: int,
+) -> dict:
+    weight_q, row_scales, out_features, in_features, _tensor = attention.projection_weights(
+        weight_base,
+        weights,
+        name,
+    )
+    if len(activation_q) != in_features:
+        raise SystemExit(f"{name} projection activation length {len(activation_q)} != in_features {in_features}")
+    base = head_index * head_dim
+    if base + head_dim > out_features:
+        raise SystemExit(f"{name} projection head {head_index} exceeds out_features {out_features}")
+    rows: list[list[int]] = []
+    accs: list[int] = []
+    output_mul_q20: list[int] = []
+    output_q: list[int] = []
+    for out_index in range(base, base + head_dim):
+        offset = out_index * in_features
+        row = weight_q[offset : offset + in_features]
+        acc = sum(activation_q[index] * row[index] for index in range(in_features))
+        mul_q20 = round((activation_scale * row_scales[out_index] / output_scale) * Q20)
+        rows.append(row)
+        accs.append(acc)
+        output_mul_q20.append(mul_q20)
+        output_q.append(clamp_i8(round_shift_signed(acc * mul_q20, 20)))
+    return {
+        "weight_q": rows,
+        "expected_acc": accs,
+        "output_mul_q20": output_mul_q20,
+        "expected_q": output_q,
+        "head_dim": head_dim,
+        "in_features": in_features,
+    }
+
+
+def rtl_attention_expectations(attn: dict, projections: dict[str, dict]) -> dict:
+    seq_len = int(attn["seq_len"])
+    head_dim = int(attn["head_dim"])
+    current_src = seq_len - 1
+    live_q = projections["q"]["expected_q"]
+    live_k = projections["k"]["expected_q"]
+    live_v = projections["v"]["expected_q"]
+
+    score_acc = []
+    for src in range(seq_len):
+        key = live_k if src == current_src else attn["k_q"][src]
+        score_acc.append(sum(live_q[dim] * key[dim] for dim in range(head_dim)))
+
+    value_acc = []
+    value_q = []
+    for dim in range(head_dim):
+        acc = 0
+        for src in range(seq_len):
+            value = live_v[dim] if src == current_src else attn["v_q"][src][dim]
+            acc += attn["prob_q"][src] * value
+        value_acc.append(acc)
+        value_q.append(clamp_i8(round_shift_signed(acc, 15)))
+
+    return {
+        "score_acc": score_acc,
+        "value_acc": value_acc,
+        "value_q": value_q,
+    }
+
+
 def main() -> None:
     args = parse_args()
     contract = attention.load_json(args.contract_manifest)
@@ -202,6 +279,20 @@ def main() -> None:
         args.head_index,
         args.num_heads,
     )
+    projections = {
+        name: projection_fixture(
+            ln["actual_q"],
+            ln["output_scale"],
+            attn[f"{name}_scale"],
+            weight_base,
+            weights,
+            name,
+            args.head_index,
+            attn["head_dim"],
+        )
+        for name in ("q", "k", "v")
+    }
+    rtl_attn = rtl_attention_expectations(attn, projections)
 
     lines = [
         "localparam int LN_DIM = 64;",
@@ -213,10 +304,22 @@ def main() -> None:
         "logic signed [31:0] ln_gamma_q16 [0:LN_DIM-1];",
         "logic signed [15:0] ln_beta_q12 [0:LN_DIM-1];",
         "logic signed [7:0] ln_expected_q [0:LN_DIM-1];",
+        "logic signed [7:0] q_proj_weight_q [0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
+        "logic signed [7:0] k_proj_weight_q [0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
+        "logic signed [7:0] v_proj_weight_q [0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
+        "logic signed [31:0] q_proj_expected_acc [0:ATTN_HEAD_DIM-1];",
+        "logic signed [31:0] k_proj_expected_acc [0:ATTN_HEAD_DIM-1];",
+        "logic signed [31:0] v_proj_expected_acc [0:ATTN_HEAD_DIM-1];",
+        "logic signed [31:0] q_proj_output_mul_q20 [0:ATTN_HEAD_DIM-1];",
+        "logic signed [31:0] k_proj_output_mul_q20 [0:ATTN_HEAD_DIM-1];",
+        "logic signed [31:0] v_proj_output_mul_q20 [0:ATTN_HEAD_DIM-1];",
+        "logic signed [7:0] q_proj_expected_q [0:ATTN_HEAD_DIM-1];",
+        "logic signed [7:0] k_proj_expected_q [0:ATTN_HEAD_DIM-1];",
+        "logic signed [7:0] v_proj_expected_q [0:ATTN_HEAD_DIM-1];",
         "logic signed [7:0] attn_q_q [0:ATTN_HEAD_DIM-1];",
         "logic signed [7:0] attn_k_q [0:ATTN_SEQ-1][0:ATTN_HEAD_DIM-1];",
         "logic signed [7:0] attn_v_q [0:ATTN_SEQ-1][0:ATTN_HEAD_DIM-1];",
-        "logic signed [15:0] attn_prob_q15 [0:ATTN_SEQ-1];",
+        "logic [15:0] attn_prob_q15 [0:ATTN_SEQ-1];",
         "logic signed [31:0] attn_expected_score_acc [0:ATTN_SEQ-1];",
         "logic signed [31:0] attn_expected_value_acc [0:ATTN_HEAD_DIM-1];",
         "logic signed [7:0] attn_expected_value_q [0:ATTN_HEAD_DIM-1];",
@@ -230,6 +333,17 @@ def main() -> None:
         lines.append(f"  ln_beta_q12[{index}] = {sv_i16(value)};")
     for index, value in enumerate(ln["actual_q"]):
         lines.append(f"  ln_expected_q[{index}] = {sv_i8(value)};")
+    for proj_name in ("q", "k", "v"):
+        proj = projections[proj_name]
+        for out_index, row in enumerate(proj["weight_q"]):
+            for in_index, value in enumerate(row):
+                lines.append(f"  {proj_name}_proj_weight_q[{out_index}][{in_index}] = {sv_i8(value)};")
+        for out_index, value in enumerate(proj["expected_acc"]):
+            lines.append(f"  {proj_name}_proj_expected_acc[{out_index}] = {sv_i32(value)};")
+        for out_index, value in enumerate(proj["output_mul_q20"]):
+            lines.append(f"  {proj_name}_proj_output_mul_q20[{out_index}] = {sv_i32(value)};")
+        for out_index, value in enumerate(proj["expected_q"]):
+            lines.append(f"  {proj_name}_proj_expected_q[{out_index}] = {sv_i8(value)};")
     for dim, value in enumerate(attn["q_q"]):
         lines.append(f"  attn_q_q[{dim}] = {sv_i8(value)};")
     for src, row in enumerate(attn["k_q"]):
@@ -239,12 +353,12 @@ def main() -> None:
         for dim, value in enumerate(row):
             lines.append(f"  attn_v_q[{src}][{dim}] = {sv_i8(value)};")
     for src, value in enumerate(attn["prob_q"]):
-        lines.append(f"  attn_prob_q15[{src}] = {sv_i16(value)};")
-    for src, value in enumerate(attn["score_acc"]):
+        lines.append(f"  attn_prob_q15[{src}] = {sv_u16(value)};")
+    for src, value in enumerate(rtl_attn["score_acc"]):
         lines.append(f"  attn_expected_score_acc[{src}] = {sv_i32(value)};")
-    for dim, value in enumerate(attn["value_acc"]):
+    for dim, value in enumerate(rtl_attn["value_acc"]):
         lines.append(f"  attn_expected_value_acc[{dim}] = {sv_i32(value)};")
-    for dim, value in enumerate(attn["value_q"]):
+    for dim, value in enumerate(rtl_attn["value_q"]):
         lines.append(f"  attn_expected_value_q[{dim}] = {sv_i8(value)};")
     lines.append("end")
 
@@ -265,11 +379,24 @@ def main() -> None:
         "attention": {
             "seq_len": attn["seq_len"],
             "head_dim": attn["head_dim"],
+            "q_projection_acc_min": min(projections["q"]["expected_acc"]),
+            "q_projection_acc_max": max(projections["q"]["expected_acc"]),
+            "q_projection_q_min": min(projections["q"]["expected_q"]),
+            "q_projection_q_max": max(projections["q"]["expected_q"]),
+            "k_projection_acc_min": min(projections["k"]["expected_acc"]),
+            "k_projection_acc_max": max(projections["k"]["expected_acc"]),
+            "k_projection_q_min": min(projections["k"]["expected_q"]),
+            "k_projection_q_max": max(projections["k"]["expected_q"]),
+            "v_projection_acc_min": min(projections["v"]["expected_acc"]),
+            "v_projection_acc_max": max(projections["v"]["expected_acc"]),
+            "v_projection_q_min": min(projections["v"]["expected_q"]),
+            "v_projection_q_max": max(projections["v"]["expected_q"]),
             "q_scale": attn["q_scale"],
             "k_scale": attn["k_scale"],
             "v_scale": attn["v_scale"],
-            "score_acc_min": min(attn["score_acc"]),
-            "score_acc_max": max(attn["score_acc"]),
+            "score_acc_min": min(rtl_attn["score_acc"]),
+            "score_acc_max": max(rtl_attn["score_acc"]),
+            "expectation_path": "rtl-mixed-live-q-current-kv",
         },
     }
     args.out_json.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")

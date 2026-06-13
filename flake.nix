@@ -322,7 +322,8 @@ EOF
             cat > run.ys <<EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
-            read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS \
+            read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS -I${task6M2FirstTokenFullBlockTbDataSv} \
+              -I${task6M2LnAttnSublaneSelftestTbDataSv} \
               ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/xilinx_pcie_mmcm.v \
               ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axil_to_al.v \
               ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axis_pcie_to_al_us.v \
@@ -355,6 +356,9 @@ EOF
             read_verilog -lib +/xilinx/cells_sim.v
             read_verilog -lib +/xilinx/cells_xtra.v
             read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
               ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/xilinx_pcie_mmcm.v \
               ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axil_to_al.v \
               ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axis_pcie_to_al_us.v \
@@ -379,7 +383,16 @@ EOF
               ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
               ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
               ${task6Int8L2MlpChainResidualAddAccelTop} \
+              ${task6M2LnAttnSublaneAccelTop} \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_pcie_accel_top.sv} \
               ${./fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv}
+            chparam -set ENABLE_MLP_ACCEL 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
             hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
             synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
             stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top
@@ -4505,6 +4518,159 @@ EOF
 
         task6TinyStories1mPromptOutputHeadQ024Reference = pkgs.runCommand "task6-tinystories-1m-prompt-output-head-q024-reference" { } "mkdir -p \"$out\"; ${pythonWithTinyStoriesBin}/bin/python ${./scripts/task6/task6_tinystories_generation_reference.py} --model-path ${tinyStories1m.snapshot} --adapter-path ${./TinyStories/model_adapter.py} --tokenizer-vocab ${gptNeoTokenizer}/vocab.json --tokenizer-merges ${gptNeoTokenizer}/merges.txt --prompt \"Once upon a time there was\" --max-new-tokens 8 --out-json \"$out/reference.json\"";
 
+        task6M3ReferenceManifest =
+          pkgs.runCommand "task6-m3-reference-manifest" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/task6_m3_reference_manifest.py
+            } \
+              --reference-json ${task6TinyStories1mPromptOutputHeadQ024Reference}/reference.json \
+              --model-label TinyStories-1M \
+              --out-json "$out/m3-reference-manifest.json"
+          '';
+
+        task6M3YpcbInferenceGateRunbook =
+          pkgs.runCommand "task6-m3-ypcb-inference-gate-runbook" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            cat > "$out/README.md" <<EOF
+            # Task 6 M3 YPCB inference gate runbook
+
+            This artifact pins the reference manifest, TinyStories-1M model,
+            tokenizer, adapter, and baseline DDR3 bitstream for a future
+            YPCB full-inference gate attempt. It does not run hardware.
+
+            Run only after the board has cleanly enumerated and the required
+            M2 live full-block BAR milestone is accepted. The generated command
+            requires --m2-artifact <accepted-m2-json>, audits it as M2, emits
+            the normal YPCB inference gate summary, and also writes an M3 audit
+            artifact through --m3-reference-manifest.
+            EOF
+            cat > "$out/command.sh" <<EOF
+            #!/usr/bin/env bash
+            set -euo pipefail
+            ROOT="\''${TASK6_REPO_ROOT:-/home/roland/LLM2FPGA}"
+            RUN_ROOT="\''${1:-artifacts/task6/runs/task6-m3-ypcb-inference-gate-manual}"
+            shift || true
+            M2_ARTIFACT=""
+            EXTRA_ARGS=()
+            while [[ "\''$#" -gt 0 ]]; do
+              case "\''$1" in
+                --m2-artifact)
+                  if [[ "\''$#" -lt 2 ]]; then
+                    echo "error: --m2-artifact requires a path" >&2
+                    exit 2
+                  fi
+                  M2_ARTIFACT="\''$2"
+                  shift 2
+                  ;;
+                *)
+                  EXTRA_ARGS+=("\''$1")
+                  shift
+                  ;;
+              esac
+            done
+            if [[ "\''${TASK6_PCIE_HARDWARE_ENABLE:-0}" != "1" ]]; then
+              cat >&2 <<'EOM'
+            error: hardware access is disabled.
+            Re-run only after explicit board readiness with:
+              TASK6_PCIE_HARDWARE_ENABLE=1 <this command>
+            EOM
+              exit 2
+            fi
+            if [[ -z "\''$M2_ARTIFACT" ]]; then
+              cat >&2 <<'EOM'
+            error: refusing M3 run without --m2-artifact <accepted-m2-json>.
+            M3 depends on a board-accepted live M2 one-full-block artifact.
+            EOM
+              exit 2
+            fi
+            ${pkgs.python3}/bin/python3 "\''$ROOT/scripts/task6/task6_milestone_evidence_audit.py" M2 "\''$M2_ARTIFACT" >/dev/null
+            exec "\''$ROOT/scripts/task6/task6_ypcb_tinystories_inference_gate.py" \
+              --byte-lanes 1 \
+              --bitstream "\''$ROOT/artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit" \
+              --model-path ${tinyStories1m.snapshot} \
+              --adapter-path ${./TinyStories/model_adapter_representative_core.py} \
+              --run-root "\''$RUN_ROOT" \
+              --storage-mode lowbyte \
+              --sample-count 8 \
+              --m3-reference-manifest ${task6M3ReferenceManifest}/m3-reference-manifest.json \
+              "\''${EXTRA_ARGS[@]}"
+            EOF
+            chmod +x "$out/command.sh"
+            cat > "$out/summary.json" <<EOF
+            {
+              "artifact_name": "task6-m3-ypcb-inference-gate-runbook",
+              "status": "READY",
+              "runs_hardware": false,
+              "command_requires_hardware_enable": true,
+              "command_requires_m2_artifact": true,
+              "milestone_target": "M3-full-tinystories-1m",
+              "scope": "ypcb-ddr3-inference-gate-with-m3-artifact-emission",
+              "closes_m3": false,
+              "requires_m2_accepted": true,
+              "bitstream": "/home/roland/LLM2FPGA/artifacts/task6/uberddr3-baseline-flow/seed16-vainilla-2026-05-20/ypcb-00338-1p1-ddr3-bist-1lane-full-openxc7.bit",
+              "model_path": "${tinyStories1m.snapshot}",
+              "adapter_path": "${./TinyStories/model_adapter_representative_core.py}",
+              "m3_reference_manifest": "${task6M3ReferenceManifest}/m3-reference-manifest.json",
+              "gate_script": "${./scripts/task6/task6_ypcb_tinystories_inference_gate.py}"
+            }
+            EOF
+          '';
+
+        task6M3YpcbInferenceGateRunbookUnitTests =
+          pkgs.runCommand "task6-m3-ypcb-inference-gate-runbook-unit-tests" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+
+            runbook=${task6M3YpcbInferenceGateRunbook}/command.sh
+            repo_root=${./.}
+            invalid_m2=${task6M3ReferenceManifest}/m3-reference-manifest.json
+
+            set +e
+            TASK6_REPO_ROOT="$repo_root" ${pkgs.bash}/bin/bash "$runbook" "$TMPDIR/no-hardware" >"$TMPDIR/no-hardware.stdout" 2>"$TMPDIR/no-hardware.stderr"
+            no_hardware_rc=$?
+            set -e
+            if [[ "$no_hardware_rc" -ne 2 ]]; then
+              echo "expected hardware-disabled command to exit 2, got $no_hardware_rc" >&2
+              cat "$TMPDIR/no-hardware.stderr" >&2
+              exit 1
+            fi
+            if ! grep -q "hardware access is disabled" "$TMPDIR/no-hardware.stderr"; then
+              echo "hardware-disabled stderr did not include expected guard text" >&2
+              cat "$TMPDIR/no-hardware.stderr" >&2
+              exit 1
+            fi
+
+            set +e
+            TASK6_REPO_ROOT="$repo_root" TASK6_PCIE_HARDWARE_ENABLE=1 \
+              ${pkgs.bash}/bin/bash "$runbook" "$TMPDIR/invalid-m2" --m2-artifact "$invalid_m2" >"$TMPDIR/invalid-m2.stdout" 2>"$TMPDIR/invalid-m2.stderr"
+            invalid_m2_rc=$?
+            set -e
+            if [[ "$invalid_m2_rc" -ne 1 ]]; then
+              echo "expected invalid M2 artifact command to exit 1, got $invalid_m2_rc" >&2
+              cat "$TMPDIR/invalid-m2.stderr" >&2
+              exit 1
+            fi
+            if [[ -e "$TMPDIR/invalid-m2/gate-summary.json" ]]; then
+              echo "M3 gate output exists even though M2 precondition failed" >&2
+              exit 1
+            fi
+
+            cat > "$out/result.json" <<EOF
+            {
+              "artifact_name": "task6-m3-ypcb-inference-gate-runbook-unit-tests",
+              "status": "PASS",
+              "hardware_touched": false,
+              "checks": [
+                "hardware-enable guard exits before board access",
+                "invalid M2 artifact exits before M3 gate launch"
+              ],
+              "runbook": "${task6M3YpcbInferenceGateRunbook}"
+            }
+            EOF
+          '';
+
         task6TinyStories1mModelManifest =
           pkgs.runCommand "task6-tinystories-1m-model-manifest" { } ''
             mkdir -p "$out"
@@ -4621,6 +4787,131 @@ EOF
               --out-json "$out/summary.json"
           '';
 
+        task6M2FirstTokenAttentionOutProjection =
+          pkgs.runCommand "task6-m2-first-token-attention-out-projection" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/export_m2_first_token_attention_out_projection.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2FirstTokenMlpReplay =
+          pkgs.runCommand "task6-m2-first-token-mlp-replay" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}:${./sim}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/export_m2_first_token_mlp_replay.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --attention-boundary-json ${task6M2FirstTokenAttentionOutProjection}/summary.json \
+              --post-gelu-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json
+              } \
+              --c-proj-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LastTokenAttentionOutProjection =
+          pkgs.runCommand "task6-m2-last-token-attention-out-projection" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/export_m2_first_token_attention_out_projection.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --token-index 5 \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LastTokenMlpReplay =
+          pkgs.runCommand "task6-m2-last-token-mlp-replay" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}:${./sim}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/export_m2_first_token_mlp_replay.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --attention-boundary-json ${task6M2LastTokenAttentionOutProjection}/summary.json \
+              --post-gelu-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json
+              } \
+              --c-proj-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --token-index 5 \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LastTokenLiveKvContextAttentionOutProjection =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-attention-out-projection" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}:${./sim}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/export_m2_first_token_attention_out_projection.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --token-index 5 \
+              --context-source live-kv-cache \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LastTokenLiveKvContextMlpReplay =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-mlp-replay" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}:${./sim}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/export_m2_first_token_mlp_replay.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --attention-boundary-json ${task6M2LastTokenLiveKvContextAttentionOutProjection}/summary.json \
+              --post-gelu-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-c-fc-post-gelu-pwl-requant-rtl-proof.json
+              } \
+              --c-proj-proof-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-c-proj-requant-rtl-proof.json
+              } \
+              --token-index 5 \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2FirstTokenFullBlockTbDataSv =
+          pkgs.runCommand "task6-m2-first-token-full-block-tb-data-sv" { } ''
+            mkdir -p "$out"
+            cat ${task6M2FirstTokenAttentionOutProjection}/tb_data.sv \
+              ${task6M2FirstTokenMlpReplay}/tb_data.sv > "$out/tb_data.sv"
+          '';
+
+        task6M2LastTokenFullBlockTbDataSv =
+          pkgs.runCommand "task6-m2-last-token-full-block-tb-data-sv" { } ''
+            mkdir -p "$out"
+            cat ${task6M2LastTokenAttentionOutProjection}/tb_data.sv \
+              ${task6M2LastTokenMlpReplay}/tb_data.sv > "$out/tb_data.sv"
+          '';
+
+        task6M2LastTokenLiveKvContextFullBlockTbDataSv =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-tb-data-sv" { } ''
+            mkdir -p "$out"
+            cat ${task6M2LastTokenLiveKvContextAttentionOutProjection}/tb_data.sv \
+              ${task6M2LastTokenLiveKvContextMlpReplay}/tb_data.sv > "$out/tb_data.sv"
+          '';
+
         task6M2FullBlockReplaySelftestTbDataSv =
           pkgs.runCommand "task6-m2-full-block-replay-selftest-tb-data-sv" { } ''
             mkdir -p "$out"
@@ -4661,6 +4952,126 @@ EOF
               --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
               --out-sv "$out/tb_data.sv" \
               --out-json "$out/summary.json"
+          '';
+
+        task6M2LnAttnSublaneFirstTokenTbDataSv =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-first-token-tb-data-sv" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_ln_attn_sublane_selftest_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --token-index 0 \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LnAttnSublaneFirstTokenHead15TbDataSv =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-first-token-head15-tb-data-sv" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_ln_attn_sublane_selftest_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --token-index 0 \
+              --head-index 15 \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LnAttnFullHiddenFirstTokenTbDataSv =
+          pkgs.runCommand "task6-m2-ln-attn-full-hidden-first-token-tb-data-sv" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_ln_attn_sublane_selftest_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --token-index 0 \
+              --num-heads 1 \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LnAttnFullHiddenLastTokenTbDataSv =
+          pkgs.runCommand "task6-m2-ln-attn-full-hidden-last-token-tb-data-sv" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_ln_attn_sublane_selftest_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --num-heads 1 \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LnAttnLiveKvCacheTbDataSv =
+          pkgs.runCommand "task6-m2-ln-attn-live-kv-cache-tb-data-sv" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}:${./sim}
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_ln_attn_live_kv_cache_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --num-heads 1 \
+              --out-sv "$out/tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LnAttnLiveKvAllHeadsContextTbDataSv =
+          pkgs.runCommand "task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv" { } ''
+            mkdir -p "$out"
+            export PYTHONPATH=${./scripts/task6}:${./sim}
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_ln_attn_live_kv_all_heads_context_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --num-heads 16 \
+              --out-sv "$out/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2TokenBlockInputTbDataSv =
+          pkgs.runCommand "task6-m2-token-block-input-tb-data-sv" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_token_block_input_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --full-block-tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv \
+              --context-tb-data-sv ${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv \
+              --out-sv "$out/task6_m2_token_block_input_tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2EmbeddingBlockInputTbDataSv =
+          pkgs.runCommand "task6-m2-embedding-block-input-tb-data-sv" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python3 ${
+              ./sim/gen_task6_m2_embedding_block_input_tb_data.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+              --full-block-tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv \
+              --context-tb-data-sv ${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv \
+              --out-sv "$out/task6_m2_embedding_block_input_tb_data.sv" \
+              --out-json "$out/summary.json"
+          '';
+
+        task6M2LnAttnSublaneAccelTop =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-accel-top.sv" { } ''
+            sed 's|"tb_data.sv"|"${task6M2LnAttnSublaneSelftestTbDataSv}/tb_data.sv"|g' \
+              ${./fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv} \
+              > "$out"
           '';
 
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestTop =
@@ -9313,6 +9724,338 @@ EOF
               ${./sim/task6_m2_ln_attn_sublane_accel_tb_main.sv}
           '';
 
+        task6M2LnAttnSublaneFirstTokenAccelSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-first-token-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnSublaneFirstTokenTbDataSv} \
+              -top task6_m2_ln_attn_sublane_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv} \
+              ${./sim/task6_m2_ln_attn_sublane_accel_tb_main.sv}
+          '';
+
+        task6M2LnAttnSublaneFirstTokenHead15AccelSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-first-token-head15-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnSublaneFirstTokenHead15TbDataSv} \
+              -top task6_m2_ln_attn_sublane_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv} \
+              ${./sim/task6_m2_ln_attn_sublane_accel_tb_main.sv}
+          '';
+
+        task6M2LnAttnFullHiddenFirstTokenAccelSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-full-hidden-first-token-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnFullHiddenFirstTokenTbDataSv} \
+              -top task6_m2_ln_attn_sublane_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv} \
+              ${./sim/task6_m2_ln_attn_sublane_accel_tb_main.sv}
+          '';
+
+        task6M2LnAttnFullHiddenLastTokenAccelSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-full-hidden-last-token-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnFullHiddenLastTokenTbDataSv} \
+              -top task6_m2_ln_attn_sublane_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv} \
+              ${./sim/task6_m2_ln_attn_sublane_accel_tb_main.sv}
+          '';
+
+        task6M2LnAttnExternalKvLastTokenAccelSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-external-kv-last-token-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnFullHiddenLastTokenTbDataSv} \
+              -top task6_m2_ln_attn_sublane_external_kv_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_sublane_accel_top.sv} \
+              ${./sim/task6_m2_ln_attn_sublane_external_kv_accel_tb_main.sv}
+          '';
+
+        task6M2LnAttnLiveKvCacheAccelSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-live-kv-cache-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnLiveKvCacheTbDataSv} \
+              -top task6_m2_ln_attn_live_kv_cache_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_cache_accel_top.sv} \
+              ${./sim/task6_m2_ln_attn_live_kv_cache_accel_tb_main.sv}
+          '';
+
+        task6M2LnAttnLiveKvAllHeadsContextAccelSimMain =
+          pkgs.runCommand "task6-m2-ln-attn-live-kv-all-heads-context-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -top task6_m2_ln_attn_live_kv_all_heads_context_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./sim/task6_m2_ln_attn_live_kv_all_heads_context_accel_tb_main.sv}
+          '';
+
+        task6M2FirstTokenAttentionOutProjAccelSimMain =
+          pkgs.runCommand "task6-m2-first-token-attention-out-proj-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2FirstTokenAttentionOutProjection} \
+              -top task6_m2_first_token_attention_out_proj_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./sim/task6_m2_first_token_attention_out_proj_accel_tb_main.sv}
+          '';
+
+        task6M2LastTokenLiveKvContextAttentionOutProjAccelSimMain =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-attention-out-proj-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenLiveKvContextAttentionOutProjection} \
+              -top task6_m2_first_token_attention_out_proj_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./sim/task6_m2_first_token_attention_out_proj_accel_tb_main.sv}
+          '';
+
+        task6M2FirstTokenMlpCProjResidualAccelSimMain =
+          pkgs.runCommand "task6-m2-first-token-mlp-c-proj-residual-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2FirstTokenMlpReplay} \
+              -top task6_m2_first_token_mlp_c_proj_residual_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_mlp_c_proj_residual_accel_top.sv} \
+              ${./sim/task6_m2_first_token_mlp_c_proj_residual_accel_tb_main.sv}
+          '';
+
+        task6M2FirstTokenMlpCFcGeluAccelSimMain =
+          pkgs.runCommand "task6-m2-first-token-mlp-c-fc-gelu-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2FirstTokenMlpReplay} \
+              -top task6_m2_first_token_mlp_c_fc_gelu_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_mlp_c_fc_gelu_accel_top.sv} \
+              ${./sim/task6_m2_first_token_mlp_c_fc_gelu_accel_tb_main.sv}
+          '';
+
+        task6M2FirstTokenMlpIntegratedAccelSimMain =
+          pkgs.runCommand "task6-m2-first-token-mlp-integrated-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2FirstTokenMlpReplay} \
+              -top task6_m2_first_token_mlp_integrated_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./sim/task6_m2_first_token_mlp_integrated_accel_tb_main.sv}
+          '';
+
+        task6M2FirstTokenFullBlockAccelSimMain =
+          pkgs.runCommand "task6-m2-first-token-full-block-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2FirstTokenFullBlockTbDataSv} \
+              -top task6_m2_first_token_full_block_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_accel_top.sv} \
+              ${./sim/task6_m2_first_token_full_block_accel_tb_main.sv}
+          '';
+
+        task6M2LastTokenFullBlockAccelSimMain =
+          pkgs.runCommand "task6-m2-last-token-full-block-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenFullBlockTbDataSv} \
+              -top task6_m2_first_token_full_block_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_accel_top.sv} \
+              ${./sim/task6_m2_first_token_full_block_accel_tb_main.sv}
+          '';
+
+        task6M2LastTokenLiveKvContextFullBlockAccelSimMain =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -top task6_m2_first_token_full_block_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_accel_top.sv} \
+              ${./sim/task6_m2_first_token_full_block_accel_tb_main.sv}
+          '';
+
+        task6M2LastTokenLiveContextFullBlockAccelSimMain =
+          pkgs.runCommand "task6-m2-last-token-live-context-full-block-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -top task6_m2_live_context_full_block_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./sim/task6_m2_live_context_full_block_accel_tb_main.sv}
+          '';
+
+        task6M2TokenLiveContextFullBlockAccelSimMain =
+          pkgs.runCommand "task6-m2-token-live-context-full-block-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2TokenBlockInputTbDataSv} \
+              -top task6_m2_token_live_context_full_block_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_token_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_token_live_context_full_block_accel_top.sv} \
+              ${./sim/task6_m2_token_live_context_full_block_accel_tb_main.sv}
+          '';
+
+        task6M2EmbeddingLiveContextFullBlockAccelSimMain =
+          pkgs.runCommand "task6-m2-embedding-live-context-full-block-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              -top task6_m2_embedding_live_context_full_block_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv} \
+              ${./sim/task6_m2_embedding_live_context_full_block_accel_tb_main.sv}
+          '';
+
+        task6M2EmbeddingLiveContextFullBlockPcieAccelSimMain =
+          pkgs.runCommand "task6-m2-embedding-live-context-full-block-pcie-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              -top task6_m2_embedding_live_context_full_block_pcie_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_pcie_accel_top.sv} \
+              ${./sim/task6_m2_embedding_live_context_full_block_pcie_accel_tb_main.sv}
+          '';
+
+        task6M2FirstTokenFullBlockPcieAccelSimMain =
+          pkgs.runCommand "task6-m2-first-token-full-block-pcie-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2FirstTokenFullBlockTbDataSv} \
+              -top task6_m2_first_token_full_block_pcie_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_pcie_accel_top.sv} \
+              ${./sim/task6_m2_first_token_full_block_pcie_accel_tb_main.sv}
+          '';
+
+        task6M2LastTokenLiveKvContextFullBlockPcieAccelSimMain =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-pcie-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -top task6_m2_first_token_full_block_pcie_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_pcie_accel_top.sv} \
+              ${./sim/task6_m2_first_token_full_block_pcie_accel_tb_main.sv}
+          '';
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestSimMain =
           pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -10036,6 +10779,146 @@ EOF
             hierarchy -top task6_m2_ln_attn_sublane_accel_top -check
             proc
             synth_xilinx -family xc7 -top task6_m2_ln_attn_sublane_accel_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2LnAttnLiveKvAllHeadsContextAccelJson =
+          pkgs.runCommand "task6-m2-ln-attn-live-kv-all-heads-context-accel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv}
+            hierarchy -top task6_m2_ln_attn_live_kv_all_heads_context_accel_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_ln_attn_live_kv_all_heads_context_accel_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2FirstTokenFullBlockAccelJson =
+          pkgs.runCommand "task6-m2-first-token-full-block-accel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv -I${task6M2FirstTokenFullBlockTbDataSv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_accel_top.sv}
+            hierarchy -top task6_m2_first_token_full_block_accel_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_first_token_full_block_accel_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2LastTokenLiveContextFullBlockAccelJson =
+          pkgs.runCommand "task6-m2-last-token-live-context-full-block-accel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv}
+            hierarchy -top task6_m2_live_context_full_block_accel_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_live_context_full_block_accel_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2TokenLiveContextFullBlockAccelJson =
+          pkgs.runCommand "task6-m2-token-live-context-full-block-accel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2TokenBlockInputTbDataSv} \
+              ${./fpga/rtl/task6_m2_token_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_token_live_context_full_block_accel_top.sv}
+            hierarchy -top task6_m2_token_live_context_full_block_accel_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_token_live_context_full_block_accel_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2EmbeddingLiveContextFullBlockAccelJson =
+          pkgs.runCommand "task6-m2-embedding-live-context-full-block-accel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv}
+            hierarchy -top task6_m2_embedding_live_context_full_block_accel_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_embedding_live_context_full_block_accel_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2FirstTokenFullBlockPcieAccelJson =
+          pkgs.runCommand "task6-m2-first-token-full-block-pcie-accel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv -I${task6M2FirstTokenFullBlockTbDataSv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_pcie_accel_top.sv}
+            hierarchy -top task6_m2_first_token_full_block_pcie_accel_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_first_token_full_block_pcie_accel_top -noiopad
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6M2LastTokenLiveKvContextFullBlockPcieAccelJson =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-pcie-accel.json" {
+            buildInputs = [ pkgs.yosys ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -sv -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_full_block_pcie_accel_top.sv}
+            hierarchy -top task6_m2_first_token_full_block_pcie_accel_top -check
+            proc
+            synth_xilinx -family xc7 -top task6_m2_first_token_full_block_pcie_accel_top -noiopad
             write_json "$out"
             EOF
             yosys -s run.ys
@@ -10964,6 +11847,62 @@ EOF
             designJson = task6M2LnAttnSublaneAccelJson;
           };
 
+        task6M2LnAttnLiveKvAllHeadsContextAccelUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-ln-attn-live-kv-all-heads-context-accel";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_ln_attn_live_kv_all_heads_context_accel_top";
+            designJson = task6M2LnAttnLiveKvAllHeadsContextAccelJson;
+          };
+
+        task6M2FirstTokenFullBlockAccelUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-first-token-full-block-accel";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_first_token_full_block_accel_top";
+            designJson = task6M2FirstTokenFullBlockAccelJson;
+          };
+
+        task6M2LastTokenLiveContextFullBlockAccelUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-last-token-live-context-full-block-accel";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_live_context_full_block_accel_top";
+            designJson = task6M2LastTokenLiveContextFullBlockAccelJson;
+          };
+
+        task6M2TokenLiveContextFullBlockAccelUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-token-live-context-full-block-accel";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_token_live_context_full_block_accel_top";
+            designJson = task6M2TokenLiveContextFullBlockAccelJson;
+          };
+
+        task6M2EmbeddingLiveContextFullBlockAccelUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-embedding-live-context-full-block-accel";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_embedding_live_context_full_block_accel_top";
+            designJson = task6M2EmbeddingLiveContextFullBlockAccelJson;
+          };
+
+        task6M2FirstTokenFullBlockPcieAccelUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-first-token-full-block-pcie-accel";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_first_token_full_block_pcie_accel_top";
+            designJson = task6M2FirstTokenFullBlockPcieAccelJson;
+          };
+
+        task6M2LastTokenLiveKvContextFullBlockPcieAccelUtilization =
+          mkMappedJsonUtilizationReport {
+            name = "task6-m2-last-token-live-kv-context-full-block-pcie-accel";
+            capacities = tinyStoriesCapacities;
+            topName = "task6_m2_first_token_full_block_pcie_accel_top";
+            designJson = task6M2LastTokenLiveKvContextFullBlockPcieAccelJson;
+          };
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestUtilization =
           mkMappedJsonUtilizationReport {
             name = "task6-int8-v4k-l2-residual-add-output-head-selftest";
@@ -11697,6 +12636,1524 @@ EOF
               "checksum": "$checksum",
               "sample0": "$sample0",
               "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnSublaneFirstTokenAccelSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-first-token-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnSublaneFirstTokenAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn sublane accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn-sublane first-token accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": 0,
+              "attention_scope": "single-token-causal-live-current-qkv",
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnSublaneFirstTokenHead15AccelSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-sublane-first-token-head15-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnSublaneFirstTokenHead15AccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn sublane accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn-sublane first-token head15 accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": 0,
+              "head_index": 15,
+              "attention_scope": "single-token-causal-live-current-qkv-last-head",
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnFullHiddenFirstTokenAccelSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-full-hidden-first-token-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnFullHiddenFirstTokenAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn sublane accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn full-hidden first-token accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": 0,
+              "attention_scope": "single-token-causal-live-current-qkv-full-hidden",
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnFullHiddenLastTokenAccelSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnFullHiddenLastTokenAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn sublane accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn full-hidden last-token accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            token_index="$(${pkgs.gawk}/bin/awk -F': ' '/"token"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnFullHiddenLastTokenTbDataSv}/summary.json)"
+            seq_len="$(${pkgs.gawk}/bin/awk -F': ' '/"seq_len"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnFullHiddenLastTokenTbDataSv}/summary.json)"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "attention_seq_len": $seq_len,
+              "attention_scope": "last-token-causal-live-current-qkv-full-hidden-fixture-prior-kv",
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnExternalKvLastTokenAccelSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-external-kv-last-token-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnExternalKvLastTokenAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn external-kv accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn external-kv last-token accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            token_index="$(${pkgs.gawk}/bin/awk -F': ' '/"token"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnFullHiddenLastTokenTbDataSv}/summary.json)"
+            seq_len="$(${pkgs.gawk}/bin/awk -F': ' '/"seq_len"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnFullHiddenLastTokenTbDataSv}/summary.json)"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "attention_seq_len": $seq_len,
+              "attention_scope": "last-token-causal-live-current-qkv-full-hidden-external-prior-kv-fixture-equivalence",
+              "live_current_qkv": true,
+              "external_prior_kv_path": true,
+              "external_prior_kv_source": "fixture-equivalence",
+              "closes_m2": false,
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnLiveKvCacheAccelSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-live-kv-cache-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnLiveKvCacheAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn live-kv-cache accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn live-kv-cache accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            token_index="$(${pkgs.gawk}/bin/awk -F': ' '/"token"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnLiveKvCacheTbDataSv}/summary.json)"
+            cache_seq="$(${pkgs.gawk}/bin/awk -F': ' '/"cache_seq"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnLiveKvCacheTbDataSv}/summary.json)"
+            head_dim="$(${pkgs.gawk}/bin/awk -F': ' '/"head_dim"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnLiveKvCacheTbDataSv}/summary.json)"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "cache_seq": $cache_seq,
+              "head_dim": $head_dim,
+              "attention_scope": "offline-live-ln-kv-cache-final-token-attention",
+              "live_ln": true,
+              "live_kv_cache_fill": true,
+              "score_derived_probabilities": true,
+              "probability_path": "live-score-derived-quadratic-softmax-q15",
+              "fixture_softmax_probabilities": false,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnLiveKvCacheAllHeadsSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim.json" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake pkgs.gawk pkgs.gnugrep pkgs.python3 ];
+          } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}:${./sim}
+            mkdir -p work
+            checksum_concat=""
+            sample0_concat=""
+            sample1_concat=""
+            cycle_sum=0
+            for head in $(${pkgs.coreutils}/bin/seq 0 15); do
+              mkdir -p "work/head-$head/data" "work/head-$head/obj_dir"
+              ${pkgs.python3}/bin/python3 ${
+                ./sim/gen_task6_m2_ln_attn_live_kv_cache_tb_data.py
+              } \
+                --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+                --weight-manifest ${task6TinyStories1mM2OneBlockInt8WeightPack}/manifest.json \
+                --num-heads 16 \
+                --head-index "$head" \
+                --out-sv "work/head-$head/data/tb_data.sv" \
+                --out-json "work/head-$head/data/summary.json"
+              verilator --binary --timing --language 1800-2017 -Wno-fatal \
+                -I"work/head-$head/data" \
+                -top task6_m2_ln_attn_live_kv_cache_accel_tb \
+                -Mdir "work/head-$head/obj_dir" -o sim_main \
+                ${./fpga/rtl/task6_m2_ln_attn_live_kv_cache_accel_top.sv} \
+                ${./sim/task6_m2_ln_attn_live_kv_cache_accel_tb_main.sv}
+              "work/head-$head/obj_dir/sim_main" 2>&1 | tee "work/head-$head/sim.log"
+              pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn live-kv-cache accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' "work/head-$head/sim.log" | tail -n1 || true)"
+              if [ -z "$pass_line" ]; then
+                echo "head $head did not produce a live-kv-cache PASS line" >&2
+                exit 1
+              fi
+              cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+              checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+              sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+              sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+              cycle_sum=$((cycle_sum + cycles))
+              checksum_concat="$checksum_concat$checksum"
+              sample0_concat="$sample0_concat$sample0"
+              sample1_concat="$sample1_concat$sample1"
+              echo "head=$head cycles=$cycles checksum=$checksum sample0=$sample0 sample1=$sample1" >> work/head-summary.txt
+            done
+            summary_sha="$(${pkgs.coreutils}/bin/printf '%s' "$checksum_concat|$sample0_concat|$sample1_concat" | ${pkgs.coreutils}/bin/sha256sum | ${pkgs.gawk}/bin/awk '{print $1}')"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "heads": 16,
+              "head_dim": 4,
+              "token_index": 5,
+              "cache_seq": 6,
+              "attention_scope": "offline-live-ln-kv-cache-final-token-attention-all-real-heads",
+              "live_ln": true,
+              "live_kv_cache_fill": true,
+              "score_derived_probabilities": true,
+              "probability_path": "live-score-derived-quadratic-softmax-q15",
+              "fixture_softmax_probabilities": false,
+              "closes_m2": false,
+              "cycle_sum": $cycle_sum,
+              "summary_sha256": "$summary_sha"
+            }
+            EOF
+          '';
+
+        task6M2LnAttnLiveKvAllHeadsContextAccelSvSim =
+          pkgs.runCommand "task6-m2-ln-attn-live-kv-all-heads-context-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LnAttnLiveKvAllHeadsContextAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 ln attn live-kv all-head context accel cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-ln-attn live-kv all-head context accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            token_index="$(${pkgs.gawk}/bin/awk -F': ' '/"token"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/summary.json)"
+            cache_seq="$(${pkgs.gawk}/bin/awk -F': ' '/"cache_seq"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/summary.json)"
+            num_heads="$(${pkgs.gawk}/bin/awk -F': ' '/"num_heads"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/summary.json)"
+            head_dim="$(${pkgs.gawk}/bin/awk -F': ' '/"head_dim"/ {gsub(/,/, "", $2); print $2}' ${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/summary.json)"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "cache_seq": $cache_seq,
+              "heads": $num_heads,
+              "head_dim": $head_dim,
+              "attention_scope": "integrated-live-ln-kv-cache-final-token-attention-all-head-context",
+              "live_ln": true,
+              "live_kv_cache_fill": true,
+              "score_derived_probabilities": true,
+              "probability_path": "live-score-derived-quadratic-softmax-q15",
+              "fixture_softmax_probabilities": false,
+              "single_rtl_instance": true,
+              "context_vector_bytes": 64,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1"
+            }
+            EOF
+          '';
+
+        task6M2FirstTokenAttentionOutProjAccelSvSim =
+          pkgs.runCommand "task6-m2-first-token-attention-out-proj-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2FirstTokenAttentionOutProjAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 first-token attention out projection cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+ residual_checksum [0-9a-f]+ residual_sample0 [0-9a-f]+ residual_sample1 [0-9a-f]+ ln2_checksum [0-9a-f]+ ln2_sample0 [0-9a-f]+ ln2_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-first-token-attention-out-proj accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            residual_checksum="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            residual_sample0="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
+            residual_sample1="$(${pkgs.gawk}/bin/awk '{print $21}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $23}' <<<"$pass_line")"
+            ln2_sample0="$(${pkgs.gawk}/bin/awk '{print $25}' <<<"$pass_line")"
+            ln2_sample1="$(${pkgs.gawk}/bin/awk '{print $27}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": 0,
+              "attention_scope": "single-token-causal-full-hidden-out-projection",
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1",
+              "residual_checksum": "$residual_checksum",
+              "residual_sample0": "$residual_sample0",
+              "residual_sample1": "$residual_sample1",
+              "ln2_checksum": "$ln2_checksum",
+              "ln2_sample0": "$ln2_sample0",
+              "ln2_sample1": "$ln2_sample1"
+            }
+            EOF
+          '';
+
+        task6M2LastTokenLiveKvContextAttentionOutProjAccelSvSim =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-attention-out-proj-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LastTokenLiveKvContextAttentionOutProjAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 first-token attention out projection cycles [0-9]+ checksum [0-9a-f]+ sample0 [0-9a-f]+ sample1 [0-9a-f]+ residual_checksum [0-9a-f]+ residual_sample0 [0-9a-f]+ residual_sample1 [0-9a-f]+ ln2_checksum [0-9a-f]+ ln2_sample0 [0-9a-f]+ ln2_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-last-token-live-kv-context-attention-out-proj accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            residual_checksum="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            residual_sample0="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
+            residual_sample1="$(${pkgs.gawk}/bin/awk '{print $21}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $23}' <<<"$pass_line")"
+            ln2_sample0="$(${pkgs.gawk}/bin/awk '{print $25}' <<<"$pass_line")"
+            ln2_sample1="$(${pkgs.gawk}/bin/awk '{print $27}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": 5,
+              "attention_scope": "last-token-live-kv-cache-context-out-projection",
+              "attention_context_source": "live-kv-cache",
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "checksum": "$checksum",
+              "sample0": "$sample0",
+              "sample1": "$sample1",
+              "residual_checksum": "$residual_checksum",
+              "residual_sample0": "$residual_sample0",
+              "residual_sample1": "$residual_sample1",
+              "ln2_checksum": "$ln2_checksum",
+              "ln2_sample0": "$ln2_sample0",
+              "ln2_sample1": "$ln2_sample1"
+            }
+            EOF
+          '';
+
+        task6M2FirstTokenMlpCProjResidualAccelSvSim =
+          pkgs.runCommand "task6-m2-first-token-mlp-c-proj-residual-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2FirstTokenMlpCProjResidualAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 first-token MLP c_proj residual cycles [0-9]+ c_proj_checksum [0-9a-f]+ c_proj_sample0 [0-9a-f]+ c_proj_sample1 [0-9a-f]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-first-token-mlp-c-proj-residual accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            c_proj_checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            c_proj_sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            c_proj_sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $21}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": 0,
+              "mlp_scope": "post-gelu-c-proj-final-residual",
+              "cycles": $cycles,
+              "c_proj_checksum": "$c_proj_checksum",
+              "c_proj_sample0": "$c_proj_sample0",
+              "c_proj_sample1": "$c_proj_sample1",
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1"
+            }
+            EOF
+          '';
+
+        task6M2FirstTokenMlpCFcGeluAccelSvSim =
+          pkgs.runCommand "task6-m2-first-token-mlp-c-fc-gelu-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2FirstTokenMlpCFcGeluAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 first-token MLP c_fc GELU cycles [0-9]+ post_gelu_checksum [0-9a-f]+ post_gelu_sample0 [0-9a-f]+ post_gelu_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-first-token-mlp-c-fc-gelu accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            post_gelu_checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            post_gelu_sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            post_gelu_sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": 0,
+              "mlp_scope": "ln2-c-fc-pwl-gelu",
+              "cycles": $cycles,
+              "post_gelu_checksum": "$post_gelu_checksum",
+              "post_gelu_sample0": "$post_gelu_sample0",
+              "post_gelu_sample1": "$post_gelu_sample1"
+            }
+            EOF
+          '';
+
+        task6M2FirstTokenMlpIntegratedAccelSvSim =
+          pkgs.runCommand "task6-m2-first-token-mlp-integrated-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2FirstTokenMlpIntegratedAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 first-token integrated MLP cycles [0-9]+ post_gelu_checksum [0-9a-f]+ c_proj_checksum [0-9a-f]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-first-token-mlp-integrated accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+            post_gelu_checksum="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            c_proj_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $18}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": 0,
+              "mlp_scope": "ln2-c-fc-pwl-gelu-c-proj-final-residual",
+              "cycles": $cycles,
+              "post_gelu_checksum": "$post_gelu_checksum",
+              "c_proj_checksum": "$c_proj_checksum",
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1"
+            }
+            EOF
+          '';
+
+        task6M2FirstTokenFullBlockAccelSvSim =
+          pkgs.runCommand "task6-m2-first-token-full-block-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2FirstTokenFullBlockAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 token [0-9]+ full-block cycles [0-9]+ attn_checksum [0-9a-f]+ attn_residual_checksum [0-9a-f]+ ln2_checksum [0-9a-f]+ post_gelu_checksum [0-9a-f]+ c_proj_checksum [0-9a-f]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-first-token-full-block accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            token_index="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cycles="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+            attn_checksum="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            attn_residual_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            post_gelu_checksum="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            c_proj_checksum="$(${pkgs.gawk}/bin/awk '{print $18}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $20}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $22}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $24}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "block_scope": "attention-out-projection-ln2-integrated-mlp-final-residual",
+              "live_handoff": true,
+              "cycles": $cycles,
+              "attn_checksum": "$attn_checksum",
+              "attn_residual_checksum": "$attn_residual_checksum",
+              "ln2_checksum": "$ln2_checksum",
+              "post_gelu_checksum": "$post_gelu_checksum",
+              "c_proj_checksum": "$c_proj_checksum",
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1"
+            }
+            EOF
+          '';
+
+        task6M2LastTokenFullBlockAccelSvSim =
+          pkgs.runCommand "task6-m2-last-token-full-block-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LastTokenFullBlockAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 token [0-9]+ full-block cycles [0-9]+ attn_checksum [0-9a-f]+ attn_residual_checksum [0-9a-f]+ ln2_checksum [0-9a-f]+ post_gelu_checksum [0-9a-f]+ c_proj_checksum [0-9a-f]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-last-token-full-block accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            token_index="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cycles="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+            attn_checksum="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            attn_residual_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            post_gelu_checksum="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            c_proj_checksum="$(${pkgs.gawk}/bin/awk '{print $18}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $20}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $22}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $24}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "block_scope": "last-token-attention-out-projection-ln2-integrated-mlp-final-residual",
+              "live_handoff": true,
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "attn_checksum": "$attn_checksum",
+              "attn_residual_checksum": "$attn_residual_checksum",
+              "ln2_checksum": "$ln2_checksum",
+              "post_gelu_checksum": "$post_gelu_checksum",
+              "c_proj_checksum": "$c_proj_checksum",
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1"
+            }
+            EOF
+          '';
+
+        task6M2LastTokenLiveKvContextFullBlockAccelSvSim =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LastTokenLiveKvContextFullBlockAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 token [0-9]+ full-block cycles [0-9]+ attn_checksum [0-9a-f]+ attn_residual_checksum [0-9a-f]+ ln2_checksum [0-9a-f]+ post_gelu_checksum [0-9a-f]+ c_proj_checksum [0-9a-f]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-last-token-live-kv-context-full-block accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            token_index="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cycles="$(${pkgs.gawk}/bin/awk '{print $8}' <<<"$pass_line")"
+            attn_checksum="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            attn_residual_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            post_gelu_checksum="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            c_proj_checksum="$(${pkgs.gawk}/bin/awk '{print $18}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $20}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $22}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $24}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "block_scope": "last-token-live-kv-cache-context-attention-out-projection-ln2-integrated-mlp-final-residual",
+              "attention_context_source": "live-kv-cache",
+              "live_handoff": true,
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "attn_checksum": "$attn_checksum",
+              "attn_residual_checksum": "$attn_residual_checksum",
+              "ln2_checksum": "$ln2_checksum",
+              "post_gelu_checksum": "$post_gelu_checksum",
+              "c_proj_checksum": "$c_proj_checksum",
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1"
+            }
+            EOF
+          '';
+
+        task6M2FirstTokenFullBlockPcieAccelSvSim =
+          pkgs.runCommand "task6-m2-first-token-full-block-pcie-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2FirstTokenFullBlockPcieAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 token [0-9]+ full-block PCIe wrapper cycles [0-9]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+ debug [0-9a-f]+ debug1 [0-9a-f]+ debug2 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-first-token-full-block PCIe wrapper SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            token_index="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            debug="$(${pkgs.gawk}/bin/awk '{print $18}' <<<"$pass_line")"
+            debug1="$(${pkgs.gawk}/bin/awk '{print $20}' <<<"$pass_line")"
+            debug2="$(${pkgs.gawk}/bin/awk '{print $22}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "block_scope": "pcie-bar-first-token-attention-out-projection-ln2-integrated-mlp-final-residual",
+              "pcie_bar_scope": true,
+              "live_handoff": true,
+              "cycles": $cycles,
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1",
+              "debug": "$debug",
+              "debug1": "$debug1",
+              "debug2": "$debug2"
+            }
+            EOF
+          '';
+
+        task6M2LastTokenLiveContextFullBlockAccelSvSim =
+          pkgs.runCommand "task6-m2-last-token-live-context-full-block-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LastTokenLiveContextFullBlockAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 token [0-9]+ live-context full-block cycles [0-9]+ context_checksum [0-9a-f]+ attn_checksum [0-9a-f]+ attn_residual_checksum [0-9a-f]+ ln2_checksum [0-9a-f]+ post_gelu_checksum [0-9a-f]+ c_proj_checksum [0-9a-f]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-last-token-live-context-full-block accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            token_index="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            context_checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            attn_checksum="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            attn_residual_checksum="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            post_gelu_checksum="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
+            c_proj_checksum="$(${pkgs.gawk}/bin/awk '{print $21}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $23}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $25}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $27}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "block_scope": "last-token-integrated-live-kv-context-attention-out-projection-ln2-integrated-mlp-final-residual",
+              "attention_context_source": "integrated-live-kv-all-head-context-rtl",
+              "live_context_producer": true,
+              "host_supplied_context": false,
+              "host_supplied_block_input": true,
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "context_checksum": "$context_checksum",
+              "attn_checksum": "$attn_checksum",
+              "attn_residual_checksum": "$attn_residual_checksum",
+              "ln2_checksum": "$ln2_checksum",
+              "post_gelu_checksum": "$post_gelu_checksum",
+              "c_proj_checksum": "$c_proj_checksum",
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1"
+            }
+            EOF
+          '';
+
+        task6M2TokenLiveContextFullBlockAccelSvSim =
+          pkgs.runCommand "task6-m2-token-live-context-full-block-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep pkgs.python3 ];
+          } ''
+            set -euo pipefail
+            ${task6M2TokenLiveContextFullBlockAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 token-live-context full-block cycles [0-9]+ block_input_checksum [0-9a-f]+ context_checksum [0-9a-f]+ attn_checksum [0-9a-f]+ attn_residual_checksum [0-9a-f]+ ln2_checksum [0-9a-f]+ post_gelu_checksum [0-9a-f]+ c_proj_checksum [0-9a-f]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-token-live-context-full-block accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $7}' <<<"$pass_line")"
+            block_input_checksum="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            context_checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            attn_checksum="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            attn_residual_checksum="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            post_gelu_checksum="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
+            c_proj_checksum="$(${pkgs.gawk}/bin/awk '{print $21}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $23}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $25}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $27}' <<<"$pass_line")"
+            token_ids="$(${pkgs.python3}/bin/python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1]))["token_ids"]))' ${task6M2TokenBlockInputTbDataSv}/summary.json)"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "block_scope": "token-controlled-table-block-input-integrated-live-kv-context-attention-out-projection-ln2-integrated-mlp-final-residual",
+              "input_boundary": "token_ids",
+              "token_ids": $token_ids,
+              "token_controlled_block_input": true,
+              "block_input_source": "prompt-contract-token-table",
+              "live_context_producer": true,
+              "host_supplied_context": false,
+              "host_supplied_block_input": false,
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "block_input_checksum": "$block_input_checksum",
+              "context_checksum": "$context_checksum",
+              "attn_checksum": "$attn_checksum",
+              "attn_residual_checksum": "$attn_residual_checksum",
+              "ln2_checksum": "$ln2_checksum",
+              "post_gelu_checksum": "$post_gelu_checksum",
+              "c_proj_checksum": "$c_proj_checksum",
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1"
+            }
+            EOF
+          '';
+
+        task6M2EmbeddingLiveContextFullBlockAccelSvSim =
+          pkgs.runCommand "task6-m2-embedding-live-context-full-block-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep pkgs.python3 ];
+          } ''
+            set -euo pipefail
+            ${task6M2EmbeddingLiveContextFullBlockAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 embedding-live-context full-block cycles [0-9]+ block_input_checksum [0-9a-f]+ context_checksum [0-9a-f]+ attn_checksum [0-9a-f]+ attn_residual_checksum [0-9a-f]+ ln2_checksum [0-9a-f]+ post_gelu_checksum [0-9a-f]+ c_proj_checksum [0-9a-f]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-embedding-live-context-full-block accel SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $7}' <<<"$pass_line")"
+            block_input_checksum="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            context_checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            attn_checksum="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            attn_residual_checksum="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            post_gelu_checksum="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
+            c_proj_checksum="$(${pkgs.gawk}/bin/awk '{print $21}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $23}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $25}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $27}' <<<"$pass_line")"
+            token_ids="$(${pkgs.python3}/bin/python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1]))["token_ids"]))' ${task6M2EmbeddingBlockInputTbDataSv}/summary.json)"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "block_scope": "token-controlled-embedding-position-add-integrated-live-kv-context-attention-out-projection-ln2-integrated-mlp-final-residual",
+              "input_boundary": "token_ids",
+              "token_ids": $token_ids,
+              "token_controlled_block_input": true,
+              "block_input_source": "fixed-point-wte-wpe-q20-add",
+              "embedding_position_add_rtl": true,
+              "live_context_producer": true,
+              "host_supplied_context": false,
+              "host_supplied_block_input": false,
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "block_input_checksum": "$block_input_checksum",
+              "context_checksum": "$context_checksum",
+              "attn_checksum": "$attn_checksum",
+              "attn_residual_checksum": "$attn_residual_checksum",
+              "ln2_checksum": "$ln2_checksum",
+              "post_gelu_checksum": "$post_gelu_checksum",
+              "c_proj_checksum": "$c_proj_checksum",
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1"
+            }
+            EOF
+          '';
+
+        task6M2EmbeddingLiveContextFullBlockPcieAccelSvSim =
+          pkgs.runCommand "task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2EmbeddingLiveContextFullBlockPcieAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 embedding full-block PCIe wrapper cycles [0-9]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+ provenance [0-9a-f]+ debug [0-9a-f]+ debug1 [0-9a-f]+ debug2 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-embedding-live-context-full-block PCIe wrapper SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            provenance="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            debug="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
+            debug1="$(${pkgs.gawk}/bin/awk '{print $21}' <<<"$pass_line")"
+            debug2="$(${pkgs.gawk}/bin/awk '{print $23}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "block_scope": "pcie-bar-token-id-embedding-position-add-live-kv-context-full-block-wrapper",
+              "input_boundary": "pcie_bar_token_ids",
+              "embedding_position_add_rtl": true,
+              "pcie_bar_scope": true,
+              "live_handoff": true,
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1",
+              "provenance": "$provenance",
+              "debug": "$debug",
+              "debug1": "$debug1",
+              "debug2": "$debug2"
+            }
+            EOF
+          '';
+
+        task6M2LastTokenLiveKvContextFullBlockPcieAccelSvSim =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2LastTokenLiveKvContextFullBlockPcieAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 token [0-9]+ full-block PCIe wrapper cycles [0-9]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+ debug [0-9a-f]+ debug1 [0-9a-f]+ debug2 [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-last-token-live-kv-context-full-block PCIe wrapper SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            token_index="$(${pkgs.gawk}/bin/awk '{print $5}' <<<"$pass_line")"
+            cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            final_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            final_sample0="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            final_sample1="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            debug="$(${pkgs.gawk}/bin/awk '{print $18}' <<<"$pass_line")"
+            debug1="$(${pkgs.gawk}/bin/awk '{print $20}' <<<"$pass_line")"
+            debug2="$(${pkgs.gawk}/bin/awk '{print $22}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "token_index": $token_index,
+              "block_scope": "pcie-bar-last-token-live-kv-cache-context-attention-out-projection-ln2-integrated-mlp-final-residual",
+              "attention_context_source": "live-kv-cache",
+              "pcie_bar_scope": true,
+              "live_handoff": true,
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "final_checksum": "$final_checksum",
+              "final_sample0": "$final_sample0",
+              "final_sample1": "$final_sample1",
+              "debug": "$debug",
+              "debug1": "$debug1",
+              "debug2": "$debug2"
+            }
+            EOF
+          '';
+
+        task6M2FullBlockGateUnitTests =
+          pkgs.runCommand "task6-m2-full-block-gate-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_pcie_m2_full_block_gate.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_pcie_m2_full_block_gate"
+            }
+            EOF
+          '';
+
+        task6PcieFlashUnitTests =
+          pkgs.runCommand "task6-pcie-flash-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${./scripts/task6/test_task6_pcie_flash.py}
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_pcie_flash"
+            }
+            EOF
+          '';
+
+        task6PcieLifecycleUnitTests =
+          pkgs.runCommand "task6-pcie-lifecycle-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_pcie_lifecycle_gate.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_pcie_lifecycle_gate"
+            }
+            EOF
+          '';
+
+        task6PcieRecoveryOrchestratorUnitTests =
+          pkgs.runCommand "task6-pcie-recovery-orchestrator-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_pcie_recovery_orchestrator.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_pcie_recovery_orchestrator"
+            }
+            EOF
+          '';
+
+        task6M2FirstTokenFullBlockPcieGateRunbook =
+          pkgs.runCommand "task6-m2-first-token-full-block-pcie-gate-runbook" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            cat > "$out/README.md" <<EOF
+            # Task 6 M2 first-token full-block PCIe gate runbook
+
+            This artifact resolves the exact tb_data.sv fixture path for the
+            first-token full-block PCIe wrapper gate. It does not run hardware.
+
+            Future hardware command, after explicit hardware approval:
+
+            \`\`\`bash
+            TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh m2-full-block 0000:42:00.0 --tb-data-sv ${task6M2FirstTokenFullBlockTbDataSv}/tb_data.sv
+            \`\`\`
+
+            This is still a first-token M2 candidate, not M2 closure.
+            The generated command.sh still requires TASK6_PCIE_HARDWARE_ENABLE=1
+            to be set by the operator.
+            EOF
+            cat > "$out/command.sh" <<'EOF'
+            #!/usr/bin/env bash
+            set -euo pipefail
+            ROOT="''${TASK6_REPO_ROOT:-/home/roland/LLM2FPGA}"
+            BDF="''${1:-0000:42:00.0}"
+            shift || true
+            if [[ "''${TASK6_PCIE_HARDWARE_ENABLE:-0}" != "1" ]]; then
+              cat >&2 <<'EOM'
+            error: hardware access is disabled.
+            Re-run only after explicit hardware approval with:
+              TASK6_PCIE_HARDWARE_ENABLE=1 <this command>
+            EOM
+              exit 2
+            fi
+            "$ROOT/scripts/task6/task6_pcie_user_gate.sh" m2-full-block "$BDF" \
+              --tb-data-sv ${task6M2FirstTokenFullBlockTbDataSv}/tb_data.sv \
+              "$@"
+            EOF
+            chmod +x "$out/command.sh"
+            cat > "$out/summary.json" <<EOF
+            {
+              "artifact_name": "task6-m2-first-token-full-block-pcie-gate-runbook",
+              "status": "READY",
+              "runs_hardware": false,
+              "command_requires_hardware_enable": true,
+              "milestone_target": "M2-one-full-block",
+              "scope": "first-token-full-block-pcie-wrapper",
+              "closes_m2": false,
+              "default_repo_root": "/home/roland/LLM2FPGA",
+              "tb_data_sv": "${task6M2FirstTokenFullBlockTbDataSv}/tb_data.sv",
+              "gate_script": "${./scripts/task6/task6_pcie_m2_full_block_gate.py}"
+            }
+            EOF
+          '';
+
+        task6M2LastTokenLiveKvContextFullBlockPcieGateRunbook =
+          pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-pcie-gate-runbook" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            cat > "$out/README.md" <<EOF
+            # Task 6 M2 live-K/V-context full-block PCIe gate runbook
+
+            This artifact resolves the exact tb_data.sv fixture path for the
+            later-token live-K/V-context full-block PCIe wrapper gate. It does
+            not run hardware.
+
+            Bounded hardware command, after explicit hardware approval:
+
+            \`\`\`bash
+            TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh m2-full-block 0000:42:00.0 --tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv --timeout 2.0 --poll-interval 0.001
+            \`\`\`
+
+            This is a fixture-selected live-K/V-context M2 candidate, not M2
+            closure. The generated command.sh still requires
+            TASK6_PCIE_HARDWARE_ENABLE=1 to be set by the operator.
+            EOF
+            cat > "$out/command.sh" <<'EOF'
+            #!/usr/bin/env bash
+            set -euo pipefail
+            ROOT="''${TASK6_REPO_ROOT:-/home/roland/LLM2FPGA}"
+            BDF="''${1:-0000:42:00.0}"
+            shift || true
+            if [[ "''${TASK6_PCIE_HARDWARE_ENABLE:-0}" != "1" ]]; then
+              cat >&2 <<'EOM'
+            error: hardware access is disabled.
+            Re-run only after explicit hardware approval with:
+              TASK6_PCIE_HARDWARE_ENABLE=1 <this command>
+            EOM
+              exit 2
+            fi
+            "$ROOT/scripts/task6/task6_pcie_user_gate.sh" m2-full-block "$BDF" \
+              --tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv \
+              --timeout 2.0 \
+              --poll-interval 0.001 \
+              "$@"
+            EOF
+            chmod +x "$out/command.sh"
+            cat > "$out/summary.json" <<EOF
+            {
+              "artifact_name": "task6-m2-last-token-live-kv-context-full-block-pcie-gate-runbook",
+              "status": "READY",
+              "runs_hardware": false,
+              "command_requires_hardware_enable": true,
+              "milestone_target": "M2-one-full-block",
+              "scope": "last-token-live-kv-context-full-block-pcie-wrapper",
+              "attention_context_source": "live-kv-cache",
+              "token_index": 5,
+              "closes_m2": false,
+              "default_repo_root": "/home/roland/LLM2FPGA",
+              "tb_data_sv": "${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv",
+              "gate_script": "${./scripts/task6/task6_pcie_m2_full_block_gate.py}"
+            }
+            EOF
+          '';
+
+        task6M2EmbeddingLiveContextFullBlockPcieGateRunbook =
+          pkgs.runCommand "task6-m2-embedding-live-context-full-block-pcie-gate-runbook" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            cat > "$out/README.md" <<EOF
+            # Task 6 M2 token-ID embedding/live-context full-block PCIe gate runbook
+
+            This artifact resolves the exact fixture paths and pnr100 bitstream
+            for the BAR-visible token-ID M2 wrapper. It does not run hardware.
+
+            Program this bitstream only after the non-BAR lifecycle probe reports
+            a clean post-enumeration \`pcie_ready\` state:
+
+            \`\`\`text
+            ${task6YpcbPcieRowstreamIngressDummyPnr100Bitstream}
+            \`\`\`
+
+            Bounded hardware gate command, after explicit hardware approval and
+            clean lifecycle. The generated command.sh rechecks lifecycle and
+            refuses the BAR gate unless it reports \`pcie_ready\`:
+
+            \`\`\`bash
+            TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh m2-full-block 0000:42:00.0 --tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv --embedding-tb-data-sv ${task6M2EmbeddingBlockInputTbDataSv}/task6_m2_embedding_block_input_tb_data.sv --timeout 2.0 --poll-interval 0.001
+            \`\`\`
+
+            This is the current M2 acceptance candidate. It still requires a
+            live board BAR PASS to close M2.
+            EOF
+            cat > "$out/command.sh" <<'EOF'
+            #!/usr/bin/env bash
+            set -euo pipefail
+            ROOT="''${TASK6_REPO_ROOT:-/home/roland/LLM2FPGA}"
+            BDF="''${1:-0000:42:00.0}"
+            shift || true
+            if [[ "''${TASK6_PCIE_HARDWARE_ENABLE:-0}" != "1" ]]; then
+              cat >&2 <<'EOM'
+            error: hardware access is disabled.
+            Re-run only after explicit hardware approval with:
+              TASK6_PCIE_HARDWARE_ENABLE=1 <this command>
+            EOM
+              exit 2
+            fi
+            lifecycle_log="''$(mktemp)"
+            set +e
+            "$ROOT/scripts/task6/task6_pcie_user_gate.sh" lifecycle "$BDF" \
+              --label task6-m2-embedding-token-runbook-preflight >"''$lifecycle_log" 2>&1
+            lifecycle_rc="''$?"
+            set -e
+            cat "''$lifecycle_log"
+            if [[ "''$lifecycle_rc" -ne 0 ]] || ! grep -q '^classification: pcie_ready$' "''$lifecycle_log"; then
+              cat >&2 <<'EOM'
+            error: refusing M2 BAR gate because lifecycle preflight is not pcie_ready.
+            Re-enumerate the chassis or reboot with the FPGA already configured, then rerun the non-BAR lifecycle probe.
+            EOM
+              exit 1
+            fi
+            "$ROOT/scripts/task6/task6_pcie_user_gate.sh" m2-full-block "$BDF" \
+              --tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv \
+              --embedding-tb-data-sv ${task6M2EmbeddingBlockInputTbDataSv}/task6_m2_embedding_block_input_tb_data.sv \
+              --timeout 2.0 \
+              --poll-interval 0.001 \
+              "$@"
+            EOF
+            chmod +x "$out/command.sh"
+            cat > "$out/summary.json" <<EOF
+            {
+              "artifact_name": "task6-m2-embedding-live-context-full-block-pcie-gate-runbook",
+              "status": "READY",
+              "runs_hardware": false,
+              "command_requires_hardware_enable": true,
+              "command_requires_pcie_ready_preflight": true,
+              "milestone_target": "M2-one-full-block",
+              "scope": "bar-token-id-embedding-position-add-live-kv-context-full-block-wrapper",
+              "input_boundary": "pcie_bar_token_ids",
+              "token_index": 5,
+              "expected_provenance": "0x4d323005",
+              "closes_m2": false,
+              "default_repo_root": "/home/roland/LLM2FPGA",
+              "bitstream": "${task6YpcbPcieRowstreamIngressDummyPnr100Bitstream}",
+              "tb_data_sv": "${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv",
+              "embedding_tb_data_sv": "${task6M2EmbeddingBlockInputTbDataSv}/task6_m2_embedding_block_input_tb_data.sv",
+              "gate_script": "${./scripts/task6/task6_pcie_m2_full_block_gate.py}"
+            }
+            EOF
+          '';
+
+        task6M2HostReenumerationGateRunbook =
+          pkgs.runCommand "task6-m2-host-reenumeration-gate-runbook" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            cat > "$out/README.md" <<EOF
+            # Task 6 M2 host/Thunderbolt re-enumeration gate runbook
+
+            This artifact is for the current blocked board state where the
+            endpoint exists but config space is unstable. It does not perform
+            host/Thunderbolt re-enumeration, reset, rescan, flash, or BAR
+            access by itself.
+
+            Required external sequence:
+
+            1. Leave the FPGA/chassis powered and configured from BPI flash.
+            2. Force a real host/Thunderbolt PCIe re-enumeration, for example
+               disconnect/reconnect the Thunderbolt path or reboot the host
+               with the FPGA already configured.
+            3. Run the generated command.sh. It will run the non-BAR lifecycle
+               probe first and only delegate to the M2 token-ID gate runbook
+               if lifecycle reports \`pcie_ready\`.
+
+            Candidate M2 bitstream:
+
+            \`\`\`text
+            ${task6YpcbPcieRowstreamIngressDummyPnr100Bitstream}
+            \`\`\`
+
+            Delegated guarded M2 runbook:
+
+            \`\`\`text
+            ${task6M2EmbeddingLiveContextFullBlockPcieGateRunbook}
+            \`\`\`
+            EOF
+            cat > "$out/command.sh" <<EOF
+            #!/usr/bin/env bash
+            set -euo pipefail
+            ROOT="\''${TASK6_REPO_ROOT:-/home/roland/LLM2FPGA}"
+            BDF="\''${1:-0000:42:00.0}"
+            shift || true
+            if [[ "\''${TASK6_PCIE_HARDWARE_ENABLE:-0}" != "1" ]]; then
+              cat >&2 <<'EOM'
+            error: hardware access is disabled.
+            Re-run only after host/Thunderbolt re-enumeration with:
+              TASK6_PCIE_HARDWARE_ENABLE=1 <this command>
+            EOM
+              exit 2
+            fi
+            lifecycle_log="\''$(mktemp)"
+            set +e
+            "\''$ROOT/scripts/task6/task6_pcie_user_gate.sh" lifecycle "\''$BDF" \
+              --label task6-m2-host-reenumeration-preflight >"\''$lifecycle_log" 2>&1
+            lifecycle_rc="\''$?"
+            set -e
+            cat "\''$lifecycle_log"
+            if [[ "\''$lifecycle_rc" -ne 0 ]] || ! grep -q '^classification: pcie_ready$' "\''$lifecycle_log"; then
+              cat >&2 <<'EOM'
+            error: refusing M2 BAR gate because lifecycle is not pcie_ready after host/Thunderbolt re-enumeration.
+            Do not run BAR/debug/recovery from corrupt or unstable config; re-enumerate again with the FPGA already configured.
+            EOM
+              exit 1
+            fi
+            exec ${task6M2EmbeddingLiveContextFullBlockPcieGateRunbook}/command.sh "\''$BDF" "\''$@"
+            EOF
+            chmod +x "$out/command.sh"
+            cat > "$out/summary.json" <<EOF
+            {
+              "artifact_name": "task6-m2-host-reenumeration-gate-runbook",
+              "status": "READY",
+              "runs_hardware": false,
+              "command_requires_hardware_enable": true,
+              "command_requires_external_host_reenumeration": true,
+              "command_requires_pcie_ready_preflight": true,
+              "milestone_target": "M2-one-full-block",
+              "scope": "host-thunderbolt-reenumeration-handoff-to-token-id-m2-gate",
+              "closes_m2": false,
+              "default_bdf": "0000:42:00.0",
+              "bitstream": "${task6YpcbPcieRowstreamIngressDummyPnr100Bitstream}",
+              "delegated_runbook": "${task6M2EmbeddingLiveContextFullBlockPcieGateRunbook}",
+              "delegated_command": "${task6M2EmbeddingLiveContextFullBlockPcieGateRunbook}/command.sh"
+            }
+            EOF
+          '';
+
+        task6M2CatchReadyGateRunbook =
+          pkgs.runCommand "task6-m2-catch-ready-gate-runbook" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            cat > "$out/README.md" <<EOF
+            # Task 6 M2 bounded pcie_ready catch gate runbook
+
+            This artifact is for transient post-enumeration windows. It does
+            not reset, rescan, recover, flash, or access BAR space while
+            waiting. It runs bounded non-BAR lifecycle probes and delegates to
+            the token-ID M2 gate only after lifecycle reports \`pcie_ready\`.
+
+            Default behavior is twelve lifecycle attempts with a five-second
+            sleep between attempts. Use --attempts and --sleep to narrow or
+            widen the catch window.
+
+            Candidate M2 bitstream:
+
+            \`\`\`text
+            ${task6YpcbPcieRowstreamIngressDummyPnr100Bitstream}
+            \`\`\`
+
+            Delegated guarded M2 runbook:
+
+            \`\`\`text
+            ${task6M2EmbeddingLiveContextFullBlockPcieGateRunbook}
+            \`\`\`
+            EOF
+            cat > "$out/command.sh" <<EOF
+            #!/usr/bin/env bash
+            set -euo pipefail
+            export TASK6_M2_DELEGATED_COMMAND="${task6M2EmbeddingLiveContextFullBlockPcieGateRunbook}/command.sh"
+            exec ${./scripts/task6/task6_m2_catch_ready_gate.sh} "\''$@"
+            EOF
+            chmod +x "$out/command.sh"
+            cat > "$out/summary.json" <<EOF
+            {
+              "artifact_name": "task6-m2-catch-ready-gate-runbook",
+              "status": "READY",
+              "runs_hardware": false,
+              "command_requires_hardware_enable": true,
+              "command_requires_pcie_ready_preflight": true,
+              "default_attempts": 12,
+              "default_sleep_seconds": 5,
+              "milestone_target": "M2-one-full-block",
+              "scope": "bounded-non-bar-lifecycle-catch-to-token-id-m2-gate",
+              "closes_m2": false,
+              "default_bdf": "0000:42:00.0",
+              "bitstream": "${task6YpcbPcieRowstreamIngressDummyPnr100Bitstream}",
+              "delegated_runbook": "${task6M2EmbeddingLiveContextFullBlockPcieGateRunbook}",
+              "delegated_command": "${task6M2EmbeddingLiveContextFullBlockPcieGateRunbook}/command.sh"
+            }
+            EOF
+          '';
+
+        task6M2CatchReadyGateRunbookUnitTests =
+          pkgs.runCommand "task6-m2-catch-ready-gate-runbook-unit-tests" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            runbook=${./scripts/task6/task6_m2_catch_ready_gate.sh}
+
+            set +e
+            ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --attempts 1 --sleep 0 >"$TMPDIR/no-hardware.stdout" 2>"$TMPDIR/no-hardware.stderr"
+            no_hardware_rc=$?
+            set -e
+            if [[ "$no_hardware_rc" -ne 2 ]]; then
+              echo "expected hardware-disabled catch command to exit 2, got $no_hardware_rc" >&2
+              cat "$TMPDIR/no-hardware.stderr" >&2
+              exit 1
+            fi
+            grep -q "hardware access is disabled" "$TMPDIR/no-hardware.stderr"
+
+            fake_root="$TMPDIR/fake-root"
+            mkdir -p "$fake_root/scripts/task6" "$fake_root/artifacts/task6/runs"
+            cat > "$fake_root/scripts/task6/task6_pcie_user_gate.sh" <<'EOF'
+            #!${pkgs.bash}/bin/bash
+            set -euo pipefail
+            mode="$1"
+            shift
+            case "$mode" in
+              lifecycle)
+                count_file="''${TASK6_FAKE_COUNT_FILE:?}"
+                count=0
+                if [[ -f "$count_file" ]]; then
+                  count="$(cat "$count_file")"
+                fi
+                count="$((count + 1))"
+                echo "$count" > "$count_file"
+                if [[ "$count" -lt 2 ]]; then
+                  echo "classification: unstable_config"
+                  echo "run_dir: $PWD/artifacts/task6/runs/fake-unstable"
+                  exit 1
+                fi
+                echo "classification: pcie_ready"
+                echo "run_dir: $PWD/artifacts/task6/runs/fake-ready"
+                exit 0
+                ;;
+              m2-full-block)
+                echo "m2 delegated gate reached"
+                exit 0
+                ;;
+              *)
+                echo "unexpected mode: $mode" >&2
+                exit 9
+                ;;
+            esac
+            EOF
+            chmod +x "$fake_root/scripts/task6/task6_pcie_user_gate.sh"
+            cat > "$TMPDIR/fake-m2-delegate.sh" <<'EOF'
+            #!${pkgs.bash}/bin/bash
+            set -euo pipefail
+            echo "m2 delegated gate reached"
+            printf 'delegated bdf: %s\n' "$1"
+            EOF
+            chmod +x "$TMPDIR/fake-m2-delegate.sh"
+
+            TASK6_REPO_ROOT="$fake_root" \
+              TASK6_PCIE_HARDWARE_ENABLE=1 \
+              TASK6_FAKE_COUNT_FILE="$TMPDIR/lifecycle-count" \
+              TASK6_M2_DELEGATED_COMMAND="$TMPDIR/fake-m2-delegate.sh" \
+              ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --attempts 3 --sleep 0 \
+                >"$TMPDIR/catch.stdout" 2>"$TMPDIR/catch.stderr"
+            grep -q "classification: unstable_config" "$TMPDIR/catch.stdout"
+            grep -q "classification: pcie_ready" "$TMPDIR/catch.stdout"
+            grep -q "m2 delegated gate reached" "$TMPDIR/catch.stdout"
+
+            cat > "$out/result.json" <<EOF
+            {
+              "artifact_name": "task6-m2-catch-ready-gate-runbook-unit-tests",
+              "status": "PASS",
+              "hardware_touched": false,
+              "checks": [
+                "hardware-enable guard exits before lifecycle",
+                "bounded catch loops on non-ready lifecycle",
+                "delegates only after pcie_ready lifecycle"
+              ]
+            }
+            EOF
+          '';
+
+        task6PcieMakeStableThenM2UnitTests =
+          pkgs.runCommand "task6-pcie-make-stable-then-m2-unit-tests" { } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            runbook=${./scripts/task6/task6_pcie_make_stable_then_m2.sh}
+            catch_script=${./scripts/task6/task6_m2_catch_ready_gate.sh}
+
+            set +e
+            TASK6_REPO_ROOT="$TMPDIR/missing-root" \
+              ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --catch-attempts 1 --catch-sleep 0 \
+                >"$TMPDIR/no-hardware.stdout" 2>"$TMPDIR/no-hardware.stderr"
+            no_hardware_rc=$?
+            set -e
+            if [[ "$no_hardware_rc" -ne 2 ]]; then
+              echo "expected hardware-disabled make-stable command to exit 2, got $no_hardware_rc" >&2
+              cat "$TMPDIR/no-hardware.stderr" >&2
+              exit 1
+            fi
+            grep -q "hardware access is disabled" "$TMPDIR/no-hardware.stderr"
+
+            fake_root="$TMPDIR/fake-root"
+            mkdir -p "$fake_root/scripts/task6" "$fake_root/artifacts/task6/runs"
+            cat > "$fake_root/scripts/task6/task6_m2_catch_ready_gate.sh" <<EOF
+            #!${pkgs.bash}/bin/bash
+            set -euo pipefail
+            exec ${pkgs.bash}/bin/bash "$catch_script" "\$@"
+            EOF
+            chmod +x "$fake_root/scripts/task6/task6_m2_catch_ready_gate.sh"
+            cat > "$fake_root/scripts/task6/task6_pcie_user_gate.sh" <<'EOF'
+            #!${pkgs.bash}/bin/bash
+            set -euo pipefail
+            mode="$1"
+            shift
+            case "$mode" in
+              lifecycle)
+                if [[ -f "''${TASK6_FAKE_RECOVERED_FILE:?}" ]]; then
+                  echo "classification: pcie_ready"
+                  echo "run_dir: $PWD/artifacts/task6/runs/fake-ready"
+                  exit 0
+                fi
+                echo "classification: unstable_config"
+                echo "run_dir: $PWD/artifacts/task6/runs/fake-unstable"
+                exit 1
+                ;;
+              recover-auto)
+                echo "fake recover-auto reached"
+                touch "''${TASK6_FAKE_RECOVERED_FILE:?}"
+                exit 0
+                ;;
+              *)
+                echo "unexpected mode: $mode" >&2
+                exit 9
+                ;;
+            esac
+            EOF
+            chmod +x "$fake_root/scripts/task6/task6_pcie_user_gate.sh"
+            cat > "$TMPDIR/fake-m2-delegate.sh" <<'EOF'
+            #!${pkgs.bash}/bin/bash
+            set -euo pipefail
+            echo "m2 delegated gate reached"
+            printf 'delegated bdf: %s\n' "$1"
+            EOF
+            chmod +x "$TMPDIR/fake-m2-delegate.sh"
+
+            set +e
+            TASK6_REPO_ROOT="$fake_root" \
+              TASK6_PCIE_HARDWARE_ENABLE=1 \
+              TASK6_M2_DELEGATED_COMMAND="$TMPDIR/fake-m2-delegate.sh" \
+              TASK6_FAKE_RECOVERED_FILE="$TMPDIR/recovered-no-ack" \
+              ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --catch-attempts 1 --catch-sleep 0 \
+                >"$TMPDIR/no-ack.stdout" 2>"$TMPDIR/no-ack.stderr"
+            no_ack_rc=$?
+            set -e
+            if [[ "$no_ack_rc" -ne 3 ]]; then
+              echo "expected non-acknowledged make-stable command to exit 3, got $no_ack_rc" >&2
+              cat "$TMPDIR/no-ack.stdout" >&2
+              cat "$TMPDIR/no-ack.stderr" >&2
+              exit 1
+            fi
+            grep -q "host reset/remove/rescan recovery is not acknowledged" "$TMPDIR/no-ack.stderr"
+
+            TASK6_REPO_ROOT="$fake_root" \
+              TASK6_PCIE_HARDWARE_ENABLE=1 \
+              TASK6_PCIE_HOST_FREEZE_RISK_ACK=1 \
+              TASK6_M2_DELEGATED_COMMAND="$TMPDIR/fake-m2-delegate.sh" \
+              TASK6_FAKE_RECOVERED_FILE="$TMPDIR/recovered-with-ack" \
+              ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --catch-attempts 1 --catch-sleep 0 \
+                >"$TMPDIR/with-ack.stdout" 2>"$TMPDIR/with-ack.stderr"
+            grep -q "classification: unstable_config" "$TMPDIR/with-ack.stdout"
+            grep -q "fake recover-auto reached" "$TMPDIR/with-ack.stdout"
+            grep -q "classification: pcie_ready" "$TMPDIR/with-ack.stdout"
+            grep -q "m2 delegated gate reached" "$TMPDIR/with-ack.stdout"
+
+            cat > "$out/result.json" <<EOF
+            {
+              "artifact_name": "task6-pcie-make-stable-then-m2-unit-tests",
+              "status": "PASS",
+              "hardware_touched": false,
+              "checks": [
+                "hardware-enable guard exits before lifecycle",
+                "non-ready PCIe refuses root recovery without freeze-risk acknowledgement",
+                "acknowledged root recovery is followed by a second pcie_ready catch before M2 delegate"
+              ]
+            }
+            EOF
+          '';
+
+        task6MilestoneEvidenceAuditUnitTests =
+          pkgs.runCommand "task6-milestone-evidence-audit-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_milestone_evidence_audit.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_milestone_evidence_audit"
+            }
+            EOF
+          '';
+
+        task6M3ReferenceManifestUnitTests =
+          pkgs.runCommand "task6-m3-reference-manifest-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_m3_reference_manifest.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_m3_reference_manifest"
+            }
+            EOF
+          '';
+
+        task6M3BoardArtifactUnitTests =
+          pkgs.runCommand "task6-m3-board-artifact-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_m3_board_artifact.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_m3_board_artifact"
+            }
+            EOF
+          '';
+
+        task6YpcbTinyStoriesInferenceGateUnitTests =
+          pkgs.runCommand "task6-ypcb-tinystories-inference-gate-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_ypcb_tinystories_inference_gate.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_ypcb_tinystories_inference_gate"
             }
             EOF
           '';
@@ -12838,6 +15295,84 @@ EOF
             task6TinyStories1mM2MlpResidualLoweringScore;
           task6-tinystories-1m-m2-full-block-lowering-score =
             task6TinyStories1mM2FullBlockLoweringScore;
+          task6-m2-first-token-attention-out-projection =
+            task6M2FirstTokenAttentionOutProjection;
+          task6-m2-first-token-mlp-replay =
+            task6M2FirstTokenMlpReplay;
+          task6-m2-last-token-attention-out-projection =
+            task6M2LastTokenAttentionOutProjection;
+          task6-m2-last-token-mlp-replay =
+            task6M2LastTokenMlpReplay;
+          task6-m2-last-token-live-kv-context-attention-out-projection =
+            task6M2LastTokenLiveKvContextAttentionOutProjection;
+          task6-m2-last-token-live-kv-context-mlp-replay =
+            task6M2LastTokenLiveKvContextMlpReplay;
+          task6-m2-first-token-full-block-tb-data-sv =
+            task6M2FirstTokenFullBlockTbDataSv;
+          task6-m2-last-token-full-block-tb-data-sv =
+            task6M2LastTokenFullBlockTbDataSv;
+          task6-m2-last-token-live-kv-context-full-block-tb-data-sv =
+            task6M2LastTokenLiveKvContextFullBlockTbDataSv;
+          task6-m2-token-block-input-tb-data-sv =
+            task6M2TokenBlockInputTbDataSv;
+          task6-m2-embedding-block-input-tb-data-sv =
+            task6M2EmbeddingBlockInputTbDataSv;
+          task6-m2-first-token-mlp-c-proj-residual-accel-sim-main =
+            task6M2FirstTokenMlpCProjResidualAccelSimMain;
+          task6-m2-first-token-mlp-c-proj-residual-accel-sv-sim =
+            task6M2FirstTokenMlpCProjResidualAccelSvSim;
+          task6-m2-first-token-mlp-c-fc-gelu-accel-sim-main =
+            task6M2FirstTokenMlpCFcGeluAccelSimMain;
+          task6-m2-first-token-mlp-c-fc-gelu-accel-sv-sim =
+            task6M2FirstTokenMlpCFcGeluAccelSvSim;
+          task6-m2-first-token-mlp-integrated-accel-sim-main =
+            task6M2FirstTokenMlpIntegratedAccelSimMain;
+          task6-m2-first-token-mlp-integrated-accel-sv-sim =
+            task6M2FirstTokenMlpIntegratedAccelSvSim;
+          task6-m2-first-token-full-block-accel-sim-main =
+            task6M2FirstTokenFullBlockAccelSimMain;
+          task6-m2-first-token-full-block-accel-sv-sim =
+            task6M2FirstTokenFullBlockAccelSvSim;
+          task6-m2-last-token-full-block-accel-sim-main =
+            task6M2LastTokenFullBlockAccelSimMain;
+          task6-m2-last-token-full-block-accel-sv-sim =
+            task6M2LastTokenFullBlockAccelSvSim;
+          task6-m2-last-token-live-kv-context-full-block-accel-sim-main =
+            task6M2LastTokenLiveKvContextFullBlockAccelSimMain;
+          task6-m2-last-token-live-kv-context-full-block-accel-sv-sim =
+            task6M2LastTokenLiveKvContextFullBlockAccelSvSim;
+          task6-m2-last-token-live-context-full-block-accel-sim-main =
+            task6M2LastTokenLiveContextFullBlockAccelSimMain;
+          task6-m2-last-token-live-context-full-block-accel-sv-sim =
+            task6M2LastTokenLiveContextFullBlockAccelSvSim;
+          task6-m2-token-live-context-full-block-accel-sim-main =
+            task6M2TokenLiveContextFullBlockAccelSimMain;
+          task6-m2-token-live-context-full-block-accel-sv-sim =
+            task6M2TokenLiveContextFullBlockAccelSvSim;
+          task6-m2-embedding-live-context-full-block-accel-sim-main =
+            task6M2EmbeddingLiveContextFullBlockAccelSimMain;
+          task6-m2-embedding-live-context-full-block-accel-sv-sim =
+            task6M2EmbeddingLiveContextFullBlockAccelSvSim;
+          task6-m2-embedding-live-context-full-block-pcie-accel-sim-main =
+            task6M2EmbeddingLiveContextFullBlockPcieAccelSimMain;
+          task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim =
+            task6M2EmbeddingLiveContextFullBlockPcieAccelSvSim;
+          task6-m2-first-token-full-block-pcie-accel-sim-main =
+            task6M2FirstTokenFullBlockPcieAccelSimMain;
+          task6-m2-first-token-full-block-pcie-accel-sv-sim =
+            task6M2FirstTokenFullBlockPcieAccelSvSim;
+          task6-m2-last-token-live-kv-context-full-block-pcie-accel-sim-main =
+            task6M2LastTokenLiveKvContextFullBlockPcieAccelSimMain;
+          task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim =
+            task6M2LastTokenLiveKvContextFullBlockPcieAccelSvSim;
+          task6-m2-first-token-attention-out-proj-accel-sim-main =
+            task6M2FirstTokenAttentionOutProjAccelSimMain;
+          task6-m2-first-token-attention-out-proj-accel-sv-sim =
+            task6M2FirstTokenAttentionOutProjAccelSvSim;
+          task6-m2-last-token-live-kv-context-attention-out-proj-accel-sim-main =
+            task6M2LastTokenLiveKvContextAttentionOutProjAccelSimMain;
+          task6-m2-last-token-live-kv-context-attention-out-proj-accel-sv-sim =
+            task6M2LastTokenLiveKvContextAttentionOutProjAccelSvSim;
           task6-m2-full-block-replay-selftest-tb-data-sv =
             task6M2FullBlockReplaySelftestTbDataSv;
           task6-m2-full-block-replay-selftest-sim-main =
@@ -12848,8 +15383,56 @@ EOF
             task6M2FullBlockReplaySelftestJson;
           task6-m2-full-block-replay-selftest-utilization =
             task6M2FullBlockReplaySelftestUtilization;
+          task6-m2-full-block-gate-unit-tests =
+            task6M2FullBlockGateUnitTests;
+          task6-pcie-flash-unit-tests =
+            task6PcieFlashUnitTests;
+          task6-pcie-lifecycle-unit-tests =
+            task6PcieLifecycleUnitTests;
+          task6-pcie-recovery-orchestrator-unit-tests =
+            task6PcieRecoveryOrchestratorUnitTests;
+          task6-m2-first-token-full-block-pcie-gate-runbook =
+            task6M2FirstTokenFullBlockPcieGateRunbook;
+          task6-m2-last-token-live-kv-context-full-block-pcie-gate-runbook =
+            task6M2LastTokenLiveKvContextFullBlockPcieGateRunbook;
+          task6-m2-embedding-live-context-full-block-pcie-gate-runbook =
+            task6M2EmbeddingLiveContextFullBlockPcieGateRunbook;
+          task6-m2-host-reenumeration-gate-runbook =
+            task6M2HostReenumerationGateRunbook;
+          task6-m2-catch-ready-gate-runbook =
+            task6M2CatchReadyGateRunbook;
+          task6-m2-catch-ready-gate-runbook-unit-tests =
+            task6M2CatchReadyGateRunbookUnitTests;
+          task6-pcie-make-stable-then-m2-unit-tests =
+            task6PcieMakeStableThenM2UnitTests;
+          task6-milestone-evidence-audit-unit-tests =
+            task6MilestoneEvidenceAuditUnitTests;
+          task6-m3-reference-manifest =
+            task6M3ReferenceManifest;
+          task6-m3-ypcb-inference-gate-runbook =
+            task6M3YpcbInferenceGateRunbook;
+          task6-m3-ypcb-inference-gate-runbook-unit-tests =
+            task6M3YpcbInferenceGateRunbookUnitTests;
+          task6-m3-reference-manifest-unit-tests =
+            task6M3ReferenceManifestUnitTests;
+          task6-m3-board-artifact-unit-tests =
+            task6M3BoardArtifactUnitTests;
+          task6-ypcb-tinystories-inference-gate-unit-tests =
+            task6YpcbTinyStoriesInferenceGateUnitTests;
           task6-m2-ln-attn-sublane-selftest-tb-data-sv =
             task6M2LnAttnSublaneSelftestTbDataSv;
+          task6-m2-ln-attn-sublane-first-token-tb-data-sv =
+            task6M2LnAttnSublaneFirstTokenTbDataSv;
+          task6-m2-ln-attn-sublane-first-token-head15-tb-data-sv =
+            task6M2LnAttnSublaneFirstTokenHead15TbDataSv;
+          task6-m2-ln-attn-full-hidden-first-token-tb-data-sv =
+            task6M2LnAttnFullHiddenFirstTokenTbDataSv;
+          task6-m2-ln-attn-full-hidden-last-token-tb-data-sv =
+            task6M2LnAttnFullHiddenLastTokenTbDataSv;
+          task6-m2-ln-attn-live-kv-cache-tb-data-sv =
+            task6M2LnAttnLiveKvCacheTbDataSv;
+          task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv =
+            task6M2LnAttnLiveKvAllHeadsContextTbDataSv;
           task6-m2-ln-attn-sublane-selftest-sim-main =
             task6M2LnAttnSublaneSelftestSimMain;
           task6-m2-ln-attn-sublane-selftest-sv-sim =
@@ -12860,12 +15443,70 @@ EOF
             task6M2LnAttnSublaneSelftestUtilization;
           task6-m2-ln-attn-sublane-accel-sim-main =
             task6M2LnAttnSublaneAccelSimMain;
+          task6-m2-ln-attn-sublane-first-token-accel-sim-main =
+            task6M2LnAttnSublaneFirstTokenAccelSimMain;
+          task6-m2-ln-attn-sublane-first-token-head15-accel-sim-main =
+            task6M2LnAttnSublaneFirstTokenHead15AccelSimMain;
+          task6-m2-ln-attn-full-hidden-first-token-accel-sim-main =
+            task6M2LnAttnFullHiddenFirstTokenAccelSimMain;
+          task6-m2-ln-attn-full-hidden-last-token-accel-sim-main =
+            task6M2LnAttnFullHiddenLastTokenAccelSimMain;
+          task6-m2-ln-attn-external-kv-last-token-accel-sim-main =
+            task6M2LnAttnExternalKvLastTokenAccelSimMain;
+          task6-m2-ln-attn-live-kv-cache-accel-sim-main =
+            task6M2LnAttnLiveKvCacheAccelSimMain;
+          task6-m2-ln-attn-live-kv-all-heads-context-accel-sim-main =
+            task6M2LnAttnLiveKvAllHeadsContextAccelSimMain;
           task6-m2-ln-attn-sublane-accel-sv-sim =
             task6M2LnAttnSublaneAccelSvSim;
+          task6-m2-ln-attn-sublane-first-token-accel-sv-sim =
+            task6M2LnAttnSublaneFirstTokenAccelSvSim;
+          task6-m2-ln-attn-sublane-first-token-head15-accel-sv-sim =
+            task6M2LnAttnSublaneFirstTokenHead15AccelSvSim;
+          task6-m2-ln-attn-full-hidden-first-token-accel-sv-sim =
+            task6M2LnAttnFullHiddenFirstTokenAccelSvSim;
+          task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim =
+            task6M2LnAttnFullHiddenLastTokenAccelSvSim;
+          task6-m2-ln-attn-external-kv-last-token-accel-sv-sim =
+            task6M2LnAttnExternalKvLastTokenAccelSvSim;
+          task6-m2-ln-attn-live-kv-cache-accel-sv-sim =
+            task6M2LnAttnLiveKvCacheAccelSvSim;
+          task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim =
+            task6M2LnAttnLiveKvCacheAllHeadsSvSim;
+          task6-m2-ln-attn-live-kv-all-heads-context-accel-sv-sim =
+            task6M2LnAttnLiveKvAllHeadsContextAccelSvSim;
           task6-m2-ln-attn-sublane-accel-json =
             task6M2LnAttnSublaneAccelJson;
           task6-m2-ln-attn-sublane-accel-utilization =
             task6M2LnAttnSublaneAccelUtilization;
+          task6-m2-ln-attn-live-kv-all-heads-context-accel-json =
+            task6M2LnAttnLiveKvAllHeadsContextAccelJson;
+          task6-m2-ln-attn-live-kv-all-heads-context-accel-utilization =
+            task6M2LnAttnLiveKvAllHeadsContextAccelUtilization;
+          task6-m2-first-token-full-block-accel-json =
+            task6M2FirstTokenFullBlockAccelJson;
+          task6-m2-first-token-full-block-accel-utilization =
+            task6M2FirstTokenFullBlockAccelUtilization;
+          task6-m2-last-token-live-context-full-block-accel-json =
+            task6M2LastTokenLiveContextFullBlockAccelJson;
+          task6-m2-last-token-live-context-full-block-accel-utilization =
+            task6M2LastTokenLiveContextFullBlockAccelUtilization;
+          task6-m2-token-live-context-full-block-accel-json =
+            task6M2TokenLiveContextFullBlockAccelJson;
+          task6-m2-token-live-context-full-block-accel-utilization =
+            task6M2TokenLiveContextFullBlockAccelUtilization;
+          task6-m2-embedding-live-context-full-block-accel-json =
+            task6M2EmbeddingLiveContextFullBlockAccelJson;
+          task6-m2-embedding-live-context-full-block-accel-utilization =
+            task6M2EmbeddingLiveContextFullBlockAccelUtilization;
+          task6-m2-first-token-full-block-pcie-accel-json =
+            task6M2FirstTokenFullBlockPcieAccelJson;
+          task6-m2-first-token-full-block-pcie-accel-utilization =
+            task6M2FirstTokenFullBlockPcieAccelUtilization;
+          task6-m2-last-token-live-kv-context-full-block-pcie-accel-json =
+            task6M2LastTokenLiveKvContextFullBlockPcieAccelJson;
+          task6-m2-last-token-live-kv-context-full-block-pcie-accel-utilization =
+            task6M2LastTokenLiveKvContextFullBlockPcieAccelUtilization;
           tb-data-sv = tbDataSv;
           sim-main = simMain;
           matmul-sv-sim = matmulSvSim;

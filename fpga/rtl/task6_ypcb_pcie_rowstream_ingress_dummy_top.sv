@@ -1,7 +1,10 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-module task6_ypcb_pcie_rowstream_ingress_dummy_top (
+module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
+  parameter int M2_FULL_BLOCK_TOKEN_INDEX = 5,
+  parameter bit ENABLE_MLP_ACCEL = 1'b1
+) (
   output wire        pci_exp_txp,
   output wire        pci_exp_txn,
   input  wire        pci_exp_rxp,
@@ -62,6 +65,21 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top (
   wire [31:0] rowstream_mlp_accel_output_sample0;
   wire [31:0] rowstream_mlp_accel_output_sample1;
   wire [511:0] rowstream_mlp_accel_output_vector;
+  wire [511:0] rowstream_m2_full_block_input_vector;
+  wire [511:0] rowstream_m2_full_block_residual_vector;
+  wire rowstream_m2_full_block_start;
+  wire rowstream_m2_full_block_clear;
+  wire [31:0] rowstream_m2_full_block_status;
+  wire [31:0] rowstream_m2_full_block_cycle_count;
+  wire [31:0] rowstream_m2_full_block_output_checksum;
+  wire [31:0] rowstream_m2_full_block_output_sample0;
+  wire [31:0] rowstream_m2_full_block_output_sample1;
+  wire [31:0] rowstream_m2_full_block_output_count;
+  wire [511:0] rowstream_m2_full_block_output_vector;
+  wire [31:0] rowstream_m2_full_block_debug;
+  wire [31:0] rowstream_m2_full_block_debug1;
+  wire [31:0] rowstream_m2_full_block_debug2;
+  wire [31:0] rowstream_m2_full_block_provenance;
 
   reg loader_done_q;
   reg loader_error_q;
@@ -84,7 +102,8 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top (
   assign led[0] = pcie_led[0];
   assign led[1] = pcie_user_rst_n;
   assign led[2] =
-    loader_last_accepted_q | top1_done_q | rowstream_mlp_accel_status[3];
+    loader_last_accepted_q | top1_done_q | rowstream_mlp_accel_status[3] |
+    rowstream_m2_full_block_status[3];
 
   assign rowstream_mlp_selftest_status = 32'd0;
   assign rowstream_mlp_selftest_cycle_count = rowstream_mlp_accel_cycle_count;
@@ -206,32 +225,69 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top (
     .rowstream_mlp_accel_output_sample0_i(rowstream_mlp_accel_output_sample0),
     .rowstream_mlp_accel_output_sample1_i(rowstream_mlp_accel_output_sample1),
     .rowstream_mlp_accel_output_vector_i(rowstream_mlp_accel_output_vector),
-    .rowstream_m2_full_block_input_vector_o(),
-    .rowstream_m2_full_block_residual_vector_o(),
-    .rowstream_m2_full_block_start_o(),
-    .rowstream_m2_full_block_clear_o(),
-    .rowstream_m2_full_block_status_i(32'd0),
-    .rowstream_m2_full_block_cycle_count_i(32'd0),
-    .rowstream_m2_full_block_output_checksum_i(32'd0),
-    .rowstream_m2_full_block_output_sample0_i(32'd0),
-    .rowstream_m2_full_block_output_sample1_i(32'd0),
-    .rowstream_m2_full_block_output_count_i(32'd0),
-    .rowstream_m2_full_block_output_vector_i(512'd0)
+    .rowstream_m2_full_block_input_vector_o(rowstream_m2_full_block_input_vector),
+    .rowstream_m2_full_block_residual_vector_o(rowstream_m2_full_block_residual_vector),
+    .rowstream_m2_full_block_start_o(rowstream_m2_full_block_start),
+    .rowstream_m2_full_block_clear_o(rowstream_m2_full_block_clear),
+    .rowstream_m2_full_block_status_i(rowstream_m2_full_block_status),
+    .rowstream_m2_full_block_cycle_count_i(rowstream_m2_full_block_cycle_count),
+    .rowstream_m2_full_block_output_checksum_i(rowstream_m2_full_block_output_checksum),
+    .rowstream_m2_full_block_output_sample0_i(rowstream_m2_full_block_output_sample0),
+    .rowstream_m2_full_block_output_sample1_i(rowstream_m2_full_block_output_sample1),
+    .rowstream_m2_full_block_output_count_i(rowstream_m2_full_block_output_count),
+    .rowstream_m2_full_block_debug_i(rowstream_m2_full_block_debug),
+    .rowstream_m2_full_block_debug1_i(rowstream_m2_full_block_debug1),
+    .rowstream_m2_full_block_debug2_i(rowstream_m2_full_block_debug2),
+    .rowstream_m2_full_block_provenance_i(rowstream_m2_full_block_provenance),
+    .rowstream_m2_full_block_output_vector_i(rowstream_m2_full_block_output_vector)
   );
 
-  task6_int8_l2_mlp_chain_residual_add_accel_top mlp_accel (
+  generate
+    if (ENABLE_MLP_ACCEL) begin : gen_mlp_accel
+      task6_int8_l2_mlp_chain_residual_add_accel_top mlp_accel (
+        .SYS_CLK(pcie_user_clk),
+        .SYS_RSTN(pcie_user_rst_n),
+        .pcie_accel_activation_i(rowstream_mlp_accel_activation_vector),
+        .pcie_accel_residual_i(rowstream_mlp_accel_residual_vector),
+        .pcie_accel_start_pulse_i(rowstream_mlp_accel_start),
+        .pcie_accel_clear_pulse_i(rowstream_mlp_accel_clear),
+        .pcie_accel_status_o(rowstream_mlp_accel_status),
+        .pcie_accel_cycle_count_o(rowstream_mlp_accel_cycle_count),
+        .pcie_accel_output_checksum_o(rowstream_mlp_accel_output_checksum),
+        .pcie_accel_output_sample0_o(rowstream_mlp_accel_output_sample0),
+        .pcie_accel_output_sample1_o(rowstream_mlp_accel_output_sample1),
+        .pcie_accel_output_vector_o(rowstream_mlp_accel_output_vector)
+      );
+    end else begin : gen_no_mlp_accel
+      assign rowstream_mlp_accel_status = 32'd0;
+      assign rowstream_mlp_accel_cycle_count = 32'd0;
+      assign rowstream_mlp_accel_output_checksum = 32'd0;
+      assign rowstream_mlp_accel_output_sample0 = 32'd0;
+      assign rowstream_mlp_accel_output_sample1 = 32'd0;
+      assign rowstream_mlp_accel_output_vector = 512'd0;
+    end
+  endgenerate
+
+  task6_m2_embedding_live_context_full_block_pcie_accel_top #(
+    .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX)
+  ) m2_full_block_accel (
     .SYS_CLK(pcie_user_clk),
     .SYS_RSTN(pcie_user_rst_n),
-    .pcie_accel_activation_i(rowstream_mlp_accel_activation_vector),
-    .pcie_accel_residual_i(rowstream_mlp_accel_residual_vector),
-    .pcie_accel_start_pulse_i(rowstream_mlp_accel_start),
-    .pcie_accel_clear_pulse_i(rowstream_mlp_accel_clear),
-    .pcie_accel_status_o(rowstream_mlp_accel_status),
-    .pcie_accel_cycle_count_o(rowstream_mlp_accel_cycle_count),
-    .pcie_accel_output_checksum_o(rowstream_mlp_accel_output_checksum),
-    .pcie_accel_output_sample0_o(rowstream_mlp_accel_output_sample0),
-    .pcie_accel_output_sample1_o(rowstream_mlp_accel_output_sample1),
-    .pcie_accel_output_vector_o(rowstream_mlp_accel_output_vector)
+    .pcie_token_ids_i(rowstream_m2_full_block_input_vector),
+    .pcie_reserved_i(rowstream_m2_full_block_residual_vector),
+    .pcie_start_pulse_i(rowstream_m2_full_block_start),
+    .pcie_clear_pulse_i(rowstream_m2_full_block_clear),
+    .pcie_status_o(rowstream_m2_full_block_status),
+    .pcie_cycle_count_o(rowstream_m2_full_block_cycle_count),
+    .pcie_output_checksum_o(rowstream_m2_full_block_output_checksum),
+    .pcie_output_sample0_o(rowstream_m2_full_block_output_sample0),
+    .pcie_output_sample1_o(rowstream_m2_full_block_output_sample1),
+    .pcie_output_count_o(rowstream_m2_full_block_output_count),
+    .pcie_output_vector_o(rowstream_m2_full_block_output_vector),
+    .pcie_debug_o(rowstream_m2_full_block_debug),
+    .pcie_debug1_o(rowstream_m2_full_block_debug1),
+    .pcie_debug2_o(rowstream_m2_full_block_debug2),
+    .pcie_provenance_o(rowstream_m2_full_block_provenance)
   );
 
   always @(posedge pcie_user_clk or negedge pcie_user_rst_n) begin

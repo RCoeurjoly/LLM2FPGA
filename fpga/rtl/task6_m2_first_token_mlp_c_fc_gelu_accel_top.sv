@@ -1,0 +1,235 @@
+`timescale 1ns/1ps
+
+module task6_m2_first_token_mlp_c_fc_gelu_accel_top (
+  input logic SYS_CLK,
+  input logic SYS_RSTN,
+  input logic start_i,
+  output logic [31:0] status_o,
+  output logic [31:0] cycle_count_o,
+  output logic [31:0] post_gelu_checksum_o,
+  output logic [31:0] post_gelu_sample0_o,
+  output logic [31:0] post_gelu_sample1_o,
+  output logic [511:0] post_gelu_first64_vector_o,
+  output logic [31:0] debug_o
+);
+  `include "tb_data.sv"
+
+  typedef enum logic [2:0] {
+    ST_IDLE = 3'd0,
+    ST_RUN = 3'd1,
+    ST_CHECK = 3'd2,
+    ST_DONE = 3'd3,
+    ST_ERROR = 3'd4
+  } state_t;
+
+  localparam int OUT_INDEX_WIDTH = $clog2(MLP_C_FC_OUT_DIM);
+  localparam int IN_INDEX_WIDTH = $clog2(MLP_C_FC_IN_DIM);
+
+  state_t state_q;
+  logic [OUT_INDEX_WIDTH - 1:0] out_index_q;
+  logic [IN_INDEX_WIDTH - 1:0] in_index_q;
+  logic signed [31:0] acc_q;
+  logic signed [31:0] next_acc_w;
+  logic signed [63:0] x_product_w;
+  logic signed [63:0] x_shifted_w;
+  logic signed [31:0] x_q_w;
+  logic signed [7:0] post_gelu_q_w;
+  logic [7:0] post_gelu_u8_w;
+  logic [31:0] out_index_u32_w;
+  logic [31:0] weighted_value_w;
+  logic [31:0] cycle_count_q;
+  logic [31:0] checksum_q;
+  logic [31:0] sample0_q;
+  logic [31:0] sample1_q;
+  logic [511:0] first64_vector_q;
+  logic output_valid_q;
+  logic error_q;
+
+  function automatic signed [63:0] round_shift_signed64(
+    input signed [63:0] value,
+    input int shift
+  );
+    logic signed [63:0] abs_value;
+    begin
+      if (shift == 0) begin
+        round_shift_signed64 = value;
+      end else if (value >= 0) begin
+        round_shift_signed64 = (value + (64'sd1 <<< (shift - 1))) >>> shift;
+      end else begin
+        abs_value = -value;
+        round_shift_signed64 =
+          -((abs_value + (64'sd1 <<< (shift - 1))) >>> shift);
+      end
+    end
+  endfunction
+
+  function automatic signed [7:0] saturate_i8(input signed [31:0] value);
+    begin
+      if (value > 32'sd127) begin
+        saturate_i8 = 8'sd127;
+      end else if (value < -32'sd127) begin
+        saturate_i8 = -8'sd127;
+      end else begin
+        saturate_i8 = value[7:0];
+      end
+    end
+  endfunction
+
+  function automatic signed [7:0] fixed_post_gelu_pwl(input signed [31:0] x_q);
+    int segment;
+    logic signed [31:0] x0;
+    logic signed [31:0] x1;
+    logic signed [31:0] y0;
+    logic signed [31:0] y1;
+    logic signed [63:0] numerator;
+    logic signed [31:0] denominator;
+    logic signed [31:0] recip_q;
+    logic signed [63:0] delta_product;
+    logic signed [63:0] delta_q;
+    begin
+      segment = 0;
+      for (int idx = 0; idx < MLP_GELU_PWL_NODE_COUNT - 1; idx = idx + 1) begin
+        if (x_q >= mlp_gelu_pwl_x_nodes[idx]) begin
+          segment = idx;
+        end
+      end
+      if (segment >= MLP_GELU_PWL_NODE_COUNT - 1) begin
+        segment = MLP_GELU_PWL_NODE_COUNT - 2;
+      end
+      x0 = mlp_gelu_pwl_x_nodes[segment];
+      x1 = mlp_gelu_pwl_x_nodes[segment + 1];
+      y0 = {{24{mlp_gelu_pwl_y_nodes[segment][7]}}, mlp_gelu_pwl_y_nodes[segment]};
+      y1 = {{24{mlp_gelu_pwl_y_nodes[segment + 1][7]}}, mlp_gelu_pwl_y_nodes[segment + 1]};
+      numerator = $signed(x_q - x0) * $signed(y1 - y0);
+      denominator = x1 - x0;
+      recip_q = ((32'sd1 <<< 16) + (denominator >>> 1)) / denominator;
+      delta_product = numerator * $signed(recip_q);
+      delta_q = round_shift_signed64(delta_product, 16);
+      fixed_post_gelu_pwl = saturate_i8($signed(y0 + delta_q[31:0]));
+    end
+  endfunction
+
+  assign next_acc_w =
+    acc_q +
+    ($signed(mlp_ln2_q[in_index_q]) *
+     $signed(mlp_c_fc_weight_q[out_index_q][in_index_q]));
+  assign x_product_w =
+    $signed(acc_q) * $signed(mlp_c_fc_scale_mul_q[out_index_q]);
+  assign x_shifted_w = round_shift_signed64(x_product_w, MLP_C_FC_SCALE_SHIFT);
+  assign x_q_w = $signed(x_shifted_w[31:0]) + $signed(mlp_c_fc_bias_q[out_index_q]);
+  assign post_gelu_q_w = fixed_post_gelu_pwl(x_q_w);
+  assign post_gelu_u8_w = post_gelu_q_w[7:0];
+  assign out_index_u32_w = {{(32 - OUT_INDEX_WIDTH){1'b0}}, out_index_q};
+  assign weighted_value_w = {24'd0, post_gelu_u8_w} * (out_index_u32_w + 32'd1);
+
+  always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
+    if (!SYS_RSTN) begin
+      state_q <= ST_IDLE;
+      out_index_q <= '0;
+      in_index_q <= '0;
+      acc_q <= 32'sd0;
+      cycle_count_q <= 32'd0;
+      checksum_q <= 32'd0;
+      sample0_q <= 32'd0;
+      sample1_q <= 32'd0;
+      first64_vector_q <= 512'd0;
+      output_valid_q <= 1'b0;
+      error_q <= 1'b0;
+      debug_o <= 32'd0;
+    end else begin
+      unique case (state_q)
+        ST_IDLE: begin
+          if (start_i) begin
+            state_q <= ST_RUN;
+            out_index_q <= '0;
+            in_index_q <= '0;
+            acc_q <= 32'sd0;
+            cycle_count_q <= 32'd0;
+            checksum_q <= 32'd0;
+            sample0_q <= 32'd0;
+            sample1_q <= 32'd0;
+            first64_vector_q <= 512'd0;
+            output_valid_q <= 1'b0;
+            error_q <= 1'b0;
+            debug_o <= 32'd0;
+          end
+        end
+
+        ST_RUN: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          acc_q <= next_acc_w;
+          if (in_index_q == IN_INDEX_WIDTH'(MLP_C_FC_IN_DIM - 1)) begin
+            state_q <= ST_CHECK;
+          end else begin
+            in_index_q <= in_index_q + IN_INDEX_WIDTH'(1);
+          end
+        end
+
+        ST_CHECK: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          if (acc_q != mlp_c_fc_expected_acc[out_index_q]) begin
+            state_q <= ST_ERROR;
+            error_q <= 1'b1;
+            debug_o <= {8'h01, out_index_u32_w[7:0], acc_q[15:0]};
+          end else if (x_q_w != mlp_c_fc_expected_x_q[out_index_q]) begin
+            state_q <= ST_ERROR;
+            error_q <= 1'b1;
+            debug_o <= {8'h02, out_index_u32_w[7:0], x_q_w[15:0]};
+          end else if (post_gelu_q_w != mlp_post_gelu_q[out_index_q]) begin
+            state_q <= ST_ERROR;
+            error_q <= 1'b1;
+            debug_o <= {8'h03, out_index_u32_w[7:0], 8'd0, post_gelu_q_w};
+          end else begin
+            checksum_q <= checksum_q + weighted_value_w;
+            if (out_index_u32_w < 32'd4) begin
+              sample0_q <=
+                sample0_q | ({24'd0, post_gelu_u8_w} << (8 * out_index_q[1:0]));
+            end else if (out_index_u32_w < 32'd8) begin
+              sample1_q <=
+                sample1_q | ({24'd0, post_gelu_u8_w} << (8 * out_index_q[1:0]));
+            end
+            if (out_index_u32_w < 32'd64) begin
+              first64_vector_q[out_index_q[5:0] * 8 +: 8] <= post_gelu_q_w;
+            end
+            if (out_index_q == OUT_INDEX_WIDTH'(MLP_C_FC_OUT_DIM - 1)) begin
+              state_q <= ST_DONE;
+              output_valid_q <= 1'b1;
+            end else begin
+              out_index_q <= out_index_q + OUT_INDEX_WIDTH'(1);
+              in_index_q <= '0;
+              acc_q <= 32'sd0;
+              state_q <= ST_RUN;
+            end
+          end
+        end
+
+        ST_DONE: begin
+          state_q <= ST_DONE;
+        end
+
+        default: begin
+          state_q <= ST_ERROR;
+          error_q <= 1'b1;
+        end
+      endcase
+    end
+  end
+
+  always_comb begin
+    status_o = {
+      16'h4346,
+      8'd0,
+      1'b0,
+      state_q,
+      output_valid_q,
+      error_q,
+      state_q == ST_RUN || state_q == ST_CHECK,
+      state_q == ST_IDLE || state_q == ST_DONE
+    };
+    cycle_count_o = cycle_count_q;
+    post_gelu_checksum_o = checksum_q;
+    post_gelu_sample0_o = sample0_q;
+    post_gelu_sample1_o = sample1_q;
+    post_gelu_first64_vector_o = first64_vector_q;
+  end
+endmodule

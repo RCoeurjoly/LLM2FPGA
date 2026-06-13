@@ -4,6 +4,490 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-12 - M2 external attention-context BAR handoff checkpoint
+
+Advanced the M2 full-block PCIe candidate so the attention out-projection block
+can consume a 64-byte external attention-context vector instead of only the
+compiled `out_proj_context_q[]` fixture table. The composed PCIe wrapper now
+feeds that context through the existing second 512-bit BAR vector input. The
+M2 host gate parses `out_proj_context_q[]` from the matching `tb_data.sv` and
+uses it as the default context vector when `--residual-hex` is not supplied.
+
+This is still host-assisted candidate plumbing, not M2 closure: the current
+board contract can carry a context vector over BAR, but it does not yet prove
+token/control-input live attention context generation on the FPGA. M2 remains
+open; M3 remains open.
+
+Implementation changes:
+
+- `task6_m2_first_token_attention_out_proj_accel_top.sv` gained
+  `use_external_context_i` and `external_context_vector_i`.
+- `task6_m2_first_token_full_block_accel_top.sv` passes the optional context
+  vector through to the attention out-projection block.
+- `task6_m2_first_token_full_block_pcie_accel_top.sv` drives the external
+  context path from the existing `pcie_residual_after_attention_i` BAR vector.
+- The attention/full-block simulations now explicitly populate both external
+  context and external block-input vectors from the fixture.
+- `task6_pcie_m2_full_block_gate.py` now parses `out_proj_context_q[]` and
+  records whether the second BAR vector came from explicit `--residual-hex`,
+  `tb_data_sv out_proj_context_q`, or zeros.
+
+Verification:
+
+- Python syntax:
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- Diff hygiene:
+  `git diff --check -- scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv fpga/rtl/task6_m2_first_token_full_block_accel_top.sv fpga/rtl/task6_m2_first_token_full_block_pcie_accel_top.sv sim/task6_m2_first_token_attention_out_proj_accel_tb_main.sv sim/task6_m2_first_token_full_block_accel_tb_main.sv sim/task6_m2_first_token_full_block_pcie_accel_tb_main.sv`
+- First-token focused sims and gate unit tests:
+  `nix build .#task6-m2-first-token-attention-out-proj-accel-sv-sim .#task6-m2-first-token-full-block-accel-sv-sim .#task6-m2-first-token-full-block-pcie-accel-sv-sim .#task6-m2-full-block-gate-unit-tests -o /tmp/task6-m2-external-context-sim -L`
+  - attention out-projection PASS, cycles `4352`, checksum `0003920f`,
+    sample0 `da032747`, sample1 `d9ae3f0c`, residual checksum `0003eaf0`,
+    LN2 checksum `00040ac1`
+  - first-token full-block PASS, cycles `37765`, final checksum `000365ee`,
+    sample0 `c70ceb30`, sample1 `c641126c`
+  - first-token PCIe wrapper PASS, cycles `37765`, final checksum `000365ee`,
+    sample0 `c70ceb30`, sample1 `c641126c`, debug `00000000`,
+    debug1 `920feaf0`, debug2 `c16d7cf9`
+- Last-token live-K/V-context sims and integrated Yosys:
+  `nix build .#task6-m2-last-token-live-kv-context-full-block-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-external-context-yosys -L`
+  - last-token live-K/V-context full-block PASS, cycles `37765`,
+    final checksum `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`
+  - last-token live-K/V-context PCIe wrapper PASS, cycles `37765`,
+    final checksum `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`,
+    debug `00000000`, debug1 `9049f7fb`, debug2 `3a4fedcb`
+  - Yosys `check`: 0 problems
+  - peak Yosys memory: 2064.60 MB
+  - final stats: 35,116 cells, 48 DSP48E1, 849 CARRY4, 7,547 FDCE,
+    6,922 FDRE, 13 RAMB36E1, and 13,714 estimated LCs
+- Integrated pnr100 bitstream:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-external-context-rowstream-dummy-pnr100-bitstream -L`
+  - result:
+    `/nix/store/3malicsc9ajvwvp7j8z3r6vihkcp7x36-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+  - nextpnr result:
+    226 warnings, 0 errors
+  - routed timing:
+    `pcie_user_clk` 72.23 MHz PASS at 62.50 MHz; DRCK 305.90 MHz PASS at
+    100.00 MHz; PIPE_OOBCLK 217.68 MHz PASS at 100.00 MHz
+  - device utilization:
+    23,924 SLICE_LUTX, 14,490 SLICE_FFX, 887 CARRY4, 13 RAMB36E1,
+    48 DSP48E1, and 1 PCIE_2_1
+
+Board-facing step:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write /nix/store/3malicsc9ajvwvp7j8z3r6vihkcp7x36-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit --confirm-write-flash --label task6-m2-external-context-pnr100-flash`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T19-42-28+0200-task6-m2-external-context-pnr100-flash`
+- Result:
+  openFPGALoader exited 0, detected Intel/Micron BPI flash, reported 64 MB
+  capacity, wrote 18,735,004 bytes, verified the first 32 words, and reported
+  BPI flash programming complete.
+
+The post-flash non-BAR lifecycle probe did not reach a BAR-safe state:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-external-context-post-flash-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T19-49-33+0200-task6-m2-external-context-post-flash-lifecycle`
+- Classification:
+  `wrong_vendor`
+- Details:
+  `lspci` still reported Xilinx `10ee:0480`, but the `setpci` config-space
+  probe returned `vendor = ffff`, `device = 0480`, `header_type = 00`,
+  `subsystem_device = abcd`, and BAR0 `00000000`.
+
+No M2 BAR gate, PCIe reset, endpoint remove/rescan, or bridge rescan was run
+from this state. The next board step remains physical/cold re-enumeration with
+the external-context BPI image already configured, then a non-BAR lifecycle
+probe. Only if that reaches `pcie_ready` should the matching M2 full-block gate
+run.
+
+## 2026-06-12 - M2 computed-residual LN2 input checkpoint
+
+Advanced the M2 full-block PCIe candidate so the LN2 input is now derived from
+the computed attention-residual vector instead of the compiled
+`ln2_input_q12[]` fixture table. The generator emits a fixed
+`LN2_INPUT_SCALE_MUL_Q20` constant and verifies at generation time that replaying
+the quantized residual bytes through that scale reproduces the checkpoint LN2
+Q12 input exactly. This removes one more fixture-only compute path from the
+candidate block.
+
+This still does not close M2: attention context and the expected-output checks
+remain fixture-backed, and the board did not reach a BAR-safe lifecycle state
+after programming. M3 remains open.
+
+Implementation changes:
+
+- `scripts/task6/export_m2_first_token_attention_out_projection.py` no longer
+  emits the `ln2_input_q12[]` table for the RTL compute path.
+- `fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv` now scales
+  the computed signed int8 residual vector into LN2 Q12 values and uses those
+  values for LN2 mean/centering.
+
+Verification:
+
+- Python syntax:
+  `python3 -m py_compile scripts/task6/export_m2_first_token_attention_out_projection.py scripts/task6/task6_pcie_m2_full_block_gate.py`
+- Diff hygiene:
+  `git diff --check -- scripts/task6/export_m2_first_token_attention_out_projection.py fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv`
+- Focused sims:
+  `nix build .#task6-m2-first-token-full-block-pcie-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim .#task6-m2-first-token-full-block-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-accel-sv-sim -o /tmp/task6-m2-computed-residual-ln2-sim -L`
+  - first-token standalone PASS, cycles `37765`, final checksum `000365ee`,
+    sample0 `c70ceb30`, sample1 `c641126c`
+  - first-token PCIe wrapper PASS, cycles `37765`, final checksum `000365ee`,
+    sample0 `c70ceb30`, sample1 `c641126c`, debug `00000000`,
+    debug1 `920feaf0`, debug2 `c16d7cef`
+  - token 5 live-K/V context standalone PASS, cycles `37765`, final checksum
+    `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`
+  - token 5 live-K/V context PCIe wrapper PASS, cycles `37765`, final checksum
+    `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`, debug `00000000`,
+    debug1 `9049f7fb`, debug2 `3a4fedef`
+- Integrated rowstream-ingress dummy Yosys:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-computed-residual-ln2-rowstream-dummy-yosys-json -L`
+  - `check` result: 0 problems
+  - peak memory: 2016.92 MB
+  - final stats: 33,660 cells, 48 DSP48E1, 849 CARRY4, 6,539 FDCE,
+    6,922 FDRE, 13 RAMB36E1, and 13,387 estimated LCs
+- Integrated pnr100 bitstream:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-computed-residual-ln2-rowstream-dummy-pnr100-bitstream -L`
+  - result:
+    `/nix/store/vz88v30di0wafzcmc2v7bscawbp2nqw9-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+  - nextpnr result:
+    226 warnings, 0 errors
+  - routed timing:
+    `pcie_user_clk` 82.37 MHz PASS at 62.50 MHz; DRCK 349.04 MHz PASS at
+    100.00 MHz; PIPE_OOBCLK 213.86 MHz PASS at 100.00 MHz
+  - device utilization:
+    23,519 SLICE_LUTX, 13,482 SLICE_FFX, 887 CARRY4, 13 RAMB36E1,
+    48 DSP48E1, and 1 PCIE_2_1
+
+Board-facing step:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write /nix/store/vz88v30di0wafzcmc2v7bscawbp2nqw9-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit --confirm-write-flash --label task6-m2-computed-residual-ln2-pnr100-flash`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T19-22-15+0200-task6-m2-computed-residual-ln2-pnr100-flash`
+- Result:
+  openFPGALoader exited 0, detected Intel/Micron BPI flash, reported 64 MB
+  capacity, wrote 18,735,004 bytes, verified the first 32 words, and reported
+  BPI flash programming complete.
+
+The post-flash non-BAR lifecycle probe did not reach a BAR-safe state:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-computed-residual-ln2-post-flash-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T19-29-21+0200-task6-m2-computed-residual-ln2-post-flash-lifecycle`
+- Classification:
+  `missing_resource0`
+- Details:
+  `setpci` returned clean identity and header values
+  (`vendor = 10ee`, `device = 0480`, `header_type = 00`,
+  `subsystem_device = abcd`) but BAR0 was `00000000`. Sysfs still exposed
+  `resource0`, but the lifecycle classifier correctly refused BAR gates because
+  config-space BAR0 is unusable.
+
+No M2 BAR gate, PCIe reset, endpoint remove/rescan, or bridge rescan was run
+from this state. The next board step is physical/cold re-enumeration with the
+new BPI image, then a non-BAR lifecycle probe. Only if that reaches
+`pcie_ready` should the matching M2 full-block gate run.
+
+## 2026-06-12 - M2 host block-input residual path pnr100 image
+
+Advanced the M2 full-block PCIe candidate so the host BAR block-input vector is
+now consumed by the attention out-projection residual-add path. Previously, that
+path could still use the compiled fixture block input. This is not full live M2
+closure yet: attention context, LN2, and MLP/final-residual expectations still
+come from the generated fixture contract, but a nonmatching host block input is
+now part of the computed output and should fail instead of being silently
+ignored.
+
+Implementation changes:
+
+- `task6_m2_first_token_attention_out_proj_accel_top.sv` now selects between
+  fixture and external block input bytes for the residual add.
+- `task6_m2_first_token_full_block_accel_top.sv` and
+  `task6_m2_first_token_full_block_pcie_accel_top.sv` pass the external
+  64-byte vector into the composed block path; the PCIe wrapper enables the
+  external path.
+- `task6_pcie_m2_full_block_gate.py` now parses `out_proj_block_input_q` from
+  `tb_data.sv` and uses it as the default block input when `--input-hex` is not
+  supplied.
+- The first-token standalone and PCIe-wrapper simulations now drive the fixture
+  block input through the external input port.
+
+Verification:
+
+- Python syntax:
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py`
+- Diff hygiene:
+  `git diff --check -- scripts/task6/task6_pcie_m2_full_block_gate.py fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv fpga/rtl/task6_m2_first_token_full_block_accel_top.sv fpga/rtl/task6_m2_first_token_full_block_pcie_accel_top.sv docs/task6-resource-usage-reduction-notes.md`
+- Focused sims:
+  `nix build .#task6-m2-first-token-full-block-pcie-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim .#task6-m2-first-token-full-block-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-accel-sv-sim -o /tmp/task6-m2-host-block-input-sim -L`
+  - first-token standalone PASS, cycles `37765`, final checksum `000365ee`,
+    sample0 `c70ceb30`, sample1 `c641126c`
+  - first-token PCIe wrapper PASS, cycles `37765`, final checksum `000365ee`,
+    sample0 `c70ceb30`, sample1 `c641126c`, debug `00000000`,
+    debug1 `920feaf0`, debug2 `c16d7cef`
+  - token 5 live-K/V context standalone PASS, cycles `37765`, final checksum
+    `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`
+  - token 5 live-K/V context PCIe wrapper PASS, cycles `37765`, final checksum
+    `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`, debug `00000000`,
+    debug1 `9049f7fb`, debug2 `3a4fedef`
+- Integrated rowstream-ingress dummy Yosys:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-host-block-input-rowstream-dummy-yosys-json -L`
+  - `check` result: 0 problems
+  - peak memory: 1.89 GiB
+  - final stats: 35,387 cells, 46 DSP48E1, 795 CARRY4, 6,539 FDCE,
+    6,922 FDRE, 13 RAMB36E1, and 13,748 estimated LCs
+- Integrated pnr100 bitstream:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-host-block-input-rowstream-dummy-pnr100-bitstream -L`
+  - result:
+    `/nix/store/4zyzpia02kn0d7gx4z0wv7qmrg6y118w-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+  - routed timing PASS: `pcie_user_clk` 101.11 MHz at 62.50 MHz, DRCK
+    355.62 MHz at 100.00 MHz, PIPE_OOBCLK 242.78 MHz at 100.00 MHz
+  - device utilization: 24,067 SLICE_LUTX, 13,482 SLICE_FFX, 831 CARRY4,
+    13 RAMB36E1, 46 DSP48E1, and 1 PCIE_2_1
+
+Board-facing step:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write /nix/store/4zyzpia02kn0d7gx4z0wv7qmrg6y118w-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit --confirm-write-flash --label task6-m2-host-block-input-pnr100-flash`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T19-03-17+0200-task6-m2-host-block-input-pnr100-flash`
+- Result:
+  openFPGALoader exited 0, detected Intel/Micron BPI flash, reported 64 MB
+  capacity, wrote 18,735,004 bytes, verified the first 32 words, and reported
+  BPI flash programming complete.
+
+The post-flash non-BAR lifecycle probe did not reach a BAR-safe state:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-host-block-input-post-flash-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T19-10-28+0200-task6-m2-host-block-input-post-flash-lifecycle`
+- Classification:
+  `missing_resource0`.
+- Details:
+  `setpci` returned clean identity and header values
+  (`vendor = 10ee`, `device = 0480`, `header_type = 00`,
+  `subsystem_device = abcd`) but BAR0 was `00000000`. Sysfs still exposed
+  `resource0`, but the lifecycle classifier correctly refused BAR gates because
+  config-space BAR0 is unusable.
+
+No M2 BAR gate, PCIe reset, endpoint remove/rescan, or bridge rescan was run
+from this state. The next board step is physical/cold re-enumeration with the
+new BPI image, then a non-BAR lifecycle probe. Only if that reaches
+`pcie_ready` should the matching M2 full-block gate run. M2 remains open; M3
+remains open.
+
+## 2026-06-12 - M1/M2/M3 Status After Host-Freeze Rescan Incident
+
+Task 6 M1 is accepted only for the current dummy/direct PCIe BAR milestone:
+the `task6-m1-static-vector-mlp-accel` artifact includes activation/residual
+echo, full output-vector readback, checksum/sample checks, and final PASS on
+the rowstream-ingress dummy top. This is not evidence for the full DDR/rowstream
+integration path.
+
+Task 6 M2 remains open. Current offline RTL/sim work proves host-live layernorm
+plus live Q/K/V projection dot products plus fixture-attention sublane checks,
+not live end-to-end attention or a complete TinyStories block. The latest board
+diagnostic reached the M2 BAR surface and exposed useful debug, but failed in
+the layernorm path before the sequential-mean fix could be board-accepted. The
+sequential-mean image built and flashed, but the endpoint was missing after cold
+boot; the follow-up delegated bridge rescan correlated with a host freeze and
+is not accepted as a safe recovery step.
+
+Task 6 M3 remains open. Full TinyStories-1M token-exact greedy inference on the
+board has not been demonstrated.
+
+Safety rule: do not run delegated PCIe bridge rescans, endpoint remove/rescan,
+BAR gates, JTAG flashing, or power-control experiments unless hardware access is
+explicitly re-enabled for that run. The default recovery path after a missing or
+stale endpoint is chassis/host re-enumeration or reboot with the FPGA already
+configured, followed by the non-BAR lifecycle probe. The `bridge-rescan` wrapper
+and lifecycle `--rescan` path now require `TASK6_PCIE_ALLOW_UNSAFE_RESCAN=1` for
+a deliberate recovery experiment.
+
+After the subsequent host freeze report, the main Task 6 PCIe dispatcher
+`scripts/task6/task6_pcie_user_gate.sh` also requires
+`TASK6_PCIE_HARDWARE_ENABLE=1` before any hardware-facing mode runs. Leave this
+disabled while continuing offline RTL/sim/Nix work.
+
+Offline fixes landed for the next M2 attempt:
+
+- exposed M2 debug/debug1/debug2 over BAR and through the CDC/dummy top path
+- made the M2 host gate require a stable `--tb-data-sv` fixture and an explicit
+  expected vector for custom inputs
+- changed the M2 layernorm mean path to sequential accumulation to avoid the
+  synthesized wide-combinational mean mismatch seen on board
+- strengthened the ingress simulation to check signed residual fixture-word
+  readback exactly, covering the board-observed residual readback shape
+- tightened the older M2 full-block replay gate so it requires generated
+  expected JSON, decodes the M2 status magic at bit 16 to match RTL, and
+  compares the full first-64-byte BAR output aperture, not only
+  checksum/sample/count
+- added `scripts/task6/task6_milestone_evidence_audit.py` to reject M2
+  replay/fixture artifacts as live one-full-block proof and reject M0/M1
+  host-assisted artifacts as M3 full-model proof
+- tightened that audit so M1 requires prompt/full-checkpoint reference contract
+  compatibility, sample-level activation/residual echo, start/done/output-valid
+  checks, checksum/sample/full-output-vector checks, and zero mismatches; the
+  accepted `2026-06-12T-task6-m1-static-vector-mlp-accel.json` artifact passes
+  this stricter M1 audit
+- exposed the guard checks as reproducible flake packages:
+  `.#task6-m2-full-block-gate-unit-tests` and
+  `.#task6-milestone-evidence-audit-unit-tests`
+- renamed the PCIe full-block replay gate contract stage to
+  `M2-one-full-block-replay` with `live_compute = false`; the M2 evidence audit
+  now requires `stage = M2-one-full-block` and `live_compute = true` before an
+  artifact can count toward M2 closure
+- the existing `2026-06-10T-m2-full-block-replay-pnr100-board-summary.json`
+  board artifact now fails the M2 audit as intended because it is replay
+  evidence and does not satisfy the live one-full-block contract; the audit also
+  requires host-supplied token/control token IDs, `block_index = 0`, observed
+  live compute path, and matching expected/observed first-64-byte block output
+- relabeled offline M2 prerequisite producers so CPU oracle, weight-pack, and
+  lowering-score artifacts no longer claim `stage = M2-one-full-block`; they now
+  carry explicit oracle/lowering/weight-pack stages, `milestone_target =
+  M2-one-full-block`, and `live_compute = false`
+- added a reproducible audit-unit regression so offline Task 6 producer scripts
+  fail the guard if they reintroduce `stage = M2-one-full-block` before a real
+  live board gate exists
+- made the PCIe M2 replay gate and host-live-LN/live-Q fixture-sublane gate
+  carry machine-readable `milestone_target`, `artifact_role`, and
+  `live_compute = false` metadata; unit tests now lock those gates out of the
+  live M2 evidence class
+- tightened M3 audit requirements so host-assisted rowstream/top1 prompt
+  artifacts cannot close `M3-full-tinystories-1m` even when board tokens match
+  reference tokens; M3 now requires a full TinyStories-1M identity, prompt token
+  IDs, `live_compute = true`, `all_blocks = true`, non-host-assisted contract
+  text, board PASS status, and token-exact generated IDs
+- extended the M2 LN/attention sublane sim with live Q/K/V projection
+  dot-product and quantized-output checks over the computed layernorm output;
+  the RTL now latches those live current-token Q/K/V bytes and uses live Q plus
+  live current-token K/V in the attention score/value checks. Prior-token K/V,
+  softmax probabilities, LN2, MLP, residual, and token/control sequencing remain
+  outside M2 closure. Offline sim `.#task6-m2-ln-attn-sublane-accel-sv-sim`
+  passed after this change with 78 cycles, checksum `000337f0`, sample0
+  `06b6dcea`, and sample1 `b904b77f`
+- synthesized the same live-current-Q/K/V sublane RTL through
+  `.#task6-m2-ln-attn-sublane-accel-json`; Yosys check reported 0 problems.
+  The resulting netlist used 225 DSP48E1, 340 CARRY4, 1933 FDCE, 2604
+  estimated LCs, and 486.88 MB peak memory. The only noted synthesis warnings
+  were registerization of the small Q/K/V live latch memories. This is useful
+  offline evidence, but it is not board acceptance and does not close M2.
+- reworked the live-current-Q/K/V projection path from a 64-way combinational
+  dot product into a sequential accumulator over the layernorm vector. Offline
+  SV sim still passes with checksum `000337f0`, sample0 `06b6dcea`, and sample1
+  `b904b77f`; latency increases from 78 to 330 cycles. Yosys check still
+  reports 0 problems, while DSP48E1 usage drops from 225 to 36. The sequential
+  netlist uses 342 CARRY4, 2035 FDCE, 3039 estimated LCs, and 491.62 MB peak
+  memory. This keeps the current host-live LN/live-QKV/fixture-attention
+  sublane contract but makes the compute shape more plausible for scaling
+  toward live M2/M3.
+- changed the BAR-visible M2 sublane output from the intermediate layernorm
+  vector to the checked attention-value sublane result. The RTL still uses
+  fixture softmax probabilities and fixture prior-token K/V, so this remains
+  `live_compute = false` for M2 closure, but the observable output is now the
+  attention sublane instead of an earlier intermediate. Offline SV sim passes
+  with 330 cycles, checksum `00000684`, sample0 `d4c211cc`, sample1
+  `00000000`, and output vector `cc11c2d4` followed by zeros. The host gate
+  parser now derives its expected vector from `attn_expected_value_q` in the
+  stable fixture and rejects fixtures without that attention output. Yosys
+  check reports 0 problems; the netlist uses 37 DSP48E1, 352 CARRY4, 2035
+  FDCE, 4386 estimated LCs, and 705.23 MB peak memory.
+- fixed the M2 LN/attention fixture expectations to match the RTL mixed-live
+  path: expected scores now use live Q projection bytes, expected current-token
+  K/V use live projection bytes, and prior-token K/V remain fixture-backed.
+  Attention probabilities are now unsigned Q15, fixing the causal single-token
+  probability value `32768`.
+- added a reproducible first-token sublane target,
+  `.#task6-m2-ln-attn-sublane-first-token-accel-sv-sim`. It generates
+  `tb_data.sv` with `--token-index 0`, so causal attention has one source and
+  the checked attention output depends on host-live LN plus live current-token
+  Q/K/V without prior-token K/V fixtures. Offline sim passes with 325 cycles,
+  checksum `00000661`, sample0 `9aad7ff4`, and sample1 `00000000`. This is
+  stronger sublane evidence, but not M2 closure because it is still one head
+  sublane, one token, and not a complete TinyStories block.
+- added a wider first-token context target,
+  `.#task6-m2-ln-attn-full-hidden-first-token-accel-sv-sim`. It uses the same
+  host-live LN and live projection RTL with `--token-index 0 --num-heads 1`,
+  producing the full 64-byte first-token attention context through the BAR
+  output path. Offline sim passes with 4225 cycles, checksum `000459fd`,
+  sample0 `c6d148f9`, and sample1 `f9ac1119`. This moves closer to the M2
+  block boundary because it exercises a full hidden vector, but it still does
+  not close M2: it omits prior-token live K/V storage, real multi-head
+  partitioning, out projection, attention residual, LN2, MLP, and final block
+  residual.
+- added a first-token last-head sublane target,
+  `.#task6-m2-ln-attn-sublane-first-token-head15-accel-sv-sim`, to cover a
+  nonzero/high-offset TinyStories head partition with the same single-token
+  causal live-current-Q/K/V path. Offline sim passes with 325 cycles, checksum
+  `0000058a`, sample0 `ba7f26d9`, and sample1 `00000000`; the generated
+  fixture reports `head = 15`, `seq_len = 1`, and
+  `expectation_path = rtl-mixed-live-q-current-kv`. This reduces risk that the
+  head-0-only target hides row-offset mistakes, but it is still sublane evidence
+  rather than live full-block M2 proof.
+- added `.#task6-m2-first-token-attention-out-projection`, an offline oracle for
+  the first-token attention out projection after full-hidden causal context.
+  For token 0, causal context is the full live V-projection row across all real
+  TinyStories heads (`num_heads = 16`), so this pins the next M2 boundary after
+  the full-hidden first-token context sim. The exported attention-output vector
+  has checksum `000419b5`, sample0 `dffa2a40`, sample1 `d6ba39f6`, and
+  first-64 hex
+  `402afadff639bad66bf8e40cc11aeafd10db44b3ccbc1fcd7fe7f3da2739d02e6cf247f1e0e0ebf0d8013c1708c7fdc01118ec24585b3ef00217423e0fa2b6e4`.
+  The biased attention output has normalized RMSE `0.007591695858549242`
+  against the TinyStories contract tensor. This remains `live_compute = false`
+  because it is an offline oracle, but it gives the concrete target for the next
+  RTL stage: context -> attention out projection -> attention residual.
+- added a standalone first-token attention out-projection RTL sim target,
+  `.#task6-m2-first-token-attention-out-proj-accel-sv-sim`, backed by the same
+  oracle-generated `tb_data.sv`. It sequentially computes the 64x64 quantized
+  out projection from the first-token full-hidden causal context, checks the
+  full 64-byte projected vector, checks a quantized attention residual replay
+  (`block_input + projected + out_proj.bias`) against the hardware-replayed
+  oracle surface, and now runs the replayed residual through fixed-point LN2.
+  Offline SV sim passes with 4288 cycles,
+  projected checksum `0003920f`, projected sample0 `da032747`, projected sample1
+  `d9ae3f0c`, residual checksum `0003eaf0`, residual sample0 `06c0b17f`, and
+  residual sample1 `b9021634`, LN2 checksum `00040ac1`, LN2 sample0
+  `05beb27f`, and LN2 sample1 `b7001630`. The direct float-residual
+  quantization still differs in 15 lanes, and the replayed LN2 vector differs
+  from direct contract quantization in 19 lanes while matching its Q12 replay
+  fixture within 1 LSB. This is replay-exact evidence for the fixed-point
+  attention-residual -> LN2 boundary, not float-exact M2 closure. M2 remains
+  open because this is standalone/offline and does not yet include live
+  multi-token K/V storage, MLP, final block residual, or board acceptance.
+- added `.#task6-m2-first-token-mlp-replay`, an offline oracle that consumes
+  the replayed LN2 boundary from `.#task6-m2-first-token-attention-out-projection`
+  and runs the first-token MLP path through c_fc, fixed PWL GELU, c_proj, and
+  final residual add against the M2 one-block contract. The artifact passes as
+  an oracle with c_proj checksum `00034e3e`, final replay checksum `000365ee`,
+  final sample0 `c70ceb30`, final sample1 `c641126c`, MLP normalized RMSE
+  `0.016066166815202135`, and final-block normalized RMSE
+  `0.01588183226317825`. The direct int8 final replay differs from contract
+  quantization in 49 lanes, so this is useful full first-token block-boundary
+  scoring but not RTL proof and not M2 closure.
+- added `.#task6-m2-first-token-mlp-c-proj-residual-accel-sv-sim`, a
+  standalone RTL sim for the downstream MLP half from oracle post-GELU int8
+  activations through c_proj and fixed-point final residual add. Offline SV sim
+  passes with 16448 cycles, c_proj checksum `00034e3e`, c_proj sample0
+  `ce4b41a3`, c_proj sample1 `1c30f71e`, final checksum `000365ee`, final
+  sample0 `c70ceb30`, and final sample1 `c641126c`. This promotes the
+  first-token post-GELU -> c_proj -> final-residual boundary from Python oracle
+  to RTL sim, but M2 remains open because c_fc/GELU are still oracle-fed here,
+  multi-token live K/V is missing, and there is no board acceptance.
+- added `.#task6-m2-first-token-mlp-c-fc-gelu-accel-sv-sim`, a standalone RTL
+  sim for the upstream MLP half from the replayed LN2 int8 vector through c_fc
+  and fixed PWL GELU. Offline SV sim passes with 16640 cycles, post-GELU
+  checksum `00366b6d`, sample0 `01f2f4f2`, and sample1 `f94b1409`. Together
+  with the c_proj/final-residual sim, the first-token MLP path is now covered by
+  offline RTL slices on both sides of the post-GELU handoff. M2 remains open
+  because the two slices are not yet integrated into one live block datapath,
+  attention is still single-token/offline for this chain, live multi-token K/V
+  is missing, and there is no board acceptance.
+
 ## 2026-06-10 - Autonomous PCIe Recovery Plan Implemented
 
 Task 6 PCIe bring-up now has a hands-off recovery path built around the Tapo
@@ -29237,3 +29721,1428 @@ M2 remains open. The next step is to instantiate this startable sublane behind
 the existing M2 BAR aperture, validate it on the board, and then replace the
 remaining fixture/replay pieces with the full token/control block-0 compute
 path composed with the accepted M1 MLP/residual lane.
+
+### 2026-06-12 - M2 live-sublane BAR integration and pnr100 bitstream
+
+Integrated the startable LN/attention live-compute sublane behind the existing
+PCIe M2 BAR aperture in the rowstream-ingress dummy top.
+
+Changes:
+
+- `task6_ypcb_pcie_rowstream_ingress_dummy_top.sv` now wires the M2 BAR
+  input/residual/start/clear/status/output-vector ports to
+  `task6_m2_ln_attn_sublane_accel_top`.
+- `flake.nix` now generates an absolute-include wrapper for the M2 sublane
+  accelerator source so integrated Yosys builds do not depend on relative
+  `tb_data.sv` include search behavior.
+- Added `scripts/task6/task6_pcie_m2_ln_attn_sublane_gate.py`, a BAR gate for
+  the host-live-LN/static-attention-fixture sublane contract. It requires an
+  explicit `--tb-data-sv` path matching the bitstream fixture and derives the
+  default host input and expected output/checksum from that file.
+- Added dispatcher mode `m2-ln-attn-sublane` so the gate uses the same clean
+  PCI config/BAR preflight as the existing M2 and MLP gates.
+
+Verification:
+
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-live-sublane-dummy-yosys-json -L`
+  passed. Post-synth summary:
+  - estimated LCs: 19,877
+  - DSP48E1: 33
+  - RAMB18E1: 6
+  - RAMB36E1: 8
+  - Yosys check: 0 problems
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-live-sublane-dummy-pnr100-bitstream -L`
+  passed. Bitstream:
+  `/nix/store/c3j7b93x7az97z5049vxzgmmr11x6zwy-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Post-route timing:
+  - `pcie_user_clk`: 67.43 MHz, PASS at 62.50 MHz
+  - `pcie_7x_top_aximm_i.task6_pcie_status_i.drck`: 322.68 MHz, PASS at 100 MHz
+  - `pcie_7x_top_aximm_i.pcie_7x_i.PIPE_OOBCLK_IN`: 199.76 MHz, PASS at 100 MHz
+- The host gate parser derives the same default expectations seen in sim from
+  the matching Nix fixture output:
+  `/nix/store/svczlqixpmm0llf14m5l8bplvq5aa8jw-task6-m2-ln-attn-sublane-selftest-tb-data-sv/tb_data.sv`.
+  checksum `0x000337f0`, sample0 `0x06b6dcea`, sample1 `0xb904b77f`,
+  output count 64.
+- The timing-clean image above was written to BPI flash and first-32-word
+  verified in
+  `artifacts/task6/runs/2026-06-12T11-49-55+0200-task6-m2-ln-attn-sublane-pnr100-flash`,
+  but it is not accepted for M2 board evidence because the M2 debug register
+  was not yet exposed at BAR `0x5c8`.
+
+Follow-up fixes before board acceptance:
+
+- Expose `m2_full_block_debug_i` through
+  `task6_pcie_axil_rowstream_loader_ingress.v` at BAR `0x5c8` and carry it
+  through `task6_pcie_axil_rowstream_loader_ingress_cdc.v`.
+- Keep the milestone label precise: this is host-live layernorm plus
+  fixture-based attention score/value checks, not live end-to-end attention.
+- Require a stable fixture path in the gate instead of defaulting to `/tmp`.
+- Require an explicit expected output vector when using custom host input
+  overrides.
+
+M2 remains open until the pnr100 bitstream is flashed and
+`task6_pcie_m2_ln_attn_sublane_gate.py` passes on the board. This is still a
+host-live-LN/static-attention-fixture sublane, not full token/control block-0
+compute.
+
+### 2026-06-12 - Offline first-token integrated MLP slice
+
+After the host freeze seen during prior board work, further Task 6 progress in
+this session was kept offline-only. No PCIe/BAR, JTAG, power, bridge rescan, or
+hardware probe command was run.
+
+Added an integrated first-token MLP RTL slice that locally composes the two
+previously separate MLP stages:
+
+- `task6_m2_first_token_mlp_c_fc_gelu_accel_top.sv`: LN2 input to c_fc and
+  fixed PWL GELU.
+- `task6_m2_first_token_mlp_c_proj_residual_accel_top.sv`: post-GELU to c_proj
+  and final residual.
+
+New files and targets:
+
+- RTL: `fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv`.
+- Testbench: `sim/task6_m2_first_token_mlp_integrated_accel_tb_main.sv`.
+- Flake targets:
+  - `task6-m2-first-token-mlp-integrated-accel-sim-main`
+  - `task6-m2-first-token-mlp-integrated-accel-sv-sim`
+
+Verification:
+
+- `nix eval .#task6-m2-first-token-mlp-integrated-accel-sv-sim.name`
+  returned `task6-m2-first-token-mlp-integrated-accel-sv-sim.json`.
+- `nix build .#task6-m2-first-token-mlp-integrated-accel-sv-sim -o /tmp/task6-m2-first-token-mlp-integrated-accel-sv-sim -L`
+  passed with:
+  - cycles: 33088
+  - post-GELU checksum: `00366b6d`
+  - c_proj checksum: `00034e3e`
+  - final checksum: `000365ee`
+  - final sample0: `c70ceb30`
+  - final sample1: `c641126c`
+
+This removes the artificial boundary between c_fc/GELU and c_proj/final
+residual for the first token's MLP path, but it is still not M2 closure:
+
+- It is offline simulation only.
+- It is first-token only.
+- It starts from replayed LN2 data produced by the first-token attention
+  residual oracle.
+- It is not yet board accepted and is superseded by the composed full-block
+  sim below for the attention-to-MLP handoff.
+- It has no board acceptance evidence.
+
+### 2026-06-12 - Offline first-token composed full-block RTL path
+
+Added a composed first-token block RTL path that runs:
+
+1. attention out projection
+2. attention residual replay
+3. LN2
+4. integrated MLP c_fc -> PWL GELU -> c_proj
+5. final residual add
+
+The MLP top now has explicit external handoff ports for LN2 and residual input:
+
+- `use_external_ln2_i` / `external_ln2_vector_i`
+- `use_external_residual_i` / `external_residual_vector_i`
+
+The standalone MLP sim still passes in fixture mode. The new composed wrapper
+enables both external inputs and feeds them from the attention/LN2 stage's
+computed vectors, so this is a real RTL signal handoff instead of two unrelated
+fixture-backed simulations.
+
+New files and targets:
+
+- RTL: `fpga/rtl/task6_m2_first_token_full_block_accel_top.sv`.
+- Testbench: `sim/task6_m2_first_token_full_block_accel_tb_main.sv`.
+- Merged fixture target:
+  `task6-m2-first-token-full-block-tb-data-sv`.
+- Sim targets:
+  - `task6-m2-first-token-full-block-accel-sim-main`
+  - `task6-m2-first-token-full-block-accel-sv-sim`
+
+Verification:
+
+- `nix build .#task6-m2-first-token-full-block-accel-sv-sim -o /tmp/task6-m2-first-token-full-block-accel-sv-sim -L`
+  passed with:
+  - cycles: 37381
+  - attention out checksum: `0003920f`
+  - attention residual checksum: `0003eaf0`
+  - LN2 checksum: `00040ac1`
+  - post-GELU checksum: `00366b6d`
+  - c_proj checksum: `00034e3e`
+  - final checksum: `000365ee`
+  - final sample0: `c70ceb30`
+  - final sample1: `c641126c`
+- `nix build .#task6-m2-first-token-mlp-integrated-accel-sv-sim -o /tmp/task6-m2-first-token-mlp-integrated-accel-sv-sim -L`
+  still passes after adding the external handoff ports, with the same 33088
+  cycle fixture-mode result.
+- `nix build .#task6-m2-first-token-full-block-accel-json -o /tmp/task6-m2-first-token-full-block-accel-json -L`
+  completed mapped Yosys synthesis for the composed first-token block. Yosys
+  `check` reported 0 problems after `synth_xilinx -family xc7 -noiopad`.
+- `nix build .#task6-m2-first-token-full-block-accel-utilization -o /tmp/task6-m2-first-token-full-block-accel-utilization -L`
+  produced the mapped utilization summary:
+  - slices lower bound: 3649 / 74650 (4.89%)
+  - CLB LUTs: 29186 / 298600 (9.77%)
+  - CLB FFs: 4910 / 597200 (0.82%)
+  - DSP48E1: 45 / 1920 (2.34%)
+  - BRAM36: 0 / 955 (0.00%)
+  - largest mapped leaf cells: LUT6 12145, LUT2 7857, INV 4305, LUT5 4105,
+    LUT3 2903.
+
+This is stronger M2 progress than the previous separated slices, but it still
+does not close M2:
+
+- It is offline simulation only.
+- It covers token 0 only.
+- The attention context is the first-token causal context, so it does not prove
+  live multi-token K/V storage or later-token attention.
+- It is not yet integrated behind the PCIe/BAR M2 surface.
+- It has no board acceptance evidence.
+
+Next M2 action: either synthesize this composed first-token block to get a
+resource/timing read, or continue extending the datapath toward live token/control
+input and multi-token K/V before returning to board acceptance. Do not return to
+hardware until the host-freeze cause and a safe access procedure are clear. M3
+remains open until all TinyStories-1M blocks run on board and return
+token-exact greedy output.
+
+### 2026-06-12 - Offline first-token full-block PCIe/BAR wrapper
+
+After the composed first-token block was passing as a standalone RTL module, the
+next offline step was to put it behind the M2 PCIe/BAR-shaped accelerator
+surface used by the rowstream-ingress dummy top. No hardware command was run for
+this step because the previous board work froze the host.
+
+New wrapper and integration:
+
+- RTL: `fpga/rtl/task6_m2_first_token_full_block_pcie_accel_top.sv`.
+- Testbench: `sim/task6_m2_first_token_full_block_pcie_accel_tb_main.sv`.
+- The wrapper preserves the existing M2 host-visible status shape:
+  - status high half: `16'h4d32`
+  - idle state: `0`
+  - done state: `5`
+  - output count: `64`
+  - checksum/sample/vector/debug ports driven through the existing dummy-top
+    M2 BAR aperture.
+- `fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv` now instantiates
+  this full-block PCIe wrapper for the M2 surface instead of the earlier
+  LN/attention sublane accelerator.
+- The dummy-top Yosys source list now includes the first-token full-block RTL
+  and the merged full-block fixture include path.
+
+The wrapper latches the host inputs, starts the composed full-block core, waits
+for the core result, then latches the final checksum, samples, vector, cycle
+count, and debug words before reporting M2 done. The testbench covers idle
+schema, start, done schema, checksum/sample/vector readback, clear, and a second
+start.
+
+A restart bug was found in offline simulation: the second wrapper run initially
+accepted stale child `done` state and reported a short run with zero checksum.
+That was fixed by adding explicit arm states/restart handling in:
+
+- `task6_m2_first_token_full_block_accel_top.sv`
+- `task6_m2_first_token_attention_out_proj_accel_top.sv`
+- `task6_m2_first_token_mlp_integrated_accel_top.sv`
+- `task6_m2_first_token_full_block_pcie_accel_top.sv`
+
+Verification:
+
+- `nix eval .#task6-m2-first-token-full-block-pcie-accel-sv-sim.name`
+  returned `task6-m2-first-token-full-block-pcie-accel-sv-sim.json`.
+- `nix eval .#task6-m2-first-token-full-block-pcie-accel-json.name`
+  returned `task6-m2-first-token-full-block-pcie-accel.json`.
+- `nix eval .#task6-m2-first-token-full-block-pcie-accel-utilization.name`
+  returned `task6-m2-first-token-full-block-pcie-accel-utilization`.
+- `nix build .#task6-m2-first-token-full-block-accel-sv-sim -o /tmp/task6-m2-first-token-full-block-accel-sv-sim -L`
+  still passes with:
+  - cycles: 37381
+  - attention out checksum: `0003920f`
+  - attention residual checksum: `0003eaf0`
+  - LN2 checksum: `00040ac1`
+  - post-GELU checksum: `00366b6d`
+  - c_proj checksum: `00034e3e`
+  - final checksum: `000365ee`
+  - final sample0: `c70ceb30`
+  - final sample1: `c641126c`
+- `nix build .#task6-m2-first-token-full-block-pcie-accel-sv-sim -o /tmp/task6-m2-first-token-full-block-pcie-accel-sv-sim -L`
+  passes with:
+  - cycles: 37381
+  - final checksum: `000365ee`
+  - final sample0: `c70ceb30`
+  - final sample1: `c641126c`
+  - debug: `00000000`
+  - debug1: `920feaf0`
+  - debug2: `c16d67ef`
+
+This is now a stronger offline M2 candidate because the first-token composed
+full-block result is visible through the same style of BAR surface the host
+gate expects. It still does not close M2:
+
+- It is offline simulation only.
+- It covers token 0 only.
+- It does not prove live multi-token K/V storage or later-token attention.
+- It has not been accepted on the pnr100 board.
+- No board command was run after the host freeze.
+
+Next M2 action should stay offline until the hardware access procedure is safe:
+add or adapt a host gate for this full-block wrapper so the expected vector comes
+from the full-block fixture, then synthesize the BAR-facing wrapper if host load
+is acceptable. M3 remains open until all TinyStories-1M blocks run on board and
+return token-exact greedy output.
+
+### 2026-06-12 - Offline full-block wrapper host gate alignment
+
+Aligned `scripts/task6/task6_pcie_m2_full_block_gate.py` with the newer
+first-token full-block PCIe wrapper contract without running hardware.
+
+Changes:
+
+- Updated the M2 status decoder to the wrapper schema:
+  - status high half: `0x4d32`
+  - 3-bit state field at bits `[6:4]`
+  - done state: `5`
+  - error state: `6`
+- Added reads for M2 debug registers:
+  - `0x5c8`
+  - `0x5cc`
+  - `0x5d0`
+- Kept the existing `--expected-json` path for older replay summaries.
+- Added `--tb-data-sv` parsing for the new first-token full-block fixture by
+  reading:
+  - `MLP_FINAL_EXPECTED_CHECKSUM`
+  - `MLP_FINAL_EXPECTED_SAMPLE0`
+  - `MLP_FINAL_EXPECTED_SAMPLE1`
+  - `mlp_final_expected_q[0..63]`
+- Labeled the contract as
+  `M2-first-token-full-block-pcie-wrapper` and explicitly kept it as a
+  non-closing M2 candidate, not live full M2 proof.
+
+Verification:
+
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  passed.
+- `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  passed.
+
+This removes a host-side mismatch that would have made the next board attempt
+validate the first-token full-block wrapper with the wrong done-state and
+fixture format. M2 remains open because this is still offline-only, token 0
+only, and not board accepted. M3 remains open.
+
+### 2026-06-12 - Offline full-block wrapper gate runbook target
+
+Added a stable flake target for the future M2 first-token full-block PCIe
+wrapper board command:
+
+- `.#task6-m2-first-token-full-block-pcie-gate-runbook`
+
+The target produces a runbook artifact with:
+
+- `README.md`, documenting the exact future command.
+- `command.sh`, a convenience wrapper for an explicitly approved hardware run.
+- `summary.json`, recording the resolved `tb_data.sv` store path and the gate
+  script path.
+
+The generated command uses the Nix-resolved fixture path:
+
+```bash
+TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh m2-full-block 0000:42:00.0 --tb-data-sv <task6M2FirstTokenFullBlockTbDataSv>/tb_data.sv
+```
+
+This avoids the previous unstable `/tmp` fixture problem and prevents the
+full-block wrapper gate from being run against an older replay summary by
+accident. The hardware latch in `task6_pcie_user_gate.sh` remains unchanged.
+
+Verification:
+
+- `nix build .#task6-m2-first-token-full-block-pcie-gate-runbook -o /tmp/task6-m2-first-token-full-block-pcie-gate-runbook -L`
+  passed and produced:
+  - `summary.json`
+  - `README.md`
+  - `command.sh`
+- `nix eval .#task6-m2-first-token-full-block-pcie-gate-runbook.name`
+  returned `task6-m2-first-token-full-block-pcie-gate-runbook`.
+- The generated `command.sh` now resolves the dispatcher through
+  `TASK6_REPO_ROOT`, defaulting to `/home/roland/LLM2FPGA`, and refuses to run
+  unless `TASK6_PCIE_HARDWARE_ENABLE=1` was already set by the operator. It does
+  not set the hardware-enable latch internally.
+- The generated `summary.json` records:
+  - `runs_hardware: false`
+  - `command_requires_hardware_enable: true`
+  - `closes_m2: false`
+  - the resolved `tb_data.sv` store path
+- `nix eval .#task6-m2-full-block-gate-unit-tests.name`
+  returned `task6-m2-full-block-gate-unit-tests.json`.
+- `nix build .#task6-m2-full-block-gate-unit-tests -o /tmp/task6-m2-full-block-gate-unit-tests -L`
+  passed with `status: PASS`.
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  passed.
+- The gate parser accepted the generated first-token full-block fixture and
+  decoded:
+  - checksum: `0x000365ee`
+  - sample0: `0xc70ceb30`
+  - sample1: `0xc641126c`
+  - output count: `64`
+
+This is still offline preparation only. It does not close M2 or M3.
+
+### 2026-06-12 - Offline M2 evidence audit tightened for first-token wrapper
+
+Tightened `scripts/task6/task6_milestone_evidence_audit.py` so the new
+first-token full-block PCIe wrapper cannot accidentally count as M2 closure.
+
+M2 audit changes:
+
+- Requires `live_compute = true`.
+- Requires the contract to describe complete TinyStories block execution.
+- Rejects replay, fixture, host-assisted, first-token, and sublane contract text.
+- Requires host-supplied token/control token IDs.
+- Requires `block_index = 0`.
+- Requires YPCB/PCIe board acceptance evidence through `bdf`, `lspci`, or board
+  metadata.
+- Requires observed `compute_path` to be live.
+- Rejects observed first-token/sublane paths.
+- Requires observed and expected first-64-byte output evidence to match.
+
+Unit coverage now includes:
+
+- a positive live M2 full-block shape with board/PCIe evidence;
+- rejection of a first-token full-block wrapper artifact even when its output
+  bytes match;
+- explicit metadata checks that both the M2 sublane gate and first-token
+  full-block wrapper gate remain `live_compute = false` non-closing evidence.
+
+Verification:
+
+- `python3 -m py_compile scripts/task6/task6_milestone_evidence_audit.py scripts/task6/test_task6_milestone_evidence_audit.py scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/task6_pcie_m2_ln_attn_sublane_gate.py`
+  passed.
+- `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_milestone_evidence_audit.py`
+  passed.
+- `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  passed.
+- `nix build .#task6-milestone-evidence-audit-unit-tests -o /tmp/task6-milestone-evidence-audit-unit-tests -L`
+  passed with `status: PASS`.
+- `nix build .#task6-m2-full-block-gate-unit-tests -o /tmp/task6-m2-full-block-gate-unit-tests -L`
+  passed with `status: PASS`.
+
+This keeps the evidence boundary honest while continuing toward M2. It does not
+close M2 or M3.
+
+### 2026-06-12 - Offline later-token full-hidden LN/attention sublane
+
+Added an explicit later-token full-hidden LN/attention sublane target:
+
+- `.#task6-m2-ln-attn-full-hidden-last-token-tb-data-sv`
+- `.#task6-m2-ln-attn-full-hidden-last-token-accel-sim-main`
+- `.#task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim`
+
+This reuses the existing M2 LN/attention sublane RTL, but changes the fixture
+scope from first-token causal attention to the last token in the one-block
+contract. The generated fixture has:
+
+- token index: `5`
+- attention sequence length: `6`
+- head dimension: `64`
+- expectation path: `rtl-mixed-live-q-current-kv`
+
+That means the RTL computes layernorm and current-token Q/K/V live from the host
+input vector, then checks causal attention across six source positions. Prior
+K/V entries remain fixture-backed, so this is still sublane evidence rather than
+M2 closure, but it exercises the multi-source attention score/value loop that
+token-0 targets cannot cover.
+
+Verification:
+
+- `nix eval .#task6-m2-ln-attn-full-hidden-last-token-tb-data-sv.name`
+  returned `task6-m2-ln-attn-full-hidden-last-token-tb-data-sv`.
+- `nix eval .#task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim.name`
+  returned `task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim.json`.
+- `nix build .#task6-m2-ln-attn-full-hidden-last-token-tb-data-sv -o /tmp/task6-m2-ln-attn-full-hidden-last-token-tb-data-sv -L`
+  passed.
+- `nix build .#task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim -o /tmp/task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim -L`
+  passed with:
+  - cycles: `4230`
+  - checksum: `00046435`
+  - sample0: `e3df12e7`
+  - sample1: `06d811f4`
+
+This advances M2 coverage from single-token causal attention toward later-token
+attention behavior, but M2 remains open because prior-token K/V storage is not
+live and the result is offline simulation only. M3 remains open.
+
+### 2026-06-12 - Offline external K/V path for later-token attention
+
+Added an external K/V selection path to the M2 LN/attention sublane accelerator:
+
+- `pcie_use_external_kv_i`
+- `pcie_external_k_vector_i`
+- `pcie_external_v_vector_i`
+
+When the external path is disabled, the accelerator keeps the existing behavior:
+prior-token K/V comes from the generated fixture arrays, while current-token
+Q/K/V is computed live from the host-supplied LN input. When enabled, prior-token
+K/V comes from the packed external vectors; the current token still uses live
+K/V computed by the accelerator. This removes the hardcoded prior-K/V fixture
+dependency from the datapath interface and gives the next live-cache wrapper a
+real signal path to drive.
+
+Added a fixture-equivalence simulation:
+
+- `sim/task6_m2_ln_attn_sublane_external_kv_accel_tb_main.sv`
+- `.#task6-m2-ln-attn-external-kv-last-token-accel-sim-main`
+- `.#task6-m2-ln-attn-external-kv-last-token-accel-sv-sim`
+
+The new sim packs the generated fixture K/V arrays into the external K/V ports
+and requires the same last-token full-hidden attention output as the default
+fixture-backed path. This is deliberately labeled non-closing M2 evidence: the
+external path is proven, but the K/V contents are still fixture-equivalent rather
+than generated by a live on-board cache across tokens.
+
+Verification:
+
+- `nix eval .#task6-m2-ln-attn-external-kv-last-token-accel-sv-sim.name`
+  returned `task6-m2-ln-attn-external-kv-last-token-accel-sv-sim.json`.
+- `nix build .#task6-m2-ln-attn-external-kv-last-token-accel-sv-sim -o /tmp/task6-m2-ln-attn-external-kv-last-token-accel-sv-sim -L`
+  passed with:
+  - token index: `5`
+  - attention sequence length: `6`
+  - cycles: `4230`
+  - checksum: `00046435`
+  - sample0: `e3df12e7`
+  - sample1: `06d811f4`
+  - `closes_m2: false`
+- `nix build .#task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim -o /tmp/task6-m2-ln-attn-full-hidden-last-token-accel-sv-sim -L`
+  passed again with the same checksum and samples, proving the default fixture
+  path still works.
+
+This advances M2 by making live prior-K/V cache integration pluggable. M2 still
+requires a live full-block compute path from token/control input and board
+acceptance evidence after hardware access is explicitly re-enabled. M3 remains
+open.
+
+### 2026-06-12 - Offline live K/V cache fill proof
+
+Added a multi-token live K/V cache proof for the M2 LN/attention path:
+
+- `sim/gen_task6_m2_ln_attn_live_kv_cache_tb_data.py`
+- `fpga/rtl/task6_m2_ln_attn_live_kv_cache_accel_top.sv`
+- `sim/task6_m2_ln_attn_live_kv_cache_accel_tb_main.sv`
+- `.#task6-m2-ln-attn-live-kv-cache-tb-data-sv`
+- `.#task6-m2-ln-attn-live-kv-cache-accel-sim-main`
+- `.#task6-m2-ln-attn-live-kv-cache-accel-sv-sim`
+
+The generated fixture covers the same one-block prompt window used by the
+later-token sublane work:
+
+- token index: `5`
+- cache sequence length: `6`
+- head dimension: `64`
+- expectation path: `live-ln-kv-cache-final-token-attention`
+
+The RTL proof now runs layernorm and K/V projection arithmetic for each source
+token, writes those live K/V projection bytes into local cache arrays, computes
+final-token Q live, then performs final-token attention score/value checks from
+the cache. It also derives Q15 attention probabilities from the cached live
+score vector using a fixed-point quadratic softmax approximation:
+
+- score scale Q20: `47`
+- probability path: `live-score-derived-quadratic-softmax-q15`
+- probability Q15: `[8981, 4492, 4584, 4494, 4960, 5257]`
+
+This is a stronger offline step than the external-K/V fixture-equivalence proof
+because prior-token K/V bytes and final-token attention probabilities are
+generated by RTL inside the proof rather than copied in as fixture vectors.
+
+Verification:
+
+- `python3 -m py_compile sim/gen_task6_m2_ln_attn_live_kv_cache_tb_data.py`
+  passed.
+- `nix eval .#task6-m2-ln-attn-live-kv-cache-accel-sv-sim.name`
+  returned `task6-m2-ln-attn-live-kv-cache-accel-sv-sim.json`.
+- `nix build .#task6-m2-ln-attn-live-kv-cache-tb-data-sv -o /tmp/task6-m2-ln-attn-live-kv-cache-tb-data-sv -L`
+  passed.
+- `nix build .#task6-m2-ln-attn-live-kv-cache-accel-sv-sim -o /tmp/task6-m2-ln-attn-live-kv-cache-accel-sv-sim -L`
+  passed with:
+  - `live_ln: true`
+  - `live_kv_cache_fill: true`
+  - `score_derived_probabilities: true`
+  - `fixture_softmax_probabilities: false`
+  - `closes_m2: false`
+  - cycles: `25426`
+  - checksum: `00044b24`
+  - sample0: `e2e010e5`
+  - sample1: `05d910f2`
+
+This advances M2 by proving a live LN -> K/V cache fill -> final-token attention
+path for one head in offline RTL simulation without fixture softmax
+probabilities. M2 remains open because this proof still covers one head rather
+than the full block, does not include attention output projection, LN2, MLP,
+final residual, token/control input, or YPCB PCIe/BAR acceptance. M3 remains
+open.
+
+### 2026-06-12 - Offline all-real-head live K/V cache proof
+
+Added an aggregate offline simulation target that reruns the live K/V cache
+proof across all 16 TinyStories-1M attention heads:
+
+- `.#task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim`
+
+The target generates per-head fixtures with `--num-heads 16` and
+`--head-index 0..15`, then compiles and runs the same live-cache RTL proof for
+each real head. This keeps the proof at the actual model head shape:
+
+- heads: `16`
+- head dimension: `4`
+- token index: `5`
+- cache sequence length: `6`
+- attention scope:
+  `offline-live-ln-kv-cache-final-token-attention-all-real-heads`
+
+Verification:
+
+- `nix eval .#task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim.name`
+  returned `task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim.json`.
+- `nix build .#task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim -o /tmp/task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim -L`
+  passed with:
+  - `status: PASS`
+  - `live_ln: true`
+  - `live_kv_cache_fill: true`
+  - `score_derived_probabilities: true`
+  - `probability_path: live-score-derived-quadratic-softmax-q15`
+  - `fixture_softmax_probabilities: false`
+  - `closes_m2: false`
+  - cycle sum: `37216`
+  - summary sha256:
+    `e1b472f98807dbec49253bf561ce85a80bcbf63565614aec876ec40f5b80b5ea`
+
+This strengthens the M2 evidence from a single-head proof to all real attention
+heads, but it still does not close M2. The remaining M2 gap is one integrated
+full-block path with multi-head context merge, attention output projection,
+LN2, MLP, final residual, token/control input, and YPCB PCIe/BAR acceptance
+after hardware access is explicitly re-enabled. M3 remains open.
+
+### 2026-06-12 - Offline later-token composed full-block RTL path
+
+Extended the first-token attention and MLP fixture exporters so they can emit a
+specific causal token row instead of being pinned to token 0. This adds a
+later-token composed full-block simulation target:
+
+- `.#task6-m2-last-token-attention-out-projection`
+- `.#task6-m2-last-token-mlp-replay`
+- `.#task6-m2-last-token-full-block-tb-data-sv`
+- `.#task6-m2-last-token-full-block-accel-sim-main`
+- `.#task6-m2-last-token-full-block-accel-sv-sim`
+
+The shared full-block testbench now prints the token index from the generated
+fixture so token-0 and token-5 evidence cannot be mislabeled.
+
+Verification:
+
+- `python3 -m py_compile scripts/task6/export_m2_first_token_attention_out_projection.py scripts/task6/export_m2_first_token_mlp_replay.py`
+  passed.
+- `nix eval .#task6-m2-last-token-full-block-accel-sv-sim.name`
+  returned `task6-m2-last-token-full-block-accel-sv-sim.json`.
+- `nix build .#task6-m2-first-token-full-block-accel-sv-sim .#task6-m2-last-token-full-block-accel-sv-sim -o /tmp/task6-m2-full-block-token-sims -L`
+  passed for both token rows.
+- Token 0 result:
+  - cycles: `37381`
+  - attention checksum: `0003920f`
+  - attention residual checksum: `0003eaf0`
+  - LN2 checksum: `00040ac1`
+  - post-GELU checksum: `00366b6d`
+  - c_proj checksum: `00034e3e`
+  - final checksum: `000365ee`
+  - final sample0: `c70ceb30`
+  - final sample1: `c641126c`
+- Token 5 result:
+  - `closes_m2: false`
+  - cycles: `37381`
+  - attention checksum: `000389c8`
+  - attention residual checksum: `0003f764`
+  - LN2 checksum: `0003ed6c`
+  - post-GELU checksum: `004b4f68`
+  - c_proj checksum: `00041d9b`
+  - final checksum: `0003f2f6`
+  - final sample0: `d411be5b`
+  - final sample1: `d535e471`
+
+This is useful M2 movement because the composed attention out-projection -> LN2
+-> MLP -> final residual path now covers a later causal token row, matching the
+token used by the live K/V cache attention work. It still does not close M2:
+the current path is fixture-exported offline RTL, not a token/control-input
+full-block engine accepted over the YPCB PCIe/BAR lane. M3 remains open.
+
+### 2026-06-12 - Live-K/V context composed full-block RTL path
+
+Added a later-token composed full-block variant where the attention output
+projection context is derived from the live K/V cache attention fixture rather
+than from the float attention tensor:
+
+- `.#task6-m2-last-token-live-kv-context-attention-out-projection`
+- `.#task6-m2-last-token-live-kv-context-mlp-replay`
+- `.#task6-m2-last-token-live-kv-context-full-block-tb-data-sv`
+- `.#task6-m2-last-token-live-kv-context-attention-out-proj-accel-sv-sim`
+- `.#task6-m2-last-token-live-kv-context-full-block-accel-sv-sim`
+
+The first live-context composed run exposed a real replay mismatch in the LN2
+mean path: the fixture rounded the signed Q12 mean sum, while RTL truncated it
+with `>>> 6`. The attention out-projection and residual checks were already
+passing; the failure was LN2 index 6. RTL now latches the LN2 mean through the
+same signed round-shift helper used by the exporter and other fixed-point
+paths.
+
+Verification:
+
+- `python3 -m py_compile scripts/task6/export_m2_first_token_attention_out_projection.py scripts/task6/export_m2_first_token_mlp_replay.py`
+  passed.
+- `nix eval .#task6-m2-last-token-live-kv-context-attention-out-proj-accel-sv-sim.name`
+  returned
+  `task6-m2-last-token-live-kv-context-attention-out-proj-accel-sv-sim.json`.
+- `nix build .#task6-m2-first-token-attention-out-proj-accel-sv-sim .#task6-m2-last-token-live-kv-context-attention-out-proj-accel-sv-sim -o /tmp/task6-m2-attn-out-proj-context-sims -L`
+  passed for the token-0 regression and the token-5 live-K/V context
+  projection.
+- `nix build .#task6-m2-first-token-full-block-accel-sv-sim .#task6-m2-last-token-full-block-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-accel-sv-sim -o /tmp/task6-m2-full-block-context-sims -L`
+  passed for all three composed full-block variants.
+- Live-K/V context token 5 result:
+  - `closes_m2: false`
+  - cycles: `37381`
+  - attention checksum: `00039049`
+  - attention residual checksum: `0003f7fb`
+  - LN2 checksum: `0003ed3a`
+  - post-GELU checksum: `004b2c4f`
+  - c_proj checksum: `00041d5b`
+  - final checksum: `0003b2c9`
+  - final sample0: `d114be59`
+  - final sample1: `d737e470`
+
+This removes another fixture dependency from the M2 ladder: the later-token
+full-block path now composes live-cache-derived attention context through
+attention output projection, LN2, MLP, and final residual in RTL. It still does
+not close M2 because it is offline fixture-exported RTL, not a board-accepted
+token/control-input full-block engine. The next M2 step is to turn the live K/V
+cache plus composed full-block path into a single BAR-facing token/control
+candidate and run a bounded hardware gate without bridge rescans. M3 remains
+open.
+
+### 2026-06-12 - Live-K/V context full-block PCIe wrapper candidate
+
+Promoted the live-K/V-context token-5 composed full-block path into the
+BAR-shaped PCIe wrapper lane used by the M2 host gate. The gate contract is now
+fixture-selected rather than first-token-specific:
+
+- `stage = M2-fixture-full-block-pcie-wrapper`
+- `artifact_role = pcie-bar-fixture-full-block-candidate-gate`
+- `live_compute = false`
+- parsed fixture metadata includes `M2_FULL_BLOCK_TOKEN_INDEX`
+
+New reproducible targets:
+
+- `.#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim`
+- `.#task6-m2-last-token-live-kv-context-full-block-pcie-accel-json`
+- `.#task6-m2-last-token-live-kv-context-full-block-pcie-accel-utilization`
+- `.#task6-m2-last-token-live-kv-context-full-block-pcie-gate-runbook`
+
+The PCIe wrapper sim passed for both token 0 and token 5 after the testbench
+PASS line was made token-index-aware:
+
+- Token 0: cycles `37381`, final checksum `000365ee`, sample0 `c70ceb30`,
+  sample1 `c641126c`, debug `00000000`, debug1 `920feaf0`, debug2 `c16d67ef`.
+- Token 5 live-K/V context: cycles `37381`, final checksum `0003b2c9`,
+  sample0 `d114be59`, sample1 `d737e470`, debug `00000000`, debug1
+  `9049f7fb`, debug2 `3a4f67ef`.
+
+Yosys completed the standalone live-context PCIe wrapper JSON with 0 check
+problems. Whole-design hierarchy stats: 44,918 cells, 43 DSP48E1, 1,278 CARRY4,
+3,622 FDCE, 2,048 FDRE, and 23,016 estimated LCs. The remaining warning is the
+known generated-memory registerization shape for the post-GELU fixture memory.
+
+The runbook target resolves the exact stable `tb_data.sv` fixture and emits a
+bounded hardware command with `--timeout 2.0 --poll-interval 0.001`, but it does
+not run hardware itself and still requires `TASK6_PCIE_HARDWARE_ENABLE=1`.
+Do not run this against an unknown or older bitstream: the loaded image must be
+proven to include the matching live-K/V-context full-block PCIe wrapper. This
+candidate still does not close M2 because the fixture is compiled into the
+wrapper; M2 requires board-accepted live full-block execution from token/control
+input. M3 remains open.
+
+### 2026-06-12 - Integrated rowstream dummy synthesis checkpoint
+
+Built the rowstream-ingress dummy top after pointing the integrated Yosys source
+at the token-5 live-K/V-context full-block PCIe wrapper fixture:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-live-context-rowstream-dummy-yosys-json -L`
+- Result:
+  `/nix/store/rrvnhhvm2afiqh9ql4qc84wysyl7cqcv-task6-ypcb-pcie-rowstream-ingress-dummy-yosys.json`
+- Top:
+  `task6_ypcb_pcie_rowstream_ingress_dummy_top`
+- `check` result:
+  0 problems.
+- Peak Yosys memory:
+  4.5 GiB.
+- Final stats:
+  86,560 cells, 57 DSP48E1, 2,091 CARRY4, 8,904 FDCE, 8,765 FDRE,
+  804 RAM64M, 6 RAMB18E1, 8 RAMB36E1, and 45,175 estimated LCs.
+
+This is useful evidence that the live-context full-block wrapper is now
+integrated through the board-facing PCIe/rowstream dummy hierarchy and BAR mux
+surface. It is not yet a hardware acceptance artifact:
+
+- The currently loaded board image was not proven to match this netlist.
+- No BAR gate was run against the unknown image.
+- No reset, bridge rescan, endpoint rescan, flash, or recovery command was run.
+- The design is still fixture-selected and reports `live_compute = false`.
+
+The synthesis result also shows the next practical M2 blocker: the integrated
+candidate is too bulky to push blindly into P&R/hardware gating. The next M2
+step should add a BAR-readable provenance/signature register for the wrapper
+ABI/token-index/context source, then reduce the integrated image before P&R
+by removing stale M1-only accelerator payload from the M2 image and making the
+full-block fixture memories map predictably to ROM/BRAM instead of large LUT
+and register structures. M2 remains open; M3 remains open.
+
+### 2026-06-12 - M2 BAR provenance preflight guard
+
+Added a read-only M2 provenance word at BAR offset `0x5d4` in the existing M2
+sample/debug window. The word is `0x4d32_2000 | token_index[7:0]`; for the
+token-5 live-K/V-context fixture it is `0x4d32_2005`. The value is generated by
+the M2 full-block PCIe wrapper, sampled through the CDC wrapper, and exposed by
+the ingress BAR mux.
+
+The M2 full-block host gate now reads this register before issuing any M2
+clear/start/vector writes. A stale or non-matching bitstream therefore fails
+preflight and writes a FAIL JSON artifact instead of kicking the accelerator.
+This is a guardrail for the next hardware run; it does not make the current
+fixture-selected path live M2 compute.
+
+Verification:
+
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py scripts/task6/export_m2_first_token_attention_out_projection.py scripts/task6/export_m2_first_token_mlp_replay.py`
+  passed.
+- `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  passed.
+- `git diff --check` over the touched Task 6 files passed.
+- `nix build .#task6-m2-first-token-full-block-pcie-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim .#task6-pcie-rowstream-loader-ingress-sim-main -o /tmp/task6-m2-provenance-check -L`
+  passed.
+- `/tmp/task6-pcie-rowstream-loader-ingress-sim-main/obj_dir/sim_main`
+  passed with `PASS: task6 PCIe rowstream loader ingress simulation`.
+
+No hardware BAR gate, reset, flash, bridge rescan, or endpoint rescan was run
+for this checkpoint. M2 remains open; M3 remains open.
+
+### 2026-06-12 - M2 rowstream dummy image trimmed M1-only accelerator
+
+The rowstream-ingress dummy top now has an `ENABLE_MLP_ACCEL` parameter. The
+default remains enabled for the RTL module, but the M2 integrated Yosys target
+sets it to `0` so this board-facing M2 candidate does not carry the separate
+M1 BAR MLP accelerator alongside the M2 full-block wrapper.
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-trimmed-rowstream-dummy-yosys-json -L`
+- Result:
+  `/nix/store/qs9zj62jnfczy78xhiq6s35icn98kdwv-task6-ypcb-pcie-rowstream-ingress-dummy-yosys.json`
+- Top:
+  `task6_ypcb_pcie_rowstream_ingress_dummy_top`
+- `check` result:
+  0 problems.
+- Peak Yosys memory:
+  4.12 GiB.
+- Final stats:
+  56,264 cells, 46 DSP48E1, 1,460 CARRY4, 5,530 FDCE, 6,882 FDRE,
+  4 RAMB36E1, and 28,563 estimated LCs.
+
+This is a meaningful reduction from the previous integrated checkpoint
+(86,560 cells, 57 DSP48E1, 45,175 estimated LCs), and the hierarchy log confirms
+the separate `task6_int8_l2_mlp_chain_residual_add_accel_top` is no longer part
+of this M2 image. It does not weaken the M2 BAR contract because the M2
+full-block PCIe wrapper and provenance path remain present.
+
+The remaining M2 size issue is inside the M2 full-block fixture itself. Yosys
+still FF-maps the generated M2 fixture memories; only the PCIe RX/TX RAMs infer
+block RAM. The next resource step should make the M2 fixture/weight tables map
+predictably to ROM/BRAM or remove redundant expected-data arrays before P&R.
+
+No hardware BAR gate, reset, flash, bridge rescan, endpoint rescan, or P&R run
+was performed for this checkpoint. M2 remains open; M3 remains open.
+
+### 2026-06-12 - M2 weight fixtures moved to block ROM
+
+Moved the three large M2 full-block weight fixtures out of assignment-heavy
+`tb_data.sv` blocks and into generated hex sidecars loaded with `$readmemh`.
+The attention out-projection weight ROM, MLP `c_fc` weight ROM, and MLP
+`c_proj` weight ROM are now marked for block memory mapping. Their read
+address/output pipeline registers are initialized at accelerator start rather
+than through async reset so Yosys can legally map them to Xilinx block RAM.
+
+Functional verification:
+
+- Command:
+  `nix build .#task6-m2-first-token-full-block-pcie-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim -o /tmp/task6-m2-readmemh-weight-rom-noasync-sim -L`
+- Token 0:
+  cycles `37765`, final checksum `000365ee`, sample0 `c70ceb30`,
+  sample1 `c641126c`, debug `00000000`, debug1 `920feaf0`, debug2 `c16d67ef`.
+- Token 5 live-K/V context:
+  cycles `37765`, final checksum `0003b2c9`, sample0 `d114be59`,
+  sample1 `d737e470`, debug `00000000`, debug1 `9049f7fb`, debug2 `3a4f67ef`.
+
+Standalone live-context full-block PCIe wrapper synthesis:
+
+- Command:
+  `nix build .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-utilization -o /tmp/task6-m2-readmemh-weight-rom-noasync-last-token-pcie-util -L`
+- Result:
+  `/nix/store/qv0jbizdg2hy5krvl7w0s0ki42ya8ffc-task6-m2-last-token-live-kv-context-full-block-pcie-accel-utilization`
+- `check` result:
+  0 problems.
+- Peak Yosys memory:
+  1.02 GiB.
+- Final stats:
+  29,789 cells, 43 DSP48E1, 1,290 CARRY4, 3,623 FDCE, 2,088 FDRE,
+  9 RAMB36E1, and 10,586 estimated LCs.
+
+Integrated rowstream-ingress dummy synthesis:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-readmemh-weight-rom-rowstream-dummy-yosys-json -L`
+- Result:
+  `/nix/store/yvvmv47v1bpann5jq46r4nyj0s3rpxbw-task6-ypcb-pcie-rowstream-ingress-dummy-yosys.json`
+- `check` result:
+  0 problems.
+- Peak Yosys memory:
+  2.02 GiB.
+- Final stats:
+  39,042 cells, 46 DSP48E1, 1,471 CARRY4, 5,531 FDCE, 6,922 FDRE,
+  13 RAMB36E1, and 15,023 estimated LCs.
+
+This is a substantial improvement over the prior integrated trimmed checkpoint
+(56,264 cells, 46 DSP48E1, 28,563 estimated LCs, 4 RAMB36E1, 4.12 GiB peak).
+The full-block wrapper is still fixture-selected and does not by itself close
+M2, but it is now small enough to justify the next implementation-stage check
+before a bounded BAR gate.
+
+No hardware BAR gate, reset, flash, bridge rescan, endpoint rescan, or P&R run
+was performed for this checkpoint. M2 remains open; M3 remains open.
+
+### 2026-06-12 - M2 reciprocal-table timing closure checkpoint
+
+Moved the MLP PWL GELU segment reciprocal from runtime RTL arithmetic into the
+generated M2 fixture. The generated MLP replay fixture now emits
+`mlp_gelu_pwl_recip_q[]`, and both the integrated MLP replay block and the
+standalone c_fc/GELU block consume that table instead of synthesizing a divider
+inside the GELU helper. This preserves the fixed-point PWL algorithm while
+removing avoidable combinational logic from the MLP check path.
+
+Functional verification:
+
+- Command:
+  `nix build .#task6-m2-first-token-full-block-pcie-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim -o /tmp/task6-m2-pwl-recip-rom-sim -L`
+- Token 0:
+  cycles `37765`, final checksum `000365ee`, sample0 `c70ceb30`,
+  sample1 `c641126c`, debug `00000000`, debug1 `920feaf0`, debug2 `c16d67ef`.
+- Token 5 live-K/V context:
+  cycles `37765`, final checksum `0003b2c9`, sample0 `d114be59`,
+  sample1 `d737e470`, debug `00000000`, debug1 `9049f7fb`, debug2 `3a4f67ef`.
+
+Integrated rowstream-ingress dummy synthesis:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-pwl-recip-rom-rowstream-dummy-yosys-json -L`
+- `check` result:
+  0 problems.
+- Peak Yosys memory:
+  1.90 GiB.
+- Final stats:
+  31,964 cells, 46 DSP48E1, 795 CARRY4, 5,531 FDCE, 6,922 FDRE,
+  13 RAMB36E1, and 12,805 estimated LCs.
+
+Integrated pnr100 bitstream:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-pwl-recip-rom-rowstream-dummy-pnr100-bitstream -L`
+- Result:
+  `/nix/store/yl3pg6pl5rqnpx1icyljfbfwxjgixhk4-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- nextpnr result:
+  226 warnings, 0 errors.
+- Routed timing:
+  `pcie_user_clk` 93.88 MHz PASS at 62.50 MHz; DRCK 355.75 MHz PASS at
+  100.00 MHz; PIPE_OOBCLK 253.16 MHz PASS at 100.00 MHz.
+- Device utilization:
+  22,511 SLICE_LUTX, 12,474 SLICE_FFX, 831 CARRY4, 13 RAMB36E1,
+  46 DSP48E1, and 1 PCIE_2_1.
+
+The earlier readmemh-weight-ROM candidate failed pnr100 routed timing at
+`pcie_user_clk` 41.95 MHz against 62.50 MHz. The reciprocal-table checkpoint is
+the first M2 full-block rowstream-ingress dummy image in this sequence that
+routes cleanly at the PCIe user clock target.
+
+No hardware BAR gate, reset, flash, bridge rescan, or endpoint rescan was
+performed for this checkpoint. M2 remains open until the timing-clean image is
+loaded and accepted by a bounded board gate. M3 remains open.
+
+### 2026-06-12 - M2 reciprocal-table pnr100 BPI flash
+
+Loaded the timing-clean reciprocal-table rowstream-ingress dummy image into BPI
+flash for a board gate attempt.
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh flash 0000:42:00.0 write /nix/store/yl3pg6pl5rqnpx1icyljfbfwxjgixhk4-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit --confirm-write-flash --label task6-m2-pwl-recip-rom-pnr100-flash`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T18-42-03+0200-task6-m2-pwl-recip-rom-pnr100-flash`
+- Result:
+  openFPGALoader exited 0, detected Intel/Micron BPI flash, reported 64 MB
+  capacity, wrote 18,735,004 bytes, verified the first 32 words, and reported
+  BPI flash programming complete.
+
+The first non-BAR post-flash lifecycle probe did not reach a BAR-safe state:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-pwl-recip-rom-post-flash-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T18-49-42+0200-task6-m2-pwl-recip-rom-post-flash-lifecycle`
+- Classification:
+  `wrong_vendor`.
+- Details:
+  `lspci` still showed `0000:42:00.0` as Xilinx `10ee:0480`, and sysfs
+  identity showed vendor `0x10ee`, device `0x0480`, subsystem vendor `0x10ee`,
+  and subsystem device `0xabcd`. However, the lifecycle setpci probe returned
+  `COMMAND=0000`, `VENDOR_ID=ffff`, `DEVICE_ID=0480`,
+  `SUBSYSTEM_DEVICE=ffff`, and `BAR0=ffffffff`, while sysfs still exposed
+  `resource0` at `0x74000000..0x74000fff`.
+
+No M2 BAR gate was run from this state. A bounded delegated endpoint
+reset/remove/rescan recovery was considered, but this path is explicitly
+treated as host-freeze-risky in this setup and was not performed without an
+explicit go-ahead. The next safe board-facing step is a physical/cold
+re-enumeration with the FPGA already booted from BPI flash, followed by the
+non-BAR lifecycle probe. If that reaches `pcie_ready`, run the matching
+last-token live-K/V context full-block gate with the stable
+`tb_data.sv` fixture. M2 remains open; M3 remains open.
+
+### 2026-06-12 - M2 flat weight prefetch checkpoint
+
+Changed the generated M2 projection/MLP weight fixtures from two-dimensional
+tables to flat tables and added one-cycle registered prefetches before each
+row dot product. This keeps the full-block wrapper behavior stable while
+removing the widest direct two-dimensional table selects from the datapath.
+
+Functional verification:
+
+- Command:
+  `nix build .#task6-m2-first-token-full-block-pcie-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim -o /tmp/task6-m2-flat-weight-prefetch-sim -L`
+- Token 0:
+  cycles `37765`, final checksum `000365ee`, sample0 `c70ceb30`,
+  sample1 `c641126c`, debug `00000000`, debug1 `920feaf0`, debug2 `c16d67ef`.
+- Token 5 live-K/V context:
+  cycles `37765`, final checksum `0003b2c9`, sample0 `d114be59`,
+  sample1 `d737e470`, debug `00000000`, debug1 `9049f7fb`, debug2 `3a4f67ef`.
+
+Standalone live-context full-block PCIe wrapper synthesis:
+
+- Command:
+  `nix build .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-utilization -o /tmp/task6-m2-flat-weight-prefetch-last-token-pcie-util -L`
+- Result:
+  `/nix/store/6r3573l6jq6m71sbmnbjfv7gw22hr45c-task6-m2-last-token-live-kv-context-full-block-pcie-accel-utilization`
+- `check` result:
+  0 problems.
+- Peak Yosys memory:
+  1.87 GiB.
+- Final stats:
+  45,084 cells, 43 DSP48E1, 1,290 CARRY4, 3,687 FDCE, 2,048 FDRE,
+  2,329 MUXF7, 916 MUXF8, 22,661 estimated LCs, and 0 memories.
+
+This is not a P&R or hardware candidate. The full-block wrapper still maps the
+large generated fixture tables into LUT/register mux fabric instead of block
+RAM, and the design hierarchy reports zero memories after synthesis. The next
+M2 resource step should move the generated weight/fixture tables into true
+ROM artifacts or generated synchronous ROM modules with one registered
+address/output port per table, then re-run standalone and integrated Yosys
+before any board gate. If `$readmemh` path handling through Nix is awkward,
+explicit generated RAMB-init wrappers are the safer fallback.
+
+No hardware BAR gate, reset, flash, bridge rescan, endpoint rescan, or P&R run
+was performed for this checkpoint. M2 remains open; M3 remains open.
+
+### 2026-06-12 - M2 live K/V external LN input checkpoint
+
+Added an external packed Q12 LN input sequence port to the M2 live K/V cache
+accelerator and drove that port from the simulation harness. This removes the
+compiled LN input activation table from the live-K/V datapath while preserving
+the existing generated reference checks for LN, Q/K/V projection, score,
+probability, and value output arithmetic.
+
+Focused verification:
+
+- Command:
+  `nix build .#task6-m2-ln-attn-live-kv-cache-accel-sv-sim -o /tmp/task6-m2-live-kv-external-ln-input-sim`
+- Result:
+  `/nix/store/mb68wncyi0hzam0hdsdadz7528cadp1x-task6-m2-ln-attn-live-kv-cache-accel-sv-sim.json`
+- Evidence:
+  PASS, token `5`, cache sequence `6`, head dimension `64`, cycles `25426`,
+  checksum `00044b24`, sample0 `e2e010e5`, sample1 `05d910f2`.
+
+All-head component verification:
+
+- Command:
+  `nix build .#task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim -o /tmp/task6-m2-live-kv-external-ln-input-all-heads-sim`
+- Result:
+  `/nix/store/lii57w43c5x5bba0p7mbrm5xm8a5ngkz-task6-m2-ln-attn-live-kv-cache-all-heads-sv-sim.json`
+- Evidence:
+  PASS for 16 heads, head dimension `4`, token `5`, cache sequence `6`,
+  cycle sum `37216`, summary sha256
+  `e1b472f98807dbec49253bf561ce85a80bcbf63565614aec876ec40f5b80b5ea`.
+
+Existing last-token full-block regression after this change:
+
+- Command:
+  `nix build .#task6-m2-last-token-live-kv-context-full-block-accel-sv-sim .#task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim -o /tmp/task6-m2-post-live-kv-external-ln-full-block-sim`
+- Results:
+  `/nix/store/na2iacwvwnv37ps069b84iggai3yqmcl-task6-m2-last-token-live-kv-context-full-block-accel-sv-sim.json`
+  and
+  `/nix/store/pq590xp5jk0c98gn1gn3p51yk25cf0n6-task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim.json`
+- Evidence:
+  Both PASS with final checksum `0003b2c9`, sample0 `d114be59`, sample1
+  `d737e470`.
+
+Post-checkpoint board lifecycle:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-post-live-kv-external-ln-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T19-57-13+0200-task6-m2-post-live-kv-external-ln-lifecycle`
+- Classification:
+  `corrupt_device_id`.
+- Details:
+  The non-BAR lifecycle probe read config `COMMAND=0000`, `VENDOR=10ee`,
+  `DEVICE=ffff`, `SUBSYSTEM_DEVICE=ffff`, and `BAR0=ffffffff`, while `lspci`
+  still reported the endpoint as Xilinx `10ee:0480`.
+
+This still does not close M2. The live K/V component now accepts external Q12
+LN inputs, but the full-block wrapper evidence is still offline simulation and
+the complete 16-head context is not yet produced by a single integrated
+full-block accelerator instance from token/control input. M2 remains open; M3
+remains open. No hardware BAR gate, reset, bridge rescan, endpoint rescan, or
+new flash operation was performed for this checkpoint.
+
+### 2026-06-12 - M2 integrated all-head live K/V context checkpoint
+
+Added an integrated all-head live K/V context accelerator that serializes one
+RTL instance across all 16 attention heads for the final prompt token. The new
+path computes LN1, Q/K/V projection, score-derived quadratic softmax
+probabilities, value accumulation, and final per-head context values, then
+requantizes each head into the single global 64-byte context quantization used
+by the attention out-projection fixture.
+
+New artifacts:
+
+- `sim/gen_task6_m2_ln_attn_live_kv_all_heads_context_tb_data.py`
+- `fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv`
+- `sim/task6_m2_ln_attn_live_kv_all_heads_context_accel_tb_main.sv`
+- Flake targets:
+  `task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv`,
+  `task6-m2-ln-attn-live-kv-all-heads-context-accel-sv-sim`,
+  `task6-m2-ln-attn-live-kv-all-heads-context-accel-json`, and
+  `task6-m2-ln-attn-live-kv-all-heads-context-accel-utilization`.
+
+Functional verification:
+
+- Command:
+  `nix build .#task6-m2-ln-attn-live-kv-all-heads-context-accel-sv-sim -o /tmp/task6-m2-live-kv-all-heads-context-sim`
+- Result:
+  `/nix/store/s7ni5n4815gi6ps0g4cz061pa61sxhkc-task6-m2-ln-attn-live-kv-all-heads-context-accel-sv-sim.json`
+- Evidence:
+  PASS, token `5`, cache sequence `6`, heads `16`, head dimension `4`,
+  one RTL instance, 64 context bytes, cycles `37216`, checksum `000432e3`,
+  sample0 `d3c310cb`, sample1 `10c11ddc`.
+
+Standalone synthesis/utilization:
+
+- Command:
+  `nix build .#task6-m2-ln-attn-live-kv-all-heads-context-accel-utilization -o /tmp/task6-m2-live-kv-all-heads-context-util`
+- Result:
+  `/nix/store/vjak6jc69y5bl8manlxmyjrl2ickpp4j-task6-m2-ln-attn-live-kv-all-heads-context-accel-utilization`
+- Estimated mapped resources:
+  19,779 LUTs, 2,187 FFs, 50 DSP48E1s, 0 RAMB36E1, lower-bound 2,473 slices.
+
+This is stronger than the previous all-head evidence because it is a single
+integrated RTL context producer and its output quantization is compatible with
+the attention out-projection context input. It still does not close M2: the
+context producer is not yet composed into the full-block accelerator control
+path, and there is no board-accepted live full-block evidence from token/control
+input. M2 remains open; M3 remains open.
+
+Board lifecycle after this checkpoint:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-all-head-context-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T20-11-22+0200-task6-m2-all-head-context-lifecycle`
+- Classification:
+  `wrong_vendor`.
+- Details:
+  The non-BAR lifecycle probe read config `COMMAND=0000`, `VENDOR=ffff`,
+  `DEVICE=0480`, `SUBSYSTEM_DEVICE=abcd`, and `BAR0=00000000`, while `lspci`
+  still reported the endpoint as Xilinx `10ee:0480`. No BAR gate, reset,
+  bridge rescan, endpoint rescan, recovery, or flash operation was performed
+  after this probe.
+
+### 2026-06-12 - M2 composed live-context full-block checkpoint
+
+Composed the integrated all-head live K/V context producer into the full-block
+accelerator path. The new `task6_m2_live_context_full_block_accel_top` runs
+the live context producer first, feeds its 64-byte globally requantized context
+vector into the attention out-projection, then runs LN2 and the integrated MLP
+residual path. This removes the host-supplied attention context vector from the
+offline full-block compute path.
+
+New artifacts:
+
+- `fpga/rtl/task6_m2_live_context_full_block_accel_top.sv`
+- `sim/task6_m2_live_context_full_block_accel_tb_main.sv`
+- Flake targets:
+  `task6-m2-last-token-live-context-full-block-accel-sim-main`,
+  `task6-m2-last-token-live-context-full-block-accel-sv-sim`,
+  `task6-m2-last-token-live-context-full-block-accel-json`, and
+  `task6-m2-last-token-live-context-full-block-accel-utilization`.
+
+Functional verification:
+
+- Command:
+  `nix build .#task6-m2-last-token-live-context-full-block-accel-sv-sim -o /tmp/task6-m2-live-context-full-block-sim`
+- Result:
+  `/nix/store/405mf493zs8v8f86anvykj4ggifbc3yr-task6-m2-last-token-live-context-full-block-accel-sv-sim.json`
+- Evidence:
+  PASS, token `5`, live context producer true, host-supplied context false,
+  host-supplied block input true, cycles `74983`, context checksum `000432e3`,
+  attention checksum `00039049`, attention residual checksum `0003f7fb`, LN2
+  checksum `0003ed3a`, post-GELU checksum `004b2c4f`, c_proj checksum
+  `00041d5b`, final checksum `0003b2c9`, sample0 `d114be59`, sample1
+  `d737e470`.
+
+Standalone synthesis/utilization:
+
+- Command:
+  `nix build .#task6-m2-last-token-live-context-full-block-accel-utilization -o /tmp/task6-m2-live-context-full-block-util`
+- Result:
+  `/nix/store/dfcsjn6g528c9kkq7cb9lhkixm2ly4fd-task6-m2-last-token-live-context-full-block-accel-utilization`
+- Estimated mapped resources:
+  29,268 LUTs, 7,147 FFs, 95 DSP48E1s, 9 RAMB36E1s, lower-bound 3,659 slices.
+
+This is stronger than the previous M2 full-block evidence because the
+attention context is now produced inside the composed RTL path rather than
+injected by host/BAR. It still does not close M2: the block input/LN1 sequence
+is still supplied as prompt-derived activation fixture data rather than
+token/control input, the PCIe wrapper has not been updated to expose this path,
+and the board is not currently BAR-safe for a live gate. M2 remains open; M3
+remains open.
+
+Board lifecycle after this checkpoint:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-live-context-full-block-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T20-20-54+0200-task6-m2-live-context-full-block-lifecycle`
+- Classification:
+  `corrupt_command`.
+- Details:
+  The non-BAR lifecycle probe read config `COMMAND=ffff`, `VENDOR=10ee`,
+  `DEVICE=ffff`, `HEADER=ff`, `SUBSYSTEM_DEVICE=ffff`, and `BAR0=00000000`.
+  `lspci` still reported the endpoint as Xilinx `10ee:0480`. No BAR gate,
+  reset, bridge rescan, endpoint rescan, recovery, or flash operation was run
+  after this probe.
+
+### 2026-06-12 - M2 embedding/position-add full-block checkpoint
+
+Replaced the table-backed token block-input producer with a fixed-point
+embedding/position-add producer for the six-token TinyStories prompt. The new
+producer stores selected `transformer.wte.weight` token rows and
+`transformer.wpe.weight` position rows separately in Q20, validates prompt token
+IDs `[7454, 2402, 257, 640, 612, 373]`, adds token and position rows in RTL, and
+then derives both the LN1 Q12 input sequence and the last-token int8 block-input
+vector from that RTL add. The Q20 add reproduces the existing M2 contract
+exactly for both downstream boundaries.
+
+New artifacts:
+
+- `sim/gen_task6_m2_embedding_block_input_tb_data.py`
+- `fpga/rtl/task6_m2_embedding_block_input_accel_top.sv`
+- `fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv`
+- `sim/task6_m2_embedding_live_context_full_block_accel_tb_main.sv`
+- Flake targets:
+  `task6-m2-embedding-live-context-full-block-accel-sim-main`,
+  `task6-m2-embedding-live-context-full-block-accel-sv-sim`,
+  `task6-m2-embedding-live-context-full-block-accel-json`, and
+  `task6-m2-embedding-live-context-full-block-accel-utilization`.
+
+Functional verification:
+
+- Command:
+  `nix build .#task6-m2-embedding-live-context-full-block-accel-sv-sim -o /tmp/task6-m2-embedding-live-sim`
+- Result:
+  `/nix/store/99q0lzydslrj19bvx9akh542jlqfbvhz-task6-m2-embedding-live-context-full-block-accel-sv-sim.json`
+- Evidence:
+  PASS, input boundary `token_ids`, block input source
+  `fixed-point-wte-wpe-q20-add`, embedding/position-add RTL true, token IDs
+  `[7454, 2402, 257, 640, 612, 373]`, live context producer true,
+  host-supplied context false, host-supplied block input false, cycles `75377`,
+  block-input checksum `000350f9`, context checksum `000432e3`, attention
+  checksum `00039049`, attention residual checksum `0003f7fb`, LN2 checksum
+  `0003ed3a`, post-GELU checksum `004b2c4f`, c_proj checksum `00041d5b`,
+  final checksum `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`.
+
+Standalone synthesis/utilization:
+
+- Command:
+  `nix build .#task6-m2-embedding-live-context-full-block-accel-utilization -o /tmp/task6-m2-embedding-live-util`
+- Result:
+  `/nix/store/7r9205mjz3w8a9agd9hzamavyn5dr6rn-task6-m2-embedding-live-context-full-block-accel-utilization`
+- Estimated mapped resources:
+  39,692 LUTs, 13,970 FFs, 100 DSP48E1s, 9 RAMB36E1s, lower-bound 4,962 slices.
+
+This is stronger than the previous token-table checkpoint because the full-block
+offline simulation boundary is now token IDs plus RTL embedding/position add,
+not copied activation vectors or copied prompt block-input rows. It still does
+not close M2: this path is not yet exposed through the PCIe/BAR board gate, it
+contains only the selected prompt token rows rather than the full embedding
+memory surface, and the last observed board lifecycle state was not BAR-safe.
+M2 remains open; M3 remains open.
+
+Board lifecycle after this checkpoint:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-embedding-live-context-full-block-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T20-48-47+0200-task6-m2-embedding-live-context-full-block-lifecycle`
+- Classification:
+  `corrupt_command`.
+- Details:
+  The lifecycle gate reported config space returning `0xffff` and advised
+  stopping PCIe probing until chassis or host re-enumeration with the FPGA
+  already configured from BPI flash. No BAR gate, reset, bridge rescan, endpoint
+  rescan, recovery, or flash operation was run after this probe.
+
+### 2026-06-12 - M2 BAR-visible token-ID wrapper checkpoint
+
+Added a PCIe/BAR wrapper for the embedding/position-add M2 path. The existing
+M2 input aperture at `0x540` now carries the six prompt token IDs in the low 96
+bits for the token-wrapper candidate; the wrapper runs RTL embedding/position
+add, live K/V context, attention out projection, LN2, MLP, and final residual,
+then exposes the same status/checksum/sample/full-vector BAR result surface.
+The wrapper reports provenance `0x4d323005`, distinct from the older
+fixture-wrapper provenance `0x4d322005`, so the host gate can reject stale
+fixture bitstreams.
+
+New artifacts:
+
+- `fpga/rtl/task6_m2_embedding_live_context_full_block_pcie_accel_top.sv`
+- `sim/task6_m2_embedding_live_context_full_block_pcie_accel_tb_main.sv`
+- Updated `fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv` to
+  instantiate the token-ID wrapper for the M2 BAR candidate.
+- Updated `scripts/task6/task6_pcie_m2_full_block_gate.py` with
+  `--embedding-tb-data-sv` token-mode parsing and provenance checking.
+- Flake target:
+  `task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim`.
+
+Functional verification:
+
+- Command:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -o /tmp/task6-m2-embedding-pcie-sim`
+- Result:
+  `/nix/store/31jv6bnc4h1hdkybhhg7rdj31f1pf271-task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim.json`
+- Evidence:
+  PASS, input boundary `pcie_bar_token_ids`, embedding/position-add RTL true,
+  PCIe BAR scope true, cycles `75377`, final checksum `0003b2c9`, sample0
+  `d114be59`, sample1 `d737e470`, provenance `4d323005`, debug1 `50f932e3`,
+  debug2 `49fb3a5b`.
+
+Board-top synthesis check:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-embedding-rowstream-dummy-json`
+- Result:
+  `/nix/store/sm20y4kb5jx62ynb3f9xh40q13d6kvr2-task6-ypcb-pcie-rowstream-ingress-dummy-yosys.json`
+
+Host-gate checks:
+
+- Commands:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  and
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_milestone_evidence_audit.py`
+- Result:
+  both passed.
+
+This is now the correct board-facing M2 candidate surface for the selected
+prompt-token-row implementation. It still does not close M2: the board endpoint
+was last classified `corrupt_command`, no BAR gate was run against this wrapper,
+and the wrapper still carries selected prompt token rows rather than the full
+embedding memory surface. M2 remains open; M3 remains open.
+
+### 2026-06-12 - M2 token-controlled table-backed full-block checkpoint
+
+Added a token-controlled block-input producer and composed it with the
+live-context full-block accelerator. The new path accepts the prompt token IDs
+`[7454, 2402, 257, 640, 612, 373]`, validates them against the M2 contract, and
+then emits the prompt-derived block-input vector plus LN1 Q12 sequence used by
+the composed live-context full-block. This removes host-supplied activation
+vectors from the offline full-block simulation boundary, but the producer is
+still table-backed from the prompt contract rather than a real embedding and
+position-add implementation.
+
+New artifacts:
+
+- `sim/gen_task6_m2_token_block_input_tb_data.py`
+- `fpga/rtl/task6_m2_token_block_input_accel_top.sv`
+- `fpga/rtl/task6_m2_token_live_context_full_block_accel_top.sv`
+- `sim/task6_m2_token_live_context_full_block_accel_tb_main.sv`
+- Flake targets:
+  `task6-m2-token-block-input-tb-data-sv`,
+  `task6-m2-token-live-context-full-block-accel-sim-main`,
+  `task6-m2-token-live-context-full-block-accel-sv-sim`,
+  `task6-m2-token-live-context-full-block-accel-json`, and
+  `task6-m2-token-live-context-full-block-accel-utilization`.
+
+Functional verification:
+
+- Command:
+  `nix build .#task6-m2-token-live-context-full-block-accel-sv-sim -o /tmp/task6-m2-token-live-context-full-block-sim`
+- Result:
+  `/nix/store/10ayrwacgd0l146qz07rvx63znpvv6c2-task6-m2-token-live-context-full-block-accel-sv-sim.json`
+- Evidence:
+  PASS, input boundary `token_ids`, token IDs
+  `[7454, 2402, 257, 640, 612, 373]`, token-controlled block input true,
+  live context producer true, host-supplied context false, host-supplied block
+  input false, cycles `75441`, block-input checksum `000350f9`, context
+  checksum `000432e3`, attention checksum `00039049`, attention residual
+  checksum `0003f7fb`, LN2 checksum `0003ed3a`, post-GELU checksum `004b2c4f`,
+  c_proj checksum `00041d5b`, final checksum `0003b2c9`, sample0 `d114be59`,
+  sample1 `d737e470`.
+
+Standalone synthesis/utilization:
+
+- Command:
+  `nix build .#task6-m2-token-live-context-full-block-accel-utilization -o /tmp/task6-m2-token-live-context-full-block-util`
+- Result:
+  `/nix/store/pg0g0lkc6h72hlsa1m2cns0dny2iajrz-task6-m2-token-live-context-full-block-accel-utilization`
+- Estimated mapped resources:
+  41,021 LUTs, 13,970 FFs, 96 DSP48E1s, 9 RAMB36E1s, lower-bound 5,128 slices.
+
+This is closer to M2 because the simulation boundary is now token IDs rather
+than host-written hidden vectors. It still does not close M2: the token producer
+is a contract table lookup, not live embedding/position-add compute; the PCIe
+wrapper and board bitstream do not yet expose this token-controlled path; and
+the board remains unsafe for BAR access until PCIe config re-enumerates cleanly.
+M2 remains open; M3 remains open.
+
+Board lifecycle after this checkpoint:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-token-live-context-full-block-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T20-33-42+0200-task6-m2-token-live-context-full-block-lifecycle`
+- Classification:
+  `wrong_vendor`.
+- Details:
+  The non-BAR lifecycle probe read config `COMMAND=0000`, `VENDOR=ffff`,
+  `DEVICE=0480`, `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`, and `BAR0=00000000`.
+  `lspci` still reported the endpoint as Xilinx `10ee:0480`. No BAR gate,
+  reset, bridge rescan, endpoint rescan, recovery, or flash operation was run
+  after this probe.

@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module task6_m2_ln_attn_sublane_accel_tb;
+module task6_m2_ln_attn_sublane_external_kv_accel_tb;
   `include "tb_data.sv"
 
   localparam int TIMEOUT_CYCLES = 10000;
@@ -10,6 +10,8 @@ module task6_m2_ln_attn_sublane_accel_tb;
   logic SYS_RSTN;
   logic [511:0] pcie_block_input_i;
   logic [511:0] pcie_residual_after_attention_i;
+  logic [4095:0] pcie_external_k_vector_i;
+  logic [4095:0] pcie_external_v_vector_i;
   logic pcie_start_pulse_i;
   logic pcie_clear_pulse_i;
   logic [31:0] pcie_status_o;
@@ -28,15 +30,16 @@ module task6_m2_ln_attn_sublane_accel_tb;
   logic [31:0] expected_sample1;
   integer cycles;
   integer i;
+  integer s;
 
   task6_m2_ln_attn_sublane_accel_top dut (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .pcie_block_input_i(pcie_block_input_i),
     .pcie_residual_after_attention_i(pcie_residual_after_attention_i),
-    .pcie_use_external_kv_i(1'b0),
-    .pcie_external_k_vector_i(4096'd0),
-    .pcie_external_v_vector_i(4096'd0),
+    .pcie_use_external_kv_i(1'b1),
+    .pcie_external_k_vector_i(pcie_external_k_vector_i),
+    .pcie_external_v_vector_i(pcie_external_v_vector_i),
     .pcie_start_pulse_i(pcie_start_pulse_i),
     .pcie_clear_pulse_i(pcie_clear_pulse_i),
     .pcie_status_o(pcie_status_o),
@@ -58,6 +61,8 @@ module task6_m2_ln_attn_sublane_accel_tb;
     SYS_RSTN = 1'b0;
     pcie_block_input_i = 512'd0;
     pcie_residual_after_attention_i = 512'd0;
+    pcie_external_k_vector_i = 4096'd0;
+    pcie_external_v_vector_i = 4096'd0;
     pcie_start_pulse_i = 1'b0;
     pcie_clear_pulse_i = 1'b0;
     expected_output_vector = 512'd0;
@@ -71,6 +76,14 @@ module task6_m2_ln_attn_sublane_accel_tb;
     end
     for (i = 0; i < 32; i = i + 1) begin
       pcie_residual_after_attention_i[i * 16 +: 16] = ln_input_q12[i + 32];
+    end
+    for (s = 0; s < ATTN_SEQ; s = s + 1) begin
+      for (i = 0; i < ATTN_HEAD_DIM; i = i + 1) begin
+        pcie_external_k_vector_i[((s * ATTN_HEAD_DIM) + i) * 8 +: 8] =
+          attn_k_q[s][i];
+        pcie_external_v_vector_i[((s * ATTN_HEAD_DIM) + i) * 8 +: 8] =
+          attn_v_q[s][i];
+      end
     end
     for (i = 0; i < ATTN_HEAD_DIM; i = i + 1) begin
       expected_output_vector[i * 8 +: 8] = attn_expected_value_q[i];
@@ -99,9 +112,11 @@ module task6_m2_ln_attn_sublane_accel_tb;
       if (pcie_status_o[2]) begin
         $fatal(
           1,
-          "FAIL: task6 M2 ln attn sublane accel entered error status=%08x debug=%08x",
+          "FAIL: task6 M2 ln attn external-kv accel entered error status=%08x debug=%08x debug1=%08x debug2=%08x",
           pcie_status_o,
-          pcie_debug_o
+          pcie_debug_o,
+          pcie_debug1_o,
+          pcie_debug2_o
         );
       end
 
@@ -137,7 +152,7 @@ module task6_m2_ln_attn_sublane_accel_tb;
           $fatal(1, "FAIL: output vector mismatch");
         end
         $display(
-          "PASS: task6 M2 ln attn sublane accel cycles %0d checksum %08x sample0 %08x sample1 %08x",
+          "PASS: task6 M2 ln attn external-kv accel cycles %0d checksum %08x sample0 %08x sample1 %08x",
           pcie_cycle_count_o,
           pcie_output_checksum_o,
           pcie_output_sample0_o,
@@ -147,6 +162,6 @@ module task6_m2_ln_attn_sublane_accel_tb;
       end
     end
 
-    $fatal(1, "Timeout waiting for task6 M2 ln attn sublane accel done");
+    $fatal(1, "Timeout waiting for task6 M2 ln attn external-kv accel done");
   end
 endmodule

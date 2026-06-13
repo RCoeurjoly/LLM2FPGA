@@ -105,6 +105,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [31:0]  m2_full_block_output_sample0_i,
     input wire [31:0]  m2_full_block_output_sample1_i,
     input wire [31:0]  m2_full_block_output_count_i,
+    input wire [31:0]  m2_full_block_debug_i,
     input wire [511:0] m2_full_block_output_vector_i
 );
     localparam [1:0] EVENT_IDLE = 2'd0;
@@ -342,6 +343,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                 case (read_word_index_q[3:0])
                     4'h0: read_mux_data = m2_full_block_output_sample0_i;
                     4'h1: read_mux_data = m2_full_block_output_sample1_i;
+                    4'h2: read_mux_data = m2_full_block_debug_i;
                     default: read_mux_data = 32'd0;
                 endcase
             end

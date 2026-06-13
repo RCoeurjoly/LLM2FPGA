@@ -8,7 +8,7 @@ BDF="${2:-$ALLOWED_BDF}"
 
 usage() {
   cat >&2 <<'EOF'
-usage: scripts/task6/task6_pcie_user_gate.sh <bringup-full|recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|m2-full-block|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
+usage: scripts/task6/task6_pcie_user_gate.sh <bringup-full|recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|m2-full-block|m2-ln-attn-sublane|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell> [0000:42:00.0] [mode args...]
 
 Rootless Task 6 PCIe gate dispatcher. This assumes the Task 6 YPCB PCIe udev
 rule has enabled PCI memory space, granted plugdev read/write access to
@@ -19,9 +19,21 @@ EOF
 }
 
 case "$MODE" in
-  bringup-full|recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|m2-full-block|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
+  bringup-full|recover-auto|bridge-rescan|lifecycle|flash|recover|bar|debug-dump|mlp-boundary|mlp-accel|m2-full-block|m2-ln-attn-sublane|prompt-infer|rowstream-loopback|rowstream-loader|rowstream-packet|rowstream-run|rowstream-top1|command|command-header|command-echo|command-doorbell) ;;
   *) usage ;;
 esac
+
+if [[ "${TASK6_PCIE_HARDWARE_ENABLE:-0}" != "1" ]]; then
+  cat >&2 <<'EOF'
+error: Task 6 PCIe hardware access is disabled by default after the host-freeze
+incident.
+
+This dispatcher can flash, rescan, recover, or touch PCIe BAR/sysfs state.
+Set TASK6_PCIE_HARDWARE_ENABLE=1 only for an explicitly approved hardware run.
+Offline Nix, RTL, sim, and Python artifact work do not need this dispatcher.
+EOF
+  exit 2
+fi
 
 if [[ "$BDF" != "$ALLOWED_BDF" ]]; then
   echo "error: refusing BDF $BDF; allowed BDF is $ALLOWED_BDF" >&2
@@ -32,6 +44,18 @@ DEVICE="/sys/bus/pci/devices/$BDF"
 RESOURCE0="$DEVICE/resource0"
 
 if [[ "$MODE" == "bridge-rescan" ]]; then
+  if [[ "${TASK6_PCIE_ALLOW_UNSAFE_RESCAN:-0}" != "1" ]]; then
+    cat >&2 <<'EOF'
+error: bridge-rescan is disabled by default because delegated bridge rescans
+have correlated with host freezes on this setup.
+
+Re-enumerate the chassis or reboot with the FPGA already configured, then run:
+  scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0
+
+Set TASK6_PCIE_ALLOW_UNSAFE_RESCAN=1 only for a deliberate recovery experiment.
+EOF
+    exit 2
+  fi
   exec python3 "$ROOT/scripts/task6/task6_pcie_bridge_rescan.py" "${3:-0000:41:00.0}"
 fi
 
@@ -126,6 +150,7 @@ case "$MODE" in
   mlp-boundary) exec python3 "$ROOT/scripts/task6/task6_pcie_mlp_boundary_gate.py" "$BDF" "${@:3}" ;;
   mlp-accel) exec python3 "$ROOT/scripts/task6/task6_pcie_mlp_accel_gate.py" "$BDF" "${@:3}" ;;
   m2-full-block) exec python3 "$ROOT/scripts/task6/task6_pcie_m2_full_block_gate.py" "$BDF" "${@:3}" ;;
+  m2-ln-attn-sublane) exec python3 "$ROOT/scripts/task6/task6_pcie_m2_ln_attn_sublane_gate.py" "$BDF" "${@:3}" ;;
   prompt-infer) exec python3 "$ROOT/scripts/task6/task6_prompt_infer.py" "$BDF" "${@:3}" ;;
   rowstream-loopback) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_loopback_smoke.py" "$BDF" "${@:3}" ;;
   rowstream-loader) exec python3 "$ROOT/scripts/task6/task6_pcie_rowstream_loader_smoke.py" "$BDF" "${@:3}" ;;
