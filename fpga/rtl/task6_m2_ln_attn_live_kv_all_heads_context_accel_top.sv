@@ -125,6 +125,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top (
   logic [31:0] src_index_u32_w;
   logic [31:0] dim_index_u32_w;
   logic [31:0] context_index_u32_w;
+  logic [31:0] ln_mean_flat_index_w;
+  logic [31:0] ln_center_flat_index_w;
   logic [CONTEXT_INDEX_WIDTH - 1:0] context_index_w;
 
   function automatic signed [63:0] round_shift_signed64(
@@ -165,11 +167,15 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top (
     (head_index_q * CONTEXT_INDEX_WIDTH'(ATTN_HEAD_DIM)) +
     {{(CONTEXT_INDEX_WIDTH - ATTN_DIM_WIDTH){1'b0}}, dim_index_q};
   assign context_index_u32_w = {{(32 - CONTEXT_INDEX_WIDTH){1'b0}}, context_index_w};
+  assign ln_mean_flat_index_w = (token_index_u32_w * 32'(LN_DIM)) +
+    {{(32 - LN_INDEX_WIDTH){1'b0}}, mean_index_q};
+  assign ln_center_flat_index_w = (token_index_u32_w * 32'(LN_DIM)) +
+    {{(32 - LN_INDEX_WIDTH){1'b0}}, ln_index_q};
   assign ln_current_input_q12_w = use_external_ln_input_i ?
-    $signed(external_ln_input_q12_by_token_i[((token_index_q * LN_DIM + mean_index_q) * 16) +: 16]) :
+    $signed(external_ln_input_q12_by_token_i[(ln_mean_flat_index_w * 32'd16) +: 16]) :
     ln_input_q12_by_token[token_index_q][mean_index_q];
   assign ln_center_input_q12_w = use_external_ln_input_i ?
-    $signed(external_ln_input_q12_by_token_i[((token_index_q * LN_DIM + ln_index_q) * 16) +: 16]) :
+    $signed(external_ln_input_q12_by_token_i[(ln_center_flat_index_w * 32'd16) +: 16]) :
     ln_input_q12_by_token[token_index_q][ln_index_q];
   assign ln_input_q12_w = ln_current_input_q12_w;
   assign ln_mean_next_acc_q12_w =

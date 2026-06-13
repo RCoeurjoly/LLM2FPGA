@@ -41,6 +41,7 @@ module task6_m2_embedding_block_input_accel_top (
   logic [3:0] token_index_debug_w;
   logic [3:0] emit_token_index_debug_w;
   logic [7:0] dim_index_debug_w;
+  logic [31:0] emit_ln_flat_index_w;
   logic signed [31:0] added_q20_w;
   logic signed [31:0] added_q20_q;
   logic signed [63:0] added_q20_ext_w;
@@ -58,6 +59,9 @@ module task6_m2_embedding_block_input_accel_top (
   assign token_index_debug_w = {{(4 - TOKEN_INDEX_WIDTH){1'b0}}, token_index_q};
   assign emit_token_index_debug_w = {{(4 - TOKEN_INDEX_WIDTH){1'b0}}, emit_token_index_q};
   assign dim_index_debug_w = {{(8 - DIM_INDEX_WIDTH){1'b0}}, dim_index_q};
+  assign emit_ln_flat_index_w =
+    ({{(32 - TOKEN_INDEX_WIDTH){1'b0}}, emit_token_index_q} * 32'(EMBED_BLOCK_DIM)) +
+    {{(32 - DIM_INDEX_WIDTH){1'b0}}, dim_index_q};
   assign added_q20_w =
     embed_block_token_embedding_q20[emit_token_index_q][dim_index_q] +
     embed_block_position_embedding_q20[emit_token_index_q][dim_index_q];
@@ -192,7 +196,7 @@ module task6_m2_embedding_block_input_accel_top (
               added_q20_q_ext_w * {{32{EMBED_BLOCK_REQUANT_MUL_Q20[31]}}, EMBED_BLOCK_REQUANT_MUL_Q20};
             requant_lo_q <= 64'sd0;
           end
-          ln_input_q12_by_token_o[((emit_token_index_q * EMBED_BLOCK_DIM + dim_index_q) * 16) +: 16] <=
+          ln_input_q12_by_token_o[(emit_ln_flat_index_w * 32'd16) +: 16] <=
             ln_input_q12_w;
           if (ln_input_q12_w != embed_block_expected_ln_input_q12_by_token[emit_token_index_q][dim_index_q]) begin
             state_q <= S_ERROR;
