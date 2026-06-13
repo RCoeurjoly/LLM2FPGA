@@ -66,6 +66,8 @@ module task6_m2_embedding_live_context_full_block_accel_top (
   logic [31:0] block_final_sample1_w;
   logic [511:0] block_final_vector_w;
   logic [31:0] block_debug_w;
+  logic [31:0] block_debug1_w;
+  logic [31:0] block_debug2_w;
 
   task6_m2_embedding_block_input_accel_top embed_i (
     .SYS_CLK(SYS_CLK),
@@ -102,7 +104,9 @@ module task6_m2_embedding_live_context_full_block_accel_top (
     .final_sample0_o(block_final_sample0_w),
     .final_sample1_o(block_final_sample1_w),
     .final_vector_o(block_final_vector_w),
-    .debug_o(block_debug_w)
+    .debug_o(block_debug_w),
+    .debug1_o(block_debug1_w),
+    .debug2_o(block_debug2_w)
   );
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
@@ -229,13 +233,18 @@ module task6_m2_embedding_live_context_full_block_accel_top (
     final_sample0_o = block_final_sample0_w;
     final_sample1_o = block_final_sample1_w;
     final_vector_o = block_final_vector_w;
-    debug1_o = {
-      embed_ln_input_q12_by_token_q[15:0],
-      embed_ln_input_q12_by_token_q[31:16]
-    };
-    debug2_o = {
-      embed_ln_input_q12_by_token_q[47:32],
-      embed_ln_input_q12_by_token_q[63:48]
-    };
+    if (state_q == ST_ERROR && debug_o[31:28] == 4'hc) begin
+      debug1_o = block_debug1_w;
+      debug2_o = block_debug2_w;
+    end else begin
+      debug1_o = {
+        embed_ln_input_q12_by_token_q[15:0],
+        embed_ln_input_q12_by_token_q[31:16]
+      };
+      debug2_o = {
+        embed_ln_input_q12_by_token_q[47:32],
+        embed_ln_input_q12_by_token_q[63:48]
+      };
+    end
   end
 endmodule
