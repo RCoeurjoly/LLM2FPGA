@@ -12,6 +12,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from task6_m3_board_artifact import build_board_artifact
+
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_BASELINE_DIR = (
@@ -118,6 +120,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Only print final gate summary JSON.",
     )
+    parser.add_argument(
+        "--m3-reference-manifest",
+        type=Path,
+        default=None,
+        help=(
+            "Optional M3 reference manifest. When provided, the gate writes "
+            "an M3 audit artifact from the completed gate summary."
+        ),
+    )
+    parser.add_argument(
+        "--m3-artifact-json",
+        type=Path,
+        default=None,
+        help="Output path for --m3-reference-manifest; default: <run-root>/m3-board-artifact.json.",
+    )
     return parser.parse_args()
 
 
@@ -201,6 +218,10 @@ def step_passed(step: StepResult) -> bool:
     return str(step.payload.get("status", "")).upper() == "PASS"
 
 
+def read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def build_gates(steps: list[StepResult]) -> dict[str, str | None]:
     gates = {key: "PENDING" for key in KNOWN_GATE_KEYS}
     for step in steps:
@@ -229,6 +250,24 @@ def build_gates(steps: list[StepResult]) -> dict[str, str | None]:
             gates[key] = "PASS" if value else "FAIL"
 
     return gates
+
+
+def emit_m3_artifact(
+    summary: dict[str, Any],
+    manifest_path: Path,
+    board_summary_path: Path,
+    out_json: Path,
+) -> dict[str, Any]:
+    manifest = read_json(manifest_path)
+    artifact = build_board_artifact(
+        manifest,
+        summary,
+        manifest_path,
+        board_summary_path,
+    )
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+    out_json.write_text(json.dumps(artifact, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+    return artifact
 
 
 def main() -> int:
@@ -332,10 +371,30 @@ def main() -> int:
         ],
     }
 
-    (run_root / "gate-summary.json").write_text(
+    gate_summary_path = run_root / "gate-summary.json"
+    gate_summary_path.write_text(
         json.dumps(summary, sort_keys=True, indent=2) + "\n",
         encoding="utf-8",
     )
+
+    if args.m3_reference_manifest is not None:
+        m3_artifact_path = args.m3_artifact_json or (run_root / "m3-board-artifact.json")
+        m3_artifact = emit_m3_artifact(
+            summary,
+            args.m3_reference_manifest,
+            gate_summary_path,
+            m3_artifact_path,
+        )
+        summary["m3_artifact"] = {
+            "path": str(m3_artifact_path),
+            "status": m3_artifact.get("status"),
+            "closes_m3": m3_artifact.get("closes_m3"),
+            "m3_audit_failures": m3_artifact.get("m3_audit_failures", []),
+        }
+        gate_summary_path.write_text(
+            json.dumps(summary, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
 
     if args.json_only:
         print(json.dumps(summary, sort_keys=True, indent=2))

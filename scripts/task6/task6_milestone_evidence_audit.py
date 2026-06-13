@@ -135,7 +135,7 @@ def audit_m2(payload: dict[str, Any]) -> list[str]:
     lspci = str(payload.get("lspci", board.get("lspci", ""))).lower()
     bdf = payload.get("bdf", board.get("bdf"))
     board_status = str(board.get("status", payload.get("board_status", "")))
-    if board_status and board_status != "PASS":
+    if board_status != "PASS":
         failures.append("M2 board status is not PASS")
     if not bdf and "10ee:0480" not in lspci and "ypcb" not in lower_join(board):
         failures.append("M2 artifact lacks YPCB board/PCIe acceptance evidence")
@@ -154,6 +154,33 @@ def audit_m2(payload: dict[str, Any]) -> list[str]:
         and observed.get("first_64_output_hex") != expected.get("first_64_output_hex")
     ):
         failures.append("M2 observed first-64-byte output does not match expected output")
+    checks = payload.get("checks", {})
+    required_checks = (
+        "task6_magic",
+        "task6_version",
+        "not_all_ones",
+        "m2_magic",
+        "m2_version",
+        "m2_present",
+        "m2_provenance",
+        "status_schema",
+        "start_count_incremented",
+        "state_done",
+        "no_error",
+        "output_valid",
+        "output_count_live",
+        "checksum",
+        "sample0",
+        "sample1",
+        "output_count",
+        "first_64_output",
+    )
+    if not isinstance(checks, dict):
+        failures.append("M2 artifact lacks BAR gate checks object")
+    else:
+        for check_name in required_checks:
+            if checks.get(check_name) is not True:
+                failures.append(f"M2 artifact missing passing {check_name} BAR check")
     return failures
 
 
@@ -192,8 +219,13 @@ def audit_m3(payload: dict[str, Any]) -> list[str]:
     if isinstance(reference_tokens, list) and isinstance(board_tokens, list) and reference_tokens != board_tokens:
         failures.append("M3 board token IDs do not match reference greedy token IDs")
     board_status = str(board.get("status", payload.get("board_status", "")))
-    if board_status and board_status != "PASS":
+    if board_status != "PASS":
         failures.append("M3 board status is not PASS")
+    lspci = str(payload.get("lspci", board.get("lspci", ""))).lower()
+    bdf = payload.get("bdf", board.get("bdf"))
+    board_text = lower_join(board)
+    if not bdf and "10ee:0480" not in lspci and "ypcb" not in board_text:
+        failures.append("M3 artifact lacks YPCB board/PCIe identity evidence")
     sample_count = board.get("sample_count", payload.get("sample_count"))
     if isinstance(board_tokens, list) and sample_count is not None and sample_count != len(board_tokens):
         failures.append("M3 board sample_count does not match board token count")

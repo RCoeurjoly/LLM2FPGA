@@ -6,11 +6,37 @@ from __future__ import annotations
 from pathlib import Path
 
 from task6_milestone_evidence_audit import audit_payload
-from task6_pcie_m2_full_block_gate import CONTRACT as M2_FULL_BLOCK_WRAPPER_CONTRACT
+from task6_pcie_m2_full_block_gate import (
+    CONTRACT as M2_FULL_BLOCK_WRAPPER_CONTRACT,
+    CONTRACT_TOKEN_LIVE as M2_TOKEN_LIVE_CONTRACT,
+)
 from task6_pcie_m2_ln_attn_sublane_gate import CONTRACT as M2_SUBLANE_CONTRACT
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def m2_passing_bar_checks() -> dict[str, bool]:
+    return {
+        "task6_magic": True,
+        "task6_version": True,
+        "not_all_ones": True,
+        "m2_magic": True,
+        "m2_version": True,
+        "m2_present": True,
+        "m2_provenance": True,
+        "status_schema": True,
+        "start_count_incremented": True,
+        "state_done": True,
+        "no_error": True,
+        "output_valid": True,
+        "output_count_live": True,
+        "checksum": True,
+        "sample0": True,
+        "sample1": True,
+        "output_count": True,
+        "first_64_output": True,
+    }
 
 
 def m1_live_payload() -> dict:
@@ -108,10 +134,44 @@ def test_m2_accepts_live_full_block_shape() -> None:
             },
         },
         "input": {"token_ids": [1, 2, 3], "control": {"block_index": 0}},
+        "board": {"status": "PASS"},
         "bdf": "0000:42:00.0",
         "lspci": "0000:42:00.0 Processing accelerators [1200]: Xilinx Corporation Device [10ee:0480]",
         "observed": {"compute_path": "live", "first_64_output_hex": "00" * 64},
         "expected": {"first_64_output_hex": "00" * 64},
+        "checks": m2_passing_bar_checks(),
+    }
+    assert audit_payload("M2", payload) == []
+
+
+def test_m2_accepts_token_live_gate_contract_shape() -> None:
+    payload = {
+        "status": "PASS",
+        "contract": M2_TOKEN_LIVE_CONTRACT,
+        "input": {"token_ids": [7454, 2402, 257, 640, 612, 373], "block_index": 0},
+        "board": {"status": "PASS"},
+        "bdf": "0000:42:00.0",
+        "lspci": "0000:42:00.0 Processing accelerators [1200]: Xilinx Corporation Device [10ee:0480]",
+        "observed": {"compute_path": "live-full-block", "first_64_output_hex": "00" * 64},
+        "expected": {"first_64_output_hex": "00" * 64},
+        "checks": m2_passing_bar_checks(),
+    }
+    assert audit_payload("M2", payload) == []
+
+
+def test_m2_accepts_board_nested_pcie_identity() -> None:
+    payload = {
+        "status": "PASS",
+        "contract": M2_TOKEN_LIVE_CONTRACT,
+        "input": {"token_ids": [7454, 2402, 257, 640, 612, 373], "block_index": 0},
+        "board": {
+            "status": "PASS",
+            "bdf": "0000:42:00.0",
+            "lspci": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]",
+        },
+        "observed": {"compute_path": "live-full-block", "first_64_output_hex": "00" * 64},
+        "expected": {"first_64_output_hex": "00" * 64},
+        "checks": m2_passing_bar_checks(),
     }
     assert audit_payload("M2", payload) == []
 
@@ -128,6 +188,7 @@ def test_m2_requires_matching_first_64_output() -> None:
         "input": {"token_ids": [1], "control": {"block_index": 0}},
         "observed": {"compute_path": "live", "first_64_output_hex": "00" * 64},
         "expected": {"first_64_output_hex": "01" * 64},
+        "checks": m2_passing_bar_checks(),
     }
     failures = audit_payload("M2", payload)
     assert any("first-64-byte output" in failure for failure in failures)
@@ -150,6 +211,43 @@ def test_m2_requires_token_control_and_live_compute_path() -> None:
     assert any("block_index=0" in failure for failure in failures)
     assert any("compute_path" in failure for failure in failures)
     assert any("board/PCIe" in failure for failure in failures)
+    assert any("board status" in failure for failure in failures)
+
+
+def test_m2_requires_explicit_board_pass_status() -> None:
+    payload = {
+        "status": "PASS",
+        "contract": {
+            "stage": "M2-one-full-block",
+            "live_compute": True,
+            "notes": "Board executes one complete TinyStories transformer block from token/control input.",
+            "responsibilities": {"fpga": ["one complete TinyStories block live compute"]},
+        },
+        "input": {"token_ids": [1], "control": {"block_index": 0}},
+        "bdf": "0000:42:00.0",
+        "lspci": "0000:42:00.0 Processing accelerators [1200]: Xilinx Corporation Device [10ee:0480]",
+        "observed": {"compute_path": "live", "first_64_output_hex": "00" * 64},
+        "expected": {"first_64_output_hex": "00" * 64},
+        "checks": m2_passing_bar_checks(),
+    }
+    failures = audit_payload("M2", payload)
+    assert any("board status" in failure for failure in failures)
+
+
+def test_m2_requires_passing_bar_gate_checks() -> None:
+    payload = {
+        "status": "PASS",
+        "contract": M2_TOKEN_LIVE_CONTRACT,
+        "input": {"token_ids": [7454, 2402, 257, 640, 612, 373], "block_index": 0},
+        "board": {"status": "PASS"},
+        "bdf": "0000:42:00.0",
+        "lspci": "0000:42:00.0 Processing accelerators [1200]: Xilinx Corporation Device [10ee:0480]",
+        "observed": {"compute_path": "live-full-block", "first_64_output_hex": "00" * 64},
+        "expected": {"first_64_output_hex": "00" * 64},
+        "checks": {**m2_passing_bar_checks(), "m2_provenance": False},
+    }
+    failures = audit_payload("M2", payload)
+    assert any("m2_provenance" in failure for failure in failures)
 
 
 def test_m2_rejects_first_token_wrapper_even_with_matching_output() -> None:
@@ -197,6 +295,44 @@ def test_m3_requires_token_exact_output() -> None:
     }
     failures = audit_payload("M3", payload)
     assert any("do not match" in failure for failure in failures)
+    assert any("board status" in failure for failure in failures)
+
+
+def test_m3_requires_explicit_board_pass_status() -> None:
+    payload = {
+        "status": "PASS",
+        "contract": {
+            "stage": "M3-full-tinystories-1m",
+            "live_compute": True,
+            "all_blocks": True,
+            "notes": "Board executes all TinyStories-1M transformer blocks for token-exact greedy generation.",
+        },
+        "input": {"prompt": "Once upon a time", "prompt_token_ids": [10, 11]},
+        "model": {"model_label": "TinyStories-1M"},
+        "reference": {"generated_tokens": [1, 2], "prompt": "Once upon a time"},
+        "board_tokens": [1, 2],
+    }
+    failures = audit_payload("M3", payload)
+    assert any("board status" in failure for failure in failures)
+    assert any("board/PCIe identity" in failure for failure in failures)
+
+
+def test_m3_requires_ypcb_board_identity() -> None:
+    payload = {
+        "status": "PASS",
+        "contract": {
+            "stage": "M3-full-tinystories-1m",
+            "live_compute": True,
+            "all_blocks": True,
+            "notes": "Board executes all TinyStories-1M transformer blocks for token-exact greedy generation.",
+        },
+        "input": {"prompt": "Once upon a time", "prompt_token_ids": [10, 11]},
+        "model": {"model_label": "TinyStories-1M"},
+        "reference": {"generated_tokens": [1, 2], "prompt": "Once upon a time"},
+        "board": {"status": "PASS", "sample_count": 2, "generated_tokens": [1, 2]},
+    }
+    failures = audit_payload("M3", payload)
+    assert any("board/PCIe identity" in failure for failure in failures)
 
 
 def test_m3_accepts_full_model_token_exact_shape() -> None:
@@ -215,7 +351,13 @@ def test_m3_accepts_full_model_token_exact_shape() -> None:
         "input": {"prompt": "Once upon a time", "prompt_token_ids": [10, 11]},
         "model": {"model_label": "TinyStories-1M"},
         "reference": {"generated_tokens": [1, 2], "prompt": "Once upon a time"},
-        "board": {"status": "PASS", "sample_count": 2, "generated_tokens": [1, 2]},
+        "board": {
+            "status": "PASS",
+            "bdf": "0000:42:00.0",
+            "lspci": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]",
+            "sample_count": 2,
+            "generated_tokens": [1, 2],
+        },
     }
     assert audit_payload("M3", payload) == []
 
@@ -240,8 +382,9 @@ def test_m3_rejects_host_assisted_even_when_tokens_match() -> None:
 
 def test_offline_m2_producers_do_not_claim_live_stage() -> None:
     offenders = []
+    allowed_hardware_gates = {"task6_pcie_m2_full_block_gate.py"}
     for path in SCRIPT_DIR.glob("*.py"):
-        if path.name == Path(__file__).name:
+        if path.name == Path(__file__).name or path.name in allowed_hardware_gates:
             continue
         text = path.read_text(encoding="utf-8")
         if '"stage": "M2-one-full-block"' in text:
@@ -269,11 +412,17 @@ def main() -> None:
     test_m1_requires_echo_and_output_checks()
     test_m2_rejects_replay_contract()
     test_m2_accepts_live_full_block_shape()
+    test_m2_accepts_token_live_gate_contract_shape()
+    test_m2_accepts_board_nested_pcie_identity()
     test_m2_requires_matching_first_64_output()
     test_m2_requires_token_control_and_live_compute_path()
+    test_m2_requires_explicit_board_pass_status()
+    test_m2_requires_passing_bar_gate_checks()
     test_m2_rejects_first_token_wrapper_even_with_matching_output()
     test_m3_rejects_m0_prompt_infer_contract()
     test_m3_requires_token_exact_output()
+    test_m3_requires_explicit_board_pass_status()
+    test_m3_requires_ypcb_board_identity()
     test_m3_accepts_full_model_token_exact_shape()
     test_m3_rejects_host_assisted_even_when_tokens_match()
     test_offline_m2_producers_do_not_claim_live_stage()
