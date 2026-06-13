@@ -4,6 +4,460 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-13 - M2 embedding requant sim fix, pnr100 timing still open
+
+Current M2 failure mode is no longer PCIe/BAR access. The validated safe
+protocol is the required gate for future M2 BAR runs: non-BAR lifecycle first,
+Tapo P115 chassis cold-cycle only if lifecycle is not `pcie_ready`, non-BAR
+lifecycle again after settle, BAR header smoke only after `pcie_ready`, and
+M2 BAR access only if the header returns `T6PC`. Host-side PCIe
+reset/remove/rescan/root fallback is still manual-only and was not used here.
+
+Latest board-visible M2 compute failure on the context-debug image reached the
+accelerator and failed inside embedding block-input requant:
+
+- Status: `0x4d320064` (`M2` error).
+- Debug: `0x03000ef2`, decoded as stage `0x03` block-input mismatch, dim 14,
+  observed `0xf2` / -14.
+- Reference for dim 14 from
+  `/nix/store/9cirkh2z4phzmpswf3g5al1njvh0cnl8-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv`:
+  token embedding 15621, position embedding -40865, sum -25244, expected -10.
+- The matching software reference is direct
+  `round_shift_signed(sum * 415, 20)`, not the Q12-derived LN-input path.
+
+RTL changes now in `fpga/rtl/task6_m2_embedding_block_input_accel_top.sv`:
+
+- Debug packing was widened/padded so token, LN, and block-input failure words
+  are unambiguous 32-bit values.
+- `EMBED_BLOCK_REQUANT_MUL_Q20 == 415` now uses exact shift/subtract logic:
+  `(value <<< 9) - (value <<< 6) - (value <<< 5) - value`.
+- This avoids the earlier seven-term shift/add form, but still preserves exact
+  multiplication by 415.
+
+Simulation and host-side checks passed:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-accel-sv-sim -L`
+  passed with final checksum `0003b2c9`, sample0 `d114be59`, sample1
+  `d737e470`.
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with the same checksum/samples, provenance `4d323005`, and debug 0.
+- `git diff --check -- fpga/rtl/task6_m2_embedding_block_input_accel_top.sv`
+  passed.
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py
+  scripts/task6/test_task6_pcie_m2_full_block_gate.py` passed.
+- `PYTHONPATH=scripts/task6
+  python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py` passed.
+
+The pnr100 build did not produce a flashable image:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-requant-subtract-rowstream-ingress-dummy-pnr100-bitstream -L`
+- nextpnr confirmed the intended netlist shape and entered placement/routing.
+- Resource snapshot before route: 77499/597200 LUTs, 21809/597200 FFs, 13
+  RAMB36, 95 DSP48E1.
+- Pre-route timing still failed:
+  `pcie_user_clk=55.98 MHz` against the required `62.50 MHz`.
+- Because timing was already failing, the build was terminated before waiting
+  for a full routed artifact. No bitstream from this run was flashed, and no
+  M2 BAR gate was run from it.
+
+M2 remains open. The next technical fix is timing, not PCIe recovery: pipeline
+or sequence the embedding requant/block-input check path, or reduce the
+full-block fixture checker’s pcie_user_clk critical path before another pnr100
+flash attempt.
+
+## 2026-06-13 - M2 preflight tightened, current live failure is input BAR readback
+
+The M2 board path now follows the validated no-host-reset PCIe/BAR protocol:
+
+- `task6_m2_catch_ready_gate.sh` runs only the non-BAR lifecycle probe first.
+- If lifecycle does not report `pcie_ready`, M2 is not launched.
+- After `pcie_ready`, the gate runs BAR header smoke through
+  `task6_pcie_user_gate.sh bar --mode header` and requires `T6PC`.
+- Only after both gates pass does it delegate to the M2 BAR gate.
+- `task6_pcie_make_stable_then_m2.sh` can use the safe `recover-auto` ladder
+  with the configured Tapo P115 chassis cold-cycle, then repeats the lifecycle
+  and BAR-header gates. It no longer treats an already-started M2 gate failure
+  as a PCIe recovery trigger.
+- Host-side PCIe reset/remove/rescan/root fallback remains manual-only and is
+  not used by this M2 path.
+
+Verification:
+
+- `bash -n scripts/task6/task6_m2_catch_ready_gate.sh`
+- `bash -n scripts/task6/task6_pcie_make_stable_then_m2.sh`
+- `nix build .#task6-m2-catch-ready-gate-runbook-unit-tests`
+- `nix build .#task6-pcie-make-stable-then-m2-unit-tests`
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py
+  scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- `PYTHONPATH=scripts/task6
+  python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+
+Latest live M2 run:
+
+- Lifecycle preflight classified `pcie_ready`.
+- BAR header smoke returned `T6PC`.
+- The M2 full-block gate refused to assert start because the host-written input
+  aperture did not read back correctly.
+- `residual_readback=true`, but `input_readback=false`.
+- Expected token-control input began with
+  `1e1d620901018002640275010000...` for token IDs
+  `[7454, 2402, 257, 640, 612, 373]`.
+- Observed input readback began with
+  `8f0eb184800040013281ba000000...`, which looks like a stale fixture/block
+  input vector rather than the host-written token vector.
+- Status stayed idle (`0x4d320001`) and the start counter did not increment,
+  so this evidence isolates the failure before M2 compute.
+
+Working diagnosis:
+
+- PCIe/BAR recovery is not the current blocker; the validated protocol restores
+  lifecycle and BAR header access safely.
+- The current blocker is M2 input BAR provenance: either the flashed image is
+  stale, or the live bitstream still exposes a different/stale vector at the
+  `0x540..0x57f` M2 input aperture.
+- A current pnr100 rebuild is running to produce a fresh bitstream before the
+  next live gate. That rebuild has confirmed the full-block M2 accelerator is
+  in hierarchy and the synthesized netlist connects token input registers to
+  `pcie_ingress.rowstream_m2_full_block_input_vector_o[95:0]`.
+
+## 2026-06-13 - pcie_7x reset/config sequencing answer and local gate
+
+Answered the maintainer-facing reset sequencing question by auditing the local
+`pcie_7x` source and implementing the first Task 6 RTL-side experiment in the
+copied source patch path.
+
+Design answer for `pcie_7x`:
+
+- Host config-space and BAR sizing responses come from the Xilinx `PCIE_2_1`
+  hard block parameters (`CFG_*`, `BAR0`, etc.), not from the AXI-Lite BAR
+  application. If Linux can see a partly valid function but BAR0 is absent or
+  unstable, the fix must be in hard-block/PIPE reset sequencing, not in the
+  AXI-Lite responder.
+- In a host/Thunderbolt hotplug environment, keep `.NO_RESET(0)`. Ignoring
+  PERST with `.NO_RESET(1)` was tested and left the FPGA alive but PCIe stuck
+  in LTSSM polling/no endpoint on this setup.
+- PERST/sys_rst_n should reset every PCIe-owned state boundary: PIPE/MMCM/GT
+  reset FSM, the PCIe hard block, and the user BAR TLP bridge. The current
+  upstream wrapper reset smell is that `pipe_mmcm_rst_n` was hardwired high
+  even though the PCIe hard block and PIPE reset saw `sys_rst_n`.
+- BAR application traffic should be held off until the hard block has
+  completed enumeration: `!user_reset && user_lnk_up && cfg_command[1]`
+  (`Mem+`) stable for a bounded number of user-clock cycles. On PERST, link
+  down, or memory-space disable, the BAR translator should immediately reset
+  and deassert RX ready.
+- Function-level reset support is a separate improvement: if enabled later,
+  `cfg_received_func_lvl_rst` should reset the application/BAR bridge state,
+  but it cannot repair an already unstable config-space/BAR hard-block state.
+
+Local Task 6 implementation:
+
+- Updated `scripts/task6/patch_pcie_rowstream_ingress_source.py` so the copied
+  rowstream-ingress `pcie_7x_top_aximm.v` connects
+  `.pipe_mmcm_rst_n(sys_rst_n_c)` instead of hardwiring it to `1`.
+- Added a local `task6_pcie_bar_ready` gate:
+  `!user_reset_q && user_lnk_up_q && cfg_command[1]` must hold for 512
+  `user_clk` cycles before the BAR translator and exported app reset are
+  released.
+- Masked hard-block RX ready as
+  `m_axis_rx_tready = task6_pcie_bar_ready && task6_pcie_bar_rx_tready`, so
+  the application cannot accept BAR TLPs before the ready gate is true.
+
+Validation:
+
+- `python3 -m py_compile scripts/task6/patch_pcie_rowstream_ingress_source.py`
+  passed.
+- A disposable copy of `/home/roland/pcie_7x` patched cleanly and showed the
+  intended RTL shape.
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json --impure -L`
+  passed. Yosys `check` reported 0 problems; the patched design includes
+  `task6_pcie_bar_ready_cnt`, one `PCIE_2_1`, one `GTXE2_CHANNEL`, one
+  `GTXE2_COMMON`, and one `MMCME2_ADV`.
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream
+  --impure -L` passed timing after routing. Final `pcie_user_clk` was
+  71.27 MHz against the 62.50 MHz requirement; PCIe status and PIPE/OOB clocks
+  also passed.
+- Timing-clean bitstream:
+  `/nix/store/csk9lb179gjvb6lhsiydilas155i5mgy-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Flash/verify artifact:
+  `artifacts/task6/runs/2026-06-13T15-22-27+0200-task6-pcie7x-sequencing-pnr100-flash`
+- Recovery artifact:
+  `artifacts/task6/runs/2026-06-13T15-30-16+0200-task6-pcie7x-sequencing-pnr100-recover/orchestrator-summary.json`
+  The pre-cycle lifecycle was `missing_resource0`; one Tapo P115 chassis power
+  cycle recovered to `pcie_ready` with `host_recovery_freeze_risk=false`.
+- Post-recovery BAR header smoke passed: BAR0 offset 0 returned `T6PC` and the
+  header snapshot was stable.
+- Repeatability artifact:
+  `artifacts/task6/runs/2026-06-13T18-29-56+02-00-task6-pcie-protocol-repeatability-5x`
+  ran five forced Tapo P115 chassis cold cycles. All five cycles returned
+  `pcie_ready` from the non-BAR lifecycle probe and passed BAR header smoke
+  with `T6PC`; no unstable config, missing BAR, or host freeze was observed.
+
+## 2026-06-13 - PCIe reset/config A/B and restored recovery path
+
+Debugged the persistent corrupt/unstable PCIe config-space state by testing the
+main `pcie_7x` reset hypothesis directly.
+
+Source/code changes retained:
+
+- `scripts/task6/task6_pcie_gate_root.sh` now bounds sysfs reset writes with
+  `TASK6_PCIE_RESET_WRITE_TIMEOUT` and treats reset write failures as warnings
+  so the ladder can continue.
+- The default root helper ladder is now scoped to endpoint/downstream bridge
+  reset, downstream hot reset, and Thunderbolt reauthorization. Upstream bridge
+  and root-port resets are skipped unless
+  `TASK6_PCIE_ALLOW_UPSTREAM_RESETS=1` is set for a deliberate experiment.
+- The root helper still accepts an endpoint only after stable non-BAR config
+  reads with expected identity and a valid BAR0 assignment.
+
+No-reset A/B result:
+
+- Built and flashed a rowstream ingress dummy bitstream with `.NO_RESET(1)`:
+  `/nix/store/mfwd0wz3zqyhxydhnkdidzi609yp8aab-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-13T12-03-48+0200-task6-pcie-no-reset-rowstream-ingress-dummy-flash`
+- After Tapo power-cycle, recovery ended at `missing_endpoint`:
+  `artifacts/task6/runs/2026-06-13T12-11-58+0200-task6-pcie-no-reset-rowstream-ingress-dummy-recover/orchestrator-summary.json`
+- FPGA-side probe showed the bitstream was alive but link training was not:
+  `fpga_magic_ok=true`, `fpga_pipe_mmcm_lock=true`, `fpga_sys_rst_n=true`,
+  `fpga_user_lnk_up=false`, `fpga_ltssm=4`.
+- Conclusion: blindly restoring `.NO_RESET(1)` is not a fix for this Task 6
+  YPCB/Thunderbolt setup. It changes the failure from corrupt host config space
+  to no enumerated endpoint / FPGA LTSSM polling.
+
+Restored reset-enabled image:
+
+- Reverted the experiment back to `.NO_RESET(0)` in Task 6 PCIe wrappers and
+  the pcie_7x source patch.
+- Built reset-enabled bitstream:
+  `/nix/store/a7dfii0cgx579rmmp12lsjx9m05219w0-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Final routed timing passed:
+  `pcie_user_clk=85.34 MHz` at `62.50 MHz`, `drck=212.22 MHz` at `100 MHz`,
+  `PIPE_OOBCLK_IN=218.91 MHz` at `100 MHz`, with 172 warnings and 0 errors.
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-13T12-37-34+0200-task6-pcie-reset-rowstream-ingress-dummy-restore-flash`
+- Recovery artifact:
+  `artifacts/task6/runs/2026-06-13T12-44-46+0200-task6-pcie-reset-rowstream-ingress-dummy-restore-recover/orchestrator-summary.json`
+- Result:
+  initial lifecycle after the bad no-reset image was `missing_endpoint`; the
+  Tapo P115 power cycle loaded the reset-enabled image and the second lifecycle
+  classified `pcie_ready`. No root reset ladder was needed.
+- BAR header smoke passed:
+  BAR0 offset 0 read `T6PC`, header version `3`, and mode/header fields were
+  readable without writing offset 0.
+- FPGA-side restored probe:
+  `fpga_magic_ok=true`, `fpga_pipe_mmcm_lock=true`, `fpga_sys_rst_n=true`,
+  `fpga_user_lnk_up=true`, `fpga_ltssm=22`, slot link `2.5 GT/s x1`.
+
+Current recovery protocol:
+
+- If PCIe is missing/corrupt after a bad flash or host stale state, run
+  `recover-auto` with the configured Tapo P115 power cycle first.
+- Do not run host-side PCIe reset/remove/rescan as an automatic fallback. The
+  working protocol is lifecycle -> Tapo P115 chassis power cycle -> lifecycle,
+  then BAR gates only after `pcie_ready`.
+- Do not force `TASK6_PCIE_ALLOW_UNSAFE_RESCAN=1` as part of unattended
+  recovery; the bridge-rescan path remains explicitly blocked because it has
+  correlated with host freezes on this setup.
+
+Maintainer-facing summary for `pcie_7x`:
+
+- Reset-enabled `.NO_RESET(0)` can enumerate cleanly after true AC chassis
+  power-cycle: lifecycle `pcie_ready`, BAR0 `T6PC`, FPGA LTSSM `22`.
+- The same reset-enabled family has also produced stale/corrupt config-space
+  states after reset/re-enumeration attempts: endpoint identity can look partly
+  valid while consecutive config reads flip through `ffff` values and BAR0 is
+  absent or `ffffffff`/`00000000`.
+- No-reset `.NO_RESET(1)` on this Task 6 wrapper boots the FPGA but leaves PCIe
+  stuck in LTSSM `4` after AC boot through the Thunderbolt chassis.
+- The likely maintainer question is therefore narrower than "use no reset":
+  how should the core handle PERST/sys_rst_n, LTSSM recovery, and config/BAR
+  response validity so that host reset/re-enumeration never exposes a partly
+  valid config function with an absent/unstable BAR?
+
+## 2026-06-13 - PCIe/BAR recovery protocol, root fallback removed
+
+The working recovery protocol is now the no-host-reset path validated by the
+later pcie_7x reset-sequencing run:
+
+- run only bounded non-BAR lifecycle probes before any BAR access;
+- repair clean permission or COMMAND-memory-enable failures through the safe
+  helper;
+- use the configured Tapo P115 chassis power-cycle path when enabled;
+- retry a bounded non-BAR readiness catch;
+- stop before host-side PCIe/Thunderbolt reset/remove/rescan recovery.
+
+`scripts/task6/task6_pcie_recovery_orchestrator.py` no longer exposes
+`--best-effort-host-recovery` or `--allow-root-recovery`.
+`scripts/task6/task6_pcie_make_stable_then_m2.sh` no longer runs the root
+recovery ladder after safe recovery fails. The root helper script remains in
+the repo only as a manual diagnostic for explicitly approved experiments.
+
+Maintainer-facing `pcie_7x` summary:
+
+- Endpoint BDF: `0000:42:00.0`; upstream bridge: `0000:41:00.0`.
+- Expected endpoint: Xilinx `10ee:0480`, subsystem device `abcd`.
+- Failure mode: `lspci` often still reports the endpoint, but consecutive
+  non-BAR `setpci` reads are unstable and `resource0` is absent.
+- Recent observed reads include
+  `0547 ffff 0480 00 abcd 00000000` followed immediately by
+  `ffff 10ee ffff 00 abcd 00000000`, and other runs flip BAR0 between
+  `ffffffff` and `00000000`.
+- BAR probes are suppressed in these states because stale/all-ones BAR behavior
+  previously correlated with host freezes.
+- Tapo P115 chassis power cycles have completed successfully, but sampled
+  post-cycle lifecycle probes remained `unstable_config`.
+- Question for the `pcie_7x` maintainer: can the core or YPCB wrapper leave
+  config-space fields partially valid while BAR0 is absent/unstable after
+  hot or cold re-enumeration, especially around reset sequencing, LTSSM
+  recovery, or BAR/config response muxing?
+
+Historical hardware protocol test before removing the fallback:
+
+- Initial run:
+  `artifacts/task6/runs/2026-06-13T10-44-37+0200-task6-best-effort-protocol-hw-test/orchestrator-summary.json`
+  showed a protocol-ordering bug: `--best-effort-host-recovery` selected root
+  recovery before the configured Tapo power cycle. The root step did not run
+  because `sudo -n` required a password.
+- Fix:
+  root recovery is now deferred while a configured power cycle remains
+  available.
+- Retest:
+  `artifacts/task6/runs/2026-06-13T10-45-35+0200-task6-best-effort-protocol-hw-test-v2/orchestrator-summary.json`
+- Result:
+  the protocol ran the non-BAR lifecycle probe, performed the Tapo P115
+  chassis power cycle successfully (`off_returncode=0`, `on_returncode=0`),
+  reran the non-BAR lifecycle probe, and only then attempted root recovery.
+  The endpoint remained `unstable_config`, so no BAR smoke ran.
+- Root blocker:
+  final host-side recovery stopped at `root_recovery_unavailable` because
+  `sudo -n /home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh prepare
+  0000:42:00.0` requires a password. Continuing the protocol requires either
+  a fresh sudo credential cache or a narrow NOPASSWD rule/root-owned wrapper for
+  this helper.
+- Verification after the ordering fix:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_recovery_orchestrator.py`,
+  `python3 -m py_compile scripts/task6/task6_pcie_recovery_orchestrator.py
+  scripts/task6/test_task6_pcie_recovery_orchestrator.py`,
+  `nix build .#task6-pcie-recovery-orchestrator-unit-tests`, and
+  `nix build .#task6-pcie-make-stable-then-m2-unit-tests`.
+
+Follow-up root-recovery tests:
+
+- Installed a narrow sudoers rule for
+  `/home/roland/LLM2FPGA/scripts/task6/task6_pcie_gate_root.sh prepare
+  0000:42:00.0`, allowing the final recovery fallback to run with `sudo -n`.
+- Retest v3:
+  `artifacts/task6/runs/2026-06-13T11-00-47+0200-task6-best-effort-protocol-hw-test-v3/orchestrator-summary.json`
+  proved sudo/root recovery now runs, but the helper returned success too early
+  while `lspci -vv` still showed `Unknown header type 7f`; post-root lifecycle
+  remained `unstable_config` with `resource0` absent.
+- Fix:
+  `task6_pcie_gate_root.sh` now accepts an endpoint only after two matching
+  non-BAR config reads with expected identity (`10ee:0480`, header `00`,
+  subsystem `abcd`) and BAR0 assigned to neither `00000000` nor `ffffffff`.
+  This prevents a stale lspci-only endpoint from being treated as recovered.
+- Retest v4:
+  `artifacts/task6/runs/2026-06-13T11-03-07+0200-task6-best-effort-protocol-hw-test-v4`
+  exposed a logging bug: timeout output from the root helper could be bytes,
+  which crashed JSON serialization. The orchestrator now decodes timeout
+  stdout/stderr before writing artifacts.
+- Retest v5:
+  `artifacts/task6/runs/2026-06-13T11-09-04+0200-task6-best-effort-protocol-hw-test-v5/orchestrator-summary.json`
+  completed the full current protocol without a host freeze. It performed the
+  Tapo P115 cycle, then the root reset/remove/rescan ladder. The helper log
+  shows repeated stale states after remove/rescan, endpoint reset, subordinate
+  bus resets, and Thunderbolt reauthorization: config either changed between
+  reads, reported invalid header `7f`/`ff`, or had BAR0 `ffffffff`/`00000000`.
+  Final result remained `unstable_config`; no BAR smoke ran.
+
+Current conclusion from the historical root-recovery run:
+
+- The protocol is now deterministic and host-safe in the sense that it does not
+  touch BAR unless lifecycle is clean, it records each recovery step, and the
+  v5 run did not freeze the host.
+- It does not recover this current endpoint state. The strongest observed
+  failure is persistent corrupt/unstable PCIe config space with absent BAR0
+  even after chassis power cycle plus host-side reset/remove/rescan and
+  Thunderbolt reauthorization.
+- Next technical lead is `pcie_7x`/reset sequencing or a lower-level host
+  Thunderbolt/chassis enumeration issue, not M2 RTL math or BAR gate logic.
+
+## 2026-06-12 - M2 PCIe stabilization attempt and catch-ready guard
+
+Added a reusable bounded M2 catch-ready gate:
+
+- `scripts/task6/task6_m2_catch_ready_gate.sh`
+- Nix runbook package: `task6-m2-catch-ready-gate-runbook`
+- Nix unit test package: `task6-m2-catch-ready-gate-runbook-unit-tests`
+
+The script repeatedly runs only the non-BAR lifecycle probe and delegates to
+the M2 BAR gate only after observing `classification: pcie_ready`. The delegate
+is supplied through `TASK6_M2_DELEGATED_COMMAND`, so the unit test uses a fake
+delegate and no longer pulls the pnr100 bitstream build graph.
+
+Verification:
+
+- `bash -n scripts/task6/task6_m2_catch_ready_gate.sh`
+- `bash -n scripts/task6/task6_pcie_user_gate.sh`
+- `nix build .#task6-m2-catch-ready-gate-runbook-unit-tests -o /tmp/task6-m2-catch-ready-gate-runbook-unit-tests -L`
+
+Hardware stabilization attempt:
+
+- Preflight command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --bridge-bdf 0000:41:00.0 --label task6-m2-make-stable-preflight`
+- Preflight artifact:
+  `artifacts/task6/runs/2026-06-12T23-34-10+0200-task6-m2-make-stable-preflight/pcie-lifecycle.json`
+- Result: `unstable_config`.
+
+Then ran a controlled Tapo P115 cold-cycle with a longer settle window and no
+BAR access:
+
+- Orchestrator artifact:
+  `artifacts/task6/runs/2026-06-12T23-34-39+0200-task6-m2-make-stable-tapo-long-settle/orchestrator-summary.json`
+- Post-cycle lifecycle artifact:
+  `artifacts/task6/runs/2026-06-12T23-36-11+0200-task6-m2-make-stable-tapo-long-settle-lifecycle-1/pcie-lifecycle.json`
+- Result: still `unstable_config`.
+
+The latest snapshot is stale host-side PCIe state, not an M2 math failure:
+`resource0` is absent and consecutive config reads are inconsistent
+(`0547 ffff 0480 00 abcd 00000000` followed by
+`ffff 10ee ffff 00 abcd 00000000`). A final bounded catch window also remained
+`unstable_config`:
+
+- `artifacts/task6/runs/2026-06-12T23-36-28+0200-task6-m2-catch-ready-preflight/pcie-lifecycle.json`
+- `artifacts/task6/runs/2026-06-12T23-36-31+0200-task6-m2-catch-ready-preflight/pcie-lifecycle.json`
+- `artifacts/task6/runs/2026-06-12T23-36-34+0200-task6-m2-catch-ready-preflight/pcie-lifecycle.json`
+
+No M2 BAR/debug gate was launched. The escalation reviewer rejected the root
+`prepare` path because it uses the freeze-prone host PCIe remove/rescan/reset
+class. To proceed, either force an external host/Thunderbolt re-enumeration
+with the FPGA already configured, or explicitly approve that higher-risk root
+`prepare` recovery step after acknowledging the host-freeze risk.
+
+Follow-up guard added:
+
+- `scripts/task6/task6_pcie_make_stable_then_m2.sh`
+- Nix unit test package: `task6-pcie-make-stable-then-m2-unit-tests`
+
+This wrapper first runs the bounded non-BAR catch gate. If PCIe is still not
+`pcie_ready`, it runs the safe `recover-auto` path with any configured Tapo P115
+power cycle and then catches readiness again. It now stops before host PCIe
+reset/remove/rescan recovery.
+
+Verification:
+
+- `bash -n scripts/task6/task6_pcie_make_stable_then_m2.sh`
+- `nix build .#task6-pcie-make-stable-then-m2-unit-tests -o /tmp/task6-pcie-make-stable-then-m2-unit-tests -L`
+
+The `pcie_7x` input already points at `/home/roland/pcie_7x`, and the repo
+patches the YPCB wrapper to use external reset (`NO_RESET(0)`) on the Y26
+`sys_rst_n`/PERST path. That gives the bitstream the correct reset wiring, but
+the stale host function observed above still requires real host PCIe
+re-enumeration. There is no lower-risk BAR-visible or board-side command path
+available while config space is alternating through `ffff` values and BAR0 is
+unassigned.
+
 ## 2026-06-12 - M2 external attention-context BAR handoff checkpoint
 
 Advanced the M2 full-block PCIe candidate so the attention out-projection block
@@ -30950,6 +31404,194 @@ Board lifecycle after this checkpoint:
   reset, bridge rescan, endpoint rescan, recovery, or flash operation was run
   after this probe.
 
+### 2026-06-12 - Board-operation guard update after corrupt M2 lifecycle
+
+The latest M2 board state remains unsafe for BAR or recovery probing:
+
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T21-36-16+0200-task6-m2-embedding-token-runbook-recheck-lifecycle/pcie-lifecycle.json`
+- Classification:
+  `corrupt_command`
+- Config summary:
+  `COMMAND=ffff`, `VENDOR=10ee`, `DEVICE=ffff`, `HEADER=ff`,
+  `SUBSYSTEM_DEVICE=ffff`, `BAR0=00000000`.
+
+To keep board programming available without repeating the host-freeze path,
+the flash wrapper now performs a non-BAR PCIe config preflight before any
+`write` operation. If the endpoint does not classify as `pcie_ready`, it
+records a refusal artifact and exits before invoking openFPGALoader. Deliberate
+board-programming recovery remains possible with
+`--allow-corrupt-pcie-config`, but that override must be explicit and is not
+used by the M2 gate/runbook path.
+
+The token-ID M2 PCIe gate runbook now performs a non-BAR lifecycle preflight
+inside `command.sh` and refuses the BAR gate unless the lifecycle output
+contains `classification: pcie_ready`. This means the runbook can be used after
+re-enumeration without accidentally touching BAR space in the currently corrupt
+state.
+
+Verification:
+
+- Python syntax:
+  `python3 -m py_compile scripts/task6/task6_pcie_flash.py scripts/task6/test_task6_pcie_flash.py`
+- Direct unit test:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_flash.py`
+- Nix unit test:
+  `/nix/store/nihahw35cvzckabbj6nz8b3ihv0833vg-task6-pcie-flash-unit-tests.json`
+- Rebuilt M2 token-ID gate runbook with lifecycle preflight:
+  `/nix/store/f4glr3fnsd9prra5ddlqkyigaxad8la0-task6-m2-embedding-live-context-full-block-pcie-gate-runbook`
+- Runbook bitstream:
+  `/nix/store/l62vwjpxa22myzdragakl2zm5kl291zq-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+
+No flash write, BAR gate, reset, bridge rescan, endpoint rescan, or recovery
+operation was run for this guard update. M2 remains open until the board
+re-enumerates cleanly and the token-ID wrapper passes the BAR acceptance gate;
+M3 remains open.
+
+### 2026-06-12 - PCIe lifecycle unstable-config classification
+
+Follow-up non-BAR lifecycle probing showed the endpoint BDF did not move:
+`lspci -Dnn -s 0000:42:00.0` still reports Xilinx `10ee:0480`. The config
+space read itself is unstable, so the previous `wrong_vendor` classification
+was too broad for this failure mode.
+
+Current live artifact:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-embedding-token-unstable-config-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T22-22-16+0200-task6-m2-embedding-token-unstable-config-lifecycle/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Evidence:
+  consecutive non-BAR `setpci` reads differed. First read:
+  `COMMAND=0000`, `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`,
+  `SUBSYSTEM_DEVICE=abcd`, `BAR0=ffffffff`. Repeat read:
+  `COMMAND=0000`, `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`,
+  `SUBSYSTEM_DEVICE=abcd`, `BAR0=00000000`.
+
+Tooling changes:
+
+- `task6_pcie_lifecycle_gate.py` now records `config_words_repeat`,
+  `config_probe_repeat`, and `config_stable`; mismatched consecutive reads
+  classify as `unstable_config` and recommend no BAR, reset, rescan, recovery,
+  or flash writes from that state.
+- `task6_pcie_flash.py` now performs the same two-read preflight before flash
+  writes, so unstable config is refused before openFPGALoader is invoked unless
+  the explicit recovery override is supplied.
+- `corrupt_vendor_id` is now distinct from `wrong_vendor`, so
+  `VENDOR_ID=ffff` on the expected endpoint does not suggest changing
+  `TASK6_PCIE_ALLOWED_BDF`.
+
+Verification:
+
+- Direct tests:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_lifecycle_gate.py`
+  and
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_flash.py`
+- Nix tests:
+  `/nix/store/cf9wb9qlk7iz94ccf649shkc53b68nhc-task6-pcie-lifecycle-unit-tests.json`
+  and
+  `/nix/store/rvrwgfnag87psdhslm1hqrly1iw9pbg0-task6-pcie-flash-unit-tests.json`
+
+No flash write, BAR gate, reset, bridge rescan, endpoint rescan, or recovery
+operation was run. M2 remains open until the board re-enumerates cleanly and
+the token-ID wrapper passes the BAR acceptance gate; M3 remains open.
+
+### 2026-06-12 - Tapo cold-cycle recovery attempt for unstable PCIe config
+
+Updated `task6_pcie_recovery_orchestrator.py` so the new
+`unstable_config` and `corrupt_vendor_id` lifecycle classes follow the same
+safe recovery ladder as other corrupt config states: physical power cycle by
+default, root reset/recovery only with explicit opt-in. Added a Nix unit-test
+artifact for the recovery-orchestrator decision table:
+
+- Direct test:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_recovery_orchestrator.py`
+- Nix test:
+  `/nix/store/ghyk20qlprp1l484i9fqbqfnphzdykzf-task6-pcie-recovery-orchestrator-unit-tests.json`
+
+Power-control setup:
+
+- A status-only Tapo P115 check succeeded after fetching the `tapo` Python
+  dependency into `/tmp/uv-cache`. The plug reported `device_on: true`,
+  model `P115`, firmware `1.4.6 Build 260309 Rel.093810`.
+- Two earlier non-escalated recovery attempts did not reach the plug:
+  one failed on the default Nix cache path, and one timed out in the sandbox
+  network namespace. Those produced no useful PCIe recovery.
+
+Board-facing recovery attempt:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh recover-auto 0000:42:00.0 --bridge-bdf 0000:41:00.0 --label task6-m2-unstable-config-tapo-coldcycle-escalated --allow-power-cycle --max-power-cycles 1 --power-provider tapo-p115 --power-url 192.168.1.136 --secret-file /home/roland/.config/task6-pcie/tapo.env --power-off-wait 10 --power-on-wait 45 --command-timeout 120 --max-actions 2 --tapo-p115-command 'env UV_CACHE_DIR=/tmp/uv-cache XDG_CACHE_HOME=/tmp/xdg-cache /nix/store/2xqsvim09lc968bc67w0jvxpp2j4lfm5-uv-0.11.19/bin/uv run --with tapo python3 scripts/task6/task6_tapo_p115_power.py --backend tapo'`
+- Orchestrator artifact:
+  `artifacts/task6/runs/2026-06-12T22-31-23+0200-task6-m2-unstable-config-tapo-coldcycle-escalated/orchestrator-summary.json`
+- Power-cycle result:
+  `off_returncode=0`, `on_returncode=0`, so the smart-plug power cycle itself
+  succeeded.
+- Post-cycle lifecycle artifact:
+  `artifacts/task6/runs/2026-06-12T22-32-19+0200-task6-m2-unstable-config-tapo-coldcycle-escalated-lifecycle-1/pcie-lifecycle.json`
+- Extra-settle lifecycle artifact:
+  `artifacts/task6/runs/2026-06-12T22-33-35+0200-task6-m2-post-tapo-extra-settle-lifecycle/pcie-lifecycle.json`
+
+Result:
+
+- The endpoint remained `unstable_config` after the successful Tapo cycle and
+  after an additional 60-second settle wait. The extra-settle probe saw
+  consecutive non-BAR config reads change from
+  `COMMAND=ffff`, `VENDOR=10ee`, `DEVICE=ffff`, `HEADER=ff`,
+  `SUBSYSTEM_DEVICE=ffff`, `BAR0=ffffffff` to
+  `COMMAND=0547`, `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`,
+  `SUBSYSTEM_DEVICE=abcd`, `BAR0=00000000`. `resource0` was absent.
+- No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+  delegated remove/rescan recovery was run.
+
+Interpretation:
+
+The M2 token-ID bitstream/runbook is still the correct acceptance candidate,
+but the current host/chassis PCIe function remains stale/corrupt after a
+board/chassis Tapo power cycle. The next recovery step is host/Thunderbolt
+re-enumeration with the FPGA already configured from BPI flash, followed by the
+non-BAR lifecycle probe. M2 remains open; M3 remains open.
+
+### 2026-06-12 - Host re-enumeration gate runbook for M2
+
+Added a host/Thunderbolt re-enumeration handoff runbook for the current M2
+board state. The generated command deliberately does not reset, rescan, flash,
+or access BAR space by itself. It runs the non-BAR lifecycle probe first and
+delegates to the token-ID M2 BAR gate only if lifecycle reports `pcie_ready`.
+
+- Command:
+  `nix build .#task6-m2-host-reenumeration-gate-runbook -o /tmp/task6-m2-host-reenumeration-gate-runbook`
+- Result:
+  `/nix/store/a9ggv3aikxkxihfr5ppxm9qxmajyb9i7-task6-m2-host-reenumeration-gate-runbook`
+- Candidate M2 bitstream:
+  `/nix/store/4qp7cjmfmclcdp7mwp57y152djasrqsc-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Delegated guarded M2 runbook:
+  `/nix/store/x43g4gpb4c2pn4hhr9rixncznwap0nyv-task6-m2-embedding-live-context-full-block-pcie-gate-runbook`
+
+Latest continuation lifecycle:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-continuation-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T22-35-37+0200-task6-m2-continuation-lifecycle/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive non-BAR config reads changed from `COMMAND=ffff`,
+  `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`,
+  `BAR0=00000000` to `COMMAND=ffff`, `VENDOR=10ee`, `DEVICE=ffff`,
+  `HEADER=ff`, `SUBSYSTEM_DEVICE=ffff`, `BAR0=ffffffff`; `resource0` was
+  absent.
+
+Required external sequence before the generated command is useful: leave the
+FPGA/chassis powered and configured from BPI flash, force a real
+host/Thunderbolt PCIe re-enumeration, then run
+`TASK6_PCIE_HARDWARE_ENABLE=1 /tmp/task6-m2-host-reenumeration-gate-runbook/command.sh`.
+M2 remains open until that lifecycle preflight is clean and the delegated BAR
+gate passes; M3 remains open.
+
 ### 2026-06-12 - M2 embedding/position-add full-block checkpoint
 
 Replaced the table-backed token block-input producer with a fixed-point
@@ -31047,19 +31689,60 @@ Functional verification:
 - Command:
   `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -o /tmp/task6-m2-embedding-pcie-sim`
 - Result:
-  `/nix/store/31jv6bnc4h1hdkybhhg7rdj31f1pf271-task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim.json`
+  `/nix/store/60mwd5dscdicmdnk38bvs55k4wxmsr78-task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim.json`
 - Evidence:
   PASS, input boundary `pcie_bar_token_ids`, embedding/position-add RTL true,
-  PCIe BAR scope true, cycles `75377`, final checksum `0003b2c9`, sample0
+  PCIe BAR scope true, cycles `78641`, final checksum `0003b2c9`, sample0
   `d114be59`, sample1 `d737e470`, provenance `4d323005`, debug1 `50f932e3`,
   debug2 `49fb3a5b`.
+- RTL timing fix:
+  replaced the live-KV context softmax probability `/` operator with a
+  multi-cycle restoring divider. This preserved the expected full-block output
+  and removed the prior pnr100 post-route timing failure through the synthesized
+  divider.
 
 Board-top synthesis check:
 
 - Command:
   `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-embedding-rowstream-dummy-json`
 - Result:
-  `/nix/store/sm20y4kb5jx62ynb3f9xh40q13d6kvr2-task6-ypcb-pcie-rowstream-ingress-dummy-yosys.json`
+  `/nix/store/721ricf5y7w0vc4d1fpf105712i3i75v-task6-ypcb-pcie-rowstream-ingress-dummy-yosys.json`
+
+Board-top pnr100 bitstream:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-embedding-rowstream-dummy-pnr100-bitstream`
+- Result:
+  `/nix/store/3nwh8a9z26lh1xf75anrm7gd8g3hxgnl-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Timing:
+  `pcie_user_clk` max frequency `85.34 MHz`, PASS at `62.50 MHz`;
+  `task6_pcie_status_i.drck` max frequency `212.22 MHz`, PASS at `100.00 MHz`;
+  `PIPE_OOBCLK_IN` max frequency `218.91 MHz`, PASS at `100.00 MHz`.
+
+Board-gate runbook:
+
+- Command:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-gate-runbook -o /tmp/task6-m2-embedding-pcie-gate-runbook`
+- Result:
+  `/nix/store/y80m4f23kilp717xg51s6wlfcn8xrkyz-task6-m2-embedding-live-context-full-block-pcie-gate-runbook`
+- Scope:
+  resolves the exact bitstream, full-block expected vector fixture, embedding
+  token-ID fixture, and bounded `m2-full-block` BAR gate command for the
+  token-ID wrapper. The runbook does not run hardware and requires
+  `TASK6_PCIE_HARDWARE_ENABLE=1`.
+- Pinned gate inputs:
+  bitstream
+  `/nix/store/3nwh8a9z26lh1xf75anrm7gd8g3hxgnl-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`,
+  `tb_data.sv`
+  `/nix/store/2ysbfqa30y0h79r66ig0yqqkwvl23lqs-task6-m2-last-token-live-kv-context-full-block-tb-data-sv/tb_data.sv`,
+  embedding fixture
+  `/nix/store/mkwwvl418mgyxxwcgxxzmczkl3g6ydb6-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv`.
+- Evidence-shape fix:
+  `task6_pcie_m2_full_block_gate.py` now emits an M2-closing contract only for
+  token-ID mode: contract stage `M2-one-full-block`, `live_compute=true`,
+  `input.token_ids`, `input.block_index=0`, and
+  `observed.compute_path=live-full-block`. The legacy fixture wrapper remains
+  candidate-only evidence with `live_compute=false`.
 
 Host-gate checks:
 
@@ -31071,10 +31754,27 @@ Host-gate checks:
   both passed.
 
 This is now the correct board-facing M2 candidate surface for the selected
-prompt-token-row implementation. It still does not close M2: the board endpoint
-was last classified `corrupt_command`, no BAR gate was run against this wrapper,
-and the wrapper still carries selected prompt token rows rather than the full
-embedding memory surface. M2 remains open; M3 remains open.
+prompt-token-row implementation, and it now has a timing-clean pnr100 bitstream.
+It still does not close M2: no BAR gate was run against this wrapper, and the
+current host endpoint state is not safe for programming or BAR access.
+
+Board lifecycle after this checkpoint:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --label task6-m2-embedding-token-pnr100-preflash-lifecycle`
+- Artifacts:
+  `artifacts/task6/runs/2026-06-12T21-33-12+0200-task6-m2-embedding-token-pnr100-preflash-lifecycle`
+  and
+  `artifacts/task6/runs/2026-06-12T21-36-16+0200-task6-m2-embedding-token-runbook-recheck-lifecycle`
+- Classification:
+  `wrong_vendor` first, then `corrupt_command` on recheck.
+- Details:
+  The latest non-BAR lifecycle probe read config `COMMAND=ffff`, `VENDOR=10ee`,
+  `DEVICE=ffff`, `HEADER=ff`, `SUBSYSTEM_DEVICE=ffff`, and `BAR0=00000000`.
+  `lspci` still reported the endpoint as Xilinx `10ee:0480`. No BAR gate,
+  reset, bridge rescan, endpoint rescan, recovery, or flash operation was run
+  after this probe. M2 remains open until the board re-enumerates cleanly and
+  the token-ID wrapper passes the BAR acceptance gate; M3 remains open.
 
 ### 2026-06-12 - M2 token-controlled table-backed full-block checkpoint
 
@@ -31146,3 +31846,538 @@ Board lifecycle after this checkpoint:
   `lspci` still reported the endpoint as Xilinx `10ee:0480`. No BAR gate,
   reset, bridge rescan, endpoint rescan, recovery, or flash operation was run
   after this probe.
+
+### 2026-06-12 - Guarded M2 preflight rerun and stricter evidence audit
+
+Reran the generated host/Thunderbolt re-enumeration handoff command. The
+command performed only its non-BAR lifecycle preflight and refused to enter the
+M2 BAR gate because config space is still unstable.
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 /tmp/task6-m2-host-reenumeration-gate-runbook/command.sh 0000:42:00.0`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T22-57-37+0200-task6-m2-host-reenumeration-preflight/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive non-BAR config reads changed only in BAR0:
+  first `COMMAND=0547`, `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`,
+  `SUBSYSTEM_DEVICE=abcd`, `BAR0=ffffffff`; repeat `COMMAND=0547`,
+  `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`,
+  `BAR0=00000000`. `resource0` was absent.
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run from this state.
+
+Tightened `scripts/task6/task6_milestone_evidence_audit.py` so M2 and M3
+cannot be accepted unless the artifact carries an explicit board `PASS` status.
+This closes an audit loophole where otherwise complete-looking offline or
+fixture artifacts could omit board status and avoid a failure. New test cases
+cover missing M2 and M3 board PASS status.
+
+Verification:
+
+- Direct:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_milestone_evidence_audit.py`
+- Nix:
+  `/nix/store/c9fs30vsnwciqmfg31g6lnaa8cqhxiai-task6-milestone-evidence-audit-unit-tests.json`
+
+M2 remains open until the host/Thunderbolt path re-enumerates cleanly and the
+token-ID full-block wrapper passes its guarded BAR acceptance gate. M3 remains
+open until all TinyStories-1M blocks run on board and return token-exact greedy
+output.
+
+### 2026-06-12 - M3 reference manifest target
+
+Added `scripts/task6/task6_m3_reference_manifest.py` to turn the existing
+TinyStories prompt/Q0.24 greedy reference into a stable M3 target manifest.
+This manifest is intentionally offline reference evidence only: it pins the
+prompt, prompt token IDs, model identity, expected greedy token IDs, and M3
+acceptance requirements, but it does not claim board inference.
+
+- Command:
+  `nix build .#task6-m3-reference-manifest -o /tmp/task6-m3-reference-manifest`
+- Result:
+  `/nix/store/kjda7r1ryl7fmm930gi760wm3qak592x-task6-m3-reference-manifest`
+- Manifest:
+  `/nix/store/kjda7r1ryl7fmm930gi760wm3qak592x-task6-m3-reference-manifest/m3-reference-manifest.json`
+- Prompt:
+  `Once upon a time there was`
+- Prompt token IDs:
+  `[7454, 2402, 257, 640, 612, 373]`
+- Reference Q0.24 greedy generated token IDs:
+  `[257, 1310, 2576, 3706, 20037, 13, 1375, 6151]`
+- Reference text:
+  `Once upon a time there was a little girl named Lily. She loved`
+
+The manifest declares contract stage `M3-reference-target`, milestone target
+`M3-full-tinystories-1m`, `live_compute=false`, `all_blocks=false`, and
+`closes_m3=false`. Running the milestone audit against it is expected to fail:
+
+- Command:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/task6_milestone_evidence_audit.py M3 /tmp/task6-m3-reference-manifest/m3-reference-manifest.json`
+- Result:
+  `FAIL`, because it is not live all-block board evidence and has board status
+  `NOT_RUN`.
+
+Added `scripts/task6/test_task6_m3_reference_manifest.py` to verify the manifest
+schema and prove that the M3 milestone audit rejects it as completion evidence.
+
+- Direct:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_m3_reference_manifest.py`
+- Nix:
+  `/nix/store/vnchlm48rj6kg9xwc2xm1sxk41v82r20-task6-m3-reference-manifest-unit-tests.json`
+
+This moves M3 preparation forward by giving the eventual board gate a pinned
+token-exact target and an explicit checklist, while preserving the requirement
+that only a board `PASS` artifact can close M3.
+
+### 2026-06-12 - M3 audit requires YPCB identity
+
+Reran the guarded M2 handoff command. It again performed only its non-BAR
+lifecycle preflight and refused to enter the BAR gate because config space is
+still unstable.
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 /tmp/task6-m2-host-reenumeration-gate-runbook/command.sh 0000:42:00.0`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T23-03-53+0200-task6-m2-host-reenumeration-preflight/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive non-BAR config reads changed from `COMMAND=0547`,
+  `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`,
+  `BAR0=ffffffff` to `COMMAND=0547`, `VENDOR=ffff`, `DEVICE=0480`,
+  `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`, `BAR0=00000000`. `resource0` was
+  absent.
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run.
+
+Tightened `scripts/task6/task6_milestone_evidence_audit.py` again so M3
+completion evidence must include YPCB/PCIe board identity, not merely board
+`PASS` status and matching generated tokens. Accepted M3 artifacts now need
+either board BDF metadata, `lspci` evidence for the expected `10ee:0480`
+endpoint, or equivalent YPCB board identity text. Added a negative test for
+missing YPCB/PCIe identity and updated the positive M3 shape to carry BDF and
+`lspci` evidence.
+
+The M3 reference manifest remains correctly rejected as non-closing evidence:
+
+- Command:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/task6_milestone_evidence_audit.py M3 /tmp/task6-m3-reference-manifest/m3-reference-manifest.json`
+- Result:
+  `FAIL`, now including `M3 artifact lacks YPCB board/PCIe identity evidence`
+  along with the expected non-live/non-board failures.
+- Nix audit test:
+  `/nix/store/4vf1x4gkdwdpblhksp3ghdip63lbqrql-task6-milestone-evidence-audit-unit-tests.json`
+
+M2 remains open on clean PCIe re-enumeration and BAR acceptance. M3 remains
+open until the YPCB board produces token-exact full TinyStories-1M greedy
+output with explicit board identity evidence.
+
+### 2026-06-12 - M3 board artifact builder
+
+Reran the guarded M2 handoff command. It again stopped at the non-BAR lifecycle
+preflight because PCIe config space is unstable.
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 /tmp/task6-m2-host-reenumeration-gate-runbook/command.sh 0000:42:00.0`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T23-05-42+0200-task6-m2-host-reenumeration-preflight/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run.
+
+Added `scripts/task6/task6_m3_board_artifact.py`, a future-facing artifact
+builder that combines the pinned M3 reference manifest with a board run summary
+and emits the shape consumed by `task6_milestone_evidence_audit.py M3`.
+
+The builder only emits a passing M3 artifact when the source board summary is
+`PASS`, declares `stage=M3-full-tinystories-1m`, `live_compute=true`,
+`all_blocks=true`, carries YPCB/PCIe identity evidence, and returns generated
+tokens matching the manifest reference. Host-assisted top1 summaries are
+converted to explicit `FAIL` artifacts even when their board tokens match the
+reference.
+
+Host-assisted rejection check:
+
+- Command:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/task6_m3_board_artifact.py --manifest-json /tmp/task6-m3-reference-manifest/m3-reference-manifest.json --board-summary-json artifacts/task6/runs/task6-prompt-cli-reference/prompt-infer-board-summary.json --out-json /tmp/task6-m3-host-assisted-reject.json --json-only`
+- Result:
+  `FAIL`, `closes_m3=false`, generated tokens matched the reference, but
+  `m3_audit_failures` included missing `live_compute=true` and
+  `all_blocks=true`.
+
+Added `scripts/task6/test_task6_m3_board_artifact.py` with fixture coverage for
+a valid live all-block board summary, token mismatch, and host-assisted top1
+rejection.
+
+- Direct:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_m3_board_artifact.py`
+- Nix:
+  `/nix/store/5f2ad75am7xhk9i6vckrypzv19nxzalb-task6-m3-board-artifact-unit-tests.json`
+
+M3 still remains open; this only defines the artifact handoff that a real
+future YPCB full-inference gate must satisfy.
+
+### 2026-06-12 - M3 artifact emission in YPCB inference gate
+
+Reran the guarded M2 handoff command. It again stopped at the non-BAR lifecycle
+preflight because PCIe config space is unstable.
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 /tmp/task6-m2-host-reenumeration-gate-runbook/command.sh 0000:42:00.0`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T23-09-24+0200-task6-m2-host-reenumeration-preflight/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive non-BAR config reads changed from `COMMAND=ffff`,
+  `VENDOR=10ee`, `DEVICE=ffff`, `HEADER=ff`, `SUBSYSTEM_DEVICE=ffff`,
+  `BAR0=00000000` to `COMMAND=ffff`, `VENDOR=10ee`, `DEVICE=ffff`,
+  `HEADER=ff`, `SUBSYSTEM_DEVICE=ffff`, `BAR0=ffffffff`. `resource0` was
+  absent.
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run.
+
+Integrated the M3 board-artifact builder into
+`scripts/task6/task6_ypcb_tinystories_inference_gate.py`. The gate now accepts
+`--m3-reference-manifest` and optional `--m3-artifact-json`; when supplied, it
+writes the normal `gate-summary.json`, emits `m3-board-artifact.json` through
+`task6_m3_board_artifact.py`, then rewrites the gate summary with a compact
+`m3_artifact` status/path block. This is post-run metadata shaping only; it does
+not change boot, programming, DDR3 fullbeat, rowstream load/readback, or
+inference command sequencing.
+
+Added `scripts/task6/test_task6_ypcb_tinystories_inference_gate.py` to verify
+the artifact emission helper with fixture JSON.
+
+- Direct:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_ypcb_tinystories_inference_gate.py`
+- Nix:
+  `/nix/store/b9baj290vpag94dldk0sm7j30ylp1scg-task6-ypcb-tinystories-inference-gate-unit-tests.json`
+
+This makes future YPCB TinyStories inference runs produce the same M3 audit
+artifact shape automatically when a reference manifest is provided. M2 and M3
+remain open.
+
+### 2026-06-12 - M3 YPCB inference runbook
+
+Reran the guarded M2 handoff command. It again stopped at the non-BAR lifecycle
+preflight because PCIe config space is unstable.
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 /tmp/task6-m2-host-reenumeration-gate-runbook/command.sh 0000:42:00.0`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T23-12-47+0200-task6-m2-host-reenumeration-preflight/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive non-BAR config reads changed from `COMMAND=0547`,
+  `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`,
+  `BAR0=00000000` to `COMMAND=ffff`, `VENDOR=10ee`, `DEVICE=ffff`,
+  `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`, `BAR0=00000000`. `resource0` was
+  absent.
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run.
+
+Added a reproducible M3 YPCB inference runbook:
+
+- Command:
+  `nix build .#task6-m3-ypcb-inference-gate-runbook -o /tmp/task6-m3-ypcb-inference-gate-runbook`
+- Result:
+  `/nix/store/m9kkahsfbyimhwhjxzaplapylj6mcmyj-task6-m3-ypcb-inference-gate-runbook`
+- Scope:
+  packages the future hardware command that runs
+  `scripts/task6/task6_ypcb_tinystories_inference_gate.py` with the copied
+  seed16 baseline DDR3 bitstream, TinyStories-1M model snapshot, representative
+  adapter, lowbyte storage mode, eight-token sample count, and the pinned M3
+  reference manifest. The generated command requires
+  `TASK6_PCIE_HARDWARE_ENABLE=1` and does not run during the Nix build.
+- M3 reference manifest:
+  `/nix/store/kjda7r1ryl7fmm930gi760wm3qak592x-task6-m3-reference-manifest/m3-reference-manifest.json`
+
+This does not close M3. It makes the eventual YPCB full-inference gate
+reproducible and ensures the run emits the strict `m3-board-artifact.json`
+acceptance artifact when hardware is ready.
+
+### 2026-06-12 - M3 runbook now enforces accepted M2 evidence
+
+Reran the guarded M2 handoff command. It again stopped at the non-BAR lifecycle
+preflight because PCIe config space is unstable.
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 /tmp/task6-m2-host-reenumeration-gate-runbook/command.sh 0000:42:00.0`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T23-15-26+0200-task6-m2-host-reenumeration-preflight/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive non-BAR config reads changed from `COMMAND=ffff`,
+  `VENDOR=10ee`, `DEVICE=ffff`, `HEADER=ff`, `SUBSYSTEM_DEVICE=ffff`,
+  `BAR0=ffffffff` to `COMMAND=0547`, `VENDOR=ffff`, `DEVICE=0480`,
+  `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`, `BAR0=00000000`. `resource0` was
+  absent.
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run.
+
+Tightened the generated M3 YPCB inference runbook so the command now requires
+`--m2-artifact <accepted-m2-json>` and runs
+`task6_milestone_evidence_audit.py M2` before launching the M3 inference gate.
+This makes the M2 -> M3 dependency executable instead of only documented.
+
+- Rebuilt runbook:
+  `/nix/store/44i34192ccgrnq5xbs1hvwv88gyfddgy-task6-m3-ypcb-inference-gate-runbook`
+- `summary.json` now includes:
+  `command_requires_m2_artifact=true`
+- Smoke checks:
+  - without `TASK6_PCIE_HARDWARE_ENABLE=1`, `command.sh` exits with code `2`
+    before any gate work.
+  - with `TASK6_PCIE_HARDWARE_ENABLE=1` but using the M3 reference manifest as
+    `--m2-artifact`, the command exits with code `1` from the M2 audit before
+    launching the M3 gate.
+
+M2 remains open until the guarded M2 BAR acceptance artifact exists. M3 remains
+open and the runbook now refuses to start without that M2 evidence.
+
+### 2026-06-12 - M3 runbook precondition tests
+
+Added a Nix-buildable unit/smoke target for the generated M3 YPCB inference
+runbook preconditions:
+
+- Target:
+  `.#task6-m3-ypcb-inference-gate-runbook-unit-tests`
+- Result:
+  `/nix/store/wdidl2ifafb31p2wvza79ghfp1d6i4hb-task6-m3-ypcb-inference-gate-runbook-unit-tests`
+- Checks:
+  - command exits before board access when `TASK6_PCIE_HARDWARE_ENABLE` is not
+    set.
+  - command exits before launching the M3 gate when `--m2-artifact` is present
+    but fails the M2 milestone audit.
+
+This test does not access PCIe or program the board. It preserves the intended
+safety behavior while the host/device PCIe state is unstable.
+
+Latest guarded non-BAR lifecycle artifact remains:
+
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T23-18-05+0200-task6-m2-host-reenumeration-preflight/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive config reads changed from `COMMAND=ffff`, `VENDOR=ffff`,
+  `DEVICE=0480`, `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`, `BAR0=00000000` to
+  `COMMAND=ffff`, `VENDOR=10ee`, `DEVICE=ffff`, `HEADER=ff`,
+  `SUBSYSTEM_DEVICE=ffff`, `BAR0=ffffffff`. `resource0` was absent.
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run after this unstable classification.
+
+M2 is still open because there is no board-accepted live full-block artifact.
+M3 is still open because it now correctly depends on accepted M2 evidence and
+then a YPCB full TinyStories-1M token-exact inference PASS.
+
+### 2026-06-12 - M2 gated handoff recheck and board-evidence shape
+
+Reran the guarded M2 host-reenumeration handoff under
+`TASK6_PCIE_HARDWARE_ENABLE=1`. The command only performed the non-BAR
+lifecycle preflight and refused to launch the BAR gate because PCIe config
+space is still unstable.
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 /tmp/task6-m2-host-reenumeration-gate-runbook/command.sh 0000:42:00.0`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T23-22-42+0200-task6-m2-host-reenumeration-preflight/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive non-BAR config reads changed from `COMMAND=0547`,
+  `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`,
+  `BAR0=ffffffff` to `COMMAND=0547`, `VENDOR=ffff`, `DEVICE=0480`,
+  `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`, `BAR0=00000000`. `resource0` was
+  absent.
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run after this unstable classification.
+
+Tightened the eventual M2 board artifact shape:
+
+- `task6_pcie_m2_full_block_gate.py` now emits a `board` object with
+  `status`, `bdf`, `lspci`, and `pcie_command` in both preflight-fail and final
+  result paths.
+- The milestone audit now has a regression case proving that nested board/PCIe
+  identity plus explicit `board.status=PASS` is sufficient for M2 evidence.
+
+Verification:
+
+- Direct tests:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_milestone_evidence_audit.py`
+  and
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- Syntax:
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_milestone_evidence_audit.py`
+- Nix tests:
+  `/nix/store/ydhyvw3b22gvasgihcmfx9jikhaa6jn4-task6-milestone-evidence-audit-unit-tests.json`
+  and
+  `/nix/store/hg8cdmxkyqqwky2nmx46sya2cwhdx7kv-task6-m2-full-block-gate-unit-tests.json`
+
+M2 remains open until the same guarded handoff reaches `pcie_ready` and the
+delegated token-ID live full-block BAR gate emits a passing artifact. M3 remains
+open and remains gated on accepted M2 evidence.
+
+### 2026-06-12 - M2 token-live input contract tightened
+
+Tightened the M2 full-block PCIe gate so token-live mode cannot be weakened by
+raw vector overrides:
+
+- `parse_embedding_tb_data_sv()` now exposes the BAR input as `token_input`
+  and the second 64-byte aperture as `reserved_input`, instead of reusing the
+  legacy fixture names.
+- `select_host_vectors()` now rejects `--input-hex` and `--residual-hex` when
+  `--embedding-tb-data-sv` has selected token-live mode. A future token-live
+  M2 PASS must therefore write the prompt token IDs derived from the embedding
+  fixture, not arbitrary host-provided 64-byte activation vectors.
+- The board artifact fingerprints now report the selected vector sources from
+  the same helper used to drive BAR writes.
+
+Verification:
+
+- Direct:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- Syntax:
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- Nix:
+  `/nix/store/ghy71h593w0mq0klsywrh8iqwz6xk765-task6-m2-full-block-gate-unit-tests.json`
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run for this contract update. M2 remains open because
+the host/device PCIe state has not yet reached `pcie_ready`; M3 remains open
+and depends on accepted M2 evidence.
+
+Follow-up non-BAR lifecycle check:
+
+- Command:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh lifecycle 0000:42:00.0 --bridge-bdf 0000:41:00.0 --label task6-m2-post-contract-tighten-lifecycle`
+- Artifact:
+  `artifacts/task6/runs/2026-06-12T23-43-06+0200-task6-m2-post-contract-tighten-lifecycle/pcie-lifecycle.json`
+- Classification:
+  `unstable_config`
+- Details:
+  consecutive non-BAR config reads changed from `COMMAND=0547`,
+  `VENDOR=ffff`, `DEVICE=0480`, `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`,
+  `BAR0=00000000` to `COMMAND=ffff`, `VENDOR=10ee`, `DEVICE=ffff`,
+  `HEADER=00`, `SUBSYSTEM_DEVICE=abcd`, `BAR0=00000000`. `lspci` still
+  reported Xilinx `10ee:0480`; `resource0` was absent.
+
+The tool again refused BAR/reset/recovery recommendations because consecutive
+non-BAR config reads changed. This remains a PCIe coherence/re-enumeration
+failure, not an observed M2 math failure.
+
+Attempted to request the explicit host PCIe recovery wrapper:
+
+- Command requested:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 TASK6_PCIE_HOST_FREEZE_RISK_ACK=1 scripts/task6/task6_pcie_make_stable_then_m2.sh 0000:42:00.0 --bridge-bdf 0000:41:00.0 --label task6-m2-explicit-host-recovery --catch-attempts 2 --catch-sleep 2 -- TASK6_M2_DELEGATED_COMMAND=/tmp/task6-m2-host-reenumeration-gate-runbook/command.sh`
+- Result:
+  approval rejected before execution because this is the known freeze-prone
+  host PCIe remove/rescan/reset class and needs explicit user approval after
+  the concrete host-freeze risk is stated.
+
+No host recovery command was run.
+
+### 2026-06-12 - M2 milestone audit now requires BAR gate checks
+
+Tightened `scripts/task6/task6_milestone_evidence_audit.py` so M2 evidence
+must include the full BAR gate check set, not just the live-token contract shape
+and matching first 64 output bytes. A future M2-closing artifact now needs
+passing checks for:
+
+- Task 6 and M2 magic/version/presence.
+- Non-all-ones reads and status schema consistency.
+- M2 provenance, start-count increment, done/no-error/output-valid status.
+- Live output count plus checksum/sample0/sample1/output-count/vector checks.
+
+This makes `task6_pcie_m2_full_block_gate.py` the expected M2 evidence source
+and prevents a hand-shaped JSON artifact from closing M2 without proving the
+actual BAR-visible hardware path.
+
+Verification:
+
+- Direct:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_milestone_evidence_audit.py`
+- Syntax:
+  `python3 -m py_compile scripts/task6/task6_milestone_evidence_audit.py scripts/task6/test_task6_milestone_evidence_audit.py scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- Nix:
+  `/nix/store/2226rq17q01n8sw2f9mx8pqd3d04ln09-task6-milestone-evidence-audit-unit-tests.json`
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+delegated recovery was run for this audit update. M2 remains open on clean PCIe
+enumeration and a passing token-live BAR artifact; M3 remains open and depends
+on accepted M2 evidence.
+
+### 2026-06-12 - PCIe recovery risk model tightened for M2
+
+The previous shorthand "freeze-prone PCIe recovery" was too broad. The
+high-risk class is host-side PCIe teardown/re-enumeration: endpoint reset,
+endpoint remove/rescan, upstream bridge rescan, root-port reset/hot reset, and
+Thunderbolt/root `prepare` flows. That risk is empirical: these actions have
+correlated with host freezes on this setup. It is not proof that every single
+invocation will freeze the host.
+
+There is a safer automated recovery route that does not use that host-side
+reset/remove/rescan class:
+
+- Bounded non-BAR lifecycle probes.
+- Safe permission repair for clean identity states.
+- Explicitly configured smart-plug/chassis power-cycle recovery.
+- A second bounded non-BAR readiness catch before any BAR gate runs.
+
+`scripts/task6/task6_pcie_make_stable_then_m2.sh` now stages recovery in that
+order. It first runs the catch-ready gate, then runs `recover-auto` without
+`--allow-root-recovery`, then catches readiness again. Only if the endpoint is
+still not `pcie_ready` does it offer the higher-risk root recovery path, and
+that still requires `TASK6_PCIE_HOST_FREEZE_RISK_ACK=1`.
+
+Verification:
+
+- Syntax:
+  `bash -n scripts/task6/task6_pcie_make_stable_then_m2.sh`
+- Nix:
+  `/nix/store/cmn7f6pi3ydqdbbpdnidb0qwk848jaha-task6-pcie-make-stable-then-m2-unit-tests`
+
+No BAR gate, flash write, endpoint reset, bridge rescan, endpoint rescan, or
+root recovery was run for this policy update. M2 remains open until the safe
+ladder reaches `pcie_ready` and the token-live full-block BAR gate emits an
+accepted artifact.
+
+### 2026-06-13 - Formal BAR-contract check added for M1/M2 ingress surfaces
+
+Added a focused SymbiYosys proof for the Task 6 PCIe AXI-lite ingress BAR
+contract:
+
+- `formal/task6/task6_pcie_ingress_bar_contract_formal.sv`
+- `formal/task6/task6_pcie_ingress_bar_contract.sby`
+
+The proof reads an arbitrary checked BAR word after reset and proves the read
+response matches the host-visible contract for the surfaces that have caused
+M1/M2 regressions:
+
+- MLP magic/version/status/checksum/sample/debug/full-output-vector words.
+- M2 magic/version/presence/status/checksum/count/sample/debug/provenance
+  words.
+- M2 input, residual, and output vector windows.
+
+Verification:
+
+- `nix develop -c sby -f task6_pcie_ingress_bar_contract.sby`
+- Result: PASS by k-induction with `smtbmc z3`.
+
+This does not prove PCIe enumeration, BAR stability, timing closure, CDC, or
+TinyStories arithmetic. It does give us a cheap pre-PNR gate for register-map
+mistakes such as missing debug words, missing full-vector apertures, and mux
+address collisions before spending time on HIL.
