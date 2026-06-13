@@ -1,0 +1,15 @@
+[options]
+mode prove
+depth 8
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal task6_pcie_axil_rowstream_loader_ingress.v
+read -formal task6_pcie_ingress_bar_contract_formal.sv
+prep -top task6_pcie_ingress_bar_contract_formal
+
+[files]
+../../fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v
+task6_pcie_ingress_bar_contract_formal.sv

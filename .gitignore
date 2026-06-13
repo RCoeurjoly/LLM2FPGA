@@ -8,3 +8,4 @@ cosim.cfg
 result*
 artifacts/task6/board.lock
 artifacts/task6/generated-bitstreams/*.bit
+formal/task6/task6_pcie_ingress_bar_contract/
