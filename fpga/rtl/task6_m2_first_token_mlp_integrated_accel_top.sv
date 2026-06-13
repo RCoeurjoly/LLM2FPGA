@@ -1,6 +1,8 @@
 `timescale 1ns/1ps
 
-module task6_m2_first_token_mlp_integrated_accel_top (
+module task6_m2_first_token_mlp_integrated_accel_top #(
+  parameter bit ENABLE_INTERNAL_CHECKS = 1'b0
+) (
   input logic SYS_CLK,
   input logic SYS_RSTN,
   input logic start_i,
@@ -20,20 +22,24 @@ module task6_m2_first_token_mlp_integrated_accel_top (
 );
   `include "tb_data.sv"
 
-  typedef enum logic [2:0] {
-    ST_IDLE = 3'd0,
-    ST_CFC_RUN = 3'd1,
-    ST_CFC_CHECK = 3'd2,
-    ST_CPROJ_RUN = 3'd3,
-    ST_CPROJ_CHECK = 3'd4,
-    ST_DONE = 3'd5,
-    ST_ERROR = 3'd6
+  typedef enum logic [3:0] {
+    ST_IDLE = 4'd0,
+    ST_CFC_PREFETCH = 4'd1,
+    ST_CFC_RUN = 4'd2,
+    ST_CFC_CHECK = 4'd3,
+    ST_CPROJ_PREFETCH = 4'd4,
+    ST_CPROJ_RUN = 4'd5,
+    ST_CPROJ_CHECK = 4'd6,
+    ST_DONE = 4'd7,
+    ST_ERROR = 4'd8
   } state_t;
 
   localparam int CFC_OUT_WIDTH = $clog2(MLP_C_FC_OUT_DIM);
   localparam int CFC_IN_WIDTH = $clog2(MLP_C_FC_IN_DIM);
   localparam int CPROJ_OUT_WIDTH = $clog2(MLP_C_PROJ_OUT_DIM);
   localparam int CPROJ_IN_WIDTH = $clog2(MLP_C_PROJ_IN_DIM);
+  localparam int CFC_WEIGHT_ADDR_WIDTH = $clog2(MLP_C_FC_OUT_DIM * MLP_C_FC_IN_DIM);
+  localparam int CPROJ_WEIGHT_ADDR_WIDTH = $clog2(MLP_C_PROJ_OUT_DIM * MLP_C_PROJ_IN_DIM);
 
   state_t state_q;
   logic [CFC_OUT_WIDTH - 1:0] cfc_out_index_q;
@@ -68,6 +74,10 @@ module task6_m2_first_token_mlp_integrated_accel_top (
   logic busy_w;
   logic [31:0] cfc_out_index_u32_w;
   logic [31:0] cproj_out_index_u32_w;
+  logic signed [7:0] cfc_weight_read_q;
+  logic signed [7:0] cproj_weight_read_q;
+  logic [CFC_WEIGHT_ADDR_WIDTH - 1:0] cfc_weight_addr_q;
+  logic [CPROJ_WEIGHT_ADDR_WIDTH - 1:0] cproj_weight_addr_q;
   logic signed [7:0] post_gelu_mem [0:MLP_C_FC_OUT_DIM-1];
 
   function automatic signed [63:0] round_shift_signed64(
@@ -103,12 +113,9 @@ module task6_m2_first_token_mlp_integrated_accel_top (
   function automatic signed [7:0] fixed_post_gelu_pwl(input signed [31:0] x_q);
     int segment;
     logic signed [31:0] x0;
-    logic signed [31:0] x1;
     logic signed [31:0] y0;
     logic signed [31:0] y1;
     logic signed [63:0] numerator;
-    logic signed [31:0] denominator;
-    logic signed [31:0] recip_q;
     logic signed [63:0] delta_product;
     logic signed [63:0] delta_q;
     begin
@@ -122,13 +129,10 @@ module task6_m2_first_token_mlp_integrated_accel_top (
         segment = MLP_GELU_PWL_NODE_COUNT - 2;
       end
       x0 = mlp_gelu_pwl_x_nodes[segment];
-      x1 = mlp_gelu_pwl_x_nodes[segment + 1];
       y0 = {{24{mlp_gelu_pwl_y_nodes[segment][7]}}, mlp_gelu_pwl_y_nodes[segment]};
       y1 = {{24{mlp_gelu_pwl_y_nodes[segment + 1][7]}}, mlp_gelu_pwl_y_nodes[segment + 1]};
       numerator = $signed(x_q - x0) * $signed(y1 - y0);
-      denominator = x1 - x0;
-      recip_q = ((32'sd1 <<< 16) + (denominator >>> 1)) / denominator;
-      delta_product = numerator * $signed(recip_q);
+      delta_product = numerator * $signed(mlp_gelu_pwl_recip_q[segment]);
       delta_q = round_shift_signed64(delta_product, 16);
       fixed_post_gelu_pwl = saturate_i8($signed(y0 + delta_q[31:0]));
     end
@@ -136,8 +140,7 @@ module task6_m2_first_token_mlp_integrated_accel_top (
 
   assign cfc_next_acc_w =
     acc_q +
-    ($signed(cfc_ln2_q_w) *
-     $signed(mlp_c_fc_weight_q[cfc_out_index_q][cfc_in_index_q]));
+    ($signed(cfc_ln2_q_w) * $signed(cfc_weight_read_q));
   assign cfc_ln2_q_w =
     use_external_ln2_i
       ? $signed(external_ln2_vector_i[cfc_in_index_q * 8 +: 8])
@@ -150,8 +153,7 @@ module task6_m2_first_token_mlp_integrated_accel_top (
 
   assign cproj_next_acc_w =
     acc_q +
-    ($signed(post_gelu_mem[cproj_in_index_q]) *
-     $signed(mlp_c_proj_weight_q[cproj_out_index_q][cproj_in_index_q]));
+    ($signed(post_gelu_mem[cproj_in_index_q]) * $signed(cproj_weight_read_q));
   assign cproj_product_w =
     $signed(acc_q) * $signed(mlp_c_proj_scale_mul_q[cproj_out_index_q]);
   assign cproj_shifted_w =
@@ -171,7 +173,9 @@ module task6_m2_first_token_mlp_integrated_accel_top (
   assign final_q_w = saturate_i8($signed(final_shifted_w[31:0]));
   assign busy_w =
     state_q == ST_CFC_RUN ||
+    state_q == ST_CFC_PREFETCH ||
     state_q == ST_CFC_CHECK ||
+    state_q == ST_CPROJ_PREFETCH ||
     state_q == ST_CPROJ_RUN ||
     state_q == ST_CPROJ_CHECK;
   assign cfc_out_index_u32_w = {{(32 - CFC_OUT_WIDTH){1'b0}}, cfc_out_index_q};
@@ -199,7 +203,7 @@ module task6_m2_first_token_mlp_integrated_accel_top (
       unique case (state_q)
         ST_IDLE: begin
           if (start_i) begin
-            state_q <= ST_CFC_RUN;
+            state_q <= ST_CFC_PREFETCH;
             cfc_out_index_q <= '0;
             cfc_in_index_q <= '0;
             cproj_out_index_q <= '0;
@@ -212,10 +216,21 @@ module task6_m2_first_token_mlp_integrated_accel_top (
             final_sample0_q <= 32'd0;
             final_sample1_q <= 32'd0;
             final_vector_q <= 512'd0;
+            cfc_weight_read_q <= 8'sd0;
+            cproj_weight_read_q <= 8'sd0;
+            cfc_weight_addr_q <= '0;
+            cproj_weight_addr_q <= '0;
             output_valid_q <= 1'b0;
             error_q <= 1'b0;
             debug_o <= 32'd0;
           end
+        end
+
+        ST_CFC_PREFETCH: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          cfc_weight_read_q <= mlp_c_fc_weight_q[cfc_weight_addr_q];
+          cfc_weight_addr_q <= cfc_weight_addr_q + CFC_WEIGHT_ADDR_WIDTH'(1);
+          state_q <= ST_CFC_RUN;
         end
 
         ST_CFC_RUN: begin
@@ -224,21 +239,23 @@ module task6_m2_first_token_mlp_integrated_accel_top (
           if (cfc_in_index_q == CFC_IN_WIDTH'(MLP_C_FC_IN_DIM - 1)) begin
             state_q <= ST_CFC_CHECK;
           end else begin
+            cfc_weight_read_q <= mlp_c_fc_weight_q[cfc_weight_addr_q];
+            cfc_weight_addr_q <= cfc_weight_addr_q + CFC_WEIGHT_ADDR_WIDTH'(1);
             cfc_in_index_q <= cfc_in_index_q + CFC_IN_WIDTH'(1);
           end
         end
 
         ST_CFC_CHECK: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          if (acc_q != mlp_c_fc_expected_acc[cfc_out_index_q]) begin
+          if (ENABLE_INTERNAL_CHECKS && acc_q != mlp_c_fc_expected_acc[cfc_out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h11, cfc_out_index_u32_w[7:0], acc_q[15:0]};
-          end else if (cfc_x_q_w != mlp_c_fc_expected_x_q[cfc_out_index_q]) begin
+          end else if (ENABLE_INTERNAL_CHECKS && cfc_x_q_w != mlp_c_fc_expected_x_q[cfc_out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h12, cfc_out_index_u32_w[7:0], cfc_x_q_w[15:0]};
-          end else if (post_gelu_q_w != mlp_post_gelu_q[cfc_out_index_q]) begin
+          end else if (ENABLE_INTERNAL_CHECKS && post_gelu_q_w != mlp_post_gelu_q[cfc_out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h13, cfc_out_index_u32_w[7:0], 8'd0, post_gelu_q_w};
@@ -248,17 +265,26 @@ module task6_m2_first_token_mlp_integrated_accel_top (
               post_gelu_checksum_q +
               ({24'd0, post_gelu_q_w[7:0]} * ({{(32 - CFC_OUT_WIDTH){1'b0}}, cfc_out_index_q} + 32'd1));
             if (cfc_out_index_q == CFC_OUT_WIDTH'(MLP_C_FC_OUT_DIM - 1)) begin
-              state_q <= ST_CPROJ_RUN;
+              state_q <= ST_CPROJ_PREFETCH;
               cproj_out_index_q <= '0;
               cproj_in_index_q <= '0;
+              cproj_weight_read_q <= 8'sd0;
+              cproj_weight_addr_q <= '0;
               acc_q <= 32'sd0;
             end else begin
               cfc_out_index_q <= cfc_out_index_q + CFC_OUT_WIDTH'(1);
               cfc_in_index_q <= '0;
               acc_q <= 32'sd0;
-              state_q <= ST_CFC_RUN;
+              state_q <= ST_CFC_PREFETCH;
             end
           end
+        end
+
+        ST_CPROJ_PREFETCH: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          cproj_weight_read_q <= mlp_c_proj_weight_q[cproj_weight_addr_q];
+          cproj_weight_addr_q <= cproj_weight_addr_q + CPROJ_WEIGHT_ADDR_WIDTH'(1);
+          state_q <= ST_CPROJ_RUN;
         end
 
         ST_CPROJ_RUN: begin
@@ -267,21 +293,23 @@ module task6_m2_first_token_mlp_integrated_accel_top (
           if (cproj_in_index_q == CPROJ_IN_WIDTH'(MLP_C_PROJ_IN_DIM - 1)) begin
             state_q <= ST_CPROJ_CHECK;
           end else begin
+            cproj_weight_read_q <= mlp_c_proj_weight_q[cproj_weight_addr_q];
+            cproj_weight_addr_q <= cproj_weight_addr_q + CPROJ_WEIGHT_ADDR_WIDTH'(1);
             cproj_in_index_q <= cproj_in_index_q + CPROJ_IN_WIDTH'(1);
           end
         end
 
         ST_CPROJ_CHECK: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          if (acc_q != mlp_c_proj_expected_acc[cproj_out_index_q]) begin
+          if (ENABLE_INTERNAL_CHECKS && acc_q != mlp_c_proj_expected_acc[cproj_out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h21, cproj_out_index_u32_w[7:0], acc_q[15:0]};
-          end else if (c_proj_q_w != mlp_c_proj_expected_q[cproj_out_index_q]) begin
+          end else if (ENABLE_INTERNAL_CHECKS && c_proj_q_w != mlp_c_proj_expected_q[cproj_out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h22, cproj_out_index_u32_w[7:0], 8'd0, c_proj_q_w};
-          end else if (final_q_w != mlp_final_expected_q[cproj_out_index_q]) begin
+          end else if (ENABLE_INTERNAL_CHECKS && final_q_w != mlp_final_expected_q[cproj_out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h23, cproj_out_index_u32_w[7:0], 8'd0, final_q_w};
@@ -307,14 +335,14 @@ module task6_m2_first_token_mlp_integrated_accel_top (
               cproj_out_index_q <= cproj_out_index_q + CPROJ_OUT_WIDTH'(1);
               cproj_in_index_q <= '0;
               acc_q <= 32'sd0;
-              state_q <= ST_CPROJ_RUN;
+              state_q <= ST_CPROJ_PREFETCH;
             end
           end
         end
 
         ST_DONE: begin
           if (start_i) begin
-            state_q <= ST_CFC_RUN;
+            state_q <= ST_CFC_PREFETCH;
             cfc_out_index_q <= '0;
             cfc_in_index_q <= '0;
             cproj_out_index_q <= '0;
@@ -327,6 +355,10 @@ module task6_m2_first_token_mlp_integrated_accel_top (
             final_sample0_q <= 32'd0;
             final_sample1_q <= 32'd0;
             final_vector_q <= 512'd0;
+            cfc_weight_read_q <= 8'sd0;
+            cproj_weight_read_q <= 8'sd0;
+            cfc_weight_addr_q <= '0;
+            cproj_weight_addr_q <= '0;
             output_valid_q <= 1'b0;
             error_q <= 1'b0;
             debug_o <= 32'd0;
@@ -346,7 +378,7 @@ module task6_m2_first_token_mlp_integrated_accel_top (
       16'h4d49,
       8'd0,
       1'b0,
-      state_q,
+      state_q[2:0],
       output_valid_q,
       error_q,
       busy_w,

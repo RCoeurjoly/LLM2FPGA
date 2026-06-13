@@ -1,9 +1,15 @@
 `timescale 1ns/1ps
 
-module task6_m2_first_token_attention_out_proj_accel_top (
+module task6_m2_first_token_attention_out_proj_accel_top #(
+  parameter bit ENABLE_INTERNAL_CHECKS = 1'b0
+) (
   input logic SYS_CLK,
   input logic SYS_RSTN,
   input logic start_i,
+  input logic use_external_context_i,
+  input logic [511:0] external_context_vector_i,
+  input logic use_external_block_input_i,
+  input logic [511:0] external_block_input_vector_i,
   output logic [31:0] status_o,
   output logic [31:0] cycle_count_o,
   output logic [31:0] output_checksum_o,
@@ -24,22 +30,26 @@ module task6_m2_first_token_attention_out_proj_accel_top (
 
   typedef enum logic [2:0] {
     ST_IDLE = 3'd0,
-    ST_RUN = 3'd1,
-    ST_CHECK = 3'd2,
-    ST_DONE = 3'd3,
-    ST_ERROR = 3'd4,
-    ST_LN2_MEAN = 3'd5,
-    ST_LN2_RUN = 3'd6
+    ST_PREFETCH = 3'd1,
+    ST_RUN = 3'd2,
+    ST_CHECK = 3'd3,
+    ST_DONE = 3'd4,
+    ST_ERROR = 3'd5,
+    ST_LN2_MEAN = 3'd6,
+    ST_LN2_RUN = 3'd7
   } state_t;
 
   localparam int INDEX_WIDTH = $clog2(OUT_PROJ_DIM);
+  localparam int OUT_PROJ_WEIGHT_ADDR_WIDTH = $clog2(OUT_PROJ_DIM * OUT_PROJ_DIM);
 
   state_t state_q;
   logic [INDEX_WIDTH - 1:0] out_index_q;
   logic [INDEX_WIDTH - 1:0] in_index_q;
   logic signed [31:0] acc_q;
   logic signed [31:0] next_acc_w;
+  logic signed [7:0] selected_context_q_w;
   logic signed [31:0] out_proj_context_ext_w;
+  logic signed [7:0] selected_block_input_q_w;
   logic signed [31:0] out_proj_weight_ext_w;
   logic signed [31:0] out_proj_product_w;
   logic signed [63:0] product_w;
@@ -74,6 +84,14 @@ module task6_m2_first_token_attention_out_proj_accel_top (
   logic signed [63:0] ln2_mean_next_acc_q12_s64_w;
   logic signed [63:0] ln2_mean_rounded_q12_s64_w;
   logic signed [31:0] ln2_mean_rounded_q12_w;
+  logic signed [7:0] ln2_input_q_w;
+  logic signed [7:0] ln2_mean_input_q_w;
+  logic signed [63:0] ln2_input_product_w;
+  logic signed [63:0] ln2_mean_input_product_w;
+  logic signed [63:0] ln2_input_shifted_w;
+  logic signed [63:0] ln2_mean_input_shifted_w;
+  logic signed [31:0] ln2_input_q12_w;
+  logic signed [31:0] ln2_mean_input_q12_w;
   logic signed [31:0] ln2_centered_q12;
   logic signed [63:0] ln2_norm_product_w;
   logic signed [63:0] ln2_norm_shifted_w;
@@ -92,6 +110,8 @@ module task6_m2_first_token_attention_out_proj_accel_top (
   logic [31:0] out_index_u32_w;
   logic [31:0] in_index_u32_w;
   logic [3:0] out_index_detail_w;
+  logic signed [7:0] out_proj_weight_read_q;
+  logic [OUT_PROJ_WEIGHT_ADDR_WIDTH - 1:0] out_proj_weight_addr_q;
 
   function automatic signed [63:0] round_shift_signed64(
     input signed [63:0] value,
@@ -123,12 +143,18 @@ module task6_m2_first_token_attention_out_proj_accel_top (
     end
   endfunction
 
+  assign selected_context_q_w =
+    use_external_context_i
+      ? $signed(external_context_vector_i[in_index_q * 8 +: 8])
+      : $signed(out_proj_context_q[in_index_q]);
   assign out_proj_context_ext_w =
-    $signed({{24{out_proj_context_q[in_index_q][7]}},
-             out_proj_context_q[in_index_q]});
+    $signed({{24{selected_context_q_w[7]}}, selected_context_q_w});
+  assign selected_block_input_q_w =
+    use_external_block_input_i
+      ? $signed(external_block_input_vector_i[out_index_q * 8 +: 8])
+      : $signed(out_proj_block_input_q[out_index_q]);
   assign out_proj_weight_ext_w =
-    $signed({{24{out_proj_weight_q[out_index_q][in_index_q][7]}},
-             out_proj_weight_q[out_index_q][in_index_q]});
+    $signed({{24{out_proj_weight_read_q[7]}}, out_proj_weight_read_q});
   assign out_proj_product_w = out_proj_context_ext_w * out_proj_weight_ext_w;
   assign next_acc_w = acc_q + out_proj_product_w;
   assign product_w = $signed(acc_q) * $signed(out_proj_mul_q20[out_index_q]);
@@ -137,8 +163,7 @@ module task6_m2_first_token_attention_out_proj_accel_top (
   assign output_u8_w = output_q_w[7:0];
   assign residual_product_w =
     ($signed(output_q_w) * $signed(attn_residual_projected_mul_q20[out_index_q])) +
-    ($signed(out_proj_block_input_q[out_index_q]) *
-     $signed(attn_residual_block_input_mul_q20[out_index_q])) +
+    ($signed(selected_block_input_q_w) * $signed(attn_residual_block_input_mul_q20[out_index_q])) +
     residual_bias_ext_w;
   assign residual_bias_ext_w =
     $signed({{32{attn_residual_bias_q20[out_index_q][31]}},
@@ -154,8 +179,19 @@ module task6_m2_first_token_attention_out_proj_accel_top (
     {24'd0, residual_u8_w} * (out_index_u32_w + 32'd1);
   assign ln2_mean_next_acc_q12 =
     ln2_mean_acc_q12 +
-    $signed({{16{ln2_input_q12[ln2_mean_index_q][15]}},
-             ln2_input_q12[ln2_mean_index_q]});
+    ln2_mean_input_q12_w;
+  assign ln2_mean_input_q_w =
+    $signed(residual_vector_q[ln2_mean_index_q * 8 +: 8]);
+  assign ln2_input_q_w =
+    $signed(residual_vector_q[ln2_index_q * 8 +: 8]);
+  assign ln2_mean_input_product_w =
+    $signed(ln2_mean_input_q_w) * $signed(LN2_INPUT_SCALE_MUL_Q20);
+  assign ln2_input_product_w =
+    $signed(ln2_input_q_w) * $signed(LN2_INPUT_SCALE_MUL_Q20);
+  assign ln2_mean_input_shifted_w = round_shift_signed64(ln2_mean_input_product_w, 20);
+  assign ln2_input_shifted_w = round_shift_signed64(ln2_input_product_w, 20);
+  assign ln2_mean_input_q12_w = $signed(ln2_mean_input_shifted_w[31:0]);
+  assign ln2_input_q12_w = $signed(ln2_input_shifted_w[31:0]);
   assign ln2_mean_next_acc_q12_s64_w =
     $signed({{32{ln2_mean_next_acc_q12[31]}}, ln2_mean_next_acc_q12});
   assign ln2_mean_rounded_q12_s64_w =
@@ -163,7 +199,7 @@ module task6_m2_first_token_attention_out_proj_accel_top (
   assign ln2_mean_rounded_q12_w =
     $signed(ln2_mean_rounded_q12_s64_w[31:0]);
   assign ln2_centered_q12 =
-    $signed({{16{ln2_input_q12[ln2_index_q][15]}}, ln2_input_q12[ln2_index_q]}) -
+    $signed(ln2_input_q12_w) -
     $signed(ln2_mean_latched_q12);
   assign ln2_norm_product_w = $signed(ln2_centered_q12) * $signed(LN2_INV_STD_Q16);
   assign ln2_norm_shifted_w = round_shift_signed64(ln2_norm_product_w, 16);
@@ -210,7 +246,7 @@ module task6_m2_first_token_attention_out_proj_accel_top (
       unique case (state_q)
         ST_IDLE: begin
           if (start_i) begin
-            state_q <= ST_RUN;
+            state_q <= ST_PREFETCH;
             out_index_q <= '0;
             in_index_q <= '0;
             acc_q <= 32'sd0;
@@ -231,10 +267,19 @@ module task6_m2_first_token_attention_out_proj_accel_top (
             ln2_index_q <= '0;
             ln2_mean_acc_q12 <= 32'sd0;
             ln2_mean_latched_q12 <= 32'sd0;
+            out_proj_weight_read_q <= 8'sd0;
+            out_proj_weight_addr_q <= '0;
             output_valid_q <= 1'b0;
             error_q <= 1'b0;
             debug_o <= 32'd0;
           end
+        end
+
+        ST_PREFETCH: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          out_proj_weight_read_q <= out_proj_weight_q[out_proj_weight_addr_q];
+          out_proj_weight_addr_q <= out_proj_weight_addr_q + OUT_PROJ_WEIGHT_ADDR_WIDTH'(1);
+          state_q <= ST_RUN;
         end
 
         ST_RUN: begin
@@ -243,13 +288,15 @@ module task6_m2_first_token_attention_out_proj_accel_top (
           if (in_index_q == INDEX_WIDTH'(OUT_PROJ_DIM - 1)) begin
             state_q <= ST_CHECK;
           end else begin
+            out_proj_weight_read_q <= out_proj_weight_q[out_proj_weight_addr_q];
+            out_proj_weight_addr_q <= out_proj_weight_addr_q + OUT_PROJ_WEIGHT_ADDR_WIDTH'(1);
             in_index_q <= in_index_q + INDEX_WIDTH'(1);
           end
         end
 
         ST_CHECK: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          if (acc_q != out_proj_expected_acc[out_index_q]) begin
+          if (ENABLE_INTERNAL_CHECKS && acc_q != out_proj_expected_acc[out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {
@@ -259,11 +306,11 @@ module task6_m2_first_token_attention_out_proj_accel_top (
               out_proj_expected_acc[out_index_q][7:0],
               acc_q[7:0]
             };
-          end else if (output_q_w != out_proj_expected_q[out_index_q]) begin
+          end else if (ENABLE_INTERNAL_CHECKS && output_q_w != out_proj_expected_q[out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h02, out_index_detail_w, 4'd0, 8'd0, output_q_w};
-          end else if (residual_q_w != attn_residual_expected_q[out_index_q]) begin
+          end else if (ENABLE_INTERNAL_CHECKS && residual_q_w != attn_residual_expected_q[out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h03, out_index_detail_w, 4'd0, 8'd0, residual_q_w};
@@ -290,7 +337,7 @@ module task6_m2_first_token_attention_out_proj_accel_top (
               out_index_q <= out_index_q + INDEX_WIDTH'(1);
               in_index_q <= '0;
               acc_q <= 32'sd0;
-              state_q <= ST_RUN;
+              state_q <= ST_PREFETCH;
             end
           end
         end
@@ -309,7 +356,7 @@ module task6_m2_first_token_attention_out_proj_accel_top (
 
         ST_LN2_RUN: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          if (ln2_q_w != ln2_expected_q[ln2_index_q]) begin
+          if (ENABLE_INTERNAL_CHECKS && ln2_q_w != ln2_expected_q[ln2_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
             debug_o <= {8'h04, ln2_index_u32_w[3:0], 4'd0, 8'd0, ln2_q_w};
@@ -334,7 +381,7 @@ module task6_m2_first_token_attention_out_proj_accel_top (
 
         ST_DONE: begin
           if (start_i) begin
-            state_q <= ST_RUN;
+            state_q <= ST_PREFETCH;
             out_index_q <= '0;
             in_index_q <= '0;
             acc_q <= 32'sd0;
@@ -355,6 +402,8 @@ module task6_m2_first_token_attention_out_proj_accel_top (
             ln2_index_q <= '0;
             ln2_mean_acc_q12 <= 32'sd0;
             ln2_mean_latched_q12 <= 32'sd0;
+            out_proj_weight_read_q <= 8'sd0;
+            out_proj_weight_addr_q <= '0;
             output_valid_q <= 1'b0;
             error_q <= 1'b0;
             debug_o <= 32'd0;
