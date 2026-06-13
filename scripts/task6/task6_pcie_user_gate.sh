@@ -72,7 +72,7 @@ if [[ "$MODE" == "lifecycle" ]]; then
 fi
 
 if [[ "$MODE" == "flash" ]]; then
-  exec python3 "$ROOT/scripts/task6/task6_pcie_flash.py" "${@:3}"
+  exec python3 "$ROOT/scripts/task6/task6_pcie_flash.py" --bdf "$BDF" "${@:3}"
 fi
 
 if [[ ! -d "$DEVICE" ]]; then

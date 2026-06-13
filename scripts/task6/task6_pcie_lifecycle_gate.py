@@ -116,13 +116,17 @@ def classify(snapshot: dict[str, object]) -> str:
 
     if not bool(snapshot["bridge_exists"]):
         return "missing_bridge"
-    if not device.exists():
+    if not bool(snapshot.get("endpoint_exists", device.exists())):
         return "missing_endpoint"
     if len(config_words) < 4:
         return "config_unreadable"
+    if snapshot.get("config_stable") is False:
+        return "unstable_config"
     command, vendor, device_id, header_type = [str(x).lower() for x in config_words[:4]]
     if command == "ffff":
         return "corrupt_command"
+    if vendor == "ffff":
+        return "corrupt_vendor_id"
     if vendor != "10ee":
         return "wrong_vendor"
     if device_id != "0480":
@@ -161,9 +165,17 @@ def recommendations(classification: str, bdf: str, bridge_bdf: str) -> list[str]
         "config_unreadable": [
             "Config space is not readable yet; wait briefly or power-cycle the chassis, then run the non-BAR lifecycle probe: " + lifecycle_probe,
         ],
+        "unstable_config": [
+            "Config space changed between consecutive non-BAR reads; do not run BAR gates, reset, rescan, recovery, or flash writes from this state.",
+            "Re-enumerate with the FPGA already configured from BPI flash, then run only the non-BAR lifecycle probe first: " + lifecycle_probe,
+        ],
         "corrupt_command": [
             "Config space is returning 0xffff; stop PCIe probing and re-enumerate with the FPGA already configured from BPI flash.",
             "After chassis or host re-enumeration, run only the non-BAR lifecycle probe first: " + lifecycle_probe,
+        ],
+        "corrupt_vendor_id": [
+            "Config space is partially corrupt: VENDOR_ID is 0xffff even though the endpoint path still exists. Do not run BAR gates, reset, rescan, or recovery from this state.",
+            "Re-enumerate with the FPGA already configured from BPI flash, then run only the non-BAR lifecycle probe first: " + lifecycle_probe,
         ],
         "wrong_vendor": [
             "The BDF no longer points at the expected Xilinx endpoint; inspect lspci and update TASK6_PCIE_ALLOWED_BDF only if the endpoint moved.",
@@ -202,6 +214,7 @@ def snapshot(bdf: str, bridge_bdf: str) -> dict[str, object]:
     device = Path("/sys/bus/pci/devices") / bdf
     bridge = Path("/sys/bus/pci/devices") / bridge_bdf
     cfg = setpci_words(bdf)
+    cfg_repeat = setpci_words(bdf)
     snap: dict[str, object] = {
         "created_at": datetime.now().astimezone().isoformat(),
         "bdf": bdf,
@@ -209,8 +222,11 @@ def snapshot(bdf: str, bridge_bdf: str) -> dict[str, object]:
         "endpoint_exists": device.exists(),
         "bridge_exists": bridge.exists(),
         "config_words": cfg["words"],
+        "config_words_repeat": cfg_repeat["words"],
+        "config_stable": cfg["words"] == cfg_repeat["words"],
         "config_decoded": cfg["decoded"],
         "config_probe": cfg["result"],
+        "config_probe_repeat": cfg_repeat["result"],
         "resource": sysfs_file(device / "resource"),
         "resource0": sysfs_file(device / "resource0"),
         "endpoint_remove": sysfs_file(device / "remove"),
@@ -296,6 +312,34 @@ def main() -> int:
     bridge = Path("/sys/bus/pci/devices") / args.bridge_bdf
     snap: dict[str, object] | None = None
     if args.rescan:
+        if os.environ.get("TASK6_PCIE_ALLOW_UNSAFE_RESCAN") != "1":
+            (run_dir / "bridge-rescan.json").write_text(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "skipped": True,
+                        "reason": (
+                            "bridge rescan is disabled by default because "
+                            "delegated PCIe rescans have correlated with host "
+                            "freezes on this setup; re-enumerate the chassis "
+                            "or reboot with the FPGA already configured"
+                        ),
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            snap = snapshot(args.bdf, args.bridge_bdf)
+            snap["recommendations"] = recommendations(
+                str(snap["classification"]), args.bdf, args.bridge_bdf
+            )
+            (run_dir / "pcie-lifecycle.json").write_text(
+                json.dumps(snap, indent=2) + "\n", encoding="utf-8"
+            )
+            print("FAIL: bridge rescan disabled by safety interlock")
+            print(f"artifact: {run_dir / 'pcie-lifecycle.json'}")
+            return 1
         pre_snap = snapshot(args.bdf, args.bridge_bdf)
         pre_classification = str(pre_snap["classification"])
         if not args.force_rescan and pre_classification != "missing_endpoint":

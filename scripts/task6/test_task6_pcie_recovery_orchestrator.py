@@ -3,19 +3,10 @@
 
 from __future__ import annotations
 
-import importlib.util
-from pathlib import Path
-import sys
+import json
 import unittest
 
-
-SCRIPT = Path(__file__).with_name("task6_pcie_recovery_orchestrator.py")
-SPEC = importlib.util.spec_from_file_location("task6_pcie_recovery_orchestrator", SCRIPT)
-assert SPEC is not None
-MODULE = importlib.util.module_from_spec(SPEC)
-sys.modules["task6_pcie_recovery_orchestrator"] = MODULE
-assert SPEC.loader is not None
-SPEC.loader.exec_module(MODULE)
+import task6_pcie_recovery_orchestrator as MODULE
 
 
 class RecoveryDecisionTest(unittest.TestCase):
@@ -26,9 +17,7 @@ class RecoveryDecisionTest(unittest.TestCase):
         recovered_missing_resource0: bool = False,
         tried_bridge_rescan: bool = False,
         tried_safe_helper: bool = False,
-        tried_root_recovery: bool = False,
         has_then_gate: bool = True,
-        allow_root_recovery: bool = False,
         allow_delegated_resource0_recovery: bool = False,
     ) -> str:
         return MODULE.next_step(
@@ -36,9 +25,7 @@ class RecoveryDecisionTest(unittest.TestCase):
             recovered_missing_resource0=recovered_missing_resource0,
             tried_bridge_rescan=tried_bridge_rescan,
             tried_safe_helper=tried_safe_helper,
-            tried_root_recovery=tried_root_recovery,
             has_then_gate=has_then_gate,
-            allow_root_recovery=allow_root_recovery,
             allow_delegated_resource0_recovery=allow_delegated_resource0_recovery,
         ).action
 
@@ -58,9 +45,8 @@ class RecoveryDecisionTest(unittest.TestCase):
             "needs_physical_power_cycle",
         )
 
-    def test_missing_endpoint_gets_one_bridge_rescan_then_power_cycle_by_default(self) -> None:
-        self.assertEqual(self.decide("missing_endpoint"), "bridge_rescan")
-        self.assertEqual(self.decide("missing_endpoint", tried_bridge_rescan=True), "needs_physical_power_cycle")
+    def test_missing_endpoint_power_cycles_by_default(self) -> None:
+        self.assertEqual(self.decide("missing_endpoint"), "needs_physical_power_cycle")
 
     def test_clean_missing_resource0_power_cycles_by_default(self) -> None:
         self.assertEqual(self.decide("missing_resource0"), "needs_physical_power_cycle")
@@ -83,16 +69,15 @@ class RecoveryDecisionTest(unittest.TestCase):
                 )
 
     def test_stale_and_corrupt_states_power_cycle_by_default(self) -> None:
-        for classification in ["stale_bar_all_ones", "corrupt_command", "config_unreadable"]:
+        for classification in [
+            "stale_bar_all_ones",
+            "corrupt_command",
+            "corrupt_vendor_id",
+            "config_unreadable",
+            "unstable_config",
+        ]:
             with self.subTest(classification=classification):
                 self.assertEqual(self.decide(classification), "needs_physical_power_cycle")
-
-    def test_root_recovery_is_explicit_opt_in(self) -> None:
-        self.assertEqual(self.decide("stale_bar_all_ones", allow_root_recovery=True), "root_recovery")
-        self.assertEqual(
-            self.decide("stale_bar_all_ones", allow_root_recovery=True, tried_root_recovery=True),
-            "needs_physical_power_cycle",
-        )
 
     def test_unknown_classification_stops(self) -> None:
         self.assertEqual(self.decide("surprising_state"), "stop")

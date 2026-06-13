@@ -13861,7 +13861,8 @@ EOF
             This artifact is for transient post-enumeration windows. It does
             not reset, rescan, recover, flash, or access BAR space while
             waiting. It runs bounded non-BAR lifecycle probes and delegates to
-            the token-ID M2 gate only after lifecycle reports \`pcie_ready\`.
+            the token-ID M2 gate only after lifecycle reports \`pcie_ready\`
+            and BAR header smoke returns the \`T6PC\` header.
 
             Default behavior is twelve lifecycle attempts with a five-second
             sleep between attempts. Use --attempts and --sleep to narrow or
@@ -13893,6 +13894,7 @@ EOF
               "runs_hardware": false,
               "command_requires_hardware_enable": true,
               "command_requires_pcie_ready_preflight": true,
+              "command_requires_bar_header_t6pc": true,
               "default_attempts": 12,
               "default_sleep_seconds": 5,
               "milestone_target": "M2-one-full-block",
@@ -13948,6 +13950,10 @@ EOF
                 echo "run_dir: $PWD/artifacts/task6/runs/fake-ready"
                 exit 0
                 ;;
+              bar)
+                echo "BAR header smoke PASS: T6PC"
+                exit 0
+                ;;
               m2-full-block)
                 echo "m2 delegated gate reached"
                 exit 0
@@ -13975,7 +13981,51 @@ EOF
                 >"$TMPDIR/catch.stdout" 2>"$TMPDIR/catch.stderr"
             grep -q "classification: unstable_config" "$TMPDIR/catch.stdout"
             grep -q "classification: pcie_ready" "$TMPDIR/catch.stdout"
+            grep -q "BAR header smoke PASS: T6PC" "$TMPDIR/catch.stdout"
             grep -q "m2 delegated gate reached" "$TMPDIR/catch.stdout"
+
+            cat > "$fake_root/scripts/task6/task6_pcie_user_gate.sh" <<'EOF'
+            #!${pkgs.bash}/bin/bash
+            set -euo pipefail
+            mode="$1"
+            shift
+            case "$mode" in
+              lifecycle)
+                echo "classification: pcie_ready"
+                echo "run_dir: $PWD/artifacts/task6/runs/fake-ready"
+                exit 0
+                ;;
+              bar)
+                echo "BAR header smoke FAIL: bad magic" >&2
+                exit 1
+                ;;
+              *)
+                echo "unexpected mode after failed header: $mode" >&2
+                exit 9
+                ;;
+            esac
+            EOF
+            chmod +x "$fake_root/scripts/task6/task6_pcie_user_gate.sh"
+
+            set +e
+            TASK6_REPO_ROOT="$fake_root" \
+              TASK6_PCIE_HARDWARE_ENABLE=1 \
+              TASK6_FAKE_COUNT_FILE="$TMPDIR/header-fail-count" \
+              TASK6_M2_DELEGATED_COMMAND="$TMPDIR/fake-m2-delegate.sh" \
+              ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --attempts 1 --sleep 0 \
+                >"$TMPDIR/header-fail.stdout" 2>"$TMPDIR/header-fail.stderr"
+            header_fail_rc=$?
+            set -e
+            if [[ "$header_fail_rc" -eq 0 ]]; then
+              echo "expected catch gate to fail when BAR header smoke fails" >&2
+              exit 1
+            fi
+            grep -q "classification: pcie_ready" "$TMPDIR/header-fail.stdout"
+            grep -q "BAR header smoke FAIL" "$TMPDIR/header-fail.stderr"
+            if grep -q "m2 delegated gate reached" "$TMPDIR/header-fail.stdout"; then
+              echo "M2 delegate ran after failed BAR header smoke" >&2
+              exit 1
+            fi
 
             cat > "$out/result.json" <<EOF
             {
@@ -13985,7 +14035,9 @@ EOF
               "checks": [
                 "hardware-enable guard exits before lifecycle",
                 "bounded catch loops on non-ready lifecycle",
-                "delegates only after pcie_ready lifecycle"
+                "runs BAR header smoke after pcie_ready lifecycle",
+                "delegates only after pcie_ready lifecycle and T6PC BAR header smoke",
+                "does not delegate when BAR header smoke fails"
               ]
             }
             EOF
@@ -14035,10 +14087,17 @@ EOF
                 echo "run_dir: $PWD/artifacts/task6/runs/fake-unstable"
                 exit 1
                 ;;
-              recover-auto)
-                echo "fake recover-auto reached"
-                touch "''${TASK6_FAKE_RECOVERED_FILE:?}"
+              bar)
+                echo "BAR header smoke PASS: T6PC"
                 exit 0
+                ;;
+              recover-auto)
+                echo "fake safe recover-auto reached"
+                if [[ "''${TASK6_FAKE_SAFE_RECOVERS:-0}" == "1" ]]; then
+                  touch "''${TASK6_FAKE_RECOVERED_FILE:?}"
+                  exit 0
+                fi
+                exit 1
                 ;;
               *)
                 echo "unexpected mode: $mode" >&2
@@ -14059,30 +14118,67 @@ EOF
             TASK6_REPO_ROOT="$fake_root" \
               TASK6_PCIE_HARDWARE_ENABLE=1 \
               TASK6_M2_DELEGATED_COMMAND="$TMPDIR/fake-m2-delegate.sh" \
-              TASK6_FAKE_RECOVERED_FILE="$TMPDIR/recovered-no-ack" \
+              TASK6_FAKE_RECOVERED_FILE="$TMPDIR/not-recovered" \
               ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --catch-attempts 1 --catch-sleep 0 \
-                >"$TMPDIR/no-ack.stdout" 2>"$TMPDIR/no-ack.stderr"
-            no_ack_rc=$?
+                >"$TMPDIR/no-root-fallback.stdout" 2>"$TMPDIR/no-root-fallback.stderr"
+            no_root_fallback_rc=$?
             set -e
-            if [[ "$no_ack_rc" -ne 3 ]]; then
-              echo "expected non-acknowledged make-stable command to exit 3, got $no_ack_rc" >&2
-              cat "$TMPDIR/no-ack.stdout" >&2
-              cat "$TMPDIR/no-ack.stderr" >&2
+            if [[ "$no_root_fallback_rc" -eq 0 ]]; then
+              echo "expected make-stable command to fail when safe recovery does not recover PCIe" >&2
               exit 1
             fi
-            grep -q "host reset/remove/rescan recovery is not acknowledged" "$TMPDIR/no-ack.stderr"
+            grep -q "classification: unstable_config" "$TMPDIR/no-root-fallback.stdout"
+            grep -q "fake safe recover-auto reached" "$TMPDIR/no-root-fallback.stdout"
+            if grep -q "fake root recover-auto reached" "$TMPDIR/no-root-fallback.stdout"; then
+              echo "root fallback unexpectedly ran" >&2
+              exit 1
+            fi
+            grep -q "Stopping before host-side PCIe reset/remove/rescan recovery" "$TMPDIR/no-root-fallback.stderr"
 
             TASK6_REPO_ROOT="$fake_root" \
               TASK6_PCIE_HARDWARE_ENABLE=1 \
-              TASK6_PCIE_HOST_FREEZE_RISK_ACK=1 \
               TASK6_M2_DELEGATED_COMMAND="$TMPDIR/fake-m2-delegate.sh" \
-              TASK6_FAKE_RECOVERED_FILE="$TMPDIR/recovered-with-ack" \
+              TASK6_FAKE_RECOVERED_FILE="$TMPDIR/recovered-safe" \
+              TASK6_FAKE_SAFE_RECOVERS=1 \
               ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --catch-attempts 1 --catch-sleep 0 \
-                >"$TMPDIR/with-ack.stdout" 2>"$TMPDIR/with-ack.stderr"
-            grep -q "classification: unstable_config" "$TMPDIR/with-ack.stdout"
-            grep -q "fake recover-auto reached" "$TMPDIR/with-ack.stdout"
-            grep -q "classification: pcie_ready" "$TMPDIR/with-ack.stdout"
-            grep -q "m2 delegated gate reached" "$TMPDIR/with-ack.stdout"
+                >"$TMPDIR/safe-recovers.stdout" 2>"$TMPDIR/safe-recovers.stderr"
+            grep -q "classification: unstable_config" "$TMPDIR/safe-recovers.stdout"
+            grep -q "fake safe recover-auto reached" "$TMPDIR/safe-recovers.stdout"
+            grep -q "classification: pcie_ready" "$TMPDIR/safe-recovers.stdout"
+            grep -q "BAR header smoke PASS: T6PC" "$TMPDIR/safe-recovers.stdout"
+            grep -q "m2 delegated gate reached" "$TMPDIR/safe-recovers.stdout"
+
+            cat > "$TMPDIR/fake-m2-fail-delegate.sh" <<'EOF'
+            #!${pkgs.bash}/bin/bash
+            set -euo pipefail
+            echo "m2 delegated gate failed"
+            exit 42
+            EOF
+            chmod +x "$TMPDIR/fake-m2-fail-delegate.sh"
+            touch "$TMPDIR/recovered-before-m2-fail"
+            set +e
+            TASK6_REPO_ROOT="$fake_root" \
+              TASK6_PCIE_HARDWARE_ENABLE=1 \
+              TASK6_M2_DELEGATED_COMMAND="$TMPDIR/fake-m2-fail-delegate.sh" \
+              TASK6_FAKE_RECOVERED_FILE="$TMPDIR/recovered-before-m2-fail" \
+              ${pkgs.bash}/bin/bash "$runbook" 0000:42:00.0 --catch-attempts 1 --catch-sleep 0 \
+                >"$TMPDIR/m2-fail.stdout" 2>"$TMPDIR/m2-fail.stderr"
+            m2_fail_rc=$?
+            set -e
+            if [[ "$m2_fail_rc" -ne 42 ]]; then
+              echo "expected make-stable to preserve delegated M2 failure rc 42, got $m2_fail_rc" >&2
+              cat "$TMPDIR/m2-fail.stdout" >&2
+              cat "$TMPDIR/m2-fail.stderr" >&2
+              exit 1
+            fi
+            grep -q "classification: pcie_ready" "$TMPDIR/m2-fail.stdout"
+            grep -q "BAR header smoke PASS: T6PC" "$TMPDIR/m2-fail.stdout"
+            grep -q "m2 delegated gate failed" "$TMPDIR/m2-fail.stdout"
+            grep -q "not running PCIe recovery" "$TMPDIR/m2-fail.stderr"
+            if grep -q "fake safe recover-auto reached" "$TMPDIR/m2-fail.stdout"; then
+              echo "recovery unexpectedly ran after delegated M2 failure" >&2
+              exit 1
+            fi
 
             cat > "$out/result.json" <<EOF
             {
@@ -14091,8 +14187,12 @@ EOF
               "hardware_touched": false,
               "checks": [
                 "hardware-enable guard exits before lifecycle",
-                "non-ready PCIe refuses root recovery without freeze-risk acknowledgement",
-                "acknowledged root recovery is followed by a second pcie_ready catch before M2 delegate"
+                "safe recover-auto runs after the first catch-ready failure",
+                "host reset/remove/rescan recovery does not run automatically",
+                "safe recovery can reach the M2 delegate before host recovery",
+                "safe recovery is followed by a second pcie_ready catch before BAR access",
+                "M2 delegate runs only after T6PC BAR header smoke",
+                "delegated M2 failure does not trigger PCIe recovery"
               ]
             }
             EOF
@@ -15251,6 +15351,7 @@ EOF
             pkgs.gtkwave
             pkgs.nixfmt-classic
             pkgs.rr
+            pkgs.z3
           ];
           shellHook = ''
             export NEXTPNR_XILINX_DIR="${openXC7Nextpnr}/share/nextpnr"

@@ -91,7 +91,16 @@ if [[ -z "$ready_log" ]]; then
 error: no pcie_ready lifecycle observed in the bounded catch window.
 No BAR gate was launched. Re-enumerate/cold-boot again with the FPGA already configured.
 EOM
-  exit 1
+  exit 10
+fi
+
+set +e
+"$ROOT/scripts/task6/task6_pcie_user_gate.sh" bar "$BDF" --mode header
+bar_header_rc="$?"
+set -e
+if [[ "$bar_header_rc" -ne 0 ]]; then
+  echo "error: BAR header smoke did not pass; M2 gate was not launched" >&2
+  exit 11
 fi
 
 exec "$DELEGATED_COMMAND" "$BDF" "${EXTRA_ARGS[@]}"

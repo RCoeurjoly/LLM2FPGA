@@ -13,6 +13,7 @@ def snapshot(config_words: list[str], *, repeat_words: list[str] | None = None) 
         "bdf": "0000:42:00.0",
         "bridge_bdf": "0000:41:00.0",
         "bridge_exists": True,
+        "endpoint_exists": True,
         "config_words": config_words,
         "config_words_repeat": repeat_words,
         "config_stable": config_words == repeat_words,

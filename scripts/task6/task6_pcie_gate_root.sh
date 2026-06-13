@@ -10,6 +10,7 @@ TB_DEVICE_NAME="${TASK6_PCIE_TB_DEVICE_NAME:-Helios 5S}"
 TB_UNIQUE_ID="${TASK6_PCIE_TB_UNIQUE_ID:-c4148780-0010-1ed9-ffff-ffffffffffff}"
 TB_DOMAIN="${TASK6_PCIE_TB_DOMAIN:-domain1}"
 LIBEXEC_DIR="${TASK6_PCIE_LIBEXEC_DIR:-/usr/local/libexec/task6-pcie}"
+RESET_WRITE_TIMEOUT="${TASK6_PCIE_RESET_WRITE_TIMEOUT:-8}"
 
 usage() {
   cat >&2 <<'USAGE'
@@ -39,6 +40,23 @@ fi
 
 command_value() {
   setpci -s "$BDF" COMMAND
+}
+
+write_sysfs_one() {
+  local path label
+  path="$1"
+  label="$2"
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$RESET_WRITE_TIMEOUT" bash -c 'printf "1\n" >"$1"' _ "$path" || {
+      echo "warning: $label failed or timed out writing $path" >&2
+      return 1
+    }
+  else
+    printf "1\n" >"$path" || {
+      echo "warning: $label failed writing $path" >&2
+      return 1
+    }
+  fi
 }
 
 verify_pci_bdf_exists() {
@@ -94,7 +112,7 @@ reset_subordinate_bus() {
   reset_file="/sys/bus/pci/devices/$bridge_bdf/reset_subordinate"
   if [[ -e "$reset_file" ]]; then
     echo "kernel-resetting subordinate bus below $bridge_bdf"
-    echo 1 >"$reset_file"
+    write_sysfs_one "$reset_file" "subordinate reset for $bridge_bdf" || return 1
     sleep 3
     return 0
   fi
@@ -107,7 +125,7 @@ reset_pci_device() {
   reset_file="/sys/bus/pci/devices/$dev_bdf/reset"
   if [[ -e "$reset_file" ]]; then
     echo "kernel-resetting PCI device $dev_bdf"
-    echo 1 >"$reset_file"
+    write_sysfs_one "$reset_file" "device reset for $dev_bdf" || return 1
     sleep 3
     return 0
   fi
@@ -164,9 +182,6 @@ reset_bridge_for_recovery() {
     "subordinate:$BRIDGE_BDF" \
     "device:$BRIDGE_BDF" \
     "hot:$BRIDGE_BDF" \
-    "subordinate:$UPSTREAM_BRIDGE_BDF" \
-    "device:$UPSTREAM_BRIDGE_BDF" \
-    "subordinate:$ROOT_PORT_BDF" \
     "thunderbolt:$TB_DEVICE"; do
     case "$step" in
       subordinate:*) reset_subordinate_bus "${step#subordinate:}" || continue ;;
@@ -179,6 +194,23 @@ reset_bridge_for_recovery() {
       return 0
     fi
   done
+  if [[ "${TASK6_PCIE_ALLOW_UPSTREAM_RESETS:-0}" == "1" ]]; then
+    for step in \
+      "subordinate:$UPSTREAM_BRIDGE_BDF" \
+      "device:$UPSTREAM_BRIDGE_BDF" \
+      "subordinate:$ROOT_PORT_BDF"; do
+      case "$step" in
+        subordinate:*) reset_subordinate_bus "${step#subordinate:}" || continue ;;
+        device:*) reset_pci_device "${step#device:}" || continue ;;
+      esac
+      rescan_pci
+      if wait_for_endpoint; then
+        return 0
+      fi
+    done
+  else
+    echo "skipping upstream/root-port resets; set TASK6_PCIE_ALLOW_UPSTREAM_RESETS=1 for a deliberate recovery experiment" >&2
+  fi
   return 1
 }
 
@@ -211,7 +243,7 @@ enable_memory_space() {
 }
 
 wait_for_endpoint() {
-  local tmp detail endpoint
+  local tmp detail endpoint first second command vendor device header subsystem_device bar0
   tmp="/tmp/task6-pcie-gate-lspci.$$"
   endpoint=""
   for _ in $(seq 1 20); do
@@ -220,8 +252,30 @@ wait_for_endpoint() {
       if grep -qi 'Unknown header type 7f' <<<"$detail"; then
         echo "found $BDF but config header is invalid/stale; waiting"
       else
-        endpoint="$(cat "$tmp")"
-        break
+        first="$(setpci -s "$BDF" COMMAND VENDOR_ID DEVICE_ID HEADER_TYPE 2e.w 10.l 2>/dev/null || true)"
+        sleep 0.2
+        second="$(setpci -s "$BDF" COMMAND VENDOR_ID DEVICE_ID HEADER_TYPE 2e.w 10.l 2>/dev/null || true)"
+        if [[ "$first" != "$second" ]]; then
+          echo "found $BDF but config space is unstable; waiting"
+        else
+          mapfile -t config_words <<<"$first"
+          if (( ${#config_words[@]} < 6 )); then
+            echo "found $BDF but config space is incomplete; waiting"
+          else
+            command="${config_words[0],,}"
+            vendor="${config_words[1],,}"
+            device="${config_words[2],,}"
+            header="${config_words[3],,}"
+            subsystem_device="${config_words[4],,}"
+            bar0="${config_words[5],,}"
+            if [[ "$command" == "ffff" || "$vendor" != "10ee" || "$device" != "0480" || ( "$header" != "00" && "$header" != "0000" ) || "$subsystem_device" != "abcd" || "$bar0" == "00000000" || "$bar0" == "ffffffff" ]]; then
+              echo "found $BDF but config is not BAR-ready: COMMAND=$command VENDOR=$vendor DEVICE=$device HEADER=$header SUBSYSTEM_DEVICE=$subsystem_device BAR0=$bar0; waiting"
+            else
+              endpoint="$(cat "$tmp")"
+              break
+            fi
+          fi
+        fi
       fi
     fi
     sleep 1

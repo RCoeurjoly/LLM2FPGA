@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 
@@ -14,6 +15,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bridge_bdf", nargs="?", default=DEFAULT_BRIDGE)
     args = parser.parse_args()
+
+    if os.environ.get("TASK6_PCIE_ALLOW_UNSAFE_RESCAN") != "1":
+        raise SystemExit(
+            "bridge rescan is disabled by default because delegated PCIe "
+            "rescans have correlated with host freezes on this setup. "
+            "Re-enumerate the chassis or reboot with the FPGA already "
+            "configured, then run the lifecycle gate. Set "
+            "TASK6_PCIE_ALLOW_UNSAFE_RESCAN=1 only for a deliberate recovery "
+            "experiment."
+        )
 
     bridge = Path("/sys/bus/pci/devices") / args.bridge_bdf
     rescan = bridge / "rescan"

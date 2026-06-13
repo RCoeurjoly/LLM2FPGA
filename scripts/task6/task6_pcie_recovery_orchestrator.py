@@ -28,13 +28,14 @@ ROOT = Path(__file__).resolve().parents[2]
 RUNS_ROOT = ROOT / "artifacts" / "task6" / "runs"
 DEFAULT_BDF = "0000:42:00.0"
 DEFAULT_BRIDGE_BDF = "0000:41:00.0"
-DEFAULT_ROOT_HELPER = str(ROOT / "scripts/task6/task6_pcie_gate_root.sh")
 
 
 SOFTWARE_RECOVERY_CLASSES = {
     "stale_bar_all_ones",
     "corrupt_command",
+    "corrupt_vendor_id",
     "config_unreadable",
+    "unstable_config",
     "corrupt_device_id",
     "corrupt_header_type",
 }
@@ -82,6 +83,14 @@ def redacted_argv(cmd: list[str]) -> list[str]:
     return redacted
 
 
+def output_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
 def run(cmd: list[str], *, timeout: float, run_dir: Path, name: str, dry_run: bool) -> dict[str, Any]:
     result: dict[str, Any] = {
         "argv": redacted_argv(cmd),
@@ -112,8 +121,8 @@ def run(cmd: list[str], *, timeout: float, run_dir: Path, name: str, dry_run: bo
         result.update(
             {
                 "returncode": None,
-                "stdout": exc.stdout or "",
-                "stderr": exc.stderr or "",
+                "stdout": output_text(exc.stdout),
+                "stderr": output_text(exc.stderr),
                 "timeout": True,
             }
         )
@@ -151,9 +160,7 @@ def next_step(
     recovered_missing_resource0: bool,
     tried_bridge_rescan: bool,
     tried_safe_helper: bool,
-    tried_root_recovery: bool,
     has_then_gate: bool,
-    allow_root_recovery: bool = False,
     allow_delegated_resource0_recovery: bool = False,
 ) -> Step:
     if classification == "pcie_ready":
@@ -166,21 +173,11 @@ def next_step(
             return Step("run_then_gate", "PCIe lifecycle and BAR preflight are ready")
         return Step("done", "PCIe lifecycle and BAR preflight are ready")
 
-    if classification == "missing_endpoint" and not tried_bridge_rescan:
-        return Step("bridge_rescan", "endpoint is absent but the upstream bridge may rescan it")
-
     if classification in SAFE_PERMISSION_REPAIR_CLASSES and not tried_safe_helper:
         return Step("safe_root_helper", "PCIe identity is clean but udev permissions or COMMAND memory enable need repair")
 
     if classification == "missing_resource0" and allow_delegated_resource0_recovery and not recovered_missing_resource0:
         return Step("delegated_recover", "endpoint identity is present but BAR0/resource0 is missing")
-
-    if (
-        classification in SOFTWARE_RECOVERY_CLASSES
-        or classification == "missing_resource0"
-        or (classification == "missing_endpoint" and tried_bridge_rescan)
-    ) and allow_root_recovery and not tried_root_recovery:
-        return Step("root_recovery", "bounded root PCIe/Thunderbolt reset ladder was explicitly enabled")
 
     if classification in SOFTWARE_RECOVERY_CLASSES or classification in {"missing_resource0", "missing_endpoint"}:
         return Step("needs_physical_power_cycle", "software recovery did not produce a live BAR")
@@ -219,8 +216,6 @@ def step_command(step: Step, args: argparse.Namespace) -> list[str] | None:
         ]
     if step.action == "safe_root_helper":
         return [*shlex.split(args.sudo), args.safe_root_helper, "repair-permissions", args.bdf]
-    if step.action == "root_recovery":
-        return [*shlex.split(args.sudo), args.root_helper, "prepare", args.bdf]
     if step.action == "run_then_gate":
         return ["scripts/task6/task6_pcie_user_gate.sh", *args.then]
     return None
@@ -338,7 +333,6 @@ def main() -> int:
     parser.add_argument("--bdf", default=DEFAULT_BDF)
     parser.add_argument("--bridge-bdf", default=DEFAULT_BRIDGE_BDF)
     parser.add_argument("--label", default="pcie-recovery-orchestrator")
-    parser.add_argument("--root-helper", default=DEFAULT_ROOT_HELPER)
     parser.add_argument("--safe-root-helper", default="/usr/local/libexec/task6-pcie/task6-pcie-safe-root-helper")
     parser.add_argument("--sudo", default="sudo -n")
     parser.add_argument("--recover-timeout", type=float, default=20.0)
@@ -355,7 +349,6 @@ def main() -> int:
     )
     parser.add_argument("--allow-power-cycle", action="store_true", help="allow configured smart-plug power cycle after software recovery fails")
     parser.add_argument("--max-power-cycles", type=int, default=3)
-    parser.add_argument("--allow-root-recovery", action="store_true", help="allow root PCIe/Thunderbolt reset ladder; disabled by default because it previously froze the host")
     parser.add_argument(
         "--allow-delegated-resource0-recovery",
         action="store_true",
@@ -396,9 +389,7 @@ def main() -> int:
             recovered_missing_resource0=False,
             tried_bridge_rescan=False,
             tried_safe_helper=False,
-            tried_root_recovery=False,
             has_then_gate=bool(args.then),
-            allow_root_recovery=args.allow_root_recovery,
             allow_delegated_resource0_recovery=args.allow_delegated_resource0_recovery,
         )
         selected = {**step.__dict__, "command": step_command(step, args)}
@@ -410,7 +401,6 @@ def main() -> int:
     recovered_missing_resource0 = False
     tried_bridge_rescan = False
     tried_safe_helper = False
-    tried_root_recovery = False
     last_classification = "unknown"
     power_cycle_count = 0
 
@@ -442,9 +432,7 @@ def main() -> int:
             recovered_missing_resource0=recovered_missing_resource0,
             tried_bridge_rescan=tried_bridge_rescan,
             tried_safe_helper=tried_safe_helper,
-            tried_root_recovery=tried_root_recovery,
             has_then_gate=bool(args.then),
-            allow_root_recovery=args.allow_root_recovery,
             allow_delegated_resource0_recovery=args.allow_delegated_resource0_recovery,
         )
         cmd = step_command(step, args)
@@ -457,7 +445,6 @@ def main() -> int:
             recovered_missing_resource0 = False
             tried_bridge_rescan = False
             tried_safe_helper = False
-            tried_root_recovery = False
             continue
         if step.action in {"done", "needs_physical_power_cycle", "stop"}:
             break
@@ -476,14 +463,6 @@ def main() -> int:
             tried_safe_helper = True
         elif step.action == "delegated_recover":
             recovered_missing_resource0 = True
-        elif step.action == "root_recovery":
-            if result.get("returncode") != 0:
-                stderr = str(result.get("stderr", ""))
-                failed_action = "root_recovery_unavailable" if "sudo:" in stderr else "needs_physical_power_cycle"
-                transcript.append({"action": failed_action, "reason": stderr.strip()})
-                break
-            tried_root_recovery = True
-            tried_root_recovery = True
         elif step.action == "run_then_gate":
             summary = {
                 "run_dir": str(run_dir),
@@ -501,6 +480,7 @@ def main() -> int:
         "run_dir": str(run_dir),
         "final_classification": last_classification,
         "final_action": final_action,
+        "host_recovery_freeze_risk": False,
         "transcript": transcript,
     }
     (run_dir / "orchestrator-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
