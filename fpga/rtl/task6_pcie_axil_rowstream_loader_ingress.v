@@ -191,7 +191,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     wire w_fire = s_axi_wready && s_axi_wvalid;
     wire [9:0] write_word_index = awaddr_q[11:2];
     wire [9:0] read_word_index = s_axi_araddr[11:2];
-    wire duplicate_write = last_write_valid_q &&
+    wire duplicate_control_write = last_write_valid_q &&
         last_write_word_index_q == write_word_index &&
         last_wdata_q == wdata_q &&
         last_wstrb_q == wstrb_q;
@@ -465,11 +465,9 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                 last_wdata_q <= wdata_q;
                 last_wstrb_q <= wstrb_q;
 
-                if (duplicate_write) begin
-                end else begin
-                    case (write_word_index)
+                case (write_word_index)
                         10'h002: begin
-                            if (wdata_q[0]) begin
+                            if (!duplicate_control_write && wdata_q[0]) begin
                                 doorbell_error_q <= 1'b0;
                                 loader_done_seen_q <= 1'b0;
                                 loader_error_seen_q <= 1'b0;
@@ -491,7 +489,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                         10'h00a: command_data_q[2] <= apply_wstrb(command_data_q[2], wdata_q, wstrb_q);
                         10'h00b: command_data_q[3] <= apply_wstrb(command_data_q[3], wdata_q, wstrb_q);
                         10'h00c: begin
-                            if (wdata_q[0]) begin
+                            if (!duplicate_control_write && wdata_q[0]) begin
                                 if (event_active) begin
                                     doorbell_error_q <= 1'b1;
                                 end else begin
@@ -511,13 +509,13 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                             end
                         end
                         10'h018: begin
-                            if (wdata_q[1]) begin
+                            if (!duplicate_control_write && wdata_q[1]) begin
                                 top1_done_seen_q <= 1'b0;
                                 top1_error_seen_q <= 1'b0;
                                 top1_clear_pending_q <= 1'b1;
                                 top1_status_clear_pulse_o <= 1'b1;
                             end
-                            if (wdata_q[0]) begin
+                            if (!duplicate_control_write && wdata_q[0]) begin
                                 if (top1_busy_i) begin
                                     top1_error_seen_q <= 1'b1;
                                 end else begin
@@ -578,18 +576,18 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                         10'h0ee: mlp_accel_residual_vector_o[448 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[448 +: 32], wdata_q, wstrb_q);
                         10'h0ef: mlp_accel_residual_vector_o[480 +: 32] <= apply_wstrb(mlp_accel_residual_vector_o[480 +: 32], wdata_q, wstrb_q);
                         10'h0cc: begin
-                            if (wdata_q[1])
+                            if (!duplicate_control_write && wdata_q[1])
                                 mlp_accel_clear_pulse_o <= 1'b1;
-                            if (wdata_q[0]) begin
+                            if (!duplicate_control_write && wdata_q[0]) begin
                                 mlp_accel_start_pulse_o <= 1'b1;
                                 mlp_accel_start_count_q <= mlp_accel_start_count_q + 32'd1;
                             end
                         end
                         10'h0f2: mlp_selftest_debug_select_o <= apply_wstrb(mlp_selftest_debug_select_o, wdata_q, wstrb_q);
                         10'h143: begin
-                            if (wdata_q[1])
+                            if (!duplicate_control_write && wdata_q[1])
                                 m2_full_block_clear_pulse_o <= 1'b1;
-                            if (wdata_q[0]) begin
+                            if (!duplicate_control_write && wdata_q[0]) begin
                                 m2_full_block_start_pulse_o <= 1'b1;
                                 m2_full_block_start_count_q <= m2_full_block_start_count_q + 32'd1;
                             end
@@ -611,8 +609,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                                     );
                             end
                         end
-                    endcase
-                end
+                endcase
             end else if (s_axi_bvalid && s_axi_bready) begin
                 s_axi_bvalid <= 1'b0;
             end
