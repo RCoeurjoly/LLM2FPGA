@@ -33765,3 +33765,25 @@ the direct BAR vector path remains usable on this reset-sequenced image. M2 is
 still open. The next small contract should isolate the live context stage,
 because HIL now matches through embedding-to-block-input handoff and first
 diverges at the context checksum.
+
+Context-check contract fix:
+
+- The previous pnr100 dummy-image synthesis script explicitly disabled
+  `M2_ENABLE_CONTEXT_INTERNAL_CHECKS`, even though the M2 wrappers default that
+  checker path on. That made the board failure lower resolution: the run could
+  only report a final `context_checksum_low16` mismatch instead of stopping at
+  the first internal context-stage contract failure.
+- Removed that `chparam` override so the integrated pnr100 dummy image keeps
+  the live-context internal checks enabled.
+- Cheap wrapper sim remains green:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`.
+- Cheap integrated synthesis proof is green:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-context-checks-yosys-json -L`.
+  During hierarchy elaboration Yosys instantiated the context accelerator with
+  `ENABLE_INTERNAL_CHECKS = 1'1`, and final `CHECK` reported 0 problems.
+  Synthesis stats were 85,880 cells, 152 DSP48E1, 16 RAMB36E1, and estimated
+  26,177 LCs.
+
+This does not close M2. It makes the next board run useful only if the routed
+image keeps timing: a failing HIL run should now identify the specific context
+sub-check, rather than only the final context checksum mismatch.
