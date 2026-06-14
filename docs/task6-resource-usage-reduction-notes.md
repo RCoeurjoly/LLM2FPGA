@@ -32771,3 +32771,48 @@ This confirms the latest blocker is not the M2 math or PCIe/BAR path. It is the
 BRAM inference contract for the flattened projection-weight ROMs. The address
 register used by the ROM read must be moved out of the async-reset FSM path, or
 the forced BRAM target must be abandoned for these tables.
+
+### 2026-06-14 - M2 no-async QKV ROM pnr timing attempt
+
+Committed the no-async-reset projection ROM port fix as `87cea10`. The change
+moved the flattened Q/K/V projection-weight ROM address/data registers out of
+the async-reset FSM process while preserving the extra address/read/MAC latency.
+Both simulations passed before PNR:
+
+- Context sim: cycle count 102,304, checksum `0x000432e3`, sample0
+  `0xd3c310cb`, sample1 `0x10c11ddc`.
+- PCIe wrapper sim: cycle count 141,617, final checksum `0x0003b2c9`, sample0
+  `0xd114be59`, sample1 `0xd737e470`, provenance `0x4d323005`, debug
+  `0x00000000`, debug1 `0x50f932e3`, debug2 `0x49fb3a5b`.
+
+The pnr100 build for
+`task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream` no longer failed in
+Yosys `MEMORY_LIBMAP`. Yosys mapped the forced block memories for
+`context_i.k_proj_weight_q`, `context_i.q_proj_weight_q`, and
+`context_i.v_proj_weight_q` via `__$XILINX_BLOCKRAM_TDP_`, then completed with
+zero check problems. Synthesis summary:
+
+- 99,722 cells.
+- 94 `DSP48E1`.
+- 16 `RAMB36E1`.
+- Estimated 29,089 LCs.
+
+nextpnr packed and routed the design, but stopped because `pcie_user_clk` still
+missed timing:
+
+- Packed resources: 76,721 `SLICE_LUTX`, 28,530 `SLICE_FFX`, 94 `DSP48E1`,
+  and 16 `RAMB36E1`.
+- Post-placement clocks: `pcie_user_clk` 51.18 MHz FAIL at 62.50 MHz, `drck`
+  155.16 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 198.41 MHz PASS at 100 MHz.
+- Routed clocks: `pcie_user_clk` 54.50 MHz FAIL at 62.50 MHz, `drck`
+  253.61 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 267.95 MHz PASS at 100 MHz.
+- Routed critical path for `pcie_user_clk`: mostly routing through
+  `rowstream_m2_full_block_clear` and generated enable logic, 0.6 ns logic and
+  17.8 ns routing.
+
+This is real progress over the previous no-wide-scrub timing attempt
+(`pcie_user_clk` 38.34 MHz post-placement with 13 `RAMB36E1`), but it is still
+not a flashable M2 candidate. The Q/K/V BRAM contract is fixed; the next M2
+timing fix should reduce high-fanout clear/enable distribution and the remaining
+large FF/mux constant-table footprint, especially embedding and scale/bias
+tables still reported as FF mappings.
