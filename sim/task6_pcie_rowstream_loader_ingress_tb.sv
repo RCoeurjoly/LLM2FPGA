@@ -609,6 +609,26 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(value == 32'hff45_f1da, "M2 signed residual fixture word1 must read back exactly");
     check(m2_full_block_residual_vector[0 +: 32] == 32'hfe60_017b, "M2 signed residual fixture word0 must update exactly");
     check(m2_full_block_residual_vector[32 +: 32] == 32'hff45_f1da, "M2 signed residual fixture word1 must update exactly");
+    begin
+      logic [31:0] m2_fixture_input_words [0:15];
+      m2_fixture_input_words[0] = 32'h0962_1d1e;
+      m2_fixture_input_words[1] = 32'h0280_0101;
+      m2_fixture_input_words[2] = 32'h0175_0264;
+      for (int word = 3; word < 16; word++) begin
+        m2_fixture_input_words[word] = 32'd0;
+      end
+      for (int word = 0; word < 16; word++) begin
+        axil_write(32'h540 + word * 4, m2_fixture_input_words[word]);
+      end
+      for (int word = 0; word < 16; word++) begin
+        axil_read(32'h540 + word * 4, value);
+        check(value == m2_fixture_input_words[word], "M2 fixture input direct BAR word must read back exactly");
+        check(
+          m2_full_block_input_vector[word * 32 +: 32] == m2_fixture_input_words[word],
+          "M2 fixture input internal vector word must update exactly"
+        );
+      end
+    end
     axil_write(32'h50c, 32'h2);
     repeat (2) @(negedge clk);
     check(m2_full_block_clear_pulses == 1, "M2 clear write must emit one clear pulse");
