@@ -34268,3 +34268,33 @@ Predecoded the M2 embed-done handshake at the full-block parent boundary:
 - No pnr100 or board run was performed as part of this change. A single route
   attempt is justified next because this fix targets the exact source signal
   of the previous final critical path.
+
+Route attempt for the M2 embed-done handshake predecode:
+
+- Built:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-embed-status-predecode-pnr100-bitstream -L`.
+- The router converged legally at router2 iteration 7:
+  `overused=0`, `overuse=0`, `archfail=0`.
+- Final routed timing passed and produced a board-usable bitstream:
+  `/nix/store/1rf91jz0f7hys7cga886s2na6hxm7gxi-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Final clock results after routing:
+  `pcie_user_clk = 63.57 MHz` versus the required `62.50 MHz`,
+  JTAG status `drck = 345.30 MHz` versus `100 MHz`, and
+  `PIPE_OOBCLK_IN = 233.81 MHz` versus `100 MHz`.
+- The routed pcie-user critical path still starts at
+  `m2_full_block_accel.core_i.embed_status_w[4]`, but the path now meets
+  timing. It routes through several ABC-generated LUT stages and ends at
+  `$auto$ff.cc:266:slice$326556.CE`, with `1.4 ns` logic and `14.3 ns`
+  routing.
+- The slow-net list still highlights high-fanout infrastructure and M2
+  datapath/control nets: `pcie_user_rst_n`, `$PACKER_GND_NET`,
+  `m2_full_block_accel.core_clear_w`, context multiply operands,
+  `pcie_ingress` read/control nets, and embedding `ln_input_q12_by_token_q`
+  bits.
+- No flash, PCIe/BAR lifecycle, Tapo recovery, header smoke, or M2 board gate
+  has been run yet. A board run is now justified, but only under the validated
+  Task 6 PCIe/BAR recovery protocol: lifecycle first, Tapo cold-cycle only if
+  lifecycle is not `pcie_ready`, BAR header smoke requiring `T6PC`, then the
+  M2 gate.
+
+M2 remains open until the timing-clean bitstream passes the live board M2 gate.
