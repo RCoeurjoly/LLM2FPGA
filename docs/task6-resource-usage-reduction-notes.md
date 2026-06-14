@@ -33423,3 +33423,35 @@ match the fixture at the BAR-visible boundary. The next small contract should
 separate "the vector handed to the full-block child" from "the child block-input
 checksum/debug calculation" with a cheap sim first. Do not start another full
 pnr100/HIL loop until that handoff/checksum observable is isolated.
+
+### 2026-06-14 - M2 registered block-input handoff checksum contract
+
+Added the next narrow contract fix after the LN-input board result:
+
+- `block_input_checksum_o` in the embedding/live-context wrapper now recomputes
+  the checksum from `block_input_vector_q` once the embedding boundary has been
+  latched.
+- DONE-state `debug1[31:16]` is therefore sourced from the exact registered
+  64-byte block-input vector handed to the full-block child, not from the
+  embedding producer's separate checksum output.
+- This intentionally keeps the existing BAR-visible packing shape: `debug`
+  remains the LN-input checksum, `debug1` remains
+  `{block_input_checksum_low16, context_checksum_low16}`, and `debug2` remains
+  the packed downstream low8 stage checksums.
+
+Cheap verification:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+
+The sim passed with the same expected observable values:
+
+- `ln_input_checksum = 0x88fa5e3a`
+- `debug1 = 0x50f932e3`
+- `debug2 = 0x49fb3a5b`
+- final checksum/sample0/sample1 =
+  `0x0003b2c9`/`0xd114be59`/`0xd737e470`
+- cycle count 141,620.
+
+No pnr100 or HIL run was launched for this change. The next decision point is a
+single targeted route only if this registered-handoff checksum observable is
+considered worth taking back to board.

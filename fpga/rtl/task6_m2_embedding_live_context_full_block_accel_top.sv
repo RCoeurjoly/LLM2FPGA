@@ -59,6 +59,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic [511:0] block_input_vector_q;
   logic [6143:0] ln_input_q12_by_token_q;
   logic [6143:0] debug_ln_input_q12_by_token_w;
+  logic [31:0] handoff_block_input_checksum_w;
 
   logic [31:0] block_status_w;
   logic [31:0] block_cycle_count_w;
@@ -78,6 +79,15 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
 
   assign debug_ln_input_q12_by_token_w =
     boundary_valid_q ? ln_input_q12_by_token_q : embed_ln_input_q12_by_token_w;
+
+  always_comb begin
+    handoff_block_input_checksum_w = 32'd0;
+    for (int dim = 0; dim < 64; dim = dim + 1) begin
+      handoff_block_input_checksum_w =
+        handoff_block_input_checksum_w +
+        ({24'd0, block_input_vector_q[dim * 8 +: 8]} * (dim + 1));
+    end
+  end
 
   task6_m2_embedding_block_input_accel_top embed_i (
     .SYS_CLK(SYS_CLK),
@@ -240,7 +250,8 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       state_q == ST_IDLE || state_q == ST_DONE
     };
     cycle_count_o = cycle_count_q;
-    block_input_checksum_o = embed_block_input_checksum_w;
+    block_input_checksum_o =
+      boundary_valid_q ? handoff_block_input_checksum_w : embed_block_input_checksum_w;
     ln_input_checksum_o = embed_ln_input_checksum_w;
     context_checksum_o = block_context_checksum_w;
     attn_out_checksum_o = block_attn_out_checksum_w;
@@ -253,7 +264,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     final_sample1_o = block_final_sample1_w;
     final_vector_o = block_final_vector_w;
     if (state_q == ST_DONE) begin
-      debug1_o = {embed_block_input_checksum_w[15:0], block_context_checksum_w[15:0]};
+      debug1_o = {handoff_block_input_checksum_w[15:0], block_context_checksum_w[15:0]};
       debug2_o = {
         block_attn_out_checksum_w[7:0],
         block_attn_residual_checksum_w[7:0],
