@@ -36,7 +36,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     S_RUN_PROB_CHECK = 4'd11,
     S_RUN_LN_AFFINE = 4'd12,
     S_RUN_LN_OUTPUT = 4'd13,
-    S_RUN_PROJ_OUTPUT = 4'd14
+    S_RUN_PROJ_OUTPUT = 4'd14,
+    S_RUN_PROJ_READ = 4'd15
   } state_t;
 
   localparam int TOKEN_WIDTH = (CACHE_SEQ <= 1) ? 1 : $clog2(CACHE_SEQ);
@@ -64,6 +65,9 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic signed [31:0] k_proj_acc_q;
   logic signed [31:0] v_proj_acc_q;
   logic signed [31:0] q_proj_acc_q;
+  logic signed [7:0] k_proj_weight_data_q;
+  logic signed [7:0] v_proj_weight_data_q;
+  logic signed [7:0] q_proj_weight_data_q;
   logic signed [7:0] ln_output_cache_q [0:LN_DIM-1];
   logic signed [7:0] k_cache_q [0:CACHE_SEQ-1][0:ATTN_HEAD_DIM-1];
   logic signed [7:0] v_cache_q [0:CACHE_SEQ-1][0:ATTN_HEAD_DIM-1];
@@ -256,15 +260,15 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   assign k_proj_next_acc_w =
     k_proj_acc_q +
     ($signed(ln_output_cache_q[proj_index_q]) *
-     $signed(k_proj_weight_q[proj_weight_index_w]));
+     $signed(k_proj_weight_data_q));
   assign v_proj_next_acc_w =
     v_proj_acc_q +
     ($signed(ln_output_cache_q[proj_index_q]) *
-     $signed(v_proj_weight_q[proj_weight_index_w]));
+     $signed(v_proj_weight_data_q));
   assign q_proj_next_acc_w =
     q_proj_acc_q +
     ($signed(ln_output_cache_q[proj_index_q]) *
-     $signed(q_proj_weight_q[proj_weight_index_w]));
+     $signed(q_proj_weight_data_q));
   assign k_proj_output_product_w =
     $signed(k_proj_acc_q) *
     $signed(k_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q]);
@@ -360,6 +364,9 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       k_proj_acc_q <= 32'sd0;
       v_proj_acc_q <= 32'sd0;
       q_proj_acc_q <= 32'sd0;
+      k_proj_weight_data_q <= 8'sd0;
+      v_proj_weight_data_q <= 8'sd0;
+      q_proj_weight_data_q <= 8'sd0;
       max_score_q <= -32'sd2147483647 - 32'sd1;
       softmax_denom_q <= 32'd0;
       prob_sum_q <= 32'd0;
@@ -464,12 +471,20 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
               k_proj_acc_q <= 32'sd0;
               v_proj_acc_q <= 32'sd0;
               q_proj_acc_q <= 32'sd0;
-              state_q <= S_RUN_PROJ;
+              state_q <= S_RUN_PROJ_READ;
             end else begin
               ln_index_q <= ln_index_q + LN_INDEX_WIDTH'(1);
               state_q <= S_RUN_LN;
             end
           end
+        end
+
+        S_RUN_PROJ_READ: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          k_proj_weight_data_q <= k_proj_weight_q[proj_weight_index_w];
+          v_proj_weight_data_q <= v_proj_weight_q[proj_weight_index_w];
+          q_proj_weight_data_q <= q_proj_weight_q[proj_weight_index_w];
+          state_q <= S_RUN_PROJ;
         end
 
         S_RUN_PROJ: begin
@@ -481,6 +496,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             state_q <= S_RUN_PROJ_OUTPUT;
           end else begin
             proj_index_q <= proj_index_q + LN_INDEX_WIDTH'(1);
+            state_q <= S_RUN_PROJ_READ;
           end
         end
 
@@ -534,7 +550,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
               k_proj_acc_q <= 32'sd0;
               v_proj_acc_q <= 32'sd0;
               q_proj_acc_q <= 32'sd0;
-              state_q <= S_RUN_PROJ;
+              state_q <= S_RUN_PROJ_READ;
             end
           end
         end
