@@ -33979,3 +33979,50 @@ image with the debug-forwarding fix again fails at `debug = 0xc10af481`, the
 expected real context-core debug words are now around `debug1 = 0x000dfd87`
 and `debug2 = 0xee29ebd3`, not the fallback embedding words
 `0x044efc7d`/`0xfd940092`.
+
+Routed context-debug board run:
+
+- Built the focused pnr100 image for the context-error debug-forwarding change:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-context-debug-pnr100-bitstream -L`.
+- Output bitstream:
+  `/nix/store/xbx57vp40skg09xlh70i8fbz43w0vymc-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Route result was legal and timing-clean after routing:
+  `pcie_user_clk` max frequency `69.64 MHz`, passing the `62.50 MHz`
+  requirement. FASM completed with 28 warnings and 0 errors.
+- Pre-flash non-BAR lifecycle classified the endpoint as `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T14-27-56+0200-task6-m2-context-debug-preflash-lifecycle`.
+- BPI flash programming passed with first-32-word verification:
+  `artifacts/task6/runs/2026-06-14T14-28-07+0200-task6-m2-context-debug-flash`.
+- Post-flash lifecycle reported `missing_resource0`, so no BAR access was
+  attempted. Tapo P115 cold-cycle recovery reached `pcie_ready` with
+  `host_recovery_freeze_risk = false`:
+  `artifacts/task6/runs/2026-06-14T14-35-40+0200-task6-m2-context-debug-postflash-tapo`.
+- BAR header smoke then returned `T6PC`, version 3, status `0x61`.
+- The single M2 full-block gate artifact is:
+  `artifacts/task6/runs/2026-06-14T14-38-m2-context-debug-full-block-direct.json`.
+- Post-gate non-BAR lifecycle remained `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T14-37-36+0200-task6-m2-context-debug-postgate-lifecycle`.
+
+Result:
+
+- PCIe/BAR was stable: preflight samples for `magic`, `version`, `status`,
+  `m2_magic`, `m2_version`, `m2_present`, and provenance were all stable and
+  correct.
+- The board wrote/read back the token input and residual vector exactly,
+  incremented `start_count` from 0 to 1, and reached live M2 compute.
+- M2 still failed in ERROR state, not DONE:
+  `status = 0x4d320064`, `debug = 0xc10af4c0`.
+- The corrected debug forwarding worked. The board now reports real
+  context-core intermediates:
+  `debug1 = 0x000dfd87`, `debug2 = 0xeef3ecbc`, `debug3 = 0x50f950f9`.
+- Decode: live-context LN output mismatch at `ln_index = 2`,
+  expected quantized byte `0xbd`, observed byte `0xc0`, mean q12 `13`,
+  centered q12 `-633`, norm q12 `-4365`, affine q12 `-4932`.
+- The sim-induced mismatch at the same fixture point expected
+  `debug2 = 0xee29ebd3`, while the board reports `0xeef3ecbc`. So the
+  remaining M2 issue is no longer observability or PCIe/BAR; it is a real
+  arithmetic/data-path divergence inside the live-context LN calculation.
+
+M2 remains open. The next change should be one small contract fix or audit
+around the context LN norm/affine arithmetic for token 0 index 2, with a cheap
+sim proving the exact expected/observed debug word before another board run.
