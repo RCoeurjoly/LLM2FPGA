@@ -33615,3 +33615,45 @@ Board check, again gated by `pcie_ready` and `T6PC`:
 
 Next localized board question: with diagnostic compensation enabled, does the
 full M2 gate reach start/done, and if so which compute checksum fails first?
+
+### 2026-06-14 - M2 compensated full-block diagnostic gate
+
+Ran one full M2 board gate with diagnostic `readback-compensated` vector writes
+after `pcie_ready` and `T6PC` preflight:
+
+- Artifact:
+  `artifacts/task6/runs/2026-06-14T11-48-30+0200-task6-m2-full-block-compensated.json`
+- Command included:
+  `--vector-write-mode readback-compensated`
+
+This successfully moved past the BAR vector blocker:
+
+- M2 input readback matched the requested token/control vector.
+- Residual readback matched the requested all-zero residual vector.
+- Start count incremented from 0 to 1.
+- State reached DONE and `output_valid` was true.
+- Cycle count was 141,621.
+- `ln_input_checksum` matched the expected `0x88fa5e3a`.
+- Status schema, provenance, output count, and no-error checks passed.
+
+The gate still failed final compute comparison:
+
+- Expected final checksum/sample0/sample1:
+  `0x0003b2c9`/`0xd114be59`/`0xd737e470`.
+- Observed final checksum/sample0/sample1:
+  `0x000417a0`/`0x9fff7f7f`/`0x9eff7fff`.
+- Expected `debug1`/`debug2`:
+  `0x50f932e3`/`0x49fb3a5b`.
+- Observed `debug1`/`debug2`:
+  `0x59baa038`/`0x3e5679a1`.
+- Done-stage debug comparison reported the first named mismatch at
+  `block_input_checksum_low16`, with all downstream compact checks also
+  mismatching.
+
+Conclusion: the previous M2 HIL failure mode was hiding two issues. The vector
+BAR transport issue is now modeled and bypassable for diagnostics, but direct
+mode remains unacceptable. With transport bypassed, the current live M2 failure
+is compute divergence after a matching embedding/LN input checksum. The next
+small contract should expose one more stable checkpoint around the
+embedding-to-context/full-block handoff, using sim first and no new pnr100
+until the observable explains this board-vs-sim split.
