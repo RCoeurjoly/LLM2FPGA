@@ -34618,3 +34618,30 @@ expensive step is exactly one targeted pnr100 route for this committed
 timing-local change, because it directly tests the previous
 `embed_status_w[5]` pcie_user_clk timing failure. If route still fails, record
 that result and do not run hardware.
+
+M2 embedding-status timing-local route result:
+
+- Ran the single targeted pnr100 route attempt for commit `4d2f2f5`
+  (`task6: register M2 embedding status flags`):
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-embed-status-barrier-pnr100-bitstream -L`.
+- The route completed legally. Router2 converged in 7 iterations
+  (`overused=0`, `archfail=0`) and router1 found no remaining arcs to route.
+- Final post-route timing passed:
+  `pcie_user_clk = 65.82 MHz` at 62.50 MHz,
+  `task6_pcie_status_i.drck = 309.50 MHz` at 100 MHz, and
+  `PIPE_OOBCLK_IN = 212.00 MHz` at 100 MHz. The max cross-domain delay from
+  `pcie_user_clk` to status DRCK was 2.51 ns.
+- The final pcie_user_clk critical path moved away from the previous
+  `embed_status_w[5]` source. The reported path now starts at
+  `pcie_ingress.ingress.wdata_q[0]` and ends at a CE sink, with total 15.2 ns
+  (`1.4 ns logic`, `13.8 ns routing`).
+- The FASM step ended with 28 warnings and 0 errors, and bitstream packaging
+  completed. The resulting bitstream symlink resolves to
+  `/nix/store/z8azmd2xi5ay8nqx6sx95kgn3dgfxpwi-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+
+This route result justifies one board run under the validated safe recovery
+protocol: lifecycle first, Tapo cold-cycle only if lifecycle is not
+`pcie_ready`, BAR header smoke requiring `T6PC`, then the M2 context-signature
+preflight and full-block gate. If the idle context signature fails, do not
+start compute; if it passes and compute still fails, record the localized M2
+debug values.
