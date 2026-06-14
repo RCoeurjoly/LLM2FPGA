@@ -282,7 +282,12 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       };
       debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};
     end else if (state_q == ST_BLOCK ||
-        (state_q == ST_ERROR && debug_o[31:24] == 8'h4c)) begin
+        (state_q == ST_ERROR && (
+          debug_o[31:28] == 4'hc ||
+          debug_o[31:28] == 4'ha ||
+          debug_o[31:28] == 4'hb ||
+          debug_o[31:24] == 8'h4c
+        ))) begin
       debug1_o = block_debug1_w;
       debug2_o = block_debug2_w;
       debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};

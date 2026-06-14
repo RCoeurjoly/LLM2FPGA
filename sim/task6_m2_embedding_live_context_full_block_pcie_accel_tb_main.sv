@@ -213,6 +213,42 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
   endtask
 
+  task automatic wait_context_error;
+    integer cycles;
+    logic [31:0] fallback_debug1;
+    logic [31:0] fallback_debug2;
+    begin
+      fallback_debug1 = {
+        embed_block_expected_ln_input_q12_by_token[0][0][15:0],
+        embed_block_expected_ln_input_q12_by_token[0][1][15:0]
+      };
+      fallback_debug2 = {
+        embed_block_expected_ln_input_q12_by_token[0][2][15:0],
+        embed_block_expected_ln_input_q12_by_token[0][3][15:0]
+      };
+      cycles = 0;
+      while (cycles < TIMEOUT_CYCLES) begin
+        @(posedge SYS_CLK);
+        cycles = cycles + 1;
+        if (pcie_status_o[2]) begin
+          if (pcie_debug_o[31:28] !== 4'hc) begin
+            $fatal(1, "FAIL: expected context error got debug=%08x", pcie_debug_o);
+          end
+          if (pcie_debug1_o === fallback_debug1 || pcie_debug2_o === fallback_debug2) begin
+            $fatal(
+              1,
+              "FAIL: context error debug1/debug2 used fallback LN input words debug1=%08x debug2=%08x",
+              pcie_debug1_o,
+              pcie_debug2_o
+            );
+          end
+          return;
+        end
+      end
+      $fatal(1, "Timeout waiting for induced context error");
+    end
+  endtask
+
   initial begin
     SYS_CLK = 1'b0;
     SYS_RSTN = 1'b0;
@@ -275,6 +311,16 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       $fatal(1, "FAIL: post-error clear wrapper status expected idle/ready got %08x", pcie_status_o);
     end
     pcie_token_ids_i[0 +: 16] = embed_block_expected_token_ids[0];
+
+    force dut.core_i.block_i.context_i.ln_piped_output_w = 8'sd0;
+    pulse_start();
+    wait_context_error();
+    release dut.core_i.block_i.context_i.ln_piped_output_w;
+
+    pulse_clear();
+    if (status_state(pcie_status_o) !== M2_IDLE || !pcie_status_o[0]) begin
+      $fatal(1, "FAIL: post-context-error clear wrapper status expected idle/ready got %08x", pcie_status_o);
+    end
 
     pulse_start();
     wait_done(1);

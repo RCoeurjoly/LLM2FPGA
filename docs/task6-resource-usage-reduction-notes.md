@@ -33903,3 +33903,35 @@ Conclusion: M2 is still open, but the failure has moved from PCIe/BAR
 preflight and final checksum ambiguity to a specific live-context LN mismatch
 inside the block. Do not run another full board loop until the LN expected-byte
 contract around index 2 is reproduced in a cheap sim or fixture audit.
+
+Context-error debug forwarding fix:
+
+- Fixture audit showed the decoded expected byte `0xbd` is
+  `ln_expected_q_by_token[0][2]`, so the error is in the first cached-token LN
+  pass, not token 5.
+- The apparent `debug1/debug2` LN intermediates from the board
+  (`0x044efc7d`/`0xfd940092`) were actually the wrapper fallback debug words:
+  the first four embedding LN-input q12 values
+  `1102, -899, -620, 146`.
+- Root cause: `task6_m2_embedding_live_context_full_block_accel_top.sv`
+  forwarded `block_debug1_w/block_debug2_w` in `ST_ERROR` only for old
+  `debug_o[31:24] == 0x4c` errors. The current context error is encoded as
+  `0xc1...`, so the wrapper exposed fallback LN-input words instead of the
+  context core's real debug intermediates.
+- Fixed the wrapper to forward block debug words for `0xc...`, `0xa...`, and
+  `0xb...` block errors, while preserving the old `0x4c` case.
+- Strengthened
+  `sim/task6_m2_embedding_live_context_full_block_pcie_accel_tb_main.sv` with
+  an induced context error. The sim now asserts that context-error
+  `debug1/debug2` are not the fallback embedding LN-input words, clears, and
+  then still completes the valid full-block run.
+- Cheap proof:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed. The valid pass still reports final checksum `0x0003b2c9`,
+  samples `0xd114be59`/`0xd737e470`, provenance `0x4d323005`,
+  `debug1 = 0x50f932e3`, `debug2 = 0x49fb3a5b`, and
+  `debug3 = 0x50f950f9`.
+
+This is an observability fix only. Do not run a new board gate until this
+change has a route-clean image; the expected board outcome is a context error
+again, but with real context-core `debug1/debug2` intermediates.
