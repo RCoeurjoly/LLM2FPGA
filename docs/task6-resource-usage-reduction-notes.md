@@ -34563,3 +34563,24 @@ This is not an M2 pass. It is a preflight contract so the next board run can
 separate "wrong/stale context fixture in bitstream" from "fixture matches but
 live LN arithmetic diverges" before touching start/compute. No board run or
 pnr100 loop was done for this note.
+
+M2 context fixture signature pnr100 result:
+
+- Ran the single targeted route attempt for the committed preflight-signature
+  contract:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-context-signature-pnr100-bitstream -L`.
+- The route completed legally. Router2 converged in 5 iterations
+  (`overused=0`, `archfail=0`) and router1 found no remaining arcs to route.
+- The build failed timing, so no bitstream was produced for board testing.
+  Final timing was `pcie_user_clk = 56.17 MHz`, failing the 62.50 MHz
+  constraint. The other reported clocks passed:
+  `task6_pcie_status_i.drck = 229.73 MHz` at 100 MHz and
+  `PIPE_OOBCLK_IN = 248.39 MHz` at 100 MHz.
+- The reported pcie_user_clk critical path is route dominated: from an
+  `embed_status_w[5]` source through several LUT/nets into a CE sink, with
+  total delay 17.8 ns (`1.2 ns logic`, `16.6 ns routing`).
+
+No board run was attempted. The next small contract should be a timing-local
+fix for the M2 wrapper/status/control path, or a preflight-signature-only
+hardware image if we decide the full M2 compute image should not carry this
+debug check through the timing-critical pcie_user_clk region.
