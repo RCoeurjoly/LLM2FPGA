@@ -78,12 +78,59 @@ boundary:
   observed token ID `0x0e8f`.
 
 M2 remains open. The current failure mode is no longer PCIe/BAR stability,
-timing closure, start/done, or host input readback. It is a deterministic
-live-compute final-vector mismatch after the disabled internal checks allow the
-accelerator to complete. The next fix should add a lightweight board-visible
-or sim/formal checkpoint between embedding output, context/LN output, and final
-MLP output so the first divergent substage is visible without reinstating the
-full timing-heavy self-check fabric in the pnr100 image.
+timing closure, start/done, or host input readback. It is a live-compute
+final-vector mismatch after the disabled internal checks allow the accelerator
+to complete. The next fix should add a lightweight board-visible or sim/formal
+checkpoint between embedding output, context/LN output, and final MLP output so
+the first divergent substage is visible without reinstating the full
+timing-heavy self-check fabric in the pnr100 image.
+
+## 2026-06-14 - M2 DONE checksum decode shows nondeterministic context divergence
+
+Committed `25fe6b1` to make the M2 BAR gate decode DONE-state debug words as
+packed stage checksums. The helper decodes:
+
+- `debug1[31:16]`: block-input checksum low 16 bits.
+- `debug1[15:0]`: context checksum low 16 bits.
+- `debug2`: low 8 bits of attention output, attention residual, LN2, and
+  c_proj checksums.
+
+Verification for the gate decode change:
+
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py
+  scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- `nix build .#task6-m2-full-block-gate-unit-tests -o /tmp/task6-m2-full-block-gate-unit-tests -L`
+
+Reran the safe board preflight and decoded M2 gate:
+
+- Lifecycle:
+  `artifacts/task6/runs/2026-06-14T05-35-50+0200-task6-m2-checks-off-before-decoded-rerun-lifecycle`,
+  classification `pcie_ready`.
+- BAR header smoke returned `T6PC`.
+- Decoded gate artifact:
+  `artifacts/task6/runs/2026-06-14T05-36-02+0200-task6-m2-checks-off-decoded-readback-compensated-live-full-block.json`
+- Repeat artifact:
+  `artifacts/task6/runs/2026-06-14T05-36-18+0200-task6-m2-checks-off-decoded-repeat-live-full-block.json`
+
+Both decoded gates reached `DONE` with `output_valid=true`, `error=false`,
+matching input/residual readback, matching provenance `0x4d323005`, and
+matching block-input checksum low16 `0x50f9`. Both failed at the first packed
+stage checksum after that:
+
+- Expected DONE debug from the matching sim: `debug1=0x50f932e3`,
+  `debug2=0x49fb3a5b`.
+- First decoded run observed `debug1=0x50f93d48`, `debug2=0xbde8eaba`;
+  first mismatch `context_checksum_low16` (`0x3d48` vs expected `0x32e3`).
+- Repeat observed `debug1=0x50f96d96`, `debug2=0x156de8a9`; first mismatch
+  again `context_checksum_low16` (`0x6d96` vs expected `0x32e3`).
+
+The key new evidence is nondeterminism: identical host inputs and stable
+block-input checksum produced different context checksums and different final
+vectors across repeated board gates, while cycle count stayed 92465. M2 remains
+open. The next fix should focus on context-stage state initialization and
+start/clear discipline, especially live K/V/context accumulators and any
+registered table/pipeline state that may survive between starts.
 
 ## 2026-06-14 - M2 LN handoff timing rebuild stopped before flash
 
