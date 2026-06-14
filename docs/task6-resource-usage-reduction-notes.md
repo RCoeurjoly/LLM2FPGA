@@ -34462,3 +34462,38 @@ No RTL, pnr100, flash, or recovery change is required for this host-gate
 contract fix. The current board is already in the post-Tapo `pcie_ready` state
 with a passing `T6PC` header smoke, so one rerun of the same M2 gate is
 justified to reach the intended input-readback/start observable.
+
+M2 input BAR ror64 gate rerun result:
+
+- Rechecked lifecycle before rerun: `pcie_ready` in
+  `artifacts/task6/runs/2026-06-14T17-18-48+0200-task6-m2-input-ror-pre-rerun-lifecycle`.
+- BAR header smoke still passed with `T6PC`, version 3, status `0x61`.
+- Reran the focused direct-mode M2 gate with the same explicit fixtures:
+  `artifacts/task6/runs/2026-06-14T17-19-m2-input-ror-full-block-direct-rerun.json`.
+- Post-gate lifecycle remained `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T17-19-22+0200-task6-m2-input-ror-postgate-lifecycle`.
+
+Result:
+
+- The repaired observable passed. `input_readback_transform = identity`,
+  `input_readback_matches_requested = true`, `residual_readback_transform =
+  identity`, and `residual_readback_matches_requested = true`.
+- The accelerator started: `start_count_before = 0`, `start_count_after = 1`,
+  `cycle_count = 1622`, and `output_count = 64`.
+- M2 still failed compute. Status was `0x4d320064`, decoded as schema-valid
+  M2 `ERROR` state, with no output-valid bit.
+- The new localized failure is live-context LN output mismatch:
+  `debug = 0xc1069081`, `debug1 = 0x002dfc70`, `debug2 = 0x660ca772`,
+  `debug3 = 0x50f950f9`. Decode: stage `0xc1`, LN index 1, expected q
+  `0xa4`, observed q `0x81`, mean q12 `45`, centered q12 `-912`, norm q12
+  `26124`, affine q12 `-22670`.
+- Expected full-block result was checksum `0x0003b2c9`, sample0
+  `0xd114be59`, sample1 `0xd737e470`, first output bytes beginning
+  `59be14d170e437d7...`. Observed checksum/sample0/output vector were zero
+  because the core stopped in ERROR before producing a valid final output.
+
+M2 remains open, but this is useful progress: the pcie7x input BAR transport
+failure is fixed on board, and the failure has moved to a specific live-context
+LN arithmetic mismatch. The next action should be a small LN-index-1 reproducer
+or formal/sim check for the context LN path around index 1 using the recorded
+mean/centered/norm/affine values, not another pnr100 loop.
