@@ -33718,3 +33718,18 @@ complete the valid full-block run:
 - `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
   passed with final checksum `0x0003b2c9`, `debug1 50f932e3`,
   `debug2 49fb3a5b`, and `debug3 50f950f9`.
+
+Targeted route build for the core-clear fix:
+
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-core-clear-pnr100-bitstream -L`
+- Result:
+  `/nix/store/fpghygpqw89335fsfh226kscss7w7qw0-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Yosys check reported 0 problems. Packed design scale was 87,191 cells,
+  152 DSP48E1, and 16 RAMB36E1.
+- Router2 converged legally in 6 iterations. Final routed timing passed:
+  `pcie_user_clk` 63.49 MHz against 62.50 MHz.
+
+This makes the core-clear fix board-testable. The next hardware action should
+be only the focused direct-mode M2 full-block gate, after lifecycle readiness
+and BAR header smoke. Do not use lane compensation on this reset-sequenced
+bitstream.
