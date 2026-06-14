@@ -34298,3 +34298,47 @@ Route attempt for the M2 embed-done handshake predecode:
   M2 gate.
 
 M2 remains open until the timing-clean bitstream passes the live board M2 gate.
+
+Board check for the M2 embed-done handshake predecode image:
+
+- Pre-flash non-BAR lifecycle classified the endpoint as `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T16-30-00+0200-task6-m2-embed-predecode-preflash-lifecycle`.
+- BPI flash programming and first-32-word verify passed:
+  `artifacts/task6/runs/2026-06-14T16-30-55+0200-task6-m2-embed-predecode-flash`.
+- Post-flash non-BAR lifecycle reported `missing_resource0`, so no BAR access
+  was attempted from that state:
+  `artifacts/task6/runs/2026-06-14T16-38-03+0200-task6-m2-embed-predecode-postflash-lifecycle`.
+- Tapo P115 chassis cold-cycle recovery reached `pcie_ready` with
+  `host_recovery_freeze_risk = false`:
+  `artifacts/task6/runs/2026-06-14T16-38-36+0200-task6-m2-embed-predecode-postflash-tapo`.
+- BAR header smoke returned `T6PC`, version 3, status `0x61`.
+- The first M2 gate invocation refused before touching the accelerator because
+  the now-stricter gate requires an explicit `--expected-json` or `--tb-data-sv`
+  fixture.
+- The focused direct-mode M2 gate used explicit Nix-store fixtures:
+  `task6-m2-last-token-live-kv-context-full-block-tb-data-sv` and
+  `task6-m2-embedding-block-input-tb-data-sv`. Artifact:
+  `artifacts/task6/runs/2026-06-14T16-40-m2-embed-predecode-full-block-direct.json`.
+- Post-gate non-BAR lifecycle remained `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T16-40-44+0200-task6-m2-embed-predecode-postgate-lifecycle`.
+
+Result:
+
+- PCIe/BAR preflight was stable and correct: `T6PC`, Task 6 version 3,
+  top-level status `0x61`, M2 magic `0x54364d32`, M2 version 1, present 1,
+  and provenance `0x4d323005` were stable across all preflight samples.
+- The gate did not start M2 compute. It stopped at the direct BAR vector
+  contract: input readback did not match the requested token/control vector.
+- Requested token/control bytes began:
+  `1e1d6209010180026402750100000000...`.
+- Observed input readback began:
+  `8f0eb184800040013281ba0000000000...`.
+- Residual readback matched the requested all-zero residual vector.
+- Because input readback failed, `start_count` stayed at 0, cycle count stayed
+  at 0, output remained invalid, and all compute checksum/sample mismatches are
+  downstream noise from not starting the accelerator.
+
+M2 remains open. This run should not trigger another blind pnr100 loop. The
+next small contract should explain the direct input BAR readback transform on
+the token/live wrapper using a cheap BAR-mux sim or a host-side vector write
+model before any further board run.
