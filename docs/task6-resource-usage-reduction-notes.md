@@ -33808,3 +33808,47 @@ The only justified board action is the focused direct-mode M2 full-block gate,
 because this bitstream is designed to turn the previous context checksum
 failure into a more precise context internal-check failure if the same HIL
 divergence persists.
+
+Board preflight for the context-check image:
+
+- Pre-flash lifecycle outside the sandbox reported `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T13-37-39+0200-task6-m2-context-checks-preflash-lifecycle-unsandboxed`.
+- BPI flash programming and first-32-word verify passed:
+  `artifacts/task6/runs/2026-06-14T13-38-05+0200-task6-m2-context-checks-flash`.
+- Post-flash lifecycle reported `missing_resource0`, so no BAR gate was run
+  from that state:
+  `artifacts/task6/runs/2026-06-14T13-45-51+0200-task6-m2-context-checks-postflash-lifecycle`.
+- Tapo P115 chassis cold-cycle recovery reached `pcie_ready` with
+  `host_recovery_freeze_risk: false`:
+  `artifacts/task6/runs/2026-06-14T13-46-14+0200-task6-m2-context-checks-postflash-tapo`.
+- BAR header smoke passed and returned `T6PC`.
+- The focused direct-mode M2 full-block gate did not reach compute. It failed
+  before clear/start:
+  `artifacts/task6/runs/2026-06-14T13-48-m2-context-checks-full-block-direct.json`.
+
+Observed preflight registers in that failed gate:
+
+- `magic = 0x54365043`, `version = 3`, `m2_magic = 0x54364d32`,
+  `m2_version = 1`, and `m2_provenance = 0x4d323005` matched.
+- `REG_STATUS` and `REG_M2_PRESENT` read as `0xffffffff`, even though the BAR
+  header smoke immediately beforehand read top-level status as `0x61`. This is
+  not an M2 arithmetic failure; it is an impossible/marginal BAR preflight
+  observation.
+
+Host-gate contract tightening:
+
+- `scripts/task6/task6_pcie_m2_full_block_gate.py` now samples critical
+  preflight registers before issuing M2 clear/start and records
+  `preflight_samples` plus `preflight_stable` in the JSON artifact.
+- If a transient/all-ones BAR read appears in preflight, the gate now refuses
+  to start the accelerator and preserves the failure as a PCIe/BAR-read
+  stability artifact.
+- Cheap proof:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  and
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`.
+
+M2 remains open. The next board run, if any, should reuse the already-flashed
+context-check image only after non-BAR lifecycle reports `pcie_ready` and BAR
+header smoke returns `T6PC`; the gate should then either stop at unstable
+preflight samples or proceed to the intended context internal-check failure.

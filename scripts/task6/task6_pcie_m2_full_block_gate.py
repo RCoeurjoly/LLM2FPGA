@@ -148,6 +148,29 @@ def rd32(mm: mmap.mmap, offset: int) -> int:
     return struct.unpack(">I", bytes(mm[offset : offset + 4]))[0]
 
 
+def sample_registers(
+    read32,
+    offsets: dict[str, int],
+    *,
+    samples: int,
+    interval: float,
+) -> tuple[dict[str, int], dict[str, list[int]], dict[str, bool]]:
+    if samples < 1:
+        raise SystemExit("--preflight-samples must be at least 1")
+    observed_samples: dict[str, list[int]] = {name: [] for name in offsets}
+    for sample_index in range(samples):
+        for name, offset in offsets.items():
+            observed_samples[name].append(read32(offset))
+        if sample_index + 1 < samples and interval > 0:
+            time.sleep(interval)
+    stable = {
+        name: all(value == values[0] for value in values)
+        for name, values in observed_samples.items()
+    }
+    values = {name: values[-1] for name, values in observed_samples.items()}
+    return values, observed_samples, stable
+
+
 def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
     mm[offset : offset + 4] = struct.pack(">I", value & 0xFFFFFFFF)
     _ = mm[0:4]
@@ -682,6 +705,16 @@ def parse_args() -> argparse.Namespace:
             "are diagnostic only."
         ),
     )
+    parser.add_argument(
+        "--preflight-samples",
+        type=int,
+        default=3,
+        help=(
+            "Number of pre-start register samples required to be stable before "
+            "issuing M2 clear/start. This catches transient all-ones BAR reads "
+            "without starting the accelerator."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -732,16 +765,33 @@ def main() -> int:
     fd = os.open(resource0, os.O_RDWR | os.O_SYNC)
     try:
         with mmap.mmap(fd, BAR_SIZE, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE) as mm:
-            magic = rd32(mm, REG_MAGIC)
-            version = rd32(mm, REG_VERSION)
-            status = rd32(mm, REG_STATUS)
-            m2_magic = rd32(mm, REG_M2_MAGIC)
-            m2_version = rd32(mm, REG_M2_VERSION)
-            m2_present = rd32(mm, REG_M2_PRESENT)
-            m2_provenance = rd32(mm, REG_M2_PROVENANCE)
+            preflight_offsets = {
+                "magic": REG_MAGIC,
+                "version": REG_VERSION,
+                "status": REG_STATUS,
+                "m2_magic": REG_M2_MAGIC,
+                "m2_version": REG_M2_VERSION,
+                "m2_present": REG_M2_PRESENT,
+                "m2_provenance": REG_M2_PROVENANCE,
+            }
+            preflight_values, preflight_samples, preflight_stable = sample_registers(
+                lambda offset: rd32(mm, offset),
+                preflight_offsets,
+                samples=args.preflight_samples,
+                interval=args.poll_interval,
+            )
+            magic = preflight_values["magic"]
+            version = preflight_values["version"]
+            status = preflight_values["status"]
+            m2_magic = preflight_values["m2_magic"]
+            m2_version = preflight_values["m2_version"]
+            m2_present = preflight_values["m2_present"]
+            m2_provenance = preflight_values["m2_provenance"]
             expected_m2_provenance = expected_provenance(expected)
+            preflight_all_stable = all(preflight_stable.values())
 
             preflight_checks = {
+                "preflight_registers_stable": preflight_all_stable,
                 "task6_magic": magic == TASK6_MAGIC,
                 "task6_version": version == TASK6_VERSION,
                 "not_all_ones": all(
@@ -779,6 +829,11 @@ def main() -> int:
                         "m2_provenance": f"0x{m2_provenance:08x}",
                         "expected_m2_provenance": f"0x{expected_m2_provenance:08x}",
                     },
+                    "preflight_samples": {
+                        name: [f"0x{value:08x}" for value in values]
+                        for name, values in preflight_samples.items()
+                    },
+                    "preflight_stable": preflight_stable,
                     "fingerprints": {
                         "gate_script_sha256": sha256_file(Path(__file__)),
                         "expected_json": str(args.expected_json) if args.expected_json else None,
@@ -892,6 +947,7 @@ def main() -> int:
         os.close(fd)
 
     checks = {
+        "preflight_registers_stable": preflight_all_stable,
         "task6_magic": magic == TASK6_MAGIC,
         "task6_version": version == TASK6_VERSION,
         "not_all_ones": all(
@@ -949,6 +1005,11 @@ def main() -> int:
             "m2_version": m2_version,
             "m2_present": m2_present,
         },
+        "preflight_samples": {
+            name: [f"0x{value:08x}" for value in values]
+            for name, values in preflight_samples.items()
+        },
+        "preflight_stable": preflight_stable,
         "fingerprints": {
             "gate_script_sha256": sha256_file(Path(__file__)),
             "expected_json": str(args.expected_json) if args.expected_json else None,

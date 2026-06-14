@@ -21,6 +21,7 @@ from task6_pcie_m2_full_block_gate import (
     parse_embedding_tb_data_sv,
     parse_expected_json,
     parse_expected_tb_data_sv,
+    sample_registers,
     select_host_vectors,
     validate_expected,
 )
@@ -172,7 +173,12 @@ def test_parse_embedding_tb_data_sv_token_input_vector() -> None:
         f"  embed_block_expected_token_ids[{index}] = 16'd{token_id};"
         for index, token_id in enumerate([7454, 2402, 257, 640, 612, 373])
     )
-    path = write_text(token_assignments + "\n")
+    ln_input_assignments = "\n".join(
+        f"  embed_block_expected_ln_input_q12_by_token[{token}][{dim}] = 16'sd0;"
+        for token in range(6)
+        for dim in range(64)
+    )
+    path = write_text(token_assignments + "\n" + ln_input_assignments + "\n")
     expected = parse_embedding_tb_data_sv(path)
     assert expected["token_ids"] == [7454, 2402, 257, 640, 612, 373]
     assert expected["provenance_mode"] == 0x3000
@@ -265,6 +271,41 @@ def test_expected_provenance_encodes_fixture_token_index() -> None:
     assert expected_provenance({"token_index": 5, "provenance_mode": 0x3000}) == 0x4D32_3005
 
 
+def test_sample_registers_records_stable_preflight_values() -> None:
+    values, samples, stable = sample_registers(
+        lambda offset: {0x000: 0x54365043, 0x508: 0x00000001}[offset],
+        {"magic": 0x000, "m2_present": 0x508},
+        samples=3,
+        interval=0.0,
+    )
+    assert values == {"magic": 0x54365043, "m2_present": 0x00000001}
+    assert samples == {
+        "magic": [0x54365043, 0x54365043, 0x54365043],
+        "m2_present": [0x00000001, 0x00000001, 0x00000001],
+    }
+    assert stable == {"magic": True, "m2_present": True}
+
+
+def test_sample_registers_detects_transient_all_ones_preflight_read() -> None:
+    reads = {
+        0x000: [0x54365043, 0x54365043, 0x54365043],
+        0x508: [0x00000001, 0xFFFFFFFF, 0x00000001],
+    }
+
+    def read32(offset: int) -> int:
+        return reads[offset].pop(0)
+
+    values, samples, stable = sample_registers(
+        read32,
+        {"magic": 0x000, "m2_present": 0x508},
+        samples=3,
+        interval=0.0,
+    )
+    assert values["m2_present"] == 0x00000001
+    assert samples["m2_present"] == [0x00000001, 0xFFFFFFFF, 0x00000001]
+    assert stable == {"magic": True, "m2_present": False}
+
+
 def main() -> None:
     test_decode_status_magic_bit16()
     test_decode_status_rejects_old_magic_bit14_interpretation()
@@ -280,6 +321,8 @@ def main() -> None:
     test_embedding_token_mode_contract_can_close_m2_after_board_pass()
     test_fixture_mode_contract_remains_candidate_only()
     test_expected_provenance_encodes_fixture_token_index()
+    test_sample_registers_records_stable_preflight_values()
+    test_sample_registers_detects_transient_all_ones_preflight_read()
 
 
 if __name__ == "__main__":
