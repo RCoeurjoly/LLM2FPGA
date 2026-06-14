@@ -33,14 +33,16 @@ def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
     _ = mm[0:4]
 
 
-def rol32(value: int, bits: int) -> int:
-    value &= 0xFFFFFFFF
-    bits &= 31
-    return ((value << bits) | (value >> (32 - bits))) & 0xFFFFFFFF
-
-
 def encode_bar_vector_words(words: list[int]) -> list[int]:
-    return [rol32(word, 1) for word in words]
+    if len(words) != 16:
+        raise SystemExit(f"vector must contain 16 words, got {len(words)}")
+    compensated: list[int] = []
+    for index in range(0, len(words), 2):
+        pair = ((words[index + 1] & 0xFFFFFFFF) << 32) | (words[index] & 0xFFFFFFFF)
+        rotated = ((pair << 1) | (pair >> 63)) & 0xFFFFFFFFFFFFFFFF
+        compensated.append(rotated & 0xFFFFFFFF)
+        compensated.append((rotated >> 32) & 0xFFFFFFFF)
+    return compensated
 
 
 def write_words(mm: mmap.mmap, base: int, words: list[int]) -> None:

@@ -152,16 +152,16 @@ def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
     _ = mm[0:4]
 
 
-def rol32(value: int, bits: int) -> int:
-    value &= 0xFFFFFFFF
-    bits &= 31
-    return ((value << bits) | (value >> (32 - bits))) & 0xFFFFFFFF
-
-
-def legacy_rotate_bar_vector_words(words: list[int]) -> list[int]:
+def pcie7x_rotate64_compensate_bar_vector_words(words: list[int]) -> list[int]:
     if len(words) != 16:
         raise SystemExit(f"vector must contain 16 words, got {len(words)}")
-    return [rol32(word, 1) for word in words]
+    compensated: list[int] = []
+    for index in range(0, len(words), 2):
+        pair = ((words[index + 1] & 0xFFFFFFFF) << 32) | (words[index] & 0xFFFFFFFF)
+        rotated = ((pair << 1) | (pair >> 63)) & 0xFFFFFFFFFFFFFFFF
+        compensated.append(rotated & 0xFFFFFFFF)
+        compensated.append((rotated >> 32) & 0xFFFFFFFF)
+    return compensated
 
 
 def write_vector(mm: mmap.mmap, base: int, data: bytes, *, mode: str) -> tuple[list[int], list[int]]:
@@ -174,7 +174,7 @@ def write_vector(mm: mmap.mmap, base: int, data: bytes, *, mode: str) -> tuple[l
     if mode in ("direct", "raw-internal"):
         write_words = words
     elif mode in ("legacy-rotated", "readback-compensated"):
-        write_words = legacy_rotate_bar_vector_words(words)
+        write_words = pcie7x_rotate64_compensate_bar_vector_words(words)
     else:
         raise SystemExit(f"unknown vector write mode: {mode}")
     for index, word in enumerate(write_words):
@@ -677,7 +677,8 @@ def parse_args() -> argparse.Namespace:
             "M2 vector BAR write strategy. direct is the normal acceptance "
             "contract and requires write/readback identity. raw-internal is a "
             "deprecated alias for direct. legacy-rotated/readback-compensated "
-            "apply the old rotate-left workaround and are diagnostic only."
+            "apply the measured pcie_7x 64-bit lane-rotate compensation and "
+            "are diagnostic only."
         ),
     )
     return parser.parse_args()
