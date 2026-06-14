@@ -33588,8 +33588,30 @@ BAR contract:
 - Residual writes `0x5a002000..0x5a00200f` read back as
   `0xad001000, 0x2d001000, 0xad001001, 0x2d001001, ...`.
 
-That pattern is adjacent 32-bit pair swap plus a right rotate by one bit on
-each word. The leaf ingress sim still passes direct readback, so the mismatch
-is between the host-visible PCIe/BAR lane contract and the leaf ingress model.
-Do not rerun the full M2 gate until this vector BAR transport contract has a
-small sim or wrapper-level reproducer and a direct identity fix.
+Comparing the fixture and synthetic probe patterns showed the exact measured
+transform is a 64-bit right rotate by one bit across each adjacent pair of
+32-bit vector words. The leaf ingress sim still passes direct readback, so the
+mismatch is between the host-visible PCIe/BAR lane contract and the leaf
+ingress model. Do not accept M2 in direct mode until this vector BAR transport
+contract has a small sim or wrapper-level reproducer and a direct identity fix.
+
+Updated the diagnostic `readback-compensated`/
+`--lane-compensate` path to write the inverse 64-bit left rotate. This does not
+make direct mode acceptable, but it gives a controlled way to continue
+localizing compute on the current bitstream.
+
+Cheap checks:
+
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/task6_pcie_m2_vector_rw_probe.py`
+- Host-side round-trip check: inverse 64-bit rotate followed by measured
+  64-bit rotate returns the original 16-word vector.
+
+Board check, again gated by `pcie_ready` and `T6PC`:
+
+- Probe:
+  `python3 scripts/task6/task6_pcie_m2_vector_rw_probe.py 0000:42:00.0 --lane-compensate --json-out artifacts/task6/runs/2026-06-14T11-46-30+0200-task6-m2-vector-rw-probe-compensated.json`
+- Result: PASS.
+- Both input and residual readback matched all 16 expected words.
+
+Next localized board question: with diagnostic compensation enabled, does the
+full M2 gate reach start/done, and if so which compute checksum fails first?
