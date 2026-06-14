@@ -27,6 +27,10 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
   logic [31:0] pcie_debug2_o;
   logic [31:0] pcie_provenance_o;
   logic [511:0] expected_final_vector;
+  logic [31:0] expected_block_input_checksum;
+  logic [31:0] expected_context_checksum;
+  logic [31:0] expected_debug1;
+  logic [31:0] expected_debug2;
   integer i;
 
   task6_m2_embedding_live_context_full_block_pcie_accel_top #(
@@ -127,6 +131,24 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
           if (pcie_output_vector_o !== expected_final_vector) begin
             $fatal(1, "FAIL: final vector mismatch");
           end
+          if (pcie_debug1_o !== expected_debug1) begin
+            $fatal(
+              1,
+              "FAIL: done debug1 expected %08x got %08x pass=%0d",
+              expected_debug1,
+              pcie_debug1_o,
+              pass_index
+            );
+          end
+          if (pcie_debug2_o !== expected_debug2) begin
+            $fatal(
+              1,
+              "FAIL: done debug2 expected %08x got %08x pass=%0d",
+              expected_debug2,
+              pcie_debug2_o,
+              pass_index
+            );
+          end
           return;
         end
       end
@@ -142,6 +164,10 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     pcie_start_pulse_i = 1'b0;
     pcie_clear_pulse_i = 1'b0;
     expected_final_vector = 512'd0;
+    expected_block_input_checksum = 32'd0;
+    expected_context_checksum = 32'd0;
+    expected_debug1 = 32'd0;
+    expected_debug2 = 32'd0;
 
     for (i = 0; i < MLP_C_PROJ_OUT_DIM; i = i + 1) begin
       expected_final_vector[i * 8 +: 8] = mlp_final_expected_q[i];
@@ -149,6 +175,21 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     for (i = 0; i < EMBED_BLOCK_SEQ; i = i + 1) begin
       pcie_token_ids_i[i * 16 +: 16] = embed_block_expected_token_ids[i];
     end
+    for (i = 0; i < EMBED_BLOCK_DIM; i = i + 1) begin
+      expected_block_input_checksum =
+        expected_block_input_checksum + ({24'd0, embed_block_expected_last_input_q[i][7:0]} * (i + 1));
+    end
+    for (i = 0; i < CONTEXT_DIM; i = i + 1) begin
+      expected_context_checksum =
+        expected_context_checksum + ({24'd0, context_expected_q[i][7:0]} * (i + 1));
+    end
+    expected_debug1 = {expected_block_input_checksum[15:0], expected_context_checksum[15:0]};
+    expected_debug2 = {
+      OUT_PROJ_EXPECTED_CHECKSUM[7:0],
+      ATTN_RESIDUAL_EXPECTED_CHECKSUM[7:0],
+      LN2_EXPECTED_CHECKSUM[7:0],
+      MLP_C_PROJ_EXPECTED_CHECKSUM[7:0]
+    };
 
     repeat (4) @(negedge SYS_CLK);
     SYS_RSTN = 1'b1;
@@ -159,17 +200,6 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
 
     pulse_start();
     wait_done(1);
-
-    pcie_clear_pulse_i = 1'b1;
-    @(posedge SYS_CLK);
-    pcie_clear_pulse_i = 1'b0;
-    @(posedge SYS_CLK);
-    if (status_state(pcie_status_o) !== M2_IDLE || !pcie_status_o[0]) begin
-      $fatal(1, "FAIL: post-clear wrapper status expected idle/ready got %08x", pcie_status_o);
-    end
-
-    pulse_start();
-    wait_done(2);
 
     $display(
       "PASS: task6 M2 embedding full-block PCIe wrapper cycles %0d final_checksum %08x final_sample0 %08x final_sample1 %08x provenance %08x debug %08x debug1 %08x debug2 %08x",
@@ -182,6 +212,15 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       pcie_debug1_o,
       pcie_debug2_o
     );
+
+    pcie_clear_pulse_i = 1'b1;
+    @(posedge SYS_CLK);
+    pcie_clear_pulse_i = 1'b0;
+    @(posedge SYS_CLK);
+    if (status_state(pcie_status_o) !== M2_IDLE || !pcie_status_o[0]) begin
+      $fatal(1, "FAIL: post-clear wrapper status expected idle/ready got %08x", pcie_status_o);
+    end
+
     $finish;
   end
 endmodule
