@@ -33345,3 +33345,38 @@ checksum datapath itself: it starts at `m2_full_block_accel.core_i.embed_status_
 and ends on a CE path after several routed LUT/control nets. The next contract
 fix should reduce or register the embedding-done/control handoff before trying
 another pnr100 image. Do not rerun pnr100 unchanged.
+
+### 2026-06-14 - M2 LN-input checkpoint registered handoff routes cleanly
+
+Committed a narrow timing fix that registers the embedding DONE handoff before
+the live context/full-block core starts the block stage. The cheap PCIe-wrapper
+sim still passed after the extra cycle:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+- final checksum/sample0/sample1 =
+  `0x0003b2c9`/`0xd114be59`/`0xd737e470`
+- `ln_input_checksum = 0x88fa5e3a`
+- `debug1 = 0x50f932e3`, `debug2 = 0x49fb3a5b`
+- cycle count moved from 141,619 to 141,620 as expected.
+
+Then built exactly one targeted pnr100 image:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-ln-input-checkpoint-registered-pnr100-bitstream -L`
+- Bitstream output:
+  `/nix/store/qp0k8ip2i8yq614iw0s6agrvxw53i467-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Router2 converged legally:
+  iteration 1 had 70,482 overused wires, iteration 2 had 3,881, iteration 3 had
+  75, and iteration 4 had zero overuse.
+- Final timing passed:
+  `pcie_user_clk` 75.22 MHz PASS at 62.50 MHz.
+- Other clocks passed:
+  JTAG `drck` 247.59 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 265.46 MHz PASS at
+  100 MHz.
+- Utilization before routing:
+  62,286 LUTX, 28,552 FFX, 95 DSP48E1, 16 RAMB36E1, one PCIE_2_1.
+
+This is now a board-testable M2 checkpoint image. It still does not close M2:
+the next HIL run must use the safe lifecycle/Tapo/BAR-header protocol and check
+whether `REG_M2_DEBUG` reads the simulated LN-input checksum `0x88fa5e3a`
+before interpreting downstream context/LN or final-vector mismatches.
