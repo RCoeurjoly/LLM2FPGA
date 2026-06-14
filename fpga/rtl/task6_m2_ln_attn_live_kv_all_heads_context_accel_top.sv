@@ -443,7 +443,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           if (ENABLE_INTERNAL_CHECKS && ln_piped_output_w != ln_expected_q_by_token[token_index_q][ln_index_q]) begin
             state_q <= S_ERROR;
             debug_q <= {
-              4'd0,
+              4'hc,
               4'h1,
               ln_index_q,
               ln_expected_q_by_token[token_index_q][ln_index_q],
@@ -485,18 +485,18 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           if (ENABLE_INTERNAL_CHECKS &&
                 k_proj_output_w != k_proj_expected_q_by_token[head_index_q][token_index_q][dim_index_q]) begin
             state_q <= S_ERROR;
-            debug_q <= {8'h02, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, k_proj_output_w};
+            debug_q <= {8'hc2, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, k_proj_output_w};
           end else if (ENABLE_INTERNAL_CHECKS &&
                        v_proj_output_w != v_proj_expected_q_by_token[head_index_q][token_index_q][dim_index_q]) begin
             state_q <= S_ERROR;
-            debug_q <= {8'h03, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, v_proj_output_w};
+            debug_q <= {8'hc3, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, v_proj_output_w};
           end else if (
             ENABLE_INTERNAL_CHECKS &&
             token_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1) &&
             q_proj_output_w != q_proj_expected_q_final[head_index_q][dim_index_q]
           ) begin
             state_q <= S_ERROR;
-            debug_q <= {8'h04, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, q_proj_output_w};
+            debug_q <= {8'hc4, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, q_proj_output_w};
           end else begin
             k_cache_q[token_index_q][dim_index_q] <= k_proj_output_w;
             v_cache_q[token_index_q][dim_index_q] <= v_proj_output_w;
@@ -539,7 +539,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           cycle_count_q <= cycle_count_q + 32'd1;
           if (ENABLE_INTERNAL_CHECKS && score_acc_w != attn_expected_score_acc[head_index_q][src_index_q]) begin
             state_q <= S_ERROR;
-            debug_q <= {8'h05, head_index_u32_w[3:0], src_index_u32_w[3:0], score_acc_w[15:0]};
+            debug_q <= {8'hc5, head_index_u32_w[3:0], src_index_u32_w[3:0], score_acc_w[15:0]};
           end else if (src_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
             score_cache_q[src_index_q] <= score_acc_w;
             if (score_acc_w > max_score_q) begin
@@ -562,7 +562,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           if (ENABLE_INTERNAL_CHECKS &&
               softmax_weight_w != {16'd0, attn_expected_weight_q15[head_index_q][src_index_q]}) begin
             state_q <= S_ERROR;
-            debug_q <= {8'h07, head_index_u32_w[3:0], src_index_u32_w[3:0], softmax_weight_w[15:0]};
+            debug_q <= {8'hc7, head_index_u32_w[3:0], src_index_u32_w[3:0], softmax_weight_w[15:0]};
           end else if (src_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
             weight_cache_q[src_index_q] <= softmax_weight_w;
             softmax_denom_q <= softmax_denom_q + softmax_weight_w;
@@ -611,7 +611,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           cycle_count_q <= cycle_count_q + 32'd1;
           if (ENABLE_INTERNAL_CHECKS && prob_current_w != attn_prob_q15[head_index_q][src_index_q]) begin
             state_q <= S_ERROR;
-            debug_q <= {8'h08, head_index_u32_w[3:0], src_index_u32_w[3:0], prob_current_w};
+            debug_q <= {8'hc8, head_index_u32_w[3:0], src_index_u32_w[3:0], prob_current_w};
           end else if (src_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
             prob_cache_q[src_index_q] <= prob_current_w;
             dim_index_q <= '0;
@@ -631,10 +631,10 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             value_q_w != attn_expected_value_q[head_index_q][dim_index_q]
           )) begin
             state_q <= S_ERROR;
-            debug_q <= {8'h06, head_index_u32_w[3:0], dim_index_u32_w[3:0], value_acc_w[15:0]};
+            debug_q <= {8'hc6, head_index_u32_w[3:0], dim_index_u32_w[3:0], value_acc_w[15:0]};
           end else if (ENABLE_INTERNAL_CHECKS && context_q_w != context_expected_q[context_index_w]) begin
             state_q <= S_ERROR;
-            debug_q <= {8'h09, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, context_q_w};
+            debug_q <= {8'hc9, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, context_q_w};
           end else begin
             output_checksum_o <=
               output_checksum_o +

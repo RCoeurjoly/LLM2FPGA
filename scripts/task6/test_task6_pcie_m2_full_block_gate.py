@@ -12,6 +12,7 @@ from task6_pcie_m2_full_block_gate import (
     CONTRACT,
     compute_path_for_expected,
     contract_for_expected,
+    decode_debug,
     decode_status,
     expected_provenance,
     is_token_live_mode,
@@ -59,6 +60,29 @@ def test_decode_status_rejects_old_magic_bit14_interpretation() -> None:
     decoded = decode_status(0x134C_8039)
     assert decoded["magic"] != 0x4D32
     assert not decoded["schema_consistent"]
+
+
+def test_decode_debug_context_ln_uses_context_namespace() -> None:
+    decoded = decode_debug(0xC142_ECBC, 0x000D_FD68, 0xED95_EB8B)
+    assert decoded["stage"] == "0xc1"
+    assert decoded["meaning"] == "live-context context substage mismatch"
+    assert decoded["context_meaning"] == "LN output mismatch"
+    assert decoded["ln_index"] == 16
+    assert decoded["expected_q"] == "0xbb"
+    assert decoded["observed_q"] == "0xbc"
+    assert decoded["ln_intermediate_signed"] == {
+        "mean_q12": 13,
+        "centered_q12": -664,
+        "norm_q12": -4715,
+        "affine_q12": -5237,
+    }
+
+
+def test_decode_debug_raw_stage_one_remains_embedding_namespace() -> None:
+    decoded = decode_debug(0x0142_ECBC, 0x000D_FD68, 0xED95_EB8B)
+    assert decoded["stage"] == "0x01"
+    assert decoded["meaning"] == "embedding token-id mismatch"
+    assert "context_meaning" not in decoded
 
 
 def test_parse_expected_json_requires_first_64_output() -> None:
@@ -220,6 +244,8 @@ def test_expected_provenance_encodes_fixture_token_index() -> None:
 def main() -> None:
     test_decode_status_magic_bit16()
     test_decode_status_rejects_old_magic_bit14_interpretation()
+    test_decode_debug_context_ln_uses_context_namespace()
+    test_decode_debug_raw_stage_one_remains_embedding_namespace()
     test_parse_expected_json_requires_first_64_output()
     test_parse_expected_tb_data_sv_first_token_final_vector()
     test_parse_embedding_tb_data_sv_token_input_vector()
