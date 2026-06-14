@@ -32421,3 +32421,52 @@ final-vector mismatch. M2 remains open. The next fix should target the context
 LN datapath and its synthesized representation, especially dynamic packed-vector
 indexing and FF/mux-mapped tables that sim accepts but pnr/HIL may not preserve
 robustly.
+
+### 2026-06-14 - M2 context debug namespace rerun
+
+Committed the context-debug namespace fix as `f8068dc` so live-context
+diagnostics use the host-decoded `0xc*` namespace instead of colliding with
+embedding-stage debug words. The matching pnr100 bitstream built and routed:
+
+- Bitstream:
+  `/nix/store/cr4s27qwpl0f2ki3wl32y9xg5z3b4kzx-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Final routed timing:
+  `pcie_user_clk` 63.49 MHz PASS at 62.50 MHz, `drck` 242.37 MHz PASS at
+  100 MHz, `PIPE_OOBCLK_IN` 207.99 MHz PASS at 100 MHz.
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-14T03-58-27+0200-task6-m2-context-debug-namespace-pnr100-flash`
+
+PCIe/BAR recovery followed the validated safe protocol:
+
+- Pre-flash lifecycle outside the sandbox reported `pcie_ready`.
+- Post-flash lifecycle reported `corrupt_command`/config-space `0xffff`, so no
+  BAR access was attempted.
+- Tapo P115 chassis cold-cycle recovery completed with `final_classification:
+  pcie_ready` and `host_recovery_freeze_risk: false`.
+- BAR header smoke returned `T6PC`.
+
+The M2 token-live full-block BAR gate then failed deterministically with stable
+PCIe/BAR and matching provenance:
+
+- Artifact:
+  `artifacts/task6/runs/2026-06-14T-task6-m2-context-debug-namespace-readback-compensated-live-full-block.json`
+- Fixture hashes matched the routed image inputs:
+  full-block `tb_data.sv` SHA256
+  `258b9433e569ce465aac1bb28cdbae0b121101b4f635b6c64b894bfe84497626`,
+  embedding fixture SHA256
+  `8a04733af0c75288bc4841cea2cfb894eaeeb5a747c910e2a3698beb5c01ebac`.
+- Passing board/BAR checks: Task 6 magic/version, M2 magic/version/presence,
+  provenance `0x4d323005`, start-count increment, input readback, residual
+  readback, output count, and status schema.
+- Failing compute checks: state `ERROR`, `output_valid=false`, checksum/sample
+  and first 64 output bytes all zero.
+- Decoded debug: stage `0xc1`, live-context LN output mismatch at
+  `ln_index=16`, expected `0xbb`, observed `0xbc`; captured intermediates were
+  mean `13`, centered `-664`, norm `-4715`, affine `-5237`.
+
+This rerun makes the failure diagnosis more trustworthy than the previous HIL
+artifact because the RTL debug namespace now matches the host decoder and the
+fixture paths are explicitly recorded. M2 remains open. The next fix should
+focus on the context LN quantization/rounding boundary around index 16 and add a
+small simulation/formal check that exercises the exact debug word encoding
+before another full pnr100/HIL cycle.
