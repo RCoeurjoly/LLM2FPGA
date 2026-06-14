@@ -98,6 +98,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
   logic [31:0] m2_full_block_debug;
   logic [31:0] m2_full_block_debug1;
   logic [31:0] m2_full_block_debug2;
+  logic [31:0] m2_full_block_debug3;
   logic [31:0] m2_full_block_provenance;
   logic [511:0] m2_full_block_output_vector;
   int mlp_accel_start_pulses;
@@ -206,6 +207,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
     .m2_full_block_debug_i(m2_full_block_debug),
     .m2_full_block_debug1_i(m2_full_block_debug1),
     .m2_full_block_debug2_i(m2_full_block_debug2),
+    .m2_full_block_debug3_i(m2_full_block_debug3),
     .m2_full_block_provenance_i(m2_full_block_provenance),
     .m2_full_block_output_vector_i(m2_full_block_output_vector)
   );
@@ -439,6 +441,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
     m2_full_block_debug = 32'd0;
     m2_full_block_debug1 = 32'd0;
     m2_full_block_debug2 = 32'd0;
+    m2_full_block_debug3 = 32'd0;
     m2_full_block_provenance = 32'd0;
     m2_full_block_output_vector = 512'd0;
     errors = 0;
@@ -644,6 +647,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
     m2_full_block_debug = 32'h0104_dcfd;
     m2_full_block_debug1 = 32'hff45_000c;
     m2_full_block_debug2 = 32'hff39_f985;
+    m2_full_block_debug3 = 32'h50f9_50f9;
     m2_full_block_provenance = 32'h4d32_2005;
     for (int word = 0; word < 16; word++)
       m2_full_block_output_vector[word * 32 +: 32] = 32'he000_6000 + word;
@@ -669,6 +673,8 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(value == 32'hff39_f985, "M2 debug2 detail must be visible");
     axil_read(32'h5d4, value);
     check(value == 32'h4d32_2005, "M2 provenance must be visible");
+    axil_read(32'h5d8, value);
+    check(value == 32'h50f9_50f9, "M2 debug3 handoff checksum must be visible");
     for (int word = 0; word < 16; word++) begin
       axil_read(32'h600 + word * 4, value);
       check(value == 32'he000_6000 + word, "M2 output-vector word must be visible");

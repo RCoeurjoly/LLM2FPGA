@@ -16,6 +16,7 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
   logic [31:0] status_o;
   logic [31:0] cycle_count_o;
   logic [31:0] block_input_checksum_o;
+  logic [31:0] ln_input_checksum_o;
   logic [31:0] context_checksum_o;
   logic [31:0] attn_out_checksum_o;
   logic [31:0] attn_residual_checksum_o;
@@ -29,9 +30,11 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
   logic [31:0] debug_o;
   logic [31:0] debug1_o;
   logic [31:0] debug2_o;
+  logic [31:0] debug3_o;
   logic [511:0] expected_final_vector;
   logic [31:0] expected_block_input_checksum;
   logic [31:0] expected_context_checksum;
+  logic [31:0] expected_debug3;
   integer cycles;
 
   task6_m2_embedding_live_context_full_block_accel_top dut (
@@ -43,6 +46,7 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
     .status_o(status_o),
     .cycle_count_o(cycle_count_o),
     .block_input_checksum_o(block_input_checksum_o),
+    .ln_input_checksum_o(ln_input_checksum_o),
     .context_checksum_o(context_checksum_o),
     .attn_out_checksum_o(attn_out_checksum_o),
     .attn_residual_checksum_o(attn_residual_checksum_o),
@@ -55,7 +59,8 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
     .final_vector_o(final_vector_o),
     .debug_o(debug_o),
     .debug1_o(debug1_o),
-    .debug2_o(debug2_o)
+    .debug2_o(debug2_o),
+    .debug3_o(debug3_o)
   );
 
   always #5 SYS_CLK = ~SYS_CLK;
@@ -69,6 +74,7 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
     expected_final_vector = 512'd0;
     expected_block_input_checksum = 32'd0;
     expected_context_checksum = 32'd0;
+    expected_debug3 = 32'd0;
     cycles = 0;
 
     for (int token = 0; token < EMBED_BLOCK_SEQ; token = token + 1) begin
@@ -82,6 +88,7 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
       expected_context_checksum =
         expected_context_checksum + ({24'd0, context_expected_q[dim][7:0]} * (dim + 1));
     end
+    expected_debug3 = {expected_block_input_checksum[15:0], expected_block_input_checksum[15:0]};
     for (int dim = 0; dim < MLP_C_PROJ_OUT_DIM; dim = dim + 1) begin
       expected_final_vector[dim * 8 +: 8] = mlp_final_expected_q[dim];
     end
@@ -140,8 +147,11 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
         if (final_vector_o !== expected_final_vector) begin
           $fatal(1, "FAIL: final vector mismatch");
         end
+        if (debug3_o !== expected_debug3) begin
+          $fatal(1, "FAIL: debug3 expected %08x got %08x", expected_debug3, debug3_o);
+        end
         $display(
-          "PASS: task6 M2 embedding-live-context full-block cycles %0d block_input_checksum %08x context_checksum %08x attn_checksum %08x attn_residual_checksum %08x ln2_checksum %08x post_gelu_checksum %08x c_proj_checksum %08x final_checksum %08x final_sample0 %08x final_sample1 %08x",
+          "PASS: task6 M2 embedding-live-context full-block cycles %0d block_input_checksum %08x context_checksum %08x attn_checksum %08x attn_residual_checksum %08x ln2_checksum %08x post_gelu_checksum %08x c_proj_checksum %08x final_checksum %08x final_sample0 %08x final_sample1 %08x debug3 %08x",
           cycle_count_o,
           block_input_checksum_o,
           context_checksum_o,
@@ -152,7 +162,8 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
           c_proj_checksum_o,
           final_checksum_o,
           final_sample0_o,
-          final_sample1_o
+          final_sample1_o,
+          debug3_o
         );
         $finish;
       end
@@ -160,12 +171,13 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
 
     $fatal(
       1,
-      "Timeout waiting for task6 M2 embedding-live-context full-block done status=%08x cycle_count=%0d debug=%08x debug1=%08x debug2=%08x",
+      "Timeout waiting for task6 M2 embedding-live-context full-block done status=%08x cycle_count=%0d debug=%08x debug1=%08x debug2=%08x debug3=%08x",
       status_o,
       cycle_count_o,
       debug_o,
       debug1_o,
-      debug2_o
+      debug2_o,
+      debug3_o
     );
   end
 endmodule

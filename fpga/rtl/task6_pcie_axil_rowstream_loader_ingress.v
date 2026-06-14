@@ -108,6 +108,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [31:0]  m2_full_block_debug_i,
     input wire [31:0]  m2_full_block_debug1_i,
     input wire [31:0]  m2_full_block_debug2_i,
+    input wire [31:0]  m2_full_block_debug3_i,
     input wire [31:0]  m2_full_block_provenance_i,
     input wire [511:0] m2_full_block_output_vector_i
 );
@@ -305,6 +306,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                 read_window_data[96 +: 32] = m2_full_block_debug1_i;
                 read_window_data[128 +: 32] = m2_full_block_debug2_i;
                 read_window_data[160 +: 32] = m2_full_block_provenance_i;
+                read_window_data[192 +: 32] = m2_full_block_debug3_i;
             end
             6'h18: begin
                 read_window_data = m2_full_block_output_vector_i;

@@ -24,7 +24,8 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   output logic [511:0] final_vector_o,
   output logic [31:0] debug_o,
   output logic [31:0] debug1_o,
-  output logic [31:0] debug2_o
+  output logic [31:0] debug2_o,
+  output logic [31:0] debug3_o
 );
   typedef enum logic [3:0] {
     ST_IDLE = 4'd0,
@@ -279,10 +280,12 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
         block_ln2_checksum_w[7:0],
         block_c_proj_checksum_w[7:0]
       };
+      debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};
     end else if (state_q == ST_BLOCK ||
         (state_q == ST_ERROR && debug_o[31:24] == 8'h4c)) begin
       debug1_o = block_debug1_w;
       debug2_o = block_debug2_w;
+      debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};
     end else begin
       debug1_o = {
         debug_ln_input_q12_by_token_w[15:0],
@@ -292,6 +295,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
         debug_ln_input_q12_by_token_w[47:32],
         debug_ln_input_q12_by_token_w[63:48]
       };
+      debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};
     end
   end
 endmodule

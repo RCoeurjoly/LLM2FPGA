@@ -20,6 +20,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
   output logic [31:0] pcie_debug_o,
   output logic [31:0] pcie_debug1_o,
   output logic [31:0] pcie_debug2_o,
+  output logic [31:0] pcie_debug3_o,
   output logic [31:0] pcie_provenance_o
 );
   typedef enum logic [2:0] {
@@ -45,6 +46,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
   logic [31:0] debug_q;
   logic [31:0] debug1_q;
   logic [31:0] debug2_q;
+  logic [31:0] debug3_q;
   logic pcie_clear_q;
   logic core_clear_w;
   logic [31:0] core_status_w;
@@ -64,6 +66,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
   logic [31:0] core_debug_w;
   logic [31:0] core_debug1_w;
   logic [31:0] core_debug2_w;
+  logic [31:0] core_debug3_w;
   wire unused_reserved = ^pcie_reserved_i;
 
   // The BAR clear path is host-visible wrapper control. Forwarding it into the
@@ -94,7 +97,8 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
     .final_vector_o(core_final_vector_w),
     .debug_o(core_debug_w),
     .debug1_o(core_debug1_w),
-    .debug2_o(core_debug2_w)
+    .debug2_o(core_debug2_w),
+    .debug3_o(core_debug3_w)
   );
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
@@ -110,6 +114,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
       debug_q <= 32'd0;
       debug1_q <= 32'd0;
       debug2_q <= 32'd0;
+      debug3_q <= 32'd0;
       pcie_clear_q <= 1'b0;
     end else begin
       pcie_clear_q <= pcie_clear_pulse_i;
@@ -125,6 +130,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
         debug_q <= 32'd0;
         debug1_q <= 32'd0;
         debug2_q <= 32'd0;
+        debug3_q <= 32'd0;
       end else begin
         unique case (state_q)
           M2_IDLE: begin
@@ -146,6 +152,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
               debug_q <= core_debug_w;
               debug1_q <= core_debug1_w;
               debug2_q <= core_debug2_w;
+              debug3_q <= core_debug3_w;
             end else if (core_status_w[6:4] == CORE_DONE && core_status_w[3]) begin
               state_q <= M2_FINISH;
             end
@@ -172,6 +179,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
               core_ln2_checksum_w[7:0],
               core_c_proj_checksum_w[7:0]
             };
+            debug3_q <= core_debug3_w;
             state_q <= M2_DONE;
           end
 
@@ -211,6 +219,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
     pcie_debug_o = debug_q;
     pcie_debug1_o = debug1_q;
     pcie_debug2_o = debug2_q;
+    pcie_debug3_o = debug3_q;
     pcie_provenance_o = 32'h4d32_3000 | {24'd0, M2_FULL_BLOCK_TOKEN_INDEX[7:0]};
   end
 endmodule

@@ -80,6 +80,7 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
   wire [31:0] rowstream_m2_full_block_debug;
   wire [31:0] rowstream_m2_full_block_debug1;
   wire [31:0] rowstream_m2_full_block_debug2;
+  wire [31:0] rowstream_m2_full_block_debug3;
   wire [31:0] rowstream_m2_full_block_provenance;
 
   reg loader_done_q;
@@ -239,6 +240,7 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
     .rowstream_m2_full_block_debug_i(rowstream_m2_full_block_debug),
     .rowstream_m2_full_block_debug1_i(rowstream_m2_full_block_debug1),
     .rowstream_m2_full_block_debug2_i(rowstream_m2_full_block_debug2),
+    .rowstream_m2_full_block_debug3_i(rowstream_m2_full_block_debug3),
     .rowstream_m2_full_block_provenance_i(rowstream_m2_full_block_provenance),
     .rowstream_m2_full_block_output_vector_i(rowstream_m2_full_block_output_vector)
   );
@@ -289,6 +291,7 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
     .pcie_debug_o(rowstream_m2_full_block_debug),
     .pcie_debug1_o(rowstream_m2_full_block_debug1),
     .pcie_debug2_o(rowstream_m2_full_block_debug2),
+    .pcie_debug3_o(rowstream_m2_full_block_debug3),
     .pcie_provenance_o(rowstream_m2_full_block_provenance)
   );
 

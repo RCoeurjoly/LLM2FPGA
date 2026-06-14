@@ -25,6 +25,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
   logic [31:0] pcie_debug_o;
   logic [31:0] pcie_debug1_o;
   logic [31:0] pcie_debug2_o;
+  logic [31:0] pcie_debug3_o;
   logic [31:0] pcie_provenance_o;
   logic [511:0] expected_final_vector;
   logic [31:0] expected_block_input_checksum;
@@ -32,6 +33,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
   logic [31:0] expected_context_checksum;
   logic [31:0] expected_debug1;
   logic [31:0] expected_debug2;
+  logic [31:0] expected_debug3;
   integer i;
 
   task6_m2_embedding_live_context_full_block_pcie_accel_top #(
@@ -53,6 +55,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     .pcie_debug_o(pcie_debug_o),
     .pcie_debug1_o(pcie_debug1_o),
     .pcie_debug2_o(pcie_debug2_o),
+    .pcie_debug3_o(pcie_debug3_o),
     .pcie_provenance_o(pcie_provenance_o)
   );
 
@@ -159,6 +162,15 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
               pass_index
             );
           end
+          if (pcie_debug3_o !== expected_debug3) begin
+            $fatal(
+              1,
+              "FAIL: done debug3 expected %08x got %08x pass=%0d",
+              expected_debug3,
+              pcie_debug3_o,
+              pass_index
+            );
+          end
           return;
         end
       end
@@ -179,6 +191,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     expected_context_checksum = 32'd0;
     expected_debug1 = 32'd0;
     expected_debug2 = 32'd0;
+    expected_debug3 = 32'd0;
 
     for (i = 0; i < MLP_C_PROJ_OUT_DIM; i = i + 1) begin
       expected_final_vector[i * 8 +: 8] = mlp_final_expected_q[i];
@@ -209,6 +222,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       LN2_EXPECTED_CHECKSUM[7:0],
       MLP_C_PROJ_EXPECTED_CHECKSUM[7:0]
     };
+    expected_debug3 = {expected_block_input_checksum[15:0], expected_block_input_checksum[15:0]};
 
     repeat (4) @(negedge SYS_CLK);
     SYS_RSTN = 1'b1;
@@ -221,7 +235,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     wait_done(1);
 
     $display(
-      "PASS: task6 M2 embedding full-block PCIe wrapper cycles %0d final_checksum %08x final_sample0 %08x final_sample1 %08x provenance %08x ln_input_checksum %08x debug1 %08x debug2 %08x",
+      "PASS: task6 M2 embedding full-block PCIe wrapper cycles %0d final_checksum %08x final_sample0 %08x final_sample1 %08x provenance %08x ln_input_checksum %08x debug1 %08x debug2 %08x debug3 %08x",
       pcie_cycle_count_o,
       pcie_output_checksum_o,
       pcie_output_sample0_o,
@@ -229,7 +243,8 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       pcie_provenance_o,
       pcie_debug_o,
       pcie_debug1_o,
-      pcie_debug2_o
+      pcie_debug2_o,
+      pcie_debug3_o
     );
 
     pcie_clear_pulse_i = 1'b1;

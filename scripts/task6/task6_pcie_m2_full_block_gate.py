@@ -44,6 +44,7 @@ REG_M2_DEBUG = 0x5C8
 REG_M2_DEBUG1 = 0x5CC
 REG_M2_DEBUG2 = 0x5D0
 REG_M2_PROVENANCE = 0x5D4
+REG_M2_DEBUG3 = 0x5D8
 REG_M2_OUTPUT_VECTOR = 0x600
 
 M2_READY_BIT = 0
@@ -846,6 +847,7 @@ def main() -> int:
                     "debug": rd32(mm, REG_M2_DEBUG),
                     "debug1": rd32(mm, REG_M2_DEBUG1),
                     "debug2": rd32(mm, REG_M2_DEBUG2),
+                    "debug3": rd32(mm, REG_M2_DEBUG3),
                     "provenance": m2_provenance,
                     "expected_provenance": expected_m2_provenance,
                     "output_vector": read_vector(mm, REG_M2_OUTPUT_VECTOR),
@@ -879,6 +881,7 @@ def main() -> int:
                     "debug": rd32(mm, REG_M2_DEBUG),
                     "debug1": rd32(mm, REG_M2_DEBUG1),
                     "debug2": rd32(mm, REG_M2_DEBUG2),
+                    "debug3": rd32(mm, REG_M2_DEBUG3),
                     "provenance": m2_provenance,
                     "expected_provenance": expected_m2_provenance,
                     "output_vector": read_vector(mm, REG_M2_OUTPUT_VECTOR),
@@ -1013,6 +1016,7 @@ def main() -> int:
             ),
             "debug1": f"0x{observed['debug1']:08x}",
             "debug2": f"0x{observed['debug2']:08x}",
+            "debug3": f"0x{observed['debug3']:08x}",
             "decoded_debug": decode_debug(observed["debug"], observed["debug1"], observed["debug2"]),
             "done_stage_checksums": decode_done_stage_checksums(
                 observed["debug1"],

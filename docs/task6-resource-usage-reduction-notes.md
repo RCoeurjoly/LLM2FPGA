@@ -33657,3 +33657,25 @@ is compute divergence after a matching embedding/LN input checksum. The next
 small contract should expose one more stable checkpoint around the
 embedding-to-context/full-block handoff, using sim first and no new pnr100
 until the observable explains this board-vs-sim split.
+
+### 2026-06-14 - M2 handoff checksum BAR checkpoint
+
+Added one board-visible checkpoint for the compensated M2 compute divergence:
+`debug3 = {embed_block_input_checksum_low16, handoff_block_input_checksum_low16}`.
+The host gate reads it at BAR offset `0x5d8`.
+
+Cheap checks:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-accel-sv-sim -L`
+  passed with `debug3 50f950f9`.
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with `debug3 50f950f9`.
+- `nix build .#task6-pcie-rowstream-loader-ingress-sim-main -o /tmp/task6-pcie-rowstream-loader-ingress-sim-main -L`
+  and `/tmp/task6-pcie-rowstream-loader-ingress-sim-main/obj_dir/sim_main`
+  passed, covering the ingress BAR mux surface.
+
+This does not close M2 and does not change the direct-mode BAR transport
+acceptance problem. It gives the next targeted board run a localizing
+observable: if `debug3 == 0x50f950f9` but `debug1/debug2/final` still diverge,
+the board mismatch is after the embedding-to-block-input handoff; if the lower
+half differs, the handoff into full-block compute is already corrupt.
