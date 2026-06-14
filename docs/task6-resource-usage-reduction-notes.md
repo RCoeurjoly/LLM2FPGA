@@ -34090,3 +34090,27 @@ M2 remains open. The next small change should address timing/fanout before
 another board attempt. The most direct current candidate is the high-fanout
 `core_clear_w`/CE path reported by nextpnr, without changing the already-proven
 LN2 sim observable.
+
+Registered local clear split for the M2 embedding/full-block boundary:
+
+- Changed
+  `fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv` to
+  register three kept local copies of the external clear: one for the wrapper
+  state, one for the embedding child, and one for the live full-block child.
+- Scope: timing-only contract fix for the previous pnr100 critical path
+  rooted at `m2_full_block_accel.core_clear_w`. This intentionally adds a
+  one-cycle internal clear delay, while preserving the host-visible
+  clear-then-start sequencing used by the PCIe gate.
+- Cheap observable proof:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with the same M2 full-block outputs: final checksum `0003b2c9`,
+  final samples `d114be59`/`d737e470`, provenance `4d323005`,
+  `ln_input_checksum = 88fa5e3a`, `debug1 = 50f932e3`,
+  `debug2 = 49fb3a5b`, and `debug3 = 50f950f9`.
+- Integrated synthesis proof:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-clear-split-yosys-json -L`
+  passed. Final Yosys `CHECK` reported 0 problems, with 88,706 cells,
+  27,017 estimated LCs, 152 DSP48E1, and 16 RAMB36E1.
+- No pnr100 or board run was performed as part of this change. A single route
+  attempt is now justified because the fix targets the exact route-critical
+  clear fanout path from the previous failed candidate.

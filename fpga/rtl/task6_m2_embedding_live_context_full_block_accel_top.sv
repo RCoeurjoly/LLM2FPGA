@@ -49,6 +49,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic error_q;
   logic boundary_valid_q;
   logic embed_done_q;
+  (* keep = "true" *) logic clear_local_q;
+  (* keep = "true" *) logic clear_embed_q;
+  (* keep = "true" *) logic clear_block_q;
 
   logic [31:0] embed_status_w;
   logic [31:0] embed_status_q;
@@ -96,7 +99,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(embed_start_q),
-    .clear_i(clear_i),
+    .clear_i(clear_embed_q),
     .token_ids_i(token_ids_i),
     .status_o(embed_status_w),
     .cycle_count_o(embed_cycle_count_w),
@@ -113,7 +116,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(block_start_q),
-    .clear_i(clear_i),
+    .clear_i(clear_block_q),
     .use_external_ln_input_i(1'b1),
     .external_ln_input_q12_by_token_i(ln_input_q12_by_token_q),
     .use_external_block_input_i(1'b1),
@@ -145,105 +148,114 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       error_q <= 1'b0;
       boundary_valid_q <= 1'b0;
       embed_done_q <= 1'b0;
-      embed_status_q <= 32'd0;
-      embed_debug_q <= 32'd0;
-      debug_o <= 32'd0;
-    end else if (clear_i) begin
-      state_q <= ST_IDLE;
-      cycle_count_q <= 32'd0;
-      embed_start_q <= 1'b0;
-      block_start_q <= 1'b0;
-      output_valid_q <= 1'b0;
-      error_q <= 1'b0;
-      boundary_valid_q <= 1'b0;
-      embed_done_q <= 1'b0;
+      clear_local_q <= 1'b0;
+      clear_embed_q <= 1'b0;
+      clear_block_q <= 1'b0;
       embed_status_q <= 32'd0;
       embed_debug_q <= 32'd0;
       debug_o <= 32'd0;
     end else begin
-      embed_start_q <= 1'b0;
-      block_start_q <= 1'b0;
-      embed_status_q <= embed_status_w;
-      embed_debug_q <= embed_debug_w;
+      clear_local_q <= clear_i;
+      clear_embed_q <= clear_i;
+      clear_block_q <= clear_i;
 
-      unique case (state_q)
-        ST_IDLE: begin
-          if (start_i) begin
-            state_q <= ST_EMBED_START;
-            cycle_count_q <= 32'd0;
-            embed_start_q <= 1'b1;
-            output_valid_q <= 1'b0;
-            error_q <= 1'b0;
-            boundary_valid_q <= 1'b0;
-            embed_done_q <= 1'b0;
-            debug_o <= 32'd0;
+      if (clear_local_q) begin
+        state_q <= ST_IDLE;
+        cycle_count_q <= 32'd0;
+        embed_start_q <= 1'b0;
+        block_start_q <= 1'b0;
+        output_valid_q <= 1'b0;
+        error_q <= 1'b0;
+        boundary_valid_q <= 1'b0;
+        embed_done_q <= 1'b0;
+        embed_status_q <= 32'd0;
+        embed_debug_q <= 32'd0;
+        debug_o <= 32'd0;
+      end else begin
+        embed_start_q <= 1'b0;
+        block_start_q <= 1'b0;
+        embed_status_q <= embed_status_w;
+        embed_debug_q <= embed_debug_w;
+
+        unique case (state_q)
+          ST_IDLE: begin
+            if (start_i) begin
+              state_q <= ST_EMBED_START;
+              cycle_count_q <= 32'd0;
+              embed_start_q <= 1'b1;
+              output_valid_q <= 1'b0;
+              error_q <= 1'b0;
+              boundary_valid_q <= 1'b0;
+              embed_done_q <= 1'b0;
+              debug_o <= 32'd0;
+            end
           end
-        end
 
-        ST_EMBED_START: begin
-          cycle_count_q <= cycle_count_q + 32'd1;
-          state_q <= ST_EMBED;
-        end
+          ST_EMBED_START: begin
+            cycle_count_q <= cycle_count_q + 32'd1;
+            state_q <= ST_EMBED;
+          end
 
-        ST_EMBED: begin
-          cycle_count_q <= cycle_count_q + 32'd1;
-          if (embed_status_q[2]) begin
+          ST_EMBED: begin
+            cycle_count_q <= cycle_count_q + 32'd1;
+            if (embed_status_q[2]) begin
+              state_q <= ST_ERROR;
+              error_q <= 1'b1;
+              debug_o <= embed_debug_q;
+            end else if (embed_done_q) begin
+              embed_done_q <= 1'b0;
+              state_q <= ST_BLOCK_START;
+            end else begin
+              embed_done_q <= embed_status_q[6:4] == EMBED_ST_DONE && embed_status_q[3];
+            end
+          end
+
+          ST_BLOCK_START: begin
+            cycle_count_q <= cycle_count_q + 32'd1;
+            block_input_vector_q <= embed_block_input_vector_w;
+            ln_input_q12_by_token_q <= embed_ln_input_q12_by_token_w;
+            boundary_valid_q <= 1'b1;
+            state_q <= ST_BLOCK_ARM;
+          end
+
+          ST_BLOCK_ARM: begin
+            cycle_count_q <= cycle_count_q + 32'd1;
+            block_start_q <= 1'b1;
+            state_q <= ST_BLOCK;
+          end
+
+          ST_BLOCK: begin
+            cycle_count_q <= cycle_count_q + 32'd1;
+            debug_o <= block_status_w;
+            if (block_status_w[2]) begin
+              state_q <= ST_ERROR;
+              error_q <= 1'b1;
+              debug_o <= block_debug_w;
+            end else if (block_status_w[7:4] == BLOCK_ST_DONE && block_status_w[3]) begin
+              state_q <= ST_DONE;
+              output_valid_q <= 1'b1;
+            end
+          end
+
+          ST_DONE: begin
+            if (start_i) begin
+              state_q <= ST_EMBED_START;
+              cycle_count_q <= 32'd0;
+              embed_start_q <= 1'b1;
+              output_valid_q <= 1'b0;
+              error_q <= 1'b0;
+              boundary_valid_q <= 1'b0;
+              embed_done_q <= 1'b0;
+              debug_o <= 32'd0;
+            end
+          end
+
+          default: begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
-            debug_o <= embed_debug_q;
-          end else if (embed_done_q) begin
-            embed_done_q <= 1'b0;
-            state_q <= ST_BLOCK_START;
-          end else begin
-            embed_done_q <= embed_status_q[6:4] == EMBED_ST_DONE && embed_status_q[3];
           end
-        end
-
-        ST_BLOCK_START: begin
-          cycle_count_q <= cycle_count_q + 32'd1;
-          block_input_vector_q <= embed_block_input_vector_w;
-          ln_input_q12_by_token_q <= embed_ln_input_q12_by_token_w;
-          boundary_valid_q <= 1'b1;
-          state_q <= ST_BLOCK_ARM;
-        end
-
-        ST_BLOCK_ARM: begin
-          cycle_count_q <= cycle_count_q + 32'd1;
-          block_start_q <= 1'b1;
-          state_q <= ST_BLOCK;
-        end
-
-        ST_BLOCK: begin
-          cycle_count_q <= cycle_count_q + 32'd1;
-          debug_o <= block_status_w;
-          if (block_status_w[2]) begin
-            state_q <= ST_ERROR;
-            error_q <= 1'b1;
-            debug_o <= block_debug_w;
-          end else if (block_status_w[7:4] == BLOCK_ST_DONE && block_status_w[3]) begin
-            state_q <= ST_DONE;
-            output_valid_q <= 1'b1;
-          end
-        end
-
-        ST_DONE: begin
-          if (start_i) begin
-            state_q <= ST_EMBED_START;
-            cycle_count_q <= 32'd0;
-            embed_start_q <= 1'b1;
-            output_valid_q <= 1'b0;
-            error_q <= 1'b0;
-            boundary_valid_q <= 1'b0;
-            embed_done_q <= 1'b0;
-            debug_o <= 32'd0;
-          end
-        end
-
-        default: begin
-          state_q <= ST_ERROR;
-          error_q <= 1'b1;
-        end
-      endcase
+        endcase
+      end
     end
   end
 
