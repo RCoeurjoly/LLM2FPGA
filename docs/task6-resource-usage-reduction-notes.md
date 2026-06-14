@@ -32745,3 +32745,29 @@ The pnr100 build still failed during Yosys `MEMORY_LIBMAP` on
 So registering the memory output is insufficient for this toolchain. The next
 attempt needs to register the projection-weight address explicitly before the
 `$readmemh` ROM read, then consume the registered data in a later state.
+
+### 2026-06-14 - M2 registered QKV address still fails BRAM mapping
+
+Committed the explicit projection-weight address pipeline as `d5471b3`. The
+context accumulator now computes the flattened Q/K/V weight index, registers
+that address, reads the three projection ROMs in a later state, and consumes the
+registered weight data in the MAC state. Simulation still passed after the extra
+latency:
+
+- Context sim: cycle count 102,304, checksum `0x000432e3`, sample0
+  `0xd3c310cb`, sample1 `0x10c11ddc`.
+- PCIe wrapper sim: cycle count 141,617, final checksum `0x0003b2c9`, sample0
+  `0xd114be59`, sample1 `0xd737e470`, provenance `0x4d323005`, debug
+  `0x00000000`, debug1 `0x50f932e3`, debug2 `0x49fb3a5b`.
+
+The pnr100 build still failed during Yosys `MEMORY_LIBMAP`, but the diagnostic
+changed. Yosys now finds the address FF and rejects its reset shape:
+
+- `Checking read port address ... context_i.k_proj_weight_q[0] ... address FF
+  has async set and/or reset, not supported`
+- `ERROR: no valid mapping found for memory ... context_i.k_proj_weight_q`
+
+This confirms the latest blocker is not the M2 math or PCIe/BAR path. It is the
+BRAM inference contract for the flattened projection-weight ROMs. The address
+register used by the ROM read must be moved out of the async-reset FSM path, or
+the forced BRAM target must be abandoned for these tables.
