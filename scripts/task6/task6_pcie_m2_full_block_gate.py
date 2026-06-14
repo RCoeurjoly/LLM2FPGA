@@ -153,7 +153,7 @@ def rol32(value: int, bits: int) -> int:
     return ((value << bits) | (value >> (32 - bits))) & 0xFFFFFFFF
 
 
-def encode_bar_vector_words(words: list[int]) -> list[int]:
+def legacy_rotate_bar_vector_words(words: list[int]) -> list[int]:
     if len(words) != 16:
         raise SystemExit(f"vector must contain 16 words, got {len(words)}")
     return [rol32(word, 1) for word in words]
@@ -166,10 +166,10 @@ def write_vector(mm: mmap.mmap, base: int, data: bytes, *, mode: str) -> tuple[l
     for index in range(16):
         word = int.from_bytes(data[index * 4 : index * 4 + 4], "little")
         words.append(word)
-    if mode == "readback-compensated":
-        write_words = encode_bar_vector_words(words)
-    elif mode == "raw-internal":
+    if mode in ("direct", "raw-internal"):
         write_words = words
+    elif mode in ("legacy-rotated", "readback-compensated"):
+        write_words = legacy_rotate_bar_vector_words(words)
     else:
         raise SystemExit(f"unknown vector write mode: {mode}")
     for index, word in enumerate(write_words):
@@ -632,13 +632,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--poll-interval", type=float, default=0.001)
     parser.add_argument(
         "--vector-write-mode",
-        choices=("readback-compensated", "raw-internal"),
-        default="readback-compensated",
+        choices=("direct", "legacy-rotated", "raw-internal", "readback-compensated"),
+        default="direct",
         help=(
-            "M2 vector BAR write strategy. readback-compensated preserves the "
-            "BAR readback contract on the current bridge; raw-internal writes "
-            "little-packed words directly so the accelerator sees the "
-            "uncompensated register image."
+            "M2 vector BAR write strategy. direct is the normal acceptance "
+            "contract and requires write/readback identity. raw-internal is a "
+            "deprecated alias for direct. legacy-rotated/readback-compensated "
+            "apply the old rotate-left workaround and are diagnostic only."
         ),
     )
     return parser.parse_args()
@@ -789,7 +789,7 @@ def main() -> int:
                 poll_interval=args.poll_interval,
             )
             failure = None
-            strict_readback = args.vector_write_mode == "readback-compensated"
+            strict_readback = args.vector_write_mode in ("direct", "raw-internal")
             if strict_readback and (input_readback != block_input or residual_readback != residual):
                 failure = "M2 input/residual BAR readback did not match before start"
                 m2_status = rd32(mm, REG_M2_CONTROL_STATUS)
@@ -859,9 +859,9 @@ def main() -> int:
         "m2_version": m2_version == M2_VERSION,
         "m2_present": m2_present == 1,
         "m2_provenance": observed["provenance"] == observed["expected_provenance"],
-        "input_readback": args.vector_write_mode != "readback-compensated"
+        "input_readback": args.vector_write_mode not in ("direct", "raw-internal")
         or observed["input_readback"] == block_input,
-        "residual_readback": args.vector_write_mode != "readback-compensated"
+        "residual_readback": args.vector_write_mode not in ("direct", "raw-internal")
         or observed["residual_readback"] == residual,
         "status_schema": bool(decoded["schema_consistent"]),
         "start_count_incremented": observed["start_count_after"] == ((observed["start_count_before"] + 1) & 0xFFFFFFFF),
@@ -939,7 +939,7 @@ def main() -> int:
             "vector_write_mode": args.vector_write_mode,
             "block_input_words_written": [f"0x{word:08x}" for word in input_write_words],
             "residual_words_written": [f"0x{word:08x}" for word in residual_write_words],
-            "readback_is_contract_check": args.vector_write_mode == "readback-compensated",
+            "readback_is_contract_check": args.vector_write_mode in ("direct", "raw-internal"),
         },
         "expected": {
             "checksum": f"0x{int(expected['checksum']):08x}",
