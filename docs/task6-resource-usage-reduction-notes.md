@@ -33852,3 +33852,25 @@ M2 remains open. The next board run, if any, should reuse the already-flashed
 context-check image only after non-BAR lifecycle reports `pcie_ready` and BAR
 header smoke returns `T6PC`; the gate should then either stop at unstable
 preflight samples or proceed to the intended context internal-check failure.
+
+Guarded preflight repeat:
+
+- Non-BAR lifecycle classified `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T13-51-19+0200-task6-m2-context-checks-guarded-preflight-lifecycle`.
+- BAR header smoke again returned `T6PC` and top-level status `0x61`.
+- The guarded M2 gate still failed before clear/start:
+  `artifacts/task6/runs/2026-06-14T13-52-m2-context-checks-guarded-full-block-direct.json`.
+- The new `preflight_samples` showed the failure is stable, not transient:
+  `REG_STATUS` was `0xffffffff` for all 3 samples and `REG_M2_PRESENT` was
+  `0xffffffff` for all 3 samples, while adjacent words `magic`, `version`,
+  `m2_magic`, `m2_version`, and `m2_provenance` were stable and correct.
+
+This points at the host read method/PCIe BAR read contract rather than M2
+compute. The header smoke reads a 64-byte BAR snapshot and observes top-level
+status correctly; the M2 gate was using independent scalar mmap slices for each
+32-bit register. The gate now reads register words through 64-byte window
+snapshots, matching the header-smoke path, while preserving scalar writes.
+Cheap proof remains:
+
+- `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`

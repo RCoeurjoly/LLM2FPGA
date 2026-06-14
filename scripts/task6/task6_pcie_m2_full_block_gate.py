@@ -148,6 +148,13 @@ def rd32(mm: mmap.mmap, offset: int) -> int:
     return struct.unpack(">I", bytes(mm[offset : offset + 4]))[0]
 
 
+def rd32_window(mm: mmap.mmap, offset: int) -> int:
+    window_base = offset & ~0x3F
+    word_offset = offset - window_base
+    window = bytes(mm[window_base : window_base + 64])
+    return struct.unpack(">I", window[word_offset : word_offset + 4])[0]
+
+
 def sample_registers(
     read32,
     offsets: dict[str, int],
@@ -207,7 +214,7 @@ def write_vector(mm: mmap.mmap, base: int, data: bytes, *, mode: str) -> tuple[l
 
 
 def read_vector(mm: mmap.mmap, base: int) -> bytes:
-    return b"".join(rd32(mm, base + index * 4).to_bytes(4, "little") for index in range(16))
+    return b"".join(rd32_window(mm, base + index * 4).to_bytes(4, "little") for index in range(16))
 
 
 def wait_vector_readback(
@@ -775,7 +782,7 @@ def main() -> int:
                 "m2_provenance": REG_M2_PROVENANCE,
             }
             preflight_values, preflight_samples, preflight_stable = sample_registers(
-                lambda offset: rd32(mm, offset),
+                lambda offset: rd32_window(mm, offset),
                 preflight_offsets,
                 samples=args.preflight_samples,
                 interval=args.poll_interval,
@@ -888,21 +895,21 @@ def main() -> int:
             strict_readback = args.vector_write_mode in ("direct", "raw-internal")
             if strict_readback and (input_readback != block_input or residual_readback != residual):
                 failure = "M2 input/residual BAR readback did not match before start"
-                m2_status = rd32(mm, REG_M2_CONTROL_STATUS)
+                m2_status = rd32_window(mm, REG_M2_CONTROL_STATUS)
                 decoded = decode_status(m2_status)
                 observed = {
-                    "start_count_before": rd32(mm, REG_M2_START_COUNT),
-                    "start_count_after": rd32(mm, REG_M2_START_COUNT),
+                    "start_count_before": rd32_window(mm, REG_M2_START_COUNT),
+                    "start_count_after": rd32_window(mm, REG_M2_START_COUNT),
                     "status": m2_status,
-                    "cycle_count": rd32(mm, REG_M2_CYCLE_COUNT),
-                    "checksum": rd32(mm, REG_M2_OUTPUT_CHECKSUM),
-                    "output_count": rd32(mm, REG_M2_OUTPUT_COUNT),
-                    "sample0": rd32(mm, REG_M2_OUTPUT_SAMPLE0),
-                    "sample1": rd32(mm, REG_M2_OUTPUT_SAMPLE1),
-                    "debug": rd32(mm, REG_M2_DEBUG),
-                    "debug1": rd32(mm, REG_M2_DEBUG1),
-                    "debug2": rd32(mm, REG_M2_DEBUG2),
-                    "debug3": rd32(mm, REG_M2_DEBUG3),
+                    "cycle_count": rd32_window(mm, REG_M2_CYCLE_COUNT),
+                    "checksum": rd32_window(mm, REG_M2_OUTPUT_CHECKSUM),
+                    "output_count": rd32_window(mm, REG_M2_OUTPUT_COUNT),
+                    "sample0": rd32_window(mm, REG_M2_OUTPUT_SAMPLE0),
+                    "sample1": rd32_window(mm, REG_M2_OUTPUT_SAMPLE1),
+                    "debug": rd32_window(mm, REG_M2_DEBUG),
+                    "debug1": rd32_window(mm, REG_M2_DEBUG1),
+                    "debug2": rd32_window(mm, REG_M2_DEBUG2),
+                    "debug3": rd32_window(mm, REG_M2_DEBUG3),
                     "provenance": m2_provenance,
                     "expected_provenance": expected_m2_provenance,
                     "output_vector": read_vector(mm, REG_M2_OUTPUT_VECTOR),
@@ -911,14 +918,14 @@ def main() -> int:
                 }
             else:
                 wr32(mm, REG_M2_CONTROL_STATUS, 0)
-                start_count_before = rd32(mm, REG_M2_START_COUNT)
+                start_count_before = rd32_window(mm, REG_M2_START_COUNT)
                 wr32(mm, REG_M2_CONTROL_STATUS, 1)
 
                 deadline = time.monotonic() + args.timeout
-                m2_status = rd32(mm, REG_M2_CONTROL_STATUS)
+                m2_status = rd32_window(mm, REG_M2_CONTROL_STATUS)
                 decoded = decode_status(m2_status)
                 while time.monotonic() < deadline:
-                    m2_status = rd32(mm, REG_M2_CONTROL_STATUS)
+                    m2_status = rd32_window(mm, REG_M2_CONTROL_STATUS)
                     decoded = decode_status(m2_status)
                     if decoded["done"] or decoded["error"]:
                         break
@@ -926,17 +933,17 @@ def main() -> int:
 
                 observed = {
                     "start_count_before": start_count_before,
-                    "start_count_after": rd32(mm, REG_M2_START_COUNT),
+                    "start_count_after": rd32_window(mm, REG_M2_START_COUNT),
                     "status": m2_status,
-                    "cycle_count": rd32(mm, REG_M2_CYCLE_COUNT),
-                    "checksum": rd32(mm, REG_M2_OUTPUT_CHECKSUM),
-                    "output_count": rd32(mm, REG_M2_OUTPUT_COUNT),
-                    "sample0": rd32(mm, REG_M2_OUTPUT_SAMPLE0),
-                    "sample1": rd32(mm, REG_M2_OUTPUT_SAMPLE1),
-                    "debug": rd32(mm, REG_M2_DEBUG),
-                    "debug1": rd32(mm, REG_M2_DEBUG1),
-                    "debug2": rd32(mm, REG_M2_DEBUG2),
-                    "debug3": rd32(mm, REG_M2_DEBUG3),
+                    "cycle_count": rd32_window(mm, REG_M2_CYCLE_COUNT),
+                    "checksum": rd32_window(mm, REG_M2_OUTPUT_CHECKSUM),
+                    "output_count": rd32_window(mm, REG_M2_OUTPUT_COUNT),
+                    "sample0": rd32_window(mm, REG_M2_OUTPUT_SAMPLE0),
+                    "sample1": rd32_window(mm, REG_M2_OUTPUT_SAMPLE1),
+                    "debug": rd32_window(mm, REG_M2_DEBUG),
+                    "debug1": rd32_window(mm, REG_M2_DEBUG1),
+                    "debug2": rd32_window(mm, REG_M2_DEBUG2),
+                    "debug3": rd32_window(mm, REG_M2_DEBUG3),
                     "provenance": m2_provenance,
                     "expected_provenance": expected_m2_provenance,
                     "output_vector": read_vector(mm, REG_M2_OUTPUT_VECTOR),

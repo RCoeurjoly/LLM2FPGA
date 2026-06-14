@@ -21,6 +21,7 @@ from task6_pcie_m2_full_block_gate import (
     parse_embedding_tb_data_sv,
     parse_expected_json,
     parse_expected_tb_data_sv,
+    rd32_window,
     sample_registers,
     select_host_vectors,
     validate_expected,
@@ -286,6 +287,14 @@ def test_sample_registers_records_stable_preflight_values() -> None:
     assert stable == {"magic": True, "m2_present": True}
 
 
+def test_rd32_window_decodes_word_from_64_byte_snapshot() -> None:
+    data = bytearray(0x600)
+    data[0x500:0x504] = bytes.fromhex("54364d32")
+    data[0x508:0x50C] = bytes.fromhex("00000001")
+    assert rd32_window(data, 0x500) == 0x54364D32
+    assert rd32_window(data, 0x508) == 0x00000001
+
+
 def test_sample_registers_detects_transient_all_ones_preflight_read() -> None:
     reads = {
         0x000: [0x54365043, 0x54365043, 0x54365043],
@@ -322,6 +331,7 @@ def main() -> None:
     test_fixture_mode_contract_remains_candidate_only()
     test_expected_provenance_encodes_fixture_token_index()
     test_sample_registers_records_stable_preflight_values()
+    test_rd32_window_decodes_word_from_64_byte_snapshot()
     test_sample_registers_detects_transient_all_ones_preflight_read()
 
 
