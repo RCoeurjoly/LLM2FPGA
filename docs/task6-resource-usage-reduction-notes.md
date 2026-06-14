@@ -33,6 +33,58 @@ candidate, not board acceptance. The next step is to use the validated safe
 PCIe/BAR protocol, flash this bitstream, require lifecycle `pcie_ready` plus
 BAR header `T6PC`, and then rerun the token-live M2 BAR gate.
 
+## 2026-06-14 - M2 checks-off image reaches DONE with final-vector mismatch
+
+Flashed the checks-off pnr100 image and ran it through the validated PCIe/BAR
+protocol:
+
+- Pre-flash lifecycle:
+  `artifacts/task6/runs/2026-06-14T05-23-41+0200-task6-m2-checks-off-preflash-lifecycle`,
+  classification `pcie_ready`.
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-14T05-23-52+0200-task6-m2-checks-off-pnr100-flash`,
+  BPI write completed and first 32 words verified.
+- Post-flash lifecycle:
+  `artifacts/task6/runs/2026-06-14T05-30-59+0200-task6-m2-checks-off-postflash-lifecycle`,
+  classification `missing_resource0`; no BAR access was attempted from that
+  state.
+- Tapo P115 recovery:
+  `artifacts/task6/runs/2026-06-14T05-31-20+0200-task6-m2-checks-off-postflash-tapo-coldcycle/orchestrator-summary.json`,
+  final classification `pcie_ready`, `host_recovery_freeze_risk=false`.
+- BAR header smoke returned `T6PC`.
+
+The readback-compensated token-live M2 BAR gate then reached the live accelerator
+cleanly but failed final output comparison:
+
+- Artifact:
+  `artifacts/task6/runs/2026-06-14T05-32-50+0200-task6-m2-checks-off-readback-compensated-live-full-block.json`
+- Passing board/BAR checks: Task 6 magic/version, M2 magic/version/presence,
+  provenance `0x4d323005`, start-count increment, input readback, residual
+  readback, output count, status schema, `DONE`, `output_valid=true`, and
+  `error=false`.
+- Failing compute checks: checksum, sample0, sample1, and first 64 output bytes.
+  Expected checksum `0x0003b2c9`; observed checksum `0x00046759`. Expected
+  sample0/sample1 `0xd114be59`/`0xd737e470`; observed
+  `0xffffbf7f`/`0x81922f7f`.
+- Debug stage was clear (`0x00`), because this board image intentionally has the
+  internal context self-checks disabled.
+
+A diagnostic raw-internal write-mode run still failed at the known BAR transform
+boundary:
+
+- Artifact:
+  `artifacts/task6/runs/2026-06-14T05-33-11+0200-task6-m2-checks-off-raw-internal-live-full-block.json`
+- Debug decoded as stage `0x01`, embedding token-id mismatch at token index 0,
+  observed token ID `0x0e8f`.
+
+M2 remains open. The current failure mode is no longer PCIe/BAR stability,
+timing closure, start/done, or host input readback. It is a deterministic
+live-compute final-vector mismatch after the disabled internal checks allow the
+accelerator to complete. The next fix should add a lightweight board-visible
+or sim/formal checkpoint between embedding output, context/LN output, and final
+MLP output so the first divergent substage is visible without reinstating the
+full timing-heavy self-check fabric in the pnr100 image.
+
 ## 2026-06-14 - M2 LN handoff timing rebuild stopped before flash
 
 After the M2 HIL failure localized to a one-count context-LN mismatch, the
