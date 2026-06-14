@@ -33316,3 +33316,32 @@ This does not close M2. It makes the next board run useful: if `REG_M2_DEBUG`
 is not `0x88fa5e3a`, the failure is in the embedding-to-context LN-input
 boundary; if it is `0x88fa5e3a`, the failure is inside context/LN compute or
 its synthesized implementation.
+
+### 2026-06-14 - M2 LN-input checkpoint image fails pnr100 timing
+
+Attempted exactly one targeted pnr100 image for the LN-input checksum
+checkpoint:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-ln-input-checkpoint-pnr100-bitstream -L`
+- Failed derivation:
+  `/nix/store/my1n573cc817livxmqd9ydgyyr01ah6w-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.fasm.drv`
+- Router2 converged legally:
+  iteration 1 had 70,600 overused wires, iteration 5 had zero overuse.
+- Final timing failed:
+  `pcie_user_clk` 57.87 MHz FAIL at 62.50 MHz.
+- Other clocks passed:
+  JTAG `drck` 213.90 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 221.14 MHz PASS at
+  100 MHz.
+- Utilization before routing:
+  62,502 LUTX, 28,551 FFX, 95 DSP48E1, 16 RAMB36E1, one PCIE_2_1.
+
+The image was not programmed to the board. This obeys the new M2 discipline:
+the cheap sim proved the observable, but the single targeted hardware image did
+not meet timing, so there is no useful HIL run to perform.
+
+The reported critical path for `pcie_user_clk` is control-heavy rather than the
+checksum datapath itself: it starts at `m2_full_block_accel.core_i.embed_status_w[6]`
+and ends on a CE path after several routed LUT/control nets. The next contract
+fix should reduce or register the embedding-done/control handoff before trying
+another pnr100 image. Do not rerun pnr100 unchanged.
