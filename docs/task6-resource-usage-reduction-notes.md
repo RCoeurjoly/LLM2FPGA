@@ -33237,3 +33237,51 @@ embedding/block-input, context/LN, or downstream attention/MLP stages.
 
 Do not start another integrated M2 candidate until this routed checkpoint image
 has either passed the board gate or produced a localized failing checkpoint.
+
+### 2026-06-14 - M2 checkpoint board gate localizes failure to context/LN
+
+Programmed the routed M2 checkpoint candidate to BPI flash and ran the board
+gate through the validated PCIe/BAR protocol:
+
+- Pre-flash non-BAR lifecycle:
+  `artifacts/task6/runs/2026-06-14T09-40-24+0200-task6-m2-checkpoint-preflash-lifecycle`,
+  classification `pcie_ready`.
+- Flash:
+  `artifacts/task6/runs/2026-06-14T09-40-48+0200-task6-m2-checkpoint-pnr100-flash`.
+  openFPGALoader wrote 18,735,004 bytes to BPI flash and verified the first
+  32 words.
+- Tapo P115 cold-cycle: off, 10 seconds wait, on, 45 seconds settle.
+- Post-Tapo non-BAR lifecycle:
+  `artifacts/task6/runs/2026-06-14T09-49-39+0200-task6-m2-checkpoint-post-tapo-lifecycle`,
+  classification `pcie_ready`.
+- BAR header smoke returned `T6PC`.
+- M2 board gate artifact:
+  `artifacts/task6/runs/2026-06-14T-task6-m2-checkpoint-live-full-block.json`.
+- Post-gate non-BAR lifecycle:
+  `artifacts/task6/runs/2026-06-14T09-51-29+0200-task6-m2-checkpoint-post-gate-lifecycle`,
+  classification `pcie_ready`.
+
+The board gate still failed M2, but it produced the intended localized
+checkpoint:
+
+- BAR input and residual readback both passed under the direct write/readback
+  contract.
+- The block-input checksum matched: expected and observed low16 `0x50f9`.
+- The first checkpoint mismatch is the context/LN checksum:
+  expected low16 `0x32e3`, observed low16 `0x63ae`.
+- Downstream stage low8 checksums also diverged:
+  attention output expected/observed `0x49`/`0x82`, attention residual
+  `0xfb`/`0x95`, LN2 `0x3a`/`0x28`, and MLP c_proj `0x5b`/`0xbd`.
+- Final output failed as expected after the context divergence:
+  expected checksum/sample0/sample1
+  `0x0003b2c9`/`0xd114be59`/`0xd737e470`, observed
+  `0x0004c593`/`0x7f7f499b`/`0x7f6b927f`.
+- Status/provenance were sane: status `0x4d320059`, provenance `0x4d323005`,
+  cycle count 141,619, output count 64, no error, and output-valid set.
+
+Conclusion: this is a real M2 functional mismatch, not PCIe/BAR instability
+and not a host input transform problem. The next M2 work should stay in the
+cheap loop and isolate context/LN generation. Do not build another full pnr100
+image until a small sim/formal/post-synth check explains why the live
+context/LN checksum can become `0x63ae` on the board while sim expects
+`0x32e3`.
