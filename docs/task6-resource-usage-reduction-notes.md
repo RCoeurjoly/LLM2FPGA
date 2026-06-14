@@ -33054,3 +33054,43 @@ token embedding/block-input boundary. The next M2 RTL/debug work should focus
 on the context path that produces `context_checksum_low16`, while separately
 fixing or documenting the BAR vector readback transform so the acceptance gate
 does not need `raw-internal` mode.
+
+### 2026-06-14 - M2 registered embedding-to-block boundary candidate
+
+Built and routed the registered embedding-to-block handoff candidate after
+changing the M2 live wrapper to latch the embedding block input and LN/context
+vector before pulsing the full-block core start.
+
+Simulation evidence:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-accel-sv-sim -L`
+  passed with cycle count 141,619 and the expected final checksum/sample words:
+  final checksum `0x0003b2c9`, sample0 `0xd114be59`, sample1 `0xd737e470`.
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with final checksum `0x0003b2c9`, final sample0 `0xd114be59`,
+  final sample1 `0xd737e470`, provenance `0x4d323005`, debug `0x4c420089`,
+  debug1 `0x50f90000`, and debug2 `0x49fb3a5b`.
+
+PNR evidence:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-registered-boundary-pnr100-bitstream -L`.
+- Bitstream:
+  `/nix/store/h98wikcqx6wgd9nsl2wbxq8hyhpx41b8-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Route converged by router2 iteration 5, from 65,645 overused wires at
+  iteration 1 to zero overuse.
+- Device utilization from nextpnr pack: 63,697 LUTX, 28,509 FFX, 94 DSP48E1,
+  16 RAMB36E1, and one PCIE_2_1.
+- Routed timing passed: `pcie_user_clk` 77.72 MHz PASS at 62.50 MHz,
+  `drck` 276.17 MHz PASS at 100 MHz, and `PIPE_OOBCLK_IN` 273.45 MHz PASS at
+  100 MHz.
+- The routed `pcie_user_clk` critical path starts from
+  `m2_full_block_accel.core_i.embed_status_w[5]` and ends at a clock-enable
+  endpoint after generated embedding mux/ABC logic. The path is dominated by
+  routing delay: 1.2 ns logic and 11.7 ns routing.
+
+This result justifies a board run of the registered-boundary candidate using
+the safe PCIe/BAR protocol. It is not M2 closure until the HIL gate passes on
+the board; the previous wrapper-clear candidate proved that sim success and
+route-clean timing are not enough when the first observed HIL mismatch is in
+the live context checksum.
