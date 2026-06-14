@@ -33380,3 +33380,46 @@ This is now a board-testable M2 checkpoint image. It still does not close M2:
 the next HIL run must use the safe lifecycle/Tapo/BAR-header protocol and check
 whether `REG_M2_DEBUG` reads the simulated LN-input checksum `0x88fa5e3a`
 before interpreting downstream context/LN or final-vector mismatches.
+
+### 2026-06-14 - M2 LN-input checkpoint board gate result
+
+Programmed the route-clean registered-handoff checkpoint image to BPI flash and
+used the safe hardware protocol before the M2 BAR gate:
+
+- Preflash non-BAR lifecycle:
+  `artifacts/task6/runs/2026-06-14T10-37-46+0200-task6-m2-ln-input-registered-preflash-lifecycle`
+  classified `pcie_ready`.
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-14T10-38-03+0200-task6-m2-ln-input-registered-pnr100-flash`.
+- Tapo P115 cold-cycle was used after flash; the direct base-Python Tapo
+  invocation failed because the `tapo` module was not in the base environment,
+  then the validated `uv run --with tapo` path succeeded.
+- Postflash non-BAR lifecycle:
+  `artifacts/task6/runs/2026-06-14T10-46-40+0200-task6-m2-ln-input-registered-postflash-lifecycle`
+  classified `pcie_ready`.
+- BAR header smoke returned `T6PC` before the M2 gate.
+- M2 board artifact:
+  `artifacts/task6/runs/2026-06-14T10-46-55+0200-task6-m2-ln-input-registered-live-full-block.json`.
+
+The board gate still failed M2, but the new checkpoint localized the failure:
+
+- Passing board/BAR checks: Task 6 magic/version, M2 magic/version/presence,
+  provenance, status schema, start-count increment, DONE state, output-valid,
+  no error, output count, host input readback, residual readback, and not-all-ones.
+- The new LN-input checksum passed:
+  expected and observed `0x88fa5e3a`.
+- Final checksum/sample0/sample1 failed:
+  expected `0x0003b2c9`/`0xd114be59`/`0xd737e470`, observed
+  `0x0004fd01`/`0xf9bfbffb`/`0x8177c17f`.
+- DONE-stage debug words differed from sim:
+  expected `debug1 = 0x50f932e3`, `debug2 = 0x49fb3a5b`; observed
+  `debug1 = 0x64b97784`, `debug2 = 0xa44d1d3a`.
+- The decoded DONE-stage comparison reported first mismatch at the block-input
+  checksum field: expected low16 `0x50f9`, observed low16 `0x64b9`.
+
+Conclusion: M2 remains open, but this is useful progress. The board now proves
+that token selection, embedding/position add, and the raw Q12 LN-input vector
+match the fixture at the BAR-visible boundary. The next small contract should
+separate "the vector handed to the full-block child" from "the child block-input
+checksum/debug calculation" with a cheap sim first. Do not start another full
+pnr100/HIL loop until that handoff/checksum observable is isolated.
