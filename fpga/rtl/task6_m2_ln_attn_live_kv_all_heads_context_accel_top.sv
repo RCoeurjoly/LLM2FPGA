@@ -33,7 +33,9 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     S_RUN_PROB_WEIGHT = 4'd8,
     S_RUN_PROB_NORM = 4'd9,
     S_RUN_PROB_DIV = 4'd10,
-    S_RUN_PROB_CHECK = 4'd11
+    S_RUN_PROB_CHECK = 4'd11,
+    S_RUN_LN_AFFINE = 4'd12,
+    S_RUN_LN_OUTPUT = 4'd13
   } state_t;
 
   localparam int TOKEN_WIDTH = (CACHE_SEQ <= 1) ? 1 : $clog2(CACHE_SEQ);
@@ -55,6 +57,9 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
 
   logic signed [31:0] ln_mean_acc_q12;
   logic signed [31:0] ln_mean_latched_q12;
+  logic signed [31:0] ln_centered_q12_q;
+  logic signed [31:0] ln_norm_q12_q;
+  logic signed [31:0] ln_affine_q12_q;
   logic signed [31:0] k_proj_acc_q;
   logic signed [31:0] v_proj_acc_q;
   logic signed [31:0] q_proj_acc_q;
@@ -91,6 +96,13 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic signed [63:0] ln_output_shifted_w;
   logic signed [31:0] ln_output_scaled_w;
   logic signed [7:0] ln_output_w;
+  logic signed [63:0] ln_piped_affine_product_w;
+  logic signed [63:0] ln_piped_affine_shifted_w;
+  logic signed [31:0] ln_piped_affine_q12_w;
+  logic signed [63:0] ln_piped_output_product_w;
+  logic signed [63:0] ln_piped_output_shifted_w;
+  logic signed [31:0] ln_piped_output_scaled_w;
+  logic signed [7:0] ln_piped_output_w;
   logic signed [31:0] k_proj_next_acc_w;
   logic signed [31:0] v_proj_next_acc_w;
   logic signed [31:0] q_proj_next_acc_w;
@@ -130,6 +142,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic [31:0] ln_mean_flat_index_w;
   logic [31:0] ln_center_flat_index_w;
   logic [CONTEXT_INDEX_WIDTH - 1:0] context_index_w;
+  logic [31:0] debug1_q;
+  logic [31:0] debug2_q;
 
   function automatic signed [63:0] round_shift_signed64(
     input signed [63:0] value,
@@ -204,8 +218,20 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   assign ln_output_shifted_w = round_shift_signed64(ln_output_product_w, 20);
   assign ln_output_scaled_w = $signed(ln_output_shifted_w[31:0]);
   assign ln_output_w = saturate_i8(ln_output_scaled_w);
-  assign debug1_o = {ln_mean_latched_q12[15:0], ln_centered_q12_w[15:0]};
-  assign debug2_o = {ln_norm_q12_w[15:0], ln_affine_q12_w[15:0]};
+  assign ln_piped_affine_product_w =
+    $signed(ln_norm_q12_q) * $signed(ln_gamma_q16[ln_index_q]);
+  assign ln_piped_affine_shifted_w = round_shift_signed64(ln_piped_affine_product_w, 16);
+  assign ln_piped_affine_q12_w =
+    $signed(ln_piped_affine_shifted_w[31:0]) +
+    $signed({{16{ln_beta_q12[ln_index_q][15]}}, ln_beta_q12[ln_index_q]});
+  assign ln_piped_output_product_w =
+    $signed(ln_affine_q12_q) *
+    $signed(ln_output_scale_mul_q20_by_token[token_index_q]);
+  assign ln_piped_output_shifted_w = round_shift_signed64(ln_piped_output_product_w, 20);
+  assign ln_piped_output_scaled_w = $signed(ln_piped_output_shifted_w[31:0]);
+  assign ln_piped_output_w = saturate_i8(ln_piped_output_scaled_w);
+  assign debug1_o = debug1_q;
+  assign debug2_o = debug2_q;
 
   assign k_proj_next_acc_w =
     k_proj_acc_q +
@@ -308,6 +334,9 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       dim_index_q <= '0;
       ln_mean_acc_q12 <= 32'sd0;
       ln_mean_latched_q12 <= 32'sd0;
+      ln_centered_q12_q <= 32'sd0;
+      ln_norm_q12_q <= 32'sd0;
+      ln_affine_q12_q <= 32'sd0;
       k_proj_acc_q <= 32'sd0;
       v_proj_acc_q <= 32'sd0;
       q_proj_acc_q <= 32'sd0;
@@ -320,6 +349,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       div_remainder_q <= 33'd0;
       div_quotient_q <= 32'd0;
       div_bit_q <= 6'd0;
+      debug1_q <= 32'd0;
+      debug2_q <= 32'd0;
     end
   endtask
 
@@ -330,6 +361,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       reset_head_work();
       cycle_count_q <= 32'd0;
       debug_q <= 32'd0;
+      debug1_q <= 32'd0;
+      debug2_q <= 32'd0;
       output_checksum_o <= 32'd0;
       output_sample0_o <= 32'd0;
       output_sample1_o <= 32'd0;
@@ -355,6 +388,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       reset_head_work();
       cycle_count_q <= 32'd0;
       debug_q <= 32'd0;
+      debug1_q <= 32'd0;
+      debug2_q <= 32'd0;
       output_checksum_o <= 32'd0;
       output_sample0_o <= 32'd0;
       output_sample1_o <= 32'd0;
@@ -389,7 +424,22 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
 
         S_RUN_LN: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          if (ENABLE_INTERNAL_CHECKS && ln_output_w != ln_expected_q_by_token[token_index_q][ln_index_q]) begin
+          ln_centered_q12_q <= ln_centered_q12_w;
+          ln_norm_q12_q <= ln_norm_q12_w;
+          debug1_q <= {ln_mean_latched_q12[15:0], ln_centered_q12_w[15:0]};
+          state_q <= S_RUN_LN_AFFINE;
+        end
+
+        S_RUN_LN_AFFINE: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          ln_affine_q12_q <= ln_piped_affine_q12_w;
+          debug2_q <= {ln_norm_q12_q[15:0], ln_piped_affine_q12_w[15:0]};
+          state_q <= S_RUN_LN_OUTPUT;
+        end
+
+        S_RUN_LN_OUTPUT: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          if (ENABLE_INTERNAL_CHECKS && ln_piped_output_w != ln_expected_q_by_token[token_index_q][ln_index_q]) begin
             state_q <= S_ERROR;
             debug_q <= {
               4'd0,
@@ -397,10 +447,12 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
               ln_index_q,
               ln_expected_q_by_token[token_index_q][ln_index_q],
               2'd0,
-              ln_output_w
+              ln_piped_output_w
             };
+            debug1_q <= {ln_mean_latched_q12[15:0], ln_centered_q12_q[15:0]};
+            debug2_q <= {ln_norm_q12_q[15:0], ln_affine_q12_q[15:0]};
           end else begin
-            ln_output_cache_q[ln_index_q] <= ln_output_w;
+            ln_output_cache_q[ln_index_q] <= ln_piped_output_w;
             if (ln_index_q == LN_INDEX_WIDTH'(LN_DIM - 1)) begin
               proj_index_q <= '0;
               dim_index_q <= '0;
@@ -410,6 +462,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
               state_q <= S_RUN_PROJ;
             end else begin
               ln_index_q <= ln_index_q + LN_INDEX_WIDTH'(1);
+              state_q <= S_RUN_LN;
             end
           end
         end

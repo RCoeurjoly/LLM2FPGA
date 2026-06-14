@@ -19,13 +19,17 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_tb;
   logic [31:0] output_sample1_o;
   logic [511:0] output_vector_o;
   logic [31:0] debug_o;
+  logic [31:0] debug1_o;
+  logic [31:0] debug2_o;
   logic [511:0] expected_output_vector;
   logic [31:0] expected_checksum;
   logic [31:0] expected_sample0;
   logic [31:0] expected_sample1;
   integer cycles;
 
-  task6_m2_ln_attn_live_kv_all_heads_context_accel_top dut (
+  task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
+    .ENABLE_INTERNAL_CHECKS(1'b1)
+  ) dut (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(start_i),
@@ -38,7 +42,9 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_tb;
     .output_sample0_o(output_sample0_o),
     .output_sample1_o(output_sample1_o),
     .output_vector_o(output_vector_o),
-    .debug_o(debug_o)
+    .debug_o(debug_o),
+    .debug1_o(debug1_o),
+    .debug2_o(debug2_o)
   );
 
   always #5 SYS_CLK = ~SYS_CLK;
@@ -90,9 +96,11 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_tb;
       if (status_o[2]) begin
         $fatal(
           1,
-          "FAIL: task6 M2 live-kv all-head context accel entered error status=%08x debug=%08x",
+          "FAIL: task6 M2 live-kv all-head context accel entered error status=%08x debug=%08x debug1=%08x debug2=%08x",
           status_o,
-          debug_o
+          debug_o,
+          debug1_o,
+          debug2_o
         );
       end
 
