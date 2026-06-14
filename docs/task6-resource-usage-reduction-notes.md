@@ -4,6 +4,42 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-14 - M2 context scrub pnr100 timing failure
+
+Committed `d4df292` to clear the live-context work arrays on reset, explicit
+clear, and fresh/restarted `start_i`. The intent was to rule out retained state
+after repeated HIL runs reached DONE with identical block-input checksum and
+cycle count but different context checksums/final vectors.
+
+Verification before pnr100:
+
+- `nix build .#task6-m2-ln-attn-live-kv-all-heads-context-accel-sv-sim
+  -o /tmp/task6-m2-context-scrub-context-sim -L` passed with context checksum
+  `000432e3`, sample0 `d3c310cb`, and sample1 `10c11ddc`.
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim
+  -o /tmp/task6-m2-context-scrub-pcie-sim -L` passed with final checksum
+  `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`, provenance
+  `4d323005`, debug1 `50f932e3`, and debug2 `49fb3a5b`.
+
+The pnr100 board image was not flashable:
+
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream
+  -o /tmp/task6-m2-context-scrub-pnr100-bitstream -L` reached nextpnr but was
+  stopped after placement timing failed and routing was spending time on an
+  image that should not be flashed.
+- Yosys completed with 0 check problems and estimated 30,407 LCs; nextpnr
+  packed 78,452 `SLICE_LUTX`, 28,645 `SLICE_FFX`, 94 `DSP48E1`, and 13
+  `RAMB36E1`.
+- Post-place timing failed badly: `pcie_user_clk` 32.47 MHz against the required
+  62.50 MHz. `drck` was 119.55 MHz PASS at 100 MHz, and `PIPE_OOBCLK_IN` was
+  144.61 MHz PASS at 100 MHz.
+
+Conclusion: the retained-state hypothesis remains plausible, but the all-at-once
+context scrub implementation is not a viable pnr100 image. M2 remains open. The
+next fix should avoid broad reset/clear fanout, either by sequencing context
+array invalidation over cycles or by narrowing the cleanup to the registers that
+can actually retain stale data across starts.
+
 ## 2026-06-14 - M2 pnr100 image with context internal checks disabled
 
 Committed the board-facing M2 timing trim as `b5c42d5`: the default RTL keeps
