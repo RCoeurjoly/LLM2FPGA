@@ -132,6 +132,11 @@ SV_LOCALPARAM_INT_RE = re.compile(
 SV_TOKEN_ID_RE = re.compile(
     r"^\s*embed_block_expected_token_ids\[(?P<index>\d+)\]\s*=\s*16'd(?P<value>\d+)\s*;"
 )
+SV_EMBED_LN_INPUT_RE = re.compile(
+    r"^\s*embed_block_expected_ln_input_q12_by_token"
+    r"\[(?P<token>\d+)\]\[(?P<dim>\d+)\]\s*=\s*"
+    r"(?P<sign>-?)(?P<bits>\d+)'sd(?P<value>\d+)\s*;"
+)
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -435,10 +440,26 @@ def parse_expected_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
 
 def parse_embedding_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
     token_ids: dict[int, int] = {}
+    ln_input_q12: dict[tuple[int, int], int] = {}
+    embed_block_seq = 6
+    embed_block_dim = 64
     for line in path.read_text(encoding="utf-8").splitlines():
+        int_match = SV_LOCALPARAM_INT_RE.match(line)
+        if int_match is not None:
+            if int_match.group("name") == "EMBED_BLOCK_SEQ":
+                embed_block_seq = int(int_match.group("value"))
+            elif int_match.group("name") == "EMBED_BLOCK_DIM":
+                embed_block_dim = int(int_match.group("value"))
+            continue
         token_match = SV_TOKEN_ID_RE.match(line)
         if token_match:
             token_ids[int(token_match.group("index"))] = int(token_match.group("value"))
+            continue
+        ln_match = SV_EMBED_LN_INPUT_RE.match(line)
+        if ln_match:
+            ln_input_q12[
+                (int(ln_match.group("token")), int(ln_match.group("dim")))
+            ] = parse_signed_sv_literal(ln_match.group("sign"), ln_match.group("value"))
             continue
         assign_match = SV_ASSIGN_RE.match(line)
         if assign_match and assign_match.group("name") == "embed_block_expected_token_ids":
@@ -446,19 +467,37 @@ def parse_embedding_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]
                 assign_match.group("sign"),
                 assign_match.group("value"),
             )
-    missing = [index for index in range(6) if index not in token_ids]
+    missing = [index for index in range(embed_block_seq) if index not in token_ids]
     if missing:
         raise SystemExit(f"{path} missing embed_block_expected_token_ids index(es): {missing[:8]}")
-    token_id_list = [token_ids[index] for index in range(6)]
+    missing_ln_input = [
+        (token, dim)
+        for token in range(embed_block_seq)
+        for dim in range(embed_block_dim)
+        if (token, dim) not in ln_input_q12
+    ]
+    if missing_ln_input:
+        raise SystemExit(
+            f"{path} missing embed_block_expected_ln_input_q12_by_token index(es): {missing_ln_input[:8]}"
+        )
+    token_id_list = [token_ids[index] for index in range(embed_block_seq)]
     token_input = bytearray(64)
     for index, token_id in enumerate(token_id_list):
         if token_id < 0 or token_id > 0xFFFF:
             raise SystemExit(f"{path} token id {token_id} does not fit 16 bits")
         token_input[index * 2 : index * 2 + 2] = int(token_id).to_bytes(2, "little")
+    ln_input_checksum = 0
+    for token in range(embed_block_seq):
+        for dim in range(embed_block_dim):
+            flat_index = token * embed_block_dim + dim
+            ln_input_checksum = (
+                ln_input_checksum + ((ln_input_q12[(token, dim)] & 0xFFFF) * (flat_index + 1))
+            ) & 0xFFFFFFFF
     return {
         "token_input": bytes(token_input),
         "reserved_input": bytes(64),
         "token_ids": token_id_list,
+        "ln_input_checksum": ln_input_checksum,
         "provenance_mode": 0x3000,
     }
 
@@ -878,6 +917,8 @@ def main() -> int:
         checks["sample1"] = observed["sample1"] == expected["sample1"]
     if "output_count" in expected:
         checks["output_count"] = observed["output_count"] == expected["output_count"]
+    if "ln_input_checksum" in expected:
+        checks["ln_input_checksum"] = observed["debug"] == expected["ln_input_checksum"]
     checks["first_64_output"] = observed["output_vector"] == expected["first_64_output"]
 
     result_status = "PASS" if all(checks.values()) else "FAIL"
@@ -948,6 +989,11 @@ def main() -> int:
             "output_count": int(expected["output_count"]),
             "first_64_output_hex": expected["first_64_output"].hex(),
             "token_index": expected.get("token_index"),
+            "ln_input_checksum": (
+                f"0x{int(expected['ln_input_checksum']):08x}"
+                if "ln_input_checksum" in expected
+                else None
+            ),
         },
         "observed": {
             "compute_path": compute_path,
@@ -961,6 +1007,9 @@ def main() -> int:
             "sample0": f"0x{observed['sample0']:08x}",
             "sample1": f"0x{observed['sample1']:08x}",
             "debug": f"0x{observed['debug']:08x}",
+            "ln_input_checksum": (
+                f"0x{observed['debug']:08x}" if "ln_input_checksum" in expected else None
+            ),
             "debug1": f"0x{observed['debug1']:08x}",
             "debug2": f"0x{observed['debug2']:08x}",
             "decoded_debug": decode_debug(observed["debug"], observed["debug1"], observed["debug2"]),

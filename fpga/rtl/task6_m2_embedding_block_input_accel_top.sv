@@ -9,6 +9,7 @@ module task6_m2_embedding_block_input_accel_top (
   output logic [31:0] status_o,
   output logic [31:0] cycle_count_o,
   output logic [31:0] block_input_checksum_o,
+  output logic [31:0] ln_input_checksum_o,
   output logic [511:0] block_input_vector_o,
   output logic [6143:0] ln_input_q12_by_token_o,
   output logic [31:0] debug_o
@@ -35,9 +36,12 @@ module task6_m2_embedding_block_input_accel_top (
   logic [DIM_INDEX_WIDTH - 1:0] dim_index_q;
   logic [31:0] cycle_count_q;
   logic [31:0] block_input_checksum_q;
+  logic [31:0] ln_input_checksum_q;
   logic [15:0] selected_token_id_w;
   logic [6:0] checksum_weight_w;
+  logic [8:0] ln_checksum_weight_w;
   logic [31:0] block_input_checksum_inc_w;
+  logic [31:0] ln_input_checksum_inc_w;
   logic [3:0] token_index_debug_w;
   logic [3:0] emit_token_index_debug_w;
   logic [7:0] dim_index_debug_w;
@@ -56,6 +60,9 @@ module task6_m2_embedding_block_input_accel_top (
 
   assign selected_token_id_w = token_ids_i[token_index_q * 16 +: 16];
   assign checksum_weight_w = {{(7 - DIM_INDEX_WIDTH){1'b0}}, dim_index_q} + 7'd1;
+  assign ln_checksum_weight_w =
+    (({{(9 - TOKEN_INDEX_WIDTH){1'b0}}, emit_token_index_q} * 9'(EMBED_BLOCK_DIM)) +
+      {{(9 - DIM_INDEX_WIDTH){1'b0}}, dim_index_q}) + 9'd1;
   assign token_index_debug_w = {{(4 - TOKEN_INDEX_WIDTH){1'b0}}, token_index_q};
   assign emit_token_index_debug_w = {{(4 - TOKEN_INDEX_WIDTH){1'b0}}, emit_token_index_q};
   assign dim_index_debug_w = {{(8 - DIM_INDEX_WIDTH){1'b0}}, dim_index_q};
@@ -126,6 +133,10 @@ module task6_m2_embedding_block_input_accel_top (
     end
   end
 
+  always_comb begin
+    ln_input_checksum_inc_w = {16'd0, ln_input_q12_w[15:0]} * {23'd0, ln_checksum_weight_w};
+  end
+
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
     if (!SYS_RSTN) begin
       state_q <= S_IDLE;
@@ -134,6 +145,7 @@ module task6_m2_embedding_block_input_accel_top (
       dim_index_q <= '0;
       cycle_count_q <= 32'd0;
       block_input_checksum_q <= 32'd0;
+      ln_input_checksum_q <= 32'd0;
       added_q20_q <= 32'sd0;
       requant_hi_q <= 64'sd0;
       requant_lo_q <= 64'sd0;
@@ -152,6 +164,7 @@ module task6_m2_embedding_block_input_accel_top (
       dim_index_q <= '0;
       cycle_count_q <= 32'd0;
       block_input_checksum_q <= 32'd0;
+      ln_input_checksum_q <= 32'd0;
       added_q20_q <= 32'sd0;
       requant_hi_q <= 64'sd0;
       requant_lo_q <= 64'sd0;
@@ -173,6 +186,7 @@ module task6_m2_embedding_block_input_accel_top (
             dim_index_q <= '0;
             cycle_count_q <= 32'd0;
             block_input_checksum_q <= 32'd0;
+            ln_input_checksum_q <= 32'd0;
             added_q20_q <= 32'sd0;
             requant_hi_q <= 64'sd0;
             requant_lo_q <= 64'sd0;
@@ -218,6 +232,7 @@ module task6_m2_embedding_block_input_accel_top (
             requant_lo_q <= 64'sd0;
           end
           ln_input_q12_by_token_q[emit_token_index_q][dim_index_q] <= ln_input_q12_w;
+          ln_input_checksum_q <= ln_input_checksum_q + ln_input_checksum_inc_w;
           if (ln_input_q12_w != embed_block_expected_ln_input_q12_by_token[emit_token_index_q][dim_index_q]) begin
             state_q <= S_ERROR;
             debug_o <= {8'h02, 4'd0, emit_token_index_debug_w, dim_index_debug_w, 8'd0};
@@ -264,6 +279,7 @@ module task6_m2_embedding_block_input_accel_top (
             dim_index_q <= '0;
             cycle_count_q <= 32'd0;
             block_input_checksum_q <= 32'd0;
+            ln_input_checksum_q <= 32'd0;
             added_q20_q <= 32'sd0;
             requant_hi_q <= 64'sd0;
             requant_lo_q <= 64'sd0;
@@ -299,5 +315,6 @@ module task6_m2_embedding_block_input_accel_top (
     };
     cycle_count_o = cycle_count_q;
     block_input_checksum_o = block_input_checksum_q;
+    ln_input_checksum_o = ln_input_checksum_q;
   end
 endmodule

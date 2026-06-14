@@ -11,6 +11,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   output logic [31:0] status_o,
   output logic [31:0] cycle_count_o,
   output logic [31:0] block_input_checksum_o,
+  output logic [31:0] ln_input_checksum_o,
   output logic [31:0] context_checksum_o,
   output logic [31:0] attn_out_checksum_o,
   output logic [31:0] attn_residual_checksum_o,
@@ -50,6 +51,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic [31:0] embed_status_w;
   logic [31:0] embed_cycle_count_w;
   logic [31:0] embed_block_input_checksum_w;
+  logic [31:0] embed_ln_input_checksum_w;
   logic [511:0] embed_block_input_vector_w;
   logic [6143:0] embed_ln_input_q12_by_token_w;
   logic [31:0] embed_debug_w;
@@ -85,6 +87,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     .status_o(embed_status_w),
     .cycle_count_o(embed_cycle_count_w),
     .block_input_checksum_o(embed_block_input_checksum_w),
+    .ln_input_checksum_o(embed_ln_input_checksum_w),
     .block_input_vector_o(embed_block_input_vector_w),
     .ln_input_q12_by_token_o(embed_ln_input_q12_by_token_w),
     .debug_o(embed_debug_w)
@@ -230,6 +233,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     };
     cycle_count_o = cycle_count_q;
     block_input_checksum_o = embed_block_input_checksum_w;
+    ln_input_checksum_o = embed_ln_input_checksum_w;
     context_checksum_o = block_context_checksum_w;
     attn_out_checksum_o = block_attn_out_checksum_w;
     attn_residual_checksum_o = block_attn_residual_checksum_w;

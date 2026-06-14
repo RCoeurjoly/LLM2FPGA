@@ -33285,3 +33285,34 @@ cheap loop and isolate context/LN generation. Do not build another full pnr100
 image until a small sim/formal/post-synth check explains why the live
 context/LN checksum can become `0x63ae` on the board while sim expects
 `0x32e3`.
+
+### 2026-06-14 - M2 LN-input boundary checksum contract
+
+Added a narrow BAR-visible M2 checkpoint to separate the embedding/LN-input
+handoff from the context/LN compute path:
+
+- The embedding block now computes a weighted checksum over all 384 raw Q12
+  LN-input lanes.
+- The token-live PCIe wrapper exposes that checksum in `REG_M2_DEBUG` at DONE.
+  ERROR-state debug behavior is unchanged.
+- The board gate parses the embedding fixture and checks the same checksum when
+  `--embedding-tb-data-sv` is used.
+- The cheap PCIe wrapper sim now asserts the exact observable.
+
+Verification:
+
+- `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py`
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+
+The sim passed with:
+
+- `ln_input_checksum = 0x88fa5e3a`
+- `debug1 = 0x50f932e3`
+- `debug2 = 0x49fb3a5b`
+- final checksum/sample0/sample1 =
+  `0x0003b2c9`/`0xd114be59`/`0xd737e470`
+
+This does not close M2. It makes the next board run useful: if `REG_M2_DEBUG`
+is not `0x88fa5e3a`, the failure is in the embedding-to-context LN-input
+boundary; if it is `0x88fa5e3a`, the failure is inside context/LN compute or
+its synthesized implementation.

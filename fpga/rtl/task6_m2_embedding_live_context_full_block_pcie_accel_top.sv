@@ -50,6 +50,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
   logic [31:0] core_status_w;
   logic [31:0] core_cycle_count_w;
   logic [31:0] core_block_input_checksum_w;
+  logic [31:0] core_ln_input_checksum_w;
   logic [31:0] core_context_checksum_w;
   logic [31:0] core_attn_out_checksum_w;
   logic [31:0] core_attn_residual_checksum_w;
@@ -80,6 +81,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
     .status_o(core_status_w),
     .cycle_count_o(core_cycle_count_w),
     .block_input_checksum_o(core_block_input_checksum_w),
+    .ln_input_checksum_o(core_ln_input_checksum_w),
     .context_checksum_o(core_context_checksum_w),
     .attn_out_checksum_o(core_attn_out_checksum_w),
     .attn_residual_checksum_o(core_attn_residual_checksum_w),
@@ -159,7 +161,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
             final_sample0_q <= core_final_sample0_w;
             final_sample1_q <= core_final_sample1_w;
             final_vector_q <= core_final_vector_w;
-            debug_q <= core_debug_w;
+            debug_q <= core_ln_input_checksum_w;
             debug1_q <= {
               core_block_input_checksum_w[15:0],
               core_context_checksum_w[15:0]

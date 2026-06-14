@@ -13434,7 +13434,7 @@ EOF
           } ''
             set -euo pipefail
             ${task6M2EmbeddingLiveContextFullBlockPcieAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
-            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 embedding full-block PCIe wrapper cycles [0-9]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+ provenance [0-9a-f]+ debug [0-9a-f]+ debug1 [0-9a-f]+ debug2 [0-9a-f]+' sim.log | tail -n1 || true)"
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 embedding full-block PCIe wrapper cycles [0-9]+ final_checksum [0-9a-f]+ final_sample0 [0-9a-f]+ final_sample1 [0-9a-f]+ provenance [0-9a-f]+ ln_input_checksum [0-9a-f]+ debug1 [0-9a-f]+ debug2 [0-9a-f]+' sim.log | tail -n1 || true)"
             if [ -z "$pass_line" ]; then
               echo "task6-m2-embedding-live-context-full-block PCIe wrapper SV simulation did not produce a PASS line" >&2
               exit 1
@@ -13444,7 +13444,7 @@ EOF
             final_sample0="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
             final_sample1="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
             provenance="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
-            debug="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
+            ln_input_checksum="$(${pkgs.gawk}/bin/awk '{print $19}' <<<"$pass_line")"
             debug1="$(${pkgs.gawk}/bin/awk '{print $21}' <<<"$pass_line")"
             debug2="$(${pkgs.gawk}/bin/awk '{print $23}' <<<"$pass_line")"
             cat > "$out" <<EOF
@@ -13462,7 +13462,7 @@ EOF
               "final_sample0": "$final_sample0",
               "final_sample1": "$final_sample1",
               "provenance": "$provenance",
-              "debug": "$debug",
+              "ln_input_checksum": "$ln_input_checksum",
               "debug1": "$debug1",
               "debug2": "$debug2"
             }
