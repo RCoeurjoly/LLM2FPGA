@@ -33733,3 +33733,35 @@ This makes the core-clear fix board-testable. The next hardware action should
 be only the focused direct-mode M2 full-block gate, after lifecycle readiness
 and BAR header smoke. Do not use lane compensation on this reset-sequenced
 bitstream.
+
+Board check on the core-clear bitstream:
+
+- Pre-flash lifecycle reported `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T13-01-52+0200-2026-06-14T13-01-43+0200-task6-m2-core-clear-preflash-lifecycle`.
+- BPI flash programming and first-32-word verify passed:
+  `artifacts/task6/runs/2026-06-14T13-02-04+0200-2026-06-14T13-01-43+0200-task6-m2-core-clear-flash`.
+- Post-flash lifecycle reported `missing_resource0`, so no BAR access was
+  attempted. Tapo P115 cold-cycle recovery reached `pcie_ready` with
+  `host_recovery_freeze_risk: false`:
+  `artifacts/task6/runs/2026-06-14T13-09-29+0200-2026-06-14T13-01-43+0200-task6-m2-core-clear-postflash-tapo`.
+- BAR header smoke passed with `T6PC`, version 3, status `0x61`.
+- Direct-mode M2 full-block gate:
+  `artifacts/task6/runs/2026-06-14T13-01-43+0200-task6-m2-full-block-core-clear-direct.json`.
+
+The gate still failed M2, but it failed at the intended localized observable:
+
+- `input_readback`, `residual_readback`, `ln_input_checksum`, `no_error`,
+  `state_done`, `output_valid`, and `debug3` all passed.
+- Observed `debug3` was `0x50f950f9`, matching the expected
+  `{embed_block_input_checksum_low16, handoff_block_input_checksum_low16}`.
+- Done-stage comparison reports the first mismatch at
+  `context_checksum_low16`: expected `0x32e3`, observed `0xf439`.
+- Final checksum/sample0/sample1 still mismatch:
+  expected `0x0003b2c9`/`0xd114be59`/`0xd737e470`, observed
+  `0x00044c88`/`0x7fc3b47f`/`0x927f817f`.
+
+Conclusion: the core-clear fix removed the stale `ST_ERROR` failure and proves
+the direct BAR vector path remains usable on this reset-sequenced image. M2 is
+still open. The next small contract should isolate the live context stage,
+because HIL now matches through embedding-to-block-input handoff and first
+diverges at the context checksum.
