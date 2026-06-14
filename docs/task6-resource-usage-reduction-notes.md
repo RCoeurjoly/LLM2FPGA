@@ -33935,3 +33935,19 @@ Context-error debug forwarding fix:
 This is an observability fix only. Do not run a new board gate until this
 change has a route-clean image; the expected board outcome is a context error
 again, but with real context-core `debug1/debug2` intermediates.
+
+Integrated synthesis proof for the context-error observability fix:
+
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-context-debug-yosys-json -L`
+  passed.
+- Output:
+  `/nix/store/94gclvpspvjjfbvwq4r8cxx6g8pa2vwc-task6-ypcb-pcie-rowstream-ingress-dummy-yosys.json`.
+- Final Yosys `CHECK` reported 0 problems.
+- Top-level post-map stats remained in the expected integrated dummy range:
+  86,133 cells, 26,328 estimated LCs, 152 DSP48E1, and 16 RAMB36E1.
+
+This proves the debug-forwarding change elaborates and maps in the integrated
+PCIe dummy top. It still does not prove M2 compute correctness or justify a
+blind pnr100 loop. The next board-facing step should only be a routed image if
+we explicitly want the real context-core `debug1/debug2` values for the already
+localized `0xc10af481` context LN mismatch.
