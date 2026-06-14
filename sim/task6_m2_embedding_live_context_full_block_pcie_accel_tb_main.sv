@@ -34,6 +34,9 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
   logic [31:0] expected_debug1;
   logic [31:0] expected_debug2;
   logic [31:0] expected_debug3;
+  logic [31:0] expected_context_error_debug;
+  logic [31:0] expected_context_error_debug1;
+  logic [31:0] expected_context_error_debug2;
   integer i;
 
   task6_m2_embedding_live_context_full_block_pcie_accel_top #(
@@ -63,6 +66,24 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
 
   function automatic logic [2:0] status_state(input logic [31:0] status);
     status_state = status[6:4];
+  endfunction
+
+  function automatic signed [63:0] round_shift_signed64_tb(
+    input signed [63:0] value,
+    input int shift
+  );
+    logic signed [63:0] abs_value;
+    begin
+      if (shift == 0) begin
+        round_shift_signed64_tb = value;
+      end else if (value >= 0) begin
+        round_shift_signed64_tb = (value + (64'sd1 <<< (shift - 1))) >>> shift;
+      end else begin
+        abs_value = -value;
+        round_shift_signed64_tb =
+          -((abs_value + (64'sd1 <<< (shift - 1))) >>> shift);
+      end
+    end
   endfunction
 
   task automatic pulse_start;
@@ -213,7 +234,32 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
   endtask
 
-  task automatic wait_context_error;
+  task automatic induce_context_ln2_error;
+    integer cycles;
+    begin
+      cycles = 0;
+      while (cycles < TIMEOUT_CYCLES) begin
+        @(negedge SYS_CLK);
+        cycles = cycles + 1;
+        if (dut.core_i.block_i.context_i.state_q == 5'd13 &&
+            dut.core_i.block_i.context_i.token_index_q == '0 &&
+            dut.core_i.block_i.context_i.ln_index_q == 6'd2) begin
+          force dut.core_i.block_i.context_i.ln_piped_output_w = 8'sd0;
+          return;
+        end
+        if (pcie_status_o[2]) begin
+          $fatal(1, "FAIL: context entered error before induced LN index 2 mismatch debug=%08x", pcie_debug_o);
+        end
+      end
+      $fatal(1, "Timeout waiting to induce context LN index 2 mismatch");
+    end
+  endtask
+
+  task automatic wait_context_error(
+    input logic [31:0] expected_debug,
+    input logic [31:0] expected_debug1_value,
+    input logic [31:0] expected_debug2_value
+  );
     integer cycles;
     logic [31:0] fallback_debug1;
     logic [31:0] fallback_debug2;
@@ -234,11 +280,35 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
           if (pcie_debug_o[31:28] !== 4'hc) begin
             $fatal(1, "FAIL: expected context error got debug=%08x", pcie_debug_o);
           end
+          if (pcie_debug_o !== expected_debug) begin
+            $fatal(
+              1,
+              "FAIL: context error debug expected %08x got %08x",
+              expected_debug,
+              pcie_debug_o
+            );
+          end
           if (pcie_debug1_o === fallback_debug1 || pcie_debug2_o === fallback_debug2) begin
             $fatal(
               1,
               "FAIL: context error debug1/debug2 used fallback LN input words debug1=%08x debug2=%08x",
               pcie_debug1_o,
+              pcie_debug2_o
+            );
+          end
+          if (pcie_debug1_o !== expected_debug1_value) begin
+            $fatal(
+              1,
+              "FAIL: context error debug1 expected %08x got %08x",
+              expected_debug1_value,
+              pcie_debug1_o
+            );
+          end
+          if (pcie_debug2_o !== expected_debug2_value) begin
+            $fatal(
+              1,
+              "FAIL: context error debug2 expected %08x got %08x",
+              expected_debug2_value,
               pcie_debug2_o
             );
           end
@@ -263,6 +333,9 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     expected_debug1 = 32'd0;
     expected_debug2 = 32'd0;
     expected_debug3 = 32'd0;
+    expected_context_error_debug = 32'd0;
+    expected_context_error_debug1 = 32'd0;
+    expected_context_error_debug2 = 32'd0;
 
     for (i = 0; i < MLP_C_PROJ_OUT_DIM; i = i + 1) begin
       expected_final_vector[i * 8 +: 8] = mlp_final_expected_q[i];
@@ -295,6 +368,51 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     };
     expected_debug3 = {expected_block_input_checksum[15:0], expected_block_input_checksum[15:0]};
 
+    begin
+      logic signed [31:0] mean_acc_q12;
+      logic signed [31:0] mean_q12;
+      logic signed [31:0] centered_q12;
+      logic signed [31:0] norm_q12;
+      logic signed [31:0] affine_q12;
+      logic signed [63:0] mean_shifted;
+      logic signed [63:0] norm_shifted;
+      logic signed [63:0] affine_shifted;
+
+      mean_acc_q12 = 32'sd0;
+      for (int dim = 0; dim < LN_DIM; dim = dim + 1) begin
+        mean_acc_q12 =
+          mean_acc_q12 +
+          $signed({{16{ln_input_q12_by_token[0][dim][15]}}, ln_input_q12_by_token[0][dim]});
+      end
+      mean_shifted = round_shift_signed64_tb({{32{mean_acc_q12[31]}}, mean_acc_q12}, 6);
+      mean_q12 = $signed(mean_shifted[31:0]);
+      centered_q12 =
+        $signed({{16{ln_input_q12_by_token[0][2][15]}}, ln_input_q12_by_token[0][2]}) -
+        mean_q12;
+      norm_shifted = round_shift_signed64_tb(
+        $signed(centered_q12) * $signed(ln_inv_std_q16_by_token[0]),
+        16
+      );
+      norm_q12 = $signed(norm_shifted[31:0]);
+      affine_shifted = round_shift_signed64_tb(
+        $signed(norm_q12) * $signed(ln_gamma_q16[2]),
+        16
+      );
+      affine_q12 =
+        $signed(affine_shifted[31:0]) +
+        $signed({{16{ln_beta_q12[2][15]}}, ln_beta_q12[2]});
+      expected_context_error_debug = {
+        4'hc,
+        4'h1,
+        6'd2,
+        ln_expected_q_by_token[0][2],
+        2'd0,
+        8'sd0
+      };
+      expected_context_error_debug1 = {mean_q12[15:0], centered_q12[15:0]};
+      expected_context_error_debug2 = {norm_q12[15:0], affine_q12[15:0]};
+    end
+
     repeat (4) @(negedge SYS_CLK);
     SYS_RSTN = 1'b1;
     repeat (4) @(posedge SYS_CLK);
@@ -312,9 +430,13 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
     pcie_token_ids_i[0 +: 16] = embed_block_expected_token_ids[0];
 
-    force dut.core_i.block_i.context_i.ln_piped_output_w = 8'sd0;
     pulse_start();
-    wait_context_error();
+    induce_context_ln2_error();
+    wait_context_error(
+      expected_context_error_debug,
+      expected_context_error_debug1,
+      expected_context_error_debug2
+    );
     release dut.core_i.block_i.context_i.ln_piped_output_w;
 
     pulse_clear();

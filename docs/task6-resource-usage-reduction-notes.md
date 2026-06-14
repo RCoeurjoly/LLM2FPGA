@@ -33951,3 +33951,31 @@ PCIe dummy top. It still does not prove M2 compute correctness or justify a
 blind pnr100 loop. The next board-facing step should only be a routed image if
 we explicitly want the real context-core `debug1/debug2` values for the already
 localized `0xc10af481` context LN mismatch.
+
+Cheap context LN index-2 debug contract:
+
+- Strengthened
+  `sim/task6_m2_embedding_live_context_full_block_pcie_accel_tb_main.sv` so
+  the induced context error waits for token 0, LN index 2, then forces only the
+  pipelined output byte to `0`.
+- The sim now checks the exact error word and exact context-core debug payload:
+  `debug = 0xc10af400`, `debug1 = 0x000dfd87`,
+  `debug2 = 0xee29ebd3`.
+- These values decode to the same fixture point as the board failure:
+  `ln_expected_q_by_token[0][2] = 0xbd`, mean q12 `13`, centered q12 `-633`,
+  norm q12 `-4567`, and affine q12 `-5165`.
+- The same sim then clears and completes the normal valid full-block wrapper
+  run, preserving final checksum `0x0003b2c9`, samples
+  `0xd114be59`/`0xd737e470`, provenance `0x4d323005`, and DONE debug words
+  `debug1 = 0x50f932e3`, `debug2 = 0x49fb3a5b`,
+  `debug3 = 0x50f950f9`.
+- Cheap proof:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with output
+  `/nix/store/f2b70s4pdnxvnzbcfyan8msd97n8mk31-task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim.json`.
+
+This still does not close M2. It makes the next board test sharper: if a routed
+image with the debug-forwarding fix again fails at `debug = 0xc10af481`, the
+expected real context-core debug words are now around `debug1 = 0x000dfd87`
+and `debug2 = 0xee29ebd3`, not the fallback embedding words
+`0x044efc7d`/`0xfd940092`.
