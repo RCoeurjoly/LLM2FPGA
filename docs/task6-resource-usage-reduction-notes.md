@@ -34026,3 +34026,45 @@ Result:
 M2 remains open. The next change should be one small contract fix or audit
 around the context LN norm/affine arithmetic for token 0 index 2, with a cheap
 sim proving the exact expected/observed debug word before another board run.
+
+Generated constant reader for the failing M2 LN inverse-std lookup:
+
+- Audited the routed image provenance and fixture values for the
+  `2026-06-14T14-38-m2-context-debug-full-block-direct.json` board failure.
+  The integrated Yosys derivation used the current all-heads context fixture,
+  and that fixture computes token 0, LN index 2 as mean q12 `13`,
+  centered q12 `-633`, norm q12 `-4567`, affine q12 `-5165`, and output byte
+  `0xbd`.
+- The board saw the same mean and centered values, but reported norm q12
+  `-4365`, affine q12 `-4932`, and output byte `0xc0`. The board-implied
+  inverse-std value is not one of the fixture's `ln_inv_std_q16_by_token`
+  constants, so the first bounded hypothesis is synthesized lookup behavior
+  for that small unpacked table.
+- Changed
+  `sim/gen_task6_m2_ln_attn_live_kv_all_heads_context_tb_data.py` to emit a
+  generated literal `read_ln_inv_std_q16_by_token_const()` case function from
+  the same fixture data that populates the arrays.
+- Changed
+  `fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv` to use
+  the generated literal reader for the LN norm multiply instead of reading
+  `ln_inv_std_q16_by_token[token_index_q]`.
+- Strengthened
+  `sim/task6_m2_embedding_live_context_full_block_pcie_accel_tb_main.sv` with
+  a natural checkpoint for the exact board-failing observable: token 0, LN
+  index 2, expected `debug1 = 0x000dfd87`, expected
+  `debug2 = 0xee29ebd3`, and expected output byte `0xbd`.
+- Cheap proof:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with output
+  `/nix/store/9h7iwyvlk35fw4i03yp6wpvac161p309-task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim.json`.
+- Integrated synthesis proof:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-ln-invstd-const-yosys-json -L`
+  passed. Final Yosys `CHECK` reported 0 problems, with 86,423 cells,
+  26,358 estimated LCs, 152 DSP48E1, and 16 RAMB36E1.
+- The synthesis log no longer reports `ln_inv_std_q16_by_token` as a mapped
+  context memory. It still maps the other fixture tables in the expected way.
+
+No new pnr100 or board run was performed for this change. M2 remains open; the
+next board run is justified only after this exact routed candidate exists, and
+its purpose should be narrow: does the board's token 0/LN2 debug2 move from
+`0xeef3ecbc` to the sim/oracle `0xee29ebd3`?

@@ -319,6 +319,53 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
   endtask
 
+  task automatic wait_context_ln2_checkpoint(
+    input logic [31:0] expected_debug1_value,
+    input logic [31:0] expected_debug2_value
+  );
+    integer cycles;
+    begin
+      cycles = 0;
+      while (cycles < TIMEOUT_CYCLES) begin
+        @(posedge SYS_CLK);
+        cycles = cycles + 1;
+        if (pcie_status_o[2]) begin
+          $fatal(1, "FAIL: context entered error before natural LN index 2 checkpoint debug=%08x", pcie_debug_o);
+        end
+        if (dut.core_i.block_i.context_i.state_q == 5'd13 &&
+            dut.core_i.block_i.context_i.token_index_q == '0 &&
+            dut.core_i.block_i.context_i.ln_index_q == 6'd2) begin
+          if (dut.core_i.block_i.context_i.debug1_o !== expected_debug1_value) begin
+            $fatal(
+              1,
+              "FAIL: natural context LN2 debug1 expected %08x got %08x",
+              expected_debug1_value,
+              dut.core_i.block_i.context_i.debug1_o
+            );
+          end
+          if (dut.core_i.block_i.context_i.debug2_o !== expected_debug2_value) begin
+            $fatal(
+              1,
+              "FAIL: natural context LN2 debug2 expected %08x got %08x",
+              expected_debug2_value,
+              dut.core_i.block_i.context_i.debug2_o
+            );
+          end
+          if (dut.core_i.block_i.context_i.ln_piped_output_w !== ln_expected_q_by_token[0][2]) begin
+            $fatal(
+              1,
+              "FAIL: natural context LN2 output expected %02x got %02x",
+              ln_expected_q_by_token[0][2],
+              dut.core_i.block_i.context_i.ln_piped_output_w
+            );
+          end
+          return;
+        end
+      end
+      $fatal(1, "Timeout waiting for natural context LN index 2 checkpoint");
+    end
+  endtask
+
   initial begin
     SYS_CLK = 1'b0;
     SYS_RSTN = 1'b0;
@@ -445,6 +492,10 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
 
     pulse_start();
+    wait_context_ln2_checkpoint(
+      expected_context_error_debug1,
+      expected_context_error_debug2
+    );
     wait_done(1);
 
     $display(

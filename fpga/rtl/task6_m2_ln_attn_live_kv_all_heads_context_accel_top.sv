@@ -225,7 +225,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     $signed(ln_mean_latched_q12);
   assign ln_norm_product_w =
     $signed(ln_centered_q12_w) *
-    $signed(ln_inv_std_q16_by_token[token_index_q]);
+    $signed(read_ln_inv_std_q16_by_token_const(token_index_u32_w));
   assign ln_norm_shifted_w = round_shift_signed64(ln_norm_product_w, 16);
   assign ln_norm_q12_w = $signed(ln_norm_shifted_w[31:0]);
   assign ln_affine_product_w =

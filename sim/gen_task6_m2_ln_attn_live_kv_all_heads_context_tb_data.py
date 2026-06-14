@@ -207,11 +207,30 @@ def main() -> None:
         "logic signed [31:0] attn_expected_value_acc [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1];",
         "logic signed [7:0] attn_expected_value_q [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1];",
         "logic signed [7:0] context_expected_q [0:CONTEXT_DIM-1];",
+        "function automatic logic signed [31:0] read_ln_inv_std_q16_by_token_const(input logic [31:0] token_index);",
+        "  begin",
+        "    unique case (token_index)",
+    ]
+    for token, ln in enumerate(ln_fixtures):
+        lines.append(
+            f"      32'd{token}: read_ln_inv_std_q16_by_token_const = {sublane.sv_i32(ln['inv_std_q'])};"
+        )
+    lines.extend(
+        [
+            f"      default: read_ln_inv_std_q16_by_token_const = {sublane.sv_i32(ln_fixtures[-1]['inv_std_q'])};",
+            "    endcase",
+            "  end",
+            "endfunction",
+        ]
+    )
+    lines.extend(
+        [
         "initial $readmemh(\"%s\", q_proj_weight_q);" % q_weight_hex,
         "initial $readmemh(\"%s\", k_proj_weight_q);" % k_weight_hex,
         "initial $readmemh(\"%s\", v_proj_weight_q);" % v_weight_hex,
         "initial begin",
-    ]
+        ]
+    )
     emit_2d(lines, "ln_input_q12_by_token", [ln["input_q"] for ln in ln_fixtures], sublane.sv_i16)
     for index, value in enumerate(ln_fixtures[0]["gamma_q"]):
         lines.append(f"  ln_gamma_q16[{index}] = {sublane.sv_i32(value)};")
