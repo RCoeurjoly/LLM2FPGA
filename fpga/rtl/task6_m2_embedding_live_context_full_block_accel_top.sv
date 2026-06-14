@@ -49,13 +49,14 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic output_valid_q;
   logic error_q;
   logic boundary_valid_q;
-  logic embed_done_status_q;
+  (* keep = "true" *) logic embed_done_status_q;
+  (* keep = "true" *) logic embed_error_status_q;
   (* keep = "true" *) logic clear_local_q;
   (* keep = "true" *) logic clear_embed_q;
   (* keep = "true" *) logic clear_block_q;
 
   logic [31:0] embed_status_w;
-  logic [31:0] embed_status_q;
+  (* keep = "true" *) logic [31:0] embed_status_q;
   logic [31:0] embed_cycle_count_w;
   logic [31:0] embed_block_input_checksum_w;
   logic [31:0] embed_ln_input_checksum_w;
@@ -151,6 +152,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       error_q <= 1'b0;
       boundary_valid_q <= 1'b0;
       embed_done_status_q <= 1'b0;
+      embed_error_status_q <= 1'b0;
       clear_local_q <= 1'b0;
       clear_embed_q <= 1'b0;
       clear_block_q <= 1'b0;
@@ -171,6 +173,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
         error_q <= 1'b0;
         boundary_valid_q <= 1'b0;
         embed_done_status_q <= 1'b0;
+        embed_error_status_q <= 1'b0;
         embed_status_q <= 32'd0;
         embed_debug_q <= 32'd0;
         debug_o <= 32'd0;
@@ -179,6 +182,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
         block_start_q <= 1'b0;
         embed_status_q <= embed_status_w;
         embed_debug_q <= embed_debug_w;
+        embed_error_status_q <= embed_status_w[2];
         embed_done_status_q <= embed_status_q[6:4] == EMBED_ST_DONE && embed_status_q[3];
 
         unique case (state_q)
@@ -191,6 +195,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
               error_q <= 1'b0;
               boundary_valid_q <= 1'b0;
               embed_done_status_q <= 1'b0;
+              embed_error_status_q <= 1'b0;
               debug_o <= 32'd0;
             end
           end
@@ -202,7 +207,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
 
           ST_EMBED: begin
             cycle_count_q <= cycle_count_q + 32'd1;
-            if (embed_status_q[2]) begin
+            if (embed_error_status_q) begin
               state_q <= ST_ERROR;
               error_q <= 1'b1;
               debug_o <= embed_debug_q;
@@ -248,6 +253,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
               error_q <= 1'b0;
               boundary_valid_q <= 1'b0;
               embed_done_status_q <= 1'b0;
+              embed_error_status_q <= 1'b0;
               debug_o <= 32'd0;
             end
           end

@@ -34584,3 +34584,37 @@ No board run was attempted. The next small contract should be a timing-local
 fix for the M2 wrapper/status/control path, or a preflight-signature-only
 hardware image if we decide the full M2 compute image should not carry this
 debug check through the timing-critical pcie_user_clk region.
+
+M2 embedding-status timing-local fix:
+
+- Added a narrow registered boundary in
+  `fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv` around the
+  embedding status flags implicated by the failed route. The wrapper now keeps
+  `embed_status_q`, `embed_done_status_q`, and `embed_error_status_q`, and the
+  parent `ST_EMBED` transition consumes the registered error flag instead of
+  directly checking the wider status bus.
+- The first attempt registered the error flag from `embed_status_q[2]`, which
+  was too late for the existing error-stage contract and failed the cheap sim
+  with `FAIL: expected embedding error stage got debug=ff000000`. The corrected
+  version registers `embed_status_w[2]` for the error flag while still keeping
+  the done decode behind `embed_status_q`.
+- Cheap PCIe-wrapper sim passed:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sim-main -o /tmp/task6-m2-embed-status-barrier-pcie-sim-main -L`
+  followed by
+  `/tmp/task6-m2-embed-status-barrier-pcie-sim-main/obj_dir/sim_main`.
+  The sim reported `INFO: idle context fixture signature c5dc8a6c`, reproduced
+  the token5/LN1 checkpoint as `output dc expected dc`, and finished with final
+  checksum `0x0003b2c9`, sample0 `0xd114be59`, sample1 `0xd737e470`, provenance
+  `0x4d323005`, and final debug3 `0x50f950f9`.
+- Integrated dummy-top Yosys JSON build passed:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-embed-status-barrier-yosys-json -L`.
+  Final `CHECK` reported 0 problems. Final synthesis stats were 86,187 cells,
+  14,006 `FDCE`, 14,712 `FDRE`, 13,425 `LUT6`, 3,055 `MUXF7`, 484 `MUXF8`,
+  and estimated 26,364 LCs, with the existing large-image warning set still at
+  175 unique messages / 205 total.
+
+No route or board run has been attempted for this fix yet. The next allowed
+expensive step is exactly one targeted pnr100 route for this committed
+timing-local change, because it directly tests the previous
+`embed_status_w[5]` pcie_user_clk timing failure. If route still fails, record
+that result and do not run hardware.
