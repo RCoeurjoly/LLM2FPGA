@@ -21,23 +21,24 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
 );
   `include "task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv"
 
-  typedef enum logic [3:0] {
-    S_IDLE = 4'd0,
-    S_ACCUM_MEAN = 4'd1,
-    S_RUN_LN = 4'd2,
-    S_RUN_PROJ = 4'd3,
-    S_RUN_SCORE = 4'd4,
-    S_RUN_VALUE = 4'd5,
-    S_DONE = 4'd6,
-    S_ERROR = 4'd7,
-    S_RUN_PROB_WEIGHT = 4'd8,
-    S_RUN_PROB_NORM = 4'd9,
-    S_RUN_PROB_DIV = 4'd10,
-    S_RUN_PROB_CHECK = 4'd11,
-    S_RUN_LN_AFFINE = 4'd12,
-    S_RUN_LN_OUTPUT = 4'd13,
-    S_RUN_PROJ_OUTPUT = 4'd14,
-    S_RUN_PROJ_READ = 4'd15
+  typedef enum logic [4:0] {
+    S_IDLE = 5'd0,
+    S_ACCUM_MEAN = 5'd1,
+    S_RUN_LN = 5'd2,
+    S_RUN_PROJ = 5'd3,
+    S_RUN_SCORE = 5'd4,
+    S_RUN_VALUE = 5'd5,
+    S_DONE = 5'd6,
+    S_ERROR = 5'd7,
+    S_RUN_PROB_WEIGHT = 5'd8,
+    S_RUN_PROB_NORM = 5'd9,
+    S_RUN_PROB_DIV = 5'd10,
+    S_RUN_PROB_CHECK = 5'd11,
+    S_RUN_LN_AFFINE = 5'd12,
+    S_RUN_LN_OUTPUT = 5'd13,
+    S_RUN_PROJ_OUTPUT = 5'd14,
+    S_RUN_PROJ_ADDR = 5'd15,
+    S_RUN_PROJ_READ = 5'd16
   } state_t;
 
   localparam int TOKEN_WIDTH = (CACHE_SEQ <= 1) ? 1 : $clog2(CACHE_SEQ);
@@ -65,6 +66,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic signed [31:0] k_proj_acc_q;
   logic signed [31:0] v_proj_acc_q;
   logic signed [31:0] q_proj_acc_q;
+  logic [31:0] proj_weight_index_q;
   logic signed [7:0] k_proj_weight_data_q;
   logic signed [7:0] v_proj_weight_data_q;
   logic signed [7:0] q_proj_weight_data_q;
@@ -364,6 +366,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       k_proj_acc_q <= 32'sd0;
       v_proj_acc_q <= 32'sd0;
       q_proj_acc_q <= 32'sd0;
+      proj_weight_index_q <= 32'd0;
       k_proj_weight_data_q <= 8'sd0;
       v_proj_weight_data_q <= 8'sd0;
       q_proj_weight_data_q <= 8'sd0;
@@ -471,7 +474,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
               k_proj_acc_q <= 32'sd0;
               v_proj_acc_q <= 32'sd0;
               q_proj_acc_q <= 32'sd0;
-              state_q <= S_RUN_PROJ_READ;
+              state_q <= S_RUN_PROJ_ADDR;
             end else begin
               ln_index_q <= ln_index_q + LN_INDEX_WIDTH'(1);
               state_q <= S_RUN_LN;
@@ -479,11 +482,17 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           end
         end
 
+        S_RUN_PROJ_ADDR: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          proj_weight_index_q <= proj_weight_index_w;
+          state_q <= S_RUN_PROJ_READ;
+        end
+
         S_RUN_PROJ_READ: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          k_proj_weight_data_q <= k_proj_weight_q[proj_weight_index_w];
-          v_proj_weight_data_q <= v_proj_weight_q[proj_weight_index_w];
-          q_proj_weight_data_q <= q_proj_weight_q[proj_weight_index_w];
+          k_proj_weight_data_q <= k_proj_weight_q[proj_weight_index_q];
+          v_proj_weight_data_q <= v_proj_weight_q[proj_weight_index_q];
+          q_proj_weight_data_q <= q_proj_weight_q[proj_weight_index_q];
           state_q <= S_RUN_PROJ;
         end
 
@@ -496,7 +505,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             state_q <= S_RUN_PROJ_OUTPUT;
           end else begin
             proj_index_q <= proj_index_q + LN_INDEX_WIDTH'(1);
-            state_q <= S_RUN_PROJ_READ;
+            state_q <= S_RUN_PROJ_ADDR;
           end
         end
 
@@ -550,7 +559,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
               k_proj_acc_q <= 32'sd0;
               v_proj_acc_q <= 32'sd0;
               q_proj_acc_q <= 32'sd0;
-              state_q <= S_RUN_PROJ_READ;
+              state_q <= S_RUN_PROJ_ADDR;
             end
           end
         end

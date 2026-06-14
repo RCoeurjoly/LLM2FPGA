@@ -5,7 +5,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
   `include "task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv"
   `include "task6_m2_embedding_block_input_tb_data.sv"
 
-  localparam int TIMEOUT_CYCLES = 122000;
+  localparam int TIMEOUT_CYCLES = 160000;
   localparam logic [2:0] M2_IDLE = 3'd0;
   localparam logic [2:0] M2_DONE = 3'd5;
 
