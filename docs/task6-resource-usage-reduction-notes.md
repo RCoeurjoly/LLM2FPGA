@@ -32381,3 +32381,43 @@ This does not prove PCIe enumeration, BAR stability, timing closure, CDC, or
 TinyStories arithmetic. It does give us a cheap pre-PNR gate for register-map
 mistakes such as missing debug words, missing full-vector apertures, and mux
 address collisions before spending time on HIL.
+
+### 2026-06-14 - M2 diagnostic bitstream localizes HIL failure to context LN
+
+Built and flashed the M2 context-diagnostic pnr100 bitstream:
+
+- Bitstream:
+  `/nix/store/fb0mcn8ay1s0xv61xq40vw2cbaakwm2j-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Final routed timing:
+  `pcie_user_clk` 78.35 MHz PASS at 62.50 MHz, `drck` 237.14 MHz PASS at
+  100 MHz, `PIPE_OOBCLK_IN` 257.67 MHz PASS at 100 MHz.
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-14T02-08-18+0200-task6-m2-context-diagnostics-pnr100-flash`
+
+PCIe recovery followed the validated safe policy:
+
+- Pre-flash lifecycle was `pcie_ready`.
+- Post-flash lifecycle was `missing_resource0`, so no BAR access was attempted.
+- Tapo P115 cold-cycle recovery completed with `final_classification:
+  pcie_ready` and `host_recovery_freeze_risk: false`.
+- BAR header smoke then returned `T6PC`.
+
+Two M2 full-block gates were run:
+
+- `raw-internal` reached the diagnostic wrapper but failed immediately with
+  decoded debug stage `0x01`: embedding token-id mismatch at token index 0.
+  Observed token was `0x0e8f`, matching the transformed BAR readback rather
+  than the requested token ID stream.
+- `readback-compensated` produced correct token/control and residual readback,
+  then failed in live context with decoded debug stage `0xc1`, context substage
+  `0x01`: LN output mismatch at `ln_index=0`. Expected q was `0x6e`, observed q
+  was `0x81`; debug captured mean `0xf406`, centered `0x8e21`, norm `0xca76`,
+  and affine `0x776a`.
+
+This is real progress for M2: PCIe/BAR was stable under the lifecycle plus Tapo
+protocol, the diagnostic bitstream met routed timing, and the failure is now a
+specific live-context layernorm arithmetic mismatch rather than a generic
+final-vector mismatch. M2 remains open. The next fix should target the context
+LN datapath and its synthesized representation, especially dynamic packed-vector
+indexing and FF/mux-mapped tables that sim accepts but pnr/HIL may not preserve
+robustly.
