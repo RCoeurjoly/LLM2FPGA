@@ -1,7 +1,8 @@
 `timescale 1ns/1ps
 
 module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
-  parameter int M2_FULL_BLOCK_TOKEN_INDEX = 5
+  parameter int M2_FULL_BLOCK_TOKEN_INDEX = 5,
+  parameter bit ENABLE_CONTEXT_INTERNAL_CHECKS = 1'b1
 ) (
   input logic SYS_CLK,
   input logic SYS_RSTN,
@@ -62,7 +63,9 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
   logic [31:0] core_debug2_w;
   wire unused_reserved = ^pcie_reserved_i;
 
-  task6_m2_embedding_live_context_full_block_accel_top core_i (
+  task6_m2_embedding_live_context_full_block_accel_top #(
+    .ENABLE_CONTEXT_INTERNAL_CHECKS(ENABLE_CONTEXT_INTERNAL_CHECKS)
+  ) core_i (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(core_start_q),

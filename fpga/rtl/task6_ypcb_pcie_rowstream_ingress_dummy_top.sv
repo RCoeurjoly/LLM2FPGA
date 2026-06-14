@@ -3,6 +3,7 @@
 
 module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
   parameter int M2_FULL_BLOCK_TOKEN_INDEX = 5,
+  parameter bit M2_ENABLE_CONTEXT_INTERNAL_CHECKS = 1'b1,
   parameter bit ENABLE_MLP_ACCEL = 1'b1
 ) (
   output wire        pci_exp_txp,
@@ -269,7 +270,8 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
   endgenerate
 
   task6_m2_embedding_live_context_full_block_pcie_accel_top #(
-    .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX)
+    .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX),
+    .ENABLE_CONTEXT_INTERNAL_CHECKS(M2_ENABLE_CONTEXT_INTERNAL_CHECKS)
   ) m2_full_block_accel (
     .SYS_CLK(pcie_user_clk),
     .SYS_RSTN(pcie_user_rst_n),

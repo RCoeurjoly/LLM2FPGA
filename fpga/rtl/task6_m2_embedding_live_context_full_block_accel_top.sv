@@ -1,6 +1,8 @@
 `timescale 1ns/1ps
 
-module task6_m2_embedding_live_context_full_block_accel_top (
+module task6_m2_embedding_live_context_full_block_accel_top #(
+  parameter bit ENABLE_CONTEXT_INTERNAL_CHECKS = 1'b1
+) (
   input logic SYS_CLK,
   input logic SYS_RSTN,
   input logic start_i,
@@ -83,7 +85,9 @@ module task6_m2_embedding_live_context_full_block_accel_top (
     .debug_o(embed_debug_w)
   );
 
-  task6_m2_live_context_full_block_accel_top block_i (
+  task6_m2_live_context_full_block_accel_top #(
+    .ENABLE_CONTEXT_INTERNAL_CHECKS(ENABLE_CONTEXT_INTERNAL_CHECKS)
+  ) block_i (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(block_start_q),

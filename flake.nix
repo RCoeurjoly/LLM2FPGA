@@ -393,6 +393,7 @@ EOF
               ${./fpga/rtl/task6_m2_embedding_live_context_full_block_pcie_accel_top.sv} \
               ${./fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv}
             chparam -set ENABLE_MLP_ACCEL 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set M2_ENABLE_CONTEXT_INTERNAL_CHECKS 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
             hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
             synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
             stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top

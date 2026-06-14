@@ -1,6 +1,8 @@
 `timescale 1ns/1ps
 
-module task6_m2_live_context_full_block_accel_top (
+module task6_m2_live_context_full_block_accel_top #(
+  parameter bit ENABLE_CONTEXT_INTERNAL_CHECKS = 1'b1
+) (
   input logic SYS_CLK,
   input logic SYS_RSTN,
   input logic start_i,
@@ -87,7 +89,7 @@ module task6_m2_live_context_full_block_accel_top (
   logic [31:0] mlp_debug_w;
 
   task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
-    .ENABLE_INTERNAL_CHECKS(1'b1)
+    .ENABLE_INTERNAL_CHECKS(ENABLE_CONTEXT_INTERNAL_CHECKS)
   ) context_i (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
