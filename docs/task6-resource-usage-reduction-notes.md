@@ -33874,3 +33874,32 @@ Cheap proof remains:
 
 - `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
 - `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+
+Window-read board result:
+
+- Non-BAR lifecycle classified `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T13-53-31+0200-task6-m2-context-checks-windowread-lifecycle`.
+- BAR header smoke returned `T6PC` and top-level status `0x61`.
+- Window-read M2 gate artifact:
+  `artifacts/task6/runs/2026-06-14T13-54-m2-context-checks-windowread-full-block-direct.json`.
+
+Result:
+
+- Preflight is now stable and correct:
+  `status = 0x00000061`, `m2_present = 0x00000001`, and provenance
+  `0x4d323005` for all 3 samples.
+- The gate reached M2 compute, wrote/read back the token input and residual
+  vectors exactly, incremented `start_count`, and then stopped in ERROR state.
+- The first useful hardware failure is now the intended context internal check:
+  `debug = 0xc10af481`, decoded as live-context LN output mismatch at
+  `ln_index = 2`, expected quantized byte `0xbd`, observed `0x81`.
+- Captured LN intermediates: `mean_q12 = 1102`, `centered_q12 = -899`,
+  `norm_q12 = -620`, `affine_q12 = 146`.
+- `debug3 = 0x50f959ba`, so the high half of the handoff checksum still
+  matches `0x50f9`, but the low half differs from the previous expected
+  `0x50f9`.
+
+Conclusion: M2 is still open, but the failure has moved from PCIe/BAR
+preflight and final checksum ambiguity to a specific live-context LN mismatch
+inside the block. Do not run another full board loop until the LN expected-byte
+contract around index 2 is reproduced in a cheap sim or fixture audit.
