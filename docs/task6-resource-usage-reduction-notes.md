@@ -32992,3 +32992,65 @@ before BAR access and should not rely on BAR clear as a full core recovery
 mechanism. The next step is to program this candidate and run the M2 BAR gate
 only after non-BAR lifecycle reports `pcie_ready` and BAR header smoke returns
 `T6PC`.
+
+### 2026-06-14 - M2 wrapper-only BAR clear board gate result
+
+Programmed and verified the routed wrapper-only BAR clear pnr100 candidate:
+
+- Bitstream:
+  `/nix/store/rldb2v10cinvnb2pry23fq5fy8b2cz4v-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-14T08-10-22+0200-task6-m2-wrapper-clear-candidate-pnr100-flash/flash-result.json`.
+- Flash result: `returncode: 0`, `--write-flash --verify`, BPI flash
+  programming complete, first 32 verification words passed.
+
+The safe PCIe/BAR protocol behaved as intended:
+
+- Initial sandboxed lifecycle reported `resource0_permission`, but an
+  unsandboxed non-BAR lifecycle reported `pcie_ready`; the false permission
+  result came from the managed filesystem sandbox's `/sys` view, not from the
+  hardware state.
+- Pre-flash BAR header smoke returned `T6PC`.
+- After flash, performed a Tapo P115 chassis cold-cycle: 10 seconds off,
+  45 seconds on/settle.
+- Post-cycle lifecycle artifact:
+  `artifacts/task6/runs/2026-06-14T08-19-23+0200-task6-m2-wrapper-clear-candidate-post-tapo-lifecycle/pcie-lifecycle.json`,
+  classification `pcie_ready`.
+- Post-cycle BAR header smoke returned `T6PC`.
+- Post-gate cleanup lifecycle artifact:
+  `artifacts/task6/runs/2026-06-14T08-20-23+0200-task6-m2-wrapper-clear-candidate-post-gate-lifecycle/pcie-lifecycle.json`,
+  classification `pcie_ready`.
+
+The board did not close M2 yet:
+
+- Readback-compensated token-live gate artifact:
+  `artifacts/task6/runs/2026-06-14T-task6-m2-wrapper-clear-candidate-live-full-block.json`.
+  It failed before start because the input BAR readback did not match the
+  requested token/control vector. `start_count_before == start_count_after == 0`,
+  status remained IDLE (`0x4d320001`), and debug words stayed zero. This is a
+  host-visible BAR vector transform/readback contract failure, not a compute
+  failure.
+- Raw-internal token-live gate artifact:
+  `artifacts/task6/runs/2026-06-14T-task6-m2-wrapper-clear-candidate-raw-internal-live-full-block.json`.
+  It reached live compute and DONE: status `0x4d320059`, state DONE,
+  `output_valid: true`, `start_count` incremented from 0 to 1, cycle count
+  141,617, provenance `0x4d323005`.
+- Raw-internal numerical checks failed: expected checksum `0x0003b2c9`,
+  observed `0x00040d99`; expected sample0/sample1 `0xd114be59`/`0xd737e470`,
+  observed `0x817ffa7f`/`0x7f817f81`.
+- DONE-stage debug checksums identify the first real compute mismatch after
+  the block input boundary. Observed debug1/debug2 were
+  `0x50f95470`/`0x16fd202d`; expected were `0x50f932e3`/`0x49fb3a5b`.
+  `block_input_checksum_low16` matched (`0x50f9`), but
+  `context_checksum_low16` mismatched first (`expected 0x32e3`, observed
+  `0x5470`), and subsequent attention/residual/LN2/C-proj checksum bytes also
+  differed.
+
+Conclusion: this was real progress but not M2 closure. The candidate is
+route-clean, flashable, PCIe/BAR-stable under the Tapo lifecycle protocol, and
+the live full-block datapath starts and reaches DONE on the board. The remaining
+M2 failure is functional: live context/LN/attention context diverges after the
+token embedding/block-input boundary. The next M2 RTL/debug work should focus
+on the context path that produces `context_checksum_low16`, while separately
+fixing or documenting the BAR vector readback transform so the acceptance gate
+does not need `raw-internal` mode.
