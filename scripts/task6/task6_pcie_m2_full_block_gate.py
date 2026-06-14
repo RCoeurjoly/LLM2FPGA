@@ -285,6 +285,36 @@ def decode_debug(debug: int, debug1: int = 0, debug2: int = 0) -> dict[str, Any]
     return decoded
 
 
+def decode_done_stage_checksums(debug1: int, debug2: int) -> dict[str, Any]:
+    return {
+        "block_input_checksum_low16": f"0x{(debug1 >> 16) & 0xFFFF:04x}",
+        "context_checksum_low16": f"0x{debug1 & 0xFFFF:04x}",
+        "attn_out_checksum_low8": f"0x{(debug2 >> 24) & 0xFF:02x}",
+        "attn_residual_checksum_low8": f"0x{(debug2 >> 16) & 0xFF:02x}",
+        "ln2_checksum_low8": f"0x{(debug2 >> 8) & 0xFF:02x}",
+        "c_proj_checksum_low8": f"0x{debug2 & 0xFF:02x}",
+    }
+
+
+def compare_done_stage_checksums(
+    observed_debug1: int,
+    observed_debug2: int,
+    expected_debug1: int,
+    expected_debug2: int,
+) -> dict[str, Any]:
+    observed = decode_done_stage_checksums(observed_debug1, observed_debug2)
+    expected = decode_done_stage_checksums(expected_debug1, expected_debug2)
+    matches = {key: observed[key] == expected[key] for key in observed}
+    first_mismatch = next((key for key, ok in matches.items() if not ok), None)
+    return {
+        "observed": observed,
+        "expected": expected,
+        "matches": matches,
+        "first_mismatch": first_mismatch,
+        "all_match": first_mismatch is None,
+    }
+
+
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -573,6 +603,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expect-sample1", type=lambda text: int(text, 0))
     parser.add_argument("--expect-output-count", type=lambda text: int(text, 0))
     parser.add_argument(
+        "--expect-debug1",
+        type=lambda text: int(text, 0),
+        help="Expected DONE-state M2 debug1 word, usually from a matching sim log",
+    )
+    parser.add_argument(
+        "--expect-debug2",
+        type=lambda text: int(text, 0),
+        help="Expected DONE-state M2 debug2 word, usually from a matching sim log",
+    )
+    parser.add_argument(
         "--input-hex",
         help=(
             "64-byte block input vector as hex. With --tb-data-sv, defaults to "
@@ -627,6 +667,8 @@ def main() -> int:
         expected["sample1"] = args.expect_sample1
     if args.expect_output_count is not None:
         expected["output_count"] = args.expect_output_count
+    if (args.expect_debug1 is None) != (args.expect_debug2 is None):
+        raise SystemExit("--expect-debug1 and --expect-debug2 must be provided together")
     validate_expected(expected, expected_source)
 
     block_input, residual, block_input_source, residual_source = select_host_vectors(
@@ -922,6 +964,10 @@ def main() -> int:
             "debug1": f"0x{observed['debug1']:08x}",
             "debug2": f"0x{observed['debug2']:08x}",
             "decoded_debug": decode_debug(observed["debug"], observed["debug1"], observed["debug2"]),
+            "done_stage_checksums": decode_done_stage_checksums(
+                observed["debug1"],
+                observed["debug2"],
+            ),
             "provenance": f"0x{observed['provenance']:08x}",
             "expected_provenance": f"0x{observed['expected_provenance']:08x}",
             "output_count": observed["output_count"],
@@ -933,6 +979,13 @@ def main() -> int:
         },
         "checks": checks,
     }
+    if args.expect_debug1 is not None and args.expect_debug2 is not None:
+        result["observed"]["done_stage_checksum_comparison"] = compare_done_stage_checksums(
+            observed["debug1"],
+            observed["debug2"],
+            args.expect_debug1,
+            args.expect_debug2,
+        )
     if failure is not None:
         result["failure"] = failure
 

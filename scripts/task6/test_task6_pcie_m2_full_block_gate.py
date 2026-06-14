@@ -10,9 +10,11 @@ import tempfile
 
 from task6_pcie_m2_full_block_gate import (
     CONTRACT,
+    compare_done_stage_checksums,
     compute_path_for_expected,
     contract_for_expected,
     decode_debug,
+    decode_done_stage_checksums,
     decode_status,
     expected_provenance,
     is_token_live_mode,
@@ -83,6 +85,28 @@ def test_decode_debug_raw_stage_one_remains_embedding_namespace() -> None:
     assert decoded["stage"] == "0x01"
     assert decoded["meaning"] == "embedding token-id mismatch"
     assert "context_meaning" not in decoded
+
+
+def test_done_stage_checksum_decode_finds_first_mismatch() -> None:
+    observed = decode_done_stage_checksums(0x50F9_7AF2, 0x1ACC_F8DB)
+    assert observed == {
+        "block_input_checksum_low16": "0x50f9",
+        "context_checksum_low16": "0x7af2",
+        "attn_out_checksum_low8": "0x1a",
+        "attn_residual_checksum_low8": "0xcc",
+        "ln2_checksum_low8": "0xf8",
+        "c_proj_checksum_low8": "0xdb",
+    }
+    comparison = compare_done_stage_checksums(
+        0x50F9_7AF2,
+        0x1ACC_F8DB,
+        0x50F9_32E3,
+        0x49FB_3A5B,
+    )
+    assert comparison["matches"]["block_input_checksum_low16"]
+    assert not comparison["matches"]["context_checksum_low16"]
+    assert comparison["first_mismatch"] == "context_checksum_low16"
+    assert not comparison["all_match"]
 
 
 def test_parse_expected_json_requires_first_64_output() -> None:
@@ -246,6 +270,7 @@ def main() -> None:
     test_decode_status_rejects_old_magic_bit14_interpretation()
     test_decode_debug_context_ln_uses_context_namespace()
     test_decode_debug_raw_stage_one_remains_embedding_namespace()
+    test_done_stage_checksum_decode_finds_first_mismatch()
     test_parse_expected_json_requires_first_64_output()
     test_parse_expected_tb_data_sv_first_token_final_vector()
     test_parse_embedding_tb_data_sv_token_input_vector()
