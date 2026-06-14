@@ -369,26 +369,6 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     end
   endtask
 
-  task automatic reset_context_work_arrays;
-    begin
-      for (int r_dim = 0; r_dim < LN_DIM; r_dim = r_dim + 1) begin
-        ln_output_cache_q[r_dim] <= 8'sd0;
-      end
-      for (int r_src = 0; r_src < CACHE_SEQ; r_src = r_src + 1) begin
-        for (int r_head = 0; r_head < ATTN_HEAD_DIM; r_head = r_head + 1) begin
-          k_cache_q[r_src][r_head] <= 8'sd0;
-          v_cache_q[r_src][r_head] <= 8'sd0;
-        end
-        score_cache_q[r_src] <= 32'sd0;
-        weight_cache_q[r_src] <= 32'd0;
-        prob_cache_q[r_src] <= 16'd0;
-      end
-      for (int r_q = 0; r_q < ATTN_HEAD_DIM; r_q = r_q + 1) begin
-        q_final_q[r_q] <= 8'sd0;
-      end
-    end
-  endtask
-
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
     if (!SYS_RSTN) begin
       state_q <= S_IDLE;
@@ -402,7 +382,6 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       output_sample0_o <= 32'd0;
       output_sample1_o <= 32'd0;
       output_vector_o <= 512'd0;
-      reset_context_work_arrays();
     end else if (clear_i) begin
       state_q <= S_IDLE;
       head_index_q <= '0;
@@ -415,7 +394,6 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       output_sample0_o <= 32'd0;
       output_sample1_o <= 32'd0;
       output_vector_o <= 512'd0;
-      reset_context_work_arrays();
     end else begin
       unique case (state_q)
         S_IDLE: begin
@@ -423,7 +401,6 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             state_q <= S_ACCUM_MEAN;
             head_index_q <= '0;
             reset_head_work();
-            reset_context_work_arrays();
             cycle_count_q <= 32'd0;
             debug_q <= 32'd0;
             output_checksum_o <= 32'd0;
@@ -689,7 +666,6 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             state_q <= S_ACCUM_MEAN;
             head_index_q <= '0;
             reset_head_work();
-            reset_context_work_arrays();
             cycle_count_q <= 32'd0;
             debug_q <= 32'd0;
             output_checksum_o <= 32'd0;

@@ -49,6 +49,77 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_tb;
 
   always #5 SYS_CLK = ~SYS_CLK;
 
+  task automatic pulse_start;
+    begin
+      start_i = 1'b1;
+      @(posedge SYS_CLK);
+      start_i = 1'b0;
+    end
+  endtask
+
+  task automatic wait_done(input int pass_index);
+    integer pass_cycles;
+    begin
+      pass_cycles = 0;
+      while (pass_cycles < TIMEOUT_CYCLES) begin
+        @(posedge SYS_CLK);
+        pass_cycles = pass_cycles + 1;
+
+        if (status_o[2]) begin
+          $fatal(
+            1,
+            "FAIL: task6 M2 live-kv all-head context accel entered error pass=%0d status=%08x debug=%08x debug1=%08x debug2=%08x",
+            pass_index,
+            status_o,
+            debug_o,
+            debug1_o,
+            debug2_o
+          );
+        end
+
+        if (status_o[6:4] == S_DONE && status_o[3]) begin
+          if (output_checksum_o !== expected_checksum) begin
+            $fatal(
+              1,
+              "FAIL: checksum expected %08x got %08x pass=%0d",
+              expected_checksum,
+              output_checksum_o,
+              pass_index
+            );
+          end
+          if (output_sample0_o !== expected_sample0) begin
+            $fatal(
+              1,
+              "FAIL: sample0 expected %08x got %08x pass=%0d",
+              expected_sample0,
+              output_sample0_o,
+              pass_index
+            );
+          end
+          if (output_sample1_o !== expected_sample1) begin
+            $fatal(
+              1,
+              "FAIL: sample1 expected %08x got %08x pass=%0d",
+              expected_sample1,
+              output_sample1_o,
+              pass_index
+            );
+          end
+          if (output_vector_o !== expected_output_vector) begin
+            $fatal(1, "FAIL: output vector mismatch pass=%0d", pass_index);
+          end
+          return;
+        end
+      end
+
+      $fatal(
+        1,
+        "Timeout waiting for task6 M2 ln attn live-kv all-head context accel done pass=%0d",
+        pass_index
+      );
+    end
+  endtask
+
   initial begin
     SYS_CLK = 1'b0;
     SYS_RSTN = 1'b0;
@@ -85,64 +156,28 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_tb;
     repeat (4) @(negedge SYS_CLK);
     SYS_RSTN = 1'b1;
     repeat (4) @(posedge SYS_CLK);
-    start_i = 1'b1;
+
+    pulse_start();
+    wait_done(1);
+
+    clear_i = 1'b1;
     @(posedge SYS_CLK);
-    start_i = 1'b0;
-
-    while (cycles < TIMEOUT_CYCLES) begin
-      @(posedge SYS_CLK);
-      cycles = cycles + 1;
-
-      if (status_o[2]) begin
-        $fatal(
-          1,
-          "FAIL: task6 M2 live-kv all-head context accel entered error status=%08x debug=%08x debug1=%08x debug2=%08x",
-          status_o,
-          debug_o,
-          debug1_o,
-          debug2_o
-        );
-      end
-
-      if (status_o[6:4] == S_DONE && status_o[3]) begin
-        if (output_checksum_o !== expected_checksum) begin
-          $fatal(
-            1,
-            "FAIL: checksum expected %08x got %08x",
-            expected_checksum,
-            output_checksum_o
-          );
-        end
-        if (output_sample0_o !== expected_sample0) begin
-          $fatal(
-            1,
-            "FAIL: sample0 expected %08x got %08x",
-            expected_sample0,
-            output_sample0_o
-          );
-        end
-        if (output_sample1_o !== expected_sample1) begin
-          $fatal(
-            1,
-            "FAIL: sample1 expected %08x got %08x",
-            expected_sample1,
-            output_sample1_o
-          );
-        end
-        if (output_vector_o !== expected_output_vector) begin
-          $fatal(1, "FAIL: output vector mismatch");
-        end
-        $display(
-          "PASS: task6 M2 ln attn live-kv all-head context accel cycles %0d checksum %08x sample0 %08x sample1 %08x",
-          cycle_count_o,
-          output_checksum_o,
-          output_sample0_o,
-          output_sample1_o
-        );
-        $finish;
-      end
+    clear_i = 1'b0;
+    @(posedge SYS_CLK);
+    if (status_o[6:4] != 3'd0 || !status_o[0]) begin
+      $fatal(1, "FAIL: post-clear context status expected idle/ready got %08x", status_o);
     end
 
-    $fatal(1, "Timeout waiting for task6 M2 ln attn live-kv all-head context accel done");
+    pulse_start();
+    wait_done(2);
+
+    $display(
+      "PASS: task6 M2 ln attn live-kv all-head context accel cycles %0d checksum %08x sample0 %08x sample1 %08x",
+      cycle_count_o,
+      output_checksum_o,
+      output_sample0_o,
+      output_sample1_o
+    );
+    $finish;
   end
 endmodule
