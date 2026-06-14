@@ -32722,3 +32722,26 @@ ROMs, while Xilinx BRAM mapping needs a compatible registered-read shape. The
 next fix should either pipeline/register the context projection-weight ROM
 reads explicitly or remove the forced BRAM attribute and choose a smaller
 constant-table target for the next timing attempt.
+
+### 2026-06-14 - M2 registered QKV data still fails BRAM mapping
+
+Committed the first latency-aware Q/K/V ROM read attempt as `f03dfec`. It added
+an explicit projection-weight read state and registered Q/K/V weight data before
+the multiply-accumulate cycle. Simulation still passed:
+
+- Context sim: cycle count 77,728, checksum `0x000432e3`, sample0
+  `0xd3c310cb`, sample1 `0x10c11ddc`.
+- PCIe wrapper sim: cycle count 117,041, final checksum `0x0003b2c9`, sample0
+  `0xd114be59`, sample1 `0xd737e470`, provenance `0x4d323005`, debug
+  `0x00000000`, debug1 `0x50f932e3`, debug2 `0x49fb3a5b`.
+
+The pnr100 build still failed during Yosys `MEMORY_LIBMAP` on
+`context_i.k_proj_weight_q`. The key diagnostic remained:
+
+- `Checking read port address ... context_i.k_proj_weight_q[0] ... no address
+  FF found`
+- `ERROR: no valid mapping found for memory ... context_i.k_proj_weight_q`
+
+So registering the memory output is insufficient for this toolchain. The next
+attempt needs to register the projection-weight address explicitly before the
+`$readmemh` ROM read, then consume the registered data in a later state.
