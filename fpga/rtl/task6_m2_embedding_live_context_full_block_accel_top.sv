@@ -240,7 +240,15 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     final_sample0_o = block_final_sample0_w;
     final_sample1_o = block_final_sample1_w;
     final_vector_o = block_final_vector_w;
-    if (state_q == ST_BLOCK || state_q == ST_DONE ||
+    if (state_q == ST_DONE) begin
+      debug1_o = {embed_block_input_checksum_w[15:0], block_context_checksum_w[15:0]};
+      debug2_o = {
+        block_attn_out_checksum_w[7:0],
+        block_attn_residual_checksum_w[7:0],
+        block_ln2_checksum_w[7:0],
+        block_c_proj_checksum_w[7:0]
+      };
+    end else if (state_q == ST_BLOCK ||
         (state_q == ST_ERROR && debug_o[31:24] == 8'h4c)) begin
       debug1_o = block_debug1_w;
       debug2_o = block_debug2_w;
