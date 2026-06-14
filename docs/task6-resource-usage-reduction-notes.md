@@ -33094,3 +33094,61 @@ the safe PCIe/BAR protocol. It is not M2 closure until the HIL gate passes on
 the board; the previous wrapper-clear candidate proved that sim success and
 route-clean timing are not enough when the first observed HIL mismatch is in
 the live context checksum.
+
+### 2026-06-14 - M2 registered-boundary board recovery and raw gate result
+
+The first flash attempt of the registered-boundary pnr100 bitstream was
+interrupted before the flash wrapper wrote `flash-result.json`. The empty
+artifact directory was:
+
+- `artifacts/task6/runs/2026-06-14T08-49-24+0200-task6-m2-registered-boundary-pnr100-flash`.
+
+The next non-BAR lifecycle probe reported corrupt config:
+
+- `artifacts/task6/runs/2026-06-14T08-55-59+0200-task6-m2-registered-boundary-after-interrupt-lifecycle`,
+  classification `corrupt_command`.
+
+Recovery used only the validated safe path:
+
+- Tapo P115 cold-cycle, then non-BAR lifecycle. The endpoint was still absent
+  after the first cold-cycle:
+  `artifacts/task6/runs/2026-06-14T08-57-46+0200-task6-m2-registered-boundary-post-interrupt-tapo-lifecycle`,
+  classification `missing_endpoint`.
+- A non-writing JTAG/BPI probe confirmed the flash path was reachable:
+  `artifacts/task6/runs/2026-06-14T08-58-59+0200-task6-m2-registered-boundary-jtag-probe-after-interrupt`.
+- A deliberate JTAG BPI recovery flash with `--allow-corrupt-pcie-config`
+  completed and verified:
+  `artifacts/task6/runs/2026-06-14T09-00-04+0200-task6-m2-registered-boundary-pnr100-recovery-flash`.
+  openFPGALoader detected Intel/Micron `0x0089/0x887e`, wrote 18,735,004
+  bytes, verified the first 32 words, and reported `BPI flash programming
+  complete`.
+- After a second Tapo cold-cycle, non-BAR lifecycle returned `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T09-08-35+0200-task6-m2-registered-boundary-post-recovery-flash-lifecycle`.
+- BAR header smoke returned `T6PC`.
+
+The raw-internal M2 full-block gate then ran live compute but did not close M2:
+
+- Artifact:
+  `artifacts/task6/runs/2026-06-14T-task6-m2-registered-boundary-raw-internal-live-full-block.json`.
+- It reached DONE with no error: status `0x4d320059`, `output_valid: true`,
+  start count 0 to 1, cycle count 141,619, provenance `0x4d323005`.
+- PCIe stayed healthy after the gate:
+  `artifacts/task6/runs/2026-06-14T09-10-00+0200-task6-m2-registered-boundary-post-raw-gate-lifecycle`,
+  classification `pcie_ready`.
+- Numerical output failed: expected checksum/sample0/sample1
+  `0x0003b2c9`/`0xd114be59`/`0xd737e470`, observed
+  `0x000503f4`/`0xbb1d7f7f`/`0x81db3f53`.
+
+Important caveat: this board artifact was produced with the registered-boundary
+bitstream before the subsequent RTL fix that restores `debug1_o/debug2_o` to
+the full-block child debug readout. Therefore the gate's decoded
+`done_stage_checksum_comparison` should not be used as the authoritative stage
+diagnosis for this run. The reliable conclusion is narrower: the
+registered-boundary candidate still reaches DONE on the board, but its final
+64-byte vector is not token-exact.
+
+The next M2 step should not be another blind board run of the same image.
+Build/route a candidate with the restored debug surface, or add a focused
+sim/HIL check that proves the embedding-to-block registered boundary captures
+the same vector the child block consumes. The current evidence says M2 remains
+open.
