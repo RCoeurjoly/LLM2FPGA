@@ -35,7 +35,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     S_RUN_PROB_DIV = 4'd10,
     S_RUN_PROB_CHECK = 4'd11,
     S_RUN_LN_AFFINE = 4'd12,
-    S_RUN_LN_OUTPUT = 4'd13
+    S_RUN_LN_OUTPUT = 4'd13,
+    S_RUN_PROJ_OUTPUT = 4'd14
   } state_t;
 
   localparam int TOKEN_WIDTH = (CACHE_SEQ <= 1) ? 1 : $clog2(CACHE_SEQ);
@@ -246,13 +247,13 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     ($signed(ln_output_cache_q[proj_index_q]) *
      $signed(q_proj_weight_q[head_index_q][dim_index_q][proj_index_q]));
   assign k_proj_output_product_w =
-    $signed(k_proj_next_acc_w) *
+    $signed(k_proj_acc_q) *
     $signed(k_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q]);
   assign v_proj_output_product_w =
-    $signed(v_proj_next_acc_w) *
+    $signed(v_proj_acc_q) *
     $signed(v_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q]);
   assign q_proj_output_product_w =
-    $signed(q_proj_next_acc_w) *
+    $signed(q_proj_acc_q) *
     $signed(q_proj_output_mul_q20_final[head_index_q][dim_index_q]);
   assign k_proj_output_shifted_w = round_shift_signed64(k_proj_output_product_w, 20);
   assign v_proj_output_shifted_w = round_shift_signed64(v_proj_output_product_w, 20);
@@ -473,58 +474,64 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           v_proj_acc_q <= v_proj_next_acc_w;
           q_proj_acc_q <= q_proj_next_acc_w;
           if (proj_index_q == LN_INDEX_WIDTH'(LN_DIM - 1)) begin
-            if (ENABLE_INTERNAL_CHECKS &&
-                k_proj_output_w != k_proj_expected_q_by_token[head_index_q][token_index_q][dim_index_q]) begin
-              state_q <= S_ERROR;
-              debug_q <= {8'h02, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, k_proj_output_w};
-            end else if (ENABLE_INTERNAL_CHECKS &&
-                         v_proj_output_w != v_proj_expected_q_by_token[head_index_q][token_index_q][dim_index_q]) begin
-              state_q <= S_ERROR;
-              debug_q <= {8'h03, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, v_proj_output_w};
-            end else if (
-              ENABLE_INTERNAL_CHECKS &&
-              token_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1) &&
-              q_proj_output_w != q_proj_expected_q_final[head_index_q][dim_index_q]
-            ) begin
-              state_q <= S_ERROR;
-              debug_q <= {8'h04, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, q_proj_output_w};
-            end else begin
-              k_cache_q[token_index_q][dim_index_q] <= k_proj_output_w;
-              v_cache_q[token_index_q][dim_index_q] <= v_proj_output_w;
-              if (token_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
-                q_final_q[dim_index_q] <= q_proj_output_w;
-              end
+            state_q <= S_RUN_PROJ_OUTPUT;
+          end else begin
+            proj_index_q <= proj_index_q + LN_INDEX_WIDTH'(1);
+          end
+        end
 
-              if (dim_index_q == ATTN_DIM_WIDTH'(ATTN_HEAD_DIM - 1)) begin
-                if (token_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
-                  src_index_q <= '0;
-                  max_score_q <= -32'sd2147483647 - 32'sd1;
-                  softmax_denom_q <= 32'd0;
-                  prob_sum_q <= 32'd0;
-                  state_q <= S_RUN_SCORE;
-                end else begin
-                  token_index_q <= token_index_q + TOKEN_WIDTH'(1);
-                  mean_index_q <= '0;
-                  ln_index_q <= '0;
-                  proj_index_q <= '0;
-                  dim_index_q <= '0;
-                  ln_mean_acc_q12 <= 32'sd0;
-                  ln_mean_latched_q12 <= 32'sd0;
-                  k_proj_acc_q <= 32'sd0;
-                  v_proj_acc_q <= 32'sd0;
-                  q_proj_acc_q <= 32'sd0;
-                  state_q <= S_ACCUM_MEAN;
-                end
+        S_RUN_PROJ_OUTPUT: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          if (ENABLE_INTERNAL_CHECKS &&
+                k_proj_output_w != k_proj_expected_q_by_token[head_index_q][token_index_q][dim_index_q]) begin
+            state_q <= S_ERROR;
+            debug_q <= {8'h02, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, k_proj_output_w};
+          end else if (ENABLE_INTERNAL_CHECKS &&
+                       v_proj_output_w != v_proj_expected_q_by_token[head_index_q][token_index_q][dim_index_q]) begin
+            state_q <= S_ERROR;
+            debug_q <= {8'h03, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, v_proj_output_w};
+          end else if (
+            ENABLE_INTERNAL_CHECKS &&
+            token_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1) &&
+            q_proj_output_w != q_proj_expected_q_final[head_index_q][dim_index_q]
+          ) begin
+            state_q <= S_ERROR;
+            debug_q <= {8'h04, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, q_proj_output_w};
+          end else begin
+            k_cache_q[token_index_q][dim_index_q] <= k_proj_output_w;
+            v_cache_q[token_index_q][dim_index_q] <= v_proj_output_w;
+            if (token_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
+              q_final_q[dim_index_q] <= q_proj_output_w;
+            end
+
+            if (dim_index_q == ATTN_DIM_WIDTH'(ATTN_HEAD_DIM - 1)) begin
+              if (token_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
+                src_index_q <= '0;
+                max_score_q <= -32'sd2147483647 - 32'sd1;
+                softmax_denom_q <= 32'd0;
+                prob_sum_q <= 32'd0;
+                state_q <= S_RUN_SCORE;
               end else begin
-                dim_index_q <= dim_index_q + ATTN_DIM_WIDTH'(1);
+                token_index_q <= token_index_q + TOKEN_WIDTH'(1);
+                mean_index_q <= '0;
+                ln_index_q <= '0;
                 proj_index_q <= '0;
+                dim_index_q <= '0;
+                ln_mean_acc_q12 <= 32'sd0;
+                ln_mean_latched_q12 <= 32'sd0;
                 k_proj_acc_q <= 32'sd0;
                 v_proj_acc_q <= 32'sd0;
                 q_proj_acc_q <= 32'sd0;
+                state_q <= S_ACCUM_MEAN;
               end
+            end else begin
+              dim_index_q <= dim_index_q + ATTN_DIM_WIDTH'(1);
+              proj_index_q <= '0;
+              k_proj_acc_q <= 32'sd0;
+              v_proj_acc_q <= 32'sd0;
+              q_proj_acc_q <= 32'sd0;
+              state_q <= S_RUN_PROJ;
             end
-          end else begin
-            proj_index_q <= proj_index_q + LN_INDEX_WIDTH'(1);
           end
         end
 
