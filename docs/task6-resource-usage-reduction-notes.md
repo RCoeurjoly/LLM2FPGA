@@ -33506,3 +33506,30 @@ The sim passed with the same BAR-visible data observables and one added cycle:
 
 This is eligible for one targeted pnr100 timing check. It is not eligible for a
 board run unless that route closes `pcie_user_clk` at 62.50 MHz.
+
+### 2026-06-14 - M2 registered embedding-status pnr100 route result
+
+Ran the single targeted pnr100 timing check for the registered
+embedding-status handoff candidate:
+
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-registered-embed-status-pnr100-bitstream -L`
+- Bitstream:
+  `/nix/store/9j0lq66kms5jv79p31yb3b0k2216y1p5-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+
+The route passed timing:
+
+- Router2 overuse converged `79563 -> 4201 -> 92 -> 1 -> 0`.
+- Utilization at pack/place included 63,707 `SLICE_LUTX`, 28,579 `SLICE_FFX`,
+  152 `DSP48E1`, 16 `RAMB36E1`, and 1 `PCIE_2_1`.
+- Post-place `pcie_user_clk` was 51.95 MHz, failing the 62.50 MHz target.
+- Final routed `pcie_user_clk` was 63.55 MHz, passing the 62.50 MHz target.
+- Other reported clocks passed: DRCK 228.05 MHz at 100 MHz target and
+  `PIPE_OOBCLK_IN` 253.68 MHz at 100 MHz target.
+- Final `pcie_user_clk` critical path was still route dominated: 1.2 ns logic
+  and 14.5 ns routing, starting from `m2_full_block_accel.core_i.embed_status_w[5]`
+  and ending at `slice$325386.CE`.
+
+Conclusion: the registered embedding-status handoff did not eliminate the
+status/control critical path, but this placement routed just over the 62.50 MHz
+barrier. It is eligible for one guarded board run using the validated
+lifecycle/Tapo/BAR-header protocol.
