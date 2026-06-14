@@ -32668,3 +32668,29 @@ fixture paths are explicitly recorded. M2 remains open. The next fix should
 focus on the context LN quantization/rounding boundary around index 16 and add a
 small simulation/formal check that exercises the exact debug word encoding
 before another full pnr100/HIL cycle.
+
+### 2026-06-14 - M2 no-wide-scrub pnr timing attempt
+
+Committed the context work-array reset reduction as `ba9c99a`. The focused
+context sim and the PCIe wrapper sim both passed two back-to-back runs with a
+clear pulse between runs, so the change preserves the simulation contract while
+removing the broad context-array scrub from reset/start/restart.
+
+The pnr100 build for
+`task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream` was then run from
+that committed state and stopped after placement because the image was not
+flashable:
+
+- `pcie_user_clk`: 38.34 MHz FAIL at 62.50 MHz.
+- `drck`: 141.64 MHz PASS at 100 MHz.
+- `PIPE_OOBCLK_IN`: 153.14 MHz PASS at 100 MHz.
+- Packed resources before routing: 77,263 `SLICE_LUTX`, 28,517 `SLICE_FFX`,
+  94 `DSP48E1`, and 13 `RAMB36E1`.
+
+This is an improvement over the broad-scrub timing attempt (`pcie_user_clk`
+32.47 MHz; about 78,452 LUTs and 28,645 FFs), but it is still far below the
+required PCIe user-clock timing. The build log also showed many context,
+embedding, and small model tables being FF/mux-mapped while only the large
+weight memories were forced into BRAM. The next M2 pnr-oriented fix should move
+more constant/fixture tables out of LUT/FF fabric or shrink the live-context
+surface before spending another full route/HIL cycle.
