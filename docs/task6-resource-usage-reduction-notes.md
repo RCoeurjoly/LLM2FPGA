@@ -33568,3 +33568,28 @@ block-input BAR vector write/readback contract, not full-block arithmetic. The
 next change should be one narrow BAR vector contract fix, followed by a cheap
 ingress-level sim that writes non-zero M2 input words and proves exact direct
 readback identity before any further pnr100 or board run.
+
+### 2026-06-14 - M2 direct vector BAR probe result
+
+After the ingress sim was strengthened to cover the exact failing M2 fixture
+input words, ran one small board probe instead of another full M2 gate:
+
+- Non-BAR lifecycle: `pcie_ready`.
+- BAR header smoke: `T6PC`.
+- Probe:
+  `python3 scripts/task6/task6_pcie_m2_vector_rw_probe.py 0000:42:00.0 --json-out artifacts/task6/runs/2026-06-14T11-43-00+0200-task6-m2-vector-rw-probe-direct.json`
+
+The probe failed direct write/readback for both M2 input and residual vectors
+without starting compute. This localizes the current M2 blocker to the vector
+BAR contract:
+
+- Input writes `0x25001000..0x2500100f` read back as
+  `0x92800800, 0x12800800, 0x92800801, 0x12800801, ...`.
+- Residual writes `0x5a002000..0x5a00200f` read back as
+  `0xad001000, 0x2d001000, 0xad001001, 0x2d001001, ...`.
+
+That pattern is adjacent 32-bit pair swap plus a right rotate by one bit on
+each word. The leaf ingress sim still passes direct readback, so the mismatch
+is between the host-visible PCIe/BAR lane contract and the leaf ingress model.
+Do not rerun the full M2 gate until this vector BAR transport contract has a
+small sim or wrapper-level reproducer and a direct identity fix.
