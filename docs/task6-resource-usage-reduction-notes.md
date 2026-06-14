@@ -33679,3 +33679,11 @@ acceptance problem. It gives the next targeted board run a localizing
 observable: if `debug3 == 0x50f950f9` but `debug1/debug2/final` still diverge,
 the board mismatch is after the embedding-to-block-input handoff; if the lower
 half differs, the handoff into full-block compute is already corrupt.
+
+Targeted route build:
+
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-handoff-debug3-pnr100-bitstream -L`
+- Result:
+  `/nix/store/islhsi1vbqy86zg5cvh4ikw3rzd2hw0z-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Final nextpnr timing passed: `pcie_user_clk` 69.01 MHz against 62.50 MHz.
+- No board run has been performed with this bitstream yet.
