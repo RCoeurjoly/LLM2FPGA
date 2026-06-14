@@ -51,9 +51,6 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic [511:0] embed_block_input_vector_w;
   logic [6143:0] embed_ln_input_q12_by_token_w;
   logic [31:0] embed_debug_w;
-  logic [31:0] embed_block_input_checksum_q;
-  logic [511:0] embed_block_input_vector_q;
-  logic [6143:0] embed_ln_input_q12_by_token_q;
 
   logic [31:0] block_status_w;
   logic [31:0] block_cycle_count_w;
@@ -93,9 +90,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     .start_i(block_start_q),
     .clear_i(clear_i),
     .use_external_ln_input_i(1'b1),
-    .external_ln_input_q12_by_token_i(embed_ln_input_q12_by_token_q),
+    .external_ln_input_q12_by_token_i(embed_ln_input_q12_by_token_w),
     .use_external_block_input_i(1'b1),
-    .external_block_input_vector_i(embed_block_input_vector_q),
+    .external_block_input_vector_i(embed_block_input_vector_w),
     .status_o(block_status_w),
     .cycle_count_o(block_cycle_count_w),
     .context_checksum_o(block_context_checksum_w),
@@ -121,9 +118,6 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       block_start_q <= 1'b0;
       output_valid_q <= 1'b0;
       error_q <= 1'b0;
-      embed_block_input_checksum_q <= 32'd0;
-      embed_block_input_vector_q <= 512'd0;
-      embed_ln_input_q12_by_token_q <= '0;
       debug_o <= 32'd0;
     end else if (clear_i) begin
       state_q <= ST_IDLE;
@@ -132,9 +126,6 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       block_start_q <= 1'b0;
       output_valid_q <= 1'b0;
       error_q <= 1'b0;
-      embed_block_input_checksum_q <= 32'd0;
-      embed_block_input_vector_q <= 512'd0;
-      embed_ln_input_q12_by_token_q <= '0;
       debug_o <= 32'd0;
     end else begin
       embed_start_q <= 1'b0;
@@ -148,9 +139,6 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
             embed_start_q <= 1'b1;
             output_valid_q <= 1'b0;
             error_q <= 1'b0;
-            embed_block_input_checksum_q <= 32'd0;
-            embed_block_input_vector_q <= 512'd0;
-            embed_ln_input_q12_by_token_q <= '0;
             debug_o <= 32'd0;
           end
         end
@@ -167,9 +155,6 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
             error_q <= 1'b1;
             debug_o <= embed_debug_w;
           end else if (embed_status_w[6:4] == EMBED_ST_DONE && embed_status_w[3]) begin
-            embed_block_input_checksum_q <= embed_block_input_checksum_w;
-            embed_block_input_vector_q <= embed_block_input_vector_w;
-            embed_ln_input_q12_by_token_q <= embed_ln_input_q12_by_token_w;
             state_q <= ST_BLOCK_START;
             block_start_q <= 1'b1;
           end
@@ -199,9 +184,6 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
             embed_start_q <= 1'b1;
             output_valid_q <= 1'b0;
             error_q <= 1'b0;
-            embed_block_input_checksum_q <= 32'd0;
-            embed_block_input_vector_q <= 512'd0;
-            embed_ln_input_q12_by_token_q <= '0;
             debug_o <= 32'd0;
           end
         end
@@ -226,7 +208,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       state_q == ST_IDLE || state_q == ST_DONE
     };
     cycle_count_o = cycle_count_q;
-    block_input_checksum_o = embed_block_input_checksum_q;
+    block_input_checksum_o = embed_block_input_checksum_w;
     context_checksum_o = block_context_checksum_w;
     attn_out_checksum_o = block_attn_out_checksum_w;
     attn_residual_checksum_o = block_attn_residual_checksum_w;
@@ -242,12 +224,12 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       debug2_o = block_debug2_w;
     end else begin
       debug1_o = {
-        embed_ln_input_q12_by_token_q[15:0],
-        embed_ln_input_q12_by_token_q[31:16]
+        embed_ln_input_q12_by_token_w[15:0],
+        embed_ln_input_q12_by_token_w[31:16]
       };
       debug2_o = {
-        embed_ln_input_q12_by_token_q[47:32],
-        embed_ln_input_q12_by_token_q[63:48]
+        embed_ln_input_q12_by_token_w[47:32],
+        embed_ln_input_q12_by_token_w[63:48]
       };
     end
   end
