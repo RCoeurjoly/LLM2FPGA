@@ -369,19 +369,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     end
   endtask
 
-  always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
-    if (!SYS_RSTN) begin
-      state_q <= S_IDLE;
-      head_index_q <= '0;
-      reset_head_work();
-      cycle_count_q <= 32'd0;
-      debug_q <= 32'd0;
-      debug1_q <= 32'd0;
-      debug2_q <= 32'd0;
-      output_checksum_o <= 32'd0;
-      output_sample0_o <= 32'd0;
-      output_sample1_o <= 32'd0;
-      output_vector_o <= 512'd0;
+  task automatic reset_context_work_arrays;
+    begin
       for (int r_dim = 0; r_dim < LN_DIM; r_dim = r_dim + 1) begin
         ln_output_cache_q[r_dim] <= 8'sd0;
       end
@@ -397,6 +386,23 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       for (int r_q = 0; r_q < ATTN_HEAD_DIM; r_q = r_q + 1) begin
         q_final_q[r_q] <= 8'sd0;
       end
+    end
+  endtask
+
+  always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
+    if (!SYS_RSTN) begin
+      state_q <= S_IDLE;
+      head_index_q <= '0;
+      reset_head_work();
+      cycle_count_q <= 32'd0;
+      debug_q <= 32'd0;
+      debug1_q <= 32'd0;
+      debug2_q <= 32'd0;
+      output_checksum_o <= 32'd0;
+      output_sample0_o <= 32'd0;
+      output_sample1_o <= 32'd0;
+      output_vector_o <= 512'd0;
+      reset_context_work_arrays();
     end else if (clear_i) begin
       state_q <= S_IDLE;
       head_index_q <= '0;
@@ -409,6 +415,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       output_sample0_o <= 32'd0;
       output_sample1_o <= 32'd0;
       output_vector_o <= 512'd0;
+      reset_context_work_arrays();
     end else begin
       unique case (state_q)
         S_IDLE: begin
@@ -416,6 +423,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             state_q <= S_ACCUM_MEAN;
             head_index_q <= '0;
             reset_head_work();
+            reset_context_work_arrays();
             cycle_count_q <= 32'd0;
             debug_q <= 32'd0;
             output_checksum_o <= 32'd0;
@@ -681,6 +689,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             state_q <= S_ACCUM_MEAN;
             head_index_q <= '0;
             reset_head_work();
+            reset_context_work_arrays();
             cycle_count_q <= 32'd0;
             debug_q <= 32'd0;
             output_checksum_o <= 32'd0;
