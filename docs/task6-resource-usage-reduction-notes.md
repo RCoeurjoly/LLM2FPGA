@@ -32898,3 +32898,46 @@ as `embed_i.ln_input_q12_by_token_q`, and the CE critical path still looks like
 a symptom of wide generated enable/mux fabric. Next RTL work should reduce or
 serialize the live embedding/LN boundary rather than keep passing a 6144-bit
 matrix through broad combinational selection.
+
+### 2026-06-14 - M2 no-wide-embedding-clear pnr timing attempt
+
+Committed the wide embedding-clear removal as `cbacae5`. The embedding module
+no longer zero-fills the 6144-bit LN matrix on reset, clear, start, or restart,
+and no longer clears the 512-bit output vector on clear, start, or restart.
+The intent was to preserve the post-done contract while reducing high-fanout
+clear/start enable fabric.
+
+The PCIe wrapper simulation still passed before PNR:
+
+- Cycle count 141,617.
+- Final checksum `0x0003b2c9`.
+- Final sample0 `0xd114be59`, sample1 `0xd737e470`.
+- Provenance `0x4d323005`, debug `0x00000000`, debug1 `0x50f932e3`,
+  debug2 `0x49fb3a5b`.
+
+Synthesis size improved again, but timing did not:
+
+- ABC extracted 112,117 gates, 138,444 wires, 26,325 inputs, and 24,527
+  outputs.
+- ABC produced 42,956 LUT cells.
+- Packed resources: 57,917 `SLICE_LUTX`, 21,859 `SLICE_FFX`, 94 `DSP48E1`,
+  and 16 `RAMB36E1`.
+- Post-placement clocks: `pcie_user_clk` 34.74 MHz FAIL at 62.50 MHz, `drck`
+  174.67 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 179.21 MHz PASS at 100 MHz.
+- Routed clocks: `pcie_user_clk` 46.59 MHz FAIL at 62.50 MHz, `drck`
+  265.25 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 261.03 MHz PASS at 100 MHz.
+- Router congestion resolved by iteration 4, from 58,182 overused wires at
+  iteration 1 to zero overuse.
+- Routed critical path for `pcie_user_clk`: a path beginning at
+  `led[1]$auto$IOBUF_I$` through generated ABC logic into a CE endpoint, 1.2 ns
+  logic and 20.3 ns routing.
+- The router slow-net report still listed `m2_full_block_accel.pcie_clear_q`
+  near the top and newly highlighted context LN indexing
+  (`context_i.ln_center_flat_index_w[8]`).
+
+This is a negative timing result. Removing wide zero-fill assignments reduced
+area, but worsened placement/routing. Do not treat `cbacae5` as a better M2
+candidate than `4b6761d`; the best current M2 PNR timing remains the direct
+embedding-output attempt at 58.54 MHz routed. The next change should either
+revert this wide-clear removal or replace it with a more controlled reset/clear
+isolation strategy that does not perturb placement into a worse CE path.
