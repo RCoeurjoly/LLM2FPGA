@@ -34396,3 +34396,23 @@ M2 input BAR ror64 compensation contract fix:
   compute. If it fails later, the failure should localize after the repaired
   pre-start input aperture rather than repeat the same transport contract
   failure.
+
+M2 input BAR ror64 compensation pnr100 route result:
+
+- Ran the single targeted pnr100 build justified by the cheap input-aperture
+  sim above:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-input-ror-fix-pnr100-bitstream -L`.
+- Bitstream:
+  `/nix/store/v6sfvab74mfhnlm8aazf45j3fg544zyj-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Router2 converged legally by iteration 5. Final timing passed:
+  `pcie_user_clk = 68.69 MHz` against 62.50 MHz, `drck = 220.26 MHz` against
+  100.00 MHz, and `PIPE_OOBCLK_IN = 212.72 MHz` against 100.00 MHz.
+- The final `pcie_user_clk` critical path starts at
+  `m2_full_block_accel.core_i.clear_block_q` and ends at an unrelated generated
+  CE path; it is not the new M2 input BAR compensation logic. The path is
+  1.2 ns logic and 13.4 ns routing.
+- This is a flashable candidate for one board run under the validated
+  PCIe/BAR recovery protocol. The board gate should first require lifecycle
+  `pcie_ready`, BAR header `T6PC`, and then check whether direct input
+  readback is now identity and whether `start_count` advances. M2 remains open
+  until that board observable passes and the compute result matches.
