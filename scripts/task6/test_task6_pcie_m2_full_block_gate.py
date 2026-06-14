@@ -10,6 +10,7 @@ import tempfile
 
 from task6_pcie_m2_full_block_gate import (
     CONTRACT,
+    classify_vector_readback_transform,
     compare_done_stage_checksums,
     compute_path_for_expected,
     contract_for_expected,
@@ -21,10 +22,14 @@ from task6_pcie_m2_full_block_gate import (
     parse_embedding_tb_data_sv,
     parse_expected_json,
     parse_expected_tb_data_sv,
+    pcie7x_inverse_rotate64_bar_vector_words,
+    pcie7x_rotate64_compensate_bar_vector_words,
     rd32_window,
     sample_registers,
     select_host_vectors,
     validate_expected,
+    vector_bytes_from_words,
+    vector_words_from_bytes,
 )
 
 
@@ -191,6 +196,28 @@ def test_parse_embedding_tb_data_sv_token_input_vector() -> None:
         for token_id in [7454, 2402, 257, 640, 612, 373]
     )
     assert token_input[12:] == bytes(52)
+
+
+def test_vector_readback_transform_classifies_board_ror1() -> None:
+    requested = bytes.fromhex(
+        "1e1d6209010180026402750100000000"
+        "00000000000000000000000000000000"
+        "00000000000000000000000000000000"
+        "00000000000000000000000000000000"
+    )
+    observed = bytes.fromhex(
+        "8f0eb184800040013281ba0000000000"
+        "00000000000000000000000000000000"
+        "00000000000000000000000000000000"
+        "00000000000000000000000000000000"
+    )
+    words = vector_words_from_bytes(requested)
+    assert vector_bytes_from_words(pcie7x_inverse_rotate64_bar_vector_words(words)) == observed
+    assert classify_vector_readback_transform(requested, observed) == "pcie7x-64bit-ror1"
+    compensated = vector_bytes_from_words(pcie7x_rotate64_compensate_bar_vector_words(words))
+    assert classify_vector_readback_transform(requested, compensated) == "pcie7x-64bit-rol1"
+    assert classify_vector_readback_transform(requested, requested) == "identity"
+    assert classify_vector_readback_transform(requested, bytes(64)) == "all-zero"
 
 
 def test_token_live_host_vector_selection_rejects_raw_overrides() -> None:

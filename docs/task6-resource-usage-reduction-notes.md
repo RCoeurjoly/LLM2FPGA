@@ -34342,3 +34342,26 @@ M2 remains open. This run should not trigger another blind pnr100 loop. The
 next small contract should explain the direct input BAR readback transform on
 the token/live wrapper using a cheap BAR-mux sim or a host-side vector write
 model before any further board run.
+
+Host-gate readback transform classifier:
+
+- Added a pure host-side classifier to
+  `scripts/task6/task6_pcie_m2_full_block_gate.py` so future M2 gate artifacts
+  report whether input/residual readback is `identity`, `all-zero`,
+  `pcie7x-64bit-ror1`, `pcie7x-64bit-rol1`, or `other`.
+- This does not weaken direct-mode acceptance. Direct mode still requires
+  identity readback before start.
+- Cheap proof uses the exact board-observed token vector from
+  `2026-06-14T16-40-m2-embed-predecode-full-block-direct.json`:
+  requested bytes
+  `1e1d6209010180026402750100000000...` classify against observed bytes
+  `8f0eb184800040013281ba0000000000...` as `pcie7x-64bit-ror1`.
+- Checks:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  and
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`.
+
+This turns the latest M2 board failure into a named pre-start transport
+contract failure. The next fix should make the token/live direct input aperture
+identity-preserving in hardware, then prove that exact observable in a cheap
+ingress/BAR-mux sim before another board run.

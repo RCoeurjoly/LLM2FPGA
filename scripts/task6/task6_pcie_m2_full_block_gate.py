@@ -195,13 +195,45 @@ def pcie7x_rotate64_compensate_bar_vector_words(words: list[int]) -> list[int]:
     return compensated
 
 
-def write_vector(mm: mmap.mmap, base: int, data: bytes, *, mode: str) -> tuple[list[int], list[int]]:
+def pcie7x_inverse_rotate64_bar_vector_words(words: list[int]) -> list[int]:
+    if len(words) != 16:
+        raise SystemExit(f"vector must contain 16 words, got {len(words)}")
+    transformed: list[int] = []
+    for index in range(0, len(words), 2):
+        pair = ((words[index + 1] & 0xFFFFFFFF) << 32) | (words[index] & 0xFFFFFFFF)
+        rotated = ((pair >> 1) | ((pair & 1) << 63)) & 0xFFFFFFFFFFFFFFFF
+        transformed.append(rotated & 0xFFFFFFFF)
+        transformed.append((rotated >> 32) & 0xFFFFFFFF)
+    return transformed
+
+
+def vector_words_from_bytes(data: bytes) -> list[int]:
     if len(data) != 64:
         raise SystemExit(f"vector must be exactly 64 bytes, got {len(data)}")
-    words = []
-    for index in range(16):
-        word = int.from_bytes(data[index * 4 : index * 4 + 4], "little")
-        words.append(word)
+    return [int.from_bytes(data[index * 4 : index * 4 + 4], "little") for index in range(16)]
+
+
+def vector_bytes_from_words(words: list[int]) -> bytes:
+    if len(words) != 16:
+        raise SystemExit(f"vector must contain 16 words, got {len(words)}")
+    return b"".join((word & 0xFFFFFFFF).to_bytes(4, "little") for word in words)
+
+
+def classify_vector_readback_transform(expected: bytes, observed: bytes) -> str:
+    if observed == expected:
+        return "identity"
+    if observed == bytes(64):
+        return "all-zero"
+    expected_words = vector_words_from_bytes(expected)
+    if observed == vector_bytes_from_words(pcie7x_inverse_rotate64_bar_vector_words(expected_words)):
+        return "pcie7x-64bit-ror1"
+    if observed == vector_bytes_from_words(pcie7x_rotate64_compensate_bar_vector_words(expected_words)):
+        return "pcie7x-64bit-rol1"
+    return "other"
+
+
+def write_vector(mm: mmap.mmap, base: int, data: bytes, *, mode: str) -> tuple[list[int], list[int]]:
+    words = vector_words_from_bytes(data)
     if mode in ("direct", "raw-internal"):
         write_words = words
     elif mode in ("legacy-rotated", "readback-compensated"):
@@ -1098,6 +1130,14 @@ def main() -> int:
             "residual_readback_hex": observed["residual_readback"].hex(),
             "input_readback_matches_requested": observed["input_readback"] == block_input,
             "residual_readback_matches_requested": observed["residual_readback"] == residual,
+            "input_readback_transform": classify_vector_readback_transform(
+                block_input,
+                observed["input_readback"],
+            ),
+            "residual_readback_transform": classify_vector_readback_transform(
+                residual,
+                observed["residual_readback"],
+            ),
         },
         "checks": checks,
     }
