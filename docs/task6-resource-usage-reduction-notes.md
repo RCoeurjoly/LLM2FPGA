@@ -33533,3 +33533,38 @@ Conclusion: the registered embedding-status handoff did not eliminate the
 status/control critical path, but this placement routed just over the 62.50 MHz
 barrier. It is eligible for one guarded board run using the validated
 lifecycle/Tapo/BAR-header protocol.
+
+### 2026-06-14 - M2 registered embedding-status board gate result
+
+Used the validated guarded board protocol for the route-clean registered
+embedding-status handoff bitstream:
+
+- Pre-flash non-BAR lifecycle classified the endpoint as `pcie_ready`.
+- Flash wrote and verified
+  `/nix/store/9j0lq66kms5jv79p31yb3b0k2216y1p5-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- A Tapo P115 cold cycle was used before touching BAR after programming.
+- Post-flash non-BAR lifecycle again classified the endpoint as `pcie_ready`.
+- BAR header smoke returned `T6PC`, version 3, status `0x61`.
+
+The single M2 full-block gate did not exercise compute. It stopped before
+issuing start because the direct-mode M2 block-input BAR readback did not match
+the requested host vector:
+
+- Artifact:
+  `artifacts/task6/runs/2026-06-14T11-38-30+0200-task6-m2-status-handoff-live-full-block.json`
+- Failure: `M2 input/residual BAR readback did not match before start`.
+- M2 decode was otherwise sane: task6 magic/version, M2 magic/version/present,
+  provenance, status schema, and non-all-ones checks passed.
+- Requested first three input words were
+  `0x09621d1e`, `0x02800101`, `0x01750264`.
+- Observed input readback bytes began
+  `8f0eb184800040013281ba00...`, while residual readback matched the all-zero
+  residual vector.
+- Start count did not increment, cycle count stayed zero, and all compute
+  observables remained zero.
+
+Conclusion: M2 remains open. The current localized blocker is the M2
+block-input BAR vector write/readback contract, not full-block arithmetic. The
+next change should be one narrow BAR vector contract fix, followed by a cheap
+ingress-level sim that writes non-zero M2 input words and proves exact direct
+readback identity before any further pnr100 or board run.
