@@ -45,6 +45,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
   logic [31:0] debug_q;
   logic [31:0] debug1_q;
   logic [31:0] debug2_q;
+  logic pcie_clear_q;
   logic [31:0] core_status_w;
   logic [31:0] core_cycle_count_w;
   logic [31:0] core_block_input_checksum_w;
@@ -69,7 +70,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(core_start_q),
-    .clear_i(pcie_clear_pulse_i),
+    .clear_i(pcie_clear_q),
     .token_ids_i(token_ids_q),
     .status_o(core_status_w),
     .cycle_count_o(core_cycle_count_w),
@@ -102,10 +103,12 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
       debug_q <= 32'd0;
       debug1_q <= 32'd0;
       debug2_q <= 32'd0;
+      pcie_clear_q <= 1'b0;
     end else begin
+      pcie_clear_q <= pcie_clear_pulse_i;
       core_start_q <= 1'b0;
 
-      if (pcie_clear_pulse_i) begin
+      if (pcie_clear_q) begin
         state_q <= M2_IDLE;
         cycle_count_q <= 32'd0;
         final_checksum_q <= 32'd0;
