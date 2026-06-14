@@ -32941,3 +32941,54 @@ candidate than `4b6761d`; the best current M2 PNR timing remains the direct
 embedding-output attempt at 58.54 MHz routed. The next change should either
 revert this wide-clear removal or replace it with a more controlled reset/clear
 isolation strategy that does not perturb placement into a worse CE path.
+
+### 2026-06-14 - M2 wrapper-only BAR clear pnr timing candidate
+
+Committed the wrapper-only BAR clear experiment as `1bf4a0f`. The BAR-visible
+wrapper still handles `pcie_clear_pulse_i` by returning the PCIe accelerator
+front-end to idle and clearing the published final/debug registers, but the
+full M2 compute core no longer receives that clear pulse. The intent was to
+remove a high-fanout control path from the synthesized full-block datapath
+without weakening the normal start-to-done computation checked by simulation.
+
+The PCIe wrapper simulation passed before PNR:
+
+- Cycle count 141,617.
+- Final checksum `0x0003b2c9`.
+- Final sample0 `0xd114be59`, sample1 `0xd737e470`.
+- Provenance `0x4d323005`, debug `0x00000000`, debug1 `0x50f932e3`,
+  debug2 `0x49fb3a5b`.
+
+The pnr100 bitstream build completed and routed above the PCIe user-clock
+target:
+
+- Bitstream result:
+  `/nix/store/rldb2v10cinvnb2pry23fq5fy8b2cz4v-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+  via `/tmp/task6-m2-wrapper-clear-only-pnr100-bitstream`.
+- ABC extracted 117,517 gates, 143,804 wires, 26,285 inputs, and 30,702
+  outputs.
+- ABC produced 49,385 LUT cells.
+- Packed resources: 62,112 `SLICE_LUTX`, 21,849 `SLICE_FFX`, 94 `DSP48E1`,
+  and 16 `RAMB36E1`.
+- Post-placement clocks: `pcie_user_clk` 50.85 MHz FAIL at 62.50 MHz, `drck`
+  140.45 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 156.01 MHz PASS at 100 MHz.
+- Routed clocks: `pcie_user_clk` 71.44 MHz PASS at 62.50 MHz, `drck`
+  243.19 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 224.62 MHz PASS at 100 MHz.
+- Router congestion resolved by iteration 6, from 66,808 overused wires at
+  iteration 1 to zero overuse.
+- Routed critical path for `pcie_user_clk`: starts at
+  `m2_full_block_accel.core_i.embed_status_w[4]`, passes through generated
+  embedding mux/ABC logic including `embed_i.$procmux$226260.Y[20]`, and ends
+  at a CE endpoint; 1.4 ns logic and 12.6 ns routing.
+- The slow-net report still highlights `led[1]$auto$IOBUF_I$`, generated ABC
+  mux/ALU nets, `context_i.ln_center_flat_index_w[8]`,
+  `context_i.ln_input_q12_by_token_q`, and `m2_full_block_accel.pcie_clear_q`.
+
+This is the first current M2 full-block dummy PCIe pnr100 candidate in this
+sequence to route above the 62.50 MHz `pcie_user_clk` target. It is not an M2
+HIL pass yet. The scope caveat is that BAR clear no longer resets core-internal
+state; normal HIL should therefore use the lifecycle/Tapo/header-smoke protocol
+before BAR access and should not rely on BAR clear as a full core recovery
+mechanism. The next step is to program this candidate and run the M2 BAR gate
+only after non-BAR lifecycle reports `pcie_ready` and BAR header smoke returns
+`T6PC`.
