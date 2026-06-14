@@ -33152,3 +33152,32 @@ Build/route a candidate with the restored debug surface, or add a focused
 sim/HIL check that proves the embedding-to-block registered boundary captures
 the same vector the child block consumes. The current evidence says M2 remains
 open.
+
+### 2026-06-14 - M2 BAR vector contract reset
+
+Ran a no-start M2 BAR vector read/write probe after the safe PCIe preflight:
+
+- Lifecycle:
+  `artifacts/task6/runs/2026-06-14T09-13-21+0200-task6-m2-vector-contract-preflight-lifecycle`,
+  classification `pcie_ready`.
+- BAR header smoke returned `T6PC`.
+- Direct write/readback probe:
+  `artifacts/task6/runs/2026-06-14T-task6-m2-vector-rw-uncompensated.json`,
+  status `PASS`. Both input and residual BAR vectors read back exactly the
+  direct 32-bit words that were written.
+- Legacy rotate-compensated probe:
+  `artifacts/task6/runs/2026-06-14T-task6-m2-vector-rw-compensated.json`,
+  status `FAIL`. The readback matched the rotated words, not the requested
+  contract words.
+
+Conclusion: on the current pcie_7x reset-sequenced image, the M2 BAR vector
+contract is direct 32-bit write/readback identity. The old rotate-left
+`readback-compensated` mode is stale and should be treated as legacy diagnostic
+only. The M2 full-block gate was updated so the default acceptance path uses
+direct writes with strict readback checking; `raw-internal` is kept only as a
+deprecated alias for direct, while `legacy-rotated`/`readback-compensated`
+remain explicit diagnostic modes.
+
+This fixes one process problem before the next M2 compute experiment:
+acceptance no longer depends on the misleading `raw-internal` label or on a
+rotated BAR workaround that the current hardware does not require.
