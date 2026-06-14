@@ -34497,3 +34497,33 @@ failure is fixed on board, and the failure has moved to a specific live-context
 LN arithmetic mismatch. The next action should be a small LN-index-1 reproducer
 or formal/sim check for the context LN path around index 1 using the recorded
 mean/centered/norm/affine values, not another pnr100 loop.
+
+M2 live-context token5/LN1 sim checkpoint:
+
+- Added a cheap PCIe-wrapper sim checkpoint for arbitrary context LN
+  token/index pairs, then checked token 0/LN2 and the board-failing token
+  5/LN1 checkpoint in
+  `sim/task6_m2_embedding_live_context_full_block_pcie_accel_tb_main.sv`.
+- Build:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sim-main -o /tmp/task6-m2-token5-ln1-pcie-sim-main -L`.
+- Run:
+  `/tmp/task6-m2-token5-ln1-pcie-sim-main/obj_dir/sim_main`.
+- Result: PASS. The sim reports
+  `INFO: natural context token5 LN1 debug1 000cfe7e debug2 f3e5f338 output dc expected dc`
+  and finishes with final checksum `0x0003b2c9`, sample0 `0xd114be59`,
+  sample1 `0xd737e470`, provenance `0x4d323005`, and final debug3
+  `0x50f950f9`.
+
+This cheap sim does not reproduce the board failure. The board-failing run saw
+token5/LN1 `debug1 = 0x002dfc70`, `debug2 = 0x660ca772`, observed output
+`0x81`, and expected output `0xa4`, while the current sim/fixture sees
+`debug1 = 0x000cfe7e`, `debug2 = 0xf3e5f338`, observed output `0xdc`, and
+expected output `0xdc`.
+
+Interpretation: the latest board failure is not explained by the current
+source-level PCIe-wrapper sim for the same named checkpoint. M2 remains open,
+and the next contract should identify why the board-visible context LN table or
+input state differs from the sim fixture before another pnr100/HIL loop. Good
+next cheap checks are fixture/provenance comparison for the bitstream versus
+gate inputs, or a tiny board-visible context-LN input/stat checkpoint if the
+fixture comparison is clean.

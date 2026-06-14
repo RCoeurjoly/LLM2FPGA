@@ -319,26 +319,72 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
   endtask
 
-  task automatic wait_context_ln2_checkpoint(
-    input logic [31:0] expected_debug1_value,
-    input logic [31:0] expected_debug2_value
+  task automatic wait_context_ln_checkpoint(
+    input int target_token,
+    input int target_ln_index
   );
     integer cycles;
+    logic signed [31:0] mean_acc_q12;
+    logic signed [31:0] mean_q12;
+    logic signed [31:0] centered_q12;
+    logic signed [31:0] norm_q12;
+    logic signed [31:0] affine_q12;
+    logic signed [63:0] mean_shifted;
+    logic signed [63:0] norm_shifted;
+    logic signed [63:0] affine_shifted;
+    logic [31:0] expected_debug1_value;
+    logic [31:0] expected_debug2_value;
     begin
+      mean_acc_q12 = 32'sd0;
+      for (int dim = 0; dim < LN_DIM; dim = dim + 1) begin
+        mean_acc_q12 =
+          mean_acc_q12 +
+          $signed({{16{ln_input_q12_by_token[target_token][dim][15]}}, ln_input_q12_by_token[target_token][dim]});
+      end
+      mean_shifted = round_shift_signed64_tb({{32{mean_acc_q12[31]}}, mean_acc_q12}, 6);
+      mean_q12 = $signed(mean_shifted[31:0]);
+      centered_q12 =
+        $signed({{16{ln_input_q12_by_token[target_token][target_ln_index][15]}}, ln_input_q12_by_token[target_token][target_ln_index]}) -
+        mean_q12;
+      norm_shifted = round_shift_signed64_tb(
+        $signed(centered_q12) * $signed(ln_inv_std_q16_by_token[target_token]),
+        16
+      );
+      norm_q12 = $signed(norm_shifted[31:0]);
+      affine_shifted = round_shift_signed64_tb(
+        $signed(norm_q12) * $signed(ln_gamma_q16[target_ln_index]),
+        16
+      );
+      affine_q12 =
+        $signed(affine_shifted[31:0]) +
+        $signed({{16{ln_beta_q12[target_ln_index][15]}}, ln_beta_q12[target_ln_index]});
+      expected_debug1_value = {mean_q12[15:0], centered_q12[15:0]};
+      expected_debug2_value = {norm_q12[15:0], affine_q12[15:0]};
+
       cycles = 0;
       while (cycles < TIMEOUT_CYCLES) begin
         @(posedge SYS_CLK);
         cycles = cycles + 1;
         if (pcie_status_o[2]) begin
-          $fatal(1, "FAIL: context entered error before natural LN index 2 checkpoint debug=%08x", pcie_debug_o);
+          $fatal(
+            1,
+            "FAIL: context entered error before natural token %0d LN index %0d checkpoint debug=%08x debug1=%08x debug2=%08x",
+            target_token,
+            target_ln_index,
+            pcie_debug_o,
+            pcie_debug1_o,
+            pcie_debug2_o
+          );
         end
         if (dut.core_i.block_i.context_i.state_q == 5'd13 &&
-            dut.core_i.block_i.context_i.token_index_q == '0 &&
-            dut.core_i.block_i.context_i.ln_index_q == 6'd2) begin
+            dut.core_i.block_i.context_i.token_index_q == target_token &&
+            dut.core_i.block_i.context_i.ln_index_q == target_ln_index) begin
           if (dut.core_i.block_i.context_i.debug1_o !== expected_debug1_value) begin
             $fatal(
               1,
-              "FAIL: natural context LN2 debug1 expected %08x got %08x",
+              "FAIL: natural context token %0d LN index %0d debug1 expected %08x got %08x",
+              target_token,
+              target_ln_index,
               expected_debug1_value,
               dut.core_i.block_i.context_i.debug1_o
             );
@@ -346,23 +392,38 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
           if (dut.core_i.block_i.context_i.debug2_o !== expected_debug2_value) begin
             $fatal(
               1,
-              "FAIL: natural context LN2 debug2 expected %08x got %08x",
+              "FAIL: natural context token %0d LN index %0d debug2 expected %08x got %08x",
+              target_token,
+              target_ln_index,
               expected_debug2_value,
               dut.core_i.block_i.context_i.debug2_o
             );
           end
-          if (dut.core_i.block_i.context_i.ln_piped_output_w !== ln_expected_q_by_token[0][2]) begin
+          if (dut.core_i.block_i.context_i.ln_piped_output_w !== ln_expected_q_by_token[target_token][target_ln_index]) begin
             $fatal(
               1,
-              "FAIL: natural context LN2 output expected %02x got %02x",
-              ln_expected_q_by_token[0][2],
-              dut.core_i.block_i.context_i.ln_piped_output_w
+              "FAIL: natural context token %0d LN index %0d output expected %02x got %02x debug1=%08x debug2=%08x",
+              target_token,
+              target_ln_index,
+              ln_expected_q_by_token[target_token][target_ln_index],
+              dut.core_i.block_i.context_i.ln_piped_output_w,
+              dut.core_i.block_i.context_i.debug1_o,
+              dut.core_i.block_i.context_i.debug2_o
+            );
+          end
+          if (target_token == 5 && target_ln_index == 1) begin
+            $display(
+              "INFO: natural context token5 LN1 debug1 %08x debug2 %08x output %02x expected %02x",
+              dut.core_i.block_i.context_i.debug1_o,
+              dut.core_i.block_i.context_i.debug2_o,
+              dut.core_i.block_i.context_i.ln_piped_output_w,
+              ln_expected_q_by_token[target_token][target_ln_index]
             );
           end
           return;
         end
       end
-      $fatal(1, "Timeout waiting for natural context LN index 2 checkpoint");
+      $fatal(1, "Timeout waiting for natural context token %0d LN index %0d checkpoint", target_token, target_ln_index);
     end
   endtask
 
@@ -492,10 +553,8 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
 
     pulse_start();
-    wait_context_ln2_checkpoint(
-      expected_context_error_debug1,
-      expected_context_error_debug2
-    );
+    wait_context_ln_checkpoint(0, 2);
+    wait_context_ln_checkpoint(5, 1);
     wait_done(1);
 
     $display(
