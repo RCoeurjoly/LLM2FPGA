@@ -366,10 +366,6 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       k_proj_acc_q <= 32'sd0;
       v_proj_acc_q <= 32'sd0;
       q_proj_acc_q <= 32'sd0;
-      proj_weight_index_q <= 32'd0;
-      k_proj_weight_data_q <= 8'sd0;
-      v_proj_weight_data_q <= 8'sd0;
-      q_proj_weight_data_q <= 8'sd0;
       max_score_q <= -32'sd2147483647 - 32'sd1;
       softmax_denom_q <= 32'd0;
       prob_sum_q <= 32'd0;
@@ -383,6 +379,17 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       debug2_q <= 32'd0;
     end
   endtask
+
+  always_ff @(posedge SYS_CLK) begin
+    if (state_q == S_RUN_PROJ_ADDR) begin
+      proj_weight_index_q <= proj_weight_index_w;
+    end
+    if (state_q == S_RUN_PROJ_READ) begin
+      k_proj_weight_data_q <= k_proj_weight_q[proj_weight_index_q];
+      v_proj_weight_data_q <= v_proj_weight_q[proj_weight_index_q];
+      q_proj_weight_data_q <= q_proj_weight_q[proj_weight_index_q];
+    end
+  end
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
     if (!SYS_RSTN) begin
@@ -484,15 +491,11 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
 
         S_RUN_PROJ_ADDR: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          proj_weight_index_q <= proj_weight_index_w;
           state_q <= S_RUN_PROJ_READ;
         end
 
         S_RUN_PROJ_READ: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          k_proj_weight_data_q <= k_proj_weight_q[proj_weight_index_q];
-          v_proj_weight_data_q <= v_proj_weight_q[proj_weight_index_q];
-          q_proj_weight_data_q <= q_proj_weight_q[proj_weight_index_q];
           state_q <= S_RUN_PROJ;
         end
 
