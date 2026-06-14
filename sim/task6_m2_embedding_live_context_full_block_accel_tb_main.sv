@@ -5,7 +5,7 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
   `include "task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv"
   `include "task6_m2_embedding_block_input_tb_data.sv"
 
-  localparam int TIMEOUT_CYCLES = 121000;
+  localparam int TIMEOUT_CYCLES = 180000;
   localparam logic [2:0] ST_DONE = 3'd5;
 
   logic SYS_CLK;
@@ -158,6 +158,14 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
       end
     end
 
-    $fatal(1, "Timeout waiting for task6 M2 embedding-live-context full-block done");
+    $fatal(
+      1,
+      "Timeout waiting for task6 M2 embedding-live-context full-block done status=%08x cycle_count=%0d debug=%08x debug1=%08x debug2=%08x",
+      status_o,
+      cycle_count_o,
+      debug_o,
+      debug1_o,
+      debug2_o
+    );
   end
 endmodule

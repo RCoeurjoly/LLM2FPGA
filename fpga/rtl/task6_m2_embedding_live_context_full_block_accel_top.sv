@@ -32,7 +32,8 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     ST_BLOCK_START = 4'd3,
     ST_BLOCK = 4'd4,
     ST_DONE = 4'd5,
-    ST_ERROR = 4'd6
+    ST_ERROR = 4'd6,
+    ST_BLOCK_ARM = 4'd7
   } state_t;
 
   localparam logic [2:0] EMBED_ST_DONE = 3'd3;
@@ -44,6 +45,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic block_start_q;
   logic output_valid_q;
   logic error_q;
+  logic boundary_valid_q;
 
   logic [31:0] embed_status_w;
   logic [31:0] embed_cycle_count_w;
@@ -51,6 +53,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic [511:0] embed_block_input_vector_w;
   logic [6143:0] embed_ln_input_q12_by_token_w;
   logic [31:0] embed_debug_w;
+  logic [511:0] block_input_vector_q;
+  logic [6143:0] ln_input_q12_by_token_q;
+  logic [6143:0] debug_ln_input_q12_by_token_w;
 
   logic [31:0] block_status_w;
   logic [31:0] block_cycle_count_w;
@@ -67,6 +72,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic [31:0] block_debug_w;
   logic [31:0] block_debug1_w;
   logic [31:0] block_debug2_w;
+
+  assign debug_ln_input_q12_by_token_w =
+    boundary_valid_q ? ln_input_q12_by_token_q : embed_ln_input_q12_by_token_w;
 
   task6_m2_embedding_block_input_accel_top embed_i (
     .SYS_CLK(SYS_CLK),
@@ -90,9 +98,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     .start_i(block_start_q),
     .clear_i(clear_i),
     .use_external_ln_input_i(1'b1),
-    .external_ln_input_q12_by_token_i(embed_ln_input_q12_by_token_w),
+    .external_ln_input_q12_by_token_i(ln_input_q12_by_token_q),
     .use_external_block_input_i(1'b1),
-    .external_block_input_vector_i(embed_block_input_vector_w),
+    .external_block_input_vector_i(block_input_vector_q),
     .status_o(block_status_w),
     .cycle_count_o(block_cycle_count_w),
     .context_checksum_o(block_context_checksum_w),
@@ -118,6 +126,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       block_start_q <= 1'b0;
       output_valid_q <= 1'b0;
       error_q <= 1'b0;
+      boundary_valid_q <= 1'b0;
       debug_o <= 32'd0;
     end else if (clear_i) begin
       state_q <= ST_IDLE;
@@ -126,6 +135,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       block_start_q <= 1'b0;
       output_valid_q <= 1'b0;
       error_q <= 1'b0;
+      boundary_valid_q <= 1'b0;
       debug_o <= 32'd0;
     end else begin
       embed_start_q <= 1'b0;
@@ -139,6 +149,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
             embed_start_q <= 1'b1;
             output_valid_q <= 1'b0;
             error_q <= 1'b0;
+            boundary_valid_q <= 1'b0;
             debug_o <= 32'd0;
           end
         end
@@ -156,17 +167,26 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
             debug_o <= embed_debug_w;
           end else if (embed_status_w[6:4] == EMBED_ST_DONE && embed_status_w[3]) begin
             state_q <= ST_BLOCK_START;
-            block_start_q <= 1'b1;
           end
         end
 
         ST_BLOCK_START: begin
           cycle_count_q <= cycle_count_q + 32'd1;
+          block_input_vector_q <= embed_block_input_vector_w;
+          ln_input_q12_by_token_q <= embed_ln_input_q12_by_token_w;
+          boundary_valid_q <= 1'b1;
+          state_q <= ST_BLOCK_ARM;
+        end
+
+        ST_BLOCK_ARM: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          block_start_q <= 1'b1;
           state_q <= ST_BLOCK;
         end
 
         ST_BLOCK: begin
           cycle_count_q <= cycle_count_q + 32'd1;
+          debug_o <= block_status_w;
           if (block_status_w[2]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
@@ -184,6 +204,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
             embed_start_q <= 1'b1;
             output_valid_q <= 1'b0;
             error_q <= 1'b0;
+            boundary_valid_q <= 1'b0;
             debug_o <= 32'd0;
           end
         end
@@ -204,7 +225,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       state_q[2:0],
       output_valid_q,
       error_q,
-      state_q == ST_EMBED_START || state_q == ST_EMBED || state_q == ST_BLOCK_START || state_q == ST_BLOCK,
+      state_q == ST_EMBED_START || state_q == ST_EMBED || state_q == ST_BLOCK_START || state_q == ST_BLOCK_ARM || state_q == ST_BLOCK,
       state_q == ST_IDLE || state_q == ST_DONE
     };
     cycle_count_o = cycle_count_q;
@@ -224,12 +245,12 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       debug2_o = block_debug2_w;
     end else begin
       debug1_o = {
-        embed_ln_input_q12_by_token_w[15:0],
-        embed_ln_input_q12_by_token_w[31:16]
+        debug_ln_input_q12_by_token_w[15:0],
+        debug_ln_input_q12_by_token_w[31:16]
       };
       debug2_o = {
-        embed_ln_input_q12_by_token_w[47:32],
-        embed_ln_input_q12_by_token_w[63:48]
+        debug_ln_input_q12_by_token_w[47:32],
+        debug_ln_input_q12_by_token_w[63:48]
       };
     end
   end
