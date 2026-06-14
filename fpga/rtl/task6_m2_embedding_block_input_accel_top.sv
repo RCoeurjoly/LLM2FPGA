@@ -99,6 +99,19 @@ module task6_m2_embedding_block_input_accel_top (
     end
   endfunction
 
+  task automatic write_ln_input_q12_by_flat_index(
+    input logic [31:0] flat_index,
+    input logic signed [15:0] value
+  );
+    begin
+      for (int ln_emit_i = 0; ln_emit_i < EMBED_BLOCK_SEQ * EMBED_BLOCK_DIM; ln_emit_i++) begin
+        if (flat_index == 32'(ln_emit_i)) begin
+          ln_input_q12_by_token_o[ln_emit_i * 16 +: 16] <= value;
+        end
+      end
+    end
+  endtask
+
   assign ln_input_q12_full_w = round_shift_signed_64(added_q20_q_ext_w, EMBED_BLOCK_TO_LN_Q12_SHIFT);
   assign ln_input_q12_w = ln_input_q12_full_w[15:0];
   assign block_input_full_w = round_shift_signed_64(
@@ -196,8 +209,7 @@ module task6_m2_embedding_block_input_accel_top (
               added_q20_q_ext_w * {{32{EMBED_BLOCK_REQUANT_MUL_Q20[31]}}, EMBED_BLOCK_REQUANT_MUL_Q20};
             requant_lo_q <= 64'sd0;
           end
-          ln_input_q12_by_token_o[(emit_ln_flat_index_w * 32'd16) +: 16] <=
-            ln_input_q12_w;
+          write_ln_input_q12_by_flat_index(emit_ln_flat_index_w, ln_input_q12_w);
           if (ln_input_q12_w != embed_block_expected_ln_input_q12_by_token[emit_token_index_q][dim_index_q]) begin
             state_q <= S_ERROR;
             debug_o <= {8'h02, 4'd0, emit_token_index_debug_w, dim_index_debug_w, 8'd0};

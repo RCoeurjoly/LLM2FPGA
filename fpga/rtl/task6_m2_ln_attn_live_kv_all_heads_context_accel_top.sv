@@ -176,6 +176,20 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     end
   endfunction
 
+  function automatic logic signed [15:0] read_external_ln_input_q12_by_flat_index(
+    input logic [31:0] flat_index
+  );
+    begin
+      read_external_ln_input_q12_by_flat_index = 16'sd0;
+      for (int ln_read_i = 0; ln_read_i < CACHE_SEQ * LN_DIM; ln_read_i++) begin
+        if (flat_index == 32'(ln_read_i)) begin
+          read_external_ln_input_q12_by_flat_index =
+            $signed(external_ln_input_q12_by_token_i[ln_read_i * 16 +: 16]);
+        end
+      end
+    end
+  endfunction
+
   assign head_index_u32_w = {{(32 - HEAD_WIDTH){1'b0}}, head_index_q};
   assign token_index_u32_w = {{(32 - TOKEN_WIDTH){1'b0}}, token_index_q};
   assign src_index_u32_w = {{(32 - TOKEN_WIDTH){1'b0}}, src_index_q};
@@ -189,10 +203,10 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   assign ln_center_flat_index_w = (token_index_u32_w * 32'(LN_DIM)) +
     {{(32 - LN_INDEX_WIDTH){1'b0}}, ln_index_q};
   assign ln_current_input_q12_w = use_external_ln_input_i ?
-    $signed(external_ln_input_q12_by_token_i[(ln_mean_flat_index_w * 32'd16) +: 16]) :
+    read_external_ln_input_q12_by_flat_index(ln_mean_flat_index_w) :
     ln_input_q12_by_token[token_index_q][mean_index_q];
   assign ln_center_input_q12_w = use_external_ln_input_i ?
-    $signed(external_ln_input_q12_by_token_i[(ln_center_flat_index_w * 32'd16) +: 16]) :
+    read_external_ln_input_q12_by_flat_index(ln_center_flat_index_w) :
     ln_input_q12_by_token[token_index_q][ln_index_q];
   assign ln_input_q12_w = ln_current_input_q12_w;
   assign ln_mean_next_acc_q12_w =
