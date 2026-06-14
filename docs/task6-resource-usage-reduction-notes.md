@@ -33455,3 +33455,29 @@ The sim passed with the same expected observable values:
 No pnr100 or HIL run was launched for this change. The next decision point is a
 single targeted route only if this registered-handoff checksum observable is
 considered worth taking back to board.
+
+### 2026-06-14 - M2 registered handoff checksum pnr100 timing result
+
+Ran one targeted pnr100 build for the registered block-input handoff checksum
+observable:
+
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-registered-handoff-checksum-pnr100-bitstream -L`
+
+The candidate routed legally but failed timing, so it was not programmed to the
+board:
+
+- Router2 overuse converged `76983 -> 3769 -> 71 -> 1 -> 0`.
+- Utilization at pack/place included 63,206 `SLICE_LUTX`, 28,552 `SLICE_FFX`,
+  152 `DSP48E1`, 16 `RAMB36E1`, and 1 `PCIE_2_1`.
+- Post-place `pcie_user_clk` was 58.41 MHz, failing the 62.50 MHz target.
+- Final routed `pcie_user_clk` was 58.05 MHz, failing the 62.50 MHz target.
+- Other reported clocks passed: DRCK 257.33 MHz at 100 MHz target and
+  `PIPE_OOBCLK_IN` 237.19 MHz at 100 MHz target.
+- The final `pcie_user_clk` critical path was routing dominated: 1.2 ns logic
+  and 16.0 ns routing, ending at `slice$325272.CE` from logic driven by
+  `m2_full_block_accel.core_i.embed_status_w[4]`.
+
+Conclusion: the handoff checksum contract itself is still useful and sim-clean,
+but this integrated pnr100 image is not board-testable. The next M2 action
+should reduce or register the status/control fanout around the full-block
+start/handoff path before another pnr100/HIL attempt.
