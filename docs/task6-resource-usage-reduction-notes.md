@@ -33481,3 +33481,28 @@ Conclusion: the handoff checksum contract itself is still useful and sim-clean,
 but this integrated pnr100 image is not board-testable. The next M2 action
 should reduce or register the status/control fanout around the full-block
 start/handoff path before another pnr100/HIL attempt.
+
+### 2026-06-14 - M2 registered embedding-status handoff
+
+Applied one narrow timing-oriented RTL change after the pnr100 failure above:
+the embedding/live-context wrapper now registers the embedding child
+`status_o` and `debug_o`, then drives the wrapper FSM's embedding DONE/ERROR
+decode from the registered local copy. This targets the routed critical path
+that ended in wrapper control from logic driven by
+`m2_full_block_accel.core_i.embed_status_w[4]`.
+
+Cheap verification:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+
+The sim passed with the same BAR-visible data observables and one added cycle:
+
+- cycle count 141,621
+- `ln_input_checksum = 0x88fa5e3a`
+- `debug1 = 0x50f932e3`
+- `debug2 = 0x49fb3a5b`
+- final checksum/sample0/sample1 =
+  `0x0003b2c9`/`0xd114be59`/`0xd737e470`
+
+This is eligible for one targeted pnr100 timing check. It is not eligible for a
+board run unless that route closes `pcie_user_clk` at 62.50 MHz.

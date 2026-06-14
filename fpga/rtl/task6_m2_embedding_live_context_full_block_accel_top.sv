@@ -50,12 +50,14 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic embed_done_q;
 
   logic [31:0] embed_status_w;
+  logic [31:0] embed_status_q;
   logic [31:0] embed_cycle_count_w;
   logic [31:0] embed_block_input_checksum_w;
   logic [31:0] embed_ln_input_checksum_w;
   logic [511:0] embed_block_input_vector_w;
   logic [6143:0] embed_ln_input_q12_by_token_w;
   logic [31:0] embed_debug_w;
+  logic [31:0] embed_debug_q;
   logic [511:0] block_input_vector_q;
   logic [6143:0] ln_input_q12_by_token_q;
   logic [6143:0] debug_ln_input_q12_by_token_w;
@@ -142,6 +144,8 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       error_q <= 1'b0;
       boundary_valid_q <= 1'b0;
       embed_done_q <= 1'b0;
+      embed_status_q <= 32'd0;
+      embed_debug_q <= 32'd0;
       debug_o <= 32'd0;
     end else if (clear_i) begin
       state_q <= ST_IDLE;
@@ -152,10 +156,14 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       error_q <= 1'b0;
       boundary_valid_q <= 1'b0;
       embed_done_q <= 1'b0;
+      embed_status_q <= 32'd0;
+      embed_debug_q <= 32'd0;
       debug_o <= 32'd0;
     end else begin
       embed_start_q <= 1'b0;
       block_start_q <= 1'b0;
+      embed_status_q <= embed_status_w;
+      embed_debug_q <= embed_debug_w;
 
       unique case (state_q)
         ST_IDLE: begin
@@ -178,15 +186,15 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
 
         ST_EMBED: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          if (embed_status_w[2]) begin
+          if (embed_status_q[2]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
-            debug_o <= embed_debug_w;
+            debug_o <= embed_debug_q;
           end else if (embed_done_q) begin
             embed_done_q <= 1'b0;
             state_q <= ST_BLOCK_START;
           end else begin
-            embed_done_q <= embed_status_w[6:4] == EMBED_ST_DONE && embed_status_w[3];
+            embed_done_q <= embed_status_q[6:4] == EMBED_ST_DONE && embed_status_q[3];
           end
         end
 
