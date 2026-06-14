@@ -33210,3 +33210,30 @@ of the BAR-visible checkpoint contract in the cheap loop; the latest board
 evidence still fails final vector matching, and the next board run should be
 reserved for a candidate whose changed checkpoint surface can explain or localize
 the first failing checksum.
+
+### 2026-06-14 - M2 checkpoint candidate routes cleanly
+
+Built the corrected M2 checkpoint candidate after the cheap PCIe-wrapper sim
+proved the expected BAR-visible done-stage checkpoint words:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-checkpoint-pnr100-bitstream -L`.
+- Bitstream:
+  `/nix/store/gvmg0awjvz6idy6xi2vcbydcl4cw8q6i-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Device utilization: 64,215 LUTX, 28,509 FFX, 94 DSP48E1, 16 RAMB36E1, and
+  one PCIE_2_1.
+- Router2 converged from 64,643 overused wires at iteration 1 to zero overuse
+  at iteration 9.
+- Routed timing passed: `pcie_user_clk` 73.04 MHz PASS at 62.50 MHz,
+  `drck` 245.34 MHz PASS at 100 MHz, and `PIPE_OOBCLK_IN` 217.16 MHz PASS at
+  100 MHz.
+
+This is a board-testable M2 candidate because it is not just another blind
+pnr100 loop. The preceding cheap sim established the exact observable expected
+at DONE: debug1 `0x50f932e3` and debug2 `0x49fb3a5b`, alongside final checksum
+`0x0003b2c9` and samples `0xd114be59`/`0xd737e470`. If HIL still fails, those
+checkpoint words should localize whether the first divergence is at
+embedding/block-input, context/LN, or downstream attention/MLP stages.
+
+Do not start another integrated M2 candidate until this routed checkpoint image
+has either passed the board gate or produced a localized failing checkpoint.
