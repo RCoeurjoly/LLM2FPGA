@@ -32854,3 +32854,47 @@ problem is now the broad embedding/context table and generated enable/mux
 fabric, not PCIe recovery and not the Q/K/V BRAM inference issue. Next RTL work
 should reduce the remaining FF/mux table footprint or serialize the live-block
 boundary further before another hardware-facing gate.
+
+### 2026-06-14 - M2 direct embedding-output pnr timing attempt
+
+Committed the wrapper-side direct embedding-output feed as `4b6761d`. The full
+block wrapper no longer re-registers the embedding module's 512-bit block input
+vector, 6144-bit LN input matrix, or block-input checksum before feeding the
+block core. The embedding module already holds these outputs stable in its done
+state, so the wrapper copy was duplicate state and duplicate enable/reset
+fabric.
+
+The PCIe wrapper simulation still passed before PNR:
+
+- Cycle count 141,617.
+- Final checksum `0x0003b2c9`.
+- Final sample0 `0xd114be59`, sample1 `0xd737e470`.
+- Provenance `0x4d323005`, debug `0x00000000`, debug1 `0x50f932e3`,
+  debug2 `0x49fb3a5b`.
+
+This change materially reduced synthesis size. ABC extracted 119,887 gates,
+146,184 wires, 26,295 inputs, and 30,721 outputs, down from the previous
+clear-pipeline attempt's 139,908 gates, 172,877 wires, 32,967 inputs, and
+44,048 outputs.
+
+The pnr100 build still failed timing, so this is not a flashable M2 candidate:
+
+- Packed resources: 62,430 `SLICE_LUTX`, 21,859 `SLICE_FFX`, 94 `DSP48E1`,
+  and 16 `RAMB36E1`.
+- Post-placement clocks: `pcie_user_clk` 46.20 MHz FAIL at 62.50 MHz, `drck`
+  144.40 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 159.74 MHz PASS at 100 MHz.
+- Routed clocks: `pcie_user_clk` 58.54 MHz FAIL at 62.50 MHz, `drck`
+  243.19 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 211.95 MHz PASS at 100 MHz.
+- Router congestion resolved by iteration 5, from 65,066 overused wires at
+  iteration 1 to zero overuse.
+- Routed critical path for `pcie_user_clk`: `m2_full_block_accel.pcie_clear_q`
+  through generated ABC logic into a CE endpoint, 1.0 ns logic and 16.1 ns
+  routing.
+
+This is the best routed pnr100 timing so far for the M2 full-block dummy PCIe
+candidate, but it is still short of 62.50 MHz. The next fix should not focus on
+PCIe recovery. The slow-net report still contains embedding LN matrix nets such
+as `embed_i.ln_input_q12_by_token_q`, and the CE critical path still looks like
+a symptom of wide generated enable/mux fabric. Next RTL work should reduce or
+serialize the live embedding/LN boundary rather than keep passing a 6144-bit
+matrix through broad combinational selection.
