@@ -17,7 +17,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   output logic [511:0] output_vector_o,
   output logic [31:0] debug_o,
   output logic [31:0] debug1_o,
-  output logic [31:0] debug2_o
+  output logic [31:0] debug2_o,
+  output logic [31:0] fixture_signature_o
 );
   `include "task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv"
 
@@ -46,6 +47,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   localparam int ATTN_DIM_WIDTH = $clog2(ATTN_HEAD_DIM);
   localparam int HEAD_WIDTH = (NUM_HEADS <= 1) ? 1 : $clog2(NUM_HEADS);
   localparam int CONTEXT_INDEX_WIDTH = $clog2(CONTEXT_DIM);
+  localparam int FIXTURE_SIGNATURE_TOKEN = (CACHE_SEQ > 5) ? 5 : 0;
+  localparam int FIXTURE_SIGNATURE_LN = (LN_DIM > 1) ? 1 : 0;
 
   state_t state_q;
   logic [HEAD_WIDTH - 1:0] head_index_q;
@@ -254,6 +257,12 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   assign ln_piped_output_w = saturate_i8(ln_piped_output_scaled_w);
   assign debug1_o = debug1_q;
   assign debug2_o = debug2_q;
+  assign fixture_signature_o = {
+    8'hc5,
+    ln_expected_q_by_token[FIXTURE_SIGNATURE_TOKEN][FIXTURE_SIGNATURE_LN],
+    ln_input_q12_by_token[FIXTURE_SIGNATURE_TOKEN][FIXTURE_SIGNATURE_LN][7:0],
+    ln_inv_std_q16_by_token[FIXTURE_SIGNATURE_TOKEN][7:0]
+  };
   assign proj_weight_index_w =
     ((({{(32 - HEAD_WIDTH){1'b0}}, head_index_q} * 32'(ATTN_HEAD_DIM)) +
       {{(32 - ATTN_DIM_WIDTH){1'b0}}, dim_index_q}) * 32'(LN_DIM)) +

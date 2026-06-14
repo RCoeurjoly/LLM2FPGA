@@ -31,6 +31,7 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
   logic [31:0] debug1_o;
   logic [31:0] debug2_o;
   logic [31:0] debug3_o;
+  logic [31:0] context_fixture_signature_o;
   logic [511:0] expected_final_vector;
   logic [31:0] expected_block_input_checksum;
   logic [31:0] expected_context_checksum;
@@ -60,7 +61,8 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
     .debug_o(debug_o),
     .debug1_o(debug1_o),
     .debug2_o(debug2_o),
-    .debug3_o(debug3_o)
+    .debug3_o(debug3_o),
+    .context_fixture_signature_o(context_fixture_signature_o)
   );
 
   always #5 SYS_CLK = ~SYS_CLK;

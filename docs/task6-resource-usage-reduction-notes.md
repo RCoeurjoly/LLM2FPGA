@@ -34527,3 +34527,39 @@ input state differs from the sim fixture before another pnr100/HIL loop. Good
 next cheap checks are fixture/provenance comparison for the bitstream versus
 gate inputs, or a tiny board-visible context-LN input/stat checkpoint if the
 fixture comparison is clean.
+
+M2 context fixture signature preflight contract:
+
+- Added a narrow board-visible context fixture signature for the M2 live-context
+  path. While the PCIe wrapper is idle, `REG_M2_DEBUG3` now reports a signature
+  assembled from the context fixture values for token 5 / LN dim 1:
+  `{8'hc5, expected_q, ln_input_q12[7:0], ln_inv_std_q16[7:0]}`.
+- For the current M2 context fixture this expected value is `0xc5dc8a6c`
+  (`expected_q = 0xdc`, `ln_input_q12[7:0] = 0x8a`,
+  `ln_inv_std_q16[7:0] = 0x6c`).
+- The host M2 full-block gate now accepts `--context-tb-data-sv`, parses the
+  same fixture values, records the context fixture path/SHA/signature in the
+  artifact, and requires the idle `REG_M2_DEBUG3` preflight value to match
+  before starting compute.
+- Cheap host checks passed:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  and
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`.
+- Cheap PCIe-wrapper sim passed:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sim-main -o /tmp/task6-m2-context-signature-pcie-sim-main -L`
+  followed by
+  `/tmp/task6-m2-context-signature-pcie-sim-main/obj_dir/sim_main`.
+  The sim reported `INFO: idle context fixture signature c5dc8a6c`, reproduced
+  the token5/LN1 checkpoint as `output dc expected dc`, and finished with final
+  checksum `0x0003b2c9`, sample0 `0xd114be59`, sample1 `0xd737e470`, and
+  provenance `0x4d323005`.
+- Integrated dummy-top Yosys JSON build passed:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-context-signature-yosys-json -L`.
+  Final `CHECK` reported 0 problems. The build still has existing synthesis
+  warnings from the large integrated pcie7x/M2 image, but no new structural
+  failure from the signature port chain.
+
+This is not an M2 pass. It is a preflight contract so the next board run can
+separate "wrong/stale context fixture in bitstream" from "fixture matches but
+live LN arithmetic diverges" before touching start/compute. No board run or
+pnr100 loop was done for this note.

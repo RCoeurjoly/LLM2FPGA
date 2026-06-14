@@ -139,6 +139,20 @@ SV_EMBED_LN_INPUT_RE = re.compile(
     r"\[(?P<token>\d+)\]\[(?P<dim>\d+)\]\s*=\s*"
     r"(?P<sign>-?)(?P<bits>\d+)'sd(?P<value>\d+)\s*;"
 )
+SV_CONTEXT_LN_INPUT_RE = re.compile(
+    r"^\s*ln_input_q12_by_token"
+    r"\[(?P<token>\d+)\]\[(?P<dim>\d+)\]\s*=\s*"
+    r"(?P<sign>-?)(?P<bits>\d+)'sd(?P<value>\d+)\s*;"
+)
+SV_CONTEXT_INV_STD_RE = re.compile(
+    r"^\s*ln_inv_std_q16_by_token\[(?P<token>\d+)\]\s*=\s*"
+    r"(?P<sign>-?)(?P<bits>\d+)'sd(?P<value>\d+)\s*;"
+)
+SV_CONTEXT_EXPECTED_Q_RE = re.compile(
+    r"^\s*ln_expected_q_by_token"
+    r"\[(?P<token>\d+)\]\[(?P<dim>\d+)\]\s*=\s*"
+    r"(?P<sign>-?)(?P<bits>\d+)'sd(?P<value>\d+)\s*;"
+)
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -584,6 +598,58 @@ def parse_embedding_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]
     }
 
 
+def parse_context_tb_data_sv(path: Path) -> dict[str, int]:
+    signature_token = 5
+    signature_dim = 1
+    ln_input_q12: dict[tuple[int, int], int] = {}
+    ln_inv_std_q16: dict[int, int] = {}
+    ln_expected_q: dict[tuple[int, int], int] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        ln_input_match = SV_CONTEXT_LN_INPUT_RE.match(line)
+        if ln_input_match:
+            ln_input_q12[
+                (int(ln_input_match.group("token")), int(ln_input_match.group("dim")))
+            ] = parse_signed_sv_literal(
+                ln_input_match.group("sign"),
+                ln_input_match.group("value"),
+            )
+            continue
+        inv_std_match = SV_CONTEXT_INV_STD_RE.match(line)
+        if inv_std_match:
+            ln_inv_std_q16[int(inv_std_match.group("token"))] = parse_signed_sv_literal(
+                inv_std_match.group("sign"),
+                inv_std_match.group("value"),
+            )
+            continue
+        expected_match = SV_CONTEXT_EXPECTED_Q_RE.match(line)
+        if expected_match:
+            ln_expected_q[
+                (int(expected_match.group("token")), int(expected_match.group("dim")))
+            ] = parse_signed_sv_literal(
+                expected_match.group("sign"),
+                expected_match.group("value"),
+            )
+    required = {
+        "ln_input_q12": (signature_token, signature_dim) in ln_input_q12,
+        "ln_expected_q": (signature_token, signature_dim) in ln_expected_q,
+        "ln_inv_std_q16": signature_token in ln_inv_std_q16,
+    }
+    missing = [name for name, present in required.items() if not present]
+    if missing:
+        raise SystemExit(f"{path} missing context fixture signature field(s): {', '.join(missing)}")
+    signature = (
+        (0xC5 << 24)
+        | ((ln_expected_q[(signature_token, signature_dim)] & 0xFF) << 16)
+        | ((ln_input_q12[(signature_token, signature_dim)] & 0xFF) << 8)
+        | (ln_inv_std_q16[signature_token] & 0xFF)
+    )
+    return {
+        "context_fixture_signature": signature,
+        "context_fixture_signature_token": signature_token,
+        "context_fixture_signature_dim": signature_dim,
+    }
+
+
 def validate_expected(expected: dict[str, int | bytes | list[int]], path: Path) -> None:
     missing = [
         key
@@ -719,6 +785,15 @@ def parse_args() -> argparse.Namespace:
             "token IDs."
         ),
     )
+    parser.add_argument(
+        "--context-tb-data-sv",
+        type=Path,
+        help=(
+            "Generated live-context constants matching a token-ID M2 bitstream. "
+            "When provided, preflight requires the board idle DEBUG3 context "
+            "fixture signature to match before issuing clear/start."
+        ),
+    )
     parser.add_argument("--expect-checksum", type=lambda text: int(text, 0))
     parser.add_argument("--expect-sample0", type=lambda text: int(text, 0))
     parser.add_argument("--expect-sample1", type=lambda text: int(text, 0))
@@ -791,6 +866,8 @@ def main() -> int:
     )
     if args.embedding_tb_data_sv is not None:
         expected.update(parse_embedding_tb_data_sv(args.embedding_tb_data_sv))
+    if args.context_tb_data_sv is not None:
+        expected.update(parse_context_tb_data_sv(args.context_tb_data_sv))
     if args.expect_checksum is not None:
         expected["checksum"] = args.expect_checksum
     if args.expect_sample0 is not None:
@@ -832,6 +909,8 @@ def main() -> int:
                 "m2_present": REG_M2_PRESENT,
                 "m2_provenance": REG_M2_PROVENANCE,
             }
+            if "context_fixture_signature" in expected:
+                preflight_offsets["m2_context_fixture_signature"] = REG_M2_DEBUG3
             preflight_values, preflight_samples, preflight_stable = sample_registers(
                 lambda offset: rd32_window(mm, offset),
                 preflight_offsets,
@@ -846,6 +925,8 @@ def main() -> int:
             m2_present = preflight_values["m2_present"]
             m2_provenance = preflight_values["m2_provenance"]
             expected_m2_provenance = expected_provenance(expected)
+            m2_context_fixture_signature = preflight_values.get("m2_context_fixture_signature")
+            expected_context_fixture_signature = expected.get("context_fixture_signature")
             preflight_acceptable = {
                 name: stable_or_leading_all_ones(values)
                 for name, values in preflight_samples.items()
@@ -856,15 +937,16 @@ def main() -> int:
                 "preflight_registers_stable": preflight_all_stable,
                 "task6_magic": magic == TASK6_MAGIC,
                 "task6_version": version == TASK6_VERSION,
-                "not_all_ones": all(
-                    value != ALL_ONES
-                    for value in (magic, version, status, m2_magic, m2_version, m2_present, m2_provenance)
-                ),
+                "not_all_ones": all(value != ALL_ONES for value in preflight_values.values()),
                 "m2_magic": m2_magic == M2_MAGIC,
                 "m2_version": m2_version_abi_matches(m2_version),
                 "m2_present": m2_present == 1,
                 "m2_provenance": m2_provenance == expected_m2_provenance,
             }
+            if expected_context_fixture_signature is not None:
+                preflight_checks["m2_context_fixture_signature"] = (
+                    m2_context_fixture_signature == expected_context_fixture_signature
+                )
             if not all(preflight_checks.values()):
                 result = {
                     "artifact_name": "task6-pcie-m2-full-block-board-gate",
@@ -890,6 +972,16 @@ def main() -> int:
                         "m2_present": m2_present,
                         "m2_provenance": f"0x{m2_provenance:08x}",
                         "expected_m2_provenance": f"0x{expected_m2_provenance:08x}",
+                        "m2_context_fixture_signature": (
+                            f"0x{m2_context_fixture_signature:08x}"
+                            if m2_context_fixture_signature is not None
+                            else None
+                        ),
+                        "expected_context_fixture_signature": (
+                            f"0x{int(expected_context_fixture_signature):08x}"
+                            if expected_context_fixture_signature is not None
+                            else None
+                        ),
                     },
                     "preflight_samples": {
                         name: [f"0x{value:08x}" for value in values]
@@ -905,8 +997,15 @@ def main() -> int:
                         "tb_data_sv_sha256": sha256_file(args.tb_data_sv),
                         "embedding_tb_data_sv": str(args.embedding_tb_data_sv) if args.embedding_tb_data_sv else None,
                         "embedding_tb_data_sv_sha256": sha256_file(args.embedding_tb_data_sv),
+                        "context_tb_data_sv": str(args.context_tb_data_sv) if args.context_tb_data_sv else None,
+                        "context_tb_data_sv_sha256": sha256_file(args.context_tb_data_sv),
                         "tb_data_token_index": expected.get("token_index") if args.tb_data_sv else None,
                         "token_ids": expected.get("token_ids"),
+                        "context_fixture_signature": (
+                            f"0x{int(expected_context_fixture_signature):08x}"
+                            if expected_context_fixture_signature is not None
+                            else None
+                        ),
                     },
                     "checks": preflight_checks,
                     "failure": (
@@ -1015,7 +1114,7 @@ def main() -> int:
         "task6_version": version == TASK6_VERSION,
         "not_all_ones": all(
             value != ALL_ONES
-            for value in (magic, version, status, m2_magic, m2_version, m2_present, observed["status"])
+            for value in (*preflight_values.values(), observed["status"])
         ),
         "m2_magic": m2_magic == M2_MAGIC,
         "m2_version": m2_version_abi_matches(m2_version),
@@ -1042,6 +1141,10 @@ def main() -> int:
         checks["output_count"] = observed["output_count"] == expected["output_count"]
     if "ln_input_checksum" in expected:
         checks["ln_input_checksum"] = observed["debug"] == expected["ln_input_checksum"]
+    if expected_context_fixture_signature is not None:
+        checks["m2_context_fixture_signature"] = (
+            m2_context_fixture_signature == expected_context_fixture_signature
+        )
     checks["first_64_output"] = observed["output_vector"] == expected["first_64_output"]
 
     result_status = "PASS" if all(checks.values()) else "FAIL"
@@ -1067,6 +1170,16 @@ def main() -> int:
             "m2_magic": f"0x{m2_magic:08x}",
             "m2_version": m2_version,
             "m2_present": m2_present,
+            "m2_context_fixture_signature": (
+                f"0x{m2_context_fixture_signature:08x}"
+                if m2_context_fixture_signature is not None
+                else None
+            ),
+            "expected_context_fixture_signature": (
+                f"0x{int(expected_context_fixture_signature):08x}"
+                if expected_context_fixture_signature is not None
+                else None
+            ),
         },
         "preflight_samples": {
             name: [f"0x{value:08x}" for value in values]
@@ -1082,8 +1195,15 @@ def main() -> int:
             "tb_data_sv_sha256": sha256_file(args.tb_data_sv),
             "embedding_tb_data_sv": str(args.embedding_tb_data_sv) if args.embedding_tb_data_sv else None,
             "embedding_tb_data_sv_sha256": sha256_file(args.embedding_tb_data_sv),
+            "context_tb_data_sv": str(args.context_tb_data_sv) if args.context_tb_data_sv else None,
+            "context_tb_data_sv_sha256": sha256_file(args.context_tb_data_sv),
             "tb_data_token_index": expected.get("token_index") if args.tb_data_sv else None,
             "token_ids": expected.get("token_ids"),
+            "context_fixture_signature": (
+                f"0x{int(expected_context_fixture_signature):08x}"
+                if expected_context_fixture_signature is not None
+                else None
+            ),
             "block_input_sha256": sha256_bytes(block_input),
             "residual_after_attention_sha256": sha256_bytes(residual),
             "block_input_source": block_input_source,
@@ -1121,6 +1241,11 @@ def main() -> int:
             "ln_input_checksum": (
                 f"0x{int(expected['ln_input_checksum']):08x}"
                 if "ln_input_checksum" in expected
+                else None
+            ),
+            "context_fixture_signature": (
+                f"0x{int(expected_context_fixture_signature):08x}"
+                if expected_context_fixture_signature is not None
                 else None
             ),
         },

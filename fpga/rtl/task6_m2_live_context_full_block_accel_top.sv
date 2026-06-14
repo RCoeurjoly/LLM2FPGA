@@ -25,7 +25,8 @@ module task6_m2_live_context_full_block_accel_top #(
   output logic [511:0] final_vector_o,
   output logic [31:0] debug_o,
   output logic [31:0] debug1_o,
-  output logic [31:0] debug2_o
+  output logic [31:0] debug2_o,
+  output logic [31:0] context_fixture_signature_o
 );
   typedef enum logic [3:0] {
     ST_IDLE = 4'd0,
@@ -63,6 +64,7 @@ module task6_m2_live_context_full_block_accel_top #(
   logic [31:0] context_debug_w;
   logic [31:0] context_debug1_w;
   logic [31:0] context_debug2_w;
+  logic [31:0] context_fixture_signature_w;
 
   logic [31:0] attn_status_w;
   logic [31:0] attn_cycle_count_w;
@@ -107,7 +109,8 @@ module task6_m2_live_context_full_block_accel_top #(
     .output_vector_o(context_vector_w),
     .debug_o(context_debug_w),
     .debug1_o(context_debug1_w),
-    .debug2_o(context_debug2_w)
+    .debug2_o(context_debug2_w),
+    .fixture_signature_o(context_fixture_signature_w)
   );
 
   task6_m2_first_token_attention_out_proj_accel_top attention_i (
@@ -296,5 +299,6 @@ module task6_m2_live_context_full_block_accel_top #(
     final_vector_o = mlp_final_vector_w;
     debug1_o = context_debug1_w;
     debug2_o = context_debug2_w;
+    context_fixture_signature_o = context_fixture_signature_w;
   end
 endmodule

@@ -21,6 +21,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_tb;
   logic [31:0] debug_o;
   logic [31:0] debug1_o;
   logic [31:0] debug2_o;
+  logic [31:0] fixture_signature_o;
   logic [511:0] expected_output_vector;
   logic [31:0] expected_checksum;
   logic [31:0] expected_sample0;
@@ -44,7 +45,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_tb;
     .output_vector_o(output_vector_o),
     .debug_o(debug_o),
     .debug1_o(debug1_o),
-    .debug2_o(debug2_o)
+    .debug2_o(debug2_o),
+    .fixture_signature_o(fixture_signature_o)
   );
 
   always #5 SYS_CLK = ~SYS_CLK;

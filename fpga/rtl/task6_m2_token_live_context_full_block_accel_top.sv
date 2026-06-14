@@ -60,6 +60,8 @@ module task6_m2_token_live_context_full_block_accel_top (
   logic [31:0] block_final_sample1_w;
   logic [511:0] block_final_vector_w;
   logic [31:0] block_debug_w;
+  logic [31:0] block_context_fixture_signature_w;
+  wire unused_context_fixture_signature = ^block_context_fixture_signature_w;
 
   task6_m2_token_block_input_accel_top token_i (
     .SYS_CLK(SYS_CLK),
@@ -96,7 +98,8 @@ module task6_m2_token_live_context_full_block_accel_top (
     .final_sample0_o(block_final_sample0_w),
     .final_sample1_o(block_final_sample1_w),
     .final_vector_o(block_final_vector_w),
-    .debug_o(block_debug_w)
+    .debug_o(block_debug_w),
+    .context_fixture_signature_o(block_context_fixture_signature_w)
   );
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin

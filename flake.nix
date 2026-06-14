@@ -13703,7 +13703,7 @@ EOF
             refuses the BAR gate unless it reports \`pcie_ready\`:
 
             \`\`\`bash
-            TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh m2-full-block 0000:42:00.0 --tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv --embedding-tb-data-sv ${task6M2EmbeddingBlockInputTbDataSv}/task6_m2_embedding_block_input_tb_data.sv --timeout 2.0 --poll-interval 0.001
+            TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh m2-full-block 0000:42:00.0 --tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv --embedding-tb-data-sv ${task6M2EmbeddingBlockInputTbDataSv}/task6_m2_embedding_block_input_tb_data.sv --context-tb-data-sv ${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv --timeout 2.0 --poll-interval 0.001
             \`\`\`
 
             This is the current M2 acceptance candidate. It still requires a
@@ -13740,6 +13740,7 @@ EOF
             "$ROOT/scripts/task6/task6_pcie_user_gate.sh" m2-full-block "$BDF" \
               --tb-data-sv ${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv \
               --embedding-tb-data-sv ${task6M2EmbeddingBlockInputTbDataSv}/task6_m2_embedding_block_input_tb_data.sv \
+              --context-tb-data-sv ${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv \
               --timeout 2.0 \
               --poll-interval 0.001 \
               "$@"
@@ -13762,6 +13763,8 @@ EOF
               "bitstream": "${task6YpcbPcieRowstreamIngressDummyPnr100Bitstream}",
               "tb_data_sv": "${task6M2LastTokenLiveKvContextFullBlockTbDataSv}/tb_data.sv",
               "embedding_tb_data_sv": "${task6M2EmbeddingBlockInputTbDataSv}/task6_m2_embedding_block_input_tb_data.sv",
+              "context_tb_data_sv": "${task6M2LnAttnLiveKvAllHeadsContextTbDataSv}/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv",
+              "expected_context_fixture_signature": "0xc5dc8a6c",
               "gate_script": "${./scripts/task6/task6_pcie_m2_full_block_gate.py}"
             }
             EOF

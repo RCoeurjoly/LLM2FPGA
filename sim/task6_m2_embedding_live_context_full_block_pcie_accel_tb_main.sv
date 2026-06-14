@@ -34,6 +34,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
   logic [31:0] expected_debug1;
   logic [31:0] expected_debug2;
   logic [31:0] expected_debug3;
+  logic [31:0] expected_context_fixture_signature;
   logic [31:0] expected_context_error_debug;
   logic [31:0] expected_context_error_debug1;
   logic [31:0] expected_context_error_debug2;
@@ -441,6 +442,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     expected_debug1 = 32'd0;
     expected_debug2 = 32'd0;
     expected_debug3 = 32'd0;
+    expected_context_fixture_signature = 32'd0;
     expected_context_error_debug = 32'd0;
     expected_context_error_debug1 = 32'd0;
     expected_context_error_debug2 = 32'd0;
@@ -475,6 +477,12 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       MLP_C_PROJ_EXPECTED_CHECKSUM[7:0]
     };
     expected_debug3 = {expected_block_input_checksum[15:0], expected_block_input_checksum[15:0]};
+    expected_context_fixture_signature = {
+      8'hc5,
+      ln_expected_q_by_token[5][1],
+      ln_input_q12_by_token[5][1][7:0],
+      ln_inv_std_q16_by_token[5][7:0]
+    };
 
     begin
       logic signed [31:0] mean_acc_q12;
@@ -527,6 +535,15 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     if (status_state(pcie_status_o) !== M2_IDLE || !pcie_status_o[0]) begin
       $fatal(1, "FAIL: initial wrapper status expected idle/ready got %08x", pcie_status_o);
     end
+    if (pcie_debug3_o !== expected_context_fixture_signature) begin
+      $fatal(
+        1,
+        "FAIL: idle context fixture signature expected %08x got %08x",
+        expected_context_fixture_signature,
+        pcie_debug3_o
+      );
+    end
+    $display("INFO: idle context fixture signature %08x", pcie_debug3_o);
 
     pcie_token_ids_i[0 +: 16] = 16'h3a3c;
     pulse_start();
@@ -535,6 +552,14 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     pulse_clear();
     if (status_state(pcie_status_o) !== M2_IDLE || !pcie_status_o[0]) begin
       $fatal(1, "FAIL: post-error clear wrapper status expected idle/ready got %08x", pcie_status_o);
+    end
+    if (pcie_debug3_o !== expected_context_fixture_signature) begin
+      $fatal(
+        1,
+        "FAIL: post-error idle context fixture signature expected %08x got %08x",
+        expected_context_fixture_signature,
+        pcie_debug3_o
+      );
     end
     pcie_token_ids_i[0 +: 16] = embed_block_expected_token_ids[0];
 
@@ -550,6 +575,14 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     pulse_clear();
     if (status_state(pcie_status_o) !== M2_IDLE || !pcie_status_o[0]) begin
       $fatal(1, "FAIL: post-context-error clear wrapper status expected idle/ready got %08x", pcie_status_o);
+    end
+    if (pcie_debug3_o !== expected_context_fixture_signature) begin
+      $fatal(
+        1,
+        "FAIL: post-context-error idle context fixture signature expected %08x got %08x",
+        expected_context_fixture_signature,
+        pcie_debug3_o
+      );
     end
 
     pulse_start();

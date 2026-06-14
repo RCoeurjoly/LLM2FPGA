@@ -25,7 +25,8 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   output logic [31:0] debug_o,
   output logic [31:0] debug1_o,
   output logic [31:0] debug2_o,
-  output logic [31:0] debug3_o
+  output logic [31:0] debug3_o,
+  output logic [31:0] context_fixture_signature_o
 );
   typedef enum logic [3:0] {
     ST_IDLE = 4'd0,
@@ -82,6 +83,7 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic [31:0] block_debug_w;
   logic [31:0] block_debug1_w;
   logic [31:0] block_debug2_w;
+  logic [31:0] block_context_fixture_signature_w;
 
   assign debug_ln_input_q12_by_token_w =
     boundary_valid_q ? ln_input_q12_by_token_q : embed_ln_input_q12_by_token_w;
@@ -135,7 +137,8 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     .final_vector_o(block_final_vector_w),
     .debug_o(block_debug_w),
     .debug1_o(block_debug1_w),
-    .debug2_o(block_debug2_w)
+    .debug2_o(block_debug2_w),
+    .context_fixture_signature_o(block_context_fixture_signature_w)
   );
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
@@ -313,5 +316,6 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       };
       debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};
     end
+    context_fixture_signature_o = block_context_fixture_signature_w;
   end
 endmodule

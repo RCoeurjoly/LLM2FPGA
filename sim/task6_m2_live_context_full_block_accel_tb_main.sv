@@ -27,6 +27,7 @@ module task6_m2_live_context_full_block_accel_tb;
   logic [31:0] final_sample1_o;
   logic [511:0] final_vector_o;
   logic [31:0] debug_o;
+  logic [31:0] context_fixture_signature_o;
   logic [511:0] expected_final_vector;
   logic [31:0] expected_context_checksum;
   integer cycles;
@@ -52,7 +53,8 @@ module task6_m2_live_context_full_block_accel_tb;
     .final_sample0_o(final_sample0_o),
     .final_sample1_o(final_sample1_o),
     .final_vector_o(final_vector_o),
-    .debug_o(debug_o)
+    .debug_o(debug_o),
+    .context_fixture_signature_o(context_fixture_signature_o)
   );
 
   always #5 SYS_CLK = ~SYS_CLK;

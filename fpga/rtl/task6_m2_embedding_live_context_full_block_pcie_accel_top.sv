@@ -67,6 +67,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
   logic [31:0] core_debug1_w;
   logic [31:0] core_debug2_w;
   logic [31:0] core_debug3_w;
+  logic [31:0] core_context_fixture_signature_w;
   wire unused_reserved = ^pcie_reserved_i;
 
   assign core_clear_w = pcie_clear_q;
@@ -96,7 +97,8 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
     .debug_o(core_debug_w),
     .debug1_o(core_debug1_w),
     .debug2_o(core_debug2_w),
-    .debug3_o(core_debug3_w)
+    .debug3_o(core_debug3_w),
+    .context_fixture_signature_o(core_context_fixture_signature_w)
   );
 
   always_ff @(posedge SYS_CLK or negedge SYS_RSTN) begin
@@ -217,7 +219,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
     pcie_debug_o = debug_q;
     pcie_debug1_o = debug1_q;
     pcie_debug2_o = debug2_q;
-    pcie_debug3_o = debug3_q;
+    pcie_debug3_o = (state_q == M2_IDLE) ? core_context_fixture_signature_w : debug3_q;
     pcie_provenance_o = 32'h4d32_3000 | {24'd0, M2_FULL_BLOCK_TOKEN_INDEX[7:0]};
   end
 endmodule

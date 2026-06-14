@@ -20,6 +20,7 @@ from task6_pcie_m2_full_block_gate import (
     expected_provenance,
     is_token_live_mode,
     m2_version_abi_matches,
+    parse_context_tb_data_sv,
     parse_embedding_tb_data_sv,
     parse_expected_json,
     parse_expected_tb_data_sv,
@@ -200,6 +201,23 @@ def test_parse_embedding_tb_data_sv_token_input_vector() -> None:
     assert token_input[12:] == bytes(52)
 
 
+def test_parse_context_tb_data_sv_fixture_signature() -> None:
+    path = write_text(
+        "\n".join(
+            [
+                "  ln_input_q12_by_token[5][1] = -16'sd374;",
+                "  ln_inv_std_q16_by_token[5] = 32'sd526188;",
+                "  ln_expected_q_by_token[5][1] = -8'sd36;",
+                "",
+            ]
+        )
+    )
+    expected = parse_context_tb_data_sv(path)
+    assert expected["context_fixture_signature"] == 0xC5DC_8A6C
+    assert expected["context_fixture_signature_token"] == 5
+    assert expected["context_fixture_signature_dim"] == 1
+
+
 def test_vector_readback_transform_classifies_board_ror1() -> None:
     requested = bytes.fromhex(
         "1e1d6209010180026402750100000000"
@@ -368,6 +386,7 @@ def main() -> None:
     test_parse_expected_json_requires_first_64_output()
     test_parse_expected_tb_data_sv_first_token_final_vector()
     test_parse_embedding_tb_data_sv_token_input_vector()
+    test_parse_context_tb_data_sv_fixture_signature()
     test_token_live_host_vector_selection_rejects_raw_overrides()
     test_validate_expected_rejects_missing_first_64_output()
     test_wrapper_contract_is_not_live_m2_evidence()
