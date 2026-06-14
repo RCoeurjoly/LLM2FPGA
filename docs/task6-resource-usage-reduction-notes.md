@@ -33181,3 +33181,32 @@ remain explicit diagnostic modes.
 This fixes one process problem before the next M2 compute experiment:
 acceptance no longer depends on the misleading `raw-internal` label or on a
 rotated BAR workaround that the current hardware does not require.
+
+### 2026-06-14 - M2 PCIe wrapper checkpoint sim tightened
+
+Tightened the small M2 PCIe-wrapper simulation so it checks the BAR-visible
+checkpoint/debug contract before any further pnr100/HIL iteration:
+
+- Command:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`.
+- Result: PASS with cycle count 141,619, final checksum `0x0003b2c9`,
+  sample0 `0xd114be59`, sample1 `0xd737e470`, provenance `0x4d323005`,
+  debug `0x4c420089`, debug1 `0x50f932e3`, and debug2 `0x49fb3a5b`.
+
+The test now derives and asserts the expected done-stage checkpoint words:
+
+- debug1 packs low 16 bits of the embedding/block-input checksum and
+  context/LN checksum: `0x50f9_32e3`.
+- debug2 packs low 8 bits of the downstream stage checksums:
+  attention output, attention residual, LN2, and MLP c_proj: `0x49_fb_3a_5b`.
+
+The test also removed the previous second run after wrapper-only clear.
+Wrapper clear intentionally does not reset the timing-heavy core path, so a
+second-run PASS after that clear would overstate the reset contract. The sim
+still checks that wrapper-visible status returns to idle/ready after clear.
+
+This is useful M2 progress, but not M2 closure. It improves representativeness
+of the BAR-visible checkpoint contract in the cheap loop; the latest board
+evidence still fails final vector matching, and the next board run should be
+reserved for a candidate whose changed checkpoint surface can explain or localize
+the first failing checksum.
