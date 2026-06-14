@@ -32694,3 +32694,31 @@ embedding, and small model tables being FF/mux-mapped while only the large
 weight memories were forced into BRAM. The next M2 pnr-oriented fix should move
 more constant/fixture tables out of LUT/FF fabric or shrink the live-context
 surface before spending another full route/HIL cycle.
+
+### 2026-06-14 - M2 flat QKV BRAM mapping failure
+
+Committed the first attempt to flatten the live-context Q/K/V projection weight
+tables as `c23bf44`. The focused context sim and full PCIe wrapper sim both
+passed with the flattened ROM contents:
+
+- Context sim: cycle count 53,152, checksum `0x000432e3`, sample0
+  `0xd3c310cb`, sample1 `0x10c11ddc`.
+- PCIe wrapper sim: cycle count 92,465, final checksum `0x0003b2c9`, sample0
+  `0xd114be59`, sample1 `0xd737e470`, provenance `0x4d323005`, debug
+  `0x00000000`, debug1 `0x50f932e3`, debug2 `0x49fb3a5b`.
+
+The pnr100 build failed during Yosys memory mapping before placement. Yosys saw
+the forced `ram_style = "block"` attributes on `k_proj_weight_q`,
+`q_proj_weight_q`, and `v_proj_weight_q`, but could not map the context
+projection-weight ROM shape to Xilinx block RAM:
+
+- `found attribute 'ram_style = block' ... k_proj_weight_q, forced mapping to
+  block RAM`
+- `ERROR: no valid mapping found for memory ... context_i.k_proj_weight_q`
+
+The failure mode is not a board issue. It is a synthesis-contract issue:
+simulation accepted same-cycle combinational reads from flattened `$readmemh`
+ROMs, while Xilinx BRAM mapping needs a compatible registered-read shape. The
+next fix should either pipeline/register the context projection-weight ROM
+reads explicitly or remove the forced BRAM attribute and choose a smaller
+constant-table target for the next timing attempt.
