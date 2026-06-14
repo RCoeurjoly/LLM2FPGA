@@ -107,6 +107,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic signed [31:0] k_proj_next_acc_w;
   logic signed [31:0] v_proj_next_acc_w;
   logic signed [31:0] q_proj_next_acc_w;
+  logic [31:0] proj_weight_index_w;
   logic signed [63:0] k_proj_output_product_w;
   logic signed [63:0] v_proj_output_product_w;
   logic signed [63:0] q_proj_output_product_w;
@@ -247,19 +248,23 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   assign ln_piped_output_w = saturate_i8(ln_piped_output_scaled_w);
   assign debug1_o = debug1_q;
   assign debug2_o = debug2_q;
+  assign proj_weight_index_w =
+    ((({{(32 - HEAD_WIDTH){1'b0}}, head_index_q} * 32'(ATTN_HEAD_DIM)) +
+      {{(32 - ATTN_DIM_WIDTH){1'b0}}, dim_index_q}) * 32'(LN_DIM)) +
+    {{(32 - LN_INDEX_WIDTH){1'b0}}, proj_index_q};
 
   assign k_proj_next_acc_w =
     k_proj_acc_q +
     ($signed(ln_output_cache_q[proj_index_q]) *
-     $signed(k_proj_weight_q[head_index_q][dim_index_q][proj_index_q]));
+     $signed(k_proj_weight_q[proj_weight_index_w]));
   assign v_proj_next_acc_w =
     v_proj_acc_q +
     ($signed(ln_output_cache_q[proj_index_q]) *
-     $signed(v_proj_weight_q[head_index_q][dim_index_q][proj_index_q]));
+     $signed(v_proj_weight_q[proj_weight_index_w]));
   assign q_proj_next_acc_w =
     q_proj_acc_q +
     ($signed(ln_output_cache_q[proj_index_q]) *
-     $signed(q_proj_weight_q[head_index_q][dim_index_q][proj_index_q]));
+     $signed(q_proj_weight_q[proj_weight_index_w]));
   assign k_proj_output_product_w =
     $signed(k_proj_acc_q) *
     $signed(k_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q]);

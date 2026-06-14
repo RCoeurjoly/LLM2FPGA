@@ -43,6 +43,14 @@ def emit_3d(lines: list[str], name: str, rows: list[list[list[int]]], formatter)
                 lines.append(f"  {name}[{index0}][{index1}][{index2}] = {formatter(value)};")
 
 
+def flatten_3d(rows: list[list[list[int]]]) -> list[int]:
+    return [value for row0 in rows for row1 in row0 for value in row1]
+
+
+def write_hex_i8(path: Path, values: list[int]) -> None:
+    path.write_text("\n".join(f"{value & 0xFF:02x}" for value in values) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     args = parse_args()
     contract = attention.load_json(args.contract_manifest)
@@ -161,12 +169,21 @@ def main() -> None:
                     f"head={head_index} dim={dim}: got {requant} expected {expected}"
                 )
 
+    args.out_sv.parent.mkdir(parents=True, exist_ok=True)
+    q_weight_hex = args.out_sv.parent / "q_proj_weight_q.hex"
+    k_weight_hex = args.out_sv.parent / "k_proj_weight_q.hex"
+    v_weight_hex = args.out_sv.parent / "v_proj_weight_q.hex"
+    write_hex_i8(q_weight_hex, flatten_3d(q_weight_rows))
+    write_hex_i8(k_weight_hex, flatten_3d(k_weight_rows))
+    write_hex_i8(v_weight_hex, flatten_3d(v_weight_rows))
+
     lines = [
         "localparam int LN_DIM = 64;",
         f"localparam int CACHE_SEQ = {token_index + 1};",
         f"localparam int NUM_HEADS = {args.num_heads};",
         f"localparam int ATTN_HEAD_DIM = {head_dim};",
         "localparam int CONTEXT_DIM = NUM_HEADS * ATTN_HEAD_DIM;",
+        "localparam int PROJ_WEIGHT_COUNT = NUM_HEADS * ATTN_HEAD_DIM * LN_DIM;",
         "logic signed [15:0] ln_input_q12_by_token [0:CACHE_SEQ-1][0:LN_DIM-1];",
         "logic signed [31:0] ln_gamma_q16 [0:LN_DIM-1];",
         "logic signed [15:0] ln_beta_q12 [0:LN_DIM-1];",
@@ -175,9 +192,9 @@ def main() -> None:
         "logic signed [7:0] ln_expected_q_by_token [0:CACHE_SEQ-1][0:LN_DIM-1];",
         "logic signed [31:0] softmax_score_scale_q20_by_head [0:NUM_HEADS-1];",
         "logic signed [31:0] context_requant_mul_q20_by_head [0:NUM_HEADS-1];",
-        "logic signed [7:0] q_proj_weight_q [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
-        "logic signed [7:0] k_proj_weight_q [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
-        "logic signed [7:0] v_proj_weight_q [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1][0:LN_DIM-1];",
+        "(* rom_style = \"block\", ram_style = \"block\" *) logic signed [7:0] q_proj_weight_q [0:PROJ_WEIGHT_COUNT-1];",
+        "(* rom_style = \"block\", ram_style = \"block\" *) logic signed [7:0] k_proj_weight_q [0:PROJ_WEIGHT_COUNT-1];",
+        "(* rom_style = \"block\", ram_style = \"block\" *) logic signed [7:0] v_proj_weight_q [0:PROJ_WEIGHT_COUNT-1];",
         "logic signed [31:0] q_proj_output_mul_q20_final [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1];",
         "logic signed [31:0] k_proj_output_mul_q20_by_token [0:NUM_HEADS-1][0:CACHE_SEQ-1][0:ATTN_HEAD_DIM-1];",
         "logic signed [31:0] v_proj_output_mul_q20_by_token [0:NUM_HEADS-1][0:CACHE_SEQ-1][0:ATTN_HEAD_DIM-1];",
@@ -190,6 +207,9 @@ def main() -> None:
         "logic signed [31:0] attn_expected_value_acc [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1];",
         "logic signed [7:0] attn_expected_value_q [0:NUM_HEADS-1][0:ATTN_HEAD_DIM-1];",
         "logic signed [7:0] context_expected_q [0:CONTEXT_DIM-1];",
+        "initial $readmemh(\"%s\", q_proj_weight_q);" % q_weight_hex,
+        "initial $readmemh(\"%s\", k_proj_weight_q);" % k_weight_hex,
+        "initial $readmemh(\"%s\", v_proj_weight_q);" % v_weight_hex,
         "initial begin",
     ]
     emit_2d(lines, "ln_input_q12_by_token", [ln["input_q"] for ln in ln_fixtures], sublane.sv_i16)
@@ -205,9 +225,6 @@ def main() -> None:
         lines.append(f"  softmax_score_scale_q20_by_head[{head_index}] = {sublane.sv_i32(value)};")
     for head_index, value in enumerate(context_requant_mul):
         lines.append(f"  context_requant_mul_q20_by_head[{head_index}] = {sublane.sv_i32(value)};")
-    emit_3d(lines, "q_proj_weight_q", q_weight_rows, sublane.sv_i8)
-    emit_3d(lines, "k_proj_weight_q", k_weight_rows, sublane.sv_i8)
-    emit_3d(lines, "v_proj_weight_q", v_weight_rows, sublane.sv_i8)
     emit_2d(lines, "q_proj_output_mul_q20_final", q_output_mul, sublane.sv_i32)
     emit_3d(lines, "k_proj_output_mul_q20_by_token", k_output_mul, sublane.sv_i32)
     emit_3d(lines, "v_proj_output_mul_q20_by_token", v_output_mul, sublane.sv_i32)
@@ -223,7 +240,6 @@ def main() -> None:
         lines.append(f"  context_expected_q[{index}] = {sublane.sv_i8(value)};")
     lines.append("end")
 
-    args.out_sv.parent.mkdir(parents=True, exist_ok=True)
     args.out_sv.write_text("\n".join(lines) + "\n", encoding="utf-8")
     checksum = sum((value & 0xFF) * (index + 1) for index, value in enumerate(context_q))
     args.out_json.write_text(
