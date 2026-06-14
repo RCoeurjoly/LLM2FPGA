@@ -32816,3 +32816,41 @@ not a flashable M2 candidate. The Q/K/V BRAM contract is fixed; the next M2
 timing fix should reduce high-fanout clear/enable distribution and the remaining
 large FF/mux constant-table footprint, especially embedding and scale/bias
 tables still reported as FF mappings.
+
+### 2026-06-14 - M2 clear-pulse pipeline pnr timing attempt
+
+Committed the PCIe clear-pulse boundary register as `bbdc1a8`. The wrapper now
+captures `pcie_clear_pulse_i` into `pcie_clear_q`, feeds the M2 core from the
+registered clear, and uses the registered clear for the wrapper-side clear path.
+The intent was to break the previous routed critical path through
+`rowstream_m2_full_block_clear` and generated enable logic.
+
+The PCIe wrapper simulation still passed before PNR:
+
+- Cycle count 141,617.
+- Final checksum `0x0003b2c9`.
+- Final sample0 `0xd114be59`, sample1 `0xd737e470`.
+- Provenance `0x4d323005`, debug `0x00000000`, debug1 `0x50f932e3`,
+  debug2 `0x49fb3a5b`.
+
+The pnr100 build still failed timing, so this is not a flashable M2 candidate.
+The clear register did not materially reduce the design footprint:
+
+- Packed resources: 75,994 `SLICE_LUTX`, 28,531 `SLICE_FFX`, 94 `DSP48E1`,
+  and 16 `RAMB36E1`.
+- Post-placement clocks: `pcie_user_clk` 41.86 MHz FAIL at 62.50 MHz, `drck`
+  182.32 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 153.61 MHz PASS at 100 MHz.
+- Routed clocks: `pcie_user_clk` 55.66 MHz FAIL at 62.50 MHz, `drck`
+  278.16 MHz PASS at 100 MHz, `PIPE_OOBCLK_IN` 226.60 MHz PASS at 100 MHz.
+- Router congestion resolved by iteration 5, from 75,512 overused wires at
+  iteration 1 to zero overuse.
+- Routed critical path for `pcie_user_clk`: `embed_i.state_q[5]` through
+  generated ABC mux/enable logic into a CE endpoint, 0.8 ns logic and 17.2 ns
+  routing.
+
+The failed path moved away from the raw clear signal, but the timing result got
+worse at placement and remained below target after routing. The dominant M2
+problem is now the broad embedding/context table and generated enable/mux
+fabric, not PCIe recovery and not the Q/K/V BRAM inference issue. Next RTL work
+should reduce the remaining FF/mux table footprint or serialize the live-block
+boundary further before another hardware-facing gate.
