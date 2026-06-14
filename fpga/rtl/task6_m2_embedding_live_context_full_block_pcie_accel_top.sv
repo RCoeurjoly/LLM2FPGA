@@ -69,9 +69,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_top #(
   logic [31:0] core_debug3_w;
   wire unused_reserved = ^pcie_reserved_i;
 
-  // The BAR clear path is host-visible wrapper control. Forwarding it into the
-  // full compute core creates a high-fanout timing path across the M2 datapath.
-  assign core_clear_w = 1'b0;
+  assign core_clear_w = pcie_clear_q;
 
   task6_m2_embedding_live_context_full_block_accel_top #(
     .ENABLE_CONTEXT_INTERNAL_CHECKS(ENABLE_CONTEXT_INTERNAL_CHECKS)

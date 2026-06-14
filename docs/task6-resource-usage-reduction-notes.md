@@ -33686,4 +33686,35 @@ Targeted route build:
 - Result:
   `/nix/store/islhsi1vbqy86zg5cvh4ikw3rzd2hw0z-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
 - Final nextpnr timing passed: `pcie_user_clk` 69.01 MHz against 62.50 MHz.
-- No board run has been performed with this bitstream yet.
+- Board programming succeeded after first-32-word BPI flash verify:
+  `artifacts/task6/runs/2026-06-14T12-27-16+0200-task6-m2-handoff-debug3-pnr100-flash`.
+- Post-flash lifecycle initially reported `missing_resource0`; the first Tapo
+  recovery attempt failed because the pinned `uv` store path had been garbage
+  collected. After restoring `uv`, Tapo P115 recovery reached `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T12-36-28+0200-task6-m2-handoff-debug3-postflash-tapo-uv-restored`.
+- BAR header smoke then passed with `T6PC`, version 3, status `0x61`.
+
+Board checks on the route-clean bitstream:
+
+- `readback-compensated` full-block gate failed immediately with embedding
+  token-id mismatch `0x3a3c`:
+  `artifacts/task6/runs/2026-06-14T12-37-45+0200-task6-m2-full-block-handoff-debug3-compensated.json`.
+- Direct vector probe passed, proving the previous 64-bit lane-rotate BAR
+  transport issue is gone on this reset-sequenced bitstream:
+  `artifacts/task6/runs/2026-06-14T12-38-15+0200-task6-m2-vector-rw-probe-direct-after-debug3.json`.
+- Direct full-block gate still failed immediately with the same stale
+  embedding token-id mismatch `0x3a3c`, even though input/residual readback
+  matched the requested vectors:
+  `artifacts/task6/runs/2026-06-14T12-38-30+0200-task6-m2-full-block-handoff-debug3-direct.json`.
+
+Conclusion: the new bitstream fixes direct BAR vector transport, so the
+diagnostic lane compensation must not be used for this image. The remaining
+failure is stale M2 core error state: wrapper clear reset the PCIe-visible
+wrapper registers but left the full-block core in `ST_ERROR`. The wrapper now
+drives the existing core `clear_i` from the BAR clear pulse. The PCIe wrapper
+sim was strengthened to induce an embedding token mismatch, clear it, and then
+complete the valid full-block run:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with final checksum `0x0003b2c9`, `debug1 50f932e3`,
+  `debug2 49fb3a5b`, and `debug3 50f950f9`.

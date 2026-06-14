@@ -178,6 +178,41 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
   endtask
 
+  task automatic pulse_clear;
+    begin
+      pcie_clear_pulse_i = 1'b1;
+      @(posedge SYS_CLK);
+      pcie_clear_pulse_i = 1'b0;
+      @(posedge SYS_CLK);
+    end
+  endtask
+
+  task automatic wait_error(input logic [15:0] expected_token_id);
+    integer cycles;
+    begin
+      cycles = 0;
+      while (cycles < 32) begin
+        @(posedge SYS_CLK);
+        cycles = cycles + 1;
+        if (pcie_status_o[2]) begin
+          if (pcie_debug_o[31:24] !== 8'h01) begin
+            $fatal(1, "FAIL: expected embedding error stage got debug=%08x", pcie_debug_o);
+          end
+          if (pcie_debug_o[15:0] !== expected_token_id) begin
+            $fatal(
+              1,
+              "FAIL: expected token mismatch debug token %04x got %04x",
+              expected_token_id,
+              pcie_debug_o[15:0]
+            );
+          end
+          return;
+        end
+      end
+      $fatal(1, "Timeout waiting for induced task6 M2 wrapper error");
+    end
+  endtask
+
   initial begin
     SYS_CLK = 1'b0;
     SYS_RSTN = 1'b0;
@@ -231,6 +266,16 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       $fatal(1, "FAIL: initial wrapper status expected idle/ready got %08x", pcie_status_o);
     end
 
+    pcie_token_ids_i[0 +: 16] = 16'h3a3c;
+    pulse_start();
+    wait_error(16'h3a3c);
+
+    pulse_clear();
+    if (status_state(pcie_status_o) !== M2_IDLE || !pcie_status_o[0]) begin
+      $fatal(1, "FAIL: post-error clear wrapper status expected idle/ready got %08x", pcie_status_o);
+    end
+    pcie_token_ids_i[0 +: 16] = embed_block_expected_token_ids[0];
+
     pulse_start();
     wait_done(1);
 
@@ -247,10 +292,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       pcie_debug3_o
     );
 
-    pcie_clear_pulse_i = 1'b1;
-    @(posedge SYS_CLK);
-    pcie_clear_pulse_i = 1'b0;
-    @(posedge SYS_CLK);
+    pulse_clear();
     if (status_state(pcie_status_o) !== M2_IDLE || !pcie_status_o[0]) begin
       $fatal(1, "FAIL: post-clear wrapper status expected idle/ready got %08x", pcie_status_o);
     end
