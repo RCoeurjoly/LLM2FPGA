@@ -4,6 +4,35 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-14 - M2 pnr100 image with context internal checks disabled
+
+Committed the board-facing M2 timing trim as `b5c42d5`: the default RTL keeps
+live-context internal checks enabled for simulation/diagnostics, while the
+pnr100 rowstream-ingress dummy image sets
+`M2_ENABLE_CONTEXT_INTERNAL_CHECKS=0`. This removes the context self-check
+fabric from the board image without weakening the host-visible M2 BAR contract.
+
+Verification:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim
+  -o /tmp/task6-m2-context-check-param-pcie-sim -L` passed with final checksum
+  `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`, provenance
+  `4d323005`, and debug words clear.
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream
+  -o /tmp/task6-m2-no-context-checks-pnr100-bitstream -L` completed and
+  produced
+  `/nix/store/a5hrk6q02zfgj509v7i9wikjdbw5w1l5-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Final routed timing passed: `pcie_user_clk` 64.80 MHz PASS at 62.50 MHz,
+  `drck` 232.77 MHz PASS at 100 MHz, and `PIPE_OOBCLK_IN` 249.50 MHz PASS at
+  100 MHz. nextpnr reported 28 warnings and 0 errors.
+
+The build log still shows substantial M2 routing/timing pressure from wide
+live-handoff and table logic, including the 6144-bit embedding LN handoff and
+FF/mux-mapped context projection tables. M2 remains open: this is a flashable
+candidate, not board acceptance. The next step is to use the validated safe
+PCIe/BAR protocol, flash this bitstream, require lifecycle `pcie_ready` plus
+BAR header `T6PC`, and then rerun the token-live M2 BAR gate.
+
 ## 2026-06-14 - M2 LN handoff timing rebuild stopped before flash
 
 After the M2 HIL failure localized to a one-count context-LN mismatch, the
