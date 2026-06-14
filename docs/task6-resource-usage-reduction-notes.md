@@ -33787,3 +33787,24 @@ Context-check contract fix:
 This does not close M2. It makes the next board run useful only if the routed
 image keeps timing: a failing HIL run should now identify the specific context
 sub-check, rather than only the final context checksum mismatch.
+
+Targeted route build for the context-check image:
+
+- `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-context-checks-pnr100-bitstream -L`
+- Result:
+  `/nix/store/nfpbm5lbfyj3vijkbrfsj972qs9fmas4-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`
+- Yosys check reported 0 problems. Packed design scale was 85,880 cells,
+  152 DSP48E1, 16 RAMB36E1, and estimated 26,177 LCs.
+- Placement initially reported `pcie_user_clk` 45.33 MHz against 62.50 MHz,
+  but router2 converged legally in 5 iterations. Final routed timing passed:
+  `pcie_user_clk` 63.39 MHz against 62.50 MHz.
+- Router pressure was visible: first router2 iteration reported
+  `overused=75239`/`overuse=81012`, then converged to 0 overuse by iteration
+  5. The final critical `pcie_user_clk` path is inside the live context stage,
+  from `context_i.src_index_q[0]` through `prob_current_w[1]`.
+
+This image is board-testable under the validated PCIe/BAR lifecycle protocol.
+The only justified board action is the focused direct-mode M2 full-block gate,
+because this bitstream is designed to turn the previous context checksum
+failure into a more precise context internal-check failure if the same HIL
+divergence persists.
