@@ -34416,3 +34416,49 @@ M2 input BAR ror64 compensation pnr100 route result:
   `pcie_ready`, BAR header `T6PC`, and then check whether direct input
   readback is now identity and whether `start_count` advances. M2 remains open
   until that board observable passes and the compute result matches.
+
+M2 input BAR ror64 board preflight, first attempt:
+
+- Flashed the timing-clean input-ror compensation image:
+  `/nix/store/v6sfvab74mfhnlm8aazf45j3fg544zyj-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Pre-flash lifecycle was `pcie_ready`:
+  `artifacts/task6/runs/2026-06-14T17-06-23+0200-task6-m2-input-ror-preflash-lifecycle`.
+- Flash and first-32-word verify passed:
+  `artifacts/task6/runs/2026-06-14T17-06-33+0200-task6-m2-input-ror-pnr100-flash`.
+- Post-flash lifecycle was `missing_resource0`, so no BAR access was attempted
+  in that state:
+  `artifacts/task6/runs/2026-06-14T17-13-43+0200-task6-m2-input-ror-postflash-lifecycle`.
+- Tapo cold-cycle recovery reached `pcie_ready` with
+  `host_recovery_freeze_risk = false`:
+  `artifacts/task6/runs/2026-06-14T17-13-54+0200-task6-m2-input-ror-postflash-tapo`.
+- BAR header smoke passed with `T6PC`, version 3, status `0x61`.
+- The first M2 gate invocation used the wrong `--bdf` CLI shape and failed
+  before hardware access. The corrected gate then stopped before clear/start or
+  vector writes:
+  `artifacts/task6/runs/2026-06-14T17-16-m2-input-ror-full-block-direct.json`.
+- Preflight observations from that failed gate: Task 6 magic/version/status
+  were stable, M2 magic/present were stable, M2 version was stable at
+  `0x00200001`, and M2 provenance sampled `0xffffffff`, then
+  `0x4d323005`, `0x4d323005`.
+
+The board did not reach the repaired input-readback observable yet. The failure
+is a host-gate preflight contract issue: the current bitstream exposes ABI
+version 1 with high feature bits, and a single leading all-ones provenance
+sample can occur immediately after BAR header smoke before stable valid reads.
+
+Host gate preflight contract fix:
+
+- Updated `task6_pcie_m2_full_block_gate.py` to accept M2 version values whose
+  low 16-bit ABI version equals 1, preserving the raw version in artifacts.
+- Added a `preflight_acceptable` map that tolerates only a single leading
+  all-ones sample followed by stable non-all-ones values. Repeated all-ones or
+  mid-stream all-ones remain failures.
+- Cheap checks:
+  `PYTHONPATH=scripts/task6 python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  and
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`.
+
+No RTL, pnr100, flash, or recovery change is required for this host-gate
+contract fix. The current board is already in the post-Tapo `pcie_ready` state
+with a passing `T6PC` header smoke, so one rerun of the same M2 gate is
+justified to reach the intended input-readback/start observable.

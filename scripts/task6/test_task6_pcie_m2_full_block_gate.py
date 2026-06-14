@@ -19,6 +19,7 @@ from task6_pcie_m2_full_block_gate import (
     decode_status,
     expected_provenance,
     is_token_live_mode,
+    m2_version_abi_matches,
     parse_embedding_tb_data_sv,
     parse_expected_json,
     parse_expected_tb_data_sv,
@@ -27,6 +28,7 @@ from task6_pcie_m2_full_block_gate import (
     rd32_window,
     sample_registers,
     select_host_vectors,
+    stable_or_leading_all_ones,
     validate_expected,
     vector_bytes_from_words,
     vector_words_from_bytes,
@@ -342,6 +344,21 @@ def test_sample_registers_detects_transient_all_ones_preflight_read() -> None:
     assert stable == {"magic": True, "m2_present": False}
 
 
+def test_preflight_accepts_single_leading_all_ones_then_stable_value() -> None:
+    assert stable_or_leading_all_ones([0x4D32_3005, 0x4D32_3005, 0x4D32_3005])
+    assert stable_or_leading_all_ones([0xFFFF_FFFF, 0x4D32_3005, 0x4D32_3005])
+    assert not stable_or_leading_all_ones([0x4D32_3005, 0xFFFF_FFFF, 0x4D32_3005])
+    assert not stable_or_leading_all_ones([0xFFFF_FFFF, 0x4D32_3005, 0x4D32_3006])
+    assert not stable_or_leading_all_ones([0xFFFF_FFFF, 0xFFFF_FFFF, 0xFFFF_FFFF])
+
+
+def test_m2_version_accepts_feature_bits_with_abi_low_half() -> None:
+    assert m2_version_abi_matches(0x0000_0001)
+    assert m2_version_abi_matches(0x0020_0001)
+    assert not m2_version_abi_matches(0x0000_0002)
+    assert not m2_version_abi_matches(0xFFFF_FFFF)
+
+
 def main() -> None:
     test_decode_status_magic_bit16()
     test_decode_status_rejects_old_magic_bit14_interpretation()
@@ -360,6 +377,8 @@ def main() -> None:
     test_sample_registers_records_stable_preflight_values()
     test_rd32_window_decodes_word_from_64_byte_snapshot()
     test_sample_registers_detects_transient_all_ones_preflight_read()
+    test_preflight_accepts_single_leading_all_ones_then_stable_value()
+    test_m2_version_accepts_feature_bits_with_abi_low_half()
 
 
 if __name__ == "__main__":

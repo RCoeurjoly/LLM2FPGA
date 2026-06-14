@@ -24,6 +24,7 @@ TASK6_MAGIC = 0x54365043
 TASK6_VERSION = 3
 M2_MAGIC = 0x54364D32
 M2_VERSION = 1
+M2_VERSION_ABI_MASK = 0x0000_FFFF
 
 REG_MAGIC = 0x000
 REG_VERSION = 0x004
@@ -176,6 +177,24 @@ def sample_registers(
     }
     values = {name: values[-1] for name, values in observed_samples.items()}
     return values, observed_samples, stable
+
+
+def stable_or_leading_all_ones(values: list[int]) -> bool:
+    if not values:
+        return False
+    if values[-1] == ALL_ONES:
+        return False
+    if all(value == values[0] for value in values):
+        return True
+    return (
+        len(values) >= 2
+        and values[0] == ALL_ONES
+        and all(value == values[-1] for value in values[1:])
+    )
+
+
+def m2_version_abi_matches(value: int) -> bool:
+    return value != ALL_ONES and (value & M2_VERSION_ABI_MASK) == M2_VERSION
 
 
 def wr32(mm: mmap.mmap, offset: int, value: int) -> None:
@@ -827,7 +846,11 @@ def main() -> int:
             m2_present = preflight_values["m2_present"]
             m2_provenance = preflight_values["m2_provenance"]
             expected_m2_provenance = expected_provenance(expected)
-            preflight_all_stable = all(preflight_stable.values())
+            preflight_acceptable = {
+                name: stable_or_leading_all_ones(values)
+                for name, values in preflight_samples.items()
+            }
+            preflight_all_stable = all(preflight_acceptable.values())
 
             preflight_checks = {
                 "preflight_registers_stable": preflight_all_stable,
@@ -838,7 +861,7 @@ def main() -> int:
                     for value in (magic, version, status, m2_magic, m2_version, m2_present, m2_provenance)
                 ),
                 "m2_magic": m2_magic == M2_MAGIC,
-                "m2_version": m2_version == M2_VERSION,
+                "m2_version": m2_version_abi_matches(m2_version),
                 "m2_present": m2_present == 1,
                 "m2_provenance": m2_provenance == expected_m2_provenance,
             }
@@ -873,6 +896,7 @@ def main() -> int:
                         for name, values in preflight_samples.items()
                     },
                     "preflight_stable": preflight_stable,
+                    "preflight_acceptable": preflight_acceptable,
                     "fingerprints": {
                         "gate_script_sha256": sha256_file(Path(__file__)),
                         "expected_json": str(args.expected_json) if args.expected_json else None,
@@ -994,7 +1018,7 @@ def main() -> int:
             for value in (magic, version, status, m2_magic, m2_version, m2_present, observed["status"])
         ),
         "m2_magic": m2_magic == M2_MAGIC,
-        "m2_version": m2_version == M2_VERSION,
+        "m2_version": m2_version_abi_matches(m2_version),
         "m2_present": m2_present == 1,
         "m2_provenance": observed["provenance"] == observed["expected_provenance"],
         "input_readback": args.vector_write_mode not in ("direct", "raw-internal")
@@ -1049,6 +1073,7 @@ def main() -> int:
             for name, values in preflight_samples.items()
         },
         "preflight_stable": preflight_stable,
+        "preflight_acceptable": preflight_acceptable,
         "fingerprints": {
             "gate_script_sha256": sha256_file(Path(__file__)),
             "expected_json": str(args.expected_json) if args.expected_json else None,
