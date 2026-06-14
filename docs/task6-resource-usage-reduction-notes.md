@@ -34138,3 +34138,26 @@ M2 remains open. The next small fix should not chase another blind route; it
 should first isolate why LED/status fanout is entering the pcie-user critical
 CE path, and either remove that debug/status dependency from the M2 image or
 register/split it with a cheap observable proof before another route attempt.
+
+Detached dummy-top LEDs from Task 6 status/debug cones:
+
+- Changed `fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv` so the
+  board LEDs are driven directly from `pcie_led[2:0]` instead of mixing
+  `pcie_user_rst_n`, loader/top1 activity, MLP status, and M2 status into the
+  physical LED outputs.
+- Scope: timing-only contract fix for the previous pnr100 critical path that
+  routed through `led[1]$auto$IOBUF_I$`. The M2 BAR-visible status, debug, and
+  output surfaces are unchanged; LED debug indication is not part of the M2
+  acceptance contract.
+- Cheap observable proof:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  returned the already-proven cached PASS for the M2 PCIe accelerator. This is
+  the right cheap proof for this edit because the simulated M2 BAR contract is
+  outside the dummy-top physical LED wiring.
+- Integrated synthesis proof:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-led-detach-yosys-json -L`
+  passed. Final Yosys `CHECK` reported 0 problems, with 86,267 cells,
+  26,145 estimated LCs, 152 DSP48E1, and 16 RAMB36E1.
+- No pnr100 or board run was performed as part of this change. A single route
+  attempt is now justified because the fix directly targets the last routed
+  critical path through a physical LED output buffer.

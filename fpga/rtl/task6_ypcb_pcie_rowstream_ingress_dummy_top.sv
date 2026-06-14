@@ -101,11 +101,7 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
   reg [31:0] top1_cycle_count_q;
   reg [31:0] dummy_cycle_q;
 
-  assign led[0] = pcie_led[0];
-  assign led[1] = pcie_user_rst_n;
-  assign led[2] =
-    loader_last_accepted_q | top1_done_q | rowstream_mlp_accel_status[3] |
-    rowstream_m2_full_block_status[3];
+  assign led = pcie_led[2:0];
 
   assign rowstream_mlp_selftest_status = 32'd0;
   assign rowstream_mlp_selftest_cycle_count = rowstream_mlp_accel_cycle_count;
