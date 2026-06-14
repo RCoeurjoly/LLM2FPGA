@@ -34189,3 +34189,28 @@ cleanup as the main path. The next small contract fix should reduce or
 quarantine high-fanout clear/reset/control distribution inside the M2
 full-block image, with a cheap sim proving unchanged clear-then-start and M2
 output observables before any further route attempt.
+
+Localized full-block clear fanout inside the M2 live-context core:
+
+- Changed `fpga/rtl/task6_m2_live_context_full_block_accel_top.sv` to register
+  local clear copies before they drive the live-context child and the
+  full-block core state machine. The parent `clear_block_q` no longer feeds the
+  live-context clear port and local state reset cone directly.
+- Scope: timing contract fix for the previous pnr100 critical path that
+  started at `m2_full_block_accel.core_i.clear_block_q`. This intentionally
+  keeps the M2 BAR-visible start/done/output contract and final observable
+  unchanged.
+- Cheap observable proof:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with the same M2 observable as the prior accepted sim:
+  `cycles=141621`, `final_checksum=0003b2c9`,
+  `final_sample0=d114be59`, `final_sample1=d737e470`,
+  `provenance=4d323005`, `ln_input_checksum=88fa5e3a`,
+  `debug1=50f932e3`, `debug2=49fb3a5b`, and `debug3=50f950f9`.
+- Integrated synthesis proof:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-fullblock-clear-split-yosys-json -L`
+  passed. Final Yosys `CHECK` reported 0 problems, with 86,780 cells,
+  26,734 estimated LCs, 152 DSP48E1, and 16 RAMB36E1.
+- No pnr100 or board run was performed as part of this change. A single route
+  attempt is justified next because this fix targets the exact source register
+  of the previous final critical path.

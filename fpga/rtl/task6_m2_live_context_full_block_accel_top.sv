@@ -51,6 +51,8 @@ module task6_m2_live_context_full_block_accel_top #(
   logic mlp_start_q;
   logic output_valid_q;
   logic error_q;
+  (* keep = "true" *) logic clear_local_q;
+  (* keep = "true" *) logic clear_context_q;
 
   logic [31:0] context_status_w;
   logic [31:0] context_cycle_count_w;
@@ -94,7 +96,7 @@ module task6_m2_live_context_full_block_accel_top #(
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(context_start_q),
-    .clear_i(clear_i),
+    .clear_i(clear_context_q),
     .use_external_ln_input_i(use_external_ln_input_i),
     .external_ln_input_q12_by_token_i(external_ln_input_q12_by_token_i),
     .status_o(context_status_w),
@@ -161,22 +163,28 @@ module task6_m2_live_context_full_block_accel_top #(
       mlp_start_q <= 1'b0;
       output_valid_q <= 1'b0;
       error_q <= 1'b0;
-      debug_o <= 32'd0;
-    end else if (clear_i) begin
-      state_q <= ST_IDLE;
-      cycle_count_q <= 32'd0;
-      context_start_q <= 1'b0;
-      attn_start_q <= 1'b0;
-      mlp_start_q <= 1'b0;
-      output_valid_q <= 1'b0;
-      error_q <= 1'b0;
+      clear_local_q <= 1'b0;
+      clear_context_q <= 1'b0;
       debug_o <= 32'd0;
     end else begin
-      context_start_q <= 1'b0;
-      attn_start_q <= 1'b0;
-      mlp_start_q <= 1'b0;
+      clear_local_q <= clear_i;
+      clear_context_q <= clear_i;
 
-      unique case (state_q)
+      if (clear_local_q) begin
+        state_q <= ST_IDLE;
+        cycle_count_q <= 32'd0;
+        context_start_q <= 1'b0;
+        attn_start_q <= 1'b0;
+        mlp_start_q <= 1'b0;
+        output_valid_q <= 1'b0;
+        error_q <= 1'b0;
+        debug_o <= 32'd0;
+      end else begin
+        context_start_q <= 1'b0;
+        attn_start_q <= 1'b0;
+        mlp_start_q <= 1'b0;
+
+        unique case (state_q)
         ST_IDLE: begin
           if (start_i) begin
             state_q <= ST_CONTEXT_START;
@@ -259,7 +267,8 @@ module task6_m2_live_context_full_block_accel_top #(
           state_q <= ST_ERROR;
           error_q <= 1'b1;
         end
-      endcase
+        endcase
+      end
     end
   end
 
