@@ -34114,3 +34114,27 @@ Registered local clear split for the M2 embedding/full-block boundary:
 - No pnr100 or board run was performed as part of this change. A single route
   attempt is now justified because the fix targets the exact route-critical
   clear fanout path from the previous failed candidate.
+
+Route attempt for the registered local clear split:
+
+- Built:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-clear-split-pnr100-bitstream -L`.
+- The router converged legally at router2 iteration 6:
+  `overused=0`, `overuse=0`, `archfail=0`.
+- Final timing still failed, so no bitstream was produced for board use:
+  `pcie_user_clk = 55.81 MHz` versus the required `62.50 MHz`.
+- Other clocks passed: JTAG status `drck = 230.57 MHz` versus `100 MHz`,
+  and `PIPE_OOBCLK_IN = 245.40 MHz` versus `100 MHz`.
+- The previous named clear net was no longer the final critical path, although
+  it still appeared in the slow-net list. The new final pcie-user critical
+  path starts at `$auto$ff.cc:266:slice$319092.Q`, routes through
+  `led[1]$auto$IOBUF_I$`, two ABC-generated LUT stages, and ends at
+  `$auto$ff.cc:266:slice$426133.CE`, with `0.6 ns` logic and `17.3 ns`
+  routing.
+- No flash, PCIe/BAR lifecycle, Tapo recovery, header smoke, or M2 board gate
+  was run because the candidate is not timing-clean.
+
+M2 remains open. The next small fix should not chase another blind route; it
+should first isolate why LED/status fanout is entering the pcie-user critical
+CE path, and either remove that debug/status dependency from the M2 image or
+register/split it with a cheap observable proof before another route attempt.
