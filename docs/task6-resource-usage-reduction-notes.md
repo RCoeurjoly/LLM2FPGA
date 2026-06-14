@@ -34243,3 +34243,28 @@ the embed/full-block handshake into a CE path. The next small contract fix
 should make the M2 full-block control/status boundary more explicitly
 registered, with a cheap sim proving unchanged output and status observables
 before any further route attempt.
+
+Predecoded the M2 embed-done handshake at the full-block parent boundary:
+
+- Changed `fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv`
+  so the parent registers `embed_done_status_q` from `embed_status_q` and
+  consumes that single predecoded flag for the `ST_EMBED` to `ST_BLOCK_START`
+  transition. This replaces the previous delayed done flag that recomputed the
+  child status bit comparison inside the parent transition logic.
+- Scope: timing contract fix for the previous pnr100 path that started at
+  `m2_full_block_accel.core_i.embed_status_w[4]` and ended in a CE path. The
+  M2 BAR-visible start/done/output contract is intended to remain unchanged.
+- Cheap observable proof:
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with the exact prior accepted observable:
+  `cycles=141621`, `final_checksum=0003b2c9`,
+  `final_sample0=d114be59`, `final_sample1=d737e470`,
+  `provenance=4d323005`, `ln_input_checksum=88fa5e3a`,
+  `debug1=50f932e3`, `debug2=49fb3a5b`, and `debug3=50f950f9`.
+- Integrated synthesis proof:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-embed-status-predecode-yosys-json -L`
+  passed. Final Yosys `CHECK` reported 0 problems, with 86,663 cells,
+  26,554 estimated LCs, 152 DSP48E1, and 16 RAMB36E1.
+- No pnr100 or board run was performed as part of this change. A single route
+  attempt is justified next because this fix targets the exact source signal
+  of the previous final critical path.
