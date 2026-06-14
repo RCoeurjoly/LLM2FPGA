@@ -34161,3 +34161,31 @@ Detached dummy-top LEDs from Task 6 status/debug cones:
 - No pnr100 or board run was performed as part of this change. A single route
   attempt is now justified because the fix directly targets the last routed
   critical path through a physical LED output buffer.
+
+Route attempt for the dummy-top LED detachment:
+
+- Built:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-led-detach-pnr100-bitstream -L`.
+- The router converged legally at router2 iteration 5:
+  `overused=0`, `overuse=0`, `archfail=0`.
+- Final timing still failed, so no bitstream was produced for board use:
+  `pcie_user_clk = 57.33 MHz` versus the required `62.50 MHz`.
+- Other clocks passed after routing: JTAG status `drck = 355.37 MHz` versus
+  `100 MHz`, and `PIPE_OOBCLK_IN = 232.83 MHz` versus `100 MHz`.
+- The previous physical LED critical path is gone. The final pcie-user
+  critical path starts at `m2_full_block_accel.core_i.clear_block_q`, routes
+  through several ABC-generated LUT stages, and ends at
+  `$auto$ff.cc:266:slice$327013.CE`, with `1.2 ns` logic and `16.2 ns`
+  routing.
+- The slow-net list still highlights broad control fanout:
+  `pcie_user_rst_n`, an ABC-generated `make_patterns_logic` net,
+  `$PACKER_GND_NET`, context multiply operands, `pcie_ingress` read/control
+  nets, and `m2_full_block_accel.core_clear_w`.
+- No flash, PCIe/BAR lifecycle, Tapo recovery, header smoke, or M2 board gate
+  was run because the candidate is not timing-clean.
+
+M2 remains open. This result argues against more tiny top-level status/LED
+cleanup as the main path. The next small contract fix should reduce or
+quarantine high-fanout clear/reset/control distribution inside the M2
+full-block image, with a cheap sim proving unchanged clear-then-start and M2
+output observables before any further route attempt.
