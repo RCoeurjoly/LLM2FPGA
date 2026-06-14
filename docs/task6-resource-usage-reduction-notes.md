@@ -34068,3 +34068,25 @@ No new pnr100 or board run was performed for this change. M2 remains open; the
 next board run is justified only after this exact routed candidate exists, and
 its purpose should be narrow: does the board's token 0/LN2 debug2 move from
 `0xeef3ecbc` to the sim/oracle `0xee29ebd3`?
+
+Route attempt for the generated inverse-std reader candidate:
+
+- Built:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-ln-invstd-const-pnr100-bitstream -L`.
+- The route converged legally (`overused=0`, `archfail=0` at router2
+  iteration 15), but final timing failed.
+- Final `pcie_user_clk` max frequency was `57.38 MHz`, below the required
+  `62.50 MHz`.
+- The critical pcie-user path was dominated by routing, not logic:
+  `m2_full_block_accel.core_clear_w` through several ABC-generated nodes to a
+  CE endpoint, with about `1.0 ns` logic and `16.4 ns` routing.
+- Other reported clocks passed:
+  JTAG status `drck` at `233.15 MHz` versus `100 MHz`, and
+  `PIPE_OOBCLK_IN` at `225.17 MHz` versus `100 MHz`.
+- Because the image is not timing-clean, it was not flashed and no PCIe/BAR
+  lifecycle, Tapo, header smoke, or M2 board gate was run.
+
+M2 remains open. The next small change should address timing/fanout before
+another board attempt. The most direct current candidate is the high-fanout
+`core_clear_w`/CE path reported by nextpnr, without changing the already-proven
+LN2 sim observable.
