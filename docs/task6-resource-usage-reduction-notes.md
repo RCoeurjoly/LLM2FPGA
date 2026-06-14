@@ -4,6 +4,40 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-14 - M2 LN handoff timing rebuild stopped before flash
+
+After the M2 HIL failure localized to a one-count context-LN mismatch, the
+embedding block now stores the generated Q12 LN handoff in an unpacked internal
+register array and repacks it with constant generate-time slices. This preserves
+the token-live full-block contract while avoiding the previous procedural writes
+into a dynamic 6144-bit packed bus.
+
+Verification before pnr100:
+
+- `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim
+  -o /tmp/task6-m2-ln-array-pcie-sim -L` passed with final checksum
+  `0003b2c9`, sample0 `d114be59`, sample1 `d737e470`, provenance
+  `4d323005`, and debug words clear.
+
+The pnr100 rebuild did not produce a flashable image:
+
+- Command:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-ln-array-pnr100-bitstream -L`
+- Yosys completed, but the generated netlist remained large: ABC saw about
+  156807 gates, 33070 inputs, 45469 outputs, and 64641 LUT cells.
+- nextpnr packed about 80622 `SLICE_LUTX`, 28749 `SLICE_FFX`, 6977
+  `SELMUX2_1`, 94 `DSP48E1`, and 13 `RAMB36E1`.
+- Post-place timing failed: `pcie_user_clk=56.18 MHz` against the required
+  `62.50 MHz`. `drck=136.99 MHz` and `PIPE_OOBCLK_IN=172.71 MHz` passed.
+- No bitstream from this run was flashed, and no PCIe lifecycle, BAR header, or
+  M2 BAR gate was run from this image.
+
+M2 remains open. The next useful M2 action is to reduce the synthesized
+full-block fixture/debug fabric or move expected/check data out of the hot
+pcie_user_clk fabric before another pnr100 flash attempt. The repeated failure
+mode is timing pressure from the integrated M2 self-check/full-block fixture
+shape, not PCIe recovery.
+
 ## 2026-06-13 - M2 embedding requant sim fix, pnr100 timing still open
 
 Current M2 failure mode is no longer PCIe/BAR access. The validated safe
