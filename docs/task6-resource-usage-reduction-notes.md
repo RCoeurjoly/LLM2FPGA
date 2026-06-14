@@ -34214,3 +34214,32 @@ Localized full-block clear fanout inside the M2 live-context core:
 - No pnr100 or board run was performed as part of this change. A single route
   attempt is justified next because this fix targets the exact source register
   of the previous final critical path.
+
+Route attempt for the localized full-block clear fanout split:
+
+- Built:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream -o /tmp/task6-m2-fullblock-clear-split-pnr100-bitstream -L`.
+- The router converged legally at router2 iteration 6:
+  `overused=0`, `overuse=0`, `archfail=0`.
+- Final timing still failed, so no bitstream was produced for board use:
+  `pcie_user_clk = 57.38 MHz` versus the required `62.50 MHz`.
+- Other clocks passed after routing: JTAG status `drck = 268.96 MHz` versus
+  `100 MHz`, and `PIPE_OOBCLK_IN = 214.92 MHz` versus `100 MHz`.
+- The previous final critical path source, `m2_full_block_accel.core_i.clear_block_q`,
+  is gone. The new pcie-user critical path starts at
+  `m2_full_block_accel.core_i.embed_status_w[4]`, routes through several
+  ABC-generated LUT stages, and ends at `$auto$ff.cc:266:slice$329658.CE`,
+  with `1.4 ns` logic and `16.0 ns` routing.
+- The slow-net list still highlights broad control and status fanout:
+  `pcie_user_rst_n`, `$PACKER_GND_NET`, ABC-generated `make_patterns_logic`
+  nets, context multiply operands, `pcie_ingress` read/control nets, and
+  `m2_full_block_accel.core_clear_w`.
+- No flash, PCIe/BAR lifecycle, Tapo recovery, header smoke, or M2 board gate
+  was run because the candidate is not timing-clean.
+
+M2 remains open. This was useful because it removed the named `clear_block_q`
+route-critical source, but the next blocker is now status/control fanout from
+the embed/full-block handshake into a CE path. The next small contract fix
+should make the M2 full-block control/status boundary more explicitly
+registered, with a cheap sim proving unchanged output and status observables
+before any further route attempt.
