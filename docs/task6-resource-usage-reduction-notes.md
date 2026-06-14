@@ -34365,3 +34365,34 @@ This turns the latest M2 board failure into a named pre-start transport
 contract failure. The next fix should make the token/live direct input aperture
 identity-preserving in hardware, then prove that exact observable in a cheap
 ingress/BAR-mux sim before another board run.
+
+M2 input BAR ror64 compensation contract fix:
+
+- Scope: one small contract fix for the pre-start token/control input aperture
+  only. The 2026-06-14 board gate showed the requested M2 input vector was
+  observed as `pcie7x-64bit-ror1`, while the residual aperture was already
+  identity-preserving.
+- RTL change: `task6_pcie_axil_rowstream_loader_ingress` now keeps a raw shadow
+  for writes to `0x540..0x57c`, then exposes/drives the host-contract M2 input
+  vector by left-rotating each 64-bit lane by one bit. This compensates the
+  observed pcie7x write/readback transform without changing the residual
+  aperture or weakening the host gate.
+- Cheap observable proof:
+  `nix build .#task6-pcie-rowstream-loader-ingress-sim-main -o /tmp/task6-m2-input-ror-fix-ingress-sim-main -L`
+  followed by `/tmp/task6-m2-input-ror-fix-ingress-sim-main/obj_dir/sim_main`.
+  Result: `PASS: task6 PCIe rowstream loader ingress simulation`.
+- The ingress sim writes the exact raw board-observed token words
+  `84b10e8f`, `01400080`, `00ba8132`, then requires BAR readback and the
+  internal exported M2 input vector to equal the host-requested token words
+  `09621d1e`, `02800101`, `01750264`.
+- Integrated synthesis proof:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-yosys-json -o /tmp/task6-m2-input-ror-fix-yosys-json -L`.
+  Yosys completed with `CHECK` reporting 0 problems. Final top stats:
+  86,454 cells, 26,108 estimated LCs, 152 DSP48E1, 16 RAMB36E1. Warnings were
+  existing-style BRAM port resizing messages.
+- No pnr100 or board run has been launched for this fix yet. The next hardware
+  action, if taken, should be one route/build and one board gate specifically
+  to test whether the M2 gate now gets past direct input readback and starts
+  compute. If it fails later, the failure should localize after the repaired
+  pre-start input aperture rather than repeat the same transport contract
+  failure.
