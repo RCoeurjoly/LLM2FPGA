@@ -139,11 +139,6 @@ module task6_m2_embedding_block_input_accel_top (
       requant_lo_q <= 64'sd0;
       requant_product_q <= 64'sd0;
       block_input_vector_o <= 512'd0;
-      for (int reset_token_i = 0; reset_token_i < EMBED_BLOCK_SEQ; reset_token_i++) begin
-        for (int reset_dim_i = 0; reset_dim_i < EMBED_BLOCK_DIM; reset_dim_i++) begin
-          ln_input_q12_by_token_q[reset_token_i][reset_dim_i] <= 16'sd0;
-        end
-      end
       debug_o <= 32'd0;
     end else if (clear_i) begin
       state_q <= S_IDLE;
@@ -156,12 +151,6 @@ module task6_m2_embedding_block_input_accel_top (
       requant_hi_q <= 64'sd0;
       requant_lo_q <= 64'sd0;
       requant_product_q <= 64'sd0;
-      block_input_vector_o <= 512'd0;
-      for (int clear_token_i = 0; clear_token_i < EMBED_BLOCK_SEQ; clear_token_i++) begin
-        for (int clear_dim_i = 0; clear_dim_i < EMBED_BLOCK_DIM; clear_dim_i++) begin
-          ln_input_q12_by_token_q[clear_token_i][clear_dim_i] <= 16'sd0;
-        end
-      end
       debug_o <= 32'd0;
     end else begin
       unique case (state_q)
@@ -177,12 +166,6 @@ module task6_m2_embedding_block_input_accel_top (
             requant_hi_q <= 64'sd0;
             requant_lo_q <= 64'sd0;
             requant_product_q <= 64'sd0;
-            block_input_vector_o <= 512'd0;
-            for (int start_token_i = 0; start_token_i < EMBED_BLOCK_SEQ; start_token_i++) begin
-              for (int start_dim_i = 0; start_dim_i < EMBED_BLOCK_DIM; start_dim_i++) begin
-                ln_input_q12_by_token_q[start_token_i][start_dim_i] <= 16'sd0;
-              end
-            end
             debug_o <= 32'd0;
           end
         end
@@ -268,12 +251,6 @@ module task6_m2_embedding_block_input_accel_top (
             requant_hi_q <= 64'sd0;
             requant_lo_q <= 64'sd0;
             requant_product_q <= 64'sd0;
-            block_input_vector_o <= 512'd0;
-            for (int restart_token_i = 0; restart_token_i < EMBED_BLOCK_SEQ; restart_token_i++) begin
-              for (int restart_dim_i = 0; restart_dim_i < EMBED_BLOCK_DIM; restart_dim_i++) begin
-                ln_input_q12_by_token_q[restart_token_i][restart_dim_i] <= 16'sd0;
-              end
-            end
             debug_o <= 32'd0;
           end
         end
