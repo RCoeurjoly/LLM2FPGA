@@ -1,0 +1,13 @@
+{
+  "last_updated": "2026-06-17T00:00:00+02:00",
+  "milestone": "task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream",
+  "build_variant": "default/.#latest-passing-milestone + task6-latest-passing-milestone-board-gate",
+  "next_milestone": "task6-m2 live-context full-block corrected",
+  "latest_green_artifact": "",
+  "expected_milestone_scope": "non-ddr3",
+  "current_gap": "Board gate fails during loader ready wait (state 12 timeout) after flash",
+  "failure_signature": "TimeoutError loader did not become ready: magic_ok=True version=13 calib_seen=True state=12 ack=14071040 err=14071040 loader_error=False debug1=0xe500e500",
+  "root_cause_note": "Latest passing alias resolves to a DDR3/JTAG path (`task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream`), causing DDR3 calibration attempts during board gate.",
+  "next_action": "Verify board target/reset/recovery path, then rerun board gate with fresh run_root and captured logs",
+  "status": "BLOCKED__BOARD_GATE"
+}

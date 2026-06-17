@@ -1,0 +1,50 @@
+* LLM2FPGA Task6 Clarity Plan (Task 6)
+Last updated: 2026-06-17 (Europe/Madrid)
+
+State-of-truth source: [[file:task6-crisp-state.org]] and [[file:task6-crisp-state.json]].
+
+* Goals
+** [ ] Goal 0 - Absolute clarity and control of project state
+- [ ] Keep one canonical snapshot + evidence trail for each run.
+- [ ] Make acceptance boundaries explicit for next milestone transitions.
+
+** [ ] Goal 1 - Clarity about current project state
+*** [ ] Goal 1.1 - Latest passing milestone reproducibly buildable and board-testable
+- [ ] Nix build side is reproducible.
+- [ ] Board-gate side is passing and reproducible.
+- [ ] Current status: =BLOCKED__BOARD_GATE=.
+  - Evidence: the configured `latest-passing-milestone` currently resolves to `task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream` and invokes DDR3/JTAG loader behavior.
+  - Failure pattern: calibration wait timeout (`state=12`, `magic_ok=True`, `calib_seen=True`, `err=14071040`).
+
+*** [ ] Goal 1.2 - Next unsolved milestone build + delta/fail mode
+- [ ] Define `.#bottleneck` (or explicit alias) for next target.
+- [ ] Build and record delta from current green baseline.
+- [ ] Record precise failing signature and gating action.
+
+** [ ] Goal 2 - Clarity about historical work
+- [ ] Move older milestones/artifacts into task-scoped folders (`previous_tasks` / task-specific files).
+- [ ] Keep root surface focused on current active paths.
+
+** [ ] Goal 3 - Manageable and understandable repository
+- [ ] Introduce explicit top-level purpose directories (`scripts/hardware`, `scripts/board`, `scripts/pipeline`, etc.) or equivalent documentation index.
+- [ ] Keep file size and complexity bounded per folder.
+
+** [ ] Goal 4 - Short, understandable checks
+- [ ] Consolidate checks to: python checks, nix checks, shell checks, and rtl checks.
+- [ ] Add size/type gates where they buy signal (excluding historical folders).
+
+** [ ] Goal 5 - Clear agent instructions
+- [ ] Keep short commit granularity.
+- [ ] Keep machine+human state snapshots updated on each significant status change.
+
+** [ ] Goal 6 - Short, understandable canonical docs
+- [ ] Keep one canonical task status doc (this file + state companion).
+- [ ] Define scope, active milestone, next bottleneck, and expected acceptance criteria.
+
+** [ ] Goal 7 - One source-of-truth observability
+- [ ] Keep `docs/task6-crisp-state.org` + `docs/task6-crisp-state.json` as the single ground truth.
+- [ ] Require updates when `failure_signature`, `current_gap`, `next_action`, or `latest_green_artifact` changes.
+
+** [ ] Goal 8 - Hierarchical plan in org mode
+- [ ] Maintain this file as the top-level, checkable plan view.
+- [ ] Align task check states with Goal 7 snapshots.
