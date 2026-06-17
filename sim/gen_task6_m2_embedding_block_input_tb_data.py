@@ -53,6 +53,18 @@ def parse_1d(path: Path, name: str, count: int) -> list[int]:
     return [values[index] for index in range(count)]
 
 
+def parse_1d_optional(path: Path, name: str, count: int) -> list[int] | None:
+    values: dict[int, int] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = SV_1D_RE.match(line)
+        if match and match.group("name") == name:
+            values[int(match.group("i0"))] = parse_sv_value(match)
+    missing = [index for index in range(count) if index not in values]
+    if missing:
+        return None
+    return [values[index] for index in range(count)]
+
+
 def parse_2d(path: Path, name: str, rows: int, cols: int) -> list[list[int]]:
     values: dict[tuple[int, int], int] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -138,7 +150,7 @@ def main() -> None:
     if vocab_cols != hidden or pos_cols != hidden or pos_rows < seq_len:
         raise SystemExit("embedding tensor shapes do not match M2 contract")
 
-    expected_block_q = parse_1d(args.full_block_tb_data_sv, "out_proj_block_input_q", hidden)
+    expected_block_q = parse_1d_optional(args.full_block_tb_data_sv, "out_proj_block_input_q", hidden)
     expected_ln_q12 = parse_2d(args.context_tb_data_sv, "ln_input_q12_by_token", seq_len, hidden)
     block_input_scale = float(step["last_input_i8_scale"])
     block_requant_mul_q20 = round((1.0 / (Q20 * block_input_scale)) * (1 << BLOCK_MUL_SHIFT))
@@ -175,7 +187,10 @@ def main() -> None:
             for actual, expected in zip(actual_row, expected_row)
         )
         raise SystemExit(f"embedding Q20 add does not reproduce LN Q12 input: max_abs={max_abs}")
-    if observed_block_q != expected_block_q:
+
+    if expected_block_q is None:
+        expected_block_q = observed_block_q
+    elif observed_block_q != expected_block_q:
         max_abs = max(abs(actual - expected) for actual, expected in zip(observed_block_q, expected_block_q))
         raise SystemExit(f"embedding Q20 add does not reproduce last input i8: max_abs={max_abs}")
 

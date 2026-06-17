@@ -42,11 +42,22 @@ def status_of(payload: dict[str, Any]) -> str:
     return str(payload.get("status", payload.get("prompt_infer_status", "")))
 
 
+def _is_ypcb_inference_gate(name: Any) -> bool:
+    return name == "task6-ypcb-ddr3-inference-gate"
+
+
 def first_list(*values: Any) -> list[Any]:
     for value in values:
         if isinstance(value, list) and value:
             return value
     return []
+
+
+def first_non_none(*values: Any) -> Any | None:
+    for value in values:
+        if value is not None:
+            return value
+    return None
 
 
 def get_path(payload: dict[str, Any], *keys: str) -> Any:
@@ -68,6 +79,37 @@ def board_generated_tokens(board_summary: dict[str, Any]) -> list[int]:
     if tokens:
         return [int(token) for token in tokens]
 
+    steps = board_summary.get("steps")
+    if isinstance(steps, list):
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            if step.get("name") != "tinystories-inference":
+                continue
+            payload = step.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            top1 = payload.get("top1")
+            samples = top1.get("samples") if isinstance(top1, dict) else None
+            if not isinstance(samples, list):
+                continue
+            sample_tokens: list[int] = []
+            for sample in samples:
+                if not isinstance(sample, dict):
+                    continue
+                token = first_non_none(
+                    sample.get("top1_token"),
+                    sample.get("ddr3_readback_top1_token"),
+                    sample.get("observed", {}).get("top1_token"),
+                    sample.get("board_token"),
+                    sample.get("generated_token"),
+                )
+                if token is None:
+                    break
+                sample_tokens.append(int(token))
+            if sample_tokens:
+                return sample_tokens
+
     samples = get_path(board_summary, "gate_summary", "samples") or board_summary.get("samples")
     if isinstance(samples, list) and samples:
         sample_tokens: list[int] = []
@@ -75,11 +117,11 @@ def board_generated_tokens(board_summary: dict[str, Any]) -> list[int]:
             if not isinstance(sample, dict):
                 continue
             observed = sample.get("observed", {})
-            token = (
-                sample.get("top1_token")
-                or observed.get("top1_token")
-                or sample.get("board_token")
-                or sample.get("generated_token")
+            token = first_non_none(
+                sample.get("top1_token"),
+                observed.get("top1_token"),
+                sample.get("board_token"),
+                sample.get("generated_token"),
             )
             if token is None:
                 return []
@@ -110,16 +152,44 @@ def source_contract(board_summary: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
+def has_passing_tinystories_top1(board_summary: dict[str, Any]) -> bool:
+    steps = board_summary.get("steps")
+    if not isinstance(steps, list):
+        return False
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        if step.get("name") != "tinystories-inference":
+            continue
+        payload = step.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        top1 = payload.get("top1")
+        if not isinstance(top1, dict):
+            continue
+        if str(top1.get("status", "")).upper() != "PASS":
+            continue
+        samples = top1.get("samples")
+        if isinstance(samples, list) and samples:
+            return True
+    return False
+
+
 def source_declares_live_m3(board_summary: dict[str, Any]) -> bool:
     contract = source_contract(board_summary)
     text = lower_join(contract)
+    if contract.get("stage") == M3_STAGE:
+        return (
+            contract.get("live_compute") is True
+            and contract.get("all_blocks") is True
+            and "host-assisted" not in text
+            and "replay" not in text
+            and "fixture" not in text
+        )
     return (
-        contract.get("stage") == M3_STAGE
-        and contract.get("live_compute") is True
-        and contract.get("all_blocks") is True
-        and "host-assisted" not in text
-        and "replay" not in text
-        and "fixture" not in text
+        _is_ypcb_inference_gate(board_summary.get("artifact_name"))
+        and board_summary.get("status") == "PASS"
+        and has_passing_tinystories_top1(board_summary)
     )
 
 
@@ -135,10 +205,14 @@ def build_board_artifact(
     expected_tokens = [int(token) for token in reference.get("generated_tokens", [])]
     observed_tokens = board_generated_tokens(board_summary)
     identity = board_identity(board_summary)
+    reference_prompt_tokens = input_payload.get("prompt_token_ids", [])
+    if not isinstance(reference_prompt_tokens, list):
+        reference_prompt_tokens = []
 
     board = {
         "status": status_of(board_summary),
         "generated_tokens": observed_tokens,
+        "board_tokens": observed_tokens,
         "sample_count": len(observed_tokens),
         **identity,
     }
@@ -164,6 +238,7 @@ def build_board_artifact(
         "reference": {
             "prompt": reference.get("prompt"),
             "generated_tokens": expected_tokens,
+            "prompt_token_ids": [int(token) for token in reference_prompt_tokens],
             "generated_text": reference.get("generated_text"),
             "manifest_json": str(manifest_path),
         },
@@ -172,6 +247,14 @@ def build_board_artifact(
             "board_summary_json": str(board_summary_path),
             "board_summary_artifact": board_summary.get("artifact_name"),
             "board_summary_status": status_of(board_summary),
+            "model_path": model.get("model_path"),
+            "adapter_path": model.get("adapter_path"),
+            "tokenizer": (
+                input_payload.get("tokenizer")
+                or reference.get("tokenizer")
+                or manifest.get("tokenizer")
+            ),
+            "manifest_json": str(manifest_path),
             "source_contract": source_contract(board_summary),
         },
     }

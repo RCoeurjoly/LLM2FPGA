@@ -4,6 +4,70 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-16 - Manifest-backed zero-to-one lock fallback
+
+- Added manifest-aware snapshot resolution in
+  `scripts/task6/task6_zero_to_one_reference_lock.py` so zero-to-one reference
+  locks can be built when the raw snapshot path recorded in
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-model-manifest.json`
+  is absent.
+- The lock records `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-model-manifest.json`
+  as `references.model_snapshot.path` in that fallback path, plus
+  `snapshot_source_path` for the originally requested snapshot path.
+- Updated unit coverage in `scripts/task6/test_task6_zero_to_one_reference_lock.py`
+  to verify manifest fallback and manifest-derived default snapshot resolution.
+
+## 2026-06-16 - Zero-to-one parity gate CLI guard hardening
+
+- Fixed `scripts/task6/task6_zero_to_one_inference_gate.py` parser to define
+  `--run-tests`, which is required by the guard path before parity execution.
+  Without this flag, lock validation via `--guard`/`--guard-only` could raise an
+  `AttributeError` and fail before any hash/inventory checks.
+- No functional parity logic changed beyond restoring this execution path; this is
+  a correctness-first stability fix for repeatable zero-to-one gate runs.
+
+## 2026-06-16 - Zero-to-one parity vector schema alignment
+
+- Corrected `task6-zero-to-one-reference-lock-tinystories` so default
+  `test_vector` now points to
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json`.
+- Added regression coverage in
+  `scripts/task6/test_task6_zero_to_one_inference_gate.py` to reject replay-only
+  artifact schemas that do not provide the `steps`+`generation.q024_generated_token_ids`
+  reference structure expected by the parity gate.
+
+## 2026-06-16 - Zero-to-one lock creation portability fallback
+
+- Hardened `task6-zero-to-one-reference-lock-tinystories` to avoid hard dependency
+  on `nix eval` for tokenizer discovery. The task now checks:
+  1) explicit `TASK6_TINY_STORIES_TOKENIZER_ROOT`,
+  2) local Hugging Face cache snapshot for `roneneldan/TinyStories-1M`,
+  3) fallback to `nix eval --raw .#gpt-neo-tokenizer`.
+- This keeps lock creation reproducible in environments where `nix` daemon access is
+  unavailable while preserving immutability via SHA checks in the lock payload.
+
+## 2026-06-16 - Zero-to-one inference gate simulation mode
+
+- Added `--simulate` to `task6_zero_to_one_inference_gate.py` to support audit-
+  continuity in environments without PCIe hardware access.
+- The simulation path writes synthetic parity summaries marked with
+  `"simulated": true` and carries an explicit warning that outputs are not
+  hardware-parity evidence.
+- Added `task6-zero-to-one-inference-gate-simulate` to `justfile` for
+  repeatable non-hardware runs.
+
+## 2026-06-16 - Zero-to-one lock refresh and simulate pass
+
+- Re-ran the zero-to-one reference lock for `zero-to-one-v1` using explicit TinyStories
+  tokenizer cache paths and the `artifacts/task6/parallel-hypotheses` vector manifest so
+  governance hashes now match the latest `task6_zero_to_one_inference_gate.py`.
+- Executed a non-hardware parity run:
+  `python3 scripts/task6/task6_zero_to_one_inference_gate.py --lock-json
+  artifacts/task6/zero-to-one/tiny-stories-1m-zero-to-one-lock.json --out-json
+  artifacts/zero-to-one/inference-gate-simulate.json --simulate`.
+- Result artifact is in `artifacts/zero-to-one/inference-gate-simulate.json`
+  with `status: PASS` and explicit `warnings` noting audit-only semantics.
+
 ## 2026-06-14 - M2 context scrub pnr100 timing failure
 
 Committed `d4df292` to clear the live-context work arrays on reset, explicit
@@ -34645,3 +34709,38 @@ protocol: lifecycle first, Tapo cold-cycle only if lifecycle is not
 preflight and full-block gate. If the idle context signature fails, do not
 start compute; if it passes and compute still fails, record the localized M2
 debug values.
+
+Task 6 M3 inference gate diagnostic (2026-06-16):
+
+- Built `artifacts/task6/parallel-hypotheses/task6-m3-reference-manifest.json` from
+  `artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json`.
+- Full M3 gate invocation is wired and now generates board artifact artifacts but
+  fails in boot due programmer access: `open_device: failed to initialize ftdi`.
+- Concrete failing command used in gate summary:
+  `openFPGALoader -c digilent_hs3 --ftdi-serial 210299BF3824 --detect`.
+- Added explicit FTDI/libusb diagnostic handling in `task6_ddr3_rowstream_loader.py`
+  so future boots fail with a clear action item instead of traceback output.
+- Re-ran environment probe confirms `openFPGALoader --detect` now fails before
+  board-level execution because `/dev/bus/usb` is absent in this container:
+  `open_device: failed to initialize ftdi`. FTDI/JTAG access requires a host
+  environment with USB passthrough before the hardware can be exercised.
+
+M2 correctness-first milestone (2026-06-16):
+
+- Status: still open. The most recent focused board runs reached compute and then
+  reported `M2 ERROR` with no output-valid; mismatch breadcrumbs point to
+  `live-context` arithmetic (not BAR transport, PCIe bootstrap, or DDR3 path).
+- Contract reset for this milestone:
+  - keep host-visible control minimal and frozen: prompt/token IDs, token/position
+    fixtures, and output hashes come from checked-in artifacts only;
+  - do not use DDR3 in the first proof; keep model/token/position weights,
+    scales, and test vectors in BRAM/ROM;
+  - prefer the 10K compact TinyStories target for now because it keeps the entire
+    frozen model plus 512-token KV-cache and overheads comfortably within BRAM;
+  - support int8, int4, and 2-bit ternary model variants, with 2-bit ternary as
+    the first ternary implementation target.
+- Next measurable acceptance check for M2:
+  - lifecycle smoke (`T6PC` header smoke), then focused live-context
+    `--context-tb-data-sv` preflight/signature check;
+  - start compute only after preflight pass;
+  - require bit-exact output hash/top-level vector fields from fixed-point contract.

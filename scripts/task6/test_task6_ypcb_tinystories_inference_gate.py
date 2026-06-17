@@ -40,6 +40,35 @@ def live_m3_summary() -> dict:
     }
 
 
+def live_step_payload_m3_summary() -> dict:
+    return {
+        "artifact_name": "task6-ypcb-ddr3-inference-gate",
+        "status": "PASS",
+        "bdf": "0000:42:00.0",
+        "lspci": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]",
+        "contract": {
+            "stage": "M3-full-tinystories-1m",
+            "live_compute": True,
+            "all_blocks": True,
+            "notes": "Board executes all TinyStories-1M transformer blocks.",
+        },
+        "steps": [
+            {
+                "name": "tinystories-inference",
+                "payload": {
+                    "top1": {
+                        "samples": [
+                            {"ddr3_readback_top1_token": 1},
+                            {"ddr3_readback_top1_token": 2},
+                        ],
+                        "status": "PASS",
+                    }
+                },
+            }
+        ],
+    }
+
+
 def test_emit_m3_artifact_writes_audited_payload() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
@@ -59,8 +88,26 @@ def test_emit_m3_artifact_writes_audited_payload() -> None:
         assert written["reference"]["generated_tokens"] == [1, 2]
 
 
+def test_live_step_payload_m3_summary() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        tmpdir = Path(tmp)
+        manifest_json = tmpdir / "manifest.json"
+        summary_json = tmpdir / "gate-summary.json"
+        out_json = tmpdir / "m3-board-artifact.json"
+        manifest_json.write_text(json.dumps(manifest()) + "\n", encoding="utf-8")
+        summary = live_step_payload_m3_summary()
+        summary_json.write_text(json.dumps(summary) + "\n", encoding="utf-8")
+
+        artifact = emit_m3_artifact(summary, manifest_json, summary_json, out_json)
+        assert artifact["status"] == "PASS"
+        assert artifact["board"]["generated_tokens"] == [1, 2]
+        assert artifact["board"]["sample_count"] == 2
+        assert out_json.exists()
+
+
 def main() -> None:
     test_emit_m3_artifact_writes_audited_payload()
+    test_live_step_payload_m3_summary()
 
 
 if __name__ == "__main__":

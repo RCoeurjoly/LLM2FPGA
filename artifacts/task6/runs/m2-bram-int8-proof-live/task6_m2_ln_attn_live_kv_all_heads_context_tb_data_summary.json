@@ -1,0 +1,111 @@
+{
+  "artifact_name": "task6-m2-ln-attn-live-kv-all-heads-context-tb-data",
+  "cache_seq": 6,
+  "context_checksum": 275171,
+  "context_sample0": "d3c310cb",
+  "context_sample1": "10c11ddc",
+  "context_scale": 0.0020540898346760954,
+  "head_dim": 4,
+  "heads": [
+    {
+      "head": 0,
+      "score_scale_q20": 51,
+      "v_scale": 0.0020610960842659624,
+      "value_checksum": 1664
+    },
+    {
+      "head": 1,
+      "score_scale_q20": 56,
+      "v_scale": 0.002323000971055472,
+      "value_checksum": 932
+    },
+    {
+      "head": 2,
+      "score_scale_q20": 39,
+      "v_scale": 0.0035073008661115597,
+      "value_checksum": 621
+    },
+    {
+      "head": 3,
+      "score_scale_q20": 76,
+      "v_scale": 0.0025837018952754743,
+      "value_checksum": 2242
+    },
+    {
+      "head": 4,
+      "score_scale_q20": 49,
+      "v_scale": 0.0021124918493701456,
+      "value_checksum": 595
+    },
+    {
+      "head": 5,
+      "score_scale_q20": 30,
+      "v_scale": 0.0026920682675296253,
+      "value_checksum": 300
+    },
+    {
+      "head": 6,
+      "score_scale_q20": 28,
+      "v_scale": 0.0038363148382921197,
+      "value_checksum": 999
+    },
+    {
+      "head": 7,
+      "score_scale_q20": 22,
+      "v_scale": 0.0017358023811419794,
+      "value_checksum": 1880
+    },
+    {
+      "head": 8,
+      "score_scale_q20": 78,
+      "v_scale": 0.002593096720498764,
+      "value_checksum": 941
+    },
+    {
+      "head": 9,
+      "score_scale_q20": 58,
+      "v_scale": 0.0029412153113915407,
+      "value_checksum": 314
+    },
+    {
+      "head": 10,
+      "score_scale_q20": 12,
+      "v_scale": 0.003230622602561686,
+      "value_checksum": 486
+    },
+    {
+      "head": 11,
+      "score_scale_q20": 54,
+      "v_scale": 0.002452590895204829,
+      "value_checksum": 2040
+    },
+    {
+      "head": 12,
+      "score_scale_q20": 53,
+      "v_scale": 0.0017515517613361522,
+      "value_checksum": 2009
+    },
+    {
+      "head": 13,
+      "score_scale_q20": 30,
+      "v_scale": 0.0012809764859359773,
+      "value_checksum": 2062
+    },
+    {
+      "head": 14,
+      "score_scale_q20": 118,
+      "v_scale": 0.001954235112447686,
+      "value_checksum": 1223
+    },
+    {
+      "head": 15,
+      "score_scale_q20": 37,
+      "v_scale": 0.0026551425867237027,
+      "value_checksum": 1351
+    }
+  ],
+  "num_heads": 16,
+  "status": "PASS",
+  "step": 0,
+  "token": 5
+}

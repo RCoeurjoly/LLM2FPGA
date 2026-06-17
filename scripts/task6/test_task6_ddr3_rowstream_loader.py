@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
-from pathlib import Path
+from pathlib import Path, PurePath
+from unittest.mock import patch
 import sys
 import types
 import unittest
@@ -88,6 +89,25 @@ class RowstreamLoaderHostContractTest(unittest.TestCase):
         value, _debug = loader.read_lowbyte(41)
         self.assertEqual(value, 0x5A)
         self.assertEqual(loader.commands, [(loader_mod.OP_READ_LOWBYTE, 0, 42, b"")])
+
+    def test_program_bitstream_reports_missing_usb_bus(self) -> None:
+        def usb_only_exists(self: PurePath, /) -> bool:
+            return False if str(self) == "/dev/bus/usb" else True
+
+        with patch.object(loader_mod.Path, "exists", usb_only_exists):
+            args = argparse.Namespace(
+                bitstream=loader_mod.Path("/tmp/fake.bit"),
+                run_dir=loader_mod.Path("/tmp"),
+                program=True,
+                jtag_cable="digilent_hs3",
+                serial="210299BF3824",
+            )
+            with self.assertRaises(SystemExit) as exc:
+                loader_mod.program_bitstream(args, loader_mod.Path("/tmp"))
+            self.assertIn(
+                "FTDI/JTAG interface unavailable in this environment: /dev/bus/usb is not present.",
+                str(exc.value),
+            )
 
 
 if __name__ == "__main__":

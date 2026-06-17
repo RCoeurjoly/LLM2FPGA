@@ -206,10 +206,19 @@ def audit_m3(payload: dict[str, Any]) -> list[str]:
     input_payload = payload.get("input", payload.get("host_input", {}))
     prompt = input_payload.get("prompt") or reference.get("prompt")
     prompt_tokens = input_payload.get("prompt_token_ids") or input_payload.get("token_ids")
+    reference_prompt = reference.get("prompt")
+    reference_prompt_tokens = reference.get("prompt_token_ids")
     if not prompt:
         failures.append("M3 artifact lacks prompt evidence")
+    elif reference_prompt and prompt != reference_prompt:
+        failures.append("M3 artifact prompt does not match reference prompt")
     if not isinstance(prompt_tokens, list) or not prompt_tokens:
         failures.append("M3 artifact lacks host-supplied prompt token IDs")
+    if reference_prompt_tokens is not None:
+        if not isinstance(reference_prompt_tokens, list) or not reference_prompt_tokens:
+            failures.append("M3 reference payload lacks prompt token IDs")
+        elif reference_prompt_tokens != prompt_tokens:
+            failures.append("M3 input prompt token IDs do not match reference prompt token IDs")
     reference_tokens = reference.get("generated_tokens")
     board_tokens = payload.get("board_tokens") or board.get("generated_tokens")
     if not isinstance(reference_tokens, list) or not reference_tokens:
@@ -218,6 +227,28 @@ def audit_m3(payload: dict[str, Any]) -> list[str]:
         failures.append("M3 artifact lacks board-generated token IDs")
     if isinstance(reference_tokens, list) and isinstance(board_tokens, list) and reference_tokens != board_tokens:
         failures.append("M3 board token IDs do not match reference greedy token IDs")
+    source = payload.get("source", {})
+    model_path = model.get("model_path")
+    model_adapter_path = model.get("adapter_path")
+    reference_tokenizer = reference.get("tokenizer")
+    source_tokenizer = source.get("tokenizer")
+    if model_path:
+        source_model_path = source.get("model_path")
+        if not source_model_path:
+            failures.append("M3 artifact source missing model_path provenance")
+        elif source_model_path != model_path:
+            failures.append("M3 artifact source model_path does not match manifest model_path")
+    if model_adapter_path:
+        source_adapter_path = source.get("adapter_path")
+        if not source_adapter_path:
+            failures.append("M3 artifact source missing adapter_path provenance")
+        elif source_adapter_path != model_adapter_path:
+            failures.append("M3 artifact source adapter_path does not match manifest adapter_path")
+    if reference_tokenizer:
+        if not source_tokenizer:
+            failures.append("M3 artifact source missing tokenizer provenance")
+        elif source_tokenizer != reference_tokenizer:
+            failures.append("M3 artifact source tokenizer does not match manifest reference tokenizer")
     board_status = str(board.get("status", payload.get("board_status", "")))
     if board_status != "PASS":
         failures.append("M3 board status is not PASS")

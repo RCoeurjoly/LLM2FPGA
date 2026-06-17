@@ -61,6 +61,7 @@ def build_manifest(reference: dict[str, Any], reference_path: Path, model_label:
     prompt_text = require_str(reference, ("prompt", "text"))
     prompt_token_ids = [int(token) for token in require_list(reference, ("prompt", "token_ids"))]
     generated_tokens = [int(token) for token in require_list(reference, ("generation", "q024_generated_token_ids"))]
+    tokenizer = require_str(reference, ("coverage", "tokenizer"))
     steps = reference.get("steps", [])
     if not isinstance(steps, list):
         raise SystemExit("reference steps field is not a list")
@@ -109,10 +110,13 @@ def build_manifest(reference: dict[str, Any], reference_path: Path, model_label:
         "input": {
             "prompt": prompt_text,
             "prompt_token_ids": prompt_token_ids,
+            "tokenizer": tokenizer,
         },
         "reference": {
             "prompt": prompt_text,
+            "prompt_token_ids": prompt_token_ids,
             "generated_tokens": generated_tokens,
+            "tokenizer": tokenizer,
             "generated_text": generation.get("q024_decoded_text"),
             "max_new_tokens": generation.get("max_new_tokens"),
             "quantized_top1": "rowwise-int8-q024",

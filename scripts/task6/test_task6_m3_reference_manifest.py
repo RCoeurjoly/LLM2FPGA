@@ -17,7 +17,10 @@ def reference_payload() -> dict:
     return {
         "artifact_name": "reference",
         "status": "PASS",
-        "coverage": {"transformer": "PyTorch f32"},
+        "coverage": {
+            "transformer": "PyTorch f32",
+            "tokenizer": "GPT-Neo/GPT-2 BPE from explicit vocab.json and merges.txt",
+        },
         "model": {
             "model_path": "/nix/store/model",
             "adapter_path": "/repo/TinyStories/model_adapter.py",
@@ -47,6 +50,9 @@ def test_manifest_pins_m3_reference_without_claiming_board_pass() -> None:
     assert manifest["contract"]["live_compute"] is False
     assert manifest["contract"]["all_blocks"] is False
     assert manifest["input"]["prompt_token_ids"] == [10, 11, 12]
+    assert manifest["input"]["tokenizer"] == "GPT-Neo/GPT-2 BPE from explicit vocab.json and merges.txt"
+    assert manifest["reference"]["prompt_token_ids"] == [10, 11, 12]
+    assert manifest["reference"]["tokenizer"] == "GPT-Neo/GPT-2 BPE from explicit vocab.json and merges.txt"
     assert manifest["reference"]["generated_tokens"] == [13, 14]
     assert manifest["board"]["status"] == "NOT_RUN"
 

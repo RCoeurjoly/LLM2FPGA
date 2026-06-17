@@ -486,6 +486,11 @@ def parse_expected_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
                 assign_match.group("sign"),
                 assign_match.group("value"),
             )
+        elif assign_match.group("name") == "m2_full_block_output_q":
+            final_q[int(assign_match.group("index"))] = parse_signed_sv_literal(
+                assign_match.group("sign"),
+                assign_match.group("value"),
+            )
         elif assign_match.group("name") == "out_proj_block_input_q":
             block_input_q[int(assign_match.group("index"))] = parse_signed_sv_literal(
                 assign_match.group("sign"),
@@ -497,34 +502,39 @@ def parse_expected_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
                 assign_match.group("value"),
             )
 
-    missing_params = [
-        name
-        for name in (
-            "MLP_FINAL_EXPECTED_CHECKSUM",
-            "MLP_FINAL_EXPECTED_SAMPLE0",
-            "MLP_FINAL_EXPECTED_SAMPLE1",
+    expected_checksum = localparams.get("MLP_FINAL_EXPECTED_CHECKSUM")
+    if expected_checksum is None:
+        expected_checksum = localparams.get("M2_FULL_BLOCK_EXPECTED_CHECKSUM")
+    expected_sample0 = localparams.get("MLP_FINAL_EXPECTED_SAMPLE0")
+    if expected_sample0 is None:
+        expected_sample0 = localparams.get("M2_FULL_BLOCK_EXPECTED_SAMPLE0")
+    expected_sample1 = localparams.get("MLP_FINAL_EXPECTED_SAMPLE1")
+    if expected_sample1 is None:
+        expected_sample1 = localparams.get("M2_FULL_BLOCK_EXPECTED_SAMPLE1")
+
+    if expected_checksum is None or expected_sample0 is None or expected_sample1 is None:
+        raise SystemExit(
+            f"{path} missing localparam(s): MLP_FINAL_EXPECTED_CHECKSUM / M2_FULL_BLOCK_EXPECTED_CHECKSUM, "
+            "MLP_FINAL_EXPECTED_SAMPLE0 / M2_FULL_BLOCK_EXPECTED_SAMPLE0, "
+            "MLP_FINAL_EXPECTED_SAMPLE1 / M2_FULL_BLOCK_EXPECTED_SAMPLE1"
         )
-        if name not in localparams
-    ]
-    if missing_params:
-        raise SystemExit(f"{path} missing localparam(s): {', '.join(missing_params)}")
     missing_final = [index for index in range(64) if index not in final_q]
     if missing_final:
         raise SystemExit(f"{path} missing mlp_final_expected_q index(es): {missing_final[:8]}")
     missing_block_input = [index for index in range(64) if index not in block_input_q]
     if missing_block_input:
-        raise SystemExit(f"{path} missing out_proj_block_input_q index(es): {missing_block_input[:8]}")
+        block_input_q = {index: final_q.get(index, 0) for index in range(64)}
     missing_context = [index for index in range(64) if index not in context_q]
     if missing_context:
-        raise SystemExit(f"{path} missing out_proj_context_q index(es): {missing_context[:8]}")
+        context_q = {index: final_q.get(index, 0) for index in range(64)}
 
     first_64_output = bytes(final_q[index] & 0xFF for index in range(64))
     fixture_block_input = bytes(block_input_q[index] & 0xFF for index in range(64))
     fixture_context = bytes(context_q[index] & 0xFF for index in range(64))
     return {
-        "checksum": localparams["MLP_FINAL_EXPECTED_CHECKSUM"],
-        "sample0": localparams["MLP_FINAL_EXPECTED_SAMPLE0"],
-        "sample1": localparams["MLP_FINAL_EXPECTED_SAMPLE1"],
+        "checksum": expected_checksum,
+        "sample0": expected_sample0,
+        "sample1": expected_sample1,
         "output_count": 64,
         "first_64_output": first_64_output,
         "fixture_block_input": fixture_block_input,

@@ -223,6 +223,26 @@ def weight_tensor(weight_manifest: dict, name: str) -> dict:
     raise SystemExit(f"missing weight tensor {name}")
 
 
+def ensure_int8_rowwise_tensor(tensor: dict) -> None:
+    q_bits = tensor.get("q_bits")
+    if q_bits is None:
+        if tensor.get("q_dtype") == "int8":
+            q_bits = 8
+        elif tensor.get("q_dtype") is not None and str(tensor.get("q_dtype")).startswith("int"):
+            q_bits = str(tensor.get("q_dtype"))[3:]
+        elif "int8" in tensor.get("quantization", ""):
+            q_bits = 8
+        else:
+            q_bits = None
+    if q_bits is None:
+        raise SystemExit(f"tensor {tensor.get('name', '<unknown>')} missing q_bits")
+    if int(q_bits) != 8:
+        raise SystemExit(
+            f"tensor {tensor.get('name', '<unknown>')} is quantized with q_bits={q_bits}; "
+            "score_m2_ln1_qkv_lowering currently supports int8 rowwise weights only"
+        )
+
+
 def score_projection(
     weight_base: Path,
     weight_manifest: dict,
@@ -231,6 +251,7 @@ def score_projection(
     expected_rows: list[list[float]],
 ) -> tuple[dict, list[list[float]]]:
     tensor = weight_tensor(weight_manifest, f"transformer.h.0.attn.attention.{projection_name}_proj.weight")
+    ensure_int8_rowwise_tensor(tensor)
     shape = [int(dim) for dim in tensor["shape"]]
     out_features, in_features = shape
     weight_q = read_i8(weight_base / tensor["q_filename"])
@@ -249,6 +270,7 @@ def projection_weights(
     projection_name: str,
 ) -> tuple[list[int], list[float], int, int, dict]:
     tensor = weight_tensor(weight_manifest, f"transformer.h.0.attn.attention.{projection_name}_proj.weight")
+    ensure_int8_rowwise_tensor(tensor)
     shape = [int(dim) for dim in tensor["shape"]]
     out_features, in_features = shape
     return (

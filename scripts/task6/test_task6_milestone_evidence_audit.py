@@ -335,6 +335,70 @@ def test_m3_requires_ypcb_board_identity() -> None:
     assert any("board/PCIe identity" in failure for failure in failures)
 
 
+def test_m3_rejects_reference_prompt_mismatch() -> None:
+    payload = {
+        "status": "PASS",
+        "contract": {
+            "stage": "M3-full-tinystories-1m",
+            "live_compute": True,
+            "all_blocks": True,
+            "notes": "Board executes all TinyStories-1M transformer blocks for token-exact greedy generation.",
+        },
+        "input": {
+            "prompt": "Once upon a time",
+            "prompt_token_ids": [10, 11],
+        },
+        "model": {"model_label": "TinyStories-1M"},
+        "reference": {
+            "prompt": "A different prompt",
+            "prompt_token_ids": [10, 11],
+            "generated_tokens": [1, 2],
+        },
+        "board": {
+            "status": "PASS",
+            "bdf": "0000:42:00.0",
+            "lspci": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]",
+            "sample_count": 2,
+            "generated_tokens": [1, 2],
+        },
+    }
+    failures = audit_payload("M3", payload)
+    assert any("does not match reference prompt" in failure for failure in failures)
+
+
+def test_m3_rejects_prompt_token_mismatch_to_reference() -> None:
+    payload = {
+        "status": "PASS",
+        "contract": {
+            "stage": "M3-full-tinystories-1m",
+            "live_compute": True,
+            "all_blocks": True,
+            "notes": "Board executes all TinyStories-1M transformer blocks for token-exact greedy generation.",
+        },
+        "input": {
+            "prompt": "Once upon a time",
+            "prompt_token_ids": [10, 12],
+        },
+        "model": {"model_label": "TinyStories-1M"},
+        "reference": {
+            "prompt": "Once upon a time",
+            "prompt_token_ids": [10, 11],
+            "generated_tokens": [1, 2],
+        },
+        "board": {
+            "status": "PASS",
+            "bdf": "0000:42:00.0",
+            "lspci": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]",
+            "sample_count": 2,
+            "generated_tokens": [1, 2],
+        },
+    }
+    failures = audit_payload("M3", payload)
+    assert any(
+        "do not match reference prompt token IDs" in failure for failure in failures
+    )
+
+
 def test_m3_accepts_full_model_token_exact_shape() -> None:
     payload = {
         "status": "PASS",
@@ -423,6 +487,8 @@ def main() -> None:
     test_m3_requires_token_exact_output()
     test_m3_requires_explicit_board_pass_status()
     test_m3_requires_ypcb_board_identity()
+    test_m3_rejects_reference_prompt_mismatch()
+    test_m3_rejects_prompt_token_mismatch_to_reference()
     test_m3_accepts_full_model_token_exact_shape()
     test_m3_rejects_host_assisted_even_when_tokens_match()
     test_offline_m2_producers_do_not_claim_live_stage()

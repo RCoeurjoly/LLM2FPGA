@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from task6_m3_board_artifact import build_board_artifact
+from task6_m3_board_artifact import build_board_artifact, board_generated_tokens
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -270,11 +270,40 @@ def emit_m3_artifact(
     return artifact
 
 
+def apply_frozen_reference_inputs(args: argparse.Namespace) -> dict[str, Any] | None:
+    if args.m3_reference_manifest is None:
+        return None
+    manifest = read_json(args.m3_reference_manifest)
+    model = manifest.get("model", {})
+    model_path = model.get("model_path") if isinstance(model, dict) else None
+    adapter_path = model.get("adapter_path") if isinstance(model, dict) else None
+
+    if model_path is not None:
+        if args.model_path is None:
+            args.model_path = Path(model_path)
+        elif str(args.model_path) != str(model_path):
+            raise SystemExit(
+                "m3-reference-manifest model_path does not match --model-path; "
+                f"manifest={model_path} request={args.model_path}"
+            )
+    if adapter_path is not None:
+        if args.adapter_path is None or str(args.adapter_path) == str(DEFAULT_ADAPTER):
+            args.adapter_path = Path(adapter_path)
+        elif str(args.adapter_path) != str(adapter_path):
+            raise SystemExit(
+                "m3-reference-manifest adapter_path does not match --adapter-path; "
+                f"manifest={adapter_path} request={args.adapter_path}"
+            )
+    return manifest
+
+
 def main() -> int:
     args = parse_args()
     args.bitstream = args.bitstream or default_bitstream(args.byte_lanes)
     if not args.bitstream.exists():
         raise SystemExit(f"bitstream does not exist: {args.bitstream}")
+
+    manifest = apply_frozen_reference_inputs(args)
 
     run_root = args.run_root
     if run_root is None:
@@ -349,6 +378,7 @@ def main() -> int:
         overall_ok = overall_ok and step_passed(inference)
 
     gates = build_gates(steps)
+    declares_m3_live = not args.skip_inference and not args.skip_top1
     summary = {
         "artifact_name": "task6-ypcb-ddr3-inference-gate",
         "plan_id": args.plan_id,
@@ -359,6 +389,19 @@ def main() -> int:
         "storage_mode": args.storage_mode,
         "run_root": str(run_root),
         "bitstream": str(args.bitstream),
+        "contract": {
+            "stage": "M3-full-tinystories-1m",
+            "live_compute": declares_m3_live,
+            "all_blocks": declares_m3_live,
+            "notes": "Board executes all TinyStories-1M transformer blocks for token-exact greedy inference.",
+            "responsibilities": {
+                "fpga": ["all TinyStories-1M transformer blocks", "greedy token selection"],
+                "host": [
+                    "prompt token/control input",
+                    "artifact/reference comparison",
+                ],
+            },
+        },
         "gates": gates,
         "steps": [
             {
@@ -370,6 +413,8 @@ def main() -> int:
             for step in steps
         ],
     }
+    summary["board_tokens"] = board_generated_tokens(summary)
+    summary["sample_count"] = len(summary["board_tokens"])
 
     gate_summary_path = run_root / "gate-summary.json"
     gate_summary_path.write_text(

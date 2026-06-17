@@ -1,0 +1,77 @@
+{
+  "artifact_name": "task6-zero-to-one-inference-gate",
+  "command": {
+    "bdf": "0000:42:00.0",
+    "guard": false,
+    "guard_only": false,
+    "load_image": true,
+    "python": "python3",
+    "top1_gate": "/home/roland/LLM2FPGA/scripts/task6/task6_pcie_rowstream_top1_gate.py",
+    "top1_retries": 8,
+    "top1_timeout": 20.0
+  },
+  "guard_failures": [],
+  "lock_status": "LOCKED",
+  "lock_tag": "zero-to-one-v1",
+  "outcomes": [
+    {
+      "failures": [
+        "top1 gate invocation failed",
+        "Read-only sysfs resource for 0000:42:00.0: /sys/bus/pci/devices/0000:42:00.0/resource0. Run the parity gate on a host with writable PCI BAR access (or remount the sysfs node through the board recovery flow) before running inference."
+      ],
+      "mismatch_count": 0,
+      "path": "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json",
+      "sample_count": 0,
+      "status": "FAIL",
+      "summary_json": "artifacts/zero-to-one/runs/20260616T162321+0200/vector-00/h2-tinystories-1m-prompt-output-head-q024-reference.json"
+    }
+  ],
+  "overall_failures": [
+    "vector 00: top1 gate invocation failed",
+    "vector 00: Read-only sysfs resource for 0000:42:00.0: /sys/bus/pci/devices/0000:42:00.0/resource0. Run the parity gate on a host with writable PCI BAR access (or remount the sysfs node through the board recovery flow) before running inference."
+  ],
+  "references": {
+    "model_adapter": {
+      "path": "/home/roland/LLM2FPGA/TinyStories/model_adapter.py",
+      "sha256": "8daab8416071eaefa16c4397583bc56685b995d8d36d01324eda27be7d236e0f",
+      "type": "python"
+    },
+    "model_snapshot": {
+      "path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+      "sha256": "61a9be532339efff7ef81a96fa132f019cbfe38aec61e06486d13439ee10ea93",
+      "type": "pytorch-bin"
+    },
+    "reference_json": {
+      "kind": "reference-payload",
+      "path": "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json",
+      "sha256": "b3cb53ed19a5acd0f47693bf8ad7b78cdb3d3353927d9c22ec3cc4d15cfc406b"
+    },
+    "tokenizer": {
+      "merges": {
+        "path": "/home/roland/.cache/huggingface/hub/models--roneneldan--TinyStories-1M/snapshots/77f1b168e219585646439073245fe87e56b3023e/merges.txt",
+        "sha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5"
+      },
+      "vocab": {
+        "path": "/home/roland/.cache/huggingface/hub/models--roneneldan--TinyStories-1M/snapshots/77f1b168e219585646439073245fe87e56b3023e/vocab.json",
+        "sha256": "3ba3c3109ff33976c4bd966589c11ee14fcaa1f4c9e5e154c2ed7f99d80709e7"
+      }
+    }
+  },
+  "repo": {
+    "branch": "task6",
+    "commit": "a642672e47d25967c7fb102b97104634b4ee4935",
+    "root": "/home/roland/LLM2FPGA"
+  },
+  "repo_commit": "a642672e47d25967c7fb102b97104634b4ee4935",
+  "rules": [
+    "require-digest-match"
+  ],
+  "run_root": "artifacts/zero-to-one/runs/20260616T162321+0200",
+  "status": "FAIL",
+  "timestamp": "2026-06-16T16:23:23.839961+02:00",
+  "totals": {
+    "fails": 1,
+    "passes": 0,
+    "vectors": 1
+  }
+}

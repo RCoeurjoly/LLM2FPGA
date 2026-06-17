@@ -1,0 +1,447 @@
+{
+  "artifact_name": "task6-zero-to-one-m2-bram-chip-pass",
+  "board": {
+    "artifact_name": "task6-pcie-m2-full-block-board-gate",
+    "bdf": "0000:42:00.0",
+    "checks": {
+      "checksum": false,
+      "first_64_output": false,
+      "no_error": false,
+      "output_count": true,
+      "output_count_live": true,
+      "output_valid": false,
+      "sample0": false,
+      "sample1": false,
+      "state_done": false
+    },
+    "contract": {
+      "artifact_role": "m2-live-full-block-board-gate",
+      "live_compute": true,
+      "milestone_target": "M2-one-full-block",
+      "notes": "Board executes one complete TinyStories transformer block from host-supplied token IDs and block_index=0 control input.",
+      "responsibilities": {
+        "fpga": [
+          "token-ID selected embedding and position add",
+          "live K/V attention context for one complete TinyStories transformer block",
+          "attention out projection, LN2, MLP, and final residual",
+          "BAR-visible status/checksum/sample/full 64-byte final output"
+        ],
+        "host": [
+          "prompt token/control input",
+          "PCIe lifecycle orchestration",
+          "final vector comparison against fixed-point TinyStories block reference"
+        ]
+      },
+      "stage": "M2-one-full-block",
+      "version": "task6-m2-token-id-live-full-block-v1"
+    },
+    "expected": {
+      "checksum": "0x0003b2c9",
+      "first_64_output_hex": "59be14d170e437d7f019991bcbd8e4fcaef65aca2bc6d106002309bddb04c2dc3dd9e2f90ff9bbea2de8c63208f051962127287f0533d51e5d133748e117ea00",
+      "first_64_output_sha256": "aa30df3a562a87059c412237495e06ca9b8d3d3f732b3d535634cf897b7711e7",
+      "output_count": 64,
+      "sample0": "0xd114be59",
+      "sample1": "0xd737e470",
+      "token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373
+      ]
+    },
+    "observed": {
+      "checksum": "0x00000000",
+      "first_64_output_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "first_64_output_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b",
+      "output_count": 64,
+      "sample0": "0x00000000",
+      "sample1": "0x00000000"
+    },
+    "status": "FAIL",
+    "vector_hashes": {
+      "expected_first_64_output_len": 64,
+      "expected_first_64_output_sha256": "aa30df3a562a87059c412237495e06ca9b8d3d3f732b3d535634cf897b7711e7",
+      "match": false,
+      "observed_first_64_output_len": 64,
+      "observed_first_64_output_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+    }
+  },
+  "checkpoint_hashes": {
+    "aggregate": {
+      "block_actual_sha256": "288f10c942d0a390b10cc89726ab50ba256dea71cbfcec48a4cf899bb98e50ad",
+      "layer_actual_sha256": "9b237c35b8dbef051d4a694c99d7d123f7f35e2f97fab9eebfd619dd8d456db3",
+      "model_hidden_q_concat_sha256": "d88bf190c4dbb8a887bc3b77b307a435e18cbbfb6b9d2e9b0652c252ef8052e7",
+      "model_top1_tokens_concat_sha256": "e2578102c1b23ae4fbad0de04dee379b9723f716fb2be8b3d70a5d6b6d66ae21",
+      "score_artifact": {
+        "contract_manifest": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json",
+        "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-full-block-lowering-score.json",
+        "quantization": {
+          "c_fc_accumulator_max": 85648,
+          "c_fc_accumulator_min": -86445,
+          "c_fc_accumulator_sha256": "ce84b8e88dfbb73c2330392047e2b1632cb598a9741d5278076524dee28dbe6e",
+          "c_fc_weight_quantization": "rowwise-symmetric-int8",
+          "c_proj_accumulator_max": 93367,
+          "c_proj_accumulator_min": -100142,
+          "c_proj_accumulator_sha256": "893f0b4418100ff0e10f7583830b461e299329527ab50ee348bb2ff6a4c209a1",
+          "c_proj_output_scale": 0.0023836969859956755,
+          "c_proj_q_max": 127,
+          "c_proj_q_min": -127,
+          "c_proj_q_sha256": "8678060e8549ba417be7e883e0c0c441de1694729e3f6623768c49a6eca1ff78",
+          "c_proj_weight_quantization": "rowwise-symmetric-int8",
+          "ln2_q_max": 127,
+          "ln2_q_min": -127,
+          "ln2_q_sha256": "ba0bf80dc3ea69b68932d7a3ded5f39ce37e24f90a4fe5b9ba8508e936a5b117",
+          "post_gelu_output_scale": 0.005411566543946203,
+          "post_gelu_q_max": 127,
+          "post_gelu_q_min": -31,
+          "post_gelu_q_sha256": "ca9c251a45c679d1b468662fcb92d2734c131c1da36ea13c3fbcc346ca499b7d"
+        },
+        "schema_version": 1,
+        "status": "PASS",
+        "weight_manifest": "/home/roland/LLM2FPGA/artifacts/task6/weights_pack/tiny-stories-1m-m2-block0-int8/manifest.json"
+      }
+    },
+    "matches": {
+      "all_tensor_hashes_match_reference": true,
+      "score_pass": true,
+      "step_tokens_match_reference": true
+    },
+    "mismatch_count": 0,
+    "mismatches": [],
+    "model_level": {
+      "generation": {
+        "context_token_ids": [
+          [
+            7454,
+            2402,
+            257,
+            640,
+            612,
+            373
+          ],
+          [
+            7454,
+            2402,
+            257,
+            640,
+            612,
+            373,
+            257
+          ],
+          [
+            7454,
+            2402,
+            257,
+            640,
+            612,
+            373,
+            257,
+            1310
+          ],
+          [
+            7454,
+            2402,
+            257,
+            640,
+            612,
+            373,
+            257,
+            1310,
+            2576
+          ],
+          [
+            7454,
+            2402,
+            257,
+            640,
+            612,
+            373,
+            257,
+            1310,
+            2576,
+            3706
+          ],
+          [
+            7454,
+            2402,
+            257,
+            640,
+            612,
+            373,
+            257,
+            1310,
+            2576,
+            3706,
+            20037
+          ],
+          [
+            7454,
+            2402,
+            257,
+            640,
+            612,
+            373,
+            257,
+            1310,
+            2576,
+            3706,
+            20037,
+            13
+          ],
+          [
+            7454,
+            2402,
+            257,
+            640,
+            612,
+            373,
+            257,
+            1310,
+            2576,
+            3706,
+            20037,
+            13,
+            1375
+          ]
+        ],
+        "generated_token_ids": [
+          257,
+          1310,
+          2576,
+          3706,
+          20037,
+          13,
+          1375,
+          6151
+        ],
+        "generated_token_ids_sha256": "e2578102c1b23ae4fbad0de04dee379b9723f716fb2be8b3d70a5d6b6d66ae21",
+        "hidden_scale_max": 105952,
+        "hidden_scale_min": 14525,
+        "hidden_scale_set_count": 8,
+        "hidden_scale_set_sha256": "22e977d9597a756850e6a8aba8c4fdeec2be7061de0cb05a10defaa9190e7e4e",
+        "model": {
+          "adapter_path": "/nix/store/2p9z2yafd8r1xbz1jkny1h4wsmf0v25f-model_adapter.py",
+          "hidden_size": 64,
+          "lm_head_bias_supported": true,
+          "lm_head_tied_to_token_embedding": true,
+          "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+          "vocab_size": 50257
+        },
+        "quantization": {
+          "activation": "per-step symmetric int8 hidden vector",
+          "q024_scale_max": 105952,
+          "q024_scale_min": 14525,
+          "reserved_nonzero_count": 0,
+          "scale": "unsigned Q0.24 row sidecar",
+          "tie_break": "lower token id wins for equal integer score",
+          "weight": "rowwise symmetric int8 lm_head"
+        },
+        "steps": 8
+      },
+      "hidden_q_concat_sha256": "d88bf190c4dbb8a887bc3b77b307a435e18cbbfb6b9d2e9b0652c252ef8052e7",
+      "hidden_scale_sha256s": [
+        "3a4abe71ceacd45ea52a6cd7d68e8791598782e96f8399356c90e305b903d2ad",
+        "0602724ceae5d1d546cbb729238059dfbcb59759ba66c87497a735c839898927",
+        "cf50a16df8baa63250ee4f2806df546c7047b57e05c4dc319052f553a5a1e861",
+        "ba9168a0f32f2ec96610d5c1a8a2eb218f2bc6e037eee2e55d34cc72e854b92a",
+        "2612e48a3fd96befa17f81c144294eda942c07da51586ab8e59d71f3049b4bbc",
+        "f38b33771b847c5b5be886bf0860242acccd8d153819a1dfafd56b04917bb043",
+        "00dcb1fc0308a7bd0baad65dee99f13f567daf1a49211f80c7e2b662b37a2e19",
+        "3b1202e5e6a76855823e8749ec7ede0d474757201103a62c79ff05486deab88a"
+      ],
+      "steps": [
+        {
+          "hidden_q_len": 64,
+          "hidden_q_sha256": "a0a1434bd45a3caa60bc805f3efb614505a394430467fb107892ae8ebcb019df",
+          "hidden_scale": 0.06667393211304672,
+          "hidden_scale_sha256": "3a4abe71ceacd45ea52a6cd7d68e8791598782e96f8399356c90e305b903d2ad",
+          "q024_top1_low32": 233826516,
+          "step": 0,
+          "step_id": 0,
+          "top1_token": 257
+        },
+        {
+          "hidden_q_len": 64,
+          "hidden_q_sha256": "9542cb04ab5298e2815dff662f86db4d818f03ab3a5be0be9fa629ba79b5f9f3",
+          "hidden_scale": 0.08050558886190098,
+          "hidden_scale_sha256": "0602724ceae5d1d546cbb729238059dfbcb59759ba66c87497a735c839898927",
+          "q024_top1_low32": 3285628902,
+          "step": 1,
+          "step_id": 1,
+          "top1_token": 1310
+        },
+        {
+          "hidden_q_len": 64,
+          "hidden_q_sha256": "6554ae145c27732f67fcab2c0ede3c025e002cd8b058b631c8b63ceb641482b2",
+          "hidden_scale": 0.08035336141511211,
+          "hidden_scale_sha256": "cf50a16df8baa63250ee4f2806df546c7047b57e05c4dc319052f553a5a1e861",
+          "q024_top1_low32": 3632566600,
+          "step": 2,
+          "step_id": 2,
+          "top1_token": 2576
+        },
+        {
+          "hidden_q_len": 64,
+          "hidden_q_sha256": "8fea862e03b46e6687fd0b2e234c418fb2635d318347872c0e09e241c086c1cc",
+          "hidden_scale": 0.06328385270486667,
+          "hidden_scale_sha256": "ba9168a0f32f2ec96610d5c1a8a2eb218f2bc6e037eee2e55d34cc72e854b92a",
+          "q024_top1_low32": 395987427,
+          "step": 3,
+          "step_id": 3,
+          "top1_token": 3706
+        },
+        {
+          "hidden_q_len": 64,
+          "hidden_q_sha256": "9688ab60f7f50f8c87bb3b91b76f0108015e1d95d95c56d126ba1565b7dc7af3",
+          "hidden_scale": 0.06328296661376953,
+          "hidden_scale_sha256": "2612e48a3fd96befa17f81c144294eda942c07da51586ab8e59d71f3049b4bbc",
+          "q024_top1_low32": 26701328,
+          "step": 4,
+          "step_id": 4,
+          "top1_token": 20037
+        },
+        {
+          "hidden_q_len": 64,
+          "hidden_q_sha256": "0dfd4f9cb39272ad3420f25e7a50aee2b1c37151af4866cade83c9aa0ba21a44",
+          "hidden_scale": 0.07535090408925935,
+          "hidden_scale_sha256": "f38b33771b847c5b5be886bf0860242acccd8d153819a1dfafd56b04917bb043",
+          "q024_top1_low32": 4123082975,
+          "step": 5,
+          "step_id": 5,
+          "top1_token": 13
+        },
+        {
+          "hidden_q_len": 64,
+          "hidden_q_sha256": "f99e9d93455c2f26a5e32f725c43446f8001fbc983a1c5c55d56bcb4c8ad291e",
+          "hidden_scale": 0.08080883476677841,
+          "hidden_scale_sha256": "00dcb1fc0308a7bd0baad65dee99f13f567daf1a49211f80c7e2b662b37a2e19",
+          "q024_top1_low32": 3904836880,
+          "step": 6,
+          "step_id": 6,
+          "top1_token": 1375
+        },
+        {
+          "hidden_q_len": 64,
+          "hidden_q_sha256": "1b6f80551688e6aedc4f6f3d8866b7ff4617a051651be925fe66a353e68ee137",
+          "hidden_scale": 0.08269697474682425,
+          "hidden_scale_sha256": "3b1202e5e6a76855823e8749ec7ede0d474757201103a62c79ff05486deab88a",
+          "q024_top1_low32": 3769848372,
+          "step": 7,
+          "step_id": 7,
+          "top1_token": 6151
+        }
+      ],
+      "top1_token_ids": [
+        257,
+        1310,
+        2576,
+        3706,
+        20037,
+        13,
+        1375,
+        6151
+      ],
+      "top1_token_ids_sha256": "e2578102c1b23ae4fbad0de04dee379b9723f716fb2be8b3d70a5d6b6d66ae21"
+    },
+    "policy": {
+      "checkpoint_hash_denomination": "sha256 of raw tensor bytes at each checkpoint",
+      "layer_block_model_scope": "contract tensors + generation hidden_q + score quantized checkpoint hashes",
+      "score_gate": "full block lowering score artifact must be PASS"
+    },
+    "source_artifacts": {
+      "contract_manifest": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json",
+      "reference_json": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json",
+      "score_artifact": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-full-block-lowering-score.json"
+    },
+    "status": "PASS"
+  },
+  "checks": {
+    "board_matches_checksum": false,
+    "board_matches_first_64_output_bytes": false,
+    "board_matches_output_count": true,
+    "board_matches_sample0": false,
+    "board_matches_sample1": false,
+    "board_required_checks": {
+      "checksum": false,
+      "first_64_output": false,
+      "no_error": false,
+      "output_count": true,
+      "output_count_live": true,
+      "output_valid": false,
+      "sample0": false,
+      "sample1": false,
+      "state_done": false
+    },
+    "board_summary_status": false,
+    "checkpoint_hash_pass": true,
+    "checkpoint_step_tensor_mismatches": [],
+    "checkpoint_summary_match_flags": {
+      "all_tensor_hashes_match_reference": true,
+      "score_pass": true,
+      "step_tokens_match_reference": true
+    },
+    "input_token_ids_match_checkpoint_step0_context": true
+  },
+  "date": "2026-06-16T18:54:28.646213+00:00",
+  "failures": [
+    "board summary status is FAIL",
+    "board check failed: checksum",
+    "board check failed: sample0",
+    "board check failed: sample1",
+    "board check failed: first_64_output",
+    "board check failed: state_done",
+    "board check failed: no_error",
+    "board check failed: output_valid",
+    "board output mismatch in checksum",
+    "board output mismatch in sample0",
+    "board output mismatch in sample1",
+    "board first_64_output bytes mismatch"
+  ],
+  "live_compute": false,
+  "matches": {
+    "board_output_bytes_match": false,
+    "board_output_scalar_match": false,
+    "board_required_check_pass": false,
+    "board_summary_pass": false,
+    "checkpoint_status_pass": true,
+    "checkpoint_tensor_match": true
+  },
+  "milestone_target": "M2-one-full-block",
+  "quantization": "int8",
+  "scalar_checks": {
+    "checksum": {
+      "expected": "0x0003b2c9",
+      "match": false,
+      "observed": "0x00000000"
+    },
+    "output_count": {
+      "expected": "0x00000040",
+      "match": true,
+      "observed": "0x00000040"
+    },
+    "sample0": {
+      "expected": "0xd114be59",
+      "match": false,
+      "observed": "0x00000000"
+    },
+    "sample1": {
+      "expected": "0xd737e470",
+      "match": false,
+      "observed": "0x00000000"
+    }
+  },
+  "schema_version": 1,
+  "source_artifacts": {
+    "board_summary_json": "/home/roland/LLM2FPGA/artifacts/task6/runs/m2-full-block-board-summary.json",
+    "checkpoint_hash_json": "/home/roland/LLM2FPGA/artifacts/zero-to-one/m2-bram-checkpoint-hashes.json",
+    "checkpoint_source_artifacts": {
+      "contract_manifest": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json",
+      "reference_json": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json",
+      "score_artifact": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-full-block-lowering-score.json"
+    }
+  },
+  "stage": "M2-one-full-block",
+  "status": "FAIL"
+}

@@ -1,0 +1,73 @@
+{
+  "artifact_name": "task6-m3-board-artifact",
+  "board": {
+    "generated_tokens": [],
+    "sample_count": 0,
+    "source_artifact": "task6-ypcb-ddr3-inference-gate",
+    "status": "FAIL"
+  },
+  "closes_m3": false,
+  "contract": {
+    "all_blocks": false,
+    "live_compute": false,
+    "notes": "Board executes all TinyStories-1M transformer blocks for token-exact greedy generation.",
+    "responsibilities": {
+      "fpga": [
+        "all TinyStories-1M transformer blocks",
+        "greedy token selection"
+      ],
+      "host": [
+        "prompt token/control input",
+        "artifact/reference comparison"
+      ]
+    },
+    "stage": "M3-full-tinystories-1m"
+  },
+  "input": {
+    "prompt": "Once upon a time there was",
+    "prompt_token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ]
+  },
+  "m3_audit_failures": [
+    "M3 artifact contract does not declare live_compute=true",
+    "M3 artifact contract does not declare all_blocks=true",
+    "M3 artifact lacks board-generated token IDs",
+    "M3 board token IDs do not match reference greedy token IDs",
+    "M3 board status is not PASS"
+  ],
+  "model": {
+    "adapter_path": "/nix/store/2p9z2yafd8r1xbz1jkny1h4wsmf0v25f-model_adapter.py",
+    "hidden_size": 64,
+    "model_label": "TinyStories-1M",
+    "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+    "vocab_size": 50257
+  },
+  "reference": {
+    "generated_text": "Once upon a time there was a little girl named Lily. She loved",
+    "generated_tokens": [
+      257,
+      1310,
+      2576,
+      3706,
+      20037,
+      13,
+      1375,
+      6151
+    ],
+    "manifest_json": "artifacts/task6/parallel-hypotheses/task6-m3-reference-manifest.json",
+    "prompt": "Once upon a time there was"
+  },
+  "source": {
+    "board_summary_artifact": "task6-ypcb-ddr3-inference-gate",
+    "board_summary_json": "/home/roland/LLM2FPGA/artifacts/task6/runs/2026-06-16T16-30-05+0200-task6-ypcb-ddr3-inference-gate/gate-summary.json",
+    "board_summary_status": "FAIL",
+    "source_contract": {}
+  },
+  "status": "FAIL"
+}

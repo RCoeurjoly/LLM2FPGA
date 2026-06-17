@@ -4724,6 +4724,28 @@ EOF
               --out-dir "$out"
           '';
 
+        task6TinyStories1mM2OneBlockInt4WeightPack =
+          pkgs.runCommand "task6-tinystories-1m-m2-one-block-int4-weight-pack" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/quantize_m2_one_block_weight_pack.py
+            } \
+              --input-manifest ${task6TinyStories1mM2OneBlockWeightPack}/manifest.json \
+              --out-dir "$out" \
+              --quantization int4
+          '';
+
+        task6TinyStories1mM2OneBlockTernary2WeightPack =
+          pkgs.runCommand "task6-tinystories-1m-m2-one-block-ternary2-weight-pack" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/quantize_m2_one_block_weight_pack.py
+            } \
+              --input-manifest ${task6TinyStories1mM2OneBlockWeightPack}/manifest.json \
+              --out-dir "$out" \
+              --quantization ternary2
+          '';
+
         task6TinyStories1mM2Ln1QkvLoweringScore =
           pkgs.runCommand "task6-tinystories-1m-m2-ln1-qkv-lowering-score" { } ''
             mkdir -p "$out"
@@ -4783,6 +4805,20 @@ EOF
               } \
               --residual-add-proof-json ${
                 ./artifacts/task6/parallel-hypotheses/h2-full-tinystories-1m-block0-pwl-mlp-chain-residual-add-rtl-proof.json
+              } \
+              --out-json "$out/summary.json"
+          '';
+
+        task6TinyStories1mM2BramCheckpointHashes =
+          pkgs.runCommand "task6-tinystories-1m-m2-bram-checkpoint-hashes" { } ''
+            mkdir -p "$out"
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/task6_zero_to_one_m2_checkpoint_hashes.py
+            } \
+              --contract-manifest ${task6TinyStories1mM2OneBlockContract}/manifest.json \
+              --score-artifact ${task6TinyStories1mM2FullBlockLoweringScore}/summary.json \
+              --reference-json ${
+                ./artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json
               } \
               --out-json "$out/summary.json"
           '';
@@ -14261,6 +14297,74 @@ EOF
             EOF
           '';
 
+        task6ZeroToOneInventory =
+          pkgs.runCommand "task6-zero-to-one-inventory.json" { } ''
+            set -euo pipefail
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/task6_zero_to_one_inventory.py
+            } --repo-root . --out-json "$out"
+          '';
+
+        task6ZeroToOneReferenceLockUnitTests =
+          pkgs.runCommand "task6-zero-to-one-reference-lock-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_zero_to_one_reference_lock.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_zero_to_one_reference_lock"
+            }
+            EOF
+          '';
+
+        task6ZeroToOneGuardUnitTests =
+          pkgs.runCommand "task6-zero-to-one-guard-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_zero_to_one_guard.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_zero_to_one_guard"
+            }
+            EOF
+          '';
+
+        task6ZeroToOneInventoryUnitTests =
+          pkgs.runCommand "task6-zero-to-one-inventory-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_zero_to_one_inventory.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_zero_to_one_inventory"
+            }
+            EOF
+          '';
+
+        task6ZeroToOneInferenceGateUnitTests =
+          pkgs.runCommand "task6-zero-to-one-inference-gate-unit-tests.json" { } ''
+            set -euo pipefail
+            export PYTHONPATH=${./scripts/task6}
+            ${pkgs.python3}/bin/python3 ${
+              ./scripts/task6/test_task6_zero_to_one_inference_gate.py
+            }
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "test": "task6_zero_to_one_inference_gate"
+            }
+            EOF
+          '';
+
         task6Int8V4kL2ResidualAddOutputHeadSelftestSvSim =
           pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest-sv-sim.json" {
             buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -15391,6 +15495,10 @@ EOF
             task6TinyStories1mM2OneBlockWeightPack;
           task6-tinystories-1m-m2-one-block-int8-weight-pack =
             task6TinyStories1mM2OneBlockInt8WeightPack;
+          task6-tinystories-1m-m2-one-block-int4-weight-pack =
+            task6TinyStories1mM2OneBlockInt4WeightPack;
+          task6-tinystories-1m-m2-one-block-ternary2-weight-pack =
+            task6TinyStories1mM2OneBlockTernary2WeightPack;
           task6-tinystories-1m-m2-ln1-qkv-lowering-score =
             task6TinyStories1mM2Ln1QkvLoweringScore;
           task6-tinystories-1m-m2-attention-lowering-score =
@@ -15399,6 +15507,8 @@ EOF
             task6TinyStories1mM2MlpResidualLoweringScore;
           task6-tinystories-1m-m2-full-block-lowering-score =
             task6TinyStories1mM2FullBlockLoweringScore;
+          task6-tinystories-1m-m2-bram-checkpoint-hashes =
+            task6TinyStories1mM2BramCheckpointHashes;
           task6-m2-first-token-attention-out-projection =
             task6M2FirstTokenAttentionOutProjection;
           task6-m2-first-token-mlp-replay =
@@ -15523,6 +15633,14 @@ EOF
             task6M3BoardArtifactUnitTests;
           task6-ypcb-tinystories-inference-gate-unit-tests =
             task6YpcbTinyStoriesInferenceGateUnitTests;
+          task6-zero-to-one-inventory = task6ZeroToOneInventory;
+          task6-zero-to-one-inference-gate-unit-tests =
+            task6ZeroToOneInferenceGateUnitTests;
+          task6-zero-to-one-reference-lock-unit-tests =
+            task6ZeroToOneReferenceLockUnitTests;
+          task6-zero-to-one-guard-unit-tests = task6ZeroToOneGuardUnitTests;
+          task6-zero-to-one-inventory-unit-tests =
+            task6ZeroToOneInventoryUnitTests;
           task6-m2-ln-attn-sublane-selftest-tb-data-sv =
             task6M2LnAttnSublaneSelftestTbDataSv;
           task6-m2-ln-attn-sublane-first-token-tb-data-sv =

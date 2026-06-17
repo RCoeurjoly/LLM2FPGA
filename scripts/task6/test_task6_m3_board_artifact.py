@@ -17,12 +17,23 @@ def manifest() -> dict:
     return {
         "artifact_name": "task6-m3-reference-manifest",
         "status": "PASS",
-        "model": {"model_label": "TinyStories-1M", "vocab_size": 50257, "hidden_size": 64},
-        "input": {"prompt": "Once upon a time", "prompt_token_ids": [10, 11]},
+        "model": {
+            "model_label": "TinyStories-1M",
+            "model_path": "/nix/store/frozen-model",
+            "adapter_path": "/nix/store/frozen-adapter.py",
+            "vocab_size": 50257,
+            "hidden_size": 64,
+        },
+        "input": {
+            "prompt": "Once upon a time",
+            "prompt_token_ids": [10, 11],
+            "tokenizer": "GPT-Neo/GPT-2 BPE",
+        },
         "reference": {
             "prompt": "Once upon a time",
             "generated_tokens": [1, 2, 3],
             "generated_text": "Once upon a time...",
+            "tokenizer": "GPT-Neo/GPT-2 BPE",
         },
     }
 
@@ -60,6 +71,73 @@ def host_assisted_summary() -> dict:
     }
 
 
+def ypcb_step_summary() -> dict:
+    return {
+        "artifact_name": "task6-ypcb-ddr3-inference-gate",
+        "status": "PASS",
+        "bdf": "0000:42:00.0",
+        "lspci": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]",
+        "steps": [
+            {
+                "name": "tinystories-inference",
+                "payload": {
+                    "top1": {
+                        "samples": [
+                            {"ddr3_readback_top1_token": 1},
+                            {"ddr3_readback_top1_token": 2},
+                            {"ddr3_readback_top1_token": 3},
+                        ],
+                        "status": "PASS",
+                    },
+                },
+            }
+        ],
+    }
+
+
+def ypcb_step_summary_no_contract() -> dict:
+    return {
+        "artifact_name": "task6-ypcb-ddr3-inference-gate",
+        "status": "PASS",
+        "bdf": "0000:42:00.0",
+        "lspci": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]",
+        "steps": [
+            {
+                "name": "tinystories-inference",
+                "payload": {
+                    "top1": {
+                        "samples": [
+                            {"ddr3_readback_top1_token": 1},
+                            {"top1_token": 2},
+                        ],
+                        "status": "PASS",
+                    },
+                },
+            }
+        ],
+    }
+
+
+def ypcb_step_summary_without_passing_top1() -> dict:
+    return {
+        "artifact_name": "task6-ypcb-ddr3-inference-gate",
+        "status": "PASS",
+        "bdf": "0000:42:00.0",
+        "lspci": "0000:42:00.0 Memory controller [0580]: Xilinx Corporation Device [10ee:0480]",
+        "steps": [
+            {
+                "name": "tinystories-inference",
+                "payload": {
+                    "top1": {
+                        "samples": [],
+                        "status": "PASS",
+                    },
+                },
+            }
+        ],
+    }
+
+
 def test_live_board_summary_can_build_passing_m3_artifact() -> None:
     artifact = build_board_artifact(
         manifest(),
@@ -73,6 +151,73 @@ def test_live_board_summary_can_build_passing_m3_artifact() -> None:
     assert audit_payload("M3", artifact) == []
 
 
+def test_ypcb_step_summary_can_build_passing_m3_artifact() -> None:
+    artifact = build_board_artifact(
+        manifest(),
+        ypcb_step_summary(),
+        Path("/tmp/manifest.json"),
+        Path("/tmp/board.json"),
+    )
+    assert artifact["status"] == "PASS"
+    assert artifact["board"]["board_tokens"] == [1, 2, 3]
+    assert artifact["closes_m3"] is True
+    assert artifact["m3_audit_failures"] == []
+
+
+def test_ypcb_step_summary_without_contract_can_build_passing_m3_artifact() -> None:
+    artifact = build_board_artifact(
+        manifest(),
+        ypcb_step_summary_no_contract(),
+        Path("/tmp/manifest.json"),
+        Path("/tmp/board.json"),
+    )
+    assert artifact["status"] == "PASS"
+    assert artifact["closes_m3"] is True
+    assert artifact["board"]["generated_tokens"] == [1, 2]
+
+
+def test_ypcb_step_summary_without_passing_top1_cannot_close_m3() -> None:
+    artifact = build_board_artifact(
+        manifest(),
+        ypcb_step_summary_without_passing_top1(),
+        Path("/tmp/manifest.json"),
+        Path("/tmp/board.json"),
+    )
+    assert artifact["status"] == "FAIL"
+    assert artifact["closes_m3"] is False
+    assert any(
+        "live_compute=true" in failure or "do not match" in failure
+        for failure in artifact["m3_audit_failures"]
+    )
+
+
+def test_ypcb_step_summary_failing_status_cannot_close_m3() -> None:
+    summary = ypcb_step_summary_no_contract()
+    summary["status"] = "FAIL"
+    artifact = build_board_artifact(
+        manifest(),
+        summary,
+        Path("/tmp/manifest.json"),
+        Path("/tmp/board.json"),
+    )
+    assert artifact["status"] == "FAIL"
+    assert artifact["closes_m3"] is False
+    assert any("board status" in failure for failure in artifact["m3_audit_failures"])
+
+
+def test_ypcb_step_summary_with_zero_token_can_build_passing_m3_artifact() -> None:
+    zero_case = ypcb_step_summary()
+    zero_case["steps"][0]["payload"]["top1"]["samples"][0]["ddr3_readback_top1_token"] = 0
+    artifact = build_board_artifact(
+        manifest(),
+        zero_case,
+        Path("/tmp/manifest.json"),
+        Path("/tmp/board.json"),
+    )
+    assert artifact["status"] == "PASS"
+    assert artifact["board"]["generated_tokens"][:1] == [0]
+
+
 def test_mismatched_tokens_fail_m3_artifact() -> None:
     artifact = build_board_artifact(
         manifest(),
@@ -83,6 +228,18 @@ def test_mismatched_tokens_fail_m3_artifact() -> None:
     assert artifact["status"] == "FAIL"
     assert artifact["closes_m3"] is False
     assert any("do not match" in failure for failure in artifact["m3_audit_failures"])
+
+
+def test_build_artifact_carries_model_and_tokenizer_provenance() -> None:
+    artifact = build_board_artifact(
+        manifest(),
+        live_board_summary(),
+        Path("/tmp/manifest.json"),
+        Path("/tmp/board.json"),
+    )
+    assert artifact["source"]["model_path"] == "/nix/store/frozen-model"
+    assert artifact["source"]["adapter_path"] == "/nix/store/frozen-adapter.py"
+    assert artifact["source"]["tokenizer"] == "GPT-Neo/GPT-2 BPE"
 
 
 def test_host_assisted_top1_summary_cannot_close_m3() -> None:
@@ -131,8 +288,14 @@ def test_main_writes_failure_for_host_assisted_summary() -> None:
 
 def main_test() -> None:
     test_live_board_summary_can_build_passing_m3_artifact()
+    test_ypcb_step_summary_can_build_passing_m3_artifact()
+    test_ypcb_step_summary_without_contract_can_build_passing_m3_artifact()
+    test_ypcb_step_summary_without_passing_top1_cannot_close_m3()
+    test_ypcb_step_summary_failing_status_cannot_close_m3()
+    test_ypcb_step_summary_with_zero_token_can_build_passing_m3_artifact()
     test_mismatched_tokens_fail_m3_artifact()
     test_host_assisted_top1_summary_cannot_close_m3()
+    test_build_artifact_carries_model_and_tokenizer_provenance()
     test_main_writes_failure_for_host_assisted_summary()
 
 

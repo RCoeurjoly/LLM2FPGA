@@ -1289,6 +1289,11 @@ def program_bitstream(args: argparse.Namespace, run_dir: Path) -> None:
         return
     if args.bitstream is None:
         raise SystemExit("--bitstream is required when --program is enabled")
+    if not Path("/dev/bus/usb").exists():
+        raise SystemExit(
+            "FTDI/JTAG interface unavailable in this environment: /dev/bus/usb is not present. "
+            "Run in a host environment with USB passthrough (not this container) before programming."
+        )
     log_path = run_dir / "program.log"
     local_programmer = Path("/home/roland/openFPGALoader/build/openFPGALoader")
     programmer = local_programmer if local_programmer.exists() else Path("openFPGALoader")
@@ -1306,7 +1311,24 @@ def program_bitstream(args: argparse.Namespace, run_dir: Path) -> None:
     with log_path.open("w", encoding="utf-8") as log:
         log.write("command: " + " ".join(command) + "\n")
         log.flush()
-        subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
+        try:
+            subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            log_contents = log_path.read_text(encoding="utf-8")
+            if "open_device: failed to initialize ftdi" in log_contents:
+                raise SystemExit(
+                    "openFPGALoader failed to initialize FTDI (possible USB/libusb "
+                    "permissions or cable access issue). Run openFPGALoader --detect "
+                    f"(-c {args.jtag_cable} --ftdi-serial {args.serial}) and check USB "
+                    f"permissions; full log: {log_path}"
+                ) from exc
+            if "unable to initialize libusb" in log_contents:
+                raise SystemExit(
+                    "openFPGALoader reported libusb initialization failure. "
+                    f"Inspect environment USB access and run with sufficient permissions. "
+                    f"Full log: {log_path}"
+                ) from exc
+            raise SystemExit(f"openFPGALoader command failed (code {exc.returncode}): {log_path}") from exc
 
 
 def run_lowbyte_diagnostic(

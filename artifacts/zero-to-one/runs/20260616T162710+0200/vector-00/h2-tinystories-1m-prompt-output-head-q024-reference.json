@@ -1,0 +1,108 @@
+{
+  "samples": [
+    {
+      "expected_reference_top1_token": 257,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "reference_step": 0,
+      "sample_id": 0,
+      "top1_rows_scanned": 0,
+      "top1_score_low32": 0,
+      "top1_token": 257
+    },
+    {
+      "expected_reference_top1_token": 1310,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "reference_step": 1,
+      "sample_id": 1,
+      "top1_rows_scanned": 0,
+      "top1_score_low32": 0,
+      "top1_token": 1310
+    },
+    {
+      "expected_reference_top1_token": 2576,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "reference_step": 2,
+      "sample_id": 2,
+      "top1_rows_scanned": 0,
+      "top1_score_low32": 0,
+      "top1_token": 2576
+    },
+    {
+      "expected_reference_top1_token": 3706,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "reference_step": 3,
+      "sample_id": 3,
+      "top1_rows_scanned": 0,
+      "top1_score_low32": 0,
+      "top1_token": 3706
+    },
+    {
+      "expected_reference_top1_token": 20037,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "reference_step": 4,
+      "sample_id": 4,
+      "top1_rows_scanned": 0,
+      "top1_score_low32": 0,
+      "top1_token": 20037
+    },
+    {
+      "expected_reference_top1_token": 13,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "reference_step": 5,
+      "sample_id": 5,
+      "top1_rows_scanned": 0,
+      "top1_score_low32": 0,
+      "top1_token": 13
+    },
+    {
+      "expected_reference_top1_token": 1375,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "reference_step": 6,
+      "sample_id": 6,
+      "top1_rows_scanned": 0,
+      "top1_score_low32": 0,
+      "top1_token": 1375
+    },
+    {
+      "expected_reference_top1_token": 6151,
+      "matches_rows_scanned": true,
+      "matches_score_low32": true,
+      "matches_token": true,
+      "no_top1_error": true,
+      "reference_step": 7,
+      "sample_id": 7,
+      "top1_rows_scanned": 0,
+      "top1_score_low32": 0,
+      "top1_token": 6151
+    }
+  ],
+  "simulated": true,
+  "status": "PASS",
+  "validation": {
+    "mismatch_count": 0,
+    "mode": "offline-simulation",
+    "verify_samples": 8,
+    "verify_samples_requested": 8
+  }
+}

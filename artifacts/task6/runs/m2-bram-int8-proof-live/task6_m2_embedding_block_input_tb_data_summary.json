@@ -1,0 +1,22 @@
+{
+  "artifact_name": "task6-m2-embedding-block-input-tb-data",
+  "block_input_checksum": 217337,
+  "block_requant_mul_q20": 415,
+  "embedding_source": "transformer.wte.weight-q20-selected-token-rows",
+  "ln_input_cols": 64,
+  "ln_input_rows": 6,
+  "matches_contract_last_input_i8": true,
+  "matches_contract_ln_q12": true,
+  "position_source": "transformer.wpe.weight-q20-selected-position-rows",
+  "q_frac": 20,
+  "status": "PASS",
+  "step": 0,
+  "token_ids": [
+    7454,
+    2402,
+    257,
+    640,
+    612,
+    373
+  ]
+}

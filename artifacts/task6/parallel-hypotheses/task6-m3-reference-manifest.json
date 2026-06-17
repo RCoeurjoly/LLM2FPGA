@@ -1,0 +1,94 @@
+{
+  "artifact_name": "task6-m3-reference-manifest",
+  "board": {
+    "generated_tokens": [],
+    "status": "NOT_RUN"
+  },
+  "closes_m3": false,
+  "contract": {
+    "acceptance_requires": [
+      "board status PASS",
+      "host-supplied prompt token IDs match this manifest",
+      "board executes all TinyStories-1M transformer blocks",
+      "board performs greedy token selection or returns equivalent logits/top1",
+      "board-generated token IDs equal reference.generated_tokens",
+      "artifact passes scripts/task6/task6_milestone_evidence_audit.py M3"
+    ],
+    "all_blocks": false,
+    "artifact_role": "offline-reference-target",
+    "live_compute": false,
+    "milestone_target": "M3-full-tinystories-1m",
+    "notes": "CPU/host reference target only. This pins the TinyStories-1M prompt and token-exact greedy output expected from a future board M3 gate; it is not board inference evidence.",
+    "stage": "M3-reference-target"
+  },
+  "coverage": {
+    "quantization": {
+      "activation": "per-step symmetric int8 hidden vector",
+      "q024_scale_max": 105952,
+      "q024_scale_min": 14525,
+      "reserved_nonzero_count": 0,
+      "scale": "unsigned Q0.24 row sidecar",
+      "tie_break": "lower token id wins for equal integer score",
+      "weight": "rowwise symmetric int8 lm_head"
+    },
+    "source": {
+      "hardware_equivalent": "matches current Task 6 DDR3 rowstream top1 arithmetic for each generated step",
+      "not_yet_covered": [
+        "int8 transformer blocks",
+        "fixed-point attention",
+        "fixed-point layernorm",
+        "on-board prompt prefill/decode loop"
+      ],
+      "output_head": "rowwise int8 weights, per-step int8 hidden vector, Q0.24 row scale",
+      "tokenizer": "GPT-Neo/GPT-2 BPE from explicit vocab.json and merges.txt",
+      "transformer": "PyTorch f32"
+    },
+    "step_count": 8
+  },
+  "input": {
+    "prompt": "Once upon a time there was",
+    "prompt_token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ],
+    "tokenizer": "GPT-Neo/GPT-2 BPE from explicit vocab.json and merges.txt"
+  },
+  "model": {
+    "adapter_path": "/nix/store/2p9z2yafd8r1xbz1jkny1h4wsmf0v25f-model_adapter.py",
+    "hidden_size": 64,
+    "model_label": "TinyStories-1M",
+    "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+    "vocab_size": 50257
+  },
+  "reference": {
+    "generated_text": "Once upon a time there was a little girl named Lily. She loved",
+    "generated_tokens": [
+      257,
+      1310,
+      2576,
+      3706,
+      20037,
+      13,
+      1375,
+      6151
+    ],
+    "max_new_tokens": 8,
+    "prompt": "Once upon a time there was",
+    "prompt_token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ],
+    "quantized_top1": "rowwise-int8-q024",
+    "tokenizer": "GPT-Neo/GPT-2 BPE from explicit vocab.json and merges.txt"
+  },
+  "reference_json": "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json",
+  "status": "PASS"
+}

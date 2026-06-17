@@ -277,6 +277,21 @@ def replay_mlp_row(
 
 def read_weight_pack(weight_base: Path, weights: dict, name: str) -> tuple[list[int], list[float], int, int, dict]:
     tensor = weight_tensor(weights, name)
+    q_bits = tensor.get("q_bits")
+    if q_bits is None:
+        if tensor.get("q_dtype") == "int8":
+            q_bits = 8
+        elif tensor.get("q_dtype") is not None and str(tensor.get("q_dtype")).startswith("int"):
+            q_bits = str(tensor.get("q_dtype"))[3:]
+        elif "int8" in tensor.get("quantization", ""):
+            q_bits = 8
+    if q_bits is None:
+        raise SystemExit(f"tensor {name} missing q_bits")
+    if int(q_bits) != 8:
+        raise SystemExit(
+            f"tensor {name} is quantized with q_bits={q_bits}; "
+            "score_m2_mlp_residual_lowering currently supports int8 rowwise weights only"
+        )
     out_features, in_features = [int(dim) for dim in tensor["shape"]]
     return (
         read_i8(weight_base / tensor["q_filename"]),

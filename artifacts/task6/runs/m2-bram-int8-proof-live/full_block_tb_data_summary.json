@@ -1,0 +1,13 @@
+{
+  "artifact_name": "task6-m2-full-block-replay-selftest-tb-data",
+  "expected_checksum": 1521552764,
+  "expected_sample0": 3540709414,
+  "expected_sample1": 3543338837,
+  "first_64_output_hex": "26f00ad3550f33d311f5dd4ab09de504c5ee0455c90a1915f064f6d009eda3c9f7e2172ef4e3dd0f3be0c229f6e509273f2b171ed634f223373b3227360d0403",
+  "output_count": 4864,
+  "output_scale": 0.00233933875154621,
+  "output_scale_q24": 39248,
+  "q_max": 120,
+  "q_min": -127,
+  "status": "PASS"
+}

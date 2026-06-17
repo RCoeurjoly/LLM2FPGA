@@ -854,7 +854,7 @@ def parse_args() -> argparse.Namespace:
         "--packet-load-mode",
         choices=("single", "pair"),
         default="pair",
-        help="Use pair mode with new RTL to load two 8-byte slots per BAR command.",
+        help="Use pair mode with current RTL to load two 8-byte slots per BAR command.",
     )
     parser.add_argument(
         "--packet-ack-mode",
@@ -890,8 +890,17 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def validate_packet_mode(mode: str, beat_bytes: int) -> None:
+    if mode == "single" and beat_bytes == 8:
+        raise SystemExit(
+            "packet_load_mode=single is not supported for beat_bytes=8 on this RTL path. "
+            "Use --packet-load-mode pair (or set --beat-bytes 16 for single mode)."
+        )
+
+
 def main() -> int:
     args = parse_args()
+    validate_packet_mode(args.packet_load_mode, args.beat_bytes)
     contract = read_json(args.contract_json)
     replay = read_json(args.replay_json)
     image = args.image.read_bytes()
@@ -972,7 +981,16 @@ def main() -> int:
     token_row_verify_samples: list[dict[str, Any]] = []
     load_metadata: dict[str, Any] | None = None
     board_samples = []
-    fd = os.open(resource0, os.O_RDWR | os.O_SYNC)
+    try:
+        fd = os.open(resource0, os.O_RDWR | os.O_SYNC)
+    except OSError as exc:
+        if exc.errno == 30:
+            raise SystemExit(
+                f"Read-only sysfs resource for {args.bdf}: {resource0}. "
+                "Run the parity gate on a host with writable PCI BAR access (or remount "
+                "the sysfs node through the board recovery flow) before running inference."
+            )
+        raise
     try:
         with mmap.mmap(fd, BAR_SIZE, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE) as mm:
             magic = rd32(mm, REG_MAGIC)

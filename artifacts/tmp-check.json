@@ -1,0 +1,1357 @@
+{
+  "aggregate": {
+    "block_actual_sha256": "288f10c942d0a390b10cc89726ab50ba256dea71cbfcec48a4cf899bb98e50ad",
+    "layer_actual_sha256": "9b237c35b8dbef051d4a694c99d7d123f7f35e2f97fab9eebfd619dd8d456db3",
+    "model_hidden_q_concat_sha256": "d88bf190c4dbb8a887bc3b77b307a435e18cbbfb6b9d2e9b0652c252ef8052e7",
+    "model_top1_tokens_concat_sha256": "e2578102c1b23ae4fbad0de04dee379b9723f716fb2be8b3d70a5d6b6d66ae21",
+    "score_artifact": {
+      "contract_manifest": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json",
+      "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-full-block-lowering-score.json",
+      "quantization": {
+        "c_fc_accumulator_max": 85648,
+        "c_fc_accumulator_min": -86445,
+        "c_fc_accumulator_sha256": "ce84b8e88dfbb73c2330392047e2b1632cb598a9741d5278076524dee28dbe6e",
+        "c_fc_weight_quantization": "rowwise-symmetric-int8",
+        "c_proj_accumulator_max": 93367,
+        "c_proj_accumulator_min": -100142,
+        "c_proj_accumulator_sha256": "893f0b4418100ff0e10f7583830b461e299329527ab50ee348bb2ff6a4c209a1",
+        "c_proj_output_scale": 0.0023836969859956755,
+        "c_proj_q_max": 127,
+        "c_proj_q_min": -127,
+        "c_proj_q_sha256": "8678060e8549ba417be7e883e0c0c441de1694729e3f6623768c49a6eca1ff78",
+        "c_proj_weight_quantization": "rowwise-symmetric-int8",
+        "ln2_q_max": 127,
+        "ln2_q_min": -127,
+        "ln2_q_sha256": "ba0bf80dc3ea69b68932d7a3ded5f39ce37e24f90a4fe5b9ba8508e936a5b117",
+        "post_gelu_output_scale": 0.005411566543946203,
+        "post_gelu_q_max": 127,
+        "post_gelu_q_min": -31,
+        "post_gelu_q_sha256": "ca9c251a45c679d1b468662fcb92d2734c131c1da36ea13c3fbcc346ca499b7d"
+      },
+      "schema_version": 1,
+      "status": "PASS",
+      "weight_manifest": "/home/roland/LLM2FPGA/artifacts/task6/weights_pack/tiny-stories-1m-m2-block0-int8/manifest.json"
+    }
+  },
+  "artifact_name": "task6-zero-to-one-m2-bram-checkpoint-hashes",
+  "date": "2026-06-16T18:44:47.478027+00:00",
+  "failures": [],
+  "live_compute": false,
+  "matches": {
+    "all_tensor_hashes_match_reference": true,
+    "score_pass": true,
+    "step_tokens_match_reference": true
+  },
+  "milestone_target": "M2-one-full-block",
+  "model_level": {
+    "generation": {
+      "context_token_ids": [
+        [
+          7454,
+          2402,
+          257,
+          640,
+          612,
+          373
+        ],
+        [
+          7454,
+          2402,
+          257,
+          640,
+          612,
+          373,
+          257
+        ],
+        [
+          7454,
+          2402,
+          257,
+          640,
+          612,
+          373,
+          257,
+          1310
+        ],
+        [
+          7454,
+          2402,
+          257,
+          640,
+          612,
+          373,
+          257,
+          1310,
+          2576
+        ],
+        [
+          7454,
+          2402,
+          257,
+          640,
+          612,
+          373,
+          257,
+          1310,
+          2576,
+          3706
+        ],
+        [
+          7454,
+          2402,
+          257,
+          640,
+          612,
+          373,
+          257,
+          1310,
+          2576,
+          3706,
+          20037
+        ],
+        [
+          7454,
+          2402,
+          257,
+          640,
+          612,
+          373,
+          257,
+          1310,
+          2576,
+          3706,
+          20037,
+          13
+        ],
+        [
+          7454,
+          2402,
+          257,
+          640,
+          612,
+          373,
+          257,
+          1310,
+          2576,
+          3706,
+          20037,
+          13,
+          1375
+        ]
+      ],
+      "generated_token_ids": [
+        257,
+        1310,
+        2576,
+        3706,
+        20037,
+        13,
+        1375,
+        6151
+      ],
+      "generated_token_ids_sha256": "e2578102c1b23ae4fbad0de04dee379b9723f716fb2be8b3d70a5d6b6d66ae21",
+      "hidden_scale_max": 105952,
+      "hidden_scale_min": 14525,
+      "hidden_scale_set_count": 8,
+      "hidden_scale_set_sha256": "22e977d9597a756850e6a8aba8c4fdeec2be7061de0cb05a10defaa9190e7e4e",
+      "model": {
+        "adapter_path": "/nix/store/2p9z2yafd8r1xbz1jkny1h4wsmf0v25f-model_adapter.py",
+        "hidden_size": 64,
+        "lm_head_bias_supported": true,
+        "lm_head_tied_to_token_embedding": true,
+        "model_path": "/nix/store/kw3s159yv90pk879nm0f7v4ikkrxz83w-tinystories-1m-hf-snapshot",
+        "vocab_size": 50257
+      },
+      "quantization": {
+        "activation": "per-step symmetric int8 hidden vector",
+        "q024_scale_max": 105952,
+        "q024_scale_min": 14525,
+        "reserved_nonzero_count": 0,
+        "scale": "unsigned Q0.24 row sidecar",
+        "tie_break": "lower token id wins for equal integer score",
+        "weight": "rowwise symmetric int8 lm_head"
+      },
+      "steps": 8
+    },
+    "hidden_q_concat_sha256": "d88bf190c4dbb8a887bc3b77b307a435e18cbbfb6b9d2e9b0652c252ef8052e7",
+    "hidden_scale_sha256s": [
+      "3a4abe71ceacd45ea52a6cd7d68e8791598782e96f8399356c90e305b903d2ad",
+      "0602724ceae5d1d546cbb729238059dfbcb59759ba66c87497a735c839898927",
+      "cf50a16df8baa63250ee4f2806df546c7047b57e05c4dc319052f553a5a1e861",
+      "ba9168a0f32f2ec96610d5c1a8a2eb218f2bc6e037eee2e55d34cc72e854b92a",
+      "2612e48a3fd96befa17f81c144294eda942c07da51586ab8e59d71f3049b4bbc",
+      "f38b33771b847c5b5be886bf0860242acccd8d153819a1dfafd56b04917bb043",
+      "00dcb1fc0308a7bd0baad65dee99f13f567daf1a49211f80c7e2b662b37a2e19",
+      "3b1202e5e6a76855823e8749ec7ede0d474757201103a62c79ff05486deab88a"
+    ],
+    "steps": [
+      {
+        "hidden_q_len": 64,
+        "hidden_q_sha256": "a0a1434bd45a3caa60bc805f3efb614505a394430467fb107892ae8ebcb019df",
+        "hidden_scale": 0.06667393211304672,
+        "hidden_scale_sha256": "3a4abe71ceacd45ea52a6cd7d68e8791598782e96f8399356c90e305b903d2ad",
+        "q024_top1_low32": 233826516,
+        "step": 0,
+        "step_id": 0,
+        "top1_token": 257
+      },
+      {
+        "hidden_q_len": 64,
+        "hidden_q_sha256": "9542cb04ab5298e2815dff662f86db4d818f03ab3a5be0be9fa629ba79b5f9f3",
+        "hidden_scale": 0.08050558886190098,
+        "hidden_scale_sha256": "0602724ceae5d1d546cbb729238059dfbcb59759ba66c87497a735c839898927",
+        "q024_top1_low32": 3285628902,
+        "step": 1,
+        "step_id": 1,
+        "top1_token": 1310
+      },
+      {
+        "hidden_q_len": 64,
+        "hidden_q_sha256": "6554ae145c27732f67fcab2c0ede3c025e002cd8b058b631c8b63ceb641482b2",
+        "hidden_scale": 0.08035336141511211,
+        "hidden_scale_sha256": "cf50a16df8baa63250ee4f2806df546c7047b57e05c4dc319052f553a5a1e861",
+        "q024_top1_low32": 3632566600,
+        "step": 2,
+        "step_id": 2,
+        "top1_token": 2576
+      },
+      {
+        "hidden_q_len": 64,
+        "hidden_q_sha256": "8fea862e03b46e6687fd0b2e234c418fb2635d318347872c0e09e241c086c1cc",
+        "hidden_scale": 0.06328385270486667,
+        "hidden_scale_sha256": "ba9168a0f32f2ec96610d5c1a8a2eb218f2bc6e037eee2e55d34cc72e854b92a",
+        "q024_top1_low32": 395987427,
+        "step": 3,
+        "step_id": 3,
+        "top1_token": 3706
+      },
+      {
+        "hidden_q_len": 64,
+        "hidden_q_sha256": "9688ab60f7f50f8c87bb3b91b76f0108015e1d95d95c56d126ba1565b7dc7af3",
+        "hidden_scale": 0.06328296661376953,
+        "hidden_scale_sha256": "2612e48a3fd96befa17f81c144294eda942c07da51586ab8e59d71f3049b4bbc",
+        "q024_top1_low32": 26701328,
+        "step": 4,
+        "step_id": 4,
+        "top1_token": 20037
+      },
+      {
+        "hidden_q_len": 64,
+        "hidden_q_sha256": "0dfd4f9cb39272ad3420f25e7a50aee2b1c37151af4866cade83c9aa0ba21a44",
+        "hidden_scale": 0.07535090408925935,
+        "hidden_scale_sha256": "f38b33771b847c5b5be886bf0860242acccd8d153819a1dfafd56b04917bb043",
+        "q024_top1_low32": 4123082975,
+        "step": 5,
+        "step_id": 5,
+        "top1_token": 13
+      },
+      {
+        "hidden_q_len": 64,
+        "hidden_q_sha256": "f99e9d93455c2f26a5e32f725c43446f8001fbc983a1c5c55d56bcb4c8ad291e",
+        "hidden_scale": 0.08080883476677841,
+        "hidden_scale_sha256": "00dcb1fc0308a7bd0baad65dee99f13f567daf1a49211f80c7e2b662b37a2e19",
+        "q024_top1_low32": 3904836880,
+        "step": 6,
+        "step_id": 6,
+        "top1_token": 1375
+      },
+      {
+        "hidden_q_len": 64,
+        "hidden_q_sha256": "1b6f80551688e6aedc4f6f3d8866b7ff4617a051651be925fe66a353e68ee137",
+        "hidden_scale": 0.08269697474682425,
+        "hidden_scale_sha256": "3b1202e5e6a76855823e8749ec7ede0d474757201103a62c79ff05486deab88a",
+        "q024_top1_low32": 3769848372,
+        "step": 7,
+        "step_id": 7,
+        "top1_token": 6151
+      }
+    ],
+    "top1_token_ids": [
+      257,
+      1310,
+      2576,
+      3706,
+      20037,
+      13,
+      1375,
+      6151
+    ],
+    "top1_token_ids_sha256": "e2578102c1b23ae4fbad0de04dee379b9723f716fb2be8b3d70a5d6b6d66ae21"
+  },
+  "policy": {
+    "checkpoint_hash_denomination": "sha256 of raw tensor bytes at each checkpoint",
+    "layer_block_model_scope": "contract tensors + generation hidden_q + score quantized checkpoint hashes",
+    "score_gate": "full block lowering score artifact must be PASS"
+  },
+  "quantization": "int8",
+  "schema_version": 1,
+  "source_artifacts": {
+    "contract_manifest": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json",
+    "reference_json": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-prompt-output-head-q024-reference.json",
+    "score_artifact": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-full-block-lowering-score.json"
+  },
+  "stage": "M2-one-full-block",
+  "status": "PASS",
+  "steps": [
+    {
+      "block": {
+        "block_output_f32": {
+          "actual_sha256": "5f50683e115b1a4fccf1bbd9ded1160e2e359b9a20db9ad02215a77ec41c64f5",
+          "bytes": 1536,
+          "dtype": "float32",
+          "expected_sha256": "5f50683e115b1a4fccf1bbd9ded1160e2e359b9a20db9ad02215a77ec41c64f5",
+          "matches": true,
+          "numel": 384,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step00-block-output-f32.bin",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        }
+      },
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373
+      ],
+      "expected_next_token": 257,
+      "layer": {
+        "attention_output_f32": {
+          "actual_sha256": "e1383dc028ff098bc5e434d41b2ae93eeac572123afc5fbf0e4589b3e324eb1d",
+          "bytes": 1536,
+          "dtype": "float32",
+          "expected_sha256": "e1383dc028ff098bc5e434d41b2ae93eeac572123afc5fbf0e4589b3e324eb1d",
+          "matches": true,
+          "numel": 384,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step00-attention-output-f32.bin",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "actual_sha256": "1b84e2d8a7091ec18dce80dfedcf57495d31a345cf7a1e7cffc9134ac6fdd8ae",
+          "bytes": 1536,
+          "dtype": "float32",
+          "expected_sha256": "1b84e2d8a7091ec18dce80dfedcf57495d31a345cf7a1e7cffc9134ac6fdd8ae",
+          "matches": true,
+          "numel": 384,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step00-k-proj-output-f32.bin",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "actual_sha256": "1493b537bff1542839b584c32a4b6ef52adf13b32e454443772e3b0f2a349c3d",
+          "bytes": 1536,
+          "dtype": "float32",
+          "expected_sha256": "1493b537bff1542839b584c32a4b6ef52adf13b32e454443772e3b0f2a349c3d",
+          "matches": true,
+          "numel": 384,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step00-ln1-output-f32.bin",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "actual_sha256": "5c0d5a4e6523f219f6a6e41c95b1c847fefef6378d645bcd70afcd46105dffa9",
+          "bytes": 1536,
+          "dtype": "float32",
+          "expected_sha256": "5c0d5a4e6523f219f6a6e41c95b1c847fefef6378d645bcd70afcd46105dffa9",
+          "matches": true,
+          "numel": 384,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step00-ln2-output-f32.bin",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "actual_sha256": "ce46ac8682ec0e3a1cfa44a8e99d9ad75d8ad7ad56f924f03ffcb6a24899b1b3",
+          "bytes": 1536,
+          "dtype": "float32",
+          "expected_sha256": "ce46ac8682ec0e3a1cfa44a8e99d9ad75d8ad7ad56f924f03ffcb6a24899b1b3",
+          "matches": true,
+          "numel": 384,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step00-mlp-output-f32.bin",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "actual_sha256": "c6d07fcc7b85e5caa59c55412169b74a7d22c574975fb7687d72b2d737f21544",
+          "bytes": 1536,
+          "dtype": "float32",
+          "expected_sha256": "c6d07fcc7b85e5caa59c55412169b74a7d22c574975fb7687d72b2d737f21544",
+          "matches": true,
+          "numel": 384,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step00-q-proj-output-f32.bin",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "actual_sha256": "319fd00e51e395cf63699ebb1b162a3735c644e74205dd3753d38b4e8c29530d",
+          "bytes": 1536,
+          "dtype": "float32",
+          "expected_sha256": "319fd00e51e395cf63699ebb1b162a3735c644e74205dd3753d38b4e8c29530d",
+          "matches": true,
+          "numel": 384,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step00-v-proj-output-f32.bin",
+          "shape": [
+            1,
+            6,
+            64
+          ]
+        }
+      },
+      "sequence_length": 6,
+      "step": 0
+    },
+    {
+      "block": {
+        "block_output_f32": {
+          "actual_sha256": "c23efb6374087e5f868727ab211979f48b195403ce59f1c15df70dd77f6a6b21",
+          "bytes": 1792,
+          "dtype": "float32",
+          "expected_sha256": "c23efb6374087e5f868727ab211979f48b195403ce59f1c15df70dd77f6a6b21",
+          "matches": true,
+          "numel": 448,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step01-block-output-f32.bin",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        }
+      },
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257
+      ],
+      "expected_next_token": 1310,
+      "layer": {
+        "attention_output_f32": {
+          "actual_sha256": "896515c78233d96770834eb48108b1c4f030c6d8d463ca37ab4d279bdd5fc281",
+          "bytes": 1792,
+          "dtype": "float32",
+          "expected_sha256": "896515c78233d96770834eb48108b1c4f030c6d8d463ca37ab4d279bdd5fc281",
+          "matches": true,
+          "numel": 448,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step01-attention-output-f32.bin",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "actual_sha256": "21dd78d263ede6a30b68940807e10cd4fb6d6b5dd345da390cefd182d2d08110",
+          "bytes": 1792,
+          "dtype": "float32",
+          "expected_sha256": "21dd78d263ede6a30b68940807e10cd4fb6d6b5dd345da390cefd182d2d08110",
+          "matches": true,
+          "numel": 448,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step01-k-proj-output-f32.bin",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "actual_sha256": "59283b11634e0b0b0ba3798e3fa621c4727317d6288100e283abde4eb1b56d8d",
+          "bytes": 1792,
+          "dtype": "float32",
+          "expected_sha256": "59283b11634e0b0b0ba3798e3fa621c4727317d6288100e283abde4eb1b56d8d",
+          "matches": true,
+          "numel": 448,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step01-ln1-output-f32.bin",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "actual_sha256": "8e3c7a9fd22baa4fa38fc9d1e91386fffaf325cf49a9c1e3203290e9b37dc2cc",
+          "bytes": 1792,
+          "dtype": "float32",
+          "expected_sha256": "8e3c7a9fd22baa4fa38fc9d1e91386fffaf325cf49a9c1e3203290e9b37dc2cc",
+          "matches": true,
+          "numel": 448,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step01-ln2-output-f32.bin",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "actual_sha256": "81dc365f781683017573e5facb4ca02de4f996a4165103e969492cdb084348f8",
+          "bytes": 1792,
+          "dtype": "float32",
+          "expected_sha256": "81dc365f781683017573e5facb4ca02de4f996a4165103e969492cdb084348f8",
+          "matches": true,
+          "numel": 448,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step01-mlp-output-f32.bin",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "actual_sha256": "de77f8f4ebad708eb2cb05a8596c288c7d1552e29d7dccbe30e9ae0e9f674501",
+          "bytes": 1792,
+          "dtype": "float32",
+          "expected_sha256": "de77f8f4ebad708eb2cb05a8596c288c7d1552e29d7dccbe30e9ae0e9f674501",
+          "matches": true,
+          "numel": 448,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step01-q-proj-output-f32.bin",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "actual_sha256": "5d7fc0bbc44d866c7df5bd7010926f10e1906878f4a2700f412500e3fcf8346e",
+          "bytes": 1792,
+          "dtype": "float32",
+          "expected_sha256": "5d7fc0bbc44d866c7df5bd7010926f10e1906878f4a2700f412500e3fcf8346e",
+          "matches": true,
+          "numel": 448,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step01-v-proj-output-f32.bin",
+          "shape": [
+            1,
+            7,
+            64
+          ]
+        }
+      },
+      "sequence_length": 7,
+      "step": 1
+    },
+    {
+      "block": {
+        "block_output_f32": {
+          "actual_sha256": "eff7c01200ba331c6c13f9f6fc306a96891aa12e8168d36e4b26485dbcc77681",
+          "bytes": 2048,
+          "dtype": "float32",
+          "expected_sha256": "eff7c01200ba331c6c13f9f6fc306a96891aa12e8168d36e4b26485dbcc77681",
+          "matches": true,
+          "numel": 512,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step02-block-output-f32.bin",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        }
+      },
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310
+      ],
+      "expected_next_token": 2576,
+      "layer": {
+        "attention_output_f32": {
+          "actual_sha256": "93e9c03b8685443f0ea87de86e7cd040cb875d1a3ed14e2f3a10cc10f0069a51",
+          "bytes": 2048,
+          "dtype": "float32",
+          "expected_sha256": "93e9c03b8685443f0ea87de86e7cd040cb875d1a3ed14e2f3a10cc10f0069a51",
+          "matches": true,
+          "numel": 512,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step02-attention-output-f32.bin",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "actual_sha256": "9d5985ce08d6c57de0dacd8b474ca3b7916b04b30e6aed283edea4e2accb792e",
+          "bytes": 2048,
+          "dtype": "float32",
+          "expected_sha256": "9d5985ce08d6c57de0dacd8b474ca3b7916b04b30e6aed283edea4e2accb792e",
+          "matches": true,
+          "numel": 512,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step02-k-proj-output-f32.bin",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "actual_sha256": "26ac4a8277676c73de8ad0d4775d9f8160a592f7919850b6e02eb53b0246ff5a",
+          "bytes": 2048,
+          "dtype": "float32",
+          "expected_sha256": "26ac4a8277676c73de8ad0d4775d9f8160a592f7919850b6e02eb53b0246ff5a",
+          "matches": true,
+          "numel": 512,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step02-ln1-output-f32.bin",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "actual_sha256": "b6add344b15abc2fb282152c3bf6441a7d687a303adb4ead7afc228e94cf8ac9",
+          "bytes": 2048,
+          "dtype": "float32",
+          "expected_sha256": "b6add344b15abc2fb282152c3bf6441a7d687a303adb4ead7afc228e94cf8ac9",
+          "matches": true,
+          "numel": 512,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step02-ln2-output-f32.bin",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "actual_sha256": "40e7e9162021424dcb977b7e31595f2a2e733c3d9fe1c928d9c3e9a67505ad78",
+          "bytes": 2048,
+          "dtype": "float32",
+          "expected_sha256": "40e7e9162021424dcb977b7e31595f2a2e733c3d9fe1c928d9c3e9a67505ad78",
+          "matches": true,
+          "numel": 512,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step02-mlp-output-f32.bin",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "actual_sha256": "192f94b6cdcab0a7537c58bf5b2c010b33e48faa5346b613fa275fd4cdfc2b4f",
+          "bytes": 2048,
+          "dtype": "float32",
+          "expected_sha256": "192f94b6cdcab0a7537c58bf5b2c010b33e48faa5346b613fa275fd4cdfc2b4f",
+          "matches": true,
+          "numel": 512,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step02-q-proj-output-f32.bin",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "actual_sha256": "b7acc65f9a9f39c7176406f7cb968b1f82435d530b5885c367e5cfe3cf1f77f9",
+          "bytes": 2048,
+          "dtype": "float32",
+          "expected_sha256": "b7acc65f9a9f39c7176406f7cb968b1f82435d530b5885c367e5cfe3cf1f77f9",
+          "matches": true,
+          "numel": 512,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step02-v-proj-output-f32.bin",
+          "shape": [
+            1,
+            8,
+            64
+          ]
+        }
+      },
+      "sequence_length": 8,
+      "step": 2
+    },
+    {
+      "block": {
+        "block_output_f32": {
+          "actual_sha256": "bd44299f76000bbe3f86fbd32b8236860b33e6a242fc480598800d841beb7d6b",
+          "bytes": 2304,
+          "dtype": "float32",
+          "expected_sha256": "bd44299f76000bbe3f86fbd32b8236860b33e6a242fc480598800d841beb7d6b",
+          "matches": true,
+          "numel": 576,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step03-block-output-f32.bin",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        }
+      },
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576
+      ],
+      "expected_next_token": 3706,
+      "layer": {
+        "attention_output_f32": {
+          "actual_sha256": "4dfcc278173525ddeb642e510ac50010c4aed7fe953dd29484d3e71e862fe59a",
+          "bytes": 2304,
+          "dtype": "float32",
+          "expected_sha256": "4dfcc278173525ddeb642e510ac50010c4aed7fe953dd29484d3e71e862fe59a",
+          "matches": true,
+          "numel": 576,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step03-attention-output-f32.bin",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "actual_sha256": "59e2c8c3276af9d85695fd92312a1f4742447f188e637ffea760e95e50087ef1",
+          "bytes": 2304,
+          "dtype": "float32",
+          "expected_sha256": "59e2c8c3276af9d85695fd92312a1f4742447f188e637ffea760e95e50087ef1",
+          "matches": true,
+          "numel": 576,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step03-k-proj-output-f32.bin",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "actual_sha256": "8b858240dde17c35964bc9dd8b7586e630a5b7666e44792570db66de0aa77447",
+          "bytes": 2304,
+          "dtype": "float32",
+          "expected_sha256": "8b858240dde17c35964bc9dd8b7586e630a5b7666e44792570db66de0aa77447",
+          "matches": true,
+          "numel": 576,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step03-ln1-output-f32.bin",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "actual_sha256": "30c801d74e6e7809f7c23fc0b2e62a26fcc6467af6c8c4f06dc8a15beb0afafe",
+          "bytes": 2304,
+          "dtype": "float32",
+          "expected_sha256": "30c801d74e6e7809f7c23fc0b2e62a26fcc6467af6c8c4f06dc8a15beb0afafe",
+          "matches": true,
+          "numel": 576,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step03-ln2-output-f32.bin",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "actual_sha256": "376aac0d56a477d800b426795ad1e0887b05de6bbe2eb8efcfffdebfd830921f",
+          "bytes": 2304,
+          "dtype": "float32",
+          "expected_sha256": "376aac0d56a477d800b426795ad1e0887b05de6bbe2eb8efcfffdebfd830921f",
+          "matches": true,
+          "numel": 576,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step03-mlp-output-f32.bin",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "actual_sha256": "bc0db53b025d6bbc6caf953276b63ab5541b323c6aeffe24e53aea0dc94f2290",
+          "bytes": 2304,
+          "dtype": "float32",
+          "expected_sha256": "bc0db53b025d6bbc6caf953276b63ab5541b323c6aeffe24e53aea0dc94f2290",
+          "matches": true,
+          "numel": 576,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step03-q-proj-output-f32.bin",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "actual_sha256": "fd12c40c73046452180479f2ed2f006eef20939121cfcb5a7ac3eba11e748d43",
+          "bytes": 2304,
+          "dtype": "float32",
+          "expected_sha256": "fd12c40c73046452180479f2ed2f006eef20939121cfcb5a7ac3eba11e748d43",
+          "matches": true,
+          "numel": 576,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step03-v-proj-output-f32.bin",
+          "shape": [
+            1,
+            9,
+            64
+          ]
+        }
+      },
+      "sequence_length": 9,
+      "step": 3
+    },
+    {
+      "block": {
+        "block_output_f32": {
+          "actual_sha256": "df8d4c839347569718531d9f0d4cf409f217842a51c2d8e10a424cf019c19c43",
+          "bytes": 2560,
+          "dtype": "float32",
+          "expected_sha256": "df8d4c839347569718531d9f0d4cf409f217842a51c2d8e10a424cf019c19c43",
+          "matches": true,
+          "numel": 640,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step04-block-output-f32.bin",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        }
+      },
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576,
+        3706
+      ],
+      "expected_next_token": 20037,
+      "layer": {
+        "attention_output_f32": {
+          "actual_sha256": "8333222bfd5130ba472b9fb201771e0fb0cde596c8a007e857df35ced6eb637c",
+          "bytes": 2560,
+          "dtype": "float32",
+          "expected_sha256": "8333222bfd5130ba472b9fb201771e0fb0cde596c8a007e857df35ced6eb637c",
+          "matches": true,
+          "numel": 640,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step04-attention-output-f32.bin",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "actual_sha256": "5204881d899c66b5c93b24c5a13d1d1fa8509da5713f495a0391fb566f451fb9",
+          "bytes": 2560,
+          "dtype": "float32",
+          "expected_sha256": "5204881d899c66b5c93b24c5a13d1d1fa8509da5713f495a0391fb566f451fb9",
+          "matches": true,
+          "numel": 640,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step04-k-proj-output-f32.bin",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "actual_sha256": "1896151ab09a827e79ae776c8d4970493093cd3c41d52496fba3f6e8d53418d8",
+          "bytes": 2560,
+          "dtype": "float32",
+          "expected_sha256": "1896151ab09a827e79ae776c8d4970493093cd3c41d52496fba3f6e8d53418d8",
+          "matches": true,
+          "numel": 640,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step04-ln1-output-f32.bin",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "actual_sha256": "6779d04663ab9e252521aaa3d8ad77f88c93ad39cde2021bfe1e6a557285e175",
+          "bytes": 2560,
+          "dtype": "float32",
+          "expected_sha256": "6779d04663ab9e252521aaa3d8ad77f88c93ad39cde2021bfe1e6a557285e175",
+          "matches": true,
+          "numel": 640,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step04-ln2-output-f32.bin",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "actual_sha256": "906f4ecb8cdb9dadc52e3dad0b1d57a7e721d2f6323d1466f1f0c986732385c6",
+          "bytes": 2560,
+          "dtype": "float32",
+          "expected_sha256": "906f4ecb8cdb9dadc52e3dad0b1d57a7e721d2f6323d1466f1f0c986732385c6",
+          "matches": true,
+          "numel": 640,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step04-mlp-output-f32.bin",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "actual_sha256": "32ac2826c487d05f50fbd04af1ca4ed2e4af333390c14d4089b543e4272a847c",
+          "bytes": 2560,
+          "dtype": "float32",
+          "expected_sha256": "32ac2826c487d05f50fbd04af1ca4ed2e4af333390c14d4089b543e4272a847c",
+          "matches": true,
+          "numel": 640,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step04-q-proj-output-f32.bin",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "actual_sha256": "6ebde7dd8db54c61c3a69ed3d9fbcf4742b6f3289a1e0c91ef417ce4f7088f34",
+          "bytes": 2560,
+          "dtype": "float32",
+          "expected_sha256": "6ebde7dd8db54c61c3a69ed3d9fbcf4742b6f3289a1e0c91ef417ce4f7088f34",
+          "matches": true,
+          "numel": 640,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step04-v-proj-output-f32.bin",
+          "shape": [
+            1,
+            10,
+            64
+          ]
+        }
+      },
+      "sequence_length": 10,
+      "step": 4
+    },
+    {
+      "block": {
+        "block_output_f32": {
+          "actual_sha256": "1ea6fb6fb3bed869d2070cf5d4ec166335111261cff3d7e54f7505b4554eb973",
+          "bytes": 2816,
+          "dtype": "float32",
+          "expected_sha256": "1ea6fb6fb3bed869d2070cf5d4ec166335111261cff3d7e54f7505b4554eb973",
+          "matches": true,
+          "numel": 704,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step05-block-output-f32.bin",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        }
+      },
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576,
+        3706,
+        20037
+      ],
+      "expected_next_token": 13,
+      "layer": {
+        "attention_output_f32": {
+          "actual_sha256": "ffa5d2a478b76cb09af02a31a97f3781fdc677557031896023041a37af9fc30b",
+          "bytes": 2816,
+          "dtype": "float32",
+          "expected_sha256": "ffa5d2a478b76cb09af02a31a97f3781fdc677557031896023041a37af9fc30b",
+          "matches": true,
+          "numel": 704,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step05-attention-output-f32.bin",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "actual_sha256": "4159aa1c52b5e3a83e92b6d0d06a07ca26e61321da703ba94ffd3133d0d08c05",
+          "bytes": 2816,
+          "dtype": "float32",
+          "expected_sha256": "4159aa1c52b5e3a83e92b6d0d06a07ca26e61321da703ba94ffd3133d0d08c05",
+          "matches": true,
+          "numel": 704,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step05-k-proj-output-f32.bin",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "actual_sha256": "3acc82f70e244f44b4b1dac95974516b2f2a67277cb039b3d317b8e29dce8811",
+          "bytes": 2816,
+          "dtype": "float32",
+          "expected_sha256": "3acc82f70e244f44b4b1dac95974516b2f2a67277cb039b3d317b8e29dce8811",
+          "matches": true,
+          "numel": 704,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step05-ln1-output-f32.bin",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "actual_sha256": "6db4cb9014a622f8b5b14a727cf795add5535f0521539615ba937d073b0b1acf",
+          "bytes": 2816,
+          "dtype": "float32",
+          "expected_sha256": "6db4cb9014a622f8b5b14a727cf795add5535f0521539615ba937d073b0b1acf",
+          "matches": true,
+          "numel": 704,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step05-ln2-output-f32.bin",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "actual_sha256": "43f7ded17048e16d632ca3a4b92dfff1d6748160079bd9acac2e53845a956b6f",
+          "bytes": 2816,
+          "dtype": "float32",
+          "expected_sha256": "43f7ded17048e16d632ca3a4b92dfff1d6748160079bd9acac2e53845a956b6f",
+          "matches": true,
+          "numel": 704,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step05-mlp-output-f32.bin",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "actual_sha256": "a2ecfc15be60c35841586c2fa3856d246683afac47c6f9e73969de8cc2f31ad8",
+          "bytes": 2816,
+          "dtype": "float32",
+          "expected_sha256": "a2ecfc15be60c35841586c2fa3856d246683afac47c6f9e73969de8cc2f31ad8",
+          "matches": true,
+          "numel": 704,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step05-q-proj-output-f32.bin",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "actual_sha256": "55a24c5dca204b0714ec09fbb858f71dff81164eef126fab84500e5b6a66b920",
+          "bytes": 2816,
+          "dtype": "float32",
+          "expected_sha256": "55a24c5dca204b0714ec09fbb858f71dff81164eef126fab84500e5b6a66b920",
+          "matches": true,
+          "numel": 704,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step05-v-proj-output-f32.bin",
+          "shape": [
+            1,
+            11,
+            64
+          ]
+        }
+      },
+      "sequence_length": 11,
+      "step": 5
+    },
+    {
+      "block": {
+        "block_output_f32": {
+          "actual_sha256": "faeaee8918de6b8d7b0a961a30cb6732c77dd951485ffe0db91e261fa07e8717",
+          "bytes": 3072,
+          "dtype": "float32",
+          "expected_sha256": "faeaee8918de6b8d7b0a961a30cb6732c77dd951485ffe0db91e261fa07e8717",
+          "matches": true,
+          "numel": 768,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step06-block-output-f32.bin",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        }
+      },
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576,
+        3706,
+        20037,
+        13
+      ],
+      "expected_next_token": 1375,
+      "layer": {
+        "attention_output_f32": {
+          "actual_sha256": "d247b765f66f198cb32e67ae51e806691ae8cc9b44a5e03742c80b8d1c4d42b6",
+          "bytes": 3072,
+          "dtype": "float32",
+          "expected_sha256": "d247b765f66f198cb32e67ae51e806691ae8cc9b44a5e03742c80b8d1c4d42b6",
+          "matches": true,
+          "numel": 768,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step06-attention-output-f32.bin",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "actual_sha256": "445d01d121a086697f05ae1f7f36d69489b7ef988b2280a830d542f42860be35",
+          "bytes": 3072,
+          "dtype": "float32",
+          "expected_sha256": "445d01d121a086697f05ae1f7f36d69489b7ef988b2280a830d542f42860be35",
+          "matches": true,
+          "numel": 768,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step06-k-proj-output-f32.bin",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "actual_sha256": "cb1d46d08a0cb44d7d549b5e59e857ac8fd78b431927e0f259bd84af6f427fb3",
+          "bytes": 3072,
+          "dtype": "float32",
+          "expected_sha256": "cb1d46d08a0cb44d7d549b5e59e857ac8fd78b431927e0f259bd84af6f427fb3",
+          "matches": true,
+          "numel": 768,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step06-ln1-output-f32.bin",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "actual_sha256": "ca2eb13bdb898ee33b4957bdd138a3d3703add367f47b7fa81dc9652c2c0e227",
+          "bytes": 3072,
+          "dtype": "float32",
+          "expected_sha256": "ca2eb13bdb898ee33b4957bdd138a3d3703add367f47b7fa81dc9652c2c0e227",
+          "matches": true,
+          "numel": 768,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step06-ln2-output-f32.bin",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "actual_sha256": "b2a209e443b1d1c54ca27d89d379422ea3b8a7266f25ef5753493e4a90da0433",
+          "bytes": 3072,
+          "dtype": "float32",
+          "expected_sha256": "b2a209e443b1d1c54ca27d89d379422ea3b8a7266f25ef5753493e4a90da0433",
+          "matches": true,
+          "numel": 768,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step06-mlp-output-f32.bin",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "actual_sha256": "af8922fcae455c40aa7709a0b634050f7b8eded232c06d2930f5bd9b4f22ae5f",
+          "bytes": 3072,
+          "dtype": "float32",
+          "expected_sha256": "af8922fcae455c40aa7709a0b634050f7b8eded232c06d2930f5bd9b4f22ae5f",
+          "matches": true,
+          "numel": 768,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step06-q-proj-output-f32.bin",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "actual_sha256": "3e5c2ac802d3191c284bc0e0c306a3c351dfb9f51de2a036e40940f16be8c9f2",
+          "bytes": 3072,
+          "dtype": "float32",
+          "expected_sha256": "3e5c2ac802d3191c284bc0e0c306a3c351dfb9f51de2a036e40940f16be8c9f2",
+          "matches": true,
+          "numel": 768,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step06-v-proj-output-f32.bin",
+          "shape": [
+            1,
+            12,
+            64
+          ]
+        }
+      },
+      "sequence_length": 12,
+      "step": 6
+    },
+    {
+      "block": {
+        "block_output_f32": {
+          "actual_sha256": "7a321ec87edefac71830604d0bba27fe994c5217c8bd8d46cb7000ff4c34af22",
+          "bytes": 3328,
+          "dtype": "float32",
+          "expected_sha256": "7a321ec87edefac71830604d0bba27fe994c5217c8bd8d46cb7000ff4c34af22",
+          "matches": true,
+          "numel": 832,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step07-block-output-f32.bin",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        }
+      },
+      "context_token_ids": [
+        7454,
+        2402,
+        257,
+        640,
+        612,
+        373,
+        257,
+        1310,
+        2576,
+        3706,
+        20037,
+        13,
+        1375
+      ],
+      "expected_next_token": 6151,
+      "layer": {
+        "attention_output_f32": {
+          "actual_sha256": "a9156beaaf15b98120147f6a8ee3c6ff651a1f11ed49f61e5eaf086ce948b9ac",
+          "bytes": 3328,
+          "dtype": "float32",
+          "expected_sha256": "a9156beaaf15b98120147f6a8ee3c6ff651a1f11ed49f61e5eaf086ce948b9ac",
+          "matches": true,
+          "numel": 832,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step07-attention-output-f32.bin",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "k_proj_output_f32": {
+          "actual_sha256": "f29457ace410234f559bb93c0a0b1e15cee5c62faba4995c75d3ebb7187a118f",
+          "bytes": 3328,
+          "dtype": "float32",
+          "expected_sha256": "f29457ace410234f559bb93c0a0b1e15cee5c62faba4995c75d3ebb7187a118f",
+          "matches": true,
+          "numel": 832,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step07-k-proj-output-f32.bin",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "ln1_output_f32": {
+          "actual_sha256": "822d0536c9650ab1c3ed292c2d63e8d145fe01a6b021ec86f83ee0e1bbd68f91",
+          "bytes": 3328,
+          "dtype": "float32",
+          "expected_sha256": "822d0536c9650ab1c3ed292c2d63e8d145fe01a6b021ec86f83ee0e1bbd68f91",
+          "matches": true,
+          "numel": 832,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step07-ln1-output-f32.bin",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "ln2_output_f32": {
+          "actual_sha256": "3670937bc8070f0011585d848c375170c294759f119104888886fc51f7136832",
+          "bytes": 3328,
+          "dtype": "float32",
+          "expected_sha256": "3670937bc8070f0011585d848c375170c294759f119104888886fc51f7136832",
+          "matches": true,
+          "numel": 832,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step07-ln2-output-f32.bin",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "mlp_output_f32": {
+          "actual_sha256": "933c4d3b51c14d16ae25731b581ded1f24cd01db27aa5d25b412a8a45222c205",
+          "bytes": 3328,
+          "dtype": "float32",
+          "expected_sha256": "933c4d3b51c14d16ae25731b581ded1f24cd01db27aa5d25b412a8a45222c205",
+          "matches": true,
+          "numel": 832,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step07-mlp-output-f32.bin",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "q_proj_output_f32": {
+          "actual_sha256": "c2bdbc7d39ae868ab4a8954d1acb4d95d96e7f30d2056db23c0d8b50596843f6",
+          "bytes": 3328,
+          "dtype": "float32",
+          "expected_sha256": "c2bdbc7d39ae868ab4a8954d1acb4d95d96e7f30d2056db23c0d8b50596843f6",
+          "matches": true,
+          "numel": 832,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step07-q-proj-output-f32.bin",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        },
+        "v_proj_output_f32": {
+          "actual_sha256": "8b0f053680ee6e6ff9e39b4c2f1466e8f3b156161068568ca02c50de61c3a3cc",
+          "bytes": 3328,
+          "dtype": "float32",
+          "expected_sha256": "8b0f053680ee6e6ff9e39b4c2f1466e8f3b156161068568ca02c50de61c3a3cc",
+          "matches": true,
+          "numel": 832,
+          "path": "/home/roland/LLM2FPGA/artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/step07-v-proj-output-f32.bin",
+          "shape": [
+            1,
+            13,
+            64
+          ]
+        }
+      },
+      "sequence_length": 13,
+      "step": 7
+    }
+  ]
+}
