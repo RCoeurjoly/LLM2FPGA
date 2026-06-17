@@ -1102,7 +1102,7 @@ EOF
           python.withPackages (ps: [ ps.torch ps.packaging torchao ]);
         pythonWithTinyStories =
           python.withPackages (ps: [
-            #ps.torch
+            ps.torch
             ps.packaging ps.transformers ]);
         torchCpu = python.pkgs.torch-bin.overridePythonAttrs (_old: {
           version = "2.9.1+cpu";
@@ -2168,6 +2168,9 @@ EOF
           };
         tinyStories1mPipeline = modelPipelines."tiny-stories-1m";
         tinyStories1mIl = tinyStories1mPipeline.il;
+        tinyStories1mBaselineInt8Pipeline =
+          modelPipelines."tiny-stories-1m-baseline-int8";
+        tinyStories1mBaselineInt8Il = tinyStories1mBaselineInt8Pipeline.il;
         tinyStories1mBaselineFloatPipeline =
           modelPipelines."tiny-stories-1m-baseline-float";
         tinyStories1mBaselineFloatIl = tinyStories1mBaselineFloatPipeline.il;
@@ -3916,6 +3919,45 @@ EOF
             topName = "tiny_stories_selftest_top";
             mainSv = "${tinyStories1mBaselineFloatPipeline.sv}/sv/main.sv";
             modelIl = tinyStories1mBaselineFloatIl;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+            externalMemoryMaxModules = 34;
+          };
+        tinyStories1mBaselineInt8SelftestAllMemory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-int8-selftest-all-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineInt8Pipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineInt8Il;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+          };
+        tinyStories1mBaselineInt8SelftestTop4Memory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-int8-selftest-top4-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineInt8Pipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineInt8Il;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+            externalMemoryMaxModules = 4;
+          };
+        tinyStories1mBaselineInt8SelftestTop32Memory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-int8-selftest-top32-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineInt8Pipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineInt8Il;
+            capacities = tinyStoriesCapacities;
+            externalMemoryMinModuleBits = 1;
+            externalMemoryMaxModules = 32;
+          };
+        tinyStories1mBaselineInt8SelftestTop34Memory =
+          mkTinyStoriesSelftestBundle {
+            name = "tiny-stories-1m-baseline-int8-selftest-top34-memory";
+            topName = "tiny_stories_selftest_top";
+            mainSv = "${tinyStories1mBaselineInt8Pipeline.sv}/sv/main.sv";
+            modelIl = tinyStories1mBaselineInt8Il;
             capacities = tinyStoriesCapacities;
             externalMemoryMinModuleBits = 1;
             externalMemoryMaxModules = 34;
@@ -17256,6 +17298,80 @@ EOF
             tinyStories1mBaselineFloatSelftestTop34Memory.rtlilStageStats.bundle;
           tiny-stories-1m-baseline-float-selftest-top34-memory-stage6a-stats =
             tinyStories1mBaselineFloatSelftestTop34Memory.rtlilStageStats.reports.stage6a;
+          tiny-stories-1m-baseline-int8-selftest-all-memory-top =
+            tinyStories1mBaselineInt8SelftestAllMemory.top;
+          tiny-stories-1m-baseline-int8-selftest-all-memory-model-opt-il =
+            tinyStories1mBaselineInt8SelftestAllMemory.modelOptIl;
+          tiny-stories-1m-baseline-int8-selftest-all-memory-model-shell-il =
+            tinyStories1mBaselineInt8SelftestAllMemory.modelShellIl;
+          tiny-stories-1m-baseline-int8-selftest-all-memory-external-memory-plan =
+            tinyStories1mBaselineInt8SelftestAllMemory.externalMemoryPlan;
+          tiny-stories-1m-baseline-int8-selftest-all-memory-json =
+            tinyStories1mBaselineInt8SelftestAllMemory.json;
+          tiny-stories-1m-baseline-int8-selftest-all-memory-yosys-json =
+            tinyStories1mBaselineInt8SelftestAllMemory.yosysJson;
+          tiny-stories-1m-baseline-int8-selftest-all-memory-utilization =
+            tinyStories1mBaselineInt8SelftestAllMemory.utilizationReport;
+          tiny-stories-1m-baseline-int8-selftest-all-memory-stage-stats =
+            tinyStories1mBaselineInt8SelftestAllMemory.rtlilStageStats.bundle;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-top =
+            tinyStories1mBaselineInt8SelftestTop4Memory.top;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-model-opt-il =
+            tinyStories1mBaselineInt8SelftestTop4Memory.modelOptIl;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-model-shell-il =
+            tinyStories1mBaselineInt8SelftestTop4Memory.modelShellIl;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-external-memory-plan =
+            tinyStories1mBaselineInt8SelftestTop4Memory.externalMemoryPlan;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-json =
+            tinyStories1mBaselineInt8SelftestTop4Memory.json;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-yosys-json =
+            tinyStories1mBaselineInt8SelftestTop4Memory.yosysJson;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-utilization =
+            tinyStories1mBaselineInt8SelftestTop4Memory.utilizationReport;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-stage-stats =
+            tinyStories1mBaselineInt8SelftestTop4Memory.rtlilStageStats.bundle;
+          tiny-stories-1m-baseline-int8-selftest-top4-memory-stage6a-stats =
+            tinyStories1mBaselineInt8SelftestTop4Memory.rtlilStageStats.reports.stage6a;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-top =
+            tinyStories1mBaselineInt8SelftestTop32Memory.top;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-model-opt-il =
+            tinyStories1mBaselineInt8SelftestTop32Memory.modelOptIl;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-model-shell-il =
+            tinyStories1mBaselineInt8SelftestTop32Memory.modelShellIl;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-external-memory-plan =
+            tinyStories1mBaselineInt8SelftestTop32Memory.externalMemoryPlan;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-json =
+            tinyStories1mBaselineInt8SelftestTop32Memory.json;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-yosys-json =
+            tinyStories1mBaselineInt8SelftestTop32Memory.yosysJson;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-utilization =
+            tinyStories1mBaselineInt8SelftestTop32Memory.utilizationReport;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-stage-stats =
+            tinyStories1mBaselineInt8SelftestTop32Memory.rtlilStageStats.bundle;
+          tiny-stories-1m-baseline-int8-selftest-top32-memory-stage6a-stats =
+            tinyStories1mBaselineInt8SelftestTop32Memory.rtlilStageStats.reports.stage6a;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-top =
+            tinyStories1mBaselineInt8SelftestTop34Memory.top;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-model-opt-il =
+            tinyStories1mBaselineInt8SelftestTop34Memory.modelOptIl;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-model-shell-il =
+            tinyStories1mBaselineInt8SelftestTop34Memory.modelShellIl;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-external-memory-plan =
+            tinyStories1mBaselineInt8SelftestTop34Memory.externalMemoryPlan;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-json =
+            tinyStories1mBaselineInt8SelftestTop34Memory.json;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-yosys-json =
+            tinyStories1mBaselineInt8SelftestTop34Memory.yosysJson;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-utilization =
+            tinyStories1mBaselineInt8SelftestTop34Memory.utilizationReport;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-stage8h-il =
+            tinyStories1mBaselineInt8SelftestTop34Memory.stages.stage8h;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-stage9-debug =
+            tinyStories1mBaselineInt8SelftestTop34Memory.stage9Debug;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-stage-stats =
+            tinyStories1mBaselineInt8SelftestTop34Memory.rtlilStageStats.bundle;
+          tiny-stories-1m-baseline-int8-selftest-top34-memory-stage6a-stats =
+            tinyStories1mBaselineInt8SelftestTop34Memory.rtlilStageStats.reports.stage6a;
           tiny-stories-1m-representative-core-selftest-all-memory-top =
             tinyStories1mRepresentativeCoreSelftestAllMemory.top;
           tiny-stories-1m-representative-core-selftest-all-memory-model-opt-il =
