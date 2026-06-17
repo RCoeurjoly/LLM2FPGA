@@ -298,6 +298,29 @@ in {
     '';
   };
 
+  "tiny-stories-1m-baseline-int8" = registerModel {
+    key = "tiny-stories-1m-baseline-int8";
+    name = "tiny-stories-1m-baseline-int8";
+    description =
+      "Task 6 TinyStories-1M PT2E-static int8 route, using non-LSQ lowering for current CIRCT compatibility.";
+    source = {
+      type = "huggingface";
+      model_id = tinyStories1m.modelId;
+      inherit (tinyStories1m) revision;
+    };
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    inherit fpPrimsSv;
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      python ${compilePyTorch} \
+        --adapter ${tinyStoriesPt2eStaticQuantAdapterPy} \
+        --model-path ${tinyStories1m.snapshot} \
+        --out "$out" >/dev/null
+    '';
+  };
+
   "tiny-stories-1m" = registerQuantizedModel {
     key = "tiny-stories-1m";
     name = "tiny-stories-1m";
