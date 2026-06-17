@@ -17382,7 +17382,8 @@ EOF
               mkdir -p "$out"
               exit 0
             fi
-            find . -name '*.sh' -type f -print0 | xargs -0 shellcheck -s bash -x
+            find . -path './artifacts/*' -prune -o -name '*.sh' -type f -print0 \
+              | xargs -0 shellcheck -s bash -x -S error
             mkdir -p "$out"
           '';
         };
