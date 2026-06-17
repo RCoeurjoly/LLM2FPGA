@@ -231,7 +231,7 @@ EOF
 
         mkTask6YpcbPcie7xYosysJson = { name, axilMinimumSource, source ? task6Pcie7xSource }:
           pkgs.runCommand name {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -316,7 +316,7 @@ EOF
 
         task6YpcbPcieExportedCommandBridgeYosysJson =
           pkgs.runCommand "task6-ypcb-pcie-exported-command-bridge-yosys.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -349,7 +349,7 @@ EOF
 
         task6YpcbPcieRowstreamIngressDummyYosysJson =
           pkgs.runCommand "task6-ypcb-pcie-rowstream-ingress-dummy-yosys.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -403,7 +403,7 @@ EOF
 
         task6YpcbPcieDdr3IsolatedCommandBridgeYosysJson =
           pkgs.runCommand "task6-ypcb-pcie-ddr3-isolated-command-bridge-yosys.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -443,7 +443,7 @@ EOF
           '';
         task6UberDdr3ControllerYosysJson =
           pkgs.runCommand "task6-uberddr3-controller-yosys.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -463,7 +463,7 @@ EOF
         mkTask6YpcbUberDdr3BistYosysJson =
           { name ? "task6-ypcb-uberddr3-bist-yosys.json", probeByte ? 165, byteLanes ? 8, bistMode ? 1, enableReadProbe ? true, pllClkout0Divide ? 10, pllClkout1Divide ? 10, pllClkout2Divide ? 40, pllClkout3Divide ? 5, controllerClkPeriodPs ? "40_000", ddr3ClkPeriodPs ? "10_000", dllOff ? true, speedBin ? 0, sdramCapacity ? 5, bistTestDatamask ? true }:
           pkgs.runCommand name {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             substitute ${./fpga/rtl/task6_ypcb_uberddr3_bist_top.sv} \
@@ -547,7 +547,7 @@ EOF
         mkTask6YpcbUberDdr3RowstreamLoaderYosysJson =
           { name ? "task6-ypcb-uberddr3-rowstream-loader-yosys.json", byteLanes ? 8, jtagChain ? 1, disableJtagDebugShift ? byteLanes == 1, bootIsolateUntilCalib ? false, pllFbMult ? 20, pllClkout0Divide ? 3, pllClkout1Divide ? 3, pllClkout2Divide ? 12, pllClkout3Divide ? 5, controllerClkPeriodPs ? "12_000", ddr3ClkPeriodPs ? "3_000", dllOff ? true, speedBin ? 0, sdramCapacity ? 5, bistTestDatamask ? true }:
           pkgs.runCommand name {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             substitute ${./fpga/rtl/task6_ypcb_uberddr3_bist_rowstream_loader_top.sv} \
@@ -675,7 +675,7 @@ EOF
           };
         task6YpcbUberDdr3UserPortProbeYosysJson =
           pkgs.runCommand "task6-ypcb-uberddr3-user-port-probe-yosys.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -717,7 +717,7 @@ EOF
           };
         task6YpcbMmcmDiagJson =
           pkgs.runCommand "task6-ypcb-mmcm-diag.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -733,7 +733,7 @@ EOF
           '';
         task6YpcbBscanSentinelJson =
           pkgs.runCommand "task6-ypcb-bscan-sentinel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -1041,7 +1041,7 @@ EOF
               pkgs.gnumake
               pkgs.meson
               pkgs.ninja
-              pkgs.yosys
+              yosysPkg
               openXC7Nextpnr
               openXC7Fasm
               openXC7Prjxray
@@ -3619,7 +3619,7 @@ EOF
         };
 
         task6LedMapJson =
-          pkgs.runCommand "task6-led-map.json" { buildInputs = [ pkgs.yosys ]; } ''
+          pkgs.runCommand "task6-led-map.json" { buildInputs = [ yosysPkg ]; } ''
             set -euo pipefail
             cat > run.ys <<EOF
             read_verilog -sv ${./fpga/rtl/task6_led_map_top.sv}
@@ -5783,7 +5783,7 @@ EOF
             stat -top ypcb_litedram_core
             write_json $out/ypcb_litedram_core.json
             EOF
-            ${pkgs.yosys}/bin/yosys -l "$out/yosys.rpt" -s "$out/run.ys"
+            ${yosysPkg}/bin/yosys -l "$out/yosys.rpt" -s "$out/run.ys"
           '';
 
         task6YpcbLiteDramOpenSynthUtilization =
@@ -5797,7 +5797,7 @@ EOF
 
         task6YpcbLiteDramInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5810,12 +5810,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramInitBandwidthProbeIopadJson =
           pkgs.runCommand "task6-ypcb-litedram-init-bandwidth-probe-iopad.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5828,7 +5828,7 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramInitBandwidthProbeUtilization =
@@ -5841,7 +5841,7 @@ EOF
 
         task6YpcbLiteDramNoOdelayInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5854,12 +5854,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5872,12 +5872,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateDqs0InitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-dqs0-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5890,12 +5890,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateNoWriteInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-nowrite-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5909,12 +5909,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowratePhaseMatrixInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-phase-matrix-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5928,12 +5928,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateSourceCommandMatrixInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-source-command-matrix-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5947,12 +5947,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateSourceOrderMatrixInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-source-order-matrix-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5966,12 +5966,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateBytePhaseAssocMatrixInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-byte-phase-assoc-matrix-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -5985,12 +5985,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateInitStatusOnlyInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-init-status-only-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6004,12 +6004,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateInitStatusOnlyChain0InitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-init-status-only-chain0-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6024,12 +6024,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateHalfOrderMatrixInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-half-order-matrix-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6043,12 +6043,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateDisplacementMapInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-displacement-map-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6062,12 +6062,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateCsrEchoInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-csr-echo-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6081,12 +6081,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateWbitslipSweepInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-wbitslip-sweep-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6100,12 +6100,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateRbitslipSweepInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-rbitslip-sweep-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6119,12 +6119,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeMapInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-map-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6138,12 +6138,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6157,12 +6157,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompBistInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-bist-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6176,12 +6176,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6195,12 +6195,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6215,12 +6215,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeReadscanInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-readscan-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6235,12 +6235,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeExpectedReadInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-expected-read-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6255,12 +6255,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativePackingClassifierInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-packing-classifier-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6275,12 +6275,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeAddressClassifierInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-address-classifier-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6295,12 +6295,12 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-edge-comp-addrwalk-native-cmdaddr-trace-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6315,7 +6315,7 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayLowrateEdgeCompAddrwalkNativeCmdaddrTraceInitBandwidthProbeByCommandIndex =
@@ -6329,7 +6329,7 @@ EOF
                 "${baseName}-native-cmdaddr-first-command-index-${indexStr}";
               json =
                 pkgs.runCommand "${artifactName}.json" {
-                  buildInputs = [ pkgs.yosys ];
+                  buildInputs = [ yosysPkg ];
                 } ''
                   set -euo pipefail
                   cat > run.ys <<EOF
@@ -6345,7 +6345,7 @@ EOF
                   synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
                   write_json "$out"
                   EOF
-                  ${pkgs.yosys}/bin/yosys -s run.ys
+                  ${yosysPkg}/bin/yosys -s run.ys
                 '';
               fasm = mkFasm {
                 name = artifactName;
@@ -6409,7 +6409,7 @@ EOF
                 "${baseName}-start-index-${indexStr}";
               json =
                 pkgs.runCommand "${artifactName}.json" {
-                  buildInputs = [ pkgs.yosys ];
+                  buildInputs = [ yosysPkg ];
                 } ''
                   set -euo pipefail
                   cat > run.ys <<EOF
@@ -6426,7 +6426,7 @@ EOF
                   synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
                   write_json "$out"
                   EOF
-                  ${pkgs.yosys}/bin/yosys -s run.ys
+                  ${yosysPkg}/bin/yosys -s run.ys
                 '';
               fasm = mkFasm {
                 name = artifactName;
@@ -6481,7 +6481,7 @@ EOF
 
         task6YpcbLiteDramNoOdelayLowrateLane7LocatorInitBandwidthProbeJson =
           pkgs.runCommand "task6-ypcb-litedram-no-odelay-lowrate-lane7-locator-init-bandwidth-probe.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6495,7 +6495,7 @@ EOF
             synth_xilinx -family xc7 -top task6_ypcb_litedram_init_bandwidth_probe_top -noiopad
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6YpcbLiteDramNoOdelayInitBandwidthProbeUtilization =
@@ -6935,7 +6935,7 @@ EOF
 
         task6YpcbPcieUberDdr3RowstreamLoaderYosysJson =
           pkgs.runCommand "task6-ypcb-pcie-uberddr3-rowstream-loader-yosys.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -6977,7 +6977,7 @@ EOF
 
         task6YpcbPcieUberDdr3RowstreamLoaderOnlyYosysJson =
           pkgs.runCommand "task6-ypcb-pcie-uberddr3-rowstream-loader-only-yosys.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -7021,7 +7021,7 @@ EOF
 
         task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1YosysJson =
           pkgs.runCommand "task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-yosys.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -9334,7 +9334,7 @@ EOF
 
         mkTask6OdelayCutoutJson = { name, topName }:
           pkgs.runCommand "${name}.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -9346,7 +9346,7 @@ EOF
             synth_xilinx -family xc7 -top ${topName}
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6OdelayObufCutoutJson = mkTask6OdelayCutoutJson {
@@ -9361,7 +9361,7 @@ EOF
 
         mkTask6NoOdelayCutoutJson = { name, topName }:
           pkgs.runCommand "${name}.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -9373,7 +9373,7 @@ EOF
             synth_xilinx -family xc7 -top ${topName}
             write_json "$out"
             EOF
-            ${pkgs.yosys}/bin/yosys -s run.ys
+            ${yosysPkg}/bin/yosys -s run.ys
           '';
 
         task6NoOdelayObufCutoutJson = mkTask6NoOdelayCutoutJson {
@@ -10308,7 +10308,7 @@ EOF
           '';
 
         task6Int8Gemv64YosysStat = pkgs.runCommand "task6-int8-gemv64-yosys-stat.json" {
-          buildInputs = [ pkgs.yosys ];
+          buildInputs = [ yosysPkg ];
         } ''
           set -euo pipefail
           cat > run.ys <<EOF
@@ -10323,7 +10323,7 @@ EOF
         '';
 
         task6Int8Gemv64Lanes4YosysStat = pkgs.runCommand "task6-int8-gemv64-lanes4-yosys-stat.json" {
-          buildInputs = [ pkgs.yosys ];
+          buildInputs = [ yosysPkg ];
         } ''
           set -euo pipefail
           cat > run.ys <<EOF
@@ -10339,7 +10339,7 @@ EOF
 
         task6Int8Gemv64Lanes4PackedYosysStat =
           pkgs.runCommand "task6-int8-gemv64-lanes4-packed-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10355,7 +10355,7 @@ EOF
 
         task6Int8Gemv64Lanes4PackedSyncMemYosysStat =
           pkgs.runCommand "task6-int8-gemv64-lanes4-packed-sync-mem-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10372,7 +10372,7 @@ EOF
 
         task6Int8Gemv64x256Lanes4PackedSyncMemYosysStat =
           pkgs.runCommand "task6-int8-gemv64x256-lanes4-packed-sync-mem-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10389,7 +10389,7 @@ EOF
 
         task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoYosysStat =
           pkgs.runCommand "task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10407,7 +10407,7 @@ EOF
 
         task6Int8L2CFcPostGeluRequantYosysStat =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10426,7 +10426,7 @@ EOF
 
         task6Int8L2CProjFromPostGeluYosysStat =
           pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10443,7 +10443,7 @@ EOF
 
         task6Int8L2MlpChainPostGeluCProjYosysStat =
           pkgs.runCommand "task6-int8-l2-mlp-chain-post-gelu-c-proj-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10464,7 +10464,7 @@ EOF
 
         task6Int8L2MlpChainCProjRequantYosysStat =
           pkgs.runCommand "task6-int8-l2-mlp-chain-c-proj-requant-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10486,7 +10486,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddYosysStat =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10509,7 +10509,7 @@ EOF
 
         task6Int8VocabOutputHeadTop1YosysStat =
           pkgs.runCommand "task6-int8-vocab-output-head-top1-yosys-stat.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10526,7 +10526,7 @@ EOF
           '';
 
         task6Int8Gemv64Json = pkgs.runCommand "task6-int8-gemv64.json" {
-          buildInputs = [ pkgs.yosys ];
+          buildInputs = [ yosysPkg ];
         } ''
           set -euo pipefail
           cat > run.ys <<EOF
@@ -10540,7 +10540,7 @@ EOF
         '';
 
         task6Int8Gemv64Lanes4Json = pkgs.runCommand "task6-int8-gemv64-lanes4.json" {
-          buildInputs = [ pkgs.yosys ];
+          buildInputs = [ yosysPkg ];
         } ''
           set -euo pipefail
           cat > run.ys <<EOF
@@ -10555,7 +10555,7 @@ EOF
 
         task6Int8Gemv64Lanes4PackedJson =
           pkgs.runCommand "task6-int8-gemv64-lanes4-packed.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10570,7 +10570,7 @@ EOF
 
         task6Int8Gemv64Lanes4PackedSyncMemJson =
           pkgs.runCommand "task6-int8-gemv64-lanes4-packed-sync-mem.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10586,7 +10586,7 @@ EOF
 
         task6Int8Gemv64x256Lanes4PackedSyncMemJson =
           pkgs.runCommand "task6-int8-gemv64x256-lanes4-packed-sync-mem.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10602,7 +10602,7 @@ EOF
 
         task6Int8Gemv64x256Lanes4PackedSyncMemLocalIoJson =
           pkgs.runCommand "task6-int8-gemv64x256-lanes4-packed-sync-mem-local-io.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10619,7 +10619,7 @@ EOF
 
         task6Int8L2CFcPostGeluRequantJson =
           pkgs.runCommand "task6-int8-l2-c-fc-post-gelu-requant.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10637,7 +10637,7 @@ EOF
 
         task6Int8L2CProjFromPostGeluJson =
           pkgs.runCommand "task6-int8-l2-c-proj-from-post-gelu.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10653,7 +10653,7 @@ EOF
 
         task6Int8L2MlpChainPostGeluCProjJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-post-gelu-c-proj.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10673,7 +10673,7 @@ EOF
 
         task6Int8L2MlpChainCProjRequantJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-c-proj-requant.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10694,7 +10694,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10716,7 +10716,7 @@ EOF
 
         task6Int8VocabOutputHeadTop1Json =
           pkgs.runCommand "task6-int8-vocab-output-head-top1.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10733,7 +10733,7 @@ EOF
 
         task6Int8Vocab10kOutputHeadTop1Json =
           pkgs.runCommand "task6-int8-vocab10k-output-head-top1.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10752,7 +10752,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddSelftestJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10777,7 +10777,7 @@ EOF
 
         task6M2FullBlockReplaySelftestJson =
           pkgs.runCommand "task6-m2-full-block-replay-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10792,7 +10792,7 @@ EOF
 
         task6M2LnAttnSublaneSelftestJson =
           pkgs.runCommand "task6-m2-ln-attn-sublane-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10807,7 +10807,7 @@ EOF
 
         task6M2LnAttnSublaneAccelJson =
           pkgs.runCommand "task6-m2-ln-attn-sublane-accel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10822,7 +10822,7 @@ EOF
 
         task6M2LnAttnLiveKvAllHeadsContextAccelJson =
           pkgs.runCommand "task6-m2-ln-attn-live-kv-all-heads-context-accel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10837,7 +10837,7 @@ EOF
 
         task6M2FirstTokenFullBlockAccelJson =
           pkgs.runCommand "task6-m2-first-token-full-block-accel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10855,7 +10855,7 @@ EOF
 
         task6M2LastTokenLiveContextFullBlockAccelJson =
           pkgs.runCommand "task6-m2-last-token-live-context-full-block-accel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10876,7 +10876,7 @@ EOF
 
         task6M2TokenLiveContextFullBlockAccelJson =
           pkgs.runCommand "task6-m2-token-live-context-full-block-accel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10900,7 +10900,7 @@ EOF
 
         task6M2EmbeddingLiveContextFullBlockAccelJson =
           pkgs.runCommand "task6-m2-embedding-live-context-full-block-accel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10924,7 +10924,7 @@ EOF
 
         task6M2FirstTokenFullBlockPcieAccelJson =
           pkgs.runCommand "task6-m2-first-token-full-block-pcie-accel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10943,7 +10943,7 @@ EOF
 
         task6M2LastTokenLiveKvContextFullBlockPcieAccelJson =
           pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-pcie-accel.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -10962,7 +10962,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddSelftestBoardJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-board.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > board_top.sv <<'EOF'
@@ -11017,7 +11017,7 @@ EOF
 
         task6Int8V4kL2ResidualAddOutputHeadSelftestJson =
           pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11041,7 +11041,7 @@ EOF
 
         task6Int8V10kL2ResidualAddOutputHeadSelftestJson =
           pkgs.runCommand "task6-int8-v10k-l2-residual-add-output-head-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11065,7 +11065,7 @@ EOF
 
         task6Int8V6kL2ResidualAddOutputHeadSelftestJson =
           pkgs.runCommand "task6-int8-v6k-l2-residual-add-output-head-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11089,7 +11089,7 @@ EOF
 
         task6Int8V8kL2ResidualAddOutputHeadSelftestJson =
           pkgs.runCommand "task6-int8-v8k-l2-residual-add-output-head-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11113,7 +11113,7 @@ EOF
 
         task6Int8V9984L2ResidualAddOutputHeadSelftestJson =
           pkgs.runCommand "task6-int8-v9984-l2-residual-add-output-head-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11137,7 +11137,7 @@ EOF
 
         task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebugJson =
           pkgs.runCommand "task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11164,7 +11164,7 @@ EOF
 
         task6TernaryV9984L2ResidualAddOutputHeadSelftestJtagDebugJson =
           pkgs.runCommand "task6-ternary-v9984-l2-residual-add-output-head-selftest-jtag-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11192,7 +11192,7 @@ EOF
 
         task6TernaryBase3V10kL2ResidualAddOutputHeadSelftestJtagDebugJson =
           pkgs.runCommand "task6-ternary-base3-v10k-l2-residual-add-output-head-selftest-jtag-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11221,7 +11221,7 @@ EOF
 
         task6Int8V10kPaddedTile64L2ResidualAddOutputHeadSelftestJson =
           pkgs.runCommand "task6-int8-v10k-padded-tile64-l2-residual-add-output-head-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11245,7 +11245,7 @@ EOF
 
         task6Int8V4kL2ResidualAddOutputHeadSelftestJtagDebugJson =
           pkgs.runCommand "task6-int8-v4k-l2-residual-add-output-head-selftest-jtag-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11272,7 +11272,7 @@ EOF
 
         task6Int8V10kL2ResidualAddOutputHeadSelftestJtagDebugJson =
           pkgs.runCommand "task6-int8-v10k-l2-residual-add-output-head-selftest-jtag-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11299,7 +11299,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddSelftestDebugJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11323,7 +11323,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddSelftestValueDebugJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-value-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11347,7 +11347,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddSelftestCProjDebugJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11371,7 +11371,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddSelftestCProjRequantDebugJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-c-proj-requant-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11395,7 +11395,7 @@ EOF
 
         task6Int8L2MlpChainResidualAddSelftestJtagDebugJson =
           pkgs.runCommand "task6-int8-l2-mlp-chain-residual-add-selftest-jtag-debug.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -11420,7 +11420,7 @@ EOF
 
         task6CProjRequantArithSelftestJson =
           pkgs.runCommand "task6-c-proj-requant-arith-selftest.json" {
-            buildInputs = [ pkgs.yosys ];
+            buildInputs = [ yosysPkg ];
           } ''
             set -euo pipefail
             cat > run.ys <<EOF
@@ -15456,6 +15456,7 @@ EOF
             pkgs.cmake
             pkgs.ninja
             pkgs.gtkwave
+            pkgs.just
             pkgs.nixfmt-classic
             pkgs.rr
             pkgs.z3
@@ -15466,14 +15467,19 @@ EOF
             export PRJXRAY_DB_DIR="${fpgaPrjxrayDb}"
             export PRJXRAY_PYTHON_DIR="${openXC7Prjxray}/usr/share/python3"
             export PYTHONPATH="${prjxrayPythonPath}''${PYTHONPATH:+:$PYTHONPATH}"
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.libusb1 pkgs.libftdi1 ]}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           '';
         };
 
         formatter = pkgs.nixfmt-classic;
 
-        packages = {
-          # Keep default at the latest non-DDR3 task6 inference-oriented target.
-          default = task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream;
+        packages = let
+          latestPassingMilestoneBitstream =
+            task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream;
+        in {
+          # Keep default and explicit milestone aliases pointing to the same artifact.
+          default = latestPassingMilestoneBitstream;
+          latest-passing-milestone = latestPassingMilestoneBitstream;
           inherit torchao;
           torch-mlir = torchMlir;
           torch-mlir-patched = torchMlirPatched;

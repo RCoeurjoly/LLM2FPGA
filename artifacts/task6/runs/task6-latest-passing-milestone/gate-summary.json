@@ -1,0 +1,47 @@
+{
+  "artifact_name": "task6-ypcb-ddr3-inference-gate",
+  "bitstream": "/nix/store/wb02zb5fmyzf83wfmy66fsvjnliqc8gz-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit",
+  "board_tokens": [],
+  "byte_lanes": 2,
+  "contract": {
+    "all_blocks": false,
+    "live_compute": false,
+    "notes": "Board executes all TinyStories-1M transformer blocks for token-exact greedy inference.",
+    "responsibilities": {
+      "fpga": [
+        "all TinyStories-1M transformer blocks",
+        "greedy token selection"
+      ],
+      "host": [
+        "prompt token/control input",
+        "artifact/reference comparison"
+      ]
+    },
+    "stage": "M3-full-tinystories-1m"
+  },
+  "gates": {
+    "boot_gate": "FAIL",
+    "boundary_rows_gate": "PENDING",
+    "full_readback_gate": "PENDING",
+    "fullbeat_gate": "PENDING",
+    "top1_gate": "PENDING"
+  },
+  "hypothesis_id": "hypothesis-unknown",
+  "lane": "ddr3",
+  "plan_id": "plan-unknown",
+  "run_root": "artifacts/task6/runs/task6-latest-passing-milestone",
+  "sample_count": 0,
+  "status": "FAIL",
+  "steps": [
+    {
+      "name": "boot-only",
+      "payload": {
+        "raw_output": "Traceback (most recent call last):\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_ddr3_rowstream_loader.py\", line 3548, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_ddr3_rowstream_loader.py\", line 2393, in main\n    initial_debug = loader.wait_calibration()\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_ddr3_rowstream_loader.py\", line 1039, in wait_calibration\n    return self.wait_ready()\n           ^^^^^^^^^^^^^^^^^\n  File \"/home/roland/LLM2FPGA/scripts/task6/task6_ddr3_rowstream_loader.py\", line 1032, in wait_ready\n    raise TimeoutError(f\"loader did not become ready: {summarize_debug(last)}\")\nTimeoutError: loader did not become ready: magic_ok=True version=13 calib_seen=True state=12 ack=14071040 err=14071040 loader_error=False debug1=0xe500e500",
+        "status": "FAIL"
+      },
+      "return_code": 1,
+      "run_dir": "artifacts/task6/runs/task6-latest-passing-milestone/boot-only"
+    }
+  ],
+  "storage_mode": "lowbyte"
+}
