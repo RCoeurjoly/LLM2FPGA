@@ -262,6 +262,15 @@ module arith_cmpf_in_f32_f32_out_ui1_ugt (
   assign out0_valid = in0_valid & in1_valid; assign in0_ready = out0_ready & in1_valid; assign in1_ready = out0_ready & in0_valid;
 endmodule
 
+module arith_cmpf_in_f32_f32_out_ui1_uno (
+  input logic [31:0] in0, input logic in0_valid,
+  input logic [31:0] in1, input logic in1_valid, input logic out0_ready,
+  output logic in0_ready, output logic in1_ready, output logic out0, output logic out0_valid
+);
+  assign out0 = 1'b0;
+  assign out0_valid = in0_valid & in1_valid; assign in0_ready = out0_ready & in1_valid; assign in1_ready = out0_ready & in0_valid;
+endmodule
+
 module arith_cmpf_in_f32_f32_out_ui1_ult (
   input logic [31:0] in0, input logic in0_valid,
   input logic [31:0] in1, input logic in1_valid, input logic out0_ready,
@@ -293,6 +302,15 @@ module arith_fptoui_in_f32_out_ui8 (
   logic signed [31:0] qv, iv;
   assign qv = f32_to_q16_16(in0); assign iv = qv >>> 16;
   assign out0 = (iv <= 0) ? 8'h00 : (iv >= 32'sd255) ? 8'hff : iv[7:0];
+  assign out0_valid = in0_valid; assign in0_ready = out0_ready;
+endmodule
+
+module arith_sitofp_in_ui8_out_f32 (
+  input logic [7:0] in0, input logic in0_valid, input logic out0_ready,
+  output logic in0_ready, output logic [31:0] out0, output logic out0_valid
+);
+  import circt_fp_fixed_pkg::*;
+  assign out0 = q16_16_to_f32(q_from_s32({24'd0, in0}));
   assign out0_valid = in0_valid; assign in0_ready = out0_ready;
 endmodule
 
