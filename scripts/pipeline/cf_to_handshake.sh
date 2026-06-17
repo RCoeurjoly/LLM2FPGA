@@ -34,6 +34,7 @@ run_to_output "$tmp_legal" "$circt_opt" "$input" \
 # Stage 2: Normalize SCF to CF after memref legalization.
 run_to_output "$tmp_norm" "$mlir_opt" "$tmp_legal" \
   -convert-scf-to-cf \
+  -arith-expand \
   -canonicalize \
   -cse
 

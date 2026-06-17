@@ -29,6 +29,7 @@ trap 'rm -f "$tmp_legal" "$tmp_norm"' EXIT
 
 "$mlir_opt" "$tmp_legal" \
   -convert-scf-to-cf \
+  -arith-expand \
   -canonicalize \
   -cse >"$tmp_norm"
 
