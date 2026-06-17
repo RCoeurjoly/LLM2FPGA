@@ -14,10 +14,42 @@ require_file "$input"
 
 tmp_externs="$(mktemp /tmp/hw_clean_to_sv_externs_XXXXXX.txt)"
 tmp_missing="$(mktemp /tmp/hw_clean_to_sv_missing_XXXXXX.txt)"
+tmp_mlir="$(mktemp /tmp/hw_clean_to_sv_mlir_XXXXXX.mlir)"
+tmp_mlir_clean="$(mktemp /tmp/hw_clean_to_sv_mlir_clean_XXXXXX.mlir)"
 cleanup_tmp() {
-  rm -f "$tmp_externs" "$tmp_missing"
+  rm -f "$tmp_externs" "$tmp_missing" "$tmp_mlir" "$tmp_mlir_clean"
 }
 trap cleanup_tmp EXIT
+
+run_circt() {
+  local -a cmd=( "$@" )
+  local rc=0
+
+  local limit_kb="${CIRCT_LOWER_SV_MEM_LIMIT_KB:-}"
+  if [[ -n "$limit_kb" ]]; then
+    if [[ ! "$limit_kb" =~ ^[0-9]+$ ]]; then
+      echo "[hw_clean_to_sv] ERROR: CIRCT_LOWER_SV_MEM_LIMIT_KB must be a decimal number of KiB." >&2
+      exit 2
+    fi
+    ulimit -v "$limit_kb"
+  fi
+
+  set +e
+  "${cmd[@]}"
+  rc=$?
+  set -e
+  if [[ "$rc" -ne 0 ]]; then
+    if [[ "$rc" -eq 137 || "$rc" -eq 9 ]]; then
+      echo "[hw_clean_to_sv] ERROR: circt-opt was killed while exporting split SV (exit $rc)." >&2
+      echo "[hw_clean_to_sv] This usually indicates OOM pressure in this step." >&2
+      echo "[hw_clean_to_sv] Try rebuilding on a higher-memory machine or on a host with fewer concurrent builds." >&2
+      if [[ -z "$limit_kb" ]]; then
+        echo "[hw_clean_to_sv] Optional debug/retry knob: set CIRCT_LOWER_SV_MEM_LIMIT_KB to the process'"'"'s KiB limit." >&2
+      fi
+    fi
+    exit "$rc"
+  fi
+}
 
 if command -v rg >/dev/null 2>&1; then
   rg -No 'hw\.module\.extern\s+@([A-Za-z_][A-Za-z0-9_]*)' "$input" \
@@ -64,13 +96,17 @@ if [[ -s "$tmp_externs" ]]; then
 fi
 
 mkdir -p "$output_dir/sv"
-"$circt_opt" "$input" \
+run_circt \
+  "$circt_opt" "$input" \
   -lower-seq-hlmem \
   -lower-seq-fifo \
   -lower-seq-shiftreg \
-  -lower-seq-to-sv \
   -canonicalize \
   -cse \
+  -o "$tmp_mlir"
+
+run_to_output "$tmp_mlir_clean" "$circt_opt" "$tmp_mlir" \
+  -lower-seq-to-sv \
   -lower-hw-to-sv \
   -canonicalize \
   -cse \
