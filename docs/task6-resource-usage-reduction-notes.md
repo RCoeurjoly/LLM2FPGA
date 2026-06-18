@@ -44,6 +44,31 @@ reviewer-controlled.
 - Current next action: reduce or retime the `pcie_user_clk` path in the DDR3
   rowstream top1 pnr100 design, then rerun `nix build .#bottleneck`.
 
+## 2026-06-18 - Latest-passing milestone HIL gate fails at loader readiness
+
+- Ran the latest-passing HIL gate through the canonical Just recipe:
+  `nix develop -c just task6-latest-passing-milestone-board-gate '' ''
+  artifacts/task6/runs/2026-06-18-latest-passing-hil 8`.
+- Run root:
+  `artifacts/task6/runs/2026-06-18-latest-passing-hil`.
+- Gate summary:
+  `artifacts/task6/runs/2026-06-18-latest-passing-hil/gate-summary.json`.
+- The gate used bitstream
+  `/nix/store/wb02zb5fmyzf83wfmy66fsvjnliqc8gz-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit`.
+- Programming succeeded according to
+  `artifacts/task6/runs/2026-06-18-latest-passing-hil/boot-only/program.log`:
+  openFPGALoader reported `Done`, and the final status included
+  `isc_done=1`, `init=1`, and `done=1`.
+- The HIL gate failed in boot-only before boundary rows, fullbeat, full
+  readback, top1, or inference:
+  `status=FAIL`, `boot_gate=FAIL`, sample_count `0`.
+- Failure signature:
+  `TimeoutError: loader did not become ready: magic_ok=True version=13 calib_seen=True state=12 ack=14071040 err=14071040 loader_error=False debug1=0xe500e500`.
+- Conclusion: `latest-passing-milestone` is buildable and programmable but is
+  not yet hardware-proven. Current next action is to debug why the programmed
+  design reaches calibration seen but remains stuck before loader-ready, then
+  rerun the same Just gate with an explicit run root.
+
 ## 2026-06-16 - Manifest-backed zero-to-one lock fallback
 
 - Added manifest-aware snapshot resolution in
