@@ -4,6 +4,41 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-18 - M1 HIL promoted as latest passing milestone
+
+- Split the YPCB rowstream ingress PCIe top into explicit M1 and M2 build
+  variants. The M1 variant enables `ENABLE_MLP_ACCEL=1` and disables
+  `ENABLE_M2_ACCEL`; the M2 bottleneck variant keeps `ENABLE_MLP_ACCEL=0` and
+  enables `ENABLE_M2_ACCEL=1`.
+- Built the M1 bitstream:
+  `/nix/store/jazl808rwbg2ss1cp2jkdraiqmvwrrj6-task6-ypcb-pcie-rowstream-ingress-m1-pnr100.bit`.
+  Post-route timing passed with `pcie_user_clk` at 85.72 MHz against the
+  62.50 MHz target.
+- Flashed and recovered the board:
+  `artifacts/task6/runs/2026-06-18T15-36-41+0200-task6-m1-split-pnr100-flash`
+  and
+  `artifacts/task6/runs/2026-06-18T15-43-47+0200-task6-m1-split-recover`.
+- M1 HIL passed:
+  `artifacts/task6/runs/2026-06-18-m1-split-hil/mlp-accel-full-output.json`
+  reports `status=PASS`, `state_name=DONE`, `output_valid=true`,
+  `checksum=0x00001eec`, `sample0=0xde10ff3e`, `sample1=0xfd3eed6c`, and
+  `mismatch_count=0`.
+- Promoted M1 to `latest-passing-milestone` and default package. The
+  `bottleneck` alias remains the M2 full-block PCIe image.
+- Proved the public flow:
+  `nix build` passed, `nix develop -c just task6-latest-passing-milestone-board-gate`
+  passed, and `nix build .#bottleneck` passed.
+- Flashed and recovered the M2 bottleneck image:
+  `artifacts/task6/runs/2026-06-18T16-05-47+0200-task6-m2-bottleneck-pnr100-flash`
+  and
+  `artifacts/task6/runs/2026-06-18T16-12-56+0200-task6-m2-bottleneck-recover`.
+- The M2 bottleneck gate now has a crisp failure artifact at
+  `artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary.json`.
+  M2 registers are present and stable, but the gate fails before start:
+  `input_readback=false`, `input_readback_transform=pcie7x-64bit-rol1`,
+  `start_count_after=0`, `state_name=IDLE`, `output_valid=false`, and output
+  checksum/samples are zero.
+
 ## 2026-06-18 - DDR3-first finish plan and crisp state contract
 
 - Accepted DDR3-first as the main completion route for TinyStories-1M inference

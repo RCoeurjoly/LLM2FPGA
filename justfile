@@ -27,15 +27,15 @@ task6-x3:
 task6-latest-passing-milestone-bitstream:
     nix build .#latest-passing-milestone --no-link --print-out-paths
 
-task6-latest-passing-milestone-board-gate bitstream='' model_path='' run_root='artifacts/task6/runs/task6-latest-passing-milestone' sample_count='8':
-    if [ -n "{{model_path}}" ]; then if [ -n "{{bitstream}}" ]; then python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "{{bitstream}}" --model-path "{{model_path}}" --sample-count "{{sample_count}}" --json-only --run-root "{{run_root}}"; else python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "$(nix build .#latest-passing-milestone --no-link --print-out-paths)" --model-path "{{model_path}}" --sample-count "{{sample_count}}" --json-only --run-root "{{run_root}}"; fi; else if [ -n "{{bitstream}}" ]; then python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "{{bitstream}}" --skip-top1 --skip-inference --json-only --run-root "{{run_root}}"; else python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "$(nix build .#latest-passing-milestone --no-link --print-out-paths)" --skip-top1 --skip-inference --json-only --run-root "{{run_root}}"; fi; fi
+task6-latest-passing-milestone-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-latest-passing-milestone/mlp-accel-full-output.json':
+    mkdir -p "$(dirname "{{out_json}}")"
+    TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh mlp-accel "{{bdf}}" --output-surface full --require-samples --json-out "{{out_json}}"
 
 task6-bottleneck-bitstream:
     nix build .#bottleneck --no-link --print-out-paths
 
-task6-bottleneck-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/mlp-accel-full-output.json':
-    mkdir -p "$(dirname "{{out_json}}")"
-    TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh mlp-accel "{{bdf}}" --output-surface full --require-samples --json-out "{{out_json}}"
+task6-bottleneck-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary.json':
+    TASK6_PCIE_HARDWARE_ENABLE=1 just task6-zero-to-one-m2-bram-board-gate "{{bdf}}" "$(nix build .#task6-m2-last-token-live-kv-context-full-block-tb-data-sv --no-link --print-out-paths)/tb_data.sv" "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" "$(nix build .#task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv --no-link --print-out-paths)/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" "{{out_json}}"
 
 task6-state-validate:
     python3 scripts/task6/task6_state_validate.py
@@ -249,30 +249,11 @@ task6-zero-to-one-m2-bram-proof quantization='int8' lock-json='' score-artifact=
     just task6-zero-to-one-m2-bram-checkpoint-hashes --quantization "{{quantization}}" --score-artifact "$score_artifact" --contract-manifest "artifacts/task6/parallel-hypotheses/h2-tinystories-1m-m2-one-block-contract/manifest.json" --out-json "$out_json"
 
 task6-zero-to-one-m2-bram-board-gate bdf='' tb-data-sv='' embedding-tb-data-sv='' context-tb-data-sv='' out-json='artifacts/task6/runs/m2-full-block-board-summary.json':
-    if [ -z "{{bdf}}" ]; then
-    echo "bdf is required for BRAM-only M2 board gate" >&2
-    exit 1
-    fi
-    if [ -z "{{tb-data-sv}}" ]; then
-    echo "--tb-data-sv is required for fixed-token BRAM-only M2 board gate" >&2
-    exit 1
-    fi
-    if [ -z "{{embedding-tb-data-sv}}" ]; then
-    echo "--embedding-tb-data-sv is required for fixed-token BRAM-only M2 board gate" >&2
-    exit 1
-    fi
-    if [ -n "{{context-tb-data-sv}}" ]; then
-    python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" \
-    --tb-data-sv "{{tb-data-sv}}" \
-    --embedding-tb-data-sv "{{embedding-tb-data-sv}}" \
-    --context-tb-data-sv "{{context-tb-data-sv}}" \
-    --json-out "{{out-json}}"
-    else
-    python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" \
-    --tb-data-sv "{{tb-data-sv}}" \
-    --embedding-tb-data-sv "{{embedding-tb-data-sv}}" \
-    --json-out "{{out-json}}"
-    fi
+    test -n "{{bdf}}" || { echo "bdf is required for BRAM-only M2 board gate" >&2; exit 1; }
+    test -n "{{tb-data-sv}}" || { echo "--tb-data-sv is required for fixed-token BRAM-only M2 board gate" >&2; exit 1; }
+    test -n "{{embedding-tb-data-sv}}" || { echo "--embedding-tb-data-sv is required for fixed-token BRAM-only M2 board gate" >&2; exit 1; }
+    mkdir -p "$(dirname "{{out-json}}")"
+    if [ -n "{{context-tb-data-sv}}" ]; then python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" --tb-data-sv "{{tb-data-sv}}" --embedding-tb-data-sv "{{embedding-tb-data-sv}}" --context-tb-data-sv "{{context-tb-data-sv}}" --json-out "{{out-json}}"; else python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" --tb-data-sv "{{tb-data-sv}}" --embedding-tb-data-sv "{{embedding-tb-data-sv}}" --json-out "{{out-json}}"; fi
 
 task6-zero-to-one-m2-bram-chip-pass quantization='int8' board-summary-json='artifacts/task6/runs/m2-full-block-board-summary.json' checkpoint-hash-json='' out-json='':
     board_summary_json="{{board-summary-json}}"

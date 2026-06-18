@@ -1,13 +1,13 @@
 {
-  "last_updated": "2026-06-18T15:10:00+02:00",
+  "last_updated": "2026-06-18T16:17:10+02:00",
   "milestone": "M1-transformer-boundary-mlp",
-  "build_variant": "M0 candidate .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream fails timing in the current flake; M1 candidate .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream builds and was HIL-tested.",
-  "next_milestone": "M1-transformer-boundary-mlp-hil-pass",
-  "latest_green_artifact": "",
-  "current_gap": "There is no freshly HIL-proven latest-passing milestone. The documented M0 green store path has been garbage-collected and the current M0 flake target fails nextpnr timing. M1 builds, flashes, and recovers to pcie_ready, but its MLP accelerator HIL gate fails.",
-  "failure_signature": "M0 build: nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream fails with impl.pcie_user_clk max 48.92 MHz, FAIL at 62.50 MHz. M1 HIL: artifacts/task6/runs/2026-06-18-m1-retarget-hil/mlp-accel-full-output.json status FAIL, state_name IDLE, output_valid=false, mlp_accel_status=0x00000000, start_count 0->1, checksum/output/sample words all zero, mismatch_count=1. Flash/recover evidence: artifacts/task6/runs/2026-06-18T14-56-04+0200-2026-06-18-m1-retarget-flash-recovery and artifacts/task6/runs/2026-06-18T15-03-18+0200-2026-06-18-m1-retarget-recover.",
-  "next_action": "Debug the M1 accelerator start/control/reset path: BAR writes echo activation/residual and increment start_count, but the accelerator remains IDLE with no output. Rerun just task6-bottleneck-board-gate after the fix.",
-  "status": "BLOCKED_M1_HIL",
-  "priority": "Restore a HIL-proven baseline at M1 before returning to M2/M3 TinyStories-1M inference.",
+  "build_variant": "default/latest-passing-milestone is .#task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream; bottleneck is .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream with M2 enabled and M1 disabled.",
+  "next_milestone": "M2-full-block-board-gate",
+  "latest_green_artifact": "artifacts/task6/runs/task6-latest-passing-milestone/mlp-accel-full-output.json",
+  "current_gap": "M1 is freshly HIL-proven and promoted to default/latest-passing. M2 builds, flashes, recovers to pcie_ready, and exposes stable M2 registers, but the M2 full-block board gate fails before start because the BAR input readback does not match the requested token/control vector.",
+  "failure_signature": "Latest M1 gate: artifacts/task6/runs/task6-latest-passing-milestone/mlp-accel-full-output.json status PASS, state_name DONE, output_valid=true, checksum=0x00001eec, sample0=0xde10ff3e, sample1=0xfd3eed6c, mismatch_count=0. M2 bottleneck gate: artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary.json status FAIL, failure='M2 input/residual BAR readback did not match before start', m2_present=true, m2_magic=true, m2_context_fixture_signature=true, input_readback=false, input_readback_transform=pcie7x-64bit-rol1, residual_readback=true, start_count_before=0, start_count_after=0, state_name=IDLE, output_valid=false, checksum/sample/output zero. M2 flash/recover evidence: artifacts/task6/runs/2026-06-18T16-05-47+0200-task6-m2-bottleneck-pnr100-flash and artifacts/task6/runs/2026-06-18T16-12-56+0200-task6-m2-bottleneck-recover.",
+  "next_action": "Debug the M2 BAR write/readback path for the token/control input vector: explain or fix the pcie7x-64bit-rol1 transform so the gate can assert start_count_incremented and leave IDLE.",
+  "status": "M1_HIL_GREEN_M2_BOTTLENECK",
+  "priority": "Use the HIL-proven M1 baseline as the default/latest-passing milestone; pursue M2 full-block HIL as the bottleneck toward TinyStories-1M inference.",
   "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
 }
