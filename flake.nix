@@ -15518,10 +15518,14 @@ EOF
         packages = let
           latestPassingMilestoneBitstream =
             task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream;
+          bottleneckBitstream =
+            task6YpcbPcieUberDdr3RowstreamLoaderOnlyTop1Pnr100Bitstream;
         in {
           # Keep default and explicit milestone aliases pointing to the same artifact.
           default = latestPassingMilestoneBitstream;
           latest-passing-milestone = latestPassingMilestoneBitstream;
+          # DDR3-first current bottleneck: rowstream/output-head board path.
+          bottleneck = bottleneckBitstream;
           inherit torchao;
           torch-mlir = torchMlir;
           torch-mlir-patched = torchMlirPatched;
