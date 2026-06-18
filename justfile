@@ -36,6 +36,9 @@ task6-bottleneck-bitstream:
 task6-bottleneck-board-gate bitstream='' model_path='' run_root='artifacts/task6/runs/task6-bottleneck' sample_count='8':
     if [ -n "{{model_path}}" ]; then if [ -n "{{bitstream}}" ]; then python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "{{bitstream}}" --model-path "{{model_path}}" --sample-count "{{sample_count}}" --json-only --run-root "{{run_root}}"; else python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "$(nix build .#bottleneck --no-link --print-out-paths)" --model-path "{{model_path}}" --sample-count "{{sample_count}}" --json-only --run-root "{{run_root}}"; fi; else if [ -n "{{bitstream}}" ]; then python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "{{bitstream}}" --skip-top1 --skip-inference --json-only --run-root "{{run_root}}"; else python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "$(nix build .#bottleneck --no-link --print-out-paths)" --skip-top1 --skip-inference --json-only --run-root "{{run_root}}"; fi; fi
 
+task6-state-validate:
+    python3 scripts/task6/task6_state_validate.py
+
 task6-zero-to-one-inventory out-json='artifacts/zero-to-one/inventory/inventory.json':
     mkdir -p "$(dirname "{{out-json}}")"
     python3 scripts/task6/task6_zero_to_one_inventory.py --repo-root . --out-json "{{out-json}}"
