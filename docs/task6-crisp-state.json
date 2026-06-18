@@ -1,13 +1,13 @@
 {
-  "last_updated": "2026-06-18T00:00:00+02:00",
-  "milestone": "G1-latest-green",
-  "build_variant": "nix build -> .#latest-passing-milestone -> task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit; HIL gate -> just task6-latest-passing-milestone-board-gate",
-  "next_milestone": "G1-latest-green-hil-pass",
+  "last_updated": "2026-06-18T15:10:00+02:00",
+  "milestone": "M1-transformer-boundary-mlp",
+  "build_variant": "M0 candidate .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream fails timing in the current flake; M1 candidate .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream builds and was HIL-tested.",
+  "next_milestone": "M1-transformer-boundary-mlp-hil-pass",
   "latest_green_artifact": "",
-  "current_gap": "The latest-passing milestone builds and programs on hardware, but it is not HIL-proven because the board gate fails at DDR3 loader readiness during boot-only.",
-  "failure_signature": "artifacts/task6/runs/2026-06-18-latest-passing-hil/gate-summary.json: status FAIL, boot_gate FAIL, TimeoutError loader did not become ready: magic_ok=True version=13 calib_seen=True state=12 ack=14071040 err=14071040 loader_error=False debug1=0xe500e500. Program log reports DONE with isc_done=1 init=1 done=1.",
-  "next_action": "Debug why the programmed latest-passing bitstream reaches calibration_seen but never loader-ready state 12; rerun just task6-latest-passing-milestone-board-gate with an explicit run root after the fix.",
-  "status": "BLOCKED_LATEST_PASSING_HIL",
-  "priority": "DDR3-first TinyStories-1M inference; BRAM-only targets are diagnostics/regressions.",
+  "current_gap": "There is no freshly HIL-proven latest-passing milestone. The documented M0 green store path has been garbage-collected and the current M0 flake target fails nextpnr timing. M1 builds, flashes, and recovers to pcie_ready, but its MLP accelerator HIL gate fails.",
+  "failure_signature": "M0 build: nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream fails with impl.pcie_user_clk max 48.92 MHz, FAIL at 62.50 MHz. M1 HIL: artifacts/task6/runs/2026-06-18-m1-retarget-hil/mlp-accel-full-output.json status FAIL, state_name IDLE, output_valid=false, mlp_accel_status=0x00000000, start_count 0->1, checksum/output/sample words all zero, mismatch_count=1. Flash/recover evidence: artifacts/task6/runs/2026-06-18T14-56-04+0200-2026-06-18-m1-retarget-flash-recovery and artifacts/task6/runs/2026-06-18T15-03-18+0200-2026-06-18-m1-retarget-recover.",
+  "next_action": "Debug the M1 accelerator start/control/reset path: BAR writes echo activation/residual and increment start_count, but the accelerator remains IDLE with no output. Rerun just task6-bottleneck-board-gate after the fix.",
+  "status": "BLOCKED_M1_HIL",
+  "priority": "Restore a HIL-proven baseline at M1 before returning to M2/M3 TinyStories-1M inference.",
   "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
 }

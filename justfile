@@ -33,8 +33,9 @@ task6-latest-passing-milestone-board-gate bitstream='' model_path='' run_root='a
 task6-bottleneck-bitstream:
     nix build .#bottleneck --no-link --print-out-paths
 
-task6-bottleneck-board-gate bitstream='' model_path='' run_root='artifacts/task6/runs/task6-bottleneck' sample_count='8':
-    if [ -n "{{model_path}}" ]; then if [ -n "{{bitstream}}" ]; then python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "{{bitstream}}" --model-path "{{model_path}}" --sample-count "{{sample_count}}" --json-only --run-root "{{run_root}}"; else python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "$(nix build .#bottleneck --no-link --print-out-paths)" --model-path "{{model_path}}" --sample-count "{{sample_count}}" --json-only --run-root "{{run_root}}"; fi; else if [ -n "{{bitstream}}" ]; then python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "{{bitstream}}" --skip-top1 --skip-inference --json-only --run-root "{{run_root}}"; else python3 scripts/task6/task6_ypcb_tinystories_inference_gate.py --bitstream "$(nix build .#bottleneck --no-link --print-out-paths)" --skip-top1 --skip-inference --json-only --run-root "{{run_root}}"; fi; fi
+task6-bottleneck-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/mlp-accel-full-output.json':
+    mkdir -p "$(dirname "{{out_json}}")"
+    TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh mlp-accel "{{bdf}}" --output-surface full --require-samples --json-out "{{out_json}}"
 
 task6-state-validate:
     python3 scripts/task6/task6_state_validate.py

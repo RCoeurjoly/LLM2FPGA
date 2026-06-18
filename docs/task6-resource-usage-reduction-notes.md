@@ -34809,3 +34809,54 @@ M2 correctness-first milestone (2026-06-16):
     `--context-tb-data-sv` preflight/signature check;
   - start compute only after preflight pass;
   - require bit-exact output hash/top-level vector fields from fixed-point contract.
+
+### 2026-06-18 - M0/M1 HIL retest and bottleneck reset
+
+User decision rule for clearing milestone confusion:
+
+- Retest M0 on HIL; if it passes, use M0 as `latest-passing-milestone`.
+- Retest M1 on HIL; if it passes, use M1 as `latest-passing-milestone`.
+- If M1 does not pass, define the current bottleneck as M1.
+
+Fresh M0 result:
+
+- Current flake target failed before HIL:
+  `nix build .#task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100-bitstream --no-link --print-out-paths`.
+- Failure signature from nextpnr:
+  `impl.pcie_user_clk` max frequency `48.92 MHz`, FAIL at `62.50 MHz`.
+- The previously documented green M0 store path
+  `/nix/store/4y13l7ya6qyv5pzaxm0n91z6la3spd33-task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`
+  is no longer present and cannot be restored by `nix-store -r`.
+- Conclusion: M0 is historically green, but it is not currently replayable as a
+  fresh HIL-proven latest-passing milestone.
+
+Fresh M1 result:
+
+- Current flake target built:
+  `nix build .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream --no-link --print-out-paths`.
+- Built bitstream:
+  `/nix/store/ljbmgz7v8ffmgkb9gjqi6z3ncppc5h2c-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Initial flash preflight refused because PCIe config was `corrupt_command`:
+  `artifacts/task6/runs/2026-06-18T14-55-52+0200-2026-06-18-m1-retarget-flash-refused/flash-result.json`.
+- Recovery flash write/verify passed:
+  `artifacts/task6/runs/2026-06-18T14-56-04+0200-2026-06-18-m1-retarget-flash-recovery`.
+- Recovery reached `pcie_ready` after one Tapo power cycle:
+  `artifacts/task6/runs/2026-06-18T15-03-18+0200-2026-06-18-m1-retarget-recover`.
+- M1 full-output HIL gate failed:
+  `artifacts/task6/runs/2026-06-18-m1-retarget-hil/mlp-accel-full-output.json`.
+  The BAR surface was alive and activation/residual echoes matched, but
+  `mlp_accel_status=0x00000000`, state stayed `IDLE`, `output_valid=false`,
+  output/checksum/sample words were all zero, `start_count` incremented from 0
+  to 1, and `mismatch_count=1`.
+
+Repository surface change:
+
+- `.#bottleneck` now points to the M1 pnr100 bitstream target.
+- `just task6-bottleneck-board-gate` now runs the M1 `mlp-accel` HIL gate.
+- `latest_green_artifact` remains empty until a fresh HIL PASS artifact exists.
+
+Next action:
+
+- Debug the M1 accelerator start/control/reset path. The ingress BAR path is
+  alive enough to echo inputs and increment `start_count`, but compute never
+  leaves `IDLE`.
