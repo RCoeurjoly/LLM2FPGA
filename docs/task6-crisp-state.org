@@ -1,27 +1,42 @@
-* LLM2FPGA Task 6 State of the Art (Canonical)
-** Snapshot (YYYY-MM-DD, Europe/Madrid)
-- Date: 2026-06-17
-- Milestone: task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream
-- Build variant: default flake package (`.#latest-passing-milestone`) + `task6-latest-passing-milestone-board-gate`
-- Next milestone: task6-m2 live-context full-block corrected (next major gating target)
-- Latest green artifact: unknown (builds exist; board verification not yet green)
-- Current gap: board-gate path is not yet reproducibly passing because loader never enters ready state
-- Failure signature: `TimeoutError loader did not become ready: magic_ok=True version=13 calib_seen=True state=12 ack=14071040 err=14071040 loader_error=False debug1=0xe500e500` from `task6_ypcb_tinystories_inference_gate.py` after flashing the latest package
-- Next action: verify hardware target alignment (board mode/connection/reset), confirm expected reset/recovery path for loaded bitstream, then rerun gate with explicit recovery and a logged run root
-- Status: Goal 1.1 is *blocked by hardware path validation*, not by Nix build
-- Why DDR3 appears now: `latest-passing-milestone` currently aliases `task6Int8V9984L2ResidualAddOutputHeadSelftestJtagDebug5MHzBitstream`, which is DDR3/JTAG-calibrating path. If this milestone is not intended to include DDR3, add a separate explicit non-DDR3 alias and gate target.
+* LLM2FPGA Task 6 State of the Art
+** Snapshot
+- last_updated: 2026-06-18T00:00:00+02:00
+- milestone: G0-control
+- build_variant: =nix build -> .#latest-passing-milestone=
+- next_milestone: G1-latest-green
+- latest_green_artifact:
+- current_gap: Canonical aliases and DDR3-first bottleneck gate are not yet
+  fully defined. The latest recorded board gate failed during loader ready wait
+  after flash.
+- failure_signature: =TimeoutError loader did not become ready: magic_ok=True version=13 calib_seen=True state=12 ack=14071040 err=14071040 loader_error=False debug1=0xe500e500=
+- next_action: Add and validate latest-passing and bottleneck aliases, then
+  rerun the latest passing board gate with fresh run_root and captured logs.
+- status: PLANNING_DDR3_FIRST
+- priority: DDR3-first TinyStories-1M inference; BRAM-only targets are
+  diagnostics/regressions.
+- baseline_bundle:
+  =artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization=
 
-** Acceptance criteria (targeted)
-*** Goal 1.1 (build + board program/test)
-- [ ] `nix build` for default/`latest-passing-milestone` remains green
-- [ ] `just task6-latest-passing-milestone-board-gate` reaches post-calibration and returns PASS
-- [ ] Run output includes a PASS artifact in `artifacts/task6/runs/.../`
-- [ ] Failure signature for board gate no longer indicates loader timeout
+** Interpretation
+- The main completion path is DDR3-backed TinyStories-1M inference on YPCB.
+- =nix build= should represent the latest passing milestone.
+- =nix build .#bottleneck= should represent the current unsolved DDR3/inference
+  milestone.
+- Board claims require JSON/run artifacts under =artifacts/task6/runs/=.
 
-*** Goal 1.2 (next unsolved milestone)
-- [ ] Define `.#bottleneck` (or equivalent) in `flake.nix` and ensure it builds
-- [ ] Run the gate path with explicit run root
-- [ ] Record exact failing delta vs prior green in the state file and next action line
+** Acceptance criteria
+*** G1 latest green
+- [ ] =nix build= succeeds.
+- [ ] =nix build .#latest-passing-milestone= succeeds.
+- [ ] =just task6-latest-passing-milestone-board-gate= passes or records a
+  precise hardware failure signature.
+- [ ] =latest_green_artifact= points at the newest accepted PASS artifact.
+
+*** G2 bottleneck
+- [ ] =nix build .#bottleneck= succeeds.
+- [ ] =just task6-bottleneck-board-gate= runs with an explicit run root.
+- [ ] =current_gap= states the exact failing delta from latest green.
+- [ ] =next_action= is a single concrete command or diagnostic step.
 
 ** Machine-readable view
 - JSON companion: [[file:task6-crisp-state.json]]

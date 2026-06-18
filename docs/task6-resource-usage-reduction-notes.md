@@ -4,6 +4,23 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-18 - DDR3-first finish plan and crisp state contract
+
+- Accepted DDR3-first as the main completion route for TinyStories-1M inference
+  because it is the path that can carry Task 5 scaling after Task 4/Task 6
+  convergence.
+- Kept BRAM-only/on-chip artifacts as diagnostics and regressions, not the
+  primary finish line.
+- Established `docs/human-plan.org` as the short human-facing finish plan and
+  `docs/task6-crisp-state.org` plus `docs/task6-crisp-state.json` as the
+  state-of-the-art truth.
+- Required crisp state fields are `milestone`, `build_variant`,
+  `next_milestone`, `latest_green_artifact`, `current_gap`,
+  `failure_signature`, and `next_action`.
+- The baseline comparison for final Task 6 strategy claims remains the copied
+  bundle at
+  `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`.
+
 ## 2026-06-16 - Manifest-backed zero-to-one lock fallback
 
 - Added manifest-aware snapshot resolution in

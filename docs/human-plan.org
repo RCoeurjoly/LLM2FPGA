@@ -1,0 +1,81 @@
+* LLM2FPGA Finish Plan
+** Canonical state
+- Human state: [[file:task6-crisp-state.org][docs/task6-crisp-state.org]]
+- Machine state: [[file:task6-crisp-state.json][docs/task6-crisp-state.json]]
+- Task 6 details: [[file:task6-resource-usage-reduction-notes.md][docs/task6-resource-usage-reduction-notes.md]]
+- Detailed implementation plan: [[file:superpowers/plans/2026-06-18-finish-llm2fpga-ddr3-first.md][docs/superpowers/plans/2026-06-18-finish-llm2fpga-ddr3-first.md]]
+
+** Priority
+DDR3-first. The first full TinyStories-1M inference proof should use the
+DDR3-backed model/row movement path that can scale to larger TinyStories sizes.
+BRAM-only/on-chip targets are diagnostics and regressions.
+
+** Remaining grant tasks
+*** TODO Task 6: resource minimization and fitting inference
+*** TODO Task 4: FPGA inference demonstration
+*** TODO Task 5: scaling to larger TinyStories sizes
+
+Task 6 comes first because Task 3 showed that direct full-model float
+compilation does not fit the FPGA. Task 4 and Task 6 converge when the board
+returns token-exact TinyStories-1M inference through the resource-reduced path.
+Task 5 follows by replaying the same manifest, contract, DDR3, and gate ladder
+on larger TinyStories variants.
+
+** Current control targets
+*** TODO Latest passing milestone
+- Command: =nix build=
+- Explicit build: =nix build .#latest-passing-milestone=
+- Board gate: =just task6-latest-passing-milestone-board-gate=
+- State update: record result in =docs/task6-crisp-state.org= and
+  =docs/task6-crisp-state.json=.
+
+*** TODO Current bottleneck
+- Command: =nix build .#bottleneck=
+- Gate: =just task6-bottleneck-board-gate=
+- State update: record exact failing delta from latest green.
+
+** DDR3-first inference ladder
+*** TODO G0 control and observability
+- Canonical state files exist and validate.
+- =nix build=, =.#latest-passing-milestone=, and =.#bottleneck= are defined.
+
+*** TODO G1 latest green board gate
+- =nix build= builds the latest passing milestone.
+- The matching board gate passes or records a precise hardware failure
+  signature.
+
+*** TODO G2 current bottleneck gate
+- =nix build .#bottleneck= builds the current unsolved DDR3/inference target.
+- Its gate records the exact failing delta from G1.
+
+*** TODO D0 DDR3 boot/calibration
+- DDR3 boot and calibration are reproducible on the current board session.
+
+*** TODO D1 TinyStories rowstream integrity
+- Boundary rows =0,1,31,32,50256= byte-match the source rowstream.
+- Full readback hash or explicit chunk-hash evidence is recorded.
+
+*** TODO D2 DDR3 output-head top1
+- DDR3-backed TinyStories output-head top1 matches the fixed reference.
+
+*** TODO M1 transformer-boundary MLP/residual
+- The board runs the prompt-derived MLP/residual boundary.
+
+*** TODO M2 one full block, DDR3-backed where required
+- The board runs one complete TinyStories block and matches checkpoint hashes.
+
+*** TODO M3 TinyStories-1M token-exact greedy inference
+- The board returns token-exact greedy output for the fixed prompt/vector set.
+- Resource comparison uses the copied baseline bundle at
+  =artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization=.
+
+*** TODO S1 larger TinyStories scaling
+- Larger TinyStories sizes reuse the same manifest, contract, rowstream,
+  inference, and reporting ladder.
+
+** Repo cleanup principles
+- Keep =docs/project-plan*= stable unless reviewer approval is explicit.
+- Move detailed Task 6 notes into =docs/task6-resource-usage-reduction-notes.md=.
+- Shrink the root/build surface by adding aliases first, then splitting Nix and
+  historical task files without breaking existing names.
+- Keep short commits for each coherent piece of work.
