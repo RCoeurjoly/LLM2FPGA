@@ -549,8 +549,8 @@
     "uberDdr3": {
       "flake": false,
       "locked": {
-        "lastModified": 1781218801,
-        "narHash": "sha256-0A2MnEQvIpYzKiUWRbpq+0IKo1+AmB430izljDfVvqI=",
+        "lastModified": 1781686550,
+        "narHash": "sha256-rEUj41dV+ImCR98EjexMx3wAHMDZMj5sCtUe0r1PH0Q=",
         "path": "/home/roland/UberDDR3",
         "type": "path"
       },

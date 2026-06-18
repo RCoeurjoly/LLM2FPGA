@@ -21,6 +21,29 @@ reviewer-controlled.
   bundle at
   `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`.
 
+## 2026-06-18 - Canonical aliases and DDR3 bottleneck build status
+
+- Added `.#bottleneck` as the DDR3-first rowstream/output-head pnr100 target:
+  `task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit`.
+- Added `just` recipes for `task6-bottleneck-bitstream`,
+  `task6-bottleneck-board-gate`, and `task6-state-validate`.
+- `nix build .#latest-passing-milestone --no-link --print-out-paths` passed and
+  returned
+  `/nix/store/wb02zb5fmyzf83wfmy66fsvjnliqc8gz-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit`.
+- Initial `nix build .#bottleneck --no-link --print-out-paths` failed before
+  realization because the mutable local `path:/home/roland/UberDDR3` input no
+  longer matched `flake.lock`.
+- Refreshed only the `uberDdr3` lock entry from
+  `sha256-0A2MnEQvIpYzKiUWRbpq+0IKo1+AmB430izljDfVvqI=` to
+  `sha256-rEUj41dV+ImCR98EjexMx3wAHMDZMj5sCtUe0r1PH0Q=`.
+- After the lock refresh, `nix build .#task6-uberddr3-source-summary --no-link
+  --print-out-paths` passed.
+- The full bottleneck build then reached pnr100 route and failed timing in the
+  FASM derivation:
+  `ERROR: Max frequency for clock 'impl.pcie_user_clk': 48.92 MHz (FAIL at 62.50 MHz)`.
+- Current next action: reduce or retime the `pcie_user_clk` path in the DDR3
+  rowstream top1 pnr100 design, then rerun `nix build .#bottleneck`.
+
 ## 2026-06-16 - Manifest-backed zero-to-one lock fallback
 
 - Added manifest-aware snapshot resolution in

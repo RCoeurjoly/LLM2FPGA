@@ -1,13 +1,13 @@
 {
   "last_updated": "2026-06-18T00:00:00+02:00",
-  "milestone": "G0-control",
-  "build_variant": "nix build -> .#latest-passing-milestone",
-  "next_milestone": "G1-latest-green",
-  "latest_green_artifact": "",
-  "current_gap": "Canonical aliases and DDR3-first bottleneck gate are not yet fully defined. The latest recorded board gate failed during loader ready wait after flash.",
-  "failure_signature": "TimeoutError loader did not become ready: magic_ok=True version=13 calib_seen=True state=12 ack=14071040 err=14071040 loader_error=False debug1=0xe500e500",
-  "next_action": "Add and validate latest-passing and bottleneck aliases, then rerun the latest passing board gate with fresh run_root and captured logs.",
-  "status": "PLANNING_DDR3_FIRST",
+  "milestone": "G2-bottleneck",
+  "build_variant": "nix build -> .#latest-passing-milestone; nix build .#bottleneck -> task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.bit",
+  "next_milestone": "D0-ddr3-boot",
+  "latest_green_artifact": "/nix/store/wb02zb5fmyzf83wfmy66fsvjnliqc8gz-task6-int8-v9984-l2-residual-add-output-head-selftest-jtag-debug-5mhz.bit",
+  "current_gap": "The DDR3-first bottleneck bitstream now evaluates and starts building after refreshing the local UberDDR3 flake lock, but pnr100 route fails timing.",
+  "failure_signature": "nix build .#bottleneck fails in task6-ypcb-pcie-uberddr3-rowstream-loader-only-top1-pnr100.fasm: ERROR Max frequency for clock 'impl.pcie_user_clk': 48.92 MHz (FAIL at 62.50 MHz); 20 warnings, 1 error.",
+  "next_action": "Reduce or retime the pcie_user_clk path in the DDR3 rowstream top1 pnr100 design before rerunning nix build .#bottleneck.",
+  "status": "BLOCKED_PNR_TIMING",
   "priority": "DDR3-first TinyStories-1M inference; BRAM-only targets are diagnostics/regressions.",
   "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
 }
