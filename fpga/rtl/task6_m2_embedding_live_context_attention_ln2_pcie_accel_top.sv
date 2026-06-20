@@ -53,7 +53,6 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
   logic [31:0] debug3_q;
   logic pcie_clear_q;
   logic [511:0] block_input_vector_q;
-  logic [6143:0] ln_input_q12_by_token_q;
   logic [511:0] context_vector_q;
   logic [31:0] block_input_checksum_q;
   logic [31:0] ln_input_checksum_q;
@@ -131,7 +130,7 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
     .start_i(context_start_q),
     .clear_i(pcie_clear_q),
     .use_external_ln_input_i(1'b1),
-    .external_ln_input_q12_by_token_i(ln_input_q12_by_token_q),
+    .external_ln_input_q12_by_token_i(embed_ln_input_q12_by_token_w),
     .status_o(context_status_w),
     .cycle_count_o(context_cycle_count_w),
     .output_checksum_o(context_output_checksum_w),
@@ -189,7 +188,6 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
       debug3_q <= 32'd0;
       pcie_clear_q <= 1'b0;
       block_input_vector_q <= 512'd0;
-      ln_input_q12_by_token_q <= 6144'd0;
       context_vector_q <= 512'd0;
       block_input_checksum_q <= 32'd0;
       ln_input_checksum_q <= 32'd0;
@@ -212,7 +210,6 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
         debug2_q <= 32'd0;
         debug3_q <= 32'd0;
         block_input_vector_q <= 512'd0;
-        ln_input_q12_by_token_q <= 6144'd0;
         context_vector_q <= 512'd0;
         block_input_checksum_q <= 32'd0;
         ln_input_checksum_q <= 32'd0;
@@ -243,7 +240,6 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
               debug_q <= embed_debug_w;
             end else if (embed_status_w[6:4] == EMBED_DONE && embed_status_w[3]) begin
               block_input_vector_q <= embed_block_input_vector_w;
-              ln_input_q12_by_token_q <= embed_ln_input_q12_by_token_w;
               block_input_checksum_q <= embed_block_input_checksum_w;
               ln_input_checksum_q <= embed_ln_input_checksum_w;
               debug3_q <= {
