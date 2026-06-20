@@ -40,6 +40,9 @@ task6-m2-3-embedding-handoff-bitstream:
 task6-m2-4-live-context-attention-slice-bitstream:
     nix build .#task6-m2-4-live-context-attention-slice-pnr100-bitstream --no-link --print-out-paths
 
+task6-m2-5-attention-ln2-bitstream:
+    nix build .#task6-m2-5-attention-ln2-pnr100-bitstream --no-link --print-out-paths
+
 task6-bottleneck-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary.json':
     TASK6_PCIE_HARDWARE_ENABLE=1 just task6-zero-to-one-m2-bram-board-gate "{{bdf}}" "$(nix build .#task6-m2-last-token-live-kv-context-full-block-tb-data-sv --no-link --print-out-paths)/tb_data.sv" "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" "$(nix build .#task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv --no-link --print-out-paths)/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" "{{out_json}}"
 
@@ -58,6 +61,10 @@ task6-m2-3-embedding-handoff-board-gate bdf='0000:42:00.0' out_json='artifacts/t
 task6-m2-4-live-context-attention-slice-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-4-live-context-attention-slice.json':
     mkdir -p "$(dirname "{{out_json}}")"
     TASK6_PCIE_HARDWARE_ENABLE=1 python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" --require-attention-slice --tb-data-sv "$(nix build .#task6-m2-last-token-live-kv-context-full-block-tb-data-sv --no-link --print-out-paths)/tb_data.sv" --embedding-tb-data-sv "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" --context-tb-data-sv "$(nix build .#task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv --no-link --print-out-paths)/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" --json-out "{{out_json}}"
+
+task6-m2-5-attention-ln2-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-5-attention-ln2.json':
+    mkdir -p "$(dirname "{{out_json}}")"
+    TASK6_PCIE_HARDWARE_ENABLE=1 python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" --require-attention-ln2 --tb-data-sv "$(nix build .#task6-m2-last-token-live-kv-context-attention-out-projection --no-link --print-out-paths)/tb_data.sv" --embedding-tb-data-sv "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" --context-tb-data-sv "$(nix build .#task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv --no-link --print-out-paths)/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" --json-out "{{out_json}}"
 
 task6-pcie-recover bdf='0000:42:00.0' label='task6-pcie-recover' max_power_cycles='5':
     TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh recover-auto "{{bdf}}" \

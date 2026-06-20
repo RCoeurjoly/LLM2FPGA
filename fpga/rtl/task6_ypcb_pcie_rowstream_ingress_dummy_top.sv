@@ -272,7 +272,32 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
   endgenerate
 
   generate
-    if (ENABLE_M2_ACCEL && M2_ACCEL_KIND == 2) begin : gen_m2_attention_slice_accel
+    if (ENABLE_M2_ACCEL && M2_ACCEL_KIND == 3) begin : gen_m2_attention_ln2_accel
+      task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
+        .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX),
+        .ENABLE_CONTEXT_INTERNAL_CHECKS(M2_ENABLE_CONTEXT_INTERNAL_CHECKS)
+      ) m2_attention_ln2_accel (
+        .SYS_CLK(pcie_user_clk),
+        .SYS_RSTN(pcie_user_rst_n),
+        .pcie_token_ids_i(rowstream_m2_full_block_input_vector),
+        .pcie_reserved_i(rowstream_m2_full_block_residual_vector),
+        .pcie_start_pulse_i(rowstream_m2_full_block_start),
+        .pcie_clear_pulse_i(rowstream_m2_full_block_clear),
+        .pcie_status_o(rowstream_m2_full_block_status),
+        .pcie_cycle_count_o(rowstream_m2_full_block_cycle_count),
+        .pcie_output_checksum_o(rowstream_m2_full_block_output_checksum),
+        .pcie_output_sample0_o(rowstream_m2_full_block_output_sample0),
+        .pcie_output_sample1_o(rowstream_m2_full_block_output_sample1),
+        .pcie_output_count_o(rowstream_m2_full_block_output_count),
+        .pcie_output_vector_o(rowstream_m2_full_block_output_vector),
+        .pcie_debug_o(rowstream_m2_full_block_debug),
+        .pcie_debug1_o(rowstream_m2_full_block_debug1),
+        .pcie_debug2_o(rowstream_m2_full_block_debug2),
+        .pcie_debug3_o(rowstream_m2_full_block_debug3),
+        .pcie_provenance_o(rowstream_m2_full_block_provenance)
+      );
+      assign rowstream_m2_full_block_output_hash = 128'd0;
+    end else if (ENABLE_M2_ACCEL && M2_ACCEL_KIND == 2) begin : gen_m2_attention_slice_accel
       task6_m2_embedding_live_context_attention_slice_pcie_accel_top #(
         .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX),
         .ENABLE_CONTEXT_INTERNAL_CHECKS(M2_ENABLE_CONTEXT_INTERNAL_CHECKS)
