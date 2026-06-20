@@ -38,6 +38,13 @@ def test_m2_5_top_decouples_compute_input_from_bar_readback() -> None:
     assert ".pcie_token_ids_i({416'd0, rowstream_m2_full_block_token_ids_for_accel})" in text
 
 
+def test_m2_5_wrapper_keeps_bar_clear_local_for_timing() -> None:
+    text = RTL.read_text(encoding="utf-8")
+    assert ".clear_i(pcie_clear_q)" not in text
+    assert text.count(".clear_i(1'b0)") >= 2
+    assert "Avoid a high-fanout timing path from the PCIe BAR clear bit." in text
+
+
 def test_m2_5_image_uses_direct_m2_bar_contract() -> None:
     text = FLAKE.read_text(encoding="utf-8")
     start = text.index("task6YpcbPcieRowstreamIngressM25AttentionLn2YosysJson")

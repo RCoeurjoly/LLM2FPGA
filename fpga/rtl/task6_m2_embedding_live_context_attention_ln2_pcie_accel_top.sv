@@ -111,7 +111,8 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(embed_start_q),
-    .clear_i(pcie_clear_q),
+    // Keep host clear local to this wrapper; submodules restart from DONE on start.
+    .clear_i(1'b0),
     .token_ids_i(token_ids_q),
     .status_o(embed_status_w),
     .cycle_count_o(embed_cycle_count_w),
@@ -128,7 +129,8 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(context_start_q),
-    .clear_i(pcie_clear_q),
+    // Avoid a high-fanout timing path from the PCIe BAR clear bit.
+    .clear_i(1'b0),
     .use_external_ln_input_i(1'b1),
     .external_ln_input_q12_by_token_i(embed_ln_input_q12_by_token_w),
     .status_o(context_status_w),

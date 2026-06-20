@@ -1,0 +1,349 @@
+{
+  "artifact_name": "task6-pcie-m2-full-block-board-gate",
+  "bdf": "0000:42:00.0",
+  "board": {
+    "bdf": "0000:42:00.0",
+    "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+    "pcie_command": "0002",
+    "status": "FAIL"
+  },
+  "checks": {
+    "checksum": false,
+    "first_64_output": false,
+    "input_readback": true,
+    "ln_input_checksum": false,
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "no_error": false,
+    "not_all_ones": true,
+    "output_count": true,
+    "output_count_live": true,
+    "output_valid": false,
+    "preflight_registers_stable": true,
+    "residual_readback": true,
+    "sample0": false,
+    "sample1": false,
+    "start_count_incremented": true,
+    "state_done": false,
+    "status_schema": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "command": "0002",
+  "contract": {
+    "artifact_role": "m2-live-context-attention-ln2-board-gate",
+    "live_compute": true,
+    "milestone_target": "M2.5-attention-out-proj-residual-ln2",
+    "notes": "M2.5 acceptance gate. It proves the focused live-context attention out-projection, residual add, and LN2 boundary from host token IDs.",
+    "responsibilities": {
+      "fpga": [
+        "token-ID selected embedding and position add",
+        "handoff of live LN input to the live-context attention slice",
+        "live attention context computation",
+        "attention out projection, attention residual add, and LN2",
+        "BAR-visible full 64-byte LN2 vector and boundary checksums"
+      ],
+      "host": [
+        "PCIe lifecycle orchestration",
+        "direct token-ID writes",
+        "BAR-visible LN2 vector/checksum comparison"
+      ]
+    },
+    "stage": "M2.5-attention-out-proj-residual-ln2",
+    "version": "task6-m2-live-context-attention-ln2-v1"
+  },
+  "date": "2026-06-20",
+  "elapsed_seconds": 0.051305351000337396,
+  "expected": {
+    "checksum": "0x000432e3",
+    "context_fixture_signature": "0xc5dc8a6c",
+    "first_64_output_hex": "cb10c3d3dc1dc110fe023d6df8d0f6bd09cc1d182b263e160d0bdb7f1ec9cbe21349e91e4c06104fd6690e26c7b4d0bdfe13f7f6fc25edffc6150beee72c5ac3",
+    "ln_input_checksum": "0x88fa5e3a",
+    "output_count": 64,
+    "sample0": "0xd3c310cb",
+    "sample1": "0x10c11ddc",
+    "token_index": 5
+  },
+  "fingerprints": {
+    "block_input_sha256": "b6c712d088b5070f4facef1ac1480b7247360ff7621969739bfbf7505684a29f",
+    "block_input_source": "embedding_tb_data_sv token_ids",
+    "context_fixture_signature": "0xc5dc8a6c",
+    "context_tb_data_sv": "/nix/store/qbblr6nbznnvnsdyh45w92qa2b5ki04x-task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv",
+    "context_tb_data_sv_sha256": "4f6c1f5ec615981a3f0fe7aaf246a16dbfe831f491e7e9f818334175c4782004",
+    "embedding_tb_data_sv": "/nix/store/hn7dkp16bl87ak2h9s1bhibk7cz31fpi-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv",
+    "embedding_tb_data_sv_sha256": "8a04733af0c75288bc4841cea2cfb894eaeeb5a747c910e2a3698beb5c01ebac",
+    "expected_json": null,
+    "expected_json_sha256": null,
+    "expected_params_sha256": "351f4f2078f9040fd2ac6f62ae4edf1cb7cd0f9d8594d36bb9a03dd49bc2ff18",
+    "gate_script_sha256": "1fffad1c1bf41e213f850152b0c8da4d0fad068b0a3e2bfc43b8790302fb6266",
+    "residual_after_attention_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b",
+    "residual_after_attention_source": "embedding_tb_data_sv reserved token-control vector",
+    "tb_data_sv": "/nix/store/bz1q0118xs907fl15d0snx0p2hmnv2aw-task6-m2-last-token-live-kv-context-attention-out-projection/tb_data.sv",
+    "tb_data_sv_sha256": "9935166d27fe9376275d0548c76ed697505c062a3738ca883b1f6e6892493187",
+    "tb_data_token_index": 5,
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ]
+  },
+  "input": {
+    "block_index": 0,
+    "block_input_hex": "1e1d6209010180026402750100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "block_input_words_little_packed": [
+      "0x09621d1e",
+      "0x02800101",
+      "0x01750264",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "block_input_words_written": [
+      "0x09621d1e",
+      "0x02800101",
+      "0x01750264",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "readback_is_contract_check": true,
+    "residual_after_attention_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_words_little_packed": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "residual_words_written": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ],
+    "vector_write_mode": "direct"
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "observed": {
+    "checksum": "0x00000000",
+    "compute_path": "live-context-attention-ln2",
+    "cycle_count": 3,
+    "debug": "0x01000000",
+    "debug1": "0x00000200",
+    "debug2": "0x00000000",
+    "debug3": "0x00000000",
+    "decoded_debug": {
+      "debug1": "0x00000200",
+      "debug2": "0x00000000",
+      "detail": "0x000000",
+      "error_core_cycle_count": 0,
+      "error_core_status": "0x00000200",
+      "meaning": "embedding token-id mismatch",
+      "observed_token_id": "0x0000",
+      "stage": "0x01",
+      "token_index": 0
+    },
+    "decoded_status": {
+      "busy": false,
+      "done": false,
+      "error": true,
+      "magic": 19762,
+      "output_valid": false,
+      "ready": false,
+      "schema": {
+        "busy": 1,
+        "error": 2,
+        "magic_lsb": 16,
+        "magic_value": 19762,
+        "output_valid": 3,
+        "ready": 0,
+        "state_lsb": 4,
+        "state_width": 3
+      },
+      "schema_consistent": true,
+      "state": 6,
+      "state_name": "ERROR"
+    },
+    "done_stage_checksums": {
+      "attn_out_checksum_low8": "0x00",
+      "attn_residual_checksum_low8": "0x00",
+      "block_input_checksum_low16": "0x0000",
+      "c_proj_checksum_low8": "0x00",
+      "context_checksum_low16": "0x0200",
+      "ln2_checksum_low8": "0x00"
+    },
+    "expected_provenance": "0x4d324205",
+    "first_64_output_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "input_readback_hex": "1e1d6209010180026402750100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "input_readback_matches_requested": true,
+    "input_readback_transform": "identity",
+    "ln_input_checksum": "0x01000000",
+    "output_count": 64,
+    "provenance": "0x4d324205",
+    "residual_readback_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_readback_matches_requested": true,
+    "residual_readback_transform": "identity",
+    "sample0": "0x00000000",
+    "sample1": "0x00000000",
+    "start_count_after": 1,
+    "start_count_before": 0,
+    "status": "0x4d320064",
+    "token_index": 5
+  },
+  "preflight_acceptable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "preflight_samples": {
+    "m2_context_fixture_signature": [
+      "0xc5dc8a6c",
+      "0xc5dc8a6c",
+      "0xc5dc8a6c"
+    ],
+    "m2_magic": [
+      "0x54364d32",
+      "0x54364d32",
+      "0x54364d32"
+    ],
+    "m2_present": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "m2_provenance": [
+      "0x4d324205",
+      "0x4d324205",
+      "0x4d324205"
+    ],
+    "m2_version": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "magic": [
+      "0x54365043",
+      "0x54365043",
+      "0x54365043"
+    ],
+    "status": [
+      "0x00000061",
+      "0x00000061",
+      "0x00000061"
+    ],
+    "version": [
+      "0x00000003",
+      "0x00000003",
+      "0x00000003"
+    ]
+  },
+  "preflight_stable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "preflight_warmup_samples": {
+    "m2_context_fixture_signature": [
+      "0xc5dc8a6c"
+    ],
+    "m2_magic": [
+      "0x54364d32"
+    ],
+    "m2_present": [
+      "0x00000001"
+    ],
+    "m2_provenance": [
+      "0xffffffff"
+    ],
+    "m2_version": [
+      "0x00000001"
+    ],
+    "magic": [
+      "0x54365043"
+    ],
+    "status": [
+      "0x00000061"
+    ],
+    "version": [
+      "0x00000003"
+    ]
+  },
+  "registers": {
+    "expected_context_fixture_signature": "0xc5dc8a6c",
+    "m2_context_fixture_signature": "0xc5dc8a6c",
+    "m2_magic": "0x54364d32",
+    "m2_present": 1,
+    "m2_version": 1,
+    "magic": "0x54365043",
+    "status": "0x00000061",
+    "version": 3
+  },
+  "status": "FAIL"
+}
