@@ -1,6 +1,8 @@
 # Agent Rules
 
-- Make short commits for each coherent piece of work.
+- Make short commits for each coherent piece of work. Commit each distinct
+  change before starting the next distinct change so project history stays
+  traceable.
 - Before editing, check `git status --short` and do not overwrite unrelated user changes.
 - Keep `docs/project-plan*` unchanged unless the user says reviewer approval was obtained.
 - Keep detailed Task 6 notes in `docs/task6-resource-usage-reduction-notes.md`.
