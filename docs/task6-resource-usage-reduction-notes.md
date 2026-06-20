@@ -35719,3 +35719,46 @@ M2.4 direct-BAR HIL acceptance:
   M2. The next target is M2.5: attention out-proj + residual + LN2, with the
   same sequence of oracle, self-checking sim, timing-clean bitstream,
   flash/recovery to `pcie_ready`, BAR identity, then board gate.
+
+### 2026-06-20: M2.5 seed16 built/flashed, blocked at PCIe recovery
+
+- Added and proved the focused M2.5 attention out-proj + residual + LN2
+  public vector boundary in sim:
+  `nix build .#task6-m2-embedding-live-context-attention-ln2-pcie-accel-sv-sim --no-link --print-out-paths -L`
+  produced PASS with provenance `0x4d324205`, LN2 checksum `0x0003ed3a`,
+  sample0 `0xf9b2dbfb`, and sample1 `0xb0f7c27f`.
+- Built the M2.5 seed16 bitstream:
+  `/nix/store/jkljsyjzys307xk6r14c3c17sv0f5p5j-task6-ypcb-pcie-rowstream-ingress-m2-5-attention-ln2-pnr100-seed16.bit`.
+  The preserved copy is
+  `artifacts/task6/bitstreams/task6-m2-5-attention-ln2-pnr100-seed16-20260620T125136Z.bit`,
+  sha256 `10b1a850231b5208e5b239d073e56fde74192538e7cfebdd5f47889c3c3c0d36`.
+- M2.5 resource/timing point: 91,284 Yosys cells, 75 DSP48E1, 8 RAMB36E1,
+  69,808 packed LUTs, 26,908 FFs, final routed `pcie_user_clk` 66.88 MHz PASS
+  at 62.50 MHz.
+- Flash/verify for the M2.5 image passed:
+  `artifacts/task6/runs/2026-06-20T14-52-00+0200-task6-m2-5-attention-ln2-seed16-20260620T125136Z-flash`.
+- Recovery for the M2.5 image did not reach `pcie_ready`:
+  `artifacts/task6/runs/2026-06-20T14-59-23+0200-task6-m2-5-attention-ln2-seed16-20260620T125136Z-recover`.
+  Final classification was `missing_resource0` after five lifecycle/power-cycle
+  attempts. The endpoint identity stayed stable (`10ee:0480`, header `00`,
+  subsystem `abcd`), but BAR0 stayed `00000000`; in the final lifecycle attempt
+  `resource0` was missing. No BAR identity probe or M2.5 board gate was run.
+- Comparison anchor: the accepted M2.4 direct-BAR seed16 image recovered to
+  `pcie_ready` after one physical power cycle with BAR0 `74000000`, passed
+  input/residual BAR identity, and passed the M2.4 board gate. Rebuilt M2.4
+  seed16 comparison path:
+  `/nix/store/rlscwxxmmy5gpn8ycqp0qsy0c2k09f60-task6-ypcb-pcie-rowstream-ingress-m2-4-attention-slice-pnr100-seed16.bit`.
+  M2.4 resource/timing point: 60,308 Yosys cells, 51 DSP48E1, 7 RAMB36E1,
+  46,278 packed LUTs, 17,961 FFs, final routed `pcie_user_clk` 72.08 MHz PASS
+  at 62.50 MHz.
+- Current hypothesis: the added M2.5 out-proj/LN2 logic is physically legal but
+  reduces PCIe-user-clock margin and/or perturbs PCIe-adjacent reset/readback
+  fanout enough that the host never assigns a usable BAR0 after recovery.
+  Because failure happens below the public BAR interface, the current sim does
+  not reproduce this hardware boundary; the next diagnostic should extend the
+  PCIe-facing/physical comparison or build a PCIe-safer M2.5 candidate.
+- Next action: keep M2.5 hardware-boundary focused. Build a PCIe-safer M2.5
+  candidate that isolates the added out-proj/LN2 logic from PCIe
+  reset/BAR/readback pressure, rerun self-checking sim and a timing-clean
+  bitstream, then flash/recover to `pcie_ready` before any BAR identity probe
+  or M2.5 board gate.
