@@ -22,6 +22,16 @@ def test_m2_5_top_registers_public_pcie_boundary() -> None:
     assert "rowstream_m2_full_block_output_vector <= rowstream_m2_full_block_output_vector_raw;" in text
 
 
+def test_m2_5_top_decouples_compute_input_from_bar_readback() -> None:
+    text = TOP.read_text(encoding="utf-8")
+    assert "rowstream_m2_full_block_input_vector_for_accel" in text
+    assert (
+        "rowstream_m2_full_block_input_vector_for_accel <= "
+        "rowstream_m2_full_block_input_vector;"
+    ) in text
+    assert ".pcie_token_ids_i(rowstream_m2_full_block_input_vector_for_accel)" in text
+
+
 def test_m2_5_image_uses_direct_m2_bar_contract() -> None:
     text = FLAKE.read_text(encoding="utf-8")
     start = text.index("task6YpcbPcieRowstreamIngressM25AttentionLn2YosysJson")
@@ -33,5 +43,6 @@ def test_m2_5_image_uses_direct_m2_bar_contract() -> None:
 if __name__ == "__main__":
     test_ln2_wrapper_uses_direct_embed_ln_input_handoff()
     test_m2_5_top_registers_public_pcie_boundary()
+    test_m2_5_top_decouples_compute_input_from_bar_readback()
     test_m2_5_image_uses_direct_m2_bar_contract()
     print("PASS: M2.5 attention LN2 wrapper uses direct embed LN input handoff")
