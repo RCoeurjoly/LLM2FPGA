@@ -10345,6 +10345,25 @@ EOF
               ${./sim/task6_m2_embedding_live_context_full_block_pcie_accel_tb_main.sv}
           '';
 
+        task6M2EmbeddingLiveContextAttentionLn2PcieAccelSimMain =
+          pkgs.runCommand "task6-m2-embedding-live-context-attention-ln2-pcie-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              -top task6_m2_embedding_live_context_attention_ln2_pcie_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_attention_ln2_pcie_accel_top.sv} \
+              ${./sim/task6_m2_embedding_live_context_attention_ln2_pcie_accel_tb_main.sv}
+          '';
+
         task6M2EmbeddingHandoffPcieAccelSimMain =
           pkgs.runCommand "task6-m2-embedding-handoff-pcie-accel-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -13839,6 +13858,49 @@ EOF
             EOF
           '';
 
+        task6M2EmbeddingLiveContextAttentionLn2PcieAccelSvSim =
+          pkgs.runCommand "task6-m2-embedding-live-context-attention-ln2-pcie-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2EmbeddingLiveContextAttentionLn2PcieAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2.5 embedding live-context attention LN2 PCIe wrapper cycles [0-9]+ ln2_checksum [0-9a-f]+ ln2_sample0 [0-9a-f]+ ln2_sample1 [0-9a-f]+ debug [0-9a-f]+ debug1 [0-9a-f]+ debug2 [0-9a-f]+ debug3 [0-9a-f]+ provenance [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-embedding-live-context-attention-ln2 PCIe wrapper SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            ln2_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            ln2_sample0="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            ln2_sample1="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            debug="$(${pkgs.gawk}/bin/awk '{print $18}' <<<"$pass_line")"
+            debug1="$(${pkgs.gawk}/bin/awk '{print $20}' <<<"$pass_line")"
+            debug2="$(${pkgs.gawk}/bin/awk '{print $22}' <<<"$pass_line")"
+            debug3="$(${pkgs.gawk}/bin/awk '{print $24}' <<<"$pass_line")"
+            provenance="$(${pkgs.gawk}/bin/awk '{print $26}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "block_scope": "pcie-bar-token-id-embedding-live-context-attention-out-projection-residual-ln2",
+              "input_boundary": "pcie_bar_token_ids",
+              "embedding_position_add_rtl": true,
+              "pcie_bar_scope": true,
+              "m2_submilestone": "M2.5",
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "ln2_checksum": "$ln2_checksum",
+              "ln2_sample0": "$ln2_sample0",
+              "ln2_sample1": "$ln2_sample1",
+              "debug": "$debug",
+              "debug1": "$debug1",
+              "debug2": "$debug2",
+              "debug3": "$debug3",
+              "provenance": "$provenance"
+            }
+            EOF
+          '';
+
         task6M2EmbeddingHandoffPcieAccelSvSim =
           pkgs.runCommand "task6-m2-embedding-handoff-pcie-accel-sv-sim.json" {
             buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -16024,6 +16086,10 @@ EOF
             task6M2EmbeddingLiveContextFullBlockPcieAccelSimMain;
           task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim =
             task6M2EmbeddingLiveContextFullBlockPcieAccelSvSim;
+          task6-m2-embedding-live-context-attention-ln2-pcie-accel-sim-main =
+            task6M2EmbeddingLiveContextAttentionLn2PcieAccelSimMain;
+          task6-m2-embedding-live-context-attention-ln2-pcie-accel-sv-sim =
+            task6M2EmbeddingLiveContextAttentionLn2PcieAccelSvSim;
           task6-m2-embedding-handoff-pcie-accel-sim-main =
             task6M2EmbeddingHandoffPcieAccelSimMain;
           task6-m2-embedding-handoff-pcie-accel-sv-sim =
