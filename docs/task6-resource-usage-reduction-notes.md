@@ -46,6 +46,22 @@ Common-kernel v2 clarification:
 - Initial seed candidates are recorded in
   `artifacts/task6/architecture-decision/open-rtl-kernel-candidates.md`.
 
+Compiler-pipeline int8 representative-core spike:
+
+- `tiny-stories-1m-representative-core-pt2e-static-cf-stats` passes, so PT2E
+  static int8 quantization reaches CF stats on the minimum representative core.
+- The official quantized route still fails before hardware generation because
+  it requests `lower-cf-to-handshake=lsq`, and the current CIRCT pass reports
+  `no such option lsq`.
+- Added the explicit experiment
+  `tiny-stories-1m-representative-core-pt2e-static-nolsq` to test the same
+  quantized representative-core adapter through the default non-LSQ compiler
+  route.
+- The non-LSQ experiment reaches `hw-clean`, but SV export is killed with exit
+  `137`; the durable HW-clean MLIR is about `348 MB`.
+- Detailed artifact:
+  `artifacts/task6/architecture-decision/compiler-pipeline-int8-representative-core.md`.
+
 ## 2026-06-20 - M2.4 BAR identity fix is sim-proven, HIL blocked by timing
 
 Agent/process update:

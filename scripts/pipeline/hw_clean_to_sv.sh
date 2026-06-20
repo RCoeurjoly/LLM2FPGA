@@ -44,7 +44,7 @@ run_circt() {
       echo "[hw_clean_to_sv] This usually indicates OOM pressure in this step." >&2
       echo "[hw_clean_to_sv] Try rebuilding on a higher-memory machine or on a host with fewer concurrent builds." >&2
       if [[ -z "$limit_kb" ]]; then
-        echo "[hw_clean_to_sv] Optional debug/retry knob: set CIRCT_LOWER_SV_MEM_LIMIT_KB to the process'"'"'s KiB limit." >&2
+        echo "[hw_clean_to_sv] Optional debug/retry knob: set CIRCT_LOWER_SV_MEM_LIMIT_KB to the process KiB limit." >&2
       fi
     fi
     exit "$rc"

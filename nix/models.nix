@@ -374,6 +374,44 @@ in {
     '';
   };
 
+  "tiny-stories-1m-representative-core-pt2e-static-nolsq" = registerModel {
+    inherit fpPrimsSv;
+    key = "tiny-stories-1m-representative-core-pt2e-static-nolsq";
+    name = "tiny-stories-1m-representative-core-pt2e-static-nolsq";
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    description =
+      "Experimental quantized representative-core TinyStories PT2E-static replay through the default non-LSQ compiler pipeline. This exists only to test whether int8 representative-core can reach RTL/resource evidence without the current lower-cf-to-handshake=lsq blocker.";
+    source = {
+      type = "derived";
+      base_model_id = tinyStories1m.modelId;
+      inherit (tinyStories1m) revision;
+      profile = "representative-core-min";
+      quantization = "pt2e-static-int8";
+      lowering = "default-handshake-nolsq";
+      vocab_size = 32;
+      num_layers = 2;
+      max_position_embeddings = 4;
+      window_size = 2;
+      hidden_size = 2;
+      num_heads = 1;
+    };
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TINYSTORIES_CORE_VOCAB_SIZE=32
+      export TINYSTORIES_CORE_NUM_LAYERS=2
+      export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=4
+      export TINYSTORIES_CORE_WINDOW_SIZE=2
+      export TINYSTORIES_CORE_HIDDEN_SIZE=2
+      export TINYSTORIES_CORE_NUM_HEADS=1
+      python ${compilePyTorch} \
+        --adapter ${tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy} \
+        --model-path ${tinyStories1m.snapshot} \
+        --out "$out" >/dev/null
+    '';
+  };
+
   "tiny-stories-1m-dynamic-int8" = registerModel {
     key = "tiny-stories-1m-dynamic-int8";
     name = "tiny-stories-1m-dynamic-int8";
