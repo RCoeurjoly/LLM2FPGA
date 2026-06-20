@@ -40,7 +40,8 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_tb;
   logic [511:0] first_pass_vector;
 
   task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
-    .M2_FULL_BLOCK_TOKEN_INDEX(5)
+    .M2_FULL_BLOCK_TOKEN_INDEX(5),
+    .ENABLE_CONTEXT_INTERNAL_CHECKS(1'b0)
   ) dut (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),

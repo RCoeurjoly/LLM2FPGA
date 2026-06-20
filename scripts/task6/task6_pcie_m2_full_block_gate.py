@@ -1000,6 +1000,24 @@ def parse_context_tb_data_sv(path: Path) -> dict[str, int]:
     }
 
 
+def merge_context_expected(
+    expected: dict[str, int | bytes | list[int]],
+    context_expected: dict[str, int],
+    *,
+    preserve_output_boundary: bool,
+) -> None:
+    if not preserve_output_boundary:
+        expected.update(context_expected)
+        return
+    for key in (
+        "context_fixture_signature",
+        "context_fixture_signature_token",
+        "context_fixture_signature_dim",
+    ):
+        if key in context_expected:
+            expected[key] = context_expected[key]
+
+
 def validate_expected(expected: dict[str, int | bytes | list[int]], path: Path) -> None:
     missing = [
         key
@@ -1415,7 +1433,11 @@ def main() -> int:
         if args.embedding_tb_data_sv is not None:
             expected.update(parse_embedding_tb_data_sv(args.embedding_tb_data_sv))
         if args.context_tb_data_sv is not None:
-            expected.update(parse_context_tb_data_sv(args.context_tb_data_sv))
+            merge_context_expected(
+                expected,
+                parse_context_tb_data_sv(args.context_tb_data_sv),
+                preserve_output_boundary=args.require_attention_ln2,
+            )
         if args.require_embedding_handoff:
             expected["provenance_mode"] = 0x3100
         if args.require_attention_slice:

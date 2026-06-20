@@ -22,6 +22,7 @@ from task6_pcie_m2_full_block_gate import (
     embedding_handoff_contract_checks,
     expected_provenance,
     is_token_live_mode,
+    merge_context_expected,
     m2_version_abi_matches,
     parse_context_tb_data_sv,
     parse_embedding_tb_data_sv,
@@ -307,6 +308,39 @@ def test_parse_context_tb_data_sv_fixture_signature() -> None:
     assert expected["sample1"] == 0x10C11DDC
     assert expected["output_count"] == 64
     assert "provenance_mode" not in expected
+
+
+def test_merge_context_expected_preserves_attention_ln2_output_oracle() -> None:
+    expected: dict[str, object] = {
+        "checksum": 0x0003ED3A,
+        "sample0": 0xFBDBB2F9,
+        "sample1": 0x7FC2F7B0,
+        "output_count": 64,
+        "first_64_output": bytes.fromhex("f9b2dbfb" + "00" * 60),
+        "provenance_mode": 0x4200,
+    }
+    context_expected = {
+        "context_fixture_signature": 0xC5DC8A6C,
+        "context_fixture_signature_token": 5,
+        "context_fixture_signature_dim": 1,
+        "checksum": 0x000432E3,
+        "sample0": 0xD3C310CB,
+        "sample1": 0x10C11DDC,
+        "output_count": 64,
+        "first_64_output": bytes.fromhex("cb10c3d3" + "00" * 60),
+    }
+
+    merge_context_expected(
+        expected,
+        context_expected,
+        preserve_output_boundary=True,
+    )
+
+    assert expected["checksum"] == 0x0003ED3A
+    assert expected["sample0"] == 0xFBDBB2F9
+    assert expected["sample1"] == 0x7FC2F7B0
+    assert expected["first_64_output"] == bytes.fromhex("f9b2dbfb" + "00" * 60)
+    assert expected["context_fixture_signature"] == 0xC5DC8A6C
 
 
 def test_attention_slice_contract_is_focused_m2_4_evidence() -> None:
@@ -714,6 +748,7 @@ def main() -> None:
     test_parse_embedding_tb_data_sv_token_input_vector()
     test_parse_embedding_tb_data_sv_reads_summary_block_checksum()
     test_parse_context_tb_data_sv_fixture_signature()
+    test_merge_context_expected_preserves_attention_ln2_output_oracle()
     test_attention_ln2_contract_is_focused_m2_5_evidence()
     test_bar_contract_checks_require_direct_identity_and_idle_status()
     test_start_clear_contract_checks_require_start_increment_and_clear_idle()
