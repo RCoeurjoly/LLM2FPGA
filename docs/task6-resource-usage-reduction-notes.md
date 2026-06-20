@@ -34895,3 +34895,38 @@ Next action:
 - Debug the M1 accelerator start/control/reset path. The ingress BAR path is
   alive enough to echo inputs and increment `start_count`, but compute never
   leaves `IDLE`.
+
+M2.4 PCIe/BAR boundary debug below the input register assignment:
+
+- Built the existing small rowstream-loopback diagnostic image to test below
+  the M2 input register assignment without perturbing M2.4 timing:
+  `nix build .#task6-pcie-axil-rowstream-loopback-sim-main --no-link --print-out-paths -L`
+  and
+  `nix build .#task6-ypcb-pcie7x-rowstream-loopback-bitstream --no-link --print-out-paths -L`.
+- The loopback image routed cleanly; final `user_clk` was 129.25 MHz PASS.
+  Preserved bitstream:
+  `artifacts/task6/bitstreams/task6-pcie7x-rowstream-loopback-boundary-debug-20260619T223215Z.bit`,
+  sha256 `17c5b554d00e5fac9d986e470c315f08d4a97986d7572ac996f056caf8e98946`.
+- Flash/verify PASS:
+  `artifacts/task6/runs/2026-06-20T00-32-32+0200-task6-rowstream-loopback-boundary-flash`.
+- Recovery did not reach BAR-safe state. After five power cycles it remained
+  `missing_resource0`:
+  `artifacts/task6/runs/2026-06-20T00-39-57+0200-task6-rowstream-loopback-boundary-recover`.
+  Non-BAR lifecycle showed stable `10ee:0480`, header `00`, but subsystem
+  `ffff`, BAR0 `00000000`, and no `/sys/.../resource0`. Therefore this
+  rowstream-loopback bitstream is not a valid BAR data-path diagnostic as
+  built.
+- Restored the known M2.4 no-input-ror1 seed17 image:
+  `artifacts/task6/bitstreams/task6-m2-4-live-context-attention-slice-no-input-ror1-pnr100-seed17-20260619T201738.bit`.
+  Flash/verify PASS:
+  `artifacts/task6/runs/2026-06-20T00-45-32+0200-task6-restore-m2-4-no-input-ror1-boundary-debug-flash`.
+  Recovery reached `pcie_ready` after one power cycle:
+  `artifacts/task6/runs/2026-06-20T00-52-58+0200-task6-restore-m2-4-no-input-ror1-boundary-debug-recover`.
+- Narrow single-word BAR probe on the restored M2.4 image reproduced the
+  input-only transform: writes `0x80000001, 0x00000003` read back from input as
+  `0xc0000000, 0x00000001`, while residual read back identity. Artifact:
+  `artifacts/task6/runs/task6-bottleneck/m2-4-boundary-single-word-probe-after-loopback-restore.json`.
+- Interpretation: the flash/reconfiguration path is healthy, but the existing
+  rowstream-loopback image is not a usable BAR proof image. The M2.4 issue is
+  still below the host probe and specific to the input-window path, because the
+  residual window on the same BAR and image reads back identity.

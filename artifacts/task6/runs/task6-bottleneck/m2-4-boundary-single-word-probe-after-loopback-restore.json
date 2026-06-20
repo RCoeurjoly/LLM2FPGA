@@ -1,0 +1,38 @@
+{
+  "bdf": "0000:42:00.0",
+  "bitstream": "artifacts/task6/bitstreams/task6-m2-4-live-context-attention-slice-no-input-ror1-pnr100-seed17-20260619T201738.bit",
+  "context": "After flashing the rowstream-loopback diagnostic image, recovery stayed missing_resource0. The known M2.4 no-input-ror1 image was restored, recovered to pcie_ready, and this narrow BAR probe was run without invoking the M2.4 acceptance gate.",
+  "writes": [
+    "0x80000001",
+    "0x00000003"
+  ],
+  "input_offset": "0x540",
+  "residual_offset": "0x580",
+  "input_after_word0": [
+    "0x40000000",
+    "0x00000000",
+    "0x00000000",
+    "0x00000000"
+  ],
+  "input_after_word1": [
+    "0xc0000000",
+    "0x00000001",
+    "0x00000000",
+    "0x00000000"
+  ],
+  "residual_after_word0": [
+    "0x80000001",
+    "0x00000000",
+    "0x00000000",
+    "0x00000000"
+  ],
+  "residual_after_word1": [
+    "0x80000001",
+    "0x00000003",
+    "0x00000000",
+    "0x00000000"
+  ],
+  "input_identity": false,
+  "residual_identity": true,
+  "interpretation": "The PCIe endpoint and BAR0 are usable after restoring the M2.4 image, but the M2 input window still applies a 64-bit ROR1-style transform while the residual window reads back identity. This points below the software probe and above or inside the input-window register/memory path."
+}
