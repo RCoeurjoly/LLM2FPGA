@@ -140,6 +140,10 @@ Survey takeaways:
   Alveo-class HBM boards, unpublished RTL, or multi-FPGA assumptions.
 - The strongest reusable idea is not a monolithic per-model RTL blob. It is a
   compiler-managed memory/schedule layer feeding reusable quantized kernels.
+- The common-kernel route should actively search for open RTL reuse before
+  writing more local RTL. Whole reusable kernels are preferred, but stitchable
+  Verilog/SystemVerilog/VHDL components are acceptable for GEMV/MAC, attention,
+  softmax, LayerNorm, GELU, DDR streaming, and scheduler/control pieces.
 - A pure compiler-to-RTL route remains aligned with Task 1, but it must beat
   the exact failure mode already observed: enormous fabric use, no DSP/BRAM
   movement, and unstable CIRCT lowering.
@@ -233,21 +237,29 @@ Purpose: test whether the current kernelized path can become model-independent.
 
 Steps:
 
-1. Define the generated artifact contract:
+1. Survey open RTL candidates for the reusable-kernel substrate:
+   - source must be Verilog, SystemVerilog, or VHDL;
+   - HLS-only projects are reference-only;
+   - whole kernels are preferred, but stitchable components are allowed;
+   - classify ITA, SwiftTron, XtraMAC, AttentionLego, MASE, and newly discovered
+     candidates as `reuse`, `adapt`, `adapt-later`, `reference-only`, or
+     `reject`.
+2. Define the generated artifact contract:
    - model manifest;
    - quantized weight packs;
    - DDR3 row layout;
    - kernel config;
    - schedule/control stream;
    - fixed-point oracle vectors.
-2. Select one existing boundary first, preferably MLP/residual or output-head,
+3. Select one existing boundary first, preferably MLP/residual or output-head,
    because there is already int8 evidence.
-3. Prove the same RTL accepts at least two model shapes through generated
+4. Prove the same RTL accepts at least two model shapes through generated
    artifacts/config only.
-4. Estimate full TinyStories-1M bytes/token, cycles/token, and DDR3 bandwidth.
+5. Estimate full TinyStories-1M bytes/token, cycles/token, and DDR3 bandwidth.
 
 Minimum evidence:
 
+- open RTL candidate survey and reuse/adapt/reference decision;
 - no RTL edit between tested model shapes;
 - oracle match for the selected boundary;
 - resource report for the reusable kernel wrapper;

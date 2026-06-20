@@ -35,6 +35,17 @@ Initial representative-core audit:
   architecture POC smoke target. It remains a scale/fidelity proxy and does not
   replace full TinyStories-1M checkpoint evidence.
 
+Common-kernel v2 clarification:
+
+- Before scoring common-kernel v2, run an open RTL candidate survey. Whole
+  reusable kernels are preferred, but stitchable Verilog/SystemVerilog/VHDL
+  components are allowed for GEMV/MAC, attention, softmax, LayerNorm, GELU, DDR
+  streaming, and scheduler/control blocks.
+- HLS-only and proprietary-flow-only projects remain architecture references,
+  not reusable kernel candidates.
+- Initial seed candidates are recorded in
+  `artifacts/task6/architecture-decision/open-rtl-kernel-candidates.md`.
+
 ## 2026-06-20 - M2.4 BAR identity fix is sim-proven, HIL blocked by timing
 
 Agent/process update:

@@ -398,6 +398,7 @@ Expected:
 **Files:**
 - Modify: `docs/task6-architecture-decision.md`
 - Modify: `docs/task6-resource-usage-reduction-notes.md`
+- Create: `artifacts/task6/architecture-decision/open-rtl-kernel-candidates.md`
 - Create: `artifacts/task6/architecture-decision/common-kernel-v2-envelope.md`
 
 - [ ] **Step 1: Inspect existing kernel evidence**
@@ -415,7 +416,51 @@ Expected:
 
 - Existing artifacts expose resource, quantization, and v1k/v4k scale-up evidence.
 
-- [ ] **Step 2: Define the generated artifact contract**
+- [ ] **Step 2: Survey open RTL kernel candidates**
+
+Create `artifacts/task6/architecture-decision/open-rtl-kernel-candidates.md`.
+The survey must classify open-source RTL candidates for the common-kernel route.
+
+Candidate requirements:
+
+- source is Verilog, SystemVerilog, or VHDL;
+- HLS-only projects are architecture references, not reusable kernel candidates;
+- whole reusable kernels are preferred;
+- stitchable components are acceptable for GEMV/MAC, systolic arrays,
+  attention, softmax, LayerNorm, GELU, quantized arithmetic, DDR/streaming, and
+  control/scheduler blocks;
+- no third-party RTL is vendored during this decision pass.
+
+Seed candidates:
+
+- `pulp-platform/ITA`;
+- `albertomarchisio/SwiftTron`;
+- `Xtra-Computing/XtraMAC`;
+- `AttentionLego`;
+- `DeepWok/mase`;
+- any newly discovered open RTL LLM/Transformer/GEMV/softmax candidates.
+
+Each candidate must include:
+
+- URL, license, HDL language, and repo activity signal;
+- whether it is a whole kernel or component;
+- operator coverage against a TinyStories decoder block;
+- arithmetic format fit, with int8 first;
+- memory/interface shape;
+- available test assets;
+- open-flow plausibility;
+- Kintex-7/openXC7 integration risk;
+- classification: `reuse`, `adapt`, `adapt-later`, `reference-only`, or `reject`.
+
+Expected:
+
+- The artifact names at least one plausible attention/softmax candidate and at
+  least one plausible MAC/datapath candidate, or explains why no candidate
+  passed the filter.
+- The artifact records whether common-kernel v2 can reuse open RTL directly or
+  should treat third-party work as reference while using local reusable kernels.
+
+- [ ] **Step 3: Define the generated artifact contract**
 
 Create `artifacts/task6/architecture-decision/common-kernel-v2-envelope.md` with:
 
@@ -445,6 +490,12 @@ The FPGA side provides:
 
 Record resource, pass/fail, and fidelity evidence from the inspected artifacts.
 
+## Open RTL Candidate Evidence
+
+Summarize `artifacts/task6/architecture-decision/open-rtl-kernel-candidates.md`.
+State whether the common-kernel route should reuse, adapt, stitch, or only
+reference third-party RTL.
+
 ## Envelope Metrics
 
 Record:
@@ -465,7 +516,7 @@ Use one of these exact verdicts:
 - `common-kernel-v2-reject`: evidence contradicts full TinyStories-1M feasibility.
 ```
 
-- [ ] **Step 3: Fill in the existing-evidence section**
+- [ ] **Step 4: Fill in the existing-evidence section**
 
 Use the inspected artifacts to record:
 
@@ -475,7 +526,7 @@ Use the inspected artifacts to record:
 - v10k output-head quantization result;
 - M2.4/M2.5 boundary status from `docs/task6-crisp-state.org`.
 
-- [ ] **Step 4: Update the decision doc**
+- [ ] **Step 5: Update the decision doc**
 
 In `docs/task6-architecture-decision.md`, add a subsection under `Required POCs` titled:
 
@@ -483,14 +534,15 @@ In `docs/task6-architecture-decision.md`, add a subsection under `Required POCs`
 ### Common-Kernel v2 Envelope Result
 ```
 
-Record the verdict from Step 2 and the minimum evidence that supports it.
+Record the architecture verdict from the envelope artifact and the minimum
+evidence that supports it.
 
-- [ ] **Step 5: Commit the common-kernel spike**
+- [ ] **Step 6: Commit the common-kernel spike**
 
 Run:
 
 ```bash
-git add docs/task6-architecture-decision.md docs/task6-resource-usage-reduction-notes.md artifacts/task6/architecture-decision/common-kernel-v2-envelope.md
+git add docs/task6-architecture-decision.md docs/task6-resource-usage-reduction-notes.md artifacts/task6/architecture-decision/open-rtl-kernel-candidates.md artifacts/task6/architecture-decision/common-kernel-v2-envelope.md
 git commit -m "Evaluate common-kernel v2 architecture envelope"
 ```
 
