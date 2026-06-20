@@ -184,6 +184,34 @@ def test_parse_expected_tb_data_sv_first_token_final_vector() -> None:
     assert expected["provenance_mode"] == 0x2000
 
 
+def test_parse_expected_tb_data_sv_attention_ln2_vector() -> None:
+    ln2_assignments = "\n".join(
+        f"  ln2_expected_q[{index}] = {sv_i8(index - 32)};"
+        for index in range(64)
+    )
+    path = write_text(
+        "\n".join(
+            [
+                "localparam logic [31:0] LN2_EXPECTED_CHECKSUM = 32'h0003c720;",
+                "localparam logic [31:0] LN2_EXPECTED_SAMPLE0 = 32'he1e0dfde;",
+                "localparam logic [31:0] LN2_EXPECTED_SAMPLE1 = 32'he5e4e3e2;",
+                "localparam int M2_FULL_BLOCK_TOKEN_INDEX = 5;",
+                ln2_assignments,
+                "",
+            ]
+        )
+    )
+    expected = parse_expected_tb_data_sv(path, output_boundary="attention-ln2")
+    validate_expected(expected, path)
+    assert expected["checksum"] == 0x0003C720
+    assert expected["sample0"] == 0xE1E0DFDE
+    assert expected["sample1"] == 0xE5E4E3E2
+    assert expected["output_count"] == 64
+    assert expected["first_64_output"] == bytes((index - 32) & 0xFF for index in range(64))
+    assert expected["token_index"] == 5
+    assert expected["provenance_mode"] == 0x4200
+
+
 def test_parse_embedding_tb_data_sv_token_input_vector() -> None:
     token_assignments = "\n".join(
         f"  embed_block_expected_token_ids[{index}] = 16'd{token_id};"
@@ -291,6 +319,21 @@ def test_attention_slice_contract_is_focused_m2_4_evidence() -> None:
     assert contract_for_expected(expected) is CONTRACT_ATTENTION_SLICE
     assert compute_path_for_expected(expected) == "live-context-attention-slice"
     assert expected_provenance({**expected, "token_index": 5}) == 0x4D32_4105
+
+
+def test_attention_ln2_contract_is_focused_m2_5_evidence() -> None:
+    expected = {
+        "token_ids": [7454, 2402, 257, 640, 612, 373],
+        "provenance_mode": 0x4200,
+        "first_64_output": bytes(64),
+    }
+    assert is_token_live_mode(expected)
+    contract = contract_for_expected(expected)
+    assert contract["stage"] == "M2.5-attention-out-proj-residual-ln2"
+    assert contract["milestone_target"] == "M2.5-attention-out-proj-residual-ln2"
+    assert contract["live_compute"] is True
+    assert compute_path_for_expected(expected) == "live-context-attention-ln2"
+    assert expected_provenance({**expected, "token_index": 5}) == 0x4D32_4205
 
 
 def test_vector_readback_transform_classifies_board_ror1() -> None:
@@ -667,9 +710,11 @@ def main() -> None:
     test_done_stage_checksum_decode_finds_first_mismatch()
     test_parse_expected_json_requires_first_64_output()
     test_parse_expected_tb_data_sv_first_token_final_vector()
+    test_parse_expected_tb_data_sv_attention_ln2_vector()
     test_parse_embedding_tb_data_sv_token_input_vector()
     test_parse_embedding_tb_data_sv_reads_summary_block_checksum()
     test_parse_context_tb_data_sv_fixture_signature()
+    test_attention_ln2_contract_is_focused_m2_5_evidence()
     test_bar_contract_checks_require_direct_identity_and_idle_status()
     test_start_clear_contract_checks_require_start_increment_and_clear_idle()
     test_embedding_handoff_contract_requires_vector_not_hash_fallback()

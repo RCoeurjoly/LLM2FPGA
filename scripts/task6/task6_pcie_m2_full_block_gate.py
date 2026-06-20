@@ -242,6 +242,32 @@ CONTRACT_ATTENTION_SLICE = {
     ),
 }
 
+CONTRACT_ATTENTION_LN2 = {
+    "version": "task6-m2-live-context-attention-ln2-v1",
+    "stage": "M2.5-attention-out-proj-residual-ln2",
+    "milestone_target": "M2.5-attention-out-proj-residual-ln2",
+    "live_compute": True,
+    "artifact_role": "m2-live-context-attention-ln2-board-gate",
+    "responsibilities": {
+        "host": [
+            "PCIe lifecycle orchestration",
+            "direct token-ID writes",
+            "BAR-visible LN2 vector/checksum comparison",
+        ],
+        "fpga": [
+            "token-ID selected embedding and position add",
+            "handoff of live LN input to the live-context attention slice",
+            "live attention context computation",
+            "attention out projection, attention residual add, and LN2",
+            "BAR-visible full 64-byte LN2 vector and boundary checksums",
+        ],
+    },
+    "notes": (
+        "M2.5 acceptance gate. It proves the focused live-context attention "
+        "out-projection, residual add, and LN2 boundary from host token IDs."
+    ),
+}
+
 SV_ASSIGN_RE = re.compile(
     r"^\s*(?P<name>[A-Za-z0-9_]+)\[(?P<index>\d+)\]\s*=\s*"
     r"(?P<sign>-?)(?P<bits>\d+)'sd(?P<value>\d+)\s*;"
@@ -674,10 +700,17 @@ def parse_signed_sv_literal(sign: str, value: str) -> int:
     return -parsed if sign == "-" else parsed
 
 
-def parse_expected_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
+def parse_expected_tb_data_sv(
+    path: Path,
+    *,
+    output_boundary: str = "final",
+) -> dict[str, int | bytes | list[int]]:
+    if output_boundary not in ("final", "attention-ln2"):
+        raise SystemExit(f"unsupported output boundary: {output_boundary}")
     localparams: dict[str, int] = {}
     int_params: dict[str, int] = {}
     final_q: dict[int, int] = {}
+    ln2_q: dict[int, int] = {}
     block_input_q: dict[int, int] = {}
     context_q: dict[int, int] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -702,6 +735,11 @@ def parse_expected_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
                 assign_match.group("sign"),
                 assign_match.group("value"),
             )
+        elif assign_match.group("name") == "ln2_expected_q":
+            ln2_q[int(assign_match.group("index"))] = parse_signed_sv_literal(
+                assign_match.group("sign"),
+                assign_match.group("value"),
+            )
         elif assign_match.group("name") == "out_proj_block_input_q":
             block_input_q[int(assign_match.group("index"))] = parse_signed_sv_literal(
                 assign_match.group("sign"),
@@ -713,33 +751,49 @@ def parse_expected_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
                 assign_match.group("value"),
             )
 
-    expected_checksum = localparams.get("MLP_FINAL_EXPECTED_CHECKSUM")
-    if expected_checksum is None:
-        expected_checksum = localparams.get("M2_FULL_BLOCK_EXPECTED_CHECKSUM")
-    expected_sample0 = localparams.get("MLP_FINAL_EXPECTED_SAMPLE0")
-    if expected_sample0 is None:
-        expected_sample0 = localparams.get("M2_FULL_BLOCK_EXPECTED_SAMPLE0")
-    expected_sample1 = localparams.get("MLP_FINAL_EXPECTED_SAMPLE1")
-    if expected_sample1 is None:
-        expected_sample1 = localparams.get("M2_FULL_BLOCK_EXPECTED_SAMPLE1")
-
-    if expected_checksum is None or expected_sample0 is None or expected_sample1 is None:
-        raise SystemExit(
+    if output_boundary == "attention-ln2":
+        expected_checksum = localparams.get("LN2_EXPECTED_CHECKSUM")
+        expected_sample0 = localparams.get("LN2_EXPECTED_SAMPLE0")
+        expected_sample1 = localparams.get("LN2_EXPECTED_SAMPLE1")
+        output_q = ln2_q
+        missing_message = (
+            f"{path} missing localparam(s): LN2_EXPECTED_CHECKSUM, "
+            "LN2_EXPECTED_SAMPLE0, LN2_EXPECTED_SAMPLE1"
+        )
+        missing_output_name = "ln2_expected_q"
+        provenance_mode = 0x4200
+    else:
+        expected_checksum = localparams.get("MLP_FINAL_EXPECTED_CHECKSUM")
+        if expected_checksum is None:
+            expected_checksum = localparams.get("M2_FULL_BLOCK_EXPECTED_CHECKSUM")
+        expected_sample0 = localparams.get("MLP_FINAL_EXPECTED_SAMPLE0")
+        if expected_sample0 is None:
+            expected_sample0 = localparams.get("M2_FULL_BLOCK_EXPECTED_SAMPLE0")
+        expected_sample1 = localparams.get("MLP_FINAL_EXPECTED_SAMPLE1")
+        if expected_sample1 is None:
+            expected_sample1 = localparams.get("M2_FULL_BLOCK_EXPECTED_SAMPLE1")
+        output_q = final_q
+        missing_message = (
             f"{path} missing localparam(s): MLP_FINAL_EXPECTED_CHECKSUM / M2_FULL_BLOCK_EXPECTED_CHECKSUM, "
             "MLP_FINAL_EXPECTED_SAMPLE0 / M2_FULL_BLOCK_EXPECTED_SAMPLE0, "
             "MLP_FINAL_EXPECTED_SAMPLE1 / M2_FULL_BLOCK_EXPECTED_SAMPLE1"
         )
-    missing_final = [index for index in range(64) if index not in final_q]
+        missing_output_name = "mlp_final_expected_q"
+        provenance_mode = 0x2000
+
+    if expected_checksum is None or expected_sample0 is None or expected_sample1 is None:
+        raise SystemExit(missing_message)
+    missing_final = [index for index in range(64) if index not in output_q]
     if missing_final:
-        raise SystemExit(f"{path} missing mlp_final_expected_q index(es): {missing_final[:8]}")
+        raise SystemExit(f"{path} missing {missing_output_name} index(es): {missing_final[:8]}")
     missing_block_input = [index for index in range(64) if index not in block_input_q]
     if missing_block_input:
-        block_input_q = {index: final_q.get(index, 0) for index in range(64)}
+        block_input_q = {index: output_q.get(index, 0) for index in range(64)}
     missing_context = [index for index in range(64) if index not in context_q]
     if missing_context:
-        context_q = {index: final_q.get(index, 0) for index in range(64)}
+        context_q = {index: output_q.get(index, 0) for index in range(64)}
 
-    first_64_output = bytes(final_q[index] & 0xFF for index in range(64))
+    first_64_output = bytes(output_q[index] & 0xFF for index in range(64))
     fixture_block_input = bytes(block_input_q[index] & 0xFF for index in range(64))
     fixture_context = bytes(context_q[index] & 0xFF for index in range(64))
     return {
@@ -751,7 +805,7 @@ def parse_expected_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
         "fixture_block_input": fixture_block_input,
         "fixture_context": fixture_context,
         "token_index": int_params.get("M2_FULL_BLOCK_TOKEN_INDEX", 0),
-        "provenance_mode": 0x2000,
+        "provenance_mode": provenance_mode,
     }
 
 
@@ -1086,16 +1140,20 @@ def expected_provenance(expected: dict[str, int | bytes | list[int]]) -> int:
 
 
 def is_token_live_mode(expected: dict[str, int | bytes | list[int]]) -> bool:
-    return int(expected.get("provenance_mode", 0)) in (0x3000, 0x3100, 0x4100) and isinstance(expected.get("token_ids"), list)
+    return int(expected.get("provenance_mode", 0)) in (0x3000, 0x3100, 0x4100, 0x4200) and isinstance(expected.get("token_ids"), list)
 
 
 def contract_for_expected(expected: dict[str, int | bytes | list[int]]) -> dict[str, Any]:
+    if int(expected.get("provenance_mode", 0)) == 0x4200:
+        return CONTRACT_ATTENTION_LN2
     if int(expected.get("provenance_mode", 0)) == 0x4100:
         return CONTRACT_ATTENTION_SLICE
     return CONTRACT_TOKEN_LIVE if is_token_live_mode(expected) else CONTRACT
 
 
 def compute_path_for_expected(expected: dict[str, int | bytes | list[int]]) -> str:
+    if int(expected.get("provenance_mode", 0)) == 0x4200:
+        return "live-context-attention-ln2"
     if int(expected.get("provenance_mode", 0)) == 0x4100:
         return "live-context-attention-slice"
     return "live-full-block" if is_token_live_mode(expected) else "fixture-full-block-wrapper"
@@ -1270,6 +1328,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--require-attention-ln2",
+        action="store_true",
+        help=(
+            "Require the focused M2.5 attention out-proj/residual/LN2 contract: "
+            "direct token-ID writes, matching context fixture signature, DONE/"
+            "no-error, and full BAR LN2 vector/checksum comparison."
+        ),
+    )
+    parser.add_argument(
         "--vector-write-mode",
         choices=(
             "direct",
@@ -1321,12 +1388,14 @@ def main() -> int:
         raise SystemExit("--bar-contract-only/--start-clear-only require direct/raw-internal vector write mode")
     if args.require_embedding_handoff and not args.start_clear_only:
         raise SystemExit("--require-embedding-handoff requires --start-clear-only")
-    if args.require_attention_slice and args.start_clear_only:
-        raise SystemExit("--require-attention-slice uses the normal strict compute-vector gate")
-    if args.require_attention_slice and args.context_tb_data_sv is None:
-        raise SystemExit("--require-attention-slice requires --context-tb-data-sv")
-    if args.require_attention_slice and args.embedding_tb_data_sv is None:
-        raise SystemExit("--require-attention-slice requires --embedding-tb-data-sv")
+    if args.require_attention_slice and args.require_attention_ln2:
+        raise SystemExit("--require-attention-slice and --require-attention-ln2 are mutually exclusive")
+    if (args.require_attention_slice or args.require_attention_ln2) and args.start_clear_only:
+        raise SystemExit("--require-attention-slice/--require-attention-ln2 use the normal strict compute-vector gate")
+    if (args.require_attention_slice or args.require_attention_ln2) and args.context_tb_data_sv is None:
+        raise SystemExit("--require-attention-slice/--require-attention-ln2 require --context-tb-data-sv")
+    if (args.require_attention_slice or args.require_attention_ln2) and args.embedding_tb_data_sv is None:
+        raise SystemExit("--require-attention-slice/--require-attention-ln2 require --embedding-tb-data-sv")
     if not args.clear_only and (args.expected_json is None) == (args.tb_data_sv is None):
         raise SystemExit("provide exactly one of --expected-json or --tb-data-sv")
     if args.embedding_tb_data_sv is not None and args.tb_data_sv is None:
@@ -1338,7 +1407,10 @@ def main() -> int:
         expected = (
             parse_expected_json(args.expected_json)
             if args.expected_json is not None
-            else parse_expected_tb_data_sv(args.tb_data_sv)
+            else parse_expected_tb_data_sv(
+                args.tb_data_sv,
+                output_boundary="attention-ln2" if args.require_attention_ln2 else "final",
+            )
         )
         if args.embedding_tb_data_sv is not None:
             expected.update(parse_embedding_tb_data_sv(args.embedding_tb_data_sv))
@@ -1348,6 +1420,8 @@ def main() -> int:
             expected["provenance_mode"] = 0x3100
         if args.require_attention_slice:
             expected["provenance_mode"] = 0x4100
+        if args.require_attention_ln2:
+            expected["provenance_mode"] = 0x4200
         if args.expect_checksum is not None:
             expected["checksum"] = args.expect_checksum
         if args.expect_sample0 is not None:
