@@ -287,7 +287,13 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
       logic [31:0] rowstream_m2_full_block_debug2_raw;
       logic [31:0] rowstream_m2_full_block_debug3_raw;
       logic [31:0] rowstream_m2_full_block_provenance_raw;
-      logic [511:0] rowstream_m2_full_block_input_vector_for_accel;
+      logic [95:0] rowstream_m2_full_block_token_ids_for_accel_q;
+      logic [95:0] rowstream_m2_full_block_token_ids_for_accel;
+
+      assign rowstream_m2_full_block_token_ids_for_accel =
+        rowstream_m2_full_block_start ?
+        rowstream_m2_full_block_input_vector[95:0] :
+        rowstream_m2_full_block_token_ids_for_accel_q;
 
       task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
         .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX),
@@ -295,7 +301,7 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
       ) m2_attention_ln2_accel (
         .SYS_CLK(pcie_user_clk),
         .SYS_RSTN(pcie_user_rst_n),
-        .pcie_token_ids_i(rowstream_m2_full_block_input_vector_for_accel),
+        .pcie_token_ids_i({416'd0, rowstream_m2_full_block_token_ids_for_accel}),
         .pcie_reserved_i(rowstream_m2_full_block_residual_vector),
         .pcie_start_pulse_i(rowstream_m2_full_block_start),
         .pcie_clear_pulse_i(rowstream_m2_full_block_clear),
@@ -328,9 +334,9 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
           rowstream_m2_full_block_debug2 <= 32'd0;
           rowstream_m2_full_block_debug3 <= 32'd0;
           rowstream_m2_full_block_provenance <= 32'd0;
-          rowstream_m2_full_block_input_vector_for_accel <= 512'd0;
+          rowstream_m2_full_block_token_ids_for_accel_q <= 96'd0;
         end else begin
-          rowstream_m2_full_block_input_vector_for_accel <= rowstream_m2_full_block_input_vector;
+          rowstream_m2_full_block_token_ids_for_accel_q <= rowstream_m2_full_block_input_vector[95:0];
           rowstream_m2_full_block_status <= rowstream_m2_full_block_status_raw;
           rowstream_m2_full_block_cycle_count <= rowstream_m2_full_block_cycle_count_raw;
           rowstream_m2_full_block_output_checksum <= rowstream_m2_full_block_output_checksum_raw;

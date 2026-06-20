@@ -24,12 +24,18 @@ def test_m2_5_top_registers_public_pcie_boundary() -> None:
 
 def test_m2_5_top_decouples_compute_input_from_bar_readback() -> None:
     text = TOP.read_text(encoding="utf-8")
-    assert "rowstream_m2_full_block_input_vector_for_accel" in text
+    compact = " ".join(text.split())
+    assert "rowstream_m2_full_block_token_ids_for_accel_q" in text
+    assert "rowstream_m2_full_block_token_ids_for_accel" in text
     assert (
-        "rowstream_m2_full_block_input_vector_for_accel <= "
-        "rowstream_m2_full_block_input_vector;"
+        "rowstream_m2_full_block_start ? "
+        "rowstream_m2_full_block_input_vector[95:0]"
+    ) in compact
+    assert (
+        "rowstream_m2_full_block_token_ids_for_accel_q <= "
+        "rowstream_m2_full_block_input_vector[95:0];"
     ) in text
-    assert ".pcie_token_ids_i(rowstream_m2_full_block_input_vector_for_accel)" in text
+    assert ".pcie_token_ids_i({416'd0, rowstream_m2_full_block_token_ids_for_accel})" in text
 
 
 def test_m2_5_image_uses_direct_m2_bar_contract() -> None:
