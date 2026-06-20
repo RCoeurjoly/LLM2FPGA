@@ -574,7 +574,6 @@ EOF
             chparam -set ENABLE_M2_ACCEL 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
             chparam -set M2_ACCEL_KIND 3 task6_ypcb_pcie_rowstream_ingress_dummy_top
             chparam -set M2_ENABLE_CONTEXT_INTERNAL_CHECKS 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
-            chparam -set M2_INPUT_PCIE7X_ROR64_COMPENSATE 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
             hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
             synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
             stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top

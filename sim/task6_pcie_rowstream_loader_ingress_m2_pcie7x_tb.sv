@@ -194,9 +194,14 @@ module task6_pcie_rowstream_loader_ingress_m2_pcie7x_tb;
     pcie7x_ror1 = {value[0], value[63:1]};
   endfunction
 
+  function automatic [63:0] pcie7x_rol1(input [63:0] value);
+    pcie7x_rol1 = {value[62:0], value[63]};
+  endfunction
+
   initial begin
     logic [31:0] expected [0:15];
     logic [31:0] raw [0:15];
+    logic [31:0] direct_compensated_readback [0:15];
     logic [31:0] value;
     logic [63:0] pair;
     logic [63:0] rotated;
@@ -226,6 +231,9 @@ module task6_pcie_rowstream_loader_ingress_m2_pcie7x_tb;
       rotated = pcie7x_ror1(pair);
       raw[word] = rotated[31:0];
       raw[word + 1] = rotated[63:32];
+      rotated = pcie7x_rol1(pair);
+      direct_compensated_readback[word] = rotated[31:0];
+      direct_compensated_readback[word + 1] = rotated[63:32];
     end
 
     for (int word = 0; word < 16; word++) begin
@@ -237,6 +245,16 @@ module task6_pcie_rowstream_loader_ingress_m2_pcie7x_tb;
       check(
         m2_full_block_input_vector[word * 32 +: 32] == expected[word],
         "M2 PCIe7x-compensated input vector must be host identity internally"
+      );
+    end
+    for (int word = 0; word < 16; word++) begin
+      axil_write(32'h540 + word * 4, expected[word]);
+    end
+    for (int word = 0; word < 16; word++) begin
+      axil_read(32'h540 + word * 4, value);
+      check(
+        value == direct_compensated_readback[word],
+        "direct writes under M2 PCIe7x compensation reproduce the hardware rotate-left readback"
       );
     end
 
