@@ -1,26 +1,25 @@
 * LLM2FPGA Task 6 State of the Art
 ** Snapshot
-- last_updated: 2026-06-19T15:59:31+02:00
-- milestone: M2.3-embedding-and-block-input-handoff
-- build_variant: =default/latest-passing-milestone is .#task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream; bottleneck is .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream with M2 enabled and M1 disabled. Latest focused M2.3 accepted bitstream is copied to artifacts/task6/bitstreams/task6-m2-3-embedding-handoff-pnr100-2026-06-19.bit, sha256=955aacdf819cefc2bf0e631cde6ebecae42f0972691310661225d65b9e5ffea8.=
+- last_updated: 2026-06-20T11:58:20+02:00
+- milestone: M2.4-live-context-attention-slice
+- build_variant: =default/latest-passing-milestone is .#task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream; bottleneck remains the M2 path. Latest accepted focused M2.3 bitstream is copied to artifacts/task6/bitstreams/task6-m2-3-embedding-handoff-pnr100-2026-06-19.bit, sha256=955aacdf819cefc2bf0e631cde6ebecae42f0972691310661225d65b9e5ffea8. Current M2.4 seed17 candidate has restored RTL-side input BAR lane compensation but missed final pcie_user_clk timing.=
 - next_milestone: M2.4-live-context-attention-slice
 - latest_green_artifact:
   =artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json=
 - current_gap: M1 remains the default/latest-passing external build. M2 remains
   the bottleneck, split into M2.1-M2.7 submilestones. M2.1, M2.2, and M2.3 are
-  HIL-proven. M2.3 passed as a focused live-compute, direct-mode,
-  strict-readback candidate, not as full M2 full-block evidence. The next gap
-  is M2.4: prove the live context/attention slice boundary with a focused
-  oracle, sim, timing-clean bitstream, PCIe recovery to =pcie_ready=, and a
-  strict board gate.
-- failure_signature: =M2.3 PASS: artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json. The regenerated accepted M2.3 artifact is live_compute=true, vector_write_mode=direct, input_readback_transform=identity, residual_readback_transform=identity, run_status=0x4d320059 DONE, no error, output_valid=true, output_count=64, debug1/block_input_checksum=0x000350f9, debug/debug2 ln_input_checksum=0x88fa5e3a, debug3 checksum lows match, embedding_output_vector=true, and the full output_vector_hex exactly matches expected_embedding_block_input_vector_hex. The auxiliary output_hash register is diagnostic only and does not affect status: embedding_output_hash=false, expected_output_hash_hex=ee2513d15bb238849de3b4f01501872b, observed output_hash_hex=ee2513d1db68b7849de3b4f01501872b. Durable accepted bitstream copy: artifacts/task6/bitstreams/task6-m2-3-embedding-handoff-pnr100-2026-06-19.bit. Flash PASS: artifacts/task6/runs/2026-06-19T15-39-00+0200-task6-m2-3-output-hash-proof-flash. Recovery PASS pcie_ready after one physical power cycle: artifacts/task6/runs/2026-06-19T15-46-14+0200-task6-m2-3-output-hash-proof-recover.=
-- next_action: Define and run M2.4 live context/attention slice as a focused
-  submilestone: keep M2.3's strict direct-mode public-interface contract, add
-  an oracle for LN + QKV + softmax/value/context at the selected boundary, run
-  focused sim, build a timing-clean M2.4 candidate, then flash/recover and
-  require =pcie_ready= before the M2.4 board gate. Do not claim full M2.7 until
-  the complete block direct-mode acceptance gate passes.
-- status: M1_HIL_GREEN_M2_1_HIL_GREEN_M2_2_HIL_GREEN_M2_3_HIL_GREEN_M2_4_NEXT
+  HIL-proven on earlier focused images. Current M2.4 work restored RTL-side
+  input BAR lane compensation and sim-proved direct input/residual identity,
+  but the seed17 M2.4 bitstream missed final timing, so M2.4 BAR identity is
+  not HIL-proven on the current candidate.
+- failure_signature: =M2.4 seed17 with restored input BAR compensation: rowstream ingress sim PASS for direct input/residual identity after complete 64-bit lane writes. Bitstream build reached legal routing but failed timing: pcie_user_clk 59.53 MHz below the 62.50 MHz target. Critical path is in the M2.4 LN/context logic from ln_center_flat_index_w[6] through context_i to ln_mean_input_q12_q[0], about -0.8 ns worst slack. No M2.4 HIL or BAR gate was run from this non-timing-clean build. Latest accepted green artifact remains M2.3: artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json.=
+- next_action: Make a timing-clean M2.4 candidate, then flash/recover to
+  =pcie_ready=, run a BAR-only public-interface probe for direct input and
+  residual identity, and only then run the M2.4 board gate. If any HIL gate
+  fails, reproduce the public-interface failure in simulation; if sim passes
+  while HIL fails, extend the simulation/diagnostic boundary before changing
+  milestone status.
+- status: M1_HIL_GREEN_M2_1_HIL_GREEN_M2_2_HIL_GREEN_M2_3_HIL_GREEN_M2_4_TIMING_BLOCKED
 - priority: Use the HIL-proven M1 baseline as the default/latest-passing
   milestone; pursue M2 full-block HIL as the bottleneck toward TinyStories-1M
   inference.

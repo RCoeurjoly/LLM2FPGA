@@ -1,0 +1,125 @@
+* Task 6 M2.1-M2.4 Dataflow
+
+This is the working, evidence-based view of the M2 path. It describes what the
+board must prove through public PCIe/BAR behavior before we count a
+submilestone.
+
+** Acceptance rule
+
+- HIL evidence must use direct host writes and strict readback. Compensated
+  host writes, private RTL probes, clear-only runs, and debug-only PASS states
+  are diagnostics.
+- If a board gate fails, reproduce the same public-interface failure in
+  simulation. If simulation passes and HIL fails, the simulation is not faithful
+  enough to the implemented hardware boundary. Extend the sim or add a narrower
+  diagnostic; do not treat the mismatch as milestone progress.
+- A submilestone is complete only when its named boundary has an offline oracle,
+  a self-checking sim, a timing-clean bitstream, PCIe recovery to =pcie_ready=,
+  and a strict board artifact.
+
+** Boundary diagram
+
+#+BEGIN_EXAMPLE
+Host gate/oracle
+  |
+  | PCIe BAR direct writes
+  v
+M2 BAR windows
+  |-- input vector/token window 0x540..0x57c
+  |     - current RTL compensates the PCIe-observed 64-bit lane ROR1 at the
+  |       ingress so the public contract remains identity.
+  |     - this is sim-proven after commit 3b79414, not HIL-proven yet for the
+  |       current M2.4 candidate because the seed17 bitstream missed timing.
+  |
+  |-- residual vector window 0x580..0x5bc
+  |     - direct identity path in sim and prior M2.4 HIL probes.
+  |
+  |-- control/status window
+        - start, clear, DONE/ERROR, start_count, provenance, debug fields.
+        - lifecycle gates must prove no stale/all-ones BAR behavior.
+
+M2.3 embedding handoff
+  token ids/control
+    -> token embedding + position embedding
+    -> block input vector
+    -> LN input checksum/vector boundary
+
+M2.4 live context/attention slice
+  block input
+    -> layernorm
+    -> Q/K/V projection
+    -> softmax/value accumulation
+    -> context vector
+    -> output vector/hash/debug fields for strict oracle comparison
+#+END_EXAMPLE
+
+** M2.1 PCIe/BAR contract
+
+The contract is simple: direct host writes to M2 input, residual, and control
+must read back identity through the same public BAR interface. The host must not
+apply lane-order compensation.
+
+Current status:
+
+- M2.1 is HIL-green for the earlier focused M2 candidate recorded in
+  =artifacts/task6/runs/task6-bottleneck/m2-1-direct-bar-contract-candidate.json=.
+- The current M2.4-focused image regressed the input window only: residual
+  still read back identity, while input readback showed a 64-bit-lane ROR1
+  transform in
+  =artifacts/task6/runs/task6-bottleneck/m2-4-boundary-single-word-probe-after-loopback-restore.json=.
+- Commit =3b79414= restores RTL-side input-lane compensation and the rowstream
+  ingress sim now proves the public input/residual identity contract. Hardware
+  proof is pending a timing-clean M2.4 bitstream.
+
+** M2.2 start/clear lifecycle
+
+The lifecycle contract proves that the public control/status path is stable:
+=start_count= increments on start, DONE/ERROR is decoded, clear returns to
+IDLE, and the BAR does not become stale or all ones.
+
+Current status:
+
+- M2.2 is HIL-green for the earlier focused M2 candidate recorded in
+  =artifacts/task6/runs/task6-bottleneck/m2-2-start-clear-lifecycle-candidate.json=.
+- M2.2 must be rerun on any new M2.4 bitstream before accepting later compute
+  evidence, because timing or reconfiguration changes can perturb the hardware
+  boundary.
+
+** M2.3 embedding and block-input handoff
+
+The M2.3 contract proves that host token IDs and control produce the expected
+embedding/block-input boundary and LN input checksum/vector.
+
+Current status:
+
+- M2.3 is HIL-green as a focused live-compute, direct-mode,
+  strict-readback submilestone:
+  =artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json=.
+- This proves the embedding handoff boundary only. It is not full M2 block
+  evidence.
+
+** M2.4 live context/attention slice
+
+The M2.4 contract must prove LN + QKV + softmax/value/context against an
+oracle at the selected block boundary.
+
+Current status:
+
+- The M2.4 seed17 candidate with restored input BAR compensation builds through
+  synthesis and routing legality but misses final timing:
+  =pcie_user_clk= routes at 59.53 MHz against the 62.50 MHz target.
+- The critical path is in the M2.4 LN/context path, from
+  =ln_center_flat_index_w[6]= through =context_i= to
+  =ln_mean_input_q12_q[0]=. It is not direct evidence that the restored input
+  BAR adapter is wrong.
+- No M2.4 HIL or board BAR proof should run from this candidate until a
+  timing-clean bitstream exists.
+
+Next action:
+
+1. Make the M2.4 candidate timing-clean, preferably by a timing-local fix in
+   the LN/context path or a small documented seed sweep.
+2. Flash the exact timing-clean bitstream and recover to =pcie_ready=.
+3. Run a BAR-only public-interface probe first: input and residual direct
+   identity must both pass.
+4. Only then run the M2.4 board gate.

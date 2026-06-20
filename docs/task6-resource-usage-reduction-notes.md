@@ -4,6 +4,46 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-20 - M2.4 BAR identity fix is sim-proven, HIL blocked by timing
+
+Agent/process update:
+
+- `.agents/README.md` now requires short commits for each coherent change and
+  records the HIL/simulation rule: if HIL fails, reproduce the public-interface
+  failure in simulation; if simulation passes while HIL fails, the simulation
+  is incomplete or unfaithful to the implemented hardware boundary.
+- Added `docs/task6-m2-dataflow.org` as the current high-level M2.1-M2.4
+  dataflow explanation.
+
+M2.4 BAR identity work:
+
+- Commit `3b79414` restored RTL-side input BAR lane compensation in
+  `fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v`.
+- The rowstream ingress simulation now models the PCIe-observed raw M2 input
+  lane words and proves the public contract after complete 64-bit lane writes:
+  M2 input and residual direct writes both read back identity.
+- Verification passed:
+  `nix build .#task6-pcie-rowstream-loader-ingress-sim-main --no-link --print-out-paths -L`
+  and the resulting `obj_dir/sim_main`.
+
+M2.4 build result:
+
+- `nix build .#task6-m2-4-live-context-attention-slice-pnr100-seed17-bitstream --no-link --print-out-paths -L`
+  built through synthesis and legal routing, but final timing failed.
+- Final `pcie_user_clk` was 59.53 MHz against the 62.50 MHz target. The
+  critical path is in the M2.4 LN/context logic, from
+  `ln_center_flat_index_w[6]` through `context_i` to
+  `ln_mean_input_q12_q[0]`, with about -0.8 ns worst slack.
+- No M2.4 HIL was run from this build. The restored BAR identity is
+  simulation-proven only until a timing-clean M2.4 bitstream can be flashed and
+  probed on hardware.
+
+Next action:
+
+- Produce a timing-clean M2.4 candidate, then flash/recover to `pcie_ready`,
+  run a BAR-only public-interface probe for direct input/residual identity, and
+  only then run the M2.4 board gate.
+
 ## 2026-06-19 - M2.3 strict embedding handoff HIL accepted
 
 M2.3 is now HIL-proven as a focused live-compute, direct-mode,
