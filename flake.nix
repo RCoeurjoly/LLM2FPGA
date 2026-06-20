@@ -574,6 +574,7 @@ EOF
             chparam -set ENABLE_M2_ACCEL 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
             chparam -set M2_ACCEL_KIND 3 task6_ypcb_pcie_rowstream_ingress_dummy_top
             chparam -set M2_ENABLE_CONTEXT_INTERNAL_CHECKS 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set M2_INPUT_PCIE7X_ROR64_COMPENSATE 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
             hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
             synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
             stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top
@@ -10707,6 +10708,19 @@ EOF
             verilator --binary --timing --language 1800-2017 -Wno-fatal -top task6_pcie_rowstream_loader_ingress_tb -Mdir "$out/obj_dir" -o sim_main ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} ${./fpga/rtl/task6_uberddr3_rowstream_loader_contract.sv} ${./sim/task6_pcie_rowstream_loader_ingress_tb.sv}
           '';
 
+        task6PcieRowstreamLoaderIngressM2Pcie7xSimMain =
+          pkgs.runCommand "task6-pcie-rowstream-loader-ingress-m2-pcie7x-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -top task6_pcie_rowstream_loader_ingress_m2_pcie7x_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} \
+              ${./sim/task6_pcie_rowstream_loader_ingress_m2_pcie7x_tb.sv}
+          '';
+
         task6UberDdr3ControllerLaneOrderSimMain =
           pkgs.runCommand "task6-uberddr3-controller-lane-order-sim-main" {
             buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
@@ -16517,6 +16531,8 @@ EOF
             task6PcieAxilRowstreamLoopbackSimMain;
           task6-pcie-rowstream-loader-ingress-sim-main =
             task6PcieRowstreamLoaderIngressSimMain;
+          task6-pcie-rowstream-loader-ingress-m2-pcie7x-sim-main =
+            task6PcieRowstreamLoaderIngressM2Pcie7xSimMain;
           task6-uberddr3-rowstream-loader-contract-sv-sim =
             task6UberDdr3RowstreamLoaderContractSvSim;
           task6-uberddr3-controller-lane-order-sim-main =

@@ -4,6 +4,7 @@
 module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
   parameter int M2_FULL_BLOCK_TOKEN_INDEX = 5,
   parameter bit M2_ENABLE_CONTEXT_INTERNAL_CHECKS = 1'b1,
+  parameter bit M2_INPUT_PCIE7X_ROR64_COMPENSATE = 1'b0,
   parameter int M2_ACCEL_KIND = 0,
   parameter bit ENABLE_MLP_ACCEL = 1'b1,
   parameter bit ENABLE_M2_ACCEL = 1'b1
@@ -152,7 +153,8 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
 
   task6_pcie_axil_rowstream_loader_ingress_cdc #(
     .COMMAND_WIDTH(COMMAND_WIDTH),
-    .COMMAND_DATA_LSB(80)
+    .COMMAND_DATA_LSB(80),
+    .M2_INPUT_PCIE7X_ROR64_COMPENSATE(M2_INPUT_PCIE7X_ROR64_COMPENSATE)
   ) pcie_ingress (
     .pcie_clk(pcie_user_clk),
     .pcie_rst_n(pcie_user_rst_n),

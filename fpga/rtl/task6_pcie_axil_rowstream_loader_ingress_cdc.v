@@ -5,7 +5,8 @@
 
 module task6_pcie_axil_rowstream_loader_ingress_cdc #(
     parameter integer COMMAND_WIDTH = 208,
-    parameter integer COMMAND_DATA_LSB = 80
+    parameter integer COMMAND_DATA_LSB = 80,
+    parameter integer M2_INPUT_PCIE7X_ROR64_COMPENSATE = 0
 ) (
     input wire pcie_clk,
     input wire pcie_rst_n,
@@ -218,7 +219,8 @@ module task6_pcie_axil_rowstream_loader_ingress_cdc #(
 
     task6_pcie_axil_rowstream_loader_ingress #(
         .COMMAND_WIDTH(COMMAND_WIDTH),
-        .COMMAND_DATA_LSB(COMMAND_DATA_LSB)
+        .COMMAND_DATA_LSB(COMMAND_DATA_LSB),
+        .M2_INPUT_PCIE7X_ROR64_COMPENSATE(M2_INPUT_PCIE7X_ROR64_COMPENSATE)
     ) ingress (
         .clk(pcie_clk),
         .rst_n(pcie_rst_n),
