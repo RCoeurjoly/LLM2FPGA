@@ -73,19 +73,19 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
   wire [511:0] rowstream_m2_full_block_residual_vector;
   wire rowstream_m2_full_block_start;
   wire rowstream_m2_full_block_clear;
-  wire [31:0] rowstream_m2_full_block_status;
-  wire [31:0] rowstream_m2_full_block_cycle_count;
-  wire [31:0] rowstream_m2_full_block_output_checksum;
-  wire [31:0] rowstream_m2_full_block_output_sample0;
-  wire [31:0] rowstream_m2_full_block_output_sample1;
-  wire [31:0] rowstream_m2_full_block_output_count;
-  wire [511:0] rowstream_m2_full_block_output_vector;
-  wire [127:0] rowstream_m2_full_block_output_hash;
-  wire [31:0] rowstream_m2_full_block_debug;
-  wire [31:0] rowstream_m2_full_block_debug1;
-  wire [31:0] rowstream_m2_full_block_debug2;
-  wire [31:0] rowstream_m2_full_block_debug3;
-  wire [31:0] rowstream_m2_full_block_provenance;
+  logic [31:0] rowstream_m2_full_block_status;
+  logic [31:0] rowstream_m2_full_block_cycle_count;
+  logic [31:0] rowstream_m2_full_block_output_checksum;
+  logic [31:0] rowstream_m2_full_block_output_sample0;
+  logic [31:0] rowstream_m2_full_block_output_sample1;
+  logic [31:0] rowstream_m2_full_block_output_count;
+  logic [511:0] rowstream_m2_full_block_output_vector;
+  logic [127:0] rowstream_m2_full_block_output_hash;
+  logic [31:0] rowstream_m2_full_block_debug;
+  logic [31:0] rowstream_m2_full_block_debug1;
+  logic [31:0] rowstream_m2_full_block_debug2;
+  logic [31:0] rowstream_m2_full_block_debug3;
+  logic [31:0] rowstream_m2_full_block_provenance;
 
   reg loader_done_q;
   reg loader_error_q;
@@ -275,6 +275,19 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
 
   generate
     if (ENABLE_M2_ACCEL && M2_ACCEL_KIND == 3) begin : gen_m2_attention_ln2_accel
+      logic [31:0] rowstream_m2_full_block_status_raw;
+      logic [31:0] rowstream_m2_full_block_cycle_count_raw;
+      logic [31:0] rowstream_m2_full_block_output_checksum_raw;
+      logic [31:0] rowstream_m2_full_block_output_sample0_raw;
+      logic [31:0] rowstream_m2_full_block_output_sample1_raw;
+      logic [31:0] rowstream_m2_full_block_output_count_raw;
+      logic [511:0] rowstream_m2_full_block_output_vector_raw;
+      logic [31:0] rowstream_m2_full_block_debug_raw;
+      logic [31:0] rowstream_m2_full_block_debug1_raw;
+      logic [31:0] rowstream_m2_full_block_debug2_raw;
+      logic [31:0] rowstream_m2_full_block_debug3_raw;
+      logic [31:0] rowstream_m2_full_block_provenance_raw;
+
       task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
         .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX),
         .ENABLE_CONTEXT_INTERNAL_CHECKS(M2_ENABLE_CONTEXT_INTERNAL_CHECKS)
@@ -285,20 +298,51 @@ module task6_ypcb_pcie_rowstream_ingress_dummy_top #(
         .pcie_reserved_i(rowstream_m2_full_block_residual_vector),
         .pcie_start_pulse_i(rowstream_m2_full_block_start),
         .pcie_clear_pulse_i(rowstream_m2_full_block_clear),
-        .pcie_status_o(rowstream_m2_full_block_status),
-        .pcie_cycle_count_o(rowstream_m2_full_block_cycle_count),
-        .pcie_output_checksum_o(rowstream_m2_full_block_output_checksum),
-        .pcie_output_sample0_o(rowstream_m2_full_block_output_sample0),
-        .pcie_output_sample1_o(rowstream_m2_full_block_output_sample1),
-        .pcie_output_count_o(rowstream_m2_full_block_output_count),
-        .pcie_output_vector_o(rowstream_m2_full_block_output_vector),
-        .pcie_debug_o(rowstream_m2_full_block_debug),
-        .pcie_debug1_o(rowstream_m2_full_block_debug1),
-        .pcie_debug2_o(rowstream_m2_full_block_debug2),
-        .pcie_debug3_o(rowstream_m2_full_block_debug3),
-        .pcie_provenance_o(rowstream_m2_full_block_provenance)
+        .pcie_status_o(rowstream_m2_full_block_status_raw),
+        .pcie_cycle_count_o(rowstream_m2_full_block_cycle_count_raw),
+        .pcie_output_checksum_o(rowstream_m2_full_block_output_checksum_raw),
+        .pcie_output_sample0_o(rowstream_m2_full_block_output_sample0_raw),
+        .pcie_output_sample1_o(rowstream_m2_full_block_output_sample1_raw),
+        .pcie_output_count_o(rowstream_m2_full_block_output_count_raw),
+        .pcie_output_vector_o(rowstream_m2_full_block_output_vector_raw),
+        .pcie_debug_o(rowstream_m2_full_block_debug_raw),
+        .pcie_debug1_o(rowstream_m2_full_block_debug1_raw),
+        .pcie_debug2_o(rowstream_m2_full_block_debug2_raw),
+        .pcie_debug3_o(rowstream_m2_full_block_debug3_raw),
+        .pcie_provenance_o(rowstream_m2_full_block_provenance_raw)
       );
-      assign rowstream_m2_full_block_output_hash = 128'd0;
+
+      always @(posedge pcie_user_clk or negedge pcie_user_rst_n) begin
+        if (!pcie_user_rst_n) begin
+          rowstream_m2_full_block_status <= 32'd0;
+          rowstream_m2_full_block_cycle_count <= 32'd0;
+          rowstream_m2_full_block_output_checksum <= 32'd0;
+          rowstream_m2_full_block_output_sample0 <= 32'd0;
+          rowstream_m2_full_block_output_sample1 <= 32'd0;
+          rowstream_m2_full_block_output_count <= 32'd0;
+          rowstream_m2_full_block_output_vector <= 512'd0;
+          rowstream_m2_full_block_output_hash <= 128'd0;
+          rowstream_m2_full_block_debug <= 32'd0;
+          rowstream_m2_full_block_debug1 <= 32'd0;
+          rowstream_m2_full_block_debug2 <= 32'd0;
+          rowstream_m2_full_block_debug3 <= 32'd0;
+          rowstream_m2_full_block_provenance <= 32'd0;
+        end else begin
+          rowstream_m2_full_block_status <= rowstream_m2_full_block_status_raw;
+          rowstream_m2_full_block_cycle_count <= rowstream_m2_full_block_cycle_count_raw;
+          rowstream_m2_full_block_output_checksum <= rowstream_m2_full_block_output_checksum_raw;
+          rowstream_m2_full_block_output_sample0 <= rowstream_m2_full_block_output_sample0_raw;
+          rowstream_m2_full_block_output_sample1 <= rowstream_m2_full_block_output_sample1_raw;
+          rowstream_m2_full_block_output_count <= rowstream_m2_full_block_output_count_raw;
+          rowstream_m2_full_block_output_vector <= rowstream_m2_full_block_output_vector_raw;
+          rowstream_m2_full_block_output_hash <= 128'd0;
+          rowstream_m2_full_block_debug <= rowstream_m2_full_block_debug_raw;
+          rowstream_m2_full_block_debug1 <= rowstream_m2_full_block_debug1_raw;
+          rowstream_m2_full_block_debug2 <= rowstream_m2_full_block_debug2_raw;
+          rowstream_m2_full_block_debug3 <= rowstream_m2_full_block_debug3_raw;
+          rowstream_m2_full_block_provenance <= rowstream_m2_full_block_provenance_raw;
+        end
+      end
     end else if (ENABLE_M2_ACCEL && M2_ACCEL_KIND == 2) begin : gen_m2_attention_slice_accel
       task6_m2_embedding_live_context_attention_slice_pcie_accel_top #(
         .M2_FULL_BLOCK_TOKEN_INDEX(M2_FULL_BLOCK_TOKEN_INDEX),

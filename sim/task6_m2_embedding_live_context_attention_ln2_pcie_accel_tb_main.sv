@@ -34,6 +34,10 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_tb;
   logic [31:0] expected_debug1;
   logic [31:0] expected_debug2;
   logic [31:0] expected_debug3;
+  logic [31:0] first_pass_checksum;
+  logic [31:0] first_pass_sample0;
+  logic [31:0] first_pass_sample1;
+  logic [511:0] first_pass_vector;
 
   task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
     .M2_FULL_BLOCK_TOKEN_INDEX(5)
@@ -186,10 +190,22 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_tb;
 
     pulse_start();
     wait_done(1);
+    first_pass_checksum = pcie_output_checksum_o;
+    first_pass_sample0 = pcie_output_sample0_o;
+    first_pass_sample1 = pcie_output_sample1_o;
+    first_pass_vector = pcie_output_vector_o;
 
     pulse_clear();
     if (status_state(pcie_status_o) != M2_IDLE || !pcie_status_o[0]) begin
       $fatal(1, "FAIL: post-clear status expected idle/ready got %08x", pcie_status_o);
+    end
+    if (
+      pcie_output_checksum_o !== first_pass_checksum ||
+      pcie_output_sample0_o !== first_pass_sample0 ||
+      pcie_output_sample1_o !== first_pass_sample1 ||
+      pcie_output_vector_o !== first_pass_vector
+    ) begin
+      $fatal(1, "FAIL: post-clear should preserve M2.5 data outputs while returning lifecycle to IDLE");
     end
 
     pulse_start();

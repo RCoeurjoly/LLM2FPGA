@@ -201,16 +201,10 @@ module task6_m2_embedding_live_context_attention_ln2_pcie_accel_top #(
       if (pcie_clear_q) begin
         state_q <= M2_IDLE;
         cycle_count_q <= 32'd0;
-        output_checksum_q <= 32'd0;
-        output_sample0_q <= 32'd0;
-        output_sample1_q <= 32'd0;
-        output_vector_q <= 512'd0;
         debug_q <= 32'd0;
         debug1_q <= 32'd0;
         debug2_q <= 32'd0;
         debug3_q <= 32'd0;
-        block_input_vector_q <= 512'd0;
-        context_vector_q <= 512'd0;
         block_input_checksum_q <= 32'd0;
         ln_input_checksum_q <= 32'd0;
         context_checksum_q <= 32'd0;
