@@ -4,6 +4,37 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-20 - Architecture decision work starts
+
+Task 6 now has an explicit architecture decision artifact:
+`docs/task6-architecture-decision.md`.
+
+The decision work records the current constraint that Task 6 must not rely on
+manual custom RTL per model. It compares two valid directions:
+
+- automatic compiler-to-RTL with int8 quantization and DDR3/external memory;
+- common-kernel v2, where PyTorch input compiles into manifests, quantized
+  weights, schedules, DDR3 layouts, configs, and oracles consumed by reusable
+  FPGA kernels.
+
+The first POC target is `tiny-stories-1m-representative-core`, with a required
+audit of whether the minimum `v32-l2-h2-p4-w2` profile is representative enough
+or whether a larger registered sweep point should be promoted. The architecture
+survey is bounded to decision-relevant patterns from the existing paper survey,
+the Kintex-480T reclassification, the third-party kernel survey, and the saved
+`LLM Inference Limits.html` analysis.
+
+Initial representative-core audit:
+
+- `nix build .#tiny-stories-1m-representative-core-sweep-manifest --no-link --print-out-paths`
+  passed.
+- `nix build .#tiny-stories-1m-baseline-float-vs-representative-core-op-coverage --no-link --print-out-paths -L`
+  passed.
+- The minimum representative core preserves all distinct Torch and CF
+  ops/dialects versus the baseline in this audit, so it is accepted as the first
+  architecture POC smoke target. It remains a scale/fidelity proxy and does not
+  replace full TinyStories-1M checkpoint evidence.
+
 ## 2026-06-20 - M2.4 BAR identity fix is sim-proven, HIL blocked by timing
 
 Agent/process update:
