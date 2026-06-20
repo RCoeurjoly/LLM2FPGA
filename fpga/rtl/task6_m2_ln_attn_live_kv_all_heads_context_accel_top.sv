@@ -36,10 +36,17 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     S_RUN_PROB_DIV = 5'd10,
     S_RUN_PROB_CHECK = 5'd11,
     S_RUN_LN_AFFINE = 5'd12,
-    S_RUN_LN_OUTPUT = 5'd13,
-    S_RUN_PROJ_OUTPUT = 5'd14,
-    S_RUN_PROJ_ADDR = 5'd15,
-    S_RUN_PROJ_READ = 5'd16
+    S_RUN_LN_SCALE = 5'd13,
+    S_RUN_LN_OUTPUT = 5'd14,
+    S_RUN_PROJ_OUTPUT = 5'd15,
+    S_RUN_PROJ_ADDR = 5'd16,
+    S_RUN_PROJ_READ = 5'd17,
+    S_RUN_PROJ_SCALE = 5'd18,
+    S_RUN_PROB_WEIGHT_PREP = 5'd19,
+    S_RUN_PROB_WEIGHT_TERMS = 5'd20,
+    S_ACCUM_MEAN_READ = 5'd21,
+    S_RUN_VALUE_SCALE = 5'd22,
+    S_RUN_VALUE_OUTPUT = 5'd23
   } state_t;
 
   localparam int TOKEN_WIDTH = (CACHE_SEQ <= 1) ? 1 : $clog2(CACHE_SEQ);
@@ -63,12 +70,23 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
 
   logic signed [31:0] ln_mean_acc_q12;
   logic signed [31:0] ln_mean_latched_q12;
+  logic signed [15:0] ln_mean_input_q12_q;
   logic signed [31:0] ln_centered_q12_q;
+  logic signed [31:0] ln_inv_std_q16_q;
+  logic signed [31:0] ln_gamma_q16_q;
+  logic signed [31:0] ln_beta_q12_q;
+  logic signed [31:0] ln_output_scale_mul_q20_q;
   logic signed [31:0] ln_norm_q12_q;
   logic signed [31:0] ln_affine_q12_q;
   logic signed [31:0] k_proj_acc_q;
   logic signed [31:0] v_proj_acc_q;
   logic signed [31:0] q_proj_acc_q;
+  logic signed [31:0] k_proj_output_acc_q;
+  logic signed [31:0] v_proj_output_acc_q;
+  logic signed [31:0] q_proj_output_acc_q;
+  logic signed [31:0] k_proj_output_mul_q20_q;
+  logic signed [31:0] v_proj_output_mul_q20_q;
+  logic signed [31:0] q_proj_output_mul_q20_q;
   logic [31:0] proj_weight_index_q;
   logic signed [7:0] k_proj_weight_data_q;
   logic signed [7:0] v_proj_weight_data_q;
@@ -82,8 +100,17 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic [31:0] weight_cache_q [0:CACHE_SEQ-1];
   logic [15:0] prob_cache_q [0:CACHE_SEQ-1];
   logic [31:0] softmax_denom_q;
+  logic signed [63:0] softmax_x_q12_q;
+  logic signed [63:0] softmax_term1_q;
+  logic signed [63:0] softmax_term2_q;
   logic [31:0] prob_sum_q;
   logic [31:0] prob_norm_q;
+  logic signed [31:0] value_acc_q;
+  logic signed [63:0] value_shifted_q;
+  logic signed [7:0] value_q_q;
+  logic signed [63:0] context_requant_product_q;
+  logic signed [63:0] context_requant_shifted_q;
+  logic signed [7:0] context_q_q;
   logic [31:0] div_numer_q;
   logic [31:0] div_denom_q;
   logic [32:0] div_remainder_q;
@@ -109,6 +136,12 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic signed [63:0] ln_piped_affine_product_w;
   logic signed [63:0] ln_piped_affine_shifted_w;
   logic signed [31:0] ln_piped_affine_q12_w;
+  logic signed [63:0] ln_registered_norm_product_w;
+  logic signed [63:0] ln_registered_norm_shifted_w;
+  logic signed [31:0] ln_registered_norm_q12_w;
+  logic signed [63:0] ln_registered_affine_product_w;
+  logic signed [63:0] ln_registered_affine_shifted_w;
+  logic signed [31:0] ln_registered_affine_q12_w;
   logic signed [63:0] ln_piped_output_product_w;
   logic signed [63:0] ln_piped_output_shifted_w;
   logic signed [31:0] ln_piped_output_scaled_w;
@@ -133,6 +166,11 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic signed [63:0] context_requant_product_w;
   logic signed [63:0] context_requant_shifted_w;
   logic signed [7:0] context_q_w;
+  logic signed [63:0] value_shifted_from_q_w;
+  logic signed [7:0] value_q_from_q_w;
+  logic signed [63:0] context_requant_product_from_q_w;
+  logic signed [63:0] context_requant_shifted_from_q_w;
+  logic signed [7:0] context_q_from_q_w;
   logic signed [31:0] score_delta_w;
   logic signed [63:0] score_delta_scaled_w;
   logic signed [63:0] softmax_x_q12_w;
@@ -140,6 +178,8 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   logic signed [63:0] softmax_term2_w;
   logic signed [63:0] softmax_weight_raw_w;
   logic [31:0] softmax_weight_w;
+  logic signed [63:0] softmax_weight_piped_raw_w;
+  logic [31:0] softmax_weight_piped_w;
   logic [31:0] prob_numer_w;
   logic [15:0] prob_current_w;
   logic [5:0] div_next_bit_w;
@@ -220,7 +260,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     ln_input_q12_by_token[token_index_q][ln_index_q];
   assign ln_input_q12_w = ln_current_input_q12_w;
   assign ln_mean_next_acc_q12_w =
-    ln_mean_acc_q12 + $signed({{16{ln_input_q12_w[15]}}, ln_input_q12_w});
+    ln_mean_acc_q12 + $signed({{16{ln_mean_input_q12_q[15]}}, ln_mean_input_q12_q});
   assign ln_mean_next_shifted_w =
     round_shift_signed64({{32{ln_mean_next_acc_q12_w[31]}}, ln_mean_next_acc_q12_w}, 6);
   assign ln_centered_q12_w =
@@ -249,9 +289,19 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
   assign ln_piped_affine_q12_w =
     $signed(ln_piped_affine_shifted_w[31:0]) +
     $signed({{16{ln_beta_q12[ln_index_q][15]}}, ln_beta_q12[ln_index_q]});
+  assign ln_registered_norm_product_w =
+    $signed(ln_centered_q12_q) * $signed(ln_inv_std_q16_q);
+  assign ln_registered_norm_shifted_w = round_shift_signed64(ln_registered_norm_product_w, 16);
+  assign ln_registered_norm_q12_w = $signed(ln_registered_norm_shifted_w[31:0]);
+  assign ln_registered_affine_product_w =
+    $signed(ln_norm_q12_q) * $signed(ln_gamma_q16_q);
+  assign ln_registered_affine_shifted_w = round_shift_signed64(ln_registered_affine_product_w, 16);
+  assign ln_registered_affine_q12_w =
+    $signed(ln_registered_affine_shifted_w[31:0]) +
+    $signed(ln_beta_q12_q);
   assign ln_piped_output_product_w =
     $signed(ln_affine_q12_q) *
-    $signed(ln_output_scale_mul_q20_by_token[token_index_q]);
+    $signed(ln_output_scale_mul_q20_q);
   assign ln_piped_output_shifted_w = round_shift_signed64(ln_piped_output_product_w, 20);
   assign ln_piped_output_scaled_w = $signed(ln_piped_output_shifted_w[31:0]);
   assign ln_piped_output_w = saturate_i8(ln_piped_output_scaled_w);
@@ -281,14 +331,14 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     ($signed(ln_output_cache_q[proj_index_q]) *
      $signed(q_proj_weight_data_q));
   assign k_proj_output_product_w =
-    $signed(k_proj_acc_q) *
-    $signed(k_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q]);
+    $signed(k_proj_output_acc_q) *
+    $signed(k_proj_output_mul_q20_q);
   assign v_proj_output_product_w =
-    $signed(v_proj_acc_q) *
-    $signed(v_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q]);
+    $signed(v_proj_output_acc_q) *
+    $signed(v_proj_output_mul_q20_q);
   assign q_proj_output_product_w =
-    $signed(q_proj_acc_q) *
-    $signed(q_proj_output_mul_q20_final[head_index_q][dim_index_q]);
+    $signed(q_proj_output_acc_q) *
+    $signed(q_proj_output_mul_q20_q);
   assign k_proj_output_shifted_w = round_shift_signed64(k_proj_output_product_w, 20);
   assign v_proj_output_shifted_w = round_shift_signed64(v_proj_output_product_w, 20);
   assign q_proj_output_shifted_w = round_shift_signed64(q_proj_output_product_w, 20);
@@ -324,6 +374,14 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
     $signed(value_q_w) * $signed(context_requant_mul_q20_by_head[head_index_q]);
   assign context_requant_shifted_w = round_shift_signed64(context_requant_product_w, 20);
   assign context_q_w = saturate_i8($signed(context_requant_shifted_w[31:0]));
+  assign value_shifted_from_q_w =
+    round_shift_signed64({{32{value_acc_q[31]}}, value_acc_q}, 15);
+  assign value_q_from_q_w = saturate_i8($signed(value_shifted_from_q_w[31:0]));
+  assign context_requant_product_from_q_w =
+    $signed(value_q_from_q_w) * $signed(context_requant_mul_q20_by_head[head_index_q]);
+  assign context_requant_shifted_from_q_w =
+    round_shift_signed64(context_requant_product_q, 20);
+  assign context_q_from_q_w = saturate_i8($signed(context_requant_shifted_from_q_w[31:0]));
   assign score_delta_w = max_score_q - score_cache_q[src_index_q];
   assign score_delta_scaled_w =
     $signed({{32{score_delta_w[31]}}, score_delta_w}) *
@@ -342,6 +400,17 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       softmax_weight_w = 32'd65535;
     end else begin
       softmax_weight_w = softmax_weight_raw_w[31:0];
+    end
+  end
+  assign softmax_weight_piped_raw_w =
+    64'sd32768 - softmax_term1_q + softmax_term2_q;
+  always_comb begin
+    if (softmax_weight_piped_raw_w < 64'sd1) begin
+      softmax_weight_piped_w = 32'd1;
+    end else if (softmax_weight_piped_raw_w > 64'sd65535) begin
+      softmax_weight_piped_w = 32'd65535;
+    end else begin
+      softmax_weight_piped_w = softmax_weight_piped_raw_w[31:0];
     end
   end
   assign prob_numer_w =
@@ -369,16 +438,36 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       dim_index_q <= '0;
       ln_mean_acc_q12 <= 32'sd0;
       ln_mean_latched_q12 <= 32'sd0;
+      ln_mean_input_q12_q <= 16'sd0;
       ln_centered_q12_q <= 32'sd0;
+      ln_inv_std_q16_q <= 32'sd0;
+      ln_gamma_q16_q <= 32'sd0;
+      ln_beta_q12_q <= 32'sd0;
+      ln_output_scale_mul_q20_q <= 32'sd0;
       ln_norm_q12_q <= 32'sd0;
       ln_affine_q12_q <= 32'sd0;
       k_proj_acc_q <= 32'sd0;
       v_proj_acc_q <= 32'sd0;
       q_proj_acc_q <= 32'sd0;
+      k_proj_output_acc_q <= 32'sd0;
+      v_proj_output_acc_q <= 32'sd0;
+      q_proj_output_acc_q <= 32'sd0;
+      k_proj_output_mul_q20_q <= 32'sd0;
+      v_proj_output_mul_q20_q <= 32'sd0;
+      q_proj_output_mul_q20_q <= 32'sd0;
       max_score_q <= -32'sd2147483647 - 32'sd1;
       softmax_denom_q <= 32'd0;
+      softmax_x_q12_q <= 64'sd0;
+      softmax_term1_q <= 64'sd0;
+      softmax_term2_q <= 64'sd0;
       prob_sum_q <= 32'd0;
       prob_norm_q <= 32'd0;
+      value_acc_q <= 32'sd0;
+      value_shifted_q <= 64'sd0;
+      value_q_q <= 8'sd0;
+      context_requant_product_q <= 64'sd0;
+      context_requant_shifted_q <= 64'sd0;
+      context_q_q <= 8'sd0;
       div_numer_q <= 32'd0;
       div_denom_q <= 32'd0;
       div_remainder_q <= 33'd0;
@@ -429,7 +518,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
       unique case (state_q)
         S_IDLE: begin
           if (start_i) begin
-            state_q <= S_ACCUM_MEAN;
+            state_q <= S_ACCUM_MEAN_READ;
             head_index_q <= '0;
             reset_head_work();
             cycle_count_q <= 32'd0;
@@ -441,6 +530,12 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           end
         end
 
+        S_ACCUM_MEAN_READ: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          ln_mean_input_q12_q <= ln_input_q12_w;
+          state_q <= S_ACCUM_MEAN;
+        end
+
         S_ACCUM_MEAN: begin
           cycle_count_q <= cycle_count_q + 32'd1;
           ln_mean_acc_q12 <= ln_mean_next_acc_q12_w;
@@ -450,21 +545,32 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             state_q <= S_RUN_LN;
           end else begin
             mean_index_q <= mean_index_q + LN_INDEX_WIDTH'(1);
+            state_q <= S_ACCUM_MEAN_READ;
           end
         end
 
         S_RUN_LN: begin
           cycle_count_q <= cycle_count_q + 32'd1;
           ln_centered_q12_q <= ln_centered_q12_w;
-          ln_norm_q12_q <= ln_norm_q12_w;
+          ln_inv_std_q16_q <= read_ln_inv_std_q16_by_token_const(token_index_u32_w);
+          ln_gamma_q16_q <= $signed(ln_gamma_q16[ln_index_q]);
+          ln_beta_q12_q <= $signed({{16{ln_beta_q12[ln_index_q][15]}}, ln_beta_q12[ln_index_q]});
+          ln_output_scale_mul_q20_q <= ln_output_scale_mul_q20_by_token[token_index_q];
           debug1_q <= {ln_mean_latched_q12[15:0], ln_centered_q12_w[15:0]};
           state_q <= S_RUN_LN_AFFINE;
         end
 
         S_RUN_LN_AFFINE: begin
           cycle_count_q <= cycle_count_q + 32'd1;
-          ln_affine_q12_q <= ln_piped_affine_q12_w;
-          debug2_q <= {ln_norm_q12_q[15:0], ln_piped_affine_q12_w[15:0]};
+          ln_norm_q12_q <= ln_registered_norm_q12_w;
+          debug2_q <= {ln_registered_norm_q12_w[15:0], 16'd0};
+          state_q <= S_RUN_LN_SCALE;
+        end
+
+        S_RUN_LN_SCALE: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          ln_affine_q12_q <= ln_registered_affine_q12_w;
+          debug2_q <= {ln_norm_q12_q[15:0], ln_registered_affine_q12_w[15:0]};
           state_q <= S_RUN_LN_OUTPUT;
         end
 
@@ -514,6 +620,12 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           v_proj_acc_q <= v_proj_next_acc_w;
           q_proj_acc_q <= q_proj_next_acc_w;
           if (proj_index_q == LN_INDEX_WIDTH'(LN_DIM - 1)) begin
+            k_proj_output_acc_q <= k_proj_next_acc_w;
+            v_proj_output_acc_q <= v_proj_next_acc_w;
+            q_proj_output_acc_q <= q_proj_next_acc_w;
+            k_proj_output_mul_q20_q <= k_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q];
+            v_proj_output_mul_q20_q <= v_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q];
+            q_proj_output_mul_q20_q <= q_proj_output_mul_q20_final[head_index_q][dim_index_q];
             state_q <= S_RUN_PROJ_OUTPUT;
           end else begin
             proj_index_q <= proj_index_q + LN_INDEX_WIDTH'(1);
@@ -521,23 +633,55 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           end
         end
 
+        S_RUN_PROJ_SCALE: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          k_proj_output_acc_q <= k_proj_acc_q;
+          v_proj_output_acc_q <= v_proj_acc_q;
+          q_proj_output_acc_q <= q_proj_acc_q;
+          k_proj_output_mul_q20_q <= k_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q];
+          v_proj_output_mul_q20_q <= v_proj_output_mul_q20_by_token[head_index_q][token_index_q][dim_index_q];
+          q_proj_output_mul_q20_q <= q_proj_output_mul_q20_final[head_index_q][dim_index_q];
+          state_q <= S_RUN_PROJ_OUTPUT;
+        end
+
         S_RUN_PROJ_OUTPUT: begin
           cycle_count_q <= cycle_count_q + 32'd1;
           if (ENABLE_INTERNAL_CHECKS &&
                 k_proj_output_w != k_proj_expected_q_by_token[head_index_q][token_index_q][dim_index_q]) begin
             state_q <= S_ERROR;
-            debug_q <= {8'hc2, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, k_proj_output_w};
+            debug_q <= {
+              8'hc2,
+              head_index_u32_w[3:0],
+              dim_index_u32_w[3:0],
+              4'd0,
+              token_index_u32_w[3:0],
+              k_proj_output_w
+            };
           end else if (ENABLE_INTERNAL_CHECKS &&
                        v_proj_output_w != v_proj_expected_q_by_token[head_index_q][token_index_q][dim_index_q]) begin
             state_q <= S_ERROR;
-            debug_q <= {8'hc3, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, v_proj_output_w};
+            debug_q <= {
+              8'hc3,
+              head_index_u32_w[3:0],
+              dim_index_u32_w[3:0],
+              4'd0,
+              token_index_u32_w[3:0],
+              v_proj_output_w
+            };
           end else if (
             ENABLE_INTERNAL_CHECKS &&
             token_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1) &&
             q_proj_output_w != q_proj_expected_q_final[head_index_q][dim_index_q]
           ) begin
             state_q <= S_ERROR;
-            debug_q <= {8'hc4, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, q_proj_output_w};
+            debug_q <= {
+              8'hc4,
+              head_index_u32_w[3:0],
+              dim_index_u32_w[3:0],
+              4'd0,
+              token_index_u32_w[3:0],
+              q_proj_output_w
+            };
           end else begin
             k_cache_q[token_index_q][dim_index_q] <= k_proj_output_w;
             v_cache_q[token_index_q][dim_index_q] <= v_proj_output_w;
@@ -563,7 +707,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
                 k_proj_acc_q <= 32'sd0;
                 v_proj_acc_q <= 32'sd0;
                 q_proj_acc_q <= 32'sd0;
-                state_q <= S_ACCUM_MEAN;
+                state_q <= S_ACCUM_MEAN_READ;
               end
             end else begin
               dim_index_q <= dim_index_q + ATTN_DIM_WIDTH'(1);
@@ -581,6 +725,13 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           if (ENABLE_INTERNAL_CHECKS && score_acc_w != attn_expected_score_acc[head_index_q][src_index_q]) begin
             state_q <= S_ERROR;
             debug_q <= {8'hc5, head_index_u32_w[3:0], src_index_u32_w[3:0], score_acc_w[15:0]};
+            debug1_q <= {score_acc_w[15:0], attn_expected_score_acc[head_index_q][src_index_q][15:0]};
+            debug2_q <= {
+              q_final_q[0],
+              k_cache_q[src_index_q][0],
+              q_final_q[1],
+              k_cache_q[src_index_q][1]
+            };
           end else if (src_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
             score_cache_q[src_index_q] <= score_acc_w;
             if (score_acc_w > max_score_q) begin
@@ -588,7 +739,7 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
             end
             src_index_q <= '0;
             softmax_denom_q <= 32'd0;
-            state_q <= S_RUN_PROB_WEIGHT;
+            state_q <= S_RUN_PROB_WEIGHT_PREP;
           end else begin
             score_cache_q[src_index_q] <= score_acc_w;
             if (score_acc_w > max_score_q) begin
@@ -598,22 +749,37 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
           end
         end
 
+        S_RUN_PROB_WEIGHT_PREP: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          softmax_x_q12_q <= softmax_x_q12_w;
+          state_q <= S_RUN_PROB_WEIGHT_TERMS;
+        end
+
+        S_RUN_PROB_WEIGHT_TERMS: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          softmax_term1_q <= round_shift_signed64($signed(softmax_x_q12_q) * 64'sd32768, 12);
+          softmax_term2_q <=
+            round_shift_signed64($signed(softmax_x_q12_q) * $signed(softmax_x_q12_q) * 64'sd32768, 25);
+          state_q <= S_RUN_PROB_WEIGHT;
+        end
+
         S_RUN_PROB_WEIGHT: begin
           cycle_count_q <= cycle_count_q + 32'd1;
           if (ENABLE_INTERNAL_CHECKS &&
-              softmax_weight_w != {16'd0, attn_expected_weight_q15[head_index_q][src_index_q]}) begin
+              softmax_weight_piped_w != {16'd0, attn_expected_weight_q15[head_index_q][src_index_q]}) begin
             state_q <= S_ERROR;
-            debug_q <= {8'hc7, head_index_u32_w[3:0], src_index_u32_w[3:0], softmax_weight_w[15:0]};
+            debug_q <= {8'hc7, head_index_u32_w[3:0], src_index_u32_w[3:0], softmax_weight_piped_w[15:0]};
           end else if (src_index_q == TOKEN_WIDTH'(CACHE_SEQ - 1)) begin
-            weight_cache_q[src_index_q] <= softmax_weight_w;
-            softmax_denom_q <= softmax_denom_q + softmax_weight_w;
+            weight_cache_q[src_index_q] <= softmax_weight_piped_w;
+            softmax_denom_q <= softmax_denom_q + softmax_weight_piped_w;
             src_index_q <= '0;
             prob_sum_q <= 32'd0;
             state_q <= S_RUN_PROB_NORM;
           end else begin
-            weight_cache_q[src_index_q] <= softmax_weight_w;
-            softmax_denom_q <= softmax_denom_q + softmax_weight_w;
+            weight_cache_q[src_index_q] <= softmax_weight_piped_w;
+            softmax_denom_q <= softmax_denom_q + softmax_weight_piped_w;
             src_index_q <= src_index_q + TOKEN_WIDTH'(1);
+            state_q <= S_RUN_PROB_WEIGHT_PREP;
           end
         end
 
@@ -667,26 +833,46 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
 
         S_RUN_VALUE: begin
           cycle_count_q <= cycle_count_q + 32'd1;
+          value_acc_q <= value_acc_w;
+          state_q <= S_RUN_VALUE_SCALE;
+        end
+
+        S_RUN_VALUE_SCALE: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          value_shifted_q <= value_shifted_from_q_w;
+          value_q_q <= value_q_from_q_w;
+          context_requant_product_q <= context_requant_product_from_q_w;
+          state_q <= S_RUN_VALUE_OUTPUT;
+        end
+
+        S_RUN_VALUE_OUTPUT: begin
+          cycle_count_q <= cycle_count_q + 32'd1;
+          context_requant_shifted_q <= context_requant_shifted_from_q_w;
+          context_q_q <= context_q_from_q_w;
           if (ENABLE_INTERNAL_CHECKS && (
-            value_acc_w != attn_expected_value_acc[head_index_q][dim_index_q] ||
-            value_q_w != attn_expected_value_q[head_index_q][dim_index_q]
+            value_acc_q != attn_expected_value_acc[head_index_q][dim_index_q] ||
+            value_q_q != attn_expected_value_q[head_index_q][dim_index_q]
           )) begin
             state_q <= S_ERROR;
-            debug_q <= {8'hc6, head_index_u32_w[3:0], dim_index_u32_w[3:0], value_acc_w[15:0]};
-          end else if (ENABLE_INTERNAL_CHECKS && context_q_w != context_expected_q[context_index_w]) begin
+            debug_q <= {8'hc6, head_index_u32_w[3:0], dim_index_u32_w[3:0], value_acc_q[15:0]};
+            debug1_q <= {value_acc_q[15:0], 8'd0, value_q_q};
+            debug2_q <= context_requant_product_q[31:0];
+          end else if (ENABLE_INTERNAL_CHECKS && context_q_from_q_w != context_expected_q[context_index_w]) begin
             state_q <= S_ERROR;
-            debug_q <= {8'hc9, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, context_q_w};
+            debug_q <= {8'hc9, head_index_u32_w[3:0], dim_index_u32_w[3:0], 8'd0, context_q_from_q_w};
+            debug1_q <= {value_acc_q[15:0], context_requant_shifted_from_q_w[15:0]};
+            debug2_q <= context_requant_product_q[31:0];
           end else begin
             output_checksum_o <=
               output_checksum_o +
-              ({24'd0, context_q_w[7:0]} * (context_index_u32_w + 32'd1));
-            output_vector_o[context_index_w * 8 +: 8] <= context_q_w;
+              ({24'd0, context_q_from_q_w[7:0]} * (context_index_u32_w + 32'd1));
+            output_vector_o[context_index_w * 8 +: 8] <= context_q_from_q_w;
             if (context_index_u32_w < 32'd4) begin
               output_sample0_o <=
-                output_sample0_o | ({24'd0, context_q_w[7:0]} << (8 * context_index_w[1:0]));
+                output_sample0_o | ({24'd0, context_q_from_q_w[7:0]} << (8 * context_index_w[1:0]));
             end else if (context_index_u32_w < 32'd8) begin
               output_sample1_o <=
-                output_sample1_o | ({24'd0, context_q_w[7:0]} << (8 * context_index_w[1:0]));
+                output_sample1_o | ({24'd0, context_q_from_q_w[7:0]} << (8 * context_index_w[1:0]));
             end
 
             if (dim_index_q == ATTN_DIM_WIDTH'(ATTN_HEAD_DIM - 1)) begin
@@ -695,17 +881,18 @@ module task6_m2_ln_attn_live_kv_all_heads_context_accel_top #(
               end else begin
                 head_index_q <= head_index_q + HEAD_WIDTH'(1);
                 reset_head_work();
-                state_q <= S_ACCUM_MEAN;
+                state_q <= S_ACCUM_MEAN_READ;
               end
             end else begin
               dim_index_q <= dim_index_q + ATTN_DIM_WIDTH'(1);
+              state_q <= S_RUN_VALUE;
             end
           end
         end
 
         S_DONE: begin
           if (start_i) begin
-            state_q <= S_ACCUM_MEAN;
+            state_q <= S_ACCUM_MEAN_READ;
             head_index_q <= '0;
             reset_head_work();
             cycle_count_q <= 32'd0;

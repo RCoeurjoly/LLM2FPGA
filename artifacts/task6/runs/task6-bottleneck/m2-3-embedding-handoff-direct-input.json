@@ -1,0 +1,325 @@
+{
+  "artifact_name": "task6-pcie-m2-start-clear-lifecycle-gate",
+  "bdf": "0000:42:00.0",
+  "board": {
+    "bdf": "0000:42:00.0",
+    "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+    "pcie_command": "0002",
+    "status": "FAIL"
+  },
+  "checks": {
+    "clear_no_error": true,
+    "clear_state_idle": true,
+    "clear_status_not_all_ones": true,
+    "clear_status_schema_consistent": true,
+    "embedding_block_input_checksum_low16": false,
+    "embedding_ln_input_checksum_low16": false,
+    "input_readback_identity": false,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "not_all_ones": true,
+    "preflight_registers_stable": true,
+    "provenance_not_all_ones": true,
+    "provenance_schema_consistent": true,
+    "residual_readback_identity": false,
+    "run_reached_allowed_terminal": true,
+    "run_reached_terminal": true,
+    "run_status_not_all_ones": true,
+    "run_status_schema_consistent": true,
+    "start_count_incremented": true,
+    "start_count_stable_after_clear": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "command": "0002",
+  "contract": {
+    "artifact_role": "m2-embedding-handoff-board-gate",
+    "live_compute": false,
+    "milestone_target": "M2.3-embedding-and-block-input-handoff",
+    "notes": "M2.3 acceptance gate. It proves token IDs reached the expected embedding/block-input/LN-input boundary before attention math.",
+    "responsibilities": {
+      "fpga": [
+        "token-ID selected embedding and position add",
+        "handoff of block input and LN input to the live-context block",
+        "BAR debug exposure of boundary checksum lows"
+      ],
+      "host": [
+        "PCIe lifecycle orchestration",
+        "direct token-ID writes",
+        "BAR-visible block/LN checksum comparison"
+      ]
+    },
+    "stage": "M2.3-embedding-and-block-input-handoff",
+    "version": "task6-m2-embedding-handoff-v1"
+  },
+  "date": "2026-06-19",
+  "elapsed_seconds": 1.608835470979102,
+  "fingerprints": {
+    "block_input_sha256": "e65262a340a7641f8e149efc247ffc1fa911e673629375ea855c01abec5554f3",
+    "block_input_source": "tb_data_sv out_proj_block_input_q",
+    "context_fixture_signature": null,
+    "context_tb_data_sv": null,
+    "context_tb_data_sv_sha256": null,
+    "embedding_tb_data_sv": "/nix/store/kdyiqb5lx4m5czfp2q8znn45c8xriv1c-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv",
+    "embedding_tb_data_sv_sha256": "8a04733af0c75288bc4841cea2cfb894eaeeb5a747c910e2a3698beb5c01ebac",
+    "expected_json": null,
+    "expected_json_sha256": null,
+    "gate_script_sha256": "a21653b51e1c12c5a88b5bd09c1d39f5ae6bc593ab5b904d288968d58957b3ac",
+    "residual_after_attention_sha256": "f754f79dd5730532241f8c7f9e5a8bc2949e2903bd64b5b1eb7ec9d81406391d",
+    "residual_after_attention_source": "tb_data_sv out_proj_context_q",
+    "tb_data_sv": "/nix/store/7bm45lm5ili9qgl0ynwwyrv9xia34d07-task6-m2-last-token-live-kv-context-full-block-tb-data-sv/tb_data.sv",
+    "tb_data_sv_sha256": "c1b4f088e09e6a19eeea1fedb5ae4ca0bf7fbefa951a1f3e230a208dd45f9469",
+    "tb_data_token_index": 5,
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ]
+  },
+  "input": {
+    "block_index": null,
+    "block_input_hex": "eddab7077fb906b5a908c0e05827f6f5e1ff2f0c15c6e31da5d0cad2c3e510d626d620030914bd1f4dd20d29061e58002c365853b4b52cfa061f1251f176fc13",
+    "block_input_words_little_packed": [
+      "0x07b7daed",
+      "0xb506b97f",
+      "0xe0c008a9",
+      "0xf5f62758",
+      "0x0c2fffe1",
+      "0x1de3c615",
+      "0xd2cad0a5",
+      "0xd610e5c3",
+      "0x0320d626",
+      "0x1fbd1409",
+      "0x290dd24d",
+      "0x00581e06",
+      "0x5358362c",
+      "0xfa2cb5b4",
+      "0x51121f06",
+      "0x13fc76f1"
+    ],
+    "block_input_words_written": [
+      "0x07b7daed",
+      "0xb506b97f",
+      "0xe0c008a9",
+      "0xf5f62758",
+      "0x0c2fffe1",
+      "0x1de3c615",
+      "0xd2cad0a5",
+      "0xd610e5c3",
+      "0x0320d626",
+      "0x1fbd1409",
+      "0x290dd24d",
+      "0x00581e06",
+      "0x5358362c",
+      "0xfa2cb5b4",
+      "0x51121f06",
+      "0x13fc76f1"
+    ],
+    "readback_is_contract_check": true,
+    "residual_after_attention_hex": "cb10c3d3dc1dc110fe023d6df8d0f6bd09cc1d182b263e160d0bdb7f1ec9cbe21349e91e4c06104fd6690e26c7b4d0bdfe13f7f6fc25edffc6150beee72c5ac3",
+    "residual_words_little_packed": [
+      "0xd3c310cb",
+      "0x10c11ddc",
+      "0x6d3d02fe",
+      "0xbdf6d0f8",
+      "0x181dcc09",
+      "0x163e262b",
+      "0x7fdb0b0d",
+      "0xe2cbc91e",
+      "0x1ee94913",
+      "0x4f10064c",
+      "0x260e69d6",
+      "0xbdd0b4c7",
+      "0xf6f713fe",
+      "0xffed25fc",
+      "0xee0b15c6",
+      "0xc35a2ce7"
+    ],
+    "residual_words_written": [
+      "0xd3c310cb",
+      "0x10c11ddc",
+      "0x6d3d02fe",
+      "0xbdf6d0f8",
+      "0x181dcc09",
+      "0x163e262b",
+      "0x7fdb0b0d",
+      "0xe2cbc91e",
+      "0x1ee94913",
+      "0x4f10064c",
+      "0x260e69d6",
+      "0xbdd0b4c7",
+      "0xf6f713fe",
+      "0xffed25fc",
+      "0xee0b15c6",
+      "0xc35a2ce7"
+    ],
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ],
+    "vector_write_mode": "direct"
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "observed": {
+    "allow_terminal_error": true,
+    "checksum": "0x00000000",
+    "clear_decoded_status": {
+      "busy": false,
+      "done": false,
+      "error": false,
+      "magic": 19762,
+      "output_valid": false,
+      "ready": true,
+      "schema": {
+        "busy": 1,
+        "error": 2,
+        "magic_lsb": 16,
+        "magic_value": 19762,
+        "output_valid": 3,
+        "ready": 0,
+        "state_lsb": 4,
+        "state_width": 3
+      },
+      "schema_consistent": true,
+      "state": 0,
+      "state_name": "IDLE"
+    },
+    "clear_status": "0x4d320001",
+    "compute_path": "embedding-handoff",
+    "cycle_count": 1,
+    "debug": "0x0100daed",
+    "debug1": "0x00000000",
+    "debug2": "0x00000000",
+    "debug3": "0x00000000",
+    "decoded_debug": {
+      "detail": "0x00daed",
+      "meaning": "embedding token-id mismatch",
+      "observed_token_id": "0xdaed",
+      "stage": "0x01",
+      "token_index": 0
+    },
+    "done_stage_checksums": {
+      "attn_out_checksum_low8": "0x00",
+      "attn_residual_checksum_low8": "0x00",
+      "block_input_checksum_low16": "0x0000",
+      "c_proj_checksum_low8": "0x00",
+      "context_checksum_low16": "0x0000",
+      "ln2_checksum_low8": "0x00"
+    },
+    "expected_block_input_checksum": "0x000350f9",
+    "expected_ln_input_checksum": "0x88fa5e3a",
+    "expected_provenance": "0x4d323105",
+    "input_readback_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff26d62003091cbd1f4dd20d29061e58002c365853b4b52cfa061f1251f176fc13",
+    "input_readback_matches_requested": false,
+    "input_readback_transform": "other",
+    "output_count": 64,
+    "provenance": "0x4d323105",
+    "residual_readback_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1349e91e4c06104fd6690e26c7b4d0bdfe13f7f6fc2dedffc6150beee72c5ac3",
+    "residual_readback_matches_requested": false,
+    "residual_readback_transform": "other",
+    "run_decoded_status": {
+      "busy": false,
+      "done": false,
+      "error": true,
+      "magic": 19762,
+      "output_valid": false,
+      "ready": false,
+      "schema": {
+        "busy": 1,
+        "error": 2,
+        "magic_lsb": 16,
+        "magic_value": 19762,
+        "output_valid": 3,
+        "ready": 0,
+        "state_lsb": 4,
+        "state_width": 3
+      },
+      "schema_consistent": true,
+      "state": 6,
+      "state_name": "ERROR"
+    },
+    "run_status": "0x4d320064",
+    "sample0": "0x00000000",
+    "sample1": "0x00000000",
+    "start_count_after_clear": 1,
+    "start_count_after_start": 1,
+    "start_count_before": 0
+  },
+  "preflight_acceptable": {
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "preflight_samples": {
+    "m2_magic": [
+      "0x54364d32",
+      "0x54364d32",
+      "0x54364d32"
+    ],
+    "m2_present": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "m2_provenance": [
+      "0x4d323105",
+      "0x4d323105",
+      "0x4d323105"
+    ],
+    "m2_version": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "magic": [
+      "0x54365043",
+      "0x54365043",
+      "0x54365043"
+    ],
+    "status": [
+      "0x00000061",
+      "0x00000061",
+      "0x00000061"
+    ],
+    "version": [
+      "0x00000003",
+      "0x00000003",
+      "0x00000003"
+    ]
+  },
+  "preflight_stable": {
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "registers": {
+    "expected_context_fixture_signature": null,
+    "expected_m2_provenance": "0x4d323105",
+    "m2_context_fixture_signature": null,
+    "m2_magic": "0x54364d32",
+    "m2_present": 1,
+    "m2_provenance": "0x4d323105",
+    "m2_version": 1,
+    "magic": "0x54365043",
+    "status": "0x00000061",
+    "version": 3
+  },
+  "status": "FAIL"
+}

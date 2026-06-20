@@ -1,0 +1,282 @@
+{
+  "artifact_name": "task6-pcie-m2-direct-bar-contract-gate",
+  "bdf": "0000:42:00.0",
+  "board": {
+    "bdf": "0000:42:00.0",
+    "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+    "pcie_command": "0002",
+    "status": "PASS"
+  },
+  "checks": {
+    "input_readback_identity": true,
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "no_error": true,
+    "not_all_ones": true,
+    "preflight_registers_stable": true,
+    "provenance_not_all_ones": true,
+    "provenance_schema_consistent": true,
+    "residual_readback_identity": true,
+    "start_count_unchanged": true,
+    "state_idle": true,
+    "status_not_all_ones": true,
+    "status_schema_consistent": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "command": "0002",
+  "contract": {
+    "artifact_role": "m2-direct-bar-contract-board-gate",
+    "live_compute": false,
+    "milestone_target": "M2.1-PCIe-BAR-contract",
+    "notes": "M2.1 acceptance gate. It does not start M2 compute; it proves direct BAR transport and clear/idle behavior before later M2 submilestones.",
+    "responsibilities": {
+      "fpga": [
+        "BAR-visible M2 input/residual/control storage",
+        "direct write/readback identity without compensated host tricks",
+        "idle status and provenance reporting"
+      ],
+      "host": [
+        "PCIe lifecycle orchestration",
+        "direct-mode input/residual/control writes",
+        "BAR readback identity checks",
+        "post-clear idle/status capture"
+      ]
+    },
+    "stage": "M2.1-direct-pcie-bar-contract",
+    "version": "task6-m2-direct-bar-contract-v1"
+  },
+  "date": "2026-06-19",
+  "elapsed_seconds": 0.005329643958248198,
+  "fingerprints": {
+    "block_input_sha256": "b6c712d088b5070f4facef1ac1480b7247360ff7621969739bfbf7505684a29f",
+    "block_input_source": "embedding_tb_data_sv token_ids",
+    "context_fixture_signature": "0xc5dc8a6c",
+    "context_tb_data_sv": "/nix/store/jj4hc9qf1wn7wcnsc0j27j7f433qi6gm-task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv",
+    "context_tb_data_sv_sha256": "da9b701c91ab3ee27124da568a461c1745a2dc5a12df02e6765012228d9bde2d",
+    "embedding_tb_data_sv": "/nix/store/2jm8a3mdyzlffkywmkk4p2s4926lkd02-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv",
+    "embedding_tb_data_sv_sha256": "8a04733af0c75288bc4841cea2cfb894eaeeb5a747c910e2a3698beb5c01ebac",
+    "expected_json": null,
+    "expected_json_sha256": null,
+    "gate_script_sha256": "9dc935b9a364e59b83259b2d79cf79eb4c4dd7e43dceab6682ffa88d19ef3877",
+    "residual_after_attention_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b",
+    "residual_after_attention_source": "embedding_tb_data_sv reserved token-control vector",
+    "tb_data_sv": "/nix/store/b080n68gbpkl80ndmbiihwfb0l9qyqbj-task6-m2-last-token-live-kv-context-full-block-tb-data-sv/tb_data.sv",
+    "tb_data_sv_sha256": "5be33d63adac0c3df56e1745d0f19d17f372f6bbb77fe925e0b03e406c3f0eed",
+    "tb_data_token_index": 5,
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ]
+  },
+  "input": {
+    "block_index": 0,
+    "block_input_hex": "1e1d6209010180026402750100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "block_input_words_little_packed": [
+      "0x09621d1e",
+      "0x02800101",
+      "0x01750264",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "block_input_words_written": [
+      "0x09621d1e",
+      "0x02800101",
+      "0x01750264",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "readback_is_contract_check": true,
+    "residual_after_attention_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_words_little_packed": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "residual_words_written": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ],
+    "vector_write_mode": "direct"
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "observed": {
+    "compute_path": "direct-bar-contract",
+    "cycle_count": 0,
+    "debug": "0x00000000",
+    "debug1": "0x00000000",
+    "debug2": "0x00000000",
+    "debug3": "0xc5dc8a6c",
+    "decoded_status": {
+      "busy": false,
+      "done": false,
+      "error": false,
+      "magic": 19762,
+      "output_valid": false,
+      "ready": true,
+      "schema": {
+        "busy": 1,
+        "error": 2,
+        "magic_lsb": 16,
+        "magic_value": 19762,
+        "output_valid": 3,
+        "ready": 0,
+        "state_lsb": 4,
+        "state_width": 3
+      },
+      "schema_consistent": true,
+      "state": 0,
+      "state_name": "IDLE"
+    },
+    "expected_provenance": "0x4d323005",
+    "input_readback_hex": "1e1d6209010180026402750100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "input_readback_matches_requested": true,
+    "input_readback_transform": "identity",
+    "provenance": "0x4d323005",
+    "residual_readback_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_readback_matches_requested": true,
+    "residual_readback_transform": "identity",
+    "start_count_after": 0,
+    "start_count_before": 0,
+    "status": "0x4d320001"
+  },
+  "preflight_acceptable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "preflight_samples": {
+    "m2_context_fixture_signature": [
+      "0xc5dc8a6c",
+      "0xc5dc8a6c",
+      "0xc5dc8a6c"
+    ],
+    "m2_magic": [
+      "0x54364d32",
+      "0x54364d32",
+      "0x54364d32"
+    ],
+    "m2_present": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "m2_provenance": [
+      "0x4d323005",
+      "0x4d323005",
+      "0x4d323005"
+    ],
+    "m2_version": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "magic": [
+      "0x54365043",
+      "0x54365043",
+      "0x54365043"
+    ],
+    "status": [
+      "0x00000061",
+      "0x00000061",
+      "0x00000061"
+    ],
+    "version": [
+      "0x00000003",
+      "0x00000003",
+      "0x00000003"
+    ]
+  },
+  "preflight_stable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "registers": {
+    "expected_context_fixture_signature": "0xc5dc8a6c",
+    "expected_m2_provenance": "0x4d323005",
+    "m2_context_fixture_signature": "0xc5dc8a6c",
+    "m2_magic": "0x54364d32",
+    "m2_present": 1,
+    "m2_provenance": "0x4d323005",
+    "m2_version": 1,
+    "magic": "0x54365043",
+    "status": "0x00000061",
+    "version": 3
+  },
+  "status": "PASS"
+}

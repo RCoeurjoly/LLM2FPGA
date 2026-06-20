@@ -4,6 +4,190 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-19 - M2.3 strict embedding handoff HIL accepted
+
+M2.3 is now HIL-proven as a focused live-compute, direct-mode,
+strict-readback submilestone. This is evidence for the embedding/block-input
+handoff boundary, not for full M2 full-block acceptance.
+
+Accepted evidence:
+
+- Focused M2.3 bitstream copied into repo artifacts:
+  `artifacts/task6/bitstreams/task6-m2-3-embedding-handoff-pnr100-2026-06-19.bit`,
+  sha256 `955aacdf819cefc2bf0e631cde6ebecae42f0972691310661225d65b9e5ffea8`.
+  The flashed source was the equivalent Nix build output recorded in the flash
+  artifact.
+- Build/timing evidence: routed cleanly with `pcie_user_clk=74.49 MHz` against
+  the 62.50 MHz target. Resource check avoided the earlier hash DSP blow-up:
+  final packed usage included `1 DSP48E1` and `4 RAMB36E1`.
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-19T15-39-00+0200-task6-m2-3-output-hash-proof-flash`.
+  `openFPGALoader` returned 0 and verified the first 32 words.
+- Recovery artifact:
+  `artifacts/task6/runs/2026-06-19T15-46-14+0200-task6-m2-3-output-hash-proof-recover`.
+  Recovery reached `final_classification=pcie_ready` after one physical power
+  cycle.
+- Strict board gate:
+  `artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json`.
+  The regenerated artifact reports `status=PASS`, `live_compute=true`,
+  `vector_write_mode=direct`, input and residual readback identity,
+  `run_status=0x4d320059` DONE, no error, `output_valid=true`,
+  `output_count=64`, full block checksum `0x000350f9`, LN checksum
+  `0x88fa5e3a`, `embedding_output_vector=true`, and the full 64-byte
+  `output_vector_hex` exactly matches the expected embedding block-input
+  vector.
+
+Diagnostic caveat:
+
+- The auxiliary output hash register is not accepted as evidence and does not
+  affect gate status. The full vector matched, but `embedding_output_hash=false`:
+  `expected_output_hash_hex` was
+  `ee2513d15bb238849de3b4f01501872b` while observed `output_hash_hex` was
+  `ee2513d1db68b7849de3b4f01501872b`. Treat the hash path as a diagnostic bug
+  until the RTL/Python hash implementations are reconciled.
+
+Next action:
+
+- Start M2.4 live context/attention slice as a focused submilestone. Define the
+  public-interface board contract and offline oracle for LN + QKV +
+  softmax/value/context at the selected boundary, run focused sim, build a
+  timing-clean candidate, flash/recover to `pcie_ready`, then run the strict
+  M2.4 board gate. Do not claim M2.7/full-block acceptance until the complete
+  direct-mode full-block gate passes.
+
+## 2026-06-19 - M2/M3 split into engineering submilestones
+
+M2 and M3 remain the external milestones, but M2 is too large as a daily
+engineering target. A full M2 board gate bundles PCIe enumeration, BAR
+transport, lane ordering, start/clear lifecycle, generated fixtures, LN math,
+attention math, MLP math, timing closure, and artifact validity. New failure
+signatures are no longer milestone progress unless they close a named boundary.
+
+Artifact discipline:
+
+- Only live-compute, direct-mode, strict-readback artifacts count as milestone
+  evidence.
+- Clear-only, compensated write modes, debug-only runs, and private-RTL probes
+  are diagnostics only.
+- Every submilestone should have an offline oracle, then a Verilator/self-check
+  sim, then any board diagnostic needed, then a board acceptance gate through
+  the public interface.
+
+M2 ladder:
+
+- M2.0: artifact discipline. Only live-compute, direct-mode, strict-readback
+  artifacts can count as milestone evidence.
+- M2.1: PCIe/BAR contract. Direct host writes read back identity for
+  input/residual/control, without compensated host tricks.
+- M2.2: start/clear lifecycle. Direct-mode gate proves `start_count`
+  increments, DONE/ERROR state is stable, clear returns to IDLE, and no
+  all-ones/stale BAR appears.
+- M2.3: embedding and block input handoff. Token IDs from host produce expected
+  block input / LN input checksum on board.
+- M2.4: live context/attention slice. Board computes LN + QKV +
+  softmax/value/context for the selected block boundary, with output vector
+  checked against oracle.
+- M2.5: attention out-proj + residual + LN2. Board computes attention
+  output/residual/LN2, checked at vector boundaries.
+- M2.6: MLP + final residual. Board computes c_fc/GELU/c_proj/final residual,
+  checked against oracle.
+- M2.7: full block direct-mode acceptance. One complete TinyStories block from
+  token IDs/control to final block output, direct mode only, full
+  vector/checksum/samples match.
+
+M3 ladder:
+
+- M3.1: inter-block state movement / DDR3 rowstream contract.
+- M3.2: repeated-block execution for a tiny fixed token sequence.
+- M3.3: full TinyStories-1M prompt, token-exact greedy output.
+- M3.4: repeatability run, same prompt twice after clear/recover.
+
+Current target: M2.3 embedding and block-input handoff.
+
+Recent evidence:
+
+- Residual-pipeline M2 candidate passed sims and built, but hardware classified
+  it as `stale_bar_all_ones` after flash and after manual power cycle. It is
+  PCIe/BAR-unsafe and must not be treated as M2 evidence.
+- `scripts/task6/task6_pcie_lifecycle_gate.py` now reclassifies explicit
+  `--run-bar` all-ones BAR failures as `stale_bar_all_ones`.
+- `scripts/task6/task6_pcie_m2_full_block_gate.py --clear-only` now fails on
+  all-ones/stale BAR instead of reporting a misleading PASS.
+- Restored BAR-safe projection-final-accumulator bitstream:
+  `/nix/store/f1awim7k7wsns092bqkdmgqmwj3s0njb-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+  Direct mode reached compute and failed at A3 attention residual mismatch:
+  `artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary-proj-final-acc-direct.json`,
+  `status=0x4d320064`, `debug=0xa300fc81`, expected `0xfc`, observed `0x81`.
+- The inverse compensated diagnostic on that restored image is not acceptance
+  evidence and failed immediately at embedding token-id mismatch:
+  `artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary-proj-final-acc-input-shadow-direct-compensated.json`,
+  `vector_write_mode=input-shadow-direct-compensated`,
+  `input_readback_transform=other`, `debug=0x01000e8e`.
+- New direct-mode diagnostic candidate built successfully:
+  `/nix/store/n0y6cy8hbb1bx4xbmncmq5h7fr3zirlj-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+  It disables the attention block's internal checks only in the live full-block
+  wrapper, so standalone attention sims still check A3 while the live full-block
+  wrapper can run through to public output.
+- Verification for the new candidate:
+  `nix build .#task6-m2-first-token-attention-out-proj-accel-sv-sim -L`
+  passed; `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim -L`
+  passed with `final_checksum=0003b2c9`; `nix build .#bottleneck -L` passed.
+  Final route timing passed with `pcie_user_clk=72.98 MHz` at a 62.50 MHz
+  target.
+- The new bitstream was flashed successfully:
+  `artifacts/task6/runs/2026-06-19T11-55-18+0200-task6-m2-1-direct-bar-contract-candidate-flash`.
+  `openFPGALoader` returned 0 and verified the first 32 words.
+- Recovery succeeded after one physical power cycle:
+  `artifacts/task6/runs/2026-06-19T12-02-43+0200-task6-m2-1-direct-bar-contract-candidate-recover`
+  ended with `final_classification=pcie_ready`.
+- Explicit BAR lifecycle passed:
+  `artifacts/task6/runs/2026-06-19T12-03-49+0200-task6-m2-1-direct-bar-contract-candidate-explicit-bar-lifecycle`
+  classified `pcie_ready`.
+- M2.1 direct-mode PCIe/BAR contract passed:
+  `artifacts/task6/runs/task6-bottleneck/m2-1-direct-bar-contract-candidate.json`.
+  The artifact reports `status=PASS`, status register `0x4d320001`,
+  provenance `0x4d323005`, `state_name=IDLE`, `no_error=true`,
+  `input_readback_transform=identity`, `residual_readback_transform=identity`,
+  `start_count_before=0`, and `start_count_after=0`.
+- Added the M2.2 start/clear lifecycle gate:
+  `just task6-m2-2-start-clear-board-gate`.
+- M2.2 passed on the same bitstream:
+  `artifacts/task6/runs/task6-bottleneck/m2-2-start-clear-lifecycle-candidate.json`.
+  The artifact reports `status=PASS`, direct input/residual readback identity,
+  `start_count_before=1`, `start_count_after_start=2`,
+  `start_count_after_clear=2`, terminal `run_status=0x4d320064`, and
+  post-clear `clear_status=0x4d320001`. The terminal state is a schema-valid
+  ERROR, not a transport failure: decoded debug is live-context K projection
+  mismatch, `debug=0xc201007f`.
+- Added the M2.3 embedding handoff gate:
+  `just task6-m2-3-embedding-handoff-board-gate`.
+- M2.3 software/sim status:
+  `scripts/task6/task6_pcie_m2_full_block_gate.py` now has
+  `--require-embedding-handoff`, parsing `block_input_checksum` from the
+  generated embedding fixture `summary.json` and `ln_input_checksum` from the
+  generated q12 constants. RTL now registers boundary checksum lows as
+  `debug3={block_input_checksum_low16, ln_input_checksum_low16}`. Python tests
+  pass, and both
+  `nix build .#task6-m2-embedding-live-context-full-block-accel-sv-sim --no-link --print-out-paths`
+  and
+  `nix build .#task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim --no-link --print-out-paths`
+  pass.
+- M2.3 is not HIL-proven yet. A full live-context bottleneck candidate still
+  carries too much compute/timing risk for the handoff submilestone:
+  `nix build .#bottleneck --no-link --print-out-paths -L` was interrupted
+  after post-placement timing reported `pcie_user_clk=43.19 MHz`, failing the
+  62.50 MHz target and worse than the prior `54.87 MHz` failure. No hardware
+  was flashed or run.
+
+Next action:
+
+- Create a smaller M2.3-only PCIe candidate that accepts direct token IDs and
+  exposes registered block-input/LN-input boundary checksums through BAR,
+  without full live-context/attention/MLP compute. Run focused sim, nix build
+  the M2.3 candidate, then only if timing is acceptable flash/recover and run
+  `just task6-m2-3-embedding-handoff-board-gate`. Do not run full M2.4+ gates
+  until M2.3 is HIL-proven.
+
 ## 2026-06-18 - M1 HIL promoted as latest passing milestone
 
 - Split the YPCB rowstream ingress PCIe top into explicit M1 and M2 build
@@ -38,6 +222,167 @@ reviewer-controlled.
   `input_readback=false`, `input_readback_transform=pcie7x-64bit-rol1`,
   `start_count_after=0`, `state_name=IDLE`, `output_valid=false`, and output
   checksum/samples are zero.
+
+## 2026-06-18 - M2 PCIe delta: input-shadow-direct vs readback-only
+
+- Compared the last M2 image that recovered to `pcie_ready` with the later M2
+  readback-only image that did not recover.
+- The recovered input-shadow-direct image is
+  `/nix/store/7g9nkznc2ryzw4dlp45skxkn5pr3ip9y-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+  It flashed at
+  `artifacts/task6/runs/2026-06-18T17-57-27+0200-task6-m2-input-shadow-direct`
+  and recovered at
+  `artifacts/task6/runs/2026-06-18T18-04-43+0200-task6-m2-input-shadow-direct`.
+- The failed readback-only image is
+  `/nix/store/ydici1wcb1743zlm47plh45pf7g9qw59-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+  It flashed at
+  `artifacts/task6/runs/2026-06-18T18-27-01+0200-task6-m2-input-readback-comp`
+  but did not recover to a live PCIe BAR in subsequent recovery attempts.
+- The FASM derivations used the same nextpnr/XDC/clock-command shape. The only
+  material build input delta was the Yosys JSON generated from the RTL change.
+- RTL delta in `fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v`:
+  input-shadow-direct stored a 64-bit-lane rotated vector on write and returned
+  `m2_full_block_input_vector_o` directly from BAR window `0x15`; readback-only
+  stores the raw input vector on write and applies a 512-bit lane-wise rotate
+  in the BAR read window.
+- Yosys JSON size and coarse counts moved down, not up:
+  input-shadow-direct was about 93 MiB, 86,173 cells, and 62,723 netnames;
+  readback-only was about 92 MiB, 85,546 cells, and 62,036 netnames.
+- nextpnr packed the same PCIe/GT/BRAM/DSP counts in both images:
+  `1 PCIE_2_1`, `1 GTXE2_CHANNEL`, `1 GTXE2_COMMON`, `16 RAMB36E1`, and
+  `152 DSP48E1`. Readback-only was smaller by 447 `SLICE_LUTX` and 395
+  `SELMUX2_1`, with the same 28,744 `SLICE_FFX`.
+- Timing changed in the PCIe clock domain despite the smaller netlist.
+  Input-shadow-direct routed `pcie_user_clk` at 77.20 MHz; readback-only routed
+  at 68.57 MHz, still nominally passing the 62.50 MHz target.
+- The critical shape also changed. Input-shadow-direct's final `pcie_user_clk`
+  critical path was inside M2 debug/data logic. Readback-only's final
+  `pcie_user_clk` critical path started at `pcie_user_rst_n` and ended at a
+  clock-enable sink, with 13.8 ns of routing in a 14.6 ns path.
+- The cross-domain max delay worsened too: input-shadow-direct had a
+  `pcie_user_clk` to `drck` max delay of about 3.35 ns; readback-only moved to
+  about 4.82 ns.
+- Conclusion: this is not raw utilization pressure and not an obvious nextpnr
+  option delta. The readback-only RTL compensation perturbs PCIe/user-domain
+  placement and reset/control routing enough that a nominally timing-clean image
+  fails PCIe enumeration recovery. Treat the readback-only compensation as
+  unsafe for the board-facing M2 image.
+- Next experiment: restore the recovered input-shadow-direct board behavior or
+  isolate readback compensation behind a registered/debug-only path, then rebuild
+  before attempting another M2 HIL run. Do not rerun the readback-only image as
+  `bottleneck`.
+
+## 2026-06-18 - M2 PCIe-safe candidate rebuilt
+
+- Restored the board-facing M2 input aperture to the recovered
+  input-shadow-direct contract by backing out the readback-only RTL experiment.
+  The RTL and focused test now match the last M2 behavior that recovered to
+  `pcie_ready`: host writes the pre-compensated raw words, the internal M2 input
+  vector receives the PCIe7x-compensated value, and BAR window `0x15` reads back
+  that stored vector directly.
+- Red/green verification:
+  first restored the simulation expectation to the input-shadow-direct contract
+  and ran the focused ingress sim against the readback-only RTL. The sim failed
+  on three internal M2 input words, proving the test distinguished the unsafe
+  behavior.
+- After restoring the RTL contract, the focused sim passed:
+  `/tmp/task6-m2-input-shadow-restore-green/obj_dir/sim_main` reported
+  `PASS: task6 PCIe rowstream loader ingress simulation`.
+- Rebuilt the current M2 bottleneck image with:
+  `nix build .#bottleneck -L`.
+  The resulting bitstream is
+  `/nix/store/8k33kfbwl3mb9ick5gxsdmcmaclnxa5z-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- This is a PCIe-safe candidate for the next board step because it returns to
+  the known-recovered input-shadow-direct behavior. It is not an M2 functional
+  fix: the expected direct gate failure remains the input BAR readback contract
+  unless the host uses the diagnostic compensated-write mode.
+- Next hardware boundary: flash/recover this rebuilt bottleneck image and require
+  lifecycle `pcie_ready` before running any M2 BAR gate.
+
+## 2026-06-18 - Restored M2 candidate reaches pcie_ready
+
+- Flashed the restored input-shadow-direct M2 bottleneck bitstream:
+  `/nix/store/8k33kfbwl3mb9ick5gxsdmcmaclnxa5z-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+- Flash artifact:
+  `artifacts/task6/runs/2026-06-18T23-16-10+0200-task6-m2-input-shadow-restore-flash`.
+  The guarded flash wrapper returned `0`; openFPGALoader completed BPI flash
+  programming and first-32-word verification.
+- Ran the canonical recovery/lifecycle boundary:
+  `nix develop -c just task6-pcie-recover 0000:42:00.0 task6-m2-input-shadow-restore-recover 5`.
+- Recovery artifact:
+  `artifacts/task6/runs/2026-06-18T23-23-25+0200-task6-m2-input-shadow-restore-recover`.
+  Initial lifecycle classified `missing_resource0`; the orchestrator performed
+  one Tapo P115 power cycle; follow-up lifecycle classified `pcie_ready`.
+  `host_recovery_freeze_risk=false`.
+- No M2 BAR/HIL gate was run in this step. The hardware boundary condition is
+  now satisfied for the restored candidate, so the next command may be the M2
+  bottleneck board gate if we choose to observe the direct-write failure again,
+  or the diagnostic compensated-write gate if the goal is to continue into the
+  live-context LN mismatch.
+
+## 2026-06-19 - Restored M2 compensated-write diagnostic
+
+- Ran the diagnostic M2 BAR gate against the restored input-shadow-direct
+  bitstream with `--vector-write-mode readback-compensated`.
+- Artifact:
+  `artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary-readback-compensated.json`.
+- The board remained accessible and the gate reached start:
+  `m2_present=true`, `m2_magic=true`, `preflight_registers_stable=true`,
+  `start_count_before=0`, and `start_count_after=1`.
+- This run did not reproduce the earlier live-context LN mismatch. With the
+  restored input-shadow-direct RTL, the existing `readback-compensated` mode
+  writes the opposite compensation direction for this board contract:
+  `block_input_words_written` begins `0x12c43a3c 0x05000202 0x02ea04c8`,
+  `input_readback_transform=other`, and the accelerator fails immediately at
+  embedding token-id decode.
+- Failure signature:
+  `status=0x4d320064`, `state_name=ERROR`, `debug=0x01007478`,
+  decoded `stage=0x01 embedding token-id mismatch`, `token_index=0`,
+  `observed_token_id=0x7478`.
+- Next action: add or run the inverse PCIe7x 64-bit lane compensation mode for
+  the restored input-shadow-direct RTL, so the host writes the raw words that
+  produce the requested internal token/control vector. The existing
+  `legacy-rotated` alias is not useful because it currently maps to the same
+  transform as `readback-compensated`.
+
+## 2026-06-19 - Restored M2 inverse-compensated diagnostic reaches context LN
+
+- Added `input-shadow-direct-compensated` as a diagnostic M2 vector write mode in
+  `scripts/task6/task6_pcie_m2_full_block_gate.py`. It applies the inverse
+  PCIe7x 64-bit lane rotation needed by the restored input-shadow-direct RTL.
+- Unit coverage in `scripts/task6/test_task6_pcie_m2_full_block_gate.py`
+  verifies that the requested token/control words
+  `0x09621d1e 0x02800101 0x01750264` are written as raw words
+  `0x84b10e8f 0x01400080 0x00ba8132`, while the existing
+  `readback-compensated` mode still writes the opposite direction.
+- Verification:
+  `python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py` passed, and
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py
+  scripts/task6/test_task6_pcie_m2_full_block_gate.py` passed.
+- First hardware attempt with the new mode stopped before writes because the
+  prior BAR diagnostic had left `m2_context_fixture_signature=0x00000000`.
+  Artifact:
+  `artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary-input-shadow-direct-compensated.json`
+  was overwritten by the later post-reset run, but the failure was preflight
+  only: no M2 clear/start/vector writes were issued.
+- Reinitialized the FPGA from flash with a controlled Tapo P115 off/on cycle,
+  waited for enumeration, and confirmed non-BAR lifecycle `pcie_ready` at
+  `artifacts/task6/runs/2026-06-19T00-30-26+0200-task6-m2-input-shadow-inverse-after-powercycle`.
+- Reran the inverse-compensated diagnostic. Artifact:
+  `artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary-input-shadow-direct-compensated.json`.
+- This run restored the intended diagnostic path: `input_readback_transform=identity`,
+  `residual_readback_transform=identity`, `start_count_before=0`,
+  `start_count_after=1`, and the live M2 block entered compute.
+- Current M2 blocker:
+  `status=0x4d320064`, `state_name=ERROR`, `debug=0xc1069081`,
+  `debug1=0x000dfc70`, `debug2=0xe7dece67`, decoded `stage=0xc1`
+  live-context context substage mismatch, context stage `0x01` LN output
+  mismatch, `ln_index=1`, `expected_q=0xa4`, `observed_q=0x81`.
+- Next action: trace the live-context LN expected/observed path for token index
+  5, dimension 1. The board reports intermediate signed values
+  `mean_q12=13`, `centered_q12=-912`, `norm_q12=-6178`,
+  `affine_q12=-12697`; compare these against the generated context fixture and
+  the RTL simulation path before changing hardware.
 
 ## 2026-06-18 - DDR3-first finish plan and crisp state contract
 
@@ -34895,6 +35240,361 @@ Next action:
 - Debug the M1 accelerator start/control/reset path. The ingress BAR path is
   alive enough to echo inputs and increment `start_count`, but compute never
   leaves `IDLE`.
+
+### 2026-06-18 - M2 input aperture isolation
+
+Goal: continue M2 after promoting M1 by proving whether the full-block gate is
+blocked by PCIe BAR transport or by the M2 compute path.
+
+Results:
+
+- Rebuilt current M2 bottleneck from source with the raw-shadow/direct input
+  write path. The bitstream built and routed:
+  `/nix/store/7g9nkznc2ryzw4dlp45skxkn5pr3ip9y-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+  Final routed `pcie_user_clk` was `77.20 MHz` at the `62.50 MHz` target.
+- Flashed it successfully:
+  `artifacts/task6/runs/2026-06-18T17-57-27+0200-task6-m2-input-shadow-direct`.
+- Recovered PCIe after one Tapo power cycle:
+  `artifacts/task6/runs/2026-06-18T18-04-43+0200-task6-m2-input-shadow-direct`,
+  final classification `pcie_ready`.
+- Canonical direct-write gate still failed before start:
+  `artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary.json`.
+  The input readback transform was `pcie7x-64bit-ror1`, residual readback was
+  `identity`, `start_count_before=0`, `start_count_after=0`, and state stayed
+  `IDLE`.
+- Diagnostic gate with `--vector-write-mode readback-compensated` was run
+  against the same flashed image and wrote a separate artifact:
+  `artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary-readback-compensated.json`.
+  It proved the aperture diagnosis: input and residual readback were both
+  `identity`, `start_count` incremented from `0` to `1`, and M2 reached compute.
+  The new failure is live-context LN: status `0x4d320064`, debug
+  `0xc10af47f`, stage `0xc1`, LN output mismatch at `ln_index=2`,
+  `expected_q=0xbd`, `observed_q=0x7f`.
+- Implemented a narrower RTL experiment: direct writes still update
+  `m2_full_block_input_vector_o`, but reads of the M2 input aperture return a
+  `pcie7x` host-readback-compensated value. Focused ingress simulation passed:
+  `nix build .#task6-pcie-rowstream-loader-ingress-sim-main -o /tmp/task6-m2-input-readback-comp-ingress-sim-main -L`
+  and `/tmp/task6-m2-input-readback-comp-ingress-sim-main/obj_dir/sim_main`.
+- Rebuilt the readback-only M2 bitstream:
+  `/nix/store/ydici1wcb1743zlm47plh45pf7g9qw59-task6-ypcb-pcie-rowstream-ingress-dummy-pnr100.bit`.
+  Final routed `pcie_user_clk` was `68.57 MHz` at the `62.50 MHz` target.
+- Flashed that image successfully:
+  `artifacts/task6/runs/2026-06-18T18-27-01+0200-task6-m2-input-readback-comp`.
+- PCIe recovery did not reach a live BAR for this readback-only image. Two
+  recovery attempts ended `unstable_config`:
+  `artifacts/task6/runs/2026-06-18T18-34-12+0200-task6-m2-input-readback-comp`
+  and
+  `artifacts/task6/runs/2026-06-18T18-35-19+0200-task6-m2-input-readback-comp-retry`.
+
+Interpretation:
+
+- The canonical M2 gate is still blocked at the input-aperture acceptance
+  contract for the last HIL-testable image.
+- The diagnostic compensated-write run proves M2 can start once host-visible
+  input readback is made identity, and it exposes the next compute bug in
+  live-context LN.
+- The readback-only RTL is the right shape to preserve direct core input while
+  fixing host readback, but its first bitstream currently introduces or exposes
+  a PCIe recovery problem. Do not claim the aperture fix green until that image
+  recovers to `pcie_ready` and passes the direct-write pre-start contract.
+
+Next action:
+
+- Restore PCIe recovery for the readback-only M2 input aperture image, then run
+  `nix develop -c just task6-bottleneck-board-gate`.
+- If that reaches compute, use the diagnostic failure signature as the next
+  target: live-context LN mismatch at stage `0xc1`, `ln_index=2`,
+  `expected_q=0xbd`, `observed_q=0x7f`.
+
+### 2026-06-18 - PCIe recovery protocol captured in justfile
+
+The repeatedly successful recovery flow is now canonicalized as:
+
+- `just task6-pcie-recover`
+- `just task6-pcie-recover-then-bottleneck`
+
+The protocol delegates to `scripts/task6/task6_pcie_user_gate.sh recover-auto`
+with lifecycle classification first, safe root-helper recovery for permission
+or disabled-BAR cases, and a bounded Tapo P115 power cycle only when physical
+re-enumeration is required. The default board is endpoint `0000:42:00.0`,
+bridge `0000:41:00.0`, power URL `192.168.1.136`, secret file
+`/home/roland/.config/task6-pcie/tapo.env`, five power cycles, 10 seconds off,
+45 seconds on, and 120 second command timeout.
+
+Use `just task6-pcie-recover` before manually rerunning HIL gates when the BAR
+or config space is unstable. Use `just task6-pcie-recover-then-bottleneck` when
+the intended next action is to recover PCIe and immediately run the current M2
+bottleneck board gate.
+
+Execution result:
+
+- `nix develop -c just task6-pcie-recover-then-bottleneck` first ran the
+  recovery protocol with the old one-cycle default and failed before the
+  bottleneck gate. Artifact:
+  `artifacts/task6/runs/2026-06-18T21-53-11+0200-task6-bottleneck-recover`.
+  It classified `unstable_config`, power-cycled successfully, then ended
+  `missing_resource0`.
+- A bounded five-cycle retry also failed before the bottleneck gate. Artifact:
+  `artifacts/task6/runs/2026-06-18T21-54-20+0200-task6-bottleneck-recover-retry`.
+  It moved through `unstable_config`, `resource0_permission`, safe root-helper
+  repair, then back to `missing_resource0`.
+- A final non-BAR lifecycle postcheck confirmed the current state. Artifact:
+  `artifacts/task6/runs/2026-06-18T21-58-22+0200-task6-bottleneck-recover-postcheck`.
+  The endpoint and bridge exist, config is stable, vendor/device/header are
+  `10ee:0480`/`00`, but subsystem is `ffff`, COMMAND is `0000`, BAR0 is
+  `00000000`, and `/sys/bus/pci/devices/0000:42:00.0/resource0` is absent.
+
+Current conclusion:
+
+- PCIe is not recovered enough for BAR gates. Do not run
+  `task6-bottleneck-board-gate` until lifecycle reaches `pcie_ready`.
+
+### 2026-06-18 - PCIe enumeration recovery follow-up
+
+Goal: continue PCIe enumeration recovery for the readback-only M2 bitstream
+without running BAR gates before lifecycle reaches `pcie_ready`.
+
+Results:
+
+- One non-forced delegated endpoint recovery attempt refused immediately:
+  `TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh recover 0000:42:00.0 --reset-first --timeout 20`.
+  The refusal was `unexpected subsystem_vendor: expected 0x10ee, got 0xffff`.
+- Follow-up non-BAR lifecycle artifact:
+  `artifacts/task6/runs/2026-06-18T22-07-35+0200-task6-bottleneck-recover-refusal-postcheck`.
+  It classified `missing_resource0`; config-space readback was stable and
+  clean-looking (`COMMAND=0000`, `vendor=10ee`, `device=0480`,
+  `header_type=00`, `subsystem_device=abcd`, `BAR0=00000000`), but
+  `/sys/bus/pci/devices/0000:42:00.0/resource0` was absent.
+- Direct sysfs identity still showed stale subsystem attributes:
+  `vendor=0x10ee`, `device=0x0480`, `subsystem_vendor=0xffff`,
+  `subsystem_device=0xffff`.
+- After an additional 60 second settle wait, non-BAR lifecycle still classified
+  `missing_resource0`:
+  `artifacts/task6/runs/2026-06-18T22-09-10+0200-task6-bottleneck-recover-settle-postcheck`.
+  Direct sysfs identity still showed `subsystem_vendor=0xffff` and
+  `subsystem_device=0xffff`.
+- A single `--force-dead-config` endpoint reset/remove/rescan attempt was
+  prepared as the next diagnostic, but it was rejected by the safety gate
+  because this path is documented as host-freeze-risk and needs explicit user
+  approval for that exact risky step.
+
+Current conclusion:
+
+- The state is not delayed kernel settling. It is a mismatch between config
+  space, which looks clean enough for the lifecycle recommendation, and stale
+  sysfs identity/resource state, which blocks non-forced delegated recovery.
+- Continue to avoid BAR gates. The next software-only step is an explicitly
+  approved, single bounded `--force-dead-config` recovery experiment, or else a
+  host/chassis re-enumeration outside the normal BAR gate flow.
+
+### 2026-06-18 - M1 known-good PCIe A/B control
+
+Goal: test whether the readback-only M2 image broke PCIe RTL/integration by
+flashing a freshly rebuilt, HIL-proven M1 control bitstream and running only the
+non-BAR recovery/lifecycle path.
+
+Control bitstream:
+
+- Rebuilt `.#latest-passing-milestone` / M1:
+  `/nix/store/kpsnavrwqxj6ihjn30dbramyi5h8jqwr-task6-ypcb-pcie-rowstream-ingress-m1-pnr100.bit`.
+
+Results:
+
+- Guarded recovery flash of the M1 control bitstream passed with BPI write and
+  first-32-word verify:
+  `artifacts/task6/runs/2026-06-18T22-53-13+0200-task6-abtest-m1-known-good-flash`.
+- The canonical recovery protocol then reached `pcie_ready` after two Tapo
+  power cycles:
+  `artifacts/task6/runs/2026-06-18T23-00-18+0200-task6-abtest-m1-known-good-recover`.
+  Transcript: `missing_resource0` -> power cycle -> `missing_endpoint` -> power
+  cycle -> `pcie_ready`; `host_recovery_freeze_risk=false`.
+- Standalone non-BAR lifecycle postcheck also classified `pcie_ready`:
+  `artifacts/task6/runs/2026-06-18T23-02-25+0200-task6-abtest-m1-known-good-postcheck`.
+
+Interpretation:
+
+- The host/chassis/recovery path can still reach `pcie_ready` with the
+  known-good M1 bitstream. This makes a generic host/chassis failure less
+  likely.
+- The readback-only M2 input aperture image remains specifically suspect: its
+  PCIe integration or timing/placement effects likely broke or destabilized
+  enumeration enough that bounded Tapo recovery could not reach `pcie_ready`.
+- M2 readback-comp should not be treated as an accepted PCIe fix. Next debug
+  should compare the PCIe-facing RTL/netlist/resource/timing delta between the
+  last M2 image that recovered (`input-shadow-direct`) and the readback-only
+  image that did not.
+### 2026-06-19 - M2.3 embedding handoff candidate, later invalidated by strict gate
+
+This section records the original candidate observation. It is not accepted
+M2.3 evidence after the stricter review below.
+
+Evidence:
+
+- Focused ingress sim passed after changing M2 input semantics from the old
+  PCIe7x rotate compensation to direct identity:
+  `nix build .#task6-pcie-rowstream-loader-ingress-sim-main --no-link --print-out-paths`.
+- Focused M2.3 wrapper sim passed:
+  `nix build .#task6-m2-embedding-handoff-pcie-accel-sv-sim --no-link --print-out-paths`.
+- Corrected M2.3 bitstream built and closed routed timing:
+  `/nix/store/2l83djqxdn8ak5cxwqfq1addr4hzv0sp-task6-ypcb-pcie-rowstream-ingress-m2-3-embedding-handoff-pnr100.bit`,
+  final `pcie_user_clk` 72.79 MHz PASS at 62.50 MHz.
+- Flash and verify passed:
+  `artifacts/task6/runs/2026-06-19T13-29-51+0200-task6-m2-3-embedding-handoff-direct-input-flash`.
+- PCIe recovery reached `pcie_ready` after one Tapo power cycle:
+  `artifacts/task6/runs/2026-06-19T13-37-23+0200-task6-m2-3-embedding-handoff-direct-input-recover`.
+- Board gate PASS:
+  `artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-direct-input-token-mode.json`.
+
+Key PASS values:
+
+- `run_status=0x4d320059` (`DONE`, output valid, ready)
+- `input_readback_transform=identity`
+- `residual_readback_transform=identity`
+- `checksum=0x000350f9`
+- `debug=0x88fa5e3a`
+- `debug1=0x000350f9`
+- `debug2=0x88fa5e3a`
+- `debug3=0x50f95e3a`
+- `provenance=0x4d323105`
+
+Two failures were useful and are now closed:
+
+- The first M2.3 HIL run exposed old PCIe7x compensation on the M2 input BAR:
+  input readback was `pcie7x-64bit-rol1`, while residual was identity. The fix
+  removed the M2 input rotate from `task6_pcie_axil_rowstream_loader_ingress.v`
+  and updated the ingress sim to require direct identity.
+- The second M2.3 HIL run exposed a host-gate mode bug: provenance `0x3100`
+  was not treated as token-live mode, so the gate wrote block-input bytes as
+  token IDs. The fix makes provenance modes `0x3000` and `0x3100` both select
+  token-ID input.
+
+Next action:
+
+- Move the bottleneck to M2.4. Build an M2.4-only direct-mode candidate that
+  starts from the M2.3 token-ID handoff and proves the live-context attention
+  slice boundary: LN + QKV + softmax/value/context vector against the oracle.
+
+Correction after review:
+
+- The M2.3 board observation remains meaningful, but the gate was
+  over-accepting and the state has been downgraded from HIL-green to
+  strict-rerun-required.
+- The old gate checked only `debug3` checksum low16 fields for the embedding
+  handoff and inherited the shared start/clear path that could allow terminal
+  `ERROR`.
+- The fixed M2.3 gate requires `DONE`, no `ERROR`, output valid, output count
+  64, full block-input checksum, full LN-input checksum in both debug words,
+  the expected `debug3` packed lows, and a full 64-byte `REG_M2_OUTPUT_VECTOR`
+  match.
+- The focused M2.3 sim also now prints the pre-clear checked values instead of
+  cleared zero registers.
+- M2.3 must be rerun on hardware with the tightened gate before it is restored
+  as HIL-green.
+
+Strict rerun result:
+
+- PCIe recovery/lifecycle was already `pcie_ready`:
+  `artifacts/task6/runs/2026-06-19T13-52-29+0200-task6-m2-3-strict-rerun-recover`.
+- The strict M2.3 gate failed twice, repeatably, only on the full output-vector
+  check:
+  `artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-strict-rerun.json`
+  and
+  `artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-strict-rerun-repeat.json`.
+- Passing checks included direct input/residual readback identity, `DONE`, no
+  `ERROR`, output valid, output count 64, checksum `0x000350f9`,
+  `debug=0x88fa5e3a`, `debug1=0x000350f9`, `debug2=0x88fa5e3a`,
+  `debug3=0x50f95e3a`, and provenance `0x4d323105`.
+- Failing check: `embedding_output_vector=false`. Observed
+  `REG_M2_OUTPUT_VECTOR` lower 32 bytes read as all ones, while the upper 32
+  bytes matched the expected block-input vector:
+  `ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff26d62003091cbd1f4dd20d29061e58002c365853b4b52cfa061f1251f176fc13`.
+- M2.3 remains not HIL-green. Next action is to fix the public BAR
+  output-vector exposure in the wrapper/CDC/ingress path, rerun sims, rebuild
+  the focused M2.3 bitstream, and rerun HIL.
+
+Follow-up software boundary after review:
+
+- Added focused M2.3 public BAR sim:
+  `nix build .#task6-m2-embedding-handoff-pcie-bar-sv-sim --no-link --print-out-paths -L`.
+- The sim writes token IDs through the M2 input BAR, starts the focused M2.3
+  wrapper, reads `REG_M2_OUTPUT_VECTOR` via the public BAR, and compares all 64
+  bytes against the embedding oracle.
+- Result: PASS with `block_input_checksum=000350f9` and
+  `ln_input_checksum=88fa5e3a`.
+- Rebuilt focused M2.3 bitstream:
+  `/nix/store/1saxp6n34i4ajs39pb34f715fkdn55cm-task6-ypcb-pcie-rowstream-ingress-m2-3-embedding-handoff-pnr100.bit`.
+- Final routed timing is clean: `pcie_user_clk` 72.79 MHz PASS at 62.50 MHz.
+- This does not restore M2.3 to HIL-green. The remaining boundary is hardware:
+  flash the exact rebuilt bitstream, recover PCIe to `pcie_ready`, then rerun
+  the strict M2.3 board gate before any M2.4 HIL.
+
+Routed-clean M2.3 HIL rerun:
+
+- Flash/verify PASS:
+  `artifacts/task6/runs/2026-06-19T14-12-02+0200-task6-m2-3-strict-rerun-routed-clean-flash`.
+- PCIe recovery PASS with final classification `pcie_ready` after one Tapo
+  power cycle:
+  `artifacts/task6/runs/2026-06-19T14-19-24+0200-task6-m2-3-strict-rerun-routed-clean-recover`.
+- Strict M2.3 HIL still FAIL:
+  `artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-strict-rerun-routed-clean.json`.
+- The failure signature is unchanged: `DONE`, no `ERROR`, output valid,
+  direct input/residual readback identity, checksum `0x000350f9`,
+  `debug=0x88fa5e3a`, `debug1=0x000350f9`, `debug2=0x88fa5e3a`,
+  `debug3=0x50f95e3a`, provenance `0x4d323105`, scalar sample0/sample1
+  `0xed/0xda`, but `REG_M2_OUTPUT_VECTOR` lower 32 bytes read as all ones
+  while bytes 32-63 match.
+- Stale bitstream and final routed timing are ruled out for this failure.
+  Next diagnostic should expose the lower output-vector words through a scalar
+  mirror or separate BAR window to identify whether the loss is in the vector
+  mux/window, the PCIe read path for that address range, or the implemented
+  vector mirror.
+
+M2.3 output-vector mirror diagnostic software boundary:
+
+- Added a diagnostic mirror of `REG_M2_OUTPUT_VECTOR` words 0-7 at the unused
+  scalar/debug offsets `0x5dc..0x5f8`.
+- This is diagnostic evidence only. The strict M2.3 acceptance check still
+  requires the full 64-byte public `REG_M2_OUTPUT_VECTOR` read to match.
+- Updated the board gate artifact to record `output_vector_mirror_lower_hex`
+  and whether it matches the expected lower 32 bytes.
+- Local verification passed:
+  `python3 -m py_compile scripts/task6/task6_pcie_m2_full_block_gate.py scripts/task6/test_task6_pcie_m2_full_block_gate.py`,
+  `python3 scripts/task6/test_task6_pcie_m2_full_block_gate.py`,
+  `python3 scripts/task6/task6_state_validate.py`,
+  `git diff --check`,
+  `nix build .#task6-pcie-rowstream-loader-ingress-sim-main --no-link --print-out-paths -L`,
+  and
+  `nix build .#task6-m2-embedding-handoff-pcie-bar-sv-sim --no-link --print-out-paths -L`.
+- Focused M2.3 diagnostic bitstream built and closed routed timing:
+  `/nix/store/x48ghzjmhqkz038g2681g1fsk63cqqa5-task6-ypcb-pcie-rowstream-ingress-m2-3-embedding-handoff-pnr100.bit`,
+  final `pcie_user_clk` 74.60 MHz PASS at 62.50 MHz.
+- Next action is hardware-boundary only: flash that exact bitstream, recover
+  PCIe to `pcie_ready`, then rerun strict M2.3. Do not run M2.4 HIL until
+  strict M2.3 passes.
+
+M2.3 output-vector mirror diagnostic HIL result:
+
+- Flash/verify PASS:
+  `artifacts/task6/runs/2026-06-19T14-32-17+0200-task6-m2-3-output-vector-mirror-diagnostic-flash`.
+- PCIe recovery PASS with final classification `pcie_ready` after one Tapo
+  power cycle:
+  `artifacts/task6/runs/2026-06-19T14-39-25+0200-task6-m2-3-output-vector-mirror-diagnostic-recover`.
+- Strict M2.3 HIL FAIL:
+  `artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-vector-mirror-diagnostic.json`.
+- This run did not evaluate the output-vector lower-half mirror. It regressed
+  earlier: direct token input readback transformed as `pcie7x-64bit-ror1`,
+  residual readback remained identity, and the wrapper entered `ERROR` with
+  `debug=0x01000e8f` (`embedding token-id mismatch`, token 0 observed
+  `0x0e8f`). The output vector and mirror were all zero because compute did
+  not produce a valid boundary output.
+- A follow-up M2.1 BAR-contract probe on the same focused image failed at
+  preflight because the image reports M2.3 provenance `0x4d323105` while the
+  M2.1 gate expects `0x4d323005`; that artifact is useful only as a reminder
+  that focused submilestone images need provenance-aware probes.
+- Next action: restore direct M2 input BAR identity for the focused M2.3 image
+  before more output-vector diagnostics. Compare this diagnostic image against
+  the prior routed-clean M2.3 image that had input/residual identity and DONE,
+  then build the smallest M2.3 candidate that preserves direct input identity.
 
 M2.4 PCIe/BAR boundary debug below the input register assignment:
 

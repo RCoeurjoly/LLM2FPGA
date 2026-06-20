@@ -309,11 +309,23 @@ module task6_m2_first_token_attention_out_proj_accel_top #(
           end else if (ENABLE_INTERNAL_CHECKS && output_q_w != out_proj_expected_q[out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
-            debug_o <= {8'h02, out_index_detail_w, 4'd0, 8'd0, output_q_w};
+            debug_o <= {
+              8'h02,
+              out_index_detail_w,
+              4'd0,
+              out_proj_expected_q[out_index_q][7:0],
+              output_q_w
+            };
           end else if (ENABLE_INTERNAL_CHECKS && residual_q_w != attn_residual_expected_q[out_index_q]) begin
             state_q <= ST_ERROR;
             error_q <= 1'b1;
-            debug_o <= {8'h03, out_index_detail_w, 4'd0, 8'd0, residual_q_w};
+            debug_o <= {
+              8'h03,
+              out_index_detail_w,
+              4'd0,
+              attn_residual_expected_q[out_index_q][7:0],
+              residual_q_w
+            };
           end else begin
             checksum_q <= checksum_q + weighted_value_w;
             output_vector_q[out_index_q * 8 +: 8] <= output_q_w;

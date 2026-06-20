@@ -284,6 +284,10 @@ def maybe_run_bar_checks(snap: dict[str, object], run_dir: Path, args: argparse.
         snap["bar_gate"] = bar
         (run_dir / "bar-gate.stdout").write_text(str(bar["stdout"]), encoding="utf-8")
         (run_dir / "bar-gate.stderr").write_text(str(bar["stderr"]), encoding="utf-8")
+        bar_stdout = str(bar["stdout"]).lower()
+        if int(bar.get("returncode", 1)) != 0 and "ff ff ff ff" in bar_stdout:
+            snap["classification"] = "stale_bar_all_ones"
+            return
     if args.run_debug:
         debug = run(["scripts/task6/task6_pcie_user_gate.sh", "debug-dump", args.bdf, "--samples", "4"], timeout=10)
         snap["debug_gate"] = debug

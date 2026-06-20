@@ -52,8 +52,8 @@ module task6_m2_live_context_full_block_accel_top #(
   logic mlp_start_q;
   logic output_valid_q;
   logic error_q;
-  (* keep = "true" *) logic clear_local_q;
-  (* keep = "true" *) logic clear_context_q;
+  logic clear_local_q;
+  logic clear_context_q;
 
   logic [31:0] context_status_w;
   logic [31:0] context_cycle_count_w;
@@ -113,7 +113,9 @@ module task6_m2_live_context_full_block_accel_top #(
     .fixture_signature_o(context_fixture_signature_w)
   );
 
-  task6_m2_first_token_attention_out_proj_accel_top attention_i (
+  task6_m2_first_token_attention_out_proj_accel_top #(
+    .ENABLE_INTERNAL_CHECKS(1'b0)
+  ) attention_i (
     .SYS_CLK(SYS_CLK),
     .SYS_RSTN(SYS_RSTN),
     .start_i(attn_start_q),
@@ -297,8 +299,13 @@ module task6_m2_live_context_full_block_accel_top #(
     final_sample0_o = mlp_final_sample0_w;
     final_sample1_o = mlp_final_sample1_w;
     final_vector_o = mlp_final_vector_w;
-    debug1_o = context_debug1_w;
-    debug2_o = context_debug2_w;
+    if (state_q == ST_DONE) begin
+      debug1_o = attn_residual_sample0_w;
+      debug2_o = attn_residual_sample1_w;
+    end else begin
+      debug1_o = context_debug1_w;
+      debug2_o = context_debug2_w;
+    end
     context_fixture_signature_o = context_fixture_signature_w;
   end
 endmodule

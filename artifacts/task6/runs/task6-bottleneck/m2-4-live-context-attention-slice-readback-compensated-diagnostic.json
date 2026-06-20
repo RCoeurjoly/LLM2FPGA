@@ -1,0 +1,169 @@
+{
+  "artifact_name": "task6-pcie-m2-full-block-board-gate",
+  "bdf": "0000:42:00.0",
+  "board": {
+    "bdf": "0000:42:00.0",
+    "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+    "pcie_command": "0002",
+    "status": "FAIL"
+  },
+  "checks": {
+    "m2_context_fixture_signature": false,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "not_all_ones": true,
+    "preflight_registers_stable": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "command": "0002",
+  "contract": {
+    "artifact_role": "m2-live-context-attention-slice-board-gate",
+    "live_compute": true,
+    "milestone_target": "M2.4-live-context-attention-slice",
+    "notes": "M2.4 acceptance gate. It proves the focused live-context attention slice from host token IDs through the context vector boundary.",
+    "responsibilities": {
+      "fpga": [
+        "token-ID selected embedding and position add",
+        "handoff of live LN input to the live-context attention slice",
+        "live LN + QKV + softmax/value/context computation",
+        "BAR-visible full 64-byte context vector and boundary checksums"
+      ],
+      "host": [
+        "PCIe lifecycle orchestration",
+        "direct token-ID writes",
+        "BAR-visible context vector/checksum comparison"
+      ]
+    },
+    "stage": "M2.4-live-context-attention-slice",
+    "version": "task6-m2-live-context-attention-slice-v1"
+  },
+  "date": "2026-06-19",
+  "elapsed_seconds": 0.05287053599022329,
+  "failure": "preflight register/provenance check failed before issuing M2 clear/start or vector writes",
+  "fingerprints": {
+    "context_fixture_signature": "0xc5dc8a6c",
+    "context_tb_data_sv": "/nix/store/afydggdrkr9hpjrr2m34xpjq29pcv1hi-task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv",
+    "context_tb_data_sv_sha256": "7a45ec172fff1612e1e77644b2b3b78b7bde12093ecaf5d8fa4a9c37425696ce",
+    "embedding_tb_data_sv": "/nix/store/f7bf2y3hc03ky85mj55a6n3kvbhwaw6x-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv",
+    "embedding_tb_data_sv_sha256": "8a04733af0c75288bc4841cea2cfb894eaeeb5a747c910e2a3698beb5c01ebac",
+    "expected_json": null,
+    "expected_json_sha256": null,
+    "gate_script_sha256": "0345ae573726693f06736032ceeeb457df44858f2b098bc50da9b3147a74aa0b",
+    "tb_data_sv": "/nix/store/sfcmqcjrk0n051c1yqqws2n2x947f3vy-task6-m2-last-token-live-kv-context-full-block-tb-data-sv/tb_data.sv",
+    "tb_data_sv_sha256": "20a73912f28e8337ae639c58c08ccee4cfce8ac3c6196de0ba11bb72701a1f3c",
+    "tb_data_token_index": 5,
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ]
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "preflight_acceptable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "preflight_samples": {
+    "m2_context_fixture_signature": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "m2_magic": [
+      "0x54364d32",
+      "0x54364d32",
+      "0x54364d32"
+    ],
+    "m2_present": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "m2_provenance": [
+      "0x4d324105",
+      "0x4d324105",
+      "0x4d324105"
+    ],
+    "m2_version": [
+      "0x44000001",
+      "0x44000001",
+      "0x44000001"
+    ],
+    "magic": [
+      "0x54365043",
+      "0x54365043",
+      "0x54365043"
+    ],
+    "status": [
+      "0x00400061",
+      "0x00400061",
+      "0x00400061"
+    ],
+    "version": [
+      "0x00000003",
+      "0x00000003",
+      "0x00000003"
+    ]
+  },
+  "preflight_stable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "preflight_warmup_samples": {
+    "m2_context_fixture_signature": [
+      "0x00000000"
+    ],
+    "m2_magic": [
+      "0x54364d32"
+    ],
+    "m2_present": [
+      "0x00000001"
+    ],
+    "m2_provenance": [
+      "0xffffffff"
+    ],
+    "m2_version": [
+      "0x44000001"
+    ],
+    "magic": [
+      "0x54365043"
+    ],
+    "status": [
+      "0x00000061"
+    ],
+    "version": [
+      "0x00000003"
+    ]
+  },
+  "registers": {
+    "expected_context_fixture_signature": "0xc5dc8a6c",
+    "expected_m2_provenance": "0x4d324105",
+    "m2_context_fixture_signature": "0x00000000",
+    "m2_magic": "0x54364d32",
+    "m2_present": 1,
+    "m2_provenance": "0x4d324105",
+    "m2_version": 1140850689,
+    "magic": "0x54365043",
+    "status": "0x00400061",
+    "version": 3
+  },
+  "status": "FAIL"
+}

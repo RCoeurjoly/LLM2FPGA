@@ -1,0 +1,319 @@
+{
+  "artifact_name": "task6-pcie-m2-full-block-board-gate",
+  "bdf": "0000:42:00.0",
+  "board": {
+    "bdf": "0000:42:00.0",
+    "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+    "pcie_command": "0002",
+    "status": "FAIL"
+  },
+  "checks": {
+    "checksum": false,
+    "first_64_output": false,
+    "input_readback": true,
+    "ln_input_checksum": true,
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "no_error": true,
+    "not_all_ones": true,
+    "output_count": true,
+    "output_count_live": true,
+    "output_valid": true,
+    "preflight_registers_stable": true,
+    "residual_readback": true,
+    "sample0": false,
+    "sample1": false,
+    "start_count_incremented": true,
+    "state_done": true,
+    "status_schema": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "command": "0002",
+  "contract": {
+    "artifact_role": "m2-live-full-block-board-gate",
+    "live_compute": true,
+    "milestone_target": "M2-one-full-block",
+    "notes": "Board executes one complete TinyStories transformer block from host-supplied token IDs and block_index=0 control input.",
+    "responsibilities": {
+      "fpga": [
+        "token-ID selected embedding and position add",
+        "live K/V attention context for one complete TinyStories transformer block",
+        "attention out projection, LN2, MLP, and final residual",
+        "BAR-visible status/checksum/sample/full 64-byte final output"
+      ],
+      "host": [
+        "prompt token/control input",
+        "PCIe lifecycle orchestration",
+        "final vector comparison against fixed-point TinyStories block reference"
+      ]
+    },
+    "stage": "M2-one-full-block",
+    "version": "task6-m2-token-id-live-full-block-v1"
+  },
+  "date": "2026-06-19",
+  "elapsed_seconds": 0.007143871043808758,
+  "expected": {
+    "checksum": "0x0003b2c9",
+    "context_fixture_signature": "0xc5dc8a6c",
+    "first_64_output_hex": "59be14d170e437d7f019991bcbd8e4fcaef65aca2bc6d106002309bddb04c2dc3dd9e2f90ff9bbea2de8c63208f051962127287f0533d51e5d133748e117ea00",
+    "ln_input_checksum": "0x88fa5e3a",
+    "output_count": 64,
+    "sample0": "0xd114be59",
+    "sample1": "0xd737e470",
+    "token_index": 5
+  },
+  "fingerprints": {
+    "block_input_sha256": "b6c712d088b5070f4facef1ac1480b7247360ff7621969739bfbf7505684a29f",
+    "block_input_source": "embedding_tb_data_sv token_ids",
+    "context_fixture_signature": "0xc5dc8a6c",
+    "context_tb_data_sv": "/nix/store/zjd8ffajcy34ggr69ra7006975k2dz2n-task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv",
+    "context_tb_data_sv_sha256": "e59275be305b729794e55874af712e850d3647b49045b3d078f6ce2ef61a60b6",
+    "embedding_tb_data_sv": "/nix/store/bk79fi64id76idavqgi57rg1chqqkczz-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv",
+    "embedding_tb_data_sv_sha256": "8a04733af0c75288bc4841cea2cfb894eaeeb5a747c910e2a3698beb5c01ebac",
+    "expected_json": null,
+    "expected_json_sha256": null,
+    "expected_params_sha256": "35b00e43fe8fffc82fb6d1dbca2d700b1eb66dfbf733f52dec30a398e27fa398",
+    "gate_script_sha256": "74955da6e19562099e55e9d0ab164b2651e8284f6fa9579706266b5a9167448e",
+    "residual_after_attention_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b",
+    "residual_after_attention_source": "embedding_tb_data_sv reserved token-control vector",
+    "tb_data_sv": "/nix/store/kvnlnhgly5dag8l0xs4dkk1xiyfd0jv0-task6-m2-last-token-live-kv-context-full-block-tb-data-sv/tb_data.sv",
+    "tb_data_sv_sha256": "a857a45d36bcec753d91c9233666814c1e3c2aa0d10ab5e2cc19b10bfbb7780a",
+    "tb_data_token_index": 5,
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ]
+  },
+  "input": {
+    "block_index": 0,
+    "block_input_hex": "1e1d6209010180026402750100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "block_input_words_little_packed": [
+      "0x09621d1e",
+      "0x02800101",
+      "0x01750264",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "block_input_words_written": [
+      "0x84b10e8f",
+      "0x01400080",
+      "0x00ba8132",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "readback_is_contract_check": false,
+    "residual_after_attention_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_words_little_packed": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "residual_words_written": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ],
+    "vector_write_mode": "input-shadow-direct-compensated"
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "observed": {
+    "checksum": "0x0004548e",
+    "compute_path": "live-full-block",
+    "cycle_count": 154613,
+    "debug": "0x88fa5e3a",
+    "debug1": "0x50f932e3",
+    "debug2": "0x49efedf2",
+    "debug3": "0x50f950f9",
+    "decoded_debug": {
+      "debug1": "0x50f932e3",
+      "debug2": "0x49efedf2",
+      "detail": "0xfa5e3a",
+      "error_core_cycle_count": 1240460786,
+      "error_core_status": "0x50f932e3",
+      "stage": "0x88"
+    },
+    "decoded_status": {
+      "busy": false,
+      "done": true,
+      "error": false,
+      "magic": 19762,
+      "output_valid": true,
+      "ready": true,
+      "schema": {
+        "busy": 1,
+        "error": 2,
+        "magic_lsb": 16,
+        "magic_value": 19762,
+        "output_valid": 3,
+        "ready": 0,
+        "state_lsb": 4,
+        "state_width": 3
+      },
+      "schema_consistent": true,
+      "state": 5,
+      "state_name": "DONE"
+    },
+    "done_stage_checksums": {
+      "attn_out_checksum_low8": "0x49",
+      "attn_residual_checksum_low8": "0xef",
+      "block_input_checksum_low16": "0x50f9",
+      "c_proj_checksum_low8": "0xf2",
+      "context_checksum_low16": "0x32e3",
+      "ln2_checksum_low8": "0xed"
+    },
+    "expected_provenance": "0x4d323005",
+    "first_64_output_hex": "8200b0d27fb4f804811a8f7fd85c7f7f357f7f7f3f84947f14b69ad8868e84817fee4cd07f7ffbf0e32b7f7f4dfc74b8d37f507f3643704e7fd4c468817f815a",
+    "input_readback_hex": "1e1d6209010180026402750100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "input_readback_matches_requested": true,
+    "input_readback_transform": "identity",
+    "ln_input_checksum": "0x88fa5e3a",
+    "output_count": 64,
+    "provenance": "0x4d323005",
+    "residual_readback_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_readback_matches_requested": true,
+    "residual_readback_transform": "identity",
+    "sample0": "0xd2af7f8e",
+    "sample1": "0x047eb27f",
+    "start_count_after": 1,
+    "start_count_before": 0,
+    "status": "0x4d320059",
+    "token_index": 5
+  },
+  "preflight_acceptable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "preflight_samples": {
+    "m2_context_fixture_signature": [
+      "0xc5dc8a6c",
+      "0xc5dc8a6c",
+      "0xc5dc8a6c"
+    ],
+    "m2_magic": [
+      "0x54364d32",
+      "0x54364d32",
+      "0x54364d32"
+    ],
+    "m2_present": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "m2_provenance": [
+      "0x4d323005",
+      "0x4d323005",
+      "0x4d323005"
+    ],
+    "m2_version": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "magic": [
+      "0x54365043",
+      "0x54365043",
+      "0x54365043"
+    ],
+    "status": [
+      "0x00000061",
+      "0x00000061",
+      "0x00000061"
+    ],
+    "version": [
+      "0x00000003",
+      "0x00000003",
+      "0x00000003"
+    ]
+  },
+  "preflight_stable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "registers": {
+    "expected_context_fixture_signature": "0xc5dc8a6c",
+    "m2_context_fixture_signature": "0xc5dc8a6c",
+    "m2_magic": "0x54364d32",
+    "m2_present": 1,
+    "m2_version": 1,
+    "magic": "0x54365043",
+    "status": "0x00000061",
+    "version": 3
+  },
+  "status": "FAIL"
+}

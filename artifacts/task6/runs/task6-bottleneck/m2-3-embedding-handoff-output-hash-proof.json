@@ -1,0 +1,340 @@
+{
+  "artifact_name": "task6-pcie-m2-start-clear-lifecycle-gate",
+  "bdf": "0000:42:00.0",
+  "board": {
+    "bdf": "0000:42:00.0",
+    "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+    "pcie_command": "0002",
+    "status": "PASS"
+  },
+  "checks": {
+    "clear_no_error": true,
+    "clear_state_idle": true,
+    "clear_status_not_all_ones": true,
+    "clear_status_schema_consistent": true,
+    "embedding_debug2_ln_checksum": true,
+    "embedding_debug3_checksum_lows": true,
+    "embedding_debug_block_checksum": true,
+    "embedding_debug_ln_checksum": true,
+    "embedding_no_error": true,
+    "embedding_output_checksum": true,
+    "embedding_output_count": true,
+    "embedding_output_hash": false,
+    "embedding_output_valid": true,
+    "embedding_output_vector": true,
+    "embedding_run_done": true,
+    "input_readback_identity": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "not_all_ones": true,
+    "preflight_registers_stable": true,
+    "provenance_not_all_ones": true,
+    "provenance_schema_consistent": true,
+    "residual_readback_identity": true,
+    "run_reached_allowed_terminal": true,
+    "run_reached_terminal": true,
+    "run_status_not_all_ones": true,
+    "run_status_schema_consistent": true,
+    "start_count_incremented": true,
+    "start_count_stable_after_clear": true,
+    "task6_magic": true,
+    "task6_version": true
+  },
+  "command": "0002",
+  "contract": {
+    "artifact_role": "m2-embedding-handoff-board-gate",
+    "live_compute": true,
+    "milestone_target": "M2.3-embedding-and-block-input-handoff",
+    "notes": "M2.3 acceptance gate. It proves token IDs reached the expected embedding/block-input/LN-input boundary before attention math.",
+    "responsibilities": {
+      "fpga": [
+        "token-ID selected embedding and position add",
+        "live token-ID selected embedding and position add",
+        "handoff of block input and LN input to the live-context block",
+        "BAR debug/output exposure of full boundary checksums and block vector"
+      ],
+      "host": [
+        "PCIe lifecycle orchestration",
+        "direct token-ID writes",
+        "BAR-visible block/LN checksum comparison"
+      ]
+    },
+    "stage": "M2.3-embedding-and-block-input-handoff",
+    "version": "task6-m2-embedding-handoff-v1"
+  },
+  "date": "2026-06-19",
+  "elapsed_seconds": 0.008827688987366855,
+  "fingerprints": {
+    "block_input_sha256": "b6c712d088b5070f4facef1ac1480b7247360ff7621969739bfbf7505684a29f",
+    "block_input_source": "embedding_tb_data_sv token_ids",
+    "context_fixture_signature": null,
+    "context_tb_data_sv": null,
+    "context_tb_data_sv_sha256": null,
+    "embedding_tb_data_sv": "/nix/store/gzv71kxiyr6r3i7grlzspkw3axm2bvz8-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv",
+    "embedding_tb_data_sv_sha256": "8a04733af0c75288bc4841cea2cfb894eaeeb5a747c910e2a3698beb5c01ebac",
+    "expected_json": null,
+    "expected_json_sha256": null,
+    "gate_script_sha256": "a8fb38f17864795b11da783cd9e2615898337551c71723105de5809418d37828",
+    "residual_after_attention_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b",
+    "residual_after_attention_source": "embedding_tb_data_sv reserved token-control vector",
+    "tb_data_sv": "/nix/store/cszmynadww6amvama5vk54qv67l4zyj4-task6-m2-last-token-live-kv-context-full-block-tb-data-sv/tb_data.sv",
+    "tb_data_sv_sha256": "2a4d0b36df1df5773f5e634d5a9504c695c538cbdbdbec0d9926d0644e7949c9",
+    "tb_data_token_index": 5,
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ]
+  },
+  "input": {
+    "block_index": 0,
+    "block_input_hex": "1e1d6209010180026402750100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "block_input_words_little_packed": [
+      "0x09621d1e",
+      "0x02800101",
+      "0x01750264",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "block_input_words_written": [
+      "0x09621d1e",
+      "0x02800101",
+      "0x01750264",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "readback_is_contract_check": true,
+    "residual_after_attention_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_words_little_packed": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "residual_words_written": [
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000",
+      "0x00000000"
+    ],
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ],
+    "vector_write_mode": "direct"
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "observed": {
+    "allow_terminal_error": false,
+    "checksum": "0x000350f9",
+    "clear_decoded_status": {
+      "busy": false,
+      "done": false,
+      "error": false,
+      "magic": 19762,
+      "output_valid": false,
+      "ready": true,
+      "schema": {
+        "busy": 1,
+        "error": 2,
+        "magic_lsb": 16,
+        "magic_value": 19762,
+        "output_valid": 3,
+        "ready": 0,
+        "state_lsb": 4,
+        "state_width": 3
+      },
+      "schema_consistent": true,
+      "state": 0,
+      "state_name": "IDLE"
+    },
+    "clear_status": "0x4d320001",
+    "compute_path": "embedding-handoff",
+    "cycle_count": 1542,
+    "debug": "0x88fa5e3a",
+    "debug1": "0x000350f9",
+    "debug2": "0x88fa5e3a",
+    "debug3": "0x50f95e3a",
+    "decoded_debug": {
+      "debug1": "0x000350f9",
+      "debug2": "0x88fa5e3a",
+      "detail": "0xfa5e3a",
+      "error_core_cycle_count": 2298109498,
+      "error_core_status": "0x000350f9",
+      "stage": "0x88"
+    },
+    "done_stage_checksums": {
+      "attn_out_checksum_low8": "0x88",
+      "attn_residual_checksum_low8": "0xfa",
+      "block_input_checksum_low16": "0x0003",
+      "c_proj_checksum_low8": "0x3a",
+      "context_checksum_low16": "0x50f9",
+      "ln2_checksum_low8": "0x5e"
+    },
+    "expected_block_input_checksum": "0x000350f9",
+    "expected_embedding_block_input_vector_hex": "eddab7077fb906b5a908c0e05827f6f5e1ff2f0c15c6e31da5d0cad2c3e510d626d620030914bd1f4dd20d29061e58002c365853b4b52cfa061f1251f176fc13",
+    "expected_ln_input_checksum": "0x88fa5e3a",
+    "expected_output_hash_hex": "ee2513d15bb238849de3b4f01501872b",
+    "expected_provenance": "0x4d323105",
+    "input_readback_hex": "1e1d6209010180026402750100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "input_readback_matches_requested": true,
+    "input_readback_transform": "identity",
+    "output_count": 64,
+    "output_hash_hex": "ee2513d1db68b7849de3b4f01501872b",
+    "output_vector_hex": "eddab7077fb906b5a908c0e05827f6f5e1ff2f0c15c6e31da5d0cad2c3e510d626d620030914bd1f4dd20d29061e58002c365853b4b52cfa061f1251f176fc13",
+    "provenance": "0x4d323105",
+    "residual_readback_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "residual_readback_matches_requested": true,
+    "residual_readback_transform": "identity",
+    "run_decoded_status": {
+      "busy": false,
+      "done": true,
+      "error": false,
+      "magic": 19762,
+      "output_valid": true,
+      "ready": true,
+      "schema": {
+        "busy": 1,
+        "error": 2,
+        "magic_lsb": 16,
+        "magic_value": 19762,
+        "output_valid": 3,
+        "ready": 0,
+        "state_lsb": 4,
+        "state_width": 3
+      },
+      "schema_consistent": true,
+      "state": 5,
+      "state_name": "DONE"
+    },
+    "run_status": "0x4d320059",
+    "sample0": "0x000000ed",
+    "sample1": "0x000000da",
+    "start_count_after_clear": 2,
+    "start_count_after_start": 2,
+    "start_count_before": 1
+  },
+  "preflight_acceptable": {
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "preflight_samples": {
+    "m2_magic": [
+      "0x54364d32",
+      "0x54364d32",
+      "0x54364d32"
+    ],
+    "m2_present": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "m2_provenance": [
+      "0x4d323105",
+      "0x4d323105",
+      "0x4d323105"
+    ],
+    "m2_version": [
+      "0x00000001",
+      "0x00000001",
+      "0x00000001"
+    ],
+    "magic": [
+      "0x54365043",
+      "0x54365043",
+      "0x54365043"
+    ],
+    "status": [
+      "0x00000061",
+      "0x00000061",
+      "0x00000061"
+    ],
+    "version": [
+      "0x00000003",
+      "0x00000003",
+      "0x00000003"
+    ]
+  },
+  "preflight_stable": {
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "registers": {
+    "expected_context_fixture_signature": null,
+    "expected_m2_provenance": "0x4d323105",
+    "m2_context_fixture_signature": null,
+    "m2_magic": "0x54364d32",
+    "m2_present": 1,
+    "m2_provenance": "0x4d323105",
+    "m2_version": 1,
+    "magic": "0x54365043",
+    "status": "0x00000061",
+    "version": 3
+  },
+  "status": "PASS"
+}

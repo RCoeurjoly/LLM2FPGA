@@ -49,14 +49,14 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic output_valid_q;
   logic error_q;
   logic boundary_valid_q;
-  (* keep = "true" *) logic embed_done_status_q;
-  (* keep = "true" *) logic embed_error_status_q;
-  (* keep = "true" *) logic clear_local_q;
-  (* keep = "true" *) logic clear_embed_q;
-  (* keep = "true" *) logic clear_block_q;
+  logic embed_done_status_q;
+  logic embed_error_status_q;
+  logic clear_local_q;
+  logic clear_embed_q;
+  logic clear_block_q;
 
   logic [31:0] embed_status_w;
-  (* keep = "true" *) logic [31:0] embed_status_q;
+  logic [31:0] embed_status_q;
   logic [31:0] embed_cycle_count_w;
   logic [31:0] embed_block_input_checksum_w;
   logic [31:0] embed_ln_input_checksum_w;
@@ -67,7 +67,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
   logic [511:0] block_input_vector_q;
   logic [6143:0] ln_input_q12_by_token_q;
   logic [6143:0] debug_ln_input_q12_by_token_w;
-  logic [31:0] handoff_block_input_checksum_w;
+  logic [31:0] boundary_block_input_checksum_q;
+  logic [31:0] boundary_ln_input_checksum_q;
+  logic [31:0] boundary_debug3_q;
 
   logic [31:0] block_status_w;
   logic [31:0] block_cycle_count_w;
@@ -88,15 +90,6 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
 
   assign debug_ln_input_q12_by_token_w =
     boundary_valid_q ? ln_input_q12_by_token_q : embed_ln_input_q12_by_token_w;
-
-  always_comb begin
-    handoff_block_input_checksum_w = 32'd0;
-    for (int dim = 0; dim < 64; dim = dim + 1) begin
-      handoff_block_input_checksum_w =
-        handoff_block_input_checksum_w +
-        ({24'd0, block_input_vector_q[dim * 8 +: 8]} * (dim + 1));
-    end
-  end
 
   task6_m2_embedding_block_input_accel_top embed_i (
     .SYS_CLK(SYS_CLK),
@@ -158,6 +151,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
       clear_block_q <= 1'b0;
       embed_status_q <= 32'd0;
       embed_debug_q <= 32'd0;
+      boundary_block_input_checksum_q <= 32'd0;
+      boundary_ln_input_checksum_q <= 32'd0;
+      boundary_debug3_q <= 32'd0;
       debug_o <= 32'd0;
     end else begin
       clear_local_q <= clear_i;
@@ -176,6 +172,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
         embed_error_status_q <= 1'b0;
         embed_status_q <= 32'd0;
         embed_debug_q <= 32'd0;
+        boundary_block_input_checksum_q <= 32'd0;
+        boundary_ln_input_checksum_q <= 32'd0;
+        boundary_debug3_q <= 32'd0;
         debug_o <= 32'd0;
       end else begin
         embed_start_q <= 1'b0;
@@ -196,6 +195,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
               boundary_valid_q <= 1'b0;
               embed_done_status_q <= 1'b0;
               embed_error_status_q <= 1'b0;
+              boundary_block_input_checksum_q <= 32'd0;
+              boundary_ln_input_checksum_q <= 32'd0;
+              boundary_debug3_q <= 32'd0;
               debug_o <= 32'd0;
             end
           end
@@ -221,6 +223,12 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
             cycle_count_q <= cycle_count_q + 32'd1;
             block_input_vector_q <= embed_block_input_vector_w;
             ln_input_q12_by_token_q <= embed_ln_input_q12_by_token_w;
+            boundary_block_input_checksum_q <= embed_block_input_checksum_w;
+            boundary_ln_input_checksum_q <= embed_ln_input_checksum_w;
+            boundary_debug3_q <= {
+              embed_block_input_checksum_w[15:0],
+              embed_ln_input_checksum_w[15:0]
+            };
             boundary_valid_q <= 1'b1;
             state_q <= ST_BLOCK_ARM;
           end
@@ -254,6 +262,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
               boundary_valid_q <= 1'b0;
               embed_done_status_q <= 1'b0;
               embed_error_status_q <= 1'b0;
+              boundary_block_input_checksum_q <= 32'd0;
+              boundary_ln_input_checksum_q <= 32'd0;
+              boundary_debug3_q <= 32'd0;
               debug_o <= 32'd0;
             end
           end
@@ -280,8 +291,9 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     };
     cycle_count_o = cycle_count_q;
     block_input_checksum_o =
-      boundary_valid_q ? handoff_block_input_checksum_w : embed_block_input_checksum_w;
-    ln_input_checksum_o = embed_ln_input_checksum_w;
+      boundary_valid_q ? boundary_block_input_checksum_q : embed_block_input_checksum_w;
+    ln_input_checksum_o =
+      boundary_valid_q ? boundary_ln_input_checksum_q : embed_ln_input_checksum_w;
     context_checksum_o = block_context_checksum_w;
     attn_out_checksum_o = block_attn_out_checksum_w;
     attn_residual_checksum_o = block_attn_residual_checksum_w;
@@ -293,14 +305,14 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
     final_sample1_o = block_final_sample1_w;
     final_vector_o = block_final_vector_w;
     if (state_q == ST_DONE) begin
-      debug1_o = {handoff_block_input_checksum_w[15:0], block_context_checksum_w[15:0]};
+      debug1_o = {boundary_block_input_checksum_q[15:0], block_context_checksum_w[15:0]};
       debug2_o = {
         block_attn_out_checksum_w[7:0],
         block_attn_residual_checksum_w[7:0],
         block_ln2_checksum_w[7:0],
         block_c_proj_checksum_w[7:0]
       };
-      debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};
+      debug3_o = boundary_debug3_q;
     end else if (state_q == ST_BLOCK ||
         (state_q == ST_ERROR && (
           debug_o[31:28] == 4'hc ||
@@ -310,7 +322,10 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
         ))) begin
       debug1_o = block_debug1_w;
       debug2_o = block_debug2_w;
-      debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};
+      debug3_o = boundary_valid_q ? boundary_debug3_q : {
+        embed_block_input_checksum_w[15:0],
+        embed_ln_input_checksum_w[15:0]
+      };
     end else begin
       debug1_o = {
         debug_ln_input_q12_by_token_w[15:0],
@@ -320,7 +335,10 @@ module task6_m2_embedding_live_context_full_block_accel_top #(
         debug_ln_input_q12_by_token_w[47:32],
         debug_ln_input_q12_by_token_w[63:48]
       };
-      debug3_o = {embed_block_input_checksum_w[15:0], handoff_block_input_checksum_w[15:0]};
+      debug3_o = boundary_valid_q ? boundary_debug3_q : {
+        embed_block_input_checksum_w[15:0],
+        embed_ln_input_checksum_w[15:0]
+      };
     end
     context_fixture_signature_o = block_context_fixture_signature_w;
   end

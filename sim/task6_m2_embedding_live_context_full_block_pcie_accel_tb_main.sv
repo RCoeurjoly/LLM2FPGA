@@ -242,7 +242,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       while (cycles < TIMEOUT_CYCLES) begin
         @(negedge SYS_CLK);
         cycles = cycles + 1;
-        if (dut.core_i.block_i.context_i.state_q == 5'd13 &&
+        if (dut.core_i.block_i.context_i.state_q == 5'd14 &&
             dut.core_i.block_i.context_i.token_index_q == '0 &&
             dut.core_i.block_i.context_i.ln_index_q == 6'd2) begin
           force dut.core_i.block_i.context_i.ln_piped_output_w = 8'sd0;
@@ -377,7 +377,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
             pcie_debug2_o
           );
         end
-        if (dut.core_i.block_i.context_i.state_q == 5'd13 &&
+        if (dut.core_i.block_i.context_i.state_q == 5'd14 &&
             dut.core_i.block_i.context_i.token_index_q == target_token &&
             dut.core_i.block_i.context_i.ln_index_q == target_ln_index) begin
           if (dut.core_i.block_i.context_i.debug1_o !== expected_debug1_value) begin
@@ -412,9 +412,14 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
               dut.core_i.block_i.context_i.debug2_o
             );
           end
-          if (target_token == 5 && target_ln_index == 1) begin
+          if ((target_token == 0 && target_ln_index == 1) ||
+              (target_token == 0 && target_ln_index == 20) ||
+              (target_token == 1 && target_ln_index == 0) ||
+              (target_token == 5 && target_ln_index == 1)) begin
             $display(
-              "INFO: natural context token5 LN1 debug1 %08x debug2 %08x output %02x expected %02x",
+              "INFO: natural context token%0d LN%0d debug1 %08x debug2 %08x output %02x expected %02x",
+              target_token,
+              target_ln_index,
               dut.core_i.block_i.context_i.debug1_o,
               dut.core_i.block_i.context_i.debug2_o,
               dut.core_i.block_i.context_i.ln_piped_output_w,
@@ -425,6 +430,162 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
         end
       end
       $fatal(1, "Timeout waiting for natural context token %0d LN index %0d checkpoint", target_token, target_ln_index);
+    end
+  endtask
+
+  task automatic wait_context_softmax_weight_checkpoint(
+    input int target_head,
+    input int target_src
+  );
+    int cycles;
+    logic [31:0] expected_weight;
+    begin
+      expected_weight = {16'd0, attn_expected_weight_q15[target_head][target_src]};
+      cycles = 0;
+      while (cycles < TIMEOUT_CYCLES) begin
+        @(posedge SYS_CLK);
+        cycles = cycles + 1;
+        if (pcie_status_o[2]) begin
+          $fatal(
+            1,
+            "FAIL: context entered error before softmax weight head %0d src %0d checkpoint debug=%08x debug1=%08x debug2=%08x",
+            target_head,
+            target_src,
+            pcie_debug_o,
+            pcie_debug1_o,
+            pcie_debug2_o
+          );
+        end
+        if (dut.core_i.block_i.context_i.state_q == 5'd8 &&
+            dut.core_i.block_i.context_i.head_index_q == target_head &&
+            dut.core_i.block_i.context_i.src_index_q == target_src) begin
+          if (dut.core_i.block_i.context_i.softmax_weight_piped_w !== expected_weight) begin
+            $fatal(
+              1,
+              "FAIL: natural context softmax head %0d src %0d weight expected %08x got %08x raw=%016x x_q12=%016x term1=%016x term2=%016x",
+              target_head,
+              target_src,
+              expected_weight,
+              dut.core_i.block_i.context_i.softmax_weight_piped_w,
+              dut.core_i.block_i.context_i.softmax_weight_piped_raw_w,
+              dut.core_i.block_i.context_i.softmax_x_q12_q,
+              dut.core_i.block_i.context_i.softmax_term1_q,
+              dut.core_i.block_i.context_i.softmax_term2_q
+            );
+          end
+          $display(
+            "INFO: natural context softmax head%0d src%0d weight %08x expected %08x raw %016x x_q12 %016x term1 %016x term2 %016x",
+            target_head,
+            target_src,
+            dut.core_i.block_i.context_i.softmax_weight_piped_w,
+            expected_weight,
+            dut.core_i.block_i.context_i.softmax_weight_piped_raw_w,
+            dut.core_i.block_i.context_i.softmax_x_q12_q,
+            dut.core_i.block_i.context_i.softmax_term1_q,
+            dut.core_i.block_i.context_i.softmax_term2_q
+          );
+          return;
+        end
+      end
+      $fatal(1, "Timeout waiting for natural context softmax head %0d src %0d checkpoint", target_head, target_src);
+    end
+  endtask
+
+  task automatic wait_context_value_checkpoint(
+    input int target_head,
+    input int target_dim
+  );
+    int cycles;
+    logic signed [31:0] expected_acc;
+    logic signed [63:0] expected_shifted;
+    logic signed [7:0] expected_value_q;
+    logic signed [63:0] expected_context_product;
+    logic signed [63:0] expected_context_shifted;
+    logic signed [7:0] expected_context_q;
+    begin
+      expected_acc = attn_expected_value_acc[target_head][target_dim];
+      expected_shifted = round_shift_signed64_tb({{32{expected_acc[31]}}, expected_acc}, 15);
+      expected_value_q = attn_expected_value_q[target_head][target_dim];
+      expected_context_product =
+        $signed(expected_value_q) * $signed(context_requant_mul_q20_by_head[target_head]);
+      expected_context_shifted = round_shift_signed64_tb(expected_context_product, 20);
+      if ($signed(expected_context_shifted[31:0]) > 32'sd127) begin
+        expected_context_q = 8'sd127;
+      end else if ($signed(expected_context_shifted[31:0]) < -32'sd127) begin
+        expected_context_q = -8'sd127;
+      end else begin
+        expected_context_q = expected_context_shifted[7:0];
+      end
+
+      cycles = 0;
+      while (cycles < TIMEOUT_CYCLES) begin
+        @(posedge SYS_CLK);
+        cycles = cycles + 1;
+        if (pcie_status_o[2]) begin
+          $fatal(
+            1,
+            "FAIL: context entered error before value head %0d dim %0d checkpoint debug=%08x debug1=%08x debug2=%08x",
+            target_head,
+            target_dim,
+            pcie_debug_o,
+            pcie_debug1_o,
+            pcie_debug2_o
+          );
+        end
+        if (dut.core_i.block_i.context_i.state_q == 5'd23 &&
+            dut.core_i.block_i.context_i.head_index_q == target_head &&
+            dut.core_i.block_i.context_i.dim_index_q == target_dim) begin
+          if (dut.core_i.block_i.context_i.value_acc_q !== expected_acc) begin
+            $fatal(
+              1,
+              "FAIL: natural context value head %0d dim %0d acc expected %08x got %08x",
+              target_head,
+              target_dim,
+              expected_acc,
+              dut.core_i.block_i.context_i.value_acc_q
+            );
+          end
+          if (dut.core_i.block_i.context_i.value_q_q !== expected_value_q) begin
+            $fatal(
+              1,
+              "FAIL: natural context value head %0d dim %0d value_q expected %02x got %02x shifted=%016x",
+              target_head,
+              target_dim,
+              expected_value_q,
+              dut.core_i.block_i.context_i.value_q_q,
+              dut.core_i.block_i.context_i.value_shifted_q
+            );
+          end
+          if (dut.core_i.block_i.context_i.context_q_from_q_w !== expected_context_q) begin
+            $fatal(
+              1,
+              "FAIL: natural context value head %0d dim %0d context_q expected %02x got %02x product=%016x shifted=%016x",
+              target_head,
+              target_dim,
+              expected_context_q,
+              dut.core_i.block_i.context_i.context_q_from_q_w,
+              dut.core_i.block_i.context_i.context_requant_product_q,
+              dut.core_i.block_i.context_i.context_requant_shifted_from_q_w
+            );
+          end
+          $display(
+            "INFO: natural context value head%0d dim%0d acc %08x shifted %016x value_q %02x expected_value_q %02x context_mul %08x product %016x context_shifted %016x context_q %02x expected_context_q %02x",
+            target_head,
+            target_dim,
+            dut.core_i.block_i.context_i.value_acc_q,
+            dut.core_i.block_i.context_i.value_shifted_q,
+            dut.core_i.block_i.context_i.value_q_q,
+            expected_value_q,
+            context_requant_mul_q20_by_head[target_head],
+            dut.core_i.block_i.context_i.context_requant_product_q,
+            dut.core_i.block_i.context_i.context_requant_shifted_from_q_w,
+            dut.core_i.block_i.context_i.context_q_from_q_w,
+            expected_context_q
+          );
+          return;
+        end
+      end
+      $fatal(1, "Timeout waiting for natural context value head %0d dim %0d checkpoint", target_head, target_dim);
     end
   endtask
 
@@ -476,7 +637,7 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
       LN2_EXPECTED_CHECKSUM[7:0],
       MLP_C_PROJ_EXPECTED_CHECKSUM[7:0]
     };
-    expected_debug3 = {expected_block_input_checksum[15:0], expected_block_input_checksum[15:0]};
+    expected_debug3 = {expected_block_input_checksum[15:0], expected_ln_input_checksum[15:0]};
     expected_context_fixture_signature = {
       8'hc5,
       ln_expected_q_by_token[5][1],
@@ -586,7 +747,12 @@ module task6_m2_embedding_live_context_full_block_pcie_accel_tb;
     end
 
     pulse_start();
+    wait_context_ln_checkpoint(0, 1);
     wait_context_ln_checkpoint(0, 2);
+    wait_context_ln_checkpoint(0, 20);
+    wait_context_ln_checkpoint(1, 0);
+    wait_context_softmax_weight_checkpoint(0, 0);
+    wait_context_value_checkpoint(0, 0);
     wait_context_ln_checkpoint(5, 1);
     wait_done(1);
 

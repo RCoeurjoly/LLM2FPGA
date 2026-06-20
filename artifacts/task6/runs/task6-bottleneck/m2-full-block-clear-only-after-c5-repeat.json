@@ -1,0 +1,58 @@
+{
+  "artifact_name": "task6-pcie-m2-full-block-clear-only",
+  "bdf": "0000:42:00.0",
+  "command": "0002",
+  "contract": {
+    "artifact_role": "m2-clear-only-board-action",
+    "live_compute": false,
+    "milestone_target": "M2-one-full-block",
+    "notes": "Issues M2 clear without writing vectors or starting compute.",
+    "responsibilities": {
+      "fpga": [
+        "BAR-visible M2 clear handling",
+        "idle status and debug/provenance reporting"
+      ],
+      "host": [
+        "PCIe lifecycle orchestration",
+        "M2 clear sequencing",
+        "post-clear status/debug register capture"
+      ]
+    },
+    "stage": "M2-clear",
+    "version": "task6-m2-clear-only-v1"
+  },
+  "date": "2026-06-19",
+  "elapsed_seconds": 0.0022781259613111615,
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "observed": {
+    "cycle_count": 0,
+    "debug": "0x00000000",
+    "debug1": "0x00000000",
+    "debug2": "0x00000000",
+    "debug3": "0xc5dc8a6c",
+    "decoded_status": {
+      "busy": false,
+      "done": false,
+      "error": false,
+      "magic": 19762,
+      "output_valid": false,
+      "ready": true,
+      "schema": {
+        "busy": 1,
+        "error": 2,
+        "magic_lsb": 16,
+        "magic_value": 19762,
+        "output_valid": 3,
+        "ready": 0,
+        "state_lsb": 4,
+        "state_width": 3
+      },
+      "schema_consistent": true,
+      "state": 0,
+      "state_name": "IDLE"
+    },
+    "provenance": "0x4d323005",
+    "status": "0x4d320001"
+  },
+  "status": "PASS"
+}

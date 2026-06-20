@@ -47,6 +47,7 @@ REG_M2_DEBUG2 = 0x5D0
 REG_M2_PROVENANCE = 0x5D4
 REG_M2_DEBUG3 = 0x5D8
 REG_M2_OUTPUT_VECTOR = 0x600
+REG_M2_OUTPUT_HASH = 0x640
 
 M2_READY_BIT = 0
 M2_BUSY_BIT = 1
@@ -117,6 +118,127 @@ CONTRACT_TOKEN_LIVE = {
     "notes": (
         "Board executes one complete TinyStories transformer block from "
         "host-supplied token IDs and block_index=0 control input."
+    ),
+}
+
+CLEAR_ONLY_CONTRACT = {
+    "version": "task6-m2-clear-only-v1",
+    "stage": "M2-clear",
+    "milestone_target": "M2-one-full-block",
+    "live_compute": False,
+    "artifact_role": "m2-clear-only-board-action",
+    "responsibilities": {
+        "host": [
+            "PCIe lifecycle orchestration",
+            "M2 clear sequencing",
+            "post-clear status/debug register capture",
+        ],
+        "fpga": [
+            "BAR-visible M2 clear handling",
+            "idle status and debug/provenance reporting",
+        ],
+    },
+    "notes": "Issues M2 clear without writing vectors or starting compute.",
+}
+
+BAR_CONTRACT = {
+    "version": "task6-m2-direct-bar-contract-v1",
+    "stage": "M2.1-direct-pcie-bar-contract",
+    "milestone_target": "M2.1-PCIe-BAR-contract",
+    "live_compute": False,
+    "artifact_role": "m2-direct-bar-contract-board-gate",
+    "responsibilities": {
+        "host": [
+            "PCIe lifecycle orchestration",
+            "direct-mode input/residual/control writes",
+            "BAR readback identity checks",
+            "post-clear idle/status capture",
+        ],
+        "fpga": [
+            "BAR-visible M2 input/residual/control storage",
+            "direct write/readback identity without compensated host tricks",
+            "idle status and provenance reporting",
+        ],
+    },
+    "notes": (
+        "M2.1 acceptance gate. It does not start M2 compute; it proves direct "
+        "BAR transport and clear/idle behavior before later M2 submilestones."
+    ),
+}
+
+START_CLEAR_CONTRACT = {
+    "version": "task6-m2-start-clear-lifecycle-v1",
+    "stage": "M2.2-start-clear-lifecycle",
+    "milestone_target": "M2.2-start-clear-lifecycle",
+    "live_compute": False,
+    "artifact_role": "m2-start-clear-lifecycle-board-gate",
+    "responsibilities": {
+        "host": [
+            "PCIe lifecycle orchestration",
+            "direct-mode input/residual/control writes",
+            "single start assertion",
+            "post-terminal clear sequencing",
+        ],
+        "fpga": [
+            "BAR-visible M2 lifecycle state machine",
+            "start_count increment on accepted start",
+            "stable DONE or precise ERROR terminal status",
+            "clear back to IDLE without stale/all-ones BAR",
+        ],
+    },
+    "notes": (
+        "M2.2 acceptance gate. It proves start/clear lifecycle on the public "
+        "BAR contract and does not require final compute-vector correctness."
+    ),
+}
+
+EMBEDDING_HANDOFF_CONTRACT = {
+    "version": "task6-m2-embedding-handoff-v1",
+    "stage": "M2.3-embedding-and-block-input-handoff",
+    "milestone_target": "M2.3-embedding-and-block-input-handoff",
+    "live_compute": True,
+    "artifact_role": "m2-embedding-handoff-board-gate",
+    "responsibilities": {
+        "host": [
+            "PCIe lifecycle orchestration",
+            "direct token-ID writes",
+            "BAR-visible block/LN checksum comparison",
+        ],
+        "fpga": [
+            "token-ID selected embedding and position add",
+            "live token-ID selected embedding and position add",
+            "handoff of block input and LN input to the live-context block",
+            "BAR debug/output exposure of full boundary checksums and block vector",
+        ],
+    },
+    "notes": (
+        "M2.3 acceptance gate. It proves token IDs reached the expected "
+        "embedding/block-input/LN-input boundary before attention math."
+    ),
+}
+
+CONTRACT_ATTENTION_SLICE = {
+    "version": "task6-m2-live-context-attention-slice-v1",
+    "stage": "M2.4-live-context-attention-slice",
+    "milestone_target": "M2.4-live-context-attention-slice",
+    "live_compute": True,
+    "artifact_role": "m2-live-context-attention-slice-board-gate",
+    "responsibilities": {
+        "host": [
+            "PCIe lifecycle orchestration",
+            "direct token-ID writes",
+            "BAR-visible context vector/checksum comparison",
+        ],
+        "fpga": [
+            "token-ID selected embedding and position add",
+            "handoff of live LN input to the live-context attention slice",
+            "live LN + QKV + softmax/value/context computation",
+            "BAR-visible full 64-byte context vector and boundary checksums",
+        ],
+    },
+    "notes": (
+        "M2.4 acceptance gate. It proves the focused live-context attention "
+        "slice from host token IDs through the context vector boundary."
     ),
 }
 
@@ -193,6 +315,21 @@ def sample_registers(
     return values, observed_samples, stable
 
 
+def warmup_register_reads(
+    read32,
+    offsets: dict[str, int],
+    *,
+    samples: int,
+) -> dict[str, list[int]]:
+    if samples < 0:
+        raise SystemExit("--preflight-warmup-samples must be non-negative")
+    observed_samples: dict[str, list[int]] = {name: [] for name in offsets}
+    for _ in range(samples):
+        for name, offset in offsets.items():
+            observed_samples[name].append(read32(offset))
+    return observed_samples
+
+
 def stable_or_leading_all_ones(values: list[int]) -> bool:
     if not values:
         return False
@@ -252,6 +389,35 @@ def vector_bytes_from_words(words: list[int]) -> bytes:
     return b"".join((word & 0xFFFFFFFF).to_bytes(4, "little") for word in words)
 
 
+def vector_hash128(data: bytes) -> bytes:
+    if len(data) != 64:
+        raise SystemExit(f"vector must be exactly 64 bytes, got {len(data)}")
+    h0 = 0x811C9DC5
+    h1 = 0x9E3779B9
+    h2 = 0x85EBCA6B
+    h3 = 0xC2B2AE35
+    mask = 0xFFFFFFFF
+    for index, byte_value in enumerate(data):
+        h0 = ((((h0 << 5) | (h0 >> 27)) & mask) ^ byte_value ^ ((0x9E3779B9 + index) & mask)) & mask
+        h1 = (
+            (((h1 >> 7) | ((h1 << 25) & mask)) & mask)
+            + (((byte_value << 8) & mask) ^ ((0x85EBCA6B + index) & mask))
+        ) & mask
+        h2 = (
+            (((h2 << 3) | (h2 >> 29)) & mask)
+            ^ (((byte_value << 16) + 0xC2B2AE35 + index) & mask)
+        ) & mask
+        h3 = (
+            h3
+            + (
+                byte_value
+                ^ (((index & 0xFFFF) << 16) | (index & 0xFFFF))
+                ^ ((byte_value << 24) | (byte_value << 16) | (byte_value << 8) | byte_value)
+            )
+        ) & mask
+    return b"".join(word.to_bytes(4, "little") for word in (h0, h1, h2, h3))
+
+
 def classify_vector_readback_transform(expected: bytes, observed: bytes) -> str:
     if observed == expected:
         return "identity"
@@ -265,14 +431,19 @@ def classify_vector_readback_transform(expected: bytes, observed: bytes) -> str:
     return "other"
 
 
+def vector_write_words_for_mode(words: list[int], mode: str) -> list[int]:
+    if mode in ("direct", "raw-internal"):
+        return words
+    if mode in ("legacy-rotated", "readback-compensated"):
+        return pcie7x_rotate64_compensate_bar_vector_words(words)
+    if mode == "input-shadow-direct-compensated":
+        return pcie7x_inverse_rotate64_bar_vector_words(words)
+    raise SystemExit(f"unknown vector write mode: {mode}")
+
+
 def write_vector(mm: mmap.mmap, base: int, data: bytes, *, mode: str) -> tuple[list[int], list[int]]:
     words = vector_words_from_bytes(data)
-    if mode in ("direct", "raw-internal"):
-        write_words = words
-    elif mode in ("legacy-rotated", "readback-compensated"):
-        write_words = pcie7x_rotate64_compensate_bar_vector_words(words)
-    else:
-        raise SystemExit(f"unknown vector write mode: {mode}")
+    write_words = vector_write_words_for_mode(words, mode)
     for index, word in enumerate(write_words):
         wr32(mm, base + index * 4, word)
     return words, write_words
@@ -280,6 +451,13 @@ def write_vector(mm: mmap.mmap, base: int, data: bytes, *, mode: str) -> tuple[l
 
 def read_vector(mm: mmap.mmap, base: int) -> bytes:
     return b"".join(rd32_window(mm, base + index * 4).to_bytes(4, "little") for index in range(16))
+
+
+def read_vector_hash(mm: mmap.mmap) -> bytes:
+    return b"".join(
+        rd32_window(mm, REG_M2_OUTPUT_HASH + index * 4).to_bytes(4, "little")
+        for index in range(4)
+    )
 
 
 def wait_vector_readback(
@@ -360,6 +538,8 @@ def decode_debug(debug: int, debug1: int = 0, debug2: int = 0) -> dict[str, Any]
             decoded["context_meaning"] = context_names[context_stage]
             decoded["head_index"] = (debug >> 20) & 0xF
             decoded["dim_index"] = (debug >> 16) & 0xF
+            decoded["expected_q_packed"] = f"0x{(debug >> 8) & 0xFF:02x}"
+            decoded["token_index_packed"] = (debug >> 8) & 0xF
             decoded["observed_q"] = f"0x{debug & 0xFF:02x}"
         elif context_stage in (0x05, 0x06, 0x07, 0x08):
             context_names = {
@@ -374,7 +554,38 @@ def decode_debug(debug: int, debug1: int = 0, debug2: int = 0) -> dict[str, Any]
             decoded["observed_value"] = f"0x{debug & 0xFFFF:04x}"
     elif 0xA0 <= stage <= 0xAF:
         decoded["meaning"] = "attention out-projection substage mismatch"
-        decoded["attention_stage"] = f"0x{stage & 0x0F:02x}"
+        attention_stage = stage & 0x0F
+        decoded["attention_stage"] = f"0x{attention_stage:02x}"
+        if attention_stage == 0x01:
+            decoded["dim_index"] = (debug >> 20) & 0xF
+            observed_acc_low20 = debug & 0xFFFFF
+            decoded["observed_acc_low20"] = f"0x{observed_acc_low20:05x}"
+            decoded["observed_acc_low8"] = f"0x{observed_acc_low20 & 0xFF:02x}"
+            decoded["expected_acc_low16"] = f"0x{(debug1 >> 16) & 0xFFFF:04x}"
+            decoded["observed_acc_low16"] = f"0x{debug1 & 0xFFFF:04x}"
+            decoded["last_context_q"] = f"0x{(debug2 >> 24) & 0xFF:02x}"
+            decoded["last_weight_q"] = f"0x{(debug2 >> 16) & 0xFF:02x}"
+            decoded["next_acc_low16"] = f"0x{debug2 & 0xFFFF:04x}"
+            decoded["attention_meaning"] = "attention out-projection accumulator mismatch"
+        elif attention_stage in (0x02, 0x03):
+            decoded["dim_index"] = (debug >> 20) & 0xF
+            decoded["expected_q"] = f"0x{(debug >> 8) & 0xFF:02x}"
+            decoded["observed_q"] = f"0x{debug & 0xFF:02x}"
+            if attention_stage == 0x02:
+                decoded["acc_low16"] = f"0x{(debug1 >> 16) & 0xFFFF:04x}"
+                decoded["shifted_low16"] = f"0x{debug1 & 0xFFFF:04x}"
+                decoded["product_low32"] = f"0x{debug2 & 0xFFFFFFFF:08x}"
+            else:
+                decoded["output_q"] = f"0x{(debug1 >> 24) & 0xFF:02x}"
+                decoded["expected_output_q"] = f"0x{(debug1 >> 16) & 0xFF:02x}"
+                decoded["block_input_q"] = f"0x{(debug1 >> 8) & 0xFF:02x}"
+                decoded["expected_residual_q_from_debug1"] = f"0x{debug1 & 0xFF:02x}"
+                decoded["residual_product_low32"] = f"0x{debug2 & 0xFFFFFFFF:08x}"
+            decoded["attention_meaning"] = (
+                "attention output mismatch"
+                if attention_stage == 0x02
+                else "attention residual mismatch"
+            )
     elif 0xB0 <= stage <= 0xBF:
         decoded["meaning"] = "MLP substage mismatch"
         decoded["mlp_stage"] = f"0x{stage & 0x0F:02x}"
@@ -547,6 +758,7 @@ def parse_expected_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
 def parse_embedding_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]:
     token_ids: dict[int, int] = {}
     ln_input_q12: dict[tuple[int, int], int] = {}
+    block_input_q: dict[int, int] = {}
     embed_block_seq = 6
     embed_block_dim = 64
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -573,6 +785,12 @@ def parse_embedding_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]
                 assign_match.group("sign"),
                 assign_match.group("value"),
             )
+            continue
+        if assign_match and assign_match.group("name") == "embed_block_expected_last_input_q":
+            block_input_q[int(assign_match.group("index"))] = parse_signed_sv_literal(
+                assign_match.group("sign"),
+                assign_match.group("value"),
+            )
     missing = [index for index in range(embed_block_seq) if index not in token_ids]
     if missing:
         raise SystemExit(f"{path} missing embed_block_expected_token_ids index(es): {missing[:8]}")
@@ -585,6 +803,13 @@ def parse_embedding_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]
     if missing_ln_input:
         raise SystemExit(
             f"{path} missing embed_block_expected_ln_input_q12_by_token index(es): {missing_ln_input[:8]}"
+        )
+    missing_block_input = [
+        index for index in range(embed_block_dim) if index not in block_input_q
+    ]
+    if missing_block_input:
+        raise SystemExit(
+            f"{path} missing embed_block_expected_last_input_q index(es): {missing_block_input[:8]}"
         )
     token_id_list = [token_ids[index] for index in range(embed_block_seq)]
     token_input = bytearray(64)
@@ -599,13 +824,36 @@ def parse_embedding_tb_data_sv(path: Path) -> dict[str, int | bytes | list[int]]
             ln_input_checksum = (
                 ln_input_checksum + ((ln_input_q12[(token, dim)] & 0xFFFF) * (flat_index + 1))
             ) & 0xFFFFFFFF
-    return {
+    block_input_checksum = None
+    block_input_output = bytes(block_input_q[index] & 0xFF for index in range(embed_block_dim))
+    computed_block_input_checksum = sum(
+        (block_input_q[index] & 0xFF) * (index + 1) for index in range(embed_block_dim)
+    ) & 0xFFFFFFFF
+    summary_path = path.with_name("summary.json")
+    if summary_path.exists():
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        if "block_input_checksum" in summary:
+            block_input_checksum = int(summary["block_input_checksum"])
+    if block_input_checksum is not None and block_input_checksum != computed_block_input_checksum:
+        raise SystemExit(
+            f"{path} summary block_input_checksum 0x{block_input_checksum:08x} "
+            f"does not match parsed vector checksum 0x{computed_block_input_checksum:08x}"
+        )
+    result: dict[str, int | bytes | list[int]] = {
         "token_input": bytes(token_input),
         "reserved_input": bytes(64),
         "token_ids": token_id_list,
         "ln_input_checksum": ln_input_checksum,
+        "embedding_block_input_vector": block_input_output,
+        "embedding_block_input_checksum": computed_block_input_checksum,
         "provenance_mode": 0x3000,
     }
+    result["block_input_checksum"] = (
+        block_input_checksum
+        if block_input_checksum is not None
+        else computed_block_input_checksum
+    )
+    return result
 
 
 def parse_context_tb_data_sv(path: Path) -> dict[str, int]:
@@ -614,6 +862,7 @@ def parse_context_tb_data_sv(path: Path) -> dict[str, int]:
     ln_input_q12: dict[tuple[int, int], int] = {}
     ln_inv_std_q16: dict[int, int] = {}
     ln_expected_q: dict[tuple[int, int], int] = {}
+    context_q: dict[int, int] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         ln_input_match = SV_CONTEXT_LN_INPUT_RE.match(line)
         if ln_input_match:
@@ -639,6 +888,13 @@ def parse_context_tb_data_sv(path: Path) -> dict[str, int]:
                 expected_match.group("sign"),
                 expected_match.group("value"),
             )
+            continue
+        assign_match = SV_ASSIGN_RE.match(line)
+        if assign_match and assign_match.group("name") == "context_expected_q":
+            context_q[int(assign_match.group("index"))] = parse_signed_sv_literal(
+                assign_match.group("sign"),
+                assign_match.group("value"),
+            )
     required = {
         "ln_input_q12": (signature_token, signature_dim) in ln_input_q12,
         "ln_expected_q": (signature_token, signature_dim) in ln_expected_q,
@@ -653,10 +909,40 @@ def parse_context_tb_data_sv(path: Path) -> dict[str, int]:
         | ((ln_input_q12[(signature_token, signature_dim)] & 0xFF) << 8)
         | (ln_inv_std_q16[signature_token] & 0xFF)
     )
+    missing_context = [index for index in range(64) if index not in context_q]
+    if missing_context:
+        raise SystemExit(f"{path} missing context_expected_q index(es): {missing_context[:8]}")
+    context_vector = bytes(context_q[index] & 0xFF for index in range(64))
+    context_checksum = sum(
+        (context_q[index] & 0xFF) * (index + 1) for index in range(64)
+    ) & 0xFFFFFFFF
+    context_sample0 = int.from_bytes(context_vector[0:4], "little")
+    context_sample1 = int.from_bytes(context_vector[4:8], "little")
+    summary_path = path.with_name("summary.json")
+    if summary_path.exists():
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        if int(summary.get("context_checksum", context_checksum)) != context_checksum:
+            raise SystemExit(
+                f"{path} summary context_checksum 0x{int(summary['context_checksum']):08x} "
+                f"does not match parsed vector checksum 0x{context_checksum:08x}"
+            )
+        if int(str(summary.get("context_sample0", f"{context_sample0:08x}")), 16) != context_sample0:
+            raise SystemExit(
+                f"{path} summary context_sample0 does not match parsed vector sample0"
+            )
+        if int(str(summary.get("context_sample1", f"{context_sample1:08x}")), 16) != context_sample1:
+            raise SystemExit(
+                f"{path} summary context_sample1 does not match parsed vector sample1"
+            )
     return {
         "context_fixture_signature": signature,
         "context_fixture_signature_token": signature_token,
         "context_fixture_signature_dim": signature_dim,
+        "checksum": context_checksum,
+        "sample0": context_sample0,
+        "sample1": context_sample1,
+        "output_count": 64,
+        "first_64_output": context_vector,
     }
 
 
@@ -699,6 +985,100 @@ def decode_status(status: int) -> dict[str, Any]:
     }
 
 
+def bar_contract_checks(
+    *,
+    status: int,
+    provenance: int,
+    input_readback: bytes,
+    residual_readback: bytes,
+    block_input: bytes,
+    residual: bytes,
+    start_count_before: int,
+    start_count_after: int,
+) -> dict[str, bool]:
+    decoded = decode_status(status)
+    return {
+        "status_not_all_ones": status != ALL_ONES,
+        "provenance_not_all_ones": provenance != ALL_ONES,
+        "status_schema_consistent": bool(decoded["schema_consistent"]),
+        "provenance_schema_consistent": (provenance >> 16) == 0x4D32,
+        "state_idle": decoded["state_name"] == "IDLE" and bool(decoded["ready"]),
+        "no_error": not bool(decoded["error"]),
+        "start_count_unchanged": start_count_after == start_count_before,
+        "input_readback_identity": input_readback == block_input,
+        "residual_readback_identity": residual_readback == residual,
+    }
+
+
+def start_clear_contract_checks(
+    *,
+    run_status: int,
+    clear_status: int,
+    provenance: int,
+    input_readback: bytes,
+    residual_readback: bytes,
+    block_input: bytes,
+    residual: bytes,
+    start_count_before: int,
+    start_count_after_start: int,
+    start_count_after_clear: int,
+    allow_error: bool,
+) -> dict[str, bool]:
+    run_decoded = decode_status(run_status)
+    clear_decoded = decode_status(clear_status)
+    run_reached_done = bool(run_decoded["done"]) and not bool(run_decoded["error"])
+    run_reached_error = bool(run_decoded["error"])
+    run_reached_allowed_terminal = run_reached_done or (allow_error and run_reached_error)
+    return {
+        "run_status_not_all_ones": run_status != ALL_ONES,
+        "clear_status_not_all_ones": clear_status != ALL_ONES,
+        "provenance_not_all_ones": provenance != ALL_ONES,
+        "run_status_schema_consistent": bool(run_decoded["schema_consistent"]),
+        "clear_status_schema_consistent": bool(clear_decoded["schema_consistent"]),
+        "provenance_schema_consistent": (provenance >> 16) == 0x4D32,
+        "start_count_incremented": start_count_after_start == ((start_count_before + 1) & 0xFFFFFFFF),
+        "start_count_stable_after_clear": start_count_after_clear == start_count_after_start,
+        "run_reached_terminal": bool(run_decoded["done"]) or run_reached_error,
+        "run_reached_allowed_terminal": run_reached_allowed_terminal,
+        "clear_state_idle": clear_decoded["state_name"] == "IDLE" and bool(clear_decoded["ready"]),
+        "clear_no_error": not bool(clear_decoded["error"]),
+        "input_readback_identity": input_readback == block_input,
+        "residual_readback_identity": residual_readback == residual,
+    }
+
+
+def embedding_handoff_contract_checks(
+    *,
+    run_decoded: dict[str, Any],
+    output_count: int,
+    checksum: int,
+    debug: int,
+    debug1: int,
+    debug2: int,
+    debug3: int,
+    output_vector: bytes,
+    output_hash: bytes,
+    expected_block_input_checksum: int,
+    expected_ln_input_checksum: int,
+    expected_block_vector: bytes,
+) -> dict[str, bool]:
+    expected_block_vector_hash = vector_hash128(expected_block_vector)
+    return {
+        "embedding_run_done": bool(run_decoded["done"]),
+        "embedding_no_error": not bool(run_decoded["error"]),
+        "embedding_output_valid": bool(run_decoded["output_valid"]),
+        "embedding_output_count": output_count == 64,
+        "embedding_output_checksum": checksum == expected_block_input_checksum,
+        "embedding_debug_block_checksum": debug1 == expected_block_input_checksum,
+        "embedding_debug_ln_checksum": debug == expected_ln_input_checksum,
+        "embedding_debug2_ln_checksum": debug2 == expected_ln_input_checksum,
+        "embedding_debug3_checksum_lows": debug3
+        == (((expected_block_input_checksum & 0xFFFF) << 16) | (expected_ln_input_checksum & 0xFFFF)),
+        "embedding_output_vector": output_vector == expected_block_vector,
+        "embedding_output_hash": output_hash == expected_block_vector_hash,
+    }
+
+
 def expected_provenance(expected: dict[str, int | bytes | list[int]]) -> int:
     token_index = int(expected.get("token_index", 0))
     provenance_mode = int(expected.get("provenance_mode", 0x2000))
@@ -706,14 +1086,18 @@ def expected_provenance(expected: dict[str, int | bytes | list[int]]) -> int:
 
 
 def is_token_live_mode(expected: dict[str, int | bytes | list[int]]) -> bool:
-    return int(expected.get("provenance_mode", 0)) == 0x3000 and isinstance(expected.get("token_ids"), list)
+    return int(expected.get("provenance_mode", 0)) in (0x3000, 0x3100, 0x4100) and isinstance(expected.get("token_ids"), list)
 
 
 def contract_for_expected(expected: dict[str, int | bytes | list[int]]) -> dict[str, Any]:
+    if int(expected.get("provenance_mode", 0)) == 0x4100:
+        return CONTRACT_ATTENTION_SLICE
     return CONTRACT_TOKEN_LIVE if is_token_live_mode(expected) else CONTRACT
 
 
 def compute_path_for_expected(expected: dict[str, int | bytes | list[int]]) -> str:
+    if int(expected.get("provenance_mode", 0)) == 0x4100:
+        return "live-context-attention-slice"
     return "live-full-block" if is_token_live_mode(expected) else "fixture-full-block-wrapper"
 
 
@@ -837,15 +1221,72 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=2.0)
     parser.add_argument("--poll-interval", type=float, default=0.001)
     parser.add_argument(
+        "--clear-only",
+        action="store_true",
+        help="Issue M2 clear and report the post-clear status/debug registers without starting compute.",
+    )
+    parser.add_argument(
+        "--bar-contract-only",
+        action="store_true",
+        help=(
+            "Run the M2.1 direct PCIe/BAR contract gate: clear, write input/"
+            "residual in direct mode, require readback identity, and do not "
+            "start compute."
+        ),
+    )
+    parser.add_argument(
+        "--start-clear-only",
+        action="store_true",
+        help=(
+            "Run the M2.2 start/clear lifecycle gate: direct write/readback, "
+            "assert start once, require terminal lifecycle status, clear back "
+            "to IDLE, and do not check final compute vector correctness."
+        ),
+    )
+    parser.add_argument(
+        "--start-clear-disallow-error",
+        action="store_true",
+        help=(
+            "For --start-clear-only, require DONE rather than accepting a "
+            "schema-valid ERROR as a precise lifecycle terminal state."
+        ),
+    )
+    parser.add_argument(
+        "--require-embedding-handoff",
+        action="store_true",
+        help=(
+            "With --start-clear-only, also require BAR debug3 to expose the "
+            "expected block-input and LN-input checksum low16 values. This is "
+            "the M2.3 embedding/block-input handoff acceptance check."
+        ),
+    )
+    parser.add_argument(
+        "--require-attention-slice",
+        action="store_true",
+        help=(
+            "Require the focused M2.4 live-context attention-slice contract: "
+            "direct token-ID writes, matching context fixture signature, DONE/"
+            "no-error, and full BAR context vector/checksum comparison."
+        ),
+    )
+    parser.add_argument(
         "--vector-write-mode",
-        choices=("direct", "legacy-rotated", "raw-internal", "readback-compensated"),
+        choices=(
+            "direct",
+            "legacy-rotated",
+            "raw-internal",
+            "readback-compensated",
+            "input-shadow-direct-compensated",
+        ),
         default="direct",
         help=(
             "M2 vector BAR write strategy. direct is the normal acceptance "
             "contract and requires write/readback identity. raw-internal is a "
             "deprecated alias for direct. legacy-rotated/readback-compensated "
-            "apply the measured pcie_7x 64-bit lane-rotate compensation and "
-            "are diagnostic only."
+            "apply the measured pcie_7x 64-bit lane-rotate compensation for "
+            "readback-only RTL. input-shadow-direct-compensated applies the "
+            "inverse direction needed by the restored input-shadow-direct RTL. "
+            "All compensated modes are diagnostic only."
         ),
     )
     parser.add_argument(
@@ -858,45 +1299,92 @@ def parse_args() -> argparse.Namespace:
             "without starting the accelerator."
         ),
     )
+    parser.add_argument(
+        "--preflight-warmup-samples",
+        type=int,
+        default=1,
+        help=(
+            "Read and discard this many preflight register sample sets before "
+            "the strict stability samples. These warm-up reads are reported "
+            "in the artifact but never count toward PASS."
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    if (args.expected_json is None) == (args.tb_data_sv is None):
+    special_modes = [args.clear_only, args.bar_contract_only, args.start_clear_only]
+    if sum(1 for enabled in special_modes if enabled) > 1:
+        raise SystemExit("--clear-only, --bar-contract-only, and --start-clear-only are mutually exclusive")
+    if (args.bar_contract_only or args.start_clear_only) and args.vector_write_mode not in ("direct", "raw-internal"):
+        raise SystemExit("--bar-contract-only/--start-clear-only require direct/raw-internal vector write mode")
+    if args.require_embedding_handoff and not args.start_clear_only:
+        raise SystemExit("--require-embedding-handoff requires --start-clear-only")
+    if args.require_attention_slice and args.start_clear_only:
+        raise SystemExit("--require-attention-slice uses the normal strict compute-vector gate")
+    if args.require_attention_slice and args.context_tb_data_sv is None:
+        raise SystemExit("--require-attention-slice requires --context-tb-data-sv")
+    if args.require_attention_slice and args.embedding_tb_data_sv is None:
+        raise SystemExit("--require-attention-slice requires --embedding-tb-data-sv")
+    if not args.clear_only and (args.expected_json is None) == (args.tb_data_sv is None):
         raise SystemExit("provide exactly one of --expected-json or --tb-data-sv")
     if args.embedding_tb_data_sv is not None and args.tb_data_sv is None:
         raise SystemExit("--embedding-tb-data-sv requires --tb-data-sv")
     expected_source = args.expected_json if args.expected_json is not None else args.tb_data_sv
-    assert expected_source is not None
-    expected = (
-        parse_expected_json(args.expected_json)
-        if args.expected_json is not None
-        else parse_expected_tb_data_sv(args.tb_data_sv)
-    )
-    if args.embedding_tb_data_sv is not None:
-        expected.update(parse_embedding_tb_data_sv(args.embedding_tb_data_sv))
-    if args.context_tb_data_sv is not None:
-        expected.update(parse_context_tb_data_sv(args.context_tb_data_sv))
-    if args.expect_checksum is not None:
-        expected["checksum"] = args.expect_checksum
-    if args.expect_sample0 is not None:
-        expected["sample0"] = args.expect_sample0
-    if args.expect_sample1 is not None:
-        expected["sample1"] = args.expect_sample1
-    if args.expect_output_count is not None:
-        expected["output_count"] = args.expect_output_count
-    if (args.expect_debug1 is None) != (args.expect_debug2 is None):
-        raise SystemExit("--expect-debug1 and --expect-debug2 must be provided together")
-    validate_expected(expected, expected_source)
+    expected: dict[str, Any] = {}
+    if not args.clear_only:
+        assert expected_source is not None
+        expected = (
+            parse_expected_json(args.expected_json)
+            if args.expected_json is not None
+            else parse_expected_tb_data_sv(args.tb_data_sv)
+        )
+        if args.embedding_tb_data_sv is not None:
+            expected.update(parse_embedding_tb_data_sv(args.embedding_tb_data_sv))
+        if args.context_tb_data_sv is not None:
+            expected.update(parse_context_tb_data_sv(args.context_tb_data_sv))
+        if args.require_embedding_handoff:
+            expected["provenance_mode"] = 0x3100
+        if args.require_attention_slice:
+            expected["provenance_mode"] = 0x4100
+        if args.expect_checksum is not None:
+            expected["checksum"] = args.expect_checksum
+        if args.expect_sample0 is not None:
+            expected["sample0"] = args.expect_sample0
+        if args.expect_sample1 is not None:
+            expected["sample1"] = args.expect_sample1
+        if args.expect_output_count is not None:
+            expected["output_count"] = args.expect_output_count
+        if (args.expect_debug1 is None) != (args.expect_debug2 is None):
+            raise SystemExit("--expect-debug1 and --expect-debug2 must be provided together")
+        validate_expected(expected, expected_source)
 
-    block_input, residual, block_input_source, residual_source = select_host_vectors(
-        expected,
-        input_hex=args.input_hex,
-        residual_hex=args.residual_hex,
+    block_input, residual, block_input_source, residual_source = (
+        (bytes(64), bytes(64), "clear-only", "clear-only")
+        if args.clear_only
+        else select_host_vectors(
+            expected,
+            input_hex=args.input_hex,
+            residual_hex=args.residual_hex,
+        )
     )
-    result_contract = contract_for_expected(expected)
-    compute_path = compute_path_for_expected(expected)
+    result_contract = (
+        CLEAR_ONLY_CONTRACT
+        if args.clear_only
+        else BAR_CONTRACT if args.bar_contract_only
+        else EMBEDDING_HANDOFF_CONTRACT if args.require_embedding_handoff
+        else START_CLEAR_CONTRACT if args.start_clear_only
+        else contract_for_expected(expected)
+    )
+    compute_path = (
+        "clear-only"
+        if args.clear_only
+        else "direct-bar-contract" if args.bar_contract_only
+        else "embedding-handoff" if args.require_embedding_handoff
+        else "start-clear-lifecycle" if args.start_clear_only
+        else compute_path_for_expected(expected)
+    )
 
     device = Path("/sys/bus/pci/devices") / args.bdf
     resource0 = device / "resource0"
@@ -910,6 +1398,48 @@ def main() -> int:
     fd = os.open(resource0, os.O_RDWR | os.O_SYNC)
     try:
         with mmap.mmap(fd, BAR_SIZE, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE) as mm:
+            if args.clear_only:
+                wr32(mm, REG_M2_CONTROL_STATUS, 0)
+                wr32(mm, REG_M2_CONTROL_STATUS, 2)
+                time.sleep(args.poll_interval)
+                wr32(mm, REG_M2_CONTROL_STATUS, 0)
+                time.sleep(args.poll_interval)
+                status = rd32_window(mm, REG_M2_CONTROL_STATUS)
+                provenance = rd32_window(mm, REG_M2_PROVENANCE)
+                decoded_status = decode_status(status)
+                clear_checks = {
+                    "status_not_all_ones": status != ALL_ONES,
+                    "provenance_not_all_ones": provenance != ALL_ONES,
+                    "status_schema_consistent": bool(decoded_status["schema_consistent"]),
+                    "provenance_schema_consistent": (provenance >> 16) == 0x4D32,
+                }
+                clear_pass = all(clear_checks.values())
+                result = {
+                    "artifact_name": "task6-pcie-m2-full-block-clear-only",
+                    "status": "PASS" if clear_pass else "FAIL",
+                    "date": dt.date.today().isoformat(),
+                    "contract": result_contract,
+                    "bdf": args.bdf,
+                    "lspci": lspci,
+                    "command": command,
+                    "elapsed_seconds": time.monotonic() - started,
+                    "checks": clear_checks,
+                    "observed": {
+                        "status": f"0x{status:08x}",
+                        "decoded_status": decoded_status,
+                        "cycle_count": rd32_window(mm, REG_M2_CYCLE_COUNT),
+                        "debug": f"0x{rd32_window(mm, REG_M2_DEBUG):08x}",
+                        "debug1": f"0x{rd32_window(mm, REG_M2_DEBUG1):08x}",
+                        "debug2": f"0x{rd32_window(mm, REG_M2_DEBUG2):08x}",
+                        "debug3": f"0x{rd32_window(mm, REG_M2_DEBUG3):08x}",
+                        "provenance": f"0x{provenance:08x}",
+                    },
+                }
+                args.json_out.parent.mkdir(parents=True, exist_ok=True)
+                args.json_out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                print(json.dumps(result, indent=2, sort_keys=True))
+                return 0 if clear_pass else 1
+
             preflight_offsets = {
                 "magic": REG_MAGIC,
                 "version": REG_VERSION,
@@ -921,6 +1451,11 @@ def main() -> int:
             }
             if "context_fixture_signature" in expected:
                 preflight_offsets["m2_context_fixture_signature"] = REG_M2_DEBUG3
+            preflight_warmup_samples = warmup_register_reads(
+                lambda offset: rd32_window(mm, offset),
+                preflight_offsets,
+                samples=args.preflight_warmup_samples,
+            )
             preflight_values, preflight_samples, preflight_stable = sample_registers(
                 lambda offset: rd32_window(mm, offset),
                 preflight_offsets,
@@ -997,6 +1532,10 @@ def main() -> int:
                         name: [f"0x{value:08x}" for value in values]
                         for name, values in preflight_samples.items()
                     },
+                    "preflight_warmup_samples": {
+                        name: [f"0x{value:08x}" for value in values]
+                        for name, values in preflight_warmup_samples.items()
+                    },
                     "preflight_stable": preflight_stable,
                     "preflight_acceptable": preflight_acceptable,
                     "fingerprints": {
@@ -1027,6 +1566,465 @@ def main() -> int:
                 args.json_out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
                 print(json.dumps(result, indent=2, sort_keys=True))
                 return 1
+
+            if args.bar_contract_only:
+                start_count_before = rd32_window(mm, REG_M2_START_COUNT)
+                wr32(mm, REG_M2_CONTROL_STATUS, 0)
+                wr32(mm, REG_M2_CONTROL_STATUS, 2)
+                time.sleep(args.poll_interval)
+                wr32(mm, REG_M2_CONTROL_STATUS, 0)
+                time.sleep(args.poll_interval)
+                input_words, input_write_words = write_vector(
+                    mm,
+                    REG_M2_INPUT,
+                    block_input,
+                    mode=args.vector_write_mode,
+                )
+                residual_words, residual_write_words = write_vector(
+                    mm,
+                    REG_M2_RESIDUAL,
+                    residual,
+                    mode=args.vector_write_mode,
+                )
+                input_readback = wait_vector_readback(
+                    mm,
+                    REG_M2_INPUT,
+                    block_input,
+                    timeout=min(args.timeout, 0.25),
+                    poll_interval=args.poll_interval,
+                )
+                residual_readback = wait_vector_readback(
+                    mm,
+                    REG_M2_RESIDUAL,
+                    residual,
+                    timeout=min(args.timeout, 0.25),
+                    poll_interval=args.poll_interval,
+                )
+                m2_status = rd32_window(mm, REG_M2_CONTROL_STATUS)
+                provenance = rd32_window(mm, REG_M2_PROVENANCE)
+                start_count_after = rd32_window(mm, REG_M2_START_COUNT)
+                decoded = decode_status(m2_status)
+                contract_checks = bar_contract_checks(
+                    status=m2_status,
+                    provenance=provenance,
+                    input_readback=input_readback,
+                    residual_readback=residual_readback,
+                    block_input=block_input,
+                    residual=residual,
+                    start_count_before=start_count_before,
+                    start_count_after=start_count_after,
+                )
+                checks = {**preflight_checks, **contract_checks}
+                result_status = "PASS" if all(checks.values()) else "FAIL"
+                result = {
+                    "artifact_name": "task6-pcie-m2-direct-bar-contract-gate",
+                    "status": result_status,
+                    "date": dt.date.today().isoformat(),
+                    "contract": result_contract,
+                    "bdf": args.bdf,
+                    "lspci": lspci,
+                    "command": command,
+                    "board": {
+                        "status": result_status,
+                        "bdf": args.bdf,
+                        "lspci": lspci,
+                        "pcie_command": command,
+                    },
+                    "elapsed_seconds": time.monotonic() - started,
+                    "registers": {
+                        "magic": f"0x{magic:08x}",
+                        "version": version,
+                        "status": f"0x{status:08x}",
+                        "m2_magic": f"0x{m2_magic:08x}",
+                        "m2_version": m2_version,
+                        "m2_present": m2_present,
+                        "m2_provenance": f"0x{m2_provenance:08x}",
+                        "expected_m2_provenance": f"0x{expected_m2_provenance:08x}",
+                        "m2_context_fixture_signature": (
+                            f"0x{m2_context_fixture_signature:08x}"
+                            if m2_context_fixture_signature is not None
+                            else None
+                        ),
+                        "expected_context_fixture_signature": (
+                            f"0x{int(expected_context_fixture_signature):08x}"
+                            if expected_context_fixture_signature is not None
+                            else None
+                        ),
+                    },
+                    "preflight_samples": {
+                        name: [f"0x{value:08x}" for value in values]
+                        for name, values in preflight_samples.items()
+                    },
+                    "preflight_warmup_samples": {
+                        name: [f"0x{value:08x}" for value in values]
+                        for name, values in preflight_warmup_samples.items()
+                    },
+                    "preflight_stable": preflight_stable,
+                    "preflight_acceptable": preflight_acceptable,
+                    "fingerprints": {
+                        "gate_script_sha256": sha256_file(Path(__file__)),
+                        "expected_json": str(args.expected_json) if args.expected_json else None,
+                        "expected_json_sha256": sha256_file(args.expected_json),
+                        "tb_data_sv": str(args.tb_data_sv) if args.tb_data_sv else None,
+                        "tb_data_sv_sha256": sha256_file(args.tb_data_sv),
+                        "embedding_tb_data_sv": (
+                            str(args.embedding_tb_data_sv) if args.embedding_tb_data_sv else None
+                        ),
+                        "embedding_tb_data_sv_sha256": sha256_file(args.embedding_tb_data_sv),
+                        "context_tb_data_sv": (
+                            str(args.context_tb_data_sv) if args.context_tb_data_sv else None
+                        ),
+                        "context_tb_data_sv_sha256": sha256_file(args.context_tb_data_sv),
+                        "tb_data_token_index": expected.get("token_index") if args.tb_data_sv else None,
+                        "token_ids": expected.get("token_ids"),
+                        "context_fixture_signature": (
+                            f"0x{int(expected_context_fixture_signature):08x}"
+                            if expected_context_fixture_signature is not None
+                            else None
+                        ),
+                        "block_input_sha256": sha256_bytes(block_input),
+                        "residual_after_attention_sha256": sha256_bytes(residual),
+                        "block_input_source": block_input_source,
+                        "residual_after_attention_source": residual_source,
+                    },
+                    "input": {
+                        "block_input_hex": block_input.hex(),
+                        "block_index": 0 if is_token_live_mode(expected) else None,
+                        "token_ids": expected.get("token_ids"),
+                        "residual_after_attention_hex": residual.hex(),
+                        "block_input_words_little_packed": [
+                            f"0x{word:08x}" for word in input_words
+                        ],
+                        "residual_words_little_packed": [
+                            f"0x{word:08x}" for word in residual_words
+                        ],
+                        "vector_write_mode": args.vector_write_mode,
+                        "block_input_words_written": [
+                            f"0x{word:08x}" for word in input_write_words
+                        ],
+                        "residual_words_written": [
+                            f"0x{word:08x}" for word in residual_write_words
+                        ],
+                        "readback_is_contract_check": True,
+                    },
+                    "observed": {
+                        "compute_path": compute_path,
+                        "status": f"0x{m2_status:08x}",
+                        "decoded_status": decoded,
+                        "start_count_before": start_count_before,
+                        "start_count_after": start_count_after,
+                        "cycle_count": rd32_window(mm, REG_M2_CYCLE_COUNT),
+                        "debug": f"0x{rd32_window(mm, REG_M2_DEBUG):08x}",
+                        "debug1": f"0x{rd32_window(mm, REG_M2_DEBUG1):08x}",
+                        "debug2": f"0x{rd32_window(mm, REG_M2_DEBUG2):08x}",
+                        "debug3": f"0x{rd32_window(mm, REG_M2_DEBUG3):08x}",
+                        "provenance": f"0x{provenance:08x}",
+                        "expected_provenance": f"0x{expected_m2_provenance:08x}",
+                        "input_readback_hex": input_readback.hex(),
+                        "residual_readback_hex": residual_readback.hex(),
+                        "input_readback_matches_requested": input_readback == block_input,
+                        "residual_readback_matches_requested": residual_readback == residual,
+                        "input_readback_transform": classify_vector_readback_transform(
+                            block_input,
+                            input_readback,
+                        ),
+                        "residual_readback_transform": classify_vector_readback_transform(
+                            residual,
+                            residual_readback,
+                        ),
+                    },
+                    "checks": checks,
+                }
+                args.json_out.parent.mkdir(parents=True, exist_ok=True)
+                args.json_out.write_text(
+                    json.dumps(result, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                print(json.dumps(result, indent=2, sort_keys=True))
+                return 0 if result_status == "PASS" else 1
+
+            if args.start_clear_only:
+                wr32(mm, REG_M2_CONTROL_STATUS, 0)
+                wr32(mm, REG_M2_CONTROL_STATUS, 2)
+                time.sleep(args.poll_interval)
+                wr32(mm, REG_M2_CONTROL_STATUS, 0)
+                time.sleep(args.poll_interval)
+                input_words, input_write_words = write_vector(
+                    mm,
+                    REG_M2_INPUT,
+                    block_input,
+                    mode=args.vector_write_mode,
+                )
+                residual_words, residual_write_words = write_vector(
+                    mm,
+                    REG_M2_RESIDUAL,
+                    residual,
+                    mode=args.vector_write_mode,
+                )
+                input_readback = wait_vector_readback(
+                    mm,
+                    REG_M2_INPUT,
+                    block_input,
+                    timeout=min(args.timeout, 0.25),
+                    poll_interval=args.poll_interval,
+                )
+                residual_readback = wait_vector_readback(
+                    mm,
+                    REG_M2_RESIDUAL,
+                    residual,
+                    timeout=min(args.timeout, 0.25),
+                    poll_interval=args.poll_interval,
+                )
+                start_count_before = rd32_window(mm, REG_M2_START_COUNT)
+                wr32(mm, REG_M2_CONTROL_STATUS, 1)
+
+                deadline = time.monotonic() + args.timeout
+                run_status = rd32_window(mm, REG_M2_CONTROL_STATUS)
+                run_decoded = decode_status(run_status)
+                while time.monotonic() < deadline:
+                    run_status = rd32_window(mm, REG_M2_CONTROL_STATUS)
+                    run_decoded = decode_status(run_status)
+                    if run_decoded["done"] or run_decoded["error"]:
+                        break
+                    time.sleep(args.poll_interval)
+
+                start_count_after_start = rd32_window(mm, REG_M2_START_COUNT)
+                cycle_count = rd32_window(mm, REG_M2_CYCLE_COUNT)
+                checksum = rd32_window(mm, REG_M2_OUTPUT_CHECKSUM)
+                output_count = rd32_window(mm, REG_M2_OUTPUT_COUNT)
+                sample0 = rd32_window(mm, REG_M2_OUTPUT_SAMPLE0)
+                sample1 = rd32_window(mm, REG_M2_OUTPUT_SAMPLE1)
+                debug = rd32_window(mm, REG_M2_DEBUG)
+                debug1 = rd32_window(mm, REG_M2_DEBUG1)
+                debug2 = rd32_window(mm, REG_M2_DEBUG2)
+                debug3 = rd32_window(mm, REG_M2_DEBUG3)
+                provenance = rd32_window(mm, REG_M2_PROVENANCE)
+                output_vector = read_vector(mm, REG_M2_OUTPUT_VECTOR)
+                output_hash = read_vector_hash(mm)
+
+                wr32(mm, REG_M2_CONTROL_STATUS, 0)
+                wr32(mm, REG_M2_CONTROL_STATUS, 2)
+                time.sleep(args.poll_interval)
+                wr32(mm, REG_M2_CONTROL_STATUS, 0)
+                time.sleep(args.poll_interval)
+                clear_status = rd32_window(mm, REG_M2_CONTROL_STATUS)
+                clear_decoded = decode_status(clear_status)
+                start_count_after_clear = rd32_window(mm, REG_M2_START_COUNT)
+                allow_error = not args.start_clear_disallow_error and not args.require_embedding_handoff
+                lifecycle_checks = start_clear_contract_checks(
+                    run_status=run_status,
+                    clear_status=clear_status,
+                    provenance=provenance,
+                    input_readback=input_readback,
+                    residual_readback=residual_readback,
+                    block_input=block_input,
+                    residual=residual,
+                    start_count_before=start_count_before,
+                    start_count_after_start=start_count_after_start,
+                    start_count_after_clear=start_count_after_clear,
+                    allow_error=allow_error,
+                )
+                if args.require_embedding_handoff:
+                    if "block_input_checksum" not in expected:
+                        raise SystemExit(
+                            "--require-embedding-handoff requires block_input_checksum "
+                            "from embedding summary.json"
+                        )
+                    if "ln_input_checksum" not in expected:
+                        raise SystemExit(
+                            "--require-embedding-handoff requires ln_input_checksum "
+                            "from --embedding-tb-data-sv"
+                        )
+                    if "embedding_block_input_vector" not in expected:
+                        raise SystemExit(
+                            "--require-embedding-handoff requires embedding_block_input_vector "
+                            "from --embedding-tb-data-sv"
+                        )
+                    expected_block_vector = expected["embedding_block_input_vector"]
+                    if not isinstance(expected_block_vector, bytes):
+                        raise SystemExit("embedding_block_input_vector must be bytes")
+                    lifecycle_checks.update(
+                        embedding_handoff_contract_checks(
+                            run_decoded=run_decoded,
+                            output_count=output_count,
+                            checksum=checksum,
+                            debug=debug,
+                            debug1=debug1,
+                            debug2=debug2,
+                            debug3=debug3,
+                            output_vector=output_vector,
+                            output_hash=output_hash,
+                            expected_block_input_checksum=int(expected["block_input_checksum"]),
+                            expected_ln_input_checksum=int(expected["ln_input_checksum"]),
+                            expected_block_vector=expected_block_vector,
+                        )
+                    )
+                checks = {**preflight_checks, **lifecycle_checks}
+                status_checks = dict(checks)
+                status_checks.pop("embedding_output_hash", None)
+                result_status = "PASS" if all(status_checks.values()) else "FAIL"
+                result = {
+                    "artifact_name": "task6-pcie-m2-start-clear-lifecycle-gate",
+                    "status": result_status,
+                    "date": dt.date.today().isoformat(),
+                    "contract": result_contract,
+                    "bdf": args.bdf,
+                    "lspci": lspci,
+                    "command": command,
+                    "board": {
+                        "status": result_status,
+                        "bdf": args.bdf,
+                        "lspci": lspci,
+                        "pcie_command": command,
+                    },
+                    "elapsed_seconds": time.monotonic() - started,
+                    "registers": {
+                        "magic": f"0x{magic:08x}",
+                        "version": version,
+                        "status": f"0x{status:08x}",
+                        "m2_magic": f"0x{m2_magic:08x}",
+                        "m2_version": m2_version,
+                        "m2_present": m2_present,
+                        "m2_provenance": f"0x{m2_provenance:08x}",
+                        "expected_m2_provenance": f"0x{expected_m2_provenance:08x}",
+                        "m2_context_fixture_signature": (
+                            f"0x{m2_context_fixture_signature:08x}"
+                            if m2_context_fixture_signature is not None
+                            else None
+                        ),
+                        "expected_context_fixture_signature": (
+                            f"0x{int(expected_context_fixture_signature):08x}"
+                            if expected_context_fixture_signature is not None
+                            else None
+                        ),
+                    },
+                    "preflight_samples": {
+                        name: [f"0x{value:08x}" for value in values]
+                        for name, values in preflight_samples.items()
+                    },
+                    "preflight_warmup_samples": {
+                        name: [f"0x{value:08x}" for value in values]
+                        for name, values in preflight_warmup_samples.items()
+                    },
+                    "preflight_stable": preflight_stable,
+                    "preflight_acceptable": preflight_acceptable,
+                    "fingerprints": {
+                        "gate_script_sha256": sha256_file(Path(__file__)),
+                        "expected_json": str(args.expected_json) if args.expected_json else None,
+                        "expected_json_sha256": sha256_file(args.expected_json),
+                        "tb_data_sv": str(args.tb_data_sv) if args.tb_data_sv else None,
+                        "tb_data_sv_sha256": sha256_file(args.tb_data_sv),
+                        "embedding_tb_data_sv": (
+                            str(args.embedding_tb_data_sv) if args.embedding_tb_data_sv else None
+                        ),
+                        "embedding_tb_data_sv_sha256": sha256_file(args.embedding_tb_data_sv),
+                        "context_tb_data_sv": (
+                            str(args.context_tb_data_sv) if args.context_tb_data_sv else None
+                        ),
+                        "context_tb_data_sv_sha256": sha256_file(args.context_tb_data_sv),
+                        "tb_data_token_index": expected.get("token_index") if args.tb_data_sv else None,
+                        "token_ids": expected.get("token_ids"),
+                        "context_fixture_signature": (
+                            f"0x{int(expected_context_fixture_signature):08x}"
+                            if expected_context_fixture_signature is not None
+                            else None
+                        ),
+                        "block_input_sha256": sha256_bytes(block_input),
+                        "residual_after_attention_sha256": sha256_bytes(residual),
+                        "block_input_source": block_input_source,
+                        "residual_after_attention_source": residual_source,
+                    },
+                    "input": {
+                        "block_input_hex": block_input.hex(),
+                        "block_index": 0 if is_token_live_mode(expected) else None,
+                        "token_ids": expected.get("token_ids"),
+                        "residual_after_attention_hex": residual.hex(),
+                        "block_input_words_little_packed": [
+                            f"0x{word:08x}" for word in input_words
+                        ],
+                        "residual_words_little_packed": [
+                            f"0x{word:08x}" for word in residual_words
+                        ],
+                        "vector_write_mode": args.vector_write_mode,
+                        "block_input_words_written": [
+                            f"0x{word:08x}" for word in input_write_words
+                        ],
+                        "residual_words_written": [
+                            f"0x{word:08x}" for word in residual_write_words
+                        ],
+                        "readback_is_contract_check": True,
+                    },
+                    "observed": {
+                        "compute_path": compute_path,
+                        "allow_terminal_error": allow_error,
+                        "run_status": f"0x{run_status:08x}",
+                        "run_decoded_status": run_decoded,
+                        "clear_status": f"0x{clear_status:08x}",
+                        "clear_decoded_status": clear_decoded,
+                        "start_count_before": start_count_before,
+                        "start_count_after_start": start_count_after_start,
+                        "start_count_after_clear": start_count_after_clear,
+                        "cycle_count": cycle_count,
+                        "checksum": f"0x{checksum:08x}",
+                        "output_count": output_count,
+                        "sample0": f"0x{sample0:08x}",
+                        "sample1": f"0x{sample1:08x}",
+                        "debug": f"0x{debug:08x}",
+                        "debug1": f"0x{debug1:08x}",
+                        "debug2": f"0x{debug2:08x}",
+                        "debug3": f"0x{debug3:08x}",
+                        "output_vector_hex": output_vector.hex(),
+                        "output_hash_hex": output_hash.hex(),
+                        "expected_output_hash_hex": (
+                            vector_hash128(expected["embedding_block_input_vector"]).hex()
+                            if args.require_embedding_handoff
+                            and isinstance(
+                                expected.get("embedding_block_input_vector"),
+                                bytes,
+                            )
+                            else None
+                        ),
+                        "expected_block_input_checksum": (
+                            f"0x{int(expected['block_input_checksum']):08x}"
+                            if "block_input_checksum" in expected
+                            else None
+                        ),
+                        "expected_ln_input_checksum": (
+                            f"0x{int(expected['ln_input_checksum']):08x}"
+                            if "ln_input_checksum" in expected
+                            else None
+                        ),
+                        "expected_embedding_block_input_vector_hex": (
+                            expected["embedding_block_input_vector"].hex()
+                            if isinstance(expected.get("embedding_block_input_vector"), bytes)
+                            else None
+                        ),
+                        "decoded_debug": decode_debug(debug, debug1, debug2),
+                        "done_stage_checksums": decode_done_stage_checksums(debug1, debug2),
+                        "provenance": f"0x{provenance:08x}",
+                        "expected_provenance": f"0x{expected_m2_provenance:08x}",
+                        "input_readback_hex": input_readback.hex(),
+                        "residual_readback_hex": residual_readback.hex(),
+                        "input_readback_matches_requested": input_readback == block_input,
+                        "residual_readback_matches_requested": residual_readback == residual,
+                        "input_readback_transform": classify_vector_readback_transform(
+                            block_input,
+                            input_readback,
+                        ),
+                        "residual_readback_transform": classify_vector_readback_transform(
+                            residual,
+                            residual_readback,
+                        ),
+                    },
+                    "checks": checks,
+                }
+                args.json_out.parent.mkdir(parents=True, exist_ok=True)
+                args.json_out.write_text(
+                    json.dumps(result, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                print(json.dumps(result, indent=2, sort_keys=True))
+                return 0 if result_status == "PASS" else 1
 
             wr32(mm, REG_M2_CONTROL_STATUS, 0)
             wr32(mm, REG_M2_CONTROL_STATUS, 2)
@@ -1194,6 +2192,10 @@ def main() -> int:
         "preflight_samples": {
             name: [f"0x{value:08x}" for value in values]
             for name, values in preflight_samples.items()
+        },
+        "preflight_warmup_samples": {
+            name: [f"0x{value:08x}" for value in values]
+            for name, values in preflight_warmup_samples.items()
         },
         "preflight_stable": preflight_stable,
         "preflight_acceptable": preflight_acceptable,

@@ -100,6 +100,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
   logic [31:0] m2_full_block_debug2;
   logic [31:0] m2_full_block_debug3;
   logic [31:0] m2_full_block_provenance;
+  logic [127:0] m2_full_block_output_hash;
   logic [511:0] m2_full_block_output_vector;
   int mlp_accel_start_pulses;
   int mlp_accel_clear_pulses;
@@ -209,6 +210,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
     .m2_full_block_debug2_i(m2_full_block_debug2),
     .m2_full_block_debug3_i(m2_full_block_debug3),
     .m2_full_block_provenance_i(m2_full_block_provenance),
+    .m2_full_block_output_hash_i(m2_full_block_output_hash),
     .m2_full_block_output_vector_i(m2_full_block_output_vector)
   );
 
@@ -443,6 +445,7 @@ module task6_pcie_rowstream_loader_ingress_tb;
     m2_full_block_debug2 = 32'd0;
     m2_full_block_debug3 = 32'd0;
     m2_full_block_provenance = 32'd0;
+    m2_full_block_output_hash = 128'd0;
     m2_full_block_output_vector = 512'd0;
     errors = 0;
 
@@ -607,26 +610,21 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(m2_full_block_residual_vector[32 +: 32] == 32'hff45_f1da, "M2 signed residual fixture word1 must update exactly");
     begin
       logic [31:0] m2_fixture_input_words [0:15];
-      logic [31:0] m2_fixture_raw_words [0:15];
       m2_fixture_input_words[0] = 32'h0962_1d1e;
       m2_fixture_input_words[1] = 32'h0280_0101;
       m2_fixture_input_words[2] = 32'h0175_0264;
-      m2_fixture_raw_words[0] = 32'h84b1_0e8f;
-      m2_fixture_raw_words[1] = 32'h0140_0080;
-      m2_fixture_raw_words[2] = 32'h00ba_8132;
       for (int word = 3; word < 16; word++) begin
         m2_fixture_input_words[word] = 32'd0;
-        m2_fixture_raw_words[word] = 32'd0;
       end
       for (int word = 0; word < 16; word++) begin
-        axil_write(32'h540 + word * 4, m2_fixture_raw_words[word]);
+        axil_write(32'h540 + word * 4, m2_fixture_input_words[word]);
       end
       for (int word = 0; word < 16; word++) begin
         axil_read(32'h540 + word * 4, value);
-        check(value == m2_fixture_input_words[word], "M2 fixture input BAR word must compensate pcie7x ror64 writeback");
+        check(value == m2_fixture_input_words[word], "M2 fixture input BAR word must read back exactly");
         check(
           m2_full_block_input_vector[word * 32 +: 32] == m2_fixture_input_words[word],
-          "M2 fixture input internal vector word must compensate pcie7x ror64 writeback"
+          "M2 fixture input internal vector word must update exactly"
         );
       end
     end
@@ -673,6 +671,10 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(value == 32'h4d32_2005, "M2 provenance must be visible");
     axil_read(32'h5d8, value);
     check(value == 32'h50f9_50f9, "M2 debug3 handoff checksum must be visible");
+    for (int word = 0; word < 8; word++) begin
+      axil_read(32'h5dc + word * 4, value);
+      check(value == 32'he000_6000 + word, "M2 output-vector mirror word must be visible");
+    end
     for (int word = 0; word < 16; word++) begin
       axil_read(32'h600 + word * 4, value);
       check(value == 32'he000_6000 + word, "M2 output-vector word must be visible");

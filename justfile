@@ -34,8 +34,47 @@ task6-latest-passing-milestone-board-gate bdf='0000:42:00.0' out_json='artifacts
 task6-bottleneck-bitstream:
     nix build .#bottleneck --no-link --print-out-paths
 
+task6-m2-3-embedding-handoff-bitstream:
+    nix build .#task6-m2-3-embedding-handoff-pnr100-bitstream --no-link --print-out-paths
+
+task6-m2-4-live-context-attention-slice-bitstream:
+    nix build .#task6-m2-4-live-context-attention-slice-pnr100-bitstream --no-link --print-out-paths
+
 task6-bottleneck-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary.json':
     TASK6_PCIE_HARDWARE_ENABLE=1 just task6-zero-to-one-m2-bram-board-gate "{{bdf}}" "$(nix build .#task6-m2-last-token-live-kv-context-full-block-tb-data-sv --no-link --print-out-paths)/tb_data.sv" "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" "$(nix build .#task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv --no-link --print-out-paths)/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" "{{out_json}}"
+
+task6-m2-1-bar-contract-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-1-direct-bar-contract.json':
+    mkdir -p "$(dirname "{{out_json}}")"
+    TASK6_PCIE_HARDWARE_ENABLE=1 python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" --bar-contract-only --tb-data-sv "$(nix build .#task6-m2-last-token-live-kv-context-full-block-tb-data-sv --no-link --print-out-paths)/tb_data.sv" --embedding-tb-data-sv "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" --context-tb-data-sv "$(nix build .#task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv --no-link --print-out-paths)/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" --json-out "{{out_json}}"
+
+task6-m2-2-start-clear-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-2-start-clear-lifecycle.json':
+    mkdir -p "$(dirname "{{out_json}}")"
+    TASK6_PCIE_HARDWARE_ENABLE=1 python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" --start-clear-only --tb-data-sv "$(nix build .#task6-m2-last-token-live-kv-context-full-block-tb-data-sv --no-link --print-out-paths)/tb_data.sv" --embedding-tb-data-sv "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" --context-tb-data-sv "$(nix build .#task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv --no-link --print-out-paths)/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" --json-out "{{out_json}}"
+
+task6-m2-3-embedding-handoff-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff.json':
+    mkdir -p "$(dirname "{{out_json}}")"
+    TASK6_PCIE_HARDWARE_ENABLE=1 python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" --start-clear-only --require-embedding-handoff --tb-data-sv "$(nix build .#task6-m2-last-token-live-kv-context-full-block-tb-data-sv --no-link --print-out-paths)/tb_data.sv" --embedding-tb-data-sv "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" --json-out "{{out_json}}"
+
+task6-m2-4-live-context-attention-slice-board-gate bdf='0000:42:00.0' out_json='artifacts/task6/runs/task6-bottleneck/m2-4-live-context-attention-slice.json':
+    mkdir -p "$(dirname "{{out_json}}")"
+    TASK6_PCIE_HARDWARE_ENABLE=1 python3 scripts/task6/task6_pcie_m2_full_block_gate.py "{{bdf}}" --require-attention-slice --tb-data-sv "$(nix build .#task6-m2-last-token-live-kv-context-full-block-tb-data-sv --no-link --print-out-paths)/tb_data.sv" --embedding-tb-data-sv "$(nix build .#task6-m2-embedding-block-input-tb-data-sv --no-link --print-out-paths)/task6_m2_embedding_block_input_tb_data.sv" --context-tb-data-sv "$(nix build .#task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv --no-link --print-out-paths)/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv" --json-out "{{out_json}}"
+
+task6-pcie-recover bdf='0000:42:00.0' label='task6-pcie-recover' max_power_cycles='5':
+    TASK6_PCIE_HARDWARE_ENABLE=1 scripts/task6/task6_pcie_user_gate.sh recover-auto "{{bdf}}" \
+      --bridge-bdf 0000:41:00.0 \
+      --label "{{label}}" \
+      --allow-power-cycle \
+      --max-power-cycles "{{max_power_cycles}}" \
+      --power-provider tapo-p115 \
+      --power-url 192.168.1.136 \
+      --secret-file /home/roland/.config/task6-pcie/tapo.env \
+      --power-off-wait 10 \
+      --power-on-wait 45 \
+      --command-timeout 120
+
+task6-pcie-recover-then-bottleneck bdf='0000:42:00.0' label='task6-bottleneck-recover':
+    just task6-pcie-recover "{{bdf}}" "{{label}}" 5
+    just task6-bottleneck-board-gate "{{bdf}}"
 
 task6-state-validate:
     python3 scripts/task6/task6_state_validate.py

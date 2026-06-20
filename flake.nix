@@ -385,6 +385,8 @@ EOF
               ${task6Int8L2MlpChainResidualAddAccelTop} \
               ${task6M2LnAttnSublaneAccelTop} \
               ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_handoff_pcie_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_attention_slice_pcie_accel_top.sv} \
               ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
               ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
               ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
@@ -394,6 +396,124 @@ EOF
               ${./fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv}
             chparam -set ENABLE_MLP_ACCEL 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
             chparam -set ENABLE_M2_ACCEL 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set M2_ACCEL_KIND 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
+            synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
+            stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6YpcbPcieRowstreamIngressM23EmbeddingHandoffYosysJson =
+          pkgs.runCommand "task6-ypcb-pcie-rowstream-ingress-m2-3-embedding-handoff-yosys.json" {
+            buildInputs = [ yosysPkg ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/xilinx_pcie_mmcm.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axil_to_al.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axis_pcie_to_al_us.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_7x.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_rx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_tx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_block.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_brams.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_tx_thrtl_ctl.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pipe_wrapper_gtx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${./fpga/rtl/task6_pcie_jtag_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress_cdc.v} \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${task6Int8L2MlpChainResidualAddAccelTop} \
+              ${task6M2LnAttnSublaneAccelTop} \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_handoff_pcie_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_attention_slice_pcie_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_pcie_accel_top.sv} \
+              ${./fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv}
+            chparam -set ENABLE_MLP_ACCEL 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set ENABLE_M2_ACCEL 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set M2_ACCEL_KIND 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
+            synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
+            stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top
+            write_json "$out"
+            EOF
+            yosys -s run.ys
+          '';
+
+        task6YpcbPcieRowstreamIngressM24AttentionSliceYosysJson =
+          pkgs.runCommand "task6-ypcb-pcie-rowstream-ingress-m2-4-attention-slice-yosys.json" {
+            buildInputs = [ yosysPkg ];
+          } ''
+            set -euo pipefail
+            cat > run.ys <<EOF
+            read_verilog -lib +/xilinx/cells_sim.v
+            read_verilog -lib +/xilinx/cells_xtra.v
+            read_verilog -sv -DTASK6_PCIE_ROWSTREAM_INGRESS_PORTS \
+              -I${task6M2LastTokenLiveKvContextFullBlockTbDataSv} \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/xilinx_pcie_mmcm.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axil_to_al.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/axis_pcie_to_al_us.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_7x.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_rx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_axi_tx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_block.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_brams.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pcie_tx_thrtl_ctl.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/pipe_wrapper_gtx.v \
+              ${task6Pcie7xSourceVivadoLane0LocRowstreamIngress}/src/aximm-minimal/pcie_7x_top_aximm.v \
+              ${./fpga/rtl/task6_pcie_jtag_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_app_status_shift.v} \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress_cdc.v} \
+              ${./rtl/task6/task6_int8_gemv64_lanes4_packed_sync_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_kernel.sv} \
+              ${./rtl/task6/task6_int8_gemv64x256_lanes4_packed_sync_mem_local_io_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_fc_post_gelu_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_c_proj_from_post_gelu_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_post_gelu_c_proj_requant_kernel.sv} \
+              ${./rtl/task6/task6_int8_l2_mlp_chain_residual_add_kernel.sv} \
+              ${task6Int8L2MlpChainResidualAddAccelTop} \
+              ${task6M2LnAttnSublaneAccelTop} \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_handoff_pcie_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_attention_slice_pcie_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_full_block_pcie_accel_top.sv} \
+              ${./fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv}
+            chparam -set ENABLE_MLP_ACCEL 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set ENABLE_M2_ACCEL 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set M2_ACCEL_KIND 2 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set M2_ENABLE_CONTEXT_INTERNAL_CHECKS 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
             hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
             synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
             stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top
@@ -440,6 +560,7 @@ EOF
               ${task6Int8L2MlpChainResidualAddAccelTop} \
               ${task6M2LnAttnSublaneAccelTop} \
               ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_handoff_pcie_accel_top.sv} \
               ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
               ${./fpga/rtl/task6_m2_first_token_attention_out_proj_accel_top.sv} \
               ${./fpga/rtl/task6_m2_first_token_mlp_integrated_accel_top.sv} \
@@ -449,6 +570,7 @@ EOF
               ${./fpga/rtl/task6_ypcb_pcie_rowstream_ingress_dummy_top.sv}
             chparam -set ENABLE_MLP_ACCEL 1 task6_ypcb_pcie_rowstream_ingress_dummy_top
             chparam -set ENABLE_M2_ACCEL 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
+            chparam -set M2_ACCEL_KIND 0 task6_ypcb_pcie_rowstream_ingress_dummy_top
             hierarchy -top task6_ypcb_pcie_rowstream_ingress_dummy_top -check
             synth_xilinx -flatten -arch xc7 -nosrl -noiopad -top task6_ypcb_pcie_rowstream_ingress_dummy_top
             stat -top task6_ypcb_pcie_rowstream_ingress_dummy_top
@@ -7016,6 +7138,57 @@ EOF
           framesBase = "task6-ypcb-pcie-rowstream-ingress-dummy-pnr100";
         };
 
+        task6YpcbPcieRowstreamIngressM23EmbeddingHandoffPnr100Fasm = mkFasm {
+          name = "task6-ypcb-pcie-rowstream-ingress-m2-3-embedding-handoff-pnr100";
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcieRowstreamIngressM23EmbeddingHandoffYosysJson;
+          seed = 15;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieRowstreamIngressM23EmbeddingHandoffPnr100Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-rowstream-ingress-m2-3-embedding-handoff-pnr100";
+          fasm = task6YpcbPcieRowstreamIngressM23EmbeddingHandoffPnr100Fasm;
+          framesBase = "task6-ypcb-pcie-rowstream-ingress-m2-3-embedding-handoff-pnr100";
+        };
+
+        task6YpcbPcieRowstreamIngressM24AttentionSlicePnr100Fasm = mkFasm {
+          name = "task6-ypcb-pcie-rowstream-ingress-m2-4-attention-slice-pnr100";
+          xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+          json = task6YpcbPcieRowstreamIngressM24AttentionSliceYosysJson;
+          seed = 15;
+          freqMHz = 100;
+          prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+          nextpnrExtraArgs = "--no-tmdriv";
+        };
+
+        task6YpcbPcieRowstreamIngressM24AttentionSlicePnr100Bitstream = mkBitstream {
+          name = "task6-ypcb-pcie-rowstream-ingress-m2-4-attention-slice-pnr100";
+          fasm = task6YpcbPcieRowstreamIngressM24AttentionSlicePnr100Fasm;
+          framesBase = "task6-ypcb-pcie-rowstream-ingress-m2-4-attention-slice-pnr100";
+        };
+
+        task6YpcbPcieRowstreamIngressM24AttentionSliceSeedBitstream = seed:
+          let
+            seedText = toString seed;
+            fasm = mkFasm {
+              name = "task6-ypcb-pcie-rowstream-ingress-m2-4-attention-slice-pnr100-seed${seedText}";
+              xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
+              json = task6YpcbPcieRowstreamIngressM24AttentionSliceYosysJson;
+              inherit seed;
+              freqMHz = 100;
+              prePackScripts = [ task6YpcbUberDdr3ClockConstraints ];
+              nextpnrExtraArgs = "--no-tmdriv";
+            };
+          in
+          mkBitstream {
+            name = "task6-ypcb-pcie-rowstream-ingress-m2-4-attention-slice-pnr100-seed${seedText}";
+            inherit fasm;
+            framesBase = "task6-ypcb-pcie-rowstream-ingress-m2-4-attention-slice-pnr100-seed${seedText}";
+          };
+
         task6YpcbPcieRowstreamIngressM1Pnr100Fasm = mkFasm {
           name = "task6-ypcb-pcie-rowstream-ingress-m1-pnr100";
           xdc = "${task6Pcie7xSourceVivadoLane0Loc}/pcie_7x_ypcb_k480t.xdc";
@@ -10170,6 +10343,54 @@ EOF
               ${./fpga/rtl/task6_m2_embedding_live_context_full_block_accel_top.sv} \
               ${./fpga/rtl/task6_m2_embedding_live_context_full_block_pcie_accel_top.sv} \
               ${./sim/task6_m2_embedding_live_context_full_block_pcie_accel_tb_main.sv}
+          '';
+
+        task6M2EmbeddingHandoffPcieAccelSimMain =
+          pkgs.runCommand "task6-m2-embedding-handoff-pcie-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              -top task6_m2_embedding_handoff_pcie_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_handoff_pcie_accel_top.sv} \
+              ${./sim/task6_m2_embedding_handoff_pcie_accel_tb_main.sv}
+          '';
+
+        task6M2EmbeddingHandoffPcieBarSimMain =
+          pkgs.runCommand "task6-m2-embedding-handoff-pcie-bar-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              -top task6_m2_embedding_handoff_pcie_bar_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v} \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_handoff_pcie_accel_top.sv} \
+              ${./sim/task6_m2_embedding_handoff_pcie_bar_tb_main.sv}
+          '';
+
+        task6M2EmbeddingLiveContextAttentionSlicePcieAccelSimMain =
+          pkgs.runCommand "task6-m2-embedding-live-context-attention-slice-pcie-accel-sim-main" {
+            buildInputs = [ pkgs.verilator pkgs.gcc pkgs.gnumake ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out/obj_dir"
+            verilator --binary --timing --language 1800-2017 -Wno-fatal \
+              -I${task6M2LnAttnLiveKvAllHeadsContextTbDataSv} \
+              -I${task6M2EmbeddingBlockInputTbDataSv} \
+              -top task6_m2_embedding_live_context_attention_slice_pcie_accel_tb \
+              -Mdir "$out/obj_dir" -o sim_main \
+              ${./fpga/rtl/task6_m2_embedding_block_input_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_ln_attn_live_kv_all_heads_context_accel_top.sv} \
+              ${./fpga/rtl/task6_m2_embedding_live_context_attention_slice_pcie_accel_top.sv} \
+              ${./sim/task6_m2_embedding_live_context_attention_slice_pcie_accel_tb_main.sv}
           '';
 
         task6M2FirstTokenFullBlockPcieAccelSimMain =
@@ -13618,6 +13839,114 @@ EOF
             EOF
           '';
 
+        task6M2EmbeddingHandoffPcieAccelSvSim =
+          pkgs.runCommand "task6-m2-embedding-handoff-pcie-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2EmbeddingHandoffPcieAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2 embedding handoff PCIe wrapper cycles [0-9]+ block_input_checksum [0-9a-f]+ ln_input_checksum [0-9a-f]+ debug3 [0-9a-f]+ provenance [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-embedding-handoff PCIe wrapper SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $9}' <<<"$pass_line")"
+            block_input_checksum="$(${pkgs.gawk}/bin/awk '{print $11}' <<<"$pass_line")"
+            ln_input_checksum="$(${pkgs.gawk}/bin/awk '{print $13}' <<<"$pass_line")"
+            debug3="$(${pkgs.gawk}/bin/awk '{print $15}' <<<"$pass_line")"
+            provenance="$(${pkgs.gawk}/bin/awk '{print $17}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "block_scope": "pcie-bar-token-id-embedding-block-input-ln-input-handoff",
+              "input_boundary": "pcie_bar_token_ids",
+              "embedding_position_add_rtl": true,
+              "pcie_bar_scope": true,
+              "m2_submilestone": "M2.3",
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "block_input_checksum": "$block_input_checksum",
+              "ln_input_checksum": "$ln_input_checksum",
+              "debug3": "$debug3",
+              "provenance": "$provenance"
+            }
+            EOF
+          '';
+
+        task6M2EmbeddingHandoffPcieBarSvSim =
+          pkgs.runCommand "task6-m2-embedding-handoff-pcie-bar-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2EmbeddingHandoffPcieBarSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2.3 embedding handoff PCIe BAR sim cycles [0-9]+ block_input_checksum [0-9a-f]+ ln_input_checksum [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-embedding-handoff PCIe BAR SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            block_input_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            ln_input_checksum="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "block_scope": "pcie-bar-token-id-embedding-handoff-public-output-vector",
+              "input_boundary": "pcie_bar_token_ids",
+              "embedding_position_add_rtl": true,
+              "pcie_bar_scope": true,
+              "public_bar_full_output_vector": true,
+              "m2_submilestone": "M2.3",
+              "offline_only": true,
+              "closes_m2_3_hil": false,
+              "cycles": $cycles,
+              "block_input_checksum": "$block_input_checksum",
+              "ln_input_checksum": "$ln_input_checksum"
+            }
+            EOF
+          '';
+
+        task6M2EmbeddingLiveContextAttentionSlicePcieAccelSvSim =
+          pkgs.runCommand "task6-m2-embedding-live-context-attention-slice-pcie-accel-sv-sim.json" {
+            buildInputs = [ pkgs.gawk pkgs.gnugrep ];
+          } ''
+            set -euo pipefail
+            ${task6M2EmbeddingLiveContextAttentionSlicePcieAccelSimMain}/obj_dir/sim_main 2>&1 | tee sim.log
+            pass_line="$(${pkgs.gnugrep}/bin/grep -Eo 'PASS: task6 M2.4 embedding live-context attention-slice PCIe wrapper cycles [0-9]+ context_checksum [0-9a-f]+ context_sample0 [0-9a-f]+ context_sample1 [0-9a-f]+ debug [0-9a-f]+ debug1 [0-9a-f]+ debug3 [0-9a-f]+ provenance [0-9a-f]+' sim.log | tail -n1 || true)"
+            if [ -z "$pass_line" ]; then
+              echo "task6-m2-embedding-live-context-attention-slice PCIe wrapper SV simulation did not produce a PASS line" >&2
+              exit 1
+            fi
+            cycles="$(${pkgs.gawk}/bin/awk '{print $10}' <<<"$pass_line")"
+            context_checksum="$(${pkgs.gawk}/bin/awk '{print $12}' <<<"$pass_line")"
+            context_sample0="$(${pkgs.gawk}/bin/awk '{print $14}' <<<"$pass_line")"
+            context_sample1="$(${pkgs.gawk}/bin/awk '{print $16}' <<<"$pass_line")"
+            debug="$(${pkgs.gawk}/bin/awk '{print $18}' <<<"$pass_line")"
+            debug1="$(${pkgs.gawk}/bin/awk '{print $20}' <<<"$pass_line")"
+            debug3="$(${pkgs.gawk}/bin/awk '{print $22}' <<<"$pass_line")"
+            provenance="$(${pkgs.gawk}/bin/awk '{print $24}' <<<"$pass_line")"
+            cat > "$out" <<EOF
+            {
+              "status": "PASS",
+              "block_scope": "pcie-bar-token-id-embedding-live-context-attention-slice",
+              "input_boundary": "pcie_bar_token_ids",
+              "embedding_position_add_rtl": true,
+              "pcie_bar_scope": true,
+              "m2_submilestone": "M2.4",
+              "offline_only": true,
+              "closes_m2": false,
+              "cycles": $cycles,
+              "context_checksum": "$context_checksum",
+              "context_sample0": "$context_sample0",
+              "context_sample1": "$context_sample1",
+              "debug": "$debug",
+              "debug1": "$debug1",
+              "debug3": "$debug3",
+              "provenance": "$provenance"
+            }
+            EOF
+          '';
+
         task6M2LastTokenLiveKvContextFullBlockPcieAccelSvSim =
           pkgs.runCommand "task6-m2-last-token-live-kv-context-full-block-pcie-accel-sv-sim.json" {
             buildInputs = [ pkgs.gawk pkgs.gnugrep ];
@@ -15695,6 +16024,18 @@ EOF
             task6M2EmbeddingLiveContextFullBlockPcieAccelSimMain;
           task6-m2-embedding-live-context-full-block-pcie-accel-sv-sim =
             task6M2EmbeddingLiveContextFullBlockPcieAccelSvSim;
+          task6-m2-embedding-handoff-pcie-accel-sim-main =
+            task6M2EmbeddingHandoffPcieAccelSimMain;
+          task6-m2-embedding-handoff-pcie-accel-sv-sim =
+            task6M2EmbeddingHandoffPcieAccelSvSim;
+          task6-m2-embedding-handoff-pcie-bar-sim-main =
+            task6M2EmbeddingHandoffPcieBarSimMain;
+          task6-m2-embedding-handoff-pcie-bar-sv-sim =
+            task6M2EmbeddingHandoffPcieBarSvSim;
+          task6-m2-embedding-live-context-attention-slice-pcie-accel-sim-main =
+            task6M2EmbeddingLiveContextAttentionSlicePcieAccelSimMain;
+          task6-m2-embedding-live-context-attention-slice-pcie-accel-sv-sim =
+            task6M2EmbeddingLiveContextAttentionSlicePcieAccelSvSim;
           task6-m2-first-token-full-block-pcie-accel-sim-main =
             task6M2FirstTokenFullBlockPcieAccelSimMain;
           task6-m2-first-token-full-block-pcie-accel-sv-sim =
@@ -16093,6 +16434,18 @@ EOF
             task6YpcbPcieRowstreamIngressDummyBitstream;
           task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream =
             task6YpcbPcieRowstreamIngressDummyPnr100Bitstream;
+          task6-m2-3-embedding-handoff-pnr100-bitstream =
+            task6YpcbPcieRowstreamIngressM23EmbeddingHandoffPnr100Bitstream;
+          task6-m2-4-live-context-attention-slice-pnr100-bitstream =
+            task6YpcbPcieRowstreamIngressM24AttentionSlicePnr100Bitstream;
+          task6-m2-4-live-context-attention-slice-pnr100-seed16-bitstream =
+            task6YpcbPcieRowstreamIngressM24AttentionSliceSeedBitstream 16;
+          task6-m2-4-live-context-attention-slice-pnr100-seed17-bitstream =
+            task6YpcbPcieRowstreamIngressM24AttentionSliceSeedBitstream 17;
+          task6-m2-4-live-context-attention-slice-pnr100-seed18-bitstream =
+            task6YpcbPcieRowstreamIngressM24AttentionSliceSeedBitstream 18;
+          task6-m2-4-live-context-attention-slice-pnr100-seed19-bitstream =
+            task6YpcbPcieRowstreamIngressM24AttentionSliceSeedBitstream 19;
           task6-ypcb-pcie-rowstream-ingress-m1-yosys-json =
             task6YpcbPcieRowstreamIngressM1YosysJson;
           task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream =

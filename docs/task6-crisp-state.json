@@ -1,13 +1,29 @@
 {
-  "last_updated": "2026-06-18T16:17:10+02:00",
-  "milestone": "M1-transformer-boundary-mlp",
-  "build_variant": "default/latest-passing-milestone is .#task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream; bottleneck is .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream with M2 enabled and M1 disabled.",
-  "next_milestone": "M2-full-block-board-gate",
-  "latest_green_artifact": "artifacts/task6/runs/task6-latest-passing-milestone/mlp-accel-full-output.json",
-  "current_gap": "M1 is freshly HIL-proven and promoted to default/latest-passing. M2 builds, flashes, recovers to pcie_ready, and exposes stable M2 registers, but the M2 full-block board gate fails before start because the BAR input readback does not match the requested token/control vector.",
-  "failure_signature": "Latest M1 gate: artifacts/task6/runs/task6-latest-passing-milestone/mlp-accel-full-output.json status PASS, state_name DONE, output_valid=true, checksum=0x00001eec, sample0=0xde10ff3e, sample1=0xfd3eed6c, mismatch_count=0. M2 bottleneck gate: artifacts/task6/runs/task6-bottleneck/m2-full-block-board-summary.json status FAIL, failure='M2 input/residual BAR readback did not match before start', m2_present=true, m2_magic=true, m2_context_fixture_signature=true, input_readback=false, input_readback_transform=pcie7x-64bit-rol1, residual_readback=true, start_count_before=0, start_count_after=0, state_name=IDLE, output_valid=false, checksum/sample/output zero. M2 flash/recover evidence: artifacts/task6/runs/2026-06-18T16-05-47+0200-task6-m2-bottleneck-pnr100-flash and artifacts/task6/runs/2026-06-18T16-12-56+0200-task6-m2-bottleneck-recover.",
-  "next_action": "Debug the M2 BAR write/readback path for the token/control input vector: explain or fix the pcie7x-64bit-rol1 transform so the gate can assert start_count_incremented and leave IDLE.",
-  "status": "M1_HIL_GREEN_M2_BOTTLENECK",
+  "last_updated": "2026-06-19T15:59:31+02:00",
+  "milestone": "M2.3-embedding-and-block-input-handoff",
+  "build_variant": "default/latest-passing-milestone is .#task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream; bottleneck is .#task6-ypcb-pcie-rowstream-ingress-dummy-pnr100-bitstream with M2 enabled and M1 disabled. Latest focused M2.3 accepted bitstream is copied to artifacts/task6/bitstreams/task6-m2-3-embedding-handoff-pnr100-2026-06-19.bit, sha256=955aacdf819cefc2bf0e631cde6ebecae42f0972691310661225d65b9e5ffea8.",
+  "next_milestone": "M2.4-live-context-attention-slice",
+  "latest_green_artifact": "artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json",
+  "current_gap": "M1 remains the default/latest-passing external build. M2 remains the bottleneck, split into M2.1-M2.7 submilestones. M2.1 direct-mode PCIe/BAR contract, M2.2 start/clear lifecycle, and M2.3 embedding/block-input handoff are HIL-proven. M2.3 passed as a focused live-compute direct-mode strict-readback candidate, not as full M2 full-block evidence. The next gap is M2.4: prove the live context/attention slice boundary with a focused oracle, sim, timing-clean bitstream, PCIe recovery to pcie_ready, and a strict board gate.",
+  "failure_signature": "Latest M1 gate: artifacts/task6/runs/task6-latest-passing-milestone/mlp-accel-full-output.json status PASS, checksum=0x00001eec, sample0=0xde10ff3e, sample1=0xfd3eed6c. M2.1 PASS: artifacts/task6/runs/task6-bottleneck/m2-1-direct-bar-contract-candidate.json. M2.2 PASS: artifacts/task6/runs/task6-bottleneck/m2-2-start-clear-lifecycle-candidate.json, run_status=0x4d320064, clear_status=0x4d320001, debug=0xc201007f. M2.3 PASS: artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json. The regenerated accepted M2.3 artifact is live_compute=true, vector_write_mode=direct, input_readback_transform=identity, residual_readback_transform=identity, run_status=0x4d320059 DONE, no error, output_valid=true, output_count=64, debug1/block_input_checksum=0x000350f9, debug/debug2 ln_input_checksum=0x88fa5e3a, debug3 checksum lows match, embedding_output_vector=true, and full output_vector_hex exactly matches expected_embedding_block_input_vector_hex. The auxiliary output_hash register is diagnostic only and does not affect status: embedding_output_hash=false, expected_output_hash_hex=ee2513d15bb238849de3b4f01501872b, observed output_hash_hex=ee2513d1db68b7849de3b4f01501872b. Durable accepted bitstream copy: artifacts/task6/bitstreams/task6-m2-3-embedding-handoff-pnr100-2026-06-19.bit. Flash PASS: artifacts/task6/runs/2026-06-19T15-39-00+0200-task6-m2-3-output-hash-proof-flash. Recovery PASS pcie_ready after one physical power cycle: artifacts/task6/runs/2026-06-19T15-46-14+0200-task6-m2-3-output-hash-proof-recover.",
+  "next_action": "Define and run M2.4 live context/attention slice as a focused submilestone: keep M2.3's strict direct-mode public-interface contract, add an oracle for LN + QKV + softmax/value/context at the selected boundary, run focused sim, build a timing-clean M2.4 candidate, then flash/recover and require pcie_ready before the M2.4 board gate. Do not claim full M2.7 until the complete block direct-mode acceptance gate passes.",
+  "status": "M1_HIL_GREEN_M2_1_HIL_GREEN_M2_2_HIL_GREEN_M2_3_HIL_GREEN_M2_4_NEXT",
   "priority": "Use the HIL-proven M1 baseline as the default/latest-passing milestone; pursue M2 full-block HIL as the bottleneck toward TinyStories-1M inference.",
-  "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization"
+  "baseline_bundle": "artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization",
+  "m2_ladder": [
+    "M2.0 artifact discipline: accepted compute submilestones require live-compute direct-mode strict-readback artifacts; transport and lifecycle submilestones are explicitly non-compute evidence.",
+    "M2.1 PCIe/BAR contract: direct host writes read back identity for input/residual/control without compensated host tricks.",
+    "M2.2 start/clear lifecycle: start_count increments, DONE/ERROR is stable, clear returns IDLE, no all-ones/stale BAR.",
+    "M2.3 embedding and block input handoff: host token IDs produce expected block input vector and LN input checksum.",
+    "M2.4 live context/attention slice: LN + QKV + softmax/value/context vector matches oracle.",
+    "M2.5 attention out-proj + residual + LN2: vector boundaries match oracle.",
+    "M2.6 MLP + final residual: c_fc/GELU/c_proj/final residual match oracle.",
+    "M2.7 full block direct-mode acceptance: one complete TinyStories block from token IDs/control to final output matches."
+  ],
+  "m3_ladder": [
+    "M3.1 inter-block state movement / DDR3 rowstream contract.",
+    "M3.2 repeated-block execution for a tiny fixed token sequence.",
+    "M3.3 full TinyStories-1M prompt, token-exact greedy output.",
+    "M3.4 repeatability run: same prompt twice after clear/recover."
+  ]
 }

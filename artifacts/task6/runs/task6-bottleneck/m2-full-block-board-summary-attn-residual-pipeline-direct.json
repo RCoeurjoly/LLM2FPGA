@@ -1,0 +1,143 @@
+{
+  "artifact_name": "task6-pcie-m2-full-block-board-gate",
+  "bdf": "0000:42:00.0",
+  "board": {
+    "bdf": "0000:42:00.0",
+    "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+    "pcie_command": "0002",
+    "status": "FAIL"
+  },
+  "checks": {
+    "m2_context_fixture_signature": false,
+    "m2_magic": false,
+    "m2_present": false,
+    "m2_provenance": false,
+    "m2_version": false,
+    "not_all_ones": false,
+    "preflight_registers_stable": false,
+    "task6_magic": false,
+    "task6_version": false
+  },
+  "command": "0002",
+  "contract": {
+    "artifact_role": "m2-live-full-block-board-gate",
+    "live_compute": true,
+    "milestone_target": "M2-one-full-block",
+    "notes": "Board executes one complete TinyStories transformer block from host-supplied token IDs and block_index=0 control input.",
+    "responsibilities": {
+      "fpga": [
+        "token-ID selected embedding and position add",
+        "live K/V attention context for one complete TinyStories transformer block",
+        "attention out projection, LN2, MLP, and final residual",
+        "BAR-visible status/checksum/sample/full 64-byte final output"
+      ],
+      "host": [
+        "prompt token/control input",
+        "PCIe lifecycle orchestration",
+        "final vector comparison against fixed-point TinyStories block reference"
+      ]
+    },
+    "stage": "M2-one-full-block",
+    "version": "task6-m2-token-id-live-full-block-v1"
+  },
+  "date": "2026-06-19",
+  "elapsed_seconds": 3.0526429869933054,
+  "failure": "preflight register/provenance check failed before issuing M2 clear/start or vector writes",
+  "fingerprints": {
+    "context_fixture_signature": "0xc5dc8a6c",
+    "context_tb_data_sv": "/nix/store/knlr2klr6yr82rcwpj5cxlfgamyqzcwa-task6-m2-ln-attn-live-kv-all-heads-context-tb-data-sv/task6_m2_ln_attn_live_kv_all_heads_context_tb_data.sv",
+    "context_tb_data_sv_sha256": "2ee16d4387fc65dad7b2290479c4ebdd782eb4b4f68158bc561c5cac768541fd",
+    "embedding_tb_data_sv": "/nix/store/14jm6gl0ihvffbm4apfy7b9jjibxqklk-task6-m2-embedding-block-input-tb-data-sv/task6_m2_embedding_block_input_tb_data.sv",
+    "embedding_tb_data_sv_sha256": "8a04733af0c75288bc4841cea2cfb894eaeeb5a747c910e2a3698beb5c01ebac",
+    "expected_json": null,
+    "expected_json_sha256": null,
+    "gate_script_sha256": "aad7aad8c16ccc17c73e81d8d365707657c4edcd71becd5d1b9220c2fdd3a236",
+    "tb_data_sv": "/nix/store/rld5vbzgm38qmph7hsijwv9wiri55036-task6-m2-last-token-live-kv-context-full-block-tb-data-sv/tb_data.sv",
+    "tb_data_sv_sha256": "f7dd8f32b761d2026b1a7661983326de04d1f4142c9b8d0b85a849b19cc07ecc",
+    "tb_data_token_index": 5,
+    "token_ids": [
+      7454,
+      2402,
+      257,
+      640,
+      612,
+      373
+    ]
+  },
+  "lspci": "0000:42:00.0 Memory controller: Xilinx Corporation Device 0480",
+  "preflight_acceptable": {
+    "m2_context_fixture_signature": false,
+    "m2_magic": false,
+    "m2_present": false,
+    "m2_provenance": false,
+    "m2_version": false,
+    "magic": false,
+    "status": false,
+    "version": false
+  },
+  "preflight_samples": {
+    "m2_context_fixture_signature": [
+      "0xffffffff",
+      "0xffffffff",
+      "0xffffffff"
+    ],
+    "m2_magic": [
+      "0xffffffff",
+      "0xffffffff",
+      "0xffffffff"
+    ],
+    "m2_present": [
+      "0xffffffff",
+      "0xffffffff",
+      "0xffffffff"
+    ],
+    "m2_provenance": [
+      "0xffffffff",
+      "0xffffffff",
+      "0xffffffff"
+    ],
+    "m2_version": [
+      "0xffffffff",
+      "0xffffffff",
+      "0xffffffff"
+    ],
+    "magic": [
+      "0xffffffff",
+      "0xffffffff",
+      "0xffffffff"
+    ],
+    "status": [
+      "0xffffffff",
+      "0xffffffff",
+      "0xffffffff"
+    ],
+    "version": [
+      "0xffffffff",
+      "0xffffffff",
+      "0xffffffff"
+    ]
+  },
+  "preflight_stable": {
+    "m2_context_fixture_signature": true,
+    "m2_magic": true,
+    "m2_present": true,
+    "m2_provenance": true,
+    "m2_version": true,
+    "magic": true,
+    "status": true,
+    "version": true
+  },
+  "registers": {
+    "expected_context_fixture_signature": "0xc5dc8a6c",
+    "expected_m2_provenance": "0x4d323005",
+    "m2_context_fixture_signature": "0xffffffff",
+    "m2_magic": "0xffffffff",
+    "m2_present": 4294967295,
+    "m2_provenance": "0xffffffff",
+    "m2_version": 4294967295,
+    "magic": "0xffffffff",
+    "status": "0xffffffff",
+    "version": 4294967295
+  },
+  "status": "FAIL"
+}

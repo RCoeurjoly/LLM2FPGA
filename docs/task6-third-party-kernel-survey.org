@@ -1,0 +1,243 @@
+* Task 6 Third-Party Transformer Kernel Survey
+
+This is a bounded survey for reusing or using as reference third-party RTL and
+hardware-kernel projects while finishing M2.4, M2.5, M2, M3, and the rest of
+LLM2FPGA.
+
+The survey is intentionally kernel-focused, not a replacement for the broader
+paper survey in =deliverables/1a-survey.org=. The working filter is
+=open-flow reusable=: RTL/SystemVerilog/VHDL or portable generators that can
+plausibly be tested with open simulation/synthesis are preferred. Vitis-only or
+proprietary-tool projects can inform architecture, but they are reference-only.
+
+** Current Task 6 constraint
+
+The active project blocker is still the M2 board boundary. The latest raw-input
+M2.4 candidate built and recovered to =pcie_ready=, but the public direct
+vector probe still failed input BAR identity while residual BAR identity passed.
+Therefore third-party compute kernels must not be wired into =bottleneck= until
+the direct PCIe/BAR contract is green again.
+
+Acceptance discipline stays unchanged:
+
+- Use third-party projects as reference before reuse.
+- Do not vendor third-party RTL in the first pass.
+- Do not connect any third-party block to =default=, =latest-passing-milestone=,
+  or =bottleneck= without a standalone oracle, sim, synthesis/resource check,
+  timing-clean bitstream, and public-interface board gate.
+- Accepted M2/M3 evidence remains live-compute, direct-mode, strict-readback,
+  and board-artifact based.
+
+** Rubric
+
+Each candidate is classified with these fields:
+
+| Field | Meaning |
+|---+---|
+| License | Can code or ideas be reused without license ambiguity? |
+| Source shape | RTL, VHDL, HLS, generator, or paper only. |
+| Open-flow plausibility | Likelihood of Verilator/Yosys/nextpnr or equivalent open-flow use. |
+| Operator fit | M2.4 LN/QKV/softmax/value/context, M2.5 out-proj/residual/LN2, M2.6 MLP/GELU, M3 repeated blocks. |
+| Test assets | Upstream testbenches, vectors, Python oracle, or generated fixtures. |
+| Integration risk | Dependencies, wrapper assumptions, vendor primitives, language/tool mismatch. |
+| Decision | =reuse=, =adapt=, =reference-only=, or =reject=. |
+
+** Ranked shortlist
+
+| Rank | Candidate | Decision | Primary use | Why |
+|---+---+---+---+---|
+| 1 | ITA | adapt | M2.4/M2.5 attention and softmax reference, possible isolated prototype | Closest operator match: quantized MHA plus integer softmax, SystemVerilog RTL, Python test generation, and configurable dimensions. |
+| 2 | SwiftTron | reference-only | Fixed-point Transformer structure, nonlinear and MatMul design reference | Small MIT VHDL repo with MatMul and NonLinear directories; useful conceptually, but too thin to adopt directly before local proof. |
+| 3 | XtraMAC | adapt-later | M2.6/longer-term MAC datapath exploration | Strong reusable Verilog MAC library and tests, but it targets UltraScale+ DSP48E2 and mixed precision rather than the current int8 Kintex-7 path. |
+| 4 | AttentionLego | reference-only | Attention architecture reference | Open-source claim exists in paper, but the public path is not yet a clean GitHub-style RTL dependency for this repo. |
+| 5 | MASE / Allo / TMMA / HLS repos from existing survey | reference-only | Architecture and dataflow comparison | Useful prior art, but current project policy prefers portable RTL over proprietary-HLS integration. |
+
+** Candidate notes
+
+*** ITA: pulp-platform/ITA
+
+- URL: https://github.com/pulp-platform/ITA
+- Inspected: 2026-06-19, default branch =main=, README blob
+  =3a29e2344b6d63fa5d43cbe5f808f0d34c202d40=.
+- Upstream description: Integer Transformer Accelerator for Multi-Head
+  Attention, using 8-bit quantization and an integer-only softmax.
+- Source shape: SystemVerilog RTL in =src=, Python test generator in =PyITA=,
+  testbenches under =src/tb=, tests under =tests=, simulation flow via Bender
+  and ModelSim scripts.
+- License: software Apache-2.0, hardware Solderpad Hardware License 0.51.
+- Useful upstream commands:
+  - =make sim=
+  - =s=64 e=128 p=192 make sim=
+  - =python testGenerator.py -H 1 -S 64 -E 128 -P 192=
+  - =./tests/run.sh=
+
+Fit:
+
+- Best candidate for M2.4 live context/attention slice.
+- Useful for integer softmax, attention dataflow, and MHA oracle/test-vector
+  comparison.
+- Possible M2.5 value: out-proj/residual/LN2 boundary decisions if ITA's
+  surrounding interface clarifies attention output formatting.
+
+Risks:
+
+- Upstream flow is Bender/ModelSim oriented; open-flow compatibility must be
+  tested, not assumed.
+- HWPE/PULP wrapper pieces should not be reused in the first prototype.
+- TinyStories-1M has hidden size 64 in the current Task 6 path, so parameter
+  matching must be explicit. ITA examples include =S=64=, =E=128=,
+  =P=192=; a direct match may require adaptation.
+
+Decision:
+
+- =adapt= after the PCIe/BAR boundary is green.
+- First allowed prototype: isolated ITA softmax or attention-context slice
+  against Task 6 M2.4 oracle vectors. Do not connect it to =bottleneck=.
+
+*** SwiftTron: albertomarchisio/SwiftTron
+
+- URL: https://github.com/albertomarchisio/SwiftTron
+- Inspected: 2026-06-19, default branch =main=, README blob
+  =9e772758a0a74eaa80412eadf0e4bc40f1e77c53=.
+- Upstream description: source code for SwiftTron hardware design for quantized
+  Transformers.
+- Source shape: VHDL, with =MatMul= and =NonLinear= directories.
+- License: MIT.
+- Repository size signal: 4 commits; small reference artifact, not a full
+  integration framework.
+
+Fit:
+
+- Useful as a fixed-point architecture reference for MatMul and nonlinear
+  Transformer functions.
+- Potentially relevant to M2.4 softmax/LN/GELU choices and M2.6 MLP/GELU.
+
+Risks:
+
+- VHDL-only while Task 6 active RTL is mostly SystemVerilog/Verilog.
+- No visible broad test-vector framework from the README.
+- Small repo with limited integration documentation.
+
+Decision:
+
+- =reference-only= for now.
+- Reclassify to =adapt= only if a single module has clear ports, fixed-point
+  semantics, and passes an isolated GHDL/Yosys or equivalent open-flow check.
+
+*** XtraMAC: Xtra-Computing/XtraMAC
+
+- URL: https://github.com/Xtra-Computing/XtraMAC
+- Inspected: 2026-06-19, default branch =master=, README blob
+  =c34e0f366358217ae2f2c855a954aa41e8c88500=.
+- Upstream description: Verilog library of fixed-mode and runtime
+  reconfigurable mixed-precision MAC configurations for LLM inference on FPGA.
+- Source shape: Verilog, IP-picker generators, =rtl= and =tb= bundles, iverilog
+  tests, Vivado xsim/synthesis flow.
+- License: Apache-2.0.
+- Notable upstream structure: =User_spec=, =User_spec_mixed=, =common=,
+  =mac_cores=, =mac_configs=, =runtime_reconfig=, =verification=.
+
+Fit:
+
+- More relevant to M2.6 and longer-term M3 throughput than immediate M2.4.
+- May be useful for comparing MAC packing strategies and pipeline tradeoffs.
+
+Risks:
+
+- Targets Xilinx UltraScale+ DSP48E2; current board is Kintex-7 with DSP48E1.
+- Mixed FP/low-precision MACs do not directly match the current int8/q12 Task 6
+  arithmetic.
+- Vivado synthesis evidence is not enough for our open-flow acceptance.
+
+Decision:
+
+- =adapt-later=.
+- Keep as a datapath reference. Do not spend M2.4 time porting DSP48E2-specific
+  MACs to Kintex-7 unless M2.6/M3 throughput becomes the active bottleneck.
+
+*** AttentionLego
+
+- URL from paper abstract: https://bonany.cc/attentionleg
+- Paper: AttentionLego: An Open-Source Building Block For Spatially-Scalable
+  Large Language Model Accelerator With Processing-In-Memory Technology.
+- Inspected: 2026-06-19 through public search/paper metadata.
+- Source shape: claimed open-source attention building block, but not yet
+  captured as a clean repo dependency in this workspace.
+
+Fit:
+
+- Useful as an attention architecture reference, especially lookup-table
+  softmax and PIM-style matrix-vector organization.
+
+Risks:
+
+- PIM assumptions do not match the current YPCB fabric/DDR3/PCIe contract.
+- Public source must be verified before any reuse decision.
+
+Decision:
+
+- =reference-only= until a concrete source repository, license, tests, and RTL
+  shape are inspected.
+
+*** Existing survey candidates
+
+Existing project survey files remain relevant:
+
+- =deliverables/1a-survey.org=
+- =deliverables/1a-openflow-kintex480t-survey.md=
+- =deliverables/1c-selected_route.org=
+
+Use them for context, not as automatic implementation direction. For this
+kernel survey, entries are promoted only if they expose public code that can be
+tested under the open-flow reusable rubric.
+
+** Decision gate before reuse
+
+No third-party RTL can be vendored or wired into active Task 6 targets until all
+of these are true:
+
+1. M2 PCIe/BAR direct input and residual readback are both identity on hardware.
+2. The selected candidate has a local fixed-point oracle comparison against a
+   named Task 6 boundary.
+3. The candidate has an isolated Verilator/GHDL/iverilog simulation target.
+4. The candidate has an isolated synthesis/resource report.
+5. The prototype target is separate from =default=, =latest-passing-milestone=,
+   and =bottleneck=.
+6. The crisp state names the candidate as diagnostic or accepted evidence
+   explicitly.
+
+** Recommended next action
+
+Continue M2.4 boundary debug first. In parallel, if survey work continues, the
+first concrete kernel experiment should be:
+
+- Candidate: ITA.
+- Scope: isolated integer softmax or attention-context slice only.
+- Inputs: Task 6 M2.4 oracle vectors.
+- Outputs: full vector or checksum matching the M2.4 oracle.
+- Non-goal: no HWPE wrapper, no Bender/ModelSim dependency in the LLM2FPGA
+  default flow, no connection to =bottleneck=.
+
+If ITA cannot be reduced to a small open-flow prototype quickly, keep it as
+reference-only and continue native Task 6 RTL for M2.4/M2.5.
+
+** Working commands for a future prototype
+
+These commands are planning anchors, not accepted evidence yet:
+
+#+begin_src sh
+# Upstream-only exploration, outside active Task 6 targets.
+git clone https://github.com/pulp-platform/ITA.git /tmp/llm2fpga-ita-eval
+cd /tmp/llm2fpga-ita-eval
+python3 testGenerator.py -H 1 -S 64 -E 128 -P 192
+./tests/run.sh
+#+end_src
+
+#+begin_src sh
+# Local acceptance shape once an isolated prototype exists.
+nix build .#task6-third-party-ita-attention-slice-sim --no-link --print-out-paths
+nix build .#task6-third-party-ita-attention-slice-yosys --no-link --print-out-paths
+#+end_src
+
+These local target names are reserved for an isolated experiment. They must not
+replace =.#bottleneck= without a separate accepted plan and HIL evidence.

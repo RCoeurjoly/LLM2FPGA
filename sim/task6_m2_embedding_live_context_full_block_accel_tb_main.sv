@@ -34,6 +34,7 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
   logic [31:0] context_fixture_signature_o;
   logic [511:0] expected_final_vector;
   logic [31:0] expected_block_input_checksum;
+  logic [31:0] expected_ln_input_checksum;
   logic [31:0] expected_context_checksum;
   logic [31:0] expected_debug3;
   integer cycles;
@@ -75,6 +76,7 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
     token_ids_i = '0;
     expected_final_vector = 512'd0;
     expected_block_input_checksum = 32'd0;
+    expected_ln_input_checksum = 32'd0;
     expected_context_checksum = 32'd0;
     expected_debug3 = 32'd0;
     cycles = 0;
@@ -86,11 +88,19 @@ module task6_m2_embedding_live_context_full_block_accel_tb;
       expected_block_input_checksum =
         expected_block_input_checksum + ({24'd0, embed_block_expected_last_input_q[dim][7:0]} * (dim + 1));
     end
+    for (int token = 0; token < EMBED_BLOCK_SEQ; token = token + 1) begin
+      for (int dim = 0; dim < EMBED_BLOCK_DIM; dim = dim + 1) begin
+        expected_ln_input_checksum =
+          expected_ln_input_checksum +
+          ({16'd0, embed_block_expected_ln_input_q12_by_token[token][dim][15:0]} *
+            ((token * EMBED_BLOCK_DIM) + dim + 1));
+      end
+    end
     for (int dim = 0; dim < CONTEXT_DIM; dim = dim + 1) begin
       expected_context_checksum =
         expected_context_checksum + ({24'd0, context_expected_q[dim][7:0]} * (dim + 1));
     end
-    expected_debug3 = {expected_block_input_checksum[15:0], expected_block_input_checksum[15:0]};
+    expected_debug3 = {expected_block_input_checksum[15:0], expected_ln_input_checksum[15:0]};
     for (int dim = 0; dim < MLP_C_PROJ_OUT_DIM; dim = dim + 1) begin
       expected_final_vector[dim * 8 +: 8] = mlp_final_expected_q[dim];
     end

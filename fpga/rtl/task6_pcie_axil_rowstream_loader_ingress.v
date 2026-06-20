@@ -110,6 +110,7 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     input wire [31:0]  m2_full_block_debug2_i,
     input wire [31:0]  m2_full_block_debug3_i,
     input wire [31:0]  m2_full_block_provenance_i,
+    input wire [127:0] m2_full_block_output_hash_i,
     input wire [511:0] m2_full_block_output_vector_i
 );
     localparam [1:0] EVENT_IDLE = 2'd0;
@@ -141,9 +142,6 @@ module task6_pcie_axil_rowstream_loader_ingress #(
     reg [31:0] top1_start_count_q;
     reg [31:0] mlp_accel_start_count_q;
     reg [31:0] m2_full_block_start_count_q;
-    reg [511:0] m2_full_block_input_raw_q;
-    reg [511:0] m2_full_block_input_raw_next;
-
     reg        last_write_valid_q;
     reg [9:0]  last_write_word_index_q;
     reg [31:0] last_wdata_q;
@@ -167,19 +165,6 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             if (strobe[1]) apply_wstrb[15:8] = new_value[15:8];
             if (strobe[2]) apply_wstrb[23:16] = new_value[23:16];
             if (strobe[3]) apply_wstrb[31:24] = new_value[31:24];
-        end
-    endfunction
-
-    function [511:0] pcie7x_ror64_to_host_vector;
-        input [511:0] raw_value;
-        integer lane;
-        reg [63:0] raw_pair;
-        begin
-            pcie7x_ror64_to_host_vector = 512'd0;
-            for (lane = 0; lane < 8; lane = lane + 1) begin
-                raw_pair = raw_value[lane * 64 +: 64];
-                pcie7x_ror64_to_host_vector[lane * 64 +: 64] = {raw_pair[62:0], raw_pair[63]};
-            end
         end
     endfunction
 
@@ -322,9 +307,23 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                 read_window_data[128 +: 32] = m2_full_block_debug2_i;
                 read_window_data[160 +: 32] = m2_full_block_provenance_i;
                 read_window_data[192 +: 32] = m2_full_block_debug3_i;
+                read_window_data[224 +: 32] = m2_full_block_output_vector_i[0 +: 32];
+                read_window_data[256 +: 32] = m2_full_block_output_vector_i[32 +: 32];
+                read_window_data[288 +: 32] = m2_full_block_output_vector_i[64 +: 32];
+                read_window_data[320 +: 32] = m2_full_block_output_vector_i[96 +: 32];
+                read_window_data[352 +: 32] = m2_full_block_output_vector_i[128 +: 32];
+                read_window_data[384 +: 32] = m2_full_block_output_vector_i[160 +: 32];
+                read_window_data[416 +: 32] = m2_full_block_output_vector_i[192 +: 32];
+                read_window_data[448 +: 32] = m2_full_block_output_vector_i[224 +: 32];
             end
             6'h18: begin
                 read_window_data = m2_full_block_output_vector_i;
+            end
+            6'h19: begin
+                read_window_data[0 +: 32] = m2_full_block_output_hash_i[0 +: 32];
+                read_window_data[32 +: 32] = m2_full_block_output_hash_i[32 +: 32];
+                read_window_data[64 +: 32] = m2_full_block_output_hash_i[64 +: 32];
+                read_window_data[96 +: 32] = m2_full_block_output_hash_i[96 +: 32];
             end
             default: read_window_data = 512'd0;
         endcase
@@ -344,8 +343,6 @@ module task6_pcie_axil_rowstream_loader_ingress #(
         mlp_accel_clear_pulse_o = 1'b0;
         mlp_accel_start_count_q = 32'd0;
         m2_full_block_input_vector_o = 512'd0;
-        m2_full_block_input_raw_q = 512'd0;
-        m2_full_block_input_raw_next = 512'd0;
         m2_full_block_residual_vector_o = 512'd0;
         m2_full_block_start_pulse_o = 1'b0;
         m2_full_block_clear_pulse_o = 1'b0;
@@ -417,7 +414,6 @@ module task6_pcie_axil_rowstream_loader_ingress #(
             mlp_accel_start_count_q <= 32'd0;
             mlp_selftest_debug_select_o <= 32'd0;
             m2_full_block_input_vector_o <= 512'd0;
-            m2_full_block_input_raw_q <= 512'd0;
             m2_full_block_residual_vector_o <= 512'd0;
             m2_full_block_start_pulse_o <= 1'b0;
             m2_full_block_clear_pulse_o <= 1'b0;
@@ -614,15 +610,12 @@ module task6_pcie_axil_rowstream_loader_ingress #(
                         end
                         default: begin
                             if (write_word_index >= 10'h150 && write_word_index <= 10'h15f) begin
-                                m2_full_block_input_raw_next = m2_full_block_input_raw_q;
-                                m2_full_block_input_raw_next[(write_word_index - 10'h150) * 32 +: 32] =
+                                m2_full_block_input_vector_o[(write_word_index - 10'h150) * 32 +: 32] <=
                                     apply_wstrb(
-                                        m2_full_block_input_raw_q[(write_word_index - 10'h150) * 32 +: 32],
+                                        m2_full_block_input_vector_o[(write_word_index - 10'h150) * 32 +: 32],
                                         wdata_q,
                                         wstrb_q
                                     );
-                                m2_full_block_input_raw_q <= m2_full_block_input_raw_next;
-                                m2_full_block_input_vector_o <= pcie7x_ror64_to_host_vector(m2_full_block_input_raw_next);
                             end else if (write_word_index >= 10'h160 && write_word_index <= 10'h16f) begin
                                 m2_full_block_residual_vector_o[(write_word_index - 10'h160) * 32 +: 32] <=
                                     apply_wstrb(

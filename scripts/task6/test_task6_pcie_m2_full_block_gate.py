@@ -10,6 +10,8 @@ import tempfile
 
 from task6_pcie_m2_full_block_gate import (
     CONTRACT,
+    CONTRACT_ATTENTION_SLICE,
+    bar_contract_checks,
     classify_vector_readback_transform,
     compare_done_stage_checksums,
     compute_path_for_expected,
@@ -17,6 +19,7 @@ from task6_pcie_m2_full_block_gate import (
     decode_debug,
     decode_done_stage_checksums,
     decode_status,
+    embedding_handoff_contract_checks,
     expected_provenance,
     is_token_live_mode,
     m2_version_abi_matches,
@@ -29,9 +32,13 @@ from task6_pcie_m2_full_block_gate import (
     rd32_window,
     sample_registers,
     select_host_vectors,
+    start_clear_contract_checks,
     stable_or_leading_all_ones,
     validate_expected,
     vector_bytes_from_words,
+    vector_hash128,
+    warmup_register_reads,
+    vector_write_words_for_mode,
     vector_words_from_bytes,
 )
 
@@ -187,7 +194,13 @@ def test_parse_embedding_tb_data_sv_token_input_vector() -> None:
         for token in range(6)
         for dim in range(64)
     )
-    path = write_text(token_assignments + "\n" + ln_input_assignments + "\n")
+    block_input_assignments = "\n".join(
+        f"  embed_block_expected_last_input_q[{index}] = {sv_i8(index)};"
+        for index in range(64)
+    )
+    path = write_text(
+        token_assignments + "\n" + ln_input_assignments + "\n" + block_input_assignments + "\n"
+    )
     expected = parse_embedding_tb_data_sv(path)
     assert expected["token_ids"] == [7454, 2402, 257, 640, 612, 373]
     assert expected["provenance_mode"] == 0x3000
@@ -199,6 +212,38 @@ def test_parse_embedding_tb_data_sv_token_input_vector() -> None:
         for token_id in [7454, 2402, 257, 640, 612, 373]
     )
     assert token_input[12:] == bytes(52)
+    assert expected["embedding_block_input_vector"] == bytes(range(64))
+    assert expected["block_input_checksum"] == sum(index * (index + 1) for index in range(64))
+
+
+def test_parse_embedding_tb_data_sv_reads_summary_block_checksum() -> None:
+    token_assignments = "\n".join(
+        f"  embed_block_expected_token_ids[{index}] = 16'd{token_id};"
+        for index, token_id in enumerate([7454, 2402, 257, 640, 612, 373])
+    )
+    ln_input_assignments = "\n".join(
+        f"  embed_block_expected_ln_input_q12_by_token[{token}][{dim}] = 16'sd0;"
+        for token in range(6)
+        for dim in range(64)
+    )
+    block_input_assignments = "\n".join(
+        f"  embed_block_expected_last_input_q[{index}] = {sv_i8(index)};"
+        for index in range(64)
+    )
+    with tempfile.TemporaryDirectory(prefix="task6-m2-embedding-fixture-") as raw_dir:
+        fixture_dir = Path(raw_dir)
+        path = fixture_dir / "task6_m2_embedding_block_input_tb_data.sv"
+        path.write_text(
+            token_assignments + "\n" + ln_input_assignments + "\n" + block_input_assignments + "\n",
+            encoding="utf-8",
+        )
+        checksum = sum(index * (index + 1) for index in range(64))
+        (fixture_dir / "summary.json").write_text(
+            json.dumps({"block_input_checksum": checksum}),
+            encoding="utf-8",
+        )
+        expected = parse_embedding_tb_data_sv(path)
+    assert expected["block_input_checksum"] == checksum
 
 
 def test_parse_context_tb_data_sv_fixture_signature() -> None:
@@ -208,6 +253,18 @@ def test_parse_context_tb_data_sv_fixture_signature() -> None:
                 "  ln_input_q12_by_token[5][1] = -16'sd374;",
                 "  ln_inv_std_q16_by_token[5] = 32'sd526188;",
                 "  ln_expected_q_by_token[5][1] = -8'sd36;",
+                "  context_expected_q[0] = -8'sd53;",
+                "  context_expected_q[1] = 8'sd16;",
+                "  context_expected_q[2] = -8'sd61;",
+                "  context_expected_q[3] = -8'sd45;",
+                "  context_expected_q[4] = -8'sd36;",
+                "  context_expected_q[5] = 8'sd29;",
+                "  context_expected_q[6] = -8'sd63;",
+                "  context_expected_q[7] = 8'sd16;",
+                *[
+                    f"  context_expected_q[{index}] = 8'sd0;"
+                    for index in range(8, 64)
+                ],
                 "",
             ]
         )
@@ -216,6 +273,24 @@ def test_parse_context_tb_data_sv_fixture_signature() -> None:
     assert expected["context_fixture_signature"] == 0xC5DC_8A6C
     assert expected["context_fixture_signature_token"] == 5
     assert expected["context_fixture_signature_dim"] == 1
+    assert expected["first_64_output"][:8] == bytes.fromhex("cb10c3d3dc1dc110")
+    assert expected["checksum"] == 0x00001141
+    assert expected["sample0"] == 0xD3C310CB
+    assert expected["sample1"] == 0x10C11DDC
+    assert expected["output_count"] == 64
+    assert "provenance_mode" not in expected
+
+
+def test_attention_slice_contract_is_focused_m2_4_evidence() -> None:
+    expected = {
+        "token_ids": [7454, 2402, 257, 640, 612, 373],
+        "provenance_mode": 0x4100,
+        "first_64_output": bytes(64),
+    }
+    assert is_token_live_mode(expected)
+    assert contract_for_expected(expected) is CONTRACT_ATTENTION_SLICE
+    assert compute_path_for_expected(expected) == "live-context-attention-slice"
+    assert expected_provenance({**expected, "token_index": 5}) == 0x4D32_4105
 
 
 def test_vector_readback_transform_classifies_board_ror1() -> None:
@@ -238,6 +313,183 @@ def test_vector_readback_transform_classifies_board_ror1() -> None:
     assert classify_vector_readback_transform(requested, compensated) == "pcie7x-64bit-rol1"
     assert classify_vector_readback_transform(requested, requested) == "identity"
     assert classify_vector_readback_transform(requested, bytes(64)) == "all-zero"
+
+
+def test_input_shadow_direct_write_mode_uses_inverse_compensation() -> None:
+    requested = bytes.fromhex(
+        "1e1d6209010180026402750100000000"
+        "00000000000000000000000000000000"
+        "00000000000000000000000000000000"
+        "00000000000000000000000000000000"
+    )
+    requested_words = vector_words_from_bytes(requested)
+    assert vector_write_words_for_mode(requested_words, "input-shadow-direct-compensated")[:3] == [
+        0x84B10E8F,
+        0x01400080,
+        0x00BA8132,
+    ]
+    assert vector_write_words_for_mode(requested_words, "readback-compensated")[:3] == [
+        0x12C43A3C,
+        0x05000202,
+        0x02EA04C8,
+    ]
+
+
+def test_bar_contract_checks_require_direct_identity_and_idle_status() -> None:
+    requested = bytes(range(64))
+    checks = bar_contract_checks(
+        status=0x4D32_0001,
+        provenance=0x4D32_3005,
+        input_readback=requested,
+        residual_readback=bytes(64),
+        block_input=requested,
+        residual=bytes(64),
+        start_count_before=7,
+        start_count_after=7,
+    )
+
+    assert checks == {
+        "status_not_all_ones": True,
+        "provenance_not_all_ones": True,
+        "status_schema_consistent": True,
+        "provenance_schema_consistent": True,
+        "state_idle": True,
+        "no_error": True,
+        "start_count_unchanged": True,
+        "input_readback_identity": True,
+        "residual_readback_identity": True,
+    }
+
+    stale = bar_contract_checks(
+        status=0xFFFF_FFFF,
+        provenance=0xFFFF_FFFF,
+        input_readback=bytes(64),
+        residual_readback=bytes(64),
+        block_input=requested,
+        residual=bytes(64),
+        start_count_before=7,
+        start_count_after=8,
+    )
+    assert not all(stale.values())
+    assert not stale["status_not_all_ones"]
+    assert not stale["input_readback_identity"]
+    assert not stale["start_count_unchanged"]
+
+
+def test_start_clear_contract_checks_require_start_increment_and_clear_idle() -> None:
+    checks = start_clear_contract_checks(
+        run_status=0x4D32_0059,
+        clear_status=0x4D32_0001,
+        provenance=0x4D32_3005,
+        input_readback=bytes(range(64)),
+        residual_readback=bytes(64),
+        block_input=bytes(range(64)),
+        residual=bytes(64),
+        start_count_before=11,
+        start_count_after_start=12,
+        start_count_after_clear=12,
+        allow_error=False,
+    )
+    assert checks == {
+        "run_status_not_all_ones": True,
+        "clear_status_not_all_ones": True,
+        "provenance_not_all_ones": True,
+        "run_status_schema_consistent": True,
+        "clear_status_schema_consistent": True,
+        "provenance_schema_consistent": True,
+        "start_count_incremented": True,
+        "start_count_stable_after_clear": True,
+        "run_reached_terminal": True,
+        "run_reached_allowed_terminal": True,
+        "clear_state_idle": True,
+        "clear_no_error": True,
+        "input_readback_identity": True,
+        "residual_readback_identity": True,
+    }
+
+    stale = start_clear_contract_checks(
+        run_status=0xFFFF_FFFF,
+        clear_status=0xFFFF_FFFF,
+        provenance=0xFFFF_FFFF,
+        input_readback=bytes(64),
+        residual_readback=bytes(64),
+        block_input=bytes(range(64)),
+        residual=bytes(64),
+        start_count_before=11,
+        start_count_after_start=11,
+        start_count_after_clear=10,
+        allow_error=False,
+    )
+    assert not all(stale.values())
+    assert not stale["run_status_not_all_ones"]
+    assert not stale["start_count_incremented"]
+    assert not stale["clear_state_idle"]
+
+    precise_error = start_clear_contract_checks(
+        run_status=0x4D32_0064,
+        clear_status=0x4D32_0001,
+        provenance=0x4D32_3005,
+        input_readback=bytes(range(64)),
+        residual_readback=bytes(64),
+        block_input=bytes(range(64)),
+        residual=bytes(64),
+        start_count_before=11,
+        start_count_after_start=12,
+        start_count_after_clear=12,
+        allow_error=True,
+    )
+    assert precise_error["run_reached_terminal"]
+    assert precise_error["run_reached_allowed_terminal"]
+    assert all(precise_error.values())
+
+
+def test_embedding_handoff_contract_requires_vector_not_hash_fallback() -> None:
+    expected_vector = bytes(range(64))
+    wrong_vector = bytes(reversed(range(64)))
+    checks = embedding_handoff_contract_checks(
+        run_decoded=decode_status(0x4D32_0059),
+        output_count=64,
+        checksum=0x0003_50F9,
+        debug=0x88FA_5E3A,
+        debug1=0x0003_50F9,
+        debug2=0x88FA_5E3A,
+        debug3=0x50F9_5E3A,
+        output_vector=wrong_vector,
+        output_hash=vector_hash128(expected_vector),
+        expected_block_input_checksum=0x0003_50F9,
+        expected_ln_input_checksum=0x88FA_5E3A,
+        expected_block_vector=expected_vector,
+    )
+    status_checks = dict(checks)
+    status_checks.pop("embedding_output_hash", None)
+
+    assert checks["embedding_output_hash"]
+    assert not checks["embedding_output_vector"]
+    assert not all(status_checks.values())
+
+
+def test_embedding_handoff_contract_records_hash_diagnostic_separately() -> None:
+    expected_vector = bytes(range(64))
+    checks = embedding_handoff_contract_checks(
+        run_decoded=decode_status(0x4D32_0059),
+        output_count=64,
+        checksum=0x0003_50F9,
+        debug=0x88FA_5E3A,
+        debug1=0x0003_50F9,
+        debug2=0x88FA_5E3A,
+        debug3=0x50F9_5E3A,
+        output_vector=expected_vector,
+        output_hash=bytes(16),
+        expected_block_input_checksum=0x0003_50F9,
+        expected_ln_input_checksum=0x88FA_5E3A,
+        expected_block_vector=expected_vector,
+    )
+    status_checks = dict(checks)
+    status_checks.pop("embedding_output_hash", None)
+
+    assert checks["embedding_output_vector"]
+    assert not checks["embedding_output_hash"]
+    assert all(status_checks.values())
 
 
 def test_token_live_host_vector_selection_rejects_raw_overrides() -> None:
@@ -362,6 +614,36 @@ def test_sample_registers_detects_transient_all_ones_preflight_read() -> None:
     assert stable == {"magic": True, "m2_present": False}
 
 
+def test_warmup_register_reads_discards_observed_values_before_strict_sampling() -> None:
+    reads = {
+        0x008: [0x00000061, 0x00400061, 0x00400061, 0x00400061],
+        0x5D4: [0xFFFF_FFFF, 0x4D32_4105, 0x4D32_4105, 0x4D32_4105],
+    }
+
+    def read32(offset: int) -> int:
+        return reads[offset].pop(0)
+
+    warmup = warmup_register_reads(
+        read32,
+        {"status": 0x008, "m2_provenance": 0x5D4},
+        samples=1,
+    )
+    values, samples, stable = sample_registers(
+        read32,
+        {"status": 0x008, "m2_provenance": 0x5D4},
+        samples=3,
+        interval=0.0,
+    )
+
+    assert warmup == {"status": [0x00000061], "m2_provenance": [0xFFFF_FFFF]}
+    assert values == {"status": 0x00400061, "m2_provenance": 0x4D32_4105}
+    assert samples == {
+        "status": [0x00400061, 0x00400061, 0x00400061],
+        "m2_provenance": [0x4D32_4105, 0x4D32_4105, 0x4D32_4105],
+    }
+    assert stable == {"status": True, "m2_provenance": True}
+
+
 def test_preflight_accepts_single_leading_all_ones_then_stable_value() -> None:
     assert stable_or_leading_all_ones([0x4D32_3005, 0x4D32_3005, 0x4D32_3005])
     assert stable_or_leading_all_ones([0xFFFF_FFFF, 0x4D32_3005, 0x4D32_3005])
@@ -386,7 +668,12 @@ def main() -> None:
     test_parse_expected_json_requires_first_64_output()
     test_parse_expected_tb_data_sv_first_token_final_vector()
     test_parse_embedding_tb_data_sv_token_input_vector()
+    test_parse_embedding_tb_data_sv_reads_summary_block_checksum()
     test_parse_context_tb_data_sv_fixture_signature()
+    test_bar_contract_checks_require_direct_identity_and_idle_status()
+    test_start_clear_contract_checks_require_start_increment_and_clear_idle()
+    test_embedding_handoff_contract_requires_vector_not_hash_fallback()
+    test_embedding_handoff_contract_records_hash_diagnostic_separately()
     test_token_live_host_vector_selection_rejects_raw_overrides()
     test_validate_expected_rejects_missing_first_64_output()
     test_wrapper_contract_is_not_live_m2_evidence()
@@ -396,6 +683,7 @@ def main() -> None:
     test_sample_registers_records_stable_preflight_values()
     test_rd32_window_decodes_word_from_64_byte_snapshot()
     test_sample_registers_detects_transient_all_ones_preflight_read()
+    test_warmup_register_reads_discards_observed_values_before_strict_sampling()
     test_preflight_accepts_single_leading_all_ones_then_stable_value()
     test_m2_version_accepts_feature_bits_with_abi_low_half()
 
