@@ -591,6 +591,26 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(value == 32'd1, "M2 aperture version must be 1");
     axil_read(32'h508, value);
     check(value[0], "M2 present bit must be visible");
+    begin
+      logic [31:0] m2_direct_input_words [0:15];
+      logic [31:0] m2_direct_residual_words [0:15];
+      for (int word = 0; word < 16; word++) begin
+        m2_direct_input_words[word] = 32'h2500_1000 + word;
+        m2_direct_residual_words[word] = 32'h5a00_2000 + word;
+        axil_write(32'h540 + word * 4, m2_direct_input_words[word]);
+        axil_write(32'h580 + word * 4, m2_direct_residual_words[word]);
+      end
+      for (int word = 0; word < 16; word++) begin
+        axil_read(32'h540 + word * 4, value);
+        check(value == m2_direct_input_words[word], "M2 direct input BAR word must read back identity");
+        axil_read(32'h580 + word * 4, value);
+        check(value == m2_direct_residual_words[word], "M2 direct residual BAR word must read back identity");
+      end
+      check(m2_full_block_input_vector[0 +: 32] == 32'h2500_1000, "M2 direct input low word must update identity");
+      check(m2_full_block_input_vector[480 +: 32] == 32'h2500_100f, "M2 direct input high word must update identity");
+      check(m2_full_block_residual_vector[0 +: 32] == 32'h5a00_2000, "M2 direct residual low word must update identity");
+      check(m2_full_block_residual_vector[480 +: 32] == 32'h5a00_200f, "M2 direct residual high word must update identity");
+    end
     for (int word = 0; word < 16; word++) begin
       axil_write(32'h580 + word * 4, 32'hd000_5000 + word);
     end
@@ -608,14 +628,14 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(value == 32'hff45_f1da, "M2 signed residual fixture word1 must read back exactly");
     check(m2_full_block_residual_vector[0 +: 32] == 32'hfe60_017b, "M2 signed residual fixture word0 must update exactly");
     check(m2_full_block_residual_vector[32 +: 32] == 32'hff45_f1da, "M2 signed residual fixture word1 must update exactly");
-    axil_write(32'h540, 32'hc000_0000);
-    axil_write(32'h544, 32'h8000_0001);
+    axil_write(32'h540, 32'h8000_0001);
+    axil_write(32'h544, 32'h0000_0003);
     axil_read(32'h540, value);
-    check(value == 32'h8000_0001, "M2 input boundary probe word0 must read back exactly after full lane write");
+    check(value == 32'h8000_0001, "M2 input boundary probe word0 must read back direct");
     axil_read(32'h544, value);
-    check(value == 32'h0000_0003, "M2 input boundary probe word1 must read back exactly");
-    check(m2_full_block_input_vector[0 +: 32] == 32'h8000_0001, "M2 input boundary probe word0 must update exactly internally after full lane write");
-    check(m2_full_block_input_vector[32 +: 32] == 32'h0000_0003, "M2 input boundary probe word1 must update exactly internally");
+    check(value == 32'h0000_0003, "M2 input boundary probe word1 must read back direct");
+    check(m2_full_block_input_vector[0 +: 32] == 32'h8000_0001, "M2 input boundary probe word0 must update direct internally");
+    check(m2_full_block_input_vector[32 +: 32] == 32'h0000_0003, "M2 input boundary probe word1 must update direct internally");
     axil_write(32'h580, 32'h8000_0001);
     axil_write(32'h584, 32'h0000_0003);
     axil_read(32'h580, value);
@@ -624,26 +644,21 @@ module task6_pcie_rowstream_loader_ingress_tb;
     check(value == 32'h0000_0003, "M2 residual boundary probe word1 must read back exactly");
     begin
       logic [31:0] m2_fixture_input_words [0:15];
-      logic [31:0] m2_fixture_raw_words [0:15];
       m2_fixture_input_words[0] = 32'h0962_1d1e;
       m2_fixture_input_words[1] = 32'h0280_0101;
       m2_fixture_input_words[2] = 32'h0175_0264;
-      m2_fixture_raw_words[0] = 32'h84b1_0e8f;
-      m2_fixture_raw_words[1] = 32'h0140_0080;
-      m2_fixture_raw_words[2] = 32'h00ba_8132;
       for (int word = 3; word < 16; word++) begin
         m2_fixture_input_words[word] = 32'd0;
-        m2_fixture_raw_words[word] = 32'd0;
       end
       for (int word = 0; word < 16; word++) begin
-        axil_write(32'h540 + word * 4, m2_fixture_raw_words[word]);
+        axil_write(32'h540 + word * 4, m2_fixture_input_words[word]);
       end
       for (int word = 0; word < 16; word++) begin
         axil_read(32'h540 + word * 4, value);
-        check(value == m2_fixture_input_words[word], "M2 fixture input BAR word must compensate pcie7x ror64 writeback");
+        check(value == m2_fixture_input_words[word], "M2 fixture input BAR word must read back direct");
         check(
           m2_full_block_input_vector[word * 32 +: 32] == m2_fixture_input_words[word],
-          "M2 fixture input internal vector word must compensate pcie7x ror64 writeback"
+          "M2 fixture input internal vector word must update direct"
         );
       end
     end
