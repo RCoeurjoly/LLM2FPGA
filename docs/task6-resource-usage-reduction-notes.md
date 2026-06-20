@@ -35762,3 +35762,55 @@ M2.4 direct-BAR HIL acceptance:
   reset/BAR/readback pressure, rerun self-checking sim and a timing-clean
   bitstream, then flash/recover to `pcie_ready` before any BAR identity probe
   or M2.5 board gate.
+
+### 2026-06-20: M2.5 input BAR compensation proved in sim, still PCIe recovery blocked
+
+- Commit `10c9cd2` added an opt-in RTL-side M2 input BAR compensation path for
+  the M2.5 PCIe image only. The intent was to restore public direct-write
+  identity at the M2 input window without changing host-side writes or the
+  residual BAR path.
+- Focused compensation simulation passed:
+  `nix build .#task6-pcie-rowstream-loader-ingress-m2-pcie7x-sim-main --no-link --print-out-paths -L`
+  produced
+  `/nix/store/r38wig1cc9bhf2qw91ig4y36pqjx4z6i-task6-pcie-rowstream-loader-ingress-m2-pcie7x-sim-main`,
+  and its `obj_dir/sim_main` printed
+  `PASS: task6 M2 input PCIe7x BAR compensation simulation`.
+- Regression on the base ingress simulation also passed:
+  `nix build .#task6-pcie-rowstream-loader-ingress-sim-main --no-link --print-out-paths -L`
+  produced
+  `/nix/store/hmnhl3p0sg8nrgmiv1867xvls5wrm6ba-task6-pcie-rowstream-loader-ingress-sim-main`,
+  and its `obj_dir/sim_main` printed
+  `PASS: task6 PCIe rowstream loader ingress simulation`.
+- Built the compensated seed16 M2.5 bitstream:
+  `/nix/store/l2d6mdq85n45zg92mmfqv6xsc2i1az6z-task6-ypcb-pcie-rowstream-ingress-m2-5-attention-ln2-pnr100-seed16.bit`.
+  Preserved copy:
+  `artifacts/task6/bitstreams/task6-m2-5-attention-ln2-direct-bar-comp-pnr100-seed16-20260620T141313Z.bit`,
+  sha256 `bc69d3ef36b63bbd9a5945cb7b243e08f5eb3c0e2152c7a32e710939ca2fbb41`.
+- The compensated seed16 route was timing-clean: packed usage was 57,838 LUTs,
+  20,764 FFs, 75 DSP48E1, and 8 RAMB36E1. Final routed clocks passed with
+  `pcie_user_clk=66.24 MHz` against the 62.50 MHz target, `drck=295.33 MHz`,
+  and `PIPE_OOBCLK_IN=253.55 MHz`.
+- Flash/verify for the compensated image passed:
+  `artifacts/task6/runs/2026-06-20T16-13-36+0200-task6-m2-5-attention-ln2-direct-bar-comp-seed16-20260620T141313Z-flash`.
+  `openFPGALoader` returned 0.
+- Recovery for the compensated image did not reach `pcie_ready`:
+  `artifacts/task6/runs/2026-06-20T16-20-58+0200-task6-m2-5-attention-ln2-direct-bar-comp-seed16-20260620T141313Z-recover`.
+  The orchestrator ended `final_classification=missing_resource0` and
+  `final_action=power_cycle` after five lifecycle/power-cycle attempts, with
+  `host_recovery_freeze_risk=false`.
+- Lifecycle details stayed below the BAR contract. The endpoint identity was
+  stable (`10ee:0480`, header `00`, subsystem `abcd`) and BAR0 stayed
+  `00000000`; by lifecycle 4, `/sys/bus/pci/devices/0000:42:00.0/resource0`
+  was absent. Therefore no M2.5 BAR identity probe or board gate was run.
+- Seed reroute attempts did not produce a better hardware candidate. Seed17
+  failed final routed timing with `pcie_user_clk=60.63 MHz`; seed18 failed
+  final routed timing with `pcie_user_clk=54.43 MHz`. Seed19 was stopped after
+  placement already reported `pcie_user_clk=45.12 MHz` FAIL and routing
+  stalled without useful progress.
+- Interpretation: the M2.5 input identity issue has a plausible sim-proven RTL
+  compensation, but the current M2.5 topology is still not PCIe-safe enough to
+  test through BAR. Since the failure is below the public BAR interface, the
+  existing public-interface simulations are incomplete for this failure class.
+  The next useful target is architectural: build a staged/PCIe-safer M2.5
+  candidate that registers the public M2.5 result/status boundary and reduces
+  global clear/status fanout into the PCIe shell before any more M2.5 HIL.
