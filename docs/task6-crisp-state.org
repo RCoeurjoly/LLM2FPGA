@@ -1,25 +1,24 @@
 * LLM2FPGA Task 6 State of the Art
 ** Snapshot
-- last_updated: 2026-06-20T11:58:20+02:00
+- last_updated: 2026-06-20T14:11:14+02:00
 - milestone: M2.4-live-context-attention-slice
-- build_variant: =default/latest-passing-milestone is .#task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream; bottleneck remains the M2 path. Latest accepted focused M2.3 bitstream is copied to artifacts/task6/bitstreams/task6-m2-3-embedding-handoff-pnr100-2026-06-19.bit, sha256=955aacdf819cefc2bf0e631cde6ebecae42f0972691310661225d65b9e5ffea8. Current M2.4 seed17 candidate has restored RTL-side input BAR lane compensation but missed final pcie_user_clk timing.=
-- next_milestone: M2.4-live-context-attention-slice
+- build_variant: =default/latest-passing-milestone is .#task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream; bottleneck remains the M2 path. Latest accepted focused M2.4 bitstream is copied to artifacts/task6/bitstreams/task6-m2-4-live-context-attention-slice-direct-bar-pnr100-seed16-20260620T120009Z.bit, sha256=f8f8f313e95db45b69a755591c9464e692c0943e908ec6708279a4710de66a0a.=
+- next_milestone: M2.5-attention-out-proj-residual-ln2
 - latest_green_artifact:
-  =artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json=
+  =artifacts/task6/runs/task6-bottleneck/m2-4-live-context-attention-slice-direct-bar-seed16-20260620T120009Z.json=
 - current_gap: M1 remains the default/latest-passing external build. M2 remains
-  the bottleneck, split into M2.1-M2.7 submilestones. M2.1, M2.2, and M2.3 are
-  HIL-proven on earlier focused images. Current M2.4 work restored RTL-side
-  input BAR lane compensation and sim-proved direct input/residual identity,
-  but the seed17 M2.4 bitstream missed final timing, so M2.4 BAR identity is
-  not HIL-proven on the current candidate.
-- failure_signature: =M2.4 seed17 with restored input BAR compensation: rowstream ingress sim PASS for direct input/residual identity after complete 64-bit lane writes. Bitstream build reached legal routing but failed timing: pcie_user_clk 59.53 MHz below the 62.50 MHz target. Critical path is in the M2.4 LN/context logic from ln_center_flat_index_w[6] through context_i to ln_mean_input_q12_q[0], about -0.8 ns worst slack. No M2.4 HIL or BAR gate was run from this non-timing-clean build. Latest accepted green artifact remains M2.3: artifacts/task6/runs/task6-bottleneck/m2-3-embedding-handoff-output-hash-proof.json.=
-- next_action: Make a timing-clean M2.4 candidate, then flash/recover to
-  =pcie_ready=, run a BAR-only public-interface probe for direct input and
-  residual identity, and only then run the M2.4 board gate. If any HIL gate
-  fails, reproduce the public-interface failure in simulation; if sim passes
-  while HIL fails, extend the simulation/diagnostic boundary before changing
-  milestone status.
-- status: M1_HIL_GREEN_M2_1_HIL_GREEN_M2_2_HIL_GREEN_M2_3_HIL_GREEN_M2_4_TIMING_BLOCKED
+  the bottleneck, split into M2.1-M2.7 submilestones. M2.1, M2.2, M2.3, and
+  focused M2.4 are HIL-proven on direct-mode, strict-readback artifacts. Full
+  M2 still needs M2.5-M2.7: attention out-proj/residual/LN2, MLP/final
+  residual, and complete block acceptance.
+- failure_signature: =Resolved M2.4 boundary failure: the 20260620T113221Z seed16 image recovered to pcie_ready but the BAR-only probe showed input readback as a 64-bit ROL1-style transform while residual readback stayed identity. The public-interface failure was reproduced in sim, the input-specific BAR rotate adapter was removed, and the fixed direct-BAR seed16 bitstream recovered to pcie_ready, passed input/residual BAR identity, and passed the focused M2.4 board gate. No active M2.4 failure remains; M2.5 has not yet been implemented/proven on HIL.=
+- next_action: Define and build the focused M2.5 attention out-proj +
+  residual + LN2 candidate. First add/confirm the offline oracle and
+  self-checking simulation for the public vector boundary, then build a
+  timing-clean bitstream, flash/recover to =pcie_ready=, run BAR identity, and
+  only then run an M2.5 board gate. If HIL fails, reproduce the
+  public-interface failure in simulation before changing milestone status.
+- status: M1_HIL_GREEN_M2_1_HIL_GREEN_M2_2_HIL_GREEN_M2_3_HIL_GREEN_M2_4_HIL_GREEN_M2_5_NEXT
 - priority: Use the HIL-proven M1 baseline as the default/latest-passing
   milestone; pursue M2 full-block HIL as the bottleneck toward TinyStories-1M
   inference.

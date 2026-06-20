@@ -35670,3 +35670,52 @@ M2.4 PCIe/BAR boundary debug below the input register assignment:
   rowstream-loopback image is not a usable BAR proof image. The M2.4 issue is
   still below the host probe and specific to the input-window path, because the
   residual window on the same BAR and image reads back identity.
+
+M2.4 direct-BAR HIL acceptance:
+
+- Preserved the timing-clean pre-fix seed16 bitstream:
+  `artifacts/task6/bitstreams/task6-m2-4-live-context-attention-slice-pnr100-seed16-20260620T113221Z.bit`,
+  sha256 `67ef9f0c3779b7db1a00526bad9e104d0645f1082a94ce292538cf2b20562ed3`.
+- Flash/verify for that pre-fix image passed:
+  `artifacts/task6/runs/2026-06-20T13-32-55+0200-task6-m2-4-attention-slice-seed16-20260620T113221Z-flash`.
+- Recovery for that pre-fix image reached `pcie_ready` after one physical power
+  cycle:
+  `artifacts/task6/runs/2026-06-20T13-42-27+0200-task6-m2-4-attention-slice-seed16-20260620T113221Z-recover`.
+- BAR-only direct vector probe failed on the pre-fix image:
+  `artifacts/task6/runs/task6-bottleneck/m2-4-vector-rw-direct-probe-seed16-20260620T113221Z.json`.
+  Input writes `0x25001000..0x2500100f` read back as
+  `0x4a002000, 0x4a002002, ... 0x4a00201e`; residual writes
+  `0x5a002000..0x5a00200f` read back identity. This pinned the failure to the
+  M2 input BAR path, not PCIe enumeration or the residual window.
+- Reproduced the same public-interface failure in
+  `sim/task6_pcie_rowstream_loader_ingress_tb.sv`: direct M2 input BAR writes
+  failed identity while residual identity passed.
+- Removed the input-specific 64-bit rotate adapter from
+  `fpga/rtl/task6_pcie_axil_rowstream_loader_ingress.v`; M2 input and residual
+  now use the same direct BAR write/readback contract.
+- Verification after the RTL fix passed:
+  `nix build .#task6-pcie-rowstream-loader-ingress-sim-main --no-link --print-out-paths -L`
+  followed by the generated `sim_main`, and
+  `nix build .#task6-m2-embedding-live-context-attention-slice-pcie-accel-sv-sim --no-link --print-out-paths -L`.
+- Rebuilt the fixed direct-BAR seed16 bitstream:
+  `artifacts/task6/bitstreams/task6-m2-4-live-context-attention-slice-direct-bar-pnr100-seed16-20260620T120009Z.bit`,
+  sha256 `f8f8f313e95db45b69a755591c9464e692c0943e908ec6708279a4710de66a0a`.
+  Final routed timing was clean: `pcie_user_clk` 72.08 MHz PASS at 62.50 MHz.
+- Flash/verify for the fixed image passed:
+  `artifacts/task6/runs/2026-06-20T14-00-51+0200-task6-m2-4-attention-slice-direct-bar-seed16-20260620T120009Z-flash`.
+- Recovery for the fixed image reached `pcie_ready` after one physical power
+  cycle:
+  `artifacts/task6/runs/2026-06-20T14-09-15+0200-task6-m2-4-attention-slice-direct-bar-seed16-20260620T120009Z-recover`.
+- BAR-only direct vector probe passed on the fixed image:
+  `artifacts/task6/runs/task6-bottleneck/m2-4-vector-rw-direct-probe-direct-bar-seed16-20260620T120009Z.json`.
+  Input and residual both read back identity.
+- Focused M2.4 live-context attention-slice HIL gate passed:
+  `artifacts/task6/runs/task6-bottleneck/m2-4-live-context-attention-slice-direct-bar-seed16-20260620T120009Z.json`.
+  The artifact is live compute, direct mode, strict readback, DONE/no ERROR,
+  output valid, `output_count=64`, context checksum `0x000432e3`, LN input
+  checksum `0x88fa5e3a`, sample0 `0xd3c310cb`, sample1 `0x10c11ddc`, full
+  64-byte context vector match, and provenance `0x4d324105`.
+- M2.4 is now accepted as a focused HIL-green submilestone. This is not full
+  M2. The next target is M2.5: attention out-proj + residual + LN2, with the
+  same sequence of oracle, self-checking sim, timing-clean bitstream,
+  flash/recovery to `pcie_ready`, BAR identity, then board gate.
