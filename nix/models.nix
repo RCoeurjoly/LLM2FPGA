@@ -4,6 +4,7 @@
 , gemv64Int16AdapterPy, task6RectGemvPy, task6RectGemvAdapterPy
 , task6RectGemvPt2eStaticQuantAdapterPy
 , tinyStoriesTorchaoAdapterPy, tinyStoriesRepresentativeCoreAdapterPy
+, tinyStoriesRepresentativeCorePt2eStaticInt4QuantAdapterPy
 , tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy
 , tinyStoriesPt2eStaticQuantAdapterPy
 , fpPrimsSv, simDir, compilePyTorch, representativeCoreSweepSpecs }:
@@ -407,6 +408,44 @@ in {
       export TINYSTORIES_CORE_NUM_HEADS=1
       python ${compilePyTorch} \
         --adapter ${tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy} \
+        --model-path ${tinyStories1m.snapshot} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "tiny-stories-1m-representative-core-pt2e-static-int4-nolsq" = registerModel {
+    inherit fpPrimsSv;
+    key = "tiny-stories-1m-representative-core-pt2e-static-int4-nolsq";
+    name = "tiny-stories-1m-representative-core-pt2e-static-int4-nolsq";
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    description =
+      "Experimental int4-range quantized representative-core TinyStories PT2E-static replay through the default non-LSQ compiler pipeline. This exists as a bounded kill-test for compiler-to-whole-model-RTL viability.";
+    source = {
+      type = "derived";
+      base_model_id = tinyStories1m.modelId;
+      inherit (tinyStories1m) revision;
+      profile = "representative-core-min";
+      quantization = "pt2e-static-int4-range";
+      lowering = "default-handshake-nolsq";
+      vocab_size = 32;
+      num_layers = 2;
+      max_position_embeddings = 4;
+      window_size = 2;
+      hidden_size = 2;
+      num_heads = 1;
+    };
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TINYSTORIES_CORE_VOCAB_SIZE=32
+      export TINYSTORIES_CORE_NUM_LAYERS=2
+      export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=4
+      export TINYSTORIES_CORE_WINDOW_SIZE=2
+      export TINYSTORIES_CORE_HIDDEN_SIZE=2
+      export TINYSTORIES_CORE_NUM_HEADS=1
+      python ${compilePyTorch} \
+        --adapter ${tinyStoriesRepresentativeCorePt2eStaticInt4QuantAdapterPy} \
         --model-path ${tinyStories1m.snapshot} \
         --out "$out" >/dev/null
     '';

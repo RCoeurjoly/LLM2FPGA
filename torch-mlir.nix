@@ -9,6 +9,9 @@
 , nanobind, tblgen, mlir, llvm, zlib, libxml2, ncurses, }:
 
 let
+  task6Patches = [
+    ./patches/torch-mlir-task6/0001-fuse-qdq-through-decomposed-attention-softmax.patch
+  ];
   task3RfpPatches = [
     ./patches/torch-mlir-task3-rfp/0001-lower-per-channel-quantized-embedding.patch
     ./patches/torch-mlir-task3-rfp/0002-handle-float-zero-points-in-dequantize.patch
@@ -30,7 +33,7 @@ in stdenv.mkDerivation {
   pname = "torch-mlir";
   version = "0-unstable-2026-02-12";
   src = torchMlirSrc;
-  patches = lib.optionals applyTask3RfpPatches task3RfpPatches;
+  patches = task6Patches ++ lib.optionals applyTask3RfpPatches task3RfpPatches;
 
   nativeBuildInputs =
     [ cmake ninja pkg-config gitMinimal python pybind11 nanobind tblgen ];

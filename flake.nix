@@ -1510,6 +1510,7 @@ EOF
         pipelineLib = import ./nix/pipeline.nix {
           inherit pkgs mlir circt yosysPkg yosysSlang torchMlir python;
           inherit pipelineScripts;
+          directLowerScript = ./scripts/task6/direct_lower.py;
         };
         modelRegistry = import ./nix/models.nix {
           inherit (pipelineLib) registerModel registerLsqModel
@@ -1532,6 +1533,8 @@ EOF
             ./src/task6_rect_gemv_pt2e_static_quant_adapter.py;
           tinyStoriesRepresentativeCoreAdapterPy =
             ./TinyStories/model_adapter_representative_core.py;
+          tinyStoriesRepresentativeCorePt2eStaticInt4QuantAdapterPy =
+            ./TinyStories/model_adapter_representative_core_pt2e_static_int4_quant.py;
           tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy =
             ./TinyStories/model_adapter_representative_core_pt2e_static_quant.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;

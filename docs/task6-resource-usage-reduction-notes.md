@@ -59,8 +59,42 @@ Compiler-pipeline int8 representative-core spike:
   route.
 - The non-LSQ experiment reaches `hw-clean`, but SV export is killed with exit
   `137`; the durable HW-clean MLIR is about `348 MB`.
+- Follow-up split the SV path into `sv-mlir` and `sv` stages. SV-dialect
+  lowering completes, and single-file `--export-verilog` succeeds where
+  `--export-split-verilog` was killed.
+- The rooted stripped SV artifact is
+  `.gcroots/task6-int8-repcore-nolsq-sv`:
+  `main.sv` is `1,610,623,489` bytes and `19,980,042` lines.
+- Yosys still OOMs on that stripped SV bundle. The rooted report
+  `.gcroots/task6-int8-repcore-nolsq-yosys-stat` records
+  `status=oom-bottleneck`, exit code `137`, and total SV bundle size
+  `1,610,640,159` bytes.
+- Interpretation: source-location stripping fixes avoidable SV bloat and makes
+  SV export reproducible, but it does not make this compiler-pipeline route
+  synthesizable enough for Yosys resource estimation. The next compiler-pipeline
+  reduction must happen before SV/Yosys, most likely DDR3 memory
+  externalization or a smaller representative-core profile.
 - Detailed artifact:
   `artifacts/task6/architecture-decision/compiler-pipeline-int8-representative-core.md`.
+
+## 2026-06-21 - Direct-lowering functional path scaffold
+
+- `scripts/task6/direct_lower.py` now supports `--mode functional` in addition to
+  `fail-fast` and `sv-smoke`.
+- `--mode functional` writes the same unsupported-op manifest plus `cutpoint.json`,
+  `fixture.json` (if provided), and runs a focused Verilator check when an
+  expected output hex is present in the fixture payload.
+- `--cutpoint` now can be a `.mlir` path. In that case, the script uses that
+  file as the effective lowering input for direct stages (keeping the cached
+  Linalg flow intact when `--cutpoint` is absent).
+- The `nix` pipeline now also exposes `direct-functional` derivations so this
+  path can be exercised as a staged artifact in the same model workflow.
+- The functional mode currently uses the existing smoke SV emission path as the
+  execution target and explicitly keeps `functional_equivalence` as
+  `"not_claimed"` until fixture-driven checks are made.
+- This is the next iteration hook for one-op/subgraph experiments: use cutpoint +
+  fixture pairing to create a small, reproducible compare unit while still avoiding
+  the Handshake path.
 
 ## 2026-06-20 - M2.4 BAR identity fix is sim-proven, HIL blocked by timing
 
@@ -35872,3 +35906,59 @@ M2.4 direct-BAR HIL acceptance:
   The next useful target is architectural: build a staged/PCIe-safer M2.5
   candidate that registers the public M2.5 result/status boundary and reduces
   global clear/status fanout into the PCIe shell before any more M2.5 HIL.
+
+### 2026-06-20: Compiler-pipeline int8 representative-core reaches SV via single-file export
+
+- Split the SV export path into an explicit `sv-mlir` checkpoint followed by
+  SV emission. This preserves the lowered SV-dialect MLIR as a Nix artifact and
+  isolates failures between lowering and final Verilog printing.
+- `nix build .#tiny-stories-1m-representative-core-pt2e-static-nolsq-sv-mlir --no-link --print-out-paths -L`
+  passed and produced
+  `/nix/store/fszqgzc1zrzmazfm2gf2ip8a73paz9k9-tiny-stories-1m-representative-core-pt2e-static-nolsq-sv-mlir`.
+  The `model.sv.mlir` checkpoint is `331 MB`.
+- The old `--export-split-verilog` path still failed with exit `137` during
+  `export-split-verilog`, proving the memory failure is in split-file emission,
+  not in `-lower-seq-to-sv` / `-lower-hw-to-sv`.
+- Direct stdout-redirected single-file export passed:
+  `ELAPSED=81.51 RSS_KB=7062376`.
+- Updated the default pipeline SV emitter to use `--export-verilog` redirected
+  to `sv/main.sv`, while keeping `CIRCT_SV_EXPORT_MODE=split` as an explicit
+  opt-in for the old split-file behavior.
+- `nix build .#tiny-stories-1m-representative-core-pt2e-static-nolsq-sv --no-link --print-out-paths -L`
+  passed and produced
+  `/nix/store/ab92zjdqj30j6gzz9m4wk3fxbd4kqchh-tiny-stories-1m-representative-core-pt2e-static-nolsq-sv`.
+  The output has `sources.f`, `sv/main.sv`, and
+  `sv/zz_circt_fp_primitives.sv`; `main.sv` is `2.4 GB` and `19,980,042`
+  lines.
+- Yosys/resource-stat replay is intentionally deferred until disk headroom is
+  recovered. After the SV artifact was produced, the filesystem had only about
+  `2.3 GB` free, so a Yosys run would mostly test storage exhaustion rather
+  than the architecture.
+
+### 2026-06-21: QDQ-fixed int8 representative-core reaches SV
+
+- Added a focused Torch-MLIR Task 6 patch that wraps decomposed attention
+  softmax output in a quantize/dequantize chain before the existing matmul
+  fusion runs. The regression check now reports `float_matmul_count=0` and
+  `qint_matmul_count=17` for
+  `tiny-stories-1m-representative-core-pt2e-static-nolsq`.
+- `nix build .#tiny-stories-1m-representative-core-pt2e-static-nolsq-sv-mlir --out-link .gcroots/task6-int8-repcore-qdf-sv-mlir -L`
+  passed and produced
+  `/nix/store/qsdi4jir423g0gbz441vxmxxifrwpwpg-tiny-stories-1m-representative-core-pt2e-static-nolsq-sv-mlir`.
+  The `model.sv.mlir` payload is `361,399,482` bytes and `814,500` lines.
+- `nix build .#tiny-stories-1m-representative-core-pt2e-static-nolsq-sv --out-link .gcroots/task6-int8-repcore-qdf-sv -L`
+  passed and produced
+  `/nix/store/pslfabkcd2z3x1lp252dwrnyl4rvhzks-tiny-stories-1m-representative-core-pt2e-static-nolsq-sv`.
+  The `sv/main.sv` payload is `1,681,482,112` bytes and `20,856,091` lines.
+- Yosys/resource-stat replay remains a separate decision point. This run proves
+  that QDQ-fixed int8 representative-core reaches textual SV; it does not prove
+  that the generated SV is tractable for synthesis.
+- `nix build .#tiny-stories-1m-representative-core-pt2e-static-nolsq-yosys-stat --out-link .gcroots/task6-int8-repcore-qdf-yosys-stat -L`
+  produced an explicit bottleneck report rather than synthesis stats:
+  `status=oom-bottleneck`, `exit_code=137`, tool `yosys-slang`, top `main`.
+  Yosys/slang parsed the primitive bundle and recognized `main`, then was
+  killed while processing the `1,681,482,112` byte / `20,856,091` line
+  `main.sv` bundle.
+- This blocks nextpnr-xilinx for the whole-model compiler artifact: nextpnr
+  needs a synthesized design JSON, and the current pipeline cannot get past
+  Yosys frontend/elaboration for the generated SV on this host.

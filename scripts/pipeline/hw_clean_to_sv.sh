@@ -14,10 +14,10 @@ require_file "$input"
 
 tmp_externs="$(mktemp /tmp/hw_clean_to_sv_externs_XXXXXX.txt)"
 tmp_missing="$(mktemp /tmp/hw_clean_to_sv_missing_XXXXXX.txt)"
-tmp_mlir="$(mktemp /tmp/hw_clean_to_sv_mlir_XXXXXX.mlir)"
-tmp_mlir_clean="$(mktemp /tmp/hw_clean_to_sv_mlir_clean_XXXXXX.mlir)"
+tmp_sv_mlir_dir="$(mktemp -d /tmp/hw_clean_to_sv_mlir_XXXXXX)"
 cleanup_tmp() {
-  rm -f "$tmp_externs" "$tmp_missing" "$tmp_mlir" "$tmp_mlir_clean"
+  rm -f "$tmp_externs" "$tmp_missing"
+  rm -rf "$tmp_sv_mlir_dir"
 }
 trap cleanup_tmp EXIT
 
@@ -95,30 +95,7 @@ if [[ -s "$tmp_externs" ]]; then
   fi
 fi
 
-mkdir -p "$output_dir/sv"
-run_circt \
-  "$circt_opt" "$input" \
-  -lower-seq-hlmem \
-  -lower-seq-fifo \
-  -lower-seq-shiftreg \
-  -canonicalize \
-  -cse \
-  -o "$tmp_mlir"
+cp "$tmp_externs" "$tmp_sv_mlir_dir/hw_externs.txt"
 
-run_to_output "$tmp_mlir_clean" "$circt_opt" "$tmp_mlir" \
-  -lower-seq-to-sv \
-  -lower-hw-to-sv \
-  -canonicalize \
-  -cse \
-  --export-split-verilog="dir-name=$output_dir/sv" \
-  -o /dev/null
-
-require_file "$output_dir/sv/main.sv"
-
-find "$output_dir/sv" -type f -name '*.sv' | sort >"$output_dir/sources.f"
-
-if [[ -s "$tmp_externs" ]]; then
-  fp_sv="$output_dir/sv/zz_circt_fp_primitives.sv"
-  cp "$FP_PRIMS_SV" "$fp_sv"
-  printf '%s\n' "$fp_sv" >>"$output_dir/sources.f"
-fi
+"$SCRIPT_DIR/hw_clean_to_sv_mlir.sh" "$circt_opt" "$input" "$tmp_sv_mlir_dir"
+"$SCRIPT_DIR/sv_mlir_to_sv.sh" "$circt_opt" "$tmp_sv_mlir_dir" "$output_dir"

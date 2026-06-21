@@ -1,0 +1,116 @@
+--- a/lib/Dialect/Torch/Transforms/FuseQuantizedOps.cpp
++++ b/lib/Dialect/Torch/Transforms/FuseQuantizedOps.cpp
+@@ -442,13 +442,99 @@
+   }
+ };
+ 
++class QuantizeDecomposedAttentionSoftmaxOutput
++    : public OpRewritePattern<AtenDivTensorOp> {
++public:
++  using OpRewritePattern<AtenDivTensorOp>::OpRewritePattern;
++
++  LogicalResult matchAndRewrite(AtenDivTensorOp op,
++                                PatternRewriter &rewriter) const override {
++    auto resultTy = dyn_cast<BaseTensorType>(op.getType());
++    if (!resultTy || !resultTy.hasDtype() ||
++        !isa<mlir::FloatType>(resultTy.getDtype()))
++      return failure();
++
++    bool feedsMatmul =
++        llvm::any_of(op.getResult().getUsers(), [](Operation *user) {
++          return isa<AtenMatmulOp, AtenMmOp>(user);
++        });
++    if (!feedsMatmul)
++      return rewriter.notifyMatchFailure(
++          op, "decomposed softmax does not feed an attention matmul");
++
++    bool alreadyWrapped =
++        llvm::all_of(op.getResult().getUsers(), [](Operation *user) {
++          return isa<AtenQuantizePerTensorOp, AtenIntReprOp,
++                     Aten_MakePerTensorQuantizedTensorOp,
++                     AtenDequantizeTensorOp>(user);
++        });
++    if (alreadyWrapped)
++      return rewriter.notifyMatchFailure(
++          op, "decomposed softmax is already wrapped in QDQ");
++
++    auto exp = op.getSelf().getDefiningOp<AtenExpOp>();
++    if (!exp)
++      return failure();
++
++    auto sum = op.getOther().getDefiningOp<AtenSumDimIntListOp>();
++    if (!sum || sum.getSelf() != exp.getResult())
++      return failure();
++
++    auto sub = exp.getSelf().getDefiningOp<AtenSubTensorOp>();
++    if (!sub)
++      return failure();
++
++    auto max = sub.getOther().getDefiningOp<AtenMaxDimOp>();
++    if (!max || sub.getSelf() != max.getSelf() ||
++        sub.getOther() != max->getResult(0))
++      return failure();
++
++    Location loc = op.getLoc();
++    auto qOutDtype = rewriter.getType<QUInt8Type>();
++    auto qOutTy = cast<BaseTensorType>(
++        resultTy.getWithSizesAndDtype(resultTy.getOptionalSizes(), qOutDtype));
++    auto storageTy = cast<BaseTensorType>(resultTy.getWithSizesAndDtype(
++        resultTy.getOptionalSizes(),
++        IntegerType::get(rewriter.getContext(), 8, IntegerType::Unsigned)));
++
++    Value scale = ConstantFloatOp::create(
++        rewriter, loc, rewriter.getF64FloatAttr(1.0 / 256.0));
++    Value zero = ConstantIntOp::create(
++        rewriter, loc, rewriter.getType<Torch::IntType>(),
++        rewriter.getIntegerAttr(rewriter.getIntegerType(64), 0));
++    Value dtype = getDtypeIntValueForType(rewriter, loc, qOutDtype);
++
++    OpBuilder::InsertionGuard guard(rewriter);
++    rewriter.setInsertionPointAfter(op);
++    Value quant = AtenQuantizePerTensorOp::create(
++        rewriter, loc, qOutTy, op.getResult(), scale, zero, dtype);
++    Value intRepr = AtenIntReprOp::create(rewriter, loc, storageTy, quant);
++    Value qSoftmax = Aten_MakePerTensorQuantizedTensorOp::create(
++        rewriter, loc, qOutTy, intRepr, scale, zero);
++    Value dequant =
++        AtenDequantizeTensorOp::create(rewriter, loc, resultTy, qSoftmax);
++    rewriter.replaceAllUsesExcept(op.getResult(), dequant,
++                                  quant.getDefiningOp());
++    return success();
++  }
++};
++
+ class FuseQuantizedOpsPass
+     : public impl::FuseQuantizedOpsBase<FuseQuantizedOpsPass> {
+ public:
+   void runOnOperation() override {
+     MLIRContext *context = &getContext();
+-    RewritePatternSet patterns(context);
+-    patterns.insert<
++    GreedyRewriteConfig config;
++
++    RewritePatternSet softmaxPatterns(context);
++    softmaxPatterns.insert<QuantizeDecomposedAttentionSoftmaxOutput>(context);
++    if (failed(applyPatternsGreedily(getOperation(),
++                                     std::move(softmaxPatterns), config))) {
++      return signalPassFailure();
++    }
++
++    RewritePatternSet initialPatterns(context);
++    initialPatterns.insert<
+         RemoveUnused<AtenDequantizeSelfOp>,
+         RemoveUnused<AtenDequantizeTensorOp>,
+         RemoveUnused<AtenQuantizePerTensorOp>,
+@@ -465,9 +551,8 @@
+         QuantizeResultLikeOperand<AtenReluOp>, QuantizeBias<AtenConvolutionOp>>(
+         context);
+ 
+-    GreedyRewriteConfig config;
+-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
+-                                     config))) {
++    if (failed(applyPatternsGreedily(getOperation(),
++                                     std::move(initialPatterns), config))) {
+       return signalPassFailure();
+     }
+   }
