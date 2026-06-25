@@ -104,14 +104,24 @@ Local result: `task6-executorch-official-backend-survey` finds importable
 backend quantizer candidates in the Nix 26.05 ExecuTorch environment, and
 `task6-executorch-backend-quantizer-graph-shape-probe` includes
 `python313Packages.torchao` so it can use the PT2E APIs from
-`torchao.quantization.pt2e.quantize_pt2e`. The aggregate tiny-linear probe
-reports `2` failures and `10` skips. XNNPACK's maintained quantizer runs but
-still produces `float_linear_after_dequant`, with `1` `aten.linear`, `3`
+`torchao.quantization.pt2e.quantize_pt2e`. The aggregate tiny-linear probe now
+reports `13` failures and `10` skips after adding Cadence's no-argument
+quantizer variants. XNNPACK's maintained quantizer runs but still produces
+`float_linear_after_dequant`, with `1` `aten.linear`, `3`
 `quantized_decomposed.dequantize_per_tensor`, and `2`
 `quantized_decomposed.quantize_per_tensor` occurrences. The ExecuTorch example
-quantizer runs but leaves bare `aten.linear`, now flagged as
-`float_linear_unquantized`. The other configured candidates skip due to import
-or constructor failures in this environment.
+quantizer runs but leaves bare `aten.linear`, flagged as
+`float_linear_unquantized`.
+
+The Cadence no-argument variants are especially relevant because they include
+`CadenceW8A32MixedQuantizer`,
+`CadenceWith16BitLinearActivationsQuantizer`, and
+`CadenceWith16BitMatmulActivationsQuantizer`. They instantiate and run in this
+environment, but on the generic tiny `torch.export` `nn.Linear` probe they add
+no visible annotations: the post-`convert_pt2e` graph still has bare
+`aten.linear` and zero `quantized_decomposed.*` QDQ operations. That result
+should be read as a pattern/export mismatch to investigate with Cadence's own
+test or AOT flow, not as proof that Cadence cannot shape useful graphs.
 
 Verdict: **best first integration experiment**, because it uses maintained
 backend-owned quantization policy and answers our structural question before

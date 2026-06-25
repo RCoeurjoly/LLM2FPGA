@@ -63,6 +63,32 @@ to produce a structural integer/fixed-point linear/GEMV graph locally. The next
 useful experiment is a focused FX rewrite or manifest partition for the single
 QDQ-linear pattern.
 
+Cadence-focused expansion: added the no-argument Cadence quantizer variants
+available in the Nix 26.05 ExecuTorch package to the maintained-backend probe:
+`CadenceDefaultQuantizer`, `CadenceFusedConvReluQuantizer`,
+`CadenceNopQuantizer`, `CadenceRmsNormNopQuantizer`,
+`CadenceW8A32MixedQuantizer`, `CadenceWakeWordQuantizer`,
+`CadenceWith16BitConvActivationsQuantizer`,
+`CadenceWith16BitLinearActivationsQuantizer`,
+`CadenceWith16BitMatmulActivationsQuantizer`,
+`CadenceWithLayerNormQuantizer`, and `CadenceWithSoftmaxQuantizer`.
+
+The aggregate probe now reports `13` failures and `10` skips. All no-argument
+Cadence variants instantiate and run through `prepare_pt2e` / `convert_pt2e`,
+but the tiny exported `nn.Linear` graph remains a bare `aten.linear` with zero
+`quantized_decomposed.quantize_per_tensor` or
+`quantized_decomposed.dequantize_per_tensor` occurrences, so each Cadence row
+fails as `float_linear_unquantized`. The generic `CadenceQuantizer` entries
+still skip because one constructor needs explicit quantizer components and one
+entrypoint is not importable in this package layout.
+
+This is not enough evidence to reject Cadence as a backend. It says the generic
+tiny-linear export shape we are feeding to PT2E does not match the Cadence
+pattern annotators we tried. The useful next Cadence-specific step is to start
+from Cadence's own expected pattern/test export path, especially its
+`LinearPattern`, `MatmulPattern`, and `MixedW8A32LinearPattern` users, then rerun
+the same graph-shape audit.
+
 ## 2026-06-24 - W2A2 representative-core SV postmortem
 
 Artifact inspected:
