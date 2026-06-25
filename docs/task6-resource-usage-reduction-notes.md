@@ -44,6 +44,25 @@ maintained XNNPACK quantizer is runnable, but by itself it still shapes this
 linear/GEMV slice as QDQ around float `aten.linear`, not as visible
 integer/fixed-point compute for Torch-MLIR.
 
+Follow-up backend quantizer matrix: changed
+`task6-executorch-backend-quantizer-graph-shape-probe` to run every configured
+backend quantizer candidate and tightened the graph-shape audit so a bare
+`aten.linear` without quantized/fixed-point structure is also a failure
+(`float_linear_unquantized`). The aggregate result was `2` failures and `10`
+skips:
+
+- XNNPACK `executorch.backends.xnnpack.quantizer.xnnpack_quantizer.XNNPACKQuantizer`:
+  `fail`, `float_linear_after_dequant`.
+- Example `executorch.backends.example.example_quantizer.ExampleQuantizer`:
+  `fail`, `float_linear_unquantized`.
+- All other configured candidates skipped due to import or constructor
+  failures in the current Nix 26.05 ExecuTorch environment.
+
+This makes the next step clearer: more maintained-backend surveying is unlikely
+to produce a structural integer/fixed-point linear/GEMV graph locally. The next
+useful experiment is a focused FX rewrite or manifest partition for the single
+QDQ-linear pattern.
+
 ## 2026-06-24 - W2A2 representative-core SV postmortem
 
 Artifact inspected:

@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from scripts.task6.executorch_backend_survey import backend_quantizer_entrypoints
+from scripts.task6.executorch_backend_survey import BACKEND_CANDIDATES, backend_quantizer_entrypoints
 from scripts.task6.pt2e_graph_shape_audit import audit_graph_text
 
 
@@ -143,30 +143,56 @@ def run_tiny_pt2e_probe(*, backend: str, quantizer: str) -> dict[str, Any]:
     return audit_existing_graph(str(converted.graph), backend=backend, quantizer=quantizer)
 
 
+def run_probe_matrix(backends: list[str]) -> dict[str, Any]:
+    probes = []
+    status_counts: dict[str, int] = {}
+    for backend in backends:
+        for quantizer in backend_quantizer_entrypoints(backend):
+            report = run_tiny_pt2e_probe(backend=backend, quantizer=quantizer)
+            probes.append(report)
+            status = str(report["status"])
+            status_counts[status] = status_counts.get(status, 0) + 1
+    return {
+        "schema_version": 1,
+        "status_counts": status_counts,
+        "probes": probes,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--backend", required=True)
+    parser.add_argument("--backend", action="append")
+    parser.add_argument("--all-backends", action="store_true")
     parser.add_argument("--quantizer")
     parser.add_argument("--existing-graph", type=Path)
     parser.add_argument("--out", required=True, type=Path)
     args = parser.parse_args()
 
-    quantizer = choose_quantizer(args.backend, args.quantizer)
-    if quantizer is None:
-        report = make_skip_report(
-            backend=args.backend,
-            quantizer="",
-            reason="no_quantizer_candidates",
-            detail=f"no quantizer candidates configured for backend {args.backend!r}",
-        )
-    elif args.existing_graph is not None:
-        report = audit_existing_graph(
-            args.existing_graph.read_text(encoding="utf-8"),
-            backend=args.backend,
-            quantizer=quantizer,
-        )
+    if args.all_backends and (args.quantizer is not None or args.existing_graph is not None):
+        parser.error("--all-backends cannot be combined with --quantizer or --existing-graph")
+
+    if args.all_backends:
+        report = run_probe_matrix(BACKEND_CANDIDATES)
+    elif len(args.backend or []) != 1:
+        parser.error("provide exactly one --backend unless --all-backends is set")
     else:
-        report = run_tiny_pt2e_probe(backend=args.backend, quantizer=quantizer)
+        backend = args.backend[0]
+        quantizer = choose_quantizer(backend, args.quantizer)
+        if quantizer is None:
+            report = make_skip_report(
+                backend=backend,
+                quantizer="",
+                reason="no_quantizer_candidates",
+                detail=f"no quantizer candidates configured for backend {backend!r}",
+            )
+        elif args.existing_graph is not None:
+            report = audit_existing_graph(
+                args.existing_graph.read_text(encoding="utf-8"),
+                backend=backend,
+                quantizer=quantizer,
+            )
+        else:
+            report = run_tiny_pt2e_probe(backend=backend, quantizer=quantizer)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

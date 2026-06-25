@@ -77,6 +77,21 @@ class GraphShapeAuditTest(unittest.TestCase):
         self.assertNotIn("float_matmul_after_dequant", report["failure_reasons"])
         self.assertEqual(report["op_counts"]["aten.linear"], 1)
 
+    def test_flags_bare_float_linear_without_quantized_boundaries(self) -> None:
+        from scripts.task6.pt2e_graph_shape_audit import audit_graph_text
+
+        graph = textwrap.dedent(
+            """
+            %linear = call_function[target=torch.ops.aten.linear.default](args=(%x, %w, %bias), kwargs={})
+            """
+        )
+
+        report = audit_graph_text(graph, model_label="bare-linear")
+
+        self.assertEqual(report["status"], "fail")
+        self.assertIn("float_linear_unquantized", report["failure_reasons"])
+        self.assertEqual(report["op_counts"]["aten.linear"], 1)
+
     def test_cli_writes_json_and_markdown(self) -> None:
         graph = (
             "torch.ops.quantized_decomposed.dequantize_per_tensor.default\n"

@@ -14,6 +14,7 @@ from scripts.task6.backend_quantizer_graph_shape_probe import (
     load_pt2e_quantize_api,
     make_skip_report,
     main,
+    run_probe_matrix,
 )
 
 
@@ -113,6 +114,62 @@ class BackendQuantizerGraphShapeProbeTest(unittest.TestCase):
 
         self.assertIs(configured, quantizer)
         self.assertEqual(quantizer.config, "symmetric-config")
+
+    def test_run_probe_matrix_runs_each_backend_quantizer_candidate(self) -> None:
+        def fake_entrypoints(backend: str) -> list[str]:
+            return {
+                "xnnpack": ["xnnpack.Quantizer"],
+                "example": ["example.QuantizerA", "example.QuantizerB"],
+                "vulkan": [],
+            }[backend]
+
+        def fake_probe(*, backend: str, quantizer: str) -> dict[str, object]:
+            return {
+                "schema_version": 1,
+                "backend": backend,
+                "quantizer": quantizer,
+                "status": "skip",
+                "skip_reason": "mock",
+                "detail": "mock",
+                "graph_shape_report": None,
+            }
+
+        with (
+            mock.patch(
+                "scripts.task6.backend_quantizer_graph_shape_probe.backend_quantizer_entrypoints",
+                side_effect=fake_entrypoints,
+            ),
+            mock.patch(
+                "scripts.task6.backend_quantizer_graph_shape_probe.run_tiny_pt2e_probe",
+                side_effect=fake_probe,
+            ),
+        ):
+            report = run_probe_matrix(["xnnpack", "example", "vulkan"])
+
+        self.assertEqual(report["schema_version"], 1)
+        self.assertEqual(report["status_counts"], {"skip": 3})
+        self.assertEqual(
+            [(item["backend"], item["quantizer"]) for item in report["probes"]],
+            [
+                ("xnnpack", "xnnpack.Quantizer"),
+                ("example", "example.QuantizerA"),
+                ("example", "example.QuantizerB"),
+            ],
+        )
+
+    def test_cli_writes_aggregate_report_for_all_backends(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out = Path(tmpdir) / "matrix.json"
+
+            with mock.patch(
+                "scripts.task6.backend_quantizer_graph_shape_probe.run_probe_matrix",
+                return_value={"schema_version": 1, "status_counts": {}, "probes": []},
+            ):
+                rc = main_with_args(["--all-backends", "--out", str(out)])
+
+            self.assertEqual(rc, 0)
+            payload = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(payload["probes"], [])
 
 
 if __name__ == "__main__":

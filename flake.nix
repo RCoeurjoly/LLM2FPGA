@@ -1639,8 +1639,8 @@ EOF
             mkdir -p "$out"
             export PYTHONPATH="${./.}:''${PYTHONPATH:-}"
             ${executorch2605SurveyPython}/bin/python ${./scripts/task6/backend_quantizer_graph_shape_probe.py} \
-              --backend xnnpack \
-              --out "$out/xnnpack-report.json"
+              --all-backends \
+              --out "$out/report.json"
           '';
         task6Ui64Fifo2SiteMap = import ./nix/task6-ui64-fifo2-site-map.nix;
 

@@ -61,12 +61,22 @@ def audit_graph_text(graph_text: str, *, model_label: str) -> dict[str, Any]:
             }
         )
 
-    if _has_dequant_before_op(lines, "aten.linear"):
+    has_dequant_before_linear = _has_dequant_before_op(lines, "aten.linear")
+    if has_dequant_before_linear:
         failure_reasons.append("float_linear_after_dequant")
         critical_float_ops.append(
             {
                 "family": "linear",
                 "reason": "aten.linear appears after a dequantize marker",
+                "count": op_counts["aten.linear"],
+            }
+        )
+    elif op_counts["aten.linear"]:
+        failure_reasons.append("float_linear_unquantized")
+        critical_float_ops.append(
+            {
+                "family": "linear",
+                "reason": "aten.linear remains without quantized/fixed-point structure",
                 "count": op_counts["aten.linear"],
             }
         )
