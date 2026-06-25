@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-llvm21.url =
       "github:NixOS/nixpkgs/346dd96ad74dc4457a9db9de4f4f57dab2e5731d";
     nixpkgs-nix-eda.url = "github:NixOS/nixpkgs/nixos-24.11";
@@ -71,7 +72,7 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, nixpkgs-llvm21, nixpkgs-nix-eda, flake-utils, yosys, circt-nix
+  outputs = inputs@{ nixpkgs, nixpkgs-2605, nixpkgs-llvm21, nixpkgs-nix-eda, flake-utils, yosys, circt-nix
     , nix-eda, openXC7, nextpnrXilinxFork, ypcbHack, litex, litedram
     , litepcie, litexBoards, litexBoardsValidatedYpcb, pythondataCpuVexriscv
     , pythondataSoftwarePicolibc, pythondataSoftwareCompilerRt, uberDdr3
@@ -79,6 +80,15 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
+        pkgs2605 = import nixpkgs-2605 { inherit system; };
+        executorch2605ImportOnly =
+          pkgs2605.python3Packages.executorch.overridePythonAttrs (old: {
+            doCheck = false;
+            nativeCheckInputs = [ ];
+            pythonImportsCheck = [ ];
+          });
+        executorch2605SurveyPython =
+          pkgs2605.python3.withPackages (_: [ executorch2605ImportOnly ]);
         pkgsLlvm21 = import nixpkgs-llvm21 {
           inherit system;
           config.allowUnfreePredicate = pkg:
@@ -1537,6 +1547,8 @@ EOF
             ./TinyStories/model_adapter_representative_core_pt2e_static_int4_quant.py;
           tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy =
             ./TinyStories/model_adapter_representative_core_pt2e_static_quant.py;
+          tinyStoriesRepresentativeCorePt2eStaticQuantFpgaBackendAdapterPy =
+            ./TinyStories/model_adapter_representative_core_pt2e_static_quant_fpga_backend.py;
           tinyStoriesTorchaoAdapterPy = ./TinyStories/model_adapter_torchao.py;
           tinyStoriesPt2eStaticQuantAdapterPy =
             ./TinyStories/model_adapter_pt2e_static_quant.py;
@@ -1577,6 +1589,57 @@ EOF
               --out-dir "$out" \
               --model-label tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq \
               --require-representative-core
+          '';
+        tinyStoriesRepresentativeCoreW2A2GraphShapeAudit =
+          pkgs.runCommand
+          "tiny-stories-1m-representative-core-pt2e-static-w2a2-graph-shape-audit"
+          {
+            buildInputs = [ pythonWithTinyStories ];
+          } ''
+            set -euo pipefail
+            mkdir -p "$out"
+            export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlir}/${python.sitePackages}:${torchMlir}/${python.sitePackages}/torch_mlir:${./.}:''${PYTHONPATH:-}"
+            export TINYSTORIES_CORE_VOCAB_SIZE=32
+            export TINYSTORIES_CORE_NUM_LAYERS=2
+            export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=4
+            export TINYSTORIES_CORE_WINDOW_SIZE=2
+            export TINYSTORIES_CORE_HIDDEN_SIZE=2
+            export TINYSTORIES_CORE_NUM_HEADS=1
+            export TINYSTORIES_PYTORCHAO_ACTIVATION_BITS=2
+            export TINYSTORIES_PYTORCHAO_WEIGHT_BITS=2
+            export TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH="$out/quantized.fx.txt"
+
+            python ${./scripts/compile-pytorch.py} \
+              --adapter ${./TinyStories/model_adapter_representative_core_pt2e_static_quant.py} \
+              --model-path ${tinyStories1m.snapshot} \
+              --out "$TMPDIR/torch.mlir" >/dev/null
+
+            python ${./scripts/task6/pt2e_graph_shape_audit.py} \
+              --graph "$out/quantized.fx.txt" \
+              --json-out "$out/report.json" \
+              --markdown-out "$out/report.md" \
+              --model-label tiny-stories-1m-representative-core-pt2e-static-w2a2
+          '';
+        task6ExecuTorchOfficialBackendSurvey = pkgs.runCommand
+          "task6-executorch-official-backend-survey"
+          {
+            buildInputs = [ executorch2605SurveyPython ];
+          } ''
+            mkdir -p "$out"
+            export PYTHONPATH="${./.}:''${PYTHONPATH:-}"
+            ${executorch2605SurveyPython}/bin/python ${./scripts/task6/executorch_backend_survey.py} \
+              --out "$out/survey.json"
+          '';
+        task6ExecuTorchBackendQuantizerGraphShapeProbe = pkgs.runCommand
+          "task6-executorch-backend-quantizer-graph-shape-probe"
+          {
+            buildInputs = [ executorch2605SurveyPython ];
+          } ''
+            mkdir -p "$out"
+            export PYTHONPATH="${./.}:''${PYTHONPATH:-}"
+            ${executorch2605SurveyPython}/bin/python ${./scripts/task6/backend_quantizer_graph_shape_probe.py} \
+              --backend xnnpack \
+              --out "$out/xnnpack-report.json"
           '';
         task6Ui64Fifo2SiteMap = import ./nix/task6-ui64-fifo2-site-map.nix;
 
@@ -18163,6 +18226,12 @@ EOF
             tinyStories1mBaselineFloatVsRepresentativeCoreMlirOpCoverage;
           tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-manifest =
             tinyStoriesRepresentativeCoreW2A2ExecuTorchFpgaBackendManifest;
+          tiny-stories-1m-representative-core-pt2e-static-w2a2-graph-shape-audit =
+            tinyStoriesRepresentativeCoreW2A2GraphShapeAudit;
+          task6-executorch-official-backend-survey =
+            task6ExecuTorchOfficialBackendSurvey;
+          task6-executorch-backend-quantizer-graph-shape-probe =
+            task6ExecuTorchBackendQuantizerGraphShapeProbe;
           task6-uberddr3-source-summary = task6UberDdr3SourceSummary;
           task6-uberddr3-controller-yosys-json =
             task6UberDdr3ControllerYosysJson;

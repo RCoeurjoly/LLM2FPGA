@@ -1,0 +1,47 @@
+<h2>Torch-MLIR Pipeline Boundary Map</h2>
+<p class="subtitle">Current repo flow and the question boundary for the pipeline-understanding note.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Actual path in scripts/compile-pytorch.py</div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:stretch">
+      <div class="placeholder" style="min-height:110px">
+        <strong>Adapter module</strong><br>
+        build_mlir_module<br>
+        or export_program<br>
+        or build_model + example_inputs
+      </div>
+      <div class="placeholder" style="min-height:110px">
+        <strong>torch.export</strong><br>
+        ExportedProgram<br>
+        static example inputs<br>
+        graph capture boundary
+      </div>
+      <div class="placeholder" style="min-height:110px">
+        <strong>torch_mlir.fx</strong><br>
+        export_and_import<br>
+        output_type: torch/raw
+      </div>
+      <div class="placeholder" style="min-height:110px">
+        <strong>MLIR text</strong><br>
+        torch dialect<br>
+        then linalg/cf/handshake/SV
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Why representative-core SV became huge</div>
+    <div class="mockup-body">
+      <p>PT2E W2A2 changes value ranges, but the imported graph still contains dequantize -> float math -> requantize islands. The graph then expands sharply at CF -> Handshake and again at SV emission.</p>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">ExecuTorch question</div>
+    <div class="mockup-body">
+      <p>ExecuTorch usually lowers to backend partitions/delegate artifacts. That can be useful for graph shaping, but opaque delegate blobs are not directly torch-mlir input unless we keep or reconstruct an inspectable tensor graph.</p>
+    </div>
+  </div>
+</div>

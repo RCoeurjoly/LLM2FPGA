@@ -1,7 +1,7 @@
 * LLM2FPGA Task 6 State of the Art
 ** Snapshot
-- last_updated: 2026-06-24T22:54:56+02:00
-- milestone: compiler-pipeline-W2A2-representative-core-backend-manifest-spike
+- last_updated: 2026-06-25T11:50:44+02:00
+- milestone: official-executorch-backend-survey-xnnpack-importable
 - build_variant: =default/latest-passing-milestone is .#task6-ypcb-pcie-rowstream-ingress-m1-pnr100-bitstream; bottleneck remains the M2 path. Latest accepted focused M2.4 bitstream is copied to artifacts/task6/bitstreams/task6-m2-4-live-context-attention-slice-direct-bar-pnr100-seed16-20260620T120009Z.bit, sha256=f8f8f313e95db45b69a755591c9464e692c0943e908ec6708279a4710de66a0a. Current blocked M2.5 RTL-side input BAR compensation candidate is copied to artifacts/task6/bitstreams/task6-m2-5-attention-ln2-direct-bar-comp-pnr100-seed16-20260620T141313Z.bit, sha256=bc69d3ef36b63bbd9a5945cb7b243e08f5eb3c0e2152c7a32e710939ca2fbb41.=
 - next_milestone: M2.5-PCIe-ready-attention-out-proj-residual-ln2-HIL
 - latest_green_artifact:
@@ -16,15 +16,16 @@
   bitstreams; seed19 was stopped after already failing placement timing and
   stalling in route. Full M2 still needs M2.5-M2.7: attention
   out-proj/residual/LN2, MLP/final residual, and complete block acceptance.
-  Parallel compiler-pipeline W2A2 representative-core replay is currently
-  represented only as pre-CIRCT manifest capture; there is still no end-to-end
-  MLIR/CIRCT/SV/nextpnr FPGA route.
-- failure_signature: =tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq reaches SV through the old Handshake route but produces 20,627,507-line / 1,662,983,018-byte `main.sv`, and yosys-slang reports status=oom-bottleneck with exit_code=137 while processing that bundle. A PT2E FX dump after `convert_pt2e(prepared)` still shows dequantize->float compute islands, so the compile-chain gap remains backend capture only: the new `tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-manifest` proves manifest extraction and fail-closed unmatched-op reporting, but not a complete compiler-pipeline fit path.=
-- next_action: Replace the manifest-capture-only backend spike with a true MLIR
-  ExecuTorch backend path. Target: capture W2A2 QDQ islands as backend ops before
-  CIRCT, then run `linalg -> cf -> handshake -> hw -> sv-mlir -> sv` to Yosys
-  and nextpnr-xilinx; only then collect fit evidence.
-- status: M1_HIL_GREEN_M2_1_HIL_GREEN_M2_2_HIL_GREEN_M2_3_HIL_GREEN_M2_4_HIL_GREEN_M2_5_PCIE_RECOVERY_BLOCKED_COMPILER_W2A2_QDQ_FLOAT_SV_OOM_EXECUTORCH_BACKEND_MANIFEST_CAPTURE_ONLY
+  Parallel compiler-pipeline W2A2 representative-core replay is still not an
+  end-to-end MLIR/CIRCT/SV/nextpnr FPGA route, but the official ExecuTorch
+  backend survey now imports the nixpkgs-26.05 XNNPACK partitioner/preprocess
+  modules under the matching Python 3.13 interpreter.
+- failure_signature: =tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq reaches SV through the old Handshake route but produces 20,627,507-line / 1,662,983,018-byte `main.sv`, and yosys-slang reports status=oom-bottleneck with exit_code=137 while processing that bundle. A PT2E FX dump after `convert_pt2e(prepared)` still shows dequantize->float compute islands, so W2A2 is not yet fused into integer backend ops before CIRCT. The official ExecuTorch survey now uses nixpkgs-26.05 `python3Packages.executorch` and imports XNNPACK, but lowering remains unconnected: XNNPACK reports `xnnpack_probe_requires_executorch_runtime_wiring`. SDK-gated backends still fail for missing SDKs/import-time side effects, including Qualcomm attempting to stage SDK files into the read-only Nix store.=
+- next_action: Probe official XNNPACK partition/export on a tiny representative
+  module under the nixpkgs-26.05 ExecuTorch Python, capture delegate/partitioned
+  graph structure, then decide whether the MLIR path should consume transparent
+  partitioned FX or opaque delegate blobs.
+- status: M1_HIL_GREEN_M2_1_HIL_GREEN_M2_2_HIL_GREEN_M2_3_HIL_GREEN_M2_4_HIL_GREEN_M2_5_PCIE_RECOVERY_BLOCKED_COMPILER_W2A2_QDQ_FLOAT_SV_OOM_OFFICIAL_EXECUTORCH_XNNPACK_IMPORTABLE_EXPORT_PROBE_NEXT
 - priority: Use the HIL-proven M1 baseline as the default/latest-passing
   milestone; pursue M2 full-block HIL as the bottleneck toward TinyStories-1M
   inference.

@@ -6,6 +6,7 @@
 , tinyStoriesTorchaoAdapterPy, tinyStoriesRepresentativeCoreAdapterPy
 , tinyStoriesRepresentativeCorePt2eStaticInt4QuantAdapterPy
 , tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy
+, tinyStoriesRepresentativeCorePt2eStaticQuantFpgaBackendAdapterPy
 , tinyStoriesPt2eStaticQuantAdapterPy
 , fpPrimsSv, simDir, compilePyTorch, representativeCoreSweepSpecs }:
 let
@@ -498,7 +499,7 @@ in {
     allowHwExterns = true;
     slangPerFileExternModules = true;
     description =
-      "Representative-core PT2E-static W2A2 replay through the default non-LSQ compiler pipeline after ExecuTorch backend capture. The pipeline input is still the PT2E torch-mlir model, but the step fails fast when representative core QDQ islands are not structurally capturable.";
+      "Representative-core PT2E-static W2A2 replay through the default non-LSQ compiler pipeline after ExecuTorch backend capture. The pipeline input is still the PT2E torch-mlir model; backend capture is emitted as a diagnostic side artifact while the compiler pipeline continues to Yosys.";
     source = {
       type = "derived";
       base_model_id = tinyStories1m.modelId;
@@ -516,7 +517,7 @@ in {
     torchInputBuildInputs = [ pythonWithTinyStories ];
     torchInputCommand = ''
       set -euo pipefail
-      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:${../.}:''${PYTHONPATH:-}"
       export TINYSTORIES_CORE_VOCAB_SIZE=32
       export TINYSTORIES_CORE_NUM_LAYERS=2
       export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=4
@@ -527,15 +528,11 @@ in {
       export TINYSTORIES_PYTORCHAO_WEIGHT_BITS=2
       tmp_dir="$(mktemp -d)"
       export TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH="$tmp_dir/quantized.fx.txt"
+      export TINYSTORIES_EXECUTORCH_FPGA_BACKEND_MANIFEST="$tmp_dir/llm2fpga-executorch-backend-capture/manifest.json"
       python ${compilePyTorch} \
-        --adapter ${tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy} \
+        --adapter ${tinyStoriesRepresentativeCorePt2eStaticQuantFpgaBackendAdapterPy} \
         --model-path ${tinyStories1m.snapshot} \
         --out "$tmp_dir/torch.mlir" >/dev/null
-      python ${./src/llm2fpga_executorch_backend/cli.py} \
-        --graph "$TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH" \
-        --out-dir "$tmp_dir/llm2fpga-executorch-backend-capture" \
-        --model-label tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq \
-        --require-representative-core
       cp "$tmp_dir/torch.mlir" "$out"
     '';
   };

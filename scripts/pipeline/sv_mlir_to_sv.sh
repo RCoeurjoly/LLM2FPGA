@@ -127,7 +127,8 @@ case "${CIRCT_SV_EXPORT_MODE:-single}" in
     run_circt_stage_to_file export-verilog "$output_dir/sv/main.sv" \
       "$circt_opt" "$input" \
       --strip-debuginfo-with-pred="drop-suffix=$strip_suffix" \
-      --export-verilog
+      --export-verilog \
+      -o /dev/null
     ;;
   split)
     run_circt_stage export-split-verilog \

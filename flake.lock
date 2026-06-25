@@ -282,6 +282,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-2605": {
+      "locked": {
+        "lastModified": 1782233679,
+        "narHash": "sha256-QyuGP5+QOtmXpy4i2X4DhBVBaySBdDKQEhqKcphcp34=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "667d5cf1c59585031d743c78b394b0a647537c35",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-26.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs-llvm21": {
       "locked": {
         "lastModified": 1767026758,
@@ -457,6 +473,7 @@
         "nextpnrXilinxFork": "nextpnrXilinxFork",
         "nix-eda": "nix-eda",
         "nixpkgs": "nixpkgs_2",
+        "nixpkgs-2605": "nixpkgs-2605",
         "nixpkgs-llvm21": "nixpkgs-llvm21",
         "nixpkgs-nix-eda": "nixpkgs-nix-eda",
         "openXC7": "openXC7",
