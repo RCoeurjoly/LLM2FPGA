@@ -446,6 +446,136 @@ in {
       export TINYSTORIES_CORE_NUM_HEADS=1
       python ${compilePyTorch} \
         --adapter ${tinyStoriesRepresentativeCorePt2eStaticInt4QuantAdapterPy} \
+            --model-path ${tinyStories1m.snapshot} \
+            --out "$out" >/dev/null
+    '';
+  };
+
+  "tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq" = registerModel {
+    inherit fpPrimsSv;
+    key = "tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq";
+    name = "tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq";
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    description =
+      "Representative-core PT2E-static W2A2 replay through the default non-LSQ compiler pipeline. Added for milestone-path quantization sweep; useful for integer-only viability checks.";
+    source = {
+      type = "derived";
+      base_model_id = tinyStories1m.modelId;
+      inherit (tinyStories1m) revision;
+      profile = "representative-core-min";
+      quantization = "pt2e-static-w2a2";
+      lowering = "default-handshake-nolsq";
+      vocab_size = 32;
+      num_layers = 2;
+      max_position_embeddings = 4;
+      window_size = 2;
+      hidden_size = 2;
+      num_heads = 1;
+    };
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TINYSTORIES_CORE_VOCAB_SIZE=32
+      export TINYSTORIES_CORE_NUM_LAYERS=2
+      export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=4
+      export TINYSTORIES_CORE_WINDOW_SIZE=2
+      export TINYSTORIES_CORE_HIDDEN_SIZE=2
+      export TINYSTORIES_CORE_NUM_HEADS=1
+      export TINYSTORIES_PYTORCHAO_ACTIVATION_BITS=2
+      export TINYSTORIES_PYTORCHAO_WEIGHT_BITS=2
+      python ${compilePyTorch} \
+        --adapter ${tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy} \
+        --model-path ${tinyStories1m.snapshot} \
+        --out "$out" >/dev/null
+    '';
+  };
+
+  "tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-nolsq" = registerModel {
+    inherit fpPrimsSv;
+    key = "tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-nolsq";
+    name = "tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-nolsq";
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    description =
+      "Representative-core PT2E-static W2A2 replay through the default non-LSQ compiler pipeline after ExecuTorch backend capture. The pipeline input is still the PT2E torch-mlir model, but the step fails fast when representative core QDQ islands are not structurally capturable.";
+    source = {
+      type = "derived";
+      base_model_id = tinyStories1m.modelId;
+      inherit (tinyStories1m) revision;
+      profile = "representative-core-min";
+      quantization = "pt2e-static-w2a2-executorch-fpga-backend";
+      lowering = "default-handshake-nolsq";
+      vocab_size = 32;
+      num_layers = 2;
+      max_position_embeddings = 4;
+      window_size = 2;
+      hidden_size = 2;
+      num_heads = 1;
+    };
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      set -euo pipefail
+      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TINYSTORIES_CORE_VOCAB_SIZE=32
+      export TINYSTORIES_CORE_NUM_LAYERS=2
+      export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=4
+      export TINYSTORIES_CORE_WINDOW_SIZE=2
+      export TINYSTORIES_CORE_HIDDEN_SIZE=2
+      export TINYSTORIES_CORE_NUM_HEADS=1
+      export TINYSTORIES_PYTORCHAO_ACTIVATION_BITS=2
+      export TINYSTORIES_PYTORCHAO_WEIGHT_BITS=2
+      tmp_dir="$(mktemp -d)"
+      export TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH="$tmp_dir/quantized.fx.txt"
+      python ${compilePyTorch} \
+        --adapter ${tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy} \
+        --model-path ${tinyStories1m.snapshot} \
+        --out "$tmp_dir/torch.mlir" >/dev/null
+      python ${./src/llm2fpga_executorch_backend/cli.py} \
+        --graph "$TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH" \
+        --out-dir "$tmp_dir/llm2fpga-executorch-backend-capture" \
+        --model-label tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq \
+        --require-representative-core
+      cp "$tmp_dir/torch.mlir" "$out"
+    '';
+  };
+
+  "tiny-stories-1m-representative-core-pt2e-static-w2a2-reference-rewrite-nolsq" = registerModel {
+    inherit fpPrimsSv;
+    key = "tiny-stories-1m-representative-core-pt2e-static-w2a2-reference-rewrite-nolsq";
+    name = "tiny-stories-1m-representative-core-pt2e-static-w2a2-reference-rewrite-nolsq";
+    allowHwExterns = true;
+    slangPerFileExternModules = true;
+    description =
+      "Representative-core PT2E-static W2A2 replay through the default non-LSQ compiler pipeline after PT2E reference_representation_rewrite. This isolates whether PyTorch's reference representation rewrite reduces QDQ before torch-mlir/CIRCT.";
+    source = {
+      type = "derived";
+      base_model_id = tinyStories1m.modelId;
+      inherit (tinyStories1m) revision;
+      profile = "representative-core-min";
+      quantization = "pt2e-static-w2a2-reference-rewrite";
+      lowering = "default-handshake-nolsq";
+      vocab_size = 32;
+      num_layers = 2;
+      max_position_embeddings = 4;
+      window_size = 2;
+      hidden_size = 2;
+      num_heads = 1;
+    };
+    torchInputBuildInputs = [ pythonWithTinyStories ];
+    torchInputCommand = ''
+      export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlirPythonPath}:''${PYTHONPATH:-}"
+      export TINYSTORIES_CORE_VOCAB_SIZE=32
+      export TINYSTORIES_CORE_NUM_LAYERS=2
+      export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=4
+      export TINYSTORIES_CORE_WINDOW_SIZE=2
+      export TINYSTORIES_CORE_HIDDEN_SIZE=2
+      export TINYSTORIES_CORE_NUM_HEADS=1
+      export TINYSTORIES_PYTORCHAO_ACTIVATION_BITS=2
+      export TINYSTORIES_PYTORCHAO_WEIGHT_BITS=2
+      export TINYSTORIES_PT2E_REFERENCE_REPRESENTATION_REWRITE=1
+      python ${compilePyTorch} \
+        --adapter ${tinyStoriesRepresentativeCorePt2eStaticQuantAdapterPy} \
         --model-path ${tinyStories1m.snapshot} \
         --out "$out" >/dev/null
     '';

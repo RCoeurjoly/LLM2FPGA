@@ -59,3 +59,52 @@ The next compiler-pipeline decision is whether to spend effort on:
 2. reducing or chunking SV export for the `348 MB` HW-clean MLIR;
 3. adding memory externalization before SV export so CIRCT has less hardware to
 materialize.
+
+## SV Export Follow-Up
+
+- `nix build .#tiny-stories-1m-representative-core-pt2e-static-nolsq-sv-mlir --no-link --print-out-paths -L`
+  - status: pass
+  - output: `/nix/store/fszqgzc1zrzmazfm2gf2ip8a73paz9k9-tiny-stories-1m-representative-core-pt2e-static-nolsq-sv-mlir`
+  - `model.sv.mlir` size: `331 MB`
+  - interpretation: `-lower-seq-to-sv` / `-lower-hw-to-sv` can complete; the
+    previous OOM was not caused by the lowering-to-SV-dialect step.
+
+- `nix build .#tiny-stories-1m-representative-core-pt2e-static-nolsq-sv --out-link .gcroots/task6-int8-repcore-nolsq-sv -L`
+  - status: pass after switching the default SV emitter from
+    `--export-split-verilog` to stdout-redirected `--export-verilog`, with
+    CIRCT source-location debug info stripped before export.
+  - output: `/nix/store/jzq5z9v013dv40d1n7dy257dxysvb7p4-tiny-stories-1m-representative-core-pt2e-static-nolsq-sv`
+  - emitted files:
+    - `sv/main.sv`: `1,610,623,489` bytes, `19,980,042` lines
+    - `sv/zz_circt_fp_primitives.sv`: copied float primitive extern
+      implementations
+    - `sources.f`: `2` entries
+
+- Direct diagnostic:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' circt-opt model.sv.mlir --export-verilog > /tmp/tiny-stories-representative-core-nolsq.sv`
+  - status: pass
+  - measurement: `ELAPSED=81.51`, `RSS_KB=7062376`
+
+- Direct diagnostic with source-location stripping:
+  - `/usr/bin/time -f 'ELAPSED=%e RSS_KB=%M' circt-opt model.sv.mlir --strip-debuginfo-with-pred=drop-suffix=.mlir --export-verilog > /tmp/tiny-stories-repcore-nolsq-stripped.sv`
+  - status: pass
+  - measurement: `ELAPSED=77.08`, `RSS_KB=6081144`
+  - emitted size: `1.6 GB`
+
+- `nix build .#tiny-stories-1m-representative-core-pt2e-static-nolsq-yosys-stat --out-link .gcroots/task6-int8-repcore-nolsq-yosys-stat -L`
+  - status: pass as an explicit bottleneck report
+  - output: `/nix/store/r3nwkkl29zdy0k5rnlf4q152z9rl8855-tiny-stories-1m-representative-core-pt2e-static-nolsq-yosys.stat`
+  - report status: `oom-bottleneck`
+  - failure signature: Yosys was killed with exit code `137` while processing
+    the stripped SV bundle.
+  - bundle evidence: `2` files, `1,610,640,159` bytes total,
+    `main.sv` `19,980,042` lines / `1,610,623,489` bytes.
+
+Updated interpretation: the immediate SV blocker was specifically
+`--export-split-verilog`, not SV-dialect lowering. Single-file SV export now
+works for the int8 representative-core non-LSQ route, but Yosys still OOMs on
+the stripped `1.6 GB` monolithic RTL bundle. This falsifies the idea that debug
+source-location comments were the primary Yosys bottleneck. The compiler-pipeline
+candidate needs structural reduction before SV/Yosys, most likely DDR3 memory
+externalization or further representative-core reduction, before it can produce
+a real fit/no-fit synthesis estimate on this host.

@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import copy
 import os
+from pathlib import Path
 
 import torch
 from torch.ao.quantization import move_exported_model_to_eval
 from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
+from torch.ao.quantization.pt2e.representation.rewrite import (
+    reference_representation_rewrite,
+)
 from torch.ao.quantization.quantizer.xnnpack_quantizer import (
     XNNPACKQuantizer,
     get_symmetric_quantization_config,
@@ -31,6 +35,65 @@ def env_int(name: str, default: int) -> int:
     if value is None:
         return default
     return int(value)
+
+
+def _qrange(bits: int) -> tuple[int, int]:
+    if bits < 2:
+        raise ValueError(f"PT2E static quant bits must be >= 2; got {bits}")
+    qmax = (1 << (bits - 1)) - 1
+    return -(qmax + 1), qmax
+
+
+def _maybe_dump_quantized_graph(model: torch.nn.Module) -> None:
+    dump_path = os.environ.get("TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH")
+    if dump_path is None:
+        return
+
+    graph_text = str(model.graph)
+    if dump_path == "-":
+        print(graph_text)
+        return
+
+    Path(dump_path).write_text(graph_text, encoding="utf-8")
+
+
+def _maybe_reference_representation_rewrite(
+    model: torch.fx.GraphModule,
+) -> torch.fx.GraphModule:
+    value = os.environ.get("TINYSTORIES_PT2E_REFERENCE_REPRESENTATION_REWRITE")
+    if value is None or value in {"", "0", "false", "False"}:
+        return model
+    return reference_representation_rewrite(model)
+
+
+def _reference_representation_rewrite_enabled() -> bool:
+    value = os.environ.get("TINYSTORIES_PT2E_REFERENCE_REPRESENTATION_REWRITE")
+    return value is not None and value not in {"", "0", "false", "False"}
+
+
+def _materialize_missing_linear_biases(model: torch.nn.Module) -> None:
+    for module in model.modules():
+        if isinstance(module, torch.nn.Linear) and module.bias is None:
+            module.bias = torch.nn.Parameter(torch.zeros(module.out_features))
+
+
+def _decompose_out_dtype(model: torch.fx.GraphModule) -> torch.fx.GraphModule:
+    graph = model.graph
+    for node in list(graph.nodes):
+        if node.op != "call_function" or node.target != torch.ops.higher_order.out_dtype:
+            continue
+        op, output_dtype, *op_args = node.args
+        with graph.inserting_before(node):
+            op_node = graph.call_function(op, args=tuple(op_args))
+            to_node = graph.call_function(
+                torch.ops.aten.to.dtype,
+                args=(op_node, output_dtype),
+            )
+        node.replace_all_uses_with(to_node)
+        graph.erase_node(node)
+    graph.lint()
+    model.recompile()
+    return model
 
 
 def attention_types_for_layers(num_layers: int) -> list[list[object]]:
@@ -118,24 +181,42 @@ def example_inputs() -> tuple[torch.Tensor, ...]:
 
 def export_program(model_path: str | None) -> torch.export.ExportedProgram:
     model = build_model(model_path)
+    use_reference_rewrite = _reference_representation_rewrite_enabled()
+    if use_reference_rewrite:
+        _materialize_missing_linear_biases(model)
     inputs = tuple(example_inputs())
     exported = torch.export.export(
         model,
         inputs,
         strict=EXPORT_STRICT,
     )
+    activation_bits = env_int("TINYSTORIES_PYTORCHAO_ACTIVATION_BITS", 8)
+    weight_bits = env_int("TINYSTORIES_PYTORCHAO_WEIGHT_BITS", 8)
+    activation_qmin, activation_qmax = _qrange(activation_bits)
+    weight_qmin, weight_qmax = _qrange(weight_bits)
     quantizer = XNNPACKQuantizer().set_global(
-        get_symmetric_quantization_config(is_dynamic=False)
+        get_symmetric_quantization_config(
+            is_dynamic=False,
+            act_qmin=activation_qmin,
+            act_qmax=activation_qmax,
+            weight_qmin=weight_qmin,
+            weight_qmax=weight_qmax,
+        )
     )
     prepared = prepare_pt2e(exported.module(), quantizer)
     with torch.no_grad():
         prepared(*inputs)
     quantized = convert_pt2e(prepared)
+    _maybe_dump_quantized_graph(quantized)
+    quantized = _maybe_reference_representation_rewrite(quantized)
+    if use_reference_rewrite:
+        quantized = _decompose_out_dtype(quantized)
     move_exported_model_to_eval(quantized)
-    return _strip_trailing_output_dequantize(
-        torch.export.export(
-            quantized,
-            inputs,
-            strict=EXPORT_STRICT,
-        )
+    exported = torch.export.export(
+        quantized,
+        inputs,
+        strict=EXPORT_STRICT,
     )
+    if use_reference_rewrite:
+        return exported
+    return _strip_trailing_output_dequantize(exported)

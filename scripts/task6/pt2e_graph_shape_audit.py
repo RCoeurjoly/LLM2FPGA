@@ -12,6 +12,7 @@ from typing import Any
 OP_PATTERNS = {
     "aten.matmul": re.compile(r"(?:torch\.ops\.)?aten\.matmul(?:\.default)?"),
     "aten.mm": re.compile(r"(?:torch\.ops\.)?aten\.mm(?:\.default)?"),
+    "aten.linear": re.compile(r"(?:torch\.ops\.)?aten\.linear(?:\.default)?"),
     "aten.layer_norm": re.compile(r"(?:torch\.ops\.)?aten\.layer_norm(?:\.default)?"),
     "aten.tanh": re.compile(r"(?:torch\.ops\.)?aten\.tanh(?:\.default)?"),
     "aten.pow": re.compile(r"(?:torch\.ops\.)?aten\.pow(?:\.|\b)"),
@@ -34,12 +35,12 @@ def count_ops(graph_text: str) -> dict[str, int]:
     return {name: len(pattern.findall(graph_text)) for name, pattern in OP_PATTERNS.items()}
 
 
-def _has_dequant_before_matmul(lines: list[str]) -> bool:
+def _has_dequant_before_op(lines: list[str], op_marker: str) -> bool:
     seen_dequant = False
     for line in lines:
         if "dequantize" in line:
             seen_dequant = True
-        if "aten.matmul" in line and seen_dequant:
+        if op_marker in line and seen_dequant:
             return True
     return False
 
@@ -50,13 +51,23 @@ def audit_graph_text(graph_text: str, *, model_label: str) -> dict[str, Any]:
     critical_float_ops: list[dict[str, Any]] = []
     failure_reasons: list[str] = []
 
-    if _has_dequant_before_matmul(lines):
+    if _has_dequant_before_op(lines, "aten.matmul"):
         failure_reasons.append("float_matmul_after_dequant")
         critical_float_ops.append(
             {
                 "family": "matmul",
                 "reason": "aten.matmul appears after a dequantize marker",
                 "count": op_counts["aten.matmul"],
+            }
+        )
+
+    if _has_dequant_before_op(lines, "aten.linear"):
+        failure_reasons.append("float_linear_after_dequant")
+        critical_float_ops.append(
+            {
+                "family": "linear",
+                "reason": "aten.linear appears after a dequantize marker",
+                "count": op_counts["aten.linear"],
             }
         )
 

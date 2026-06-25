@@ -1549,6 +1549,35 @@ EOF
         pipelineMetadataPackages =
           pipelineLib.metadataPackagesFromRegistry modelRegistry;
         modelRegistryJson = pipelineLib.registryIndexPackage modelRegistry;
+        tinyStoriesRepresentativeCoreW2A2ExecuTorchFpgaBackendManifest =
+          pkgs.runCommand
+          "tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-manifest"
+          {
+            buildInputs = [ pythonWithTinyStories ];
+          } ''
+            set -euo pipefail
+            export PYTHONPATH="${tinyStories1m.sourceDir}:${torchMlir}/${python.sitePackages}:${torchMlir}/${python.sitePackages}/torch_mlir:${./.}:''${PYTHONPATH:-}"
+            export TINYSTORIES_CORE_VOCAB_SIZE=32
+            export TINYSTORIES_CORE_NUM_LAYERS=2
+            export TINYSTORIES_CORE_MAX_POSITION_EMBEDDINGS=4
+            export TINYSTORIES_CORE_WINDOW_SIZE=2
+            export TINYSTORIES_CORE_HIDDEN_SIZE=2
+            export TINYSTORIES_CORE_NUM_HEADS=1
+            export TINYSTORIES_PYTORCHAO_ACTIVATION_BITS=2
+            export TINYSTORIES_PYTORCHAO_WEIGHT_BITS=2
+            export TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH="$TMPDIR/quantized.fx.txt"
+
+            python ${./scripts/compile-pytorch.py} \
+              --adapter ${./TinyStories/model_adapter_representative_core_pt2e_static_quant.py} \
+              --model-path ${tinyStories1m.snapshot} \
+              --out "$TMPDIR/torch.mlir" >/dev/null
+
+            python ${./src/llm2fpga_executorch_backend/cli.py} \
+              --graph "$TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH" \
+              --out-dir "$out" \
+              --model-label tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq \
+              --require-representative-core
+          '';
         task6Ui64Fifo2SiteMap = import ./nix/task6-ui64-fifo2-site-map.nix;
 
         matmulPipeline = modelPipelines.matmul;
@@ -18132,6 +18161,8 @@ EOF
             tinyStories1mBaselineFloatVsRepresentativeCoreCfOpCoverage;
           tiny-stories-1m-baseline-float-vs-representative-core-op-coverage =
             tinyStories1mBaselineFloatVsRepresentativeCoreMlirOpCoverage;
+          tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-manifest =
+            tinyStoriesRepresentativeCoreW2A2ExecuTorchFpgaBackendManifest;
           task6-uberddr3-source-summary = task6UberDdr3SourceSummary;
           task6-uberddr3-controller-yosys-json =
             task6UberDdr3ControllerYosysJson;

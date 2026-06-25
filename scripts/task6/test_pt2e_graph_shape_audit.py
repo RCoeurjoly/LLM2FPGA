@@ -58,6 +58,25 @@ class GraphShapeAuditTest(unittest.TestCase):
         self.assertEqual(report["failure_reasons"], [])
         self.assertEqual(report["critical_float_ops"], [])
 
+    def test_flags_float_linear_after_dequant_separately_from_matmul(self) -> None:
+        from scripts.task6.pt2e_graph_shape_audit import audit_graph_text
+
+        graph = textwrap.dedent(
+            """
+            %dq_x = call_function[target=torch.ops.quantized_decomposed.dequantize_per_tensor.default](args=(%x,), kwargs={})
+            %dq_w = call_function[target=torch.ops.quantized_decomposed.dequantize_per_tensor.default](args=(%w,), kwargs={})
+            %linear = call_function[target=torch.ops.aten.linear.default](args=(%dq_x, %dq_w, %bias), kwargs={})
+            %q = call_function[target=torch.ops.quantized_decomposed.quantize_per_tensor.default](args=(%linear,), kwargs={})
+            """
+        )
+
+        report = audit_graph_text(graph, model_label="linear-q dq")
+
+        self.assertEqual(report["status"], "fail")
+        self.assertIn("float_linear_after_dequant", report["failure_reasons"])
+        self.assertNotIn("float_matmul_after_dequant", report["failure_reasons"])
+        self.assertEqual(report["op_counts"]["aten.linear"], 1)
+
     def test_cli_writes_json_and_markdown(self) -> None:
         graph = (
             "torch.ops.quantized_decomposed.dequantize_per_tensor.default\n"

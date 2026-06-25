@@ -4,6 +4,132 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-24 - W2A2 representative-core SV postmortem
+
+Artifact inspected:
+`tiny-stories-1m-representative-core-pt2e-static-w2a2-nolsq`.
+
+The W2A2 lane does set `TINYSTORIES_PYTORCHAO_ACTIVATION_BITS=2` and
+`TINYSTORIES_PYTORCHAO_WEIGHT_BITS=2`, and the Torch MLIR entry signature uses
+`si8` tensors with clamps to the 2-bit signed range `[-2, 1]`. The important
+finding is that this does not make the graph integer-only. PT2E/XNNPACK emits a
+QDQ-style graph: quantized tensors are repeatedly materialized, dequantized to
+`f32`, computed in float, then requantized.
+
+Measured W2A2 stage sizes:
+
+- `torch.mlir`: 817 lines / 108 KiB.
+- `linalg.mlir`: 3,339 lines / 196 KiB.
+- `cf.mlir`: 11,646 lines / 528 KiB.
+- `handshake.mlir`: 658,770 lines / 34 MiB.
+- `sv/main.sv`: 20,627,507 lines / 1,662,983,018 bytes.
+- `yosys.stat`: `status=oom-bottleneck`, exit code `137`, killed while
+  processing the emitted SystemVerilog bundle.
+
+Torch-level evidence:
+
+- `torch.aten.quantize_per_tensor`: 66 occurrences.
+- `torch.aten.int_repr`: 66 occurrences.
+- `torch.aten._make_per_tensor_quantized_tensor`: 97 occurrences.
+- `torch.aten.dequantize`: 97 occurrences.
+- `torch.aten.clamp`: 163 occurrences.
+- `torch.aten.matmul`: 17 occurrences, still operating on `f32` operands after
+  dequantization.
+- `torch.aten.rsqrt`: 5 occurrences and `torch.aten.tanh`: 2 occurrences,
+  preserving float LayerNorm/GELU-style math.
+
+PT2E FX boundary evidence:
+
+- Added an opt-in dump hook in
+  `TinyStories/model_adapter_representative_core_pt2e_static_quant.py`:
+  set `TINYSTORIES_DUMP_PT2E_QUANTIZED_GRAPH=/path/to/file` to write
+  `quantized.graph` immediately after `convert_pt2e(prepared)` and before the
+  second `torch.export.export(...)`.
+- A direct W2A2 representative-core run produced
+  `/tmp/tinystories-repcore-w2a2-pt2e-quantized.fx.txt`.
+- That FX graph already has 66 `quantized_decomposed.quantize` occurrences, 98
+  `quantized_decomposed.dequantize` occurrences, 4 `aten.matmul` occurrences,
+  11 `aten.add` occurrences, and 2 `aten.tanh` occurrences.
+- The attention matmul path explicitly dequantizes operands, asserts/casts them
+  to `torch.float32`, then calls plain `torch.ops.aten.matmul.default`.
+- LayerNorm is still plain `torch.ops.aten.layer_norm.default` at this boundary
+  and is requantized after the float op. This explains why the FX graph does
+  not yet show `aten.rsqrt`; `rsqrt` appears after later decomposition/import.
+- The GELU-style MLP path is also QDQ around float `aten.pow`, `aten.mul`,
+  `aten.add`, and `aten.tanh`.
+
+PT2E `reference_representation_rewrite` experiment:
+
+- Added the derivation
+  `tiny-stories-1m-representative-core-pt2e-static-w2a2-reference-rewrite-nolsq`.
+  It uses the same representative-core W2A2 non-LSQ lane, but sets
+  `TINYSTORIES_PT2E_REFERENCE_REPRESENTATION_REWRITE=1` so the adapter runs
+  `reference_representation_rewrite(quantized)` immediately after
+  `convert_pt2e(prepared)`.
+- Two adapter compatibility shims were needed for this PyTorch/torch-mlir stack:
+  materialize missing `nn.Linear` biases as zero tensors for the rewrite lane,
+  and decompose `higher_order.out_dtype(op, dtype, ...)` into `op(...)` followed
+  by `aten.to.dtype`, because this torch-mlir FxImporter does not implement
+  `out_dtype`.
+- Built stages:
+  `.#tiny-stories-1m-representative-core-pt2e-static-w2a2-reference-rewrite-nolsq-torch`,
+  `...-linalg`, `...-cf`, and `...-handshake`.
+- Torch MLIR grew to 1,176 lines. It contains no
+  `torch.aten.quantize_per_tensor` and no `torch.aten.dequantize`, but still has
+  17 `torch.aten.matmul`, 2 `torch.aten.tanh`, 267 `torch.aten.to.dtype`, and
+  142 `torch.aten.clamp` occurrences.
+- Several projection/MLP/final matmuls become `si16`, but attention score/value
+  matmuls remain `f32`; torch-mlir warns that those partially traced quantized
+  operands remain in QDQ form.
+- Linalg/CF are larger than the original W2A2 lane: 5,129-line Linalg and
+  20,251-line CF, versus 3,339-line Linalg and 11,646-line CF for the original
+  W2A2 QDQ lane.
+- Handshake is also larger: 1,479,192 lines / 76 MiB, versus 658,770 lines /
+  34 MiB for the original W2A2 QDQ lane.
+- Conclusion: `reference_representation_rewrite` is not the missing PT2E toggle
+  for Task 6 hardware reduction. It removes explicit QDQ ops at the Torch level
+  and exposes some integer matmul structure, but it increases downstream graph
+  size and still preserves float attention/LayerNorm/GELU-style math.
+
+Linalg/CF evidence:
+
+- `linalg.mlir` contains 74 `arith.sitofp`, 65 `arith.fptosi`, 79 `arith.divf`,
+  98 `arith.mulf`, 106 `arith.addf`, 67 `math.roundeven`, 5 `math.rsqrt`, 2
+  `math.tanh`, and 2 `math.fpowi`.
+- `cf.mlir` preserves the same float conversion/arithmetic profile and adds 106
+  `memref.alloc` operations. It still contains 1,336 `f32` mentions versus 552
+  `xi8` mentions.
+
+Root cause:
+
+- The model is value-range-quantized, not structurally integer-lowered. The
+  2-bit settings reduce clamp bounds, but PT2E leaves QDQ islands around
+  ordinary float model math.
+- CIRCT Handshake then lowers this float-heavy tensor/control graph into a
+  fine-grained ready/valid network. The large jump is visible between CF
+  (11.6k lines) and Handshake (658k lines), then SV emission expands that
+  network into a 1.66 GB single-file bundle.
+- The copied float baseline bundle
+  `artifacts/task6/baselines/tiny-stories-1m-baseline-float-selftest-all-memory-utilization`
+  remains the comparison baseline. It already recorded a full-model float
+  selftest estimate of about 40.4M LUT and 58.1M FF, but the W2A2 representative
+  core does not even reach comparable Yosys utilization because SV frontend
+  memory fails first.
+
+Implication:
+
+- Replaying this PT2E QDQ route at W2A2 is not a useful resource-reduction path
+  unless the compiler flow fuses QDQ into true integer kernels before
+  Linalg/CF/Handshake.
+- The next experiment should inspect or implement a pre-CIRCT integer lowering
+  boundary: either fuse quantized matmul/linear/LayerNorm/GELU patterns into
+  integer/fixed-point kernels before Handshake, or switch the architecture
+  decision toward common-kernel v2 manifests where quantization is structural
+  by construction.
+- Any future W2A2 claim should report both value range and compute type. A
+  graph with `si8` inputs plus `f32` matmul/LayerNorm/GELU is not meaningfully
+  hardware-quantized for Task 6 resource purposes.
+
 ## 2026-06-20 - Architecture decision work starts
 
 Task 6 now has an explicit architecture decision artifact:
@@ -35962,3 +36088,67 @@ M2.4 direct-BAR HIL acceptance:
 - This blocks nextpnr-xilinx for the whole-model compiler artifact: nextpnr
   needs a synthesized design JSON, and the current pipeline cannot get past
   Yosys frontend/elaboration for the generated SV on this host.
+
+### 2026-06-24: ExecuTorch-style FPGA backend manifest captures W2A2 representative-core
+
+- Added a repo-local ExecuTorch-shaped backend spike under
+  `src/llm2fpga_executorch_backend/`. It provides a partitioner facade,
+  backend-details-style manifest serialization, a manifest validator, and a CLI
+  that consumes the PT2E quantized FX graph dump before Torch-MLIR/CIRCT.
+- Added focused tests in
+  `scripts/task6/test_llm2fpga_executorch_backend.py`. The tests cover manifest
+  validation, QDQ matmul capture, LayerNorm/GELU/attention family capture, and a
+  fail-before-Handshake unmatched-core-op path.
+- Added flake package
+  `.#tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-manifest`.
+  The derivation regenerates the representative-core W2A2 PT2E export, dumps
+  the quantized FX graph immediately after `convert_pt2e(prepared)`, runs the
+  backend manifest CLI, and stops at manifest generation instead of lowering an
+  unmatched QDQ/float graph into Handshake.
+- Verification:
+  `python3 -m unittest scripts/task6/test_llm2fpga_executorch_backend.py`
+  passed with 6 tests.
+  `nix eval` / `nix build` in this sandbox are blocked by Nix runtime
+  constraints (`/nix/var/nix/db/big-lock` denied and read-only `/nix/store` in local
+  mode), so the manifest package was not rebuilt here in-session.
+- The generated manifest has `backend_id=llm2fpga.executorch`,
+  `schema_version=1`, `activation_bits=2`, `weight_bits=2`, and all four
+  required backend families:
+  `fpga.quantized_matmul`, `fpga.layer_norm`,
+  `fpga.softmax_or_attention`, and `fpga.gelu`.
+  The generated `unmatched_core_ops.json` is empty.
+- Interpretation: this is the first reproducible pre-CIRCT backend-capture
+  artifact for the W2A2 representative-core failure mode. It is not yet a full
+  fix: the manifest currently proves graph capture and fail-closed behavior,
+  not reusable integer/fixed-point RTL kernels, resource numbers, or board
+  acceptance. The next compiler-pipeline step is to lower these manifest ops to
+  common-kernel v2 contracts or fixed-point kernel payloads instead of emitting
+  scalarized float/QDQ Handshake.
+- Follow-up GitHub search for `ExecuTorch FPGA`, `ExecuTorch HDL`,
+  `ExecuTorch RTL`, `ExecuTorch HLS`, and delegate/accelerator variants did not
+  find a reusable open-source ExecuTorch FPGA backend. Relevant references were
+  backend-shape examples rather than drop-in code: Eliza's prototype
+  `e1_executorch_delegate.py` mirrors a no-import partition/preprocess surface
+  and emits JSON descriptor artifacts; upstream Cadence shows quantizer pattern
+  preservation for matmul/layer norm/softmax; Qualcomm and NXP show concrete
+  `BackendDetails.preprocess` payload serialization patterns. Conclusion:
+  continue with the local LLM2FPGA backend skeleton, but evolve it toward the
+  real `BackendDetails`/`CompileSpec`/`PreprocessResult` surface when
+  ExecuTorch is available.
+
+### 2026-06-24: ExecuTorch manifest spike corrected
+
+- Removed `src/llm2fpga_executorch_backend/lower_manifest_to_sv.py` because it
+  bypassed the compiler pipeline and generated a synthetic RTL shell for fit
+  probing.
+- Removed flake packages
+  `.#tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-sv`,
+  `.#tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-json`,
+  `.#tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-utilization`,
+  and
+  `.#tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-fit-gate`.
+- Kept `.#tiny-stories-1m-representative-core-pt2e-static-w2a2-executorch-fpga-backend-manifest`
+  as the current compiler-spike checkpoint.
+- Updated interpretation: this manifest proves pre-CIRCT backend capture and
+  fail-closed unmatched-core behavior, but does not yet establish that CIRCT,
+  Yosys, nextpnr-xilinx, or board mapping can be passed for representative-core.
