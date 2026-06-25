@@ -57,6 +57,26 @@ class BackendSurveySchemaTest(unittest.TestCase):
             entrypoints,
         )
 
+    def test_cadence_quantizer_candidates_include_no_arg_variants(self) -> None:
+        entrypoints = backend_quantizer_entrypoints("cadence")
+
+        self.assertIn(
+            "executorch.backends.cadence.aot.quantizer.quantizer.CadenceDefaultQuantizer",
+            entrypoints,
+        )
+        self.assertIn(
+            "executorch.backends.cadence.aot.quantizer.quantizer.CadenceW8A32MixedQuantizer",
+            entrypoints,
+        )
+        self.assertIn(
+            "executorch.backends.cadence.aot.quantizer.quantizer.CadenceWith16BitLinearActivationsQuantizer",
+            entrypoints,
+        )
+        self.assertIn(
+            "executorch.backends.cadence.aot.quantizer.quantizer.CadenceWith16BitMatmulActivationsQuantizer",
+            entrypoints,
+        )
+
     def test_vendor_backend_classification_is_sdk_gated(self) -> None:
         info = classify_backend("qualcomm")
         self.assertEqual(info["backend"], "qualcomm")
