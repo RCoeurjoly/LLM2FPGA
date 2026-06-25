@@ -29,15 +29,20 @@ The first success criterion is structural, not accuracy: the tiny linear/GEMV
 probe should reduce or eliminate `float_linear_after_dequant` and expose
 integer/fixed-point compute before Torch-MLIR.
 
-Result: the first backend quantizer graph-shape probe reported `skip` for
+Result: the first backend quantizer graph-shape probe now runs after adding
+`python313Packages.torchao` to the Nix 26.05 ExecuTorch survey environment and
+falling back to `torchao.quantization.pt2e.quantize_pt2e` for
+`prepare_pt2e` / `convert_pt2e`. The probe reported `fail` for
 `xnnpack/executorch.backends.xnnpack.quantizer.xnnpack_quantizer.XNNPACKQuantizer`.
-The blocking reason was `torch_pt2e_not_importable`:
-`ModuleNotFoundError: No module named 'torch.ao.quantization.quantize_pt2e'`.
-This means the Nix 26.05 ExecuTorch survey environment can inventory maintained
-backend quantizers, but it is not yet the right environment for running the PT2E
-conversion probe. The next fix is to compose an environment with both the
-ExecuTorch backend quantizer modules and PyTorch PT2E `prepare_pt2e` /
-`convert_pt2e` APIs.
+The post-`convert_pt2e` tiny linear graph still contains
+`float_linear_after_dequant`, with `1` `aten.linear`, `3`
+`quantized_decomposed.dequantize_per_tensor`, and `2`
+`quantized_decomposed.quantize_per_tensor` occurrences.
+
+This fixes the environment blocker and gives a stronger conclusion: the
+maintained XNNPACK quantizer is runnable, but by itself it still shapes this
+linear/GEMV slice as QDQ around float `aten.linear`, not as visible
+integer/fixed-point compute for Torch-MLIR.
 
 ## 2026-06-24 - W2A2 representative-core SV postmortem
 

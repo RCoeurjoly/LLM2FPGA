@@ -101,12 +101,16 @@ delegates. They may annotate more patterns but still emit QDQ around float ATen
 ops unless the backend lowering consumes those annotations.
 
 Local result: `task6-executorch-official-backend-survey` finds an importable
-ExecuTorch XNNPACK quantizer in the Nix 26.05 ExecuTorch environment, but
-`task6-executorch-backend-quantizer-graph-shape-probe` currently reports
-`torch_pt2e_not_importable` because that same environment lacks
-`torch.ao.quantization.quantize_pt2e`. The immediate follow-up is to run the
-probe in a Python environment that contains both the backend quantizer and PT2E
-conversion APIs.
+ExecuTorch XNNPACK quantizer in the Nix 26.05 ExecuTorch environment, and
+`task6-executorch-backend-quantizer-graph-shape-probe` now includes
+`python313Packages.torchao` so it can use the PT2E APIs from
+`torchao.quantization.pt2e.quantize_pt2e`. The probe runs, but reports
+`status=fail`: the tiny linear graph still contains
+`float_linear_after_dequant`, with `1` `aten.linear`, `3`
+`quantized_decomposed.dequantize_per_tensor`, and `2`
+`quantized_decomposed.quantize_per_tensor` occurrences. So XNNPACK's maintained
+quantizer is importable and runnable, but it still produces a QDQ-around-float
+linear shape for this Torch-MLIR use case.
 
 Verdict: **best first integration experiment**, because it uses maintained
 backend-owned quantization policy and answers our structural question before

@@ -44,6 +44,37 @@ def import_object(dotted_name: str) -> object:
     return getattr(module, object_name)
 
 
+def load_pt2e_quantize_api() -> tuple[object, object]:
+    module_names = [
+        "torch.ao.quantization.quantize_pt2e",
+        "torchao.quantization.pt2e.quantize_pt2e",
+    ]
+    last_error: Exception | None = None
+    for module_name in module_names:
+        try:
+            module = importlib.import_module(module_name)
+            return module.prepare_pt2e, module.convert_pt2e
+        except Exception as exc:
+            last_error = exc
+    if last_error is None:
+        raise ModuleNotFoundError("no PT2E quantize API candidates configured")
+    raise last_error
+
+
+def configure_quantizer_if_supported(quantizer_obj: object, quantizer: str) -> object:
+    module_name, _, _object_name = quantizer.rpartition(".")
+    if not module_name:
+        return quantizer_obj
+    try:
+        module = importlib.import_module(module_name)
+        get_config = getattr(module, "get_symmetric_quantization_config")
+        set_global = getattr(quantizer_obj, "set_global")
+    except Exception:
+        return quantizer_obj
+    set_global(get_config())
+    return quantizer_obj
+
+
 def choose_quantizer(backend: str, explicit_quantizer: str | None) -> str | None:
     if explicit_quantizer is not None:
         return explicit_quantizer
@@ -55,7 +86,7 @@ def run_tiny_pt2e_probe(*, backend: str, quantizer: str) -> dict[str, Any]:
     try:
         import torch
         from torch import nn
-        from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
+        prepare_pt2e, convert_pt2e = load_pt2e_quantize_api()
     except Exception as exc:
         return make_skip_report(
             backend=backend,
@@ -87,7 +118,7 @@ def run_tiny_pt2e_probe(*, backend: str, quantizer: str) -> dict[str, Any]:
     example_inputs = (torch.randn(2, 4),)
 
     try:
-        quantizer_obj = quantizer_cls()
+        quantizer_obj = configure_quantizer_if_supported(quantizer_cls(), quantizer)
     except Exception as exc:
         return make_skip_report(
             backend=backend,

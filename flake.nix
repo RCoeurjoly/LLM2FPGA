@@ -88,7 +88,8 @@
             pythonImportsCheck = [ ];
           });
         executorch2605SurveyPython =
-          pkgs2605.python3.withPackages (_: [ executorch2605ImportOnly ]);
+          pkgs2605.python3.withPackages
+            (ps: [ executorch2605ImportOnly ps.torchao ]);
         pkgsLlvm21 = import nixpkgs-llvm21 {
           inherit system;
           config.allowUnfreePredicate = pkg:
