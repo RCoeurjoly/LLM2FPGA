@@ -1,6 +1,6 @@
 # ExecuTorch Backend Quantizer Graph-Shape Survey Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking; completed steps are marked `- [x]`.
 
 **Goal:** Add a cheap, maintained-tool survey that checks whether ExecuTorch backend quantizers can shape a PT2E graph into a more integer/fixed-point structure before Torch-MLIR import.
 
@@ -46,7 +46,7 @@
 - Modify: `scripts/task6/executorch_backend_survey.py`
 - Modify: `scripts/task6/test_executorch_backend_survey.py`
 
-- [ ] **Step 1: Write failing tests for quantizer candidates**
+- [x] **Step 1: Write failing tests for quantizer candidates**
 
 Add these imports in `scripts/task6/test_executorch_backend_survey.py`:
 
@@ -97,7 +97,7 @@ Add these tests to `BackendSurveySchemaTest`:
         self.assertEqual(entry["available_quantizers"], [])
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -107,7 +107,7 @@ python3 -m unittest scripts/task6/test_executorch_backend_survey.py
 
 Expected: FAIL with `ImportError: cannot import name 'backend_quantizer_entrypoints'`.
 
-- [ ] **Step 3: Implement quantizer metadata**
+- [x] **Step 3: Implement quantizer metadata**
 
 In `scripts/task6/executorch_backend_survey.py`, add these report keys:
 
@@ -204,7 +204,7 @@ In `probe_xnnpack_lowering` and `probe_backend_by_import_only`, after creating `
     entry["quantizer_import_errors"] = quantizer_imports["import_errors"]
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run:
 
@@ -214,7 +214,7 @@ python3 -m unittest scripts/task6/test_executorch_backend_survey.py
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Because this workspace has unrelated dirty changes, inspect before committing:
 
@@ -236,7 +236,7 @@ git commit -m "feat: inventory executorch backend quantizers"
 - Modify: `scripts/task6/pt2e_graph_shape_audit.py`
 - Modify: `scripts/task6/test_pt2e_graph_shape_audit.py`
 
-- [ ] **Step 1: Write failing audit test**
+- [x] **Step 1: Write failing audit test**
 
 Add this test to `scripts/task6/test_pt2e_graph_shape_audit.py`:
 
@@ -259,7 +259,7 @@ Add this test to `scripts/task6/test_pt2e_graph_shape_audit.py`:
         self.assertEqual(report["op_counts"]["aten.linear"], 1)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -269,7 +269,7 @@ python3 -m unittest scripts/task6/test_pt2e_graph_shape_audit.py
 
 Expected: FAIL with missing `aten.linear` count or missing `float_linear_after_dequant`.
 
-- [ ] **Step 3: Implement linear detection**
+- [x] **Step 3: Implement linear detection**
 
 In `scripts/task6/pt2e_graph_shape_audit.py`, add this entry to `OP_PATTERNS`:
 
@@ -314,7 +314,7 @@ Replace the matmul check with:
         )
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run:
 
@@ -324,7 +324,7 @@ python3 -m unittest scripts/task6/test_pt2e_graph_shape_audit.py
 
 Expected: PASS.
 
-- [ ] **Step 5: Rebuild the existing graph audit**
+- [x] **Step 5: Rebuild the existing graph audit**
 
 Run:
 
@@ -334,7 +334,7 @@ nix build .#tiny-stories-1m-representative-core-pt2e-static-w2a2-graph-shape-aud
 
 Expected: build succeeds. The report should still fail, now with both attention and linear structural reasons visible if the post-PT2E graph contains dequantized `aten.linear`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/task6/pt2e_graph_shape_audit.py scripts/task6/test_pt2e_graph_shape_audit.py
@@ -347,7 +347,7 @@ git commit -m "feat: flag float linear after dequant"
 - Create: `scripts/task6/backend_quantizer_graph_shape_probe.py`
 - Create: `scripts/task6/test_backend_quantizer_graph_shape_probe.py`
 
-- [ ] **Step 1: Write tests for skip/report behavior**
+- [x] **Step 1: Write tests for skip/report behavior**
 
 Create `scripts/task6/test_backend_quantizer_graph_shape_probe.py`:
 
@@ -436,7 +436,7 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -446,7 +446,7 @@ python3 -m unittest scripts/task6/test_backend_quantizer_graph_shape_probe.py
 
 Expected: FAIL because `scripts.task6.backend_quantizer_graph_shape_probe` does not exist.
 
-- [ ] **Step 3: Implement the probe CLI**
+- [x] **Step 3: Implement the probe CLI**
 
 Create `scripts/task6/backend_quantizer_graph_shape_probe.py`:
 
@@ -599,7 +599,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run:
 
@@ -609,7 +609,7 @@ python3 -m unittest scripts/task6/test_backend_quantizer_graph_shape_probe.py
 
 Expected: PASS.
 
-- [ ] **Step 5: Run all Task 6 survey/audit tests**
+- [x] **Step 5: Run all Task 6 survey/audit tests**
 
 Run:
 
@@ -622,7 +622,7 @@ python3 -m unittest \
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/task6/backend_quantizer_graph_shape_probe.py scripts/task6/test_backend_quantizer_graph_shape_probe.py
@@ -634,7 +634,7 @@ git commit -m "feat: probe backend quantizer graph shape"
 **Files:**
 - Modify: `flake.nix`
 
-- [ ] **Step 1: Add quantizer inventory output to existing survey target**
+- [x] **Step 1: Add quantizer inventory output to existing survey target**
 
 In `flake.nix`, keep `task6ExecuTorchOfficialBackendSurvey` as the package name and rely on the updated Python script to add quantizer fields to `survey.json`.
 
@@ -646,7 +646,7 @@ nix build .#task6-executorch-official-backend-survey --no-link --print-out-paths
 
 Expected: build succeeds and the resulting `survey.json` contains `quantizer_entrypoints`, `available_quantizers`, and `quantizer_import_errors` for each backend.
 
-- [ ] **Step 2: Add a tiny graph-shape probe target**
+- [x] **Step 2: Add a tiny graph-shape probe target**
 
 Near `task6ExecuTorchOfficialBackendSurvey`, add:
 
@@ -671,7 +671,7 @@ In `packages`, expose:
             task6ExecuTorchBackendQuantizerGraphShapeProbe;
 ```
 
-- [ ] **Step 3: Parse the flake**
+- [x] **Step 3: Parse the flake**
 
 Run:
 
@@ -681,7 +681,7 @@ nix-instantiate --parse flake.nix >/dev/null
 
 Expected: exit code 0.
 
-- [ ] **Step 4: Build the new target**
+- [x] **Step 4: Build the new target**
 
 Run:
 
@@ -691,7 +691,7 @@ nix build .#task6-executorch-backend-quantizer-graph-shape-probe --no-link --pri
 
 Expected: build succeeds. If the quantizer cannot run in the pinned environment, `xnnpack-report.json` should be a structured `skip`, not a build failure.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Because `flake.nix` is already mixed with unrelated Task 6 work in this workspace, inspect carefully:
 
@@ -713,7 +713,7 @@ git commit -m "nix: add backend quantizer graph-shape probe"
 - Modify: `docs/task6-pt2e-linear-gemv-graph-shaping-survey.md`
 - Modify: `docs/task6-resource-usage-reduction-notes.md`
 
-- [ ] **Step 1: Update the graph-shaping survey recommendation**
+- [x] **Step 1: Update the graph-shaping survey recommendation**
 
 In `docs/task6-pt2e-linear-gemv-graph-shaping-survey.md`, insert this section before the current "Option 1: PT2E Custom Quantizer Annotation" and renumber later options if desired:
 
@@ -760,7 +760,7 @@ Add this source anchor:
   `https://docs.pytorch.org/executorch/stable/backends/nxp/nxp-quantization.html`.
 ```
 
-- [ ] **Step 2: Add a short Task 6 note**
+- [x] **Step 2: Add a short Task 6 note**
 
 Near the top of `docs/task6-resource-usage-reduction-notes.md`, add:
 
@@ -778,7 +778,7 @@ probe should reduce or eliminate `float_linear_after_dequant` and expose
 integer/fixed-point compute before Torch-MLIR.
 ```
 
-- [ ] **Step 3: Commit docs**
+- [x] **Step 3: Commit docs**
 
 ```bash
 git add docs/task6-pt2e-linear-gemv-graph-shaping-survey.md docs/task6-resource-usage-reduction-notes.md
@@ -790,7 +790,7 @@ git commit -m "docs: recommend backend quantizer graph-shape probe"
 **Files:**
 - No new source edits unless verification exposes a specific bug.
 
-- [ ] **Step 1: Run Python tests**
+- [x] **Step 1: Run Python tests**
 
 Run:
 
@@ -804,7 +804,7 @@ python3 -m unittest \
 
 Expected: PASS.
 
-- [ ] **Step 2: Parse the flake**
+- [x] **Step 2: Parse the flake**
 
 Run:
 
@@ -814,7 +814,7 @@ nix-instantiate --parse flake.nix >/dev/null
 
 Expected: exit code 0.
 
-- [ ] **Step 3: Build inventory target**
+- [x] **Step 3: Build inventory target**
 
 Run:
 
@@ -824,7 +824,7 @@ nix build .#task6-executorch-official-backend-survey --no-link --print-out-paths
 
 Expected: build succeeds.
 
-- [ ] **Step 4: Build graph-shape probe target**
+- [x] **Step 4: Build graph-shape probe target**
 
 Run:
 
@@ -834,7 +834,7 @@ nix build .#task6-executorch-backend-quantizer-graph-shape-probe --no-link --pri
 
 Expected: build succeeds. The JSON status may be `skip`, `fail`, or `pass`; only a Python crash or missing structured report is a failure.
 
-- [ ] **Step 5: Capture the outcome**
+- [x] **Step 5: Capture the outcome**
 
 Open the generated JSON report and add one short outcome paragraph to `docs/task6-resource-usage-reduction-notes.md`:
 
@@ -848,7 +848,7 @@ writing a Task 6-specific quantizer.
 
 Replace the angle-bracket fields with exact values from the generated JSON.
 
-- [ ] **Step 6: Commit outcome note if changed**
+- [x] **Step 6: Commit outcome note if changed**
 
 ```bash
 git add docs/task6-resource-usage-reduction-notes.md
@@ -875,3 +875,35 @@ Type consistency:
 - `backend_quantizer_entrypoints`, `attempt_quantizer_imports`, and `object_import_status` are defined before tests use them.
 - Probe JSON uses stable fields: `schema_version`, `backend`, `quantizer`, `status`, `skip_reason`, `detail`, `graph_shape_report`.
 - The audit extension uses `aten.linear` and `float_linear_after_dequant` consistently.
+
+## Execution Notes
+
+Executed on branch `task6-crisp`.
+
+The implementation followed the plan's core architecture: import-only backend
+survey first, then PT2E graph-shape probe, then audit-based acceptance. Two
+details changed during execution because the local Nix 26.05 environment made
+them necessary:
+
+- The PT2E conversion API is available through
+  `torchao.quantization.pt2e.quantize_pt2e`, not
+  `torch.ao.quantization.quantize_pt2e`, so the probe now falls back to the
+  `torchao` path and the Nix survey Python includes `python313Packages.torchao`.
+- The graph-shape probe target now runs all configured backend quantizer
+  candidates with `--all-backends` and writes an aggregate `report.json`,
+  instead of only writing `xnnpack-report.json`.
+
+Final aggregate result:
+
+```text
+status_counts: { fail: 2, skip: 10 }
+
+fail  xnnpack  XNNPACKQuantizer      float_linear_after_dequant
+fail  example  ExampleQuantizer      float_linear_unquantized
+skip  remaining candidates           import/constructor failures
+```
+
+The stricter audit now treats both QDQ-around-float linear and bare float
+`aten.linear` as non-structural. The conclusion is that maintained backend
+quantizers available in this environment do not currently expose a structural
+integer/fixed-point linear/GEMV graph before Torch-MLIR.
