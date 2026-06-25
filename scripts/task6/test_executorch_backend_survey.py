@@ -9,6 +9,7 @@ from unittest import mock
 
 from scripts.task6.executorch_backend_survey import (
     BACKEND_CANDIDATES,
+    backend_quantizer_entrypoints,
     classify_backend,
     classify_graph_transparency,
     attempt_backend_imports,
@@ -36,6 +37,26 @@ class BackendSurveySchemaTest(unittest.TestCase):
         self.assertFalse(info["requires_hardware"])
         self.assertIn("executorch.backends.xnnpack", info["python_entrypoints"][0])
 
+    def test_xnnpack_quantizer_candidates_include_pt2e_entrypoints(self) -> None:
+        entrypoints = backend_quantizer_entrypoints("xnnpack")
+
+        self.assertIn(
+            "torch.ao.quantization.quantizer.xnnpack_quantizer.XNNPACKQuantizer",
+            entrypoints,
+        )
+        self.assertIn(
+            "executorch.backends.xnnpack.quantizer.xnnpack_quantizer.XNNPACKQuantizer",
+            entrypoints,
+        )
+
+    def test_nxp_quantizer_candidate_matches_official_docs(self) -> None:
+        entrypoints = backend_quantizer_entrypoints("nxp")
+
+        self.assertIn(
+            "executorch.backends.nxp.quantizer.neutron_quantizer.NeutronQuantizer",
+            entrypoints,
+        )
+
     def test_vendor_backend_classification_is_sdk_gated(self) -> None:
         info = classify_backend("qualcomm")
         self.assertEqual(info["backend"], "qualcomm")
@@ -47,6 +68,15 @@ class BackendSurveySchemaTest(unittest.TestCase):
         self.assertEqual(entry["status"], "skip")
         self.assertEqual(entry["torch_mlir_status"], "skip")
         self.assertEqual(entry["graph_transparency"], "unknown")
+
+    def test_report_entry_contains_quantizer_inventory_keys(self) -> None:
+        entry = make_report_entry("nxp", status="skip", skip_reason="executorch_backend_not_importable")
+        validate_report_entry(entry)
+
+        self.assertIn("quantizer_entrypoints", entry)
+        self.assertIn("available_quantizers", entry)
+        self.assertIn("quantizer_import_errors", entry)
+        self.assertEqual(entry["available_quantizers"], [])
 
     def test_delegate_call_marks_graph_opaque(self) -> None:
         transparency = classify_graph_transparency("executorch_call_delegate(lowered_module_0, arg0)")
@@ -92,7 +122,7 @@ class BackendSurveySchemaTest(unittest.TestCase):
         self.assertEqual(entries[0]["skip_reason"], "executorch_backend_not_importable")
 
     def test_inventory_backends_uses_xnnpack_probe_when_partitioner_is_available(self) -> None:
-        with mock.patch("scripts.task6.executorch_backend_survey.module_available", return_value=True):
+        with mock.patch("scripts.task6.executorch_backend_survey.module_import_status", return_value=(True, None)):
             entries = inventory_backends(["xnnpack"])
 
         self.assertEqual(len(entries), 1)
@@ -112,10 +142,15 @@ class BackendSurveySchemaTest(unittest.TestCase):
         self.assertEqual(result["available_modules"], ["json"])
 
     def test_inventory_backends_reports_generic_backend_import_only_probe(self) -> None:
-        def module_available(module_name: str) -> bool:
-            return module_name == "executorch.backends.example"
+        def module_import_status(module_name: str) -> tuple[bool, str | None]:
+            if module_name == "executorch.backends.example":
+                return True, None
+            return False, f"ModuleNotFoundError: No module named {module_name!r}"
 
-        with mock.patch("scripts.task6.executorch_backend_survey.module_available", side_effect=module_available):
+        with mock.patch(
+            "scripts.task6.executorch_backend_survey.module_import_status",
+            side_effect=module_import_status,
+        ):
             entries = inventory_backends(["example"])
 
         self.assertEqual(len(entries), 1)

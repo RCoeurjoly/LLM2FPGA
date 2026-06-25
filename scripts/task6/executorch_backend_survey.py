@@ -51,6 +51,10 @@ REQUIRED_REPORT_KEYS = {
     "hw_mlir_bytes",
     "hw_mlir_lines",
     "failure_signature",
+    "import_errors",
+    "quantizer_entrypoints",
+    "available_quantizers",
+    "quantizer_import_errors",
 }
 
 
@@ -89,19 +93,94 @@ def backend_entrypoints(backend: str) -> list[str]:
     return mapping.get(backend, [f"executorch.backends.{backend}"])
 
 
-def module_available(module_name: str) -> bool:
+def backend_quantizer_entrypoints(backend: str) -> list[str]:
+    mapping = {
+        "xnnpack": [
+            "executorch.backends.xnnpack.quantizer.xnnpack_quantizer.XNNPACKQuantizer",
+            "torch.ao.quantization.quantizer.xnnpack_quantizer.XNNPACKQuantizer",
+        ],
+        "cadence": [
+            "executorch.backends.cadence.aot.quantizer.quantizer.CadenceQuantizer",
+            "executorch.backends.cadence.quantizer.quantizer.CadenceQuantizer",
+        ],
+        "arm": [
+            "executorch.backends.arm.quantizer.arm_quantizer.ArmQuantizer",
+            "executorch.backends.arm.quantizer.ethosu_quantizer.EthosUQuantizer",
+        ],
+        "cortex_m": [
+            "executorch.backends.cortex_m.quantizer.cortex_m_quantizer.CortexMQuantizer",
+        ],
+        "nxp": [
+            "executorch.backends.nxp.quantizer.neutron_quantizer.NeutronQuantizer",
+        ],
+        "qualcomm": [
+            "executorch.backends.qualcomm.quantizer.quantizer.Quantizer",
+            "executorch.backends.qualcomm.quantizer.qnn_quantizer.QnnQuantizer",
+        ],
+        "example": [
+            "executorch.backends.example.example_quantizer.ExampleQuantizer",
+        ],
+        "test": [
+            "executorch.backends.test.test_quantizer.TestQuantizer",
+        ],
+    }
+    return mapping.get(backend, [])
+
+
+def module_import_status(module_name: str) -> tuple[bool, str | None]:
     try:
         importlib.import_module(module_name)
-    except Exception:
-        return False
-    return True
+    except Exception as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+    return True, None
+
+
+def object_import_status(dotted_name: str) -> tuple[bool, str | None]:
+    module_name, _, object_name = dotted_name.rpartition(".")
+    if not module_name or not object_name:
+        return False, "ValueError: dotted object path must include module and object name"
+    try:
+        module = importlib.import_module(module_name)
+        getattr(module, object_name)
+    except Exception as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+    return True, None
+
+
+def module_available(module_name: str) -> bool:
+    available, _ = module_import_status(module_name)
+    return available
 
 
 def attempt_backend_imports(module_names: list[str]) -> dict[str, Any]:
-    available_modules = [name for name in module_names if module_available(name)]
+    available_modules = []
+    import_errors = {}
+    for name in module_names:
+        available, error = module_import_status(name)
+        if available:
+            available_modules.append(name)
+        elif error is not None:
+            import_errors[name] = error
     return {
         "available": bool(available_modules),
         "available_modules": available_modules,
+        "import_errors": import_errors,
+    }
+
+
+def attempt_quantizer_imports(dotted_names: list[str]) -> dict[str, Any]:
+    available_quantizers = []
+    import_errors = {}
+    for name in dotted_names:
+        available, error = object_import_status(name)
+        if available:
+            available_quantizers.append(name)
+        elif error is not None:
+            import_errors[name] = error
+    return {
+        "available": bool(available_quantizers),
+        "available_quantizers": available_quantizers,
+        "import_errors": import_errors,
     }
 
 
@@ -127,6 +206,10 @@ def make_report_entry(backend: str, *, status: str, skip_reason: str | None = No
         "hw_mlir_bytes": None,
         "hw_mlir_lines": None,
         "failure_signature": skip_reason,
+        "import_errors": {},
+        "quantizer_entrypoints": backend_quantizer_entrypoints(backend),
+        "available_quantizers": [],
+        "quantizer_import_errors": {},
     }
     validate_report_entry(entry)
     return entry
@@ -154,13 +237,25 @@ def validate_report_entry(entry: dict[str, Any]) -> None:
 
 
 def probe_xnnpack_lowering() -> dict[str, Any]:
-    if not module_available("executorch.backends.xnnpack.partition.xnnpack_partitioner"):
-        return make_report_entry("xnnpack", status="skip", skip_reason="executorch_xnnpack_not_importable")
+    info = classify_backend("xnnpack")
+    imports = attempt_backend_imports(info["python_entrypoints"])
+    if not imports["available"]:
+        entry = make_report_entry("xnnpack", status="skip", skip_reason="executorch_xnnpack_not_importable")
+        entry["import_errors"] = imports["import_errors"]
+        quantizer_imports = attempt_quantizer_imports(entry["quantizer_entrypoints"])
+        entry["available_quantizers"] = quantizer_imports["available_quantizers"]
+        entry["quantizer_import_errors"] = quantizer_imports["import_errors"]
+        validate_report_entry(entry)
+        return entry
     entry = make_report_entry(
         "xnnpack",
         status="skip",
         skip_reason="xnnpack_probe_requires_executorch_runtime_wiring",
     )
+    entry["python_entrypoints"] = imports["available_modules"]
+    quantizer_imports = attempt_quantizer_imports(entry["quantizer_entrypoints"])
+    entry["available_quantizers"] = quantizer_imports["available_quantizers"]
+    entry["quantizer_import_errors"] = quantizer_imports["import_errors"]
     entry["graph_transparency"] = "unknown"
     validate_report_entry(entry)
     return entry
@@ -170,10 +265,19 @@ def probe_backend_by_import_only(backend: str) -> dict[str, Any]:
     info = classify_backend(backend)
     imports = attempt_backend_imports(info["python_entrypoints"])
     if not imports["available"]:
-        return make_report_entry(backend, status="skip", skip_reason="executorch_backend_not_importable")
+        entry = make_report_entry(backend, status="skip", skip_reason="executorch_backend_not_importable")
+        entry["import_errors"] = imports["import_errors"]
+        quantizer_imports = attempt_quantizer_imports(entry["quantizer_entrypoints"])
+        entry["available_quantizers"] = quantizer_imports["available_quantizers"]
+        entry["quantizer_import_errors"] = quantizer_imports["import_errors"]
+        validate_report_entry(entry)
+        return entry
 
     entry = make_report_entry(backend, status="skip", skip_reason="backend_lowering_probe_not_connected")
     entry["python_entrypoints"] = imports["available_modules"]
+    quantizer_imports = attempt_quantizer_imports(entry["quantizer_entrypoints"])
+    entry["available_quantizers"] = quantizer_imports["available_quantizers"]
+    entry["quantizer_import_errors"] = quantizer_imports["import_errors"]
     validate_report_entry(entry)
     return entry
 
