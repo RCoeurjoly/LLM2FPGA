@@ -70,6 +70,48 @@ target is integer/fixed-point structural lowering:
 - no `aten.matmul` or `aten.linear` consuming dequantized `f32` operands on
   hardware-critical paths.
 
+## Option 0: Maintained ExecuTorch Backend Quantizers
+
+This is now the first experiment to run before writing a Task 6-specific
+quantizer. ExecuTorch backends such as NXP document a backend-owned PT2E
+quantizer flow:
+
+```text
+torch.export -> backend quantizer -> prepare_pt2e -> calibrate
+-> convert_pt2e -> export/lower with the normal flow
+```
+
+The key point for Task 6 is that `convert_pt2e` returns a regular PyTorch
+model. That means we can use the backend quantizer as a graph-shaping tool,
+then export or import the resulting model through our existing Torch-MLIR path
+without committing to ExecuTorch delegation.
+
+For Task 6, the maintained-backend experiment is:
+
+1. inventory importable backend quantizers in the pinned Nix environment;
+2. run each importable quantizer on a tiny linear/GEMV slice;
+3. dump the post-`convert_pt2e` FX graph;
+4. run `pt2e_graph_shape_audit.py`;
+5. accept the path only if the graph reduces or removes
+   `float_linear_after_dequant` and exposes integer/fixed-point compute before
+   Torch-MLIR.
+
+Expected risk: backend quantizers often target backend partitioners and runtime
+delegates. They may annotate more patterns but still emit QDQ around float ATen
+ops unless the backend lowering consumes those annotations.
+
+Local result: `task6-executorch-official-backend-survey` finds an importable
+ExecuTorch XNNPACK quantizer in the Nix 26.05 ExecuTorch environment, but
+`task6-executorch-backend-quantizer-graph-shape-probe` currently reports
+`torch_pt2e_not_importable` because that same environment lacks
+`torch.ao.quantization.quantize_pt2e`. The immediate follow-up is to run the
+probe in a Python environment that contains both the backend quantizer and PT2E
+conversion APIs.
+
+Verdict: **best first integration experiment**, because it uses maintained
+backend-owned quantization policy and answers our structural question before
+any custom graph compiler work.
+
 ## Option 1: PT2E Custom Quantizer Annotation
 
 This is the most maintained path for graph-shaping intent.
@@ -258,6 +300,8 @@ before Torch-MLIR import.
   `https://docs.pytorch.org/ao/stable/tutorials_source/pt2e_quant_ptq.html`.
 - PyTorch AO custom PT2E quantizer guide:
   `https://docs.pytorch.org/ao/stable/tutorials_source/pt2e_quantizer.html`.
+- ExecuTorch NXP backend quantization guide:
+  `https://docs.pytorch.org/executorch/stable/backends/nxp/nxp-quantization.html`.
 - TorchAO quantization API reference:
   `https://docs.pytorch.org/ao/stable/api_ref_quantization.html`.
 - PyTorch FX graph rewriting docs:

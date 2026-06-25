@@ -4,6 +4,41 @@ This file is the working Task 6 note referenced from `AGENTS.md`. It is the
 right place for Task 6 planning details while `docs/project-plan*` remain
 reviewer-controlled.
 
+## 2026-06-25 - PT2E graph-shape audit gate
+
+Added the lightweight audit target
+`tiny-stories-1m-representative-core-pt2e-static-w2a2-graph-shape-audit`.
+It stops before Torch-MLIR lowering, preserves the post-`convert_pt2e`
+`quantized.fx.txt` dump, and emits `report.json` plus `report.md` with
+operation counts and structural integer/fixed-point gate findings.
+
+This target is the first feedback-loop step for the graph-shaping recommendation
+in `docs/task6-torch-mlir-import-and-graph-shaping.md`: do not spend CF,
+Handshake, SV, or Yosys cycles until the post-PT2E graph shows the desired
+integer/fixed-point structure.
+
+## 2026-06-25 - ExecuTorch backend quantizer graph-shape probe
+
+Added a plan and probe target to test maintained ExecuTorch backend quantizers
+as PT2E graph-shaping tools before Torch-MLIR import. The important distinction
+is that we are not feeding an opaque ExecuTorch delegate into Torch-MLIR. We are
+testing whether a backend quantizer can produce a better regular
+post-`convert_pt2e` PyTorch graph, then applying the existing graph-shape audit.
+
+The first success criterion is structural, not accuracy: the tiny linear/GEMV
+probe should reduce or eliminate `float_linear_after_dequant` and expose
+integer/fixed-point compute before Torch-MLIR.
+
+Result: the first backend quantizer graph-shape probe reported `skip` for
+`xnnpack/executorch.backends.xnnpack.quantizer.xnnpack_quantizer.XNNPACKQuantizer`.
+The blocking reason was `torch_pt2e_not_importable`:
+`ModuleNotFoundError: No module named 'torch.ao.quantization.quantize_pt2e'`.
+This means the Nix 26.05 ExecuTorch survey environment can inventory maintained
+backend quantizers, but it is not yet the right environment for running the PT2E
+conversion probe. The next fix is to compose an environment with both the
+ExecuTorch backend quantizer modules and PyTorch PT2E `prepare_pt2e` /
+`convert_pt2e` APIs.
+
 ## 2026-06-24 - W2A2 representative-core SV postmortem
 
 Artifact inspected:
